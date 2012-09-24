@@ -8,4 +8,4 @@ from Engine	import :: ServiceFormat
 from IWorld	import :: IWorld
 import iTaskClass
 
-webService :: !(Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+webService :: !(HTTPRequest -> Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a

@@ -1,9 +1,19 @@
-Ext.define('itasks.component.edit.Date',{
+Ext.define('itwc.component.edit.Date',{
+	alias: 'widget.itwc_edit_date',
 	extend: 'Ext.form.field.Date',
-	alias: 'widget.itasks_edit_date',
-	mixins: ['itasks.mixin.Editable'],
+	mixins: ['itwc.component.edit.Editable'],
+
+	width: 100, //Default width
 	format: 'Y-m-d',
-	getEditValue: function() {
+	validateOnChange: false,
+	initComponent: function() {
+		this.callParent(arguments);
+		this.initEditable();
+	},
+	getEditorValue: function() {
 		return this.getRawValue();
+	},
+	validate: function() {
+		return true;
 	}
 });

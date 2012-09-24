@@ -49,4 +49,14 @@ deleteValue				:: !StoreNamespace !StoreKey				!*IWorld -> *IWorld
 /**
 * Deletes all values that start with the prefix from the store
 */
-deleteValues			:: !StoreNamespace !StorePrefix					!*IWorld -> *IWorld
+deleteValues			:: !StoreNamespace !StorePrefix				!*IWorld -> *IWorld
+
+/**
+* Store a binary blob
+*/
+storeBlob				:: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
+
+/**
+* Load a binary blob
+*/
+loadBlob				:: !StoreNamespace !StoreKey 				!*IWorld -> (!Maybe {#Char}, !*IWorld)

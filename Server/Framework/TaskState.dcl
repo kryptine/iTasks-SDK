@@ -44,9 +44,9 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	| TCInteract1	!TaskId !TaskTime !JSONNode !UpdateMask
 	| TCInteract2	!TaskId !TaskTime !JSONNode !JSONNode !UpdateMask
 	| TCProject		!TaskId !JSONNode !TaskTree
-	| TCStep		!TaskId !(Either TaskTree (DeferredJSON,Int,TaskTree))
-	| TCParallel	!TaskId 
-	| TCShared		!TaskId !TaskTree
+	| TCStep		!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
+	| TCParallel	!TaskId !TaskTime
+	| TCShared		!TaskId !TaskTime !TaskTree
 	| TCStable		!TaskId !TaskTime !DeferredJSON
 	| TCNop			
 	| TCDestroy		!TaskTree															//Marks a task state as garbage that must be destroyed
@@ -62,8 +62,10 @@ derive JSONDecode DeferredJSON
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
 	, result			:: !TIResult				//Stored result of last evaluation (for detached tasks this is a cached copy)
-	, attributes		:: ![TaskAttribute]			//Stored attributes of last evaluation
-	, time				:: !TaskTime				//Last modified time
+	, attributes		:: !Map String String		//Stored attributes of last evaluation
+	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
+	, lastEvent			:: !TaskTime				//Last modified time
+	, expiresIn			:: !Maybe Int				//Optional expiration advice (in ms)
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
 	}
 

@@ -1,135 +1,127 @@
 definition module LayoutCombinators
 
-import SystemTypes, TUIDefinition
+import SystemTypes, UIDefinition
 
-from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUIRep
+from Task import :: TaskCompositionType
 
 import Maybe
 
-//Defines which layout is used by default
-DEFAULT_LAYOUT	:== heuristicLayout
+// Definition of a layout as collection of combination functions
+:: Layout =
+	{ editor	:: UIDef -> UIDef															//Combine multiple controls to a single one in editors
+	, interact	:: UIDef UIDef -> UIDef														//Combine the prompt and editor of an interact
+	, step		:: UIDef [UIAction] -> UIDef												//Combine current definition with the step actions
+	, parallel	:: UIDef [UIDef] -> UIDef													//Combine the promp and parts of a parallel composition
+	, final		:: UIDef -> UIDef															//Last touches to the composition
+	}
 
-// Definition of a layout algorithm
-// The same layouts are used for layouting out forms of basic tasks as
-// well as combinations of tasks
-
-:: Layout		:== TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
+// When the multiple parts of a parallel combinator need to be merged into a single definition
+// we call it a parallel merger
+:: ParallelMerger :== UIDef [UIDef] -> UIDef
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
+:: AfterLayout	= AfterLayout (UIDef -> UIDef)
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
-:: BeforeLayout	= BeforeLayout ((TaskCompositionType,[TaskTUIRep],[TaskAction],[TaskAttribute]) -> (TaskCompositionType,[TaskTUIRep],[TaskAction],[TaskAttribute]))
-:: AfterLayout	= AfterLayout (TaskTUIRep -> TaskTUIRep)
 
 /**
-* This is a layout following some simple layout heuristics. It puts its content in a
-* panel if a title attribute is available. If actions placed in the panels
-* when possible or accumulated otherwise.
+* This is a layout that aims to automatically determine a simple, but
+* functional and visually pleasing layout by following some simple layout heuristics.
 */
-heuristicLayout :: Layout
+autoLayout :: Layout
+//Partial layouts of autolayout
+autoEditorLayout		:: UIDef -> UIDef
+autoInteractionLayout	:: UIDef UIDef -> UIDef
+autoStepLayout			:: UIDef [UIAction]-> UIDef
+autoParallelLayout		:: UIDef [UIDef] -> UIDef
+autoFinalLayout			:: UIDef -> UIDef
+
 /**
-* This is a very simple layout which accumulates actions,
-* wraps all guis in a container and overwrites/appends attributes
-*/
-accumulatingLayout :: Layout
-/**
-* This layout puts all of its parts into a panel.
-*/
-paneledLayout :: Layout
-/**
-* This layout arranges its parts into a tab panel.
-*/
-tabbedLayout :: Layout
-/**
-* This layout hides the gui, but accumulates actions and attributes
+* This layout hides ui controls, but accumulates actions and attributes.
 */
 hideLayout :: Layout
 /**
-* Fill out available space
-*/
-fillLayout :: TUIDirection -> Layout
-/**
-* Use the gui of a specific part, but keep merge attributes and actions of all parts
+* Use the gui of a specific part, but keep attributes and actions of all parts
 */
 partLayout :: Int -> Layout
 /**
-* Split the available space into two areas with their own layout
+* Use a custom function for merging parallel combinations
 */
-splitLayout :: TUISide TUIFixedSize ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
-/**
-* Split available space into a main area and a side panel.
-*/
-sideLayout :: TUISide TUIFixedSize Layout -> Layout
+customMergeLayout :: ParallelMerger -> Layout
 
-//PLEASE DON'T USE (For backwards compat only)
-vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
+minimalMerge	:: ParallelMerger
+groupedMerge	:: ParallelMerger
+sideMerge		:: UISide Int ParallelMerger -> ParallelMerger
+splitMerge		:: UIDirection -> ParallelMerger
+tabbedMerge		:: ParallelMerger
+
+//Shorthands for layouts with custom parallel mergers
+tabbedLayout				:== customMergeLayout tabbedMerge 
+splitLayout direction		:== customMergeLayout (splitMerge direction)
+sideLayout side size rest	:== customMergeLayout (sideMerge side size rest)
 
 //Useful functions for tweaking or roll-your-own layouts
+autoReduce :: UIDef -> UIDef
+
 
 //Modifiers on interface definitions
-setSize			:: !TUISize	!TUISize	!TUIDef -> TUIDef
-setWidth		:: !TUISize				!TUIDef -> TUIDef
-setHeight		:: !TUISize				!TUIDef -> TUIDef
-fill			:: 						!TUIDef -> TUIDef
-fillHeight		:: 						!TUIDef -> TUIDef
-fillWidth		:: 						!TUIDef -> TUIDef
-fixedHeight		:: !Int 				!TUIDef -> TUIDef
-fixedWidth		:: !Int 				!TUIDef -> TUIDef
-wrapHeight		::						!TUIDef -> TUIDef
-wrapWidth		:: 						!TUIDef -> TUIDef
-setMargins		:: !Int !Int !Int !Int	!TUIDef -> TUIDef
-setTopMargin	:: !Int 				!TUIDef -> TUIDef
-setRightMargin	:: !Int 				!TUIDef -> TUIDef
-setBottomMargin	:: !Int 				!TUIDef -> TUIDef
-setLeftMargin	:: !Int 				!TUIDef -> TUIDef
-setPadding		:: !Int					!TUIDef -> TUIDef
-setTitle 		:: !String 				!TUIDef -> TUIDef
-setFramed		:: !Bool				!TUIDef -> TUIDef
-setIconCls		:: !String				!TUIDef -> TUIDef
-setBaseCls		:: !String				!TUIDef -> TUIDef
-setDirection	:: !TUIDirection		!TUIDef -> TUIDef
-setHalign		:: !TUIHAlign			!TUIDef -> TUIDef
-setValign		:: !TUIVAlign			!TUIDef -> TUIDef
-setPurpose		:: !String				!TUIDef -> TUIDef
-setTaskId		:: !String				!TUIDef -> TUIDef
-setListId		:: !String				!TUIDef -> TUIDef
+setSize			:: !UISize	!UISize			!UIControl -> UIControl
+setWidth		:: !UISize					!UIControl -> UIControl
+setHeight		:: !UISize					!UIControl -> UIControl
+setMinSize		:: !UIMinSize !UIMinSize	!UIControl -> UIControl
+setMinWidth		:: !UIMinSize				!UIControl -> UIControl
+setMinHeight	:: !UIMinSize				!UIControl -> UIControl
+fill			:: 							!UIControl -> UIControl
+fillHeight		:: 							!UIControl -> UIControl
+fillWidth		:: 							!UIControl -> UIControl
+fixedHeight		:: !Int 					!UIControl -> UIControl
+fixedWidth		:: !Int 					!UIControl -> UIControl
+wrapHeight		::							!UIControl -> UIControl
+wrapWidth		:: 							!UIControl -> UIControl
+setMargins		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTopMargin	:: !Int 					!UIControl -> UIControl
+setRightMargin	:: !Int 					!UIControl -> UIControl
+setBottomMargin	:: !Int 					!UIControl -> UIControl
+setLeftMargin	:: !Int 					!UIControl -> UIControl
+setPadding		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTitle 		:: !String 					!UIControl -> UIControl
+setFramed		:: !Bool					!UIControl -> UIControl
+setIconCls		:: !String					!UIControl -> UIControl
+setBaseCls		:: !String					!UIControl -> UIControl
+setDirection	:: !UIDirection				!UIControl -> UIControl
+setHalign		:: !UIHAlign				!UIControl -> UIControl
+setValign		:: !UIVAlign				!UIControl -> UIControl
 
 //Combinators on interface definitions
-hjoin :: ![TUIDef] -> TUIDef
-vjoin :: ![TUIDef] -> TUIDef
-
-paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![TUIDef] -> TUIDef
+hjoin :: ![UIControl] -> UIControl
+vjoin :: ![UIControl] -> UIControl
 
 //Operations on containers
-addItemToTUI	:: (Maybe Int) TUIDef TUIDef -> TUIDef
-addMenusToTUI	:: [TUIMenuButton] TUIDef -> TUIDef
-getItemsOfTUI	:: TUIDef -> [TUIDef]
-setItemsOfTUI	:: [TUIDef] TUIDef -> TUIDef
+addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
+getItemsOfUI	:: UIControl -> [UIControl]
+setItemsOfUI	:: [UIControl] UIControl -> UIControl
 
 //Coercion between different types of containers
-toPanel			:: !TUIDef -> TUIDef
-toContainer		:: !TUIDef -> TUIDef
-toTab			:: !TUIDef -> TUIDef
+toPanel			:: !UIControl -> UIControl
+toContainer		:: !UIControl -> UIControl
 
 //Predefined panels
-hintPanel		:: !String		-> TUIDef	//Panel with task instructions
-buttonPanel		:: ![TUIDef]	-> TUIDef	//Container for a set of horizontally layed out buttons
-isButtonPanel	:: !TUIDef		-> Bool		//Test if some component is a button panel
+buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
 
 //Predefined action placement
-actionsToButtons			:: ![TaskAction]	-> (![TUIDef],![TaskAction])
-actionsToMenus				:: ![TaskAction]	-> (![TUIMenuButton],![TaskAction])
+actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIAction])
+actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
 
 //Util
+uiOf			:: UIDef -> UIControl
+actionsOf		:: UIDef -> [UIAction]
+attributesOf	:: UIDef -> UIAttributes
 
-tuiOf			:: TaskTUIRep -> TUIDef
-actionsOf		:: TaskTUIRep -> [TaskAction]
-attributesOf	:: TaskTUIRep -> [TaskAttribute]
+mergeDefs		:: UIDef UIDef -> UIDef
+mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
-mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
+appControls		:: (UIControl -> UIControl) UIDef -> UIDef
+appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
-appLayout		:: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
-appDeep			:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef	//Modify an element inside the tree of components
-
-tweakTUI		:: (TUIDef -> TUIDef) TaskTUIRep -> TaskTUIRep
-tweakAttr		:: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep 
+tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
+tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 

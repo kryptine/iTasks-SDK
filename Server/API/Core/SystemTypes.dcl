@@ -5,15 +5,16 @@ definition module SystemTypes
 */
 
 import GenEq_NG, Maybe, JSON_NG, Store, Void, Either, FilePath, HTML, Error, File, OS
-from Map 			import :: Map
-from Map 			import qualified get
-from HTML 			import class html
-from Time			import :: Timestamp
-from IWorld			import :: IWorld
-from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
-from Task			import :: Task, :: TaskId, :: TaskAttribute
-from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
-from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from Map 				import :: Map
+from Map 				import qualified get
+from HTML 				import class html
+from Time				import :: Timestamp
+from IWorld				import :: IWorld
+from UIDefinition		import :: UIDef, :: UISize, :: UISideSizes, :: UIMinSize, :: UIAttributes
+from LayoutCombinators	import :: Layout
+from Task				import :: Task, :: TaskId
+from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gUpdate, :: USt, :: UpdateMask, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
@@ -53,19 +54,56 @@ instance toEmail String
 
 // Progress
 :: Progress =
-	{ progress		:: !Real 	//*Value between 0.0 and 1.0 indicating how much progress has been made
-	, description	:: !String	//*Description of how much progress has been made
+	{ progress		:: !ProgressAmount 	//*Value between 0.0 and 1.0 indicating how much progress has been made
+	, description	:: !String			//*Description of how much progress has been made
 	}
+:: ProgressAmount
+	= ProgressUndetermined	//Value for progress that cannot be estimated
+	| ProgressRatio Real	//Value between 0.0 and 1.0 that defines the ratio of progress
 
 // Documents
 :: Document =
 	{ documentId	:: !DocumentId				//*A unique identifier of the document
+	, contentUrl	:: !String					//*A url to where the document can be downloaded
 	, name			:: !String					//*The filename of a document
 	, mime			:: !String					//*The mime type of the document
 	, size			:: !Int						//*The filesize in bytes
 	}
 :: DocumentId	:== String
 
+// Maps
+:: GoogleMap = 
+	{ settings				:: GoogleMapSettings 
+	, perspective			:: GoogleMapPerspective
+	, markers				:: [GoogleMapMarker]		// Markers placed on the map
+	}
+:: GoogleMapPerspective =
+	{ type					:: GoogleMapType			// The map type
+	, center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
+	, zoom					:: Int	      				// The zoom level (Required by maps)
+	}	
+:: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
+:: GoogleMapSettings =
+	{ mapTypeControl		:: Bool		  				// Show the control for switching between map types
+	, panControl			:: Bool		  				// Show the control for panning
+	, zoomControl			:: Bool						// Show the control for zooming
+	, streetViewControl		:: Bool						// Show the control for street view
+	, scaleControl			:: Bool		  				// Show the scale of the map
+	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
+	, draggable				:: Bool						// Map can be dragged
+	}
+:: GoogleMapPosition = 
+	{ lat		:: !Real	//Lattitude
+	, lng		:: !Real	//Longitude
+	}	
+:: GoogleMapMarker =
+	{ position				:: !GoogleMapPosition			// Position of the marker
+	, title					:: !Maybe String				// Title of the marker
+	, icon					:: !Maybe String				// Name of an icon to use
+	, infoWindow			:: !Maybe HtmlTag				// Information which is shown on click
+	, draggable				:: !Bool						// Can the marker be dragged
+	, selected				:: !Bool
+	}
 
 //* Task results
 :: TaskValue a		= NoValue				
@@ -76,7 +114,7 @@ instance toEmail String
 :: Stability		= Unstable | Stable
 
 //* Meta-data of tasks
-:: TaskMeta		:==	[TaskAttribute]					//* Task meta data consists of untyped attributes
+:: TaskMeta		:==	[(!String,!String)]				//* Task meta data consists of untyped attributes
 
 :: ManagementMeta =
 	{ title				:: !Maybe String			//* Title to identify the task
@@ -176,13 +214,17 @@ instance toUserConstraint UserId
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
 derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
-derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode		EmailAddress, Action, HtmlInclude
+derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
 derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
-derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode		EmailAddress, Action, HtmlInclude
+derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gEq				EUR, USD, BoundedInt, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, Progress
-derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude
+derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -191,10 +233,9 @@ derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskValue, Stability
 derive gHeaders			TaskListItem, ProgressMeta, TaskValue, Stability
 derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
-derive gDefaultMask		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
 
-derive class iTask	Credentials, Config, TaskId
+derive class iTask	Credentials, Config, TaskId, ProcessStatus
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
@@ -391,21 +432,6 @@ toHidden :: !.a -> Hidden .a
 
 :: HtmlInclude	= HtmlInclude String
 
-// Wrapper types for changing the control's sizes
-:: ControlSize a		= ControlSize		!(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !a	//* all controls generated for a have specified sizes
-:: FillControlSize a	= FillControlSize	!a											//* all controls generated for a fill the parent
-:: FillWControlSize a	= FillWControlSize	!a											//* all controls generated for a fill the parent's width
-:: FillHControlSize a	= FillHControlSize	!a											//* all controls generated for a fill the parent's height
-
-toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
-fromControlSize :: !(ControlSize .a) -> .a
-toFillControlSize :: !.a -> FillControlSize .a
-fromFillControlSize :: !(FillControlSize .a) -> .a
-toFillWControlSize :: !.a -> FillWControlSize .a
-fromFillWControlSize :: !(FillWControlSize .a) -> .a
-toFillHControlSize :: !.a -> FillHControlSize .a
-fromFillHControlSize :: !(FillHControlSize .a) -> .a
-
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					
 					| NormalPriority
@@ -417,22 +443,26 @@ instance toString Stability
 instance == Stability
 
 //Define initial meta attributes
-TASK_ATTRIBUTE	:== "task"
-LIST_ATTRIBUTE	:== "list"
-TITLE_ATTRIBUTE	:== "title"
-HINT_ATTRIBUTE	:== "hint"
-ERROR_ATTRIBUTE	:== "error"
-ICON_ATTRIBUTE	:== "icon"
-TIME_ATTRIBUTE	:== "time"	//Task time, used for ordering but not real time
+TASK_ATTRIBUTE			:== "task"
+TITLE_ATTRIBUTE			:== "title"
+HINT_ATTRIBUTE			:== "hint"
+VALID_ATTRIBUTE			:== "valid"
+ERROR_ATTRIBUTE			:== "error"
+LABEL_ATTRIBUTE			:== "label"
+ICON_ATTRIBUTE			:== "icon"
+CREATED_AT_ATTRIBUTE	:== "createdat"	//Creation task time, used for ordering but not real time
+LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
+TYPE_ATTRIBUTE			:== "type"
+PURPOSE_ATTRIBUTE		:== "purpose"
 
 class descr d
 where
-	initAttributes :: !d -> [TaskAttribute]
+	toPrompt		:: !d -> UIDef			//Make the UI definition of the interaction prompt
 
-instance descr Void
-instance descr String	//Hint
-instance descr (!String, !String) //Title, Hint
-instance descr (!Icon, !String, !String) //Icon, Title , Hint
+instance descr Void							//No prompt
+instance descr String						//Simple instruction
+instance descr (!String, !String)			//Title attribute + instruction
+instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
 instance descr Title
 instance descr Hint
 instance descr Icon
@@ -502,3 +532,9 @@ actionIcon 	:: !Action -> String
 			}
 			
 :: Key :== Char
+
+:: ProcessStatus
+	= RunningProcess !String
+	| CompletedProcess !Int
+
+

@@ -1,11 +1,13 @@
-Ext.define('itasks.component.edit.Slider',{
+Ext.define('itwc.component.edit.Slider',{
+	alias: 'widget.itwc_edit_slider',
 	extend: 'Ext.slider.Single',
-	alias: 'widget.itasks_edit_slider',
-	mixins: ['itasks.mixin.Editable'],
+	mixins: ['itwc.component.edit.Editable'],
+
+	width: 'flex',	
+	minWidth: 200,
+
 	initComponent: function() {
-		this.width = 200;
-		this.height = 20;
-		this.minHeight = 20;
 		this.callParent(arguments);
+		this.initEditable();
 	}
 });

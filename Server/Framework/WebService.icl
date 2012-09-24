@@ -1,8 +1,8 @@
 implementation module WebService
 
-import StdList, StdBool
+import StdList, StdBool, StdTuple
 import Time, JSON_NG
-import SystemTypes, Task, TaskState, TaskEval, TaskStore, TUIDiff, TUIEncode, Util, HtmlUtil, Map
+import SystemTypes, Task, TaskState, TaskEval, TaskStore, UIDiff, Util, HtmlUtil, Map
 import Engine, IWorld
 
 //The representation of the JSON service
@@ -15,8 +15,33 @@ import Engine, IWorld
 	
 derive JSONEncode ServiceResponsePart
 
-webService :: !(Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+//TODO: The upload and download mechanism used here is inherently insecure!!!
+// A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
+// unauthorized downloading of documents and DDOS uploading.
+
+webService :: !(HTTPRequest -> Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
 webService task defaultFormat req iworld=:{IWorld|timestamp,application}
+	//Check for uploads
+	| hasParam "upload" req
+		# uploads = toList req.arg_uploads
+		| length uploads == 0
+			= (jsonResponse (JSONArray []),iworld)
+		# (documents, iworld) = createDocumentsFromUploads uploads iworld
+		// response of uploads must use content-type "text/html" or else iframe upload of extjs does not work
+		# rsp = jsonResponse (toJSON documents)
+		= ({rsp & rsp_headers = put "Content-Type" "text/html" rsp.rsp_headers},iworld)
+		
+	//Check for downloads
+	| hasParam "download" req
+		# (mbContent, iworld)	= loadDocumentContent downloadParam iworld
+		# (mbMeta, iworld)		= loadDocumentMeta downloadParam iworld
+		= case (mbContent,mbMeta) of
+			(Just content,Just {Document|name,mime,size})
+			
+				# headers	= [("Status","200 OK"),("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
+				= ({HTTPResponse|rsp_headers = fromList headers, rsp_data = content},iworld)
+			_
+				= (notFoundResponse req,iworld)
 	= case format of
 		//Serve start page
 		WebApp	
@@ -24,15 +49,16 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the user interface representations
 		JSONGui
 			//Load or create session context and edit / evaluate
-			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
+			# (mbResult, mbPrevUI, iworld)	= case sessionParam of
 				""	
-					# (mbResult, iworld) = createSessionInstance task Nothing Nothing iworld
+					# (mbResult, iworld) = createSessionInstance (task req) RefreshEvent iworld
 					= (mbResult, Nothing, iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
-					# (mbPreviousTui,iworld)	= loadPrevUI sessionId guiVersion iworld
-					# (mbResult, iworld) 		= evalSessionInstance sessionId editEvent commitEvent iworld
-					= (mbResult,mbPreviousTui,iworld)
+					# (mbPrevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
+					# (mbResult, iworld) 	= evalSessionInstance sessionId event iworld
+					= (mbResult,mbPrevUI,iworld)
+			
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
@@ -40,24 +66,28 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (ValueResult (Value _ Stable) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ _ mbCurrentTui context,_,sessionId)
-						# json = case (mbPrevTui,mbCurrentTui) of
-							(Just previousTui,TaskRep (_,Just currentTui,actions,attributes) _)
-									= JSONObject [("success",JSONBool True)
-												 ,("session",JSONString sessionId)
-												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui editEvent))
-												 ,("timestamp",toJSON timestamp)]
-							(_, TaskRep (_,Just currentTui,actions,attributes) _)
+					Ok (ValueResult _ info curRep context,_,sessionId)
+						# json = case (mbPrevUI,curRep) of
+							(Nothing, TaskRep def _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
-											 ,("content", encodeTUIDefinition currentTui)
-											 ,("timestamp",toJSON timestamp)]
+											 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
+											 ,("content", encodeUIDefinition def)
+											 ,("version",toJSON guiVersion)]
+							
+							(Just prevUI, TaskRep def _)
+									= JSONObject [("success",JSONBool True)
+												 ,("session",JSONString sessionId)
+												 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
+												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI def event))
+												 ,("version",toJSON guiVersion)]
+							
 							_
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
-						# iworld = case mbCurrentTui of
-							TaskRep (_,Just currentTui,_,_) _	= storeCurUI sessionId guiVersion currentTui iworld
-							_									= iworld
+						# iworld = case curRep of
+							TaskRep def _	= storeCurUI sessionId guiVersion def iworld
+							_				= iworld
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
@@ -65,32 +95,24 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the task in easily accessable JSON representation
 		JSONService
 			# (mbResult,iworld)	= case sessionParam of
-				""	= createSessionInstance task Nothing Nothing iworld
+				""	= createSessionInstance (task req) RefreshEvent iworld
 				sessionId
-					= evalSessionInstance sessionId Nothing Nothing iworld
+					= evalSessionInstance sessionId RefreshEvent iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
 				Ok (ValueResult (Value val Stable) _ _ _,_,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (ValueResult _ _ (TaskRep (_,_,actions,attributes) rep) _,_,_)
-					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
+				Ok (ValueResult _ _ (TaskRep {UIDef|actions,attributes} rep) _,_,_)
+					= (jsonResponse (serviceBusyResponse rep actions (toList attributes)), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
-			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
-			# (mbResult,iworld) = createSessionInstance task Nothing Nothing iworld
-			# (mbResult,iworld) = case mbResult of
-				(Ok (_,instanceId,sessionId))	
-					# (luckyEdit,luckyCommit) = if (req.req_data == "")
-						(Nothing,Nothing)	
-						(Just (LuckyEvent instanceId ("",fromString req.req_data)), Just (LuckyEvent instanceId ""))
-					= evalSessionInstance sessionId luckyEdit luckyCommit iworld
-				(Error e)			= (Error e,iworld)
+			# (mbResult,iworld) = createSessionInstance (task req) RefreshEvent iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
-				Ok (ValueResult (Value val Stable) _ _ _,_,_)
-					= (plainDoneResponse val, iworld)
+				Ok (ValueResult (Value val _) _ _ _,_,_)
+					= (jsonResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Error unimplemented type
@@ -106,20 +128,23 @@ where
 
 	formatParam			= paramValue "format" req
 
-
 	sessionParam		= paramValue "session" req
-//	downloadParam		= paramValue "download" req
-//	uploadParam			= paramValue "upload" req
+	downloadParam		= paramValue "download" req
+	uploadParam			= paramValue "upload" req
 	versionParam		= paramValue "version" req
-	editEventParam		= paramValue "editEvent" req
-	editEvent			= case (fromJSON (fromString editEventParam)) of
-		Just (task,path,value)	= Just (TaskEvent (fromString task) (path,value))
-		_						= Nothing
-	commitEventParam	= paramValue "commitEvent" req
-	commitEvent			= case (fromJSON (fromString commitEventParam)) of
-		Just (task,action)		= Just (TaskEvent (fromString task) action)
-		_						= Nothing
 
+	editEventParam		= paramValue "editEvent" req
+	actionEventParam	= paramValue "actionEvent" req
+	focusEventParam		= paramValue "focusEvent" req
+	
+	event = case (fromJSON (fromString editEventParam)) of
+		Just (taskId,name,value)	= EditEvent (fromString taskId) name value
+		_	= case (fromJSON (fromString actionEventParam)) of
+			Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
+			_	= case (fromJSON (fromString focusEventParam)) of
+				Just taskId			= FocusEvent (fromString taskId)
+				_					= RefreshEvent
+	
 	guiVersion			= toInt versionParam
 
 	jsonResponse json
@@ -131,33 +156,39 @@ where
 		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
 	where
 		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, value = value, actions = findActions taskId actions} \\ (taskId,value) <- rep]
-		findActions taskId actions
-			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
+		findActions match actions
+			= [actionName action \\ {taskId,action,enabled} <- actions | enabled && taskId == match]
 	
 	serviceDoneResponse val
 		= JSONObject [("status",JSONString "complete"),("value",val)]
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	plainDoneResponse val = jsonResponse val
-	
 	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
 
 	appStartPage appName = HtmlTag [] [head,body]
 	where
-		head = HeadTag [] [TitleTag [] [Text "Loading..."]: styles ++ scripts]
+		head = HeadTag [] [TitleTag [] [Text appName]: styles ++ scripts]
 		body = BodyTag [] []
 	
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = ["lib/ext-4.0.2a/resources/css/ext-all-gray.css"
-					 ,"css/main.css"
+		stylefiles = ["lib/extjs-4.1.0/resources/css/ext-all-gray.css"
+					 ,"css/icons.css"
+					 ,"css/app.css"
 					 ,appName +++ ".css"]
-		scriptfiles = ["lib/ext-4.0.2a/ext-debug.js",
-					   "app/clientsupport/utils.js","app/clientsupport/itask.js",
-					   "app/clientsupport/builtin.js","app/clientsupport/sapl.js",
-					   "app/clientsupport/db.js", "app/clientsupport/debug.js",				   
+		scriptfiles = ["lib/extjs-4.1.0/ext-debug.js",
+					   "app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
+					   "app/taskeval/builtin.js","app/taskeval/sapl.js",
+					   "app/taskeval/db.js", "app/taskeval/debug.js",				   
 					   "app.js"]
-		//scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
+		//scriptfiles = ["/lib/ext-4.1.0/ext.js","/app-all.js"]
+
+	createDocumentsFromUploads [] iworld = ([],iworld)
+	createDocumentsFromUploads [(n,u):us] iworld
+		# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
+		| isError mbD	= createDocumentsFromUploads us iworld
+		# (ds,iworld)	= createDocumentsFromUploads us iworld
+		= ([fromOk mbD:ds],iworld)
 		

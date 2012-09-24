@@ -36,6 +36,7 @@ importTextFile		:: !FilePath -> Task String
 * @gin-icon page_white_csv
 */
 importCSVFile		:: !FilePath -> Task [[String]]
+importCSVDocument	:: !Document -> Task [[String]]
 /**
 * Import a comma separated vector (CSV) file on the server's filesystem using
 * custom separator characters.
@@ -50,7 +51,8 @@ importCSVFile		:: !FilePath -> Task [[String]]
 * 
 * @gin False
 */
-importCSVFileWith	:: !Char !Char !Char !FilePath -> Task [[String]]
+importCSVFileWith		:: !Char !Char !Char !FilePath -> Task [[String]]
+importCSVDocumentWith	:: !Char !Char !Char !Document -> Task [[String]]
 /**
 * Import and parse a JSON datafile on the server's filesystem.
 *

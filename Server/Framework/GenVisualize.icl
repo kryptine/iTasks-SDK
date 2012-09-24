@@ -1,20 +1,17 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG
-import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON_NG, TUIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
-
-visualizeAsEditor :: !a !VerifyMask !TaskId !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
-visualizeAsEditor v vmask taskId iworld
-	# vst		= {VSt|mkVSt iworld & verifyMask = [vmask], taskId = Just taskId, currentPath = shiftDataPath emptyDataPath}
-	# (res,vst)	= gVisualizeEditor{|*|} (Just v) vst
-	= case tuiOfEditor res of
-		[]		= (Nothing, kmVSt vst)
-		[tui]	= (Just tui, kmVSt vst)
-		tuis	= (Just (defaultDef (TUIContainer (defaultContainer tuis))), kmVSt vst)
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG, JSON_NG
+import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, Map, UIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
 
+visualizeAsEditor :: !a !VerifyMask !TaskId !Layout !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gVisualizeEditor{|*|} a
+visualizeAsEditor v vmask taskId layout iworld
+	# vst		= {VSt|mkVSt taskId iworld & verifyMask = [vmask], currentPath = shiftDataPath emptyDataPath, layout = layout}
+	# (res,vst)	= gVisualizeEditor{|*|} (Just v) vst
+	= (controlsOf res,kmVSt vst)
+	
 //Generic text visualizer
 generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
@@ -106,112 +103,81 @@ gVisualizeText{|VisualizationHint|} fx mode val = case val of
 	VHDisplay x		= gVisualizeText{|* -> *|} fx mode (Display x)
 	VHEditable x	= gVisualizeText{|* -> *|} fx mode (Editable x)
 
-gVisualizeText{|ControlSize|}		fx mode val = fx mode (fromControlSize val)
-gVisualizeText{|FillControlSize|}	fx mode val = fx mode (fromFillControlSize val)
-gVisualizeText{|FillWControlSize|}	fx mode val = fx mode (fromFillWControlSize val)
-gVisualizeText{|FillHControlSize|}	fx mode val = fx mode (fromFillHControlSize val)
-
 gVisualizeText{|Void|} _ _					= []
 gVisualizeText{|Dynamic|} _ _				= []
 gVisualizeText{|(->)|} _ _ _ _				= []
 gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
-derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Username, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Username, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree, ButtonState
+derive gVisualizeText GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
-
-mkVSt :: *IWorld -> *VSt
-mkVSt iworld
-	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = []
-	  , taskId = Nothing, controlSize = (Nothing,Nothing,Nothing), iworld = iworld}
+mkVSt :: !TaskId *IWorld -> *VSt
+mkVSt taskId iworld
+	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, disabled = False, verifyMask = []
+	  , taskId = taskId, layout = autoLayout, iworld = iworld}
 
 kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
 kmVSt {VSt|iworld} = iworld
 
 //Generic visualizer
-generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a)!*VSt -> (!VisualizationResult,!*VSt)
 
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
-gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|RECORD|} fx _ _ _ val vst=:{VSt|currentPath,verifyMask,optional,disabled,taskId}
+	# (cmv,vm)	= popMask verifyMask
+	//When optional and no value yet, just show the checkbox
+	| optional && isNothing val && not disabled
+		= (OptionalEditor [checkbox False], {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	
+	# (fieldViz,vst) = fx (fmap fromRECORD val) {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv, optional = False}
+	//For optional records we add the checkbox to clear the entire record
+	# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldViz]) fieldViz	
+	= (viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
-	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}	
-		= case fmap fromRECORD val of
-			Nothing // Create checkbox to create record
-				| optional	= (if renderAsStatic [] [checkbox False], vst)
-				# (viz,vst) = fx Nothing vst
-				= ([recordContainer (tuiOfEditor viz)],vst)
-			Just x
-				# (viz,vst) = fx (Just x) vst
-				= ([recordContainer (tuiOfEditor viz)],vst)
-	where
-		recordContainer viz =	{ content	= TUIContainer (defaultContainer (if (optional && not renderAsStatic) [checkbox True] [] ++ viz))
-								, width		= Just (FillParent 1 ContentSize)
-								, height	= Just (WrapContent 0)
-								, margins	= Nothing
-								}
-											
-		checkbox c = sizedControl controlSize (TUIEditControl TUIBoolControl 
-			{ TUIEditControl
-			| name			= name
-			, value			= toJSON c
-			, taskId		= fmap toString taskId
-			})				
-						
-gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{renderAsStatic}
+	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = dp2s currentPath, value = Just checked},newMap)
+	
+gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
-		HiddenEditor		= (HiddenEditor,vst)
-		NormalEditor ex		= (NormalEditor (addLabel False ex), vst)
-		OptionalEditor ex	= (OptionalEditor (addLabel True ex), vst)
-where
-	addLabel optional content
-		# label	= {stringDisplay (camelCaseToWords gfd_name +++ if (optional || renderAsStatic) "" "*" +++ ":") & width = Just (Fixed 100)}
-		= [{content = TUIContainer {TUIContainer|defaultContainer [label: content] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}]
+		HiddenEditor			= (HiddenEditor,vst)
+		NormalEditor controls
+			# def = layout.Layout.editor {UIDef|attributes=addLabel disabled gfd_name newMap, controls=controls, actions=[]}
+			= (NormalEditor def.UIDef.controls,vst)
+		OptionalEditor controls	
+			# def = layout.Layout.editor {UIDef|attributes=addLabel True gfd_name newMap, controls=controls, actions=[]}
+			= (OptionalEditor def.UIDef.controls, vst)
 
 
-gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,controlSize}
+gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId,layout}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
 	# x			= fmap fromOBJECT val
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
-	| gtd_num_conses > 1 && not renderAsStatic
+	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content = if (isTouched cmv)  (tuiOfEditor items) []
-		= (NormalEditor [{ content = TUIContainer (defaultContainer
-							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIEditControl (TUIComboControl [gdc.gcd_name \\ gdc <- gtd_conses])
-										{ TUIEditControl
-										| name			= dp2s currentPath
-										, taskId		= fmap toString taskId
-										, value			= toJSON (if (isTouched cmv) (Just selectedConsIndex) Nothing)
-										}))
-							:	if (isEmpty content)
-								[]
-								[{ content	= TUIContainer (defaultContainer content)
-								,  width	= Just (FillParent 1 ContentSize)
-								,  height	= Just (WrapContent 0)
-								,  margins	= Just {top = 0, right = 0, bottom = 0, left = 10}
-								}]
-							])
-						, width		= Just (FillParent 1 ContentSize)
-						, height	= Just (WrapContent 0)
-						, margins	= Nothing
-						}
-			]
+		# content = if (isTouched cmv) (layout.editor {UIDef|attributes=newMap,controls = controlsOf items,actions=[]}).controls []
+		= (NormalEditor [(UIDropdown defaultSizeOpts
+								{UIChoiceOpts
+								| taskId = toString taskId
+								, editorId = dp2s currentPath
+								, value = if (isTouched cmv) (Just selectedConsIndex) Nothing
+								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
+							,addVerAttributes (verifyElementStr cmv) newMap)
+						: content
+						]
 		  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 	//ADT with one constructor or static render: put content into container, if empty show cons name
 	| otherwise
 		# (vis,vst) = fx x vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
-			NormalEditor [] = if (isTouched cmv || renderAsStatic) (NormalEditor [(stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])			
-			NormalEditor vis = NormalEditor [{ content	= TUIContainer {TUIContainer|defaultContainer (addSpacing vis) & direction = Horizontal}
-								, width 	= Just (WrapContent 0)
-								, height	= Nothing
-								, margins	= Nothing
-								}]
+			NormalEditor [] = if (isTouched cmv || disabled) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
+			NormalEditor vis
+				= NormalEditor [(setDirection Horizontal (defaultContainer (addSpacing (map fst vis))),newMap)]
 			//TODO: Add case for OptionalEditor
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 where
@@ -220,10 +186,10 @@ where
 
 gVisualizeEditor{|CONS of {gcd_index}|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}
+	mkControl name _ _ vst=:{VSt|taskId,currentPath,optional,disabled}
 		# x = fmap fromCONS val
 		# (viz,vst)	= fx x vst
-		= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = gcd_index})
+		= (controlsOf viz, {VSt | vst & selectedConsIndex = gcd_index})
 
 gVisualizeEditor{|PAIR|} fx _ _ _ fy _ _ _ val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
@@ -255,184 +221,324 @@ gVisualizeEditor{|(,)|} fx _ _ _ fy _ _ _ val vst=:{VSt|currentPath,verifyMask}
 	# (vizy, vst)	= fy y vst
 	# viz = case (vizx,vizy) of
 		(HiddenEditor,HiddenEditor) = HiddenEditor
-		_	= NormalEditor
-				[{ content	= TUIContainer (defaultContainer (tui vizx ++ tui vizy))
-				 , width 	= Nothing
-				 , height	= Nothing
-				 , margins	= Nothing
-				 }]
+		_	= NormalEditor (controlsOf vizx ++ controlsOf vizy)
+				 
 	= (viz, {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
-where
-	tui (NormalEditor v) = v
-	tui (OptionalEditor v) = v
 
-gVisualizeEditor{|Int|}			val vst = visualizeControl TUIIntControl val vst
-gVisualizeEditor{|Real|}		val vst = visualizeControl TUIRealControl val vst
-gVisualizeEditor{|Char|}		val vst = visualizeControl TUICharControl val vst
-gVisualizeEditor{|String|}		val vst = visualizeControl TUIStringControl val vst
-gVisualizeEditor{|Bool|}		val vst = visualizeControl TUIBoolControl val vst
-gVisualizeEditor{|Username|}	val vst = visualizeControl TUIStringControl val vst
-gVisualizeEditor{|Password|}	val vst = visualizeControl TUIPasswordControl val vst
-gVisualizeEditor{|Note|}		val vst = visualizeControl TUINoteControl val vst
-gVisualizeEditor{|Date|}		val vst = visualizeControl TUIDateControl val vst
-gVisualizeEditor{|Time|}		val vst = visualizeControl TUITimeControl val vst
-gVisualizeEditor{|User|}		val vst = visualizeControl TUIUserControl val vst
-gVisualizeEditor{|EUR|}			val vst = visualizeControl TUICurrencyControl val vst
-gVisualizeEditor{|USD|}			val vst = visualizeControl TUICurrencyControl val vst
-
-gVisualizeEditor{|BoundedInt|}	val vst = visualizeCustom vizSlider vst
+gVisualizeEditor{|Int|} val vst = visualizeCustom viz vst
 where
-	vizSlider name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
-		# opts	= {TUISliderControl|minValue=maybe 1 (\{BoundedInt|min} -> min) val,maxValue=maybe 5 (\{BoundedInt|max} -> max) val}
-		| renderAsStatic
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditInt defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+	
+gVisualizeEditor{|Real|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|Char|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|String|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|Bool|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled		= ([(UIViewCheckbox defaultSizeOpts {UIViewOpts|value = val},addVerAttributes verRes newMap)],vst)
+		| otherwise		= ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|Username|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|Password|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
+		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|Note|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+//		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
+		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
+
+		| otherwise	= ([(UIEditNote defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
+	// THIS IS A HACK!
+	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
+	noteToHtml (Note s)	//TODO: Fix this in the toString of the Text constructor of HtmlTag type
+		= case split "\n" s of
+			[line]	= Text line
+			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
 			
-			# viz =  sizedControl controlSize (TUIShowControl (TUISliderControl opts)
-													{ TUIShowControl
-													| value = toJSON (fmap curVal val)
-													})
-			= ([viz],vst)
+
+gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|Time|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|EUR|}	val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|USD|}	val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|BoundedInt|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		# sliderOpts	= {UISliderOpts|minValue=maybe 1 (\{BoundedInt|min} -> min) val,maxValue=maybe 5 (\{BoundedInt|max} -> max) val}
+		| disabled									
+			# viewOpts = {UIViewOpts|value = fmap curVal val}  
+			= ([(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
 		| otherwise
-			# viz =  sizedControl controlSize (TUIEditControl (TUISliderControl opts)
-													{ TUIEditControl
-													| name = name
-													, value = toJSON (fmap curVal val)
-													, taskId = fmap toString taskId
-													})
-			= ([addMsg verRes viz],vst)
+			# editOpts = {UIEditOpts|taskId = toString taskId, editorId = name, value = fmap curVal val}
+			= ([(UIEditSlider defaultSizeOpts editOpts sliderOpts, addVerAttributes verRes newMap)],vst)
 
 	curVal {BoundedInt|cur} = cur
 
-gVisualizeEditor{|Progress|} val vst = visualizeCustom vizProgress vst
+gVisualizeEditor{|Progress|} val vst = visualizeCustom viz vst
 where
-	vizProgress name touched verRes vst=:{VSt|taskId,controlSize}
-		= ([sizedControl controlSize (TUIProgressBar {TUIProgressBar|text = text val,value = value val})],vst)
+	viz name touched verRes vst=:{VSt|taskId}
+		= ([(UIViewProgress defaultSizeOpts {UIViewOpts|value=fmap value val} {UIProgressOpts|text = text val},newMap)],vst)
 	where
 		text (Just {Progress|description}) 	= description
 		text _								= ""
-		value (Just {Progress|progress})
-			| progress < 0.0	= 0.0
-			| progress > 1.0	= 1.0
-								= progress
-		value _					= 0.0
-	
-gVisualizeEditor{|HtmlInclude|} val vst = visualizeControl TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
+		
+		value {Progress|progress=ProgressRatio ratio} 
+			| ratio < 0.0	= ProgressRatio 0.0
+			| ratio > 1.0	= ProgressRatio 1.0
+							= ProgressRatio ratio
+		value {Progress|progress} = progress
+		
+gVisualizeEditor{|HtmlInclude|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst
+		= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value=fmap (\(HtmlInclude path) -> IframeTag [SrcAttr path] []) val},addVerAttributes verRes newMap)],vst)
 
-gVisualizeEditor {|Document|}	val vst = visualizeControl control val vst
+gVisualizeEditor {|Document|} val vst = visualizeCustom viz vst
 where
-	control = TUIDocumentControl (fromMaybe {Document|documentId = "",name = "", mime = "", size = 0} val)
-	
-gVisualizeEditor{|URL|}		val vst = visualizeCustom vizUrl vst
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
+		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|URL|} val vst = visualizeCustom viz vst
 where
-	vizUrl name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
-		| renderAsStatic
-			# url = toString val
-			= ([defaultDef (TUIHtml {TUIHtml|html = toString (ATag [HrefAttr url] [Text url])})], vst)
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		| disabled
+			= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(URL url) -> ATag [HrefAttr url] [Text url]) val},newMap)], vst)
 		| otherwise
 			# val = checkMask touched val
-			# viz = sizedControl controlSize (TUIEditControl TUIStringControl
-													{ TUIEditControl
-													| name = name
-													, value = toJSON (fmap toString val)
-													, taskId = fmap toString taskId
-													})
-			= ([addMsg verRes viz],vst)
+			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val}
+			= ([(ui,addVerAttributes verRes newMap)],vst)
 
+gVisualizeEditor{|FormButton|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# text = fmap (\b -> b.FormButton.label) val
+		# iconCls = fmap (\b -> b.FormButton.icon) val
+		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|GoogleMap|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId}
+		# editOpts	= {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing}
+		# opts		= mapOpts (fromMaybe defaultValue val)
+		= ([(UIEditGoogleMap defaultSizeOpts editOpts opts,addVerAttributes verRes newMap)],vst)
 	
-gVisualizeEditor{|FormButton|} val vst = visualizeControl control (fmap (\b=:{FormButton|state} -> (state,b)) val) vst
-where
-	control
-		= TUIButtonControl	{ TUIButtonControl
-							| label = buttonLabel val
-							, iconCls = icon val
-							}
-								
-	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
-	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
-
-gVisualizeEditor{|RadioChoice|} fx _ _ _ _ _ _ _ val vst = visualizeCustom mkControl vst
-where
-	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
-		# (options,sel)		= maybe ([],-1) (\(RadioChoice options mbSel) -> (map fst options,fromMaybe -1 mbSel) ) val
-		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
-		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
-		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
-
-gVisualizeEditor{|RadioChoiceNoView|} fx _ _ _ val vst = visualizeCustom mkControl vst
-where
-	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
-		# (options,sel)		= maybe ([],-1) (\(RadioChoiceNoView options mbSel) -> (options,fromMaybe -1 mbSel) ) val
-		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
-		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
-		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
-
-gVisualizeEditor{|ComboChoice|} _ gx _ _ _ _ _ _ val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\(ComboChoice _ mbSel) -> mbSel) val) vst
-where
-	toChoice Nothing						= []
-	toChoice (Just (ComboChoice options _))	= [concat (gx AsLabel v) \\ (v,_) <- options]
-
-gVisualizeEditor{|ComboChoiceNoView|} _ gx _ _ val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\(ComboChoiceNoView _ mbSel) -> mbSel) val) vst
-where
-	toChoice Nothing								= []
-	toChoice (Just (ComboChoiceNoView options _))	= [concat (gx AsLabel v) \\ v <- options]
-	
-gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeControl (TUIGridControl (toGrid val)) (fmap (\(GridChoice _ mbSel) -> mbSel) val) vst
-where
-	toGrid Nothing							= {cells = [], headers = []}
-	toGrid (Just (GridChoice options _))	= {headers = hx undef, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]}
-
-gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix val vst = visualizeControl (TUIGridControl (toGrid val)) (fmap (\(GridChoiceNoView _ mbSel) -> mbSel) val) vst
-where
-	toGrid Nothing 								= {cells = [], headers = []}
-	toGrid (Just (GridChoiceNoView options _))	= {headers = hx undef, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]}
-
-gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom tuiF vst
-where
-	tuiF name touched verRes vst=:{VSt|taskId,controlSize}
-		# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
-												{ TUIEditControl
-												| name = name
-												, value = toJSON (fmap (\(TreeChoice _ mbSel) -> mbSel) (checkMask touched val))
-												, taskId = fmap toString taskId
-												})
-		= ([viz],vst)
-
-	toTree Nothing								= []
-	toTree (Just (TreeChoice (Tree nodes) _))	= fst (mkTree nodes 0)
-
-	mkTree [] idx
-		= ([],idx)
-	mkTree [Leaf (v,_):r] idx
-		# (rtree,idx`) 		= mkTree r (inc idx)
-		= ([{text = concat (gx AsLabel v), value = idx, leaf = True, children = Nothing}:rtree],idx`)
-	mkTree [Node (v,_) nodes:r] idx
-		# (children,idx`)	= mkTree nodes (inc idx)
-		# (rtree,idx`)		= mkTree r idx`
-		= ([{text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
-
-gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom tuiF vst
-where
-	tuiF name touched verRes vst=:{VSt|taskId,controlSize}
-		# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
-												{ TUIEditControl
-												| name = name
-												, value = toJSON (fmap (\(TreeChoiceNoView _ mbSel) -> mbSel) (checkMask touched val))
-												, taskId = fmap toString taskId
-												})
-		= ([viz],vst)
-
-	toTree Nothing									= []
-	toTree (Just (TreeChoiceNoView (Tree nodes) _))	= fst (mkTree nodes 0)
-
-	mkTree [] idx
-		= ([],idx)
-	mkTree [Leaf v:r] idx
-		# (rtree,idx`) 		= mkTree r (inc idx)
-		= ([{text = concat (gx AsLabel v), value = idx, leaf = True, children = Nothing}:rtree],idx`)
-	mkTree [Node v nodes:r] idx
-		# (children,idx`)	= mkTree nodes (inc idx)
-		# (rtree,idx`)		= mkTree r idx`
-		= ([{text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
+	mapOpts map =
+		{ UIGoogleMapOpts
+		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
+		, mapType = mapType map.perspective.GoogleMapPerspective.type
+		, markers = [{UIGoogleMapMarker|position=(lat,lng),title=title,icon=icon,infoWindow=fmap toString infoWindow,draggable=draggable,selected=selected}
+					\\ {GoogleMapMarker|position={lat,lng},title,icon,infoWindow,draggable,selected} <- map.GoogleMap.markers]
+		, options =
+			{ UIGoogleMapOptions
+			| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
+			, panControl = map.settings.GoogleMapSettings.panControl
+			, streetViewControl = map.settings.GoogleMapSettings.streetViewControl
+			, zoomControl = map.settings.GoogleMapSettings.zoomControl
+			, scaleControl = map.settings.GoogleMapSettings.scaleControl
+			, scrollwheel = map.settings.GoogleMapSettings.scrollwheel
+			, draggable = map.settings.GoogleMapSettings.draggable
+			, zoom = map.perspective.GoogleMapPerspective.zoom
+			}
+		}
+	mapType ROADMAP 	= "ROADMAP"
+	mapType SATELLITE 	= "SATELLITE"
+	mapType HYBRID 		= "HYBRID"
+	mapType TERRAIN 	= "TERRAIN"
 		
+gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		| disabled
+			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+		| otherwise
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+
+	vvalue (Just (RadioChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
+	vvalue _										= Nothing
+	evalue (Just (RadioChoice _ mbSel))				= mbSel
+	evalue _										= Nothing
+	options (Just (RadioChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
+	options	_										= []
+	
+		
+gVisualizeEditor{|RadioChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		| disabled
+			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+		| otherwise
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+	
+	vvalue (Just (RadioChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
+	vvalue _												= Nothing
+	evalue (Just (RadioChoiceNoView _ mbSel))				= mbSel
+	evalue _												= Nothing
+	options (Just (RadioChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
+	options	_												= []
+	
+gVisualizeEditor{|ComboChoice|} fx gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		| disabled
+			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+		| otherwise
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+
+	vvalue (Just (ComboChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
+	vvalue _										= Nothing
+	evalue (Just (ComboChoice _ mbSel))				= mbSel
+	evalue _										= Nothing
+	options (Just (ComboChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
+	options	_										= []
+	
+gVisualizeEditor{|ComboChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		| disabled
+			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+		| otherwise
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+	
+	vvalue (Just (ComboChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
+	vvalue _												= Nothing
+	evalue (Just (ComboChoiceNoView _ mbSel))				= mbSel
+	evalue _												= Nothing
+	options (Just (ComboChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
+	options	_												= []
+	
+gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		= ([(UIGrid defaultSizeOpts
+			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
+			{UIGridOpts|columns = hx undef},addVerAttributes verRes newMap)],vst)
+	
+	value (Just (GridChoice options mbSel)) = mbSel
+	value _									= Nothing
+	options (Just (GridChoice options _))	= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]
+	options _								= []
+
+
+gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		= ([(UIGrid defaultSizeOpts
+			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options =options val}
+			{UIGridOpts|columns = hx undef},newMap)],vst)
+	
+	value (Just (GridChoiceNoView options mbSel))	= mbSel
+	value _											= Nothing
+	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
+	options _										= []
+
+gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask}
+	# (cmv,vm)	= popMask verifyMask
+	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+	# ver		= verifyElementStr cmv
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
+	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+where
+	value  (Just (TreeChoice _ mbSel)) 	= mbSel
+	value _								= Nothing
+	
+	options (Just (TreeChoice (Tree nodes) _)) msk = fst (mkTree nodes 0 )
+		where
+			expanded = case msk of
+				VMValidWithState _ _ s 		= case fromJSON s of Just expanded = expanded; _ = []
+				VMInvalidWithState _ _ s	= case fromJSON s of Just expanded = expanded; _ = []
+				_							= []
+				
+			mkTree [] idx
+				= ([],idx)
+			mkTree [Leaf (v,_):r] idx
+				# (rtree,idx`) 		= mkTree r (inc idx)
+				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = isMember idx expanded, children = Nothing}:rtree],idx`)
+			mkTree [Node (v,_) nodes:r] idx
+				# (children,idx`)	= mkTree nodes (inc idx)
+				# (rtree,idx`)		= mkTree r idx`
+				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
+	options _ _ = []
+
+gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId}
+		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},newMap)],vst)
+
+	value (Just (TreeChoiceNoView _ mbSel)) = mbSel
+	value _									= Nothing
+	options (Just (TreeChoiceNoView (Tree nodes) _)) = fst (mkTree nodes 0)
+	where
+		mkTree [] idx
+			= ([],idx)
+		mkTree [Leaf v:r] idx
+			# (rtree,idx`) 		= mkTree r (inc idx)
+			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = False, children = Nothing}:rtree],idx`)
+		mkTree [Node v nodes:r] idx
+			# (children,idx`)	= mkTree nodes (inc idx)
+			# (rtree,idx`)		= mkTree r idx`
+			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
+	options _ = []
+				
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCCombo val)) vst
 	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCRadio val)) vst
@@ -457,67 +563,66 @@ gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 Nothing vst
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
-gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ _ _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ _ _ _ _  val vst = visualizeCustom viz vst
 where
-	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
-		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel) ) val
-		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
-		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
-		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel)) val
+		# (itemsVis,vst)	= childVisualizations fx options {VSt|vst & disabled = True}
+		# itemDefs			= [defaultContainer [checkbox taskId i sel:map fst (controlsOf items)]  \\ items <- itemsVis & i <- [0..]]
+		= ([(defaultContainer itemDefs,addVerAttributes verRes newMap)], vst)
 
-gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)) (fmap (\(Table _ _ mbSel) -> mbSel) val) vst
-where
-	toGrid Nothing							= {cells = [], headers = []}
-	toGrid (Just (Table headers cells _))	= {headers = headers, cells = map (map toString) cells}
+	checkbox taskId i sel
+		= UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId="sel-" +++ toString i,value= Just (isMember i sel)}
 
-gVisualizeEditor {|[]|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|Table|} val vst = visualizeCustom viz vst 
 where
-	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
-		# val			= fromMaybe [] val
-		# (items,vst)	= listControl val vst
-		= (addMsg verRes
-			{ content	= TUIListContainer
-							{ TUIListContainer
-							| items = items
-							, name = if renderAsStatic Nothing (Just name)
-							, taskId = if renderAsStatic Nothing (fmap toString taskId)}
-			, width		= Nothing
-			, height	= Nothing
-			, margins	= Nothing
-			}
-			,vst)
-		where
-			listControl items vst=:{VSt|optional,renderAsStatic}
-				# (itemsVis,vst)	= childVisualizations fx items vst
-				| renderAsStatic
-					= ([listItemControl idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
-				| otherwise
-					# (newItem,vst)		= newChildVisualization fx (optional || length items > 0) vst
-					= ([listItemControl idx dx \\ dx <- itemsVis ++ [newItem] & idx <- [0..]],vst)
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		= ([(UIGrid defaultSizeOpts
+			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
+			{UIGridOpts|columns = columns val},addVerAttributes verRes newMap)],vst)
+	
+	value (Just (Table _ _ mbSel))	= mbSel
+	value _							= Nothing
+	
+	columns (Just (Table headers _ _))	= headers
+	columns _							= []
+	
+	options (Just (Table _ cells _))	= map (map toString) cells
+	options _							= []
+
+gVisualizeEditor{|[]|} fx _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask,layout}
+	# (cmv,vm)		= popMask verifyMask
+	# vst			= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+	# ver			= verifyElementStr cmv
+	# val			= fromMaybe [] val
+	# (items,vst)	= listControl val vst
+	= (NormalEditor [(defaultContainer items,addVerAttributes ver newMap)],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+where
+	name = dp2s currentPath
+	listControl items vst=:{VSt|optional,disabled}
+		# (itemsVis,vst)	= childVisualizations fx items vst
+		# numItems = length items
+		| disabled
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
+		| otherwise
+			# (newItem,vst)		= newChildVisualization fx True vst
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [newItemControl newItem],vst)
 						
-			listItemControl idx item
-				# defs = tuiOfEditor item
-				=	{ TUIListItem
-					| index = idx
-					, items = case defs of
-						[def]	= def
-						defs	= {content = TUIContainer (defaultContainer defs), width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
-					}
-					
-			addMsg verSt list = case verSt of
-				NoMsg			= [list]
-				HintMsg	msg		= addMsg` "icon-hint" msg list
-				ValidMsg msg	= addMsg` "icon-valid" msg list
-				ErrorMsg msg	= addMsg` "icon-invalid" msg list
-			
-			addMsg` cls msg list = [	{ content	= TUIContainer (defaultContainer [list,mkMessage cls msg])
-										, width		= Just (FillParent 1 ContentSize)
-										, height	= Just (WrapContent 0)
-										, margins	= Nothing
-										}]
-		
-			mkMessage cls msg =	stringDisplay msg //(DivTag [ClassAttr "list-msg-field"] [DivTag [ClassAttr cls] [Text msg]])
-
+	listItemControl disabled numItems idx item 
+		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
+		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
+					  ]
+		= setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))
+	newItemControl item
+		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
+		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= True}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}
+					  ]
+		= setDirection Horizontal (defaultContainer (controls ++ buttons))
+				
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
 
@@ -535,13 +640,13 @@ gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
 	# (_,vm) = popMask verifyMask	
 	= (HiddenEditor,{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
-gVisualizeEditor{|Display|} fx _ _ _ val vst=:{currentPath,renderAsStatic}
-	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  renderAsStatic = True}
-	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+gVisualizeEditor{|Display|} fx _ _ _ val vst=:{VSt|currentPath,disabled}
+	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  disabled = True}
+	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
-gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{currentPath, renderAsStatic}
-	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & renderAsStatic = False}
-	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{VSt|currentPath, disabled}
+	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & disabled = False}
+	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
 gVisualizeEditor{|VisualizationHint|} fx gx hx ix val vst=:{VSt|currentPath}
 	= case val of
@@ -550,34 +655,15 @@ gVisualizeEditor{|VisualizationHint|} fx gx hx ix val vst=:{VSt|currentPath}
 		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
 
-gVisualizeEditor{|ControlSize|} fx _ _ _ val vst=:{controlSize}
-	= case val of
-		Nothing
-			= fx Nothing vst
-		(Just (ControlSize width height margins v))
-			# (def,vst) = fx (Just v) {VSt | vst &  controlSize = (width,height,margins)}
-			= (def,{VSt | vst & controlSize = controlSize})
-			
-gVisualizeEditor{|FillControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=:(_,_,margins)}
-	# (def,vst) = fx (fmap fromFillControlSize val) {vst & controlSize = (Just (FillParent 1 ContentSize),Just (FillParent 1 ContentSize),margins)}
-	= (def,{vst & controlSize = controlSize})
-
-gVisualizeEditor{|FillWControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=:(_,height,margins)}
-	# (def,vst) = fx (fmap fromFillWControlSize val) {vst & controlSize = (Just (FillParent 1 ContentSize),height,margins)}
-	= (def,{vst & controlSize = controlSize})
-	
-gVisualizeEditor{|FillHControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=:(width,_,margins)}
-	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,Just (FillParent 1 ContentSize),margins)}
-	= (def,{vst & controlSize = controlSize})
-
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
 gVisualizeEditor{|HtmlTag|}	val vst = visualizeCustom toControl vst
 where
 	toControl name touched _ vst
-		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
+		= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = val},newMap)], vst)
 
-derive gVisualizeEditor DateTime
+derive gVisualizeEditor DateTime, User
 derive gVisualizeEditor JSONNode, Either, (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 generic gHeaders a :: a -> [String]
 
@@ -601,7 +687,8 @@ gHeaders{|(->)|} _ _ _		= []
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
-derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority
+derive gHeaders	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gHeaders DynamicChoice, RadioChoice, ComboChoice, GridChoice, TreeChoice
 derive gHeaders DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
@@ -629,41 +716,27 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, CheckMultiChoice, Map, Tree, TreeNode, Table
-derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ButtonState
+derive gGridRows GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows DynamicChoice, RadioChoice, ComboChoice, TreeChoice, GridChoice
 derive gGridRows DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
-
-visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(!VisualizationResult, !*VSt) | JSONEncode{|*|} a
-visualizeControl control v vst = visualizeCustom tuiF vst
-where
-	tuiF name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
-		| renderAsStatic
-			=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON v})], vst)
-		| otherwise
-			# v = checkMask touched v
-			# viz = sizedControl controlSize (TUIEditControl control
-													{ TUIEditControl
-													| name = name
-													, value = toJSON v
-													, taskId = fmap toString taskId
-													})
-			= ([addMsg verRes viz],vst)
 		
-visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
-visualizeCustom tuiF vst=:{currentPath,renderAsStatic,verifyMask}
+visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
+visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	// only check mask if generating editor definition & not for labels
 	# touched	= isTouched cmv
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
-	# (vis,vst) = tuiF (dp2s currentPath) touched (verifyElementStr cmv) vst
+	# ver		= verifyElementStr cmv
+	# (vis,vst) = tuiF (dp2s currentPath) touched ver vst
 	= (NormalEditor vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
 noVisualization vst=:{VSt|currentPath,verifyMask}
 	# (_,vm) = popMask verifyMask
-	= (NormalEditor [],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	= (NormalEditor [], {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 childVisualizations :: !((Maybe a) -> .(*VSt -> *(!VisualizationResult,*VSt))) ![a] !*VSt -> *(![VisualizationResult],!*VSt)
 childVisualizations fx children vst = childVisualizations` children [] vst
@@ -679,9 +752,6 @@ newChildVisualization fx newOptional vst=:{VSt|optional}
 	# (childV,vst) = fx Nothing {VSt|vst & optional = newOptional}
 	= (childV,{VSt|vst & optional = optional})
 
-sizedControl :: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins) !TUIDefContent -> TUIDef
-sizedControl (width,height,mbMargins) content = {content = content, width = width, height = height, margins = mbMargins}
-
 eventValue :: !DataPath !(Maybe (!String,!JSONNode)) -> Maybe JSONNode
 eventValue currentPath mbEvent = case mbEvent of
 	Just (dp,val) | dp == dp2s currentPath	= Just val
@@ -693,24 +763,26 @@ verifyElementStr cmv = case cmv of
 	VMUntouched mbHnt _ _	= maybe NoMsg HintMsg mbHnt
 	VMInvalid err _			= ErrorMsg (toString err)
 
-addMsg :: !VerifyResult !TUIDef -> TUIDef
-addMsg verRes viz = case verRes of
-		NoMsg			= viz
-		HintMsg msg		= add "icon-hint" msg viz
-		ValidMsg msg	= add "icon-valid" msg viz
-		ErrorMsg msg	= add "icon-invalid" msg viz
-where	
-	add cls msg viz= {content = TUIContainer {TUIContainer|defaultContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
-	mkIcon cls msg = setLeftMargin 5 (defaultDef (TUIIcon {type = cls, tooltip = Just msg}))
+addVerAttributes :: !VerifyResult !UIAttributes -> UIAttributes
+addVerAttributes (HintMsg msg)	attr = put HINT_ATTRIBUTE msg attr
+addVerAttributes (ValidMsg msg)	attr = put VALID_ATTRIBUTE msg attr
+addVerAttributes (ErrorMsg msg) attr = put ERROR_ATTRIBUTE msg attr
+addVerAttributes _				attr = attr
+
+addLabel :: !Bool !String !UIAttributes -> UIAttributes
+addLabel optional label attr = put LABEL_ATTRIBUTE (format optional label) attr
+where
+	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
+
 
 checkMask :: !Bool !(Maybe a) -> (Maybe a)
 checkMask False _	= Nothing
 checkMask _ val 	= val
 
-tuiOfEditor :: !VisualizationResult -> [TUIDef]
-tuiOfEditor (NormalEditor tui) = tui
-tuiOfEditor (OptionalEditor tui) = tui
-tuiOfEditor HiddenEditor = []
+controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
+controlsOf (NormalEditor controls)		= controls
+controlsOf (OptionalEditor controls)	= controls
+controlsOf HiddenEditor					= []
 
 //*********************************************************************************************************************
 	

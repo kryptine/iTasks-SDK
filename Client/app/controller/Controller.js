@@ -1,308 +1,217 @@
-Ext.define('itasks.controller.Controller',{
+/**
+* This controller handles all events that have an effect on
+* the state of server-side session task instances and updates the user interface 
+* to reflect changes in those session task instance states
+*/
+Ext.define('itwc.controller.Controller',{
 	extend: 'Ext.app.Controller',
-	requires: [
-		'itasks.component.edit.String',
-		'itasks.component.show.String',
-		'itasks.component.edit.Char',
-		'itasks.component.show.Char',
-		'itasks.component.edit.Bool',
-		'itasks.component.show.Bool',
-		'itasks.component.edit.Int',
-		'itasks.component.show.Int',
-		'itasks.component.edit.Real',
-		'itasks.component.show.Real',
-		'itasks.component.edit.Note',
-		'itasks.component.show.Note',
-		'itasks.component.edit.Date',
-		'itasks.component.show.Date',
-		'itasks.component.edit.Time',
-		'itasks.component.show.Time',
-		'itasks.component.edit.Document',
-		'itasks.component.show.Document',
-		'itasks.component.edit.Password',
-		'itasks.component.show.Password',
-		'itasks.component.edit.Currency',
-		'itasks.component.show.Currency',
-		'itasks.component.edit.Slider',
-		'itasks.component.show.Slider',
-		'itasks.component.Combo',
-		'itasks.component.Tree',
-		'itasks.component.Grid',
-		'itasks.component.Icon',
-		'itasks.component.Button',
-		'itasks.component.MenuButton',
-		'itasks.component.MenuItem',	
-		'itasks.component.ProgressBar',
-		'itasks.component.Html',
-		'itasks.component.Tasklet',
-		'itasks.component.TaskletPlaceholder',
-		'itasks.container.Panel',
-		'itasks.container.Container',
-		'itasks.container.Window',
-		'itasks.container.RadioChoice',
-		'itasks.container.CheckChoice',
-		'itasks.container.TabContainer',
-		'itasks.container.TabItem',
-		'itasks.container.BorderContainer',
-		'itasks.container.BorderItem',
-		'itasks.container.ListContainer',
-		'itasks.container.ListItem'
-	],
 
-	// for tasklet support: taskId -> tasklet, instanceNo -> tasklet.controllerFunc maps
-	tasklets: {},
-	taskletControllers: {},
+	requires: ['itwc.container.Viewport'		//Top level container
+			  ,'itwc.container.Container'		//Minimalist container that uses the itasks layout directives
+			  ,'itwc.container.Panel'			//More configurable container with headers and stuff
+			  ,'itwc.container.FieldSet'		//Logical grouping of components
+
+			  ,'itwc.component.view.String'		//Strings with html escaping
+			  ,'itwc.component.view.HTML'		//Raw HTML
+			  ,'itwc.component.view.Checkbox'	//Checkbox for booleans
+			  ,'itwc.component.view.Slider'		//Slider for bounded values
+			  ,'itwc.component.view.Progress'	//Progress bar
+			  ,'itwc.component.view.Document'	//Viewing of downloadable documents
+
+			  ,'itwc.component.edit.String'		//An editor for strings 
+			  ,'itwc.component.edit.Int'		//An editor for integer values 
+			  ,'itwc.component.edit.Decimal'	//An editor for decimal values 
+			  ,'itwc.component.edit.Checkbox'	//An editor for boolean values 
+			  ,'itwc.component.edit.Note'		//An editor for notes
+			  ,'itwc.component.edit.Date'		//An editor for dates
+			  ,'itwc.component.edit.Time'		//An editor for times
+			  ,'itwc.component.edit.Password'	//An editor for passwords 
+			  ,'itwc.component.edit.Slider'		//A slider for bounded values
+			  ,'itwc.component.edit.Document'	//An editor for uploading documents
+			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
+			  ,'itwc.component.edit.GoogleMap'	//An embedded Google map
+			  
+			  ,'itwc.component.choice.Dropdown'	//A simple dropdown box for choosing from a fixed set
+			  ,'itwc.component.choice.Grid'		//A grid from which you can select rows
+			  ,'itwc.component.choice.Tree'		//A tree from which you can select nodes 
 	
-	init: function () {
+			  ,'itwc.component.action.ActionButton'		//A button that triggers an action event
+			  ,'itwc.component.action.MenuButton'		//A button that opens a menu
+			  ,'itwc.component.action.Menu',			//A menu wrapper
+			  ,'itwc.component.action.ActionMenuItem'	//A menu item that triggers an action event
+			  ,'itwc.component.action.SubMenuItem'		//A menu item that leads to a sub menu 
 
-		this.version = 0;
-		this.sessionId = null;
-		this.editEvent = null;
-		this.commitEvent = null;
+			  ,'itwc.component.misc.Splitter'	//Resize of adjacent components
+			  ,'itwc.component.misc.Label'		//Label for standard forms
+			  ,'itwc.component.misc.Icon'		//Icons with help text
 
+			  ,'itwc.component.misc.Tab'		//A tab that can trigger focus events and close action events
+			  ],
+
+	init: function() {
 		this.viewport = null;
 
-		//Check when the viewport is rendered
-		this.control('viewport',{
-			render: this.onViewportRendered,
-			edit: this.onEdit,
-			commit: this.onCommit
+		this.version = 0;
+	
+		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);
+		this.control({
+			'viewport': {
+				render: this.onViewportReady,
+				edit: this.onEdit,
+				action: this.onAction,
+				focus: this.onFocus
+			}
 		});
-		//Control the menus
-		this.control('itasks_menu_item', {
-			commit: this.onCommit
-		});
-		this.control('.itasks_menu_button', {
-			commit: this.onCommit
-		});
-		
-		// global object used by tasklets
+
+		//Scary global reference for Tasklets
 		controller = this;
 	},
-	//Once, the viewport is rendered we can load the initial
-	//user interface definition
-	onViewportRendered: function(viewport) {
-		document.title = 'Running...';
+
+	onViewportReady: function(viewport) {
+		//Keep reference to server
 		this.viewport = viewport;
 
-		//Uncomment these lines to start polling every second
-        //var me = this;
-        //var pollTask = {
-        //    run: function() { me.pollServer();},
-        //    interval: 1000
-        //}
-        //Ext.TaskManager.start(pollTask);
-
-		this.pollServer();
+		//Sync with server for the first time
+		this.sendMessage();
 	},
-	onEdit: function(taskId,name,value) {	
-		var instanceNo = taskId.split("-")[0];
-		if(this.taskletControllers[instanceNo] != null){
-			controllerWrapper(
-					this.taskletControllers[instanceNo].taskletId,
-					this.taskletControllers[instanceNo].controllerFunc, 
-					taskId, "edit", name, value);
-		}else{
-			this.sendEditEvent(taskId,name,value);
-		}	
+	//iTasks edit events
+	onEdit: function(taskId, editorId, value) {
+		var me = this,
+			params = {editEvent: Ext.encode([taskId,editorId,value])};
+		
+		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
 	},
-	onCommit: function(taskId,name) {
-		var instanceNo = taskId.split("-")[0];
-		if(this.taskletControllers[instanceNo] != null){
-			controllerWrapper(
-					this.taskletControllers[instanceNo].taskletId,
-					this.taskletControllers[instanceNo].controllerFunc, 
-					taskId, "commit", name);
-		}else{
-			this.sendCommitEvent(taskId,name);
-		}	
+	//iTasks action events
+	onAction: function(taskId, actionId) {
+		var me = this,
+			params = {actionEvent: Ext.encode([taskId,actionId])};
+		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
 	},
-	sendEditEvent: function(taskId,name,value) {
-		this.editEvent = [taskId,name,value];
-		this.pollServer();
+	//iTasks focus events
+	onFocus: function(taskId) {
+		var me = this,
+			params = {focusEvent: Ext.encode(taskId)};
+		me.sendMessage(params);
 	},
-	sendCommitEvent: function(taskId,name) {
-		this.commitEvent = [taskId,name];
-		this.pollServer();
+	//Auto refresh event (triggered by tasks with an expiresIn value
+	onAutoRefresh: function () {
+		var me = this;
+		
+		me.sendMessage({});
 	},
-	// SERVER CONTROL PROCESSING
-
-	//Interface definition loading / updating
-	pollServer: function() {
-	
-		//Send additional info, namely session and lastsync	
-		var params = {};
-		if(this.sessionId)
-			params['session'] = this.sessionId;
-
-		//Send gui version number
-		params['version'] = this.version;
-
-		//If event and/or commit data is available, add it to the params
-		if(this.editEvent != null) {
-			params['editEvent'] = Ext.encode(this.editEvent);
-			this.editEvent = null;
+	//Send a message to the server
+	sendMessage: function(msg) {
+		var me = this,
+			params = {};
+		
+		if(msg) {
+			Ext.apply(params,msg);
 		}
-		if(this.commitEvent != null) {
-			params['commitEvent'] = Ext.encode(this.commitEvent);
-			this.commitEvent = null;
-		}
+        //Setup request parameters
+        params['version'] = me.version;
+
+        if(me.session)
+            params['session'] = me.session;
 
 		Ext.Ajax.request({
-			url: '?format=json-gui',
-			params: params,
-			scripts: false,
-			callback: this.processServerMessage,
-			scope: this
-		});
-	
-		//Increase version number
-		this.version++;
-	},
-	//Process server interface definitions
-	//@private
-	processServerMessage: function(options,success,response) {
-		var message;
+            url: '?format=json-gui',
+            params: params,
+            scripts: false,
+            callback: me.receiveMessage,
+            scope: me
+        });
 
+	},
+	//Receive a message from the server
+	receiveMessage: function(options,success,response) {
+		var me = this,
+			message;
 		//Preprocess and check for errors
+		//Transmission errors
 		if(!success) {
-			this.error("Request to server failed");
+			me.error("Request to server failed");
 			return;
 		}
-		try {	
+		try {
 			message = Ext.decode(response.responseText);
 		} catch (SyntaxError) {
-			this.error("Request from server malformed");
+			me.error("Request from server malformed");
 			return;
 		}
 		if (typeof message != 'object') {
-			this.error("Request from server malformed");
-			return;
-		}
-		
+			me.error("Request from server malformed");
+            return;
+        }
+		//Server errors
 		if(message.error) {
-			this.error(message.error);
+			me.error(message.error);
 			return;
 		}
+		
+		//Update session
+		me.session = message.session;
+		
+		//Update version for incremental updates
+		me.version = message.version + 1;
+		
+		//Schedule automatic refresh when an expiration time is set
+		if(Ext.isNumber(message.expiresIn)) {
+			me.refresher.delay(message.expiresIn);
+		}
+		//Take action
+        if(message.content) {
+			me.fullUpdate(message.content);
+		} else if(message.updates) {
+			me.partialUpdate(message.updates);
+		}
+	},
+	fullUpdate: function(viewportItems) {
+		var me = this,
+			viewport = me.viewport;
 
-		//Update session attribute
-		if(message.session) {
-			this.sessionId = message.session;
-		}
-		//Reload entire interface
-		if(message.content) {
-			this.viewport.suspendLayout = true;
-			
-			//Remove old content
-			Ext.WindowManager.each(function(w) {
-				if (w.isXType('itasks_window')) {
-					w.destroy();
-				}
-			});
-			this.viewport.removeAll();
-			
-			//Add new content
-			this.viewport.add(message.content);
-			this.viewport.suspendLayout = false;
-			this.viewport.doLayout();
-			
-			//Enable events
-			var cmps = Ext.ComponentQuery.query('[editable=true]');
-			var cmp, i;
-		
-			for(i = 0;  i < cmps.length; i++) {
-				cmp = cmps[i];
-				cmp.startSyncEdits();
+		//Close all windows
+		Ext.WindowManager.each(function(w) {
+			if (w.isXType('itwc_window')) {
+				w.destroy();
 			}
-		
-			return;
-		}
-		//Update existing interface
-		if(message.updates) {
-			var i, update, updateCount = message.updates.length, target;
-	
-			for(i = 0; i < updateCount; i++) {
-				update = message.updates[i];
+		});
+		//Update viewport
+		viewport.removeAll();
+		viewport.add(viewportItems);
+	},
+	partialUpdate: function(updates) {
+		var me = this,
+			numUpdates = updates.length,
+			update, cmp, i;
 			
-				try {
-					target = this.findChildByPath(update.path, this.viewport);
+		for(i = 0; i < numUpdates; i++) {
+			update = updates[i];
+		
+			try {
+				cmp	= me.viewport.getComponentByPath(update.path);
 				
-					if(target && typeof target[update.method] == 'function') {
-						target[update.method].apply(target,update.arguments);
+				if(cmp) {
+					if(cmp && typeof cmp[update.method] == 'function') {
+						cmp[update.method].apply(cmp,update.arguments);
 					} else {
 						//If replace is not defined as function, try remove followed by add
-						if(update.method == 'replace' && typeof target['remove'] == 'function' && typeof target['insert'] == 'function') {
-							target.remove(update.arguments[0]);
-							target.insert(update.arguments[0],update.arguments[1]);
+						if(update.method == 'replace' && typeof cmp['remove'] == 'function' && typeof cmp['insert'] == 'function') {
+							cmp.remove(update.arguments[0]);
+							cmp.insert(update.arguments[0],update.arguments[1]);
 						} else {
-							if(!target) {
-								this.error("Could not find user interface component at location " + update.path);
-							} else {
-								this.error("Can't apply " + update.method + " to " + target.getId() + " (" + target.getXType() + ")");
-								this.error(update.arguments);
-							}
+							me.error("Can't apply " + update.method + " to " + cmp.getId() + " (" + cmp.getXType() + ")");
 						}
 					}
-					
-				} catch (e) {
-					this.error("Failed to update user interface " + e);
-				}
-			}
-			//Enable events
-			var cmps = Ext.ComponentQuery.query('[editable=true]');
-			var cmp, i;
-		
-			for(i = 0;  i < cmps.length; i++) {
-				cmp = cmps[i];
-				cmp.startSyncEdits();
-			}
-
-			return;
-		}
-		//Shut down application
-		if(message.done) {
-			this.viewport.removeAll();
-			document.title = 'Stopped.';
-			return;
-		}
-	},
-	findChildByPath: function(path, cmp) {
-
-		var steps = path.split('/'),
-			step,
-			child = cmp,
-			numSteps = steps.length,
-			i, undefinedValue;
-			
-		if(path == "")
-			return child;
-		
-		for(i = 0; i < numSteps; i++) {
-			step = steps[i];
-		
-			if(step === "m") {
-				child = child.getDockedComponent(0);
-					if(!child)
-						return undefinedValue;
-			} else {
-				step = parseInt(step);
-				if(child.managing) {
-					child = child.managed[step];
-					if(!child)
-						return undefinedValue;
-				} else if(child.items && child.items.get) {
-					child = child.items.get(step);
-					if(!child)
-						return undefinedValue;
 				} else {
-					return undefinedValue;
+					me.error("Could not find user interface component at location " + update.path);
 				}
+			} catch (e) {
+				me.error("Failed to update user interface " + e);
 			}
 		}
-		return child;
 	},
 	error: function(e) {
-		alert(e);
-//		window.location = window.location;
+        alert(e);
+		//window.location = window.location;
 	}
 });

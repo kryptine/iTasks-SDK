@@ -4,37 +4,40 @@ import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, 
 import GenUpdate, StdMisc
 
 derive gVerify (,), (,,), (,,,), Void, Either, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gVerify GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+
+import StdDebug
+derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
+
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 verifyForm val updateMask
 	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False}
-	= hd verSt.verifyMask
-
-verifyValue :: !a -> Bool | gVerify{|*|}, gDefaultMask{|*|} a
-verifyValue val = isValidValue (verifyForm val (defaultMask val))
+	# msk = hd verSt.verifyMask
+	= (hd verSt.verifyMask)
+	
+verifyValue :: !a -> Bool | gVerify{|*|} a
+verifyValue val = isValidValue (verifyForm val Touched)
 
 isValidValue :: !VerifyMask -> Bool
 isValidValue (VMUntouched _ optional cm)	= optional && (and (map isValidValue cm)) 
 isValidValue (VMValid _ cm)					= and (map isValidValue cm)
-isValidValue (VMInvalid _ _)				= False
+isValidValue (VMValidWithState _ cm _)		= and (map isValidValue cm)
+isValidValue _								= False
 
 //Generic Verify
 generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
 
 gVerify{|UNIT|} 			  _ 					vst = vst
 gVerify{|PAIR|}			fx fy p						vst = fy (fmap fromPAIRY p) (fx (fmap fromPAIRX p) vst)
-gVerify{|CONS|}			fx c						vst = fx (fmap fromCONS c) vst
 
-gVerify{|RECORD|}		fx r						vst=:{updateMask,verifyMask,optional}
+gVerify{|RECORD of {grd_arity}|} fx r				vst=:{updateMask,verifyMask,optional}
 	# val		= fmap fromRECORD r
 	# (cmu,um)	= popMask updateMask
-	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}	
-	# (childMask,vst) = case isJust r of
-		True
-			# vst=:{verifyMask = childMask} = fx val {vst & optional = False}
-			= (childMask,{vst & verifyMask = childMask})
-		False
-			= ([],vst)
-	# (consMask,vst) = if (isTouched cmu) (VMValid Nothing childMask,vst) (VMUntouched Nothing optional childMask,vst)
+	# vst=:{verifyMask=childMask}	= fx val {vst & updateMask = childMasksN cmu grd_arity, verifyMask = [], optional = False}	
+	# vst							= {vst & verifyMask=childMask}
+	# (consMask,vst) = if (isTouched cmu)
+								(VMValid Nothing childMask,vst)
+								(VMUntouched Nothing optional childMask, vst)
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
 	
 gVerify{|FIELD|}		fx f						vst = fx (fmap fromFIELD f) vst
@@ -46,7 +49,7 @@ gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst
 gVerify{|OBJECT of {gtd_num_conses}|}	fx    obj	vst=:{updateMask,verifyMask,optional}
 	# val		= fmap fromOBJECT obj
 	# (cmu,um)	= popMask updateMask
-	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}
+	# vst		= {vst & updateMask = [cmu:um], verifyMask = []}
 	# (consMask,vst) = case gtd_num_conses of
 		1	// ADT's with just one constructor
 			# vst=:{verifyMask = childMask} = fx val vst
@@ -62,15 +65,18 @@ gVerify{|OBJECT of {gtd_num_conses}|}	fx    obj	vst=:{updateMask,verifyMask,opti
 				_							= (VMValid (Just "Select an option") childMask,vst)
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
 
+gVerify{|CONS of {gcd_arity}|} fx c	 vst=:{updateMask}
+	# (cmu,um)	= popMask updateMask
+	= fx (fmap fromCONS c) {vst & updateMask = childMasksN cmu gcd_arity}
+
 gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask,staticDisplay}
 	# (cm,um)			= popMask updateMask
 	# l					= fromMaybe [] mbL
 	# (listMask,vst)	= verifyList l cm vst	
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask listMask}
 where
-	
 	verifyList l cm vst
-		# vst=:{verifyMask=childMask} = verifyItems fx l {vst & verifyMask = [], updateMask = childMasks cm}
+		# vst=:{verifyMask=childMask} = verifyItems fx l {vst & verifyMask = [], updateMask = childMasksN cm (length l)}
 		# vst = {vst & verifyMask = childMask}
 		| staticDisplay
 				= (VMValid Nothing childMask,vst)
@@ -103,11 +109,6 @@ verifyEditable	fx e vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = stat
 verifyDisplay	fx d vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
 verifyHidden	vst=:{verifyMask,updateMask}	= {vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), updateMask = snd (popMask updateMask)}
 
-gVerify{|ControlSize|}		fx v vst = fx (fmap fromControlSize v) vst
-gVerify{|FillControlSize|}	fx v vst = fx (fmap fromFillControlSize v) vst
-gVerify{|FillWControlSize|}	fx v vst = fx (fmap fromFillWControlSize v) vst
-gVerify{|FillHControlSize|}	fx v vst = fx (fmap fromFillHControlSize v) vst
-
 gVerify{|Int|}    				_ vst = simpleVerify "Enter a number" vst
 gVerify{|Real|}   				_ vst = simpleVerify "Enter a decimal number" vst
 gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst
@@ -130,7 +131,7 @@ gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
-gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst//simpleVerify "Choose one row" vst
+gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst
 gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
 gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
 gVerify{|Table|}				_ vst = alwaysValid vst
@@ -138,10 +139,11 @@ gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" 
 gVerify{|TreeChoiceNoView|} _	_ vst = simpleVerify "Choose an element of the tree" vst
 gVerify{|HtmlInclude|}			_ vst = alwaysValid vst
 gVerify{|HtmlTag|}				_ vst = alwaysValid vst
+gVerify{|GoogleMap|}			_ vst = alwaysValid vst
 
-gVerify{|Dynamic|}			_ vst = alwaysValid vst
-gVerify{|(->)|} _ _			_ vst = alwaysValid vst
-gVerify{|JSONNode|}			_ vst = alwaysValid vst
+gVerify{|Dynamic|}				_ vst = alwaysValid vst
+gVerify{|(->)|} _ _				_ vst = alwaysValid vst
+gVerify{|JSONNode|}				_ vst = alwaysValid vst
 
 gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
 gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
@@ -195,9 +197,14 @@ where
 	appendToMask l c = l++[c]
 	
 	childMasks :: !VerifyMask -> [VerifyMask]
-	childMasks (VMValid _ cm)		= cm
-	childMasks (VMInvalid _ cm)		= cm
-	childMasks (VMUntouched _ _ cm)	= cm
+	childMasks (VMValid _ cm)				= cm
+	childMasks (VMValidWithState _ cm _)	= cm
+	childMasks (VMInvalid _ cm)				= cm
+	childMasks (VMInvalidWithState _ cm _)	= cm
+	childMasks (VMUntouched _ _ cm)			= cm
+	
+	childMasksN :: !VerifyMask !Int -> [VerifyMask]
+	childMasksN m _ = childMasks m
 	
 	isTouched :: !VerifyMask -> Bool
 	isTouched (VMUntouched _ _ _)			= False
@@ -207,7 +214,10 @@ where
 alwaysValid :: !*VerSt -> *VerSt
 alwaysValid vst=:{verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
-	= {vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
+	# nm = case cm of
+		TouchedWithState s	= VMValidWithState Nothing [] s
+		_					= VMValid Nothing []
+	= {vst & updateMask = um, verifyMask = appendToMask verifyMask nm}
 	
 simpleVerify :: !String !*VerSt -> *VerSt
 simpleVerify hint vst
@@ -221,12 +231,12 @@ wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional,
 			| staticDisplay
 							= VMValid Nothing [VMValid Nothing []]
 			| optional = case cm of
-				Touched _	= validateValue val
+				Touched		= validateValue val
 				_			= VMValid Nothing [VMValid mbHint []]           
 			| otherwise = case cm of
 				Untouched	= VMUntouched Nothing False [VMUntouched mbHint False []]
 				Blanked		= VMInvalid IsBlankError [VMInvalid IsBlankError []]
-				Touched _	= validateValue val     
+				Touched		= validateValue val     
 		Nothing
 							= VMValid Nothing [VMValid mbHint []]
 	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
@@ -244,20 +254,29 @@ customVerify mbHint pred mkErrMsg mbVal vst=:{updateMask, verifyMask, optional, 
 								= VMValid Nothing []
 			| optional
 				= case cm of
-					Touched _	= validateValue val
-					_			= VMValid mbHint []
+					Touched				= validateValue val
+					TouchedWithState s	= validateValueWithState s val
+					_					= VMValid mbHint []
 			| otherwise
 				= case cm of
-					Untouched	= VMUntouched mbHint False []
-					Blanked		= VMInvalid IsBlankError []
-					Touched _	= validateValue val
+					Untouched			= VMUntouched mbHint False []
+					PartiallyTouched _	= validateValue val
+					Touched				= validateValue val
+					TouchedWithState s	= validateValueWithState s val
+					Blanked				= VMInvalid IsBlankError []
 		Nothing
-								= VMValid mbHint []
+			= case cm of
+				TouchedWithState s	= VMValidWithState mbHint [] s
+				_					= VMValid mbHint []
 	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
 where
 	validateValue val
 		| pred val	= VMValid mbHint []
 		| otherwise	= VMInvalid (ErrorMessage (mkErrMsg val)) []
+		
+	validateValueWithState state val
+		| pred val	= VMValidWithState mbHint [] state
+		| otherwise	= VMInvalidWithState (ErrorMessage (mkErrMsg val)) [] state  
 
 setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask
 setInvalid errors mask = seq (map setInvalid` errors) mask

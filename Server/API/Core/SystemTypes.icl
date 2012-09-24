@@ -1,20 +1,26 @@
 implementation module SystemTypes
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List_NG, dynamic_string, Base64
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List_NG, dynamic_string, Map, Base64
 import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
+from UIDefinition import :: UIDef(..), :: UIAction, :: UIControl, stringDisplay
+from LayoutCombinators import mergeDefs
+
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
-derive JSONEncode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress, ProgressAmount
+derive JSONEncode		URL, EmailAddress, Action, HtmlInclude
+derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
-derive JSONDecode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress
+derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress, ProgressAmount
+derive JSONDecode		URL, EmailAddress, Action, HtmlInclude
+derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress, ProgressAmount
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude
+derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -23,10 +29,9 @@ derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskValue, Stability
 derive gHeaders			TaskListItem, ProgressMeta, TaskValue, Stability
 derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
-derive gDefaultMask		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
 
-derive class iTask	Credentials, Config, TaskId
+derive class iTask	Credentials, Config, TaskId, ProcessStatus
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
@@ -354,30 +359,6 @@ fromHidden (Hidden x) = x
 toHidden :: !.a -> (Hidden .a)
 toHidden x = (Hidden x)
 
-toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
-toControlSize width height margins a = ControlSize width height margins a
-
-fromControlSize :: !(ControlSize .a) -> .a
-fromControlSize (ControlSize _ _ _ a) = a
-
-toFillControlSize :: !.a -> FillControlSize .a
-toFillControlSize a = FillControlSize a
-
-fromFillControlSize :: !(FillControlSize .a) -> .a
-fromFillControlSize (FillControlSize a) = a
-
-toFillWControlSize :: !.a -> FillWControlSize .a
-toFillWControlSize a = FillWControlSize a
-
-fromFillWControlSize :: !(FillWControlSize .a) -> .a
-fromFillWControlSize (FillWControlSize a) = a
-
-toFillHControlSize :: !.a -> FillHControlSize .a
-toFillHControlSize a = FillHControlSize a
-
-fromFillHControlSize :: !(FillHControlSize .a) -> .a
-fromFillHControlSize (FillHControlSize a) = a
-
 // ******************************************************************************************************
 // Choice representations
 // ******************************************************************************************************
@@ -662,38 +643,42 @@ where
 	toString (TopLevelTaskList)					= "tasklist-top"
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 	
-	
 instance descr Void
-where initAttributes	_ = [] 
+where toPrompt _ = {UIDef|attributes = newMap, controls = [], actions = []}
 
 instance descr String
-where initAttributes	hint	= [(HINT_ATTRIBUTE, hint)]
+where toPrompt prompt	= {UIDef|attributes = newMap, controls = [(stringDisplay prompt,newMap)], actions = []}
 	
 instance descr (!String,!String) 
-where initAttributes (title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint)]
+where toPrompt (title,prompt)	= {UIDef|attributes = fromList [(TITLE_ATTRIBUTE,title)], controls = [(stringDisplay prompt,newMap)], actions = []}
 
 instance descr (!Icon,!String,!String)
-where initAttributes (icon,title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint):initAttributes icon]
+where toPrompt (icon,title,prompt)	= {UIDef|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
+									  ,controls = [(stringDisplay prompt,newMap)], actions = []}
 
 instance descr Title
-where initAttributes (Title title) = [(TITLE_ATTRIBUTE,title)]
-
-instance descr Hint
-where initAttributes (Hint hint) = [(HINT_ATTRIBUTE, hint)]
-
-instance descr Icon
-where
-	initAttributes (Icon icon)	= [(ICON_ATTRIBUTE, icon)]
-	initAttributes (IconView)	= [(ICON_ATTRIBUTE, "view")]
-	initAttributes (IconEdit)	= [(ICON_ATTRIBUTE, "edit")]
+where toPrompt (Title title)	= {UIDef|attributes = put TITLE_ATTRIBUTE title newMap,controls = [], actions = []}
 	
+instance descr Hint
+where toPrompt (Hint hint)	= {UIDef|attributes = put HINT_ATTRIBUTE hint newMap, controls = [], actions = []}
+	
+instance descr Icon
+where toPrompt icon	= {UIDef|attributes = put ICON_ATTRIBUTE (toString icon) newMap, controls = [], actions = []}
+
 instance descr Attribute
-where initAttributes (Attribute k v) = [(k,v)]
+where toPrompt (Attribute k v)	= {UIDef|attributes = put k v newMap, controls = [], actions = []}
+	
 instance descr Att
-where initAttributes (Att a) = initAttributes a
+where toPrompt (Att a)			= toPrompt a
 	
 instance descr [d] | descr d
-where initAttributes list = flatten (map initAttributes list)
+where toPrompt list = foldr mergeDefs {UIDef|attributes=newMap,controls=[],actions=[]} (map toPrompt list)
+	
+instance toString Icon
+where
+	toString (Icon icon) = icon
+	toString (IconView)	= "view"
+	toString (IconEdit) = "edit"
 
 instance toString TaskId
 where

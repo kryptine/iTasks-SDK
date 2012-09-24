@@ -1,10 +1,10 @@
 definition module GenVisualize
 
-import HTML, JSON_NG, TUIDefinition
+import HTML, JSON_NG, UIDefinition
 import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
-
+from LayoutCombinators import :: Layout
 :: StaticVisualizationMode = AsDisplay | AsLabel
 
 //Generic text visualization function
@@ -15,7 +15,8 @@ derive gVisualizeText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJEC
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
-derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
+derive gVisualizeText GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gVisualizeText DynamicChoice, DynamicChoiceNoView
 
 /**
@@ -40,7 +41,8 @@ derive gVisualizeEditor UNIT,
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeEditor URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
-derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
+derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gVisualizeEditor DynamicChoice, DynamicChoiceNoView
 
 //Generic headers function for getting grid headers for a type (typically names of record fields)
@@ -58,7 +60,8 @@ derive gHeaders UNIT,
 derive gHeaders Int, Real, Char, Bool, String
 derive gHeaders Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
-derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
+derive gHeaders	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gHeaders DynamicChoice, DynamicChoiceNoView
 
 //Generic function for getting grid rows (typically values of record fields)
@@ -75,12 +78,13 @@ derive gGridRows UNIT,
 derive gGridRows Int, Real, Char, Bool, String
 derive gGridRows Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
-derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
+derive gGridRows GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows DynamicChoice, DynamicChoiceNoView
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !VerifyMask !TaskId !*IWorld 		-> (!Maybe TUIDef,!*IWorld)	| gVisualizeEditor{|*|} a
-visualizeAsText			:: !StaticVisualizationMode !a			-> String					| gVisualizeText{|*|} a
+visualizeAsEditor		:: !a !VerifyMask !TaskId !Layout !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gVisualizeEditor{|*|} a
+visualizeAsText			:: !StaticVisualizationMode !a				-> String									| gVisualizeText{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -88,13 +92,16 @@ visualizeAsText			:: !StaticVisualizationMode !a			-> String					| gVisualizeTex
 	, verifyMask		:: ![VerifyMask]	
 	, selectedConsIndex	:: !Int													// Index of the selected constructor in an Object
 	, optional			:: !Bool												// Create optional form fields
-	, renderAsStatic	:: !Bool												// If true, flag the form items as being static
-	, taskId			:: !Maybe TaskId										// The id of the task the visualisation belongs to
-	, controlSize		:: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
+	, disabled			:: !Bool												// If true the editor is not editable
+	, taskId			:: !TaskId												// The id of the task the visualisation belongs to
+	, layout			:: !Layout												// Layout for composite structures
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 
-:: VisualizationResult = NormalEditor [TUIDef] | OptionalEditor [TUIDef] | HiddenEditor
+:: VisualizationResult
+		= NormalEditor [(!UIControl,!UIAttributes)]
+		| OptionalEditor [(!UIControl,!UIAttributes)]
+		| HiddenEditor
 	
 :: VerifyResult = HintMsg !String | ValidMsg !String | ErrorMsg !String | NoMsg
 
@@ -110,17 +117,6 @@ visualizeAsText			:: !StaticVisualizationMode !a			-> String					| gVisualizeTex
 noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
 
 /**
-* Generates a control visualization.
-*
-* @param The type of the control
-* @param The current value to visualize (if present)
-* @param VSt
-*
-* @return The generated visualization
-*/
-visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(!VisualizationResult, !*VSt) | JSONEncode{|*|} a
-
-/**
 * Generates a basic control visualization.
 * Visualizations are generated by custom functions using VSt.
 *
@@ -129,7 +125,7 @@ visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(!VisualizationResult, 
 *
 * @return The generated visualization
 */
-visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
+visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 
 /**
 * A function using VSt for generating TUI definitions.
@@ -143,7 +139,7 @@ visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![TUIDef],!*VSt))
+:: UIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![(!UIControl,!UIAttributes)],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a

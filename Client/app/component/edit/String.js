@@ -1,11 +1,13 @@
-Ext.define('itasks.component.edit.String',{
+Ext.define('itwc.component.edit.String',{
 	extend: 'Ext.form.field.Text',
-	alias: 'widget.itasks_edit_string',
-	mixins: ['itasks.mixin.Editable'],
+	alias: 'widget.itwc_edit_string',
+	mixins: ['itwc.component.edit.Editable'],
+
+	width: 'flex',
+	minWidth: 200,
+
 	initComponent: function() {
-		Ext.applyIf(this,{
-			width: 400
-		});
 		this.callParent(arguments);
+		this.initEditable();
 	}
 });

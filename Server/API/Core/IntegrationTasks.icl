@@ -11,11 +11,14 @@ import Shared
 
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
+from Map				import qualified newMap, put
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from Process			import :: ProcessHandle(..)
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
+
+PROCESS_EXPIRY	:== 1000
 
 :: AsyncResult = 
 	{ success	:: !Bool
@@ -33,15 +36,14 @@ worldIO f = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,world}
 		= case f world of 
-			(Ok a,world)	= (ValueResult (Value a Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop
-							  ,{IWorld|iworld & world = world})
-			(Error e,world)	= (ExceptionResult (dynamic e) "World IO failed", {IWorld|iworld & world = world})
+			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
+			(Error e,world)	= (Error (dynamic e,"World IO failed"), {IWorld|iworld & world = world})
 
-callProcess :: !FilePath ![String] -> Task Int
-callProcess cmd args = Task eval
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
+callProcess desc opts cmd args = Task eval
 where
 	//Start the external process
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
+	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
 		# runAsyncArgs	=	[ "--taskid"
@@ -55,15 +57,15 @@ where
 		# nstate		= case res of
 			Error e	= state taskId ts (Left e)
 			Ok _	= state taskId ts (Right outfile)
-		= eval eEvent cEvent refresh repAs nstate {IWorld|iworld & world = world}
+		= eval event repOpts nstate {IWorld|iworld & world = world}
 	where
 		state :: TaskId TaskTime (Either OSError FilePath) -> TaskTree
 		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
 
 	//Check for its result
-	eval eEvent cEvent refresh repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
+	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent (TaskRep (SingleTask,Nothing,[],[]) []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -71,10 +73,14 @@ where
 					# (exists,world) = 'File'.fileExists outfile world
 					| not exists
 						//Still busy
-						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
-						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
-						# rep			= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
-						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
+						# iworld			= {IWorld|iworld & world = world}
+						# status			= RunningProcess cmd
+						# layout			= repLayout repOpts
+						# (controls,iworld)	= makeView opts status (verifyForm status Touched) taskId layout iworld
+						# prompt			= toPrompt desc
+						# editor			= {UIDef|controls=controls,actions=[],attributes='Map'.newMap}
+						# rep				= TaskRep (layout.Layout.interact prompt editor) []
+						= (ValueResult (Value status Unstable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,iworld)
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
@@ -85,8 +91,8 @@ where
 							= (exception (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
 						Just async	
 							| async.AsyncResult.success
-								# result = async.AsyncResult.exitcode 
-								= (ValueResult (Value result Stable) lastEvent (TaskRep (SingleTask,Nothing,[],[]) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								# result = CompletedProcess async.AsyncResult.exitcode 
+								= (ValueResult (Value result Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
@@ -95,9 +101,18 @@ where
 				Nothing
 					= (exception (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
 	//Clean up
-	eval eEvent cEvent refresh repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
+	eval event repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
 		//TODO: kill runasync for this task and clean up tmp files
 		= (DestroyedResult,iworld)
+	
+	makeView [ViewWith viewFun] status vmask taskId layout iworld
+		= visualizeAsEditor (Display (viewFun status)) vmask taskId layout iworld
+	makeView _ status vmask taskId layout iworld
+		= visualizeAsEditor (Display (defaultViewFun status)) vmask taskId layout iworld
+	
+	//By default show a progress bar 
+	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
+	defaultViewFun (CompletedProcess exit) = {Progress|progress=ProgressRatio 1.0,description=cmd +++ " done (" +++ toString exit +++ ")"}
 		
 callInstantProcess :: !FilePath ![String] -> Task Int
 callInstantProcess cmd args = mkInstantTask eval
@@ -105,8 +120,10 @@ where
 	eval taskId iworld=:{taskTime,world}
 		# (res,world)	= 'Process'.callProcess cmd args Nothing world
 		= case res of
-			Error e	= (exception (CallFailed e), {IWorld|iworld & world = world})
-			Ok i	= (ValueResult (Value i Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+			Error e
+				# ex = CallFailed e
+				= (Error (dynamic ex,toString ex), {IWorld|iworld & world = world})
+			Ok i	= (Ok i, {IWorld|iworld & world = world})
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
@@ -116,8 +133,8 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Title "Call RPC"
-	>>= \exitCode -> if (exitCode > 0)
+	>>= \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) [] cmd args
+	>>= \(CompletedProcess exitCode) -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
 		(importTextFile outfile >>= \result -> case parseResult result of
 			Ok res	= return res
@@ -135,7 +152,8 @@ where
 		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
-			= (exception (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
+			# ex = RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))
+			= (Error (dynamic ex,toString ex),{IWorld|iworld & world = world})
 		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
@@ -145,7 +163,7 @@ where
 						, outfile
 						, url
 						]
-		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+		= (Ok (cmd,args,outfile), {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
@@ -228,6 +246,47 @@ curlError exitCode =
         87      = "unable to parse FTP file list"
         88      = "FTP chunk callback reported error "
 
+withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
+withTemporaryDirectory taskfun = Task eval
+where
+	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory}
+		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+		# (taskIda,iworld=:{world})	= getNextTaskId iworld
+		# (mbErr,world)		= createDirectory tmpdir world 
+		= case mbErr of
+			Ok Void
+				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
+			Error e=:(ecode,emsg)
+				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
+
+	eval event repOpts (TCShared taskId ts treea) iworld=:{build,dataDirectory,taskTime}
+		# tmpdir 					= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+		# ts						= case event of
+			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+			_						= ts
+		# (Task evala)				= taskfun tmpdir 
+		# (resa,iworld)				= evala event repOpts treea iworld
+		= case resa of
+			ValueResult value info rep ntreea
+				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
+			ExceptionResult e str = (ExceptionResult e str,iworld)
+	
+	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{build,dataDirectory} //First destroy inner task
+		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+		# (Task evala)		= taskfun tmpdir 
+		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
+		//TODO: recursive delete of tmp dir to not fill up the task store
+		= (resa,iworld)
+
+	eval _ _ _ iworld
+		= (exception "Corrupt task state in withShared", iworld)	
+
+	//Inline copy of function from CoreCombinators.icl
+	//I don't want to export it there because CoreCombinators is an API module
+	getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
+	getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
+
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval
 where
@@ -235,7 +294,7 @@ where
 		# sender		= toEmail sender
 		# recipients	= map toEmail recipients
 		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
-		= (ValueResult (Value recipients Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
+		= (Ok recipients, iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

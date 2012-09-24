@@ -1,6 +1,6 @@
 implementation module ExportTasks
 
-import StdBool, FilePath, CSV, File, Map, IWorld, Task, TaskState, DocumentStore
+import StdBool, FilePath, CSV, File, Map, IWorld, Task, TaskState, TaskStore
 
 exportDocument :: !FilePath !Document -> Task Document
 exportDocument filename document = mkInstantTask eval
@@ -16,9 +16,13 @@ createCSVFile :: !String ![[String]] -> Task Document
 createCSVFile filename content = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
-		# (doc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
-		= (ValueResult (Value doc Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
-
+		# (mbDoc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
+		= case mbDoc of
+			Ok doc	= (Ok doc, iworld)
+			_	
+				# e = "Failed to create csv file"
+				= (Error (dynamic e,e),iworld)
+			
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask eval
 where
@@ -43,7 +47,7 @@ fileTask taskId filename content f iworld=:{IWorld|taskTime,world}
 	# file				= f content file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (ValueResult (Value content Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+	= (Ok content, {IWorld|iworld & world = world})
 	
 writeAll content file
 	= fwrites content file
@@ -53,15 +57,21 @@ writeJSON encoder content file
 
 writeDocument taskId filename document iworld
 	# (mbContent,iworld=:{IWorld|taskTime,world})
-							= getDocumentContent document.Document.documentId iworld
+							= loadDocumentContent document.Document.documentId iworld
 	| isNothing mbContent	= (ioException filename, {IWorld|iworld & world = world})
 	# (ok,file,world)		= fopen filename FWriteData world
 	| not ok				= (openException filename,{IWorld|iworld & world = world})
 	# file					= fwrites (fromJust mbContent) file
 	# (ok,world)			= fclose file world
 	| not ok				= (closeException filename,{IWorld|iworld & world = world})	
-	= (ValueResult (Value document Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+	= (Ok document, {IWorld|iworld & world = world})
 
-ioException s		= exception (FileException s IOError)
-openException s		= exception (FileException s CannotOpen)
-closeException s	= exception (FileException s CannotClose)
+ioException s
+	# e = FileException s IOError
+	= Error (dynamic e, toString e)
+openException s	
+	# e = FileException s CannotOpen
+	= Error (dynamic e, toString e)
+closeException s
+	# e = FileException s CannotClose
+	= Error (dynamic e, toString e)

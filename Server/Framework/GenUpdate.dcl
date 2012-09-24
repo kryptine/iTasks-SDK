@@ -7,7 +7,9 @@ from Map	import :: Map
 :: DataPath
 
 :: UpdateMask = Untouched
-			  | Touched ![UpdateMask]
+			  | PartiallyTouched ![UpdateMask]
+			  | Touched
+			  | TouchedWithState !JSONNode		//Some components need to keep local state that can't be encoded in the value
 			  | Blanked
 
 :: *USt =
@@ -24,29 +26,16 @@ from Map	import :: Map
 
 generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 
-derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT of {gtd_num_conses}, RECORD, FIELD
+derive gUpdate UNIT, PAIR, EITHER, CONS of {gcd_arity}, OBJECT of {gtd_num_conses,gtd_conses}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gUpdate URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
 derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
-derive gUpdate ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gUpdate GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gUpdate DynamicChoice,DynamicChoiceNoView
-
-generic gDefaultMask a :: !a -> [UpdateMask]
-
-derive gDefaultMask UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
-derive gDefaultMask Int, Real, Char, Bool, String
-derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gDefaultMask URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
-derive gDefaultMask EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
-derive gDefaultMask ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive gDefaultMask DynamicChoice,DynamicChoiceNoView
-
-//derive bimap UpdateMode
 
 //Wrapper functions for updating
 defaultValue			:: a																		| gUpdate{|*|} a
-defaultMask				:: !a -> UpdateMask															| gDefaultMask{|*|} a
 updateValueAndMask  	:: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld)	| gUpdate{|*|} a
 
 //Utility functions for working accessing the iWorld in a USt
@@ -77,6 +66,7 @@ where
 	popMask 			:: ![m] -> (!m, ![m])
 	appendToMask 		:: ![m] !m -> [m]
 	childMasks			:: !m -> [m]
+	childMasksN			:: !m !Int -> [m]
 	isTouched			:: !m -> Bool
 
 instance == DataPath

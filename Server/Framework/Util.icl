@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON_NG, Void, Error, GenEq_NG
+import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList, Maybe, Time, Text, FilePath, Directory, JSON_NG, Void, Error, GenEq_NG
 from SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
 from IWorld 		import :: IWorld{currentDateTime,timestamp}
 
@@ -72,6 +72,23 @@ instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
+
+toCanonicalPath	:: !FilePath !*World -> (!FilePath,!*World)
+toCanonicalPath path world
+	= case split {pathSeparator} path of
+		["":ds]		= (join {pathSeparator} ["":canonicalize ds],world)
+		ds			= case getCurrentDirectory world of
+			(Ok curDir,world)	= (join {pathSeparator} [curDir:canonicalize ds], world)
+			(_,world)			= (join {pathSeparator} (canonicalize ds), world)
+where
+	canonicalize path = undot [] path
+
+	undot acc []				= reverse acc
+	undot []  ["..":ds]			= undot [] ds
+	undot [_:acc] ["..":ds]		= undot acc ds
+	undot acc [".":ds]			= undot acc ds
+	undot acc ["":ds]			= undot acc ds
+	undot acc [d:ds] 			= undot [d:acc] ds
 
 kvGet :: k ![(k,v)]		-> Maybe v	| Eq k // Linear search
 kvGet m []				= Nothing

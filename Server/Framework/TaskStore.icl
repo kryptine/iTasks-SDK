@@ -2,24 +2,22 @@ implementation module TaskStore
 
 import StdEnv, Maybe
 
-import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, TUIDefinition, Map
+import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, UIDefinition, Map
 import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of TUI definitions
 derive JSONEncode TaskRep, TaskCompositionType
-derive JSONEncode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONEncode TUIControlType
-derive JSONEncode TUIButtonControl, TUISliderControl, TUIListItem
-derive JSONEncode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-derive JSONEncode TUIProgressBar, TUITasklet
+derive JSONEncode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
+derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
+derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, ProgressAmount
 
 derive JSONDecode TaskRep, TaskCompositionType
-derive JSONDecode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONDecode TUIControlType
-derive JSONDecode TUIButtonControl, TUISliderControl, TUIListItem
-derive JSONDecode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-derive JSONDecode TUIProgressBar, TUITasklet
+derive JSONDecode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
+derive JSONDecode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
+derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, ProgressAmount
 
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"
@@ -47,6 +45,12 @@ newInstanceId iworld
 			# iworld = storeValue NS_TASK_INSTANCES INCREMENT 2 iworld //store the next value (2)
 			= (1,iworld) //return the first value (1)		
 
+newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
+newDocumentId iworld=:{world,timestamp}
+	# (Clock c,world)	= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
+
+
 storeTaskInstance :: !TaskInstance !*IWorld -> *IWorld
 storeTaskInstance (meta=:{TIMeta|instanceNo,sessionId},reduct,result,rep) iworld
 	//Store all parts
@@ -62,8 +66,8 @@ where
 	replace item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:replace item is]
 
 	instanceToTaskListItem :: !TIMeta !TIRep -> TaskListItem a
-	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep (_,_,_,attr) _)
-		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = attr, progressMeta = Just progress, managementMeta = Just management}
+	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep {UIDef|attributes} _)
+		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = toList attributes, progressMeta = Just progress, managementMeta = Just management}
 
 loadTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
 loadTaskInstance instanceNo iworld
@@ -123,6 +127,30 @@ deleteTaskInstance instanceNo iworld
 	= iworld
 where
 	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
+
+createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+createDocument name mime content iworld
+	# (documentId, iworld)	= newDocumentId iworld
+	# document				= {Document|documentId = documentId, contentUrl = "?download="+++documentId, name = name, mime = mime, size = size content}
+	# iworld				= storeBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
+	# iworld				= storeValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") document iworld	
+	= (Ok document,iworld)
+	
+createDocumentWith :: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+createDocumentWith name mime f iworld 
+	= createDocument name mime "FIXME" iworld //TODO make it possible to apply the function during creation
+	
+loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
+loadDocumentContent documentId iworld
+	= loadBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld
+
+loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
+loadDocumentMeta documentId iworld
+	= loadValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") iworld
+
+documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
+documentLocation documentId iworld=:{build,dataDirectory}
+	= (storePath dataDirectory build </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
 
 updateTaskInstanceMeta :: !InstanceNo !(TIMeta -> TIMeta) !*IWorld -> *IWorld
 updateTaskInstanceMeta instanceNo f iworld
@@ -187,13 +215,13 @@ addOutdatedOnShareChange shareId iworld
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 		
-storeCurUI :: !SessionId !Int !TUIDef !*IWorld -> *IWorld
+storeCurUI :: !SessionId !Int !UIDef !*IWorld -> *IWorld
 storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
 
-loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe TUIDef, !*IWorld)
-loadPrevUI sid version iworld=:{IWorld|uis}
+loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe UIDef, !*IWorld)
+loadPrevUI sid version iworld=:{IWorld|uis} 
 	= case get sid uis of
-		Just (prev,def) | version == (prev + 1)	= (Just def, iworld)
+		Just (prev,def)	| version == (prev + 1)	= (Just def, iworld)
 		_										= (Nothing, iworld)
 
 saveUICache	:: !*IWorld -> *IWorld

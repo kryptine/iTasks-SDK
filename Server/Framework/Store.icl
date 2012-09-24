@@ -4,7 +4,7 @@ import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList
 import File, Directory, OSError, Maybe, Map, Text, JSON_NG, Functor, FilePath
 from IWorld			import :: IWorld(..)
 from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
-from TUIDefinition	import :: TUIDef
+from UIDefinition	import :: UIDef, :: UIControl
 from TaskState		import :: TaskListEntry
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
@@ -40,6 +40,10 @@ where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= serialize value
+
+storeBlob :: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
+storeBlob namespace key blob iworld=:{IWorld|build,dataDirectory}
+	= writeToDisk namespace key {StoreItem|format=SFDynamic,content=blob} (storePath dataDirectory build) iworld
 
 writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
 writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|world}
@@ -99,6 +103,12 @@ loadStoreItem namespace key iworld=:{build,dataDirectory,world}
 			| otherwise
 				= (Nothing,False,{iworld & world = world})
 
+loadBlob :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe {#Char}, !*IWorld)
+loadBlob namespace key iworld=:{build,dataDirectory,world}
+	= case loadFromDisk namespace key (storePath dataDirectory build) world of
+		(Just {StoreItem|content},world)	= (Just content, {IWorld|iworld & world = world})
+		(Nothing,world)						= (Nothing, {IWorld|iworld & world = world})
+	
 //Look in stores of previous builds for a version of the store that can be migrated
 findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
 findOldStoreItem namespace key iworld=:{application,build,appDirectory,dataDirectory,world}
@@ -154,7 +164,7 @@ deleteValue :: !StoreNamespace !StoreKey !*IWorld -> *IWorld
 deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension
-	filterFuncDisk delKey key = (subString 0 (size key - 4) key) == delKey
+	filterFuncDisk delKey key = dropExtension key == delKey
 
 deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
@@ -174,7 +184,7 @@ where
 			unlink _ [] world
 				= world
 			unlink dir [f:fs] world
-				| filterFuncDisk delKey f
+				| filterFuncDisk (safeName delKey) f
 					# (err,world) = deleteFile (dir </> f) world 
 					= unlink dir fs world
 				| otherwise

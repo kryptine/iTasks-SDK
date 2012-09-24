@@ -21,7 +21,6 @@ derive gVisualizeEditor	Workflow, WorkflowTaskContainer
 derive gHeaders			Workflow, WorkflowTaskContainer
 derive gGridRows		Workflow, WorkflowTaskContainer
 derive gUpdate			Workflow, WorkflowTaskContainer
-derive gDefaultMask		Workflow, WorkflowTaskContainer
 derive gVerify			Workflow, WorkflowTaskContainer
 derive JSONEncode		Workflow, WorkflowTaskContainer
 derive JSONDecode		Workflow, WorkflowTaskContainer

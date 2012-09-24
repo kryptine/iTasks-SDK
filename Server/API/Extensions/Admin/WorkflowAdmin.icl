@@ -11,7 +11,6 @@ derive gVisualizeEditor	Workflow
 derive gHeaders			Workflow
 derive gGridRows		Workflow
 derive gUpdate 			Workflow
-derive gDefaultMask		Workflow
 derive gVerify			Workflow
 derive JSONEncode		Workflow
 derive JSONDecode		Workflow
@@ -25,8 +24,6 @@ gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode (\Void x -> x) (Wor
 where
 	defTask :: Task Void
 	defTask = abort "default task container"
-
-gDefaultMask{|WorkflowTaskContainer|}_ = [Touched []]
 
 gVerify{|WorkflowTaskContainer|} _ vst = alwaysValid vst
 
@@ -89,8 +86,8 @@ viewTask
 		
 externalTaskInterface :: [PublishedTask]
 externalTaskInterface
-	= [publish "/external/tasklist" WebApp viewTaskList
-	  ,publish "/external/task" WebApp viewTask
+	= [publish "/external/tasklist" WebApp (\_ -> viewTaskList)
+	  ,publish "/external/task" WebApp (\_ -> viewTask)
 	  ]
 
 // MANAGEMENT TASKS
@@ -132,7 +129,7 @@ derive class iTask ClientPart, WorklistRow
 	
 workflowDashboard :: Task Void
 workflowDashboard
-	=  parallel (Title "Manage worklist")
+	=  parallel Void
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
@@ -142,24 +139,22 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 	
-	layout = (sideLayout LeftSide 260 (sideLayout TopSide 26 (sideLayout TopSide 200 tabbedLayout)))
+	layout = customMergeLayout (sideMerge LeftSide 260 (sideMerge TopSide 30 (sideMerge TopSide 200 tabbedMerge)))
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
-	=	(viewSharedInformation Void [ViewWith view] currentUser					<<@ tweak1
+	=	(viewSharedInformation Void [ViewWith view] currentUser	
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
-				]																
-		) <! isJust																<<@ tweak2
-	@	fromJust
+				]															
+		) <! isJust	//<<@ AfterLayout (appControls (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
+	@	fromJust	
 where
-	view user	= "Welcome " +++ toString user
-	tweak1		= AfterLayout (tweakTUI (setBaseCls "x-panel-header" o setPadding 0 o setDirection Horizontal o setPurpose "form" o toContainer))
-	tweak2		= AfterLayout (tweakTUI (appDeep [1] (setPadding 0)))
+	view user	= "Welcome " +++ toString user		
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
-	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 (fillLayout Vertical))) <<@ AfterLayout (tweakTUI (setPurpose "form"))
+	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 minimalMerge))
 	>>*	 [WithResult (Action "Start Workflow") (const True) (startWorkflow list)]
 	@ 	\wf -> SelWorkflow wf.Workflow.path
 	)
@@ -199,7 +194,7 @@ where
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														<<@ tweak 
+	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														
 	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
 		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
 	)
@@ -220,7 +215,6 @@ where
 		,date = pmeta.issuedAt
 		,deadline = mmeta.completeBefore
 		}
-	tweak = AfterLayout (tweakTUI (setPurpose "form" o toContainer))
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
 openTask taskList taskId
@@ -231,18 +225,11 @@ workOnTask taskId
 	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)] <<@ SetLayout (partLayout 0)
 
 appendOnce identity task taskList
-	=	get (taskListMeta taskList)
-	>>= \opened ->	if (isEmpty [t \\ t <- opened | hasAttribute "identity" identity t])
-			(appendTask Embedded (\_ -> task <<@ Attribute "identity" (toString identity)) taskList @ const Void)
-			(return Void)
-where
-	hasAttribute attr value _// {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
-		= False // kvGet attr attributes == Just (toString value)
+	= 	appendTask Embedded (\_ -> task) taskList @ const Void
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional
 	=	update (\flows -> flows ++ additional) workflows
-
 
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w

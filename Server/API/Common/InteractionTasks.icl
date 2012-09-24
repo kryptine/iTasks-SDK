@@ -5,6 +5,7 @@ from SystemData import null
 from Tuple import appSnd
 from List_NG import isMemberGen, instance Functor []
 from Time import :: Timestamp(..)
+from Map import qualified put
 from Util import kvSet
 
 import StdBool, StdList, StdMisc, StdTuple
@@ -23,12 +24,13 @@ enterInformation d _ = enterInformation d [EnterWith id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInformation d [UpdateWith tof fromf] m
-/*
+
 	= interact d null
-		(\r -> let v = tof m in (m,v,defaultMask v))
-		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,defaultMask nv))) (l,v,m))
-*/
-	= interactNullUpdate d tof fromf m
+		(\r -> let v = tof m in (m,v,Touched))
+		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,m))) (l,v,m))
+
+//THIS OPTIMIZATION IS WRONG!
+//	= interactNullUpdate d tof fromf m
 updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
@@ -44,8 +46,8 @@ viewInformation d _ m = viewInformation d [ViewWith id] m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d [UpdateWith tof fromf] shared
 	= interact d (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,v,defaultMask v))
-				(\l r v m ok -> if ok (if (fromf r (tof r) =!= l) (let nv = tof r in (fromf r nv,nv,defaultMask nv)) (fromf r v,v,m)) (l,v,m))
+				(\r -> let v = tof r in (fromf r v,v,Touched))
+				(\l r v m ok -> if ok (if (fromf r (tof r) =!= l) (let nv = tof r in (fromf r nv,nv,Touched)) (fromf r v,v,m)) (l,v,m))
 				@> (mapval,shared)
 updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
@@ -53,13 +55,13 @@ updateSharedInformation d _ shared
 	= case dynamic id :: A.a: (a -> a) of
 		(rtow :: (r^ -> w^))
 			= interact d (toReadOnly shared)
-				(\r -> let v = rtow r in (rtow r,v,defaultMask v))
-				(\l r v m ok -> if ok (if (rtow r =!= l) (let nv = rtow r in (nv,nv,defaultMask nv)) (v,v,m)) (l,v,m))
+				(\r -> let v = rtow r in (rtow r,v,Touched))
+				(\l r v m ok -> if ok (if (rtow r =!= l) (let nv = rtow r in (nv,nv,Touched)) (v,v,m)) (l,v,m))
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)
-				(\r -> let v = (Display r,defaultValue) in (defaultValue,v,Touched [defaultMask (Display r),Untouched]))
-				(\l r (_,v) (Touched [_,m]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,Touched [defaultMask (Display r),m])))
+				(\r -> let v = (Display r,defaultValue) in (defaultValue,v,PartiallyTouched [Touched,Untouched]))
+				(\l r (_,v) (PartiallyTouched [_,m]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,PartiallyTouched [Touched,m])))
 				@> (mapval,shared)	
 
 mapval (Value w _) _	= Just w
@@ -78,12 +80,12 @@ viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
 updateInformationWithShared d [UpdateWith tof fromf] shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = tof (r,m) in (m,v,defaultMask v))
-		(\l r v msk ok -> let nl = if ok (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,v,defaultMask v)))
+		(\r -> let v = tof (r,m) in (m,v,Touched))
+		(\l r v msk ok -> let nl = if ok (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,v,Touched)))
 updateInformationWithShared d _ shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = (Display r,m) in (m,v,Touched [defaultMask (Display r),Untouched]))
-		(\l r (_,v) (Touched [_,msk]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,Touched [defaultMask (Display r),msk])))
+		(\r -> let v = (Display r,m) in (m,v,PartiallyTouched [Touched,Untouched]))
+		(\l r (_,v) (PartiallyTouched [_,msk]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,PartiallyTouched [Touched,msk])))
 
 enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d options container
@@ -259,8 +261,8 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 	_						= []
 
 viewTitle :: !a -> Task a | iTask a 
-viewTitle a = viewInformation Void  [ViewWith view] a <<@ AfterLayout (tweakAttr addTitleAttr o tweakTUI (fixedHeight 40 o fixedWidth 700))
+viewTitle a = viewInformation Void  [ViewWith view] a
 where
 	title				= visualizeAsText AsLabel a
 	view a				= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
-	addTitleAttr attr	= kvSet TITLE_ATTRIBUTE title attr
+	addTitleAttr attr	= 'Map'.put TITLE_ATTRIBUTE title attr

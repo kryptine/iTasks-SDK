@@ -1,12 +1,12 @@
-Ext.define('itasks.component.edit.Note',{
-	alias: 'widget.itasks_edit_note',
+Ext.define('itwc.component.edit.Note',{
 	extend: 'Ext.form.field.TextArea',
-	mixins: ['itasks.mixin.Editable'],
+	alias: 'widget.itwc_edit_note',
+	mixins: ['itwc.component.edit.Editable'],
+	
+	width: 'flex',
+	minWidth: 200,
 	initComponent: function() {
-		if(!this.width && !this.hflex) {
-			this.hflex = 1;
-			this.minWidth = 400;
-		}
 		this.callParent(arguments);
+		this.initEditable();
 	}
 });

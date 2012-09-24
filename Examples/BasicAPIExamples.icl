@@ -1,7 +1,6 @@
 implementation module BasicAPIExamples
 import iTasks, UserAdmin, WorkflowAdmin
 import Text
-import GoogleMaps
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
 */
@@ -424,8 +423,6 @@ where
 
 	lengthWords "" 	 = 0
 	lengthWords text = length (split " " (replaceSubString "\n" " " text))
-
-horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
 
 //* Distributing tasks
 

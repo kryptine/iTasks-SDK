@@ -98,6 +98,8 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * @gin False
 */
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
+
+
 interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v
 interactNullUpdate :: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v
 interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v

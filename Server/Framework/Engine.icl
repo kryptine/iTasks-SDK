@@ -114,13 +114,17 @@ handleStopRequest req iworld = ({newHTTPResponse & rsp_headers = fromList [("X-S
 
 path2name path = last (split "/" path)
 
-publish :: String ServiceFormat (Task a) -> PublishedTask | iTask a
+publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" WebApp task]
+	publishAll task = [publish "/" WebApp (\_ -> task)]
 
+instance Publishable (HTTPRequest -> Task a) | iTask a
+where
+	publishAll task = [publish "/" WebApp task]
+	
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
@@ -129,7 +133,7 @@ where
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
 	# ([arg:_],world) = getCommandLine world
-	| dropDirectory arg <> "ConsoleClient.exe" = (arg, world)
+	| dropDirectory arg <> "ConsoleClient.exe" = (arg,world) //toCanonicalPath arg world
 	//Using dynamic linker:	
 	# (res, world)				= getCurrentDirectory world	
 	| isError res				= abort "Cannot get current directory."	

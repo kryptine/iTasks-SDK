@@ -11,7 +11,6 @@ from LayoutCombinators	import :: Layout
 derive JSONEncode		Task
 derive JSONDecode		Task
 derive gUpdate			Task
-derive gDefaultMask		Task
 derive gVerify			Task
 derive gVisualizeText	Task
 derive gVisualizeEditor	Task
@@ -22,25 +21,32 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-:: Task a = Task !((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
-:: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
-					| LuckyEvent	!InstanceNo !e		//Event for any task who is willing to handle it (I am feeling lucky event)
+:: Event	= EditEvent		!TaskId !String !JSONNode	//Update something in an interaction: Task id, edit name, value
+			| ActionEvent	!TaskId !String				//Progress in a step combinator: Task id, action id
+			| FocusEvent	!TaskId						//Update last event time without changing anything: Task id
+			| RefreshEvent								//No event, just recalcalutate the entire task instance
+			
 
-:: EditEvent		:== Event (!String,!JSONNode)		//Datapath and new value
-:: CommitEvent		:== Event String					//Action name
-:: RefreshFlag		:== Bool							//Flag that indicates if events should not be applied
-
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskInfo !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 
-:: TaskRepOpts		= TaskRepOpts (Maybe Layout) (Maybe (Layout -> Layout))								//Optionally with tweaked layout options
-	
-:: TaskRep			= TaskRep !TaskTUIRep !TaskServiceRep												//Compute both the UI and the raw service representation simultaneously
+:: TaskInfo =
+	{ lastEvent			:: TaskTime		//When was the last edit, action or focus event in this task
+//	, lastValueChange	:: TaskTime 	//When was the last time this task's value changed
+	, expiresIn			:: Maybe Int	//Guideline for the maximum amount of time to wait before automatically refreshing (in milliseconds)	
+	}
 
-//Task representation for web application format
-:: TaskTUIRep		:== (!TaskCompositionType, !Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
+:: TaskRepOpts	=
+	{ useLayout			:: Maybe Layout
+	, afterLayout		:: Maybe (UIDef -> UIDef)
+	, modLayout			:: Maybe (Layout -> Layout)
+	, appFinalLayout	:: Bool
+	}
+	
+:: TaskRep			= TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
 
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]
@@ -52,9 +58,7 @@ derive gPutRecordFields	Task
 	| SequentialComposition
 	| ParallelComposition
 
-:: TaskPart			:== (!String, !JSONNode)		//Task id, part index, value
-:: TaskAction		:== (!String, !Action, !Bool)	//Task id, action, enabled
-:: TaskAttribute	:== (!String, !String) 
+:: TaskPart			:== (!String, !JSONNode)		//Task id, value
 
 /**
 * Creates an execption result
@@ -67,9 +71,18 @@ exception :: !e -> TaskResult a | TC, toString e
 repLayout :: TaskRepOpts -> Layout
 
 /**
+* Determine what function to apply after a layout has been done
+*/
+afterLayout :: TaskRepOpts -> (UIDef -> UIDef)
+/**
+* Apply the final layout if necessary
+*/
+finalizeRep :: TaskRepOpts TaskRep -> TaskRep
+
+/**
 * Create a task that finishes instantly
 */
-mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | iTask a
+mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 
 //* Provides fmap for Task Values
 instance Functor TaskValue

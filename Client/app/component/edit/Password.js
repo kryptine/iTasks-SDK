@@ -1,12 +1,14 @@
-Ext.define('itasks.component.edit.Password',{
+Ext.define('itwc.component.edit.Password',{
 	extend: 'Ext.form.field.Text',
-	alias: 'widget.itasks_edit_password',
-	mixins: ['itasks.mixin.Editable'],
+	alias: 'widget.itwc_edit_password',
+	mixins: ['itwc.component.edit.Editable'],
 	inputType: 'password',
+
+	width: 'flex',
+	minWidth: 400,
+
 	initComponent: function() {
-		Ext.applyIf(this,{
-			width: 400
-		});
 		this.callParent(arguments);
+		this.initEditable();
 	}
 });

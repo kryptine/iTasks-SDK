@@ -410,11 +410,12 @@ JSONDecode{|CONS of {gcd_name}|} fx l=:[JSONArray [JSONString name:fields] :xs]
 	| otherwise						= (Nothing, l)		
 JSONDecode{|CONS|} fx l = (Nothing, l)
 
+
 JSONDecode{|RECORD|} fx l=:[JSONObject fields: xs]
 	= case fx [JSONObject fields] of
 		(Just x, _)					= (Just (RECORD x),xs)
 		_							= (Nothing, l)
-
+JSONDecode{|RECORD|} fx l = (Nothing,l)
 	
 JSONDecode{|FIELD of {gfd_name}|} fx l =: [JSONObject fields]
 	# field = findField gfd_name fields

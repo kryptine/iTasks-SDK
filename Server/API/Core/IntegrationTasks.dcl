@@ -9,7 +9,7 @@ from Error	import :: MaybeError, :: MaybeErrorString
 
 from Task 			import :: Task
 from SystemTypes	import :: Note, :: EmailAddress
-
+from InteractionTasks	import :: ViewOption
 import iTaskClass
 
 :: HTTPMethod = GET | POST
@@ -24,6 +24,7 @@ worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e
 /**
 * Calls an external executable. The call is non-blocking.
 *
+* @param Task description
 * @param Executable: path to the executable
 * @param Arguments: a list of command-line arguments
 * @return return-code of the process
@@ -32,7 +33,7 @@ worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e
 * @gin-title Start executable
 * @gin-icon executable
 */
-callProcess :: !FilePath ![String] -> Task Int
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
 
 /**
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.
@@ -58,6 +59,9 @@ callInstantProcess :: !FilePath ![String] -> Task Int
 */
 callHTTP	:: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
+
+
+withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 
 /**
 * Send an e-mail message.

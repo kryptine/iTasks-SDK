@@ -8,7 +8,9 @@ import GenUpdate
 
 :: VerifyMask = VMUntouched !(Maybe HintMessage) !Optional ![VerifyMask] 
 			  | VMValid !(Maybe HintMessage) ![VerifyMask]
+			  | VMValidWithState !(Maybe HintMessage) ![VerifyMask] !JSONNode
 			  | VMInvalid !ErrorMessage ![VerifyMask]
+			  | VMInvalidWithState !ErrorMessage ![VerifyMask] !JSONNode
 			  
 :: *VerSt =
 	{ updateMask	:: ![UpdateMask]
@@ -22,12 +24,12 @@ generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
 instance GenMask VerifyMask
 instance toString ErrorMessage
 
-derive gVerify UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses}, CONS, RECORD, FIELD
+derive gVerify UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses}, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, (,), (,,),(,,,),(->), []
 derive gVerify Maybe, Dynamic, JSONNode, Void, Document, Either, Editable, Hidden, Display, VisualizationHint, HtmlTag, Timestamp
 derive gVerify Username, Password, Date, Time, FormButton, EUR, USD, BoundedInt, User, URL, Note, DateTime, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
 derive gVerify EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
-derive gVerify ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gVerify GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gVerify DynamicChoice, DynamicChoiceNoView
 
 /**
@@ -38,7 +40,7 @@ verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 /**
 * Verify a value (a form which is filled in completely).
 */
-verifyValue :: !a -> Bool | gVerify{|*|}, gDefaultMask{|*|} a
+verifyValue :: !a -> Bool | gVerify{|*|} a
 
 /**
 * Based on the verify mask of a value, determine if it is valid.
