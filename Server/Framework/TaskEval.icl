@@ -15,7 +15,7 @@ createTaskInstance instanceNo sessionId parent worker task mmeta pmeta iworld=:{
 	# meta		= {TIMeta|instanceNo=instanceNo,sessionId=sessionId,parent=parent,worker=worker,observers=[],management=mmeta,progress=pmeta}
 	# reduct	= {TIReduct|task=toJSONTask task,nextTaskNo=2,nextTaskTime=1,tree=(TCInit (TaskId instanceNo 0) 1),shares = 'Map'.newMap, lists = 'Map'.newMap}
 	# result	= TIValue NoValue taskTime
-	# rep		= (TaskRep {UIDef|controls=[(stringDisplay "This task has not been evaluated yet.",'Map'.newMap)],actions=[],attributes='Map'.newMap} [])
+	# rep		= (TaskRep (UIControlGroup ('Map'.newMap, [(stringDisplay "This task has not been evaluated yet.",'Map'.newMap)],[])) [])
 	= ((meta,reduct,result,rep),iworld)
 where
 	toJSONTask (Task eval) = Task eval`
@@ -142,7 +142,7 @@ where
 	taskres (ExceptionResult e str)						= TIException e str
 	
 	taskrep	(ValueResult _ _ rep _)		= rep
-	taskrep (ExceptionResult _ _)		= TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []
+	taskrep (ExceptionResult _ _)		= TaskRep (UIControlGroup ('Map'.newMap, [], [])) []
 
 evalAndStoreInstance _ _ (_,_,TIException e msg) iworld
 	= (Ok (ExceptionResult e msg), iworld)

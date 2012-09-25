@@ -6,7 +6,7 @@ import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
-from UIDefinition import :: UIDef(..), :: UIAction, :: UIControl, stringDisplay
+from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIAnnotatedControls, :: UIAbstractContainer, :: UIFinal, :: UIAction, :: UIControl, stringDisplay
 from LayoutCombinators import mergeDefs
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
@@ -644,35 +644,34 @@ where
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 	
 instance descr Void
-where toPrompt _ = {UIDef|attributes = newMap, controls = [], actions = []}
+where toPrompt _ = UIControlGroup (newMap,[],[])
 
 instance descr String
-where toPrompt prompt	= {UIDef|attributes = newMap, controls = [(stringDisplay prompt,newMap)], actions = []}
+where toPrompt prompt	= UIControlGroup (newMap,[(stringDisplay prompt,newMap)],[])
 	
 instance descr (!String,!String) 
-where toPrompt (title,prompt)	= {UIDef|attributes = fromList [(TITLE_ATTRIBUTE,title)], controls = [(stringDisplay prompt,newMap)], actions = []}
+where toPrompt (title,prompt)	= UIControlGroup (fromList [(TITLE_ATTRIBUTE,title)],[(stringDisplay prompt,newMap)],[])
 
 instance descr (!Icon,!String,!String)
-where toPrompt (icon,title,prompt)	= {UIDef|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
-									  ,controls = [(stringDisplay prompt,newMap)], actions = []}
-
+where toPrompt (icon,title,prompt)	= UIControlGroup (fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)],[(stringDisplay prompt,newMap)],[])
+									
 instance descr Title
-where toPrompt (Title title)	= {UIDef|attributes = put TITLE_ATTRIBUTE title newMap,controls = [], actions = []}
+where toPrompt (Title title)	= UIControlGroup (put TITLE_ATTRIBUTE title newMap,[],[])
 	
 instance descr Hint
-where toPrompt (Hint hint)	= {UIDef|attributes = put HINT_ATTRIBUTE hint newMap, controls = [], actions = []}
+where toPrompt (Hint hint)	= UIControlGroup (put HINT_ATTRIBUTE hint newMap,[],[])
 	
 instance descr Icon
-where toPrompt icon	= {UIDef|attributes = put ICON_ATTRIBUTE (toString icon) newMap, controls = [], actions = []}
+where toPrompt icon	= UIControlGroup (put ICON_ATTRIBUTE (toString icon) newMap,[],[])
 
 instance descr Attribute
-where toPrompt (Attribute k v)	= {UIDef|attributes = put k v newMap, controls = [], actions = []}
+where toPrompt (Attribute k v)	= UIControlGroup (put k v newMap,[],[])
 	
 instance descr Att
 where toPrompt (Att a)			= toPrompt a
 	
 instance descr [d] | descr d
-where toPrompt list = foldr mergeDefs {UIDef|attributes=newMap,controls=[],actions=[]} (map toPrompt list)
+where toPrompt list = foldr mergeDefs (UIControlGroup (newMap,[],[])) (map toPrompt list)
 	
 instance toString Icon
 where

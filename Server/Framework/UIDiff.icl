@@ -36,7 +36,7 @@ JSONEncode{|ProgressAmount|} ProgressUndetermined		= [JSONString "undetermined"]
 JSONEncode{|ProgressAmount|} (ProgressRatio ratio)		= [JSONReal ratio]
 
 diffUIDefinitions :: !UIDef !UIDef !Event -> [UIUpdate]	
-diffUIDefinitions d1=:{UIDef|controls=c1} d2=:{UIDef|controls=c2}  event = diffItems [] event (map fst c1) (map fst c2) 
+diffUIDefinitions d1 d2 event = diffItems [] event (uiDefControls d1) (uiDefControls d2) 
 
 //Compare controls
 diffControls :: !DiffPath !Event !UIControl !UIControl -> DiffResult

@@ -10,13 +10,31 @@ from Task			import :: TaskId
 from HTML			import :: HtmlTag
 from Map			import :: Map(..)
 
-:: UIDef =
-	{ attributes	:: !UIAttributes
-	, controls		:: ![(!UIControl,!UIAttributes)]
-	, actions		:: ![UIAction]
-	}
-	
-:: UIAttributes :== Map String String
+/**
+* Rendering a user interface for a composition of is a staged process in which
+* the raw UI material provided by basic tasks is grouped by layout policies to reach
+* a final UI definition consisting of a set of controls and a window title for the top-level application window.
+*
+* The UIDef type has contstructors for the various types of partial UI definitions.
+*/
+
+:: UIDef
+	= UIControlSequence 	!UIControlSequence										//Components from an interact task
+	| UIActionSet			!UIActions												//Actions from a chooseAction task
+	| UIControlGroup		!UIControlGroup											//Components from a single or multiple interacts grouped by a shared step combinator
+	| UIAbstractContainer	!UIAbstractContainer									//A decorated, layed out set of controls that can be put in a container 
+	| UIFinal				!UIFinal												//The final set of controls to put in the main viewport
+
+:: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls)
+:: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIActions)
+:: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIActions)
+:: UIFinal				:== (!UIControls, !UITitle)
+
+:: UIAttributes 		:== Map String String
+:: UIControls			:== [UIControl]
+:: UIAnnotatedControls	:== [(!UIControl,!UIAttributes)]
+:: UIActions			:== [UIAction]
+:: UITitle				:== String
 
 :: UIAction	=
 	{ taskId	:: !String
@@ -27,7 +45,7 @@ from Map			import :: Map(..)
 :: UIControl
 	// Components for viewing data:
 	= UIViewString		!UISizeOpts	!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml		!UISizeOpts	!(UIViewOpts HtmlTag)								// - Html (formatted multi line text)
+	| UIViewHtml		!UISizeOpts	!(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
 	| UIViewDocument	!UISizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
 	| UIViewCheckbox	!UISizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
 	| UIViewSlider		!UISizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
@@ -269,6 +287,14 @@ defaultContainer		:: ![UIControl]	-> UIControl
 defaultPanel			:: ![UIControl]	-> UIControl
 defaultWindow			:: ![UIControl]	-> UIControl
 stringDisplay			:: !String		-> UIControl
+
+//Success guaranteed access to the possible parts of a ui definition
+uiDefAttributes			:: UIDef -> UIAttributes
+uiDefControls			:: UIDef -> [UIControl]
+uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
+uiDefActions			:: UIDef -> [UIAction]
+
+uiDefSetAttribute		:: String String UIDef -> UIDef
 
 //Encode a user interface definition to a format that
 //can be interpreted by the client framework

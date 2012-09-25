@@ -15,31 +15,31 @@ autoLayout = {editor = autoEditorLayout, interact = autoInteractionLayout ,step 
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
 autoEditorLayout :: UIDef -> UIDef
-autoEditorLayout def=:{UIDef|attributes,controls=[]}
-	= {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" attributes}
-autoEditorLayout def=:{UIDef|attributes,controls}
-	# def = autoReduce (decorateControls {UIDef|attributes = put TYPE_ATTRIBUTE "partial" attributes,controls=controls,actions=[]})
+autoEditorLayout (UIControlGroup (attributes,[],actions))
+	= UIControlGroup (put TYPE_ATTRIBUTE "partial" attributes,[],actions)
+autoEditorLayout (UIControlGroup (attributes,controls,actions)) 
+	# (UIControlGroup (attributes,controls,actions)) = autoReduce (decorateControls (UIControlGroup (put TYPE_ATTRIBUTE "partial" attributes,controls,[])))
 	//Attributes are discarded so merge with the reduced control
-	= {UIDef|def & controls = [(c,mergeAttributes a attributes) \\ (c,a) <- def.UIDef.controls]}
+	= UIControlGroup (attributes,[(c,mergeAttributes a attributes) \\ (c,a) <- controls],actions)
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */	
 autoInteractionLayout :: UIDef UIDef -> UIDef
 autoInteractionLayout prompt editor
-	# def = mergeDefs (decoratePrompt prompt) editor
-	= {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" def.UIDef.attributes}
+	# (UIControlGroup (attributes,controls,actions)) = mergeDefs (decoratePrompt prompt) editor
+	= UIControlGroup (put TYPE_ATTRIBUTE "partial"attributes,controls,actions)
 
 autoStepLayout :: UIDef [UIAction]-> UIDef
-autoStepLayout def=:{UIDef|attributes,controls,actions} stepActions
-	//If the definition is not already of gorup type, add actions from this step
+autoStepLayout def=:(UIControlGroup (attributes,controls,actions)) stepActions
+	//If the definition is not already of group type, add actions from this step
 	//We set the type attribute to "group" because the step combinator binds the controls
 	//in the definition together. If the step is made, all these controls will disappear together.
 	| not (isGroup def)
-		= {UIDef|def & actions = actions ++ stepActions, attributes = put TYPE_ATTRIBUTE "group" def.UIDef.attributes}
+		= UIControlGroup (put TYPE_ATTRIBUTE "group" attributes, controls, actions ++ stepActions)
 	| otherwise
 		= def
 where
-	isGroup {UIDef|attributes} = case get TYPE_ATTRIBUTE attributes of Just "group" = True; _ = False;
+	isGroup (UIControlGroup (attributes,_,_)) = case get TYPE_ATTRIBUTE attributes of Just "group" = True; _ = False;
 /**
 * The default parallel composition only merges the prompt of the parallel with
 * the definitions of the constituents.
@@ -52,7 +52,7 @@ autoParallelLayout prompt defs
 		= groupedMerge prompt defs
 where
 	allPartial [] = True
-	allPartial [d:ds] = case get TYPE_ATTRIBUTE d.UIDef.attributes of 
+	allPartial [d=:(UIControlGroup (attributes,_,_)):ds] = case get TYPE_ATTRIBUTE attributes of 
 		Just "partial"	= allPartial ds
 		Just "group"	= allPartial ds	//Experiment...
 		_ = False;
@@ -61,8 +61,8 @@ where
 */
 autoFinalLayout :: UIDef -> UIDef	//TODO: Size should be minWidth, but that doesn't seem to work yet...
 autoFinalLayout def
-	| singleControl def && isEmpty (actionsOf def)	= def
-													= appControls finalTouch (autoReduce (decorateControls def))
+	| singleControl def && isEmpty (uiDefActions def)	= def
+													= tweakUI finalTouch (autoReduce (decorateControls def))
 where
 	finalTouch = setWidth (ExactSize 600) o setFramed True
 
@@ -70,7 +70,7 @@ where
 //wrapping them in a panel if necessary.
 //If possible, actions are converted to menus and buttons and added to this panel
 autoReduce :: UIDef -> UIDef
-autoReduce def=:{UIDef|attributes,controls,actions}
+autoReduce def=:(UIControlGroup (attributes,controls,actions))
 	# (buttons,actions)	= actionsToButtons actions
 	# controls			= addButtons buttons controls
 	# (controls,actions) = case controls of
@@ -84,7 +84,7 @@ autoReduce def=:{UIDef|attributes,controls,actions}
 		_					
 			# (menus,actions)	= actionsToMenus actions
 			= (wrapControls attributes menus controls,actions)
-	= {UIDef|def & controls = controls, actions = actions, attributes = attributes}
+	= UIControlGroup (attributes,controls,actions)
 where
 	addButtons [] controls		= controls
 	addButtons buttons controls	= controls ++ [(buttonPanel buttons,newMap)]
@@ -105,21 +105,21 @@ where
 		iconClsAttr	= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
 
 fillReduce :: UIDef -> UIDef
-fillReduce def = appControls fill (autoReduce (fillOutFlexibleControls def))
+fillReduce def = tweakUI fill (autoReduce (fillOutFlexibleControls def))
 
 //This sets all controls which are suitable for flexing flexable.
 //It makes no sense to flex checkboxes or vertically flexed string inputs,
 //but text areas, grids and maps can be easily flexed
 
 fillOutFlexibleControls	:: UIDef -> UIDef
-fillOutFlexibleControls def=:{UIDef|controls} = {UIDef|def & controls= map (appFst fillIfPossible) controls}
+fillOutFlexibleControls (UIControlGroup (attributes,controls,actions)) = UIControlGroup (attributes, map (appFst fillIfPossible) controls, actions)
 where	
 	fillIfPossible c=:(UIEditNote _ _) = fill c
 	fillIfPossible c = c
 	
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: UIDef -> UIDef
-decorateControls def=:{UIDef|controls} = {UIDef|def & controls = mapLst decorateControl controls}
+decorateControls  (UIControlGroup (attributes,controls,actions)) = UIControlGroup (attributes ,mapLst decorateControl controls, actions)
 where
 	mapLst f [] = []
 	mapLst f [x] = [f True x]
@@ -167,9 +167,9 @@ where
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: UIDef -> UIDef
-decoratePrompt def=:{UIDef|controls=[]} = def //If there are no controls in the prompt def, don't create a container
-decoratePrompt def=:{UIDef|controls}
-	= {UIDef|def & controls = [(container,newMap)]}
+decoratePrompt def=:(UIControlGroup (_,[],_)) = def //If there are no controls in the prompt def, don't create a container
+decoratePrompt (UIControlGroup (attributes,controls,actions))
+	= UIControlGroup (attributes,[(container,newMap)],actions)
 where
 	container = UIContainer sizeOpts defaultLayoutOpts (map fst controls) containerOpts
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}, width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
@@ -177,18 +177,19 @@ where
 
 //Merge the fragments of a composed interactive task into a single definition
 partialMerge :: UIDef [UIDef] -> UIDef
-partialMerge prompt defs
-	# attributes =  put TYPE_ATTRIBUTE "partial" prompt.UIDef.attributes
-	# controls = foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- defs]
-	# actions = foldr (++) [] [d.UIDef.actions \\ d <- defs]
+partialMerge prompt=:(UIControlGroup (attributes,_,actions)) defs
+	# controls	= uiDefAnnotatedControls (decoratePrompt prompt)
+	# attributes =  put TYPE_ATTRIBUTE "partial" attributes
+	# controls = foldr (++) controls (map uiDefAnnotatedControls defs)
+	# actions = foldr (++) [] (map uiDefActions defs)
 	//Determine title: if prompt has title use it, else combine titles 
 	# attributes = case (get TITLE_ATTRIBUTE attributes, collectTitles defs) of
 		(Just _,_) 	= attributes //Title already set, do nothing
 		(_,[])		= attributes //None of the parts have a title, do nothing
 		(_,titles)	= put TITLE_ATTRIBUTE (join ", " titles) attributes	//Set the joined titles
-	= {UIDef|attributes = attributes, controls = controls, actions = actions}
+	= UIControlGroup (attributes,controls,actions)
 where
-	collectTitles defs = [title \\ Just title <- [get TITLE_ATTRIBUTE d.UIDef.attributes \\ d <- defs]]
+	collectTitles defs = [title \\ Just title <- [get TITLE_ATTRIBUTE (uiDefAttributes d) \\d <- defs]]
 
 
 //Minimal merge, ignore the prompt, only reduce all parts
@@ -197,37 +198,41 @@ minimalMerge = merge
 where
 	merge _ defs
 		# attributes	= put TYPE_ATTRIBUTE "multi" newMap
-		# controls		= foldr (++) [] [d.UIDef.controls \\ d <- defs]
-		# actions		= foldr (++) [] [d.UIDef.actions \\ d <- defs]
-		= {UIDef|attributes = attributes, controls = controls, actions = actions}
+		# controls		= foldr (++) [] (map uiDefAnnotatedControls defs)
+		# actions		= foldr (++) [] (map uiDefActions defs)
+		= UIControlGroup (attributes,controls,actions)
 	
 //Create groups for all definitions in the list
 groupedMerge :: ParallelMerger
 groupedMerge = merge
 where
 	merge prompt defs
+		# prompt=:(UIControlGroup (attributes,controls,_))
+						= decoratePrompt prompt
 		# groups		= map (autoReduce o decorateControls) defs
-		# attributes	= put TYPE_ATTRIBUTE "multi" prompt.UIDef.attributes
-		# controls		= foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- groups]
-		# actions		= foldr (++) [][d.UIDef.actions \\ d <- groups]
-		= {UIDef|attributes = attributes, controls = controls, actions = actions}
+		# attributes	= put TYPE_ATTRIBUTE "multi" attributes
+		# controls		= foldr (++) controls (map uiDefAnnotatedControls groups)
+		# actions		= foldr (++) [] (map uiDefActions groups)
+		= UIControlGroup (attributes,controls,actions)
 
 sideMerge :: UISide Int ParallelMerger -> ParallelMerger
 sideMerge side size restMerge = merge
 where
 	merge prompt []		= prompt
-	merge prompt parts
+	merge prompt=:(UIControlGroup (attributes,_,_)) parts
 		# (direction,sidePart,restParts) = case side of
 			TopSide		= (Vertical, hd parts,tl parts)
 			RightSide	= (Horizontal, last parts,init parts)
 			BottomSide	= (Vertical, last parts,init parts)
 			LeftSide	= (Horizontal, hd parts, tl parts)
-		# restPart		= fillReduce (restMerge prompt restParts)
-		# sidePart		= fillReduce sidePart
+		# restPart=:(UIControlGroup (_,_,rActions))
+			= fillReduce (restMerge prompt restParts)
+		# sidePart=:(UIControlGroup (_,_,sActions))
+			= fillReduce sidePart
 		# sideUI		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill (uiOf sidePart))
 		# restUI		= fill (uiOf restPart)
 		# ui			= (fill o setDirection direction) (defaultContainer (ifTL side [sideUI,restUI] [restUI,sideUI]))
-		= {UIDef|controls = [(ui,newMap)],actions = sidePart.UIDef.actions ++ restPart.UIDef.actions, attributes = prompt.UIDef.attributes}
+		= UIControlGroup (attributes, [(ui,newMap)], sActions ++ rActions)
 
 	ifTL TopSide a b = a
 	ifTL LeftSide a b = a
@@ -259,24 +264,31 @@ tabbedMerge :: ParallelMerger
 tabbedMerge = merge
 where
 	merge prompt defs
-		# attributes				= prompt.UIDef.attributes
+		# prompt=:(UIControlGroup (attributes,controls,_)) = decoratePrompt prompt
 		# (activeIndex,activeDef)	= findActive defs	
 		# (tabBar,actions)			= mkTabs activeIndex defs	
-		# tabContent				= maybe [(defaultPanel [],newMap)]
-			(\d -> (tweakUI (setPadding 0 0 0 0) (fillReduce (decorateControls (tweakAttr (del TITLE_ATTRIBUTE) d)))).UIDef.controls) (fmap removeCloseAction activeDef)
-		# controls					= [(defaultContainer (map fst (decoratePrompt prompt).UIDef.controls ++ [tabBar] ++ map fst tabContent),newMap)]
-		= {UIDef|attributes = attributes, controls = controls, actions = []}
+		# tabContent				= maybe [defaultPanel []]
+			toTabContent 
+			(fmap removeCloseAction activeDef)
+		# controls					= [(defaultContainer (map fst controls ++ [tabBar] ++ tabContent),newMap)]
+		= UIControlGroup (attributes,controls,[]) 
 
+	toTabContent def
+		= uiDefControls (tweakUI (setPadding 0 0 0 0) (fillReduce (decorateControls (tweakAttr (del TITLE_ATTRIBUTE) def))))
+		
 	findActive defs = find 0 (0,Nothing) defs
 	where
 		find i bestSoFar [] = bestSoFar
 		find i (_,Nothing) [d:ds]	= find (i+1) (i,Just d) ds
 		find i bestSoFar=:(_,Just best) [d:ds]	= if (later d best) (find (i+1) (i,Just d) ds) (find (i+1) bestSoFar ds)
 		
-		later a b = case (get LAST_EVENT_ATTRIBUTE a.UIDef.attributes,get LAST_EVENT_ATTRIBUTE b.UIDef.attributes) of
+		later defA defB
+			# a = uiDefAttributes defA
+			# b = uiDefAttributes defB
+			= case (get LAST_EVENT_ATTRIBUTE a,get LAST_EVENT_ATTRIBUTE b) of
 			(Just ta,Just tb)
 				| ta == tb	//If the last event time is the same, then we compare creation times to which tab is newest
-					= case (get CREATED_AT_ATTRIBUTE a.UIDef.attributes,get CREATED_AT_ATTRIBUTE b.UIDef.attributes) of
+					= case (get CREATED_AT_ATTRIBUTE a, get CREATED_AT_ATTRIBUTE b) of
 						(Just ca,Just cb)	= toInt ca > toInt cb
 						_					= False
 				| otherwise	
@@ -289,7 +301,7 @@ where
 		# (tabs,actions) = unzip [mkTab (i == active) d \\ d <- defs & i <- [0..]]
 		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer tabs),foldr (++) [] actions)
 
-	mkTab active def=:{UIDef|attributes,actions}
+	mkTab active (UIControlGroup (attributes,_,actions))
 		# taskId				= get TASK_ATTRIBUTE attributes
 		# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 		# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
@@ -301,20 +313,23 @@ where
 	searchCloseAction [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
 	searchCloseAction [a:as] = let (mbtask,as`) = searchCloseAction as in (mbtask,[a:as`])
 
-	removeCloseAction def=:{UIDef|actions} = {UIDef|def & actions= filter notClose actions}
+	removeCloseAction (UIControlGroup (attributes,controls,actions)) = UIControlGroup (attributes,controls,filter notClose actions)
 	where
 		notClose {UIAction|action=ActionClose}	= False
 		notClose _								= True
 		
 hideLayout :: Layout
 hideLayout =
-	{ editor	= \def				-> {UIDef|def & controls = []}
-	, interact	= \prompt editor	-> {UIDef|mergeDefs prompt editor & controls = []}
-	, step		= \def actions		-> {UIDef|def & controls = [], actions = def.UIDef.actions ++ actions}
-	, parallel	= \prompt defs		-> {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
-	, final		= \def				-> {UIDef|def & controls = []}
+	{ editor	= \def				-> noControls def
+	, interact	= \prompt editor	-> noControls (mergeDefs prompt editor)
+	, step		= \def actions		-> noControls (addActions actions def)
+	, parallel	= \prompt defs		-> noControls (foldr mergeDefs (UIControlGroup (newMap,[],[])) [prompt:defs])
+	, final		= \def				-> noControls def
 	}
-		
+where
+	noControls (UIControlGroup (attributes,_,actions)) = UIControlGroup (attributes,[],actions)
+	addActions extra (UIControlGroup (attributes,controls,actions)) = UIControlGroup (attributes,controls,actions ++ extra)
+	
 customMergeLayout :: ParallelMerger -> Layout
 customMergeLayout merger = {autoLayout & parallel = merger}
 
@@ -323,10 +338,10 @@ partLayout idx = {autoLayout & parallel = layout}
 where	
 	layout prompt parts
 		| idx < length parts
-			# controls	= (parts !! idx).UIDef.controls
-			# attributes = foldr mergeAttributes prompt.UIDef.attributes [d.UIDef.attributes \\ d <- parts]
-			# actions = foldr (++) [] [d.UIDef.actions \\ d <- parts]
-			= {UIDef|attributes=attributes,controls=controls,actions=actions}
+			# controls	= uiDefAnnotatedControls (parts !! idx)
+			# attributes = foldr mergeAttributes (uiDefAttributes prompt) (map uiDefAttributes parts)
+			# actions = foldr (++) [] (map uiDefActions parts)
+			= UIControlGroup (attributes, controls, actions)
 		| otherwise
 			= autoParallelLayout prompt parts
 
@@ -649,29 +664,21 @@ where
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
 
 uiOf :: UIDef -> UIControl
-uiOf {UIDef|controls} = case controls of
-	[(c,_):_]	= c
-	[]			= stringDisplay "-"
+uiOf def = case uiDefControls def of
+	[c:_]	= c
+	[]		= stringDisplay "-"
 
 singleControl :: UIDef -> Bool
-singleControl {UIDef|controls=[_]}	= True
-singleControl _						= False
-
-actionsOf :: UIDef -> [UIAction]
-actionsOf {UIDef|actions} = actions
-
-attributesOf :: UIDef -> UIAttributes
-attributesOf {UIDef|attributes} = attributes
+singleControl  def = case uiDefControls def of
+	[_]	= True
+	_	= False
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> put k v attr) attr1 (toList attr2)
 
 mergeDefs :: UIDef UIDef -> UIDef
-mergeDefs {UIDef|controls=ct1,actions=ac1,attributes=at1} {UIDef|controls=ct2,actions=ac2,attributes=at2}
-	= {UIDef|controls = ct1 ++ ct2, actions = ac1 ++ ac2, attributes = mergeAttributes at1 at2}
-
-appControls :: (UIControl -> UIControl) UIDef -> UIDef
-appControls f def=:{UIDef|controls} = {UIDef|def & controls = [(f c,a) \\ (c,a) <- controls]}
+mergeDefs (UIControlGroup (at1,ct1,ac1)) (UIControlGroup (at2,ct2,ac2))
+	= UIControlGroup (mergeAttributes at1 at2, ct1 ++ ct2, ac1 ++ ac2)
 
 appDeep	:: [Int] (UIControl -> UIControl) UIControl -> UIControl
 appDeep [] f ctrl = f ctrl
@@ -684,7 +691,7 @@ where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
 
 tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
-tweakUI f def=:{UIDef|controls} = {UIDef|def & controls = [(f c,a) \\ (c,a) <- controls]}
+tweakUI f (UIControlGroup (attributes,controls,actions)) = UIControlGroup (attributes,[(f c,a) \\ (c,a) <- controls],actions)
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
-tweakAttr f def=:{UIDef|attributes} = {UIDef|def & attributes = f attributes}
+tweakAttr f (UIControlGroup (attributes,controls,actions)) = UIControlGroup (f attributes, controls, actions)

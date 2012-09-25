@@ -21,8 +21,24 @@ defaultWindow items = UIWindow defaultSizeOpts defaultLayoutOpts items {UIWindow
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
 
+uiDefAttributes	:: UIDef -> UIAttributes
+uiDefAttributes (UIControlGroup (attributes,_,_)) = attributes
+
+uiDefControls :: UIDef -> [UIControl]
+uiDefControls (UIControlGroup (_,controls,_)) = map fst controls
+
+uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
+uiDefAnnotatedControls (UIControlGroup (_,controls,_)) = controls
+
+uiDefActions :: UIDef -> [UIAction]
+uiDefActions (UIControlGroup (_,_,actions)) = actions
+
+uiDefSetAttribute :: String String UIDef -> UIDef
+uiDefSetAttribute key value (UIControlGroup (attributes,controls,actions))
+	= UIControlGroup (put key value attributes,controls,actions)
+
 encodeUIDefinition :: !UIDef -> JSONNode
-encodeUIDefinition {UIDef|controls} = JSONArray [encodeUIControl c \\ (c,_) <- controls]
+encodeUIDefinition def = JSONArray (map encodeUIControl (uiDefControls def))
 
 encodeUIControl :: !UIControl -> JSONNode
 encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,toJSON vopts] []

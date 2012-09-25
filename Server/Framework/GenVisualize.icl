@@ -144,11 +144,11 @@ gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# def = layout.Layout.editor {UIDef|attributes=addLabel disabled gfd_name newMap, controls=controls, actions=[]}
-			= (NormalEditor def.UIDef.controls,vst)
+			# controls = uiDefAnnotatedControls (layout.Layout.editor (UIControlGroup (addLabel disabled gfd_name newMap,controls,[])))
+			= (NormalEditor controls,vst)
 		OptionalEditor controls	
-			# def = layout.Layout.editor {UIDef|attributes=addLabel True gfd_name newMap, controls=controls, actions=[]}
-			= (OptionalEditor def.UIDef.controls, vst)
+			# controls = uiDefAnnotatedControls (layout.Layout.editor (UIControlGroup (addLabel True gfd_name newMap,controls,[])))
+			= (OptionalEditor controls, vst)
 
 
 gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId,layout}
@@ -159,7 +159,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content = (layout.editor {UIDef|attributes=newMap,controls = if (isTouched cmv) (controlsOf items) [],actions=[]}).controls
+		# content	= uiDefAnnotatedControls (layout.editor (UIControlGroup (newMap,(if (isTouched cmv) (controlsOf items) []),[])))
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = toString taskId
@@ -610,7 +610,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item 
-		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
+		# controls	= uiDefControls (layout.editor (UIControlGroup (newMap,controlsOf item,[])))
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
@@ -618,7 +618,7 @@ where
 		= setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))
 
 	newItemControl item
-		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
+		# controls	= uiDefControls (layout.editor (UIControlGroup (newMap,controlsOf item, [])))
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}

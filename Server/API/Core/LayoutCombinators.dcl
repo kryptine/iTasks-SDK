@@ -114,13 +114,10 @@ actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
 
 //Util
 uiOf			:: UIDef -> UIControl
-actionsOf		:: UIDef -> [UIAction]
-attributesOf	:: UIDef -> UIAttributes
 
 mergeDefs		:: UIDef UIDef -> UIDef
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
-appControls		:: (UIControl -> UIControl) UIDef -> UIDef
 appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
 tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef

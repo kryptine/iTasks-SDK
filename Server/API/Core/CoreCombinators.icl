@@ -15,7 +15,7 @@ from SharedDataSource	import write, read
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
-noRep = TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []
+noRep = TaskRep (UIControlGroup ('Map'.newMap,[],[])) []
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
@@ -296,8 +296,8 @@ where
 		# layout		= repLayout repOpts
 		# after			= afterLayout repOpts
 		# listId		= toString taskId
-		# parts = [({UIDef|d & attributes = 'Map'.put LAST_EVENT_ATTRIBUTE (toString lastEvent) ('Map'.put CREATED_AT_ATTRIBUTE (toString createdAt) ('Map'.put TASK_ATTRIBUTE (toString entryId) d.UIDef.attributes))})
-					 \\ ({TaskListEntry|entryId,state=EmbeddedState _ _,result=TIValue val _,createdAt,lastEvent,removed=False},Just (TaskRep d _)) <- entries | not (isStable val)]	
+		# parts = [(uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent) (uiDefSetAttribute CREATED_AT_ATTRIBUTE (toString createdAt) (uiDefSetAttribute TASK_ATTRIBUTE (toString entryId) def)))
+					 \\ ({TaskListEntry|entryId,state=EmbeddedState _ _,result=TIValue val _,createdAt,lastEvent,removed=False},Just (TaskRep def _)) <- entries | not (isStable val)]	
 		= TaskRep (after (layout.Layout.parallel (toPrompt desc) parts)) []
 	
 	parallelExpiry :: [(!TaskListEntry,!Maybe TaskRep)] -> Maybe Int
@@ -345,7 +345,7 @@ where
 	newTree (EmbeddedState task _) (ValueResult _ _ _ tree)		= EmbeddedState task tree
 	newTree cur _												= cur
 	
-	newAttr (ValueResult _ _ (TaskRep {UIDef|attributes} _) _)	= attributes
+	newAttr (ValueResult _ _ (TaskRep def _) _)					= uiDefAttributes def
 	newAttr _													= 'Map'.newMap
 	
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
@@ -475,7 +475,7 @@ where
 		= (DestroyedResult,iworld)
 		
 	inUseRep worker
-		= TaskRep {UIDef|controls=[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],actions=[],attributes='Map'.newMap} []
+		= TaskRep (UIControlGroup ('Map'.newMap,[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],[])) []
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

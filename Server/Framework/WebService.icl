@@ -103,8 +103,8 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (errorResponse err, iworld)
 				Ok (ValueResult (Value val Stable) _ _ _,_,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (ValueResult _ _ (TaskRep {UIDef|actions,attributes} rep) _,_,_)
-					= (jsonResponse (serviceBusyResponse rep actions (toList attributes)), iworld)
+				Ok (ValueResult _ _ (TaskRep def rep) _,_,_)
+					= (jsonResponse (serviceBusyResponse rep (uiDefActions def) (toList (uiDefAttributes def))), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
 			# (mbResult,iworld) = createSessionInstance (task req) RefreshEvent iworld

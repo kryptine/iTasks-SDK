@@ -66,8 +66,8 @@ where
 	replace item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:replace item is]
 
 	instanceToTaskListItem :: !TIMeta !TIRep -> TaskListItem a
-	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep {UIDef|attributes} _)
-		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = toList attributes, progressMeta = Just progress, managementMeta = Just management}
+	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep def _)
+		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = toList (uiDefAttributes def), progressMeta = Just progress, managementMeta = Just management}
 
 loadTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
 loadTaskInstance instanceNo iworld
