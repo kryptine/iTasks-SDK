@@ -38,6 +38,8 @@ basicAPIExamples =
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum
 	,workflow (seqTasks +++ "Sum, with backstep") 	 		"Sum, with backstep" 				calculateSumSteps
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers 2" 				calculateSum2
+	,workflow (seqTasks +++ "Add persons 1 by 1") 	 		"Add persons 1 by 1" 				(person1by1 [])
+
 	,workflow (seqTasks +++ "Coffee Machine") 	 			"Coffee Machine" 					coffeemachine
 	,workflow (seqTasks +++ "Calculator") 	 				"Calculator" 						calculator
 	,workflow (seqTasks +++ "Edit shared list of persons") 	"Edit shared list of persons" 		editPersonList
@@ -156,6 +158,8 @@ enterPerson = enterInformation "Enter your personal information" []
 enterPersons :: Task [MyPerson]
 enterPersons = enterInformation "Enter personal information of multiple people" []
 
+
+
 //* Interaction with shared data
 
 viewCurDateTime :: Task DateTime
@@ -224,6 +228,18 @@ where
 	palindrome s = lc == reverse lc
 	where lc :: [Char]
 		  lc = fromString s
+
+
+
+
+
+person1by1 :: [MyPerson] -> Task [MyPerson]
+person1by1 persons
+	=       enterInformation "Add a person" [] 	-|| viewInformation "List so far.." [] persons
+		>>*	[ OnAction  (Action "Add") 			hasValue  	(\v  -> person1by1  [getValue v : persons])  
+		    , OnAction  (Action "Finish")      	always 		(\_  -> return persons)
+		    , OnAction  ActionCancel 			always      (\_  -> return [] )
+	        ]
 
 // BUG? not always all record fields are shown in a choice...
 // sometimes I get several continues... does not looks nice
@@ -349,7 +365,7 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [] coins
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith ChooseFromRadioButtons id] coins
 			>>*		[ OnAction ActionCancel 		always (const (stop ("Cancelled",paid)))
 					, OnAction (Action "Insert") 	always (handleMoney o getValue)
 					]
