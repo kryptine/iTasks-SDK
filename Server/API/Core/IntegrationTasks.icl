@@ -65,7 +65,7 @@ where
 	//Check for its result
 	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlGroup ('Map'.newMap,[],[])) []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlSequence ('Map'.newMap,[],Vertical)) []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -78,8 +78,8 @@ where
 						# layout			= repLayout repOpts
 						# (controls,iworld)	= makeView opts status (verifyForm status Touched) taskId layout iworld
 						# prompt			= toPrompt desc
-						# editor			= UIControlGroup ('Map'.newMap,controls,[])
-						# rep				= TaskRep (layout.Layout.interact prompt editor) []
+						# editor			= ('Map'.newMap,controls,Vertical)
+						# rep				= TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) []
 						= (ValueResult (Value status Unstable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,iworld)
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
@@ -92,7 +92,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = CompletedProcess async.AsyncResult.exitcode 
-								= (ValueResult (Value result Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlGroup ('Map'.newMap,[],[])) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlSequence ('Map'.newMap,[],Vertical)) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization

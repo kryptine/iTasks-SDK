@@ -25,10 +25,10 @@ from Map			import :: Map(..)
 	| UIAbstractContainer	!UIAbstractContainer									//A decorated, layed out set of controls that can be put in a container 
 	| UIFinal				!UIFinal												//The final set of controls to put in the main viewport
 
-:: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls)
-:: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIActions)
-:: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIActions)
-:: UIFinal				:== (!UIControls, !UITitle)
+:: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls, !UIDirection)
+:: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIDirection, !UIActions)
+:: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIDirection, !UIActions)
+:: UIFinal				:== (!UIControls, !Maybe UITitle)
 
 :: UIAttributes 		:== Map String String
 :: UIControls			:== [UIControl]
@@ -293,9 +293,10 @@ uiDefAttributes			:: UIDef -> UIAttributes
 uiDefControls			:: UIDef -> [UIControl]
 uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
 uiDefActions			:: UIDef -> [UIAction]
+uiDefDirection			:: UIDef -> UIDirection
 
 uiDefSetAttribute		:: String String UIDef -> UIDef
-
+uiDefSetDirection		:: UIDirection UIDef -> UIDef
 //Encode a user interface definition to a format that
 //can be interpreted by the client framework
 encodeUIDefinition		:: !UIDef -> JSONNode

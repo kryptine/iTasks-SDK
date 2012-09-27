@@ -10,7 +10,7 @@ from Map 				import qualified get
 from HTML 				import class html
 from Time				import :: Timestamp
 from IWorld				import :: IWorld
-from UIDefinition		import :: UIDef, :: UISize, :: UISideSizes, :: UIMinSize, :: UIAttributes
+from UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from LayoutCombinators	import :: Layout
 from Task				import :: Task, :: TaskId
 from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gUpdate, :: USt, :: UpdateMask, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
@@ -457,7 +457,7 @@ PURPOSE_ATTRIBUTE		:== "purpose"
 
 class descr d
 where
-	toPrompt		:: !d -> UIDef			//Make the UI definition of the interaction prompt
+	toPrompt		:: !d -> UIControlSequence	//Make the UI definition of the interaction prompt
 
 instance descr Void							//No prompt
 instance descr String						//Simple instruction

@@ -109,7 +109,7 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void [(Embedded, checked pred task)] @? res
+	= parallel Void [(Embedded, checked pred task)] <<@ SetLayout (partLayout 0) @? res
 where
 	checked pred task tlist
 		=	task

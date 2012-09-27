@@ -15,7 +15,7 @@ from SharedDataSource	import write, read
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
-noRep = TaskRep (UIControlGroup ('Map'.newMap,[],[])) []
+noRep = TaskRep (UIControlSequence ('Map'.newMap,[],Vertical)) []
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
@@ -457,16 +457,19 @@ where
 		# (meta,iworld)		= loadTaskMeta instanceNo iworld
 		# (result,iworld)	= loadTaskResult instanceNo iworld
 		# (rep,iworld)		= loadTaskRep instanceNo iworld
+		# layout			= repLayout repOpts
 		= case (meta,result,rep) of
 			(_,Ok (TIValue (Value _ Stable) _),_)
 				= (ValueResult (Value WOFinished Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 			(_,Ok (TIException _ _),_)
 				= (ValueResult (Value WOExcepted Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
-			(Ok {TIMeta|worker=Just worker},_,Ok rep)
+			(Ok meta=:{TIMeta|worker=Just worker},_,Ok (TaskRep def parts))
 				| worker == currentUser
-					= (ValueResult (Value WOActive Unstable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts rep) tree, iworld)
+					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn def meta) parts)
+					= (ValueResult (Value WOActive Unstable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)
 				| otherwise
-					= (ValueResult (Value (WOInUse worker) Unstable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts (inUseRep worker)) tree, iworld)		
+					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn (inUseDef worker) meta) parts)
+					= (ValueResult (Value (WOInUse worker) Unstable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)		
 			_
 				= (ValueResult (Value WODeleted Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 
@@ -474,8 +477,8 @@ where
 		//TODO: Remove this workon from the observers
 		= (DestroyedResult,iworld)
 		
-	inUseRep worker
-		= TaskRep (UIControlGroup ('Map'.newMap,[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],[])) []
+	inUseDef worker
+		= UIControlSequence ('Map'.newMap,[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],Vertical)
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

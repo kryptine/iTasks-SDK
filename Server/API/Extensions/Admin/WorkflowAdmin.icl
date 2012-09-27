@@ -4,6 +4,7 @@ import iTasks
 import StdMisc, Tuple, Text, Shared
 from StdFunc import seq
 from Util import mb2list, kvGet
+from Map import qualified newMap
 
 // SPECIALIZATIONS
 derive gVisualizeText	Workflow
@@ -147,21 +148,24 @@ controlDashboard list
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
 				]															
-		) <! isJust	<<@ AfterLayout (tweakUI (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
+		) <! isJust	<<@ AfterLayout (uiDefSetDirection Horizontal)
 	@	fromJust	
 where
 	view user	= "Welcome " +++ toString user		
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
-startWork list = forever
-	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 minimalMerge))
-	>>*	 [WithResult (Action "Start Workflow") (const True) (startWorkflow list)]
-	@ 	\wf -> SelWorkflow wf.Workflow.path
-	)
-	
+startWork list
+	= (chooseWorkflow >&> viewAndStart) <<@ SetLayout (sideLayout BottomSide 200 sequenceMerge)
+where
+	viewAndStart sel = forever (
+			viewWorkflowDetails sel
+		>>* [WithResult (Action "Start Task") (const True) (startWorkflow list)]
+		@	\wf -> SelWorkflow wf.Workflow.path
+		)
+
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=	enterSharedChoice [Att (Title "Tasks"), Att IconView] [ChooseWith ChooseFromTree toView] (allowedWorkflowTree) 
+	=	enterSharedChoice [Att (Title "Tasks"), Att IconEdit] [ChooseWith ChooseFromTree toView] (allowedWorkflowTree) <<@ AfterLayout (tweakControls (map noAnnotation))
 	@? onlyRight
 where
 	toView (Left label)				= label
@@ -170,6 +174,8 @@ where
 	onlyRight (Value (Right wf) s)	= Value wf s
 	onlyRight _						= NoValue
 
+	noAnnotation (c,_) = (c,'Map'.newMap)
+	
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
 	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewWith view] sel
@@ -222,7 +228,7 @@ openTask taskList taskId
 
 workOnTask :: TaskId -> Task ClientPart
 workOnTask taskId
-	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)] <<@ SetLayout (partLayout 0)
+	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
 
 appendOnce identity task taskList
 	= 	appendTask Embedded (\_ -> task) taskList @ const Void

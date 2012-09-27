@@ -3,21 +3,23 @@ definition module LayoutCombinators
 import SystemTypes, UIDefinition
 
 from Task import :: TaskCompositionType
+from TaskState import :: TIMeta
 
 import Maybe
 
 // Definition of a layout as collection of combination functions
 :: Layout =
-	{ editor	:: UIDef -> UIDef															//Combine multiple controls to a single one in editors
-	, interact	:: UIDef UIDef -> UIDef														//Combine the prompt and editor of an interact
+	{ editor	:: UIControlSequence -> UIAnnotatedControls									//Combine multiple controls in editors
+	, interact	:: UIControlSequence UIControlSequence -> UIControlSequence					//Combine the prompt and editor of an interact
 	, step		:: UIDef [UIAction] -> UIDef												//Combine current definition with the step actions
-	, parallel	:: UIDef [UIDef] -> UIDef													//Combine the promp and parts of a parallel composition
-	, final		:: UIDef -> UIDef															//Last touches to the composition
+	, parallel	:: UIControlSequence [UIDef] -> UIDef										//Combine the promp and parts of a parallel composition
+	, workOn	:: UIDef TIMeta -> UIDef													//When a detached task is worked on 
+	, final		:: UIDef -> UIFinal															//Last touches to the composition
 	}
 
 // When the multiple parts of a parallel combinator need to be merged into a single definition
 // we call it a parallel merger
-:: ParallelMerger :== UIDef [UIDef] -> UIDef
+:: ParallelLayout :== UIControlSequence [UIDef] -> UIDef
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
@@ -30,11 +32,12 @@ import Maybe
 */
 autoLayout :: Layout
 //Partial layouts of autolayout
-autoEditorLayout		:: UIDef -> UIDef
-autoInteractionLayout	:: UIDef UIDef -> UIDef
+autoEditorLayout		:: UIControlSequence -> UIAnnotatedControls
+autoInteractionLayout	:: UIControlSequence UIControlSequence -> UIControlSequence
 autoStepLayout			:: UIDef [UIAction]-> UIDef
-autoParallelLayout		:: UIDef [UIDef] -> UIDef
-autoFinalLayout			:: UIDef -> UIDef
+autoParallelLayout		:: UIControlSequence [UIDef] -> UIDef
+autoWorkOnLayout		:: UIDef TIMeta -> UIDef
+autoFinalLayout			:: UIDef -> UIFinal
 
 /**
 * This layout hides ui controls, but accumulates actions and attributes.
@@ -47,22 +50,15 @@ partLayout :: Int -> Layout
 /**
 * Use a custom function for merging parallel combinations
 */
-customMergeLayout :: ParallelMerger -> Layout
+customMergeLayout :: ParallelLayout -> Layout
 
-minimalMerge	:: ParallelMerger
-groupedMerge	:: ParallelMerger
-sideMerge		:: UISide Int ParallelMerger -> ParallelMerger
-splitMerge		:: UIDirection -> ParallelMerger
-tabbedMerge		:: ParallelMerger
+sequenceMerge	:: ParallelLayout
+sideMerge		:: UISide Int ParallelLayout -> ParallelLayout
+tabbedMerge		:: ParallelLayout
 
 //Shorthands for layouts with custom parallel mergers
 tabbedLayout				:== customMergeLayout tabbedMerge 
-splitLayout direction		:== customMergeLayout (splitMerge direction)
 sideLayout side size rest	:== customMergeLayout (sideMerge side size rest)
-
-//Useful functions for tweaking or roll-your-own layouts
-autoReduce :: UIDef -> UIDef
-
 
 //Modifiers on interface definitions
 setSize			:: !UISize	!UISize			!UIControl -> UIControl
@@ -115,10 +111,10 @@ actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
 //Util
 uiOf			:: UIDef -> UIControl
 
-mergeDefs		:: UIDef UIDef -> UIDef
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
 appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
 tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
 tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 
+tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef

@@ -86,7 +86,7 @@ manageUsers =
 			, AnyTime		(Action "Import & export/Import demo users")	(\_ -> importDemoUsersFlow @ const False)
 			, AnyTime		(ActionQuit)									(\_ -> return True)
 			]
-	) <! id >>| return Void
+	) <! id @ const Void
 
 createUserFlow :: Task Void
 createUserFlow =

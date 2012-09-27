@@ -2,7 +2,8 @@ Ext.define('itwc.container.Panel',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_panel',
 	requires: ['itwc.layout.container.Box'],
-
+	autoScroll: true,
+	
 	//Default container config
 	layout: 'itwc_box',
 	halign: 'left',

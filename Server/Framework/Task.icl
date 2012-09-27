@@ -2,7 +2,7 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass, IWorld
-from TaskState			import :: TaskTree(..), :: DeferredJSON(..)
+from TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from LayoutCombinators	import :: Layout(..), autoLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
@@ -19,7 +19,7 @@ where
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 
-	rep = TaskRep (UIControlGroup (put TYPE_ATTRIBUTE "single" newMap,[],[])) []
+	rep = TaskRep (UIControlGroup (put TYPE_ATTRIBUTE "single" newMap,[],Vertical,[])) []
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
@@ -69,7 +69,7 @@ afterLayout :: TaskRepOpts -> (UIDef -> UIDef)
 afterLayout {TaskRepOpts|afterLayout} = fromMaybe id afterLayout
 
 finalizeRep :: TaskRepOpts TaskRep -> TaskRep
-finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep ((repLayout repOpts).Layout.final def) parts
+finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep (UIFinal ((repLayout repOpts).Layout.final def)) parts
 finalizeRep repOpts rep = rep
 
 instance Functor TaskValue

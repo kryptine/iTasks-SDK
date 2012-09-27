@@ -59,7 +59,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val Unstable) {TaskInfo|lastEvent=ts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts (TaskRep (UIControlGroup (newMap,[],[])) [])) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val Unstable) {TaskInfo|lastEvent=ts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts (TaskRep (UIControlSequence (newMap,[],Vertical)) [])) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -319,7 +319,7 @@ matchAndApplyEvent _ matchId taskTime v mask ts iworld
 visualizeView taskId repOpts v validity desc iworld
 	# layout	= repLayout repOpts
 	# (controls,iworld) = visualizeAsEditor v validity taskId layout iworld
-	# uidef		= (afterLayout repOpts) (layout.Layout.interact (toPrompt desc) (UIControlGroup (newMap, controls, [])))
+	# uidef		= (afterLayout repOpts) (UIControlSequence (layout.Layout.interact (toPrompt desc) (newMap, controls,Vertical)))
 	= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
 could_not_read_shared_in_interact_exception iworld

@@ -5,7 +5,7 @@ Ext.define('itwc.component.edit.Password',{
 	inputType: 'password',
 
 	width: 'flex',
-	minWidth: 400,
+	minWidth: 200,
 
 	initComponent: function() {
 		this.callParent(arguments);

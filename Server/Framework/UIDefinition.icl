@@ -22,20 +22,52 @@ stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
 
 uiDefAttributes	:: UIDef -> UIAttributes
-uiDefAttributes (UIControlGroup (attributes,_,_)) = attributes
+uiDefAttributes (UIControlSequence (attributes,_,_))		= attributes
+uiDefAttributes (UIControlGroup (attributes,_,_,_)) 		= attributes
+uiDefAttributes (UIAbstractContainer (attributes,_,_,_))	= attributes
+uiDefAttributes _											= newMap
 
 uiDefControls :: UIDef -> [UIControl]
-uiDefControls (UIControlGroup (_,controls,_)) = map fst controls
+uiDefControls (UIControlSequence (_,controls,_))		= map fst controls
+uiDefControls (UIControlGroup (_,controls,_,_))			= map fst controls
+uiDefControls (UIAbstractContainer (_,controls,_,_))	= controls
+uiDefControls (UIFinal (controls,_))					= controls
+uiDefControls _											= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
-uiDefAnnotatedControls (UIControlGroup (_,controls,_)) = controls
+uiDefAnnotatedControls (UIControlSequence (_,controls,_))		= controls
+uiDefAnnotatedControls (UIControlGroup (_,controls,_,_))		= controls
+uiDefAnnotatedControls (UIAbstractContainer (_,controls,_,_))	= [(c,newMap)\\c <- controls]
+uiDefAnnotatedControls (UIFinal (controls,_))					= [(c,newMap)\\c <- controls]
+uiDefAnnotatedControls _										= []
 
 uiDefActions :: UIDef -> [UIAction]
-uiDefActions (UIControlGroup (_,_,actions)) = actions
+uiDefActions (UIActionSet actions)					= actions
+uiDefActions (UIControlGroup (_,_,_,actions)) 		= actions
+uiDefActions (UIAbstractContainer (_,_,_,actions))	= actions
+uiDefActions _										= []
+
+uiDefDirection :: UIDef -> UIDirection
+uiDefDirection (UIAbstractContainer (_,_,direction,_))	= direction
+uiDefDirection _										= Vertical
 
 uiDefSetAttribute :: String String UIDef -> UIDef
-uiDefSetAttribute key value (UIControlGroup (attributes,controls,actions))
-	= UIControlGroup (put key value attributes,controls,actions)
+uiDefSetAttribute key value (UIControlSequence (attributes,controls,direction))
+	= UIControlSequence (put key value attributes,controls,direction)
+uiDefSetAttribute key value (UIControlGroup (attributes,controls,direction,actions))
+	= UIControlGroup (put key value attributes,controls,direction,actions)
+uiDefSetAttribute key value (UIAbstractContainer (attributes,controls,direction,actions))
+	= UIAbstractContainer (put key value attributes,controls,direction,actions)
+uiDefSetAttribute key value def = def
+
+uiDefSetDirection :: UIDirection UIDef -> UIDef
+uiDefSetDirection direction (UIControlSequence (attributes,controls,_))
+	= (UIControlSequence (attributes,controls,direction))
+uiDefSetDirection direction (UIControlGroup (attributes,controls,_,actions))
+	= (UIControlGroup (attributes,controls,direction,actions))
+uiDefSetDirection direction (UIAbstractContainer (attributes,controls,_,actions))
+	= (UIAbstractContainer (attributes,controls,direction,actions))
+uiDefSetDirection direction def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
 encodeUIDefinition def = JSONArray (map encodeUIControl (uiDefControls def))

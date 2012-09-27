@@ -144,10 +144,10 @@ gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# controls = uiDefAnnotatedControls (layout.Layout.editor (UIControlGroup (addLabel disabled gfd_name newMap,controls,[])))
+			# controls = layout.Layout.editor (addLabel disabled gfd_name newMap,controls,Vertical)
 			= (NormalEditor controls,vst)
 		OptionalEditor controls	
-			# controls = uiDefAnnotatedControls (layout.Layout.editor (UIControlGroup (addLabel True gfd_name newMap,controls,[])))
+			# controls = layout.Layout.editor (addLabel True gfd_name newMap,controls,Vertical)
 			= (OptionalEditor controls, vst)
 
 
@@ -159,7 +159,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content	= uiDefAnnotatedControls (layout.editor (UIControlGroup (newMap,(if (isTouched cmv) (controlsOf items) []),[])))
+		# content	= layout.editor (newMap, (if (isTouched cmv) (controlsOf items) []), Vertical)
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = toString taskId
@@ -281,7 +281,10 @@ where
 //		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
 		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
 
-		| otherwise	= ([(UIEditNote defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditNote sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
+	
+	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
+	
 	// THIS IS A HACK!
 	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
 	noteToHtml (Note s)	//TODO: Fix this in the toString of the Text constructor of HtmlTag type
@@ -495,9 +498,12 @@ gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath
 	# (cmv,vm)	= popMask verifyMask
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# ver		= verifyElementStr cmv
-	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
+	# viz		= [(UITree sizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
 	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
+
+	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
+
 	value  (Just (TreeChoice _ mbSel)) 	= mbSel
 	value _								= Nothing
 	
@@ -596,7 +602,7 @@ gVisualizeEditor{|[]|} fx _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verify
 	# ver			= verifyElementStr cmv
 	# val			= fromMaybe [] val
 	# (items,vst)	= listControl val vst
-	= (NormalEditor [(defaultContainer items,addVerAttributes ver newMap)],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	= (NormalEditor [(listContainer items,addVerAttributes ver newMap)],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
 	name = dp2s currentPath
 	listControl items vst=:{VSt|optional,disabled}
@@ -610,25 +616,28 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item 
-		# controls	= uiDefControls (layout.editor (UIControlGroup (newMap,controlsOf item,[])))
+		# controls	= map fst (layout.editor (newMap,controlsOf item,Vertical))
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
 					  ]
-		= setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))
-
+		= setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons))))
+/*
 	newItemControl item
-		# controls	= uiDefControls (layout.editor (UIControlGroup (newMap,controlsOf item, [])))
+		# controls	= map fst (layout.editor (newMap,controlsOf item))
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}
 					  ]
 		= setDirection Horizontal (defaultContainer (controls ++ buttons))
-	
+*/	
 	addItemControl numItems
 		# controls	= [UIViewString {defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)}]
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}]
-		= setDirection Horizontal (defaultContainer (controls ++ buttons))
+		= setHeight WrapSize (setDirection Horizontal (defaultContainer (controls ++ buttons)))
+	
+	listContainer items
+		= setHeight WrapSize (defaultContainer items)
 	
 	numItemsText 1 = "1 item"
 	numItemsText n = toString n +++ " items"
@@ -770,10 +779,12 @@ eventValue currentPath mbEvent = case mbEvent of
 
 verifyElementStr :: !VerifyMask -> VerifyResult
 verifyElementStr cmv = case cmv of
-	VMValid mbHnt _			= maybe NoMsg ValidMsg mbHnt
-	VMUntouched mbHnt _ _	= maybe NoMsg HintMsg mbHnt
-	VMInvalid err _			= ErrorMsg (toString err)
-
+	VMValid mbHnt _				= maybe NoMsg ValidMsg mbHnt
+	VMValidWithState mbHnt _ _	= maybe NoMsg ValidMsg mbHnt
+	VMUntouched mbHnt _ _		= maybe NoMsg HintMsg mbHnt
+	VMInvalid err _				= ErrorMsg (toString err)
+	VMInvalidWithState err _ _	= ErrorMsg (toString err)
+	
 addVerAttributes :: !VerifyResult !UIAttributes -> UIAttributes
 addVerAttributes (HintMsg msg)	attr = put HINT_ATTRIBUTE msg attr
 addVerAttributes (ValidMsg msg)	attr = put VALID_ATTRIBUTE msg attr
