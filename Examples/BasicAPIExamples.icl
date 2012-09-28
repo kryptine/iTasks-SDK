@@ -49,9 +49,9 @@ basicAPIExamples =
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						editWithStatistics
 
-	,workflow (distrTask +++ "Delegate Enter a person") "Delegate Enter a person" 		(delegate enterPerson)
-	,workflow (distrTask +++ "BUG (Display in tuple): Chat with someone")    "Chat with someone" 				chat
-	,workflow (distrTask +++ "BUG (not all dates shown): Plan meeting") 		"Plan meeting" 						testMeeting
+	,workflow (distrTask +++ "Delegate Enter a person") 	"Delegate Enter a person" 			(delegate enterPerson)
+	,workflow (distrTask +++ "Chat with someone")   		"Chat with someone" 				chat
+	,workflow (distrTask +++ "Plan meeting") 				"Plan meeting" 						testMeeting
 
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
@@ -467,8 +467,8 @@ where
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
 			>>*		[OnAction (Action "Stop") always (const (return Void))]
 
-	toView   (me,you) 							= (Display (/*Note*/ you), Note me)
-	fromView _ (Display (/*Note*/ you), Note me) 	= (me,you) 
+	toView   (me,you) 							= (Display you, Note me)
+	fromView _ (Display you, Note me) 	= (me,you) 
 
 	switch (me,you) = (you,me)
 
