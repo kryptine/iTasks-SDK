@@ -445,7 +445,7 @@ editWithStatistics
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		]
-							>>*	 			[ OnAction (Action "Stop") always (const (return Void))
+							>>*	 			[ OnAction (ActionQuit) always (const (return Void))
 											]
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
@@ -457,14 +457,14 @@ where
 	fromV _ (Note text) = text
 
 showStatistics sharedFile _  = noStat 
-where 
+where
 	noStat :: Task Void
 	noStat	=			viewInformation Void [] Void
- 				>>*		[ OnAction (Action "Show Statistics") always (const showStat)
+ 				>>*		[ OnAction (Action "File/Show Statistics") always (const showStat)
  						]
 	showStat :: Task Void 
 	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
- 				>>*		[ OnAction (Action "Hide Statistics") always (const noStat)
+ 				>>*		[ OnAction (Action "File/Hide Statistics") always (const noStat)
  						]
 
 

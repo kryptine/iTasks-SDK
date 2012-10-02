@@ -79,7 +79,7 @@ autoFinalLayout :: UIDef -> UIFinal	//TODO: Size should be minWidth, but that do
 autoFinalLayout (UIControlSequence (attributes,controls,direction))
 	= (decorateControls controls,get TITLE_ATTRIBUTE attributes)
 autoFinalLayout def=:(UIControlGroup (attributes,controls,direction,actions))
-	# (actions,panel) = placeActions actions (defToPanel (layoutControls def))
+	# (actions,panel) = placeActions actions False (defToPanel (layoutControls def))
 	= ([(setSize WrapSize WrapSize o setFramed True) panel], get TITLE_ATTRIBUTE attributes)
 autoFinalLayout (UIActionSet actions)							= ([],Nothing)
 autoFinalLayout def=:(UIAbstractContainer (attributes,controls,actions,direction))
@@ -188,23 +188,26 @@ defToControl def
 			_							= defToContainer def
 		
 
-placeActions :: [UIAction] UIControl -> ([UIAction],UIControl)
-placeActions actions (UIPanel sOpts lOpts items opts)
+placeActions :: [UIAction] Bool UIControl  -> ([UIAction],UIControl)
+placeActions actions placeMenus (UIPanel sOpts lOpts items opts)
 	//Place button actions
 	# (buttons,actions)	= actionsToButtons actions	
 	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
-	//Place menu actions
-	# (menus,actions)	= actionsToMenus actions
-	# opts				= case menus of
-		[]	= opts
-		_	= {UIPanelOpts|opts & tbar = Just menus}
-	= (actions, UIPanel sOpts lOpts items opts)
-placeActions actions (UIContainer sOpts lOpts items opts)
+	| placeMenus
+		//Place menu actions
+		# (menus,actions)	= actionsToMenus actions
+		# opts				= case menus of
+			[]	= opts
+			_	= {UIPanelOpts|opts & tbar = Just menus}
+		= (actions, UIPanel sOpts lOpts items opts)
+	| otherwise
+		= (actions, UIPanel sOpts lOpts items opts)
+placeActions actions _ (UIContainer sOpts lOpts items opts)
 	//Place button actions
 	# (buttons,actions)	= actionsToButtons actions	
 	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
 	= (actions, UIContainer sOpts lOpts items opts)
-placeActions actions control = (actions,control)
+placeActions actions _ control = (actions,control)
 
 //Merge the fragments of a composed interactive task into a single definition
 partialMerge :: UIControlSequence [UIDef] -> UIDef
@@ -238,7 +241,7 @@ sequenceMerge :: ParallelLayout
 sequenceMerge = merge
 where
 	merge prompt=:(attributes,pcontrols,direction) defs
-		# (actions,controls)	= unzip [placeActions (uiDefActions d) (defToPanel (layoutControls d)) \\ d <- defs]
+		# (actions,controls)	= unzip [placeActions (uiDefActions d) False (defToPanel (layoutControls d)) \\ d <- defs]
 		# controls				= decoratePrompt pcontrols ++ controls
 		# actions				= foldr (++) [] actions
 		= UIAbstractContainer (attributes, controls, direction, actions)
@@ -256,8 +259,8 @@ where
 			LeftSide	= (Horizontal, hd parts, tl parts)
 		# restPart		= (restMerge noPrompt restParts)
 		
-		# (sideA,sideUI)	= placeActions (uiDefActions sidePart) (defToControl (layoutControls sidePart))
-		# (restA,restUI)	= placeActions (uiDefActions restPart) (defToControl (layoutControls restPart))
+		# (sideA,sideUI)	= placeActions (uiDefActions sidePart) False (defToControl (layoutControls sidePart))
+		# (restA,restUI)	= placeActions (uiDefActions restPart) False (defToControl (layoutControls restPart))
 		# sideUI			= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill sideUI)
 		# restUI			= fill restUI
 		# controls			= ifTL side [sideUI,restUI] [restUI,sideUI]
@@ -286,7 +289,7 @@ where
 	toTabContent def
 		# def = tweakAttr (del TITLE_ATTRIBUTE) def	//No double titles
 		# def = removeCloseAction def				//Close actions are managed via the tabs
-		= placeActions (uiDefActions def) (defToPanel (layoutControls def))
+		= placeActions (uiDefActions def) True (defToPanel (layoutControls def))
 		
 	findActive defs = find 0 (0,Nothing) defs
 	where

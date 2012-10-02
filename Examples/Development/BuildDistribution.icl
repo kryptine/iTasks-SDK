@@ -6,7 +6,7 @@ module BuildDistribution
 * It is experimental and incomplete... (but beats making packages completely by hand...)
 */
 import iTasks
-import Directory, File, Tuple
+import Directory, File, Tuple, Text
 from Util import pad
 
 :: Platform		= Windows32 | Windows64 | Linux32 | Linux64 | Mac
@@ -36,7 +36,7 @@ editOptions
 
 buildDistro:: DistroOptions -> Task FilePath
 buildDistro options
-	=	createTargetFolder options.exportPath
+	=	createTargetFolder options.exportPath options.branch
 	>>=	\target ->
 		addCleanSystem options.platform True target
 	>>| addITasksSDK options.branch target
@@ -46,14 +46,16 @@ buildDistro options
 	>>|	viewInformation ("Done","You can find your distribution in the following location") [] target
 where
 	//Create datestamped folder
-	createTargetFolder exportPath 
+	createTargetFolder exportPath branch
 		=	get currentDate
 		>>= \date -> 
-			let target = (exportPath </> ("iTasks-dist-" <+++ pad 4 date.year <+++ pad 2 date.mon <+++ pad 2 date.day)) in 
+			let target = (exportPath </> ("iTasks-" <+++ safeName branch <+++ "-" <+++ pad 4 date.year <+++ pad 2 date.mon <+++ pad 2 date.day)) in 
 					checkDirectory target
 				>>= \exists -> if exists
 					(return target)
 					(worldIO (createDirectory target) @ const target)
+	
+	safeName branch = last (split "/" branch)
 
 	//Download and add Clean system, remove unnecessary files and libraries
 	addCleanSystem platform include target
