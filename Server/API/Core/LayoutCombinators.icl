@@ -182,7 +182,11 @@ defToControl def
 	| isJust (get TITLE_ATTRIBUTE (uiDefAttributes def)) //If a title attribute is set, always make a panel
 		= defToPanel def
 	| otherwise
-		= defToContainer def
+		= case uiDefControls def of
+			[c=:(UIContainer _ _ _ _)]	= c //Already a container, no need to double wrap
+			[c=:(UIPanel _ _ _ _)]		= c	//Idem...
+			_							= defToContainer def
+		
 
 placeActions :: [UIAction] UIControl -> ([UIAction],UIControl)
 placeActions actions (UIPanel sOpts lOpts items opts)
@@ -233,11 +237,11 @@ where
 sequenceMerge :: ParallelLayout
 sequenceMerge = merge
 where
-	merge prompt=:(attributes,pcontrols,_) defs
+	merge prompt=:(attributes,pcontrols,direction) defs
 		# (actions,controls)	= unzip [placeActions (uiDefActions d) (defToPanel (layoutControls d)) \\ d <- defs]
 		# controls				= decoratePrompt pcontrols ++ controls
 		# actions				= foldr (++) [] actions
-		= UIAbstractContainer (attributes, controls, Vertical, actions)
+		= UIAbstractContainer (attributes, controls, direction, actions)
 
 sideMerge :: UISide Int ParallelLayout -> ParallelLayout
 sideMerge side size restMerge = merge
