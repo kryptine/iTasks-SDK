@@ -83,7 +83,7 @@ where
 			ValueResult val info rep ntreea = case searchContValue val mbcommit conts of
 				Nothing			
 					# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-					= Left (ValueResult NoValue info (doStepLayout taskId repOpts rep (Just val)) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
+					= Left (ValueResult NoValue info (doStepLayout taskId repOpts rep val) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskInfo.lastEvent)
 			ExceptionResult e str = case searchContException e str conts of
 				Nothing			= Left (ExceptionResult e str)
@@ -100,7 +100,7 @@ where
 				= case resb of
 					ValueResult val info rep nstateb	
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-						= (ValueResult val info (doStepLayout taskId repOpts rep Nothing) (TCStep taskId info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
+						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
 					ExceptionResult e str				= (ExceptionResult e str, iworld)
 	//Eval right-hand side
 	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{taskTime}
@@ -113,7 +113,7 @@ where
 				= case resb of
 					ValueResult val info rep ntreeb
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-						= (ValueResult val info (doStepLayout taskId repOpts rep Nothing) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
+						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
 					ExceptionResult e str			= (ExceptionResult e str, iworld)
 			Nothing
 				= (exception "Corrupt task value in step", iworld) 	
@@ -164,8 +164,8 @@ where
 		(OnException taskbf)		= call_with_DeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
-	doStepLayout taskId repOpts (TaskRep def parts) mbVal 
-		= finalizeRep repOpts (TaskRep ((repLayout repOpts).Layout.step def (maybe [] (stepActions taskId) mbVal)) parts)
+	doStepLayout taskId repOpts (TaskRep def parts) val 
+		= finalizeRep repOpts (TaskRep ((repLayout repOpts).Layout.step def (stepActions taskId val)) parts)
 	where
 		stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=pred val}\\ OnAction action pred _ <- conts]
 

@@ -76,8 +76,9 @@ autoWorkOnLayout def meta=:{TIMeta|management}
 * Add actions and frame the content
 */
 autoFinalLayout :: UIDef -> UIFinal	//TODO: Size should be minWidth, but that doesn't seem to work yet...
-autoFinalLayout (UIControlSequence (attributes,controls,direction))
-	= (decorateControls controls,get TITLE_ATTRIBUTE attributes)
+autoFinalLayout def=:(UIControlSequence (attributes,controls,direction))
+	# panel	= defToPanel (layoutControls def)
+	= ([(setSize WrapSize WrapSize o setFramed True) panel], get TITLE_ATTRIBUTE attributes)
 autoFinalLayout def=:(UIControlGroup (attributes,controls,direction,actions))
 	# (actions,panel) = placeActions actions False (defToPanel (layoutControls def))
 	= ([(setSize WrapSize WrapSize o setFramed True) panel], get TITLE_ATTRIBUTE attributes)
