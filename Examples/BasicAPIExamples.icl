@@ -417,28 +417,75 @@ where
 
 //* Parallel task composition
 
-derive class iTask Statistics
+derive class iTask Statistics, Replace
 
 :: Statistics = {lineCount :: Int
 				,wordCount :: Int
 				}
+:: Replace	 =	{ search  :: String
+				, replaceBy :: String
+				}
 
-editWithStatistics :: Task Note
-editWithStatistics = withShared (Note "") edit`
-where
-	edit` note
-		=	viewSharedInformation "Statistics:" [ViewWith stat] note 
-			-||-
-			updateSharedInformation "Edit text:" [] note
-			
-			
-stat (Note text) = {lineCount = lengthLines text, wordCount = lengthWords text}
+initReplace =	{ search = ""
+				, replaceBy = "" 
+				}
+stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
 where
 	lengthLines ""   = 0
 	lengthLines text = length (split "\n" text)
 
 	lengthWords "" 	 = 0
 	lengthWords text = length (split " " (replaceSubString "\n" " " text))
+			
+editWithStatistics :: Task Void
+editWithStatistics 
+ =						enterInformation "Give name of text file you want to edit..." []
+	>>= \fileName -> 	let file = sharedStore fileName ""
+						in	parallel Void 	[ (Embedded, showStatistics file)
+									  		, (Embedded, editFile fileName file)
+									  		, (Embedded, replace initReplace file)
+									  		]
+							>>*	 			[ OnAction (Action "Stop") always (const (return Void))
+											]
+											
+editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
+editFile fileName sharedFile _
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile
+ 	@ 					const Void
+where
+	toV text 			= Note text
+	fromV _ (Note text) = text
+
+showStatistics sharedFile _  = noStat 
+where 
+	noStat :: Task Void
+	noStat	=			viewInformation Void [] Void
+ 				>>*		[ OnAction (Action "Show Statistics") always (const showStat)
+ 						]
+	showStat :: Task Void 
+	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
+ 				>>*		[ OnAction (Action "Hide Statistics") always (const noStat)
+ 						]
+
+
+replace cmnd sharedFile _ = noReplace cmnd
+where
+	noReplace :: Replace -> Task Void
+	noReplace cmnd 
+		=		viewInformation Void [] Void
+ 			>>*	[ OnAction (Action "File/Replace") always (const (showReplace cmnd))
+				]
+
+	showReplace :: Replace -> Task Void 
+	showReplace cmnd
+		=		updateInformation "Replace:" [] cmnd 
+ 			>>*	[ OnAction (Action "Replace") hasValue (substitute o getValue)
+ 				, OnAction (Action "Cancel")  always   (const (noReplace cmnd))
+ 				]
+ 			
+ 	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
+ 						>>| showReplace cmnd
+
 
 //* Distributing tasks
 
@@ -456,7 +503,7 @@ delegate task
 chat :: Task Void
 chat = 					get currentUser
 		>>= \me ->		enterSharedChoice "Select someone to chat with:" [] users
-		>>= \you -> 	withShared ("INIT ME","INIT YOU") (duoChat me you)
+		>>= \you -> 	withShared ("","") (duoChat me you)
 where
 	duoChat me you notes
 		=	chat you toView fromView notes
