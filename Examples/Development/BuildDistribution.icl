@@ -93,13 +93,13 @@ where
 	
 	//Apply patches
 	applyPatches platform target
-		=	viewInformation "TEST" [] (base</>"iTasks-SDK"</>"Compiler"</>"StdGeneric.dcl")
-		>>| patchLibraries
+		=	patchLibraries
 		>>| addITasksEnvironment
 		>>| setDefaultHeapSize
 	where
 		base = target </> "Clean 2.4"
 		
+		//DONE BY HAND BECAUSE OF A STUPID COPY BUG
 		patchLibraries = viewInformation (Title "Patch libraries") []
 			(SpanTag [] [Text "Copy the following files:",BrTag [],
 				UlTag [] [LiTag [] [Text "From ",BTag [] [Text fromfile], Text " to ",BTag [] [Text tofile]] \\ (fromfile,tofile) <- patches]
@@ -111,7 +111,7 @@ where
 					  ,(base</>"iTasks-SDK"</>"Compiler"</>"TCPChannels.icl",base</>"Libraries"</>"TCPIP"</>"TCPChannels.icl")
 					  ]
 			
-		addITasksEnvironment = viewInformation ("Add iTasks environment to IDE","TEST") []
+		addITasksEnvironment = viewInformation (Title "Add iTasks environment to IDE") []
 			"Add the iTasks environment to the clean IDE"
 
 		setDefaultHeapSize = viewInformation (Title "Set default heap size") []

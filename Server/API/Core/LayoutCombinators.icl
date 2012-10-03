@@ -163,6 +163,7 @@ where
 	containerOpts	= {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 	layoutOpts		= {UILayoutOpts|defaultLayoutOpts & direction = (uiDefDirection def)}
 	sizeOpts		= {UISizeOpts|defaultSizeOpts & width = Just FlexSize}
+	
 //Create a single panel control
 defToPanel :: UIDef -> UIControl
 defToPanel def = UIPanel sizeOpts layoutOpts (uiDefControls def) panelOpts
@@ -224,11 +225,13 @@ where
 	collectTitles defs = [title \\ Just title <- [get TITLE_ATTRIBUTE (uiDefAttributes d) \\d <- defs]]
 
 //Adds the actions of ActionSet defs to an existing other definition
+//This rule is a bit tricky and can cause odd effects, so it would be nice if it would not be necessary
 additionalActionMerge :: [UIDef] -> UIDef
 additionalActionMerge defs
 	# (def,additional)	= collect Nothing [] defs
 	= case def of
-		UIControlSequence (attributes,controls,direction)			= UIControlGroup (attributes,controls,direction,additional) 
+		UIControlSequence _ = let (UIAbstractContainer (attributes,controls,direction,actions)) = layoutControls def in
+			 UIAbstractContainer (attributes,controls,direction,actions ++ additional)
 		UIControlGroup (attributes,controls,direction,actions)		= UIControlGroup (attributes,controls,direction,actions ++ additional)
 		UIAbstractContainer (attributes,controls,direction,actions)	= UIAbstractContainer (attributes,controls,direction,actions ++ additional)
 		_															= def
@@ -242,10 +245,16 @@ sequenceMerge :: ParallelLayout
 sequenceMerge = merge
 where
 	merge prompt=:(attributes,pcontrols,direction) defs
-		# (actions,controls)	= unzip [placeActions (uiDefActions d) False (defToPanel (layoutControls d)) \\ d <- defs]
-		# controls				= decoratePrompt pcontrols ++ controls
+		# (actions,controls)	= unzip (map processDef defs)
+		# controls				= decoratePrompt pcontrols ++ [c \\ Just c <- controls]
 		# actions				= foldr (++) [] actions
 		= UIAbstractContainer (attributes, controls, direction, actions)
+	
+	//Action sets do not get a panel in the sequence. Their actions are passed upwards
+	processDef (UIActionSet actions)
+		= (actions,Nothing)
+	processDef def
+		= appSnd Just (placeActions (uiDefActions def) False (defToPanel (layoutControls def)))
 
 sideMerge :: UISide Int ParallelLayout -> ParallelLayout
 sideMerge side size restMerge = merge
