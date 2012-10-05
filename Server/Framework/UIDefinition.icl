@@ -31,14 +31,14 @@ uiDefControls :: UIDef -> [UIControl]
 uiDefControls (UIControlSequence (_,controls,_))		= map fst controls
 uiDefControls (UIControlGroup (_,controls,_,_))			= map fst controls
 uiDefControls (UIAbstractContainer (_,controls,_,_))	= controls
-uiDefControls (UIFinal (controls,_))					= controls
+uiDefControls (UIFinal (UIViewport _ controls _))		= controls
 uiDefControls _											= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
 uiDefAnnotatedControls (UIControlSequence (_,controls,_))		= controls
 uiDefAnnotatedControls (UIControlGroup (_,controls,_,_))		= controls
 uiDefAnnotatedControls (UIAbstractContainer (_,controls,_,_))	= [(c,newMap)\\c <- controls]
-uiDefAnnotatedControls (UIFinal (controls,_))					= [(c,newMap)\\c <- controls]
+uiDefAnnotatedControls (UIFinal (UIViewport _ controls _))		= [(c,newMap)\\c <- controls]
 uiDefAnnotatedControls _										= []
 
 uiDefActions :: UIDef -> [UIAction]
@@ -70,7 +70,8 @@ uiDefSetDirection direction (UIAbstractContainer (attributes,controls,_,actions)
 uiDefSetDirection direction def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
-encodeUIDefinition def = JSONArray (map encodeUIControl (uiDefControls def))
+encodeUIDefinition (UIFinal vp=:(UIViewport _ _ _)) = encodeUIControl vp
+encodeUIDefinition def								= encodeUIControl (UIViewport defaultLayoutOpts (uiDefControls def) {UIViewportOpts|title=Nothing,tbar=Nothing})
 
 encodeUIControl :: !UIControl -> JSONNode
 encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,toJSON vopts] []
@@ -104,12 +105,13 @@ encodeUIControl (UIContainer sopts lopts items opts)	= enc "itwc_container" [toJ
 encodeUIControl (UIPanel sopts lopts items opts)		= enc "itwc_panel" [toJSON sopts, toJSON lopts, toJSON opts] items
 encodeUIControl (UIFieldSet sopts lopts items opts)		= enc "itwc_fieldset" [toJSON sopts, toJSON lopts, toJSON opts] items
 encodeUIControl (UIWindow sopts lopts items opts)		= enc "itwc_window" [toJSON sopts, toJSON lopts, toJSON opts] items
+encodeUIControl (UIViewport lopts items opts)			= enc "itwc_panel" [toJSON lopts, toJSON opts] items
 encodeUIControl (UICustom json)							= json
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIEditOpts, UIChoiceOpts, UIActionOpts, UILayoutOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts
-derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]

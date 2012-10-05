@@ -25,7 +25,7 @@ where
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts
-derive gEq UIControl, UILayoutOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
+derive gEq UIControl, UILayoutOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
 
 derive JSONEncode UITreeNode
 
@@ -36,7 +36,13 @@ JSONEncode{|ProgressAmount|} ProgressUndetermined		= [JSONString "undetermined"]
 JSONEncode{|ProgressAmount|} (ProgressRatio ratio)		= [JSONReal ratio]
 
 diffUIDefinitions :: !UIDef !UIDef !Event -> [UIUpdate]	
-diffUIDefinitions d1 d2 event = diffItems [] event (uiDefControls d1) (uiDefControls d2) 
+diffUIDefinitions (UIFinal d1=:(UIViewport _ _ _)) (UIFinal d2=:(UIViewport _ _ _)) event
+	= replaceIfImpossible viewportPath d2 [diffControls viewportPath event d1 d2]
+where
+	viewportPath = [ItemStep 0]
+
+diffUIDefinitions d1 d2 event
+	= diffItems [] event (uiDefControls d1) (uiDefControls d2) 
 
 //Compare controls
 diffControls :: !DiffPath !Event !UIControl !UIControl -> DiffResult
@@ -104,6 +110,8 @@ diffControls path event c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UIWindow sOpts1 lOpts1 items1 opts1, UIWindow sOpts2 lOpts2 items2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
+		(UIViewport lOpts1 items1 opts1, UIViewport lOpts2 items2 opts2)
+			= [diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UICustom opts1, UICustom opts2)
 			= [diffOpts opts1 opts2]
 		(_,_)

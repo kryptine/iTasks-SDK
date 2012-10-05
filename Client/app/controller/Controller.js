@@ -165,9 +165,10 @@ Ext.define('itwc.controller.Controller',{
 			me.partialUpdate(message.updates);
 		}
 	},
-	fullUpdate: function(viewportItems) {
+	fullUpdate: function(viewportDef) {
 		var me = this,
-			viewport = me.viewport;
+			viewport = me.viewport
+		
 
 		//Close all windows
 		Ext.WindowManager.each(function(w) {
@@ -175,9 +176,15 @@ Ext.define('itwc.controller.Controller',{
 				w.destroy();
 			}
 		});
+		
+		//Update the main window title instead of the viewport panel	
+		document.title = viewportDef.title ? viewportDef.title : 'Untitled';
+		delete(viewportDef.title);
+		
 		//Update viewport
 		viewport.removeAll();
-		viewport.add(viewportItems);
+		viewport.add(viewportDef);
+	
 	},
 	partialUpdate: function(updates) {
 		var me = this,
@@ -187,6 +194,17 @@ Ext.define('itwc.controller.Controller',{
 		for(i = 0; i < numUpdates; i++) {
 			update = updates[i];
 		
+			//Special case: title update of main window
+			if(update.method == 'setTitle' && update.path == '0') {
+				document.title = update.arguments[0];
+				continue;
+			}
+			//Special case: replace of the full viewport panel
+			//Change the main window title and remove it from the panel definition
+			if(update.method == 'replace' && update.path == '') {
+				document.title = update.arguments[1].title ? update.arguments[1].title : 'Untitled';
+				delete(update.arguments[1].title);	
+			}
 			try {
 				cmp	= me.viewport.getComponentByPath(update.path);
 				

@@ -77,15 +77,25 @@ autoWorkOnLayout def meta=:{TIMeta|management}
 */
 autoFinalLayout :: UIDef -> UIFinal	//TODO: Size should be minWidth, but that doesn't seem to work yet...
 autoFinalLayout def=:(UIControlSequence (attributes,controls,direction))
-	# panel	= defToPanel (layoutControls def)
-	= ([(setSize WrapSize WrapSize o setFramed True) panel], get TITLE_ATTRIBUTE attributes)
+	# panel				= defToPanel (layoutControls def)
+	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
+	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
+	= UIViewport layoutOpts items {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, tbar = Nothing}
+autoFinalLayout (UIActionSet actions)
+	= UIViewport defaultLayoutOpts [] {UIViewportOpts|title=Nothing,tbar = Nothing}
 autoFinalLayout def=:(UIControlGroup (attributes,controls,direction,actions))
-	# (actions,panel) = placeActions actions False (defToPanel (layoutControls def))
-	= ([(setSize WrapSize WrapSize o setFramed True) panel], get TITLE_ATTRIBUTE attributes)
-autoFinalLayout (UIActionSet actions)							= ([],Nothing)
-autoFinalLayout def=:(UIAbstractContainer (attributes,controls,actions,direction))
-	= ([defToPanel def],get TITLE_ATTRIBUTE attributes)
-autoFinalLayout (UIFinal final)									= final
+	# (actions,panel)	= placeActions actions False (defToPanel (layoutControls def))
+	# (menu,_)			= actionsToMenus actions
+	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
+	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
+	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu)}
+autoFinalLayout def=:(UIAbstractContainer (attributes,controls,direction,actions))
+	# (menu,_)			= actionsToMenus actions
+	# items				= [defToPanel def]
+	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
+	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu)}
+autoFinalLayout (UIFinal final)
+	= final
 
 /**
 * Adds hints, labels etc to a set of controls
@@ -357,7 +367,7 @@ hideLayout =
 	, step		= \def actions		-> noControls (addActions actions def)
 	, parallel	= \(a,c,d) defs		-> noControls (foldr mergeDefs (UIControlGroup (a,c,d,[])) defs)
 	, workOn	= \def meta			-> noControls def
-	, final		= \def				-> (uiDefControls (noControls def),Nothing)
+	, final		= \def				-> UIViewport defaultLayoutOpts (uiDefControls (noControls def)) {UIViewportOpts|title=Nothing,tbar=Nothing}
 	}
 where
 	noControls (UIControlGroup (attributes,_,direction,actions)) = UIControlGroup (attributes,[],direction,actions)
@@ -414,6 +424,7 @@ updSizeOpts f (UIContainer sOpts lOpts items opts)	= (UIContainer (f sOpts) lOpt
 updSizeOpts f (UIPanel sOpts lOpts items opts)		= (UIPanel (f sOpts) lOpts items opts)
 updSizeOpts f (UIFieldSet sOpts lOpts items opts)	= (UIFieldSet (f sOpts) lOpts items opts)
 updSizeOpts f (UIWindow	sOpts lOpts items opts)		= (UIWindow	(f sOpts) lOpts items opts)
+updSizeOpts f (UIViewport lOpts items opts)			= (UIViewport lOpts items opts)
 
 getSizeOpts :: UIControl -> UISizeOpts
 getSizeOpts (UIViewString	sOpts vOpts)			= sOpts
@@ -447,7 +458,7 @@ getSizeOpts (UIContainer sOpts lOpts items opts)	= sOpts
 getSizeOpts (UIPanel sOpts lOpts items opts)		= sOpts
 getSizeOpts (UIFieldSet sOpts lOpts items opts)		= sOpts
 getSizeOpts (UIWindow	sOpts lOpts items opts)		= sOpts
-
+getSizeOpts (UIViewport	      lOpts items opts)		= defaultSizeOpts
 
 setSize :: !UISize !UISize !UIControl -> UIControl
 setSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) ctrl
@@ -734,8 +745,8 @@ tweakUI f (UIControlSequence (attributes,controls,direction))
 tweakUI f (UIControlGroup (attributes,controls,direction,actions))
 	= UIControlGroup (attributes,[(f c,a) \\ (c,a) <- controls],direction,actions)
 tweakUI f (UIAbstractContainer (attributes,controls,actions,direction))	= UIAbstractContainer (attributes,map f controls,actions,direction)
-tweakUI f (UIFinal (controls,title))							= UIFinal (map f controls,title)
-tweakUI f def													= def
+tweakUI f (UIFinal control)												= UIFinal (f control)
+tweakUI f def															= def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
 tweakAttr f (UIControlSequence (attributes,controls,direction))
@@ -751,7 +762,7 @@ tweakControls f (UIControlSequence (attributes,controls,direction))
 	= UIControlSequence (attributes,f controls,direction)
 tweakControls f (UIControlGroup (attributes,controls,direction,actions))
 	= UIControlGroup (attributes,f controls,direction,actions)
-tweakControls f (UIAbstractContainer (attributes,controls,actions,direction))
-	= UIAbstractContainer (attributes,map fst (f [(c,newMap) \\ c <- controls]),actions,direction)
-tweakControls f (UIFinal (controls,title))							= UIFinal (map fst (f [(c,newMap) \\ c <- controls]),title)
+tweakControls f (UIAbstractContainer (attributes,controls,direction,actions))
+	= UIAbstractContainer (attributes,map fst (f [(c,newMap) \\ c <- controls]),direction,actions)
+tweakControls f (UIFinal (UIViewport lOpts controls opts)) 			= UIFinal (UIViewport lOpts (map fst (f [(c,newMap) \\ c <- controls])) opts)
 tweakControls f def													= def

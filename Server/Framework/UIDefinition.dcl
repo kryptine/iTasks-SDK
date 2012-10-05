@@ -23,12 +23,12 @@ from Map			import :: Map(..)
 	| UIActionSet			!UIActions												//Actions from a chooseAction task
 	| UIControlGroup		!UIControlGroup											//Components from a single or multiple interacts grouped by a shared step combinator
 	| UIAbstractContainer	!UIAbstractContainer									//A decorated, layed out set of controls that can be put in a container 
-	| UIFinal				!UIFinal												//The final set of controls to put in the main viewport
+	| UIFinal				!UIFinal												//The final viewport
 
 :: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls, !UIDirection)
 :: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIDirection, !UIActions)
 :: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIDirection, !UIActions)
-:: UIFinal				:== (!UIControls, !Maybe UITitle)
+:: UIFinal				:== UIControl											
 
 :: UIAttributes 		:== Map String String
 :: UIControls			:== [UIControl]
@@ -80,6 +80,7 @@ from Map			import :: Map(..)
 	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UILayoutOpts ![UIControl] !UIFieldSetOpts	// - Fieldset (wrapper with a simple border and title)
 	| UIWindow			!UISizeOpts !UILayoutOpts ![UIControl] !UIWindowOpts	// - Window (floating window TODO)
+	| UIViewport					!UILayoutOpts ![UIControl] !UIViewportOpts	// - Viewport (top-level container)
 	// DEPRECATED: custom xtjs definition:
 	| UICustom			!JSONNode
 	
@@ -277,6 +278,11 @@ from Map			import :: Map(..)
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String
+	}
+
+:: UIViewportOpts =
+	{ title			:: !Maybe String
+	, tbar			:: !Maybe [UIControl]
 	}
 
 //Utility functions
