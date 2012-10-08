@@ -10,12 +10,12 @@ CLEAN_COMPILER = IF_POSIX_OR_WINDOWS "cocl" "CleanCompiler.exe"
 Start :: *World -> *World
 Start world = startEngine ide world
 
-ide = parallel Void 	[ (Embedded, project)
-						, (Embedded, actions)
+ide = parallel Void 	[ (Embedded, commands)
+						, (Embedded, project)
 						, (Embedded, messages)
 						] <<@ SetLayout layout @ const Void
 where
-	layout = customMergeLayout (sideMerge LeftSide 150 (sideMerge BottomSide 100 sequenceMerge))
+	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
 project _
 	=					viewInformation "Project" [] "dummy" @ const Void
@@ -29,23 +29,26 @@ actions _
 
 commands ts
 	=				actionTask 
- 					>>*	[ OnAction (Action "File/Open") always (const (openFile ts))
+ 					//>>*	[ OnAction (Action "File/Open") always (const (openFile ts))
+ 					>>*	[ OnAction (Action "File/Open") always (const (appendTask Embedded openFile ts >>| commands ts))
  						, OnAction (Action "File/Quit") always (const (return Void))
 						]  @ const Void
 
 
-openFile ts
+openFile _
  =						updateInformation "Give name of text file you want to open..." [] ""
-	>>*					[ OnAction ActionCancel always    (const (commands ts))
-						, OnAction (Action "Open File")   hasValue (\v -> appendTask Embedded (editor (getValue v)) ts <<@ SetLayout tabbedLayout >>|  commands ts)
+	>>*					[ OnAction ActionCancel always    (const (return Void))
+						, OnAction (Action "Open File")   hasValue (\v -> (editor (getValue v)))
 						]
 
-editor fileName _	=   let file = sharedStore fileName ""
-						in	parallel Void 	[ (Embedded, showStatistics file)
+editor fileName 	=   let file = sharedStore fileName ""
+						in	parallel (Title fileName)	
+											[ (Embedded, showStatistics file)
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		]  @ const Void
-							>>*	 			[ OnAction (ActionQuit) always (const (return Void))
+							>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
+											, OnAction (ActionClose) always (const (return Void))
 											]
 
 

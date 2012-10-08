@@ -271,12 +271,12 @@ sideMerge side size restMerge = merge
 where
 	merge prompt []		= UIControlSequence prompt
 	
-	merge prompt=:(attributes,_,_) parts
-		# (direction,sidePart,restParts) = case side of
-			TopSide		= (Vertical, hd parts,tl parts)
-			RightSide	= (Horizontal, last parts,init parts)
-			BottomSide	= (Vertical, last parts,init parts)
-			LeftSide	= (Horizontal, hd parts, tl parts)
+	merge prompt=:(attributes,_,_) [sidePart:restParts]
+		# direction = case side of
+			TopSide		= Vertical
+			RightSide	= Horizontal
+			BottomSide	= Vertical
+			LeftSide	= Horizontal
 		# restPart		= (restMerge noPrompt restParts)
 		
 		# (sideA,sideUI)	= placeActions (uiDefActions sidePart) False (defToControl (layoutControls sidePart))

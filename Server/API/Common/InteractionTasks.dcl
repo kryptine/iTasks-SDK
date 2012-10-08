@@ -95,7 +95,7 @@ viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 
 /**
-* Show a shared value.
+* Show a shared value[].
 *
 * @param Description:		A description of the task to display to the user
 * @param Options:			Views options
