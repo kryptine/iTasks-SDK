@@ -20,12 +20,13 @@ from Map			import :: Map(..)
 
 :: UIDef
 	= UIControlSequence 	!UIControlSequence										//Components from an interact task
-	| UIActionSet			!UIActions												//Actions from a chooseAction task
+	| UIActionSet			!UIActionSet											//Actions from a chooseAction task
 	| UIControlGroup		!UIControlGroup											//Components from a single or multiple interacts grouped by a shared step combinator
 	| UIAbstractContainer	!UIAbstractContainer									//A decorated, layed out set of controls that can be put in a container 
 	| UIFinal				!UIFinal												//The final viewport
 
 :: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls, !UIDirection)
+:: UIActionSet			:== (!UIAttributes, !UIActions)
 :: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIDirection, !UIActions)
 :: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIDirection, !UIActions)
 :: UIFinal				:== UIControl											

@@ -6,7 +6,7 @@ import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
-from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIFinal, :: UIAction, :: UIControl, stringDisplay
+from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIFinal, :: UIAction, :: UIControl, stringDisplay
 from LayoutCombinators import mergeAttributes
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint

@@ -23,6 +23,7 @@ stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just valu
 
 uiDefAttributes	:: UIDef -> UIAttributes
 uiDefAttributes (UIControlSequence (attributes,_,_))		= attributes
+uiDefAttributes (UIActionSet (attributes,_))				= attributes
 uiDefAttributes (UIControlGroup (attributes,_,_,_)) 		= attributes
 uiDefAttributes (UIAbstractContainer (attributes,_,_,_))	= attributes
 uiDefAttributes _											= newMap
@@ -42,7 +43,7 @@ uiDefAnnotatedControls (UIFinal (UIViewport _ controls _))		= [(c,newMap)\\c <- 
 uiDefAnnotatedControls _										= []
 
 uiDefActions :: UIDef -> [UIAction]
-uiDefActions (UIActionSet actions)					= actions
+uiDefActions (UIActionSet (_,actions))				= actions
 uiDefActions (UIControlGroup (_,_,_,actions)) 		= actions
 uiDefActions (UIAbstractContainer (_,_,_,actions))	= actions
 uiDefActions _										= []
@@ -54,6 +55,8 @@ uiDefDirection _										= Vertical
 uiDefSetAttribute :: String String UIDef -> UIDef
 uiDefSetAttribute key value (UIControlSequence (attributes,controls,direction))
 	= UIControlSequence (put key value attributes,controls,direction)
+uiDefSetAttribute key value (UIActionSet (attributes,actions))
+	= UIActionSet (put key value attributes, actions)
 uiDefSetAttribute key value (UIControlGroup (attributes,controls,direction,actions))
 	= UIControlGroup (put key value attributes,controls,direction,actions)
 uiDefSetAttribute key value (UIAbstractContainer (attributes,controls,direction,actions))

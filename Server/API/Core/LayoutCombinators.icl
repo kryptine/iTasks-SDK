@@ -34,7 +34,7 @@ autoStepLayout :: UIDef [UIAction]-> UIDef
 autoStepLayout (UIControlSequence (attributes,controls,direction)) actions
 	//Recognize special case of a complete empty interaction wrapped in a step as an actionset
 	| isEmpty controls && isEmpty (toList attributes)
-		= UIActionSet actions
+		= UIActionSet (attributes,actions)
 	//Promote the control sequence to a control group because they are grouped by the step combinator
 		= UIControlGroup (attributes,controls,direction,actions)
 autoStepLayout (UIAbstractContainer (attributes,controls,direction,actions)) stepActions
@@ -246,9 +246,9 @@ additionalActionMerge defs
 		UIAbstractContainer (attributes,controls,direction,actions)	= UIAbstractContainer (attributes,controls,direction,actions ++ additional)
 		_															= def
 where
-	collect mbd actions []					= (fromMaybe (UIActionSet actions) mbd,actions)
-	collect mbd	actions [UIActionSet a:ds]	= collect mbd (actions ++ a) ds
-	collect mbd actions [d:ds]				= collect (Just d) actions ds
+	collect mbd actions []						= (fromMaybe (UIActionSet (newMap,actions)) mbd,actions)
+	collect mbd	actions [UIActionSet (_,a):ds]	= collect mbd (actions ++ a) ds
+	collect mbd actions [d:ds]					= collect (Just d) actions ds
 	
 //Create groups for all definitions in the list
 sequenceMerge :: ParallelLayout
@@ -261,7 +261,7 @@ where
 		= UIAbstractContainer (attributes, controls, direction, actions)
 	
 	//Action sets do not get a panel in the sequence. Their actions are passed upwards
-	processDef (UIActionSet actions)
+	processDef (UIActionSet (_,actions))
 		= (actions,Nothing)
 	processDef def
 		= appSnd Just (placeActions (uiDefActions def) False (defToPanel (layoutControls def)))

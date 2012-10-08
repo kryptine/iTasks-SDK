@@ -15,7 +15,7 @@ ide = parallel Void 	[ (Embedded, project)
 						, (Embedded, messages)
 						] <<@ SetLayout layout @ const Void
 where
-	layout = customMergeLayout (sideMerge LeftSide 150 (sideMerge TopSide 500 (sideMerge BottomSide 100 tabbedMerge)))
+	layout = customMergeLayout (sideMerge LeftSide 150 (sideMerge BottomSide 100 sequenceMerge))
 
 project _
 	=					viewInformation "Project" [] "dummy" @ const Void
