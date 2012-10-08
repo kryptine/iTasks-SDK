@@ -380,13 +380,20 @@ termCoder (SConstructor name id args) s a
  * removes the elements step by step)
  */
 termCoder (SLet body defs) s a
-	# defnames = map (\(SLetDefinition name _) = name) defs
 	# s = pushArgs s defnames
 	= a <++ "var " <++ letDefCoder defs {s & cs_inletdef = Just defnames} <++ ";\n " 
 		<++ callWrapper body s <++ ";"
+where
+	defnames = map extractName defs
+
+	extractName (SLetDefinition name _)       = name
+	extractName (SStrictLetDefinition name _) = name
 
 termCoder (SLetDefinition name body) s a
 	= a <++ termCoder name {s & cs_inletdef = Nothing} <++ "=" <++ termCoder body s
+
+termCoder (SStrictLetDefinition name body) s a
+	= a <++ termCoder name {s & cs_inletdef = Nothing} <++ "=" <++ forceTermCoder body s
 
 termCoder _ s a = abort "???"
 

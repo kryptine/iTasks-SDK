@@ -28,6 +28,7 @@ import SaplTokenizer, Map, Void, Error
 			| SAbortBody
 			| SLet SaplTerm [SaplTerm]
 			| SLetDefinition SaplTerm SaplTerm
+			| SStrictLetDefinition SaplTerm SaplTerm
 			| SConstructor SaplTerm Int [SaplTerm]
 
 instance ==	SaplTerm

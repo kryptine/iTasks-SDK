@@ -88,6 +88,10 @@ where
 				getLevel
 			>>= \level = application ts 
 			>>= \(t, ts) = letdef_2 ts [SLetDefinition (SName name level) t:as]
+	letdef_1 [TStrictIdentifier name, TAssignmentOp:ts] as = 
+				getLevel
+			>>= \level = application ts 
+			>>= \(t, ts) = letdef_2 ts [SStrictLetDefinition (SName name level) t:as]
 	letdef_1 ts as = returnE (ts, "Invalid \"let\" definition")
 	letdef_2 [TColon: ts] as = letdef_1 ts as
 	letdef_2 ts as = returnS (reverse as, ts)
