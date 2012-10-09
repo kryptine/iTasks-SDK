@@ -2,60 +2,166 @@ module CleanEditor
 
 import iTasks, Text
 
-:: CCLSource :== String
-:: CleanSource :== String
-
-CLEAN_COMPILER = IF_POSIX_OR_WINDOWS "cocl" "CleanCompiler.exe"
-
 Start :: *World -> *World
-Start world = startEngine ide world
+Start world = startEngine ide world 
 
-ide = parallel Void 	[ (Embedded, commands)
+ide = 				parallel Void //(Title "Clean IDE") 	
+						[ (Embedded, topmenu)
 						, (Embedded, project)
-						, (Embedded, messages)
+						, (Embedded, messages (cleanPath +++ errorFile))
 						] <<@ SetLayout layout @ const Void
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
 project _
-	=					viewInformation "Project" [] "dummy" @ const Void
+	=				viewInformation "Project" [] "dummy" @ const Void
 
-messages _ 
-	= 					viewInformation "Messages..." [] "no messages"  @ const Void
+messages errorFileName ts 
+	= 				viewSharedInformation errorFileName /*"Error Messages..."*/ [ViewWith (\txt -> Note txt)] (sharedStore errorFileName "No Errors...") 
+	>>*				[ OnAction (Action "Refresh") always (const (messages errorFileName ts))
+					]
+	  
 
-actions _
- =						parallel Void 	[ (Embedded, commands )
-										] <<@ SetLayout tabbedLayout @ const Void
-
-commands ts
+topmenu ts
 	=				actionTask 
- 					//>>*	[ OnAction (Action "File/Open") always (const (openFile ts))
- 					>>*	[ OnAction (Action "File/Open") always (const (appendTask Embedded openFile ts >>| commands ts))
- 						, OnAction (Action "File/Quit") always (const (return Void))
-						]  @ const Void
+ 	>>*				[ OnAction (Action "File/Open") always (const (launch openFile))
+ 					, OnAction (Action "File/Quit") always (const (return Void))
+ 					, OnAction (Action "Project/Bring Up To Date") always (const (launch (compile projectName)))
+					]  
+where
+	launch task = appendTask Embedded task ts >>| topmenu ts
 
 
 openFile _
- =						updateInformation "Give name of text file you want to open..." [] ""
-	>>*					[ OnAction ActionCancel always    (const (return Void))
-						, OnAction (Action "Open File")   hasValue (\v -> (editor (getValue v)))
-						]
+	=				updateInformation "Give name of text file you want to open..." [] ""
+	>>*				[ OnAction ActionCancel 		always   (const (return Void))
+					, OnAction (Action "Open File") hasValue (editor o getValue)
+					]
 
-editor fileName 	=   let file = sharedStore fileName ""
-						in	parallel (Title fileName)	
-											[ (Embedded, showStatistics file)
-									  		, (Embedded, editFile fileName file)
-									  		, (Embedded, replace initReplace file)
-									  		]  @ const Void
-							>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
-											, OnAction (ActionClose) always (const (return Void))
-											]
+:: CCLSource :== String
+:: CleanSource :== String
 
+batchBuild		:== "BatchBuild.exe"
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+
+projectPath		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\iTasks-SDK\\Examples\\Development\\"
+projectName		:==	"test"
 
 
+errorFile		:== "Temp\\errors"
 
 
+compile projectName _
+	=				callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] @ const Void
+/*
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
 
+batchBuild :: !GModule *World -> (CompileResult, *World)
+batchBuild gMod world = runCompiler gMod compiler world 
+where
+	compiler :: !String !String !GinConfig *World -> (CompileResult, *World)
+	compiler source basename config world
+	#(result, world) = osCallProcessBlocking (quote (config.cleanPath +/+ "CleanIDE.exe") +++ " --batch-build " +++ quote (getFileName config basename "prj")) world
+	| isOSError result = (CompileGlobalError ("Calling Clean compiler failed: " +++ formatOSError result), world)
+	| getOSResult result == 0 = (CompileSuccess, world)
+	#(result, world) = osReadTextFile (getFileName config basename "log") world
+	| isOSError result = (CompileGlobalError ("Read log file failed: " +++ formatOSError result), world)
+	#log = getOSResult result
+	= (CompilePathError (findPathErrors (parseCleanIDELog log) source), world)
+*/
+
+
+// editor
+
+:: Statistics = {lineCount :: Int
+				,wordCount :: Int
+				}
+:: Replace	 =	{ search  	:: String
+				, replaceBy :: String
+				}
+derive class iTask Statistics, Replace
+
+initReplace =	{ search = ""
+				, replaceBy = "" 
+				}
+
+editor fileName 	
+	=   			let file = sharedStore fileName "" in
+					parallel (Title fileName)	
+						[ (Embedded, showStatistics file)
+						, (Embedded, editFile fileName file)
+						, (Embedded, replace initReplace file)
+						]  @ const Void
+	>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
+					, OnAction  ActionClose 		 always (const (return Void))
+					]			
+											
+editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
+editFile fileName sharedFile _
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile @ const Void
+where
+	toV text 			= Note text
+	fromV _ (Note text) = text
+
+showStatistics sharedFile _  = noStat 
+where
+	noStat :: Task Void
+	noStat	=			actionTask
+ 				>>*		[ OnAction (Action "File/Show Statistics") always (const showStat)
+ 						]
+	showStat :: Task Void 
+	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
+ 				>>*		[ OnAction (Action "File/Hide Statistics") always (const noStat)
+ 						]
+ 	where
+	 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
+		where
+			lengthLines ""   = 0
+			lengthLines text = length (split "\n" text)
+		
+			lengthWords "" 	 = 0
+			lengthWords text = length (split " " (replaceSubString "\n" " " text))
+
+replace cmnd sharedFile _ = noReplace cmnd
+where
+	noReplace :: Replace -> Task Void
+	noReplace cmnd 
+		=		actionTask
+ 			>>*	[ OnAction (Action "File/Replace") always (const (showReplace cmnd))
+				]
+
+	showReplace :: Replace -> Task Void 
+	showReplace cmnd
+		=		updateInformation "Replace:" [] cmnd 
+ 			>>*	[ OnAction (Action "Replace") hasValue (substitute o getValue)
+ 				, OnAction (Action "Cancel")  always   (const (noReplace cmnd))
+ 				]
+ 			
+ 	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
+ 						>>| showReplace cmnd
+
+//* utility functions
+
+actionTask :: Task Void
+actionTask = viewInformation Void [] Void
+
+undef = undef
+
+always = const True
+
+hasValue (Value _ _) = True
+hasValue _ = False
+
+getValue (Value v _) = v
+
+ifValue pred (Value v _) = pred v
+ifValue _ _ = False
+
+ifStable (Value v Stable) = True
+ifStable _ = False
+
+// old stuff Bas
+/*
 demoCCL :: Task CCLSource
 demoCCL = monitored editSource [viewDiagram,viewCleanCode] <<@ SetLayout tabbedLayout
 where
@@ -133,97 +239,8 @@ where
 previewImageDoc :: Document -> HtmlTag
 previewImageDoc {Document|contentUrl} = ImgTag [SrcAttr contentUrl]
 
-// editor
 
-derive class iTask Statistics, Replace
-
-:: Statistics = {lineCount :: Int
-				,wordCount :: Int
-				}
-:: Replace	 =	{ search  :: String
-				, replaceBy :: String
-				}
-
-initReplace =	{ search = ""
-				, replaceBy = "" 
-				}
-stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
-where
-	lengthLines ""   = 0
-	lengthLines text = length (split "\n" text)
-
-	lengthWords "" 	 = 0
-	lengthWords text = length (split " " (replaceSubString "\n" " " text))
-			
-											
-editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
-editFile fileName sharedFile _
- =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile
- 	@ 					const Void
-where
-	toV text 			= Note text
-	fromV _ (Note text) = text
-
-showStatistics sharedFile _  = noStat 
-where
-	noStat :: Task Void
-	noStat	=			actionTask
- 				>>*		[ OnAction (Action "File/Show Statistics") always (const showStat)
- 						]
-	showStat :: Task Void 
-	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
- 				>>*		[ OnAction (Action "File/Hide Statistics") always (const noStat)
- 						]
-
-
-replace cmnd sharedFile _ = noReplace cmnd
-where
-	noReplace :: Replace -> Task Void
-	noReplace cmnd 
-		=		actionTask
- 			>>*	[ OnAction (Action "File/Replace") always (const (showReplace cmnd))
-				]
-
-	showReplace :: Replace -> Task Void 
-	showReplace cmnd
-		=		updateInformation "Replace:" [] cmnd 
- 			>>*	[ OnAction (Action "Replace") hasValue (substitute o getValue)
- 				, OnAction (Action "Cancel")  always   (const (noReplace cmnd))
- 				]
- 			
- 	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
- 						>>| showReplace cmnd
-
-
-
-//* utility functions
-
-actionTask :: Task Void
-actionTask = viewInformation Void [] Void
-
-undef = undef
-
-always = const True
-
-hasValue (Value _ _) = True
-hasValue _ = False
-
-getValue (Value v _) = v
-
-ifValue pred (Value v _) = pred v
-ifValue _ _ = False
-
-ifStable (Value v Stable) = True
-ifStable _ = False
-
-
-
-
-
-
-
-
-
+*/
 
 
 
