@@ -2,53 +2,74 @@ module CleanEditor
 
 import iTasks, Text
 
+batchBuild		:== "BatchBuild.exe"
+errorFile		:== "Temp\\errors"
+
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+projectPath		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\iTasks-SDK\\Examples\\Development\\"
+projectName		:==	"test"
+
+:: IDE_State =	{ projectName	:: Maybe String
+				, projectPath	:: Maybe String
+				, openFiles		:: [String]
+				, cleanPath		:: String
+				}
+
+derive class iTask IDE_State
+
+init_IDE_State :: IDE_State			
+init_IDE_State
+	= 	{ projectName	= Nothing //Just projectName
+		, projectPath 	= Just projectPath
+		, openFiles		= []
+		, cleanPath		= cleanPath
+		}
+
 Start :: *World -> *World
 Start world = startEngine ide world 
-
-ide = 				parallel Void //(Title "Clean IDE") 	
-						[ (Embedded, topmenu)
-						, (Embedded, project)
-						, (Embedded, messages (cleanPath +++ errorFile))
+				
+ide :: Task Void
+ide = 	let ideState = sharedStore "IDE_State" init_IDE_State in
+		parallel Void //(Title "Clean IDE") 	
+						[ (Embedded, topmenu  ideState)
+						, (Embedded, project  ideState)
+						, (Embedded, messages ideState)
 						] <<@ SetLayout layout @ const Void
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
-project _
+topmenu ideState ts
+	=				(actionTask 
+ 	>>*				[ OnAction (Action "File/Open") always (launch openFile)
+ 					, OnAction (Action "File/Quit") always (const (return Void))
+ 					, OnAction (Action "Project/Set Project") always (launch (setProject ideState))
+					])
+					-||-
+					(watch ideState 
+ 	>>*				[ OnAction (Action "Project/Bring Up To Date") (ifValue (\v -> isJust v.projectName)) (\v -> launch (compile (fromJust (getValue v).projectName)) NoValue)
+					])
+where
+	launch task _ = appendTask Embedded task ts >>| topmenu ideState ts
+
+project ideState _
 	=				viewInformation "Project" [] "dummy" @ const Void
 
-messages errorFileName ts 
-	= 				viewSharedInformation "Error Messages..." [ViewWith (\txt -> Note txt)] (externalFile errorFileName)
+messages ideState ts 
+	= 				get ideState
+	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
+					viewSharedInformation "Error Messages..." [ViewWith (\txt -> Note txt)] sharedError
 					@ const Void 
 	  
-
-topmenu ts
-	=				actionTask 
- 	>>*				[ OnAction (Action "File/Open") always (const (launch openFile))
- 					, OnAction (Action "File/Quit") always (const (return Void))
- 					, OnAction (Action "Project/Bring Up To Date") always (const (launch (compile projectName)))
-					]  
-where
-	launch task = appendTask Embedded task ts >>| topmenu ts
-
-
+setProject ideState ts 
+	=				updateInformation "Give name of project file..." [] ""
+	>>*				[ OnAction ActionCancel 		always   (const (return Void))
+					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = Just (getValue s)}) ideState @ const Void)
+					]
 openFile _
 	=				updateInformation "Give name of text file you want to open..." [] ""
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
 					, OnAction (Action "Open File") hasValue (editor o getValue)
 					]
-
-:: CCLSource :== String
-:: CleanSource :== String
-
-batchBuild		:== "BatchBuild.exe"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
-
-projectPath		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\iTasks-SDK\\Examples\\Development\\"
-projectName		:==	"test"
-
-
-errorFile		:== "Temp\\errors"
-
 
 compile projectName _
 	=				callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] @ const Void
@@ -151,96 +172,4 @@ ifValue _ _ = False
 ifStable (Value v Stable) = True
 ifStable _ = False
 
-// old stuff Bas
-/*
-demoCCL :: Task CCLSource
-demoCCL = monitored editSource [viewDiagram,viewCleanCode] <<@ SetLayout tabbedLayout
-where
-	viewDiagram src = whileUnchanged src view
-	where
-		view (NoValue)
-			= viewInformation (Icon "diagram","Diagram","No source code yet") [] Void @? const NoValue
-		view (Value src _)
-			=	viewInformation (Icon "diagram","Diagram","Your CCL code has changed, press continue to regenerate the ORM diagram") [] Void
-			>>|	generateDiagram (Icon "diagram","Diagram*","Generating diagram...") src
-			>>=	viewInformation (Title "Diagram") [ViewWith previewImageDoc] @? const NoValue
-		
-	viewCleanCode src = whileUnchanged src view
-	where
-		view (NoValue)
-			= viewInformation (Icon "cleancode","Clean Types","No source code yet") [] Void @? const NoValue
-		view (Value src _)
-			=	viewInformation (Icon "cleancode","Clean Types","Your CCL code has changed, press continue to regenerate the Clean Types") [] Void
-			>>|	generateCleanTypes (Icon "cleanCode","Clean Types*","Generating clean types...") src
-			>>= viewInformation (Title "Clean Types") [ViewWith (\s -> Note s)] @? const NoValue
-			
-editSource :: Task CCLSource
-editSource = withShared "concept module ccldemo\n\n## Ccl is awesome" (
-	\content ->
-			(updateSharedInformation (Icon "cclcode","CCL Source","Specify your CCL model") [UpdateWith (\s -> Note s) (\_ (Note s)-> s)] content)
-		-|| loadExampleFromFile content <<@ SetLayout (partLayout 0)
-	)
 
-generateDiagram :: d CCLSource -> Task Document | descr d
-generateDiagram desc src = withTemporaryDirectory (\tmpDir ->	
-		exportTextFile (tmpDir </> "ccldemo.ccl") src
-	>>|	callProcess desc [] CLEAN_COMPILER ["-o",tmpDir </> "ccldemo", tmpDir </> "ccldemo.ccl"]
-	>>|	importDocument (tmpDir </> "ccldemo.png")
-	)
-
-generateCleanTypes :: d CCLSource -> Task CleanSource | descr d
-generateCleanTypes desc src = withTemporaryDirectory (\tmpDir ->
-		exportTextFile (tmpDir </> "ccldemo.ccl") src
-	>>|	callProcess desc [] CLEAN_COMPILER ["-o",tmpDir </> "ccldemo", tmpDir </> "ccldemo.ccl"]
-	>>| importTextFile (tmpDir </> "ccldemo.dcl")
-	)
-	
-loadExampleFromFile :: (Shared CCLSource) -> Task CCLSource
-loadExampleFromFile content
-	= forever (
-		chooseAction fileChoices
-	>>= importTextFile
-	>>= \example -> set example content)
-where
-	fileChoices	= [(Action ("Examples/" +++ upperCaseFirst d +++ "/" +++ l) ,addExtension ("ccl-examples"</>d</>f) "ccl") \\ (l,d,f) <- constructs ++ application] 
-	constructs	= [("Single entity type", "constructs", "SingleEntity")
-				  ,("Single value type", "constructs", "SingleLabel")
-				  ,("Single fact type", "constructs", "SingleFact")
-				  ,("Subtypes", "constructs", "SubTypes")
-				  ,("Total role constraint", "constructs", "TotalRole")
-				  ,("Uniqueness constraint on 2 roles", "constructs", "TwoRoleUnique")
-				  ,("Uniqueness constraint on multiple roles", "constructs", "MultiRoleUnique")
-				  ,("Primary role", "constructs","PrimaryRole")
-				  ]
-	application	= [("Music collection", "application","Music")
-				  ,("Conference management", "application", "Conference")
-				  ]
-	
-
-//Util
-monitored :: (Task a) [(ReadOnlyShared (TaskValue a)) -> Task a] -> Task a | iTask a
-monitored lead monitors
-	=	parallel Void [(Embedded, \_ -> lead)
-					  :[(Embedded,\s -> t (mapRead hd (toReadOnly (taskListState s))) ) \\ t <- monitors]]
-	@?	res
-where	
-	res (Value [(_,fv):_] _)	= fv
-	res _						= NoValue
-
-previewImageDoc :: Document -> HtmlTag
-previewImageDoc {Document|contentUrl} = ImgTag [SrcAttr contentUrl]
-
-
-*/
-
-
-
-
-
-
-
-
-
-
- 						
- 
