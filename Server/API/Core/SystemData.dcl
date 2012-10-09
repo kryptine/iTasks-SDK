@@ -42,3 +42,6 @@ applicationConfig		:: ReadOnlyShared Config	// Server config
 
 // Random source
 randomInt				:: ReadOnlyShared Int
+
+// External file
+externalFile :: !FilePath -> Shared String

@@ -1,6 +1,6 @@
 implementation module SystemData
 
-import SystemTypes, TaskStore, Time, Shared, Util, Text, Task, Tuple
+import SystemTypes, TaskStore, Time, Shared, Util, Text, Task, Tuple, StdFile
 import Random
 import StdList, StdBool
 from StdFunc		import o, seq
@@ -108,3 +108,24 @@ where
 	randomInt iworld=:{IWorld|world}
 		# (Clock seed, world)	= clock world
 		= (hd (genRandInt seed), {IWorld|iworld & world = world})
+
+
+externalFile :: !FilePath -> Shared String
+externalFile path = createChangeOnWriteSDS "externalFile" path read write
+where
+	read iworld=:{world}
+		# (ok,file,world)	= fopen path FReadData world
+		| not ok			= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
+		# (res,file)		= readAll file
+		# (ok,world)		= fclose file world
+		| not ok			= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
+		| isError res		= (Error (toString (fromError res)) ,{IWorld|iworld & world = world})
+		= (Ok (fromOk res), {IWorld|iworld & world = world})
+		
+	write content iworld=:{world}
+		# (ok,file,world)	= fopen path FWriteText world
+		| not ok			= (Error (toString CannotOpen), {IWorld|iworld & world = world})
+		# file				= fwrites content file
+		# (ok,world)		= fclose file world
+		| not ok			= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
+		= (Ok Void, {IWorld|iworld & world = world})
