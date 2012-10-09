@@ -17,9 +17,8 @@ project _
 	=				viewInformation "Project" [] "dummy" @ const Void
 
 messages errorFileName ts 
-	= 				viewSharedInformation errorFileName /*"Error Messages..."*/ [ViewWith (\txt -> Note txt)] (sharedStore errorFileName "No Errors...") 
-	>>*				[ OnAction (Action "Refresh") always (const (messages errorFileName ts))
-					]
+	= 				viewSharedInformation "Error Messages..." [ViewWith (\txt -> Note txt)] (externalFile errorFileName)
+					@ const Void 
 	  
 
 topmenu ts
@@ -53,22 +52,6 @@ errorFile		:== "Temp\\errors"
 
 compile projectName _
 	=				callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] @ const Void
-/*
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
-
-batchBuild :: !GModule *World -> (CompileResult, *World)
-batchBuild gMod world = runCompiler gMod compiler world 
-where
-	compiler :: !String !String !GinConfig *World -> (CompileResult, *World)
-	compiler source basename config world
-	#(result, world) = osCallProcessBlocking (quote (config.cleanPath +/+ "CleanIDE.exe") +++ " --batch-build " +++ quote (getFileName config basename "prj")) world
-	| isOSError result = (CompileGlobalError ("Calling Clean compiler failed: " +++ formatOSError result), world)
-	| getOSResult result == 0 = (CompileSuccess, world)
-	#(result, world) = osReadTextFile (getFileName config basename "log") world
-	| isOSError result = (CompileGlobalError ("Read log file failed: " +++ formatOSError result), world)
-	#log = getOSResult result
-	= (CompilePathError (findPathErrors (parseCleanIDELog log) source), world)
-*/
 
 
 // editor
@@ -85,16 +68,24 @@ initReplace =	{ search = ""
 				, replaceBy = "" 
 				}
 
-editor fileName 	
-	=   			let file = sharedStore fileName "" in
-					parallel (Title fileName)	
-						[ (Embedded, showStatistics file)
-						, (Embedded, editFile fileName file)
-						, (Embedded, replace initReplace file)
-						]  @ const Void
-	>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
-					, OnAction  ActionClose 		 always (const (return Void))
-					]			
+editor fileName = editor` (externalFile fileName)
+where
+	editor` file	
+		=   			get file
+		>>= \content ->	withShared content 
+		    \copy ->  	parallel (Title fileName)	
+							[ (Embedded, showStatistics copy)
+							, (Embedded, editFile fileName copy)
+							, (Embedded, replace initReplace copy)
+							]  @ const Void
+		>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
+						, OnAction  ActionClose 		 always (const (return Void))
+						, OnAction  ActionSave 		     always (const (save copy >>| editor` file))
+						]
+	where
+		save copy
+			=				get copy
+			>>= \content -> set	content file		
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
