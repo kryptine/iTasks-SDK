@@ -6,7 +6,6 @@ import GenUpdate, StdMisc
 derive gVerify (,), (,,), (,,,), Void, Either, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 derive gVerify GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
-import StdDebug
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a

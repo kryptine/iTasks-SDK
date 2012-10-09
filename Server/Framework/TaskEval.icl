@@ -2,7 +2,7 @@ implementation module TaskEval
 
 import StdList, StdBool
 import Error
-import SystemTypes, IWorld, Shared, Task, TaskState, TaskStore, Util
+import SystemTypes, IWorld, Shared, Task, TaskState, TaskStore, Util, Func
 import LayoutCombinators
 
 from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
@@ -12,7 +12,7 @@ import iTaskClass
 
 createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Maybe User) !(Task a) !ManagementMeta !ProgressMeta !*IWorld -> (!TaskInstance, !*IWorld) | iTask a
 createTaskInstance instanceNo sessionId parent worker task mmeta pmeta iworld=:{taskTime} 
-	# meta		= {TIMeta|instanceNo=instanceNo,sessionId=sessionId,parent=parent,worker=worker,observers=[],management=mmeta,progress=pmeta}
+	# meta		= {TIMeta|instanceNo=instanceNo,sessionId=sessionId,parent=parent,worker=worker,observes=[],observedBy=[],management=mmeta,progress=pmeta}
 	# reduct	= {TIReduct|task=toJSONTask task,nextTaskNo=2,nextTaskTime=1,tree=(TCInit (TaskId instanceNo 0) 1),shares = 'Map'.newMap, lists = 'Map'.newMap}
 	# result	= TIValue NoValue taskTime
 	# rep		= (TaskRep (UIControlGroup ('Map'.newMap, [(stringDisplay "This task has not been evaluated yet.",'Map'.newMap)],Vertical,[])) [])
@@ -32,7 +32,7 @@ createSessionInstance task event iworld=:{currentDateTime}
 	# ((meta,reduct,result,_), iworld)
 		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task noMeta {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# (mbRes,iworld)		= evalAndStoreInstance True event (meta,reduct,result) iworld
-	# iworld				= refreshOutdatedInstances iworld 
+	# iworld				= refreshOutdatedInstances meta.observes iworld 
 	= case loadSessionInstance sessionId iworld of
 		(Ok (meta,reduct,result),iworld)
 			# (mbRes,iworld)	= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
@@ -52,23 +52,16 @@ evalSessionInstance sessionId event iworld
 	# iworld = case event of
 			RefreshEvent 	= refreshSessionInstance sessionId iworld
 			_				= processEvent event iworld
-	//Refresh affected tasks
-	# iworld				= refreshOutdatedInstances iworld 
 	//Evaluate session instance
 	# (mbInstance,iworld)	= loadSessionInstance sessionId iworld
 	= case mbInstance of
 		Error e				= (Error e, iworld)
 		Ok (meta,reduct,result)
-			# (mbRes,iworld)	= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
-			# iworld			= remOutdatedInstance meta.TIMeta.instanceNo iworld
+			//Refresh affected tasks
+			# iworld				= refreshOutdatedInstances meta.observes iworld
+			# (mbRes,iworld)		= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
 			= case mbRes of
-				Ok result		= (Ok (result, meta.TIMeta.instanceNo, sessionId), iworld)
-				Error e			= (Error e, iworld)
-where
-	updateCurrentDateTime :: !*IWorld -> *IWorld
-	updateCurrentDateTime iworld=:{IWorld|world}
-		# (dt,world) = currentDateTimeWorld world
-		= {IWorld|iworld  & currentDateTime = dt, world = world}
+				Ok result			= (Ok (result, meta.TIMeta.instanceNo, sessionId), iworld)
 	
 processEvent :: !Event !*IWorld -> *IWorld
 processEvent RefreshEvent iworld = iworld
@@ -102,7 +95,7 @@ evalAndStoreInstance isSession event (meta=:{TIMeta|instanceNo,parent,worker=Jus
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	# iworld					= {iworld & currentInstance = instanceNo, currentUser = worker, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 
-	//Clear the instance's registrations for share changes & remove from outdated queue
+	//Clear the instance's registrations for share changes
 	# iworld					= clearShareRegistrations instanceNo iworld
 	# iworld					= remOutdatedInstance instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
@@ -113,13 +106,18 @@ evalAndStoreInstance isSession event (meta=:{TIMeta|instanceNo,parent,worker=Jus
 	//Restore current process id, nextTask id and local shares in iworld
 	# iworld					= {iworld & currentInstance = currentInstance, currentUser = currentUser, nextTaskNo = nextTaskNo, taskTime = taskTime, localShares = localShares, localLists = localLists}
 	# reduct					= {TIReduct|reduct & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, tree = tasktree result, shares = shares, lists = lists}
+	//Load possibly changed meta
+	# (meta, iworld) = case loadTaskMeta instanceNo iworld of
+		(Ok meta, iworld)		= (meta, iworld)
+		(_, iworld)				= (meta, iworld)
 	# meta						= {TIMeta|meta & progress = setStatus result progress}
 	# inst 						= (meta,reduct,taskres result,taskrep result)
 	//Store the instance
 	# iworld					= storeTaskInstance inst iworld	
-	//If the result has a new value, mark the parent process as outdated
+	//If the result has a new value, mark the parent & observing processes as outdated
 	| parent > 0 && isChanged val result
-		# iworld				= addOutdatedInstances [parent] iworld
+		# iworld				= addOutdatedInstances [(parent, Nothing)] iworld
+		# iworld				= addOutdatedInstances [(i, Nothing) \\ i <- meta.observedBy] iworld
 		= (Ok result, iworld)
 	| otherwise
 		= (Ok result, iworld)
@@ -149,19 +147,33 @@ evalAndStoreInstance _ _ (_,_,TIException e msg) iworld
 evalAndStoreInstance _ _ _ iworld	
 	= (Ok (exception "Could not unpack instance state"), iworld)
 
-//Evaluate tasks marked as outdated in the task pool
-refreshOutdatedInstances :: !*IWorld -> *IWorld
-refreshOutdatedInstances iworld = refresh [] iworld
+//Evaluate given tasks if marked as outdated in the task pool
+refreshOutdatedInstances :: ![InstanceNo] !*IWorld -> *IWorld
+refreshOutdatedInstances [] iworld = iworld
+refreshOutdatedInstances instances iworld = seqSt refresh instances iworld
 where
-	refresh done iworld = case nextOutdatedInstance iworld of
-		(Nothing,iworld)	= iworld
-		(Just next,iworld)
-			| isMember next done	= iworld
-									= refresh [next:done] (refreshInstance next iworld)
+	refresh instanceNo iworld
+		# (outdChildren, iworld)	= getTaskInstanceObserved instanceNo iworld
+		# iworld					= refreshOutdatedInstances outdChildren iworld
+		# (outdated, iworld)		= checkAndRemOutdatedInstance instanceNo iworld
+		| outdated					= refreshInstance instanceNo iworld
+		| otherwise					= iworld
 
+//Evaluate all tasks marked as outdated in the task pool									
+refreshAllOutdatedInstances :: !*IWorld -> (!Maybe Timestamp, !*IWorld)
+refreshAllOutdatedInstances iworld
+	# (outdated, iworld) = getOutdatedInstances iworld
+	# iworld = refresh outdated [] iworld
+	= getMinOutdatedTimestamp iworld
+where
+	refresh [] _ iworld = iworld
+	refresh [outd:outds] done iworld
+		| isMember outd done	= iworld
+								= refresh outds [outd:done] (refreshInstance outd iworld)
+															
 //Evaluate a task instance without any events
 refreshInstance :: !InstanceNo !*IWorld -> *IWorld
-refreshInstance instanceNo iworld
+refreshInstance instanceNo iworld=:{currentDateTime}
 	= case loadTaskInstance instanceNo iworld of
 		(Error _,iworld)	= iworld
 		(Ok (meta,reduct,result),iworld)
@@ -218,10 +230,10 @@ where
 		
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = createReadOnlySDSError read
+topListShare = createReadOnlySDS read
 where
 	read iworld
-		= (Ok {TaskList|listId = TopLevelTaskList, items = []}, iworld)
+		= ({TaskList|listId = TopLevelTaskList, items = []}, iworld)
 		
 parListShare :: !TaskId -> SharedTaskList a | iTask a
 parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError read

@@ -9,7 +9,7 @@ from Time				import :: Timestamp
 from TaskState			import :: TaskListEntry
 from JSON_NG			import :: JSONNode
 from StdFile			import class FileSystem		
-from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class reportSDSChangeFilter
+from SharedDataSource	import class registerSDSMsg, class reportSDSChange
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -32,8 +32,9 @@ from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class 
 					, world					:: !*World									// The outside world
 					}
 
+updateCurrentDateTime :: !*IWorld -> *IWorld
+
 instance FileSystem IWorld
 
 instance registerSDSMsg			InstanceNo	IWorld
-instance reportSDSChange					IWorld
-instance reportSDSChangeFilter	InstanceNo	IWorld
+instance reportSDSChange		InstanceNo	IWorld

@@ -64,6 +64,15 @@ evalSessionInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskRe
 */
 createPersistentInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
+/**
+* Evaluate all tasks marked as outdated in the task pool
+* @param The IWorld state
+*
+* @return The moment of time when the next instance can predicated to be outdated
+* @return The IWorld state
+*/
+refreshAllOutdatedInstances :: !*IWorld -> (!Maybe Timestamp, !*IWorld)
+
 //Helper functions that provide access to shares and parallel task lists
 localShare		:: !TaskId ->	Shared a			| iTask a
 topListShare	::				SharedTaskList a

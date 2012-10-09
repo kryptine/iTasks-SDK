@@ -183,7 +183,7 @@ instance toEmail String
 
 class toUserConstraint a
 where
-	toUserConstraint :: a -> UserConstraint
+	toUserConstraint :: !a -> UserConstraint
 
 instance toUserConstraint UserConstraint
 instance toUserConstraint User

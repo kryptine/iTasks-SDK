@@ -42,19 +42,28 @@ loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 
 
+setTaskWorker				:: !User !InstanceNo !*IWorld -> *IWorld
 //Keep track of which instances depend on other instances
-setTaskWorker			:: !User !InstanceNo !*IWorld -> *IWorld
-addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
+//first instance observes second one
+addTaskInstanceObserver		:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
+removeTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
+//instances observed by given instance
+getTaskInstanceObserved		:: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
+//instances observing given instance
+getTaskInstanceObservers :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
 
 //Keep track of outdated task instances that need to be refreshed
-addOutdatedInstances		:: ![InstanceNo] !*IWorld -> *IWorld
+addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 remOutdatedInstance			:: !InstanceNo !*IWorld -> *IWorld
+//check and remove if outdated (timed entries may remain)
+checkAndRemOutdatedInstance	:: !InstanceNo !*IWorld -> (Bool, !*IWorld)
 
-nextOutdatedInstance		:: !*IWorld -> (!Maybe InstanceNo,!*IWorld)
+getOutdatedInstances		:: !*IWorld -> (![InstanceNo], !*IWorld)
+getMinOutdatedTimestamp		:: !*IWorld -> (!Maybe Timestamp, !*IWorld)
 
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
-addOutdatedOnShareChange	:: !BasicShareId !*IWorld -> *IWorld
+addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
 
 //Keep last version of session user interfaces around, to be able to send differences to client
 storeCurUI				:: !SessionId !Int !UIDef !*IWorld -> *IWorld

@@ -68,16 +68,16 @@ exception :: !e -> TaskResult a | TC, toString e
 /**
 * Determine the layout function for a rep target
 */
-repLayout :: TaskRepOpts -> Layout
+repLayout :: !TaskRepOpts -> Layout
 
 /**
 * Determine what function to apply after a layout has been done
 */
-afterLayout :: TaskRepOpts -> (UIDef -> UIDef)
+afterLayout :: !TaskRepOpts -> (UIDef -> UIDef)
 /**
 * Apply the final layout if necessary
 */
-finalizeRep :: TaskRepOpts TaskRep -> TaskRep
+finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
 
 /**
 * Create a task that finishes instantly

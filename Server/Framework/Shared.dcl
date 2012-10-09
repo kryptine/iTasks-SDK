@@ -1,7 +1,8 @@
 definition module Shared
 
 import IWorld, Void, Error
-from SharedDataSource import :: RWShared, :: Hash, null, ::ROShared, :: WOShared, mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly, >+<, >+|, |+<, |+|, createChangeOnWriteSDS, createReadOnlySDS, createReadOnlySDSError
+from SharedDataSource import :: RWShared, :: Hash, null, ::ROShared, :: WOShared, mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly, >+<, >+|, |+<, |+|
+from SharedDataSource import createChangeOnWriteSDS, createReadOnlySDS, createReadOnlySDSError, createReadOnlySDSPredictable, createReadOnlySDSErrorPredictable
 
 :: ReadWriteShared r w	:== RWShared r w IWorld
 :: Shared a				:== ReadWriteShared a a

@@ -3,7 +3,7 @@ implementation module CoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List_NG
 import qualified StdList
 import iTaskClass, Task, TaskState, TaskEval, TaskStore, UIDefinition, LayoutCombinators, Shared
-from SharedDataSource		import qualified read, readRegister, write
+from SharedDataSource		import qualified read, readRegister, writeFilterMsg
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..)
 from SystemData				import topLevelTasks
@@ -33,8 +33,8 @@ where
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
-	eval taskId iworld=:{taskTime}
-		# (res,iworld)	='SharedDataSource'.write val shared iworld
+	eval taskId iworld=:{taskTime,currentInstance}
+		# (res,iworld)	='SharedDataSource'.writeFilterMsg val ((<>) currentInstance) shared iworld
 		= case res of
 			Ok _	= (Ok val,iworld)
 			Error e	= (Error (dynamic (SharedException e), e), iworld)
@@ -42,13 +42,13 @@ where
 update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
-	eval taskId iworld=:{taskTime}
+	eval taskId iworld=:{taskTime,currentInstance}
 		# (er, iworld)	= 'SharedDataSource'.read shared iworld
 		= case er of
 			Error e		= (Error (dynamic (SharedException e), e), iworld)
 			Ok r	
 				# w				= fun r
-				# (er, iworld)	=  'SharedDataSource'.write w shared iworld
+				# (er, iworld)	=  'SharedDataSource'.writeFilterMsg w ((<>) currentInstance) shared iworld
 				= case er of
 					Ok _	= (Ok w, iworld)
 					Error e = (Error (dynamic (SharedException e), e), iworld)

@@ -11,8 +11,14 @@ from JSON_NG			import :: JSONNode
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
 
-from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class reportSDSChangeFilter
-import TaskStore
+from SharedDataSource	import class registerSDSMsg, class reportSDSChange
+import TaskStore, Time, Util
+
+updateCurrentDateTime :: !*IWorld -> *IWorld
+updateCurrentDateTime iworld=:{IWorld|world}
+	# (dt,world)			= currentDateTimeWorld world
+	# (timestamp,world)		= time world
+	= {IWorld|iworld  & currentDateTime = dt, timestamp = timestamp, world = world}
 
 //Wrapper instance for file access
 instance FileSystem IWorld
@@ -32,13 +38,10 @@ where
 
 instance registerSDSMsg InstanceNo IWorld
 where
-	registerSDSMsg shareId instanceNo iworld = addShareRegistration shareId instanceNo iworld
-			
-instance reportSDSChange IWorld
-where
-	reportSDSChange shareId iworld = addOutdatedOnShareChange shareId iworld
+	registerDependency shareId instanceNo iworld = addShareRegistration shareId instanceNo iworld
+	registerTimedMsg timestamp instanceNo iworld = addOutdatedInstances [(instanceNo, Just timestamp)] iworld
 		
-instance reportSDSChangeFilter InstanceNo IWorld
+instance reportSDSChange InstanceNo IWorld
 where
-	reportSDSChangeFilter shareId filterFun iworld //TODO
-		= addOutdatedOnShareChange shareId iworld
+	reportSDSChange shareId filterFun iworld
+		= addOutdatedOnShareChange shareId filterFun iworld

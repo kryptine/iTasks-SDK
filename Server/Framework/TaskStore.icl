@@ -2,7 +2,7 @@ implementation module TaskStore
 
 import StdEnv, Maybe
 
-import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, UIDefinition, Map
+import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, UIDefinition, Map, Func, Tuple
 import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
@@ -156,10 +156,9 @@ updateTaskInstanceMeta :: !InstanceNo !(TIMeta -> TIMeta) !*IWorld -> *IWorld
 updateTaskInstanceMeta instanceNo f iworld
 	= case loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld of
 		(Nothing,iworld)	= iworld
-		(Just meta,iworld)	
+		(Just meta,iworld)
 			# iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) (f meta) iworld
-			# iworld = addOutdatedInstances [instanceNo] iworld
-			= iworld
+			= addOutdatedInstances [(instanceNo, Nothing)] iworld
 
 setTaskWorker :: !User !InstanceNo !*IWorld -> *IWorld
 setTaskWorker worker instanceNo iworld
@@ -169,23 +168,72 @@ where
 	set _ inst = inst
 	
 addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
-addTaskInstanceObserver observer instanceNo iworld
-	= updateTaskInstanceMeta instanceNo (add observer) iworld
+addTaskInstanceObserver observer observed iworld
+	# iworld = updateTaskInstanceMeta observer (\meta -> {TIMeta|meta & observes = removeDup (meta.observes ++ [observed])}) iworld
+	# iworld = updateTaskInstanceMeta observed (\meta -> {TIMeta|meta & observedBy = removeDup (meta.observedBy ++ [observer])}) iworld
+	= iworld
+	
+removeTaskInstanceObserver :: !InstanceNo !InstanceNo !*IWorld -> *IWorld
+removeTaskInstanceObserver observer observed iworld
+	# iworld = updateTaskInstanceMeta observer (\meta-> {TIMeta|meta & observes = filter ((<>) observed) meta.observes}) iworld
+	# iworld = updateTaskInstanceMeta observed (\meta-> {TIMeta|meta & observedBy = filter ((<>) observer) meta.observedBy}) iworld
+	= iworld
+	
+getTaskInstanceObserved :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
+getTaskInstanceObserved instanceNo iworld = case loadTaskMeta instanceNo iworld of
+	(Ok {observes},iworld)	= (observes, iworld)
+	(_, iworld)				= ([], iworld)
+	
+getTaskInstanceObservers :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
+getTaskInstanceObservers instanceNo iworld = case loadTaskMeta instanceNo iworld of
+	(Ok {observedBy},iworld)	= (observedBy, iworld)
+	(_, iworld)					= ([], iworld)
+
+addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
+addOutdatedInstances [] iworld = iworld
+addOutdatedInstances outdated iworld
+	# (outdParents, iworld)	= mapSt (\(instanceNo,mbTimestamp) iworld -> appFst (map (\parent -> (parent,mbTimestamp))) (getTaskInstanceObservers instanceNo iworld)) outdated iworld
+	# iworld				= addOutdatedInstances (flatten outdParents) iworld
+	= updateOutdatedInstanceIndex (removeDup o ((++) outdated)) iworld
+
+remOutdatedInstance	:: !InstanceNo !*IWorld -> *IWorld
+remOutdatedInstance	rem iworld
+	= updateOutdatedInstanceIndex (filter (\(i,_) -> i <> rem)) iworld
+
+checkAndRemOutdatedInstance	:: !InstanceNo !*IWorld -> (Bool, !*IWorld)
+checkAndRemOutdatedInstance	check iworld
+	# (curTime, iworld)	= currentTimestamp iworld
+	# (outdated,iworld)	= checkOutdatedInstanceIndex (\outd -> not (isEmpty (filter (\(i,mbT) -> i == check && (isNothing mbT || (fromJust mbT) <= curTime)) outd))) iworld
+	| outdated	= (True, remOutdatedInstance check iworld)
+	| otherwise = (False, iworld)
+
+getOutdatedInstances :: !*IWorld -> (![InstanceNo], !*IWorld)
+getOutdatedInstances iworld
+	# (mbOutdated, iworld) = loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
+	= case mbOutdated of
+		Just outdated
+			# (curTime, world)	= time iworld.world
+			# iworld			= {iworld & world = world}
+			= ([instanceNo \\ (instanceNo, mbTimestamp) <- outdated | isNothing mbTimestamp || (fromJust mbTimestamp) <= curTime], iworld)
+		Nothing
+			= ([], iworld)
+			
+getMinOutdatedTimestamp :: !*IWorld -> (!Maybe Timestamp, !*IWorld)
+getMinOutdatedTimestamp iworld
+	# (mbOutdated, iworld) = load iworld
+	= case mbOutdated of
+		Just outdated = case map getTimestamp outdated of
+			[]							= (Nothing, iworld)
+			[fstTimestamp:timestamps]	= (Just (foldl min fstTimestamp timestamps), iworld)
+		Nothing
+			= (Nothing, iworld)
 where
-	add observer meta=:{TIMeta|observers} = {TIMeta|meta & observers = removeDup (observers ++ [observer])}
-
-addOutdatedInstances :: ![InstanceNo] !*IWorld -> *IWorld
-addOutdatedInstances outdated iworld = updateOutdatedInstanceIndex (removeDup o ((++) outdated)) iworld
-
-remOutdatedInstance :: !InstanceNo !*IWorld -> *IWorld
-remOutdatedInstance rem iworld = updateOutdatedInstanceIndex (filter ((<>) rem)) iworld
-
-nextOutdatedInstance :: !*IWorld -> (!Maybe InstanceNo,!*IWorld)
-nextOutdatedInstance iworld
-	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
-	= case index of	
-		Just [next:_]	= (Just next,iworld)
-		_				= (Nothing,iworld)
+	load :: !*IWorld -> (!Maybe [(!InstanceNo, !Maybe Timestamp)], !*IWorld)
+	load iworld = loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
+	
+	getTimestamp :: !(!InstanceNo, !Maybe Timestamp) -> Timestamp
+	getTimestamp (_,Just timestamp)	= timestamp
+	getTimestamp _					= Timestamp 0
 
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 addShareRegistration shareId instanceNo iworld
@@ -204,14 +252,14 @@ where
 	clear :: InstanceNo [(BasicShareId,[InstanceNo])] -> [(BasicShareId,[InstanceNo])]
 	clear no regs = [(shareId,removeMember no insts) \\ (shareId,insts) <- regs]
 
-addOutdatedOnShareChange :: !BasicShareId !*IWorld -> *IWorld
-addOutdatedOnShareChange shareId iworld
+addOutdatedOnShareChange :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
+addOutdatedOnShareChange shareId filterFun iworld
 	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
 	# regs				= fromMaybe newMap mbRegs
 	= case get shareId regs of
 		Just outdated=:[_:_]
-			# iworld			= addOutdatedInstances outdated iworld
-			# regs				= del shareId regs
+			# iworld			= addOutdatedInstances [(outd, Nothing) \\ outd <- (filter filterFun outdated)] iworld
+			# regs				= put shareId (filter (not o filterFun) outdated) regs
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 		
@@ -244,10 +292,18 @@ updatePersistentInstanceIndex f iworld
 	# (index,iworld)	= loadValue NS_TASK_INSTANCES PERSISTENT_INDEX iworld
 	# iworld			= storeValue NS_TASK_INSTANCES PERSISTENT_INDEX (f (fromMaybe [] index)) iworld
 	= iworld
-	
-updateOutdatedInstanceIndex :: ([Int] -> [Int]) !*IWorld -> *IWorld
+
+checkOutdatedInstanceIndex :: !([(!InstanceNo,!Maybe Timestamp)] -> Bool) !*IWorld -> (!Bool, !*IWorld)
+checkOutdatedInstanceIndex f iworld
+	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
+	= (f (fromMaybe [] index), iworld)
+		
+updateOutdatedInstanceIndex :: !([(!InstanceNo,!Maybe Timestamp)] -> [(!InstanceNo,!Maybe Timestamp)]) !*IWorld -> *IWorld
 updateOutdatedInstanceIndex f iworld
 	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
 	# iworld			= storeValue NS_TASK_INSTANCES OUTDATED_INDEX (sortBy (>) (removeDup (f (fromMaybe [] index)))) iworld
 	= iworld
 	
+instance < (Maybe a)
+where
+	(<) _ _ = False

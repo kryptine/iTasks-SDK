@@ -53,7 +53,7 @@ doAuthenticated task = doAuthenticatedWith verify task
 where
 	verify {Credentials|username,password} = authenticateUser username password
 	
-doAuthenticatedWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
+doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
 doAuthenticatedWith verifyCredentials task
 	=	enterInformation ("Log in","Please enter your credentials") []
 	>>!	verifyCredentials

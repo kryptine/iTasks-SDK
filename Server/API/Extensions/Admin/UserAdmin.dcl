@@ -44,7 +44,7 @@ authenticateUser	:: !Username !Password	-> Task (Maybe User)
 doAuthenticated :: (Task a) -> Task a | iTask a
 
 
-doAuthenticatedWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
+doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
 
 /**
 * Add a new user

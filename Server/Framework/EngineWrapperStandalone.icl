@@ -1,9 +1,9 @@
 implementation module EngineWrapperStandalone
 
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString
-import TCPIP, tcp, HTTP, HttpServer, CommandLine, Func
+import TCPIP, tcp, HTTP, HttpServer, CommandLine, Func, Util
 
-import Engine, IWorld
+import Engine, IWorld, TaskEval
 
 //Wrapper instance for TCP channels with IWorld
 instance ChannelEnv IWorld
@@ -38,7 +38,7 @@ startEngine publishable world
 	| isNothing mbSDKPath	= show sdkpatherror world
 	//Normal execution
 	# world					= show (running port) world
-	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug]
+	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug, HTTPServerOptBackgroundProcess updateOutdated]
 	# iworld				= initIWorld (fromJust mbSDKPath) world
 	# iworld				= http_startServer options (engine publishable) iworld
 	= finalizeIWorld iworld
@@ -97,6 +97,18 @@ where
 	stringOpt key [n,v:r]
 		| n == key	= Just v
 					= stringOpt key [v:r]
-
-
-	
+					
+	updateOutdated :: !*IWorld -> (!Maybe Timeout, !*IWorld)
+	updateOutdated iworld
+		# iworld			= updateCurrentDateTime iworld
+		# (mbMin, iworld)	= refreshAllOutdatedInstances iworld
+		# (curTime, iworld)	= currentTimestamp iworld
+		= (fmap (toTimeout curTime) mbMin, iworld)
+	where
+		toTimeout (Timestamp curTime) (Timestamp nextRefresh)
+			# delta = nextRefresh - curTime
+			| delta < 0					= 0
+			| delta > MAX_TIMEOUT/1000	= MAX_TIMEOUT
+			| otherwise					= delta*1000
+			
+MAX_TIMEOUT :== 86400000 // one day

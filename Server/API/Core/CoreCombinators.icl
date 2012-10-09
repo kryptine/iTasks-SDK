@@ -11,7 +11,7 @@ from IWorld				import :: IWorld(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from TaskEval			import localShare, parListShare, topListShare
 from CoreTasks			import return
-from SharedDataSource	import write, read
+from SharedDataSource	import writeFilterMsg, read
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -50,12 +50,12 @@ where
 			ExceptionResult e str
 				= (ExceptionResult e str,iworld)
 	
-	projectOnShare val result iworld
+	projectOnShare val result iworld=:{currentInstance}
 		# (er, iworld) = read share iworld
 		= case er of
 			Ok r = case projection val r of
 				Just w
-					# (ew, iworld) = write w share iworld
+					# (ew, iworld) = writeFilterMsg w ((<>) currentInstance) share iworld
 					= case ew of
 						Ok _	= (result, iworld)
 						Error e	= (exception e, iworld)
@@ -473,8 +473,8 @@ where
 			_
 				= (ValueResult (Value WODeleted Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 
-	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
-		//TODO: Remove this workon from the observers
+	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld=:{currentInstance}
+		# iworld = removeTaskInstanceObserver currentInstance instanceNo iworld
 		= (DestroyedResult,iworld)
 		
 	inUseDef worker

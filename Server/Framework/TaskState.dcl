@@ -16,7 +16,8 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	{ instanceNo	:: !InstanceNo		//Unique global identification
 	, sessionId		:: !Maybe SessionId	//zero for top-level instances, instance that detached this one otherwise
 	, parent		:: !InstanceNo		
-	, observers		:: ![InstanceNo]	//List of instances that may be affected by changes in this instance
+	, observes		:: ![InstanceNo]	//List of instances that this instance observes (using workOn)
+	, observedBy	:: ![InstanceNo]	//List of instances that may be affected by changes in this instance
 	, worker		:: !Maybe User		//Identity of the user working on this instance (this determines the value of the currentUser share)
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta

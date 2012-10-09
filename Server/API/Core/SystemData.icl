@@ -23,22 +23,30 @@ where
 	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 	
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = createReadOnlySDS read
+currentDateTime = createReadOnlySDSPredictable read
 where
-	read iworld=:{currentInstance} //Marking instances outdated directly is a bit of a workaround
-		= 'Util'.currentDateTime (addOutdatedInstances [currentInstance] iworld)
+	read iworld
+		# (dateTime, iworld)		= 'Util'.currentDateTime iworld
+		# (Timestamp ts, iworld)	= 'Util'.currentTimestamp iworld
+		= ((dateTime, Timestamp (ts + 1)), iworld)
 		
 currentTime :: ReadOnlyShared Time
-currentTime = createReadOnlySDS read
+currentTime = createReadOnlySDSPredictable read
 where
-	read iworld=:{currentInstance} //Marking instances outdated directly is a bit of a workaround
-		= 'Util'.currentTime (addOutdatedInstances [currentInstance] iworld)
+	read iworld
+		# (time, iworld)			= 'Util'.currentTime iworld
+		# (Timestamp ts, iworld)	= 'Util'.currentTimestamp iworld
+		= ((time, Timestamp (ts + 1)), iworld)
 		
 currentDate :: ReadOnlyShared Date
-currentDate = createReadOnlySDS read
+currentDate = createReadOnlySDSPredictable read
 where
-	read iworld=:{currentInstance} //Marking instances outdated directly is a bit of a workaround
-		= 'Util'.currentDate (addOutdatedInstances [currentInstance] iworld)
+	read iworld
+		# (DateTime date time, iworld)	= 'Util'.currentDateTime iworld
+		# (Timestamp ts, iworld)		= 'Util'.currentTimestamp iworld
+		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
+
+	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void

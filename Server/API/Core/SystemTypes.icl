@@ -577,7 +577,7 @@ where
 
 class toUserConstraint a
 where
-	toUserConstraint :: a -> UserConstraint
+	toUserConstraint :: !a -> UserConstraint
 
 instance toUserConstraint UserConstraint
 where
