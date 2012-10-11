@@ -9,5 +9,8 @@ Ext.define('itwc.component.view.HTML',{
 	},
 	setValue: function(value) {
 		this.getEl().update(value);
+		if(this.ownerCt) {
+			this.ownerCt.doLayout();
+		}
 	}
 });
