@@ -5,8 +5,8 @@ import iTasks, Text
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
 
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
-projectPath		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\iTasks-SDK\\Examples\\Development\\"
+cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\"
+projectPath		:== "C:\\Users\\bas\\Desktop\\Clean\\iTasks-SDK\\Examples\\Development\\"
 projectName		:==	"test"
 
 :: IDE_State =	{ projectName	:: String
@@ -71,11 +71,19 @@ openFile _
 					]
 
 compile projectName ideState _
-	=				callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
-	>>|				get ideState
-	>>= \state ->	let compilerMessages = externalFile (state.projectPath +++ projectName +++ ".log") in
-					viewSharedInformation (Title "Compiler Messages...") [ViewWith (\txt -> Note txt)] compilerMessages
-					@ const Void 
+	=				get ideState
+					
+	>>= \state ->	(let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
+						exportTextFile compilerMessages ""	//Empty the log file...
+						>>|
+						callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
+						-&&-
+						//View the messages while the compiler is building...
+						viewSharedInformation (Title "Compiler Messages...") [ViewWith (\txt -> Note txt)] (externalFile compilerMessages)
+					)
+					
+	>>*				[ OnAction ActionClose always (\_ -> return Void)]
+					
 
 messages ideState ts 
 	= 				get ideState
