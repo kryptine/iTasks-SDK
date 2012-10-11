@@ -9,8 +9,8 @@ cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 projectPath		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\iTasks-SDK\\Examples\\Development\\"
 projectName		:==	"test"
 
-:: IDE_State =	{ projectName	:: Maybe String
-				, projectPath	:: Maybe String
+:: IDE_State =	{ projectName	:: String
+				, projectPath	:: String
 				, openFiles		:: [String]
 				, cleanPath		:: String
 				}
@@ -19,8 +19,8 @@ derive class iTask IDE_State
 
 init_IDE_State :: IDE_State			
 init_IDE_State
-	= 	{ projectName	= Nothing //Just projectName
-		, projectPath 	= Just projectPath
+	= 	{ projectName	= "" 
+		, projectPath 	= projectPath
 		, openFiles		= []
 		, cleanPath		= cleanPath
 		}
@@ -38,32 +38,31 @@ ide = 	let ideState = sharedStore "IDE_State" init_IDE_State in
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
-topmenu ideState ts
-	=				(actionTask 
- 	>>*				[ OnAction (Action "File/Open") always (launch openFile)
- 					, OnAction (Action "File/Quit") always (const (return Void))
- 					, OnAction (Action "Project/Set Project") always (launch (setProject ideState))
-					])
-					-||-
-					(watch ideState 
- 	>>*				[ OnAction (Action "Project/Bring Up To Date") (ifValue (\v -> isJust v.projectName)) (\v -> launch (compile (fromJust (getValue v).projectName)) NoValue)
-					])
+topmenu ideState ts = forever handleMenu 
 where
-	launch task _ = appendTask Embedded task ts >>| topmenu ideState ts
+	handleMenu
+		=				get ideState
+		>>= \state ->	
+						(actionTask 
+	 	>>*				[ OnAction (Action "File/Open") always (launch openFile)
+	 					, OnAction (Action "Project/Set Project") always (launch (setProject ideState))
+						])
+						-||-
+						(watch ideState 
+	 	>>*				[ OnAction (Action ("Project/Bring Up To Date " +++ state.projectName +++ ".prj")) 
+	 							(ifValue (\v -> v.projectName <> "")) (\v -> launch (compile (getValue v).projectName ideState) NoValue)
+						])
+
+	launch task _ = appendTask Embedded task ts @ const Void
 
 project ideState _
 	=				viewInformation "Project" [] "dummy" @ const Void
 
-messages ideState ts 
-	= 				get ideState
-	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
-					viewSharedInformation "Error Messages..." [ViewWith (\txt -> Note txt)] sharedError
-					@ const Void 
 	  
-setProject ideState ts 
+setProject ideState _ 
 	=				updateInformation "Give name of project file..." [] ""
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
-					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = Just (getValue s)}) ideState @ const Void)
+					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = getValue s}) ideState @ const Void)
 					]
 openFile _
 	=				updateInformation "Give name of text file you want to open..." [] ""
@@ -71,10 +70,18 @@ openFile _
 					, OnAction (Action "Open File") hasValue (editor o getValue)
 					]
 
-compile projectName _
-	=				callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] @ const Void
+compile projectName ideState _
+	=				callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
+	>>|				get ideState
+	>>= \state ->	let compilerMessages = externalFile (state.projectPath +++ projectName +++ ".log") in
+					viewSharedInformation (Title "Compiler Messages...") [ViewWith (\txt -> Note txt)] compilerMessages
+					@ const Void 
 
-
+messages ideState ts 
+	= 				get ideState
+	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
+					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
+					@ const Void 
 // editor
 
 :: Statistics = {lineCount :: Int
