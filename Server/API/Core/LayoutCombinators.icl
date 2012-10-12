@@ -51,7 +51,7 @@ autoStepLayout def _
 autoParallelLayout :: UIControlSequence [UIDef] -> UIDef
 autoParallelLayout prompt defs	
 	| allPartial defs			= partialMerge prompt defs
-	| additionalActions defs	= additionalActionMerge defs
+	| additionalActions defs	= additionalActionMerge prompt defs
 								= sequenceMerge prompt defs
 where
 	allPartial [] = True
@@ -236,14 +236,16 @@ where
 
 //Adds the actions of ActionSet defs to an existing other definition
 //This rule is a bit tricky and can cause odd effects, so it would be nice if it would not be necessary
-additionalActionMerge :: [UIDef] -> UIDef
-additionalActionMerge defs
+additionalActionMerge :: UIControlSequence [UIDef] -> UIDef
+additionalActionMerge (pattributes,_,_) defs			//The prompt is ignored, except for the attributes
 	# (def,additional)	= collect Nothing [] defs
 	= case def of
 		UIControlSequence _ = let (UIAbstractContainer (attributes,controls,direction,actions)) = layoutControls def in
-			 UIAbstractContainer (attributes,controls,direction,actions ++ additional)
-		UIControlGroup (attributes,controls,direction,actions)		= UIControlGroup (attributes,controls,direction,actions ++ additional)
-		UIAbstractContainer (attributes,controls,direction,actions)	= UIAbstractContainer (attributes,controls,direction,actions ++ additional)
+			 UIAbstractContainer (mergeAttributes attributes pattributes,controls,direction,actions ++ additional)
+		UIControlGroup (attributes,controls,direction,actions)
+			= UIControlGroup (mergeAttributes attributes pattributes,controls,direction,actions ++ additional)
+		UIAbstractContainer (attributes,controls,direction,actions)
+			= UIAbstractContainer (mergeAttributes attributes pattributes,controls,direction,actions ++ additional)
 		_															= def
 where
 	collect mbd actions []						= (fromMaybe (UIActionSet (newMap,actions)) mbd,actions)
@@ -339,6 +341,7 @@ where
 	mkTab active def
 		# attributes			= uiDefAttributes def
 		# actions				= uiDefActions def
+		# isWindow				= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
 		# taskId				= get TASK_ATTRIBUTE attributes
 		# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 		# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
@@ -359,7 +362,8 @@ where
 	
 	notClose {UIAction|action=ActionClose}	= False
 	notClose _								= True
-		
+
+
 hideLayout :: Layout
 hideLayout =
 	{ editor	= \(a,c,_)			-> []

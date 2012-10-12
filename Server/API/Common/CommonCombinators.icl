@@ -219,7 +219,7 @@ appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserCons
 appendTopLevelTaskFor worker task = appendTopLevelTask {noMeta & worker = toUserConstraint worker} task
 			
 instance tune Window
-where tune Window task = task
+where tune Window task = task <<@ AfterLayout (tweakAttr ('Map'.put FLOAT_ATTRIBUTE "window"))
 
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

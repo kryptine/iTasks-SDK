@@ -109,7 +109,6 @@ where
 		# (Clock seed, world)	= clock world
 		= (hd (genRandInt seed), {IWorld|iworld & world = world})
 
-
 externalFile :: !FilePath -> Shared String
 externalFile path = createChangeOnWriteSDS "externalFile" path read write
 where

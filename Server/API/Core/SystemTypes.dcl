@@ -452,8 +452,7 @@ LABEL_ATTRIBUTE			:== "label"
 ICON_ATTRIBUTE			:== "icon"
 CREATED_AT_ATTRIBUTE	:== "createdat"	//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
-TYPE_ATTRIBUTE			:== "type"
-PURPOSE_ATTRIBUTE		:== "purpose"
+FLOAT_ATTRIBUTE			:==	"float"		//Hint for layout functions. Currently only "window" has an effect
 
 class descr d
 where
