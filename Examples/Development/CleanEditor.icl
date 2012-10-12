@@ -1,6 +1,7 @@
 module CleanEditor
 
 import iTasks, Text
+import qualified Map
 
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
@@ -65,10 +66,10 @@ setProject ideState _
 					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = getValue s}) ideState @ const Void)
 					]
 openFile _
-	=				updateInformation "Give name of text file you want to open..." [] ""
+	=				updateInformation ("Open file","Give name of text file you want to open...") [] "" <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
 					, OnAction (Action "Open File") hasValue (editor o getValue)
-					]
+					] 
 
 compile projectName ideState _
 	=				get ideState
@@ -125,7 +126,7 @@ where
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
- =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile @ const Void
+ =						(updateSharedInformation Void [UpdateWith toV fromV] sharedFile  @ const Void) <<@ noHints
 where
 	toV text 			= Note text
 	fromV _ (Note text) = text
@@ -186,5 +187,7 @@ ifValue _ _ = False
 
 ifStable (Value v Stable) = True
 ifStable _ = False
+
+noHints = AfterLayout (tweakControls (\controls -> [(c,'Map'.del VALID_ATTRIBUTE ('Map'.del HINT_ATTRIBUTE m)) \\ (c,m) <- controls]))
 
 
