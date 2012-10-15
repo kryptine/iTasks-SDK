@@ -19,11 +19,27 @@ Ext.define('itwc.component.edit.Editable',{
 		me.addEvents('edit');
 
 		me.addManagedListener(me,'change',function () {
-			this.viewport = this.viewport || this.up('viewport');
+			this.viewport = this.findViewport();	
 			this.viewport.fireEvent('edit',this.taskId,this.getEditorId(),this.getEditorValue());
 		},me,{buffer: me.editBufferTime});
 
 		me.syncEditsEnabled = true;
+	},
+	findViewport: function() {
+		var viewport = this.viewport
+			searchIn = this;
+		
+		if(viewport) {
+			return viewport;
+		}	
+		while(true) {
+			viewport = searchIn.up('viewport');
+			if(viewport) {
+				return viewport;
+			}else {
+				searchIn = this.up('itwc_window').panel;
+			}
+		}
 	},
 	getTaskId: function() {
 		return this.taskId;

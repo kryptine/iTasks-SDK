@@ -112,6 +112,7 @@ actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
 uiOf			:: UIDef -> UIControl
 defToContainer	:: UIDef -> UIControl
 defToPanel		:: UIDef -> UIControl
+defToWindow		:: UIDef -> UIControl
 defToControl	:: UIDef -> UIControl
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes

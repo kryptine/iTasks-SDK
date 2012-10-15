@@ -10,7 +10,8 @@ Ext.define('itwc.controller.Controller',{
 			  ,'itwc.container.Container'		//Minimalist container that uses the itasks layout directives
 			  ,'itwc.container.Panel'			//More configurable container with headers and stuff
 			  ,'itwc.container.FieldSet'		//Logical grouping of components
-
+			  ,'itwc.container.Window'			//Floating window
+  
 			  ,'itwc.component.view.String'		//Strings with html escaping
 			  ,'itwc.component.view.HTML'		//Raw HTML
 			  ,'itwc.component.view.Checkbox'	//Checkbox for booleans
@@ -168,15 +169,7 @@ Ext.define('itwc.controller.Controller',{
 	fullUpdate: function(viewportDef) {
 		var me = this,
 			viewport = me.viewport
-		
-
-		//Close all windows
-		Ext.WindowManager.each(function(w) {
-			if (w.isXType('itwc_window')) {
-				w.destroy();
-			}
-		});
-		
+	
 		//Update the main window title instead of the viewport panel	
 		document.title = viewportDef.title ? viewportDef.title : 'Untitled';
 		delete(viewportDef.title);

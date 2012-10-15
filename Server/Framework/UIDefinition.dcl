@@ -28,7 +28,7 @@ from Map			import :: Map(..)
 :: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls, !UIDirection)
 :: UIActionSet			:== (!UIAttributes, !UIActions)
 :: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIDirection, !UIActions)
-:: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIDirection, !UIActions)
+:: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIControls, !UIDirection, !UIActions)
 :: UIFinal				:== UIControl											
 
 :: UIAttributes 		:== Map String String
@@ -263,6 +263,7 @@ from Map			import :: Map(..)
 	{ title			:: !Maybe String
 	, frame			:: !Bool
 	, tbar			:: !Maybe [UIControl]
+	, windows		:: !Maybe [UIControl]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String
@@ -274,7 +275,6 @@ from Map			import :: Map(..)
 	
 :: UIWindowOpts =
 	{ title			:: !Maybe String
-	, frame			:: !Bool
 	, tbar			:: !Maybe [UIControl]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
@@ -284,6 +284,7 @@ from Map			import :: Map(..)
 :: UIViewportOpts =
 	{ title			:: !Maybe String
 	, tbar			:: !Maybe [UIControl]
+	, windows		:: !Maybe [UIControl]
 	}
 
 //Utility functions
@@ -301,6 +302,7 @@ uiDefControls			:: UIDef -> [UIControl]
 uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
 uiDefActions			:: UIDef -> [UIAction]
 uiDefDirection			:: UIDef -> UIDirection
+uiDefWindows			:: UIDef -> [UIControl]
 
 uiDefSetAttribute		:: String String UIDef -> UIDef
 uiDefSetDirection		:: UIDirection UIDef -> UIDef

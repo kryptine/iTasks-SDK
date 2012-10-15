@@ -37,9 +37,9 @@ autoStepLayout (UIControlSequence (attributes,controls,direction)) actions
 		= UIActionSet (attributes,actions)
 	//Promote the control sequence to a control group because they are grouped by the step combinator
 		= UIControlGroup (attributes,controls,direction,actions)
-autoStepLayout (UIAbstractContainer (attributes,controls,direction,actions)) stepActions
+autoStepLayout (UIAbstractContainer (attributes,controls,windows,direction,actions)) stepActions
 	//If an abstract container is placed under a step container, we add the actions to the remaining actions
-	= UIAbstractContainer (attributes,controls,direction,actions ++ stepActions)
+	= UIAbstractContainer (attributes,controls,windows,direction,actions ++ stepActions)
 autoStepLayout def _
 	//In other cases, we ignore the actions because they do not make sense in this context
 	= def
@@ -80,20 +80,20 @@ autoFinalLayout def=:(UIControlSequence (attributes,controls,direction))
 	# panel				= defToPanel (layoutControls def)
 	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
 	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport layoutOpts items {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, tbar = Nothing}
+	= UIViewport layoutOpts items {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, tbar = Nothing, windows = Nothing}
 autoFinalLayout (UIActionSet actions)
-	= UIViewport defaultLayoutOpts [] {UIViewportOpts|title=Nothing,tbar = Nothing}
+	= UIViewport defaultLayoutOpts [] {UIViewportOpts|title=Nothing,tbar = Nothing, windows = Nothing}
 autoFinalLayout def=:(UIControlGroup (attributes,controls,direction,actions))
 	# (actions,panel)	= placeActions actions False (defToPanel (layoutControls def))
 	# (menu,_)			= actionsToMenus actions
 	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
 	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu)}
-autoFinalLayout def=:(UIAbstractContainer (attributes,controls,direction,actions))
+	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), windows = Nothing}
+autoFinalLayout def=:(UIAbstractContainer (attributes,controls,windows,direction,actions))
 	# (menu,_)			= actionsToMenus actions
 	# items				= [defToPanel def]
 	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu)}
+	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), windows = if (isEmpty windows) Nothing (Just windows)}
 autoFinalLayout (UIFinal final)
 	= final
 
@@ -106,7 +106,7 @@ layoutControls (UIControlSequence (attributes,controls,direction))
 	= layoutControls (UIControlGroup (attributes,controls,direction,[]))
 layoutControls (UIControlGroup (attributes,controls,direction,actions))
 	//Decorate & size the controls
-	= UIAbstractContainer (attributes, decorateControls controls, direction, actions)
+	= UIAbstractContainer (attributes, decorateControls controls, [], direction, actions)
 layoutControls def = def
 
 //Add labels and icons to a set of controls if they have any of those attributes set
@@ -173,25 +173,42 @@ where
 	containerOpts	= {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 	layoutOpts		= {UILayoutOpts|defaultLayoutOpts & direction = (uiDefDirection def)}
 	sizeOpts		= {UISizeOpts|defaultSizeOpts & width = Just FlexSize}
-	
+
 //Create a single panel control
 defToPanel :: UIDef -> UIControl
 defToPanel def = UIPanel sizeOpts layoutOpts (uiDefControls def) panelOpts
 where
-	panelOpts = {UIPanelOpts|title = title,frame = False, tbar = Nothing
+	panelOpts	= {UIPanelOpts|title = title,frame = False, tbar = Nothing, windows = if (isEmpty windows) Nothing (Just windows)
 					,iconCls = iconCls, baseCls = Nothing, bodyCls = Nothing}
-	layoutOpts = {UILayoutOpts|defaultLayoutOpts & direction = (uiDefDirection def)}
-	sizeOpts		= {UISizeOpts|defaultSizeOpts & width = Just FlexSize}
+	layoutOpts	= {UILayoutOpts|defaultLayoutOpts & direction = (uiDefDirection def)}
+	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just FlexSize}
+	
+	windows		= uiDefWindows def
+	title		= get TITLE_ATTRIBUTE attributes	
+	iconCls		= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
+	attributes	= uiDefAttributes def
+
+defToWindow :: UIDef -> UIControl
+defToWindow def = UIWindow sizeOpts layoutOpts (uiDefControls def) windowOpts
+where
+	windowOpts	= {UIWindowOpts|title = title, tbar = Nothing
+					,iconCls = iconCls, baseCls = Nothing, bodyCls = Nothing}
+
+	layoutOpts	= {UILayoutOpts|defaultLayoutOpts & direction = (uiDefDirection def)}
+	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
 	
 	title		= get TITLE_ATTRIBUTE attributes	
 	iconCls		= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
 	attributes	= uiDefAttributes def
 
+
 //Create a single control that represents the ui definition
 //This can be a container, a panel or just a single control such as a textarea, a grid or a tree
 defToControl :: UIDef -> UIControl
 defToControl def
-	| isJust (get TITLE_ATTRIBUTE (uiDefAttributes def)) //If a title attribute is set, always make a panel
+	| isJust (get TITLE_ATTRIBUTE (uiDefAttributes def))//If a title attribute is set, always make a panel
+		= defToPanel def
+	| not (isEmpty (uiDefWindows def)) //If there are windows, always make a panel
 		= defToPanel def
 	| otherwise
 		= case uiDefControls def of
@@ -219,6 +236,19 @@ placeActions actions _ (UIContainer sOpts lOpts items opts)
 	# (buttons,actions)	= actionsToButtons actions	
 	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
 	= (actions, UIContainer sOpts lOpts items opts)
+placeActions actions placeMenus (UIWindow sOpts lOpts items opts)
+	//Place button actions
+	# (buttons,actions)	= actionsToButtons actions	
+	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
+	| placeMenus
+		//Place menu actions
+		# (menus,actions)	= actionsToMenus actions
+		# opts				= case menus of
+			[]	= opts
+			_	= {UIWindowOpts|opts & tbar = Just menus}
+		= (actions, UIWindow sOpts lOpts items opts)
+	| otherwise
+		= (actions, UIWindow sOpts lOpts items opts)
 placeActions actions _ control = (actions,control)
 
 //Merge the fragments of a composed interactive task into a single definition
@@ -240,12 +270,12 @@ additionalActionMerge :: UIControlSequence [UIDef] -> UIDef
 additionalActionMerge (pattributes,_,_) defs			//The prompt is ignored, except for the attributes
 	# (def,additional)	= collect Nothing [] defs
 	= case def of
-		UIControlSequence _ = let (UIAbstractContainer (attributes,controls,direction,actions)) = layoutControls def in
-			 UIAbstractContainer (mergeAttributes attributes pattributes,controls,direction,actions ++ additional)
+		UIControlSequence _ = let (UIAbstractContainer (attributes,controls,windows,direction,actions)) = layoutControls def in
+			 UIAbstractContainer (mergeAttributes attributes pattributes,controls,windows,direction,actions ++ additional)
 		UIControlGroup (attributes,controls,direction,actions)
 			= UIControlGroup (mergeAttributes attributes pattributes,controls,direction,actions ++ additional)
-		UIAbstractContainer (attributes,controls,direction,actions)
-			= UIAbstractContainer (mergeAttributes attributes pattributes,controls,direction,actions ++ additional)
+		UIAbstractContainer (attributes,controls,windows,direction,actions)
+			= UIAbstractContainer (mergeAttributes attributes pattributes,controls,windows,direction,actions ++ additional)
 		_															= def
 where
 	collect mbd actions []						= (fromMaybe (UIActionSet (newMap,actions)) mbd,actions)
@@ -260,7 +290,7 @@ where
 		# (actions,controls)	= unzip (map processDef defs)
 		# controls				= decoratePrompt pcontrols ++ [c \\ Just c <- controls]
 		# actions				= foldr (++) [] actions
-		= UIAbstractContainer (attributes, controls, direction, actions)
+		= UIAbstractContainer (attributes, controls, [], direction, actions)
 	
 	//Action sets do not get a panel in the sequence. Their actions are passed upwards
 	processDef (UIActionSet (_,actions))
@@ -286,7 +316,7 @@ where
 		# sideUI			= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill sideUI)
 		# restUI			= fill restUI
 		# controls			= ifTL side [sideUI,restUI] [restUI,sideUI]
-		= UIAbstractContainer (attributes, controls, direction, sideA ++ restA)
+		= UIAbstractContainer (attributes, controls, [], direction, sideA ++ restA)
 		
 	noPrompt = (newMap,[],Vertical)
 	
@@ -296,17 +326,17 @@ where
 	
 	ifH Horizontal a b = a
 	ifH _ a b = b
-	
+
 tabbedMerge :: ParallelLayout
 tabbedMerge = merge
 where
 	merge prompt=:(attributes,pcontrols,_) defs
 		# pcontrols					= decoratePrompt pcontrols
 		# (activeIndex,activeDef)	= findActive defs	
-		# (tabBar,actions)			= mkTabs activeIndex defs	
+		# (tabBar,windows,actions)	= mkTabsAndWindows activeIndex defs	
 		# (actions,tabContent)		= maybe ([],defaultPanel []) toTabContent activeDef
 		# controls					= pcontrols ++ [tabBar,tabContent]
-		= UIAbstractContainer (attributes, controls, Vertical, []) 
+		= (UIAbstractContainer (attributes, controls, windows, Vertical, []))
 
 	toTabContent def
 		# def = tweakAttr (del TITLE_ATTRIBUTE) def	//No double titles
@@ -316,9 +346,13 @@ where
 	findActive defs = find 0 (0,Nothing) defs
 	where
 		find i bestSoFar [] = bestSoFar
-		find i (_,Nothing) [d:ds]	= find (i+1) (i,Just d) ds
-		find i bestSoFar=:(_,Just best) [d:ds]	= if (later d best) (find (i+1) (i,Just d) ds) (find (i+1) bestSoFar ds)
-		
+		find i bestSoFar=:(_,Nothing) [d:ds]
+			| isWindow (uiDefAttributes d)	= find (i+1) bestSoFar ds
+											= find (i+1) (i,Just d) ds
+		find i bestSoFar=:(_,Just best) [d:ds]
+			| not (isWindow (uiDefAttributes d)) && later d best	= find (i+1) (i,Just d) ds
+																	= find (i+1) bestSoFar ds
+
 		later defA defB
 			# a = uiDefAttributes defA
 			# b = uiDefAttributes defB
@@ -334,20 +368,26 @@ where
 			_					= False
 			
 		
-	mkTabs active defs
-		# (tabs,actions) = unzip [mkTab (i == active) d \\ d <- defs & i <- [0..]]
-		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer tabs),foldr (++) [] actions)
+	mkTabsAndWindows active defs
+		# (tabsAndWindows,actions) = unzip [mkTabOrWindow (i == active) d \\ d <- defs & i <- [0..]]
+		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer [tab \\Left tab <- tabsAndWindows])
+		   ,[window \\ Right window <- tabsAndWindows]
+		   ,foldr (++) [] actions
+		  )
 
-	mkTab active def
+	mkTabOrWindow active def
 		# attributes			= uiDefAttributes def
 		# actions				= uiDefActions def
-		# isWindow				= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
 		# taskId				= get TASK_ATTRIBUTE attributes
-		# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
-		# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
-		# (close,actions)		= searchCloseAction actions
-		# tabOpts				= {text = text ,focusTaskId = taskId,active = active,closeTaskId = close,iconCls=iconCls}
-		= (UITab defaultSizeOpts tabOpts, if active actions [])
+		| isWindow attributes
+			# (actions,window)		= placeActions (uiDefActions def) False (defToWindow (layoutControls def))
+			= (Right window, actions)
+		| otherwise
+			# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
+			# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
+			# (close,actions)		= searchCloseAction actions
+			# tabOpts				= {text = text ,focusTaskId = taskId,active = active,closeTaskId = close,iconCls=iconCls}
+			= (Left (UITab defaultSizeOpts tabOpts), if active actions [])
 	
 	searchCloseAction [] = (Nothing,[])
 	searchCloseAction [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
@@ -355,14 +395,15 @@ where
 
 	removeCloseAction (UIControlGroup (attributes,controls,direction,actions)) 
 		= UIControlGroup (attributes,controls,direction,filter notClose actions)
-	removeCloseAction (UIAbstractContainer (attributes,controls,direction,actions))
-		= UIAbstractContainer (attributes,controls,direction,filter notClose actions)
+	removeCloseAction (UIAbstractContainer (attributes,controls,windows,direction,actions))
+		= UIAbstractContainer (attributes,controls,windows,direction,filter notClose actions)
 	removeCloseAction def
 		= def
 	
 	notClose {UIAction|action=ActionClose}	= False
 	notClose _								= True
 
+	isWindow attributes	= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
 
 hideLayout :: Layout
 hideLayout =
@@ -371,7 +412,7 @@ hideLayout =
 	, step		= \def actions		-> noControls (addActions actions def)
 	, parallel	= \(a,c,d) defs		-> noControls (foldr mergeDefs (UIControlGroup (a,c,d,[])) defs)
 	, workOn	= \def meta			-> noControls def
-	, final		= \def				-> UIViewport defaultLayoutOpts (uiDefControls (noControls def)) {UIViewportOpts|title=Nothing,tbar=Nothing}
+	, final		= \def				-> UIViewport defaultLayoutOpts (uiDefControls (noControls def)) {UIViewportOpts|title=Nothing,tbar=Nothing,windows=Nothing}
 	}
 where
 	noControls (UIControlGroup (attributes,_,direction,actions)) = UIControlGroup (attributes,[],direction,actions)
@@ -552,7 +593,6 @@ setTitle title ctrl = ctrl
 
 setFramed :: !Bool !UIControl -> UIControl
 setFramed frame (UIPanel sOpts lOpts items opts) = UIPanel sOpts lOpts items {UIPanelOpts|opts & frame = frame}
-setFramed frame (UIWindow sOpts lOpts items opts) = UIWindow sOpts lOpts items {UIWindowOpts|opts & frame = frame}
 setFramed frame ctrl = ctrl
 
 setIconCls :: !String !UIControl -> UIControl
@@ -594,7 +634,7 @@ toPanel	:: !UIControl -> UIControl
 toPanel ctrl=:(UIPanel _ _ _ _)		= ctrl
 //Containers are coerced to panels
 toPanel ctrl=:(UIContainer sOpts lOpts items {UIContainerOpts|baseCls,bodyCls})
-	= UIPanel sOpts lOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,iconCls=Nothing,baseCls=baseCls,bodyCls=bodyCls}
+	= UIPanel sOpts lOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,windows=Nothing,iconCls=Nothing,baseCls=baseCls,bodyCls=bodyCls}
 //Uncoercable items are wrapped in a panel instead
 toPanel ctrl = defaultPanel [ctrl]
 
@@ -748,7 +788,8 @@ tweakUI f (UIControlSequence (attributes,controls,direction))
 	= UIControlSequence (attributes,[(f c,a) \\ (c,a) <- controls],direction)
 tweakUI f (UIControlGroup (attributes,controls,direction,actions))
 	= UIControlGroup (attributes,[(f c,a) \\ (c,a) <- controls],direction,actions)
-tweakUI f (UIAbstractContainer (attributes,controls,actions,direction))	= UIAbstractContainer (attributes,map f controls,actions,direction)
+tweakUI f (UIAbstractContainer (attributes,controls,windows,actions,direction))
+	= UIAbstractContainer (attributes,map f controls,windows,actions,direction)
 tweakUI f (UIFinal control)												= UIFinal (f control)
 tweakUI f def															= def
 
@@ -757,8 +798,8 @@ tweakAttr f (UIControlSequence (attributes,controls,direction))
 	= UIControlSequence (f attributes, controls,direction)
 tweakAttr f (UIControlGroup (attributes,controls,direction,actions))
 	= UIControlGroup (f attributes, controls, direction, actions)
-tweakAttr f (UIAbstractContainer (attributes,controls,actions,direction))
-	= UIAbstractContainer (f attributes, controls, actions,direction)
+tweakAttr f (UIAbstractContainer (attributes,controls,windows,direction,actions))
+	= UIAbstractContainer (f attributes, controls, windows, direction, actions)
 tweakAttr f def													= def
 
 tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
@@ -766,7 +807,7 @@ tweakControls f (UIControlSequence (attributes,controls,direction))
 	= UIControlSequence (attributes,f controls,direction)
 tweakControls f (UIControlGroup (attributes,controls,direction,actions))
 	= UIControlGroup (attributes,f controls,direction,actions)
-tweakControls f (UIAbstractContainer (attributes,controls,direction,actions))
-	= UIAbstractContainer (attributes,map fst (f [(c,newMap) \\ c <- controls]),direction,actions)
+tweakControls f (UIAbstractContainer (attributes,controls,windows,direction,actions))
+	= UIAbstractContainer (attributes,map fst (f [(c,newMap) \\ c <- controls]),windows,direction,actions)
 tweakControls f (UIFinal (UIViewport lOpts controls opts)) 			= UIFinal (UIViewport lOpts (map fst (f [(c,newMap) \\ c <- controls])) opts)
 tweakControls f def													= def
