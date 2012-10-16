@@ -52,6 +52,9 @@
 .icon-open {
 	background-image: url('../img/icons/document-open.png') !important;
 }
+.icon-save {
+	background-image: url('../img/icons/document-save.png') !important;
+}
 .icon-close {
 	background-image: url('../img/icons/cancel.png') !important;
 }

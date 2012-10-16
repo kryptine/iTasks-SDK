@@ -8,7 +8,7 @@ from Task import :: Event(..)
 :: DiffStep
 	= ItemStep !Int		//Navigate to item i
 	| MenuStep			//Navigate to the menu bar
-	| WindowStep !Int	//Navigate to window i
+	| WindowStep		//Navigate to the set of windows
 
 :: DiffResult
 	= DiffImpossible
@@ -20,7 +20,7 @@ where
 	where
 		step (ItemStep i)	= toString i
 		step (MenuStep)		= "m"
-		step (WindowStep i)	= "w" +++ toString i
+		step (WindowStep)	= "w"
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
@@ -105,7 +105,7 @@ diffControls path event c1 c2
 		(UIContainer sOpts1 lOpts1 items1 opts1, UIContainer sOpts2 lOpts2 items2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UIPanel sOpts1 lOpts1 items1 opts1, UIPanel sOpts2 lOpts2 items2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
+			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffPanelOpts path event opts1 opts2]
 		(UIFieldSet sOpts1 lOpts1 items1 opts1, UIFieldSet sOpts2 lOpts2 items2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UIWindow sOpts1 lOpts1 items1 opts1, UIWindow sOpts2 lOpts2 items2 opts2)
@@ -119,7 +119,6 @@ diffControls path event c1 c2
 	= DiffPossible (replaceIfImpossible path c2 parts)
 
 //As a first step, only do diffs for value changes, all other diffs trigger replacements...
-
 diffSizeOpts :: DiffPath UISizeOpts UISizeOpts -> DiffResult
 diffSizeOpts path opts1 opts2
 	| opts1 === opts2	= DiffPossible []
@@ -164,6 +163,23 @@ diffOpts :: a a -> DiffResult | gEq{|*|} a	//Very crude, but always working fall
 diffOpts opts1 opts2
 	| opts1 === opts2	= DiffPossible []
 						= DiffImpossible
+
+//Specialized diffs for the control specific options
+diffPanelOpts :: DiffPath Event UIPanelOpts UIPanelOpts -> DiffResult
+diffPanelOpts path event opts1 opts2
+	| impossible	= DiffImpossible
+					= DiffPossible (foldr (++) [] [titleUpd,menusUpd,windowsUpd])
+where
+	impossible	=  opts1.UIPanelOpts.frame <> opts2.UIPanelOpts.frame
+				|| opts1.UIPanelOpts.iconCls <> opts2.UIPanelOpts.iconCls
+				|| opts1.UIPanelOpts.baseCls <> opts2.UIPanelOpts.baseCls
+				|| opts1.UIPanelOpts.bodyCls <> opts2.UIPanelOpts.bodyCls
+				|| (isJust opts1.UIPanelOpts.tbar && isNothing opts2.UIPanelOpts.tbar)	//Can only update menu items, not create a menubar suddenly
+				|| (isNothing opts1.UIPanelOpts.tbar && isJust opts2.UIPanelOpts.tbar)
+				
+	titleUpd	= if (opts1.UIPanelOpts.title == opts2.UIPanelOpts.title) [] [UISetTitle (toString path) opts2.UIPanelOpts.title]
+	menusUpd	= diffItems [MenuStep:path] event (fromMaybe [] opts1.UIPanelOpts.tbar) (fromMaybe [] opts2.UIPanelOpts.tbar)
+	windowsUpd	= diffItems [WindowStep:path] event (fromMaybe [] opts1.UIPanelOpts.windows) (fromMaybe [] opts2.UIPanelOpts.windows)
 
 diffItems :: DiffPath Event [UIControl] [UIControl] -> [UIUpdate]
 diffItems path event items1 items2 = diff path event 0 items1 items2
@@ -342,7 +358,7 @@ encodeUIUpdate (UISetTaskId path taskId)		= [node path "setTaskId"	 	[JSONString
 encodeUIUpdate (UISetName path name)			= [node path "setName"			[JSONString name]]
 encodeUIUpdate (UISetEnabled path enabled)		= [node path "setDisabled"		[JSONBool (not enabled)]]
 encodeUIUpdate (UISetActive path active)		= [node path "setActive"		[JSONBool active]]
-encodeUIUpdate (UISetTitle path title)			= [node path "setTitle"			[JSONString title]]
+encodeUIUpdate (UISetTitle path title)			= [node path "setTitle"			[toJSON title]]
 encodeUIUpdate (UIReplace path index def)		= [node path "replace" 			[JSONInt index, encodeUIControl def]]
 encodeUIUpdate (UIUpdate path def)				= [node path "update"			[encodeUIControl def]]
 encodeUIUpdate (UIAdd path index def)			= [node path "insert"			[JSONInt index, encodeUIControl def]]

@@ -1,6 +1,7 @@
 Ext.define('itwc.component.misc.Tab',{
 	extend: 'Ext.tab.Tab',
 	alias: 'widget.itwc_tab',
+	mixins: ['itwc.component.edit.Editable'],
 
 	active: false,
 	closable: false,
@@ -23,7 +24,7 @@ Ext.define('itwc.component.misc.Tab',{
             tabPanel = me.tabPanel,
             isCloseClick = tab && tab.closeEl && (target === tab.closeEl.dom);
 			
-		me.viewport = me.viewport || me.up('viewport');
+		me.viewport = me.findViewport();
 
 		if(isCloseClick) {
 			me.viewport.fireEvent('action',this.closeTaskId,'Close');

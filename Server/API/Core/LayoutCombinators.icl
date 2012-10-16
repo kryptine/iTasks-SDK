@@ -191,7 +191,7 @@ where
 defToWindow :: UIDef -> UIControl
 defToWindow def = UIWindow sizeOpts layoutOpts (uiDefControls def) windowOpts
 where
-	windowOpts	= {UIWindowOpts|title = title, tbar = Nothing
+	windowOpts	= {UIWindowOpts|title = title, tbar = Nothing, closeTaskId = Nothing, focusTaskId = Nothing
 					,iconCls = iconCls, baseCls = Nothing, bodyCls = Nothing}
 
 	layoutOpts	= {UILayoutOpts|defaultLayoutOpts & direction = (uiDefDirection def)}
@@ -237,6 +237,9 @@ placeActions actions _ (UIContainer sOpts lOpts items opts)
 	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
 	= (actions, UIContainer sOpts lOpts items opts)
 placeActions actions placeMenus (UIWindow sOpts lOpts items opts)
+	//Place close action
+	# (close,actions)	= actionsToCloseId actions
+	# opts				= {UIWindowOpts|opts & closeTaskId = close}
 	//Place button actions
 	# (buttons,actions)	= actionsToButtons actions	
 	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
@@ -333,15 +336,16 @@ where
 	merge prompt=:(attributes,pcontrols,_) defs
 		# pcontrols					= decoratePrompt pcontrols
 		# (activeIndex,activeDef)	= findActive defs	
+		
 		# (tabBar,windows,actions)	= mkTabsAndWindows activeIndex defs	
 		# (actions,tabContent)		= maybe ([],defaultPanel []) toTabContent activeDef
 		# controls					= pcontrols ++ [tabBar,tabContent]
 		= (UIAbstractContainer (attributes, controls, windows, Vertical, []))
 
 	toTabContent def
-		# def = tweakAttr (del TITLE_ATTRIBUTE) def	//No double titles
-		# def = removeCloseAction def				//Close actions are managed via the tabs
-		= placeActions (uiDefActions def) True (defToPanel (layoutControls def))
+		# def			= tweakAttr (del TITLE_ATTRIBUTE) def	//Prevent double titles
+		# (_,actions)	= actionsToCloseId (uiDefActions def)	//Remove close action, because it is handled by tab
+		= placeActions actions True (defToPanel (layoutControls def))
 		
 	findActive defs = find 0 (0,Nothing) defs
 	where
@@ -380,30 +384,17 @@ where
 		# actions				= uiDefActions def
 		# taskId				= get TASK_ATTRIBUTE attributes
 		| isWindow attributes
-			# (actions,window)		= placeActions (uiDefActions def) False (defToWindow (layoutControls def))
+			# (actions,window)		= placeActions actions True (defToWindow (layoutControls def))
 			= (Right window, actions)
 		| otherwise
 			# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 			# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
-			# (close,actions)		= searchCloseAction actions
-			# tabOpts				= {text = text ,focusTaskId = taskId,active = active,closeTaskId = close,iconCls=iconCls}
+			# (close,actions)		= actionsToCloseId actions
+			# tabOpts				= {text = text ,focusTaskId = taskId, active = active, closeTaskId = close,iconCls=iconCls}
 			= (Left (UITab defaultSizeOpts tabOpts), if active actions [])
-	
-	searchCloseAction [] = (Nothing,[])
-	searchCloseAction [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
-	searchCloseAction [a:as] = let (mbtask,as`) = searchCloseAction as in (mbtask,[a:as`])
-
-	removeCloseAction (UIControlGroup (attributes,controls,direction,actions)) 
-		= UIControlGroup (attributes,controls,direction,filter notClose actions)
-	removeCloseAction (UIAbstractContainer (attributes,controls,windows,direction,actions))
-		= UIAbstractContainer (attributes,controls,windows,direction,filter notClose actions)
-	removeCloseAction def
-		= def
-	
-	notClose {UIAction|action=ActionClose}	= False
-	notClose _								= True
 
 	isWindow attributes	= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
+
 
 hideLayout :: Layout
 hideLayout =
@@ -760,10 +751,10 @@ where
 	menuOrder (UIMenuButton _ {UIMenuButtonOpts|text=Just m1}) (UIMenuButton _ {UIMenuButtonOpts|text=Just m2}) = m1 < m2
 	menuOrder m1 m2 = False
 
-uiOf :: UIDef -> UIControl
-uiOf def = case uiDefControls def of
-	[c:_]	= c
-	[]		= stringDisplay "-"
+actionsToCloseId :: ![UIAction] -> (!Maybe String, ![UIAction])
+actionsToCloseId [] = (Nothing,[])
+actionsToCloseId [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
+actionsToCloseId [a:as] = let (mbtask,as`) = actionsToCloseId as in (mbtask,[a:as`])
 
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of

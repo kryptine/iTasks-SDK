@@ -107,9 +107,9 @@ buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally 
 //Predefined action placement
 actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIAction])
 actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
+actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 
 //Util
-uiOf			:: UIDef -> UIControl
 defToContainer	:: UIDef -> UIControl
 defToPanel		:: UIDef -> UIControl
 defToWindow		:: UIDef -> UIControl

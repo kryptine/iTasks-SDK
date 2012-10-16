@@ -202,6 +202,16 @@ Ext.define('itwc.controller.Controller',{
 				cmp	= me.viewport.getComponentByPath(update.path);
 				
 				if(cmp) {
+					//If the operation targets the window set of a panel
+					//Use different remove/insert/replace functions
+					if(update.path.endsWith('w')) {
+						switch(update.method) {
+							case 'replace': update.method = 'replaceWindow'; break;
+							case 'insert': update.method = 'insertWindow'; break;
+							case 'remove': update.method = 'removeWindow'; break;
+						}
+					}
+					//Try to call the update method
 					if(cmp && typeof cmp[update.method] == 'function') {
 						cmp[update.method].apply(cmp,update.arguments);
 					} else {

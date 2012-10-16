@@ -276,6 +276,8 @@ from Map			import :: Map(..)
 :: UIWindowOpts =
 	{ title			:: !Maybe String
 	, tbar			:: !Maybe [UIControl]
+	, focusTaskId	:: !Maybe String
+	, closeTaskId	:: !Maybe String
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String

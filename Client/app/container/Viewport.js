@@ -21,9 +21,15 @@ Ext.define('itwc.container.Viewport',{
 				cmp = cmp.getDockedComponent(0);
 				if(!cmp)
 					return undef;
-			} else if (step[0] === "w") {
-				//Step for windows... TODO
-				return undef;
+			} else if (step === "w") {
+				if(cmp.windows && cmp.windows.length) {
+					if((i+1) < numSteps && cmp.windows[parseInt(steps[i+1])]) {
+						cmp = cmp.windows[parseInt(steps[i+1])];
+						i++;
+					}
+				} else {
+					return undef;
+				}
 			} else {
 				if(cmp.items && cmp.items.get) {
 					cmp = cmp.items.get(parseInt(step));

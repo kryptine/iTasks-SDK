@@ -24,10 +24,9 @@ Ext.define('itwc.container.Panel',{
 			var numWindows = this.windows.length,
 				i;
 			for(i = 0; i < numWindows; i++) {
-				this.windows[i].autoShow = true;
 				this.windows[i] = Ext.create('itwc.container.Window',this.windows[i]);
 				//Create reference back to this panel
-				this.windows[i].panel = this;
+				this.windows[i].panelRef = this;
 			}
 			
 		}
@@ -47,6 +46,16 @@ Ext.define('itwc.container.Panel',{
 			}
 		}
 		this.callParent(arguments);
+	},
+	replaceWindow: function (index, def) {
+		this.windows[index].destroy();
+		this.windows[index] = Ext.create('itwc.container.Window',def);
+		this.windows[index].panelRef = this;
+	},
+	insertWindow: function (index, def) {
+		console.log("TODO insertWindow");
+	},
+	removeWindow: function (index) {
+		console.log("TODO removeWindow");
 	}
-	
 });

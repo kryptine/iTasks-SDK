@@ -37,7 +37,7 @@ Ext.define('itwc.component.edit.Editable',{
 			if(viewport) {
 				return viewport;
 			}else {
-				searchIn = this.up('itwc_window').panel;
+				searchIn = (this.xtype == 'itwc_window') ? this.panelRef : this.up('itwc_window').panelRef;
 			}
 		}
 	},

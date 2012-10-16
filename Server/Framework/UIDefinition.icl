@@ -16,7 +16,7 @@ defaultPanel :: ![UIControl] -> UIControl
 defaultPanel items = UIPanel defaultSizeOpts defaultLayoutOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,windows=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
 defaultWindow :: ![UIControl] -> UIControl
-defaultWindow items = UIWindow defaultSizeOpts defaultLayoutOpts items {UIWindowOpts|title=Nothing,tbar=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultWindow items = UIWindow defaultSizeOpts defaultLayoutOpts items {UIWindowOpts|title=Nothing,tbar=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}

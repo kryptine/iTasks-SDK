@@ -66,7 +66,7 @@ setProject ideState _
 					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = getValue s}) ideState @ const Void)
 					]
 openFile _
-	=				updateInformation ("Open file","Give name of text file you want to open...") [] "" <<@ Window
+	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
 					, OnAction (Action "Open File") hasValue (editor o getValue)
 					] 
@@ -110,11 +110,11 @@ where
 	editor` file	
 		=   			get file
 		>>= \content ->	withShared content 
-		    \copy ->  	parallel (Title fileName)	
+		    \copy ->  	(parallel (Title fileName)	
 							[ (Embedded, showStatistics copy)
 							, (Embedded, editFile fileName copy)
 							, (Embedded, replace initReplace copy)
-							]  @ const Void
+							]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
 		>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
 						, OnAction  ActionClose 		 always (const (return Void))
 						, OnAction  ActionSave 		     always (const (save copy >>| editor` file))

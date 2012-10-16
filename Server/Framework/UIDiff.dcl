@@ -11,7 +11,7 @@ from Task import :: Event
 	| UISetName			!UIPath !String			// Set name of a component
 	| UISetEnabled		!UIPath !Bool			// Enable/disable form elements
 	| UISetActive		!UIPath !Bool			// Make a tab active/inactive
-	| UISetTitle		!UIPath !String			// Set title of a container
+	| UISetTitle		!UIPath !(Maybe String)	// Set/reset title of a container
 	| UIUpdate			!UIPath !UIControl		// Let a component update itself with a new UI definition (for custom components)
 	//Structure edits
 	| UIAdd				!UIPath !Int !UIControl	//Add child element at index
