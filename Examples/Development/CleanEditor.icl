@@ -12,12 +12,12 @@ errorFile		:== "Temp\\errors"
 cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
 
 projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
-projectName		:==	"test"
 
 :: IDE_State =	{ projectName	:: String
 				, projectPath	:: String
 				, openFiles		:: [String]
-				, openedFiles	:: [String]
+				, recentFiles	:: [String]
+				, recentProjects:: [String]
 				, cleanPath		:: String
 				}
 
@@ -28,7 +28,8 @@ init_IDE_State
 	= 	{ projectName		= "" 
 		, projectPath 		= projectPath
 		, openFiles			= []
-		, openedFiles 		= []
+		, recentFiles 		= []
+		, recentProjects	= []
 		, cleanPath			= cleanPath
 		}
 
@@ -41,8 +42,8 @@ Start world = startEngine ide world
 				
 ide :: Task Void
 ide = 	parallel Void //(Title "Clean IDE") 	
-						[ (Embedded, topmenu  ideState)
-						, (Embedded, project  ideState)
+						[ (Embedded, topMenu  ideState)
+						, (Embedded, projectFiles  ideState)
 						, (Embedded, messages ideState)
 						] <<@ SetLayout layout @ const Void
 where
@@ -52,10 +53,11 @@ where
 
 // top menu
 
-topmenu ideState ts = forever (					get ideState 
-								>>= \state -> 	(actionTask >>*	handleMenu state)
+topMenu ideState ts = forever (					(get ideState 
+								>>= \state -> 	(actionTask >>*	handleMenu state))
 												-||- 
-												(watch ideState @ const Void)
+												(watch ideState @ const Void)		// no effect ???
+												
 							  ) 
 where
 	handleMenu state
@@ -63,22 +65,27 @@ where
 		] 
 		++
 		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor fileName))) 
-		\\ fileName <- state.openedFiles
+		\\ fileName <- state.recentFiles
 		] 
 		++
-		[ OnAction (Action "Project/Set Project") always (setProject ideState)]
+		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) always (const (setProjectName ideState fileName)) 
+		\\ fileName <- state.recentProjects
+		] 
+		++
+		[ OnAction (Action "Project/New Project...") always (launch (newProject ideState))]
 		++
 		if (state.projectName <> "")
-			[ OnAction (Action ("Project/Bring Up To Date " +++ state.projectName +++ ".prj")) always
+			[ OnAction (Action ("Project/Bring Up To Date " +++ state.projectName +++ " (.prj)")) always
 								 (launch (compile state.projectName ideState))	]
 			[ OnAction (Action ("Project/Bring Up To Date ")) never (\_ -> return Void)	]												 
-
+		++ // temp fix to show effects
+		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	launch task _ = appendTask Embedded task ts @ const Void
 
 
 // project pane
 
-project ideState _
+projectFiles ideState _
 	=				viewInformation "Project" [] "dummy" @ const Void
 
 // messages pane
@@ -89,13 +96,9 @@ messages ideState ts
 					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
 					@ const Void 
 
-// handling menu commands
-	  
-setProject ideState _ 
-	=				updateInformation "Give name of project file..." [] "" <<@ Window
-	>>*				[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = getValue s}) ideState @ const Void)
-					]
+// handling top menu commands
+
+// open file...	  
 
 openFile ideState ts
 	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
@@ -104,10 +107,27 @@ openFile ideState ts
 					] 
 where
 	addFileAndEdit ideState fileName
-		=			update (\state -> {state & openedFiles = removeDup [fileName:state.openedFiles]}) ideState
+		=			update (\state -> {state & recentFiles = removeDup [fileName:state.recentFiles]}) ideState
 		>>|			(launch (const (editor fileName)))	
 
 	launch task  = appendTask Embedded task ts @ const Void
+
+// setting project... 
+
+newProject ideState _ 
+	=				updateInformation "Set name of project..." [] "" <<@ Window
+	>>*				[ OnAction ActionCancel   always   (const (return Void))
+					, OnAction (Action "Set") hasValue (setProjectName ideState o getValue)
+					]
+
+setProjectName ideState projectName 
+	= 			update (\state -> {state & projectName = name 
+										 , recentProjects = removeDup [name:state.recentProjects]}) ideState
+				@ const Void 
+where
+	name = dropExtension projectName
+
+// compile project... 
 
 compile projectName ideState _
 	=				get ideState
