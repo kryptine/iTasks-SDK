@@ -3,16 +3,21 @@ module CleanEditor
 import iTasks, Text
 import qualified Map
 
+// Global Settings
+
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
 
-cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\"
-projectPath		:== "C:\\Users\\bas\\Desktop\\Clean\\iTasks-SDK\\Examples\\Development\\"
+//cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
+cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+
+projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 projectName		:==	"test"
 
 :: IDE_State =	{ projectName	:: String
 				, projectPath	:: String
 				, openFiles		:: [String]
+				, openedFiles	:: [String]
 				, cleanPath		:: String
 				}
 
@@ -20,18 +25,22 @@ derive class iTask IDE_State
 
 init_IDE_State :: IDE_State			
 init_IDE_State
-	= 	{ projectName	= "" 
-		, projectPath 	= projectPath
-		, openFiles		= []
-		, cleanPath		= cleanPath
+	= 	{ projectName		= "" 
+		, projectPath 		= projectPath
+		, openFiles			= []
+		, openedFiles 		= []
+		, cleanPath			= cleanPath
 		}
+
+IDE_Store = sharedStore "IDE_State" init_IDE_State
+
+// 
 
 Start :: *World -> *World
 Start world = startEngine ide world 
 				
 ide :: Task Void
-ide = 	let ideState = sharedStore "IDE_State" init_IDE_State in
-		parallel Void //(Title "Clean IDE") 	
+ide = 	parallel Void //(Title "Clean IDE") 	
 						[ (Embedded, topmenu  ideState)
 						, (Embedded, project  ideState)
 						, (Embedded, messages ideState)
@@ -39,14 +48,17 @@ ide = 	let ideState = sharedStore "IDE_State" init_IDE_State in
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
+	ideState = IDE_Store
+
 topmenu ideState ts = forever handleMenu 
 where
 	handleMenu
 		=				get ideState
 		>>= \state ->	
 						(actionTask 
-	 	>>*				[ OnAction (Action "File/Open") always (launch openFile)
+	 	>>*				[ OnAction (Action "File/Open") 		  always (launch (openFile ideState))
 	 					, OnAction (Action "Project/Set Project") always (launch (setProject ideState))
+						: recentFiles state.openedFiles
 						])
 						-||-
 						(watch ideState 
@@ -55,6 +67,11 @@ where
 						])
 
 	launch task _ = appendTask Embedded task ts @ const Void
+
+	recentFiles opened = 	[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor fileName))) 
+							\\ fileName <- opened
+							]
+
 
 project ideState _
 	=				viewInformation "Project" [] "dummy" @ const Void
@@ -65,11 +82,16 @@ setProject ideState _
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
 					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = getValue s}) ideState @ const Void)
 					]
-openFile _
+openFile ideState ts
 	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
-					, OnAction (Action "Open File") hasValue (editor o getValue)
+					, OnAction (Action "Open File") hasValue (addFileAndEdit ideState o getValue)
 					] 
+
+addFileAndEdit ideState fileName
+	=				update (\state -> {state & openedFiles = removeDup [fileName:state.openedFiles]}) ideState
+	>>|				editor fileName	
+
 
 compile projectName ideState _
 	=				get ideState
