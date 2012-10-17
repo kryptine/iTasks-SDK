@@ -50,48 +50,64 @@ where
 
 	ideState = IDE_Store
 
-topmenu ideState ts = forever handleMenu 
+// top menu
+
+topmenu ideState ts = forever (					get ideState 
+								>>= \state -> 	(actionTask >>*	handleMenu state)
+												-||- 
+												(watch ideState @ const Void)
+							  ) 
 where
-	handleMenu
-		=				get ideState
-		>>= \state ->	
-						(actionTask 
-	 	>>*				[ OnAction (Action "File/Open") 		  always (launch (openFile ideState))
-	 					, OnAction (Action "Project/Set Project") always (launch (setProject ideState))
-						: recentFiles state.openedFiles
-						])
-						-||-
-						(watch ideState 
-	 	>>*				[ OnAction (Action ("Project/Bring Up To Date " +++ state.projectName +++ ".prj")) 
-	 							(ifValue (\v -> v.projectName <> "")) (\v -> launch (compile (getValue v).projectName ideState) NoValue)
-						])
+	handleMenu state
+	=	[ OnAction (Action "File/Open") always (const (openFile ideState ts))
+		] 
+		++
+		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor fileName))) 
+		\\ fileName <- state.openedFiles
+		] 
+		++
+		[ OnAction (Action "Project/Set Project") always (setProject ideState)]
+		++
+		if (state.projectName <> "")
+			[ OnAction (Action ("Project/Bring Up To Date " +++ state.projectName +++ ".prj")) always
+								 (launch (compile state.projectName ideState))	]
+			[ OnAction (Action ("Project/Bring Up To Date ")) never (\_ -> return Void)	]												 
 
 	launch task _ = appendTask Embedded task ts @ const Void
 
-	recentFiles opened = 	[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor fileName))) 
-							\\ fileName <- opened
-							]
 
+// project pane
 
 project ideState _
 	=				viewInformation "Project" [] "dummy" @ const Void
 
+// messages pane
+
+messages ideState ts 
+	= 				get ideState
+	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
+					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
+					@ const Void 
+
+// handling menu commands
 	  
 setProject ideState _ 
-	=				updateInformation "Give name of project file..." [] ""
-	>>*				[ OnAction ActionCancel 		always   (const (return Void))
+	=				updateInformation "Give name of project file..." [] "" <<@ Window
+	>>*				[ OnAction ActionCancel   always   (const (return Void))
 					, OnAction (Action "Set") hasValue (\s -> update (\state -> {state & projectName = getValue s}) ideState @ const Void)
 					]
+
 openFile ideState ts
 	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
 					, OnAction (Action "Open File") hasValue (addFileAndEdit ideState o getValue)
 					] 
+where
+	addFileAndEdit ideState fileName
+		=			update (\state -> {state & openedFiles = removeDup [fileName:state.openedFiles]}) ideState
+		>>|			(launch (const (editor fileName)))	
 
-addFileAndEdit ideState fileName
-	=				update (\state -> {state & openedFiles = removeDup [fileName:state.openedFiles]}) ideState
-	>>|				editor fileName	
-
+	launch task  = appendTask Embedded task ts @ const Void
 
 compile projectName ideState _
 	=				get ideState
@@ -108,11 +124,6 @@ compile projectName ideState _
 	>>*				[ OnAction ActionClose always (\_ -> return Void)]
 					
 
-messages ideState ts 
-	= 				get ideState
-	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
-					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
-					@ const Void 
 // editor
 
 :: Statistics = {lineCount :: Int
@@ -198,7 +209,7 @@ actionTask = viewInformation Void [] Void
 undef = undef
 
 always = const True
-
+never = const False
 hasValue (Value _ _) = True
 hasValue _ = False
 
