@@ -80,7 +80,7 @@ uiDefSetDirection direction def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
 encodeUIDefinition (UIFinal vp=:(UIViewport _ _ _)) = encodeUIControl vp
-encodeUIDefinition def								= encodeUIControl (UIViewport defaultLayoutOpts (uiDefControls def) {UIViewportOpts|title=Nothing,tbar=Nothing,windows=Nothing})
+encodeUIDefinition def								= encodeUIControl (UIViewport defaultLayoutOpts (uiDefControls def) {UIViewportOpts|title=Nothing,tbar=Nothing})
 
 encodeUIControl :: !UIControl -> JSONNode
 encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,toJSON vopts] []

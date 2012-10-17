@@ -155,7 +155,7 @@ where
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list
-	= (chooseWorkflow >&> viewAndStart) <<@ SetLayout (sideLayout BottomSide 200 sequenceMerge)
+	= (chooseWorkflow >&> viewAndStart) <<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 200 sequenceMerge prompt (reverse defs)}
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel

@@ -286,7 +286,6 @@ from Map			import :: Map(..)
 :: UIViewportOpts =
 	{ title			:: !Maybe String
 	, tbar			:: !Maybe [UIControl]
-	, windows		:: !Maybe [UIControl]
 	}
 
 //Utility functions

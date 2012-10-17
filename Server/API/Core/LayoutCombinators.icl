@@ -55,7 +55,9 @@ autoParallelLayout prompt defs
 								= sequenceMerge prompt defs
 where
 	allPartial [] = True
-	allPartial [UIControlSequence _:ds]	= allPartial ds
+	allPartial [UIControlSequence (attributes,_,_):ds]
+		| hasWindowAttr attributes		= False
+										= allPartial ds
 	allPartial _						= False
 
 	additionalActions defs = scan False False defs
@@ -80,20 +82,20 @@ autoFinalLayout def=:(UIControlSequence (attributes,controls,direction))
 	# panel				= defToPanel (layoutControls def)
 	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
 	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport layoutOpts items {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, tbar = Nothing, windows = Nothing}
+	= UIViewport layoutOpts items {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, tbar = Nothing}
 autoFinalLayout (UIActionSet actions)
-	= UIViewport defaultLayoutOpts [] {UIViewportOpts|title=Nothing,tbar = Nothing, windows = Nothing}
+	= UIViewport defaultLayoutOpts [] {UIViewportOpts|title=Nothing,tbar = Nothing}
 autoFinalLayout def=:(UIControlGroup (attributes,controls,direction,actions))
 	# (actions,panel)	= placeActions actions False (defToPanel (layoutControls def))
 	# (menu,_)			= actionsToMenus actions
 	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
 	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), windows = Nothing}
+	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu)}
 autoFinalLayout def=:(UIAbstractContainer (attributes,controls,windows,direction,actions))
 	# (menu,_)			= actionsToMenus actions
 	# items				= [defToPanel def]
 	# layoutOpts		= {defaultLayoutOpts & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), windows = if (isEmpty windows) Nothing (Just windows)}
+	= UIViewport layoutOpts items {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu)}
 autoFinalLayout (UIFinal final)
 	= final
 
@@ -290,16 +292,22 @@ sequenceMerge :: ParallelLayout
 sequenceMerge = merge
 where
 	merge prompt=:(attributes,pcontrols,direction) defs
-		# (actions,controls)	= unzip (map processDef defs)
-		# controls				= decoratePrompt pcontrols ++ [c \\ Just c <- controls]
-		# actions				= foldr (++) [] actions
-		= UIAbstractContainer (attributes, controls, [], direction, actions)
+		# (actions,parts)	= unzip (map processDef defs)
+		# controls			= decoratePrompt pcontrols ++ [c \\ Just c=:(UIPanel _ _ _ _) <- parts]
+		# windows			= [c \\ Just c=:(UIWindow _ _ _ _) <- parts]
+		# actions			= foldr (++) [] actions
+		= UIAbstractContainer (attributes, controls, windows, direction, actions)
 	
 	//Action sets do not get a panel in the sequence. Their actions are passed upwards
 	processDef (UIActionSet (_,actions))
 		= (actions,Nothing)
 	processDef def
-		= appSnd Just (placeActions (uiDefActions def) False (defToPanel (layoutControls def)))
+		| hasWindowAttr (uiDefAttributes def)
+			# (actions,window)	= placeActions (uiDefActions def) True (defToWindow (layoutControls def))
+			= ([],Just window)
+		| otherwise	
+			# (actions,panel)	= placeActions (uiDefActions def) False (defToPanel (layoutControls def))
+			= (actions,Just panel)
 
 sideMerge :: UISide Int ParallelLayout -> ParallelLayout
 sideMerge side size restMerge = merge
@@ -351,11 +359,11 @@ where
 	where
 		find i bestSoFar [] = bestSoFar
 		find i bestSoFar=:(_,Nothing) [d:ds]
-			| isWindow (uiDefAttributes d)	= find (i+1) bestSoFar ds
-											= find (i+1) (i,Just d) ds
+			| hasWindowAttr (uiDefAttributes d)	= find (i+1) bestSoFar ds
+												= find (i+1) (i,Just d) ds
 		find i bestSoFar=:(_,Just best) [d:ds]
-			| not (isWindow (uiDefAttributes d)) && later d best	= find (i+1) (i,Just d) ds
-																	= find (i+1) bestSoFar ds
+			| not (hasWindowAttr (uiDefAttributes d)) && later d best	= find (i+1) (i,Just d) ds
+																		= find (i+1) bestSoFar ds
 
 		later defA defB
 			# a = uiDefAttributes defA
@@ -383,7 +391,7 @@ where
 		# attributes			= uiDefAttributes def
 		# actions				= uiDefActions def
 		# taskId				= get TASK_ATTRIBUTE attributes
-		| isWindow attributes
+		| hasWindowAttr attributes
 			# (actions,window)		= placeActions actions True (defToWindow (layoutControls def))
 			= (Right window, actions)
 		| otherwise
@@ -393,8 +401,6 @@ where
 			# tabOpts				= {text = text ,focusTaskId = taskId, active = active, closeTaskId = close,iconCls=iconCls}
 			= (Left (UITab defaultSizeOpts tabOpts), if active actions [])
 
-	isWindow attributes	= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
-
 
 hideLayout :: Layout
 hideLayout =
@@ -403,7 +409,7 @@ hideLayout =
 	, step		= \def actions		-> noControls (addActions actions def)
 	, parallel	= \(a,c,d) defs		-> noControls (foldr mergeDefs (UIControlGroup (a,c,d,[])) defs)
 	, workOn	= \def meta			-> noControls def
-	, final		= \def				-> UIViewport defaultLayoutOpts (uiDefControls (noControls def)) {UIViewportOpts|title=Nothing,tbar=Nothing,windows=Nothing}
+	, final		= \def				-> UIViewport defaultLayoutOpts (uiDefControls (noControls def)) {UIViewportOpts|title=Nothing,tbar=Nothing}
 	}
 where
 	noControls (UIControlGroup (attributes,_,direction,actions)) = UIControlGroup (attributes,[],direction,actions)
@@ -755,6 +761,11 @@ actionsToCloseId :: ![UIAction] -> (!Maybe String, ![UIAction])
 actionsToCloseId [] = (Nothing,[])
 actionsToCloseId [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
 actionsToCloseId [a:as] = let (mbtask,as`) = actionsToCloseId as in (mbtask,[a:as`])
+
+
+
+hasWindowAttr :: UIAttributes -> Bool
+hasWindowAttr attributes	= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
 
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of
