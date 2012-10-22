@@ -3,34 +3,36 @@ module CleanEditor
 import iTasks, Text
 import qualified Map
 
+import projectManager
+
 // Global Settings
 
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-
+//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 
-:: IDE_State =	{ projectName	:: String
-				, projectPath	:: String
-				, openFiles		:: [String]
-				, recentFiles	:: [String]
-				, recentProjects:: [String]
-				, cleanPath		:: String
+:: IDE_State =	{ project			:: Maybe (String,Project)
+				, projectPath		:: String
+				, cleanPath			:: String
+				, openFiles			:: [String]
+				, recentFiles		:: [String]
+				, recentProjects	:: [String]
 				}
 
 derive class iTask IDE_State
 
 init_IDE_State :: IDE_State			
 init_IDE_State
-	= 	{ projectName		= "" 
+	= 	{ project			= Nothing 
 		, projectPath 		= projectPath
+		, cleanPath			= cleanPath
 		, openFiles			= []
 		, recentFiles 		= []
 		, recentProjects	= []
-		, cleanPath			= cleanPath
 		}
 
 IDE_Store = sharedStore "IDE_State" init_IDE_State
@@ -68,18 +70,19 @@ where
 		\\ fileName <- state.recentFiles
 		] 
 		++
-		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) always (const (setProjectName ideState fileName)) 
+		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) always (const (openProject ideState fileName)) 
 		\\ fileName <- state.recentProjects
 		] 
 		++
 		[ OnAction (Action "Project/New Project...") always (launch (newProject ideState))]
 		++
-		if (state.projectName <> "")
-			[ OnAction (Action ("Project/Bring Up To Date " +++ state.projectName +++ " (.prj)")) always
-								 (launch (compile state.projectName ideState))	]
-			[ OnAction (Action ("Project/Bring Up To Date ")) never (\_ -> return Void)	]												 
+		[ OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
+								 (launch (compile projectName ideState))	]
 		++ // temp fix to show effects
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
+	where
+		projectName = if (isNothing state.project) "" (fst (fromJust state.project)) 
+
 	launch task _ = appendTask Embedded task ts @ const Void
 
 
@@ -117,15 +120,42 @@ where
 newProject ideState _ 
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction (Action "Set") hasValue (setProjectName ideState o getValue)
+					, OnAction (Action "Set") hasValue (storeProject ideState o getValue)
 					]
 
-setProjectName ideState projectName 
-	= 			update (\state -> {state & projectName = name 
-										 , recentProjects = removeDup [name:state.recentProjects]}) ideState
-				@ const Void 
+storeProject ideState projectName  
+	= 				get ideState
+	>>= \state ->	saveProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath init
+	>>= \ok ->		if (not ok)
+						(viewInformation "Write Error..." [] "Could not store project file !" 
+						@ const Void
+						)
+						(update (\state -> { state	& project 			= Just (name,init) 
+										   			, recentProjects 	= removeDup [name:state.recentProjects]
+										   			}) ideState
+						@ const Void
+						)
 where
 	name = dropExtension projectName
+	
+	init = initProject projectName
+
+openProject ideState projectName 
+	= 								get ideState
+	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
+	>>= \(project,ok,message) ->	if (not ok)
+										(viewInformation "Read Error..." [] message
+										@ const Void
+										)
+										(update (\state -> { state	& project 			= Just (name,project)
+																	, recentProjects 	= removeDup [name:state.recentProjects]
+															}
+										) ideState
+										@ const Void
+										)
+where
+	name = dropExtension projectName
+
 
 // compile project... 
 
@@ -158,7 +188,7 @@ initReplace =	{ search = ""
 				, replaceBy = "" 
 				}
 
-editor fileName = editor` (externalFile fileName)
+editor fileName = editor` (externalFile fileName) // <<@ Window
 where
 	editor` file	
 		=   			get file
@@ -188,11 +218,11 @@ showStatistics sharedFile _  = noStat
 where
 	noStat :: Task Void
 	noStat	=			actionTask
- 				>>*		[ OnAction (Action "File/Show Statistics") always (const showStat)
+ 				>>*		[ OnAction (Action "File/Statistics/Show") always (const showStat)
  						]
 	showStat :: Task Void 
 	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
- 				>>*		[ OnAction (Action "File/Hide Statistics") always (const noStat)
+ 				>>*		[ OnAction (Action "File/Statistics/Hide") always (const noStat)
  						]
  	where
 	 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
@@ -203,9 +233,9 @@ where
 			lengthWords "" 	 = 0
 			lengthWords text = length (split " " (replaceSubString "\n" " " text))
 
-replace cmnd sharedFile _ = noReplace cmnd
+replace cmnd sharedFile _ = noReplace cmnd 
 where
-	noReplace :: Replace -> Task Void
+	noReplace :: Replace -> Task Void 
 	noReplace cmnd 
 		=		actionTask
  			>>*	[ OnAction (Action "File/Replace") always (const (showReplace cmnd))
@@ -213,7 +243,7 @@ where
 
 	showReplace :: Replace -> Task Void 
 	showReplace cmnd
-		=		updateInformation "Replace:" [] cmnd 
+		=		updateInformation "Replace:" [] cmnd // <<@ Window
  			>>*	[ OnAction (Action "Replace") hasValue (substitute o getValue)
  				, OnAction (Action "Cancel")  always   (const (noReplace cmnd))
  				]
