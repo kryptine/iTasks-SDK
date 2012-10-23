@@ -43,8 +43,11 @@ saveProjectFile :: !ProjectPath !CleanPath !Project -> Task Bool
 						| HeapProfile !HeapProfile 
 :: HeapProfile		  = { minimumHeapProfile 		:: !Int
 						}
-			   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
+// conversion 
 
-setOptions :: (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Task (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
+toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Project
+fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
+			   
+
 

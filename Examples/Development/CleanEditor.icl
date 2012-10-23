@@ -1,18 +1,23 @@
 module CleanEditor
 
+/* A Clean IDE for a browser using the iTask system
+Status: very drafty
+- Assumes BatchBuild.exe and a copy of the IDEEnvs file in the original Clean IDE Application directory
+- You have to set cleanPath by hand
+*/
+
+//cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
+//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+
 import iTasks, Text
 import qualified Map
-
 import projectManager
 
 // Global Settings
 
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
-
-//cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 
 :: IDE_State =	{ project			:: Maybe (String,Project)
@@ -22,21 +27,19 @@ projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 				, recentFiles		:: [String]
 				, recentProjects	:: [String]
 				}
-
 derive class iTask IDE_State
 
-init_IDE_State :: IDE_State			
-init_IDE_State
-	= 	{ project			= Nothing 
-		, projectPath 		= projectPath
-		, cleanPath			= cleanPath
-		, openFiles			= []
-		, recentFiles 		= []
-		, recentProjects	= []
-		}
-
 IDE_Store = sharedStore "IDE_State" init_IDE_State
-
+where
+	init_IDE_State :: IDE_State			
+	init_IDE_State
+		= 	{ project			= Nothing 
+			, projectPath 		= projectPath
+			, cleanPath			= cleanPath
+			, openFiles			= []
+			, recentFiles 		= []
+			, recentProjects	= []
+			}
 // 
 
 Start :: *World -> *World
@@ -74,17 +77,18 @@ where
 		\\ fileName <- state.recentProjects
 		] 
 		++
-		[ OnAction (Action "Project/New Project...") always (launch (newProject ideState))]
-		++
-		[ OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
-								 (launch (compile projectName ideState))	]
+		[ OnAction (Action "Project/New Project...") always (launch (newProject ideState))
+		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
+								 (launch (compile projectName ideState))	
+		, OnAction (Action "Project/Project Options...") (const (projectName <> "")) (const (changeOptions ideState))
+		]
+
 		++ // temp fix to show effects
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	where
 		projectName = if (isNothing state.project) "" (fst (fromJust state.project)) 
 
 	launch task _ = appendTask Embedded task ts @ const Void
-
 
 // project pane
 
@@ -120,17 +124,18 @@ where
 newProject ideState _ 
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction (Action "Set") hasValue (storeProject ideState o getValue)
+					, OnAction (Action "Set") hasValue (\v -> let name = getValue v in 
+															  (storeProject ideState (initProject name) name))
 					]
 
-storeProject ideState projectName  
+storeProject ideState project projectName 
 	= 				get ideState
-	>>= \state ->	saveProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath init
+	>>= \state ->	saveProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath project
 	>>= \ok ->		if (not ok)
 						(viewInformation "Write Error..." [] "Could not store project file !" 
 						@ const Void
 						)
-						(update (\state -> { state	& project 			= Just (name,init) 
+						(update (\state -> { state	& project 			= Just (name,project) 
 										   			, recentProjects 	= removeDup [name:state.recentProjects]
 										   			}) ideState
 						@ const Void
@@ -138,7 +143,6 @@ storeProject ideState projectName
 where
 	name = dropExtension projectName
 	
-	init = initProject projectName
 
 openProject ideState projectName 
 	= 								get ideState
@@ -155,6 +159,31 @@ openProject ideState projectName
 										)
 where
 	name = dropExtension projectName
+
+
+changeOptions ideState
+	= changeOptions` <<@ Window
+where
+	changeOptions`
+		=				get ideState
+		>>= \state ->	let (name,project) = fromJust state.project in
+							changeOptions`` name project (fromProject project)
+		
+	changeOptions``	name project (rto,diagn,prof)	
+		=				runTimeOptions rto
+		>>= \rto ->		diagnosticsOptions diagn
+		>>= \diagn -> 	profilingOptions prof
+		>>= \prof ->	storeProject ideState (toProject project (rto,diagn,prof)) name 
+
+	runTimeOptions :: RunTimeOptions -> Task RunTimeOptions
+	runTimeOptions	rto = updateInformation ("Project Options","Run-Time Options:")[] rto 
+	
+	diagnosticsOptions :: DiagnosticsOptions -> Task DiagnosticsOptions
+	diagnosticsOptions	diagn = updateInformation ("Project Options","Diagnostics Options:") [] diagn
+	
+	profilingOptions :: ProfilingOptions -> Task ProfilingOptions
+	profilingOptions prof = updateInformation ("Project Options","Diagnostics Options:") [] prof	
+
 
 
 // compile project... 
@@ -198,9 +227,10 @@ where
 							, (Embedded, editFile fileName copy)
 							, (Embedded, replace initReplace copy)
 							]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
-		>>*	 			[ OnAction (Action "File/Close") always (const (return Void))
-						, OnAction  ActionClose 		 always (const (return Void))
-						, OnAction  ActionSave 		     always (const (save copy >>| editor` file))
+		>>*	 			[ OnAction  ActionClose 		 				  always (const (return Void))
+						, OnAction (Action ("File/Close " +++ fileName))  always (const (return Void))
+						, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
+						, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
 						]
 	where
 		save copy

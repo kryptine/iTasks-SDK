@@ -2,47 +2,58 @@ implementation module projectManager
 
 import iTasks
 import PmTypes, PmProject
-
-initRunTimeOptions	= 	{ initialHeapSize			= 204800
-						, heapSizeIncreaseStep		= 4096
-						, maximumHeapSize 			= 409600			
-						, stackSize					= 102400			
-						}
-initDiagnosticsOptions = { showExecutionTime		= False		
-						, showGarbageCollections	= False		
-						, printStackSize			= False		
-						, writeStderrToFile			= False
-						, checkStacks				= False	
-						, checkIndices				= False		
-						}
-initProfilingOptions =	{ timeProfile				= NoTimeProfiling
-						, heapProfile				= NoHeapProfiling
-						}
-								   
+						   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
 derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, ModInfo, ABCLinkInfo
 derive class iTask	ModEditOptions, EditWdOptions, EditOptions, OptionalWindowPosAndSize, WindowPos_and_Size, NewlineConvention  
 derive class iTask	[!!], InfListItem, ListTypes, Output, LinkMethod, ProjectDynamicInfo, StaticLibInfo, CodeGenOptions 
 derive class iTask	UndefModule, UndefSymbol 
 
-setOptions :: (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Task (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
-setOptions (rto,diagn,prof)
-	= setOptions` <<@ Window
-where
-	setOptions`
-		=				runTime rto
-		>>= \rto ->		diagnostics diagn
-		>>= \diagn -> 	profiling prof
-		>>= \prof ->	return (rto,diagn,prof) <<@ Window 
+toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Project
+toProject p=:{applicationopt,codegenopt} (rto,do,po)
+	= { p	& applicationopt.initial_heap_size 		= rto.initialHeapSize
+		    , applicationopt.heap_size_multiple		= rto.heapSizeIncreaseStep
+		    , applicationopt.hs						= rto.maximumHeapSize
+		    , applicationopt.ss						= rto.stackSize
+		    , applicationopt.set					= do.showExecutionTime
+		    , applicationopt.sgc					= do.showGarbageCollections
+		    , applicationopt.pss					= do.printStackSize
+		    , applicationopt.write_stderr_to_file	= do.checkStacks
+		    , codegenopt.cs							= do.showExecutionTime
+		    , codegenopt.ci							= do.checkIndices
+		    , applicationopt.stack_traces			= po.timeProfile === StackTraceOny ||
+		    										  po.timeProfile === TimeProfileAndStackTrace
+		    , applicationopt.profiling				= po.timeProfile === TimeProfileAndStackTrace
+		    , applicationopt.memoryProfiling		= not (po.heapProfile === NoHeapProfiling)
+		    , applicationopt.memoryProfilingMinimumHeapSize
+		    										= case po.heapProfile of
+		    											(HeapProfile rec) -> rec.minimumHeapProfile
+		    											_				  -> 0
+	  }
 
-	runTime :: RunTimeOptions -> Task RunTimeOptions
-	runTime	rto			= updateInformation ("Project Options","Run-Time Options:")[] rto 
-	
-	diagnostics :: DiagnosticsOptions -> Task DiagnosticsOptions
-	diagnostics	diagn	= updateInformation ("Project Options","Diagnostics Options:") [] diagn
-	
-	profiling :: ProfilingOptions -> Task ProfilingOptions
-	profiling prof		= updateInformation ("Project Options","Diagnostics Options:") [] prof	
+fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
+fromProject p=:{applicationopt,codegenopt} = (rto,do,po)
+where
+	rto =	{ initialHeapSize			= applicationopt.initial_heap_size
+			, heapSizeIncreaseStep		= applicationopt.heap_size_multiple
+			, maximumHeapSize 			= applicationopt.hs			
+			, stackSize					= applicationopt.ss			
+			}
+	do 	=	{ showExecutionTime			= applicationopt.set		
+			, showGarbageCollections	= applicationopt.sgc		
+			, printStackSize			= applicationopt.pss		
+			, writeStderrToFile			= applicationopt.write_stderr_to_file
+			, checkStacks				= codegenopt.cs	
+			, checkIndices				= codegenopt.ci		
+			}
+	po 	=	{ timeProfile				= case (applicationopt.stack_traces,applicationopt.profiling) of
+											(True,True) 	-> TimeProfileAndStackTrace
+											(True,False)	-> StackTraceOny
+											_ 				-> NoTimeProfiling
+			, heapProfile				= if applicationopt.memoryProfiling
+												(HeapProfile {minimumHeapProfile = applicationopt.memoryProfilingMinimumHeapSize})
+												NoHeapProfiling
+			}
 
 readProjectFile	:: !ProjectPath !CleanPath -> Task (Project, Bool, String)
 readProjectFile projectPath cleanAppDir 
@@ -56,7 +67,7 @@ initProject :: !ModuleName -> Project
 initProject main_module_file_name
 	= PR_NewProject	main_module_file_name editWdOptions compilerOptions codeGenOptions applicationOptions list linkOptions
 where
-	editWdOptions 		= 	{	eo 			= { newlines = NewlineConventionNone}
+	editWdOptions 		= 	{	eo 			= { newlines = NewlineConventionNone }
 							,	pos_size	= NoWindowPosAndSize 
 							}
 	compilerOptions		= DefaultCompilerOptions
@@ -65,19 +76,5 @@ where
 	list				= [!!]
 	linkOptions			= DefaultLinkOptions
 
-/*
-
-ReadProjectFile	:: !String !String !*Files -> (!(!Project, !Bool, !{#Char}),!*Files)
-
-SaveProjectFile	:: !String !Project !String !*Files -> (!Bool, !*Files);
-
-
-PR_InitProject	:: Project
-
-
-PR_NewProject	:: !String !EditWdOptions !CompilerOptions !CodeGenOptions !ApplicationOptions
-					!(List String) !LinkOptions -> Project
-
-*/	
 	
 	
