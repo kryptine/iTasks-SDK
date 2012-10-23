@@ -69,7 +69,7 @@ where
 	=	[ OnAction (Action "File/Open") always (const (openFile ideState ts))
 		] 
 		++
-		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor fileName))) 
+		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor ideState fileName ts))) 
 		\\ fileName <- state.recentFiles
 		] 
 		++
@@ -110,13 +110,13 @@ messages ideState ts
 openFile ideState ts
 	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
-					, OnAction (Action "Open File") hasValue (addFileAndEdit ideState o getValue)
+					, OnAction (Action "Open File") hasValue (\v -> addFileAndEdit ideState (getValue v) ts)
 					] 
-where
-	addFileAndEdit ideState fileName
-		=			update (\state -> {state & recentFiles = removeDup [fileName:state.recentFiles]}) ideState
-		>>|			(launch (const (editor fileName)))	
 
+addFileAndEdit ideState fileName ts
+	=			update (\state -> {state & recentFiles = removeDup [fileName:state.recentFiles]}) ideState
+	>>|			(launch (const (editor ideState fileName ts)))	
+where
 	launch task  = appendTask Embedded task ts @ const Void
 
 // setting project... 
@@ -184,8 +184,6 @@ where
 	profilingOptions :: ProfilingOptions -> Task ProfilingOptions
 	profilingOptions prof = updateInformation ("Project Options","Diagnostics Options:") [] prof	
 
-
-
 // compile project... 
 
 compile projectName ideState _
@@ -197,10 +195,12 @@ compile projectName ideState _
 						callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
 						-&&-
 						//View the messages while the compiler is building...
-						viewSharedInformation (Title "Compiler Messages...") [ViewWith (\txt -> Note txt)] (externalFile compilerMessages)
+						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
 					)
 					
-	>>*				[ OnAction ActionClose always (\_ -> return Void)]
+	>>*				[ OnAction ActionClose always (\_ -> return Void)
+					, OnAction ActionOk    always (\_ -> return Void)
+					]
 					
 
 // editor
@@ -217,7 +217,7 @@ initReplace =	{ search = ""
 				, replaceBy = "" 
 				}
 
-editor fileName = editor` (externalFile fileName) // <<@ Window
+editor ideState fileName ts = editor` (externalFile fileName) // <<@ Window
 where
 	editor` file	
 		=   			get file
@@ -231,11 +231,28 @@ where
 						, OnAction (Action ("File/Close " +++ fileName))  always (const (return Void))
 						, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
 						, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
+						, OnAction (Action ("File/Open " +++ other fileName)) 
+																		  (const (isIclOrDcl fileName)) 
+																		  (const (addFileAndEdit ideState fileName ts))
+
+						, OnAction (Action ("Project/New Project/" +++ noSuffix +++ " (.prj)")) 
+																		  always (const (storeProject ideState (initProject noSuffix) noSuffix
+																		  				 >>| editor` file )) 
 						]
 	where
+		noSuffix = RemoveSuffix fileName
+
 		save copy
 			=				get copy
 			>>= \content -> set	content file		
+
+		other fileName
+		| equal_suffix ".icl" fileName = (RemoveSuffix fileName) +++ ".dcl"
+		| equal_suffix ".dcl" fileName = (RemoveSuffix fileName) +++ ".icl"
+		= ""
+
+		isIclOrDcl filename = equal_suffix ".icl" fileName || equal_suffix ".dcl" fileName 
+
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
@@ -302,5 +319,4 @@ ifStable (Value v Stable) = True
 ifStable _ = False
 
 noHints = AfterLayout (tweakControls (\controls -> [(c,'Map'.del VALID_ATTRIBUTE ('Map'.del HINT_ATTRIBUTE m)) \\ (c,m) <- controls]))
-
 
