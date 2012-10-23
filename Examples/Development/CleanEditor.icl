@@ -232,11 +232,12 @@ where
 						, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
 						, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
 						, OnAction (Action ("File/Open " +++ other fileName)) 
-																		  (const (isIclOrDcl fileName)) 
+																		  (const isIclOrDcl) 
 																		  (const (addFileAndEdit ideState fileName ts))
 
-						, OnAction (Action ("Project/New Project/" +++ noSuffix +++ " (.prj)")) 
-																		  always (const (storeProject ideState (initProject noSuffix) noSuffix
+						, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
+																		  (const isIcl)
+																		  (const (storeProject ideState (initProject noSuffix) noSuffix
 																		  				 >>| editor` file )) 
 						]
 	where
@@ -251,8 +252,8 @@ where
 		| equal_suffix ".dcl" fileName = (RemoveSuffix fileName) +++ ".icl"
 		= ""
 
-		isIclOrDcl filename = equal_suffix ".icl" fileName || equal_suffix ".dcl" fileName 
-
+		isIclOrDcl	= isIcl || equal_suffix ".dcl" fileName 
+		isIcl  		= equal_suffix ".icl" fileName
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
