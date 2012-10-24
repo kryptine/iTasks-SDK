@@ -14,6 +14,7 @@ derive class iTask	UndefModule, UndefSymbol
 :: ModuleName 	:== String
 :: ProjectPath 	:== String
 :: CleanPath	:== String
+:: FileName		:== String
 
 initProject 	:: !ModuleName 						-> Project						
 readProjectFile	:: !ProjectPath !CleanPath 			-> Task (Project, Bool, String)

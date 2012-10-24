@@ -7,8 +7,8 @@ Status: very drafty
 */
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 import iTasks, Text
 import qualified Map
@@ -58,6 +58,7 @@ where
 
 // top menu
 
+topMenu :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 topMenu ideState ts 
 	= 				get ideState												// new session, first recover previous screen
 	>>= \state ->	openLastProject state.project 
@@ -100,11 +101,13 @@ where
 
 // project pane
 
+projectFiles :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 projectFiles ideState _
 	=				viewInformation "Project" [] "dummy" @ const Void
 
 // messages pane
 
+messages :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 messages ideState ts 
 	= 				get ideState
 	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
@@ -115,12 +118,14 @@ messages ideState ts
 
 // open file...	  
 
+openFile :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 openFile ideState ts
 	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
 					, OnAction (Action "Open File") hasValue (\v -> openFileAndEdit ideState (getValue v) ts)
 					] 
 
+openFileAndEdit :: (Shared IDE_State) FileName (ReadOnlyShared (TaskList Void)) -> Task Void
 openFileAndEdit ideState fileName ts
 	=				get ideState
 	>>= \state ->	if (isMember fileName state.openedFiles)
@@ -130,10 +135,12 @@ openFileAndEdit ideState fileName ts
 						>>|			launch (editor ideState fileName ts) ts	
 						)
 
+closeEditFile :: (Shared IDE_State) FileName -> Task Void
 closeEditFile ideState fileName
 	=			update (\state -> {state & openedFiles 	= removeMember fileName state.openedFiles}) ideState
 				@ const Void
 
+saveAll :: [FileName] (Shared IDE_State) -> Task Void
 saveAll [] ideState 
 	= return Void
 saveAll [name:names] ideState
@@ -142,13 +149,14 @@ saveAll [name:names] ideState
 		>>|				saveAll names ideState						
 // setting project... 
 
+newProject :: (Shared IDE_State) -> Task Void
 newProject ideState 
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
 					, OnAction (Action "Set") hasValue (\v -> let name = getValue v in 
 															  (storeProject ideState (initProject name) name))
 					]
-
+storeProject :: (Shared IDE_State) Project ModuleName -> Task Void
 storeProject ideState project projectName 
 	= 				get ideState
 	>>= \state ->	saveProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath project
@@ -164,7 +172,7 @@ storeProject ideState project projectName
 where
 	name = dropExtension projectName
 	
-
+openProject :: (Shared IDE_State) ModuleName -> Task Void
 openProject ideState projectName 
 	= 								get ideState
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
@@ -181,7 +189,7 @@ openProject ideState projectName
 where
 	name = dropExtension projectName
 
-
+changeOptions :: (Shared IDE_State) -> Task Void
 changeOptions ideState
 	= changeOptions` <<@ Window
 where
@@ -207,6 +215,7 @@ where
 
 // compile project... 
 
+compile :: ModuleName (Shared IDE_State) -> Task Void
 compile projectName ideState 
 	=				get ideState
 	>>= \state ->	if (state.openedFiles == []) 
@@ -245,7 +254,7 @@ derive class iTask Statistics, Replace
 initReplace =	{ search = ""
 				, replaceBy = "" 
 				}
-
+editor :: (Shared IDE_State) FileName (ReadOnlyShared (TaskList Void)) -> Task Void
 editor ideState fileName ts = editor` (externalFile fileName) // <<@ Window
 where
 	editor` file	
@@ -336,6 +345,12 @@ actionTask :: Task Void
 actionTask = viewInformation Void [] Void
 
 launch task ts = appendTask Embedded (const task) ts @ const Void
+
+showError msg continue
+	=	viewInformation ("Error","") [] msg <<@ Window
+		>>| continue
+
+// tiny util
 
 undef = undef
 
