@@ -7,8 +7,8 @@ Status: very drafty
 */
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 import iTasks, Text
 import qualified Map
@@ -23,7 +23,7 @@ projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 :: IDE_State =	{ project			:: Maybe (String,Project)
 				, projectPath		:: String
 				, cleanPath			:: String
-				, openFiles			:: [String]
+				, openedFiles		:: [String]
 				, recentFiles		:: [String]
 				, recentProjects	:: [String]
 				}
@@ -36,7 +36,7 @@ where
 		= 	{ project			= Nothing 
 			, projectPath 		= projectPath
 			, cleanPath			= cleanPath
-			, openFiles			= []
+			, openedFiles		= []
 			, recentFiles 		= []
 			, recentProjects	= []
 			}
@@ -58,18 +58,27 @@ where
 
 // top menu
 
-topMenu ideState ts = forever (					(get ideState 
-								>>= \state -> 	(actionTask >>*	handleMenu state))
-												-||- 
-												(watch ideState @ const Void)		// no effect ???
-												
-							  ) 
+topMenu ideState ts 
+	= 				get ideState												// new session, first recover previous screen
+	>>= \state ->	openLastProject state.project 
+	>>|				openOpenedFiles state.openedFiles 
+	>>|				forever (				(get ideState 
+							>>= \state -> 	(actionTask >>*	handleMenu state))
+											-||- 
+											(watch ideState @ const Void)		// no effect ???
+							) 
 where
+	openLastProject Nothing 			  = return Void
+	openLastProject (Just (name,project)) = openProject ideState name
+
+	openOpenedFiles [] 		=	return Void
+	openOpenedFiles [f:fs]	=	launch (editor ideState f ts) ts >>| openOpenedFiles fs 
+
 	handleMenu state
 	=	[ OnAction (Action "File/Open") always (const (openFile ideState ts))
 		] 
 		++
-		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (launch (const (editor ideState fileName ts))) 
+		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (const (openFileAndEdit ideState fileName ts)) 
 		\\ fileName <- state.recentFiles
 		] 
 		++
@@ -77,9 +86,9 @@ where
 		\\ fileName <- state.recentProjects
 		] 
 		++
-		[ OnAction (Action "Project/New Project...") always (launch (newProject ideState))
+		[ OnAction (Action "Project/New Project...") always (const (launch (newProject ideState) ts))
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
-								 (launch (compile projectName ideState))	
+								 (const (launch (compile projectName ideState) ts))	
 		, OnAction (Action "Project/Project Options...") (const (projectName <> "")) (const (changeOptions ideState))
 		]
 
@@ -87,8 +96,6 @@ where
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	where
 		projectName = if (isNothing state.project) "" (fst (fromJust state.project)) 
-
-	launch task _ = appendTask Embedded task ts @ const Void
 
 // project pane
 
@@ -110,18 +117,27 @@ messages ideState ts
 openFile ideState ts
 	=				enterInformation ("Open file","Give name of text file you want to open...") [] <<@ Window
 	>>*				[ OnAction ActionCancel 		always   (const (return Void))
-					, OnAction (Action "Open File") hasValue (\v -> addFileAndEdit ideState (getValue v) ts)
+					, OnAction (Action "Open File") hasValue (\v -> openFileAndEdit ideState (getValue v) ts)
 					] 
 
-addFileAndEdit ideState fileName ts
-	=			update (\state -> {state & recentFiles = removeDup [fileName:state.recentFiles]}) ideState
-	>>|			(launch (const (editor ideState fileName ts)))	
-where
-	launch task  = appendTask Embedded task ts @ const Void
+openFileAndEdit ideState fileName ts
+	=				get ideState
+	>>= \state ->	if (isMember fileName state.openedFiles)
+						(return Void)	// file already open
+						(			update (\state -> {state & recentFiles 	= removeDup [fileName:state.recentFiles]
+										 				     , openedFiles 	= [fileName:state.openedFiles]}) ideState
+						>>|			launch (editor ideState fileName ts) ts	
+						)
+
+closeEditFile ideState fileName
+	=			update (\state -> {state & openedFiles 	= removeMember fileName state.openedFiles}) ideState
+				@ const Void
+
+	
 
 // setting project... 
 
-newProject ideState _ 
+newProject ideState 
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
 					, OnAction (Action "Set") hasValue (\v -> let name = getValue v in 
@@ -148,7 +164,7 @@ openProject ideState projectName
 	= 								get ideState
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \(project,ok,message) ->	if (not ok)
-										(viewInformation "Read Error..." [] message
+										(viewInformation "Read Error..." [] message <<@ Window
 										@ const Void
 										)
 										(update (\state -> { state	& project 			= Just (name,project)
@@ -186,7 +202,7 @@ where
 
 // compile project... 
 
-compile projectName ideState _
+compile projectName ideState 
 	=				get ideState
 					
 	>>= \state ->	(let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
@@ -201,7 +217,6 @@ compile projectName ideState _
 	>>*				[ OnAction ActionClose always (\_ -> return Void)
 					, OnAction ActionOk    always (\_ -> return Void)
 					]
-					
 
 // editor
 
@@ -227,13 +242,13 @@ where
 							, (Embedded, editFile fileName copy)
 							, (Embedded, replace initReplace copy)
 							]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
-		>>*	 			[ OnAction  ActionClose 		 				  always (const (return Void))
-						, OnAction (Action ("File/Close " +++ fileName))  always (const (return Void))
+		>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditFile ideState fileName))
+						, OnAction (Action ("File/Close " +++ fileName))  always (const (closeEditFile ideState fileName))
 						, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
 						, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
 						, OnAction (Action ("File/Open " +++ other fileName)) 
 																		  (const isIclOrDcl) 
-																		  (const (addFileAndEdit ideState fileName ts))
+																		  (const (openFileAndEdit ideState fileName ts))
 
 						, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
 																		  (const isIcl)
@@ -303,6 +318,8 @@ where
 
 actionTask :: Task Void
 actionTask = viewInformation Void [] Void
+
+launch task ts = appendTask Embedded (const task) ts @ const Void
 
 undef = undef
 
