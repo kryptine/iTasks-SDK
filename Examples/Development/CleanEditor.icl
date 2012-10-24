@@ -88,6 +88,9 @@ where
 		\\ fileName <- state.recentProjects
 		] 
 		++
+		[ OnAction (Action "Search/Search Identifier...") always (const (launch (search ideState ts) ts))
+		]
+		++
 		[ OnAction (Action "Project/New Project...") always (const (launch (newProject ideState) ts))
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
 								 (const (launch (compile projectName ideState <<@ Window) ts))	
@@ -147,6 +150,33 @@ saveAll [name:names] ideState
 	=					get (sharedStore name "")				// read out latest content of the editor from the internal store
 		>>= \content ->	set content (externalFile name)			// and store it in the file			
 		>>|				saveAll names ideState						
+
+// search department
+
+:: SearchOptions 	:== (SearchWhat, SearchWhere)
+:: SearchWhat 		= 	SearchIdentifier | SearchDefinition | SearchImplementation
+:: SearchWhere		=	SearchLocal | SearchImports | SearchPaths | SearchProject
+
+derive class iTask SearchWhat, SearchWhere
+
+search ideState ts  
+	= 				get ideState
+	>>= \state ->	((updateInformation (Title "Search") [] "" <<@ Window
+//					-&&-
+//					updateInformation Void [] (SearchIdentifier,SearchLocal)
+					)
+	>>*				[ OnAction ActionCancel   always (const (return Void))
+					, OnAction ActionContinue (ifValue (\v -> v <> "")) (search state o getValue)
+					])
+where
+	search state identifier // (name,_) 
+		= 				searchIdentifier True state.openedFiles identifier state.projectPath
+		>>=	\found	->	viewInformation "Found:" [] found <<@ Window
+		>>|				return Void
+	
+
+
+
 // setting project... 
 
 newProject :: (Shared IDE_State) -> Task Void
@@ -356,6 +386,7 @@ undef = undef
 
 always = const True
 never = const False
+
 hasValue (Value _ _) = True
 hasValue _ = False
 

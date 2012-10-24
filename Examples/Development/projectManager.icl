@@ -1,7 +1,7 @@
 implementation module projectManager
 
 import iTasks
-import PmTypes, PmProject
+import PmTypes, PmProject, PmParse, UtilStrictLists
 						   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
 derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, ModInfo, ABCLinkInfo
@@ -75,6 +75,12 @@ where
 	applicationOptions	= DefApplicationOptions
 	list				= [!!]
 	linkOptions			= DefaultLinkOptions
+	
+derive class iTask IdentifierPositionList
 
+searchIdentifier :: !Bool ![FileName] !String !ProjectPath  -> Task ((![String],!IdentifierPositionList))
+searchIdentifier imp imports identifier path 
+	= 			accWorld (accFiles (FindIdentifiersInFile imp (ListToStrictList imports) identifier path ))
+	>>= \(list,pos) -> return (StrictListToList list,pos)
 	
 	

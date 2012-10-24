@@ -3,7 +3,7 @@ definition module projectManager
 import iTasks
 
 // from the windows Clean IDE
-import PmTypes, PmProject
+import PmTypes, PmProject, PmParse
 
 derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, ModInfo, ABCLinkInfo
 derive class iTask	ModEditOptions, EditWdOptions, EditOptions, OptionalWindowPosAndSize, WindowPos_and_Size, NewlineConvention  
@@ -11,6 +11,7 @@ derive class iTask	[!!], InfListItem, ListTypes, Output, LinkMethod, ProjectDyna
 derive class iTask	UndefModule, UndefSymbol 
 
 // accessing project files:
+
 :: ModuleName 	:== String
 :: ProjectPath 	:== String
 :: CleanPath	:== String
@@ -45,10 +46,18 @@ saveProjectFile :: !ProjectPath !CleanPath !Project -> Task Bool
 :: HeapProfile		  = { minimumHeapProfile 		:: !Int
 						}
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
+
 // conversion 
 
 toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Project
 fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
+
+// searching
+
+derive class iTask 	IdentifierPositionList
+
+searchIdentifier :: !Bool ![FileName] !String !ProjectPath  -> Task ((![String],!IdentifierPositionList))
+
 			   
 
 
