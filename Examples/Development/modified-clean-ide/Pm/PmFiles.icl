@@ -122,17 +122,17 @@ where
 		=	True
 
 name_option = SimpleOption	"Name" (\a->a.name) (\v a->{a & name=v})
-dir_option = SimpleWithStringConversionOption convert_path_separators "Dir" (\a->a.info.dir) (\v a->{a & info.dir=v})
-compiler_option = GroupedOption	"Compiler" CompilerOptionsTable	(\a->a.info.compilerOptions)(\v a->{a & info.compilerOptions=v})
-needed_obj_files_option = ListOption "NeededObjFiles" ObjectFile "" (\a->a.info.abcLinkInfo.linkObjFileNames)
-																  	(\v a->{a & info.abcLinkInfo.linkObjFileNames=v})
-needed_libraries_option = ListOption "NeededLibraries" Library "" (\a->a.info.abcLinkInfo.linkLibraryNames)
-																  (\v a->{a & info.abcLinkInfo.linkLibraryNames=v}) 
+dir_option = SimpleWithStringConversionOption convert_path_separators "Dir" (\a-> a.ModInfoAndName.info.dir) (\v a->{a & ModInfoAndName.info.dir=v})
+compiler_option = GroupedOption	"Compiler" CompilerOptionsTable	(\a->a.ModInfoAndName.info.compilerOptions)(\v a->{a & ModInfoAndName.info.compilerOptions=v})
+needed_obj_files_option = ListOption "NeededObjFiles" ObjectFile "" (\a->a.ModInfoAndName.info.abcLinkInfo.linkObjFileNames)
+																  	(\v a->{a & ModInfoAndName.info.abcLinkInfo.linkObjFileNames=v})
+needed_libraries_option = ListOption "NeededLibraries" Library "" (\a->a.ModInfoAndName.info.abcLinkInfo.linkLibraryNames)
+																  (\v a->{a & ModInfoAndName.info.abcLinkInfo.linkLibraryNames=v}) 
 
-dcl_option = GroupedOption "Dcl" EditWdOptionsTable (\a->a.info.mod_edit_options.defeo) (\v a->{a & info.mod_edit_options.defeo=v})
-dcl_open_option = SimpleOption "DclOpen" (\a->a.info.mod_edit_options.defopen) (\v a->{a & info.mod_edit_options.defopen=v})
-icl_option = GroupedOption "Icl" EditWdOptionsTable (\a->a.info.mod_edit_options.impeo) (\v a->{a & info.mod_edit_options.impeo=v})
-icl_open_option	= SimpleOption "IclOpen" (\a->a.info.mod_edit_options.impopen) (\v a->{a & info.mod_edit_options.impopen=v})
+dcl_option = GroupedOption "Dcl" EditWdOptionsTable (\a->a.ModInfoAndName.info.mod_edit_options.defeo) (\v a->{a & ModInfoAndName.info.mod_edit_options.defeo=v})
+dcl_open_option = SimpleOption "DclOpen" (\a->a.ModInfoAndName.info.mod_edit_options.defopen) (\v a->{a & ModInfoAndName.info.mod_edit_options.defopen=v})
+icl_option = GroupedOption "Icl" EditWdOptionsTable (\a->a.ModInfoAndName.info.mod_edit_options.impeo) (\v a->{a & ModInfoAndName.info.mod_edit_options.impeo=v})
+icl_open_option	= SimpleOption "IclOpen" (\a->a.ModInfoAndName.info.mod_edit_options.impopen) (\v a->{a & ModInfoAndName.info.mod_edit_options.impopen=v})
 
 ModInfoAndNameTable :: OptionsTable ModInfoAndName
 ModInfoAndNameTable =

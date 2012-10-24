@@ -128,11 +128,12 @@ PR_NewProject main_module_file_name eo compilerOptions cgo ao prjpaths linkOptio
 	, root_directory = dirname
 	}
 
-PR_SetBuilt	:: ![!ModuleDirAndName] !.Project -> .Project;
+PR_SetBuilt	:: !(List Modulename) !.Project -> .Project;
 PR_SetBuilt used project=:{inflist=Nil}
 	= {Project | project & built = True};
 PR_SetBuilt used prj=:{inflist=infl=:(root:!rest),saved}
 	#! len		= LLength rest
+	# used		= Map GetModuleName used
 	# rest		= RemoveUnusedModules used rest
 	# len`		= LLength rest
 	# unchanged	= len == len`
@@ -141,20 +142,19 @@ where
 	{mn=rootmn,info} = root
 	RemoveUnusedModules used list = FilterR member list
 	where
-		member {mn}	= module_occurs mn used && rootmn <> mn
+		member {mn}	= StringOccurs mn used && rootmn <> mn
 
-module_occurs :: !String ![!ModuleDirAndName] -> Bool
-module_occurs s [|x:xs] = x.mdn_name == s || module_occurs s xs
-module_occurs s [!] =  False
-
-PR_AddABCInfo :: !ModuleDirAndName !(List LinkObjFileName) !(List LinkLibraryName) !CompilerOptions !Project -> Project
-PR_AddABCInfo mdn dep_objects dep_libraries compilerOptions project=:{inflist=Nil}
+PR_AddABCInfo :: !String !(List LinkObjFileName) !(List LinkLibraryName) !CompilerOptions !EditWdOptions !EditWdOptions !Project -> Project
+PR_AddABCInfo mod_path dep_objects dep_libraries compilerOptions defeo impeo project=:{inflist=Nil}
 	= project
-PR_AddABCInfo {mdn_dir=mod_dir,mdn_name=mod_name} dep_objects dep_libraries compilerOptions project=:{inflist}
+PR_AddABCInfo mod_path dep_objects dep_libraries compilerOptions defeo impeo project=:{inflist}
 	# inflist		= TryInsertInList mod_name mod_dir inflist
 	# (inflist,_)	= UpdateList mod_name update inflist;
 	= {project & saved=False,inflist=inflist, built=False}
 where
+	mod_name			= GetModuleName mod_path
+	mod_dir				= RemoveFilename mod_path
+
 	update infListItem=:{InfListItem | info}
 		= (	{ InfListItem | infListItem
 			& info.abcLinkInfo.linkObjFileNames		= dep_objects
@@ -390,14 +390,6 @@ PR_GetRootModuleDir {inflist={mn,info={dir}}:!rest}
 		= EmptyPathname;
 		= dir;
 
-PR_GetRootModuleDirAndName :: !Project -> (!ModuleDirAndName,!Project)
-PR_GetRootModuleDirAndName p=:{inflist=Nil}
-	= ({mdn_dir=EmptyPathname,mdn_name=""},p)
-PR_GetRootModuleDirAndName p=:{inflist={mn,info={dir}}:!rest}
-	| size dir==0
-		= ({mdn_dir=EmptyPathname,mdn_name=""},p)
-		= ({mdn_dir=dir,mdn_name=mn},p)
-
 PR_GetRootDir :: !Project -> String
 PR_GetRootDir {root_directory}
 	= root_directory;
@@ -418,16 +410,6 @@ where
 		| full			= MakeFullPathname dir (MakeImpPathname mn)
 						= mn
 
-PR_GetDirAndModulenames	:: !Project -> ([!ModuleDirAndName],Project)
-PR_GetDirAndModulenames project=:{inflist}
-	# modnames = get_dir_and_module_names_r inflist [|]
-	= (modnames,project)
-where
-	get_dir_and_module_names_r ({mn,info={dir}}:!inflist) r
-		= get_dir_and_module_names_r inflist [|{mdn_dir=dir,mdn_name=mn}:r]
-	get_dir_and_module_names_r Nil r
-		= r
-
 PR_GetOpenModulenames	:: !Project -> List String
 PR_GetOpenModulenames project=:{inflist}
 	= FlattenList modnames
@@ -441,8 +423,8 @@ where
 		| impopen				= impname :! Nil
 								= Nil
 	where
-		defname = ModuleDirAndNameToDefPathname {mdn_dir=dir,mdn_name=mn}
-		impname = ModuleDirAndNameToImpPathname {mdn_dir=dir,mdn_name=mn}
+		defname = MakeFullPathname dir (MakeDefPathname mn)
+		impname = MakeFullPathname dir (MakeImpPathname mn)
 
 PR_GetModuleStuff :: !Project -> List (Modulename,String,Modulename,String)
 PR_GetModuleStuff project=:{inflist}
@@ -615,9 +597,6 @@ GetProject applicationDir project
 	  post_link = case project.posl of
 					Just post_link -> Just (SubstitutePath applicationDir project_dir post_link)
 					Nothing -> Nothing 
-	  mainModuleName = PR_GetRootModuleName project
-	  target = PR_GetTarget project
-	  (otherModuleNames,project`) = PR_GetModulenames False IclMod project
 	  mainModuleInfo = getModule project_dir mainModuleName
 	  otherModules = Map (getModule project_dir) (Filter ((<>) mainModuleName) otherModuleNames)
 	  linkOptions = SubstituteLinkOptionsPaths applicationDir project_dir (PR_GetLinkOptions project)
@@ -643,11 +622,16 @@ where
 		# xp	= PR_GetExecPath project
 		= symPath applicationDir project_dir xp
 
+	mainModuleName		=	PR_GetRootModuleName project
+	(otherModuleNames,project`)	=	PR_GetModulenames False IclMod project
+
 	getModule project_dir name
 		# info = PR_GetModuleInfo name project
 		# info = if (isJust info) (fromJust info) defaultModInfo
 		# info = SubstituteModuleInfoPaths applicationDir project_dir info
 		= {name = name, info = info}
+
+	target				=	PR_GetTarget project
 
 	defaultModInfo :: ModInfo
 	defaultModInfo	=

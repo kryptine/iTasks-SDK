@@ -43,7 +43,7 @@ RemoveSuffix path
 //		suffix				= suf == ".dcl" || suf == ".icl" || suf == ".abc" || suf == ".o" || suf == ".obj" || suf == ".prj";
 		suffix				= isMember suf [".",".dcl",".icl",".hs",".lhs",".abc",".o",".obj",".obj0",".obj1",".obj2",".xo",".cxo",".prj"];
 		last				= dec (size path);
-
+	
 RemoveSuffix` :: !Pathname -> String;
 RemoveSuffix` path
 	| not found		= path;
@@ -54,7 +54,7 @@ RemoveSuffix` path
 //		suf					= path % (position, last);
 //		suffix				= suf == ".dcl" || suf == ".icl" || suf == ".abc" || suf == ".o" || suf == ".prj";
 		last				= dec (size path);
-
+		
 RemoveFilename :: !Pathname -> Pathname;
 RemoveFilename path 
 	# (found,position)	= FindLastChar DirSeparator path (dec (size path));
@@ -75,10 +75,6 @@ IsFullPathname name = LastChar DirSeparator name (dec (size name)) >= 0;
 
 MakeFullPathname :: !Pathname !String -> Pathname;
 MakeFullPathname path name =  path +++ DirSeparatorString +++ name;
-
-replace_dots_by_dir_separators :: !{#Char} -> *{#Char};
-replace_dots_by_dir_separators module_name
-	= {if (c=='.') DirSeparator c \\ c<-:module_name}
 
 /* Auxilary functions */
 	

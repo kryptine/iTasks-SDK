@@ -11,7 +11,36 @@ IclMod :== False
 
 :: Def_and_Imp		:== Bool
 
-:: Project
+::	Project	=
+	{ built						:: !Bool					// Was dependency list generated?
+	, saved						:: !Bool
+	, exec						:: !Bool					// exe linked ok?
+	, inflist					:: !InfList					// list with constituent modules
+	, codegenopt				:: !CodeGenOptions			// code generator options
+	, code_gen_options_unchanged :: !Bool
+	, applicationopt			:: !ApplicationOptions		// application options
+	, linkOptions				:: !LinkOptions
+	, prjpaths					:: !List String				// project paths
+	, staticLibInfo				:: !StaticLibInfo
+	, target					:: !String					// environment
+
+	, dynamic_info				:: !ProjectDynamicInfo
+
+	, relative_root_directory	:: !String			// string of '.'s, relative to .prj file
+	, root_directory			:: !String
+	, execpath					:: !String			// move to app_opts
+	, prec						:: !Maybe String	// " (precompile command)
+	, posl						:: !Maybe String	// " (postlink command)
+	}
+::	InfList		:==	List InfListItem
+	
+::	InfListItem	=
+	{ mn	:: !Modulename		// module name
+	, info	:: !ModInfo			// module info
+	, src	:: !Bool			// src up to date?
+	, abc	:: !Bool 			// abc up to date?
+	}
+
 
 SaveProjectFile	::
 	!String			// path to projectfile
@@ -52,7 +81,7 @@ PR_ProjectSet	:: !Project -> Bool
 PR_NewProject	:: !String !EditWdOptions !CompilerOptions !CodeGenOptions !ApplicationOptions
 					!(List String) !LinkOptions -> Project
 
-PR_SetBuilt					:: ![!ModuleDirAndName] !.Project -> .Project
+PR_SetBuilt					:: !(List Modulename) !.Project -> .Project
 PR_ClearDependencies		:: !Project -> Project
 PR_SetRoot					:: !String !EditWdOptions !CompilerOptions !Project -> Project
 PR_SetCompiled				:: !Modulename !Project -> Project
@@ -71,11 +100,9 @@ PR_GetPaths					:: !Project -> List String
 PR_GetRootModuleName		:: !Project -> String
 PR_GetRootPathName			:: !Project -> (!String,!Project)
 PR_GetRootModuleDir			:: !Project -> String
-PR_GetRootModuleDirAndName	:: !Project -> (!ModuleDirAndName,!Project)
 PR_GetRootDir :: !Project -> String
 PR_GetRelativeRootDir :: !Project -> String
 PR_GetModulenames			:: !Bool !Def_and_Imp !Project -> (List String,Project)
-PR_GetDirAndModulenames		:: !Project -> ([!ModuleDirAndName],Project)
 PR_GetOpenModulenames		:: !Project -> List String
 PR_GetModuleStuff			:: !Project -> List (Modulename,String,Modulename,String)
 
@@ -94,7 +121,8 @@ PR_UpdateModules			:: ![Modulename] !(ModInfo -> ModInfo) !Project -> Project
 PR_SetLinkOptions			:: !Project !LinkOptions -> Project
 PR_GetLinkOptions			:: !Project -> LinkOptions
 
-PR_AddABCInfo				:: !ModuleDirAndName !(List LinkObjFileName) !(List LinkLibraryName) !CompilerOptions !Project -> Project
+PR_AddABCInfo				:: !String !(List LinkObjFileName) !(List LinkLibraryName)
+								!CompilerOptions !EditWdOptions !EditWdOptions !Project -> Project
 
 PR_GetABCLinkInfo			:: !Project -> ABCLinkInfo
 

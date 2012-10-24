@@ -13,6 +13,4 @@ equal_suffix		:: !String !String -> Bool
 IsFullPathname		:: !Pathname -> Bool
 MakeFullPathname	:: !Pathname !String -> Pathname
 
-replace_dots_by_dir_separators :: !{#Char} -> *{#Char};
-
 quoted_string		:: !String -> String
