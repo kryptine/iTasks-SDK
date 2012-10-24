@@ -76,6 +76,7 @@ where
 
 	handleMenu state
 	=	[ OnAction (Action "File/Open") always (const (openFile ideState ts))
+		, OnAction (Action "File/Save All") (const (state.openedFiles <> [])) (const (saveAll state.openedFiles ideState))
 		] 
 		++
 		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (const (openFileAndEdit ideState fileName ts)) 
@@ -88,7 +89,7 @@ where
 		++
 		[ OnAction (Action "Project/New Project...") always (const (launch (newProject ideState) ts))
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
-								 (const (launch (compile projectName ideState) ts))	
+								 (const (launch (compile projectName ideState <<@ Window) ts))	
 		, OnAction (Action "Project/Project Options...") (const (projectName <> "")) (const (changeOptions ideState))
 		]
 
@@ -133,8 +134,12 @@ closeEditFile ideState fileName
 	=			update (\state -> {state & openedFiles 	= removeMember fileName state.openedFiles}) ideState
 				@ const Void
 
-	
-
+saveAll [] ideState 
+	= return Void
+saveAll [name:names] ideState
+	=					get (sharedStore name "")				// read out latest content of the editor from the internal store
+		>>= \content ->	set content (externalFile name)			// and store it in the file			
+		>>|				saveAll names ideState						
 // setting project... 
 
 newProject ideState 
@@ -204,8 +209,18 @@ where
 
 compile projectName ideState 
 	=				get ideState
-					
-	>>= \state ->	(let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
+	>>= \state ->	if (state.openedFiles == []) 
+					(compile` state)
+					(	viewInformation ("Clean Compiler","Do you want to save all ?") [] Void 
+					>>* [ OnAction ActionYes 	always (const (saveAll state.openedFiles ideState >>| compile` state))
+						, OnAction ActionNo  	always (const (compile` state))
+						, OnAction ActionCancel always (const (return Void))
+						]
+					)
+where	
+	compile` state
+		=
+					(let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
 						>>|
 						callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
@@ -213,8 +228,7 @@ compile projectName ideState
 						//View the messages while the compiler is building...
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
 					)
-					
-	>>*				[ OnAction ActionClose always (\_ -> return Void)
+		>>*			[ OnAction ActionClose always (\_ -> return Void)
 					, OnAction ActionOk    always (\_ -> return Void)
 					]
 
@@ -236,26 +250,28 @@ editor ideState fileName ts = editor` (externalFile fileName) // <<@ Window
 where
 	editor` file	
 		=   			get file
-		>>= \content ->	withShared content 
-		    \copy ->  	(parallel (Title fileName)	
-							[ (Embedded, showStatistics copy)
-							, (Embedded, editFile fileName copy)
-							, (Embedded, replace initReplace copy)
-							]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
-		>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditFile ideState fileName))
-						, OnAction (Action ("File/Close " +++ fileName))  always (const (closeEditFile ideState fileName))
-						, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
-						, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
-						, OnAction (Action ("File/Open " +++ other fileName)) 
-																		  (const isIclOrDcl) 
-																		  (const (openFileAndEdit ideState fileName ts))
-
-						, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
-																		  (const isIcl)
-																		  (const (storeProject ideState (initProject noSuffix) noSuffix
-																		  				 >>| editor` file )) 
-						]
+		>>= \content ->	let copy = sharedStore fileName content in editor`` copy
 	where
+		editor`` copy 
+			=  				(parallel (Title fileName)	
+								[ (Embedded, showStatistics copy)
+								, (Embedded, editFile fileName copy)
+								, (Embedded, replace initReplace copy)
+								]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
+			>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditFile ideState fileName))
+							, OnAction (Action ("File/Close " +++ fileName))  always (const (closeEditFile ideState fileName))
+							, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
+							, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
+							, OnAction (Action ("File/Open " +++ other fileName)) 
+																			  (const isIclOrDcl) 
+																			  (const (openFileAndEdit ideState fileName ts))
+	
+							, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
+																			  (const isIcl)
+																			  (const (storeProject ideState (initProject noSuffix) noSuffix
+																			  				 >>| editor` file )) 
+							]
+
 		noSuffix = RemoveSuffix fileName
 
 		save copy
