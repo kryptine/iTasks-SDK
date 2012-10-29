@@ -3,11 +3,21 @@ implementation module PmDirCache
 // Search paths for a file
 
 import StdArray,StdBool,StdEnum,StdList,StdFile,StdOrdList,StdStrictLists,StdMaybe
-from StdLibMisc import :: Date{..}, :: Time{..}
-import Directory
+import StdDirectory							// Directory -> StdDirectory to avoid name conflicts
 
 import UtilStrictLists, PmPath, UtilIO
 import Platform
+
+from StdLibMisc import :: Date{..}, :: Time{..}
+
+// Added test whether a given file exists
+// Used to call WinFileExists
+FExists	:: !String !Files -> (!Bool, !Files)
+FExists name files 
+//# ((ok,path),files) 		 = pd_StringToPath name files
+//| not ok 					 = (False,files)
+# ((dirInfo,fileInfo),files) = getFileInfo name files
+= (dirInfo <> NoDirError && not fileInfo.pi_fileInfo.isDirectory,files)  
 
 :: DirCacheElem :== (String,String,DateTime) // module name, module path, module modified
 

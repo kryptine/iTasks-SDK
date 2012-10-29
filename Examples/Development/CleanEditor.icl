@@ -9,16 +9,18 @@ Status: very drafty
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
 //cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
 cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+idePath			:== "iTasks-SDK\\Examples\\Development\\"
+projectPath		:== cleanPath +++ idePath
+environment		:== map ((+++) cleanPath) [idePath,"Libraries\\StdEnv\\","iTasks-SDK\\Server\\"]
+
+batchBuild		:== "BatchBuild.exe"
+errorFile		:== "Temp\\errors"
 
 import iTasks, Text
 import qualified Map
 import projectManager
 
 // Global Settings
-
-batchBuild		:== "BatchBuild.exe"
-errorFile		:== "Temp\\errors"
-projectPath		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 
 :: IDE_State =	{ project			:: Maybe (String,Project)
 				, projectPath		:: String
@@ -161,21 +163,21 @@ derive class iTask SearchWhat, SearchWhere
 
 search ideState ts  
 	= 				get ideState
-	>>= \state ->	((updateInformation (Title "Search") [] "" <<@ Window
+	>>= \state ->	((updateInformation (Title "Search identifier in module") [] ("","") <<@ Window
 //					-&&-
 //					updateInformation Void [] (SearchIdentifier,SearchLocal)
 					)
 	>>*				[ OnAction ActionCancel   always (const (return Void))
-					, OnAction ActionContinue (ifValue (\v -> v <> "")) (search state o getValue)
+					, OnAction ActionContinue hasValue (searchIdent state o getValue)
 					])
 where
-	search state identifier // (name,_) 
-		= 				searchIdentifier True state.openedFiles identifier state.projectPath
-		>>=	\found	->	viewInformation "Found:" [] found <<@ Window
-		>>|				return Void
-	
-
-
+	searchIdent state (identifier,file)
+		= 	
+						searchIdentifierInImports identifier (projectPath, file) environment
+		>>=	\found	->	viewInformation ("Found:",identifier) [] found <<@ Window
+//		>>=	\found	->	viewInformation ("Found:",identifier) [] (found,length (snd found)) <<@ Window
+//		>>=	\found	->	viewInformation ("Found:",identifier) [ViewWith (\(l,v) -> foldl (+++) "" l)] found <<@ Window
+		>>|				search ideState ts
 
 // setting project... 
 

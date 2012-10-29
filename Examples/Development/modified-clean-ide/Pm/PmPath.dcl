@@ -39,3 +39,5 @@ symAppPath	:: !Pathname !Pathname			-> Pathname
 fulAppPath	:: !Pathname !Pathname			-> Pathname
 symAppPaths	:: !Pathname !(List Pathname)	-> List Pathname
 fulAppPaths	:: !Pathname !(List Pathname)	-> List Pathname
+
+subdir_and_file_name_of_hmodule_name :: !Int !{#Char} !{#Char} -> (!*{#Char},!{#Char})

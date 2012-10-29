@@ -264,3 +264,10 @@ symAppPaths ap l = Map (symAppPath ap) l
 
 fulAppPaths :: !Pathname !(List Pathname) -> List Pathname
 fulAppPaths ap l = Map (fulAppPath ap) l
+
+subdir_and_file_name_of_hmodule_name :: !Int !{#Char} !{#Char} -> (!*{#Char},!{#Char})
+subdir_and_file_name_of_hmodule_name last_dot_i mod file_ext
+	# subdir_name = {if (c=='.') DirSeparator c \\ i<-[0..last_dot_i-1] & c<-:mod}
+	  file_name = mod % (last_dot_i+1,size mod-1)+++file_ext
+	= (subdir_name,file_name)
+

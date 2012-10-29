@@ -12,10 +12,12 @@ derive class iTask	UndefModule, UndefSymbol
 
 // accessing project files:
 
-:: ModuleName 	:== String
-:: ProjectPath 	:== String
-:: CleanPath	:== String
-:: FileName		:== String
+:: Identifier	:== String		// Clean Identifier
+:: PathName		:== String		// Path name leading to a directory
+:: ProjectPath 	:== PathName	// Directory where project is located
+:: CleanPath	:== PathName	// Directory where clean application / batchbuild is located
+:: ModuleName 	:== String		// Name of module, without .dcl or .dcl extension
+:: FileName		:== String		// Name of file, with extension
 
 initProject 	:: !ModuleName 						-> Project						
 readProjectFile	:: !ProjectPath !CleanPath 			-> Task (Project, Bool, String)
@@ -56,7 +58,12 @@ fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
 
 derive class iTask 	IdentifierPositionList
 
-searchIdentifier :: !Bool ![FileName] !String !ProjectPath  -> Task ((![String],!IdentifierPositionList))
+searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchFilesInPaths :: ![FileName] ![PathName] -> Task ![(!PathName,!FileName)]
+searchIdentifiersInIclFile2 :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
+searchIdentifiersInIclFile 	:: !Identifier !PathName !FileName  -> Task !IdentifierPositionList
+//searchIdentifierInImports 	:: !Identifier !PathName !FileName ![PathName] -> Task ![(!PathName,!FileName,!IdentifierPositionList)]
+
 
 			   
 

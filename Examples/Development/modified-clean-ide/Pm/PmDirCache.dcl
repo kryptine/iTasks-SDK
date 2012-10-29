@@ -5,13 +5,16 @@ from StdFile			import :: Files
 from UtilStrictLists	import :: List
 from PmTypes			import :: Modulename
 from StdPathname		import :: Pathname
-from Directory			import :: DateTime, :: Date{..}, :: Time{..}
+
+//from StdLibMisc import :: Date{..}, :: Time{..}
+
+import StdDirectory
 
 :: DirCache
 
-:: Warn = Warn String String [(String,String,DateTime)]
+//:: Warn = Warn String String [(String,String,DateTime)]
 
-DC_Setup	:: !(List Pathname) !*Files -> (!(![String],![Warn],!.DirCache),!*Files)
+//DC_Setup	:: !(List Pathname) !*Files -> (!(![String],![Warn],!.DirCache),!*Files)
 // Initialise directory cache
 
 DC_Search	:: !Modulename !*DirCache -> *(!Bool,!Pathname,!DateTime,!*DirCache)
