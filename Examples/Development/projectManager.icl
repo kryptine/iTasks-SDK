@@ -2,15 +2,20 @@ implementation module projectManager
 
 import iTasks
 import PmTypes, PmProject, PmParse, UtilStrictLists
+import Directory
 						   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
+derive class iTask  Environment, ToolsOptions
+
 derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, ModInfo, ABCLinkInfo
 derive class iTask	ModEditOptions, EditWdOptions, EditOptions, OptionalWindowPosAndSize, WindowPos_and_Size, NewlineConvention  
 derive class iTask	[!!], InfListItem, ListTypes, Output, LinkMethod, ProjectDynamicInfo, StaticLibInfo, CodeGenOptions 
 derive class iTask	UndefModule, UndefSymbol 
+derive class iTask IdentifierPositionList
 
-toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Project
-toProject p=:{applicationopt,codegenopt} (rto,do,po)
+
+toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions) -> Project
+toProject p=:{applicationopt,codegenopt} (rto,do,po,co)
 	= { p	& applicationopt.initial_heap_size 		= rto.initialHeapSize
 		    , applicationopt.heap_size_multiple		= rto.heapSizeIncreaseStep
 		    , applicationopt.hs						= rto.maximumHeapSize
@@ -29,10 +34,11 @@ toProject p=:{applicationopt,codegenopt} (rto,do,po)
 		    										= case po.heapProfile of
 		    											(HeapProfile rec) -> rec.minimumHeapProfile
 		    											_				  -> 0
+			, applicationopt.o						= co
 	  }
 
-fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
-fromProject p=:{applicationopt,codegenopt} = (rto,do,po)
+fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions)
+fromProject p=:{applicationopt,codegenopt} = (rto,do,po,co)
 where
 	rto =	{ initialHeapSize			= applicationopt.initial_heap_size
 			, heapSizeIncreaseStep		= applicationopt.heap_size_multiple
@@ -54,6 +60,7 @@ where
 												(HeapProfile {minimumHeapProfile = applicationopt.memoryProfilingMinimumHeapSize})
 												NoHeapProfiling
 			}
+	co	=	applicationopt.o
 
 readProjectFile	:: !ProjectPath !CleanPath -> Task (Project, Bool, String)
 readProjectFile projectPath cleanAppDir 
@@ -76,17 +83,20 @@ where
 	list				= [!!]
 	linkOptions			= DefaultLinkOptions
 	
-derive class iTask IdentifierPositionList
 
-import Directory
-
-searchInImports :: !SearchWhat !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
-searchInImports what identifier path_modulename environment = search [path_modulename] [] []
+searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchTask what searchWhere identifier path_modulename environment 
+	= if (inImports searchWhere)								
+			(search [path_modulename] [] [])	// recursive search through imported modules
+			(case what of						// search the modules in given paths only 
+				SearchIdentifier 		-> findAllModulesInPaths "icl" environment >>= \found -> search [path_modulename:found] [] []
+				SearchImplementation 	-> findAllModulesInPaths "icl" environment >>= \found -> search [path_modulename:found] [] []
+				SearchDefinition 		-> findAllModulesInPaths "dcl" environment >>= \found -> search [path_modulename:found] [] []
+			) 
 where
 	search [] searched found 	= return (reverse found,reverse searched)								
 	search [(path,modulename):rest] searched found 
-		=					searchInFile what identifier (path,modulename)
-//		=					searchIdentifiersInIclFile2 identifier path modulename 
+		=					searchInFile what (inImports searchWhere) identifier (path,modulename)
 		>>= \(new,pos) -> 	let (addedImports,nsearched,nfound) = calc new pos rest searched found in
 							if (isEmpty addedImports)
 								(search rest nsearched nfound) 
@@ -101,26 +111,27 @@ where
 		# addedImports	= removeDup [fileName \\ fileName <- new | not (isMember fileName (filesInRest ++ nsearched))]
 		= (addedImports,nsearched,nfound)
 		
+inImports SearchInImports = True
+inImports _ 			  = False
+
 ifPosNil PosNil then else = then
-ifPosNil _ then else = else
+ifPosNil _      then else = else
 
-searchInFile :: !SearchWhat !Identifier !(!PathName,!FileName) -> Task !(![String],!IdentifierPositionList)
-searchInFile SearchIdentifier identifier (path, moduleName) 
-	= 					accWorld (accFiles (FindIdentifiersInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
+searchInFile :: !SearchWhat !Bool !Identifier !(!PathName,!FileName) -> Task !(![String],!IdentifierPositionList)
+searchInFile SearchIdentifier inImports identifier (path, moduleName) 
+	= 					accWorld (accFiles (FindIdentifiersInFile inImports [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
-searchInFile SearchImplementation identifier (path, moduleName) 
-	= 					accWorld (accFiles (FindDefinitionInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
+searchInFile SearchImplementation inImports identifier (path, moduleName) 
+	= 					accWorld (accFiles (FindDefinitionInFile inImports [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
-searchInFile SearchDefinition identifier (path, moduleName) 
-	= 					accWorld (accFiles (FindDefinitionInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
+searchInFile SearchDefinition inImports identifier (path, moduleName) 
+	= 					accWorld (accFiles (FindDefinitionInFile inImports [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".dcl") (/*init */(StrictListToList list)),pos)
-
 
 searchIdentifiersInIclFile2 :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
 searchIdentifiersInIclFile2 identifier path moduleName 
 	= 					accWorld (accFiles (FindIdentifiersInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
-
 
 searchFilesInPaths :: ![FileName] ![PathName] -> Task ![(!PathName,!FileName)]
 searchFilesInPaths fileNames pathNames = search fileNames pathNames []
@@ -144,6 +155,18 @@ where
 							(searchDisk` paths world)
 		_ 			-> searchDisk` paths world
 
+findAllModulesInPaths :: !String ![PathName] -> Task ![(!PathName,!FileName)]
+findAllModulesInPaths extension paths = accWorld (searchDisk` paths [])
+where
+	searchDisk` [] found world = (found,world)
+	searchDisk` [path:paths] found world
+	# (content,world) = readDirectory path world
+	= case content of
+		Ok names 	-> searchDisk` paths (addFiles names ++ found) world
+		_ 			-> searchDisk` paths found world
+	where
+		addFiles names = [(path, name) \\ name <- names | takeExtension name == extension] 
+
 // there seems to be a bug when it returns  Task (![String],!IdentifierPositionList)
 
 searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
@@ -165,14 +188,6 @@ where
 		# filesInRest 	= map snd rest
 		# addedImports	= removeDup [fileName \\ fileName <- new | not (isMember fileName (filesInRest ++ nsearched))]
 		= (addedImports,nsearched,nfound)
-
-
-/*
-searchIdentifiersInIclFile :: !Identifier !PathName !FileName  -> Task (!IdentifierPositionList)
-searchIdentifiersInIclFile identifier path moduleName 
-	= 			accWorld (accFiles (FindIdentifiersInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
-	>>= \(list,pos) -> return pos
-*/
 
 
 

@@ -47,14 +47,31 @@ saveProjectFile :: !ProjectPath !CleanPath !Project -> Task Bool
 						| StackTraceOny
 :: HeapProfileOptions 	= NoHeapProfiling 
 						| HeapProfile !HeapProfile 
-:: HeapProfile		  = { minimumHeapProfile 		:: !Int
+:: HeapProfile		 	= { minimumHeapProfile 		:: !Int
 						}
+:: ConsoleOptions		:== Output
+
+// environments, iTask version
+
+:: Environment		=	{ environmentName			:: !String
+						, paths						:: ![String]
+						, toolsOption				:: !ToolsOptions
+						}						
+:: ToolsOptions		= 	{ compiler					:: !String
+						, codeGenerator				:: !String
+						, staticLinker				:: !String
+						, dynamicLinker				:: !String
+						, versionOfAbcCode			:: !Int
+						, runOn64BitProcessor		:: !Bool
+						}
+
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
+derive class iTask  Environment, ToolsOptions
 
 // conversion 
 
-toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions) -> Project
-fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
+toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions) -> Project
+fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions)
 
 // searching
 
@@ -62,17 +79,13 @@ derive class iTask 	IdentifierPositionList
 
 :: SearchOptions 	:== (SearchWhat, SearchWhere)
 :: SearchWhat 		= 	SearchIdentifier | SearchDefinition | SearchImplementation
-:: SearchWhere		=	SearchLocal | SearchImports | SearchPaths | SearchProject
+:: SearchWhere		=	SearchInImports | SearchInPaths //| SearchInProject
 
-searchInFile 	:: !SearchWhat !Identifier !(!PathName,!FileName)  -> Task !(![String],!IdentifierPositionList)
-searchInImports :: !SearchWhat !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
 
 searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
-//searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
-//searchFilesInPaths :: ![FileName] ![PathName] -> Task ![(!PathName,!FileName)]
-//searchIdentifiersInIclFile2 :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
-//searchIdentifiersInIclFile 	:: !Identifier !PathName !FileName  -> Task !IdentifierPositionList
 
+findAllModulesInPaths :: !String ![PathName] -> Task ![(!PathName,!FileName)]
 
 
 			   

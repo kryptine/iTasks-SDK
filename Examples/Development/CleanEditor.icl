@@ -9,12 +9,17 @@ Status: very drafty
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
 //cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
 cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+
 idePath			:== "iTasks-SDK\\Examples\\Development\\"
 projectPath		:== cleanPath +++ idePath
-environment		:== map ((+++) cleanPath) [idePath,"Libraries\\StdEnv\\","iTasks-SDK\\Server\\"]
+compilerPath	:== cleanPath +++ "iTasks-SDK\\Compiler\\"
+
+environment		:== map ((+++) cleanPath) [idePath,"Libraries\\StdEnv\\"]
 
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
+environmentFile :== "iTask-Clean-IDE-environment"
+stdenv			:== cleanPath +++ "Libraries\\StdEnv\\"
 
 import iTasks, Text
 import qualified Map
@@ -22,12 +27,14 @@ import projectManager
 
 // Global Settings
 
-:: IDE_State =	{ project			:: Maybe (String,Project)
-				, projectPath		:: String
-				, cleanPath			:: String
-				, openedFiles		:: [String]
-				, recentFiles		:: [String]
-				, recentProjects	:: [String]
+:: IDE_State =	{ project			:: !Maybe !(!String,!Project)
+				, projectPath		:: !String
+				, cleanPath			:: !String
+				, openedFiles		:: ![String]
+				, recentFiles		:: ![String]
+				, recentProjects	:: ![String]
+				, currentEnvironment:: !Environment
+				, environments		:: ![Environment]
 				}
 derive class iTask IDE_State
 
@@ -41,7 +48,22 @@ where
 			, openedFiles		= []
 			, recentFiles 		= []
 			, recentProjects	= []
+			, currentEnvironment= initEnvironment
+			, environments		= []
 			}
+initEnvironment
+	=	{ environmentName		= "StdEnv"	
+		, paths					= [stdenv]
+		, toolsOption			= initTools
+		}
+initTools 	
+	= 	{ compiler				= compilerPath +++ "CleanCompiler.exe : -h 64M : -dynamics -generics"
+		, codeGenerator			= compilerPath +++ "CodeGenerator.exe"
+		, staticLinker			= compilerPath +++ "StaticLinker.exe : -h 64M"
+		, dynamicLinker			= compilerPath +++ "DynamicLinker.exe"
+		, versionOfAbcCode		= 920
+		, runOn64BitProcessor	= False
+		}
 // 
 
 Start :: *World -> *World
@@ -90,19 +112,27 @@ where
 		\\ fileName <- state.recentProjects
 		] 
 		++
-		[ OnAction (Action "Search/Search Identifier...") always (const (launch (search ideState ts) ts))
+		[ OnAction (Action "Search/Search Identifier...")     ifProject (const (launch (search SearchIdentifier     SearchInImports ideState ts) ts))
+		, OnAction (Action "Search/Search Definition...")     ifProject (const (launch (search SearchDefinition     SearchInImports ideState ts) ts))
+		, OnAction (Action "Search/Search Implementation...") ifProject (const (launch (search SearchImplementation SearchInImports ideState ts) ts))
 		]
 		++
 		[ OnAction (Action "Project/New Project...") always (const (launch (newProject ideState) ts))
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
 								 (const (launch (compile projectName ideState <<@ Window) ts))	
-		, OnAction (Action "Project/Project Options...") (const (projectName <> "")) (const (changeOptions ideState))
+		, OnAction (Action "Project/Project Options...") ifProject (const (changeOptions ideState))
 		]
-
+		++
+		[ OnAction (Action (cuurentEnvironment +++ "/Edit Current")) always (const (changeEnvironment ideState))
+		]
 		++ // temp fix to show effects
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	where
 		projectName = if (isNothing state.project) "" (fst (fromJust state.project)) 
+
+		ifProject = const (projectName <> "")
+
+		cuurentEnvironment = "ProjEnvironment " +++ state.currentEnvironment.environmentName
 
 // project pane
 
@@ -157,24 +187,22 @@ saveAll [name:names] ideState
 
 derive class iTask SearchWhat, SearchWhere
 
-search ideState ts  
+search what whereSearch ideState ts  
 	= 				get ideState
-	>>= \state ->	searching state "" SearchIdentifier ([],[]) <<@ Window
+	>>= \state ->	searching state "" what whereSearch ([],[])  <<@ Window
 	
 where
-	searching state identifier what found
-		=			(viewInformation (length (snd found) +++> " modules searched," +++> length (fst found) +++> " contained " +++> identifier) [] found
+	searching state identifier what whereSearch found
+		=			(viewInformation (length (snd found) +++> " modules searched, " +++> length (fst found) +++> " contained " +++> identifier) [] found
 					||-
-					updateInformation (Title ("Find: " +++ identifier)) [] (identifier,what)) 
+					updateInformation (Title ("Find: " +++ identifier)) [] (identifier,what,whereSearch)) 
 		>>*			[ OnAction ActionCancel   always (const (return Void))
 					, OnAction ActionContinue hasValue (performSearch o getValue)
-					]
+					] 
 	where
-		performSearch (identifier,what)
-			= 	
-					//		searchIdentifierInImports identifier (projectPath, fst (fromJust state.project) +++ ".icl") environment
-							searchInImports what      identifier (projectPath, fst (fromJust state.project) +++ ".icl") environment
-			>>=	\found	->	searching state identifier what found
+		performSearch (identifier,what,whereSearch)
+			= 				searchTask what whereSearch identifier (projectPath, fst (fromJust state.project) +++ ".icl") environment
+			>>=	\found	->	searching state identifier what whereSearch found
 
 // setting project... 
 
@@ -227,11 +255,12 @@ where
 		>>= \state ->	let (name,project) = fromJust state.project in
 							changeOptions`` name project (fromProject project)
 		
-	changeOptions``	name project (rto,diagn,prof)	
+	changeOptions``	name project (rto,diagn,prof,co)	
 		=				runTimeOptions rto
 		>>= \rto ->		diagnosticsOptions diagn
 		>>= \diagn -> 	profilingOptions prof
-		>>= \prof ->	storeProject ideState (toProject project (rto,diagn,prof)) name 
+		>>= \prof ->	consoleOptions co
+		>>= \co ->		storeProject ideState (toProject project (rto,diagn,prof,co)) name 
 
 	runTimeOptions :: RunTimeOptions -> Task RunTimeOptions
 	runTimeOptions	rto = updateInformation ("Project Options","Run-Time Options:")[] rto 
@@ -242,6 +271,24 @@ where
 	profilingOptions :: ProfilingOptions -> Task ProfilingOptions
 	profilingOptions prof = updateInformation ("Project Options","Diagnostics Options:") [] prof	
 
+	consoleOptions :: ConsoleOptions -> Task ConsoleOptions
+	consoleOptions co = updateInformation ("Project Options","Console Options:") [] co	
+	
+// editing the evironment
+
+changeEnvironment :: (Shared IDE_State) -> Task Void
+changeEnvironment ideState
+	= changeEnvironment` <<@ Window
+where
+	changeEnvironment`
+		=				get ideState
+		>>= \state ->	updateInformation (Title ("Edit " +++ state.currentEnvironment.environmentName))[] state.currentEnvironment
+		>>*				[ OnAction ActionCancel   always  (const (return Void))
+						, OnAction (Action "Set") hasValue (updateEnv o getValue) 
+						]
+	updateEnv env = update (\state -> {state & currentEnvironment = env}) ideState @ const Void
+	
+						
 // compile project... 
 
 compile :: ModuleName (Shared IDE_State) -> Task Void
