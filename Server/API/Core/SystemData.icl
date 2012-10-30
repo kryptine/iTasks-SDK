@@ -7,6 +7,8 @@ from StdFunc		import o, seq
 from IWorld			import :: IWorld(..)
 from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
+SYSTEM_DATA_NS :== "SystemData"
+
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = createChangeOnWriteSDS
 	"sharedStore" storeId
@@ -23,7 +25,7 @@ where
 	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 	
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = createReadOnlySDSPredictable read
+currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where
 	read iworld
 		# (dateTime, iworld)		= 'Util'.currentDateTime iworld
@@ -31,7 +33,7 @@ where
 		= ((dateTime, Timestamp (ts + 1)), iworld)
 		
 currentTime :: ReadOnlyShared Time
-currentTime = createReadOnlySDSPredictable read
+currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
 where
 	read iworld
 		# (time, iworld)			= 'Util'.currentTime iworld
@@ -39,7 +41,7 @@ where
 		= ((time, Timestamp (ts + 1)), iworld)
 		
 currentDate :: ReadOnlyShared Date
-currentDate = createReadOnlySDSPredictable read
+currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
 where
 	read iworld
 		# (DateTime date time, iworld)	= 'Util'.currentDateTime iworld
@@ -109,22 +111,35 @@ where
 		# (Clock seed, world)	= clock world
 		= (hd (genRandInt seed), {IWorld|iworld & world = world})
 
+EXTERNAL_FILE_POLLING_RATE :== 10
+
 externalFile :: !FilePath -> Shared String
-externalFile path = createChangeOnWriteSDS "externalFile" path read write
+externalFile path = createPollingSDS "externalFile" path read write
 where
-	read iworld=:{world}
-		# (ok,file,world)	= fopen path FReadData world
-		| not ok			= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
-		# (res,file)		= readAll file
-		# (ok,world)		= fclose file world
-		| not ok			= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
-		| isError res		= (Error (toString (fromError res)) ,{IWorld|iworld & world = world})
+	read iworld
+		# (Timestamp ts, iworld)	= 'Util'.currentTimestamp iworld
+		# (res, iworld)				= read` iworld
+		= (fmap (\r -> (r, Timestamp (ts + EXTERNAL_FILE_POLLING_RATE), checkF r)) res, iworld)
+	
+	read` iworld=:{world}
+		# (ok,file,world)			= fopen path FReadData iworld.world
+		| not ok					= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
+		# (res,file)				= readAll file
+		# (ok,world)				= fclose file world
+		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
+		| isError res				= (Error (toString (fromError res)) ,{IWorld|iworld & world = world})
 		= (Ok (fromOk res), {IWorld|iworld & world = world})
 		
+	checkF old iworld
+		# (res,iworld)= read` iworld
+		| isOk res && (fromOk res) <> old = (Changed, iworld)
+		# (Timestamp ts, iworld) = 'Util'.currentTimestamp iworld
+		= (CheckAgain (Timestamp (ts + EXTERNAL_FILE_POLLING_RATE)), iworld)
+		
 	write content iworld=:{world}
-		# (ok,file,world)	= fopen path FWriteText world
-		| not ok			= (Error (toString CannotOpen), {IWorld|iworld & world = world})
-		# file				= fwrites content file
-		# (ok,world)		= fclose file world
-		| not ok			= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
+		# (ok,file,world)			= fopen path FWriteText world
+		| not ok					= (Error (toString CannotOpen), {IWorld|iworld & world = world})
+		# file						= fwrites content file
+		# (ok,world)				= fclose file world
+		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
 		= (Ok Void, {IWorld|iworld & world = world})

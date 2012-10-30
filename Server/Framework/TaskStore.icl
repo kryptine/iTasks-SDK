@@ -21,7 +21,6 @@ derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSize
 
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"
-OUTDATED_INDEX			:== "outdated-index"
 SHARE_REGISTRATIONS		:== "share-registrations"
 
 meta_store t	= toString t +++ "-meta"
@@ -43,7 +42,14 @@ newInstanceId iworld
 			= (tid,iworld)
 		Nothing
 			# iworld = storeValue NS_TASK_INSTANCES INCREMENT 2 iworld //store the next value (2)
-			= (1,iworld) //return the first value (1)		
+			= (1,iworld) //return the first value (1)
+			
+maxInstanceNo :: !*IWorld -> (!InstanceNo, !*IWorld)
+maxInstanceNo iworld
+	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
+	= case mbNewTid of
+		Just tid	= (tid-1,iworld)
+		Nothing		= (0,iworld)
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 newDocumentId iworld=:{world,timestamp}
@@ -190,50 +196,7 @@ getTaskInstanceObservers instanceNo iworld = case loadTaskMeta instanceNo iworld
 	(_, iworld)					= ([], iworld)
 
 addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
-addOutdatedInstances [] iworld = iworld
-addOutdatedInstances outdated iworld
-	# (outdParents, iworld)	= mapSt (\(instanceNo,mbTimestamp) iworld -> appFst (map (\parent -> (parent,mbTimestamp))) (getTaskInstanceObservers instanceNo iworld)) outdated iworld
-	# iworld				= addOutdatedInstances (flatten outdParents) iworld
-	= updateOutdatedInstanceIndex (removeDup o ((++) outdated)) iworld
-
-remOutdatedInstance	:: !InstanceNo !*IWorld -> *IWorld
-remOutdatedInstance	rem iworld
-	= updateOutdatedInstanceIndex (filter (\(i,_) -> i <> rem)) iworld
-
-checkAndRemOutdatedInstance	:: !InstanceNo !*IWorld -> (Bool, !*IWorld)
-checkAndRemOutdatedInstance	check iworld
-	# (curTime, iworld)	= currentTimestamp iworld
-	# (outdated,iworld)	= checkOutdatedInstanceIndex (\outd -> not (isEmpty (filter (\(i,mbT) -> i == check && (isNothing mbT || (fromJust mbT) <= curTime)) outd))) iworld
-	| outdated	= (True, remOutdatedInstance check iworld)
-	| otherwise = (False, iworld)
-
-getOutdatedInstances :: !*IWorld -> (![InstanceNo], !*IWorld)
-getOutdatedInstances iworld
-	# (mbOutdated, iworld) = loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
-	= case mbOutdated of
-		Just outdated
-			# (curTime, world)	= time iworld.world
-			# iworld			= {iworld & world = world}
-			= ([instanceNo \\ (instanceNo, mbTimestamp) <- outdated | isNothing mbTimestamp || (fromJust mbTimestamp) <= curTime], iworld)
-		Nothing
-			= ([], iworld)
-			
-getMinOutdatedTimestamp :: !*IWorld -> (!Maybe Timestamp, !*IWorld)
-getMinOutdatedTimestamp iworld
-	# (mbOutdated, iworld) = load iworld
-	= case mbOutdated of
-		Just outdated = case map getTimestamp outdated of
-			[]							= (Nothing, iworld)
-			[fstTimestamp:timestamps]	= (Just (foldl min fstTimestamp timestamps), iworld)
-		Nothing
-			= (Nothing, iworld)
-where
-	load :: !*IWorld -> (!Maybe [(!InstanceNo, !Maybe Timestamp)], !*IWorld)
-	load iworld = loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
-	
-	getTimestamp :: !(!InstanceNo, !Maybe Timestamp) -> Timestamp
-	getTimestamp (_,Just timestamp)	= timestamp
-	getTimestamp _					= Timestamp 0
+addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
 
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 addShareRegistration shareId instanceNo iworld
@@ -293,17 +256,3 @@ updatePersistentInstanceIndex f iworld
 	# iworld			= storeValue NS_TASK_INSTANCES PERSISTENT_INDEX (f (fromMaybe [] index)) iworld
 	= iworld
 
-checkOutdatedInstanceIndex :: !([(!InstanceNo,!Maybe Timestamp)] -> Bool) !*IWorld -> (!Bool, !*IWorld)
-checkOutdatedInstanceIndex f iworld
-	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
-	= (f (fromMaybe [] index), iworld)
-		
-updateOutdatedInstanceIndex :: !([(!InstanceNo,!Maybe Timestamp)] -> [(!InstanceNo,!Maybe Timestamp)]) !*IWorld -> *IWorld
-updateOutdatedInstanceIndex f iworld
-	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
-	# iworld			= storeValue NS_TASK_INSTANCES OUTDATED_INDEX (sortBy (>) (removeDup (f (fromMaybe [] index)))) iworld
-	= iworld
-	
-instance < (Maybe a)
-where
-	(<) _ _ = False

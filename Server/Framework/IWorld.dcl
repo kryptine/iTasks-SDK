@@ -9,7 +9,7 @@ from Time				import :: Timestamp
 from TaskState			import :: TaskListEntry
 from JSON_NG			import :: JSONNode
 from StdFile			import class FileSystem		
-from SharedDataSource	import class registerSDSMsg, class reportSDSChange
+from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -26,15 +26,30 @@ from SharedDataSource	import class registerSDSMsg, class reportSDSChange
 					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
 					, localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
 					, readShares			:: ![String]								// The IDs of shares from which was read
-					, outdated				:: !Bool									// Flag that is set when an internal inconsistenty is detected 
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 					, uis					:: !Map SessionId (!Int,!UIDef)				// Previous ui versions to optimize output sent to clients
+					, workQueue				:: ![(!Work,!Maybe Timestamp)]
 					, world					:: !*World									// The outside world
 					}
 
 updateCurrentDateTime :: !*IWorld -> *IWorld
 
+queueWork			:: !(!Work, !Maybe Timestamp)	!*IWorld -> *IWorld
+dequeueWork			:: 								!*IWorld -> (!DequeueResult, !*IWorld)
+dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
+
+:: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
+
+:: Work	= Evaluate !InstanceNo
+		| TriggerSDSChange !BasicShareId
+		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
+
 instance FileSystem IWorld
 
-instance registerSDSMsg			InstanceNo	IWorld
-instance reportSDSChange		InstanceNo	IWorld
+instance registerSDSDependency		InstanceNo	IWorld
+instance registerSDSChangeDetection				IWorld
+instance reportSDSChange			InstanceNo	IWorld
+
+//Sync work queue to disk (Only used with CGI wrapper)
+saveWorkQueue :: !*IWorld -> *IWorld
+restoreWorkQueue :: !*IWorld -> *IWorld

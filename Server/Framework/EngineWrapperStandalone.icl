@@ -1,9 +1,9 @@
 implementation module EngineWrapperStandalone
 
-import StdFile, StdInt, StdList, StdChar, StdBool, StdString
+import StdFile, StdInt, StdList, StdChar, StdBool, StdString, StdFunc
 import TCPIP, tcp, HTTP, HttpServer, CommandLine, Func, Util
 
-import Engine, IWorld, TaskEval
+import Engine, IWorld, TaskEval, TaskStore
 
 //Wrapper instance for TCP channels with IWorld
 instance ChannelEnv IWorld
@@ -38,8 +38,11 @@ startEngine publishable world
 	| isNothing mbSDKPath	= show sdkpatherror world
 	//Normal execution
 	# world					= show (running port) world
-	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug, HTTPServerOptBackgroundProcess updateOutdated]
+	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug, HTTPServerOptBackgroundProcess doWork]
 	# iworld				= initIWorld (fromJust mbSDKPath) world
+	// mark all instance as outdated initially
+	# (maxNo,iworld)		= maxInstanceNo iworld
+	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
 	# iworld				= http_startServer options (engine publishable) iworld
 	= finalizeIWorld iworld
 where
@@ -98,17 +101,31 @@ where
 		| n == key	= Just v
 					= stringOpt key [v:r]
 					
-	updateOutdated :: !*IWorld -> (!Maybe Timeout, !*IWorld)
-	updateOutdated iworld
+	doWork :: !*IWorld -> (!Maybe Timeout, !*IWorld)
+	doWork iworld
 		# iworld			= updateCurrentDateTime iworld
-		# (mbMin, iworld)	= refreshAllOutdatedInstances iworld
-		# (curTime, iworld)	= currentTimestamp iworld
-		= (fmap (toTimeout curTime) mbMin, iworld)
-	where
-		toTimeout (Timestamp curTime) (Timestamp nextRefresh)
-			# delta = nextRefresh - curTime
-			| delta < 0					= 0
-			| delta > MAX_TIMEOUT/1000	= MAX_TIMEOUT
-			| otherwise					= delta*1000
-			
+		# (mbWork, iworld)	= dequeueWork iworld
+		= case mbWork of
+			Empty
+				= (Nothing, iworld)
+			Work work
+				# iworld = case work of
+					(Evaluate instanceNo)		= refreshInstance instanceNo iworld
+					(TriggerSDSChange sdsId)	= addOutdatedOnShareChange sdsId (const True) iworld
+					(CheckSDS sdsId hash checkF)
+						# (checkRes,iworld)		= checkF iworld
+						= case checkRes of
+							Changed				= addOutdatedOnShareChange sdsId (const True) iworld
+							(CheckAgain time)	= queueWork (CheckSDS sdsId hash checkF, Just time) iworld
+				= (Just 0, iworld) // give http server the chance to handle request
+			WorkAt time
+				# (curTime, iworld) = currentTimestamp iworld
+				= (Just (toTimeout curTime time), iworld)
+				
+	toTimeout (Timestamp curTime) (Timestamp nextRefresh)
+		# delta = nextRefresh - curTime
+		| delta < 0					= 0
+		| delta > MAX_TIMEOUT/1000	= MAX_TIMEOUT
+		| otherwise					= delta*1000
+	
 MAX_TIMEOUT :== 86400000 // one day

@@ -12,6 +12,7 @@ from SharedDataSource	import :: BasicShareId
 
 newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
 newInstanceId			:: !*IWorld -> (!InstanceNo, !*IWorld)
+maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
 storeTaskInstance		:: !TaskInstance !*IWorld -> *IWorld
@@ -54,12 +55,6 @@ getTaskInstanceObservers :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
 
 //Keep track of outdated task instances that need to be refreshed
 addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
-remOutdatedInstance			:: !InstanceNo !*IWorld -> *IWorld
-//check and remove if outdated (timed entries may remain)
-checkAndRemOutdatedInstance	:: !InstanceNo !*IWorld -> (Bool, !*IWorld)
-
-getOutdatedInstances		:: !*IWorld -> (![InstanceNo], !*IWorld)
-getMinOutdatedTimestamp		:: !*IWorld -> (!Maybe Timestamp, !*IWorld)
 
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
@@ -70,6 +65,5 @@ storeCurUI				:: !SessionId !Int !UIDef !*IWorld -> *IWorld
 loadPrevUI				:: !SessionId !Int !*IWorld -> (!Maybe UIDef, !*IWorld)
 
 //Sync previous user interfaces to disk (Only used with CGI wrapper)
-saveUICache				:: !*IWorld -> *IWorld
-restoreUICache			:: !*IWorld -> *IWorld
-
+saveUICache					:: !*IWorld -> *IWorld
+restoreUICache				:: !*IWorld -> *IWorld

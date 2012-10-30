@@ -13,13 +13,15 @@ where
 		= appSnd finalizeCGIIWorld (f req (initCGIIWorld path world))
 		
 	initCGIIWorld path world
-		//Load previous session user interfaces from disk
+		//Load previous session user interfaces & outdated instancesc information from disk
 		//(normally these are only kept in-memory)
-		# iworld			= initIWorld path world
-		# iworld			= restoreUICache iworld
+		# iworld = initIWorld path world
+		# iworld = restoreUICache iworld
+		# iworld = restoreWorkQueue iworld
 		= iworld
 
 	finalizeCGIIWorld iworld
 		//Store the session user interfaces
 		# iworld = saveUICache iworld
+		# iworld = saveWorkQueue iworld
 		= finalizeIWorld iworld

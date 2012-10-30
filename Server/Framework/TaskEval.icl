@@ -32,7 +32,6 @@ createSessionInstance task event iworld=:{currentDateTime}
 	# ((meta,reduct,result,_), iworld)
 		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task noMeta {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# (mbRes,iworld)		= evalAndStoreInstance True event (meta,reduct,result) iworld
-	# iworld				= refreshOutdatedInstances meta.observes iworld 
 	= case loadSessionInstance sessionId iworld of
 		(Ok (meta,reduct,result),iworld)
 			# (mbRes,iworld)	= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
@@ -58,7 +57,7 @@ evalSessionInstance sessionId event iworld
 		Error e				= (Error e, iworld)
 		Ok (meta,reduct,result)
 			//Refresh affected tasks
-			# iworld				= refreshOutdatedInstances meta.observes iworld
+			# iworld				= refreshInstancesIfOutdated meta.observes iworld
 			# (mbRes,iworld)		= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
 			= case mbRes of
 				Ok result			= (Ok (result, meta.TIMeta.instanceNo, sessionId), iworld)
@@ -97,7 +96,6 @@ evalAndStoreInstance isSession event (meta=:{TIMeta|instanceNo,parent,worker=Jus
 	# iworld					= {iworld & currentInstance = instanceNo, currentUser = worker, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 
 	//Clear the instance's registrations for share changes
 	# iworld					= clearShareRegistrations instanceNo iworld
-	# iworld					= remOutdatedInstance instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (result,iworld)			= eval event repAs tree iworld
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
@@ -115,9 +113,9 @@ evalAndStoreInstance isSession event (meta=:{TIMeta|instanceNo,parent,worker=Jus
 	//Store the instance
 	# iworld					= storeTaskInstance inst iworld	
 	//If the result has a new value, mark the parent & observing processes as outdated
+	# iworld					= addOutdatedInstances [(i, Nothing) \\ i <- meta.observedBy] iworld
 	| parent > 0 && isChanged val result
-		# iworld				= addOutdatedInstances [(parent, Nothing)] iworld
-		# iworld				= addOutdatedInstances [(i, Nothing) \\ i <- meta.observedBy] iworld
+		# iworld = addOutdatedInstances [(parent, Nothing)] iworld
 		= (Ok result, iworld)
 	| otherwise
 		= (Ok result, iworld)
@@ -146,31 +144,7 @@ evalAndStoreInstance _ _ (_,_,TIException e msg) iworld
 	= (Ok (ExceptionResult e msg), iworld)
 evalAndStoreInstance _ _ _ iworld	
 	= (Ok (exception "Could not unpack instance state"), iworld)
-
-//Evaluate given tasks if marked as outdated in the task pool
-refreshOutdatedInstances :: ![InstanceNo] !*IWorld -> *IWorld
-refreshOutdatedInstances [] iworld = iworld
-refreshOutdatedInstances instances iworld = seqSt refresh instances iworld
-where
-	refresh instanceNo iworld
-		# (outdChildren, iworld)	= getTaskInstanceObserved instanceNo iworld
-		# iworld					= refreshOutdatedInstances outdChildren iworld
-		# (outdated, iworld)		= checkAndRemOutdatedInstance instanceNo iworld
-		| outdated					= refreshInstance instanceNo iworld
-		| otherwise					= iworld
-
-//Evaluate all tasks marked as outdated in the task pool									
-refreshAllOutdatedInstances :: !*IWorld -> (!Maybe Timestamp, !*IWorld)
-refreshAllOutdatedInstances iworld
-	# (outdated, iworld) = getOutdatedInstances iworld
-	# iworld = refresh outdated [] iworld
-	= getMinOutdatedTimestamp iworld
-where
-	refresh [] _ iworld = iworld
-	refresh [outd:outds] done iworld
-		| isMember outd done	= iworld
-								= refresh outds [outd:done] (refreshInstance outd iworld)
-															
+											
 //Evaluate a task instance without any events
 refreshInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshInstance instanceNo iworld=:{currentDateTime}
@@ -179,6 +153,17 @@ refreshInstance instanceNo iworld=:{currentDateTime}
 		(Ok (meta,reduct,result),iworld)
 			# (_,iworld)	= evalAndStoreInstance False RefreshEvent (meta,reduct,result) iworld
 			= iworld
+
+//Evaluate given tasks if marked as outdated in the task pool
+refreshInstancesIfOutdated :: ![InstanceNo] !*IWorld -> *IWorld
+refreshInstancesIfOutdated instances iworld
+	# iworld		= seqSt refreshChildren instances iworld
+	# (work,iworld)	= dequeueWorkFilter (\w -> case w of (Evaluate instanceNo) = isMember instanceNo instances; _ = False) iworld
+	= seqSt refreshInstance [instanceNo \\ Evaluate instanceNo <- work] iworld
+where
+	refreshChildren instanceNo iworld
+		# (children, iworld) = getTaskInstanceObserved instanceNo iworld
+		= refreshInstancesIfOutdated children iworld
 
 refreshSessionInstance :: !SessionId !*IWorld -> *IWorld
 refreshSessionInstance sessionId iworld
