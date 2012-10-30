@@ -25,6 +25,9 @@ import iTasks, Text
 import qualified Map
 import projectManager
 
+derive class iTask IDE_State
+derive class iTask FileError
+
 // Global Settings
 
 :: IDE_State =	{ project			:: !Maybe !(!String,!Project)
@@ -36,7 +39,6 @@ import projectManager
 				, currentEnvironment:: !Environment
 				, environments		:: ![Environment]
 				}
-derive class iTask IDE_State
 
 IDE_Store = sharedStore "IDE_State" init_IDE_State
 where
@@ -106,7 +108,7 @@ where
 	openOpenedFiles [f:fs]	=	launch (editor ideState f ts) ts >>| openOpenedFiles fs 
 
 	handleMenu state
-	=	[ OnAction (Action "File/Open") always (const (openFile2 ideState ts))
+	=	[ OnAction (Action "File/Open...") always (const (openFile2 ideState ts))
 		, OnAction (Action "File/Save All") (const (state.openedFiles <> [])) (const (saveAll state.openedFiles ideState))
 		] 
 		++
@@ -129,7 +131,7 @@ where
 		, OnAction (Action "Project/Project Options...") ifProject (const (changeOptions ideState))
 		]
 		++
-		[ OnAction (Action (cuurentEnvironment +++ "/Edit Current")) always (const (changeEnvironment ideState))
+		[ OnAction (Action (currentEnvironment +++ "/Edit " +++ currentEnvName)) always (const (changeEnvironment ideState))
 		]
 		++ // temp fix to show effects
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
@@ -138,7 +140,8 @@ where
 
 		ifProject = const (projectName <> "")
 
-		cuurentEnvironment = "Environment " +++ state.currentEnvironment.environmentName
+		currentEnvName		= state.currentEnvironment.environmentName
+		currentEnvironment 	= "_Environment " +++ currentEnvName
 
 // project pane
 
@@ -445,10 +448,21 @@ selectFileInPath path
 						_ 			-> return (path,Nothing)
 where
 	select names
-		=				enterChoice path [] names
+		=				enterChoice ("File Selector",path) [] names
 		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
 						, OnAction ActionOk		hasValue (continue o getValue)
+						, OnAction ActionNew	always 	 (const (newFile))
 						]
+	newFile
+		=				enterInformation ("Create File",path) []
+		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
+						, OnAction ActionOk		hasValue (write o getValue)
+						]
+	write name
+		=				accWorld (writeFile (path </> name) "")
+		>>|				return (path,Just name)
+
+
 	continue ".." = selectFileInPath (takeDirectory path)
 	continue "."  = selectFileInPath path
 	continue name
