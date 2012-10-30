@@ -2,7 +2,7 @@ definition module projectManager
 
 import iTasks
 
-// from the windows Clean IDE
+// from the original windows Clean IDE, slightly modified
 import PmTypes, PmProject, PmParse
 
 derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, ModInfo, ABCLinkInfo
@@ -10,7 +10,7 @@ derive class iTask	ModEditOptions, EditWdOptions, EditOptions, OptionalWindowPos
 derive class iTask	[!!], InfListItem, ListTypes, Output, LinkMethod, ProjectDynamicInfo, StaticLibInfo, CodeGenOptions 
 derive class iTask	UndefModule, UndefSymbol 
 
-// accessing project files:
+// Synonyms to make clearer what kind of string is expected 
 
 :: Identifier	:== String		// Clean Identifier
 :: PathName		:== String		// Path name leading to a directory
@@ -18,6 +18,8 @@ derive class iTask	UndefModule, UndefSymbol
 :: CleanPath	:== PathName	// Directory where clean application / batchbuild is located
 :: ModuleName 	:== String		// Name of module, without .dcl or .dcl extension
 :: FileName		:== String		// Name of file, with extension
+
+// accessing project files:
 
 initProject 	:: !ModuleName 						-> Project						
 readProjectFile	:: !ProjectPath !CleanPath 			-> Task (Project, Bool, String)
@@ -58,11 +60,19 @@ fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions)
 
 derive class iTask 	IdentifierPositionList
 
+:: SearchOptions 	:== (SearchWhat, SearchWhere)
+:: SearchWhat 		= 	SearchIdentifier | SearchDefinition | SearchImplementation
+:: SearchWhere		=	SearchLocal | SearchImports | SearchPaths | SearchProject
+
+searchInFile 	:: !SearchWhat !Identifier !(!PathName,!FileName)  -> Task !(![String],!IdentifierPositionList)
+searchInImports :: !SearchWhat !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+
 searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
-searchFilesInPaths :: ![FileName] ![PathName] -> Task ![(!PathName,!FileName)]
-searchIdentifiersInIclFile2 :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
-searchIdentifiersInIclFile 	:: !Identifier !PathName !FileName  -> Task !IdentifierPositionList
-//searchIdentifierInImports 	:: !Identifier !PathName !FileName ![PathName] -> Task ![(!PathName,!FileName,!IdentifierPositionList)]
+//searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+//searchFilesInPaths :: ![FileName] ![PathName] -> Task ![(!PathName,!FileName)]
+//searchIdentifiersInIclFile2 :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
+//searchIdentifiersInIclFile 	:: !Identifier !PathName !FileName  -> Task !IdentifierPositionList
+
 
 
 			   

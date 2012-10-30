@@ -155,29 +155,26 @@ saveAll [name:names] ideState
 
 // search department
 
-:: SearchOptions 	:== (SearchWhat, SearchWhere)
-:: SearchWhat 		= 	SearchIdentifier | SearchDefinition | SearchImplementation
-:: SearchWhere		=	SearchLocal | SearchImports | SearchPaths | SearchProject
-
 derive class iTask SearchWhat, SearchWhere
 
 search ideState ts  
 	= 				get ideState
-	>>= \state ->	((updateInformation (Title "Search identifier in module") [] ("","") <<@ Window
-//					-&&-
-//					updateInformation Void [] (SearchIdentifier,SearchLocal)
-					)
-	>>*				[ OnAction ActionCancel   always (const (return Void))
-					, OnAction ActionContinue hasValue (searchIdent state o getValue)
-					])
+	>>= \state ->	searching state "" SearchIdentifier ([],[]) <<@ Window
+	
 where
-	searchIdent state (identifier,file)
-		= 	
-						searchIdentifierInImports identifier (projectPath, file) environment
-		>>=	\found	->	viewInformation ("Found:",identifier) [] found <<@ Window
-//		>>=	\found	->	viewInformation ("Found:",identifier) [] (found,length (snd found)) <<@ Window
-//		>>=	\found	->	viewInformation ("Found:",identifier) [ViewWith (\(l,v) -> foldl (+++) "" l)] found <<@ Window
-		>>|				search ideState ts
+	searching state identifier what found
+		=			(viewInformation (length (snd found) +++> " modules searched," +++> length (fst found) +++> " contained " +++> identifier) [] found
+					||-
+					updateInformation (Title ("Find: " +++ identifier)) [] (identifier,what)) 
+		>>*			[ OnAction ActionCancel   always (const (return Void))
+					, OnAction ActionContinue hasValue (performSearch o getValue)
+					]
+	where
+		performSearch (identifier,what)
+			= 	
+					//		searchIdentifierInImports identifier (projectPath, fst (fromJust state.project) +++ ".icl") environment
+							searchInImports what      identifier (projectPath, fst (fromJust state.project) +++ ".icl") environment
+			>>=	\found	->	searching state identifier what found
 
 // setting project... 
 
