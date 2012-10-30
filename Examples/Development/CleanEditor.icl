@@ -48,26 +48,32 @@ where
 			, openedFiles		= []
 			, recentFiles 		= []
 			, recentProjects	= []
-			, currentEnvironment= initEnvironment
-			, environments		= []
+			, currentEnvironment= initStdEnv
+			, environments		= [initStdEnv,initIDEenv]
 			}
-initEnvironment
-	=	{ environmentName		= "StdEnv"	
-		, paths					= [stdenv]
-		, toolsOption			= initTools
-		}
-initTools 	
-	= 	{ compiler				= compilerPath +++ "CleanCompiler.exe : -h 64M : -dynamics -generics"
-		, codeGenerator			= compilerPath +++ "CodeGenerator.exe"
-		, staticLinker			= compilerPath +++ "StaticLinker.exe : -h 64M"
-		, dynamicLinker			= compilerPath +++ "DynamicLinker.exe"
-		, versionOfAbcCode		= 920
-		, runOn64BitProcessor	= False
-		}
+	initIDEenv
+		=	{ environmentName		= "IDE environment"	
+			, paths					= environment
+			, toolsOption			= initTools
+			}
+	initStdEnv
+		=	{ environmentName		= "StdEnv"	
+			, paths					= [stdenv]
+			, toolsOption			= initTools
+			}
+	initTools 	
+		= 	{ compiler				= compilerPath +++ "CleanCompiler.exe : -h 64M : -dynamics -generics"
+			, codeGenerator			= compilerPath +++ "CodeGenerator.exe"
+			, staticLinker			= compilerPath +++ "StaticLinker.exe : -h 64M"
+			, dynamicLinker			= compilerPath +++ "DynamicLinker.exe"
+			, versionOfAbcCode		= 920
+			, runOn64BitProcessor	= False
+			}
 // 
 
 Start :: *World -> *World
 Start world = startEngine ide world 
+//Start world = startEngine test world 
 				
 ide :: Task Void
 ide = 	parallel Void //(Title "Clean IDE") 	
@@ -100,7 +106,7 @@ where
 	openOpenedFiles [f:fs]	=	launch (editor ideState f ts) ts >>| openOpenedFiles fs 
 
 	handleMenu state
-	=	[ OnAction (Action "File/Open") always (const (openFile ideState ts))
+	=	[ OnAction (Action "File/Open") always (const (openFile2 ideState ts))
 		, OnAction (Action "File/Save All") (const (state.openedFiles <> [])) (const (saveAll state.openedFiles ideState))
 		] 
 		++
@@ -132,7 +138,7 @@ where
 
 		ifProject = const (projectName <> "")
 
-		cuurentEnvironment = "ProjEnvironment " +++ state.currentEnvironment.environmentName
+		cuurentEnvironment = "Environment " +++ state.currentEnvironment.environmentName
 
 // project pane
 
@@ -152,6 +158,14 @@ messages ideState ts
 // handling top menu commands
 
 // open file...	  
+
+openFile2 :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
+openFile2 ideState ts
+	=				get ideState
+	>>= \state ->	selectFileInPath state.projectPath <<@ Window
+	>>= \(path,r)-> if (isNothing r)
+						(return Void)
+						(openFileAndEdit ideState (fromJust r) ts)
 
 openFile :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 openFile ideState ts
@@ -414,6 +428,43 @@ where
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
  						>>| showReplace cmnd
+//
+import File
+import Directory
+derive class iTask MaybeError, FileInfo, Tm
+
+test = selectFileInPath projectPath >>= viewInformation "result" []
+
+// file selector
+
+selectFileInPath :: !PathName -> Task !(PathName,Maybe !FileName)
+selectFileInPath path
+	= 				accWorld (readDirectory path)
+	>>= \content -> case content of
+						Ok names 	-> select names
+						_ 			-> return (path,Nothing)
+where
+	select names
+		=				enterChoice path [] names
+		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
+						, OnAction ActionOk		hasValue (continue o getValue)
+						]
+	continue ".." = selectFileInPath (takeDirectory path)
+	continue "."  = selectFileInPath path
+	continue name
+	| takeExtension name == "icl" 
+		= (return (path,Just name))
+	| takeExtension name == "dcl"
+		= (return (path,Just name))
+	| otherwise		
+		=				accWorld (getFileInfo (path </> name))
+		>>= \content ->	case content of
+							Ok info -> if info.directory
+								(selectFileInPath (path </> name))
+								(return (path,Just name))
+							_		-> selectFileInPath path
+
+
 
 //* utility functions
 
