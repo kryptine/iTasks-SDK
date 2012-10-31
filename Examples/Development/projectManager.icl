@@ -175,8 +175,8 @@ searchInFile SearchDefinition inImports identifier (path, moduleName)
 	= 					accWorld (accFiles (FindDefinitionInFile inImports [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".dcl") (/*init */(StrictListToList list)),pos)
 
-searchIdentifiersInIclFile2 :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
-searchIdentifiersInIclFile2 identifier path moduleName 
+searchIdentifiersInIclFile :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
+searchIdentifiersInIclFile identifier path moduleName 
 	= 					accWorld (accFiles (FindIdentifiersInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
 
@@ -221,7 +221,7 @@ searchIdentifierInImports identifier path_modulename environment = search [path_
 where
 	search [] searched found 	= return (found,searched)								
 	search [(path,modulename):rest] searched found 
-		=					searchIdentifiersInIclFile2 identifier path modulename
+		=					searchIdentifiersInIclFile identifier path modulename
 		>>= \(new,pos) -> 	let (addedImports,nsearched,nfound) = calc new pos rest searched found in
 							if (isEmpty addedImports)
 								(search rest nsearched nfound) 

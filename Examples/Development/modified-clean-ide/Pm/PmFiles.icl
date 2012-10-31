@@ -3,7 +3,7 @@ implementation module PmFiles
 //	File I/O routines for the project.
 
 import StdArray, StdFunc, StdInt
-import UtilNewlinesFile, UtilOptions, UtilStrictLists
+import UtilNewlinesFile, UtilStrictLists
 import PmProject
 import UtilDate
 from PmPath import convert_path_separators,convert_exec_path_separators_and_extension

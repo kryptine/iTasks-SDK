@@ -8,7 +8,7 @@ from UtilDate import NoDate, :: DATE
 import UtilNewlinesFile
 import PmTypes
 import Platform
-import UtilOptions, PmFiles
+import PmFiles
 
 ::	Def_and_Imp				:== Bool;
 DclMod					:== True;
