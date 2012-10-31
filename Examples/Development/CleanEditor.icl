@@ -7,8 +7,8 @@ Status: very drafty
 */
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 idePath			:== "iTasks-SDK\\Examples\\Development\\"
 projectPath		:== cleanPath +++ idePath
@@ -30,28 +30,30 @@ derive class iTask FileError
 
 // Global Settings
 
-:: IDE_State =	{ project			:: !Maybe !(!String,!Project)
-				, projectPath		:: !String
-				, cleanPath			:: !String
-				, openedFiles		:: ![String]
-				, recentFiles		:: ![String]
-				, recentProjects	:: ![String]
-				, currentEnvironment:: !Environment
-				, environments		:: ![Environment]
+:: IDE_State =	{ projectName		:: !String			// name of the project, empty string indicates no project set
+				, projectPath		:: !String			// path where project is located
+				, project			:: !Project			// settings will passed to call of BatchBuild, the batch version of the compiler 
+				, cleanPath			:: !String			// path whare Clean compiler and BatchBuild is located
+				, openedFiles		:: ![String]		// files currently opened in IDE
+				, recentFiles		:: ![String]		// recently opened files
+				, recentProjects	:: ![String]		// recently opened projects
+				, idx				:: !Int				// index in target
+				, envTargets		:: ![Target]		// targets are environments
 				}
 
 IDE_Store = sharedStore "IDE_State" init_IDE_State
 where
 	init_IDE_State :: IDE_State			
 	init_IDE_State
-		= 	{ project			= Nothing 
+		= 	{ projectName		= ""
 			, projectPath 		= projectPath
+			, project			= initProject "" 
 			, cleanPath			= cleanPath
 			, openedFiles		= []
 			, recentFiles 		= []
 			, recentProjects	= []
-			, currentEnvironment= initStdEnv
-			, environments		= [initStdEnv,initIDEenv]
+			, idx				= 0
+			, envTargets		= [initTarget]
 			}
 	initIDEenv
 		=	{ environmentName		= "IDE environment"	
@@ -93,7 +95,7 @@ where
 topMenu :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 topMenu ideState ts 
 	= 				get ideState												// new session, first recover previous screen
-	>>= \state ->	openLastProject state.project 
+	>>= \state ->	openLastProject state.projectName  
 	>>|				openOpenedFiles state.openedFiles 
 	>>|				forever (				(get ideState 
 							>>= \state -> 	(actionTask >>*	handleMenu state))
@@ -101,8 +103,8 @@ topMenu ideState ts
 											(watch ideState @ const Void)		// no effect ???
 							) 
 where
-	openLastProject Nothing 			  = return Void
-	openLastProject (Just (name,project)) = openProject ideState name
+	openLastProject "" 	= return Void
+	openLastProject name	= openProject ideState name
 
 	openOpenedFiles [] 		=	return Void
 	openOpenedFiles [f:fs]	=	launch (editor ideState f ts) ts >>| openOpenedFiles fs 
@@ -131,17 +133,21 @@ where
 		, OnAction (Action "Project/Project Options...") ifProject (const (changeOptions ideState))
 		]
 		++
-		[ OnAction (Action (currentEnvironment +++ "/Edit " +++ currentEnvName)) always (const (changeEnvironment ideState))
+		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName)) always (const (editEnvironment ideState))
+		, OnAction (Action (selectedEnvironment +++ "/Import...")) always (const (importEnvironment ideState))
+		:[ OnAction (Action (selectedEnvironment +++ "/Select/" +++ target.target_name)) always (const (selectEnvironment ideState i)) 
+		 \\ target <- state.envTargets & i <- [0..]
+		 ]
 		]
 		++ // temp fix to show effects
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	where
-		projectName = if (isNothing state.project) "" (fst (fromJust state.project)) 
+		projectName = state.projectName 
 
 		ifProject = const (projectName <> "")
 
-		currentEnvName		= state.currentEnvironment.environmentName
-		currentEnvironment 	= "_Environment " +++ currentEnvName
+		currentEnvName			= currEnvName state
+		selectedEnvironment 	= "_Environment " +++ currentEnvName
 
 // project pane
 
@@ -165,7 +171,7 @@ messages ideState ts
 openFile2 :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 openFile2 ideState ts
 	=				get ideState
-	>>= \state ->	selectFileInPath state.projectPath <<@ Window
+	>>= \state ->	selectFileInPath state.projectPath (\_ -> True) <<@ Window
 	>>= \(path,r)-> if (isNothing r)
 						(return Void)
 						(openFileAndEdit ideState (fromJust r) ts)
@@ -218,7 +224,7 @@ where
 					] 
 	where
 		performSearch (identifier,what,whereSearch)
-			= 				searchTask what whereSearch identifier (projectPath, fst (fromJust state.project) +++ ".icl") environment
+			= 				searchTask what whereSearch identifier (projectPath, state.projectName +++ ".icl") environment
 			>>=	\found	->	searching state identifier what whereSearch found
 
 // setting project... 
@@ -233,14 +239,16 @@ newProject ideState
 storeProject :: (Shared IDE_State) Project ModuleName -> Task Void
 storeProject ideState project projectName 
 	= 				get ideState
-	>>= \state ->	saveProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath project
+	>>= \state ->	saveProjectFile project (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \ok ->		if (not ok)
 						(viewInformation "Write Error..." [] "Could not store project file !" 
 						@ const Void
 						)
-						(update (\state -> { state	& project 			= Just (name,project) 
-										   			, recentProjects 	= removeDup [name:state.recentProjects]
-										   			}) ideState
+						(update (\state -> { state	& projectName		= name
+													, project			= project
+													, recentProjects 	= removeDup [name:state.recentProjects]
+											}
+						) ideState
 						@ const Void
 						)
 where
@@ -254,7 +262,8 @@ openProject ideState projectName
 										(viewInformation "Read Error..." [] message <<@ Window
 										@ const Void
 										)
-										(update (\state -> { state	& project 			= Just (name,project)
+										(update (\state -> { state	& projectName		= name
+																	, project			= project
 																	, recentProjects 	= removeDup [name:state.recentProjects]
 															}
 										) ideState
@@ -269,8 +278,7 @@ changeOptions ideState
 where
 	changeOptions`
 		=				get ideState
-		>>= \state ->	let (name,project) = fromJust state.project in
-							changeOptions`` name project (fromProject project)
+		>>= \state ->	changeOptions`` state.projectName state.project (fromProject state.project)
 		
 	changeOptions``	name project (rto,diagn,prof,co)	
 		=				runTimeOptions rto
@@ -293,19 +301,47 @@ where
 	
 // editing the evironment
 
-changeEnvironment :: (Shared IDE_State) -> Task Void
-changeEnvironment ideState
-	= changeEnvironment` <<@ Window
+currEnvName state 				= 	(getCurrEnv state).target_name
+getCurrEnv  state   			= 	state.envTargets!!state.idx
+updateEnv idx target state		= 	{ state & idx				= idx
+											, envTargets 		= updateAt idx target state.envTargets
+											, project.prjpaths 	= (state.envTargets!!idx).target_path 
+											, project.target	= (state.envTargets!!idx).target_name
+									}
+selectEnv idx state				= 	{ state & idx				= idx
+											, project.prjpaths 	= (state.envTargets!!idx).target_path 
+											, project.target	= (state.envTargets!!idx).target_name
+									}
+
+editEnvironment :: (Shared IDE_State) -> Task Void
+editEnvironment ideState
+	= editEnvironment` <<@ Window
 where
-	changeEnvironment`
+	editEnvironment`
 		=				get ideState
-		>>= \state ->	updateInformation (Title ("Edit " +++ state.currentEnvironment.environmentName))[] state.currentEnvironment
+		>>= \state ->	updateInformation (Title ("Edit " +++ currEnvName state))[] (fromTarget (getCurrEnv state))
 		>>*				[ OnAction ActionCancel   always  (const (return Void))
-						, OnAction (Action "Set") hasValue (updateEnv o getValue) 
+						, OnAction (Action "Set") hasValue (updateCurrEnv o getValue) 
 						]
-	updateEnv env = update (\state -> {state & currentEnvironment = env}) ideState @ const Void
+	updateCurrEnv env = update (\state -> updateEnv state.idx (toTarget env) state) ideState @ const Void
 	
-						
+importEnvironment :: (Shared IDE_State) -> Task Void					
+importEnvironment ideState						
+	=					get ideState
+	>>= \state ->		selectFileInPath state.projectPath (\name -> takeExtension name == "env" || takeExtension name == "") <<@ Window
+	>>= \(path,mbEnv)-> if (isNothing mbEnv)
+						(showError "Could not read environment file" path)
+						(					 readEnvironmentFile (path </> (fromJust mbEnv)) 
+							>>=  \ntargets -> update (\state -> {state & envTargets = state.envTargets ++ ntargets}) ideState
+											 @ const Void)
+
+selectEnvironment :: (Shared IDE_State) Int -> Task Void					
+selectEnvironment ideState i
+	=					get ideState
+	>>= \state ->		update (selectEnv i) ideState
+	>>|					storeProject ideState state.project state.projectName
+	 					@ const Void
+
 // compile project... 
 
 compile :: ModuleName (Shared IDE_State) -> Task Void
@@ -325,7 +361,7 @@ where
 					(let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
 						>>|
-						callProcess "Clean Compiler" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
+						callProcess "Clean Compiler - BatchBuild" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
 						-&&-
 						//View the messages while the compiler is building...
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
@@ -356,8 +392,7 @@ where
 	where
 		editor`` copy 
 			=  				(parallel (Title fileName)	
-								[ (Embedded, showStatistics copy)
-								, (Embedded, editFile fileName copy)
+								[ (Embedded, editFile fileName copy)
 								, (Embedded, replace initReplace copy)
 								]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
 			>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditFile ideState fileName))
@@ -395,25 +430,6 @@ where
 	toV text 			= Note text
 	fromV _ (Note text) = text
 
-showStatistics sharedFile _  = noStat 
-where
-	noStat :: Task Void
-	noStat	=			actionTask
- 				>>*		[ OnAction (Action "File/Statistics/Show") always (const showStat)
- 						]
-	showStat :: Task Void 
-	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
- 				>>*		[ OnAction (Action "File/Statistics/Hide") always (const noStat)
- 						]
- 	where
-	 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
-		where
-			lengthLines ""   = 0
-			lengthLines text = length (split "\n" text)
-		
-			lengthWords "" 	 = 0
-			lengthWords text = length (split " " (replaceSubString "\n" " " text))
-
 replace cmnd sharedFile _ = noReplace cmnd 
 where
 	noReplace :: Replace -> Task Void 
@@ -436,19 +452,19 @@ import File
 import Directory
 derive class iTask MaybeError, FileInfo, Tm
 
-test = selectFileInPath projectPath >>= viewInformation "result" []
+// iTask utilities of general nature
 
-// file selector
+// file selector...
 
-selectFileInPath :: !PathName -> Task !(PathName,Maybe !FileName)
-selectFileInPath path
+selectFileInPath :: !PathName !(!FileName -> Bool) -> Task !(PathName,Maybe !FileName)
+selectFileInPath path pred
 	= 				accWorld (readDirectory path)
 	>>= \content -> case content of
 						Ok names 	-> select names
 						_ 			-> return (path,Nothing)
 where
 	select names
-		=				enterChoice ("File Selector",path) [] names
+		=				enterChoice ("File Selector",path) [] (filter pred names)
 		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
 						, OnAction ActionOk		hasValue (continue o getValue)
 						, OnAction ActionNew	always 	 (const (newFile))
@@ -463,8 +479,8 @@ where
 		>>|				return (path,Just name)
 
 
-	continue ".." = selectFileInPath (takeDirectory path)
-	continue "."  = selectFileInPath path
+	continue ".." = selectFileInPath (takeDirectory path) pred
+	continue "."  = selectFileInPath path pred
 	continue name
 	| takeExtension name == "icl" 
 		= (return (path,Just name))
@@ -474,22 +490,20 @@ where
 		=				accWorld (getFileInfo (path </> name))
 		>>= \content ->	case content of
 							Ok info -> if info.directory
-								(selectFileInPath (path </> name))
+								(selectFileInPath (path </> name) pred)
 								(return (path,Just name))
-							_		-> selectFileInPath path
+							_		-> selectFileInPath path pred
 
+showError :: String a -> Task Void | iTask a
+showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return Void) //<<@ Window
 
-
-//* utility functions
+//* simple utility functions
 
 actionTask :: Task Void
 actionTask = viewInformation Void [] Void
 
 launch task ts = appendTask Embedded (const task) ts @ const Void
 
-showError msg continue
-	=	viewInformation ("Error","") [] msg <<@ Window
-		>>| continue
 
 // tiny util
 

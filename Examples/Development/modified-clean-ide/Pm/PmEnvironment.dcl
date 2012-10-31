@@ -28,7 +28,7 @@ EnvsFileName :== "IDEEnvs"
 	| CompileAsync !Int
 	| CompilePers
 	
-getEnvironments :: !String !String !*env -> *([Target],*env) | FileSystem, FileEnv env
+//getEnvironments :: !String !String !*env -> *([Target],*env) | FileSystem, FileEnv env
 openEnvironments	:: !String !String !*env -> *([Target],*env) | FileEnv env
 saveEnvironments	:: !String ![Target] !*env -> *(Bool,*env) | FileEnv env
 

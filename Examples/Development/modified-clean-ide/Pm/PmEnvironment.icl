@@ -1,7 +1,6 @@
 implementation module PmEnvironment
 
 import StdArray, StdFunc, StdList
-import UtilIO
 import UtilOptions
 import UtilStrictLists
 import PmPath
@@ -9,7 +8,10 @@ import StdMaybe
 import Platform
 import PmTypes
 
+import Directory, StdBool, File, Error
+
 EnvsFileName :== "IDEEnvs"
+
 
 emptyTargets
 	= [t_StdEnv20,t_StdIO20]
@@ -39,7 +41,34 @@ t_StdEnv
 	= CompileSync
 	| CompileAsync !Int
 	| CompilePers
-import Directory, StdBool
+
+// getEnvironment adjusted to new platform independent Directory etup
+
+getEnvironments :: !String !String !*World -> *([Target],*World) //| FileSystem, FileEnv env
+getEnvironments stup envpath env
+//	# ((ok,path),env)		= pd_StringToPath envpath env
+	# (mbEntries,env)		= readDirectory envpath env
+//	| err <> NoDirError		= (map (fixAppPaths stup) emptyTargets,env)
+	| isError mbEntries		= (map (fixAppPaths stup) emptyTargets,env)
+	# (Ok entries)			= mbEntries
+	# eentries				= [fileName \\ fileName <- entries | size fileName > 4 && fileName%(size fileName - 4,size fileName) == ".env"]
+//	# eentries				= [fileName%(size fileName - 4,size fileName) \\ {fileName} <- entries ]//| size fileName > 4 && fileName%(size fileName - 4,size fileName) == ".env"]
+	| isEmpty eentries		= openEnvironments stup (MakeFullPathname envpath EnvsFileName) env
+	# (ts,env)				= seqSt eentries env
+	= case ts of
+		[]					-> (map (fixAppPaths stup) emptyTargets,env)
+		ts					-> (map (fixAppPaths stup) ts,env)
+where
+	seqSt [] e = ([],e)
+	seqSt [e:es] env
+		# ((t,ok,err),env)	= openEnvironment (MakeFullPathname envpath e) env
+		# env = case ok of
+				True -> env
+//				_ -> trace_n` ("Error",err) env
+				_ -> env
+		# (ts,env)			= seqSt es env
+		= (t++ts,env)
+/*
 //import dodebug
 getEnvironments :: !String !String !*env -> *([Target],*env) | FileSystem, FileEnv env
 getEnvironments stup envpath env
@@ -63,7 +92,7 @@ where
 				_ -> env
 		# (ts,env)			= seqSt es env
 		= (t++ts,env)
-
+*/
 openEnvironments :: !String !String !*env -> *([Target],*env) | FileEnv env
 openEnvironments stup envpath env
 //	# (stup,env)				= accFiles GetFullApplicationPath env
@@ -94,7 +123,8 @@ openEnvironment envpath env
 
 saveEnvironments :: !String ![Target] !*env -> *(Bool,*env) | FileEnv env
 saveEnvironments envpath targets env
-	# (stup,env)	= accFiles GetFullApplicationPath env
+	# stup			= envpath
+//	# (stup,env)	= accFiles GetFullApplicationPath env
 	# targets		= map (unfixAppPaths stup) targets
 	# (err,env)		= accFiles (saveEnvironments envpath targets) env
 	# ok			= isNothing err

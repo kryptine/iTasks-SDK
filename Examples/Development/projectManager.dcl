@@ -3,12 +3,13 @@ definition module projectManager
 import iTasks
 
 // from the original windows Clean IDE, slightly modified
-import PmTypes, PmProject, PmParse
+import PmTypes, PmProject, PmParse, PmEnvironment
 
 derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, ModInfo, ABCLinkInfo
 derive class iTask	ModEditOptions, EditWdOptions, EditOptions, OptionalWindowPosAndSize, WindowPos_and_Size, NewlineConvention  
 derive class iTask	[!!], InfListItem, ListTypes, Output, LinkMethod, ProjectDynamicInfo, StaticLibInfo, CodeGenOptions 
 derive class iTask	UndefModule, UndefSymbol 
+derive class iTask	Target, CompileMethod, Processor
 
 // Synonyms to make clearer what kind of string is expected 
 
@@ -18,12 +19,7 @@ derive class iTask	UndefModule, UndefSymbol
 :: CleanPath	:== PathName	// Directory where clean application / batchbuild is located
 :: ModuleName 	:== String		// Name of module, without .dcl or .dcl extension
 :: FileName		:== String		// Name of file, with extension
-
-// accessing project files:
-
-initProject 	:: !ModuleName 						-> Project						
-readProjectFile	:: !ProjectPath !CleanPath 			-> Task (Project, Bool, String)
-saveProjectFile :: !ProjectPath !CleanPath !Project -> Task Bool
+:: FullFileName	:== String		// Full pathname of file, with extension
 
 // project options, iTask version
 
@@ -68,10 +64,26 @@ saveProjectFile :: !ProjectPath !CleanPath !Project -> Task Bool
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
 derive class iTask  Environment, ToolsOptions
 
-// conversion 
+// accessing project files (of type Project):
 
-toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions) -> Project
-fromProject :: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions)
+initProject 	:: !ModuleName 						-> Project						
+
+readProjectFile	:: !ProjectPath !CleanPath 			-> Task (Project, Bool, String)
+saveProjectFile :: !Project !ProjectPath !CleanPath -> Task Bool
+
+toProject 		:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions) -> Project
+fromProject 	:: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions)
+
+// accessing environment files (of type [Target]):
+
+initTarget 			:: Target
+readEnvironmentFile :: !FullFileName 			-> Task ![Target]
+saveEnvironmentFile :: !FullFileName ![Target] 	-> Task !Bool
+
+toTarget 			:: !Environment 	-> Target
+toTargets 			:: ![Environment] 	-> [Target]
+fromTarget 			:: !Target 			-> Environment
+fromTargets 		:: ![Target] 		-> [Environment]
 
 // searching
 

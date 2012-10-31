@@ -1,7 +1,7 @@
 implementation module projectManager
 
 import iTasks
-import PmTypes, PmProject, PmParse, UtilStrictLists
+import PmTypes, PmProject, PmParse, PmEnvironment, UtilStrictLists
 import Directory
 						   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
@@ -11,8 +11,10 @@ derive class iTask	Project, LinkOptions, ApplicationOptions, CompilerOptions, Mo
 derive class iTask	ModEditOptions, EditWdOptions, EditOptions, OptionalWindowPosAndSize, WindowPos_and_Size, NewlineConvention  
 derive class iTask	[!!], InfListItem, ListTypes, Output, LinkMethod, ProjectDynamicInfo, StaticLibInfo, CodeGenOptions 
 derive class iTask	UndefModule, UndefSymbol 
-derive class iTask IdentifierPositionList
+derive class iTask	IdentifierPositionList
+derive class iTask	Target, CompileMethod, Processor
 
+// project files handling
 
 toProject 	:: Project (RunTimeOptions, DiagnosticsOptions, ProfilingOptions, ConsoleOptions) -> Project
 toProject p=:{applicationopt,codegenopt} (rto,do,po,co)
@@ -66,8 +68,8 @@ readProjectFile	:: !ProjectPath !CleanPath -> Task (Project, Bool, String)
 readProjectFile projectPath cleanAppDir 
 	= accWorld (accFiles (ReadProjectFile projectPath cleanAppDir))
 
-saveProjectFile :: !ProjectPath !CleanPath !Project -> Task Bool
-saveProjectFile projectPath cleanAppDir project 
+saveProjectFile :: !Project !ProjectPath !CleanPath  -> Task Bool
+saveProjectFile project projectPath cleanAppDir  
 	= accWorld (accFiles (SaveProjectFile projectPath project cleanAppDir))
 
 initProject :: !ModuleName -> Project
@@ -82,7 +84,52 @@ where
 	applicationOptions	= DefApplicationOptions
 	list				= [!!]
 	linkOptions			= DefaultLinkOptions
+
+// environments handling
+
+initTarget :: Target
+initTarget = t_StdEnv
+
+toTargets :: ![Environment] -> [Target]
+toTargets envs = map toTarget envs
+
+toTarget :: !Environment -> Target
+toTarget env 
+	= { initTarget	& target_name 			= env.environmentName 
+					, target_path			= ListToStrictList env.paths  	
+					, target_comp			= env.toolsOption.compiler			
+					, target_cgen			= env.toolsOption.codeGenerator
+					, target_link			= env.toolsOption.staticLinker			
+					, target_dynl			= env.toolsOption.dynamicLinker			
+					, target_vers			= env.toolsOption.versionOfAbcCode				
+					, env_64_bit_processor	= env.toolsOption.runOn64BitProcessor
+	  }
+
+fromTargets :: ![Target] -> [Environment]
+fromTargets targets = map fromTarget targets
+
+fromTarget :: !Target -> Environment
+fromTarget target 
+	= 	{ environmentName	= target.target_name
+		, paths				= StrictListToList target.target_path
+		, toolsOption		=	{ compiler				= target.target_comp
+								, codeGenerator			= target.target_cgen
+								, staticLinker			= target.target_link
+								, dynamicLinker			= target.target_link
+								, versionOfAbcCode		= target.target_vers
+								, runOn64BitProcessor 	= target.env_64_bit_processor
+								}		
+		}	
+
+readEnvironmentFile :: !FullFileName -> Task ![Target]
+readEnvironmentFile env 
+	= accWorld (openEnvironments ""  env)
+
+saveEnvironmentFile ::  !FullFileName ![Target]  -> Task !Bool
+saveEnvironmentFile file targets
+	= accWorld (saveEnvironments file targets)
 	
+// search department
 
 searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
 searchTask what searchWhere identifier path_modulename environment 
