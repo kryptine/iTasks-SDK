@@ -2,24 +2,20 @@ module CleanEditor
 
 /* A Clean IDE for a browser using the iTask system
 Status: very drafty
-- Assumes BatchBuild.exe and a copy of the IDEEnvs file in the original Clean IDE Application directory
-- You have to set cleanPath by hand
 */
+
+// Attention:
+// Currently it is assumed the you have a copy of BatchBuild.exe and a copy of the IDEEnvs file (from Config) in the original Clean IDE Application directory
+// You have to set the cleanPath by hand for the time being...
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
 //cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
 cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
-idePath			:== "iTasks-SDK\\Examples\\Development\\"
-projectPath		:== cleanPath +++ idePath
-compilerPath	:== cleanPath +++ "iTasks-SDK\\Compiler\\"
-
-environment		:== map ((+++) cleanPath) [idePath,"Libraries\\StdEnv\\"]
-
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
-environmentFile :== "iTask-Clean-IDE-environment"
-stdenv			:== cleanPath +++ "Libraries\\StdEnv\\"
+
+initialPath 	:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
 
 import iTasks, Text
 import qualified Map
@@ -28,11 +24,11 @@ import projectManager
 derive class iTask IDE_State
 derive class iTask FileError
 
-// Global Settings
+// Global IDE State
 
 :: IDE_State =	{ projectName		:: !String			// name of the project, empty string indicates no project set
 				, projectPath		:: !String			// path where project is located
-				, project			:: !Project			// settings will passed to call of BatchBuild, the batch version of the compiler 
+				, projectSettings	:: !Project			// settings will passed to call of BatchBuild, the batch version of the compiler 
 				, cleanPath			:: !String			// path whare Clean compiler and BatchBuild is located
 				, openedFiles		:: ![String]		// files currently opened in IDE
 				, recentFiles		:: ![String]		// recently opened files
@@ -41,20 +37,36 @@ derive class iTask FileError
 				, envTargets		:: ![Target]		// targets are environments
 				}
 
-IDE_Store = sharedStore "IDE_State" init_IDE_State
+// IDE state is a shared global state, passed around explicitly to make clear where it is used
+
+Start :: *World -> *World
+
+/* does not seem to work ????
+Start w = startEngine test w
+
+test = currentDirectory													// determine directory of this CleanEditor
+	>>= \dir ->		viewInformation "Direct = " [] dir
+
+*/
+
+Start world = startEngine (start_ide ideState) world 
 where
+	ideState :: Shared IDE_State
+	ideState = sharedStore "IDE_State" init_IDE_State
+
 	init_IDE_State :: IDE_State			
 	init_IDE_State
 		= 	{ projectName		= ""
-			, projectPath 		= projectPath
-			, project			= initProject "" 
+			, projectPath 		= initialPath
+			, projectSettings	= PR_InitProject
 			, cleanPath			= cleanPath
 			, openedFiles		= []
 			, recentFiles 		= []
 			, recentProjects	= []
 			, idx				= 0
-			, envTargets		= [initTarget]
+			, envTargets		= [t_StdEnv]
 			}
+/*
 	initIDEenv
 		=	{ environmentName		= "IDE environment"	
 			, paths					= environment
@@ -73,31 +85,28 @@ where
 			, versionOfAbcCode		= 920
 			, runOn64BitProcessor	= False
 			}
-// 
-
-Start :: *World -> *World
-Start world = startEngine ide world 
-//Start world = startEngine test world 
-
-test = storeFileInPath projectPath "pietjepuk" "tja, dat is het dan" <<@ Window
-				
-ide :: Task Void
-ide = 	parallel Void //(Title "Clean IDE") 	
-						[ (Embedded, topMenu  ideState)
+*/				
+start_ide :: (Shared IDE_State) -> Task Void
+start_ide ideState
+	= 		/*		currentDirectory													// determine directory of this CleanEditor
+	>>= \dir ->	*/	readEnvironmentFile (cleanPath +++ EnvsFileName) 					// read environment file used for communication with BatchBuild	
+	>>= \env ->		update (\state -> 	{ state & projectPath 		= initialPath // dir				// store project path
+												, envTargets		= env				// store environments
+										}) ideState	
+	>>|				parallel Void // (Title "Clean IDE") 	
+						[ (Embedded, topMenu       ideState)
 						, (Embedded, projectFiles  ideState)
-						, (Embedded, messages ideState)
+						, (Embedded, messages      ideState)
 						] <<@ SetLayout layout @ const Void
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
-
-	ideState = IDE_Store
 
 // top menu
 
 topMenu :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
 topMenu ideState ts 
 	= 				get ideState												// new session, first recover previous screen
-	>>= \state ->	openLastProject state.projectName  							// re-open last project
+	>>= \state -> 	openLastProject state.projectName  							// re-open last project
 	>>|				openOpenedFiles state.openedFiles 							// re-open opened files
 	>>|				forever (				(get ideState 
 							>>= \state -> 	(actionTask >>*	handleMenu state))	// construct main menu
@@ -111,17 +120,17 @@ where
 	openOpenedFiles [] 		=	return Void
 	openOpenedFiles [f:fs]	=	launch (editor ideState f ts) ts >>| openOpenedFiles fs 
 
-	handleMenu state
+	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
 	=	[ OnAction (Action "File/Open...") always (const (openFile ideState ts))
-		, OnAction (Action "File/Save All") (const (state.openedFiles <> [])) (const (saveAll state.openedFiles ideState))
+		, OnAction (Action "File/Save All") (const (openedFiles <> [])) (const (saveAll openedFiles ideState))
 		] 
 		++
 		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (const (openFileAndEdit ideState fileName ts)) 
-		\\ fileName <- state.recentFiles
+		\\ fileName <- recentFiles
 		] 
 		++
 		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) always (const (openProject ideState fileName)) 
-		\\ fileName <- state.recentProjects
+		\\ fileName <- recentProjects
 		] 
 		++
 		[ OnAction (Action "Search/Search Identifier...")     ifProject (const (launch (search SearchIdentifier     SearchInImports ideState ts) ts))
@@ -138,13 +147,12 @@ where
 		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName)) always (const (editEnvironment ideState))
 		, OnAction (Action (selectedEnvironment +++ "/Import...")) always (const (importEnvironment ideState))
 		:[ OnAction (Action (selectedEnvironment +++ "/Select/" +++ target.target_name)) always (const (selectEnvironment ideState i)) 
-		 \\ target <- state.envTargets & i <- [0..]
+		 \\ target <- envTargets & i <- [0..]
 		 ]
 		]
 		++ // temp fix to show effects
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	where
-		projectName = state.projectName 
 
 		ifProject = const (projectName <> "")
 
@@ -210,16 +218,16 @@ search what whereSearch ideState ts
 	>>= \state ->	searching state "" what whereSearch ([],[])  <<@ Window
 	
 where
-	searching state identifier what whereSearch found
+	searching state=:{projectName,projectPath} identifier what whereSearch found
 		=			(viewInformation (length (snd found) +++> " modules searched, " +++> length (fst found) +++> " contained " +++> identifier) [] found
 					||-
 					updateInformation (Title ("Find: " +++ identifier)) [] (identifier,what,whereSearch)) 
-		>>*			[ OnAction ActionCancel   always (const (return Void))
+		>>*			[ OnAction ActionCancel   always   (const (return Void))
 					, OnAction ActionContinue hasValue (performSearch o getValue)
 					] 
 	where
 		performSearch (identifier,what,whereSearch)
-			= 				searchTask what whereSearch identifier (projectPath, state.projectName +++ ".icl") environment
+			= 				searchTask what whereSearch identifier (projectPath, projectName +++ ".icl") (StrictListToList (state.envTargets!!state.idx).target_path)
 			>>=	\found	->	searching state identifier what whereSearch found
 
 // opening and storing projects... 
@@ -232,11 +240,15 @@ newProject ideState
 					]
 where	
 	storeNewProject name 
-		=				update (\state -> {state & project = initProject name}) ideState
+		=				update (\state -> {state &	projectSettings			= initProject name
+										  }) ideState  // BUG, could not add this field with next one
+		>>|				update (\state -> {state &	projectSettings.prjpaths = (state.envTargets!!state.idx).target_path 
+											     , 	projectSettings.target	= (state.envTargets!!state.idx).target_name
+										  }) ideState
 		>>|				get ideState
 		>>= \state ->	update (selectEnv state.idx) ideState
 		>>|				get ideState
-		>>= \state ->	storeProject ideState state.project name
+		>>= \state ->	storeProject ideState state.projectSettings name
 
 storeProject :: (Shared IDE_State) Project ModuleName -> Task Void
 storeProject ideState project projectName 
@@ -245,7 +257,7 @@ storeProject ideState project projectName
 	>>= \ok ->		if (not ok)
 						(showError "Could not store project file !" Void)
 						(update (\state -> { state	& projectName		= name
-													, project			= project
+													, projectSettings	= project
 													, recentProjects 	= removeDup [name:state.recentProjects]
 											}
 						) ideState
@@ -259,9 +271,9 @@ openProject ideState projectName
 	= 								get ideState
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \(project,ok,message) ->	if (not ok)
-										(showError "Read Error..."  message)
+										(showError "Read Error..."  message @ const Void)
 										(update (\state -> { state	& projectName		= name
-																	, project			= project
+																	, projectSettings	= project
 																	, recentProjects 	= removeDup [name:state.recentProjects]
 															}
 										) ideState
@@ -276,39 +288,42 @@ changeProjectOptions ideState
 where
 	changeProjectOptions`
 		=				get ideState
-		>>= \state ->	changeProjectOptions`` state.projectName state.project (fromProject state.project)
+		>>= \state ->	changeProjectOptions`` state.projectName state.projectSettings (fromProject state.projectSettings)
 		
-	changeProjectOptions``	name project (rto,diagn,prof,co)	
+	changeProjectOptions``	projectName project (rto,diagn,prof,co)	
 		=				runTimeOptions rto
 		>>= \rto ->		diagnosticsOptions diagn
 		>>= \diagn -> 	profilingOptions prof
 		>>= \prof ->	consoleOptions co
-		>>= \co ->		storeProject ideState (toProject project (rto,diagn,prof,co)) name 
+		>>= \co ->		storeProject ideState (toProject project (rto,diagn,prof,co)) projectName 
+	where
+		title :: String				// BUG ??? cannot leave out type ????
+		title = "Set Options of Project: " +++ projectName	
 
-	runTimeOptions :: RunTimeOptions -> Task RunTimeOptions
-	runTimeOptions	rto = updateInformation ("Project Options","Run-Time Options:")[] rto 
+		runTimeOptions :: RunTimeOptions -> Task RunTimeOptions
+		runTimeOptions	rto = updateInformation (title,"Run-Time Options:")[] rto 
+		
+		diagnosticsOptions :: DiagnosticsOptions -> Task DiagnosticsOptions
+		diagnosticsOptions	diagn = updateInformation (title,"Diagnostics Options:") [] diagn
+		
+		profilingOptions :: ProfilingOptions -> Task ProfilingOptions
+		profilingOptions prof = updateInformation (title,"Diagnostics Options:") [] prof	
 	
-	diagnosticsOptions :: DiagnosticsOptions -> Task DiagnosticsOptions
-	diagnosticsOptions	diagn = updateInformation ("Project Options","Diagnostics Options:") [] diagn
-	
-	profilingOptions :: ProfilingOptions -> Task ProfilingOptions
-	profilingOptions prof = updateInformation ("Project Options","Diagnostics Options:") [] prof	
+		consoleOptions :: ConsoleOptions -> Task ConsoleOptions
+		consoleOptions co = updateInformation (title,"Console Options:") [] co	
 
-	consoleOptions :: ConsoleOptions -> Task ConsoleOptions
-	consoleOptions co = updateInformation ("Project Options","Console Options:") [] co	
-	
 // editing the evironment
 
 currEnvName state 				= 	(getCurrEnv state).target_name
 getCurrEnv  state   			= 	state.envTargets!!state.idx
-updateEnv idx target state		= 	{ state & idx				= idx
-											, envTargets 		= updateAt idx target state.envTargets
-											, project.prjpaths 	= (state.envTargets!!idx).target_path 
-											, project.target	= (state.envTargets!!idx).target_name
+updateEnv idx target state		= 	{ state & idx						= idx
+											, envTargets 				= updateAt idx target state.envTargets
+											, projectSettings.prjpaths 	= (state.envTargets!!idx).target_path 
+											, projectSettings.target	= (state.envTargets!!idx).target_name
 									}
-selectEnv idx state				= 	{ state & idx				= idx
-											, project.prjpaths 	= (state.envTargets!!idx).target_path 
-											, project.target	= (state.envTargets!!idx).target_name
+selectEnv idx state				= 	{ state & idx						= idx
+											, projectSettings.prjpaths 	= (state.envTargets!!idx).target_path 
+											, projectSettings.target	= (state.envTargets!!idx).target_name
 									}
 
 editEnvironment :: (Shared IDE_State) -> Task Void
@@ -328,7 +343,7 @@ importEnvironment ideState
 	=					get ideState
 	>>= \state ->		selectFileInPath state.projectPath (\name -> takeExtension name == "env" || takeExtension name == "") <<@ Window
 	>>= \(path,mbEnv)-> if (isNothing mbEnv)
-						(showError "Could not read environment file" path)
+						(showError "Could not read environment file" path  @ const Void)
 						(					 readEnvironmentFile (path </> (fromJust mbEnv)) 
 							>>=  \ntargets -> update (\state -> {state & envTargets = state.envTargets ++ ntargets}) ideState
 											 @ const Void)
@@ -337,7 +352,7 @@ selectEnvironment :: (Shared IDE_State) Int -> Task Void
 selectEnvironment ideState i
 	=					get ideState
 	>>= \state ->		update (selectEnv i) ideState
-	>>|					storeProject ideState state.project state.projectName
+	>>|					storeProject ideState state.projectSettings state.projectName
 	 					@ const Void
 
 // compile project... 
@@ -357,8 +372,8 @@ where
 	compile` state
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
-			>>|			storeProject ideState state.project state.projectName
-			>>|			callProcess "Clean Compiler - BatchBuild" [] (cleanPath +++ batchBuild) [projectPath +++ projectName +++ ".prj"] 
+			>>|			storeProject ideState state.projectSettings state.projectName
+			>>|			callProcess "Clean Compiler - BatchBuild" [] (cleanPath +++ batchBuild) [state.projectPath +++ projectName +++ ".prj"] 
 						-&&-
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
 			
@@ -522,10 +537,18 @@ where
 								(storeFileInPath path name string)
 							_		-> storeFileInPath path name string
 
-showError :: String a -> Task Void | iTask a
-showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return Void) //<<@ Window
+showError :: String a -> Task a | iTask a
+showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return val) <<@ Window
+
+currentDirectory :: Task !FilePath
+currentDirectory 
+	= 					accWorld getCurrentDirectory 
+		>>= \content ->	case content of
+							Ok dir -> return ("* " +++ dir +++ " *")
+							_      -> showError "Could not obtain current directory name" ""
 
 //* simple utility functions
+
 
 actionTask :: Task Void
 actionTask = viewInformation Void [] Void
