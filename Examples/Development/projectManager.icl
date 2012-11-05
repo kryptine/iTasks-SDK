@@ -131,14 +131,14 @@ saveEnvironmentFile file targets
 	
 // search department
 
-searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
-searchTask what searchWhere identifier path_modulename environment 
+searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName)  !(List !PathName) -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchTask what searchWhere identifier path_modulename searchPaths 
 	= if (inImports searchWhere)								
 			(search [path_modulename] [] [])	// recursive search through imported modules
 			(case what of						// search the modules in given paths only 
-				SearchIdentifier 		-> findAllModulesInPaths "icl" environment >>= \found -> search [path_modulename:found] [] []
-				SearchImplementation 	-> findAllModulesInPaths "icl" environment >>= \found -> search [path_modulename:found] [] []
-				SearchDefinition 		-> findAllModulesInPaths "dcl" environment >>= \found -> search [path_modulename:found] [] []
+				SearchIdentifier 		-> findAllModulesInPaths "icl" searchPaths >>= \found -> search [path_modulename:found] [] []
+				SearchImplementation 	-> findAllModulesInPaths "icl" searchPaths >>= \found -> search [path_modulename:found] [] []
+				SearchDefinition 		-> findAllModulesInPaths "dcl" searchPaths >>= \found -> search [path_modulename:found] [] []
 			) 
 where
 	search [] searched found 	= return (reverse found,reverse searched)								
@@ -147,7 +147,7 @@ where
 		>>= \(new,pos) -> 	let (addedImports,nsearched,nfound) = calc new pos rest searched found in
 							if (isEmpty addedImports)
 								(search rest nsearched nfound) 
-								(			  searchFilesInPaths addedImports environment
+								(			  searchFilesInPaths addedImports searchPaths
 								>>= \more ->  search (rest ++ more) nsearched nfound
 								)
 	where
@@ -180,7 +180,7 @@ searchIdentifiersInIclFile identifier path moduleName
 	= 					accWorld (accFiles (FindIdentifiersInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
 
-searchFilesInPaths :: ![FileName] ![PathName] -> Task ![(!PathName,!FileName)]
+searchFilesInPaths :: ![FileName] !(List !PathName) -> Task ![(!PathName,!FileName)]
 searchFilesInPaths fileNames pathNames = search fileNames pathNames []
 where
 	search [] _ found = return (reverse found)
@@ -190,11 +190,11 @@ where
 							(search fileNames pathNames found)
 							(search fileNames pathNames [(fromJust res,fileName):found])
 
-searchFileInPaths :: !FileName ![PathName] -> Task !(Maybe !PathName)
+searchFileInPaths :: !FileName !(List !PathName) -> Task !(Maybe !PathName)
 searchFileInPaths fileName paths = accWorld (searchDisk` paths)
 where
-	searchDisk` [] world = (Nothing,world)
-	searchDisk` [path:paths] world
+	searchDisk` [!!] world = (Nothing,world)
+	searchDisk` [!path:paths!] world
 	# (content,world) = readDirectory path world
 	= case content of
 		Ok names 	-> if (isMember fileName names) 
@@ -202,11 +202,11 @@ where
 							(searchDisk` paths world)
 		_ 			-> searchDisk` paths world
 
-findAllModulesInPaths :: !String ![PathName] -> Task ![(!PathName,!FileName)]
+findAllModulesInPaths :: !String !(List !PathName) -> Task ![(!PathName,!FileName)]
 findAllModulesInPaths extension paths = accWorld (searchDisk` paths [])
 where
-	searchDisk` [] found world = (found,world)
-	searchDisk` [path:paths] found world
+	searchDisk` [!!] found world = (found,world)
+	searchDisk` [!path:paths!] found world
 	# (content,world) = readDirectory path world
 	= case content of
 		Ok names 	-> searchDisk` paths (addFiles names ++ found) world
@@ -215,7 +215,7 @@ where
 		addFiles names = [(path, name) \\ name <- names | takeExtension name == extension] 
 
 // there seems to be a bug when it returns  Task (![String],!IdentifierPositionList)
-
+/*
 searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
 searchIdentifierInImports identifier path_modulename environment = search [path_modulename] [] []
 where
@@ -235,7 +235,7 @@ where
 		# filesInRest 	= map snd rest
 		# addedImports	= removeDup [fileName \\ fileName <- new | not (isMember fileName (filesInRest ++ nsearched))]
 		= (addedImports,nsearched,nfound)
-
+*/
 
 
 

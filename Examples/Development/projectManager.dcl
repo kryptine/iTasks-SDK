@@ -93,11 +93,11 @@ derive class iTask 	IdentifierPositionList
 :: SearchWhat 		= 	SearchIdentifier | SearchDefinition | SearchImplementation
 :: SearchWhere		=	SearchInImports | SearchInPaths //| SearchInProject
 
-searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName) !(List !PathName) -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
 
-searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+//searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
 
-findAllModulesInPaths :: !String ![PathName] -> Task ![(!PathName,!FileName)]
+findAllModulesInPaths :: !String !(List !PathName) -> Task ![(!PathName,!FileName)]
 
 
 			   

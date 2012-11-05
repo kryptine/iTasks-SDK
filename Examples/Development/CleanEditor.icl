@@ -24,7 +24,7 @@ import projectManager
 derive class iTask IDE_State
 derive class iTask FileError
 
-// Global IDE State
+// The IDE_state is the one and only globally shared state
 
 :: IDE_State =	{ projectName		:: !String			// name of the project, empty string indicates no project set
 				, projectPath		:: !String			// path where project is located
@@ -37,11 +37,103 @@ derive class iTask FileError
 				, envTargets		:: ![Target]		// targets are environments
 				}
 
-// IDE state is a shared global state, passed around explicitly to make clear where it is used
+init_IDE_State :: IDE_State			
+init_IDE_State
+	= 	{ projectName		= ""
+		, projectPath 		= initialPath
+		, projectSettings	= PR_InitProject
+		, cleanPath			= cleanPath
+		, openedFiles		= []
+		, recentFiles 		= []
+		, recentProjects	= []
+		, idx				= 0
+		, envTargets		= [t_StdEnv]
+		}
+
+IDE_State :: Shared IDE_State
+IDE_State = sharedStore "IDE_State" init_IDE_State
+
+update_IDE_State :: !(IDE_State -> IDE_State) -> Task !Void
+update_IDE_State fun = update fun IDE_State @ const Void
+
+get_IDE_State = get IDE_State
+
+// updating the global IDE_State
+
+set_new_Project :: !ModuleName !ProjectPath -> Task Void
+set_new_Project projectName projectPath 
+	=						open_Project projectName projectPath PR_InitProject
+	>>|	update_IDE_State
+			 (\state -> 	{ state & projectSettings.root_directory   	= projectPath
+//									, projectSettings.prjpaths			= (state.envTargets!!state.idx).target_path  // not needed yet ???
+							     	, projectSettings.target 			= (state.envTargets!!state.idx).target_name
+							}) 	
+open_Project :: !ModuleName !ProjectPath !Project -> Task Void
+open_Project projectName projectPath project
+	=	update_IDE_State
+				(\state -> 	{ state	& projectName						= projectName
+									, projectPath						= projectPath
+							     	, projectSettings					= project
+							     	, recentProjects 					= removeDup [projectName:state.recentProjects]
+							})
+	>>|
+		update_IDE_State
+				(\state -> 	{ state & projectSettings.root_directory   	= projectPath
+							})
+	
+updateProject :: !Project -> Task Void
+updateProject project
+	=	update_IDE_State
+			 (\state -> 	{ state & projectSettings 					= project
+							}) 
+
+addProjectsAdmin :: !FileName -> Task Void
+addProjectsAdmin projectName
+	=	update_IDE_State
+			 (\state -> 	{ state	& recentProjects 					= removeDup [projectName:state.recentProjects]
+							}) 
+setEnvironments :: ![Target] -> Task Void
+setEnvironments envs
+	= 	update_IDE_State
+			 (\state -> 	{ state & envTargets						= envs		
+							}) 	
+add_Environments :: ![Target] -> Task Void
+add_Environments env
+	= 	update_IDE_State
+			 (\state -> 	{ state & envTargets						= state.envTargets ++ env	
+							}) 	
+updateEnvironment :: !Int !Target -> Task Void
+updateEnvironment  idx target 		
+	= 	update_IDE_State
+			 (\state -> 	{ state & idx								= idx
+									, projectSettings.target			= (state.envTargets!!idx).target_name
+									, envTargets 						= updateAt idx target state.envTargets
+//									, projectSettings.prjpaths 			= (state.envTargets!!idx).target_path 	// not needed yet ???
+							}) 	
+select_Environment :: !Int -> Task Void
+select_Environment idx 	
+	= 	update_IDE_State
+			 (\state -> 	{ state & idx								= idx
+									, projectSettings.target			= (state.envTargets!!idx).target_name
+//									, projectSettings.prjpaths 			= (state.envTargets!!idx).target_path 
+							}) 	
+addFilesAdmin :: !FileName -> Task Void
+addFilesAdmin fileName
+	=	update_IDE_State
+			 (\state -> 	{ state & recentFiles 						= removeDup [fileName:state.recentFiles]
+								    , openedFiles 						= [fileName:state.openedFiles]
+							}) 
+removeFileAdmin :: !FileName -> Task Void
+removeFileAdmin fileName
+	=	update_IDE_State
+			 (\state -> 	{ state & openedFiles 						= removeMember fileName state.openedFiles
+							}) 
+
+// It Starts here..
 
 Start :: *World -> *World
 
-/* does not seem to work ????
+/* BUG? currentDirectory does not seem to return the  currentDirectory????
 Start w = startEngine test w
 
 test = currentDirectory													// determine directory of this CleanEditor
@@ -49,108 +141,75 @@ test = currentDirectory													// determine directory of this CleanEditor
 
 */
 
-Start world = startEngine (start_ide ideState) world 
-where
-	ideState :: Shared IDE_State
-	ideState = sharedStore "IDE_State" init_IDE_State
+Start world = startEngine start_ide world 
 
-	init_IDE_State :: IDE_State			
-	init_IDE_State
-		= 	{ projectName		= ""
-			, projectPath 		= initialPath
-			, projectSettings	= PR_InitProject
-			, cleanPath			= cleanPath
-			, openedFiles		= []
-			, recentFiles 		= []
-			, recentProjects	= []
-			, idx				= 0
-			, envTargets		= [t_StdEnv]
-			}
-/*
-	initIDEenv
-		=	{ environmentName		= "IDE environment"	
-			, paths					= environment
-			, toolsOption			= initTools
-			}
-	initStdEnv
-		=	{ environmentName		= "StdEnv"	
-			, paths					= [stdenv]
-			, toolsOption			= initTools
-			}
-	initTools 	
-		= 	{ compiler				= compilerPath +++ "CleanCompiler.exe : -h 64M : -dynamics -generics"
-			, codeGenerator			= compilerPath +++ "CodeGenerator.exe"
-			, staticLinker			= compilerPath +++ "StaticLinker.exe : -h 64M"
-			, dynamicLinker			= compilerPath +++ "DynamicLinker.exe"
-			, versionOfAbcCode		= 920
-			, runOn64BitProcessor	= False
-			}
-*/				
-start_ide :: (Shared IDE_State) -> Task Void
-start_ide ideState
-	= 		/*		currentDirectory													// determine directory of this CleanEditor
-	>>= \dir ->	*/	readEnvironmentFile (cleanPath +++ EnvsFileName) 					// read environment file used for communication with BatchBuild	
-	>>= \env ->		update (\state -> 	{ state & projectPath 		= initialPath // dir				// store project path
-												, envTargets		= env				// store environments
-										}) ideState	
-	>>|				parallel Void // (Title "Clean IDE") 	
-						[ (Embedded, topMenu       ideState)
-						, (Embedded, projectFiles  ideState)
-						, (Embedded, messages      ideState)
+start_ide :: Task Void
+start_ide 
+	= 				currentDirectory										// determine directory of this CleanEditor
+//	>>= \dir ->		set_Project  "" dir								// BUG: currentDirectory does not return dir						
+	>>= \dir ->		set_new_Project "" initialPath					// Fix: hardwired path
+	>>|				readEnvironmentFile (cleanPath +++ EnvsFileName) 		// read environment file used for communication with BatchBuild	
+	>>= \env ->		setEnvironments env							// store in state
+	>>|				parallel Void // (Title "Clean IDE") 					// BUG: global title not implemented
+						[ (Embedded, topMenu)
+						, (Embedded, projectFiles)
+						, (Embedded, errorMessages)
 						] <<@ SetLayout layout @ const Void
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
 // top menu
 
-topMenu :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
-topMenu ideState ts 
-	= 				get ideState												// new session, first recover previous screen
+topMenu :: !(ReadOnlyShared (TaskList Void)) -> Task Void
+topMenu ts 
+	= 				get_IDE_State												// new session, first recover previous screen
 	>>= \state -> 	openLastProject state.projectName  							// re-open last project
 	>>|				openOpenedFiles state.openedFiles 							// re-open opened files
-	>>|				forever (				(get ideState 
+	>>|				forever (				(get_IDE_State 
 							>>= \state -> 	(actionTask >>*	handleMenu state))	// construct main menu
-											-||- 
-											(watch ideState @ const Void)		// no effect ???
+//											-||- 
+//											(watch ideState @ const Void)		// perhaps not necessary ?  but does it work ???
 							) 
 where
 	openLastProject "" 		= return Void
-	openLastProject name	= openProject ideState name
+	openLastProject name	= reopenProject name
 
 	openOpenedFiles [] 		=	return Void
-	openOpenedFiles [f:fs]	=	launch (editor ideState f ts) ts >>| openOpenedFiles fs 
+	openOpenedFiles [f:fs]	=	launch (editor f ts) ts >>| openOpenedFiles fs 
 
 	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
-	=	[ OnAction (Action "File/Open...") always (const (openFile ideState ts))
-		, OnAction (Action "File/Save All") (const (openedFiles <> [])) (const (saveAll openedFiles ideState))
+	=	[ OnAction (Action "File/Open...") always (const (openFile ts))
+		, OnAction (Action "File/Save All") (const (openedFiles <> [])) (const (saveAll openedFiles))
 		] 
 		++
-		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (const (openFileAndEdit ideState fileName ts)) 
+		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always (const (openFileAndEdit fileName ts)) 
 		\\ fileName <- recentFiles
 		] 
 		++
-		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) always (const (openProject ideState fileName)) 
+		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) always (const (reopenProject fileName)) 
 		\\ fileName <- recentProjects
 		] 
 		++
-		[ OnAction (Action "Search/Search Identifier...")     ifProject (const (launch (search SearchIdentifier     SearchInImports ideState ts) ts))
-		, OnAction (Action "Search/Search Definition...")     ifProject (const (launch (search SearchDefinition     SearchInImports ideState ts) ts))
-		, OnAction (Action "Search/Search Implementation...") ifProject (const (launch (search SearchImplementation SearchInImports ideState ts) ts))
+		[ OnAction (Action "Search/Search Identifier...")     ifProject (const (launch (search SearchIdentifier     SearchInImports ts) ts))
+		, OnAction (Action "Search/Search Definition...")     ifProject (const (launch (search SearchDefinition     SearchInImports ts) ts))
+		, OnAction (Action "Search/Search Implementation...") ifProject (const (launch (search SearchImplementation SearchInImports ts) ts))
 		]
 		++
-		[ OnAction (Action "Project/New Project...") always (const (launch (newProject ideState) ts))
+		[ OnAction (Action "Project/New Project...")  always (const (launch (newProject) ts))
+		, OnAction (Action "Project/Open Project...") never (const (openProject))							// temp to avoid selection
+//		, OnAction (Action "Project/Open Project...") always (const (openProject))							// BUG does not show window
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
-								 (const (launch (compile projectName ideState <<@ Window) ts))	
-		, OnAction (Action "Project/Project Options...") ifProject (const (changeProjectOptions ideState))
+								 (const (launch (compile projectName <<@ Window) ts))	
+		, OnAction (Action "Project/Project Options...") ifProject (const (changeProjectOptions))
 		]
 		++
-		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName)) always (const (editEnvironment ideState))
-		, OnAction (Action (selectedEnvironment +++ "/Import...")) always (const (importEnvironment ideState))
-		:[ OnAction (Action (selectedEnvironment +++ "/Select/" +++ target.target_name)) always (const (selectEnvironment ideState i)) 
+		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName)) always (const (editEnvironment))
+		, OnAction (Action (selectedEnvironment +++ "/Import...")) always (const (addEnvironment))
+		:[ OnAction (Action (selectedEnvironment +++ "/Select/" +++ target.target_name)) always (const (selectEnvironment i)) 
 		 \\ target <- envTargets & i <- [0..]
 		 ]
 		]
-		++ // temp fix to show effects
+		++ // BUG: temp fix: the latest state is not always shown: known bug in the current implementation
 		[ OnAction (Action "Temp/Refresh") always (const (return Void)) ]	
 	where
 
@@ -159,62 +218,62 @@ where
 		currentEnvName			= currEnvName state
 		selectedEnvironment 	= "_" +++ currentEnvName
 
-// project pane
+// project pane: to do
 
-projectFiles :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
-projectFiles ideState _
-	=				viewInformation "Project" [] "dummy" @ const Void
+projectFiles :: (ReadOnlyShared (TaskList Void)) -> Task Void
+projectFiles _
+	=				viewSharedInformation "Project" [ViewWith (\state -> state.projectName)]  IDE_State
+					@ const Void 
 
-// messages pane
+// errorMessages pane, shows error message produced by compiler in error file
 
-messages :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
-messages ideState ts 
-	= 				get ideState
+errorMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
+errorMessages ts 
+	= 				get_IDE_State
 	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
 					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
 					@ const Void 
 
 // handling top menu commands
 
-// open and save file editors ...	  
+// open and saving files to edit ...	  
 
-openFile :: (Shared IDE_State) (ReadOnlyShared (TaskList Void)) -> Task Void
-openFile ideState ts
-	=				get ideState
+openFile :: (ReadOnlyShared (TaskList Void)) -> Task Void
+openFile ts
+	=				get_IDE_State
 	>>= \state ->	selectFileInPath state.projectPath (\_ -> True) <<@ Window
 	>>= \(path,r)-> if (isNothing r)
 						(return Void)
-						(openFileAndEdit ideState (fromJust r) ts)
+						(openFileAndEdit (fromJust r) ts)
 
-openFileAndEdit :: (Shared IDE_State) FileName (ReadOnlyShared (TaskList Void)) -> Task Void
-openFileAndEdit ideState fileName ts
-	=				get ideState
+openFileAndEdit :: FileName (ReadOnlyShared (TaskList Void)) -> Task Void
+openFileAndEdit fileName ts
+	=				get_IDE_State
 	>>= \state ->	if (isMember fileName state.openedFiles)
-						(return Void)	// file already open
-						(			update (\state -> {state & recentFiles 	= removeDup [fileName:state.recentFiles]
-										 				     , openedFiles 	= [fileName:state.openedFiles]}) ideState
-						>>|			launch (editor ideState fileName ts) ts	
+						(return Void)										// file already open in an editor
+						(			addFilesAdmin fileName 
+						>>|			launch (editor fileName ts) ts	
 						)
 
-closeEditFile :: (Shared IDE_State) FileName -> Task Void
-closeEditFile ideState fileName
-	=			update (\state -> {state & openedFiles 	= removeMember fileName state.openedFiles}) ideState
-				@ const Void
+closeEditFile :: FileName -> Task Void
+closeEditFile fileName
+	=				removeFileAdmin fileName
 
-saveAll :: [FileName] (Shared IDE_State) -> Task Void
-saveAll [] ideState 
+saveAll :: [FileName]  -> Task Void
+saveAll [] 
 	= return Void
-saveAll [name:names] ideState
-	=					get (sharedStore name "")				// read out latest content of the editor from the internal store
-		>>= \content ->	set content (externalFile name)			// and store it in the file			
-		>>|				saveAll names ideState						
+saveAll [name:names]
+	=				get (sharedStore name "")				// read out latest content of the editor from the internal store
+	>>= \content ->	set content (externalFile name)			// and store it in the actual file			
+	>>|				saveAll names 						
 
 // search department
 
 derive class iTask SearchWhat, SearchWhere
+import _SystemStrictLists
 
-search what whereSearch ideState ts  
-	= 				get ideState
+search what whereSearch ts  
+	= 				get_IDE_State
 	>>= \state ->	searching state "" what whereSearch ([],[])  <<@ Window
 	
 where
@@ -223,71 +282,63 @@ where
 					||-
 					updateInformation (Title ("Find: " +++ identifier)) [] (identifier,what,whereSearch)) 
 		>>*			[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction ActionContinue hasValue (performSearch o getValue)
+					, OnAction (Action "Search") hasValue (performSearch o getValue)
 					] 
 	where
 		performSearch (identifier,what,whereSearch)
-			= 				searchTask what whereSearch identifier (projectPath, projectName +++ ".icl") (StrictListToList (state.envTargets!!state.idx).target_path)
+			= 				searchTask what whereSearch identifier (projectPath, projectName +++ ".icl") searchPaths
 			>>=	\found	->	searching state identifier what whereSearch found
+
+		searchPaths = (state.envTargets!!state.idx).target_path
+			 
+
 
 // opening and storing projects... 
 
-newProject :: (Shared IDE_State) -> Task Void
-newProject ideState 
+newProject :: Task Void
+newProject 
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction (Action "Set") hasValue (storeNewProject o getValue)
+					, OnAction (Action "Set") hasValue (\v -> storeNewProject (getValue v) initialPath)
 					]
-where	
-	storeNewProject name 
-		=				update (\state -> {state &	projectSettings			= initProject name
-										  }) ideState  // BUG, could not add this field with next one
-		>>|				update (\state -> {state &	projectSettings.prjpaths = (state.envTargets!!state.idx).target_path 
-											     , 	projectSettings.target	= (state.envTargets!!state.idx).target_name
-										  }) ideState
-		>>|				get ideState
-		>>= \state ->	update (selectEnv state.idx) ideState
-		>>|				get ideState
-		>>= \state ->	storeProject ideState state.projectSettings name
 
-storeProject :: (Shared IDE_State) Project ModuleName -> Task Void
-storeProject ideState project projectName 
-	= 				get ideState
-	>>= \state ->	saveProjectFile project (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
-	>>= \ok ->		if (not ok)
-						(showError "Could not store project file !" Void)
-						(update (\state -> { state	& projectName		= name
-													, projectSettings	= project
-													, recentProjects 	= removeDup [name:state.recentProjects]
-											}
-						) ideState
-						@ const Void
-						)
-where
-	name = dropExtension projectName
+storeNewProject "" _
+	=				return Void 
+storeNewProject projectName projectPath 
+	=				set_new_Project projectName projectPath 
+//	>>|				storeProject  
+
+storeProject :: Task Void
+storeProject  
+	= 				get_IDE_State
+	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ state.projectName +++ ".prj") state.cleanPath 
+	>>= \ok ->		if (not ok)	(showError "Could not store project file !" Void) (return Void)
+						
 	
-openProject :: (Shared IDE_State) ModuleName -> Task Void
-openProject ideState projectName 
-	= 								get ideState
+openProject :: Task Void
+openProject  
+	= 				get_IDE_State
+	>>= \state ->	selectFileInPath state.projectPath (\name -> takeExtension name == "prj" || takeExtension name == "") <<@ Window
+	>>= \(path,r)-> if (isNothing r)
+						(return Void)
+						(reopenProject (fromJust r))
+
+reopenProject :: !ModuleName -> Task Void
+reopenProject projectName 
+	= 								get_IDE_State
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \(project,ok,message) ->	if (not ok)
 										(showError "Read Error..."  message @ const Void)
-										(update (\state -> { state	& projectName		= name
-																	, projectSettings	= project
-																	, recentProjects 	= removeDup [name:state.recentProjects]
-															}
-										) ideState
-										@ const Void
-										)
+										(open_Project projectName state.projectPath project)
 where
 	name = dropExtension projectName
 
-changeProjectOptions :: (Shared IDE_State) -> Task Void
-changeProjectOptions ideState
+changeProjectOptions :: Task Void
+changeProjectOptions 
 	= changeProjectOptions` <<@ Window
 where
 	changeProjectOptions`
-		=				get ideState
+		=				get_IDE_State
 		>>= \state ->	changeProjectOptions`` state.projectName state.projectSettings (fromProject state.projectSettings)
 		
 	changeProjectOptions``	projectName project (rto,diagn,prof,co)	
@@ -295,7 +346,8 @@ where
 		>>= \rto ->		diagnosticsOptions diagn
 		>>= \diagn -> 	profilingOptions prof
 		>>= \prof ->	consoleOptions co
-		>>= \co ->		storeProject ideState (toProject project (rto,diagn,prof,co)) projectName 
+		>>= \co ->		updateProject (toProject project (rto,diagn,prof,co)) 
+//		>>|				storeProject  
 	where
 		title :: String				// BUG ??? cannot leave out type ????
 		title = "Set Options of Project: " +++ projectName	
@@ -316,54 +368,44 @@ where
 
 currEnvName state 				= 	(getCurrEnv state).target_name
 getCurrEnv  state   			= 	state.envTargets!!state.idx
-updateEnv idx target state		= 	{ state & idx						= idx
-											, envTargets 				= updateAt idx target state.envTargets
-											, projectSettings.prjpaths 	= (state.envTargets!!idx).target_path 
-											, projectSettings.target	= (state.envTargets!!idx).target_name
-									}
-selectEnv idx state				= 	{ state & idx						= idx
-											, projectSettings.prjpaths 	= (state.envTargets!!idx).target_path 
-											, projectSettings.target	= (state.envTargets!!idx).target_name
-									}
 
-editEnvironment :: (Shared IDE_State) -> Task Void
-editEnvironment ideState
+editEnvironment :: Task Void
+editEnvironment 
 	= editEnvironment` <<@ Window
 where
 	editEnvironment`
-		=				get ideState
+		=				get_IDE_State
 		>>= \state ->	updateInformation (Title ("Edit " +++ currEnvName state))[] (fromTarget (getCurrEnv state))
 		>>*				[ OnAction ActionCancel   always  (const (return Void))
-						, OnAction (Action "Set") hasValue (updateCurrEnv o getValue) 
+						, OnAction (Action "Set") hasValue (\env -> updateEnvironment state.idx (toTarget (getValue env))) 
 						]
-	updateCurrEnv env = update (\state -> updateEnv state.idx (toTarget env) state) ideState @ const Void
 	
-importEnvironment :: (Shared IDE_State) -> Task Void					
-importEnvironment ideState						
-	=					get ideState
+addEnvironment :: Task Void					
+addEnvironment 						
+	=					get_IDE_State
 	>>= \state ->		selectFileInPath state.projectPath (\name -> takeExtension name == "env" || takeExtension name == "") <<@ Window
 	>>= \(path,mbEnv)-> if (isNothing mbEnv)
 						(showError "Could not read environment file" path  @ const Void)
-						(					 readEnvironmentFile (path </> (fromJust mbEnv)) 
-							>>=  \ntargets -> update (\state -> {state & envTargets = state.envTargets ++ ntargets}) ideState
-											 @ const Void)
+						(					readEnvironmentFile (path </> (fromJust mbEnv)) 
+							>>=  \nenv -> 	add_Environments nenv)
 
-selectEnvironment :: (Shared IDE_State) Int -> Task Void					
-selectEnvironment ideState i
-	=					get ideState
-	>>= \state ->		update (selectEnv i) ideState
-	>>|					storeProject ideState state.projectSettings state.projectName
+selectEnvironment :: Int -> Task Void					
+selectEnvironment i
+	=					select_Environment i
+//	>>|					storeProject  
 	 					@ const Void
 
 // compile project... 
 
-compile :: ModuleName (Shared IDE_State) -> Task Void
-compile projectName ideState 
-	=				get ideState
+compile :: !ModuleName -> Task Void
+compile projectName  
+	=				get_IDE_State
 	>>= \state ->	if (state.openedFiles == []) 
 					(compile` state)
 					(	viewInformation ("Clean Compiler","Do you want to save all ?") [] Void 
-					>>* [ OnAction ActionYes 	always (const (saveAll state.openedFiles ideState >>| compile` state))
+					>>* [ OnAction ActionYes 	always (const (		saveAll state.openedFiles 
+																>>| storeProject
+																>>| compile` state))
 						, OnAction ActionNo  	always (const (compile` state))
 						, OnAction ActionCancel always (const (return Void))
 						]
@@ -372,7 +414,7 @@ where
 	compile` state
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
-			>>|			storeProject ideState state.projectSettings state.projectName
+//			>>|			storeProject  
 			>>|			callProcess "Clean Compiler - BatchBuild" [] (cleanPath +++ batchBuild) [state.projectPath +++ projectName +++ ".prj"] 
 						-&&-
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
@@ -391,8 +433,8 @@ derive class iTask Replace
 initReplace =	{ search = ""
 				, replaceBy = "" 
 				}
-editor :: (Shared IDE_State) FileName (ReadOnlyShared (TaskList Void)) -> Task Void
-editor ideState fileName ts = editor` (externalFile fileName) // <<@ Window
+editor :: FileName (ReadOnlyShared (TaskList Void)) -> Task Void
+editor fileName ts = editor` (externalFile fileName) // <<@ Window
 where
 	editor` file	
 		=   			get file
@@ -403,18 +445,18 @@ where
 								[ (Embedded, editFile fileName copy)
 								, (Embedded, replace initReplace copy)
 								]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
-			>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditFile ideState fileName))
-							, OnAction (Action ("File/Close " +++ fileName))  always (const (closeEditFile ideState fileName))
+			>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditFile fileName))
+							, OnAction (Action ("File/Close " +++ fileName))  always (const (closeEditFile fileName))
 							, OnAction (Action ("File/Save " +++ fileName))   always (const (save copy >>| editor` file))
 							, OnAction (Action ("File/Save As..."))   		  always (const (saveAs copy >>| editor` file))
 							, OnAction (Action ("File/Revert " +++ fileName)) always (const (editor` file))
 							, OnAction (Action ("File/Open " +++ other fileName)) 
 																			  (const isIclOrDcl) 
-																			  (const (openFileAndEdit ideState fileName ts))
+																			  (const (openFileAndEdit fileName ts))
 	
 							, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
 																			  (const isIcl)
-																			  (const (storeProject ideState (initProject noSuffix) noSuffix
+																			  (const (storeNewProject noSuffix initialPath // to fix
 																			  				 >>| editor` file )) 
 							]
 
@@ -426,7 +468,7 @@ where
 
 		saveAs copy
 			=				get copy
-			>>= \content -> get ideState
+			>>= \content -> get_IDE_State
 			>>= \state ->	storeFileInPath state.projectPath fileName content <<@ Window
 
 		other fileName
@@ -544,7 +586,7 @@ currentDirectory :: Task !FilePath
 currentDirectory 
 	= 					accWorld getCurrentDirectory 
 		>>= \content ->	case content of
-							Ok dir -> return ("* " +++ dir +++ " *")
+							Ok dir -> return dir
 							_      -> showError "Could not obtain current directory name" ""
 
 //* simple utility functions
