@@ -1,8 +1,10 @@
 implementation module projectManager
 
 import iTasks
+import EditorUtil
+
 import PmTypes, PmProject, PmParse, PmEnvironment, UtilStrictLists
-import Directory
+import Directory, File
 						   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
 derive class iTask  Environment, ToolsOptions
@@ -121,17 +123,20 @@ fromTarget target
 								}		
 		}	
 
-readEnvironmentFile :: !FullFileName -> Task ![Target]
+readEnvironmentFile :: !FilePathName -> Task ![Target]
 readEnvironmentFile env 
-	= accWorld (openEnvironments ""  env)
+	= 				accWorld (fileExists env)
+	>>= \ok ->		if (not ok) 
+						(showError ("Cannot read" +++ env) [])
+						(accWorld (openEnvironments ""  env))
 
-saveEnvironmentFile ::  !FullFileName ![Target]  -> Task !Bool
+saveEnvironmentFile ::  !FilePathName ![Target]  -> Task !Bool
 saveEnvironmentFile file targets
 	= accWorld (saveEnvironments file targets)
 	
 // search department
 
-searchTask :: !SearchWhat !SearchWhere !Identifier !(!PathName,!FileName)  !(List !PathName) -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchTask :: !SearchWhat !SearchWhere !Identifier !(!DirPathName,!FileName)  !(List !DirPathName) -> Task (![(!(!DirPathName,!FileName),!IdentifierPositionList)],![FileName])
 searchTask what searchWhere identifier path_modulename searchPaths 
 	= if (inImports searchWhere)								
 			(search [path_modulename] [] [])	// recursive search through imported modules
@@ -164,7 +169,7 @@ inImports _ 			  = False
 ifPosNil PosNil then else = then
 ifPosNil _      then else = else
 
-searchInFile :: !SearchWhat !Bool !Identifier !(!PathName,!FileName) -> Task !(![String],!IdentifierPositionList)
+searchInFile :: !SearchWhat !Bool !Identifier !(!DirPathName,!FileName) -> Task !(![String],!IdentifierPositionList)
 searchInFile SearchIdentifier inImports identifier (path, moduleName) 
 	= 					accWorld (accFiles (FindIdentifiersInFile inImports [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
@@ -175,12 +180,12 @@ searchInFile SearchDefinition inImports identifier (path, moduleName)
 	= 					accWorld (accFiles (FindDefinitionInFile inImports [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".dcl") (/*init */(StrictListToList list)),pos)
 
-searchIdentifiersInIclFile :: !Identifier !PathName !FileName  -> Task !(![String],!IdentifierPositionList)
+searchIdentifiersInIclFile :: !Identifier !DirPathName !FileName  -> Task !(![String],!IdentifierPositionList)
 searchIdentifiersInIclFile identifier path moduleName 
 	= 					accWorld (accFiles (FindIdentifiersInFile True [!path +++ moduleName!] identifier (path +++ moduleName) ))
 	>>= \(list,pos) ->  return (map (\f -> f +++ ".icl") (/*init */(StrictListToList list)),pos)
 
-searchFilesInPaths :: ![FileName] !(List !PathName) -> Task ![(!PathName,!FileName)]
+searchFilesInPaths :: ![FileName] !(List !DirPathName) -> Task ![(!DirPathName,!FileName)]
 searchFilesInPaths fileNames pathNames = search fileNames pathNames []
 where
 	search [] _ found = return (reverse found)
@@ -190,7 +195,7 @@ where
 							(search fileNames pathNames found)
 							(search fileNames pathNames [(fromJust res,fileName):found])
 
-searchFileInPaths :: !FileName !(List !PathName) -> Task !(Maybe !PathName)
+searchFileInPaths :: !FileName !(List !DirPathName) -> Task !(Maybe !DirPathName)
 searchFileInPaths fileName paths = accWorld (searchDisk` paths)
 where
 	searchDisk` [!!] world = (Nothing,world)
@@ -202,8 +207,8 @@ where
 							(searchDisk` paths world)
 		_ 			-> searchDisk` paths world
 
-findAllModulesInPaths :: !String !(List !PathName) -> Task ![(!PathName,!FileName)]
-findAllModulesInPaths extension paths = accWorld (searchDisk` paths [])
+findAllModulesInPaths :: !String !(List !DirPathName) -> Task ![(!DirPathName,!FileName)]
+findAllModulesInPaths extension searchpaths = accWorld (searchDisk` searchpaths [])
 where
 	searchDisk` [!!] found world = (found,world)
 	searchDisk` [!path:paths!] found world
@@ -216,7 +221,7 @@ where
 
 // there seems to be a bug when it returns  Task (![String],!IdentifierPositionList)
 /*
-searchIdentifierInImports :: !Identifier !(!PathName,!FileName) ![PathName] -> Task (![(!(!PathName,!FileName),!IdentifierPositionList)],![FileName])
+searchIdentifierInImports :: !Identifier !(!DirPathName,!FileName) ![DirPathName] -> Task (![(!(!DirPathName,!FileName),!IdentifierPositionList)],![FileName])
 searchIdentifierInImports identifier path_modulename environment = search [path_modulename] [] []
 where
 	search [] searched found 	= return (found,searched)								

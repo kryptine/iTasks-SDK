@@ -9,8 +9,8 @@ Status: very drafty
 // You have to set the cleanPath by hand for the time being...
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-//cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 batchBuild		:== "BatchBuild.exe"
 errorFile		:== "Temp\\errors"
@@ -56,18 +56,15 @@ IDE_State = sharedStore "IDE_State" init_IDE_State
 update_IDE_State :: !(IDE_State -> IDE_State) -> Task !Void
 update_IDE_State fun = update fun IDE_State @ const Void
 
-get_IDE_State = get IDE_State
+get_IDE_State :: Task IDE_State
+get_IDE_State = get IDE_State 
 
 // updating the global IDE_State
 
 set_new_Project :: !ModuleName !ProjectPath -> Task Void
-set_new_Project projectName projectPath 
-	=						open_Project projectName projectPath PR_InitProject
-	>>|	update_IDE_State
-			 (\state -> 	{ state & projectSettings.root_directory   	= projectPath
-//									, projectSettings.prjpaths			= (state.envTargets!!state.idx).target_path  // not needed yet ???
-							     	, projectSettings.target 			= (state.envTargets!!state.idx).target_name
-							}) 	
+set_new_Project moduleName projectPath 
+	=						open_Project moduleName projectPath (initProject moduleName) 
+
 open_Project :: !ModuleName !ProjectPath !Project -> Task Void
 open_Project projectName projectPath project
 	=	update_IDE_State
@@ -79,19 +76,15 @@ open_Project projectName projectPath project
 	>>|
 		update_IDE_State
 				(\state -> 	{ state & projectSettings.root_directory   	= projectPath
+									, projectSettings.target 			= (state.envTargets!!state.idx).target_name
 							})
 	
-updateProject :: !Project -> Task Void
-updateProject project
+update_Project :: !Project -> Task Void
+update_Project project
 	=	update_IDE_State
 			 (\state -> 	{ state & projectSettings 					= project
 							}) 
 
-addProjectsAdmin :: !FileName -> Task Void
-addProjectsAdmin projectName
-	=	update_IDE_State
-			 (\state -> 	{ state	& recentProjects 					= removeDup [projectName:state.recentProjects]
-							}) 
 setEnvironments :: ![Target] -> Task Void
 setEnvironments envs
 	= 	update_IDE_State
@@ -145,12 +138,8 @@ Start world = startEngine start_ide world
 
 start_ide :: Task Void
 start_ide 
-	= 				currentDirectory										// determine directory of this CleanEditor
-//	>>= \dir ->		set_Project  "" dir								// BUG: currentDirectory does not return dir						
-	>>= \dir ->		set_new_Project "" initialPath					// Fix: hardwired path
-	>>|				readEnvironmentFile (cleanPath +++ EnvsFileName) 		// read environment file used for communication with BatchBuild	
-	>>= \env ->		setEnvironments env							// store in state
-	>>|				parallel Void // (Title "Clean IDE") 					// BUG: global title not implemented
+	= 				init_ide													// initialize the IDE state
+	>>|				parallel Void // (Title "Clean IDE") 						// BUG: global title not implemented
 						[ (Embedded, topMenu)
 						, (Embedded, projectFiles)
 						, (Embedded, errorMessages)
@@ -158,6 +147,17 @@ start_ide
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 150 (sideMerge BottomSide 100 tabbedMerge)))
 
+	init_ide 
+		=				get_IDE_State											// read state as left from previous session, if any
+		>>= \state -> 	init state.projectName 									
+	where
+		init ""																	// no project set
+		=					currentDirectory									// determine directory of this CleanEditor
+		//	>>= \dir ->		set_Project  "" dir									// BUG: currentDirectory does not return dir						
+			>>= \dir ->		set_new_Project "" initialPath						// Fix: hardwired path
+			>>|				readEnvironmentFile (cleanPath +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
+			>>= \env ->		setEnvironments env									// store settings in project
+		init _ = return Void
 // top menu
 
 topMenu :: !(ReadOnlyShared (TaskList Void)) -> Task Void
@@ -216,7 +216,7 @@ where
 		ifProject = const (projectName <> "")
 
 		currentEnvName			= currEnvName state
-		selectedEnvironment 	= "_" +++ currentEnvName
+		selectedEnvironment 	= "_" +++ currentEnvName 
 
 // project pane: to do
 
@@ -228,7 +228,7 @@ projectFiles _
 // errorMessages pane, shows error message produced by compiler in error file
 
 errorMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
-errorMessages ts 
+errorMessages _ 
 	= 				get_IDE_State
 	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
 					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
@@ -272,7 +272,7 @@ saveAll [name:names]
 derive class iTask SearchWhat, SearchWhere
 import _SystemStrictLists
 
-search what whereSearch ts  
+search what whereSearch _  
 	= 				get_IDE_State
 	>>= \state ->	searching state "" what whereSearch ([],[])  <<@ Window
 	
@@ -289,9 +289,8 @@ where
 			= 				searchTask what whereSearch identifier (projectPath, projectName +++ ".icl") searchPaths
 			>>=	\found	->	searching state identifier what whereSearch found
 
+		searchPaths :: List !String
 		searchPaths = (state.envTargets!!state.idx).target_path
-			 
-
 
 // opening and storing projects... 
 
@@ -319,16 +318,14 @@ openProject :: Task Void
 openProject  
 	= 				get_IDE_State
 	>>= \state ->	selectFileInPath state.projectPath (\name -> takeExtension name == "prj" || takeExtension name == "") <<@ Window
-	>>= \(path,r)-> if (isNothing r)
-						(return Void)
-						(reopenProject (fromJust r))
+	>>= \(path,r)-> if (isNothing r) (return Void) (reopenProject (fromJust r))
 
 reopenProject :: !ModuleName -> Task Void
 reopenProject projectName 
 	= 								get_IDE_State
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \(project,ok,message) ->	if (not ok)
-										(showError "Read Error..."  message @ const Void)
+										(showError "Read Error..."  message  @ const Void)
 										(open_Project projectName state.projectPath project)
 where
 	name = dropExtension projectName
@@ -342,27 +339,26 @@ where
 		>>= \state ->	changeProjectOptions`` state.projectName state.projectSettings (fromProject state.projectSettings)
 		
 	changeProjectOptions``	projectName project (rto,diagn,prof,co)	
-		=				runTimeOptions rto
-		>>= \rto ->		diagnosticsOptions diagn
-		>>= \diagn -> 	profilingOptions prof
-		>>= \prof ->	consoleOptions co
-		>>= \co ->		updateProject (toProject project (rto,diagn,prof,co)) 
+		=				runTimeOptions title rto
+		>>= \rto ->		diagnosticsOptions title diagn
+		>>= \diagn -> 	profilingOptions title prof
+		>>= \prof ->	consoleOptions title co
+		>>= \co ->		update_Project (toProject project (rto,diagn,prof,co)) 
 //		>>|				storeProject  
 	where
-		title :: String				// BUG ??? cannot leave out type ????
 		title = "Set Options of Project: " +++ projectName	
 
-		runTimeOptions :: RunTimeOptions -> Task RunTimeOptions
-		runTimeOptions	rto = updateInformation (title,"Run-Time Options:")[] rto 
+		runTimeOptions :: String RunTimeOptions -> Task RunTimeOptions
+		runTimeOptions title rto = updateInformation (title,"Run-Time Options:")[] rto 
 		
-		diagnosticsOptions :: DiagnosticsOptions -> Task DiagnosticsOptions
-		diagnosticsOptions	diagn = updateInformation (title,"Diagnostics Options:") [] diagn
+		diagnosticsOptions :: String DiagnosticsOptions -> Task DiagnosticsOptions
+		diagnosticsOptions title diagn = updateInformation (title,"Diagnostics Options:") [] diagn
 		
-		profilingOptions :: ProfilingOptions -> Task ProfilingOptions
-		profilingOptions prof = updateInformation (title,"Diagnostics Options:") [] prof	
+		profilingOptions :: String ProfilingOptions -> Task ProfilingOptions
+		profilingOptions title prof = updateInformation (title,"Diagnostics Options:") [] prof	
 	
-		consoleOptions :: ConsoleOptions -> Task ConsoleOptions
-		consoleOptions co = updateInformation (title,"Console Options:") [] co	
+		consoleOptions :: String ConsoleOptions -> Task ConsoleOptions
+		consoleOptions title co = updateInformation (title,"Console Options:") [] co	
 
 // editing the evironment
 
@@ -376,7 +372,7 @@ where
 	editEnvironment`
 		=				get_IDE_State
 		>>= \state ->	updateInformation (Title ("Edit " +++ currEnvName state))[] (fromTarget (getCurrEnv state))
-		>>*				[ OnAction ActionCancel   always  (const (return Void))
+		>>*				[ OnAction ActionCancel   always   (const (return Void))
 						, OnAction (Action "Set") hasValue (\env -> updateEnvironment state.idx (toTarget (getValue env))) 
 						]
 	
@@ -503,91 +499,7 @@ where
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
  						>>| showReplace cmnd
-//
-import File
-import Directory
-derive class iTask MaybeError, FileInfo, Tm
 
-// iTask utilities of general nature
-
-// file selector...
-
-selectFileInPath :: !PathName !(!FileName -> Bool) -> Task !(PathName,Maybe !FileName)
-selectFileInPath path pred
-	= 				accWorld (readDirectory path)
-	>>= \content -> case content of
-						Ok names 	-> select names
-						_ 			-> return (path,Nothing)
-where
-	select names
-		=				enterChoice ("File Selector",path) [] (filter pred names)
-		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
-						, OnAction ActionOk		hasValue (continue o getValue)
-						, OnAction ActionNew	always 	 (const (newFile))
-						]
-	newFile
-		=				enterInformation ("Create File",path) []
-		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
-						, OnAction ActionOk		hasValue (write o getValue)
-						]
-	write name
-		=				accWorld (writeFile (path </> name) "")
-		>>|				return (path,Just name)
-
-	continue ".." = selectFileInPath (takeDirectory path) pred
-	continue "."  = selectFileInPath path pred
-	continue name
-	| takeExtension name == "icl" 
-		= (return (path,Just name))
-	| takeExtension name == "dcl"
-		= (return (path,Just name))
-	| otherwise		
-		=				accWorld (getFileInfo (path </> name))
-		>>= \content ->	case content of
-							Ok info -> if info.directory
-								(selectFileInPath (path </> name) pred)
-								(return (path,Just name))
-							_		-> selectFileInPath path pred
-
-storeFileInPath :: !PathName !FileName !String -> Task !Bool
-storeFileInPath name string path
-	= 				accWorld (readDirectory path)
-	>>= \content -> case content of
-						Ok names 	-> select names
-						_ 			-> return False
-where
-	select names
-		=				enterChoice ("Store " +++ name,path) [] names
-						-&&-
-						updateInformation "File name" [] name
-		>>*				[ OnAction ActionCancel always  (const (return False))
-						, OnAction (Action "Browse")	hasValue (browse o getValue)
-						, OnAction ActionSave			hasValue (write o getValue)
-						]
-	write (path,name)
-		=				accWorld (writeFile (path </> name) "")
-		>>|				return True
-
-
-	browse ("..",name)  = storeFileInPath (takeDirectory path) name string
-	browse (".",name)   = storeFileInPath path name string
-	browse (npath,name)		
-		=				accWorld (getFileInfo npath)
-		>>= \content ->	case content of
-							Ok info -> if info.directory
-								(storeFileInPath npath name string)
-								(storeFileInPath path name string)
-							_		-> storeFileInPath path name string
-
-showError :: String a -> Task a | iTask a
-showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return val) <<@ Window
-
-currentDirectory :: Task !FilePath
-currentDirectory 
-	= 					accWorld getCurrentDirectory 
-		>>= \content ->	case content of
-							Ok dir -> return dir
-							_      -> showError "Could not obtain current directory name" ""
 
 //* simple utility functions
 
