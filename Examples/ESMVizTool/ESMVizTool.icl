@@ -48,7 +48,7 @@ DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o)
 				| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
  =	anyTask	[ selectInput
-			, state esm st
+			, state esm st @? const NoValue
 // 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
 // 			, chooseTaskComBo "go to state... " [let label = show1 node in (label, updateDig st label) \\ node <- if (isEmpty nodes) ss nodes]
 			, chooseTaskComBo ("Actions","Do one of the following actions...")
