@@ -76,6 +76,7 @@ from Map			import :: Map(..)
 	| UIIcon			!UISizeOpts	!UIIconOpts									// - Icon (information icon with tooltip text)
 	| UITab				!UISizeOpts	!UITabOpts									// - Tab (clicks trigger focus events)
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
+	| UITaskletPlaceholder !String
 	// Container components for composition:
 	| UIContainer		!UISizeOpts !UILayoutOpts ![UIControl] !UIContainerOpts	// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)

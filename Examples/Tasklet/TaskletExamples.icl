@@ -1,8 +1,10 @@
 module TaskletExamples
 
-import iTasks,Tasklet
+import iTasks, Tasklet
 import StringAppender, CodeGeneratorJS, graph_to_sapl_string
 import sapldebug
+
+paneled title = setTitle title o toPanel
 
 //-------------------------------------------------------------------------
 //
@@ -24,7 +26,7 @@ googleMapsTasklet cla clo =
 	{ Tasklet
 	| generatorFunc		= googleMapsGUI
 	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) Unstable
-	, tweakUI  			= \t = (paneled (Just "Google Maps Tasklet") Nothing Nothing [t])		
+	, tweakUI  			= paneled "Google Maps Tasklet"
 	}
 where
 	googleMapsGUI taskId iworld
@@ -32,8 +34,8 @@ where
 		# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
 
 		# gui = { TaskletHTML
-				| width  		= Fixed 300
-				, height 		= Fixed 300
+				| width  		= ExactSize 300
+				, height 		= ExactSize 300
 				, html   		= HtmlDef (html canvas)
 				, eventHandlers = [HtmlEvent "tasklet" "init" onInit
 				                  ,HtmlEvent "tasklet" "destroy" onDestroy
@@ -124,14 +126,14 @@ geoTasklet =
 	{ Tasklet
 	| generatorFunc		= geoTaskletGUI
 	, resultFunc		= \pos = Value pos Unstable
-	, tweakUI  			= \t = (paneled (Just "GEO Tasklet") Nothing Nothing [t])		
+	, tweakUI  			= paneled "GEO Tasklet"
 	}
 
 geoTaskletGUI _ iworld
 
 	# gui = { TaskletHTML
-			| width  		= Fixed 300
-			, height 		= Fixed 30
+			| width  		= ExactSize 300
+			, height 		= ExactSize 30
 			, html   		= HtmlDef "Current position: <span id='loc'/>"
 			, eventHandlers = [HtmlEvent "tasklet" "init" onInit]
 			}
@@ -164,7 +166,7 @@ pushTasklet =
 	{ Tasklet
 	| generatorFunc		= pushGenerateGUI
 	, resultFunc		= \i = Value i Unstable
-	, tweakUI  			= \t = (paneled (Just "Push Tasklet") (Just "Push the button 3 times") Nothing [t])	
+	, tweakUI  			= paneled "Push Tasklet"
 	}
 
 pushGenerateGUI :: !TaskId !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
@@ -173,8 +175,8 @@ pushGenerateGUI _ iworld
 	# defSt = 1
 
 	# gui = { TaskletHTML
-			| width  		= Fixed 50
-			, height 		= Fixed 27
+			| width  		= ExactSize 50
+			, height 		= ExactSize 27
 			, html   		= HtmlDef ("<input type=\"button\" id=\"pushbtn\" name=\"push\" value=\""+++ toString defSt +++"\">")
 			, eventHandlers = [HtmlEvent "pushbtn" "click" onClick]
 			}
@@ -209,7 +211,7 @@ painterTasklet :: Tasklet PainterState Drawing
 painterTasklet = 
 	{ generatorFunc		= painterGenerateGUI
 	, resultFunc		= \{draw,finished} = Value (Drawing draw) (if finished Stable Unstable)
-	, tweakUI  			= \t = (paneled (Just "Drawing Tasklet") (Just info) Nothing [t])	
+	, tweakUI  			= paneled "Drawing Tasklet"
 	}
 
 canvasWidth :== 300
@@ -271,8 +273,8 @@ painterGenerateGUI _ iworld
 			HtmlEvent "finishbtn" "click" onClickFinish]
 
 	# gui = { TaskletHTML |
-			  width  		= Fixed (canvasWidth + 70)
-			, height 		= Fixed (canvasHeight + 50)
+			  width  		= ExactSize (canvasWidth + 70)
+			, height 		= ExactSize (canvasHeight + 50)
 			, html   		= HtmlDef html
 			, eventHandlers = eventHandlers
 			}
@@ -422,7 +424,7 @@ where
 
 taskletExamples :: [Workflow]
 taskletExamples =
-	[workflow "Simple push button tasklet" "Push the button 3 times" tasklet1,
+	[workflow "Simple push button tasklet" "Push the button 3(three) times" tasklet1,
 	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2,
 	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3,
 	 workflow "Google MAP" "Basic Google Maps functionality" (mkTask (googleMapsTasklet 47.471944 19.050278))]

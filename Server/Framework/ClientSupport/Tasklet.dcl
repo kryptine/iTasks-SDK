@@ -11,8 +11,8 @@ import Task, SaplHtml
 :: GeneratorFunc st :== TaskId *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
 
 :: TaskletHTML st = 
-	{ width 			:: !TUISize
-	, height			:: !TUISize
+	{ width 			:: !UISize
+	, height			:: !UISize
 	, html				:: !HtmlDef
 	, eventHandlers		:: ![HtmlEvent st] 
 	} 
@@ -31,17 +31,17 @@ import Task, SaplHtml
 * @param eventName
 * @param eventValue
 */
-:: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe TUIDef, st)
+:: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe UIDef, st)
 
 :: TaskletTUI st = 
-	{ tui				:: !Maybe TUIDef
+	{ tui				:: !Maybe UIControl
 	, eventHandler		:: !Maybe (InstanceNo, ControllerFunc st)
 	}
 
 :: Tasklet st val =
 	{ generatorFunc		:: !(GeneratorFunc st)
 	, resultFunc		:: !(st -> TaskValue val)
-	, tweakUI 			:: !(TUIDef -> TUIDef)
+	, tweakUI 			:: !(UIControl -> UIControl)
 	}
 
 mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res 

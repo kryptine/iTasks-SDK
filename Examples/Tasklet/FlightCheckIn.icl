@@ -2,6 +2,8 @@ module FlightCheckIn
 
 import iTasks,Tasklet,FlightSupport
 
+paneled title = setTitle title o toPanel
+
 ifStable (Value v Stable) = True
 ifStable _ = False
 
@@ -27,7 +29,6 @@ derive gVisualizeEditor Seat
 derive gHeaders Seat
 derive gGridRows Seat
 derive gUpdate Seat
-derive gDefaultMask Seat
 derive gVerify Seat
 derive JSONEncode Seat
 derive JSONDecode Seat
@@ -116,14 +117,14 @@ where
 	seatTasklet = 
 		{ generatorFunc		= (\_ iworld -> (TaskletHTML gui, Nothing, iworld))
 		, resultFunc		= maybeStable
-		, tweakUI  			= \t = (paneled (Just "Seat chooser Tasklet") (Just "Choose seat:") Nothing [t])	
+		, tweakUI  			= paneled "Seat chooser Tasklet"
 		}
 
 	occupiedStyle = StyleAttr "float: left; border-style:solid; background-color:blue; border-color:black; width: 15px; height: 15px; margin: 1px;"
 	freeStyle = StyleAttr "float: left; border-style:solid; background-color:white; border-color:black; width: 15px; height: 15px; margin: 1px;"
 	corridorStyle = StyleAttr "float: left; background-color:white; width: 20px; height: 15px;"
 
-	rowLayout = intercalate [-1] (numbering 1 f.layout)
+	rowLayout = intercalate [-1] (numbering 1 f.Flight.layout)
 	numbering i [] = []
 	numbering i [x:xs] = [take x [i..] : numbering (i+x) xs]
 
@@ -147,8 +148,8 @@ where
 								    [map (\s -> genRowUI (Seat r s)) rowLayout \\ r <- [1 .. f.rows]])
 			
 	gui = { TaskletHTML |
-				  width  		= Fixed 300
-				, height 		= Fixed 300
+				  width  		= ExactSize 300
+				, height 		= ExactSize 300
 				, html   		= HtmlDef htmlui
 				, eventHandlers = concatMap attachHandlers f.freeSeats
 				}

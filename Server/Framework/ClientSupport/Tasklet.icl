@@ -1,54 +1,67 @@
 implementation module Tasklet
 
-import iTasks, Task, TaskState, TUIEncode
+import iTasks, Task, TaskState, UIDefinition
 import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
 import sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
 
 //---------------------------------------------------------------------------------------
 
+println :: !String !*IWorld -> *IWorld
+println msg iw=:{world} 
+	# (console,world)	= stdio world
+	# console			= fwrites msg console
+	# console			= fwrites "\n" console
+	# (_,world)			= fclose console world
+	= {iw & world = world} 
+
+toDef c = UIFinal (UIViewport defaultLayoutOpts [c] {UIViewportOpts | title = Nothing, tbar = Nothing})
+
 mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 mkTask tasklet = Task taskFunc
 where
+	// TODO: FocusEvent? tabswitch!
+
 	// Init
-	taskFunc mbEdit mbCommit refreshFlag taskRepOpts (TCInit taskId ts) iworld
+	taskFunc event taskRepOpts (TCInit taskId ts) iworld
 		# (rep, st, iworld) = genRep taskId taskRepOpts iworld
 		# res = tasklet.Tasklet.resultFunc st
-		# result = ValueResult res ts rep (TCBasic taskId ts (toJSON res) False)
-		= (result, iworld)	
+		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts (toJSON res) False)
+		= (result, println "init" iworld)	
 
-	// Re-Init
-	taskFunc Nothing Nothing refreshFlag taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc RefreshEvent taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res ts (placeHolderRep taskId) context
-		= (result, iworld)
+		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId) context
+		= (result, println "refresh" iworld)
  
 	// Edit: "result"
-	taskFunc (Just (TaskEvent targetTaskId ("result", jsonRes))) mbCommit refreshFlag taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# rep = placeHolderRep taskId
-		# result = ValueResult res ts rep (TCBasic taskId ts jsonRes False)
-		= (result, iworld) 
+		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+		= (result, println "result" iworld) 
  
 	// Edit: "finalize"
-	taskFunc (Just (TaskEvent targetTaskId ("finalize", jsonRes))) mbCommit refreshFlag taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
-		# result = ValueResult res ts rep (TCDestroy (TCBasic taskId ts jsonRes False))
-		= (result, iworld)  
+		# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))
+		= (result, println "finalize" iworld)  
  
 	// Commit
-	taskFunc mbEdit mbCommit refreshFlag taskRepOpts (TCBasic taskId ts jsonRes _) iworld
+	taskFunc event taskRepOpts (TCBasic taskId ts jsonRes _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# rep = placeHolderRep taskId 
-		# result = ValueResult res ts rep (TCBasic taskId ts jsonRes False)
-		= (result, iworld)
+		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+		= (result, println "commit" iworld)
 
 	// Destroy
-	taskFunc mbEdit mbCommit refreshFlag taskRepOpts (TCDestroy _) iworld
-		= (DestroyedResult, iworld)
+	taskFunc event taskRepOpts (TCDestroy _) iworld
+		= (DestroyedResult, println "destroy" iworld)
+
+	taskInfo ts = {TaskInfo | lastEvent = ts, expiresIn = Nothing}
 
 	placeHolderRep taskId 
-		= TaskRep (appTweak (ViewPart, Just (defaultDef (TUITaskletPlaceholder (toString taskId))), [], [])) []
+		= TaskRep (toDef (UITaskletPlaceholder (toString taskId))) []
 
 	genRep taskId taskRepOpts iworld 
 		# (gui, state, iworld) = tasklet.generatorFunc taskId iworld
@@ -63,13 +76,9 @@ where
 						     Nothing
 						     iworld
 					
-				# tui = tHTMLToTasklet gui taskId state_js script_js events_js rf_js
-				# taskTuiRep = appTweak (ViewPart, Just tui, [], [])
-				# layout = repLayout taskRepOpts
-				# taskTuiRep = appLayout layout SingleTask [taskTuiRep] [] []
-						
-				# rep = TaskRep taskTuiRep []						
-				= (rep, state, iworld)
+				# tui = tHTMLToTasklet gui taskId state_js script_js events_js rf_js						
+				# rep = TaskRep tui []						
+				= (rep, state, println ((toString o encodeUIDefinition) tui) iworld)
 
 			TaskletTUI gui
 
@@ -85,37 +94,37 @@ where
 						     iworld
 					
 				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino rf_js mb_cf_js
-				# taskTuiRep = appTweak (ViewPart, Just tui, [], [])
-				# layout = repLayout taskRepOpts
-				# taskTuiRep = appLayout layout SingleTask [taskTuiRep] [] []
-						
-				# rep = TaskRep taskTuiRep []							
-				= (rep, state, iworld)
+				# rep = TaskRep tui []							
+				= (rep, state, println ((toString o encodeUIDefinition) tui) iworld)
 
 	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino rf_js mb_cf_js
-		 = (defaultDef (TUITasklet  { taskId   		 = toString taskId
-									, html     		 = Nothing
-								    , tui      		 = tui 
-								    , st    		 = Just state_js
-								    , script   		 = Just script_js
-								    , events   		 = Nothing
-								    , resultFunc	 = Just rf_js
-								    , instanceNo	 = mb_ino
-								    , controllerFunc = mb_cf_js}))
+		 = toDef (UITasklet defaultSizeOpts 
+		 			{UITaskletOpts 
+		 			| taskId   		 = toString taskId
+					, html     		 = Nothing
+					, ui      		 = tui 
+					, st    		 = Just state_js
+					, script   		 = Just script_js
+					, events   		 = Nothing
+					, resultFunc	 = Just rf_js
+					, instanceNo	 = mb_ino
+					, controllerFunc = mb_cf_js})
 
 	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js rf_js
-		= setSize width height 
-			(defaultDef (TUITasklet { taskId   		 = toString taskId
-								    , html     		 = Just (toString html)
-								    , tui      		 = Nothing
-								    , st    		 = Just state_js
-								    , script   		 = Just script_js
-								    , events   		 = Just events_js
-								    , resultFunc     = Just rf_js
-								    , instanceNo     = Nothing
-								    , controllerFunc = Nothing}))
+		= toDef (setSize width height 
+			(UITasklet defaultSizeOpts 
+					 {UITaskletOpts 
+					 | taskId   	  = toString taskId
+					 , html     	  = Just (toString html)
+					 , ui	      	  = Nothing
+					 , st    		  = Just state_js
+					 , script   	  = Just script_js
+					 , events   	  = Just events_js
+					 , resultFunc     = Just rf_js
+					 , instanceNo     = Nothing
+					 , controllerFunc = Nothing}))
 
-	appTweak taskTuiRep = tweakTUI tasklet.tweakUI taskTuiRep
+	appTweak taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 
 	/* Controller wrapper to be easier to write controler function:
 	 * 1. taskId is parsed
@@ -123,7 +132,7 @@ where
 	 */
 	controllerWrapper cf strTaskID st mbEventName mbEventHandler
 		# (mbTUI, st) = cf (fromString strTaskID) st mbEventName mbEventHandler
-		= (fmap (toString o encodeTUIDefinition) mbTUI, st)
+		= (fmap (toString o encodeUIDefinition) mbTUI, st)
 
 	// it uses the 2. layer (handleJSEvent), because it's created on the server
 	eventHandlerWrapper taskId (HtmlEvent id event f) 
