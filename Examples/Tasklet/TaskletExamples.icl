@@ -4,8 +4,6 @@ import iTasks, Tasklet
 import StringAppender, CodeGeneratorJS, graph_to_sapl_string
 import sapldebug
 
-paneled title = setTitle title o toPanel
-
 //-------------------------------------------------------------------------
 //
 // TODO:
@@ -26,10 +24,13 @@ googleMapsTasklet cla clo =
 	{ Tasklet
 	| generatorFunc		= googleMapsGUI
 	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) Unstable
-	, tweakUI  			= paneled "Google Maps Tasklet"
+	, tweakUI  			= setTitle "Google Maps Tasklet"
 	}
 where
-	googleMapsGUI taskId iworld
+	googleMapsGUI taskId Nothing iworld 
+		= googleMapsGUI taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
+
+	googleMapsGUI taskId (Just st) iworld
 
 		# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
 
@@ -42,7 +43,8 @@ where
 				                  ,HtmlEvent "tasklet" "afterlayout" onResize]
 				}
 			
-		= (TaskletHTML gui, {map = Nothing, centerLA = cla, centerLO = clo}, iworld)
+		= (TaskletHTML gui, st, iworld)
+				
 	where
 		updatePerspective st=:{map = Just map} _ _  d 
 			# (d, map, center) = runObjectMethod d map "getCenter" []
@@ -126,10 +128,10 @@ geoTasklet =
 	{ Tasklet
 	| generatorFunc		= geoTaskletGUI
 	, resultFunc		= \pos = Value pos Unstable
-	, tweakUI  			= paneled "GEO Tasklet"
+	, tweakUI  			= setTitle "GEO Tasklet"
 	}
 
-geoTaskletGUI _ iworld
+geoTaskletGUI _ _ iworld
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 300
@@ -166,22 +168,23 @@ pushTasklet =
 	{ Tasklet
 	| generatorFunc		= pushGenerateGUI
 	, resultFunc		= \i = Value i Unstable
-	, tweakUI  			= paneled "Push Tasklet"
+	, tweakUI  			= setTitle "Push Tasklet"
 	}
 
-pushGenerateGUI :: !TaskId !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
-pushGenerateGUI _ iworld  
+pushGenerateGUI :: !TaskId (Maybe Int) !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
 
-	# defSt = 1
+pushGenerateGUI taskId Nothing iworld  = pushGenerateGUI taskId (Just 1) iworld
+
+pushGenerateGUI _ (Just st) iworld  
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 50
 			, height 		= ExactSize 27
-			, html   		= HtmlDef ("<input type=\"button\" id=\"pushbtn\" name=\"push\" value=\""+++ toString defSt +++"\">")
+			, html   		= HtmlDef ("<input type=\"button\" id=\"pushbtn\" name=\"push\" value=\""+++ toString st +++"\">")
 			, eventHandlers = [HtmlEvent "pushbtn" "click" onClick]
 			}
 			
-	= (TaskletHTML gui, defSt, iworld)
+	= (TaskletHTML gui, st, iworld)
 where			
 	onClick state _ _ d
 		# (d, str) = setDomAttr d "pushbtn" "value" (toString (state + 1))
@@ -211,16 +214,19 @@ painterTasklet :: Tasklet PainterState Drawing
 painterTasklet = 
 	{ generatorFunc		= painterGenerateGUI
 	, resultFunc		= \{draw,finished} = Value (Drawing draw) (if finished Stable Unstable)
-	, tweakUI  			= paneled "Drawing Tasklet"
+	, tweakUI  			= setTitle "Drawing Tasklet"
 	}
 
 canvasWidth :== 300
 canvasHeight :== 300
 
 // TODO: http://jaspervdj.be/blaze/tutorial.html
-painterGenerateGUI _ iworld  
 
-	# defSt = {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
+painterGenerateGUI taskId Nothing iworld  
+	= painterGenerateGUI taskId (Just {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}) iworld
+
+painterGenerateGUI _ (Just defSt) iworld  
+
 	# ws = toString canvasWidth
 	# hs = toString canvasHeight
 	

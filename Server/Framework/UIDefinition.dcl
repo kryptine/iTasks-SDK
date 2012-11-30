@@ -76,7 +76,7 @@ from Map			import :: Map(..)
 	| UIIcon			!UISizeOpts	!UIIconOpts									// - Icon (information icon with tooltip text)
 	| UITab				!UISizeOpts	!UITabOpts									// - Tab (clicks trigger focus events)
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
-	| UITaskletPlaceholder !String
+	| UITaskletPlaceholder !UISizeOpts !String
 	// Container components for composition:
 	| UIContainer		!UISizeOpts !UILayoutOpts ![UIControl] !UIContainerOpts	// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)
@@ -245,7 +245,7 @@ from Map			import :: Map(..)
 	{ taskId		 :: !String
 	// It contains html _or_ tui
 	, html 			 :: !Maybe String
-	, ui			 :: !Maybe UIControl
+	, tui			 :: !Maybe UIDef
 	, st			 :: !Maybe String
 	, script		 :: !Maybe String
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function

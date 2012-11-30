@@ -110,6 +110,7 @@ encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSO
 encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts] []
 encodeUIControl (UITab sopts opts)						= enc "itwc_tab" [toJSON sopts, toJSON opts] []
 encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts] []
+encodeUIControl (UITaskletPlaceholder sopts taskId)		= enc "itwc_tasklet_placeholder" [toJSON sopts, JSONObject [("taskId",toJSON taskId)]] []
 encodeUIControl (UIContainer sopts lopts items opts)	= enc "itwc_container" [toJSON sopts, toJSON lopts, toJSON opts] items
 encodeUIControl (UIPanel sopts lopts items opts)		= enc "itwc_panel" [toJSON sopts, toJSON lopts, toJSON opts] items
 encodeUIControl (UIFieldSet sopts lopts items opts)		= enc "itwc_fieldset" [toJSON sopts, toJSON lopts, toJSON opts] items
@@ -156,6 +157,8 @@ JSONEncode{|UIMenuItem|} (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJS
 JSONEncode{|UIControl|} control = [encodeUIControl control]
 JSONEncode{|ProgressAmount|} ProgressUndetermined		= [JSONString "undetermined"]
 JSONEncode{|ProgressAmount|} (ProgressRatio ratio)		= [JSONReal ratio]
+
+JSONEncode{|UIDef|} uidef = [encodeUIDefinition uidef]
 
 enc :: String [JSONNode] [UIControl] -> JSONNode
 enc xtype opts items = JSONObject [("xtype",JSONString xtype):optsfields ++ itemsfield]

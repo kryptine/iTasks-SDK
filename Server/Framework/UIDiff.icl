@@ -26,6 +26,7 @@ derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISli
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts
 derive gEq UIControl, UILayoutOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
+derive gEq UIDef, UIAction
 
 derive JSONEncode UITreeNode
 
@@ -102,6 +103,10 @@ diffControls path event c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+		(UITaskletPlaceholder sOpts1 tid1, UITaskletPlaceholder sOpts2 tid2)
+			| tid1 == tid2
+				= [diffSizeOpts path sOpts1 sOpts2]
+				= [DiffImpossible]
 		(UIContainer sOpts1 lOpts1 items1 opts1, UIContainer sOpts2 lOpts2 items2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UIPanel sOpts1 lOpts1 items1 opts1, UIPanel sOpts2 lOpts2 items2 opts2)

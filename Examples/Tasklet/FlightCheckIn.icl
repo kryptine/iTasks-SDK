@@ -2,8 +2,6 @@ module FlightCheckIn
 
 import iTasks,Tasklet,FlightSupport
 
-paneled title = setTitle title o toPanel
-
 ifStable (Value v Stable) = True
 ifStable _ = False
 
@@ -115,9 +113,9 @@ chooseSeat (Just f) = mkTask seatTasklet
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
-		{ generatorFunc		= (\_ iworld -> (TaskletHTML gui, Nothing, iworld))
+		{ generatorFunc		= (\_ _ iworld -> (TaskletHTML gui, Nothing, iworld))
 		, resultFunc		= maybeStable
-		, tweakUI  			= paneled "Seat chooser Tasklet"
+		, tweakUI  			= setTitle "Seat chooser Tasklet"
 		}
 
 	occupiedStyle = StyleAttr "float: left; border-style:solid; background-color:blue; border-color:black; width: 15px; height: 15px; margin: 1px;"

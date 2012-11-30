@@ -3,6 +3,7 @@ implementation module Tasklet
 import iTasks, Task, TaskState, UIDefinition
 import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
 import sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
+from Map import newMap 
 
 //---------------------------------------------------------------------------------------
 
@@ -14,30 +15,39 @@ println msg iw=:{world}
 	# (_,world)			= fclose console world
 	= {iw & world = world} 
 
-toDef c = UIFinal (UIViewport defaultLayoutOpts [c] {UIViewportOpts | title = Nothing, tbar = Nothing})
+toDef c = UIControlSequence (newMap, [(c,newMap)], Vertical)
 
 mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 mkTask tasklet = Task taskFunc
 where
-	// TODO: FocusEvent? tabswitch!
-
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId ts) iworld
-		# (rep, st, iworld) = genRep taskId taskRepOpts iworld
+		# (rep, st, iworld) = genRep taskId taskRepOpts Nothing iworld
 		# res = tasklet.Tasklet.resultFunc st
 		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts (toJSON res) False)
-		= (result, println "init" iworld)	
+		= (result, println "init" iworld)
 
+	// Refresh: server restart. anything else?
 	taskFunc RefreshEvent taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+		# (rep, st, iworld) = genRep taskId taskRepOpts Nothing iworld
+
+		//No! because state and value will be out of sync!
+		//# res = fromJust (fromJSON (jsonRes))
+		# res = tasklet.Tasklet.resultFunc st
+		
+		# result = ValueResult res (taskInfo ts) rep context
+		= (result, println "refresh" iworld)
+
+	// Focus: tab switch. anything else?
+	taskFunc (FocusEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId) context
-		= (result, println "refresh" iworld)
+		= (result, println "focus" iworld)
  
 	// Edit: "result"
 	taskFunc (EditEvent targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		# res = fromJust (fromJSON (jsonRes))
-		# rep = placeHolderRep taskId
-		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId) (TCBasic taskId ts jsonRes False)
 		= (result, println "result" iworld) 
  
 	// Edit: "finalize"
@@ -61,10 +71,10 @@ where
 	taskInfo ts = {TaskInfo | lastEvent = ts, expiresIn = Nothing}
 
 	placeHolderRep taskId 
-		= TaskRep (toDef (UITaskletPlaceholder (toString taskId))) []
+		= TaskRep (toDef (UITaskletPlaceholder defaultSizeOpts (toString taskId))) []
 
-	genRep taskId taskRepOpts iworld 
-		# (gui, state, iworld) = tasklet.generatorFunc taskId iworld
+	genRep taskId taskRepOpts mbState iworld 
+		# (gui, state, iworld) = tasklet.generatorFunc taskId mbState iworld
 		= case gui of
 		
 			TaskletHTML gui 
@@ -76,9 +86,9 @@ where
 						     Nothing
 						     iworld
 					
-				# tui = tHTMLToTasklet gui taskId state_js script_js events_js rf_js						
-				# rep = TaskRep tui []						
-				= (rep, state, println ((toString o encodeUIDefinition) tui) iworld)
+				# tui = tHTMLToTasklet gui taskId state_js script_js events_js rf_js
+				# rep = TaskRep (appTweak tui) []						
+				= (rep, state, iworld)
 
 			TaskletTUI gui
 
@@ -94,15 +104,15 @@ where
 						     iworld
 					
 				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino rf_js mb_cf_js
-				# rep = TaskRep tui []							
-				= (rep, state, println ((toString o encodeUIDefinition) tui) iworld)
+				# rep = TaskRep (appTweak tui) []							
+				= (rep, state, iworld)
 
 	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino rf_js mb_cf_js
 		 = toDef (UITasklet defaultSizeOpts 
 		 			{UITaskletOpts 
 		 			| taskId   		 = toString taskId
 					, html     		 = Nothing
-					, ui      		 = tui 
+					, tui      		 = tui 
 					, st    		 = Just state_js
 					, script   		 = Just script_js
 					, events   		 = Nothing
@@ -116,7 +126,7 @@ where
 					 {UITaskletOpts 
 					 | taskId   	  = toString taskId
 					 , html     	  = Just (toString html)
-					 , ui	      	  = Nothing
+					 , tui	      	  = Nothing
 					 , st    		  = Just state_js
 					 , script   	  = Just script_js
 					 , events   	  = Just events_js

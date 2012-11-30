@@ -8,7 +8,7 @@ import Task, SaplHtml
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
                  | TaskletTUI  !(TaskletTUI  st)
 
-:: GeneratorFunc st :== TaskId *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
+:: GeneratorFunc st :== TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
 
 :: TaskletHTML st = 
 	{ width 			:: !UISize
@@ -34,7 +34,7 @@ import Task, SaplHtml
 :: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe UIDef, st)
 
 :: TaskletTUI st = 
-	{ tui				:: !Maybe UIControl
+	{ tui				:: !Maybe UIDef
 	, eventHandler		:: !Maybe (InstanceNo, ControllerFunc st)
 	}
 

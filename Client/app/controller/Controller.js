@@ -11,7 +11,9 @@ Ext.define('itwc.controller.Controller',{
 			  ,'itwc.container.Panel'			//More configurable container with headers and stuff
 			  ,'itwc.container.FieldSet'		//Logical grouping of components
 			  ,'itwc.container.Window'			//Floating window
+
 			  ,'itwc.container.Tasklet'			//Tasklet
+			  ,'itwc.container.TaskletPlaceholder'
   
 			  ,'itwc.component.view.String'		//Strings with html escaping
 			  ,'itwc.component.view.HTML'		//Raw HTML
@@ -50,7 +52,7 @@ Ext.define('itwc.controller.Controller',{
 			  ,'itwc.component.misc.Tab'		//A tab that can trigger focus events and close action events
 			  ],
 
-	// for tasklet support
+	// for tasklet and client side execution support
 	tasklets: {}, 				// taskId     -> tasklet
 	taskletControllers: {},		// instanceNo -> tasklet.controllerFunc	  
 			  
