@@ -7,22 +7,32 @@ from StdFunc		import o, seq
 from IWorld			import :: IWorld(..)
 from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
+import Shared
+from SystemData import sharedStoreNS
+from SharedDataSource import write, read
+
 SYSTEM_DATA_NS :== "SystemData"
+APP_DATA_NS :== "ApplicationData"
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = createChangeOnWriteSDS
-	"sharedStore" storeId
+sharedStore storeId defaultV = sharedStoreNS APP_DATA_NS storeId defaultV
+
+sharedStoreNS :: !String !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStoreNS namespace storeId defaultV = createChangeOnWriteSDS
+	"sharedStore" absoluteStoreId
 	(get (loadValue NS_APPLICATION_SHARES) defaultV)
 	write
 where	
 	get f defaultV iworld
-		# (mbV,iworld) = f storeId iworld
+		# (mbV,iworld) = f absoluteStoreId iworld
 		# res = case mbV of
 			Nothing	= Ok defaultV
 			Just v	= Ok v
 		= (res,iworld)
 		
-	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
+	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES absoluteStoreId v iworld)
+	
+	absoluteStoreId = namespace +++ "-" +++ storeId
 	
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
@@ -52,25 +62,25 @@ where
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = createReadOnlySDS read
+topLevelTasks = createReadOnlySDS read`
 where
-	read iworld
-		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= ({TaskList|listId = TopLevelTaskList, items = fromMaybe [] list}, iworld)
+	read` iworld
+		# (list, iworld) = read (sharedStoreNS NS_TASK_INSTANCES "persistent-index" Nothing) iworld
+		= ({TaskList|listId = TopLevelTaskList, items = fromMaybe [] (fromOk list)}, iworld)
 		
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = createReadOnlySDS read
+currentProcesses = createReadOnlySDS read`
 where
-	read iworld
-		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= (fromMaybe [] list, iworld)
+	read` iworld
+		# (list, iworld) = read (sharedStoreNS NS_TASK_INSTANCES "persistent-index" Nothing) iworld
+		= (fromMaybe [] (fromOk list), iworld)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
-processesForCurrentUser = createReadOnlySDS read
+processesForCurrentUser = createReadOnlySDS read`
 where
-	read iworld=:{currentUser}
-		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= (maybe [] (\l -> [ p \\ p <- l | forWorker currentUser p]) list, iworld)
+	read` iworld=:{currentUser}
+		# (list, iworld) = read (sharedStoreNS NS_TASK_INSTANCES "persistent-index" Nothing) iworld
+		= (maybe [] (\l -> [ p \\ p <- l | forWorker currentUser p]) (fromOk list), iworld)
 		
 	forWorker user {managementMeta=Just {ManagementMeta|worker=AnyUser}}									= True
 	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {ManagementMeta|worker=UserWithId uid2}}	= uid1 == uid2

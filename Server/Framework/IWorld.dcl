@@ -10,6 +10,8 @@ from TaskState			import :: TaskListEntry
 from JSON_NG			import :: JSONNode
 from StdFile			import class FileSystem		
 from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+import Void
+import iTaskClass
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -49,6 +51,7 @@ instance FileSystem IWorld
 instance registerSDSDependency		InstanceNo	IWorld
 instance registerSDSChangeDetection				IWorld
 instance reportSDSChange			InstanceNo	IWorld
+instance reportSDSChange			Void		IWorld
 
 //Sync work queue to disk (Only used with CGI wrapper)
 saveWorkQueue :: !*IWorld -> *IWorld

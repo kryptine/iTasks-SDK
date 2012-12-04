@@ -3,8 +3,10 @@ implementation module TaskStore
 import StdEnv, Maybe
 
 import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, UIDefinition, Map, Func, Tuple
-import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
+import Shared
+from SystemData import sharedStoreNS
+from SharedDataSource import write, read
 
 //Derives required for storage of TUI definitions
 derive JSONEncode TaskRep, TaskCompositionType
@@ -35,21 +37,19 @@ newSessionId iworld=:{IWorld|world,timestamp}
 	
 newInstanceId :: !*IWorld -> (!InstanceNo,!*IWorld)
 newInstanceId iworld
-	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
-	= case mbNewTid of
-		Just tid
-			# iworld = storeValue NS_TASK_INSTANCES INCREMENT (tid+1) iworld 
+	= case read (sharedStoreNS NS_TASK_INSTANCES INCREMENT Nothing) iworld of
+		(Ok (Just tid), iworld)
+			# iworld = snd (write (tid+1) (sharedStoreNS NS_TASK_INSTANCES INCREMENT defaultValue) iworld)
 			= (tid,iworld)
-		Nothing
-			# iworld = storeValue NS_TASK_INSTANCES INCREMENT 2 iworld //store the next value (2)
+		(_, iworld)
+			# iworld = snd (write 2 (sharedStoreNS NS_TASK_INSTANCES INCREMENT defaultValue) iworld) //store the next value (2)
 			= (1,iworld) //return the first value (1)
 			
 maxInstanceNo :: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo iworld
-	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
-	= case mbNewTid of
-		Just tid	= (tid-1,iworld)
-		Nothing		= (0,iworld)
+	= case read (sharedStoreNS NS_TASK_INSTANCES INCREMENT Nothing) iworld of
+		(Ok (Just tid), iworld)	= (tid-1,iworld)
+		(_, iworld)				= (0,iworld)
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 newDocumentId iworld=:{world,timestamp}
@@ -60,10 +60,10 @@ newDocumentId iworld=:{world,timestamp}
 storeTaskInstance :: !TaskInstance !*IWorld -> *IWorld
 storeTaskInstance (meta=:{TIMeta|instanceNo,sessionId},reduct,result,rep) iworld
 	//Store all parts
-	# iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld
-	# iworld = storeValue NS_TASK_INSTANCES (reduct_store instanceNo) reduct iworld
-	# iworld = storeValue NS_TASK_INSTANCES (result_store instanceNo) result iworld
-	# iworld = storeValue NS_TASK_INSTANCES (rep_store instanceNo) rep iworld
+	# iworld = snd (write (Just meta) (sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing) iworld)
+	# iworld = snd (write (Just reduct) (sharedStoreNS NS_TASK_INSTANCES (reduct_store instanceNo) Nothing) iworld)
+	# iworld = snd (write (Just result) (sharedStoreNS NS_TASK_INSTANCES (result_store instanceNo) Nothing) iworld)
+	# iworld = snd (write (Just rep) (sharedStoreNS NS_TASK_INSTANCES (rep_store instanceNo) Nothing) iworld)
 	= case sessionId of
 		Just sessionId	= updateSessionInstanceIndex (put sessionId instanceNo) iworld
 		Nothing			= updatePersistentInstanceIndex (replace (instanceToTaskListItem meta rep)) iworld
@@ -77,11 +77,11 @@ where
 
 loadTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
 loadTaskInstance instanceNo iworld
-	# (meta,iworld)		= loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
-	# (reduct,iworld)	= loadValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
-	# (result,iworld)	= loadValue NS_TASK_INSTANCES (result_store instanceNo) iworld
+	# (meta,iworld)		= read (sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing) iworld
+	# (reduct,iworld)	= read (sharedStoreNS NS_TASK_INSTANCES (reduct_store instanceNo) Nothing) iworld
+	# (result,iworld)	= read (sharedStoreNS NS_TASK_INSTANCES (result_store instanceNo) Nothing) iworld
 	= case (meta,reduct,result) of
-		(Just meta,Just reduct,Just result)
+		(Ok (Just meta),Ok (Just reduct),Ok (Just result))
 			= (Ok (meta,reduct,result),iworld)
 		_
 			= (Error ("Could not load instance state of task " +++ toString instanceNo),iworld)
@@ -94,52 +94,70 @@ loadSessionInstance sessionId iworld=:{sessions}
 
 loadTaskMeta :: !InstanceNo !*IWorld -> (!MaybeErrorString TIMeta, !*IWorld)
 loadTaskMeta instanceNo iworld
-	# (meta,iworld)		= loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
-	= (maybe (Error ("Could not load meta state of task " +++ toString instanceNo)) Ok meta, iworld)
+	= case (read (sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing) iworld) of
+		(Ok (Just meta),iworld) = (Ok meta, iworld)
+		(_,iworld)				= (Error ("Could not load meta state of task " +++ toString instanceNo), iworld)
+		
 loadTaskReduct :: !InstanceNo !*IWorld -> (!MaybeErrorString TIReduct, !*IWorld)
 loadTaskReduct instanceNo iworld
-	# (reduct,iworld)	= loadValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
-	= (maybe (Error ("Could not load reduct state of task " +++ toString instanceNo)) Ok reduct, iworld)
+	= case (read (sharedStoreNS NS_TASK_INSTANCES (reduct_store instanceNo) Nothing) iworld) of
+		(Ok (Just reduct),iworld) = (Ok reduct, iworld)
+		(_,iworld)				= (Error ("Could not load reduct state of task " +++ toString instanceNo), iworld)
+		
+
 
 loadTaskResult :: !InstanceNo !*IWorld -> (!MaybeErrorString TIResult, !*IWorld)
 loadTaskResult instanceNo iworld
-	# (result,iworld)	= loadValue NS_TASK_INSTANCES (result_store instanceNo) iworld
-	= (maybe (Error ("Could not load result state of task " +++ toString instanceNo)) Ok result, iworld)
+	= case (read (sharedStoreNS NS_TASK_INSTANCES (result_store instanceNo) Nothing) iworld) of
+		(Ok (Just result),iworld) = (Ok result, iworld)
+		(_,iworld)				= (Error ("Could not load result state of task " +++ toString instanceNo), iworld)
+		
 	
 loadTaskRep :: !InstanceNo !*IWorld -> (!MaybeErrorString TIRep, !*IWorld)
 loadTaskRep instanceNo iworld
-	# (rep,iworld)		= loadValue NS_TASK_INSTANCES (rep_store instanceNo) iworld
-	= (maybe (Error ("Could not load ui representation state of task " +++ toString instanceNo)) Ok rep, iworld)
+	= case (read (sharedStoreNS NS_TASK_INSTANCES (rep_store instanceNo) Nothing) iworld) of
+		(Ok (Just rep),iworld) = (Ok rep, iworld)
+		(_,iworld)				= (Error ("Could not load ui representation state of task " +++ toString instanceNo), iworld)
+		
+
 
 storeTaskMeta :: !InstanceNo !TIMeta !*IWorld -> *IWorld
-storeTaskMeta instanceNo meta iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld
+storeTaskMeta instanceNo meta iworld = snd (write (Just meta) (sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing) iworld)
 
 storeTaskReduct :: !InstanceNo !TIReduct !*IWorld -> *IWorld
-storeTaskReduct instanceNo reduct iworld = storeValue NS_TASK_INSTANCES (reduct_store instanceNo) reduct iworld
+storeTaskReduct instanceNo reduct iworld = snd (write (Just reduct) (sharedStoreNS NS_TASK_INSTANCES (reduct_store instanceNo) Nothing) iworld)
 
 storeTaskResult :: !InstanceNo !TIResult !*IWorld -> *IWorld
-storeTaskResult instanceNo result iworld = storeValue NS_TASK_INSTANCES (result_store instanceNo) result iworld
+storeTaskResult instanceNo result iworld = snd (write (Just result) (sharedStoreNS NS_TASK_INSTANCES (result_store instanceNo) Nothing) iworld)
 
 storeTaskRep :: !InstanceNo !TIRep !*IWorld -> *IWorld
-storeTaskRep instanceNo rep iworld = storeValue NS_TASK_INSTANCES (rep_store instanceNo) rep iworld
+storeTaskRep instanceNo rep iworld = snd (write (Just rep) (sharedStoreNS NS_TASK_INSTANCES (rep_store instanceNo) Nothing) iworld)
 
 deleteTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 deleteTaskInstance instanceNo iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (result_store instanceNo) iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (rep_store instanceNo) iworld
+	# iworld = snd (write Nothing meta_store_shared iworld)
+	# iworld = snd (write Nothing reduct_store_shared iworld)
+	# iworld = snd (write Nothing result_store_shared iworld)
+	# iworld = snd (write Nothing rep_store_shared iworld)
 	# iworld = updatePersistentInstanceIndex (delete instanceNo) iworld
 	= iworld
 where
 	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
+	meta_store_shared :: Shared (Maybe TIMeta)
+	meta_store_shared = sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing
+	reduct_store_shared :: Shared (Maybe TIReduct)
+	reduct_store_shared = sharedStoreNS NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
+	result_store_shared :: Shared (Maybe TIResult)
+	result_store_shared = sharedStoreNS NS_TASK_INSTANCES (result_store instanceNo) Nothing
+	rep_store_shared :: Shared (Maybe TIRep)
+	rep_store_shared = sharedStoreNS NS_TASK_INSTANCES (rep_store instanceNo) Nothing
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
 	# document				= {Document|documentId = documentId, contentUrl = "?download="+++documentId, name = name, mime = mime, size = size content}
-	# iworld				= storeBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
-	# iworld				= storeValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") document iworld	
+	# iworld				= snd (write (Just content) (sharedStoreNS NS_DOCUMENT_CONTENT (documentId +++ "-data") Nothing) iworld)
+	# iworld				= snd (write (Just document) (sharedStoreNS NS_DOCUMENT_CONTENT (documentId +++ "-meta") Nothing) iworld)
 	= (Ok document,iworld)
 	
 createDocumentWith :: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
@@ -148,23 +166,28 @@ createDocumentWith name mime f iworld
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= loadBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld
+	= case read (sharedStoreNS NS_DOCUMENT_CONTENT (documentId +++ "-data") Nothing) iworld of
+		(Ok a, iworld)		= (a, iworld)
+		(Error _, iworld)	= (Nothing, iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
-	= loadValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") iworld
+	= case read (sharedStoreNS NS_DOCUMENT_CONTENT (documentId +++ "-meta") Nothing) iworld of
+		(Ok a, iworld)		= (a, iworld)
+		(Error _, iworld)	= (Nothing, iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{build,dataDirectory}
-	= (storePath dataDirectory build </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
+	= ("TODO!!!!", iworld)
+	//= (storePath dataDirectory build </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
 
 updateTaskInstanceMeta :: !InstanceNo !(TIMeta -> TIMeta) !*IWorld -> *IWorld
 updateTaskInstanceMeta instanceNo f iworld
-	= case loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld of
-		(Nothing,iworld)	= iworld
-		(Just meta,iworld)
-			# iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) (f meta) iworld
+	= case read (sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing) iworld of
+		(Ok (Just meta),iworld)
+			# iworld = snd (write (Just (f meta)) (sharedStoreNS NS_TASK_INSTANCES (meta_store instanceNo) Nothing) iworld)
 			= addOutdatedInstances [(instanceNo, Nothing)] iworld
+		(_,iworld)		= iworld
 
 setTaskWorker :: !User !InstanceNo !*IWorld -> *IWorld
 setTaskWorker worker instanceNo iworld
@@ -200,30 +223,30 @@ addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbT
 
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 addShareRegistration shareId instanceNo iworld
-	# (mbRegs,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-	# regs	= fromMaybe newMap mbRegs
+	# (mbRegs,iworld) = read (sharedStoreNS NS_TASK_INSTANCES SHARE_REGISTRATIONS Nothing) iworld
+	# regs	= fromMaybe newMap (fromOk mbRegs)
 	# sregs	= fromMaybe [] (get shareId regs)
 	# regs	= put shareId (removeDup (sregs ++ [instanceNo])) regs
-	= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
+	= snd (write (Just regs) (sharedStoreNS NS_TASK_INSTANCES SHARE_REGISTRATIONS Nothing) iworld)
 	
 clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations instanceNo iworld
-	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-	# regs				= maybe newMap (fromList o clear instanceNo o toList) mbRegs
-	= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
+	# (mbRegs,iworld)	= read (sharedStoreNS NS_TASK_INSTANCES SHARE_REGISTRATIONS Nothing) iworld
+	# regs				= maybe newMap (fromList o clear instanceNo o toList) (fromOk mbRegs)
+	= snd (write (Just regs) (sharedStoreNS NS_TASK_INSTANCES SHARE_REGISTRATIONS Nothing) iworld)
 where
 	clear :: InstanceNo [(BasicShareId,[InstanceNo])] -> [(BasicShareId,[InstanceNo])]
 	clear no regs = [(shareId,removeMember no insts) \\ (shareId,insts) <- regs]
 
 addOutdatedOnShareChange :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
 addOutdatedOnShareChange shareId filterFun iworld
-	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-	# regs				= fromMaybe newMap mbRegs
+	# (mbRegs,iworld)	= read (sharedStoreNS NS_TASK_INSTANCES SHARE_REGISTRATIONS Nothing) iworld
+	# regs				= fromMaybe newMap (fromOk mbRegs)
 	= case get shareId regs of
 		Just outdated=:[_:_]
 			# iworld			= addOutdatedInstances [(outd, Nothing) \\ outd <- (filter filterFun outdated)] iworld
 			# regs				= put shareId (filter (not o filterFun) outdated) regs
-			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
+			= snd (write (Just regs) (sharedStoreNS NS_TASK_INSTANCES SHARE_REGISTRATIONS Nothing) iworld)
 		_	= iworld
 		
 storeCurUI :: !SessionId !Int !UIDef !*IWorld -> *IWorld
@@ -237,13 +260,13 @@ loadPrevUI sid version iworld=:{IWorld|uis}
 
 saveUICache	:: !*IWorld -> *IWorld
 saveUICache iworld=:{IWorld|uis}
-	= storeValue NS_TASK_INSTANCES "ui-cache" uis iworld
+	= snd (write (Just uis) (sharedStoreNS NS_TASK_INSTANCES "ui-cache" Nothing) iworld)
 
 restoreUICache :: !*IWorld -> *IWorld
 restoreUICache iworld
-	# (mbUis,iworld)	= loadValue NS_TASK_INSTANCES "ui-cache" iworld
+	# (mbUis,iworld)	= read (sharedStoreNS NS_TASK_INSTANCES "ui-cache" Nothing) iworld
 	= case mbUis of
-		Just uis		= {IWorld|iworld & uis = uis}
+		Ok (Just uis)	= {IWorld|iworld & uis = uis}
 		_				= iworld
 
 updateSessionInstanceIndex :: !((Map SessionId InstanceNo)-> (Map SessionId InstanceNo)) !*IWorld -> *IWorld
@@ -252,7 +275,7 @@ updateSessionInstanceIndex f iworld=:{sessions}
 
 updatePersistentInstanceIndex :: !([TaskListItem Void] -> [TaskListItem Void]) !*IWorld -> *IWorld 
 updatePersistentInstanceIndex f iworld
-	# (index,iworld)	= loadValue NS_TASK_INSTANCES PERSISTENT_INDEX iworld
-	# iworld			= storeValue NS_TASK_INSTANCES PERSISTENT_INDEX (f (fromMaybe [] index)) iworld
+	# (index,iworld)	= read (sharedStoreNS NS_TASK_INSTANCES PERSISTENT_INDEX Nothing) iworld
+	# iworld = snd (write (Just ((f (fromMaybe [] (fromOk index))))) (sharedStoreNS NS_TASK_INSTANCES PERSISTENT_INDEX Nothing) iworld)
 	= iworld
 

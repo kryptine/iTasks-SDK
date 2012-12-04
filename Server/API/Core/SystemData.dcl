@@ -17,6 +17,11 @@ from FilePath			import :: FilePath
 */
 sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
+/*
+* Creates a reference to a store identified by a string identifier and namespace identifier.
+*/
+sharedStoreNS			:: !String !String !a -> Shared a	| JSONEncode {|*|}, JSONDecode{|*|}, TC a
+
 //PREDEFINED SHARES 
 
 // Date & time

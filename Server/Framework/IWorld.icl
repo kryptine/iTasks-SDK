@@ -15,6 +15,10 @@ from SharedDataSource	import class registerSDSDependency, class registerSDSChang
 import TaskStore, Time, Util, StdList, Base64, _SystemArray, StdBool, StdTuple
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
+import Shared
+from SystemData import sharedStoreNS
+from SharedDataSource import write, read
+
 updateCurrentDateTime :: !*IWorld -> *IWorld
 updateCurrentDateTime iworld=:{IWorld|world}
 	# (dt,world)			= currentDateTimeWorld world
@@ -99,6 +103,12 @@ instance reportSDSChange InstanceNo IWorld
 where
 	reportSDSChange shareId filterFun iworld
 		= addOutdatedOnShareChange shareId filterFun iworld
+		
+//TODO: Look into this, this is required for the write function to be usable??
+instance reportSDSChange Void IWorld
+where
+	reportSDSChange shareId filterFun iworld
+		= addOutdatedOnShareChange shareId (\_ -> False) iworld
 
 // serialise Work as dynamic since it contains functions on unique states
 JSONEncode{|Work|} work  = [JSONArray [JSONString "_FUNCTION_", JSONString (base64URLEncode (serialize work))]]
@@ -107,9 +117,10 @@ JSONDecode{|Work|} [JSONArray [JSONString "_FUNCTION_",JSONString string]:c] = (
 WORKQUEUE_INDEX :== "workqueue-index"
 	
 saveWorkQueue :: !*IWorld -> *IWorld
-saveWorkQueue iworld=:{workQueue} = storeValue NS_TASK_INSTANCES WORKQUEUE_INDEX workQueue iworld
+saveWorkQueue iworld=:{workQueue} = snd (write workQueue (sharedStoreNS NS_TASK_INSTANCES WORKQUEUE_INDEX []) iworld)
 
 restoreWorkQueue :: !*IWorld -> *IWorld
 restoreWorkQueue iworld
-	# (mbWorkQueue,iworld) = loadValue NS_TASK_INSTANCES WORKQUEUE_INDEX iworld
-	= {iworld & workQueue = fromMaybe [] mbWorkQueue}
+	= case (read (sharedStoreNS NS_TASK_INSTANCES WORKQUEUE_INDEX Nothing) iworld) of
+		(Ok (Just queue), iworld)	= {iworld & workQueue = queue}
+		(_,iworld)					= {iworld & workQueue = []}
