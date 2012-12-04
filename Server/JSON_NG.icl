@@ -1,7 +1,7 @@
 implementation module JSON_NG
 
 import StdGeneric, Maybe, StdList, StdOrdList, StdString, _SystemArray, StdTuple, StdBool, StdFunc, StdOverloadedList
-import Text
+import Text, PPrint
 
 //Token type which is the intermediary representation during JSON parsing
 :: Token	= TokenInt !Int
@@ -548,3 +548,20 @@ where
 	(==) (JSONRaw x)		(JSONRaw y)			= x == y
 	(==) JSONError			JSONError			= True
 	(==) _ 					_ 					= False
+
+jsonPrettyPrint :: JSONNode -> String
+jsonPrettyPrint json = display (renderPretty 0.0 400 (pretty json))
+
+instance Pretty JSONNode
+where
+	pretty JSONNull 			= string "null"
+	pretty (JSONBool x)			= string (if x "true" "false")
+	pretty (JSONInt x)			= string (toString x)
+	pretty (JSONReal x)			= string (toString x)
+	pretty (JSONString x)		= dquotes (string (jsonEscape x))
+	pretty (JSONArray nodes)	= list (map pretty nodes)
+	pretty (JSONObject attr)	= encloseSep lbrace rbrace comma [dquotes (string label) <-> colon <-> pretty val \\ (label,val) <- attr]
+	pretty (JSONRaw x)			= string x
+	pretty JSONError			= string "null"
+
+

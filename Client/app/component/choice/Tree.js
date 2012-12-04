@@ -5,8 +5,9 @@ Ext.define('itwc.component.choice.Tree',{
 	rootVisible: false,
 
 	width: 'flex',
-	minWidth: 150,
-	minHeight: 200,
+	height: 'flex',
+	minWidth: 150, //'wrap',
+	minHeight: 100, //'wrap',
 	editBufferTime: 0,
 
 	initComponent: function() {	

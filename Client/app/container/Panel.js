@@ -33,7 +33,7 @@ Ext.define('itwc.container.Panel',{
 		//Set shrinkWrap using width & height values
 		this.shrinkWrap = (this.width === 'wrap' ? 1 : 0) | (this.height === 'wrap' ? 2 : 0);
 
-		this.layout = {type:'itwc_box', direction: this.direction, halign: this.halign, valign: this.valign, padding: this.padding};
+		this.layout = {type:'itwc_box', direction: this.direction, halign: this.halign, valign: this.valign, padding: 0};
 		this.callParent(arguments);
 	},
 	onDestroy: function () {

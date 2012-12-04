@@ -148,7 +148,7 @@ where
 	guiVersion			= toInt versionParam
 
 	jsonResponse json
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
+		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = /*toString*/ jsonPrettyPrint json}
 	errorResponse msg
 		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
 			

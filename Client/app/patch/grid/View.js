@@ -15,14 +15,24 @@ Ext.define('itwc.patch.grid.GridViewLayout',{
 			measurement = me.measureAutoDimensions(ownerContext),
 			heightModel = ownerContext.heightModel,
 			widthModel = ownerContext.widthModel,
-			width, height;
+			width, height,
+			columns, minColumnWidth, i;
 
 		// It is generally important to process widths before heights, since widths can
 		// often effect heights...
 		if (measurement.gotWidth) {
 			if (widthModel.shrinkWrap) {
-				me.publishOwnerWidth(ownerContext, ownerContext.target.headerCt.getFullWidth()); //SCARY WORKAROUND
+				//BEGIN PATCH
+				//When shrinkwrapping, the width is the sum of all initial column sizes
+				columns = ownerContext.target.getGridColumns();
+				minColumnWidth = 0;	
+				for(i = 0; i < columns.length; i++) {
+					minColumnWidth += columns[i].defaultWidth;
+				}
+				me.publishOwnerWidth(ownerContext, minColumnWidth);
+				//END PATCH/BEGIN ORIGINAL
 				//me.publishOwnerWidth(ownerContext, measurement.contentWidth);
+				//END ORIGINAL
 			} else if (me.publishInnerWidth) {
 				me.publishInnerWidth(ownerContext, measurement.width);
 			}

@@ -59,7 +59,7 @@ basicAPIExamples =
 	]
 	
 Start :: *World -> *World
-Start world = startEngine (browseExamples basicAPIExamples) world
+Start world = startEngine [publish "/" WebApp (\_-> browseExamples basicAPIExamples),publish "/persons" WebApp (const enterPersons)] world
 where
 	browseExamples examples = forever (
 		 	(viewTitle "iTasks Example Collection"
@@ -146,11 +146,10 @@ browseGoogleMap = enterInformation ("Browse Map","Move around on the map. Your p
 	, gender		:: MyGender
 	, dateOfBirth	:: Maybe Date
 	}
-	
+
 :: MyGender = Male | Female
 
 derive class iTask MyPerson, MyGender
-
 
 enterPerson :: Task MyPerson 
 enterPerson = enterInformation "Enter your personal information" []

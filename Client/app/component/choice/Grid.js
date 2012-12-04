@@ -9,9 +9,11 @@ Ext.define('itwc.component.choice.Grid',{
 	viewConfig: {loadMask: false},
 
 	width: 'flex',
-	minWidth: 'wrap',	
 	height: 'flex',
-	minHeight: 'wrap',
+	minWidth: 400, //'wrap',	
+	minHeight: 100, //'wrap',
+
+	editBufferTime: 0,
 
 	options: [],
 	columns: [],
@@ -22,9 +24,6 @@ Ext.define('itwc.component.choice.Grid',{
 		var me = this,
 			fields = [], 
 			columns = [], i;
-
-		//Set shrinkWrap using width & height values
-		me.shrinkWrap = (me.width === 'wrap' ? 1 : 0) | (me.height === 'wrap' ? 2 : 0);
 
 		//Setup columns			
 		for(i = 0; i < me.columns.length; i++) {

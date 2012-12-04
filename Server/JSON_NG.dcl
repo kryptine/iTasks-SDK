@@ -91,3 +91,12 @@ derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, RECORD, FI
 * JSON Objects are considered equal if they contain the same non-null fields.
 */
 instance == JSONNode
+
+/**
+* Pretty printed string encoding of JSON nodes.
+* This function uses indenting and newlines to make the serialized JSON representation
+* more readable than the standard toString instance, which uses minimal whitespace.
+*/
+jsonPrettyPrint :: JSONNode -> String
+
+

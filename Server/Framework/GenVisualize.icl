@@ -498,12 +498,9 @@ gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath
 	# (cmv,vm)	= popMask verifyMask
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# ver		= verifyElementStr cmv
-	# viz		= [(UITree sizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
 	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
-
-	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
-
 	value  (Just (TreeChoice _ mbSel)) 	= mbSel
 	value _								= Nothing
 	
@@ -632,7 +629,7 @@ where
 		= setDirection Horizontal (defaultContainer (controls ++ buttons))
 */	
 	addItemControl numItems
-		# controls	= [UIViewString {defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)}]
+		# controls	= [UIViewString /*{*/defaultSizeOpts /* & width=Just FlexSize }*/ {UIViewOpts|value= Just (numItemsText numItems)}]
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}]
 		= setHeight WrapSize (setDirection Horizontal (defaultContainer (controls ++ buttons)))
 	
