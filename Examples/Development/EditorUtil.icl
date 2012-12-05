@@ -87,6 +87,30 @@ currentDirectory
 							Ok dir -> return dir
 							_      -> showError "Could not obtain current directory name" ""
 
+
+searchFilesInPaths :: ![FileName] ![DirPathName] -> Task ![(!DirPathName,!FileName)]
+searchFilesInPaths fileNames pathNames = search fileNames pathNames []
+where
+	search [] _ found = return (reverse found)
+	search [fileName:fileNames] pathNames found
+		=				searchFileInPaths fileName pathNames
+		>>= \res ->		if (isNothing res)
+							(search fileNames pathNames found)
+							(search fileNames pathNames [(fromJust res,fileName):found])
+
+searchFileInPaths :: !FileName ![DirPathName] -> Task !(Maybe !DirPathName)
+searchFileInPaths fileName paths = accWorld (searchDisk` paths)
+where
+	searchDisk` [] world = (Nothing,world)
+	searchDisk` [path:paths] world
+	# (content,world) = readDirectory path world
+	= case content of
+		Ok names 	-> if (isMember fileName names) 
+							((Just path),world)
+							(searchDisk` paths world)
+		_ 			-> searchDisk` paths world
+
+
 //* simple utility functions
 
 
