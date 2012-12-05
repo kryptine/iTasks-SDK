@@ -141,9 +141,9 @@ searchTask what searchWhere identifier path_modulename searchPaths
 	= if (inImports searchWhere)								
 			(search [path_modulename] [] [])	// recursive search through imported modules
 			(case what of						// search the modules in given paths only 
-				SearchIdentifier 		-> findAllModulesInPaths "icl" searchPaths >>= \found -> search [path_modulename:found] [] []
-				SearchImplementation 	-> findAllModulesInPaths "icl" searchPaths >>= \found -> search [path_modulename:found] [] []
-				SearchDefinition 		-> findAllModulesInPaths "dcl" searchPaths >>= \found -> search [path_modulename:found] [] []
+				SearchIdentifier 		-> findAllModulesInPaths` "icl" searchPaths >>= \found -> search [path_modulename:found] [] []
+				SearchImplementation 	-> findAllModulesInPaths` "icl" searchPaths >>= \found -> search [path_modulename:found] [] []
+				SearchDefinition 		-> findAllModulesInPaths` "dcl" searchPaths >>= \found -> search [path_modulename:found] [] []
 			) 
 where
 	search [] searched found 	= return (reverse found,reverse searched)								
@@ -208,17 +208,24 @@ where
 		_ 			-> searchDisk` paths world
 
 
-findAllModulesInPaths :: !String !(List !DirPathName) -> Task ![(!DirPathName,!FileName)]
-findAllModulesInPaths extension searchpaths = accWorld (searchDisk` searchpaths [])
+findAllModulesInPaths` :: !String !(List !DirPathName) -> Task ![(!DirPathName,!FileName)]
+findAllModulesInPaths` extension searchpaths
+	= 						findAllModulesInPaths extension "" searchpaths
+	>>= \res ->				return [(path,name) \\ (path,names) <- res, name <- names]
+
+findAllModulesInPaths :: !String !DirPathName !(List !DirPathName) -> Task ![(!DirPathName,![FileName])]
+findAllModulesInPaths extension rootDir searchpaths = accWorld (searchDisk` searchpaths [])
 where
-	searchDisk` [!!] found world = (found,world)
+	searchDisk` [!!] found world = (sort found,world)
 	searchDisk` [!path:paths!] found world
-	# (content,world) = readDirectory path world
+	# (content,world) = readDirectory dirName world
 	= case content of
-		Ok names 	-> searchDisk` paths (addFiles names ++ found) world
+		Ok names 	-> searchDisk` paths [addFiles names:found] world
 		_ 			-> searchDisk` paths found world
 	where
-		addFiles names = [(path, name) \\ name <- names | takeExtension name == extension] 
+		addFiles names = (path, [name \\ name <- names | takeExtension name == extension]) 
+		dirName = rootDir +++ path
+			
 
 // there seems to be a bug when it returns  Task (![String],!IdentifierPositionList)
 /*

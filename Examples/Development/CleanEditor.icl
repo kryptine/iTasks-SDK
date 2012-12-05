@@ -35,7 +35,7 @@ start_ide
 						, (Embedded, errorMessages)
 						] <<@ SetLayout layout @ const Void
 where
-	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 400 (sideMerge BottomSide 100 tabbedMerge)))
+	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 300 (sideMerge BottomSide 100 tabbedMerge)))
 
 	init_ide 
 		=				get_IDE_State											// read state as left from previous session, if any
@@ -45,7 +45,7 @@ where
 		=					currentDirectory									// determine directory of this CleanEditor
 		//	>>= \dir ->		set_Project  "" dir									// BUG: currentDirectory does not return dir						
 			>>= \dir ->		set_new_Project "" initialPath						// Fix: hardwired path
-			>>|				readEnvironmentFile (cleanPath +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
+			>>|				readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
 			>>= \env ->		setEnvironments env									// store settings in project
 		init _ = return Void
 // top menu
@@ -57,8 +57,6 @@ topMenu ts
 	>>|				openOpenedFiles state.openedFiles 							// re-open opened files
 	>>|				forever (				(get_IDE_State 
 							>>= \state -> 	(actionTask >>*	handleMenu state))	// construct main menu
-//											-||- 
-//											(watch ideState @ const Void)		// perhaps not necessary ?  but does it work ???
 							) 
 where
 	openLastProject "" 		= return Void
@@ -111,26 +109,41 @@ where
 // project pane: to do
 
 projectFiles :: (ReadOnlyShared (TaskList Void)) -> Task Void
-projectFiles ps
+projectFiles ts
 	=				get_IDE_State
-	>>= \state ->	(enterChoice (Title ("project: " +++ state.projectName +++ " using " +++ (state.envTargets!!state.idx).target_name)) 
-							[ChooseWith ChooseFromTree id] (StrictListToList (state.envTargets!!state.idx).target_path) 
-								<<@ AfterLayout (tweakControls (map noAnnotation))
-					@ const Void)
+	>>= \state ->	findAllModulesInPaths "icl" cleanPath (state.envTargets!!state.idx).target_path
+	>>= \dirFiles -> 
+					(showFiles state dirFiles <<@ AfterLayout (tweakControls (map noAnnotation)) @ const Void)
 					-||-
 					watch_IDE_State (\curstate -> curstate.idx <> state.idx) (return Void)
-	>>|				projectFiles ps
+	>>|				projectFiles ts
 where
+	showFiles :: !IDE_State ![(!DirPathName,![FileName])] -> Task Void
+	showFiles state dirFiles
+		= 				enterChoice (Title ("project: " +++ state.projectName +++ " using " +++ (state.envTargets!!state.idx).target_name)) 
+							[ChooseWith ChooseFromTree id] (mkTree dirFiles)
+		>>= \chosen ->	openFileAndEdit (select chosen) ts
+		>>| 			showFiles state dirFiles //projectFiles ts		// how to prevent tree from closing ???
+
+	where							
+		select chosen = cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen files] +++ "\\" +++ chosen
+
+		mkTree dirfiles = Tree [Node dir [Leaf file \\ file <- files] \\ (dir,files) <- dirfiles]
+
 	noAnnotation (c,_) = (c,'Map'.newMap)
+/*
+	allFiles state = map ((+++) cleanPath) (StrictListToList (state.envTargets!!state.idx).target_path)
 
-
+	allOf [] = ["nothing found"]
+	allOf dirFiles = [name \\ (dir,names) <- dirFiles, name <- names]
+*/
 
 // errorMessages pane, shows error message produced by compiler in error file
 
 errorMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
 errorMessages _ 
 	= 				get_IDE_State
-	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
+	>>= \state ->	let sharedError = externalFile errorFile in
 					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
 					@ const Void 
 
@@ -152,7 +165,7 @@ openFileAndEdit fileName ts
 	>>= \state ->	if (isMember fileName state.openedFiles)
 						(return Void)										// file already open in an editor
 						(			addFilesAdmin fileName 
-						>>|			launch (editor fileName ts) ts	
+						>>|			launch (editor fileName ts) ts 	
 						)
 
 closeEditFile :: FileName -> Task Void
@@ -311,7 +324,7 @@ where
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
 //			>>|			storeProject  
-			>>|			callProcess "Clean Compiler - BatchBuild" [] (cleanPath +++ batchBuild) [state.projectPath +++ projectName +++ ".prj"] 
+			>>|			callProcess "Clean Compiler - BatchBuild" [] batchBuild [state.projectPath +++ projectName +++ ".prj"] 
 						-&&-
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
 			
@@ -399,33 +412,6 @@ where
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
  						>>| showReplace cmnd
-
-
-//* simple utility functions
-
-
-actionTask :: Task Void
-actionTask = viewInformation Void [] Void
-
-launch task ts = appendTask Embedded (const task) ts @ const Void
-
-// tiny util
-
-undef = undef
-
-always = const True
-never = const False
-
-hasValue (Value _ _) = True
-hasValue _ = False
-
-getValue (Value v _) = v
-
-ifValue pred (Value v _) = pred v
-ifValue _ _ = False
-
-ifStable (Value v Stable) = True
-ifStable _ = False
 
 noHints = AfterLayout (tweakControls (\controls -> [(c,'Map'.del VALID_ATTRIBUTE ('Map'.del HINT_ATTRIBUTE m)) \\ (c,m) <- controls]))
 

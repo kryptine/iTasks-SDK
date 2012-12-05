@@ -3,15 +3,6 @@ implementation module IDE_State
 /* Global Shared State of the IDE
 */
 
-//cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
-
-batchBuild		:== "BatchBuild.exe"
-errorFile		:== "Temp\\errors"
-
-initialPath 	:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
-
 import iTasks
 
 import projectManager, SmallUtil
@@ -36,7 +27,7 @@ init_IDE_State
 	= 	{ projectName		= ""
 		, projectPath 		= initialPath
 		, projectSettings	= PR_InitProject
-		, cleanPath			= cleanPath
+		, cleanPath			= cleanPath 
 		, openedFiles		= []
 		, recentFiles 		= []
 		, recentProjects	= []

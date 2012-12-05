@@ -88,7 +88,7 @@ searchTask :: !SearchWhat !SearchWhere !Identifier !(!DirPathName,!FileName) !(L
 
 //searchIdentifierInImports :: !Identifier !(!DirPathName,!FileName) ![DirPathName] -> Task (![(!(!DirPathName,!FileName),!IdentifierPositionList)],![FileName])
 
-findAllModulesInPaths :: !String !(List !DirPathName) -> Task ![(!DirPathName,!FileName)]
+findAllModulesInPaths :: !String !DirPathName !(List !DirPathName) -> Task ![(!DirPathName,![FileName])]
 
 
 			   

@@ -8,13 +8,22 @@ definition module IDE_State
 // cleanpath pointing to batchBuild.exe currently has to set by hand !!!
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-cleanPath 		:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
 //cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
-batchBuild			:== "BatchBuild.exe"
-errorFile			:== "Temp\\errors"
-initialPath 		:== cleanPath +++ "iTasks-SDK\\Examples\\Development\\"
+batchBuild			:== cleanPath +++ "BatchBuild.exe"
+errorFile			:== cleanPath +++ "Temp\\errors"
+initialPath 		:== cleanPath +++ idePath
+idePath				:== "iTasks-SDK\\Examples\\Development\\"
 IDE_State_fileName 	:== "IDE_State"
+
+:: Identifier		:== String		// Clean Identifier
+:: DirPathName		:== String		// Path name leading to a directory, should end with \\
+:: ProjectPath 		:== DirPathName	// Directory where project is located
+:: CleanPath		:== DirPathName	// Directory where clean application / batchbuild is located
+:: ModuleName 		:== String		// Name of module, without .dcl or .dcl extension
+:: FileName			:== String		// Name of file, with extension
+:: FilePathName		:== String		// Full path name of file, with extension
 
 import PmEnvironment, PmProject							// uses some modules from the original Clean IDE 
 import EditorUtil 

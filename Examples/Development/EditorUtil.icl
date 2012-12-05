@@ -4,6 +4,8 @@ import iTasks
 import File, StdFile
 import Directory
 
+import IDE_State
+
 derive class iTask MaybeError, FileInfo, Tm, FileError
 
 // iTask utilities of general nature
