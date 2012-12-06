@@ -84,16 +84,43 @@ Ext.define('itwc.controller.Controller',{
 	},
 	//iTasks edit events
 	onEdit: function(taskId, editorId, value) {
-		var me = this,
-			params = {editEvent: Ext.encode([taskId,editorId,value])};
 		
-		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
+		// Client side execution hook!
+		var instanceNo = taskId.split("-")[0];
+		if(this.taskletControllers[instanceNo] != null){
+		
+			controllerWrapper(
+					this.taskletControllers[instanceNo].taskletId,
+					this.taskletControllers[instanceNo].controllerFunc, 
+					taskId, "edit", editorId, value);
+		
+		}else{	// Normal case (not a tasklet)
+		
+			var me = this,
+				params = {editEvent: Ext.encode([taskId,editorId,value])};
+			
+			me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
+		}
 	},
 	//iTasks action events
 	onAction: function(taskId, actionId) {
-		var me = this,
-			params = {actionEvent: Ext.encode([taskId,actionId])};
-		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
+	
+		// Client side execution hook!
+		var instanceNo = taskId.split("-")[0];
+		if(this.taskletControllers[instanceNo] != null){
+			
+			controllerWrapper(
+					this.taskletControllers[instanceNo].taskletId,
+					this.taskletControllers[instanceNo].controllerFunc, 
+					taskId, "commit", actionId);
+					
+		}else{	// Normal case (not a tasklet)
+	
+			var me = this,
+				params = {actionEvent: Ext.encode([taskId,actionId])};
+
+			me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
+		}
 	},
 	//iTasks focus events
 	onFocus: function(taskId) {

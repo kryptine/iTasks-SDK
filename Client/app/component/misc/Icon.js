@@ -26,7 +26,10 @@ Ext.define('itwc.component.misc.Icon', {
 		this.iconCls = iconCls;
 		this.addCls(this.iconCls);
 	},
-	setToolTip: function(text) {
-		//TODO
+	setIconCls: function(iconCls) {
+		this.setType(iconCls);
+	},
+	setTooltip: function(text) {
+		this.tooltip = new Ext.ToolTip({html: text, target: this.getEl()});
 	}
 });

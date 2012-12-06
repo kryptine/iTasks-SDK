@@ -102,11 +102,17 @@ diffControls path event c1 c2
 		(UITab sOpts1 opts1, UITab sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+			| opts1.UITaskletOpts.taskId == opts2.UITaskletOpts.taskId
+				= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+				= [DiffImpossible]				
 		(UITaskletPlaceholder sOpts1 tid1, UITaskletPlaceholder sOpts2 tid2)
 			| tid1 == tid2
 				= [diffSizeOpts path sOpts1 sOpts2]
 				= [DiffImpossible]
+		(UITasklet sOpts1 opts1, UITaskletPlaceholder sOpts2 tid2)
+			| opts1.UITaskletOpts.taskId == tid2
+				= [diffSizeOpts path sOpts1 sOpts2]
+				= [DiffImpossible]				
 		(UIContainer sOpts1 lOpts1 items1 opts1, UIContainer sOpts2 lOpts2 items2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UIPanel sOpts1 lOpts1 items1 opts1, UIPanel sOpts2 lOpts2 items2 opts2)

@@ -150,13 +150,32 @@ Sapl = new function () {
 
 			// It's a constructor! We can just drop the selector number
 			if (isNumber(expr[0])) {
-
+			
 				// Very important! Do NOT use splice here! 	
 				var args = expr.slice(2, expr.length);
 				var consname = expr[1];
 				var consfunc = eval(this.escapeName(consname));
 				record = isArray(consfunc.fields);
 
+				// SPECIALIZED OVERRIDES!!!
+				if(consname == "SystemTypes.Username" || consname == "SystemTypes.Password"){
+					return Sapl.feval(expr[2]);
+				}else if(consname == "SystemTypes._Date"){
+					var year = this.feval(expr[4]),
+					    month = this.feval(expr[3]),
+						day = this.feval(expr[2]);
+					return year.toString().lpad("0",4)+"-"+month.toString().lpad("0",2)+"-"+day.toString().lpad("0",2);
+				}else if(consname == "SystemTypes._Time"){
+					var hour = this.feval(expr[2]),
+					    min = this.feval(expr[3]),
+						sec = this.feval(expr[4]);
+					return hour.toString().lpad("0",2)+":"+min.toString().lpad("0",2)+":"+sec.toString().lpad("0",2);
+				}else if(consname == "SystemTypes.DateTime"){
+					var date = this.feval(expr[2]);
+					var time = this.feval(expr[3]);
+					return this.toJS(date) + " " + this.toJS(time);
+				}
+				
 				if (record) {
 					var res = {};
 					var fieldnames = consfunc.fields;
@@ -168,11 +187,7 @@ Sapl = new function () {
 					}
 
 					return res;
-				} else {
-					if(consname == "SystemTypes.Username" || consname == "SystemTypes.Password"){
-						return Sapl.feval(expr[2]);
-					}
-					
+				} else {					
 					if (this.isNothing(consname)) return null;
 					if (this.isJust(consname)) return this.toJS(this.feval(expr[2]));
 					if (this.isNil(consname)) return [];

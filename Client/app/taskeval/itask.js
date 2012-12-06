@@ -83,13 +83,13 @@ function applytui(widget,tui){
 			if(isString(val) || isBoolean(val) || isNumber(val)){
 				
 				if(widget[prop] !== val){
-					//console.log("set "+widget.xtype+" property \""+prop+"\" to \""+val+"\"");
+					console.log("set "+widget.xtype+" property \""+prop+"\" to \""+val+"\"");
 					
 					var setter = "widget.set"+prop.capitalize();
 					
 					if (eval("typeof " + setter + " == 'function'")) {
 					
-						//console.log("...done");
+						console.log("...done");
 						
 						// instead of widget[prop] = val; to fire change event
 						if(isString(val)){
@@ -98,7 +98,7 @@ function applytui(widget,tui){
 							eval(setter+"("+val+");");
 						}
 					}else{
-						//console.log("...setter is not found");
+						console.log("...setter is not found");
 					}
 				}
 				
@@ -118,6 +118,8 @@ function applytui(widget,tui){
 					}
 				
 				}catch(e){
+					console.error("Exception: \""+e+"\"");
+				
 					// Fallback to replace. TODO: works for "items" only
 					widget.removeAll();
 					for(var i=0;i<val.length;i++){
