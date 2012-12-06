@@ -8,8 +8,8 @@ definition module IDE_State
 // cleanpath pointing to batchBuild.exe currently has to set by hand !!!
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+//cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 batchBuild			:== cleanPath +++ "BatchBuild.exe"
 errorFile			:== cleanPath +++ "Temp\\errors"

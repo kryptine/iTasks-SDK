@@ -15,6 +15,7 @@ derive class iTask FileError
 // It Starts here..
 
 Start :: *World -> *World
+Start world = startEngine start_ide world 
 
 /* BUG? currentDirectory does not seem to return the  currentDirectory????
 Start w = startEngine test w
@@ -23,8 +24,14 @@ test = currentDirectory													// determine directory of this CleanEditor
 	>>= \dir ->		viewInformation "Direct = " [] dir
 
 */
-
-Start world = startEngine start_ide world 
+/* BUGS:
+- shares: not always up-to-date
+- creation of a window not always possible
+- current dir does not give current dir
+- a project file newly created contains something which the other applications do not like (comparrison needed)
+- global title not implemented
+- radiobuttons & checkbuttons not implemented
+*/
 
 start_ide :: Task Void
 start_ide 
@@ -112,31 +119,37 @@ projectFiles :: (ReadOnlyShared (TaskList Void)) -> Task Void
 projectFiles ts
 	=				get_IDE_State
 	>>= \state ->	findAllModulesInPaths "icl" cleanPath (state.envTargets!!state.idx).target_path
-	>>= \dirFiles -> 
-					(showFiles state dirFiles <<@ AfterLayout (tweakControls (map noAnnotation)) @ const Void)
-					-||-
-					watch_IDE_State (\curstate -> curstate.idx <> state.idx) (return Void)
+	>>= \dirFiles -> ( showAndSelect state (map (\(d,fs) -> (d,map dropExtension fs)) dirFiles)
+						-||-
+						watch_IDE_State (\curstate -> curstate.idx <> state.idx) (return Void)
+					 )
 	>>|				projectFiles ts
 where
-	showFiles :: !IDE_State ![(!DirPathName,![FileName])] -> Task Void
-	showFiles state dirFiles
-		= 				enterChoice (Title ("project: " +++ state.projectName +++ " using " +++ (state.envTargets!!state.idx).target_name)) 
-							[ChooseWith ChooseFromTree id] (mkTree dirFiles)
-		>>= \chosen ->	openFileAndEdit (select chosen) ts
-		>>| 			showFiles state dirFiles //projectFiles ts		// how to prevent tree from closing ???
+	showAndSelect state dirFiles 
+		=			(showFiles <<@ AfterLayout (tweakControls (map noAnnotation)) 
+					>&>
+					handleSelected ) 
+					<<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)}
+	where
+		showFiles 
+			= 				enterChoice (Title ("project: " +++ state.projectName +++ " using " +++ (state.envTargets!!state.idx).target_name)) 
+								[ChooseWith ChooseFromTree id] (mkTree dirFiles)
+		where
+			mkTree dirfiles = Tree [Node dir [Leaf file \\ file <- files] \\ (dir,files) <- dirfiles]
 
-	where							
-		select chosen = cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen files] +++ "\\" +++ chosen
-
-		mkTree dirfiles = Tree [Node dir [Leaf file \\ file <- files] \\ (dir,files) <- dirfiles]
+		handleSelected selected
+			=	forever (		viewSharedInformation (Title "Selected:") [] selected  @? onlyJust
+							>>* [OnAction (Action "Open .icl") hasValue (\v -> openFileAndEdit (select (getValue v) ".icl") ts)
+								,OnAction (Action "Open .dcl") hasValue (\v -> openFileAndEdit (select (getValue v) ".dcl") ts)
+								]
+						)
+		where							
+			select chosen extension = cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen files] +++ "\\" +++ chosen +++ extension
+	
+			onlyJust (Value (Just v) s) = Value v s
+			onlyJust _					= NoValue
 
 	noAnnotation (c,_) = (c,'Map'.newMap)
-/*
-	allFiles state = map ((+++) cleanPath) (StrictListToList (state.envTargets!!state.idx).target_path)
-
-	allOf [] = ["nothing found"]
-	allOf dirFiles = [name \\ (dir,names) <- dirFiles, name <- names]
-*/
 
 // errorMessages pane, shows error message produced by compiler in error file
 
