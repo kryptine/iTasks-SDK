@@ -211,6 +211,11 @@ gUpdate{|Char|}					mode ust = basicUpdateSimple mode ' ' ust
 gUpdate{|Bool|}					mode ust = basicUpdateSimple mode False ust
 gUpdate{|String|}				mode ust = basicUpdateSimple mode "" ust
 gUpdate{|Note|}					mode ust = basicUpdateSimple mode (Note "") ust
+gUpdate{|CleanCode|}			mode ust = basicUpdate mode codeUpd (CleanCode "") ust
+where
+	codeUpd (JSONString s) _	= CleanCode s
+	codeUpd _ old				= old
+	
 gUpdate{|Username|}				mode ust = basicUpdateSimple mode (Username "") ust
 gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust

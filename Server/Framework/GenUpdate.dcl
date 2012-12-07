@@ -29,7 +29,7 @@ generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 derive gUpdate UNIT, PAIR, EITHER, CONS of {gcd_arity}, OBJECT of {gtd_num_conses,gtd_conses}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gUpdate URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
+derive gUpdate URL, Note, CleanCode, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
 derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gUpdate GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gUpdate DynamicChoice,DynamicChoiceNoView

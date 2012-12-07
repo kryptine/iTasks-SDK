@@ -28,6 +28,9 @@ instance toEmail String
 // Plain text notes
 :: Note			= Note !String
 
+// Source code
+:: CleanCode	= CleanCode !String
+
 // Money (ISO4217 currency codes are used)
 :: EUR 			= EUR !Int		//Euros (amount in cents)
 :: USD 			= USD !Int		//Dollars (amount in cents)
@@ -213,15 +216,15 @@ instance toUserConstraint UserId
 :: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
-derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONEncode		URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
-derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONDecode		URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gEq				EUR, USD, BoundedInt, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, Progress
+derive gEq				URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, Progress
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
@@ -240,6 +243,7 @@ derive class iTask	FileException, ParseException, CallException, SharedException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
 instance toString Note
+instance toString CleanCode
 instance toString URL 
 instance toString EUR
 instance toString USD

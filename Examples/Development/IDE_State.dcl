@@ -7,9 +7,9 @@ definition module IDE_State
 // Currently it is assumed the you have a copy of BatchBuild.exe and a copy of the IDEEnvs file (from Config) in the original Clean IDE Application directory
 // cleanpath pointing to batchBuild.exe currently has to set by hand !!!
 
-//cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
+cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
 //cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 batchBuild			:== cleanPath +++ "BatchBuild.exe"
 errorFile			:== cleanPath +++ "Temp\\errors"

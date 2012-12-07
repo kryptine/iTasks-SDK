@@ -18,7 +18,7 @@ derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice
 derive JSONDecode		URL, EmailAddress, Action, HtmlInclude
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress, ProgressAmount
-derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq				URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -115,6 +115,15 @@ where
 	(==) (Note x) (Note y) = x == y
 	
 instance html Note where html (Note msg) = Text msg
+
+// ******************************************************************************************************
+// Code
+// ******************************************************************************************************
+instance toString CleanCode where toString (CleanCode s) = s
+
+JSONEncode{|CleanCode|} (CleanCode txt) = [JSONString txt]
+JSONDecode{|CleanCode|} [JSONString txt:c] = (Just (CleanCode txt),c)
+JSONDecode{|CleanCode|} c = (Nothing,c)
 
 // ******************************************************************************************************
 // URL 

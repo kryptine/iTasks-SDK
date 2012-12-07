@@ -23,7 +23,7 @@ where
 		step (WindowStep)	= "w"
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
+derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts
 derive gEq UIControl, UILayoutOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
 derive gEq UIDef, UIAction
@@ -84,6 +84,8 @@ diffControls path event c1 c2
 		(UIEditButton sOpts1 eOpts1 opts1, UIEditButton sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIEditGoogleMap sOpts1 eOpts1 opts1, UIEditGoogleMap sOpts2 eOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
+		(UIEditCode sOpts1 eOpts1 opts1, UIEditCode sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIDropdown sOpts1 cOpts1, UIDropdown sOpts2 cOpts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]

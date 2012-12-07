@@ -405,8 +405,8 @@ editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
  =						(updateSharedInformation Void [UpdateWith toV fromV] sharedFile  @ const Void) <<@ noHints
 where
-	toV text 			= Note text
-	fromV _ (Note text) = text
+	toV text 			= CleanCode text
+	fromV _ (CleanCode text) = text
 
 replace cmnd sharedFile _ = noReplace cmnd 
 where

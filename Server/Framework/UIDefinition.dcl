@@ -64,6 +64,7 @@ from Map			import :: Map(..)
 	| UIEditDocument	!UISizeOpts	!(UIEditOpts Document)						// - Document (info + upload possibility)
 	| UIEditButton		!UISizeOpts !(UIEditOpts JSONNode) !UIButtonOpts		// - Button that sends edit events on click
 	| UIEditGoogleMap	!UISizeOpts !(UIEditOpts JSONNode) !UIGoogleMapOpts		// - Google Map panel
+	| UIEditCode		!UISizeOpts !(UIEditOpts JSONNode) !UICodeOpts			// - Source code editor component
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
@@ -193,6 +194,10 @@ from Map			import :: Map(..)
 	, scrollwheel		:: !Bool
 	, draggable			:: !Bool
 	, zoom				:: !Int
+	}
+
+:: UICodeOpts =
+	{ lineNumbers		:: !Bool
 	}
 
 :: UIGridOpts =

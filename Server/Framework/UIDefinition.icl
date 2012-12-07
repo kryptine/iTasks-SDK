@@ -100,6 +100,7 @@ encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts
 encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, toJSON eopts] []
 encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, toJSON eopts] []
 encodeUIControl (UIEditGoogleMap sopts eopts opts)		= enc "itwc_edit_googlemap" [toJSON sopts, toJSON eopts, toJSON opts] []
+encodeUIControl (UIEditCode sopts eopts opts)			= enc "itwc_edit_code" [toJSON sopts, toJSON eopts, toJSON opts] []
 encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, toJSON eopts, toJSON opts] []
 encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts] []
 encodeUIControl (UIGrid sopts copts opts)				= enc "itwc_choice_grid" [toJSON sopts, toJSON copts, toJSON opts] []
@@ -119,7 +120,7 @@ encodeUIControl (UIViewport lopts items opts)			= enc "itwc_panel" [toJSON lopts
 encodeUIControl (UICustom json)							= json
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIEditOpts, UIChoiceOpts, UIActionOpts, UILayoutOpts
-derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
+derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts
 derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 

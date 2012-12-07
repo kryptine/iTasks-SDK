@@ -58,6 +58,7 @@ gVisualizeText{|String|}		_ val				= [toString val]
 gVisualizeText{|Bool|}			_ val				= [toString val]
 gVisualizeText{|Password|}		_ val				= ["********"]
 gVisualizeText{|Note|}			_ val				= [toString val]
+gVisualizeText{|CleanCode|}		_ val				= [toString val]
 gVisualizeText{|URL|}			_ val				= [toString val]
 gVisualizeText{|Date|}			_ val				= [toString val]
 gVisualizeText{|Time|}			_ val				= [toString val]
@@ -292,6 +293,22 @@ where
 			[line]	= Text line
 			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
 			
+gVisualizeEditor{|CleanCode|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
+		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap codeToHtml val}),newMap)],vst)
+		| otherwise	= ([(UIEditCode sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(CleanCode v) -> JSONString v) val} {UICodeOpts|lineNumbers=True},addVerAttributes verRes newMap)],vst)
+	
+	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
+	
+	codeToHtml (CleanCode s)
+		= case split "\n" s of
+			[line]	= Text line
+			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
+			
+
+
 
 gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
 where
@@ -703,7 +720,7 @@ gHeaders{|HtmlTag|}	_		= []
 gHeaders{|(->)|} _ _ _		= []
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
+derive gHeaders URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority
 derive gHeaders	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gHeaders DynamicChoice, RadioChoice, ComboChoice, GridChoice, TreeChoice
@@ -732,7 +749,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, CheckMultiChoice, Map, Tree, TreeNode, Table
+derive gGridRows URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ButtonState
 derive gGridRows GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows DynamicChoice, RadioChoice, ComboChoice, TreeChoice, GridChoice
