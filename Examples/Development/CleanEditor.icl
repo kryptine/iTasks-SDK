@@ -140,15 +140,15 @@ where
 			) <<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)}
 	where
 		showFiles 
-			=		enterChoice (Title ("project: " +++ state.projectName +++ " ,using " +++ (state.envTargets!!state.idx).target_name)) 
+			=		enterChoice (Title ("project: " +++ state.projectName +++ ", using: " +++ (state.envTargets!!state.idx).target_name)) 
 						[ChooseWith ChooseFromTree id] (mkTree state.allFilesInEnv)
 		where
-			mkTree dirfiles = Tree [Node dir [Leaf (if isUsed (moduleName +++ "*") moduleName) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
+			mkTree dirfiles = Tree [Node (dir,"") [Leaf (if isUsed (moduleName,"+") (moduleName,"")) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
 
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected  @? onlyJust
-							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (getValue v) ".icl" ts)
-								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (getValue v) ".dcl" ts)
+							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (fst (getValue v)) ".icl" ts)
+								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (fst (getValue v)) ".dcl" ts)
 								]
 						)
 		where							

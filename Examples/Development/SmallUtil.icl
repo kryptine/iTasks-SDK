@@ -34,4 +34,3 @@ ifStable :: (TaskValue a) -> Bool
 ifStable (Value v Stable) = True
 ifStable _ = False
 
-

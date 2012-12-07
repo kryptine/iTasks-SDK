@@ -23,3 +23,4 @@ never 		:: (a -> Bool)
 // get values
 
 getValue 	:: (TaskValue a) -> a
+
