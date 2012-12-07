@@ -17,30 +17,39 @@ initialPath 		:== cleanPath +++ idePath
 idePath				:== "iTasks-SDK\\Examples\\Development\\"
 IDE_State_fileName 	:== "IDE_State"
 
+// Here follows some type synonyms for Strings, used to make clear what exactly is wanted...
+// Perhaps we should make a type for it...
+
 :: Identifier		:== String		// Clean Identifier
 :: DirPathName		:== String		// Path name leading to a directory, should end with \\
 :: ProjectPath 		:== DirPathName	// Directory where project is located
 :: CleanPath		:== DirPathName	// Directory where clean application / batchbuild is located
-:: ModuleName 		:== String		// Name of module, without .dcl or .dcl extension
+:: ModuleName 		:== String		// Name of module, without extension
+:: Extension		:== String		// Extension, e.g. ".icl", ".dcl", ".txt", ".exe", ...
 :: FileName			:== String		// Name of file, with extension
 :: FilePathName		:== String		// Full path name of file, with extension
 
 import PmEnvironment, PmProject							// uses some modules from the original Clean IDE 
 import EditorUtil 
 
-:: IDE_State =	{ projectName		:: !String			// name of the project, empty string indicates no project set
-				, projectPath		:: !String			// path where project is located
-				, projectSettings	:: !Project			// settings will passed to call of BatchBuild, the batch version of the compiler 
-				, cleanPath			:: !String			// path whare Clean compiler and BatchBuild is located
-				, openedFiles		:: ![String]		// files currently opened in IDE
-				, recentFiles		:: ![String]		// recently opened files
-				, recentProjects	:: ![String]		// recently opened projects
-				, idx				:: !Int				// index in target
-				, envTargets		:: ![Target]		// targets are environments
+:: IDE_State =	{ projectName		:: !ModuleName						// name of the project, empty string indicates no project set
+				, projectPath		:: !ProjectPath						// path where project is located
+				, projectSettings	:: !Project							// settings will passed to call of BatchBuild, the batch version of the compiler 
+				, cleanPath			:: !CleanPath						// path whare Clean compiler and BatchBuild is located
+				, openedFiles		:: ![FilePathName]					// files currently opened in IDE
+				, recentFiles		:: ![FilePathName]					// recently opened files
+				, recentProjects	:: ![FilePathName]					// recently opened projects
+				, idx				:: !Int								// index in target
+				, envTargets		:: ![Target]						// targets are environments
+				, allFilesInEnv		:: ![(!DirPathName,![Module])]		// all modules in chosen environment
 				}
 
+:: Module = 	{ isUsed			:: !Bool							// is module used in project
+				, moduleName		:: !ModuleName						// name of module 
+				} 
+
 import iTasks
-derive class iTask IDE_State
+derive class iTask IDE_State, Module
 
 // access functions to global state
 
@@ -60,6 +69,9 @@ setEnvironments 	:: ![Target] -> Task Void
 add_Environments 	:: ![Target] -> Task Void
 updateEnvironment 	:: !Int !Target -> Task Void
 select_Environment	:: !Int -> Task Void
+
+setAllFilesInEnv	:: ![(!DirPathName,![Module])] -> Task Void
+
 addFilesAdmin 		:: !FileName -> Task Void
 removeFileAdmin 	:: !FileName -> Task Void
 

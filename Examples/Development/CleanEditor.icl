@@ -46,14 +46,16 @@ where
 
 	init_ide 
 		=				get_IDE_State											// read state as left from previous session, if any
-		>>= \state -> 	init state.projectName 									
+		>>= \state -> 	init state												// initiate state 								
 	where
-		init ""																	// no project set
-		=					currentDirectory									// determine directory of this CleanEditor
-		//	>>= \dir ->		set_Project  "" dir									// BUG: currentDirectory does not return dir						
-			>>= \dir ->		set_new_Project "" initialPath						// Fix: hardwired path
-			>>|				readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
-			>>= \env ->		setEnvironments env									// store settings in project
+		init state =:{projectName = ""	}										// no project set
+			=			currentDirectory										// determine directory of this CleanEditor
+		//	>>= \dir ->	set_Project  "" dir										// BUG: currentDirectory does not return dir						
+			>>= \dir ->	set_new_Project "" initialPath							// Fix: hardwired path
+			>>|			readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
+			>>= \env ->	setEnvironments env										// store settings in project
+			>>|			findAllModulesInPaths "icl" cleanPath (env!!0).target_path // find all modules in chosen environment
+			>>= \all ->	setAllFilesInEnv all									// and store
 		init _ = return Void
 // top menu
 
@@ -113,39 +115,51 @@ where
 		currentEnvName			= currEnvName state
 		selectedEnvironment 	= "_" +++ currentEnvName 
 
-// project pane: to do
+// project & environment file selector pane
 
 projectFiles :: (ReadOnlyShared (TaskList Void)) -> Task Void
 projectFiles ts
 	=				get_IDE_State
-	>>= \state ->	findAllModulesInPaths "icl" cleanPath (state.envTargets!!state.idx).target_path
-	>>= \dirFiles -> ( showAndSelect state (map (\(d,fs) -> (d,map dropExtension fs)) dirFiles)
-						-||-
-						watch_IDE_State (\curstate -> curstate.idx <> state.idx) (return Void)
-					 )
-	>>|				projectFiles ts
+	>>= \state -> 	((showAndSelect state @ const Void)
+					-||-
+					watch_IDE_State (\curstate -> curstate.idx <> state.idx || curstate.projectName <> state.projectName) (return Void)
+					)
+	>>*				[OnValue ifStable (const recalculate)]
 where
-	showAndSelect state dirFiles 
-		=			(showFiles <<@ AfterLayout (tweakControls (map noAnnotation)) 
-					>&>
-					handleSelected ) 
-					<<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)}
+	recalculate
+		=				get_IDE_State
+		>>= \state ->	findAllModulesInPaths "icl" cleanPath [! idePath:(state.envTargets!!state.idx).target_path !] 	// find all modules again
+		>>= \allM ->	findAllModulesInProject cleanPath (idePath,state.projectName) allM
+		>>= \all ->		setAllFilesInEnv all																			// and store
+		>>|				projectFiles ts
+
+	showAndSelect state  
+		=	( showFiles <<@ AfterLayout (tweakControls (map noAnnotation)) 
+			  >&>
+			  handleSelected 
+			) <<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)}
 	where
 		showFiles 
-			= 				enterChoice (Title ("project: " +++ state.projectName +++ " using " +++ (state.envTargets!!state.idx).target_name)) 
-								[ChooseWith ChooseFromTree id] (mkTree dirFiles)
+			=		enterChoice (Title ("project: " +++ state.projectName +++ " ,using " +++ (state.envTargets!!state.idx).target_name)) 
+						[ChooseWith ChooseFromTree id] (mkTree state.allFilesInEnv)
 		where
-			mkTree dirfiles = Tree [Node dir [Leaf file \\ file <- files] \\ (dir,files) <- dirfiles]
+			mkTree dirfiles = Tree [Node dir [Leaf (if isUsed (moduleName +++ "*") moduleName) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
 
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected  @? onlyJust
-							>>* [OnAction (Action "Open .icl") hasValue (\v -> openFileAndEdit (select (getValue v) ".icl") ts)
-								,OnAction (Action "Open .dcl") hasValue (\v -> openFileAndEdit (select (getValue v) ".dcl") ts)
+							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (getValue v) ".icl" ts)
+								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (getValue v) ".dcl" ts)
 								]
 						)
 		where							
-			select chosen extension = cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen files] +++ "\\" +++ chosen +++ extension
-	
+			openSelected :: !ModuleName !String !(ReadOnlyShared (TaskList Void)) -> Task Void
+			openSelected chosen extension ts
+				=				get_IDE_State
+				>>= \state ->	openFileAndEdit (selectFrom state.allFilesInEnv) ts   // strange type error ????
+			where
+				selectFrom :: ![(!DirPathName,![Module])] -> FileName
+				selectFrom dirFiles = cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen (map (\{moduleName} -> moduleName) files)] +++ "\\" +++ chosen +++ extension
+		
 			onlyJust (Value (Just v) s) = Value v s
 			onlyJust _					= NoValue
 
@@ -200,7 +214,7 @@ import _SystemStrictLists
 
 search what whereSearch _  
 	= 				get_IDE_State
-	>>= \state ->	searching state "" what whereSearch ([],[])  <<@ Window
+	>>= \state ->	return Void //searching state "" what whereSearch ([],[])  <<@ Window
 	
 where
 	searching state=:{projectName,projectPath} identifier what whereSearch found
@@ -212,8 +226,8 @@ where
 					] 
 	where
 		performSearch (identifier,what,whereSearch)
-			= 				searchTask what whereSearch identifier (projectPath, projectName +++ ".icl") searchPaths
-			>>=	\found	->	searching state identifier what whereSearch found
+			= /*				searchTask what whereSearch identifier (projectPath, projectName +++ ".icl") searchPaths
+			>>=	\found	->	searching state identifier what whereSearch found*/ return Void
 
 		searchPaths :: List !String
 		searchPaths = (state.envTargets!!state.idx).target_path

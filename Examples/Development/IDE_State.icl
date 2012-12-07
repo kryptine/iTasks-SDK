@@ -9,18 +9,7 @@ import projectManager, SmallUtil
 
 // The IDE_state is the one and only globally shared state
 
-:: IDE_State =	{ projectName		:: !String			// name of the project, empty string indicates no project set
-				, projectPath		:: !String			// path where project is located
-				, projectSettings	:: !Project			// settings will passed to call of BatchBuild, the batch version of the compiler 
-				, cleanPath			:: !String			// path whare Clean compiler and BatchBuild is located
-				, openedFiles		:: ![String]		// files currently opened in IDE
-				, recentFiles		:: ![String]		// recently opened files
-				, recentProjects	:: ![String]		// recently opened projects
-				, idx				:: !Int				// index in target
-				, envTargets		:: ![Target]		// targets are environments
-				}
-
-derive class iTask IDE_State
+derive class iTask IDE_State, Module
 
 init_IDE_State :: IDE_State			
 init_IDE_State
@@ -33,6 +22,7 @@ init_IDE_State
 		, recentProjects	= []
 		, idx				= 0
 		, envTargets		= [t_StdEnv]
+		, allFilesInEnv		= []
 		}
 
 IDE_State :: Shared IDE_State
@@ -98,6 +88,13 @@ select_Environment idx
 									, projectSettings.target			= (state.envTargets!!idx).target_name
 //									, projectSettings.prjpaths 			= (state.envTargets!!idx).target_path 
 							}) 	
+
+setAllFilesInEnv	:: ![(!DirPathName,![Module])] -> Task Void
+setAllFilesInEnv all
+	= 	update_IDE_State
+			 (\state -> 	{ state & allFilesInEnv			= all
+			 				})
+
 addFilesAdmin :: !FileName -> Task Void
 addFilesAdmin fileName
 	=	update_IDE_State
