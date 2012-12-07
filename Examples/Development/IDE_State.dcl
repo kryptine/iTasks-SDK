@@ -8,8 +8,8 @@ definition module IDE_State
 // cleanpath pointing to batchBuild.exe currently has to set by hand !!!
 
 //cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-//cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+//cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
+cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
 
 idePath				:== "iTasks-SDK\\Examples\\Development\\"
 batchBuild			:== cleanPath +++ "BatchBuild.exe"
@@ -42,14 +42,15 @@ import EditorUtil
 				, idx				:: !Int								// index in target
 				, envTargets		:: ![Target]						// targets are environments
 				, allFilesInEnv		:: ![(!DirPathName,![Module])]		// all modules in chosen environment
+				, projectPaneOption	:: !PaneOptions						// what to show in project pane
 				}
-
 :: Module = 	{ isUsed			:: !Bool							// is module used in project
 				, moduleName		:: !ModuleName						// name of module 
 				} 
+:: PaneOptions = ShowAll | ShowProject | ShowNotUsed
 
 import iTasks
-derive class iTask IDE_State, Module
+derive class iTask IDE_State, Module, PaneOptions 
 
 // access functions to global state
 
@@ -71,6 +72,7 @@ updateEnvironment 	:: !Int !Target -> Task Void
 select_Environment	:: !Int -> Task Void
 
 setAllFilesInEnv	:: ![(!DirPathName,![Module])] -> Task Void
+setProjectPaneOption :: !PaneOptions -> Task Void
 
 addFilesAdmin 		:: !FileName -> Task Void
 removeFileAdmin 	:: !FileName -> Task Void

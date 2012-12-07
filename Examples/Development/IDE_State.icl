@@ -9,7 +9,7 @@ import projectManager, SmallUtil
 
 // The IDE_state is the one and only globally shared state
 
-derive class iTask IDE_State, Module
+derive class iTask IDE_State, Module, PaneOptions 
 
 init_IDE_State :: IDE_State			
 init_IDE_State
@@ -23,6 +23,7 @@ init_IDE_State
 		, idx				= 0
 		, envTargets		= [t_StdEnv]
 		, allFilesInEnv		= []
+		, projectPaneOption = ShowAll
 		}
 
 IDE_State :: Shared IDE_State
@@ -62,6 +63,12 @@ update_Project project
 	=	update_IDE_State
 			 (\state -> 	{ state & projectSettings 					= project
 							}) 
+
+setProjectPaneOption :: !PaneOptions -> Task Void
+setProjectPaneOption option
+	= 	update_IDE_State
+			 (\state -> 	{ state & projectPaneOption					= option		
+							}) 	
 
 setEnvironments :: ![Target] -> Task Void
 setEnvironments envs

@@ -48,14 +48,14 @@ where
 		=				get_IDE_State											// read state as left from previous session, if any
 		>>= \state -> 	init state												// initiate state 								
 	where
-		init state =:{projectName = ""	}										// no project set
-			=			currentDirectory										// determine directory of this CleanEditor
-		//	>>= \dir ->	set_Project  "" dir										// BUG: currentDirectory does not return dir						
-			>>= \dir ->	set_new_Project "" initialPath							// Fix: hardwired path
-			>>|			readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
-			>>= \env ->	setEnvironments env										// store settings in project
-			>>|			findAllModulesInPaths "icl" cleanPath (env!!0).target_path // find all modules in chosen environment
-			>>= \all ->	setAllFilesInEnv all									// and store
+		init state =:{projectName = ""	}											// no project set
+			=				currentDirectory										// determine directory of this CleanEditor
+		//	>>= \dir ->		set_Project  "" dir										// BUG: currentDirectory does not return dir						
+			>>= \dir ->		set_new_Project "" initialPath							// Fix: hardwired path
+			>>|				readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
+			>>= \env ->		setEnvironments env										// store settings in projectget_IDE_State											// read state as left from previous session, if any
+			>>|				findAllModulesInPaths "icl" cleanPath (env!!0).target_path // find all modules in chosen environment
+			>>= \all ->		setAllFilesInEnv all									// and store
 		init _ = return Void
 // top menu
 
@@ -98,6 +98,9 @@ where
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
 								 (const (launch (compile projectName <<@ Window) ts))	
 		, OnAction (Action "Project/Project Options...") ifProject (const (changeProjectOptions))
+		, OnAction (Action "Project/Show/All Modules") 		always (const (setProjectPaneOption ShowAll))
+		, OnAction (Action "Project/Show/Project Modules") 	ifProject (const (setProjectPaneOption ShowProject))
+		, OnAction (Action "Project/Show/Unused Modules") 	ifProject (const (setProjectPaneOption ShowNotUsed))
 		]
 		++
 		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName)) always (const (editEnvironment))
@@ -122,7 +125,10 @@ projectFiles ts
 	=				get_IDE_State
 	>>= \state -> 	((showAndSelect state @ const Void)
 					-||-
-					watch_IDE_State (\curstate -> curstate.idx <> state.idx || curstate.projectName <> state.projectName) (return Void)
+					watch_IDE_State (\curstate -> curstate.idx <> state.idx || 
+												  curstate.projectName <> state.projectName ||
+												  not (curstate.projectPaneOption === state.projectPaneOption)) 
+									(return Void)
 					)
 	>>*				[OnValue ifStable (const recalculate)]
 where
@@ -140,10 +146,15 @@ where
 			) <<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)}
 	where
 		showFiles 
-			=		enterChoice (Title ("project: " +++ state.projectName +++ ", using: " +++ (state.envTargets!!state.idx).target_name)) 
-						[ChooseWith ChooseFromTree id] (mkTree state.allFilesInEnv)
+			=	enterChoice (Title ("project: " +++ state.projectName +++ 
+									"; env: " +++ (state.envTargets!!state.idx).target_name)) 
+						[ChooseWith ChooseFromTree id] (mkTree state.projectPaneOption state.allFilesInEnv)
 		where
-			mkTree dirfiles = Tree [Node (dir,"") [Leaf (if isUsed (moduleName,"+") (moduleName,"")) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
+			mkTree ShowAll     dirfiles = Tree [Node (dir,"") [Leaf (if isUsed (moduleName,"+") (moduleName,"-")) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
+			mkTree ShowProject dirfiles = Tree (skip [Node (dir,"") [Leaf (moduleName,"+") \\ {moduleName,isUsed=True}  <- files] \\ (dir,files) <- dirfiles])
+			mkTree ShowNotUsed dirfiles = Tree (skip [Node (dir,"") [Leaf (moduleName,"-") \\ {moduleName,isUsed=False} <- files] \\ (dir,files) <- dirfiles])
+
+			skip nodes = [Node label mods \\ (Node label mods) <- nodes | not (isEmpty mods)]
 
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected  @? onlyJust
@@ -417,10 +428,10 @@ where
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
- =						(updateSharedInformation Void [UpdateWith toV fromV] sharedFile  @ const Void) <<@ noHints
+	=	(updateSharedInformation Void [UpdateWith toV fromV] sharedFile  @ const Void) <<@ noHints
 where
-	toV text 			= CleanCode text
-	fromV _ (CleanCode text) = text
+	fromV _ (Note text)	= text
+	toV text 					= Note text
 
 replace cmnd sharedFile _ = noReplace cmnd 
 where
