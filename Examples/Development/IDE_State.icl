@@ -23,7 +23,7 @@ init_IDE_State
 		, idx				= 0
 		, envTargets		= [t_StdEnv]
 		, allFilesInEnv		= []
-		, searchOption 		= InEnvironment
+		, moduleOptions		= InEnvironment
 		}
 
 IDE_State :: Shared IDE_State
@@ -73,7 +73,7 @@ update_Project project
 setProjectPaneOption :: !ModuleOptions -> Task Void
 setProjectPaneOption option
 	= 	update_IDE_State
-			 (\state -> 	{ state & searchOption						= option		
+			 (\state -> 	{ state & moduleOptions						= option		
 							}) 	
 
 setEnvironments :: ![Target] -> Task Void

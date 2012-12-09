@@ -42,7 +42,7 @@ import EditorUtil
 				, idx				:: !Int								// index in target
 				, envTargets		:: ![Target]						// targets are environments
 				, allFilesInEnv		:: ![(!DirPathName,![Module])]		// all modules in chosen environment
-				, searchOption		:: !ModuleOptions					// what to show in project pane
+				, moduleOptions		:: !ModuleOptions					// what to show in project pane
 				}
 :: Module = 	{ isUsed			:: !Bool							// is module used in project
 				, moduleName		:: !ModuleName						// name of module 

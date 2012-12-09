@@ -84,5 +84,6 @@ findAllModulesInPaths	 :: !Extension !DirPathName !(List !DirPathName) -> Task !
 findAllModulesInProject	 :: !DirPathName !(!DirPathName,!ModuleName) ![(!DirPathName,![Module])] -> Task ![(!DirPathName,![Module])] 
 			   
 findDefinition	:: !Identifier !FileName -> Task !IdentifierPositionList
-
+findIdentifier  :: !Identifier !FileName -> Task !IdentifierPositionList
+ 
 

@@ -193,12 +193,20 @@ findImports	rootDir (dirName,moduleName) extension
 	=	findDefinitionInFile "" (rootDir +++ dirName +++ "\\" +++ moduleName +++ extension) True @ (StrictListToList o fst) 
 
 findDefinition	:: !Identifier !FileName -> Task !IdentifierPositionList
-findDefinition    identifier fileName
+findDefinition identifier fileName
 	=	findDefinitionInFile identifier fileName False @ snd
 
 findDefinitionInFile identifier fileName showImports
 	= accWorld (accFiles (FindDefinitionInFile showImports [!!] identifier fileName))
-		
+
+findIdentifier :: !Identifier !FileName  -> Task !IdentifierPositionList
+findIdentifier identifier  fileName 
+	=	findIdentifierInFile identifier fileName False @ snd
+
+findIdentifierInFile identifier fileName showImports
+	= accWorld (accFiles (FindIdentifiersInFile showImports [!!] identifier fileName))
+
+
 /*
 
 // search department

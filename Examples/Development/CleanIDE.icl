@@ -121,7 +121,7 @@ projectPane ts
 						-||-
 					  watch_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
 												  curstate.projectName <> state.projectName ||					// project changed
-												  not (curstate.searchOption === state.searchOption)) 			// options changed 
+												  not (curstate.moduleOptions === state.moduleOptions)) 			// options changed 
 									 (return Void)
 						-||-
 					 (actionTask >>* [OnAction (Action "Project/Show/Refresh") always (const (return Void))])	// refresh 
@@ -145,10 +145,10 @@ where
 			) 
 	where
 		showFiles 
-			=	enterChoice (Title (toString state.searchOption +++ ": " +++
+			=	enterChoice (Title (toString state.moduleOptions +++ ": " +++
 									state.projectName +++ " + " +++ 
 									(state.envTargets!!state.idx).target_name)) 
-						[ChooseWith ChooseFromTree id] (mkTree state.searchOption state.allFilesInEnv)
+						[ChooseWith ChooseFromTree id] (mkTree state.moduleOptions state.allFilesInEnv)
 		where
 			mkTree InEnvironment dirfiles = Tree [Node (dir,"") [Leaf (if isUsed (moduleName,"+") (moduleName,"-")) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
 			mkTree InProject 	 dirfiles = Tree (skipEmpty [Node (dir,"") [Leaf (moduleName,"+") \\ {moduleName,isUsed=True}  <- files] \\ (dir,files) <- dirfiles])
@@ -189,29 +189,51 @@ compilerMessages _
 
 import _SystemStrictLists
 
-search what _  
+search searchOption _  
 	= 				get_IDE_State
-	>>= \state ->	searching state "" what []  <<@ Window
+	>>= \state ->	searching state "" searchOption state.moduleOptions []  <<@ Window
 where
-	searching state=:{projectName,projectPath,searchOption} identifier what found
-//		=			(viewInformation (length (snd found) +++> " modules searched, " +++> length (fst found) +++> " contained " +++> identifier) [] found
-		=			(viewInformation "found" [] found
+	searching state identifier searchOption moduleOptions found
+		=			(viewInformation (identifier +++ " found in:") [] found
 					||-
-					updateInformation (Title ("Find: " +++ identifier)) [] (identifier,what,searchOption)) 
+					updateInformation (Title "Search") [] (identifier,searchOption,moduleOptions)) 
 		>>*			[ OnAction ActionCancel      always   (const (return Void))
 					, OnAction (Action "Search") hasValue (performSearch o getValue)
 					] 
 	where
-		performSearch (identifier,what,searchOption)
-			=				searchAll [(cleanPath +++ path, moduleName +++ ".dcl") \\ (path,modules) <- state.allFilesInEnv, {moduleName} <- modules] []
+		performSearch (identifier,searchOption,moduleOptions)
+			=	searchFor [] [(path, moduleName) 	\\ (path,modules) <- state.allFilesInEnv
+													, {moduleName,isUsed} <- modules
+													| case (moduleOptions,isUsed) of
+														(InProject,True)  -> True
+														(NotUsed,False)   -> True 
+														(InEnvironment,_) -> True
+														_ -> False] 
 		where
-			searchAll []     found = searching state identifier what found
-			searchAll [(p,f):fs] found
-				=				findDefinition identifier (p +++ f)
+			searchFor = case searchOption of
+							SearchDefinition 		-> searchDefinition ".dcl"
+							SearchImplementation	-> searchDefinition ".icl"
+							SearchIdentifier		-> searchIdentifier 
+
+			searchDefinition suffix found [] =  searching state identifier searchOption moduleOptions found
+			searchDefinition suffix found [(p,f):fs]
+				# fileName = f +++ suffix
+				=				findDefinition identifier (cleanPath +++ p +++ "\\" +++ fileName)
 				>>= \list ->	case list of
-									PosNil ->	searchAll fs found
-									else -> 	searchAll fs [(f,else):found]
+									PosNil ->	searchDefinition suffix found fs 
+									list -> 	searchDefinition suffix [((p,fileName),list):found] fs 
 					
+			searchIdentifier found [] =  searching state identifier searchOption moduleOptions found
+			searchIdentifier found [(p,f):fs]
+				# defFile = f +++ ".dcl" 
+				# impFile = f +++ ".icl"
+				=				findIdentifier identifier (cleanPath +++ p +++ "\\" +++ defFile)
+				>>= \dList ->	findIdentifier identifier (cleanPath +++ p +++ "\\" +++ impFile)
+				>>= \iList ->	case (dList,iList) of
+									(PosNil,PosNil) ->	searchIdentifier found fs 
+									(PosNil,iList)  -> 	searchIdentifier [((p,impFile),iList):found] fs 
+									(dList,PosNil)  -> 	searchIdentifier [((p,defFile),dList):found] fs 
+									(dList,iList)   -> 	searchIdentifier [((p,defFile),dList),((p,impFile),iList):found] fs 
 
 // opening and storing projects... 
 
