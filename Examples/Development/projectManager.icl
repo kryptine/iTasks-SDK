@@ -190,8 +190,15 @@ where
 		= [(d,ms):insert (dir,name) envPaths]
 
 findImports	rootDir (dirName,moduleName) extension
-	=	accWorld (accFiles (FindDefinitionInFile True [!!] "" (rootDir +++ dirName +++ "\\" +++ moduleName +++ extension)))
-		@ (StrictListToList o fst)
+	=	findDefinitionInFile "" (rootDir +++ dirName +++ "\\" +++ moduleName +++ extension) True @ (StrictListToList o fst) 
+
+findDefinition	:: !Identifier !FileName -> Task !IdentifierPositionList
+findDefinition    identifier fileName
+	=	findDefinitionInFile identifier fileName False @ snd
+
+findDefinitionInFile identifier fileName showImports
+	= accWorld (accFiles (FindDefinitionInFile showImports [!!] identifier fileName))
+		
 /*
 
 // search department

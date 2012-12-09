@@ -42,15 +42,18 @@ import EditorUtil
 				, idx				:: !Int								// index in target
 				, envTargets		:: ![Target]						// targets are environments
 				, allFilesInEnv		:: ![(!DirPathName,![Module])]		// all modules in chosen environment
-				, projectPaneOption	:: !PaneOptions						// what to show in project pane
+				, searchOption		:: !ModuleOptions					// what to show in project pane
 				}
 :: Module = 	{ isUsed			:: !Bool							// is module used in project
 				, moduleName		:: !ModuleName						// name of module 
 				} 
-:: PaneOptions = ShowAll | ShowProject | ShowNotUsed
+:: ModuleOptions = InEnvironment | InProject | NotUsed
+:: SearchOptions = SearchDefinition | SearchImplementation | SearchIdentifier
 
 import iTasks
-derive class iTask IDE_State, Module, PaneOptions 
+derive class iTask IDE_State, Module, ModuleOptions, SearchOptions 
+
+instance toString ModuleOptions
 
 // access functions to global state
 
@@ -72,8 +75,8 @@ updateEnvironment 	:: !Int !Target -> Task Void
 select_Environment	:: !Int -> Task Void
 
 setAllFilesInEnv	:: ![(!DirPathName,![Module])] -> Task Void
-setProjectPaneOption :: !PaneOptions -> Task Void
+setProjectPaneOption :: !ModuleOptions -> Task Void
 
-addFilesAdmin 		:: !FileName -> Task Void
-removeFileAdmin 	:: !FileName -> Task Void
+addFileToAdmin 		:: !FileName -> Task Void
+removeFileFromAdmin	:: !FileName -> Task Void
 

@@ -80,16 +80,9 @@ fromTargets 		:: ![Target] 		-> [Environment]
 
 derive class iTask 	IdentifierPositionList
 
-:: SearchOptions 	:== (SearchWhat, SearchWhere)
-:: SearchWhat 		= 	SearchIdentifier | SearchDefinition | SearchImplementation
-:: SearchWhere		=	SearchInImports | SearchInPaths //| SearchInProject
-
-//searchTask :: !SearchWhat !SearchWhere !Identifier !(!DirPathName,!FileName) !(List !DirPathName) -> Task (![(!(!DirPathName,!FileName),!IdentifierPositionList)],![FileName])
-
-//searchIdentifierInImports :: !Identifier !(!DirPathName,!FileName) ![DirPathName] -> Task (![(!(!DirPathName,!FileName),!IdentifierPositionList)],![FileName])
-
 findAllModulesInPaths	 :: !Extension !DirPathName !(List !DirPathName) -> Task ![(!DirPathName,![Module])]
 findAllModulesInProject	 :: !DirPathName !(!DirPathName,!ModuleName) ![(!DirPathName,![Module])] -> Task ![(!DirPathName,![Module])] 
 			   
+findDefinition	:: !Identifier !FileName -> Task !IdentifierPositionList
 
 

@@ -9,7 +9,7 @@ import projectManager, SmallUtil
 
 // The IDE_state is the one and only globally shared state
 
-derive class iTask IDE_State, Module, PaneOptions 
+derive class iTask IDE_State, Module, ModuleOptions, SearchOptions 
 
 init_IDE_State :: IDE_State			
 init_IDE_State
@@ -23,11 +23,17 @@ init_IDE_State
 		, idx				= 0
 		, envTargets		= [t_StdEnv]
 		, allFilesInEnv		= []
-		, projectPaneOption = ShowAll
+		, searchOption 		= InEnvironment
 		}
 
 IDE_State :: Shared IDE_State
 IDE_State = sharedStore IDE_State_fileName init_IDE_State
+
+instance toString ModuleOptions
+where
+	toString InEnvironment 	= "All Modules"
+	toString InProject 		= "Modules In Project"
+	toString NotUsed 		= "Modules Not Used"
 
 update_IDE_State :: !(IDE_State -> IDE_State) -> Task !Void
 update_IDE_State fun = update fun IDE_State @ const Void
@@ -64,10 +70,10 @@ update_Project project
 			 (\state -> 	{ state & projectSettings 					= project
 							}) 
 
-setProjectPaneOption :: !PaneOptions -> Task Void
+setProjectPaneOption :: !ModuleOptions -> Task Void
 setProjectPaneOption option
 	= 	update_IDE_State
-			 (\state -> 	{ state & projectPaneOption					= option		
+			 (\state -> 	{ state & searchOption						= option		
 							}) 	
 
 setEnvironments :: ![Target] -> Task Void
@@ -102,14 +108,14 @@ setAllFilesInEnv all
 			 (\state -> 	{ state & allFilesInEnv			= all
 			 				})
 
-addFilesAdmin :: !FileName -> Task Void
-addFilesAdmin fileName
+addFileToAdmin :: !FileName -> Task Void
+addFileToAdmin fileName
 	=	update_IDE_State
 			 (\state -> 	{ state & recentFiles 						= removeDup [fileName:state.recentFiles]
 								    , openedFiles 						= [fileName:state.openedFiles]
 							}) 
-removeFileAdmin :: !FileName -> Task Void
-removeFileAdmin fileName
+removeFileFromAdmin :: !FileName -> Task Void
+removeFileFromAdmin fileName
 	=	update_IDE_State
 			 (\state -> 	{ state & openedFiles 						= removeMember fileName state.openedFiles
 							}) 

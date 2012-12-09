@@ -13,7 +13,6 @@ storeFileInPath  	:: !DirPathName !FileName !String -> Task !Bool
 searchFilesInPaths	:: ![FileName] ![DirPathName] -> Task ![(!DirPathName,!FileName)]
 searchFileInPaths  	:: !FileName   ![DirPathName] -> Task !(Maybe !DirPathName)
 
-
 showError 			:: String a -> Task a | iTask a
 
 
