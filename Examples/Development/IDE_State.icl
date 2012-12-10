@@ -46,12 +46,12 @@ watch_IDE_State pred task = watch IDE_State >>* [OnValue (pred o getValue) (cons
 
 // updating the global IDE_State
 
-set_new_Project :: !ModuleName !ProjectPath -> Task Void
-set_new_Project moduleName projectPath 
-	=						open_Project moduleName projectPath (initProject moduleName) 
+set_new_Project :: !ProjectPath !ModuleName -> Task Void
+set_new_Project projectPath moduleName
+	=						open_Project projectPath moduleName (initProject moduleName) 
 
-open_Project :: !ModuleName !ProjectPath !Project -> Task Void
-open_Project projectName projectPath project
+open_Project ::  !ProjectPath !ModuleName !Project -> Task Void
+open_Project  projectPath projectName project
 	=	update_IDE_State
 				(\state -> 	{ state	& projectName						= projectName
 									, projectPath						= projectPath
@@ -60,7 +60,7 @@ open_Project projectName projectPath project
 							})
 	>>|
 		update_IDE_State
-				(\state -> 	{ state & projectSettings.root_directory   	= projectPath
+				(\state -> 	{ state & projectSettings.root_directory   	= projectPath +++ "\\"
 									, projectSettings.target 			= (state.envTargets!!state.idx).target_name
 							})
 	

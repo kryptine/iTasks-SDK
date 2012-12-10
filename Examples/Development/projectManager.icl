@@ -71,8 +71,8 @@ readProjectFile projectPath cleanAppDir
 	= accWorld (accFiles (ReadProjectFile projectPath cleanAppDir))
 
 saveProjectFile :: !Project !ProjectPath !CleanPath  -> Task Bool
-saveProjectFile project projectPath cleanAppDir  
-	= accWorld (accFiles (SaveProjectFile projectPath project cleanAppDir))
+saveProjectFile project projectPath cleanPath  
+	= accWorld (accFiles (SaveProjectFile projectPath project cleanPath))
 
 initProject :: !ModuleName -> Project
 initProject main_module_file_name

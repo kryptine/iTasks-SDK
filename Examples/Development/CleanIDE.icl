@@ -51,7 +51,7 @@ where
 		init state =:{projectName = ""	}											// no project set
 			=				currentDirectory										// determine directory of this CleanEditor
 		//	>>= \dir ->		set_Project  "" dir										// BUG: currentDirectory does not return dir						
-			>>= \dir ->		set_new_Project "" initialPath							// Fix: hardwired path
+			>>= \dir ->		set_new_Project initialPath	""						// Fix: hardwired path
 			>>|				readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
 			>>= \env ->		setEnvironments env										// store settings in projectget_IDE_State											// read state as left from previous session, if any
 			>>|				findAllModulesInPaths "icl" cleanPath (env!!0).target_path // find all modules in chosen environment
@@ -119,15 +119,15 @@ projectPane ts
 	=				get_IDE_State
 	>>= \state -> 	( (showAndSelect state @ const Void)
 						-||-
-					  watch_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
+					  (watch_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
 												  curstate.projectName <> state.projectName ||					// project changed
-												  not (curstate.moduleOptions === state.moduleOptions)) 			// options changed 
-									 (return Void)
-						-||-
-					 (actionTask >>* [OnAction (Action "Project/Show/Refresh") always (const (return Void))])	// refresh 
+												  not (curstate.moduleOptions === state.moduleOptions) ) 		// options changed 
+									 (return Void)) <<@ SetLayout (partLayout 0)
 					)
-					<<@ layout
-	>>*				[OnValue ifStable (const recalculate)]
+					
+	>>*				[ OnValue  ifStable (const recalculate)
+					, OnAction (Action "Project/Show/Refresh") always (const recalculate)
+					]
 where
 	layout = SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)} //???
 
@@ -142,7 +142,7 @@ where
 		=	( showFiles <<@ AfterLayout (tweakControls (map noAnnotation)) 
 			  >&>
 			  handleSelected 
-			) 
+			) <<@ layout
 	where
 		showFiles 
 			=	enterChoice (Title (toString state.moduleOptions +++ ": " +++
@@ -247,12 +247,12 @@ where
 	storeNewProject "" _
 		=				return Void 
 	storeNewProject projectName projectPath 
-		=				set_new_Project projectName projectPath 
+		=				set_new_Project projectPath projectName  
 
 storeProject :: Task Void
 storeProject  
 	= 				get_IDE_State
-	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ state.projectName +++ ".prj") state.cleanPath 
+	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ "\\" +++ state.projectName +++ ".prj") state.cleanPath 
 	>>= \ok ->		if (not ok)	(showError "Could not store project file !" Void) (return Void)
 						
 	
@@ -271,7 +271,7 @@ reopenProject projectName
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \(project,ok,message) ->	if (not ok)
 										(showError "Read Error..."  message  @ const Void)
-										(open_Project projectName state.projectPath project)
+										(open_Project state.projectPath projectName project)
 where
 	name = dropExtension projectName
 
@@ -355,7 +355,6 @@ where
 	compile` state
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
-//			>>|			storeProject  
 			>>|			callProcess "Clean Compiler - BatchBuild" [] batchBuild [state.projectPath +++ projectName +++ ".prj"] 
 						-&&-
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window

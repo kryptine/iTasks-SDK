@@ -64,8 +64,8 @@ update_IDE_State 	:: !(IDE_State -> IDE_State) -> Task !Void
 
 watch_IDE_State 	:: !(IDE_State -> Bool) !(Task a) -> Task a | iTask a
 
-set_new_Project 	:: !ModuleName !ProjectPath 			-> Task Void
-open_Project 		:: !ModuleName !ProjectPath !Project 	-> Task Void
+set_new_Project 	:: !ProjectPath !ModuleName				-> Task Void
+open_Project 		:: !ProjectPath !ModuleName !Project	-> Task Void
 	
 update_Project 		:: !Project -> Task Void
 
