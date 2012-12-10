@@ -4,8 +4,7 @@ import StdEnv, StdMaybe, Map
 import SaplTokenizer, SaplLinkerShared, StringAppender, FastString
 import IWorld
 
-import FilePath, File, Directory
-from Error import :: MaybeError, fromOk
+import FilePath, File, Directory, Error
 from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
 
 // Module name -> file name
@@ -15,16 +14,19 @@ from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCo
 :: LoaderState    :== (ModuleMap, ModuleMap, Warnings, IdGenerator)
 :: LoaderStateExt :== (LoaderState, FuncTypeMap)
 
+handlerr (Error (c, str)) = abort ("LazyLinker.icl: " +++ str)
+handlerr (Ok a) = a
+
 generateLoaderState :: !*IWorld -> *(LoaderStateExt, !*IWorld)
 generateLoaderState iworld=:{IWorld|world} 
 	# module_directory = "sapl"
 	# builtin_module_directory = "sapl" </> "std"
 	
 	# (res,world) = readDirectory builtin_module_directory world
-	# bms = filter (\bm = (snd (splitExtension bm)) == sapl_module_name_extension) (fromOk res)
+	# bms = filter (\bm = (snd (splitExtension bm)) == sapl_module_name_extension) (handlerr res)
 	
 	# (res,world) = readDirectory module_directory world
-	# ms = filter (\m = (snd (splitExtension m)) == sapl_module_name_extension) (fromOk res)
+	# ms = filter (\m = (snd (splitExtension m)) == sapl_module_name_extension) (handlerr res)
 
 	# onlybuiltins = removeMembers bms ms
 	# bms = removeMembers bms onlybuiltins

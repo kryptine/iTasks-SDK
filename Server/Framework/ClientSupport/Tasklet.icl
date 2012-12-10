@@ -156,6 +156,9 @@ where
 
 //---------------------------------------------------------------------------------------
 
+handlerr (Error str) = abort ("Tasklet.icl: " +++ str)
+handlerr (Ok a) = a
+
 linker state eventHandlers resultFunc mbControllerFunc iworld
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
@@ -187,28 +190,28 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 	# sapl = toString a	
 	# (script, mbPst) = case sapl of
 		"" = ("", Nothing)
-		   = let (script, pst) = fromOk (generateJS sapl) in (toString script, Just pst)
+		   = let (script, pst) = handlerr (generateJS sapl) in (toString script, Just pst)
 	
 	/* 3. Generate expressions by ParserState */
 									
-	# statejs = toString (fromOk (exprGenerateJS saplst mbPst))
+	# statejs = toString (handlerr (exprGenerateJS saplst mbPst))
 
-	# events = map (\(id,event,saplhandler) = (id,event,toString (fromOk 
+	# events = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
 				(exprGenerateJS saplhandler mbPst)))) eventHandlers
 	
-	# rfjs = toString (fromOk (exprGenerateJS saplRF mbPst))		
+	# rfjs = toString (handlerr (exprGenerateJS saplRF mbPst))		
 	
 	# cfjs = case mbSaplCF of
-		Just saplCF = Just (toString (fromOk (exprGenerateJS saplCF mbPst)))
+		Just saplCF = Just (toString (handlerr (exprGenerateJS saplCF mbPst)))
 					= Nothing		
 					
-/* For debugging:
+/* For debugging:*/
 
 	# (_, iworld) = writeFile "debug_state.sapl" saplst iworld
 	# (_, iworld) = writeFile "debug_state.js" statejs iworld	
 	# (_, iworld) = writeFile "debug.sapl" sapl iworld
 	# (_, iworld) = writeFile "debug.js" script iworld
-*/
+
 
 	= (statejs, script, events, rfjs, cfjs, iworld)
  
