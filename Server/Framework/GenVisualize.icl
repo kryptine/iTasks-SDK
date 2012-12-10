@@ -431,7 +431,7 @@ where
 		| disabled
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+			= ([(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
 
 	vvalue (Just (RadioChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
 	vvalue _										= Nothing
@@ -447,7 +447,7 @@ where
 		| disabled
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+			= ([(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
 	
 	vvalue (Just (RadioChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
 	vvalue _												= Nothing

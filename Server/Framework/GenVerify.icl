@@ -127,8 +127,8 @@ gVerify{|Progress|}				_ vst = alwaysValid vst
 gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
 gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
-gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
-gVerify{|ComboChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
+gVerify{|ComboChoice|} _ _		v vst = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v vst
+gVerify{|ComboChoiceNoView|} _	v vst = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v vst
 gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst
 gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
 gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
@@ -249,7 +249,7 @@ customVerify mbHint pred mkErrMsg mbVal vst=:{updateMask, verifyMask, optional, 
 	# vmask = case mbVal of
 		Just val
 			| staticDisplay
-								= VMValid Nothing []
+				= VMValid Nothing []
 			| optional
 				= case cm of
 					Touched				= validateValue val

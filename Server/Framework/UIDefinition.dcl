@@ -10,6 +10,13 @@ from Task			import :: TaskId
 from HTML			import :: HtmlTag
 from Map			import :: Map(..)
 
+//TODO:
+//- Radio button control
+//- Checkbox control (for choices)
+//- Multi select in grids
+//- Multi select in trees
+// 
+
 /**
 * Rendering a user interface for a composition of is a staged process in which
 * the raw UI material provided by basic tasks is grouped by layout policies to reach
@@ -69,6 +76,8 @@ from Map			import :: Map(..)
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
 	| UITree			!UISizeOpts	!(UIChoiceOpts UITreeNode) 					// - Tree (selecting a node in a tree structure)
+	| UIRadioGroup		!UISizeOpts !(UIChoiceOpts String)						// - A mutually exclusive set of radio buttons 
+	| UICheckboxGroup	!UISizeOpts !(UIChoiceOpts String)						// - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
 	| UIActionButton	!UISizeOpts	!UIActionOpts !UIButtonOpts					// - Action Button (clicks trigger action events)
 	| UIMenuButton		!UISizeOpts	!UIMenuButtonOpts							// - Menu Button (clicks open a menu)
@@ -82,7 +91,7 @@ from Map			import :: Map(..)
 	| UIContainer		!UISizeOpts !UILayoutOpts ![UIControl] !UIContainerOpts	// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UILayoutOpts ![UIControl] !UIFieldSetOpts	// - Fieldset (wrapper with a simple border and title)
-	| UIWindow			!UISizeOpts !UILayoutOpts ![UIControl] !UIWindowOpts	// - Window (floating window TODO)
+	| UIWindow			!UISizeOpts !UILayoutOpts ![UIControl] !UIWindowOpts	// - Window (floating window)
 	| UIViewport					!UILayoutOpts ![UIControl] !UIViewportOpts	// - Viewport (top-level container)
 	// DEPRECATED: custom xtjs definition:
 	| UICustom			!JSONNode

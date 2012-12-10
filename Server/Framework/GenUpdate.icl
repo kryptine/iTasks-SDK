@@ -268,10 +268,10 @@ where
 
 gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
 gUpdate{|GridChoiceNoView|} _	mode ust = updateChoice mode (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) (GridChoiceNoView [] Nothing) ust
-gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) (RadioChoice [] Nothing) ust
-gUpdate{|RadioChoiceNoView|} _	mode ust = updateChoice mode (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options (Just idx)) (RadioChoiceNoView [] Nothing) ust
-gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) (ComboChoice [] Nothing) ust
-gUpdate{|ComboChoiceNoView|} _	mode ust = updateChoice mode (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options (Just idx)) (ComboChoiceNoView [] Nothing) ust
+gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options idx) (RadioChoice [] Nothing) ust
+gUpdate{|RadioChoiceNoView|} _	mode ust = updateChoice mode (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) (RadioChoiceNoView [] Nothing) ust
+gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options idx) (ComboChoice [] Nothing) ust
+gUpdate{|ComboChoiceNoView|} _	mode ust = updateChoice mode (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) (ComboChoiceNoView [] Nothing) ust
 
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCCombo val))	ust = appFst DCCombo (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCRadio val))	ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
