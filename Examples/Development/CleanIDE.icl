@@ -196,12 +196,25 @@ where
 	searching state identifier searchOption moduleOptions found
 		=			(viewInformation (identifier +++ " found in:") [] found
 					||-
-					updateInformation (Title "Search") [] (identifier,searchOption,moduleOptions)) 
+					(updateInformation (Title "Search") [] identifier
+					-&&-
+					updateSearchOptions
+					)) 
+		
 		>>*			[ OnAction ActionCancel      always   (const (return Void))
 					, OnAction (Action "Search") hasValue (performSearch o getValue)
 					] 
 	where
-		performSearch (identifier,searchOption,moduleOptions)
+		updateSearchOptions
+			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView] [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
+				-&&-
+				updateInformation Void [] moduleOptions <<@ AfterLayout (uiDefSetDirection Horizontal)
+	
+		searchOptionView SearchDefinition		= "Search definition"
+		searchOptionView SearchImplementation	= "Search implementation"
+		searchOptionView SearchIdentifier		= "Search identifier"
+	
+		performSearch (identifier,(searchOption,moduleOptions))
 			=	searchFor [] [(path, moduleName) 	\\ (path,modules) <- state.allFilesInEnv
 													, {moduleName,isUsed} <- modules
 													| case (moduleOptions,isUsed) of
