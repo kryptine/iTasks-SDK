@@ -9,6 +9,7 @@ import qualified Map
 import projectManager
 
 import SmallUtil, IDE_State, CleanEditor
+from StdFunc import seq
 
 derive class iTask FileError
 
@@ -42,7 +43,7 @@ start_ide
 						, (Embedded, compilerMessages)
 						] <<@ SetLayout layout @ const Void
 where
-	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 300 (sideMerge BottomSide 100 tabbedMerge)))
+	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 250 (sideMerge BottomSide 100 tabbedMerge)))
 
 	init_ide 
 		=				get_IDE_State											// read state as left from previous session, if any
@@ -161,17 +162,29 @@ where
 			toView (Left dir) 			= dir
 			toView (Right (name,mark))	= name +++ mark
 
-			mkTree InEnvironment dirfiles = Tree [Node (Left dir) [Leaf (Right (if isUsed (moduleName,"+") (moduleName,"-"))) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
-			mkTree InProject 	 dirfiles = Tree (skipEmpty [Node (Left dir) [Leaf (Right (moduleName,"+")) \\ {moduleName,isUsed=True}  <- files] \\ (dir,files) <- dirfiles])
-			mkTree NotUsed 		 dirfiles = Tree (skipEmpty [Node (Left dir) [Leaf (Right (moduleName,"-")) \\ {moduleName,isUsed=False} <- files] \\ (dir,files) <- dirfiles])
-
-			skipEmpty nodes = [Node label mods \\ (Node label mods) <- nodes | not (isEmpty mods)]
-
 			fromEither (Left dir) 		= dir
 			fromEither (Right (name,_)) = name
 
+			mkTree :: !ModuleOptions ![(!DirPathName,![Module])] -> Tree (Either !DirPathName !(!ModuleName,!String))
+			mkTree option dirfiles = Tree (seq [insertModule dir ms \\ (dir,ms) <- dirfiles] [])
+			where
+				insertModule dir ms nodeList = insertModule` (split "\\" dir) ms nodeList
+				where
+					insertModule` [] ms nodeList 			= nodeList ++ [Leaf (Right (insertLeaf option m)) \\ m <- ms]
+					insertModule` ["":pathR] ms nodeList	= insertModule` pathR ms nodeList
+					insertModule` path=:[nodeP:pathR] ms [node=:(Node (Left nodeL) nodes):nodesR]
+						| nodeP == nodeL					= [Node (Left nodeL) (insertModule` pathR ms nodes):nodesR]
+						| otherwise							= [node:insertModule` path ms nodesR]
+					insertModule` path ms [leaf=:(Leaf _):nodesR] 
+															= [leaf:insertModule` path ms nodesR]
+					insertModule` [nodeP:pathR] ms [] 		= [Node (Left nodeP) (insertModule` pathR ms [])]
+
+			insertLeaf InEnvironment m = if m.isUsed (m.moduleName,"+") (m.moduleName,"-")
+			insertLeaf InProject 	 m = (m.moduleName,"+")
+			insertLeaf NotUsed 		 m = (m.moduleName,"-")
+
 		handleSelected selected
-			=	forever (		viewSharedInformation (Title "Selected:") [] selected  @? onlyJust
+			=	forever (		viewSharedInformation (Title "Selected:") [] selected @? onlyJust
 							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (getValue v) ".icl" ts)
 								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (getValue v) ".dcl" ts)
 								]
