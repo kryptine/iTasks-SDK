@@ -29,11 +29,6 @@ init_IDE_State
 IDE_State :: Shared IDE_State
 IDE_State = sharedStore IDE_State_fileName init_IDE_State
 
-instance toString ModuleOptions
-where
-	toString InEnvironment 	= "All Modules"
-	toString InProject 		= "Modules In Project"
-	toString NotUsed 		= "Modules Not Used"
 
 update_IDE_State :: !(IDE_State -> IDE_State) -> Task !Void
 update_IDE_State fun = update fun IDE_State @ const Void

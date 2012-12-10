@@ -124,7 +124,6 @@ projectPane ts
 												  not (curstate.moduleOptions === state.moduleOptions) ) 		// options changed 
 									 (return Void)) <<@ SetLayout (partLayout 0)
 					)
-					
 	>>*				[ OnValue  ifStable (const recalculate)
 					, OnAction (Action "Project/Show/Refresh") always (const recalculate)
 					]
@@ -145,21 +144,36 @@ where
 			) <<@ layout
 	where
 		showFiles 
-			=	enterChoice (Title (toString state.moduleOptions +++ ": " +++
-									state.projectName +++ " + " +++ 
-									(state.envTargets!!state.idx).target_name)) 
-						[ChooseWith ChooseFromTree id] (mkTree state.moduleOptions state.allFilesInEnv)
+			=	enterChoice (Title ( promptName state.projectName +++ " + " +++
+								    (state.envTargets!!state.idx).target_name +++
+								    promptOptions state.moduleOptions
+									)) 
+						[ChooseWith ChooseFromTree toView ] (mkTree state.moduleOptions state.allFilesInEnv)
+				@ fromEither
 		where
-			mkTree InEnvironment dirfiles = Tree [Node (dir,"") [Leaf (if isUsed (moduleName,"+") (moduleName,"-")) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
-			mkTree InProject 	 dirfiles = Tree (skipEmpty [Node (dir,"") [Leaf (moduleName,"+") \\ {moduleName,isUsed=True}  <- files] \\ (dir,files) <- dirfiles])
-			mkTree NotUsed 		 dirfiles = Tree (skipEmpty [Node (dir,"") [Leaf (moduleName,"-") \\ {moduleName,isUsed=False} <- files] \\ (dir,files) <- dirfiles])
+			promptName "" 	= "No project"
+			promptName name = "Project: " +++ name 
+
+			promptOptions InEnvironment = " + Show All Modules"
+			promptOptions InProject 	= " + Show Project Modules"
+			promptOptions NotUsed 		= " + Show Unused Modules"
+
+			toView (Left dir) 			= dir
+			toView (Right (name,mark))	= name +++ mark
+
+			mkTree InEnvironment dirfiles = Tree [Node (Left dir) [Leaf (Right (if isUsed (moduleName,"+") (moduleName,"-"))) \\ {moduleName,isUsed} <- files] \\ (dir,files) <- dirfiles]
+			mkTree InProject 	 dirfiles = Tree (skipEmpty [Node (Left dir) [Leaf (Right (moduleName,"+")) \\ {moduleName,isUsed=True}  <- files] \\ (dir,files) <- dirfiles])
+			mkTree NotUsed 		 dirfiles = Tree (skipEmpty [Node (Left dir) [Leaf (Right (moduleName,"-")) \\ {moduleName,isUsed=False} <- files] \\ (dir,files) <- dirfiles])
 
 			skipEmpty nodes = [Node label mods \\ (Node label mods) <- nodes | not (isEmpty mods)]
 
+			fromEither (Left dir) 		= dir
+			fromEither (Right (name,_)) = name
+
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected  @? onlyJust
-							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (fst (getValue v)) ".icl" ts)
-								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (fst (getValue v)) ".dcl" ts)
+							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (getValue v) ".icl" ts)
+								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (getValue v) ".dcl" ts)
 								]
 						)
 		where							
@@ -200,20 +214,23 @@ where
 					-&&-
 					updateSearchOptions
 					)) 
-		
-		>>*			[ OnAction ActionCancel      always   (const (return Void))
+		>>*			[ OnAction ActionClose       always   (const (return Void))
 					, OnAction (Action "Search") hasValue (performSearch o getValue)
 					] 
 	where
 		updateSearchOptions
-			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView] [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
+			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
 				-&&-
-				updateInformation Void [] moduleOptions <<@ AfterLayout (uiDefSetDirection Horizontal)
+				updateChoice Void [ChooseWith ChooseFromRadioButtons moduleOptionsView] [InEnvironment,InProject,NotUsed] moduleOptions
 	
-		searchOptionView SearchDefinition		= "Search definition"
-		searchOptionView SearchImplementation	= "Search implementation"
-		searchOptionView SearchIdentifier		= "Search identifier"
+		searchOptionView SearchDefinition		= "Find definition"
+		searchOptionView SearchImplementation	= "Find implementation"
+		searchOptionView SearchIdentifier		= "Find identifier"
 	
+		moduleOptionsView InEnvironment			= "Search in Environment"
+		moduleOptionsView InProject				= "Search in Project"
+		moduleOptionsView NotUsed				= "Search in unused Modules"
+
 		performSearch (identifier,(searchOption,moduleOptions))
 			=	searchFor [] [(path, moduleName) 	\\ (path,modules) <- state.allFilesInEnv
 													, {moduleName,isUsed} <- modules
