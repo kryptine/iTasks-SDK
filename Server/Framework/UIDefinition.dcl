@@ -165,7 +165,7 @@ from Map			import :: Map(..)
 :: UIChoiceOpts a =
 	{ taskId		:: !String
 	, editorId		:: !String
-	, value			:: !Maybe Int
+	, value			:: ![Int]
 	, options		:: ![a]
 	}
 		

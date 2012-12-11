@@ -15,8 +15,15 @@ Ext.define('itwc.component.choice.Dropdown',{
 		}
 		
 		me.store = store;
-		me.value = Ext.isNumber(me.value) ? store[me.value][0] : null;
-	
+		
+		if(Ext.isArray(me.value)) {
+			me.value = me.value.length ? store[me.value[0]] : "";
+		} else if(Ext.isNumber(me.value) && me.value >= 0 && me.value < numOptions) {
+			me.value = store[me.value][0];
+		} else {
+			me.value = null;
+		}
+
 		me.callParent(arguments);
 		me.initEditable();
 	} 

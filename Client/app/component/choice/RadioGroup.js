@@ -10,8 +10,13 @@ Ext.define('itwc.component.choice.RadioGroup',{
 			options = me.options,
 			numOptions = options.length,
 			choice, i;
-			
-		choice = Ext.isNumber(me.value) ? me.value : -1;
+	
+		if(Ext.isArray(me.value)) {
+			me.value = me.value.length ? me.value[0] : -1;
+		}
+		if(!Ext.isNumber(me.value) || me.value < 0 || me.value >= numOptions) {
+			me.value = -1;
+		}
 		
 		for(i = 0; i < numOptions; i++) {
 			
@@ -23,7 +28,7 @@ Ext.define('itwc.component.choice.RadioGroup',{
 							{xtype:"radio"
 							,name: me.id + "-option"
 							,inputValue: i
-							,checked: choice == i
+							,checked: me.value == i
 							,listeners: {
 								change: { fn: me.onRadioChange, scope: me}
 								}

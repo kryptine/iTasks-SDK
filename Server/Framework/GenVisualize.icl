@@ -165,7 +165,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 								{UIChoiceOpts
 								| taskId = toString taskId
 								, editorId = dp2s currentPath
-								, value = if (isTouched cmv) (Just selectedConsIndex) Nothing
+								, value = if (isTouched cmv) [selectedConsIndex] []
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
 							,addVerAttributes (verifyElementStr cmv) newMap)
 						: content
@@ -435,8 +435,8 @@ where
 
 	vvalue (Just (RadioChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
 	vvalue _										= Nothing
-	evalue (Just (RadioChoice _ mbSel))				= mbSel
-	evalue _										= Nothing
+	evalue (Just (RadioChoice _ mbSel))				= maybe [] (\i -> [i]) mbSel
+	evalue _										= []
 	options (Just (RadioChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 	
@@ -448,11 +448,11 @@ where
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
 			= ([(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
-	
+
 	vvalue (Just (RadioChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
 	vvalue _												= Nothing
-	evalue (Just (RadioChoiceNoView _ mbSel))				= mbSel
-	evalue _												= Nothing
+	evalue (Just (RadioChoiceNoView _ mbSel))				= maybe [] (\s->[s]) mbSel
+	evalue _												= []
 	options (Just (RadioChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 	
@@ -466,8 +466,8 @@ where
 
 	vvalue (Just (ComboChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
 	vvalue _										= Nothing
-	evalue (Just (ComboChoice _ mbSel))				= mbSel
-	evalue _										= Nothing
+	evalue (Just (ComboChoice _ mbSel))				= maybe [] (\s->[s]) mbSel
+	evalue _										= []
 	options (Just (ComboChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 	
@@ -481,8 +481,8 @@ where
 	
 	vvalue (Just (ComboChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
 	vvalue _												= Nothing
-	evalue (Just (ComboChoiceNoView _ mbSel))				= mbSel
-	evalue _												= Nothing
+	evalue (Just (ComboChoiceNoView _ mbSel))				= maybe [] (\s->[s]) mbSel
+	evalue _												= []
 	options (Just (ComboChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 	
@@ -493,11 +493,10 @@ where
 			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
 			{UIGridOpts|columns = hx undef},addVerAttributes verRes newMap)],vst)
 	
-	value (Just (GridChoice options mbSel)) = mbSel
-	value _									= Nothing
+	value (Just (GridChoice options mbSel)) = maybe [] (\s->[s]) mbSel
+	value _									= []
 	options (Just (GridChoice options _))	= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]
 	options _								= []
-
 
 gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix val vst = visualizeCustom viz vst
 where
@@ -506,8 +505,8 @@ where
 			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options =options val}
 			{UIGridOpts|columns = hx undef},newMap)],vst)
 	
-	value (Just (GridChoiceNoView options mbSel))	= mbSel
-	value _											= Nothing
+	value (Just (GridChoiceNoView options mbSel))	= maybe [] (\s->[s]) mbSel
+	value _											= []
 	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
 	options _										= []
 
@@ -518,8 +517,8 @@ gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath
 	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
 	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
-	value  (Just (TreeChoice _ mbSel)) 	= mbSel
-	value _								= Nothing
+	value  (Just (TreeChoice _ mbSel)) 	= maybe [] (\s->[s]) mbSel
+	value _								= []
 	
 	options (Just (TreeChoice (Tree nodes) _)) msk = fst (mkTree nodes 0 )
 		where
@@ -544,8 +543,8 @@ where
 	viz name touched verRes vst=:{VSt|taskId}
 		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},newMap)],vst)
 
-	value (Just (TreeChoiceNoView _ mbSel)) = mbSel
-	value _									= Nothing
+	value (Just (TreeChoiceNoView _ mbSel)) = maybe [] (\s->[s]) mbSel
+	value _									= []
 	options (Just (TreeChoiceNoView (Tree nodes) _)) = fst (mkTree nodes 0)
 	where
 		mkTree [] idx
@@ -583,8 +582,25 @@ gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 Nothing vst
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
-gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ _ _ _ _  val vst = visualizeCustom viz vst
+gVisualizeEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _  val vst = visualizeCustom viz vst
 where
+	viz name touched verRes vst=:{VSt|taskId,disabled}
+		| disabled
+			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+		| otherwise
+			= ([(UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+
+	vvalue (Just (CheckMultiChoice options sel))	= Just (join "," ([hd (gx AsLabel (fst (options !! i ))) \\ i <- sel]))
+	vvalue _										= Nothing
+
+	evalue (Just (CheckMultiChoice _ sel))			= sel
+	evalue _										= []
+	
+	options (Just (CheckMultiChoice options _))		= [concat (gx AsLabel v) \\ (v,_) <- options]
+	options	_										= []
+	
+/*
+
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel)) val
 		# (itemsVis,vst)	= childVisualizations fx options {VSt|vst & disabled = True}
@@ -593,7 +609,7 @@ where
 
 	checkbox taskId i sel
 		= UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId="sel-" +++ toString i,value= Just (isMember i sel)}
-
+*/
 gVisualizeEditor{|Table|} val vst = visualizeCustom viz vst 
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
@@ -601,8 +617,8 @@ where
 			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
 			{UIGridOpts|columns = columns val},addVerAttributes verRes newMap)],vst)
 	
-	value (Just (Table _ _ mbSel))	= mbSel
-	value _							= Nothing
+	value (Just (Table _ _ mbSel))	= maybe [] (\s->[s]) mbSel
+	value _							= []
 	
 	columns (Just (Table headers _ _))	= headers
 	columns _							= []
@@ -704,20 +720,20 @@ generic gHeaders a :: a -> [String]
 gHeaders{|UNIT|} _			= []
 gHeaders{|PAIR|} _ _ _		= []
 gHeaders{|EITHER|} _ _ _	= []
-gHeaders{|OBJECT|} _ _		= []
+gHeaders{|OBJECT|} _ _		= [""]
 gHeaders{|CONS|} _ _		= []
 gHeaders{|RECORD of {grd_fields}|} _ _	= [camelCaseToWords fieldname \\ fieldname <- grd_fields]
 gHeaders{|FIELD|} _ _		= []
-gHeaders{|Int|}	_			= []
-gHeaders{|Char|} _			= []
-gHeaders{|String|} _		= []
-gHeaders{|Real|} _			= []
-gHeaders{|Bool|} _ 			= []
-gHeaders{|Dynamic|}	_		= []
-gHeaders{|BoundedInt|} _	= []
-gHeaders{|Progress|} _		= []
-gHeaders{|HtmlTag|}	_		= []
-gHeaders{|(->)|} _ _ _		= []
+gHeaders{|Int|}	_			= [""]
+gHeaders{|Char|} _			= [""]
+gHeaders{|String|} _		= [""]
+gHeaders{|Real|} _			= [""]
+gHeaders{|Bool|} _ 			= [""]
+gHeaders{|Dynamic|}	_		= [""]
+gHeaders{|BoundedInt|} _	= [""]
+gHeaders{|Progress|} _		= [""]
+gHeaders{|HtmlTag|}	_		= [""]
+gHeaders{|(->)|} _ _ _		= [""]
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table

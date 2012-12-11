@@ -36,10 +36,11 @@ Ext.define('itwc.controller.Controller',{
 			  ,'itwc.component.edit.GoogleMap'	//An embedded Google map
 			  ,'itwc.component.edit.Code'		//A source code text editor
 			  
-			  ,'itwc.component.choice.Dropdown'	  //A simple dropdown box for choosing from a fixed set
-			  ,'itwc.component.choice.RadioGroup' //A set of radio buttons with labels
-			  ,'itwc.component.choice.Grid'		  //A grid from which you can select rows
-			  ,'itwc.component.choice.Tree'		   //A tree from which you can select nodes 
+			  ,'itwc.component.choice.Dropdown'	     //A simple dropdown box for choosing from a fixed set
+			  ,'itwc.component.choice.RadioGroup'    //A set of radio buttons with labels
+			  ,'itwc.component.choice.CheckboxGroup' //A set of checkboxes with labels
+			  ,'itwc.component.choice.Grid'		     //A grid from which you can select rows
+			  ,'itwc.component.choice.Tree'		     //A tree from which you can select nodes 
 	
 			  ,'itwc.component.action.ActionButton'		//A button that triggers an action event
 			  ,'itwc.component.action.MenuButton'		//A button that opens a menu

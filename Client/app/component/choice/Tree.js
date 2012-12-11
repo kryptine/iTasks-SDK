@@ -29,10 +29,14 @@ Ext.define('itwc.component.choice.Tree',{
 		me.initEditable();
 	},
 	afterRender: function() {
-		this.callParent(arguments);
+		var me = this;
+		me.callParent(arguments);
 		
-		if(Ext.isNumber(this.value)){
-			this.setValue(this.value);
+		if(Ext.isArray(me.value)) {
+			me.setValue(me.value.length ? me.value[0] : -1);
+		}
+		if(Ext.isNumber(me.value) && me.value >= 0 && me.value < numOptions) {
+			me.setValue(me.value);
 		}
 	},
 	onItemExpand: function(record) {

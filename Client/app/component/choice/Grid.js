@@ -44,8 +44,16 @@ Ext.define('itwc.component.choice.Grid',{
 		me.initEditable();
 	},
 	afterRender: function() {
-		this.callParent(arguments);
-		this.setValue(this.value);
+		var me = this;
+		me.callParent(arguments);
+		
+		if(Ext.isArray(me.value)) {
+			me.setValue(me.value.length ? me.value[0] : -1);
+		}
+		if(Ext.isNumber(me.value) && me.value >= 0 && me.value < numOptions) {
+			me.setValue(me.value);
+		}
+	
 	},
 	onItemClick: function(view,rec) {
 		this.value = rec.index;
