@@ -170,7 +170,7 @@ where
 			where
 				insertModule dir ms nodeList = insertModule` (split "\\" dir) ms nodeList
 				where
-					insertModule` [] ms nodeList 			= nodeList ++ [Leaf (Right (insertLeaf option m)) \\ m <- ms]
+					insertModule` [] ms nodeList 			= nodeList ++ [Leaf (Right (insertLeaf option m)) \\ m <- ms | checkUsage option m.isUsed]
 					insertModule` ["":pathR] ms nodeList	= insertModule` pathR ms nodeList
 					insertModule` path=:[nodeP:pathR] ms [node=:(Node (Left nodeL) nodes):nodesR]
 						| nodeP == nodeL					= [Node (Left nodeL) (insertModule` pathR ms nodes):nodesR]
@@ -179,9 +179,14 @@ where
 															= [leaf:insertModule` path ms nodesR]
 					insertModule` [nodeP:pathR] ms [] 		= [Node (Left nodeP) (insertModule` pathR ms [])]
 
-			insertLeaf InEnvironment m = if m.isUsed (m.moduleName,"+") (m.moduleName,"-")
-			insertLeaf InProject 	 m = (m.moduleName,"+")
-			insertLeaf NotUsed 		 m = (m.moduleName,"-")
+				insertLeaf InEnvironment m = if m.isUsed (m.moduleName,"+") (m.moduleName,"-")
+				insertLeaf InProject 	 m = (m.moduleName,"+")
+				insertLeaf NotUsed 		 m = (m.moduleName,"-")
+
+				checkUsage InEnvironment _ 		= True	// show all modules			
+				checkUsage InProject 	True	= True	// show only modules used in project
+				checkUsage NotUsed		False	= True	// show unused modules
+				checkUsage _			_		= False	// don't show			
 
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected @? onlyJust
