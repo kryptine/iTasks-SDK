@@ -118,15 +118,15 @@ where
 projectPane :: (ReadOnlyShared (TaskList Void)) -> Task Void
 projectPane ts
 	=				get_IDE_State
-	>>= \state -> 	( (showAndSelect state @ const Void)
+	>>= \state -> 	( (showAndSelect state @ const Void)														// show search path directories 
 						-||-
 					  (watch_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
-												  curstate.projectName <> state.projectName ||					// project changed
-												  not (curstate.moduleOptions === state.moduleOptions) ) 		// options changed 
+												     curstate.projectName <> state.projectName ||				// project changed
+												     not (curstate.moduleOptions === state.moduleOptions) ) 	// show options changed 
 									 (return Void)) <<@ SetLayout (partLayout 0)
 					)
-	>>*				[ OnValue  ifStable (const recalculate)
-					, OnAction (Action "Project/Show/Refresh") always (const recalculate)
+	>>*				[ OnValue  ifStable (const recalculate)														// recompute on indicated change
+					, OnAction (Action "Project/Show/Refresh") always (const recalculate)						// recompute on action end user
 					]
 where
 	layout = SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)} //???
@@ -166,7 +166,7 @@ where
 			fromEither (Right (name,_)) = name
 
 			mkTree :: !ModuleOptions ![(!DirPathName,![Module])] -> Tree (Either !DirPathName !(!ModuleName,!String))
-			mkTree option dirfiles = Tree (seq [insertModule dir ms \\ (dir,ms) <- dirfiles] [])
+			mkTree option dirfiles = Tree (removeEmpties (seq [insertModule dir ms \\ (dir,ms) <- dirfiles] []))
 			where
 				insertModule dir ms nodeList = insertModule` (split "\\" dir) ms nodeList
 				where
@@ -179,14 +179,19 @@ where
 															= [leaf:insertModule` path ms nodesR]
 					insertModule` [nodeP:pathR] ms [] 		= [Node (Left nodeP) (insertModule` pathR ms [])]
 
-				insertLeaf InEnvironment m = if m.isUsed (m.moduleName,"+") (m.moduleName,"-")
-				insertLeaf InProject 	 m = (m.moduleName,"+")
-				insertLeaf NotUsed 		 m = (m.moduleName,"-")
+				insertLeaf InEnvironment m = if m.isUsed (m.moduleName,"*") (m.moduleName,"")
+				insertLeaf InProject 	 m = (m.moduleName,"")
+				insertLeaf NotUsed 		 m = (m.moduleName,"")
 
 				checkUsage InEnvironment _ 		= True	// show all modules			
 				checkUsage InProject 	True	= True	// show only modules used in project
 				checkUsage NotUsed		False	= True	// show unused modules
 				checkUsage _			_		= False	// don't show			
+
+				removeEmpties [] 	 		 = []
+				removeEmpties [Node _ []:ds] = removeEmpties ds
+				removeEmpties [Node n ln:ds] = [Node n (removeEmpties ln):removeEmpties ds]
+				removeEmpties [Leaf a:ds] 	 = [Leaf a:removeEmpties ds] 
 
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected @? onlyJust
@@ -221,21 +226,43 @@ compilerMessages _
 
 import _SystemStrictLists
 
+:: FoundTable =	{ file 		:: !FileName
+				, directory	:: !DirPathName
+				, line	 	:: !Int
+				, pos		:: !Int
+				, kind		:: !String
+				}
+derive class iTask FoundTable
+
 search searchOption _  
 	= 				get_IDE_State
 	>>= \state ->	searching state "" searchOption state.moduleOptions []  <<@ Window
 where
 	searching state identifier searchOption moduleOptions found
-		=			(viewInformation (identifier +++ " found in:") [] found
-					||-
-					(updateInformation (Title "Search") [] identifier
+		=			(updateInformation (Title "Find") [] identifier
 					-&&-
-					updateSearchOptions
-					)) 
-		>>*			[ OnAction ActionClose       always   (const (return Void))
-					, OnAction (Action "Search") hasValue (performSearch o getValue)
+					updateSearchOptions)
+					-||
+					enterChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] (toTable found)
+		>>*			[ OnAction ActionClose     always   (const (return Void))
+					, OnAction (Action "Find") (ifValue (\(s,_) -> s <> "")) (performSearch o getValue)
 					] 
 	where
+		toTable found = [	{ kind 		= kind
+							, file 		= file
+							, directory	= directory
+							, line	 	= line
+							, pos		= pos
+							}
+						\\ ((directory,file),poslist) <- sortFound found, (kind,line,pos) <- toList poslist ]
+		where
+			sortFound = sortBy (\((s1,f1),l1) ((s2,f2),l2) -> f1 <= f2)
+			
+			toList PosNil				  = []
+			toList (Pos line pos poslist) = [("identifier",       line, pos):toList poslist]
+			toList (Cls line pos poslist) = [("class definition", line, pos):toList poslist]
+			toList (Ins line pos poslist) = [("class instance",   line, pos):toList poslist]
+
 		updateSearchOptions
 			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
 				-&&-
