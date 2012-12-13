@@ -1,5 +1,23 @@
 implementation module CodeGeneratorJS
 
+/* TODO:
+ *
+ * 1. strict let bindings are only partially supported:
+ *
+ * (a) strict let bindings may not in the good order:
+ *     "these dependencies are determined in the backend (statesgen.c)
+ *      using a strongly connected component algorithm"
+ *
+ * (b) if a strict let binding depends on a following binding, it
+ *     cannot be evaluated in place. The valuation should be postponed after
+ *     the declaration of the dependency, but currently strictness is removed 
+ *     completely instead of. For example:
+ *     
+ *     let !a = ...b..., b = ... in ... becomes let a = ...b..., b = ... in ...
+ *
+ *     see deStrictIfNeeded
+ */
+
 import StdEnv, Maybe, Void, StringAppender, FastString
 import SaplTokenizer, SaplParser, BuiltInJS
 
@@ -199,8 +217,29 @@ termArrayCoder [] _ s a = a
 letDefCoder :: [SaplTerm] CoderState StringAppender -> StringAppender
 letDefCoder [t] s a = termCoder t s a
 letDefCoder [t:ts] s a
-	= a <++ termCoder t s <++ "," <++ letDefCoder ts {s & cs_inletdef = Just (tl (fromJust s.cs_inletdef))}
+	# rs = tl (fromJust s.cs_inletdef) // remaining definitions
+	= a <++ termCoder (deStrictIfNeeded t rs) s <++ "," <++ letDefCoder ts {s & cs_inletdef = Just rs}
 letDefCoder [] _ a = a
+
+deStrictIfNeeded (SStrictLetDefinition var body) vs | isDependent vs body
+	= SLetDefinition var body
+deStrictIfNeeded def _ = def
+
+/*
+ * Determine wheter a given term is dependent on some of the variables given in the first argument.
+ * Used at let definition. For example:
+ *
+ * let !a = ...b..., b = ... in ...
+ *
+ * "a" cannot be brought to head normal form in place because it depends on "b"
+ * 
+ * TODO: should be extended for non-application terms?
+ */
+ 
+isDependent :: [SaplTerm] SaplTerm -> Bool 
+isDependent vs (SApplication f as) = any (isDependent vs) [f:as]
+isDependent vs v=:(SName _ _) = isMember v vs
+isDependent _ _ = False
 
 // Generate code that forces the evaluation of the given term
 forceTermCoder :: SaplTerm CoderState StringAppender -> StringAppender
@@ -285,7 +324,7 @@ where
 	isCAF = isJust (get t s.cs_CAFs)
 
 forceTermCoder t s a = termCoder t s a
-		
+
 termCoder :: SaplTerm CoderState StringAppender -> StringAppender
 termCoder t=:(SName name level) s a
 	| (s.cs_inbody) && (not isLocalVar) && (isJust constructor_args) && (length (fromJust constructor_args) == 0)
