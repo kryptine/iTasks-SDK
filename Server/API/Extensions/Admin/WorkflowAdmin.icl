@@ -190,7 +190,7 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser
 	>>=	\user ->
-		appendTopLevelTask {noMeta & worker = toUserConstraint user, title = Just (workflowTitle wf)} (fromContainer wf.Workflow.task)
+		appendTopLevelTask {defaultValue & worker = toUserConstraint user, title = Just (workflowTitle wf)} (fromContainer wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -250,7 +250,7 @@ inputWorkflow name desc inputdesc tfun
 	
 instance toWorkflow (Task a) | iTask a
 where
-	toWorkflow path description roles task = toWorkflow path description roles (Workflow noMeta task)
+	toWorkflow path description roles task = toWorkflow path description roles (Workflow defaultValue task)
 	
 instance toWorkflow (WorkflowContainer a) | iTask a
 where
@@ -258,7 +258,7 @@ where
 
 instance toWorkflow (a -> Task b) | iTask a & iTask b
 where
-	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow noMeta paramTask)
+	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow defaultValue paramTask)
 	
 instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
 where

@@ -9,15 +9,15 @@ from Task		import :: TaskValue
 from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIFinal, :: UIAction, :: UIControl, stringDisplay
 from LayoutCombinators import mergeAttributes
 
-derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		EUR, USD, Scale, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress, ProgressAmount
 derive JSONEncode		URL, EmailAddress, Action, HtmlInclude
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		EUR, USD, Scale, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress, ProgressAmount
 derive JSONDecode		URL, EmailAddress, Action, HtmlInclude
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress, ProgressAmount
+derive gEq				EUR, USD, Scale, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress, ProgressAmount
 derive gEq				URL, Note, CleanCode, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
@@ -726,21 +726,6 @@ where
 	(==) Stable		Stable		= True
 	(==) _			_			= False
 		
-instance toEmail EmailAddress where toEmail e = e
-instance toEmail String where toEmail s = EmailAddress s
-
-noMeta :: ManagementMeta
-noMeta =
-	{ title				= Nothing
-	, worker			= AnyUser
-	, role				= Nothing
-	, startAt			= Nothing
-	, completeBefore	= Nothing
-	, notifyAt			= Nothing
-	, priority			= NormalPriority
-	}
-
-
 formatPriority	:: !TaskPriority	-> HtmlTag
 formatPriority p = Text (toText p)
 where

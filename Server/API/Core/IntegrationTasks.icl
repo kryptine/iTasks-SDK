@@ -304,3 +304,6 @@ where
 						,email_body = body
 						} world
 		= {IWorld|iworld & world = world}		
+
+instance toEmail EmailAddress where toEmail e = e
+instance toEmail String where toEmail s = EmailAddress s

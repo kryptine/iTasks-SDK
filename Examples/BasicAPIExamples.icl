@@ -569,7 +569,7 @@ transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]
 
 worker :: User -> ManagementMeta
-worker (AuthenticatedUser id _ _) = {noMeta & worker = UserWithId id}
+worker (AuthenticatedUser id _ _) = {defaultValue & worker = UserWithId id}
 
 //* Customizing interaction with views
 

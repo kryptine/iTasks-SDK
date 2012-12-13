@@ -65,7 +65,7 @@ gVisualizeText{|Time|}			_ val				= [toString val]
 gVisualizeText{|User|}			_ val				= [toString val]
 gVisualizeText{|EUR|}			_ val				= [toString val]
 gVisualizeText{|USD|}			_ val						= [toString val]
-gVisualizeText{|BoundedInt|}	_ {BoundedInt|cur}			= [toString cur]
+gVisualizeText{|Scale|}	_ {Scale|cur}			= [toString cur]
 gVisualizeText{|Progress|}		_ {Progress|description}	= [description]
 gVisualizeText{|HtmlInclude|}	_ val						= ["Html include"]
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
@@ -338,11 +338,11 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
-gVisualizeEditor{|BoundedInt|} val vst = visualizeCustom viz vst
+gVisualizeEditor{|Scale|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		# val = checkMask touched val
-		# sliderOpts	= {UISliderOpts|minValue=maybe 1 (\{BoundedInt|min} -> min) val,maxValue=maybe 5 (\{BoundedInt|max} -> max) val}
+		# sliderOpts	= {UISliderOpts|minValue=maybe 1 (\{Scale|min} -> min) val,maxValue=maybe 5 (\{Scale|max} -> max) val}
 		| disabled									
 			# viewOpts = {UIViewOpts|value = fmap curVal val}  
 			= ([(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
@@ -350,7 +350,7 @@ where
 			# editOpts = {UIEditOpts|taskId = toString taskId, editorId = name, value = fmap curVal val}
 			= ([(UIEditSlider defaultSizeOpts editOpts sliderOpts, addVerAttributes verRes newMap)],vst)
 
-	curVal {BoundedInt|cur} = cur
+	curVal {Scale|cur} = cur
 
 gVisualizeEditor{|Progress|} val vst = visualizeCustom viz vst
 where
@@ -730,7 +730,7 @@ gHeaders{|String|} _		= [""]
 gHeaders{|Real|} _			= [""]
 gHeaders{|Bool|} _ 			= [""]
 gHeaders{|Dynamic|}	_		= [""]
-gHeaders{|BoundedInt|} _	= [""]
+gHeaders{|Scale|} _	= [""]
 gHeaders{|Progress|} _		= [""]
 gHeaders{|HtmlTag|}	_		= [""]
 gHeaders{|(->)|} _ _ _		= [""]
@@ -758,7 +758,7 @@ gGridRows{|String|} s _						= Nothing
 gGridRows{|Real|} r _						= Nothing
 gGridRows{|Bool|} b _						= Nothing
 gGridRows{|Dynamic|} d _					= Nothing
-gGridRows{|BoundedInt|} _ _					= Nothing
+gGridRows{|Scale|} _ _					= Nothing
 gGridRows{|Progress|} _ _					= Nothing
 gGridRows{|HtmlTag|} h _					= Nothing
 gGridRows{|(->)|} _ gx _ gy f _				= Nothing

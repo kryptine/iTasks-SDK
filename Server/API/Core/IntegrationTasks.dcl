@@ -77,3 +77,7 @@ withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 * @gin-icon email
 */
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
+
+class toEmail r where toEmail :: !r -> EmailAddress
+instance toEmail EmailAddress
+instance toEmail String

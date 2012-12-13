@@ -221,7 +221,7 @@ gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust
 gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode (AnonymousUser "") ust
-gUpdate{|BoundedInt|}			mode ust = basicUpdate mode (\json i -> maybe i (\cur -> {BoundedInt|i & cur = cur}) (fromJSON json)) {BoundedInt|min=1,cur=3,max=5} ust
+gUpdate{|Scale|}			mode ust = basicUpdate mode (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) {Scale|min=1,cur=3,max=5} ust
 gUpdate{|Progress|}				mode ust = noUpdate mode {Progress|progress=ProgressUndetermined, description = ""} ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust

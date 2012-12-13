@@ -92,7 +92,7 @@ derive class iTask ProcessControlView
 derive class GenRecord ProcessControlView, UserConstraint, ManagementMeta, TaskPriority
 
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-(@:) worker task = assign {noMeta & worker = toUserConstraint worker} task
+(@:) worker task = assign {defaultValue & worker = toUserConstraint worker} task
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
@@ -216,7 +216,7 @@ appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks
 
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
-appendTopLevelTaskFor worker task = appendTopLevelTask {noMeta & worker = toUserConstraint worker} task
+appendTopLevelTaskFor worker task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} task
 			
 instance tune Window
 where tune Window task = task <<@ AfterLayout (tweakAttr ('Map'.put FLOAT_ATTRIBUTE "window"))

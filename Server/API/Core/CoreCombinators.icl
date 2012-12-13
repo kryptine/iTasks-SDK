@@ -417,7 +417,7 @@ where
 								
 	append :: !(TaskListId a) !ParallelTaskType !(ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 	append TopLevelTaskList parType parTask iworld=:{currentUser}
-		# meta						= case parType of Embedded = noMeta; Detached meta = meta;
+		# meta						= case parType of Embedded = defaultValue; Detached meta = meta;
 		# task						= parTask topListShare
 		= createPersistentInstance task meta currentUser 0 iworld
 	append (ParallelTaskList parId) parType parTask iworld

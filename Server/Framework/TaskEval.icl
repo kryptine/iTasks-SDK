@@ -30,7 +30,7 @@ createSessionInstance task event iworld=:{currentDateTime}
 	# (instanceId,iworld)	= newInstanceId iworld
 	# worker				= AnonymousUser sessionId
 	# ((meta,reduct,result,_), iworld)
-		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task noMeta {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task defaultValue {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# (mbRes,iworld)		= evalAndStoreInstance True event (meta,reduct,result) iworld
 	= case loadSessionInstance sessionId iworld of
 		(Ok (meta,reduct,result),iworld)
