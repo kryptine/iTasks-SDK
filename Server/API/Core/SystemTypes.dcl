@@ -109,6 +109,7 @@ derive gVisualizeText	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, 
 derive gVisualizeEditor EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gHeaders			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gGridRows		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gUpdate			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
 
 derive class iTask	Credentials
 
@@ -166,6 +167,8 @@ derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, Google
 derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gUpdate			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+
 
 //****************************************************************************//
 // Low level data types that can be used to construct more fine grained user
@@ -220,6 +223,7 @@ derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, 
 derive gVisualizeEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gHeaders			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gGridRows		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
@@ -265,6 +269,8 @@ derive gHeaders			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView
 derive gHeaders			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gGridRows		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
 derive gGridRows		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gUpdate			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gUpdate			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 
 /**
 * Interface for types representing choices of one element out of a set of options.
@@ -350,6 +356,7 @@ derive gVisualizeText	Hidden, Display, Editable, VisualizationHint
 derive gVisualizeEditor	Hidden, Display, Editable, VisualizationHint
 derive gHeaders			Hidden, Display, Editable, VisualizationHint
 derive gGridRows		Hidden, Display, Editable, VisualizationHint
+derive gUpdate			Hidden, Display, Editable, VisualizationHint
 
 //****************************************************************************//
 // Framework types.
@@ -524,7 +531,7 @@ derive gVisualizeText	TaskValue, Stability, TaskListItem, ManagementMeta, Progre
 derive gVisualizeEditor	TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gHeaders			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gGridRows		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gUpdate			TaskValue, Stability, TaskListItem, ProgressMeta
+derive gUpdate			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gVerify			TaskValue, Stability, TaskListItem, ProgressMeta
 
 derive class iTask		TaskId, Config, ProcessStatus

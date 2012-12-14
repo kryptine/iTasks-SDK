@@ -2,8 +2,8 @@ implementation module SystemTypes
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
-import List_NG, JSON_NG, HTML, Text, Util, Map, Base64, dynamic_string
-import GenVisualize
+import List_NG, JSON_NG, HTML, Text, Util, Map, Base64, Tuple, dynamic_string
+import GenVisualize, GenUpdate
 
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
@@ -19,6 +19,7 @@ derive gVisualizeText	EmailAddress
 derive gVisualizeEditor	EmailAddress
 derive gHeaders			EmailAddress
 derive gGridRows		EmailAddress
+derive gUpdate			EmailAddress
 
 //* URL
 gVisualizeText{|URL|}	_ val				= [toString val]
@@ -32,6 +33,8 @@ where
 			# val = checkMask touched val
 			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val}
 			= ([(ui,addVerAttributes verRes newMap)],vst)
+
+gUpdate{|URL|} mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -73,6 +76,8 @@ where
 			[line]	= Text line
 			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
 
+gUpdate{|Note|} mode ust = basicUpdateSimple mode (Note "") ust
+
 derive gEq				Note
 derive gHeaders			Note
 derive gGridRows		Note
@@ -110,7 +115,11 @@ where
 		= case split "\n" s of
 			[line]	= Text line
 			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
-			
+
+gUpdate{|CleanCode|} mode ust = basicUpdate mode codeUpd (CleanCode "") ust
+where
+	codeUpd (JSONString s) _	= CleanCode s
+	codeUpd _ old				= old			
 
 derive gEq			CleanCode
 derive gHeaders		CleanCode
@@ -130,6 +139,8 @@ where
 		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|EUR|} mode ust = basicUpdateSimple mode (EUR 0) ust
 
 instance toString EUR
 where
@@ -167,6 +178,8 @@ where
 		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|USD|} mode ust = basicUpdateSimple mode (USD 0) ust
 
 instance toString USD
 where
@@ -217,6 +230,9 @@ where
 		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|Date|} UDCreate ust = basicCreate {day = 1, mon = 1, year = 1970} ust
+gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\json old -> fromMaybe old (fromJSON json)) ust
 
 derive gEq			Date
 derive gHeaders		Date
@@ -293,6 +309,9 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
+gUpdate{|Time|} UDCreate ust = basicCreate {hour = 0, min = 0, sec = 0} ust
+gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\json old -> fromMaybe old (fromJSON json)) ust
+
 derive gEq			Time
 derive gHeaders		Time
 derive gGridRows	Time
@@ -358,6 +377,7 @@ derive gVisualizeText	DateTime
 derive gVisualizeEditor	DateTime
 derive gHeaders			DateTime
 derive gGridRows		DateTime
+derive gUpdate			DateTime
 
 instance toString DateTime
 where
@@ -405,6 +425,20 @@ where
 		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
 		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
+gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", contentUrl = "", name="", mime="", size = 0} ust
+gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
+	# (cm,om)		= popMask oldMask
+	# ust			= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	| currentPath == searchPath
+		= case fromJSON update of
+			Nothing 	// Reset
+				= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
+			Just doc 	//Update
+				# ust					= {ust & newMask = appendToMask newMask (PartiallyTouched [])}
+				= (doc,ust)
+	| otherwise 
+		= (s, {ust & newMask = appendToMask newMask cm})
+
 derive JSONEncode		Document
 derive JSONDecode		Document
 derive gEq				Document
@@ -431,6 +465,8 @@ where
 		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
 		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|Username|} mode ust = basicUpdateSimple mode (Username "") ust
 
 derive gEq				Username
 derive gVisualizeText	Username
@@ -462,6 +498,8 @@ where
 		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
 		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|Password|} mode ust = basicUpdateSimple mode (Password "") ust
 
 derive gEq				Password
 derive gHeaders			Password
@@ -548,6 +586,70 @@ where
 	mapType SATELLITE 	= "SATELLITE"
 	mapType HYBRID 		= "HYBRID"
 	mapType TERRAIN 	= "TERRAIN"
+	
+//Helper types for GoogleMap gUpdate instance
+:: MVCUpdate = 
+	{ center			:: !(Real,Real)
+	, zoom				:: !Int
+	, type				:: !GoogleMapType
+	}	
+	
+:: ClickUpdate = 
+	{ event				:: !ClickEvent
+	, source			:: !ClickSource
+	, point				:: !(Real,Real)
+	}
+
+:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
+:: ClickSource  = MAP | MARKER (Real,Real)
+
+:: MarkerDragUpdate = 
+	{ index				:: !Int
+	, point				:: !(Real,Real)
+	}
+derive JSONDecode MVCUpdate, ClickUpdate, ClickEvent, ClickSource, MarkerDragUpdate
+
+gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate defaultMap ust
+where
+	parseUpdate json orig
+		# mbMVC		= fromJSON json
+		| isJust mbMVC
+			# {MVCUpdate|center=(lat,lng),zoom,type} = fromJust mbMVC
+			= {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
+		# mbClick 	= fromJSON json
+		| isJust mbClick
+			# click = fromJust mbClick
+			# marker = {GoogleMapMarker | position = {lat=fst click.ClickUpdate.point,lng=snd click.ClickUpdate.point}, title = Nothing, icon = Nothing, infoWindow = Nothing, draggable = True, selected = False} 
+			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
+		# mbMarkerDrag = fromJSON json
+		| isJust mbMarkerDrag
+			# {MarkerDragUpdate|index,point=(lat,lng)}	= fromJust mbMarkerDrag
+			= {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
+		
+		| otherwise = orig
+
+	defaultMap =
+		{ GoogleMap
+		| settings=settings
+		, perspective=perspective
+		, markers=[]
+		}
+	perspective =
+		{ GoogleMapPerspective
+		| type				= ROADMAP
+		, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
+		, zoom				= 10
+		}	
+	settings =
+		{ GoogleMapSettings
+		| mapTypeControl	= True
+		, panControl		= True
+		, streetViewControl	= True
+		, zoomControl		= True
+		, scaleControl		= True
+		, scrollwheel		= True
+		, draggable			= True
+		}
 
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
@@ -556,6 +658,7 @@ derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, Google
 derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 //* A sliding scale
 gVisualizeText{|Scale|}	_ {Scale|cur} = [toString cur]
@@ -573,7 +676,10 @@ where
 			= ([(UIEditSlider defaultSizeOpts editOpts sliderOpts, addVerAttributes verRes newMap)],vst)
 
 	curVal {Scale|cur} = cur
-	
+
+gUpdate{|Scale|} mode ust
+	= basicUpdate mode (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) {Scale|min=1,cur=3,max=5} ust
+
 gHeaders{|Scale|} _	= [""]
 gGridRows{|Scale|} _ _ = Nothing
 
@@ -594,6 +700,9 @@ where
 							= ProgressRatio ratio
 		value {Progress|progress} = progress
 
+gUpdate{|Progress|}	mode ust
+	= noUpdate mode {Progress|progress=ProgressUndetermined, description = ""} ust
+
 gHeaders{|Progress|} _		= [""]
 gGridRows{|Progress|} _ _	= Nothing
 
@@ -603,6 +712,7 @@ gVisualizeText{|ProgressAmount|} _ (ProgressRatio r)		= [toString (entier (100.0
 derive gVisualizeEditor ProgressAmount
 derive gHeaders			ProgressAmount
 derive gGridRows		ProgressAmount
+derive gUpdate			ProgressAmount
 
 //* Inclusion of external html files
 gVisualizeText{|HtmlInclude|}	_ (HtmlInclude location)	= ["<External html: " + location + ">"]
@@ -611,6 +721,8 @@ gVisualizeEditor{|HtmlInclude|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst
 		= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value=fmap (\(HtmlInclude path) -> IframeTag [SrcAttr path] []) val},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|HtmlInclude|} mode ust = noUpdate mode (HtmlInclude "") ust
 
 derive gHeaders HtmlInclude
 derive gGridRows HtmlInclude
@@ -624,6 +736,9 @@ where
 		# text = fmap (\b -> b.FormButton.label) val
 		# iconCls = fmap (\b -> b.FormButton.icon) val
 		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
+
+gUpdate{|FormButton|} mode ust
+	= basicUpdate mode (\st b -> {FormButton|b & state = st}) {FormButton | label = "Form Button", icon="", state = NotPressed} ust
 
 derive gHeaders FormButton
 derive gGridRows FormButton
@@ -642,6 +757,7 @@ gVisualizeText{|ButtonState|}	_ Pressed			= ["pressed"]
 derive gVisualizeEditor ButtonState
 derive gHeaders ButtonState
 derive gGridRows ButtonState
+derive gUpdate ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gVisualizeText{|Table|}	_ _	= ["<Table>"]
@@ -662,6 +778,9 @@ where
 	options (Just (Table _ cells _))	= map (map toString) cells
 	options _							= []
 
+gUpdate{|Table|} mode ust
+	= basicUpdate mode (\json (Table headers cells _) -> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) (Table [] [] Nothing) ust
+
 derive gHeaders Table
 derive gGridRows Table
 
@@ -680,6 +799,7 @@ derive gVisualizeText	Tree, TreeNode
 derive gVisualizeEditor	Tree, TreeNode
 derive gHeaders			Tree, TreeNode
 derive gGridRows		Tree, TreeNode
+derive gUpdate			Tree, TreeNode
 		
 instance Functor Tree
 where
@@ -712,7 +832,9 @@ where
 	evalue _										= []
 	options (Just (ComboChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
-	
+
+gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options idx) (ComboChoice [] Nothing) ust	
+
 instance Choice ComboChoice
 where
 	selectOption newSel (ComboChoice options _)					= ComboChoice options (setListOption options newSel)
@@ -737,6 +859,8 @@ where
 	options (Just (ComboChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 
+gUpdate{|ComboChoiceNoView|} _	mode ust = updateChoice mode (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) (ComboChoiceNoView [] Nothing) ust
+
 instance ChoiceNoView ComboChoiceNoView
 where
 	selectOptionNoView newSel (ComboChoiceNoView options _)		= ComboChoiceNoView options (setListOptionNoView options newSel)
@@ -759,7 +883,10 @@ where
 	evalue _										= []
 	options (Just (RadioChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
-	
+
+gUpdate{|RadioChoice|} _ _ mode ust
+	= updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options idx) (RadioChoice [] Nothing) ust
+
 instance Choice RadioChoice
 where
 	selectOption newSel (RadioChoice options _)					= RadioChoice options (setListOption options newSel)
@@ -783,7 +910,10 @@ where
 	evalue _												= []
 	options (Just (RadioChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
-	
+
+gUpdate{|RadioChoiceNoView|} _	mode ust
+	= updateChoice mode (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) (RadioChoiceNoView [] Nothing) ust
+
 instance ChoiceNoView RadioChoiceNoView
 where
 	selectOptionNoView newSel (RadioChoiceNoView options _)		= RadioChoiceNoView options (setListOptionNoView options newSel)
@@ -820,6 +950,21 @@ where
 				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
 	options _ _ = []
 
+gUpdate{|TreeChoice|} _ _		UDCreate ust	= basicCreate (TreeChoice (Tree []) Nothing) ust
+gUpdate{|TreeChoice|} _ _		(UDSearch (TreeChoice options sel)) ust=:{searchPath,currentPath,update,oldMask,newMask}
+	# (cm, om)	= popMask oldMask
+	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	| currentPath == searchPath
+		= case fromJSON update of
+			Just ("sel",idx,val)
+				= (TreeChoice options (if val (Just idx) Nothing), {ust & newMask = appendToMask newMask (touch cm)})
+			Just ("exp",idx,val)
+				= (TreeChoice options sel, {ust & newMask = appendToMask newMask (if val (expand idx cm) (collapse idx cm))})
+			_
+				= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
+	| otherwise
+		= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
+
 instance Choice TreeChoice
 where
 	selectOption newSel (TreeChoice options _)					= TreeChoice options (setTreeOption options newSel)
@@ -849,6 +994,12 @@ where
 			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
 	options _ = []
 
+gUpdate{|TreeChoiceNoView|} _	mode ust = updateChoice mode update (TreeChoiceNoView (Tree []) Nothing) ust
+where
+	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
+	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
+	update _					treechoice							= treechoice
+	
 instance ChoiceNoView TreeChoiceNoView
 where
 	selectOptionNoView newSel (TreeChoiceNoView options _)		= TreeChoiceNoView options (setTreeOptionNoView options newSel)
@@ -868,6 +1019,9 @@ where
 	value _									= []
 	options (Just (GridChoice options _))	= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]
 	options _								= []
+
+gUpdate{|GridChoice|} _ _ mode ust
+	= updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
 
 instance Choice GridChoice
 where
@@ -889,6 +1043,10 @@ where
 	value _											= []
 	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
 	options _										= []
+
+gUpdate{|GridChoiceNoView|} _ mode ust
+	= updateChoice mode (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) (GridChoiceNoView [] Nothing) ust
+
 	
 instance ChoiceNoView GridChoiceNoView
 where
@@ -911,6 +1069,12 @@ gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCGrid val)) vs
 	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 Nothing vst
 	= (NormalEditor [],vst)
+
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCCombo val))	ust = appFst DCCombo (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCRadio val))	ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCTree val))		ust = appFst DCTree (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCGrid val))		ust = appFst DCGrid (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	UDCreate 					ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy UDCreate ust)
 	
 instance Choice DynamicChoice
 where
@@ -949,6 +1113,12 @@ gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCGridNoView val)) vs
 	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
 gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 Nothing vst
 	= (NormalEditor [],vst)
+
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCComboNoView val))	ust = appFst DCComboNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCRadioNoView val))	ust = appFst DCRadioNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCTreeNoView val)) 	ust = appFst DCTreeNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCGridNoView val)) 	ust = appFst DCGridNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx UDCreate	 						ust = appFst DCRadioNoView (gUpdate{|*->*|} fx UDCreate ust)
 	
 instance ChoiceNoView DynamicChoiceNoView
 where
@@ -986,6 +1156,11 @@ where
 	options (Just (CheckMultiChoice options _))		= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 
+gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])										ust
+where
+	updateSel i True sel	= removeDup [i:sel]
+	updateSel i False sel 	= removeMember i sel
+	
 instance MultiChoice CheckMultiChoice
 where
 	selectOptions newSels (CheckMultiChoice options _)			= CheckMultiChoice options (setListOptions options newSels)
@@ -993,6 +1168,22 @@ where
 	getSelectionViews (CheckMultiChoice options sels)			= fmap fst (getListOptions options sels)
 
 // Utility functions for Choice and MultiChoice instances
+touch (TouchedWithState s)	= TouchedWithState s
+touch (PartiallyTouched c)	= PartiallyTouched c
+touch _						= Touched
+
+expand idx (TouchedWithState s) = case fromJSON s of
+	Just list	= TouchedWithState (toJSON (removeDup [idx:list]))
+	_			= TouchedWithState (toJSON [idx])
+expand idx _	= TouchedWithState (toJSON [idx])
+ 
+collapse idx (TouchedWithState s) = case fromJSON s of
+	Just list	= TouchedWithState (toJSON (removeMember idx list))
+	_			= TouchedWithState s
+collapse idx m = m
+
+updateChoice mode select empty ust = basicUpdate mode (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) empty ust
+
 
 setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
 setListOption options newSel
@@ -1064,6 +1255,11 @@ gVisualizeEditor{|VisualizationHint|} fx gx hx ix val vst=:{VSt|currentPath}
 		Just (VHDisplay x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Display x)) vst
 		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
+
+gUpdate{|VisualizationHint|} 	fx UDCreate									ust = wrapperUpdate fx UDCreate undef VHEditable ust 
+gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHEditable s))			ust = wrapperUpdate fx mode fromVisualizationHint VHEditable ust
+gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHDisplay s))			ust = wrapperUpdate fx mode fromVisualizationHint VHDisplay ust
+gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHHidden s))			ust = wrapperUpdate fx mode fromVisualizationHint VHHidden ust
 		
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
@@ -1079,6 +1275,8 @@ gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
 	# (_,vm) = popMask verifyMask	
 	= (HiddenEditor,{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
+gUpdate{|Hidden|} fx mode ust = wrapperUpdate fx mode fromHidden Hidden ust
+
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x
 
@@ -1090,6 +1288,8 @@ gVisualizeText{|Display|} fx mode (Display val)	= fx mode val
 gVisualizeEditor{|Display|} fx _ _ _ val vst=:{VSt|currentPath,disabled}
 	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  disabled = True}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
+
+gUpdate{|Display|} fx mode ust = wrapperUpdate fx mode fromDisplay Display ust
 
 fromDisplay :: !(Display .a) -> .a
 fromDisplay (Display a) = a
@@ -1103,11 +1303,21 @@ gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{VSt|currentPath, disabled}
 	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & disabled = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
+gUpdate{|Editable|} fx mode ust = wrapperUpdate fx mode fromEditable Editable ust
+
 fromEditable :: !(Editable .a) -> .a
 fromEditable (Editable a) = a
 
 toEditable :: !.a -> (Editable .a)
 toEditable a = (Editable a)
+
+//Utility for gUpdate 
+wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
+	UDCreate
+		= appFst cons (fx UDCreate ust)
+	UDSearch w
+		# (w,ust) = fx (UDSearch (get w)) ust
+		= (cons w,{USt|ust & currentPath = stepDataPath currentPath})
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
@@ -1163,7 +1373,9 @@ where
 	toString (TopLevelTaskList)					= "tasklist-top"
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 
-gVisualizeText{|User|}			_ val				= [toString val]
+gVisualizeText{|User|} _ val = [toString val]
+
+gUpdate{|User|} mode ust = basicUpdateSimple mode (AnonymousUser "") ust
 
 instance toString User
 where
@@ -1234,7 +1446,7 @@ derive gVisualizeText	TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPr
 derive gVisualizeEditor	TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
 derive gHeaders			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
 derive gGridRows		TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gUpdate			TaskValue, Stability, ProgressMeta, TaskListItem
+derive gUpdate			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
 derive gVerify			TaskValue, Stability, ProgressMeta, TaskListItem
 
 derive class iTask TaskId, Config, ProcessStatus

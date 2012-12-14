@@ -27,12 +27,8 @@ from Map	import :: Map
 generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS of {gcd_arity}, OBJECT of {gtd_num_conses,gtd_conses}, RECORD of {grd_arity}, FIELD
-derive gUpdate Int, Real, Char, Bool, String
-derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gUpdate URL, Note, CleanCode, DateTime, Document, FormButton, Username, Password, EUR, USD, Scale, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
-derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
-derive gUpdate GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gUpdate DynamicChoice,DynamicChoiceNoView
+derive gUpdate Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
+derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 //Wrapper functions for updating
 defaultValue			:: a																		| gUpdate{|*|} a
@@ -73,6 +69,9 @@ instance == DataPath
 instance GenMask UpdateMask
 
 // utility functions for custom gUpdate definitions
+
+noUpdate :: !(UpdateMode a) a !*USt -> *(!a,!*USt)
+
 /**
 * Updates a value.
 *
