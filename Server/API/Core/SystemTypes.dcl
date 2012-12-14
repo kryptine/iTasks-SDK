@@ -3,7 +3,6 @@ definition module SystemTypes
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-
 import GenEq_NG, Maybe, JSON_NG, Store, Void, Either, FilePath, HTML, Error, File, OS
 from Map 				import :: Map
 from Map 				import qualified get
@@ -34,7 +33,7 @@ instance toString	Note
 instance html		Note
 instance ==			Note
 
-//* Clean source code
+//* Source code
 :: CleanCode	= CleanCode !String
 instance toString CleanCode
 
@@ -98,13 +97,18 @@ instance ==			Document
 
 :: Password		= Password !String
 
-instance toString	Username, Password
-instance ==			Username, Password
-instance <			Username, Password
+instance toString		Username, Password
+instance ==				Username, Password
+instance <				Username, Password
 
-derive JSONEncode	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
-derive JSONDecode	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEq			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive JSONEncode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
+derive JSONDecode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+
+derive gVisualizeText	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gVisualizeEditor EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gHeaders			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gGridRows		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
 derive class iTask	Credentials
 
@@ -158,6 +162,10 @@ instance toString	FileException, ParseException, CallException, SharedException,
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 //****************************************************************************//
 // Low level data types that can be used to construct more fine grained user
@@ -205,9 +213,13 @@ toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|
 
 instance Functor Tree
 
-derive JSONEncode		Scale, Progress, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive JSONDecode		Scale, Progress, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gEq				Scale, Progress, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gVisualizeEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gHeaders			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gGridRows		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
@@ -239,9 +251,20 @@ derive gEq				Scale, Progress, HtmlInclude, FormButton, ButtonState, Table, Tree
 	| DCTreeNoView	(TreeChoiceNoView o)
 	| DCGridNoView	(GridChoiceNoView o)
 
-derive JSONEncode		ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, DynamicChoice, DynamicChoiceNoView
-derive JSONDecode		ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, DynamicChoice, DynamicChoiceNoView
-derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, DynamicChoice, DynamicChoiceNoView
+derive JSONEncode		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive JSONEncode		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive JSONDecode		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive JSONDecode		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice 
+derive gEq				ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gEq				DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gVisualizeText	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gVisualizeText	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gVisualizeEditor	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gVisualizeEditor	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gHeaders			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gHeaders			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gGridRows		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gGridRows		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 
 /**
 * Interface for types representing choices of one element out of a set of options.
@@ -323,6 +346,10 @@ toHidden				:: !.a -> Hidden .a
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
 derive gEq				Hidden, Display, Editable, VisualizationHint
+derive gVisualizeText	Hidden, Display, Editable, VisualizationHint
+derive gVisualizeEditor	Hidden, Display, Editable, VisualizationHint
+derive gHeaders			Hidden, Display, Editable, VisualizationHint
+derive gGridRows		Hidden, Display, Editable, VisualizationHint
 
 //****************************************************************************//
 // Framework types.
@@ -335,6 +362,8 @@ derive gEq				Hidden, Display, Editable, VisualizationHint
 //* Task results
 :: TaskValue a		= NoValue				
 					| Value !a !Stability 
+
+instance Functor TaskValue
 			
 :: TaskTime			:== Int
 
@@ -384,7 +413,6 @@ instance <			TaskId
 					| HighPriority
 
 instance toString	TaskPriority
-formatPriority	:: !TaskPriority	-> HtmlTag
 
 //* Representations of task lists
 :: TaskListId s
@@ -452,7 +480,6 @@ instance toUserConstraint UserId
 	= RunningProcess !String
 	| CompletedProcess !Int
 
-
 //* Next task actions
 :: Action	= Action !ActionName
 			| ActionOk
@@ -480,18 +507,25 @@ instance toUserConstraint UserId
 
 actionName	:: !Action -> ActionName
 actionIcon 	:: !Action -> String
+			
+:: Hotkey =	{ key	:: !Key
+			, ctrl	:: !Bool
+			, alt	:: !Bool
+			, shift	:: !Bool
+			}
+			
+:: Key :== Char
 
-
-derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability, User, Action
-derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability, User, Action
-derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability, User, Action 
+derive JSONEncode		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+derive JSONDecode		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+derive gEq				TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action 
 		
-derive gVisualizeText	TaskListItem, ProgressMeta, TaskValue, Stability
-derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskValue, Stability
-derive gHeaders			TaskListItem, ProgressMeta, TaskValue, Stability
-derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
-derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
-derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
+derive gVisualizeText	TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+derive gVisualizeEditor	TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+derive gHeaders			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+derive gGridRows		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+derive gUpdate			TaskValue, Stability, TaskListItem, ProgressMeta
+derive gVerify			TaskValue, Stability, TaskListItem, ProgressMeta
 
 derive class iTask		TaskId, Config, ProcessStatus
 
@@ -527,14 +561,16 @@ FLOAT_ATTRIBUTE			:==	"float"		//Hint for layout functions. Currently only "wind
 
 :: Title			= Title !String
 :: Hint				= Hint !String
+:: Window			= Window
 
 :: Icon				= Icon !String
 					| IconView
 					| IconEdit
 
+//Make the UI definition of the interaction prompt
 class descr d
 where
-	toPrompt		:: !d -> UIControlSequence	//Make the UI definition of the interaction prompt
+	toPrompt		:: !d -> UIControlSequence
 
 instance descr Void							//No prompt
 instance descr String						//Simple instruction
@@ -549,21 +585,9 @@ instance descr Att
 instance descr [d] | descr d
 
 //****************************************************************************//
-// iTask instances for common library types
+// Generic instances for common library types
 //****************************************************************************//
 
 derive JSONEncode		HtmlTag, Map, Void, Either, Timestamp
 derive JSONDecode		HtmlTag, Map, Void, Either, Timestamp
 derive gEq				HtmlTag, Map, Void, Either, Timestamp, Maybe, JSONNode, (->), Dynamic
-
-//LEFTOVERS
-:: Window				= Window
-			
-:: Hotkey =	{ key	:: !Key
-			, ctrl	:: !Bool
-			, alt	:: !Bool
-			, shift	:: !Bool
-			}
-			
-:: Key :== Char
-

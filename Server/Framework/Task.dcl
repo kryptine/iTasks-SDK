@@ -83,7 +83,3 @@ finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
 * Create a task that finishes instantly
 */
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
-
-//* Provides fmap for Task Values
-instance Functor TaskValue
-

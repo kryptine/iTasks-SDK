@@ -30,12 +30,6 @@ derive gEq UIDef, UIAction
 
 derive JSONEncode UITreeNode
 
-//BAD IDEA: FIXME!
-//There should be a complete iTasks instance for ProgressAmount type
-derive gEq ProgressAmount
-JSONEncode{|ProgressAmount|} ProgressUndetermined		= [JSONString "undetermined"]
-JSONEncode{|ProgressAmount|} (ProgressRatio ratio)		= [JSONReal ratio]
-
 diffUIDefinitions :: !UIDef !UIDef !Event -> [UIUpdate]	
 diffUIDefinitions (UIFinal d1=:(UIViewport _ _ _)) (UIFinal d2=:(UIViewport _ _ _)) event
 	= replaceIfImpossible viewportPath d2 [diffControls viewportPath event d1 d2]

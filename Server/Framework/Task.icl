@@ -72,7 +72,3 @@ finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
 finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep (UIFinal ((repLayout repOpts).Layout.final def)) parts
 finalizeRep repOpts rep = rep
 
-instance Functor TaskValue
-where
-	fmap f (NoValue)		= NoValue
-	fmap f (Value v s)		= Value (f v) s

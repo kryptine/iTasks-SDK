@@ -83,25 +83,25 @@ encodeUIDefinition (UIFinal vp=:(UIViewport _ _ _)) = encodeUIControl vp
 encodeUIDefinition def								= encodeUIControl (UIViewport defaultLayoutOpts (uiDefControls def) {UIViewportOpts|title=Nothing,tbar=Nothing})
 
 encodeUIControl :: !UIControl -> JSONNode
-encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,toJSON vopts] []
-encodeUIControl (UIViewHtml sopts vopts)				= enc "itwc_view_html" [toJSON sopts, encHtml vopts] []
-encodeUIControl (UIViewDocument sopts vopts)			= enc "itwc_view_document" [toJSON sopts, toJSON vopts] []
-encodeUIControl (UIViewCheckbox sopts vopts)			= enc "itwc_view_checkbox" [toJSON sopts, toJSON vopts] []
-encodeUIControl (UIViewSlider sopts vopts opts)			= enc "itwc_view_slider" [toJSON sopts, toJSON vopts, toJSON opts] []
-encodeUIControl (UIViewProgress sopts vopts opts)		= enc "itwc_view_progress" [toJSON sopts, toJSON vopts, toJSON opts] []
-encodeUIControl (UIEditString sopts eopts)				= enc "itwc_edit_string" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditNote sopts eopts)				= enc "itwc_edit_note" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditPassword sopts eopts)			= enc "itwc_edit_password" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditInt sopts eopts)					= enc "itwc_edit_int" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditDecimal sopts eopts)				= enc "itwc_edit_decimal" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditCheckbox sopts eopts)			= enc "itwc_edit_checkbox" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditSlider sopts eopts opts)			= enc "itwc_edit_slider" [toJSON sopts, toJSON eopts, toJSON opts] []
-encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, toJSON eopts] []
-encodeUIControl (UIEditGoogleMap sopts eopts opts)		= enc "itwc_edit_googlemap" [toJSON sopts, toJSON eopts, toJSON opts] []
-encodeUIControl (UIEditCode sopts eopts opts)			= enc "itwc_edit_code" [toJSON sopts, toJSON eopts, toJSON opts] []
-encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, toJSON eopts, toJSON opts] []
+encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,encViewOpts vopts] []
+encodeUIControl (UIViewHtml sopts vopts)				= enc "itwc_view_html" [toJSON sopts, encViewOpts vopts] []
+encodeUIControl (UIViewDocument sopts vopts)			= enc "itwc_view_document" [toJSON sopts, encViewOpts vopts] []
+encodeUIControl (UIViewCheckbox sopts vopts)			= enc "itwc_view_checkbox" [toJSON sopts, encViewOpts vopts] []
+encodeUIControl (UIViewSlider sopts vopts opts)			= enc "itwc_view_slider" [toJSON sopts, encViewOpts vopts, toJSON opts] []
+encodeUIControl (UIViewProgress sopts vopts opts)		= enc "itwc_view_progress" [toJSON sopts, encViewOpts vopts, toJSON opts] []
+encodeUIControl (UIEditString sopts eopts)				= enc "itwc_edit_string" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditNote sopts eopts)				= enc "itwc_edit_note" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditPassword sopts eopts)			= enc "itwc_edit_password" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditInt sopts eopts)					= enc "itwc_edit_int" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditDecimal sopts eopts)				= enc "itwc_edit_decimal" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditCheckbox sopts eopts)			= enc "itwc_edit_checkbox" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditSlider sopts eopts opts)			= enc "itwc_edit_slider" [toJSON sopts, encEditOpts eopts, toJSON opts] []
+encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, encEditOpts eopts] []
+encodeUIControl (UIEditGoogleMap sopts eopts opts)		= enc "itwc_edit_googlemap" [toJSON sopts, encEditOpts eopts, toJSON opts] []
+encodeUIControl (UIEditCode sopts eopts opts)			= enc "itwc_edit_code" [toJSON sopts, encEditOpts eopts, toJSON opts] []
+encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, encEditOpts eopts, toJSON opts] []
 encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts] []
 encodeUIControl (UIRadioGroup sopts copts)				= enc "itwc_choice_radiogroup" [toJSON sopts, toJSON copts] []
 encodeUIControl (UICheckboxGroup sopts copts)			= enc "itwc_choice_checkboxgroup" [toJSON sopts, toJSON copts] []
@@ -121,13 +121,15 @@ encodeUIControl (UIWindow sopts lopts items opts)		= enc "itwc_window" [toJSON s
 encodeUIControl (UIViewport lopts items opts)			= enc "itwc_panel" [toJSON lopts, toJSON opts] items
 encodeUIControl (UICustom json)							= json
 
-derive JSONEncode UISizeOpts, UIViewOpts, UIEditOpts, UIChoiceOpts, UIActionOpts, UILayoutOpts
+derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UILayoutOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts
 derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
+
+
 
 JSONEncode{|UISize|} (ExactSize s)		= [JSONInt s]
 JSONEncode{|UISize|} WrapSize			= [JSONString "wrap"] 
@@ -158,8 +160,6 @@ JSONEncode{|UIMenuItem|} (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuit
 JSONEncode{|UIMenuItem|} (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts] []]
 
 JSONEncode{|UIControl|} control = [encodeUIControl control]
-JSONEncode{|ProgressAmount|} ProgressUndetermined		= [JSONString "undetermined"]
-JSONEncode{|ProgressAmount|} (ProgressRatio ratio)		= [JSONReal ratio]
 
 JSONEncode{|UIDef|} uidef = [encodeUIDefinition uidef]
 
@@ -172,9 +172,14 @@ where
 		_	= [("items",JSONArray (map encodeUIControl items))]
 
 //Special cases
-encHtml :: (UIViewOpts HtmlTag) -> JSONNode
-encHtml {UIViewOpts|value=Just html} = JSONObject [("value",JSONString (toString html))]
-encHtml {UIViewOpts|value=Nothing} = JSONObject []
+
+encViewOpts :: (UIViewOpts a) -> JSONNode | encodeUIValue a
+encViewOpts {UIViewOpts|value}
+	= JSONObject [("value",encodeUIValue value)]
+
+encEditOpts :: (UIEditOpts a) -> JSONNode | encodeUIValue a
+encEditOpts {UIEditOpts|taskId,editorId,value}
+	= JSONObject [("taskId",JSONString taskId),("editorId",JSONString editorId),("value",encodeUIValue value)]
 
 class encodeUIValue a :: a -> JSONNode
 instance encodeUIValue String			where encodeUIValue v = JSONString v
@@ -185,7 +190,11 @@ instance encodeUIValue Document			where encodeUIValue v = toJSON v
 instance encodeUIValue Date				where encodeUIValue v = toJSON v
 instance encodeUIValue Time				where encodeUIValue v = toJSON v
 instance encodeUIValue HtmlTag			where encodeUIValue v = JSONString (toString v)
-instance encodeUIValue ProgressAmount	where encodeUIValue v = toJSON v
+instance encodeUIValue ProgressAmount
+where
+	encodeUIValue  ProgressUndetermined = JSONString "undetermined"
+	encodeUIValue (ProgressRatio ratio)	= JSONReal ratio
+
 instance encodeUIValue JSONNode			where encodeUIValue v = toJSON v
 instance encodeUIValue (Maybe a) | encodeUIValue a
 where
