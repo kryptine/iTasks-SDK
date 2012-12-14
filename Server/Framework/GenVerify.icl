@@ -3,8 +3,7 @@ implementation module GenVerify
 import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic_NG
 import GenUpdate, StdMisc
 
-derive gVerify (,), (,,), (,,,), Void, Either, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
-derive gVerify GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 
@@ -68,6 +67,12 @@ gVerify{|CONS of {gcd_arity}|} fx c	 vst=:{updateMask}
 	# (cmu,um)	= popMask updateMask
 	= fx (fmap fromCONS c) {vst & updateMask = childMasksN cmu gcd_arity}
 
+gVerify{|Int|}    				_ vst = simpleVerify "Enter a number" vst
+gVerify{|Real|}   				_ vst = simpleVerify "Enter a decimal number" vst
+gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst
+gVerify{|String|}				_ vst = simpleVerify "Enter a short text" vst
+gVerify{|Bool|}   				_ vst = alwaysValid vst
+
 gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask,staticDisplay}
 	# (cm,um)			= popMask updateMask
 	# l					= fromMaybe [] mbL
@@ -93,67 +98,13 @@ gVerify{|Maybe|} fx mb vst=:{optional,verifyMask}
 	# vst=:{verifyMask} = fx (fromMaybe Nothing mb) {vst & optional = True}
 	= {vst & optional = optional}
 
-gVerify{|Hidden|}				_ _ vst		= verifyHidden vst
-gVerify{|Editable|}				fx e vst	= verifyEditable fx (fmap fromEditable e) vst
-gVerify{|Display|}				fx d vst	= verifyDisplay fx (fmap fromDisplay d) vst
-gVerify{|VisualizationHint|}	fx v vst	= case v of
-	Just (VHEditable e)	= verifyEditable fx (Just e) vst
-	Just (VHDisplay d)	= verifyDisplay fx (Just d) vst
-	Just (VHHidden _)	= verifyHidden vst
-	_					= vst
-	
-verifyEditable	fx e vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx e {vst & staticDisplay = False})
-verifyDisplay	fx d vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
-verifyHidden	vst=:{verifyMask,updateMask}	= {vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), updateMask = snd (popMask updateMask)}
 
-gVerify{|Int|}    				_ vst = simpleVerify "Enter a number" vst
-gVerify{|Real|}   				_ vst = simpleVerify "Enter a decimal number" vst
-gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst
-gVerify{|String|}				_ vst = simpleVerify "Enter a short text" vst
-gVerify{|Bool|}   				_ vst = alwaysValid vst
-gVerify{|Document|}				_ vst = simpleVerify "Upload a document" vst
-gVerify{|Username|}				_ vst = simpleVerify "Enter a username" vst
-gVerify{|Password|}				_ vst = simpleVerify "Enter a password" vst
-gVerify{|Date|}					_ vst = simpleVerify "Enter a date" vst
-gVerify{|Time|}					_ vst = simpleVerify "Enter a time of day" vst
-gVerify{|Note|}					_ vst = simpleVerify "Enter a long text" vst
-gVerify{|CleanCode|}			_ vst = simpleVerify "Enter a piece of Clean code" vst
-gVerify{|URL|}					_ vst = simpleVerify "Enter a uniform resource locator (URL)" vst
-gVerify{|FormButton|}			_ vst = alwaysValid vst
-gVerify{|EUR|}					_ vst = simpleVerify "Enter an amount in EUR" vst
-gVerify{|USD|}					_ vst = simpleVerify "Enter an amount in USD" vst
-gVerify{|Scale|}				_ vst = alwaysValid vst
-gVerify{|Progress|}				_ vst = alwaysValid vst
-gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
-gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
-gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
-gVerify{|ComboChoice|} _ _		v vst = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v vst
-gVerify{|ComboChoiceNoView|} _	v vst = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v vst
-gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst
-gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
-gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
-gVerify{|Table|}				_ vst = alwaysValid vst
-gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" vst
-gVerify{|TreeChoiceNoView|} _	_ vst = simpleVerify "Choose an element of the tree" vst
-gVerify{|HtmlInclude|}			_ vst = alwaysValid vst
 gVerify{|HtmlTag|}				_ vst = alwaysValid vst
-gVerify{|GoogleMap|}			_ vst = alwaysValid vst
-
 gVerify{|Dynamic|}				_ vst = alwaysValid vst
 gVerify{|(->)|} _ _				_ vst = alwaysValid vst
 gVerify{|JSONNode|}				_ vst = alwaysValid vst
 
-gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	Nothing vst = alwaysValid vst
-
-gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx (Just (DCTreeNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx (Just (DCGridNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx Nothing vst = alwaysValid vst
+derive gVerify (,), (,,), (,,,), Void, Either, Timestamp, Map
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

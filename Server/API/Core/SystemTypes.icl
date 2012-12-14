@@ -20,6 +20,7 @@ derive gVisualizeEditor	EmailAddress
 derive gHeaders			EmailAddress
 derive gGridRows		EmailAddress
 derive gUpdate			EmailAddress
+derive gVerify			EmailAddress
 
 //* URL
 gVisualizeText{|URL|}	_ val				= [toString val]
@@ -35,6 +36,8 @@ where
 			= ([(ui,addVerAttributes verRes newMap)],vst)
 
 gUpdate{|URL|} mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
+
+gVerify{|URL|} _ vst = simpleVerify "Enter a uniform resource locator (URL)" vst
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -77,6 +80,8 @@ where
 			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
 
 gUpdate{|Note|} mode ust = basicUpdateSimple mode (Note "") ust
+
+gVerify{|Note|} _ vst = simpleVerify "Enter a long text" vst
 
 derive gEq				Note
 derive gHeaders			Note
@@ -121,6 +126,8 @@ where
 	codeUpd (JSONString s) _	= CleanCode s
 	codeUpd _ old				= old			
 
+gVerify{|CleanCode|} _ vst = simpleVerify "Enter a piece of Clean code" vst
+
 derive gEq			CleanCode
 derive gHeaders		CleanCode
 derive gGridRows	CleanCode
@@ -141,6 +148,8 @@ where
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|EUR|} mode ust = basicUpdateSimple mode (EUR 0) ust
+
+gVerify{|EUR|} _ vst = simpleVerify "Enter an amount in EUR" vst
 
 instance toString EUR
 where
@@ -180,6 +189,8 @@ where
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|USD|} mode ust = basicUpdateSimple mode (USD 0) ust
+
+gVerify{|USD|} _ vst = simpleVerify "Enter an amount in USD" vst
 
 instance toString USD
 where
@@ -233,6 +244,8 @@ where
 
 gUpdate{|Date|} UDCreate ust = basicCreate {day = 1, mon = 1, year = 1970} ust
 gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\json old -> fromMaybe old (fromJSON json)) ust
+
+gVerify{|Date|} _ vst = simpleVerify "Enter a date" vst
 
 derive gEq			Date
 derive gHeaders		Date
@@ -312,6 +325,8 @@ where
 gUpdate{|Time|} UDCreate ust = basicCreate {hour = 0, min = 0, sec = 0} ust
 gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\json old -> fromMaybe old (fromJSON json)) ust
 
+gVerify{|Time|} _ vst = simpleVerify "Enter a time of day" vst
+
 derive gEq			Time
 derive gHeaders		Time
 derive gGridRows	Time
@@ -378,6 +393,7 @@ derive gVisualizeEditor	DateTime
 derive gHeaders			DateTime
 derive gGridRows		DateTime
 derive gUpdate			DateTime
+derive gVerify			DateTime
 
 instance toString DateTime
 where
@@ -439,6 +455,8 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
+gVerify{|Document|} _ vst = simpleVerify "Upload a document" vst
+
 derive JSONEncode		Document
 derive JSONDecode		Document
 derive gEq				Document
@@ -467,6 +485,8 @@ where
 		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|Username|} mode ust = basicUpdateSimple mode (Username "") ust
+
+gVerify{|Username|} _ vst = simpleVerify "Enter a username" vst
 
 derive gEq				Username
 derive gVisualizeText	Username
@@ -500,6 +520,8 @@ where
 		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|Password|} mode ust = basicUpdateSimple mode (Password "") ust
+
+gVerify{|Password|} _ vst = simpleVerify "Enter a password" vst
 
 derive gEq				Password
 derive gHeaders			Password
@@ -651,6 +673,8 @@ where
 		, draggable			= True
 		}
 
+gVerify{|GoogleMap|} _ vst = alwaysValid vst
+
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
@@ -659,6 +683,7 @@ derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPositi
 derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 //* A sliding scale
 gVisualizeText{|Scale|}	_ {Scale|cur} = [toString cur]
@@ -679,6 +704,8 @@ where
 
 gUpdate{|Scale|} mode ust
 	= basicUpdate mode (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) {Scale|min=1,cur=3,max=5} ust
+
+gVerify{|Scale|} _ vst = alwaysValid vst
 
 gHeaders{|Scale|} _	= [""]
 gGridRows{|Scale|} _ _ = Nothing
@@ -703,6 +730,8 @@ where
 gUpdate{|Progress|}	mode ust
 	= noUpdate mode {Progress|progress=ProgressUndetermined, description = ""} ust
 
+gVerify{|Progress|} _ vst = alwaysValid vst
+
 gHeaders{|Progress|} _		= [""]
 gGridRows{|Progress|} _ _	= Nothing
 
@@ -713,6 +742,7 @@ derive gVisualizeEditor ProgressAmount
 derive gHeaders			ProgressAmount
 derive gGridRows		ProgressAmount
 derive gUpdate			ProgressAmount
+derive gVerify			ProgressAmount
 
 //* Inclusion of external html files
 gVisualizeText{|HtmlInclude|}	_ (HtmlInclude location)	= ["<External html: " + location + ">"]
@@ -723,6 +753,8 @@ where
 		= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value=fmap (\(HtmlInclude path) -> IframeTag [SrcAttr path] []) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|HtmlInclude|} mode ust = noUpdate mode (HtmlInclude "") ust
+
+gVerify{|HtmlInclude|} _ vst = alwaysValid vst
 
 derive gHeaders HtmlInclude
 derive gGridRows HtmlInclude
@@ -739,6 +771,8 @@ where
 
 gUpdate{|FormButton|} mode ust
 	= basicUpdate mode (\st b -> {FormButton|b & state = st}) {FormButton | label = "Form Button", icon="", state = NotPressed} ust
+
+gVerify{|FormButton|} _ vst = alwaysValid vst
 
 derive gHeaders FormButton
 derive gGridRows FormButton
@@ -758,6 +792,7 @@ derive gVisualizeEditor ButtonState
 derive gHeaders ButtonState
 derive gGridRows ButtonState
 derive gUpdate ButtonState
+derive gVerify ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gVisualizeText{|Table|}	_ _	= ["<Table>"]
@@ -781,6 +816,8 @@ where
 gUpdate{|Table|} mode ust
 	= basicUpdate mode (\json (Table headers cells _) -> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) (Table [] [] Nothing) ust
 
+gVerify{|Table|} _ vst = alwaysValid vst
+
 derive gHeaders Table
 derive gGridRows Table
 
@@ -800,6 +837,7 @@ derive gVisualizeEditor	Tree, TreeNode
 derive gHeaders			Tree, TreeNode
 derive gGridRows		Tree, TreeNode
 derive gUpdate			Tree, TreeNode
+derive gVerify			Tree, TreeNode
 		
 instance Functor Tree
 where
@@ -835,6 +873,8 @@ where
 
 gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options idx) (ComboChoice [] Nothing) ust	
 
+gVerify{|ComboChoice|} _ _		v vst = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v vst
+
 instance Choice ComboChoice
 where
 	selectOption newSel (ComboChoice options _)					= ComboChoice options (setListOption options newSel)
@@ -860,6 +900,8 @@ where
 	options	_												= []
 
 gUpdate{|ComboChoiceNoView|} _	mode ust = updateChoice mode (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) (ComboChoiceNoView [] Nothing) ust
+
+gVerify{|ComboChoiceNoView|} _	v vst = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v vst
 
 instance ChoiceNoView ComboChoiceNoView
 where
@@ -887,6 +929,8 @@ where
 gUpdate{|RadioChoice|} _ _ mode ust
 	= updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options idx) (RadioChoice [] Nothing) ust
 
+gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+
 instance Choice RadioChoice
 where
 	selectOption newSel (RadioChoice options _)					= RadioChoice options (setListOption options newSel)
@@ -913,6 +957,8 @@ where
 
 gUpdate{|RadioChoiceNoView|} _	mode ust
 	= updateChoice mode (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) (RadioChoiceNoView [] Nothing) ust
+
+gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
 
 instance ChoiceNoView RadioChoiceNoView
 where
@@ -965,6 +1011,8 @@ gUpdate{|TreeChoice|} _ _		(UDSearch (TreeChoice options sel)) ust=:{searchPath,
 	| otherwise
 		= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
 
+gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" vst
+
 instance Choice TreeChoice
 where
 	selectOption newSel (TreeChoice options _)					= TreeChoice options (setTreeOption options newSel)
@@ -999,6 +1047,8 @@ where
 	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
 	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
 	update _					treechoice							= treechoice
+
+gVerify{|TreeChoiceNoView|} _	_ vst = simpleVerify "Choose an element of the tree" vst
 	
 instance ChoiceNoView TreeChoiceNoView
 where
@@ -1022,6 +1072,8 @@ where
 
 gUpdate{|GridChoice|} _ _ mode ust
 	= updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
+
+gVerify{|GridChoice|} _ _ _ vst = alwaysValid vst
 
 instance Choice GridChoice
 where
@@ -1047,6 +1099,7 @@ where
 gUpdate{|GridChoiceNoView|} _ mode ust
 	= updateChoice mode (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) (GridChoiceNoView [] Nothing) ust
 
+gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
 	
 instance ChoiceNoView GridChoiceNoView
 where
@@ -1075,6 +1128,12 @@ gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCRadio val))	ust = appFst DCRadio (gU
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCTree val))		ust = appFst DCTree (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCGrid val))		ust = appFst DCGrid (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	UDCreate 					ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy UDCreate ust)
+
+gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	Nothing vst = alwaysValid vst
 	
 instance Choice DynamicChoice
 where
@@ -1119,6 +1178,12 @@ gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCRadioNoView val))	ust = appFst DC
 gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCTreeNoView val)) 	ust = appFst DCTreeNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
 gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCGridNoView val)) 	ust = appFst DCGridNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
 gUpdate{|DynamicChoiceNoView|} fx UDCreate	 						ust = appFst DCRadioNoView (gUpdate{|*->*|} fx UDCreate ust)
+
+gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCTreeNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCGridNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx Nothing vst = alwaysValid vst
 	
 instance ChoiceNoView DynamicChoiceNoView
 where
@@ -1160,6 +1225,8 @@ gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiCh
 where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
+
+gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
 	
 instance MultiChoice CheckMultiChoice
 where
@@ -1260,7 +1327,13 @@ gUpdate{|VisualizationHint|} 	fx UDCreate									ust = wrapperUpdate fx UDCreat
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHEditable s))			ust = wrapperUpdate fx mode fromVisualizationHint VHEditable ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHDisplay s))			ust = wrapperUpdate fx mode fromVisualizationHint VHDisplay ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHHidden s))			ust = wrapperUpdate fx mode fromVisualizationHint VHHidden ust
-		
+
+gVerify{|VisualizationHint|}	fx v vst	= case v of
+	Just (VHEditable e)	= verifyEditable fx (Just e) vst
+	Just (VHDisplay d)	= verifyDisplay fx (Just d) vst
+	Just (VHHidden _)	= verifyHidden vst
+	_					= vst
+			
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
 fromVisualizationHint (VHDisplay a) = a
@@ -1277,6 +1350,8 @@ gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
 
 gUpdate{|Hidden|} fx mode ust = wrapperUpdate fx mode fromHidden Hidden ust
 
+gVerify{|Hidden|} _ _ vst = verifyHidden vst
+
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x
 
@@ -1290,6 +1365,8 @@ gVisualizeEditor{|Display|} fx _ _ _ val vst=:{VSt|currentPath,disabled}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
 gUpdate{|Display|} fx mode ust = wrapperUpdate fx mode fromDisplay Display ust
+
+gVerify{|Display|} fx d vst = verifyDisplay fx (fmap fromDisplay d) vst
 
 fromDisplay :: !(Display .a) -> .a
 fromDisplay (Display a) = a
@@ -1305,6 +1382,8 @@ gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{VSt|currentPath, disabled}
 
 gUpdate{|Editable|} fx mode ust = wrapperUpdate fx mode fromEditable Editable ust
 
+gVerify{|Editable|} fx e vst = verifyEditable fx (fmap fromEditable e) vst
+
 fromEditable :: !(Editable .a) -> .a
 fromEditable (Editable a) = a
 
@@ -1318,6 +1397,11 @@ wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
 	UDSearch w
 		# (w,ust) = fx (UDSearch (get w)) ust
 		= (cons w,{USt|ust & currentPath = stepDataPath currentPath})
+		
+//Utility for gVerify	
+verifyEditable	fx e vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx e {vst & staticDisplay = False})
+verifyDisplay	fx d vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
+verifyHidden	vst=:{verifyMask,updateMask}	= {vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), updateMask = snd (popMask updateMask)}
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
@@ -1376,6 +1460,8 @@ where
 gVisualizeText{|User|} _ val = [toString val]
 
 gUpdate{|User|} mode ust = basicUpdateSimple mode (AnonymousUser "") ust
+
+gVerify{|User|} _ vst = simpleVerify "Select a username" vst 
 
 instance toString User
 where
@@ -1447,7 +1533,7 @@ derive gVisualizeEditor	TaskValue, Stability, ManagementMeta, ProgressMeta, Task
 derive gHeaders			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
 derive gGridRows		TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
 derive gUpdate			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
-derive gVerify			TaskValue, Stability, ProgressMeta, TaskListItem
+derive gVerify			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
 
 derive class iTask TaskId, Config, ProcessStatus
 	

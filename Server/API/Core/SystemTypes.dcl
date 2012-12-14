@@ -110,6 +110,7 @@ derive gVisualizeEditor EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time
 derive gHeaders			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gGridRows		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gUpdate			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
+derive gVerify			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
 derive class iTask	Credentials
 
@@ -168,7 +169,7 @@ derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, Goog
 derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gUpdate			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-
+derive gVerify			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 //****************************************************************************//
 // Low level data types that can be used to construct more fine grained user
@@ -224,6 +225,7 @@ derive gVisualizeEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton
 derive gHeaders			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gGridRows		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
@@ -271,6 +273,8 @@ derive gGridRows		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView
 derive gGridRows		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gUpdate			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
 derive gUpdate			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gVerify			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gVerify			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 
 /**
 * Interface for types representing choices of one element out of a set of options.
@@ -357,6 +361,7 @@ derive gVisualizeEditor	Hidden, Display, Editable, VisualizationHint
 derive gHeaders			Hidden, Display, Editable, VisualizationHint
 derive gGridRows		Hidden, Display, Editable, VisualizationHint
 derive gUpdate			Hidden, Display, Editable, VisualizationHint
+derive gVerify			Hidden, Display, Editable, VisualizationHint
 
 //****************************************************************************//
 // Framework types.
@@ -364,7 +369,6 @@ derive gUpdate			Hidden, Display, Editable, VisualizationHint
 // It is generally not necessary to create values of these types yourself, but
 // you may read them when interacting with the framework
 //****************************************************************************//
-
 
 //* Task results
 :: TaskValue a		= NoValue				
@@ -532,7 +536,7 @@ derive gVisualizeEditor	TaskValue, Stability, TaskListItem, ManagementMeta, Prog
 derive gHeaders			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gGridRows		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gUpdate			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gVerify			TaskValue, Stability, TaskListItem, ProgressMeta
+derive gVerify			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 
 derive class iTask		TaskId, Config, ProcessStatus
 

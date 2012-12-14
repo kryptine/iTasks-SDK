@@ -70,6 +70,15 @@ instance GenMask UpdateMask
 
 // utility functions for custom gUpdate definitions
 
+/**
+* Makes sure the value is not updated.
+*
+* @param The current update mode
+* @param A default value for creation
+* @param USt
+*
+* @return modified USt
+*/
 noUpdate :: !(UpdateMode a) a !*USt -> *(!a,!*USt)
 
 /**
