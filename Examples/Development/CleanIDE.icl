@@ -24,6 +24,7 @@ Start w = startEngine test w
 test = currentDirectory													// determine directory of this CleanEditor
 	>>= \dir ->		viewInformation "Direct = " [] dir
 
+
 */
 /* BUGS:
 - shares: not always up-to-date
@@ -31,7 +32,6 @@ test = currentDirectory													// determine directory of this CleanEditor
 - current dir does not give current dir
 - a project file newly created contains something which the other applications do not like (comparrison needed)
 - global title not implemented
-- radiobuttons & checkbuttons not implemented
 */
 
 start_ide :: Task Void
@@ -234,20 +234,41 @@ import _SystemStrictLists
 				}
 derive class iTask FoundTable
 
-search searchOption _  
+search searchOption ts  
 	= 				get_IDE_State
 	>>= \state ->	searching state "" searchOption state.moduleOptions []  <<@ Window
 where
 	searching state identifier searchOption moduleOptions found
-		=			(updateInformation (Title "Find") [] identifier
-					-&&-
-					updateSearchOptions)
+		=			(updateInformation (Title "Find") [] identifier	-&&- selectSearchOptions)
 					-||
-					enterChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] (toTable found)
-		>>*			[ OnAction ActionClose     always   (const (return Void))
+					handleFound 0 (toTable found)
+			>>*		[ OnAction ActionClose     always   (const (return Void))
 					, OnAction (Action "Find") (ifValue (\(s,_) -> s <> "")) (performSearch o getValue)
 					] 
 	where
+		selectSearchOptions
+			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
+				-&&-
+				updateChoice Void [ChooseWith ChooseFromRadioButtons moduleOptionsView] [InEnvironment,InProject,NotUsed] moduleOptions
+
+		handleFound i []
+			= viewInformation "" [] (if (identifier == "") "" (identifier +++ " has not been found...")) @ const Void
+		handleFound i table
+			=		(updateChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] table (table!!i) 
+					>&>
+					handleSelected)					
+			>>*    [OnValue  ifStable (const (handleFound (if (length table < (i+1) (i+1) i) table))]	
+		where
+			handleSelected selected
+				= 	viewSharedInformation "Selected:" [ViewWith (\entry -> (fromJust entry).file)] selected
+				>>*	[OnAction (Action "Open...") always (openFileSelected o fromJust o getValue)
+					,OnAction ActionNext always (const (return Void))
+					]
+			where
+				openFileSelected sel 
+					= launchEditorAndAdministrate (cleanPath +++ sel.FoundTable.directory +++ "\\" +++ sel.file) ts 
+		
+
 		toTable found = [	{ kind 		= kind
 							, file 		= file
 							, directory	= directory
@@ -262,11 +283,6 @@ where
 			toList (Pos line pos poslist) = [("identifier",       line, pos):toList poslist]
 			toList (Cls line pos poslist) = [("class definition", line, pos):toList poslist]
 			toList (Ins line pos poslist) = [("class instance",   line, pos):toList poslist]
-
-		updateSearchOptions
-			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
-				-&&-
-				updateChoice Void [ChooseWith ChooseFromRadioButtons moduleOptionsView] [InEnvironment,InProject,NotUsed] moduleOptions
 	
 		searchOptionView SearchDefinition		= "Find definition"
 		searchOptionView SearchImplementation	= "Find implementation"
