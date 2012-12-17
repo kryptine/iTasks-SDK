@@ -18,18 +18,9 @@ derive class iTask FileError
 Start :: *World -> *World
 Start world = startEngine start_ide world 
 
-/* BUG? currentDirectory does not seem to return the  currentDirectory????
-Start w = startEngine test w
-
-test = currentDirectory													// determine directory of this CleanEditor
-	>>= \dir ->		viewInformation "Direct = " [] dir
-
-
-*/
 /* BUGS:
 - shares: not always up-to-date
 - creation of a window not always possible
-- current dir does not give current dir
 - a project file newly created contains something which the other applications do not like (comparrison needed)
 - global title not implemented
 */
@@ -239,35 +230,32 @@ search searchOption ts
 	>>= \state ->	searching state "" searchOption state.moduleOptions []  <<@ Window
 where
 	searching state identifier searchOption moduleOptions found
-		=			(updateInformation (Title "Find") [] identifier	-&&- selectSearchOptions)
-					-||
-					handleFound 0 (toTable found)
+		=			(findDialoque -|| handleFound 0 (toTable found))
 			>>*		[ OnAction ActionClose     always   (const (return Void))
 					, OnAction (Action "Find") (ifValue (\(s,_) -> s <> "")) (performSearch o getValue)
 					] 
+					
 	where
-		selectSearchOptions
-			=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
-				-&&-
-				updateChoice Void [ChooseWith ChooseFromRadioButtons moduleOptionsView] [InEnvironment,InProject,NotUsed] moduleOptions
+		findDialoque 
+			=	updateInformation (Title "Find") [] identifier -&&- selectSearchOptions
+		where
+			selectSearchOptions
+				=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
+					-&&-
+					updateChoice Void [ChooseWith ChooseFromRadioButtons moduleOptionsView] [InEnvironment,InProject,NotUsed] moduleOptions
 
 		handleFound i []
 			= viewInformation "" [] (if (identifier == "") "" (identifier +++ " has not been found...")) @ const Void
 		handleFound i table
-			=		(updateChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] table (table!!i) 
-					>&>
-					handleSelected)					
-			>>*    [OnValue  ifStable (const (handleFound (if (length table < (i+1) (i+1) i) table))]	
+			=	   updateChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] table (table!!i)  				
+			>>*    [ OnAction (Action "Open...") always (\v -> openFileSelected (getValue v) >>| handleNext)
+				   , OnAction ActionNext always   (const handleNext)
+				   ]	
 		where
-			handleSelected selected
-				= 	viewSharedInformation "Selected:" [ViewWith (\entry -> (fromJust entry).file)] selected
-				>>*	[OnAction (Action "Open...") always (openFileSelected o fromJust o getValue)
-					,OnAction ActionNext always (const (return Void))
-					]
-			where
-				openFileSelected sel 
-					= launchEditorAndAdministrate (cleanPath +++ sel.FoundTable.directory +++ "\\" +++ sel.file) ts 
-		
+			openFileSelected sel 
+				= launchEditorAndAdministrate (cleanPath +++ sel.FoundTable.directory +++ "\\" +++ sel.file) ts 
+			handleNext
+				= handleFound (if (i+1 < length table) (i+1) i) table
 
 		toTable found = [	{ kind 		= kind
 							, file 		= file
