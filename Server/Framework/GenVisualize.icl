@@ -367,12 +367,14 @@ eventValue currentPath mbEvent = case mbEvent of
 
 verifyElementStr :: !VerifyMask -> VerifyResult
 verifyElementStr cmv = case cmv of
-	VMValid mbHnt _				= maybe NoMsg ValidMsg mbHnt
-	VMValidWithState mbHnt _ _	= maybe NoMsg ValidMsg mbHnt
-	VMUntouched mbHnt _ _		= maybe NoMsg HintMsg mbHnt
-	VMInvalid err _				= ErrorMsg (toString err)
-	VMInvalidWithState err _ _	= ErrorMsg (toString err)
-	
+	VMValid mbHnt _							= maybe NoMsg ValidMsg mbHnt
+	VMValidWithState mbHnt _ _				= maybe NoMsg ValidMsg mbHnt
+	VMUntouched mbHnt _ _					= maybe NoMsg HintMsg mbHnt
+	VMInvalid (FormatError e) _				= ErrorMsg e
+	VMInvalid BlankError _					= ErrorMsg "This value is required"
+	VMInvalidWithState (FormatError e) _ _	= ErrorMsg e
+	VMInvalidWithState BlankError _ _		= ErrorMsg "This value is required"
+
 addVerAttributes :: !VerifyResult !UIAttributes -> UIAttributes
 addVerAttributes (HintMsg msg)	attr = put HINT_ATTRIBUTE msg attr
 addVerAttributes (ValidMsg msg)	attr = put VALID_ATTRIBUTE msg attr

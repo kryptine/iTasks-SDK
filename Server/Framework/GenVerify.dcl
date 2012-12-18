@@ -2,7 +2,11 @@ definition module GenVerify
 
 import GenUpdate
 
-:: ErrorMessage = ErrorMessage !String | IsBlankError
+instance GenMask VerifyMask //TODO: Remove once no longer needed
+
+:: ErrorMessage = BlankError			//A required field is missing
+				| FormatError !String	//The entered value does not have the right format
+				
 :: HintMessage :== String
 :: Optional :== Bool
 
@@ -12,26 +16,22 @@ import GenUpdate
 			  | VMInvalid !ErrorMessage ![VerifyMask]
 			  | VMInvalidWithState !ErrorMessage ![VerifyMask] !JSONNode
 			  
-:: *VerSt =
-	{ updateMask	:: ![UpdateMask]
-	, verifyMask	:: ![VerifyMask]
-	, optional		:: !Bool
-	, staticDisplay	:: !Bool
+:: VerifyOptions =
+	{ optional		:: !Bool
+	, disabled		:: !Bool
 	}
 
-generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
-
-instance GenMask VerifyMask
-instance toString ErrorMessage
+generic gVerify a :: !(Maybe a) ![InteractionMask] !VerifyOptions -> ([VerifyMask],[InteractionMask])
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses}, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, [], (,), (,,),(,,,),(->), Dynamic
+
 derive gVerify Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 /**
 * Verify a form based on the value and its update mask.
 */
-verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
+verifyMaskedValue :: !a !InteractionMask -> VerifyMask | gVerify{|*|} a
 
 /**
 * Verify a value (a form which is filled in completely).
@@ -42,48 +42,22 @@ verifyValue :: !a -> Bool | gVerify{|*|} a
 * Based on the verify mask of a value, determine if it is valid.
 * A value is valid if the verify mask contains no invalid fields and all untouched fields are optional
 */
-isValidValue :: !VerifyMask -> Bool
+isValidMask :: !VerifyMask -> Bool
 
 /**
 * Verifies a value which is always valid.
 * No hint message is shown.
 *
-* @param	The verify-state
-*
-* @return	The modified verify-state
 */
-alwaysValid :: !*VerSt -> *VerSt
+alwaysValid :: ![InteractionMask] -> (![VerifyMask],![InteractionMask])
 
 /**
 * Verifies a value which is always valid if filled in (e.g. a basic value).
 * So only a hint message is needed.
 *
 * @param	A hint message
-* @param	The verify-state
-*
-* @return	The modified verify-state
 */
-simpleVerify :: !String !*VerSt -> *VerSt
-
-/**
-* Verifies an ADT wrapping an already existing type to put extra restrictions on it.
-* The ADT must have the form :: ADTName = ConsName x.
-* The instances for gVisualize and gUpdate can be generically derived,
-* which means that just a value of type x is visualized.
-*
-* For example the following type can be used to represent positive integers:
-* :: PositiveInt = PositiveInt Int
-* A predicate checking if the integer is positive has to be given to this function then.
-* 
-* @param 	An optional hint message
-* @param	A predicate function
-* @param	A function for error message generation, in case the predicate fails
-* @param	The actual value (if present)
-* @param	The verify-state
-*
-* @return	The modified verify-state
-*/
-wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
+simpleVerify :: !String ![InteractionMask] !VerifyOptions -> (![VerifyMask],![InteractionMask])
 
 /**
 * Verifies a custom ADT.
@@ -94,11 +68,9 @@ wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt 
 * @param	The predicate function
 * @param	A function for error message generation, in case the predicate fails
 * @param	The actual value (if present)
-* @param	The verify-state
-*
-* @return	The modified verify-state
+
 */
-customVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
+customVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) ![InteractionMask] !VerifyOptions -> (![VerifyMask],![InteractionMask])
 
 /**
 * Sets a number of fields identified by data-paths in a verify mask to invalid.

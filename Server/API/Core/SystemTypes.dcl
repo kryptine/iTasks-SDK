@@ -12,7 +12,7 @@ from IWorld				import :: IWorld
 from UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from LayoutCombinators	import :: Layout
 from Task				import :: Task, :: TaskId
-from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gUpdate, :: USt, :: UpdateMask, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 //****************************************************************************//
@@ -452,6 +452,43 @@ instance toString (TaskListId s)
 	| Detached !ManagementMeta
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
+
+
+/** Interaction masks contain information about a value as it is being edited
+*   in an interactive task.
+*/  
+:: InteractionMask
+	= Untouched								//The value has not been touched by the user
+	| Touched								//The value has been touched by the user, now it makes sense to check the input
+	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
+	| PartiallyTouched ![InteractionMask]	//The value is a compound structure of which some parts are, and some aren't touched
+	| Blanked								//The value was previously touched, but has been made blank again
+
+derive JSONEncode InteractionMask
+derive JSONDecode InteractionMask
+
+//* Datapaths identify sub structures in a composite structure
+:: DataPath = DataPath [Int]
+
+//Utility functions for dealing with DataPath values
+startDataPath			:: DataPath			//Path initialized at position "0"
+emptyDataPath			:: DataPath			//Path initialized empty
+stepDataPath			:: !DataPath		-> DataPath
+shiftDataPath			:: !DataPath		-> DataPath
+childDataPath			:: !DataPath !Int	-> DataPath
+parentDataPath			:: !DataPath		-> (!DataPath,!Int)
+dataPathLevel			:: !DataPath		-> Int
+dataPathList 			:: !DataPath 		-> [Int]
+dataPathFromList		:: ![Int]			-> DataPath
+
+dp2s					:: !DataPath		-> String
+s2dp					:: !String			-> DataPath
+isdps					:: !String			-> Bool
+
+// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
+// e.g. [1,0] <== [0] 
+(<==) infixr 1 :: !DataPath !DataPath -> Bool
+instance == DataPath
 
 //* User identification
 :: User

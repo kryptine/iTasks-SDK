@@ -47,7 +47,7 @@ where
 	
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 
-gVerify{|Task|} _ _ vst = alwaysValid vst
+gVerify{|Task|} _ _ um _ = alwaysValid um
 
 gVisualizeText{|Task|} _ _ _ = ["<Task>"]
 gVisualizeEditor{|Task|} _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)

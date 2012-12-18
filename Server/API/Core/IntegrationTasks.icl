@@ -76,7 +76,7 @@ where
 						# iworld			= {IWorld|iworld & world = world}
 						# status			= RunningProcess cmd
 						# layout			= repLayout repOpts
-						# (controls,iworld)	= makeView opts status (verifyForm status Touched) taskId layout iworld
+						# (controls,iworld)	= makeView opts status (verifyMaskedValue status Touched) taskId layout iworld
 						# prompt			= toPrompt desc
 						# editor			= ('Map'.newMap,controls,Vertical)
 						# rep				= TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) []

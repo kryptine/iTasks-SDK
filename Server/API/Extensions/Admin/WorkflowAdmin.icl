@@ -26,7 +26,7 @@ where
 	defTask :: Task Void
 	defTask = abort "default task container"
 
-gVerify{|WorkflowTaskContainer|} _ vst = alwaysValid vst
+gVerify{|WorkflowTaskContainer|} _ um _ = alwaysValid um
 
 JSONEncode{|WorkflowTaskContainer|} c		= [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)

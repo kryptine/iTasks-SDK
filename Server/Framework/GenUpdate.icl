@@ -5,12 +5,12 @@ import SystemTypes, Text, Util
 from StdFunc import id, const, o
 from UIDefinition import :: UISize(..)
 
-:: DataPath = DataPath [Int]
+
 
 defaultValue :: a | gUpdate{|*|} a
 defaultValue = fst (gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = JSONNull, oldMask = [Untouched], newMask = [], iworld = Nothing})
 
-updateValueAndMask :: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
+updateValueAndMask :: !DataPath !JSONNode !a !InteractionMask !*IWorld -> (!a,!InteractionMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
 	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = Just iworld}
 	= (a,hd newMask,fromJust iworld)
@@ -235,62 +235,8 @@ basicSearch v toV ust=:{searchPath,currentPath,update,oldMask,newMask}
 	| otherwise
 		= (v, {ust & newMask = appendToMask newMask cm})
 
-
-//Utility functions
-dp2s :: !DataPath -> String
-dp2s (DataPath path) = join "-" (map toString (reverse path))
-
-s2dp :: !String -> DataPath
-s2dp ""		= DataPath []
-s2dp str	= DataPath (reverse (map toInt (split "-" str)))
-
-isdps :: !String -> Bool
-isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
-
-startDataPath :: DataPath
-startDataPath = DataPath [0]
-
-emptyDataPath :: DataPath
-emptyDataPath = DataPath []
-
-stepDataPath :: !DataPath -> DataPath
-stepDataPath dp=:(DataPath [])	= dp
-stepDataPath (DataPath [x:xs])	= DataPath [inc x:xs]
-
-shiftDataPath :: !DataPath -> DataPath
-shiftDataPath (DataPath path) = DataPath [0:path]
-
-childDataPath :: !DataPath !Int -> DataPath
-childDataPath (DataPath path) i = DataPath [i:path]
-
-parentDataPath :: !DataPath -> (!DataPath,!Int)
-parentDataPath (DataPath []) = (DataPath [], -1)
-parentDataPath (DataPath [i:path]) = (DataPath path, i)
-
-dataPathLevel :: !DataPath -> Int
-dataPathLevel (DataPath l) = length l
-
-instance == DataPath
-where
-	(==) (DataPath a) (DataPath b) = a == b
-
-dataPathList :: !DataPath -> [Int]
-dataPathList (DataPath list) = list
-
-dataPathFromList :: ![Int] -> DataPath
-dataPathFromList l = DataPath l
-
-// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
-// e.g. [1,0] <== [0] 
-(<==) infixr 1 :: !DataPath !DataPath -> Bool
-(<==) (DataPath pathA) (DataPath pathB) = tlEq (reverse pathA) (reverse pathB)
-where
-	tlEq _  	 []		= True
-	tlEq [] 	 _ 		= False
-	tlEq [a:as] [b:bs] 	= (a == b) && (tlEq as bs)
-
 //Masking and unmasking of fields
-toggleMask :: !JSONNode -> UpdateMask
+toggleMask :: !JSONNode -> InteractionMask
 toggleMask update = case update of
 	JSONNull	= Blanked
 	_			= PartiallyTouched []
@@ -298,39 +244,36 @@ toggleMask update = case update of
 unchanged :: !Void !a -> a
 unchanged _ v = v
 
-instance GenMask UpdateMask
+instance GenMask InteractionMask
 where
-	popMask :: ![UpdateMask] -> (!UpdateMask, ![UpdateMask])
+	popMask :: ![InteractionMask] -> (!InteractionMask, ![InteractionMask])
 	popMask []			= (Untouched, [])
 	popMask [c:cm]		= (c,cm)
 
-	appendToMask :: ![UpdateMask] !UpdateMask -> [UpdateMask]
+	appendToMask :: ![InteractionMask] !InteractionMask -> [InteractionMask]
 	appendToMask l m	= l ++ [m]
 
-	childMasks :: !UpdateMask -> [UpdateMask]
+	childMasks :: !InteractionMask -> [InteractionMask]
 	childMasks (PartiallyTouched  cm)	= cm
 	childMasks _						= []
 
-	childMasksN :: !UpdateMask !Int -> [UpdateMask]
-	childMasksN (Untouched)	n			= repeatn n Untouched
+	childMasksN :: !InteractionMask !Int -> [InteractionMask]
 	childMasksN (PartiallyTouched cm) n	= cm
-	childMasksN (Touched) n				= repeatn n Touched
-	childMasksN (TouchedWithState _) n	= repeatn n Touched
-	childMasksN (Blanked) n				= repeatn n Untouched
+	childMasksN um n					= repeatn n um
 	
-	isTouched :: !UpdateMask -> Bool
+	isTouched :: !InteractionMask -> Bool
 	isTouched  Touched					= True
 	isTouched (TouchedWithState _)		= True
 	isTouched (PartiallyTouched _)		= True
 	isTouched _							= False
 
-allUntouched :: ![UpdateMask] -> Bool
+allUntouched :: ![InteractionMask] -> Bool
 allUntouched children = and [isUntouched c \\ c <- children]
 where
 	isUntouched Untouched	= True
 	isUntouched _			= False
 
-allBlanked :: ![UpdateMask] -> Bool
+allBlanked :: ![InteractionMask] -> Bool
 allBlanked children = and [isBlanked c \\ c <- children]
 where
 	isBlanked Blanked   = True

@@ -3,7 +3,6 @@ definition module TaskState
 import SystemTypes
 
 from Task		import :: TaskTime, :: TaskResult, :: TaskRep
-from GenUpdate	import :: UpdateMask
 
 derive JSONEncode TIMeta, TIReduct, TIResult, TaskTree
 derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
@@ -41,9 +40,9 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 :: TaskTree
 	= TCInit		!TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		!TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
-	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !UpdateMask
-	| TCInteract1	!TaskId !TaskTime !JSONNode !UpdateMask
-	| TCInteract2	!TaskId !TaskTime !JSONNode !JSONNode !UpdateMask
+	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
+	| TCInteract1	!TaskId !TaskTime !JSONNode !InteractionMask
+	| TCInteract2	!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
 	| TCProject		!TaskId !JSONNode !TaskTree
 	| TCStep		!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
 	| TCParallel	!TaskId !TaskTime

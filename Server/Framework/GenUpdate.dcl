@@ -3,22 +3,13 @@ definition module GenUpdate
 import StdGeneric, Maybe, Void, Either, Store, SystemTypes
 from Map	import :: Map
 
-//Datapath is used to point to substructures of data structures
-:: DataPath
-
-:: UpdateMask = Untouched
-			  | PartiallyTouched ![UpdateMask]
-			  | Touched
-			  | TouchedWithState !JSONNode		//Some components need to keep local state that can't be encoded in the value
-			  | Blanked
-
 :: *USt =
 	{ searchPath		:: !DataPath
 	, currentPath		:: !DataPath
 	, update			:: !JSONNode
 	, consPath			:: ![ConsPos]
-	, oldMask			:: ![UpdateMask]
-	, newMask			:: ![UpdateMask]
+	, oldMask			:: ![InteractionMask]
+	, newMask			:: ![InteractionMask]
 	, iworld			:: !*Maybe IWorld
 	}
 
@@ -32,30 +23,13 @@ derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 //Wrapper functions for updating
 defaultValue			:: a																		| gUpdate{|*|} a
-updateValueAndMask  	:: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld)	| gUpdate{|*|} a
+updateValueAndMask  	:: !DataPath !JSONNode !a !InteractionMask !*IWorld -> (!a,!InteractionMask,!*IWorld)	| gUpdate{|*|} a
 
 //Utility functions for working accessing the iWorld in a USt
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
 accIWorldUSt :: !.(*IWorld -> *(!.a,!*IWorld))!*USt -> (!.a,!*USt)
 
-//Utility functions for dealing with DataPath values
-startDataPath			:: DataPath			//Path initialized at position "0"
-emptyDataPath			:: DataPath			//Path initialized empty
-stepDataPath			:: !DataPath		-> DataPath
-shiftDataPath			:: !DataPath		-> DataPath
-childDataPath			:: !DataPath !Int	-> DataPath
-parentDataPath			:: !DataPath		-> (!DataPath,!Int)
-dataPathLevel			:: !DataPath		-> Int
-dataPathList 			:: !DataPath 		-> [Int]
-dataPathFromList		:: ![Int]			-> DataPath
 
-dp2s			:: !DataPath			-> String
-s2dp			:: !String				-> DataPath
-isdps			:: !String				-> Bool
-
-// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
-// e.g. [1,0] <== [0] 
-(<==) infixr 1 :: !DataPath !DataPath -> Bool
 
 class GenMask m
 where
@@ -65,8 +39,7 @@ where
 	childMasksN			:: !m !Int -> [m]
 	isTouched			:: !m -> Bool
 
-instance == DataPath
-instance GenMask UpdateMask
+instance GenMask InteractionMask
 
 // utility functions for custom gUpdate definitions
 

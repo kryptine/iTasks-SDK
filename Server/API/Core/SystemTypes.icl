@@ -37,7 +37,7 @@ where
 
 gUpdate{|URL|} mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
 
-gVerify{|URL|} _ vst = simpleVerify "Enter a uniform resource locator (URL)" vst
+gVerify{|URL|} _ um options = simpleVerify "Enter a uniform resource locator (URL)" um options
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -81,7 +81,7 @@ where
 
 gUpdate{|Note|} mode ust = basicUpdateSimple mode (Note "") ust
 
-gVerify{|Note|} _ vst = simpleVerify "Enter a long text" vst
+gVerify{|Note|} _ um options = simpleVerify "Enter a long text" um options
 
 derive gEq				Note
 derive gHeaders			Note
@@ -126,7 +126,7 @@ where
 	codeUpd (JSONString s) _	= CleanCode s
 	codeUpd _ old				= old			
 
-gVerify{|CleanCode|} _ vst = simpleVerify "Enter a piece of Clean code" vst
+gVerify{|CleanCode|} _ um options = simpleVerify "Enter a piece of Clean code" um options
 
 derive gEq			CleanCode
 derive gHeaders		CleanCode
@@ -149,7 +149,7 @@ where
 
 gUpdate{|EUR|} mode ust = basicUpdateSimple mode (EUR 0) ust
 
-gVerify{|EUR|} _ vst = simpleVerify "Enter an amount in EUR" vst
+gVerify{|EUR|} _ um options = simpleVerify "Enter an amount in EUR" um options
 
 instance toString EUR
 where
@@ -190,7 +190,7 @@ where
 
 gUpdate{|USD|} mode ust = basicUpdateSimple mode (USD 0) ust
 
-gVerify{|USD|} _ vst = simpleVerify "Enter an amount in USD" vst
+gVerify{|USD|} _ um options = simpleVerify "Enter an amount in USD" um options
 
 instance toString USD
 where
@@ -245,7 +245,7 @@ where
 gUpdate{|Date|} UDCreate ust = basicCreate {day = 1, mon = 1, year = 1970} ust
 gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\json old -> fromMaybe old (fromJSON json)) ust
 
-gVerify{|Date|} _ vst = simpleVerify "Enter a date" vst
+gVerify{|Date|} _ um options = simpleVerify "Enter a date" um options
 
 derive gEq			Date
 derive gHeaders		Date
@@ -325,7 +325,7 @@ where
 gUpdate{|Time|} UDCreate ust = basicCreate {hour = 0, min = 0, sec = 0} ust
 gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\json old -> fromMaybe old (fromJSON json)) ust
 
-gVerify{|Time|} _ vst = simpleVerify "Enter a time of day" vst
+gVerify{|Time|} _ um options = simpleVerify "Enter a time of day" um options
 
 derive gEq			Time
 derive gHeaders		Time
@@ -455,7 +455,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
-gVerify{|Document|} _ vst = simpleVerify "Upload a document" vst
+gVerify{|Document|} _ um options = simpleVerify "Upload a document" um options
 
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -486,7 +486,7 @@ where
 
 gUpdate{|Username|} mode ust = basicUpdateSimple mode (Username "") ust
 
-gVerify{|Username|} _ vst = simpleVerify "Enter a username" vst
+gVerify{|Username|} _ um options = simpleVerify "Enter a username" um options
 
 derive gEq				Username
 derive gVisualizeText	Username
@@ -521,7 +521,7 @@ where
 
 gUpdate{|Password|} mode ust = basicUpdateSimple mode (Password "") ust
 
-gVerify{|Password|} _ vst = simpleVerify "Enter a password" vst
+gVerify{|Password|} _ um options = simpleVerify "Enter a password" um options
 
 derive gEq				Password
 derive gHeaders			Password
@@ -673,7 +673,7 @@ where
 		, draggable			= True
 		}
 
-gVerify{|GoogleMap|} _ vst = alwaysValid vst
+gVerify{|GoogleMap|} _ um _ = alwaysValid um
 
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
@@ -705,7 +705,7 @@ where
 gUpdate{|Scale|} mode ust
 	= basicUpdate mode (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) {Scale|min=1,cur=3,max=5} ust
 
-gVerify{|Scale|} _ vst = alwaysValid vst
+gVerify{|Scale|} _ um _ = alwaysValid um
 
 gHeaders{|Scale|} _	= [""]
 gGridRows{|Scale|} _ _ = Nothing
@@ -730,7 +730,7 @@ where
 gUpdate{|Progress|}	mode ust
 	= noUpdate mode {Progress|progress=ProgressUndetermined, description = ""} ust
 
-gVerify{|Progress|} _ vst = alwaysValid vst
+gVerify{|Progress|} _ um _ = alwaysValid um
 
 gHeaders{|Progress|} _		= [""]
 gGridRows{|Progress|} _ _	= Nothing
@@ -754,7 +754,7 @@ where
 
 gUpdate{|HtmlInclude|} mode ust = noUpdate mode (HtmlInclude "") ust
 
-gVerify{|HtmlInclude|} _ vst = alwaysValid vst
+gVerify{|HtmlInclude|} _ um _ = alwaysValid um
 
 derive gHeaders HtmlInclude
 derive gGridRows HtmlInclude
@@ -772,7 +772,7 @@ where
 gUpdate{|FormButton|} mode ust
 	= basicUpdate mode (\st b -> {FormButton|b & state = st}) {FormButton | label = "Form Button", icon="", state = NotPressed} ust
 
-gVerify{|FormButton|} _ vst = alwaysValid vst
+gVerify{|FormButton|} _ um _ = alwaysValid um
 
 derive gHeaders FormButton
 derive gGridRows FormButton
@@ -816,7 +816,7 @@ where
 gUpdate{|Table|} mode ust
 	= basicUpdate mode (\json (Table headers cells _) -> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) (Table [] [] Nothing) ust
 
-gVerify{|Table|} _ vst = alwaysValid vst
+gVerify{|Table|} _ um _ = alwaysValid um
 
 derive gHeaders Table
 derive gGridRows Table
@@ -873,7 +873,7 @@ where
 
 gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options idx) (ComboChoice [] Nothing) ust	
 
-gVerify{|ComboChoice|} _ _		v vst = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v vst
+gVerify{|ComboChoice|} _ _ v um options = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v um options
 
 instance Choice ComboChoice
 where
@@ -901,7 +901,7 @@ where
 
 gUpdate{|ComboChoiceNoView|} _	mode ust = updateChoice mode (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) (ComboChoiceNoView [] Nothing) ust
 
-gVerify{|ComboChoiceNoView|} _	v vst = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v vst
+gVerify{|ComboChoiceNoView|} _	v um options = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v um options
 
 instance ChoiceNoView ComboChoiceNoView
 where
@@ -929,7 +929,7 @@ where
 gUpdate{|RadioChoice|} _ _ mode ust
 	= updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options idx) (RadioChoice [] Nothing) ust
 
-gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+gVerify{|RadioChoice|} _ _		_ um options = simpleVerify "Choose one item" um options
 
 instance Choice RadioChoice
 where
@@ -958,7 +958,7 @@ where
 gUpdate{|RadioChoiceNoView|} _	mode ust
 	= updateChoice mode (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) (RadioChoiceNoView [] Nothing) ust
 
-gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
+gVerify{|RadioChoiceNoView|} _	_ um options = simpleVerify "Choose one item" um options
 
 instance ChoiceNoView RadioChoiceNoView
 where
@@ -1011,7 +1011,7 @@ gUpdate{|TreeChoice|} _ _		(UDSearch (TreeChoice options sel)) ust=:{searchPath,
 	| otherwise
 		= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
 
-gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" vst
+gVerify{|TreeChoice|} _ _		_ um options = simpleVerify "Choose an element of the tree" um options
 
 instance Choice TreeChoice
 where
@@ -1048,7 +1048,7 @@ where
 	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
 	update _					treechoice							= treechoice
 
-gVerify{|TreeChoiceNoView|} _	_ vst = simpleVerify "Choose an element of the tree" vst
+gVerify{|TreeChoiceNoView|} _	_ um options = simpleVerify "Choose an element of the tree" um options
 	
 instance ChoiceNoView TreeChoiceNoView
 where
@@ -1073,7 +1073,7 @@ where
 gUpdate{|GridChoice|} _ _ mode ust
 	= updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
 
-gVerify{|GridChoice|} _ _ _ vst = alwaysValid vst
+gVerify{|GridChoice|} _ _ _ um _ = alwaysValid um
 
 instance Choice GridChoice
 where
@@ -1099,7 +1099,7 @@ where
 gUpdate{|GridChoiceNoView|} _ mode ust
 	= updateChoice mode (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) (GridChoiceNoView [] Nothing) ust
 
-gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
+gVerify{|GridChoiceNoView|} _	_ um _ = alwaysValid um
 	
 instance ChoiceNoView GridChoiceNoView
 where
@@ -1129,11 +1129,11 @@ gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCTree val))		ust = appFst DCTree (gUp
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCGrid val))		ust = appFst DCGrid (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	UDCreate 					ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy UDCreate ust)
 
-gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
-gVerify{|DynamicChoice|} fx fy	Nothing vst = alwaysValid vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
+gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
+gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
+gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
+gVerify{|DynamicChoice|} fx fy	Nothing um options = alwaysValid um
 	
 instance Choice DynamicChoice
 where
@@ -1179,11 +1179,11 @@ gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCTreeNoView val)) 	ust = appFst DC
 gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCGridNoView val)) 	ust = appFst DCGridNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
 gUpdate{|DynamicChoiceNoView|} fx UDCreate	 						ust = appFst DCRadioNoView (gUpdate{|*->*|} fx UDCreate ust)
 
-gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx (Just (DCTreeNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx (Just (DCGridNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
-gVerify{|DynamicChoiceNoView|} fx Nothing vst = alwaysValid vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
+gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
+gVerify{|DynamicChoiceNoView|} fx (Just (DCTreeNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
+gVerify{|DynamicChoiceNoView|} fx (Just (DCGridNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
+gVerify{|DynamicChoiceNoView|} fx Nothing um options = alwaysValid um
 	
 instance ChoiceNoView DynamicChoiceNoView
 where
@@ -1226,7 +1226,7 @@ where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
 
-gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
+gVerify{|CheckMultiChoice|} _ _	_ um options = simpleVerify "Choose a number of items" um options
 	
 instance MultiChoice CheckMultiChoice
 where
@@ -1328,11 +1328,11 @@ gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHEditable s))			ust = wrapper
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHDisplay s))			ust = wrapperUpdate fx mode fromVisualizationHint VHDisplay ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHHidden s))			ust = wrapperUpdate fx mode fromVisualizationHint VHHidden ust
 
-gVerify{|VisualizationHint|}	fx v vst	= case v of
-	Just (VHEditable e)	= verifyEditable fx (Just e) vst
-	Just (VHDisplay d)	= verifyDisplay fx (Just d) vst
-	Just (VHHidden _)	= verifyHidden vst
-	_					= vst
+gVerify{|VisualizationHint|}	fx v um options = case v of
+	Just (VHEditable e)	= verifyEditable fx (Just e) um options
+	Just (VHDisplay d)	= verifyDisplay fx (Just d) um options
+	Just (VHHidden _)	= verifyHidden um
+	_					= ([],um)
 			
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
@@ -1350,7 +1350,7 @@ gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
 
 gUpdate{|Hidden|} fx mode ust = wrapperUpdate fx mode fromHidden Hidden ust
 
-gVerify{|Hidden|} _ _ vst = verifyHidden vst
+gVerify{|Hidden|} _ _ um options = verifyHidden um
 
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x
@@ -1366,7 +1366,7 @@ gVisualizeEditor{|Display|} fx _ _ _ val vst=:{VSt|currentPath,disabled}
 
 gUpdate{|Display|} fx mode ust = wrapperUpdate fx mode fromDisplay Display ust
 
-gVerify{|Display|} fx d vst = verifyDisplay fx (fmap fromDisplay d) vst
+gVerify{|Display|} fx d um options = verifyDisplay fx (fmap fromDisplay d) um options
 
 fromDisplay :: !(Display .a) -> .a
 fromDisplay (Display a) = a
@@ -1382,7 +1382,7 @@ gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{VSt|currentPath, disabled}
 
 gUpdate{|Editable|} fx mode ust = wrapperUpdate fx mode fromEditable Editable ust
 
-gVerify{|Editable|} fx e vst = verifyEditable fx (fmap fromEditable e) vst
+gVerify{|Editable|} fx e um options = verifyEditable fx (fmap fromEditable e) um options
 
 fromEditable :: !(Editable .a) -> .a
 fromEditable (Editable a) = a
@@ -1399,9 +1399,9 @@ wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
 		= (cons w,{USt|ust & currentPath = stepDataPath currentPath})
 		
 //Utility for gVerify	
-verifyEditable	fx e vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx e {vst & staticDisplay = False})
-verifyDisplay	fx d vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
-verifyHidden	vst=:{verifyMask,updateMask}	= {vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), updateMask = snd (popMask updateMask)}
+verifyEditable fx e um options = fx e um {VerifyOptions|options & disabled = False}
+verifyDisplay fx d um options = fx d um {VerifyOptions|options & disabled = True}
+verifyHidden um = ([VMValid Nothing []],um)
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
@@ -1457,11 +1457,66 @@ where
 	toString (TopLevelTaskList)					= "tasklist-top"
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 
+derive JSONEncode InteractionMask
+derive JSONDecode InteractionMask
+//Utility functions
+dp2s :: !DataPath -> String
+dp2s (DataPath path) = join "-" (map toString (reverse path))
+
+s2dp :: !String -> DataPath
+s2dp ""		= DataPath []
+s2dp str	= DataPath (reverse (map toInt (split "-" str)))
+
+isdps :: !String -> Bool
+isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
+
+startDataPath :: DataPath
+startDataPath = DataPath [0]
+
+emptyDataPath :: DataPath
+emptyDataPath = DataPath []
+
+stepDataPath :: !DataPath -> DataPath
+stepDataPath dp=:(DataPath [])	= dp
+stepDataPath (DataPath [x:xs])	= DataPath [inc x:xs]
+
+shiftDataPath :: !DataPath -> DataPath
+shiftDataPath (DataPath path) = DataPath [0:path]
+
+childDataPath :: !DataPath !Int -> DataPath
+childDataPath (DataPath path) i = DataPath [i:path]
+
+parentDataPath :: !DataPath -> (!DataPath,!Int)
+parentDataPath (DataPath []) = (DataPath [], -1)
+parentDataPath (DataPath [i:path]) = (DataPath path, i)
+
+dataPathLevel :: !DataPath -> Int
+dataPathLevel (DataPath l) = length l
+
+instance == DataPath
+where
+	(==) (DataPath a) (DataPath b) = a == b
+
+dataPathList :: !DataPath -> [Int]
+dataPathList (DataPath list) = list
+
+dataPathFromList :: ![Int] -> DataPath
+dataPathFromList l = DataPath l
+
+// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
+// e.g. [1,0] <== [0] 
+(<==) infixr 1 :: !DataPath !DataPath -> Bool
+(<==) (DataPath pathA) (DataPath pathB) = tlEq (reverse pathA) (reverse pathB)
+where
+	tlEq _  	 []		= True
+	tlEq [] 	 _ 		= False
+	tlEq [a:as] [b:bs] 	= (a == b) && (tlEq as bs)
+
 gVisualizeText{|User|} _ val = [toString val]
 
 gUpdate{|User|} mode ust = basicUpdateSimple mode (AnonymousUser "") ust
 
-gVerify{|User|} _ vst = simpleVerify "Select a username" vst 
+gVerify{|User|} _ um options = simpleVerify "Select a username" um options 
 
 instance toString User
 where
