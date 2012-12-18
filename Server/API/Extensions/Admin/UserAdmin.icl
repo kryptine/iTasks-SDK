@@ -71,9 +71,8 @@ createUser account
 			= throw ("A user with username '" +++ toString account.UserAccount.credentials.Credentials.username +++ "' already exists.")
 
 deleteUser :: !UserId -> Task Void
-deleteUser userId = update (filter (exclude userId)) userAccounts @ const Void
-where
-	exclude user d	= identifyUserAccount d == userId 
+deleteUser userId = update (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @ const Void
+
 
 manageUsers :: Task Void
 manageUsers =
