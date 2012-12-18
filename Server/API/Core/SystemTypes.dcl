@@ -12,7 +12,7 @@ from IWorld				import :: IWorld
 from UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from LayoutCombinators	import :: Layout
 from Task				import :: Task, :: TaskId
-from iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, :: USt, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 //****************************************************************************//
@@ -103,6 +103,7 @@ instance <				Username, Password
 
 derive JSONEncode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
 derive JSONDecode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gDefault			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
 derive gVisualizeText	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
@@ -163,6 +164,7 @@ instance toString	FileException, ParseException, CallException, SharedException,
 
 derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+derive gDefault			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
@@ -219,6 +221,7 @@ instance Functor Tree
 
 derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gVisualizeEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
@@ -261,6 +264,8 @@ derive JSONEncode		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoVie
 derive JSONEncode		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive JSONDecode		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
 derive JSONDecode		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice 
+derive gDefault			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gDefault			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gEq				ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
 derive gEq				DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gVisualizeText	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
@@ -355,6 +360,7 @@ toHidden				:: !.a -> Hidden .a
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
+derive gDefault			Hidden, Display, Editable, VisualizationHint
 derive gEq				Hidden, Display, Editable, VisualizationHint
 derive gVisualizeText	Hidden, Display, Editable, VisualizationHint
 derive gVisualizeEditor	Hidden, Display, Editable, VisualizationHint
@@ -566,8 +572,9 @@ actionIcon 	:: !Action -> String
 
 derive JSONEncode		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive JSONDecode		TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gEq				TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action 
-		
+derive gDefault			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action 
+derive gEq				TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action 		
+
 derive gVisualizeText	TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gVisualizeEditor	TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
 derive gHeaders			TaskValue, Stability, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action

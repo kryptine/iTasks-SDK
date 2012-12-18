@@ -23,7 +23,7 @@ copyRecord :: !a !b -> b | GenRecord a & GenRecord b
 * @param The record to be mapped
 * @return The resulting record of another type
 */
-mapRecord :: !a -> b | GenRecord a & GenRecord, gUpdate{|*|} b
+mapRecord :: !a -> b | GenRecord a & GenRecord, gDefault{|*|} b
 
 class GenRecord r
 	| gGetRecordFields{|*|}

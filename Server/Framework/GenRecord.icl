@@ -8,7 +8,7 @@ copyRecord src dst
 	# srcFields = gGetRecordFields{|*|} src [] newMap
 	= fst (gPutRecordFields{|*|} dst [] srcFields)
 	
-mapRecord :: !a -> b | GenRecord a & GenRecord, gUpdate{|*|} b
+mapRecord :: !a -> b | GenRecord a & GenRecord, gDefault{|*|} b
 mapRecord rec
 	# fields = gGetRecordFields{|*|} rec [] newMap
 	= fst (gPutRecordFields{|*|} defaultValue [] fields)

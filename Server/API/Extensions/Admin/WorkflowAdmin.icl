@@ -7,31 +7,19 @@ from Util import mb2list, kvGet
 from Map import qualified newMap
 
 // SPECIALIZATIONS
-derive gVisualizeText	Workflow
-derive gVisualizeEditor	Workflow
-derive gHeaders			Workflow
-derive gGridRows		Workflow
-derive gUpdate 			Workflow
-derive gVerify			Workflow
-derive JSONEncode		Workflow
-derive JSONDecode		Workflow
-derive gEq				Workflow
+derive class iTask Workflow
 
 gVisualizeText{|WorkflowTaskContainer|} _ _	= []
 gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
-gHeaders{|WorkflowTaskContainer|} _ = ["Workflow task container"]
-gGridRows{|WorkflowTaskContainer|} _ _ = Nothing
-gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode (\Void x -> x) (WorkflowTask defTask) ust
-where
-	defTask :: Task Void
-	defTask = abort "default task container"
-
-gVerify{|WorkflowTaskContainer|} _ um _ = alwaysValid um
-
+gHeaders{|WorkflowTaskContainer|} _ 		= ["Workflow task container"]
+gGridRows{|WorkflowTaskContainer|} _ _ 		= Nothing
+gUpdate{|WorkflowTaskContainer|} val ust	= basicUpdate val (\Void x -> x) ust
+gVerify{|WorkflowTaskContainer|} _ um _ 	= alwaysValid um
 JSONEncode{|WorkflowTaskContainer|} c		= [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} r		= (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _			= True
+gDefault{|WorkflowTaskContainer|} _			= WorkflowTask (return Void)
 
 // SHARES
 // Available workflows

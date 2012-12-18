@@ -15,16 +15,19 @@ import iTasks
 :: WorkflowTaskContainer
 	= E.a:		WorkflowTask		(Task a)		& iTask a
 	| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
-				
-derive gVisualizeText	Workflow, WorkflowTaskContainer
-derive gVisualizeEditor	Workflow, WorkflowTaskContainer
-derive gHeaders			Workflow, WorkflowTaskContainer
-derive gGridRows		Workflow, WorkflowTaskContainer
-derive gUpdate			Workflow, WorkflowTaskContainer
-derive gVerify			Workflow, WorkflowTaskContainer
-derive JSONEncode		Workflow, WorkflowTaskContainer
-derive JSONDecode		Workflow, WorkflowTaskContainer
-derive gEq				Workflow, WorkflowTaskContainer
+
+derive class iTask Workflow
+		
+derive gVisualizeText	WorkflowTaskContainer
+derive gVisualizeEditor	WorkflowTaskContainer
+derive gHeaders			WorkflowTaskContainer
+derive gGridRows		WorkflowTaskContainer
+derive gUpdate			WorkflowTaskContainer
+derive gVerify			WorkflowTaskContainer
+derive JSONEncode		WorkflowTaskContainer
+derive JSONDecode		WorkflowTaskContainer
+derive gDefault			WorkflowTaskContainer
+derive gEq				WorkflowTaskContainer
 
 // Available workflows
 :: WorkflowFolderLabel :== String

@@ -38,14 +38,8 @@ JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
 
-gUpdate{|Task|} fx UDCreate ust
-	# (a,ust) = fx UDCreate ust
-	= basicCreate (defaultTask a) ust
-where
-	defaultTask a	= Task (\_ -> abort funerror)
-	funerror		= "Creating default task functions is impossible"
 	
-gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
+gUpdate{|Task|} _ _ t ust = basicUpdate t (\Void t -> t) ust
 
 gVerify{|Task|} _ _ um _ = alwaysValid um
 
@@ -56,6 +50,10 @@ gHeaders{|Task|} _ _ = ["Task"]
 gGridRows{|Task|} _ _ _ _	= Nothing	
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
+gDefault{|Task|} gDefx _ = Task (\_ -> abort error)
+where
+	error = "Creating default task functions is impossible"
+	
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 

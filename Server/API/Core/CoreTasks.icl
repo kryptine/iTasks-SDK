@@ -307,7 +307,7 @@ matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iwor
 				Nothing	= (v,mask,ts,iworld)
 				Just nv	= (nv,Touched,taskTime,iworld)
 		| otherwise
-			# (nv,nmask,iworld)	= updateValueAndMask dp value v mask iworld
+			# (nv,nmask)	= updateValueAndMask dp value (v,mask)
 			= (nv,nmask,taskTime,iworld)
 	| otherwise	= (v,mask,ts,iworld)
 matchAndApplyEvent (FocusEvent taskId) matchId taskTime v mask ts iworld

@@ -8,6 +8,7 @@ class iTask a
 	, gVisualizeText{|*|}
 	, gHeaders{|*|}
 	, gGridRows{|*|}
+	, gDefault{|*|}
 	, gUpdate{|*|}
 	, gVerify{|*|}
 	, JSONEncode{|*|}
