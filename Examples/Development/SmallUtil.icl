@@ -8,9 +8,8 @@ import iTasks
 actionTask :: Task Void
 actionTask = viewInformation Void [] Void
 
-launch :: (Task a) (ReadWriteShared (TaskList a) Void) -> Task Void | iTask a
-launch task ts = appendTask Embedded (const task) ts @ const Void
-
+launch :: (Task a) (ReadWriteShared (TaskList a) Void) -> Task TaskId | iTask a
+launch task ts = appendTask Embedded (const task) ts 
 // tiny util
 
 always :: (a -> Bool)

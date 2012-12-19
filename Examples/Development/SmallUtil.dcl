@@ -7,7 +7,9 @@ definition module SmallUtil
 import iTasks
 
 actionTask 	:: Task Void																// does nothing, to be followed by >>*
-launch 		:: (Task a) (ReadWriteShared (TaskList a) Void) -> Task Void | iTask a		// launch simple parallel task
+launch 		:: (Task a) (ReadWriteShared (TaskList a) Void) -> Task TaskId | iTask a		// launch simple parallel task
+
+constVoid task :== \_ ->  task @ const Void
 
 // simple tests on task values
 
