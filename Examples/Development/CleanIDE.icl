@@ -23,6 +23,8 @@ Start world = startEngine start_ide world
 - creation of a window not always possible
 - a project file newly created contains something which the other applications do not like (comparrison needed)
 - global title not implemented
+- strange: sometimes lines are doubled when opening files
+- more strange: a search returns the next line ???
 */
 
 start_ide :: Task Void
@@ -40,15 +42,17 @@ where
 		=				get_IDE_State											// read state as left from previous session, if any
 		>>= \state -> 	init state												// initiate state 								
 	where
-		init state =:{projectName = ""	}											// no project set
-			=				currentDirectory										// determine directory of this CleanEditor
-		//	>>= \dir ->		set_Project  "" dir										// BUG: currentDirectory does not return dir						
-			>>= \dir ->		set_new_Project initialPath	""						// Fix: hardwired path
-			>>|				readEnvironmentFile (cleanPath +++ "\\" +++ EnvsFileName) 	// read environment file used for communication with BatchBuild	
-			>>= \env ->		setEnvironments env										// store settings in projectget_IDE_State											// read state as left from previous session, if any
-			>>|				findAllModulesInPaths "icl" cleanPath (env!!0).target_path // find all modules in chosen environment
-			>>= \all ->		setAllFilesInEnv all									// and store
+		init state =:{projectName = ""	}															// no project set initially
+			=				currentDirectory														// determine directory of this CleanEditor
+			>>= \dir ->		set_Project dir	(cleanPath dir) "" (initProject "") 					// store info in state
+			>>|				readEnvironmentFile (cleanPath dir +++ "\\" +++ EnvsFileName) 			// read environment file used for communication with BatchBuild	
+			>>= \env ->		setEnvironments env														// store settings in projectget_IDE_State											// read state as left from previous session, if any
+			>>|				findAllModulesInPaths "icl" (cleanPath dir) (env!!0).target_path 		// find all modules in chosen environment
+			>>= \all ->		setAllFilesInEnv all													// and store in state
 		init _ = return Void
+
+		cleanPath dir = subString 0 (indexOf "iTasks-SDK" dir) dir
+
 // top menu
 
 topMenu :: !(ReadOnlyShared (TaskList Void)) -> Task Void
@@ -124,8 +128,8 @@ where
 
 	recalculate
 		=				get_IDE_State
-		>>= \state ->	findAllModulesInPaths "icl" cleanPath [! idePath:(state.envTargets!!state.idx).target_path !] 	// find all modules in environment
-		>>= \allM ->	findAllModulesInProject cleanPath (idePath,state.projectName) allM								// determine which one are used
+		>>= \state ->	findAllModulesInPaths "icl" state.cleanPath [! idePath:(state.envTargets!!state.idx).target_path !] 	// find all modules in environment
+		>>= \allM ->	findAllModulesInProject state.cleanPath (idePath,state.projectName) allM								// determine which one are used
 		>>= \all ->		setAllFilesInEnv all																			// and store in global state
 		>>|				projectPane ts
 
@@ -194,10 +198,11 @@ where
 			openSelected :: !ModuleName !String !(ReadOnlyShared (TaskList Void)) -> Task Void
 			openSelected chosen extension ts
 				=				get_IDE_State
-				>>= \state ->	launchEditorAndAdministrate (selectFrom state.allFilesInEnv) ts   
+				>>= \state ->	launchEditorAndAdministrate (selectFrom state.cleanPath state.allFilesInEnv) ts   
 			where
-				selectFrom :: ![(!DirPathName,![Module])] -> FileName
-				selectFrom dirFiles = cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen (map (\{moduleName} -> moduleName) files)] +++ "\\" +++ chosen +++ extension
+				selectFrom :: !CleanPath ![(!DirPathName,![Module])] -> FileName
+				selectFrom cleanPath dirFiles 
+					= cleanPath +++ hd [dir \\ (dir,files) <- dirFiles | isMember chosen (map (\{moduleName} -> moduleName) files)] +++ "\\" +++ chosen +++ extension
 		
 			onlyJust (Value (Just v) s) = Value v s
 			onlyJust _					= NoValue
@@ -209,7 +214,7 @@ where
 compilerMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
 compilerMessages _ 
 	= 				get_IDE_State
-	>>= \state ->	let sharedError = externalFile errorFile in
+	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
 					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
 					@ const Void 
 
@@ -253,7 +258,8 @@ where
 				   ]	
 		where
 			openFileSelected sel 
-				= launchEditorAndAdministrate (cleanPath +++ sel.FoundTable.directory +++ "\\" +++ sel.file) ts 
+				= 				get_IDE_State
+				>>= \state ->	launchEditorAndAdministrate (state.cleanPath +++ sel.FoundTable.directory +++ "\\" +++ sel.file) ts 
 			handleNext
 				= handleFound (if (i+1 < length table) (i+1) i) table
 
@@ -281,38 +287,40 @@ where
 		moduleOptionsView NotUsed				= "Search in unused Modules"
 
 		performSearch (identifier,(searchOption,moduleOptions))
-			=	searchFor [] [(path, moduleName) 	\\ (path,modules) <- state.allFilesInEnv
-													, {moduleName,isUsed} <- modules
-													| case (moduleOptions,isUsed) of
-														(InProject,True)  -> True
-														(NotUsed,False)   -> True 
-														(InEnvironment,_) -> True
-														_ -> False] 
+			=				get_IDE_State
+			>>= \state ->	searchFor state.cleanPath [] [(path, moduleName) 	\\ (path,modules) <- state.allFilesInEnv
+																				, {moduleName,isUsed} <- modules
+																				| case (moduleOptions,isUsed) of
+																					(InProject,True)  -> True
+																					(NotUsed,False)   -> True 
+																					(InEnvironment,_) -> True
+																					_ -> False
+														 ] 
 		where
 			searchFor = case searchOption of
 							SearchDefinition 		-> searchDefinition ".dcl"
 							SearchImplementation	-> searchDefinition ".icl"
 							SearchIdentifier		-> searchIdentifier 
 
-			searchDefinition suffix found [] =  searching state identifier searchOption moduleOptions found
-			searchDefinition suffix found [(p,f):fs]
+			searchDefinition suffix cleanPath found [] =  searching state identifier searchOption moduleOptions found
+			searchDefinition suffix cleanPath found [(p,f):fs]
 				# fileName = f +++ suffix
 				=				findDefinition identifier (cleanPath +++ p +++ "\\" +++ fileName)
 				>>= \list ->	case list of
-									PosNil ->	searchDefinition suffix found fs 
-									list -> 	searchDefinition suffix [((p,fileName),list):found] fs 
+									PosNil ->	searchDefinition suffix cleanPath found fs 
+									list -> 	searchDefinition suffix cleanPath [((p,fileName),list):found] fs 
 					
-			searchIdentifier found [] =  searching state identifier searchOption moduleOptions found
-			searchIdentifier found [(p,f):fs]
+			searchIdentifier cleanPath found [] =  searching state identifier searchOption moduleOptions found
+			searchIdentifier cleanPath found [(p,f):fs]
 				# defFile = f +++ ".dcl" 
 				# impFile = f +++ ".icl"
 				=				findIdentifier identifier (cleanPath +++ p +++ "\\" +++ defFile)
 				>>= \dList ->	findIdentifier identifier (cleanPath +++ p +++ "\\" +++ impFile)
 				>>= \iList ->	case (dList,iList) of
-									(PosNil,PosNil) ->	searchIdentifier found fs 
-									(PosNil,iList)  -> 	searchIdentifier [((p,impFile),iList):found] fs 
-									(dList,PosNil)  -> 	searchIdentifier [((p,defFile),dList):found] fs 
-									(dList,iList)   -> 	searchIdentifier [((p,defFile),dList),((p,impFile),iList):found] fs 
+									(PosNil,PosNil) ->	searchIdentifier cleanPath found fs 
+									(PosNil,iList)  -> 	searchIdentifier cleanPath [((p,impFile),iList):found] fs 
+									(dList,PosNil)  -> 	searchIdentifier cleanPath [((p,defFile),dList):found] fs 
+									(dList,iList)   -> 	searchIdentifier cleanPath [((p,defFile),dList),((p,impFile),iList):found] fs 
 
 // opening and storing projects... 
 
@@ -320,18 +328,20 @@ newProject :: Task Void
 newProject 
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction (Action "Set") hasValue (\v -> storeNewProject (getValue v) initialPath)
+					, OnAction (Action "Set") hasValue (storeNewProject o getValue)
 					]
 where
-	storeNewProject "" _
+	storeNewProject "" 
 		=				return Void 
-	storeNewProject projectName projectPath 
-		=				set_new_Project projectPath projectName  
+	storeNewProject projectName  
+		=				get_IDE_State
+		>>= \state ->	set_Project state.projectPath state.cleanPath projectName (initProject projectName)
+		>>|				storeProject
 
 storeProject :: Task Void
 storeProject  
 	= 				get_IDE_State
-	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ "\\" +++ state.projectName +++ ".prj") state.cleanPath 
+	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ state.projectName +++ ".prj") state.cleanPath 
 	>>= \ok ->		if (not ok)	(showError "Could not store project file !" Void) (return Void)
 						
 	
@@ -350,7 +360,7 @@ reopenProject projectName
 	>>= \state ->					readProjectFile (state.projectPath +++ projectName +++ ".prj") state.cleanPath 
 	>>= \(project,ok,message) ->	if (not ok)
 										(showError "Read Error..."  message  @ const Void)
-										(open_Project state.projectPath projectName project)
+										(set_Project state.projectPath state.cleanPath projectName project )
 where
 	name = dropExtension projectName
 
@@ -434,7 +444,7 @@ where
 	compile` state
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
-			>>|			callProcess "Clean Compiler - BatchBuild" [] batchBuild [state.projectPath +++ projectName +++ ".prj"] 
+			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"] 
 						-&&-
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
 			

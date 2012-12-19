@@ -4,17 +4,11 @@ definition module IDE_State
 */
 
 // Attention:
-// Currently it is assumed the you have a copy of BatchBuild.exe and a copy of the IDEEnvs file (from Config) in the original Clean IDE Application directory
-// cleanpath pointing to batchBuild.exe currently has to set by hand !!!
-
-//cleanPath 		:== "C:\\Users\\bas\\Desktop\\Clean\\" 
-//cleanPath 			:== "C:\\Users\\marinu\\Desktop\\Clean_2.2\\"
-cleanPath 		:== "C:\\Users\\rinus\\Work\\Clean_2.2\\"
+// YOU NEED TO HAVE A COPY OF BatchBuild.exe AND A COPY OF IDEEnvs file (from Config) in the original Clean IDE Application directory
 
 idePath				:== "iTasks-SDK\\Examples\\Development\\"
-batchBuild			:== cleanPath +++ "BatchBuild.exe"
-errorFile			:== cleanPath +++ "Temp\\errors"
-initialPath 		:== cleanPath +++ idePath
+batchBuild			:== "BatchBuild.exe"
+errorFile			:== "Temp\\errors"
 IDE_State_fileName 	:== "IDE_State"
 
 // Here follows some type synonyms for Strings, used to make clear what exactly is wanted...
@@ -62,8 +56,7 @@ update_IDE_State 	:: !(IDE_State -> IDE_State) -> Task !Void
 
 watch_IDE_State 	:: !(IDE_State -> Bool) !(Task a) -> Task a | iTask a
 
-set_new_Project 	:: !ProjectPath !ModuleName				-> Task Void
-open_Project 		:: !ProjectPath !ModuleName !Project	-> Task Void
+set_Project 		:: !ProjectPath !CleanPath !ModuleName !Project	-> Task Void
 	
 update_Project 		:: !Project -> Task Void
 

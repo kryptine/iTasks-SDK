@@ -14,9 +14,9 @@ derive class iTask IDE_State, Module, ModuleOptions, SearchOptions
 init_IDE_State :: IDE_State			
 init_IDE_State
 	= 	{ projectName		= ""
-		, projectPath 		= initialPath
+		, projectPath 		= ""
 		, projectSettings	= PR_InitProject
-		, cleanPath			= cleanPath 
+		, cleanPath			= "" 
 		, openedFiles		= []
 		, recentFiles 		= []
 		, recentProjects	= []
@@ -41,17 +41,16 @@ watch_IDE_State pred task = watch IDE_State >>* [OnValue (pred o getValue) (cons
 
 // updating the global IDE_State
 
-set_new_Project :: !ProjectPath !ModuleName -> Task Void
-set_new_Project projectPath moduleName
-	=						open_Project projectPath moduleName (initProject moduleName) 
-
-open_Project ::  !ProjectPath !ModuleName !Project -> Task Void
-open_Project  projectPath projectName project
+set_Project ::  !ProjectPath !CleanPath !ModuleName !Project -> Task Void
+set_Project  projectPath cleanPath projectName project
 	=	update_IDE_State
 				(\state -> 	{ state	& projectName						= projectName
 									, projectPath						= projectPath
 							     	, projectSettings					= project
-							     	, recentProjects 					= removeDup [projectName:state.recentProjects]
+							     	, cleanPath							= cleanPath
+							     	, recentProjects 					= if (projectName == "")
+							     											(state.recentProjects)
+							     											(removeDup [projectName:state.recentProjects])
 							})
 	>>|
 		update_IDE_State
