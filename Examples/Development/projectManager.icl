@@ -84,7 +84,7 @@ where
 	compilerOptions		= DefaultCompilerOptions
 	codeGenOptions		= DefCodeGenOptions
 	applicationOptions	= DefApplicationOptions
-	list				= [!!]
+	list				= [! "{Project}" !]
 	linkOptions			= DefaultLinkOptions
 
 // environments handling

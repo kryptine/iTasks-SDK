@@ -29,7 +29,7 @@ Start world = startEngine start_ide world
 
 start_ide :: Task Void
 start_ide 
-	= 				init_ide													// initialize the IDE state
+	= 				init_ide												// initialize the IDE state
 	>>|				parallel Void // (Title "Clean IDE") 						// BUG: global title not implemented
 						[ (Embedded, topMenu)
 						, (Embedded, projectPane)
@@ -39,19 +39,19 @@ where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 250 (sideMerge BottomSide 100 tabbedMerge)))
 
 	init_ide 
-		=				get_IDE_State											// read state as left from previous session, if any
-		>>= \state -> 	init state												// initiate state 								
+		=				get_IDE_State																// read state as left from previous session, if any
+		>>= \state -> 	init state																	// initiate state 								
 	where
 		init state =:{projectName = ""	}															// no project set initially
 			=				currentDirectory														// determine directory of this CleanEditor
-			>>= \dir ->		set_Project dir	(cleanPath dir) "" (initProject "") 					// store info in state
-			>>|				readEnvironmentFile (cleanPath dir +++ "\\" +++ EnvsFileName) 			// read environment file used for communication with BatchBuild	
+			>>= \dir ->		set_Project (dir +++ "\\") (cleanPath dir) "" (initProject "") 			// store info in state
+			>>|				readEnvironmentFile  (cleanPath dir +++ EnvsFileName) 					// read environment file used for communication with BatchBuild	
 			>>= \env ->		setEnvironments env														// store settings in projectget_IDE_State											// read state as left from previous session, if any
 			>>|				findAllModulesInPaths "icl" (cleanPath dir) (env!!0).target_path 		// find all modules in chosen environment
 			>>= \all ->		setAllFilesInEnv all													// and store in state
 		init _ = return Void
 
-		cleanPath dir = subString 0 (indexOf "iTasks-SDK" dir) dir
+		cleanPath dir 	= subString 0 (indexOf "iTasks-SDK" dir) dir
 
 // top menu
 
@@ -82,7 +82,7 @@ where
 		, OnAction (Action "Search/Search Implementation...") ifProject (const (launch (search SearchImplementation ts) ts))
 		]
 		++
-		[ OnAction (Action "Project/New Project...")  always (const (launch (newProject) ts))
+		[ OnAction (Action "Project/New Project...")  always (const (launch (newProject ts) ts))
 		, OnAction (Action "Project/Open Project...") never (const (openProject))							// temp to avoid selection
 //		, OnAction (Action "Project/Open Project...") always (const (openProject))							// BUG does not show window
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) (const (projectName <> ""))
@@ -324,8 +324,8 @@ where
 
 // opening and storing projects... 
 
-newProject :: Task Void
-newProject 
+newProject :: (ReadOnlyShared (TaskList Void)) -> Task Void
+newProject ts
 	=				updateInformation "Set name of project..." [] "" <<@ Window
 	>>*				[ OnAction ActionCancel   always   (const (return Void))
 					, OnAction (Action "Set") hasValue (storeNewProject o getValue)
@@ -337,11 +337,12 @@ where
 		=				get_IDE_State
 		>>= \state ->	set_Project state.projectPath state.cleanPath projectName (initProject projectName)
 		>>|				storeProject
+		>>|				launchEditorAndAdministrate (projectName +++ ".icl") ts
 
 storeProject :: Task Void
 storeProject  
 	= 				get_IDE_State
-	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ state.projectName +++ ".prj") state.cleanPath 
+	>>= \state ->	saveProjectFile state.projectSettings (state.projectPath +++ "\\" +++ state.projectName +++ ".prj") state.cleanPath 
 	>>= \ok ->		if (not ok)	(showError "Could not store project file !" Void) (return Void)
 						
 	
@@ -378,9 +379,9 @@ where
 		>>= \diagn -> 	profilingOptions title prof
 		>>= \prof ->	consoleOptions title co
 		>>= \co ->		update_Project (toProject project (rto,diagn,prof,co)) 
-//		>>|				storeProject  
+		>>|				storeProject 
 	where
-		title = "Set Options of Project: " +++ projectName	
+		title = "Project Options: " +++ projectName	
 
 		runTimeOptions :: String RunTimeOptions -> Task RunTimeOptions
 		runTimeOptions title rto = updateInformation (title,"Run-Time Options:")[] rto 
@@ -389,10 +390,14 @@ where
 		diagnosticsOptions title diagn = updateInformation (title,"Diagnostics Options:") [] diagn
 		
 		profilingOptions :: String ProfilingOptions -> Task ProfilingOptions
-		profilingOptions title prof = updateInformation (title,"Diagnostics Options:") [] prof	
-	
+		profilingOptions title prof 
+			= 	updateChoice (title,"Time Profiling Options:") [ChooseWith ChooseFromRadioButtons id] [NoTimeProfiling, TimeProfileAndStackTrace,StackTraceOny] prof.timeProfile	
+				-&&- 	
+				updateChoice "Heap Profiling Options:" [ChooseWith ChooseFromRadioButtons id] [NoHeapProfiling, HeapProfile {minimumHeapProfile = 0}] prof.heapProfile	
+			>>= \(t,h) -> return {timeProfile = t, heapProfile = h}
+			
 		consoleOptions :: String ConsoleOptions -> Task ConsoleOptions
-		consoleOptions title co = updateInformation (title,"Console Options:") [] co	
+		consoleOptions title co = updateChoice (title,"Console Options:") [ChooseWith ChooseFromRadioButtons id] [BasicValuesOnly, ShowConstructors, NoReturnType, NoConsole] co	
 
 // editing the evironment
 
@@ -444,11 +449,10 @@ where
 	compile` state
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						exportTextFile compilerMessages ""	//Empty the log file...
-			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"] 
+			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"]
 						-&&-
-						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages) <<@ Window
-			
-		>>*			[ OnAction ActionClose always (\_ -> return Void)
-					, OnAction ActionOk    always (\_ -> return Void)
-					]
+						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ Window
+			>>*			[ OnAction ActionClose always (\_ -> return Void)
+						, OnAction ActionOk    always (\_ -> return Void)
+						]
 
