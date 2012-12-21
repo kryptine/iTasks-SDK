@@ -199,8 +199,7 @@ where
 		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid
 		show ownPid _ = False
 		
-	isActive {progressMeta=Just {status=Unstable}}	= True
-	isActive _										= False	
+	isActive {progressMeta=Just {status}}	= not status
 
 	mkRow {TaskListItem|progressMeta=Just pmeta,managementMeta=Just mmeta} =
 		{WorklistRow

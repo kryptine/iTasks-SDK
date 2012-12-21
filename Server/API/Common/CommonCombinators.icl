@@ -181,7 +181,7 @@ anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
 	= parallel Void [(Embedded,const t) \\ t <- tasks] @? res
 where
-	res (Value l _) = hd ([v \\ (_,v=:(Value _ Stable)) <- l] ++ [v \\ (_,v=:(Value _ _)) <- sortBy (\a b -> fst a > fst b) l] ++ [NoValue])
+	res (Value l _) = hd ([v \\ (_,v=:(Value _ True)) <- l] ++ [v \\ (_,v=:(Value _ _)) <- sortBy (\a b -> fst a > fst b) l] ++ [NoValue])
 	res _			= NoValue
 
 allTasks :: ![Task a] -> Task [a] | iTask a
@@ -225,25 +225,28 @@ valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing
 
 Always :: Action (Task b) -> TaskStep a b
-Always a t = OnAction a (\_ -> True) (\_ -> t)
+Always a t = OnAction a (\_ -> Just t)
 
 AnyTime :: Action ((Maybe a) -> Task b)	-> TaskStep a b
-AnyTime a f = OnAction a (\_ -> True) (f o valToMaybe)
+AnyTime a f = OnAction a (Just o f o valToMaybe)
 	
 WithResult :: Action (a -> Bool) (a -> Task b) -> TaskStep a b
-WithResult a p f = OnAction a (maybe False p o valToMaybe) (f o fromJust o valToMaybe)
+WithResult a p f = OnAction a (\tv -> if (maybe False p (valToMaybe tv)) (Just (f (fromJust (valToMaybe tv)))) Nothing)
 	
 WithoutResult :: Action (Task b) -> TaskStep a b
-WithoutResult a t = OnAction a (isNothing o valToMaybe) (\_ -> t)
+WithoutResult a t = OnAction a (\tv -> if (isNothing (valToMaybe tv)) (Just t) Nothing)
 	
 WhenValid :: (a -> Bool) (a -> Task b) -> TaskStep a b
-WhenValid p f = OnValue (maybe False p o valToMaybe) (f o fromJust o valToMaybe)
+WhenValid p f = OnValue whenValid
+where
+	whenValid (Value val _)	= if (p val) (Just (f val)) Nothing
+	whenValid _				= Nothing
 
 WhenStable :: (a -> Task b) -> TaskStep a b
-WhenStable f = OnValue isStable (\(Value a _) -> f a)
+WhenStable f = OnValue whenStable
 where
-	isStable (Value _ Stable)	= True
-	isStable _					= False
+	whenStable (Value val True)	= Just (f val)
+	whenStable _				= Nothing
 	
 Catch :: (e -> Task b) -> TaskStep a b | iTask e
 Catch f = OnException f

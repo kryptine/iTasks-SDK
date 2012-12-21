@@ -137,13 +137,18 @@ where
 	searchContValue val mbcommit conts = search val mbcommit 0 Nothing conts
 	where
 		search _ _ _ mbmatch []							= mbmatch									//No matching OnValue steps were found, return the potential match
-		search val mbcommit i mbmatch [OnValue pred f:cs]
-			| pred val									= Just (i, f val, DeferredJSON val)				//Don't look any further, first matching trigger wins
-														= search val mbcommit (i + 1) mbmatch cs	//Keep search
-		search val (Just commit) i Nothing [OnAction action pred f:cs]
-			| pred val && commit == actionName action	= search val (Just commit) (i + 1) (Just (i, f val, DeferredJSON val)) cs 	//We found a potential winner (if no OnValue values are in cs)
-														= search val (Just commit) (i + 1) Nothing cs								//Keep searching
-		search val mbcommit i mbmatch [_:cs]			= search val mbcommit (i + 1) mbmatch cs									//Keep searching
+		search val mbcommit i mbmatch [OnValue f:cs]
+			= case f val of
+				Just cont	= Just (i, cont, DeferredJSON val)			//Don't look any further, first matching trigger wins
+				Nothing		= search val mbcommit (i + 1) mbmatch cs	//Keep search
+		search val (Just commit) i Nothing [OnAction action f:cs]
+			| commit == actionName action
+				= case f val of
+					Just cont	= search val (Just commit) (i + 1) (Just (i, cont, DeferredJSON val)) cs 	//We found a potential winner (if no OnValue values are in cs)
+					Nothing		= search val (Just commit) (i + 1) Nothing cs								//Keep searching
+			| otherwise
+								= search val (Just commit) (i + 1) Nothing cs								//Keep searching														
+		search val mbcommit i mbmatch [_:cs]			= search val mbcommit (i + 1) mbmatch cs			//Keep searching
 		
 	searchContException dyn str conts = search dyn str 0 Nothing conts
 	where
@@ -159,23 +164,23 @@ where
 		match _ _			= Nothing 
 	
 	restoreTaskB sel d_json_a = case conts !! sel of
-		(OnValue _ taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
-		(OnAction _ _ taskbf)		= call_with_DeferredJSON_TaskValue taskbf d_json_a
+		(OnValue taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
+		(OnAction _ taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
 		(OnException taskbf)		= call_with_DeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId repOpts (TaskRep def parts) val 
 		= finalizeRep repOpts (TaskRep ((repLayout repOpts).Layout.step def (stepActions taskId val)) parts)
 	where
-		stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=pred val}\\ OnAction action pred _ <- conts]
+		stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
 
-	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
+	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
-        = Just (f_tva_tb (cast_to_TaskValue tva))
+        = f_tva_tb (cast_to_TaskValue tva)
 	
 	call_with_DeferredJSON_TaskValue f_tva_tb (DeferredJSONNode json)
 		= case fromJSON json of
-			Just a ->  Just (f_tva_tb a)
+			Just a ->  f_tva_tb a
 			Nothing -> Nothing
 	
 	call_with_DeferredJSON :: (a -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
@@ -217,7 +222,7 @@ where
 						# rep				= parallelRep desc taskId repOpts entries
 						# expiry			= parallelExpiry entries
 						# values			= map (toValueAndTime o fst) entries 
-						# stable			= if (all (isStable o snd) values) Stable Unstable
+						# stable			= all (isStable o snd) values
 						# ts				= foldr max 0 [ts:map fst values]
 						# ts				= case event of
 							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
@@ -245,7 +250,7 @@ where
 				| length nlist > length list	= evalFrom (length list) acc nlist iworld	//Extra branches were added -> evaluate these as well 
 												= (Nothing,acc,iworld)					//Done
 			//IMPORTANT: This last rule should never match, but it helps to solve overloading solves overloading
-			(Just (ValueResult val info=:{TaskInfo|lastEvent} rep tree),acc,iworld) = (Just (ValueResult (Value [(lastEvent,val)] Unstable) info rep tree),acc,iworld)
+			(Just (ValueResult val info=:{TaskInfo|lastEvent} rep tree),acc,iworld) = (Just (ValueResult (Value [(lastEvent,val)] False) info rep tree),acc,iworld)
 	
 	evalParTask :: !TaskId !Event !(!Maybe (TaskResult a),![(!TaskListEntry,!Maybe TaskRep)],!*IWorld) !TaskListEntry -> (!Maybe (TaskResult a),![(!TaskListEntry,!Maybe TaskRep)],!*IWorld) | iTask a
 	//Evaluate embedded tasks
@@ -308,8 +313,7 @@ where
 		minimum [e]	= Just e
 		minimum [e:es] = let (Just mines) = minimum es in Just (if (e < mines) e mines)
 
-	isStable (Value _ Stable) 	= True
-	isStable _					= False
+	isStable (Value _ stable) 	= stable
 	
 	//Helper function to help type inferencing a little
 	fixOverloading :: (TaskResult a) [(!ParallelTaskType,!ParallelTask a)] !b -> b
@@ -326,7 +330,7 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 			= (taskIda, EmbeddedState (dynamic task :: Task a^) (TCInit taskIda taskTime),iworld)
 		Detached management
 			# task									= parTask (parListShare taskId)
-			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,status=Unstable,firstEvent=Nothing,latestEvent=Nothing}
+			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,status=True,firstEvent=Nothing,latestEvent=Nothing}
 			# (taskIda=:TaskId instanceNo _,iworld)	= createPersistentInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= TIValue NoValue taskTime
@@ -459,19 +463,19 @@ where
 		# (rep,iworld)		= loadTaskRep instanceNo iworld
 		# layout			= repLayout repOpts
 		= case (meta,result,rep) of
-			(_,Ok (TIValue (Value _ Stable) _),_)
-				= (ValueResult (Value WOFinished Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+			(_,Ok (TIValue (Value _ True) _),_)
+				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 			(_,Ok (TIException _ _),_)
-				= (ValueResult (Value WOExcepted Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 			(Ok meta=:{TIMeta|worker=Just worker},_,Ok (TaskRep def parts))
 				| worker == currentUser
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn def meta) parts)
-					= (ValueResult (Value WOActive Unstable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)
+					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn (inUseDef worker) meta) parts)
-					= (ValueResult (Value (WOInUse worker) Unstable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)		
+					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted Stable) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld=:{currentInstance}
 		# iworld = removeTaskInstanceObserver currentInstance instanceNo iworld

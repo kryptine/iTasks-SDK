@@ -1422,16 +1422,6 @@ where
 	fmap f (NoValue)		= NoValue
 	fmap f (Value v s)		= Value (f v) s
 
-instance toString Stability
-where
-	toString Unstable	= "Unstable"
-	toString Stable	= "Stable"
-	
-instance == Stability
-where
-	(==) Unstable	Unstable	= True
-	(==) Stable		Stable		= True
-	(==) _			_			= False
 //Task id
 
 instance toString TaskId
@@ -1551,16 +1541,16 @@ actionName ActionClose			= "Close"
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
 
-derive JSONEncode		TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive JSONDecode		TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gDefault			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gEq				TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gVisualizeText	TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
-derive gVisualizeEditor	TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gHeaders			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gGridRows		TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gUpdate			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
-derive gVerify			TaskValue, Stability, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
+derive JSONEncode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive gDefault			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive gEq				TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive gVisualizeText	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
+derive gVisualizeEditor	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive gHeaders			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive gGridRows		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
+derive gUpdate			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
+derive gVerify			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
 
 derive class iTask TaskId, Config, ProcessStatus
 	

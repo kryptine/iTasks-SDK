@@ -64,7 +64,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
 					Ok (ExceptionResult _ err,_,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (ValueResult (Value _ Stable) _ _ _,_,_)
+					Ok (ValueResult (Value _ True) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 					Ok (ValueResult _ info curRep context,_,sessionId)
 						# json = case (mbPrevUI,curRep) of
@@ -101,7 +101,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
-				Ok (ValueResult (Value val Stable) _ _ _,_,_)
+				Ok (ValueResult (Value val True) _ _ _,_,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
 				Ok (ValueResult _ _ (TaskRep def rep) _,_,_)
 					= (jsonResponse (serviceBusyResponse rep (uiDefActions def) (toList (uiDefAttributes def))), iworld)

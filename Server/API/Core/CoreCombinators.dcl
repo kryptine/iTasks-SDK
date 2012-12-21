@@ -49,11 +49,10 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task 
 step :: !(Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 
 :: TaskStep a b
-	= 		OnValue 			((TaskValue a) -> Bool)	((TaskValue a)	-> Task b)
-	|		OnAction	Action	((TaskValue a) -> Bool)	((TaskValue a)	-> Task b)
-	| E.e:	OnException									(e				-> Task b) & iTask e
-	| 		OnAllExceptions								(String			-> Task b)
-
+	= 		OnValue 			((TaskValue a)	-> Maybe (Task b))
+	|		OnAction	Action	((TaskValue a)	-> Maybe (Task b))
+	| E.e:	OnException			(e				-> Task b)			 & iTask e
+	| 		OnAllExceptions		(String			-> Task b)
 /**
 * All-in-one swiss-army-knife parallel task creation
 *

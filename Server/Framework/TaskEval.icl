@@ -30,7 +30,7 @@ createSessionInstance task event iworld=:{currentDateTime}
 	# (instanceId,iworld)	= newInstanceId iworld
 	# worker				= AnonymousUser sessionId
 	# ((meta,reduct,result,_), iworld)
-		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task defaultValue {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task defaultValue {issuedAt=currentDateTime,issuedBy=worker,status=False,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# (mbRes,iworld)		= evalAndStoreInstance True event (meta,reduct,result) iworld
 	= case loadSessionInstance sessionId iworld of
 		(Ok (meta,reduct,result),iworld)
@@ -80,7 +80,7 @@ where
 createPersistentInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
 createPersistentInstance task meta issuer parent iworld=:{currentDateTime}
 	# (instanceId,iworld)	= newInstanceId iworld
-	# (state, iworld)		= createTaskInstance instanceId Nothing parent Nothing task meta {issuedAt=currentDateTime,issuedBy=issuer,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+	# (state, iworld)		= createTaskInstance instanceId Nothing parent Nothing task meta {issuedAt=currentDateTime,issuedBy=issuer,status=False,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# iworld				= storeTaskInstance state iworld		
 	= (TaskId instanceId 0, iworld)
 
@@ -124,9 +124,9 @@ where
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
 	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
 
-	setStatus (ExceptionResult _ _) meta				= {meta & status = Stable}
-	setStatus (ValueResult (Value _ Stable) _ _ _) meta	= {meta & status = Stable}
-	setStatus _	meta									= {meta & status = Unstable}
+	setStatus (ExceptionResult _ _) meta				= {meta & status = True}
+	setStatus (ValueResult (Value _ True) _ _ _) meta	= {meta & status = True}
+	setStatus _	meta									= {meta & status = False}
 	
 	isChanged val (ValueResult nval _ _ _)  = val =!= nval
 	isChanged val _							= True

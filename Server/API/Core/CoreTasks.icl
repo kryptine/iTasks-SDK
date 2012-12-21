@@ -58,7 +58,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val Unstable) {TaskInfo|lastEvent=ts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts (TaskRep (UIControlSequence (newMap,[],Vertical)) [])) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts (TaskRep (UIControlSequence (newMap,[],Vertical)) [])) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -95,7 +95,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -137,7 +137,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -176,7 +176,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -204,7 +204,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -234,7 +234,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -263,7 +263,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -295,7 +295,7 @@ where
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
-		# value 				= if (isValidMask validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
