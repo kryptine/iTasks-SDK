@@ -61,18 +61,16 @@ where
 		>>= \content ->	let copy = sharedStore fileName content in editor`` copy
 	where
 		editor`` copy 
-			=  				(parallel (Title fileName`)	
-								[ (Embedded, editFile fileName copy)
-								, (Embedded, replace initReplace copy)
-								]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
-			>>*	 			[ OnAction  ActionClose 		 				  always (const (closeEditorAndAdministrate fileName))
-							, OnAction (Action ("File/Close " +++ fileName`))  always (const (closeEditorAndAdministrate fileName))
-							, OnAction (Action ("File/Save " +++ fileName`))   always (const (save copy >>| editor` file))
-							, OnAction (Action ("File/Save As..."))   		  always (const (saveAs copy >>| editor` file))
-							, OnAction (Action ("File/Revert " +++ fileName`)) always (const (editor` file))
-							, OnAction (Action ("File/Open " +++ other fileName`)) 
-																			  (const isIclOrDcl) 
-																			  (const (launchEditorAndAdministrate fileName ts))
+			=  		(parallel (Title fileName`)	
+						[ (Embedded, editFile fileName copy)
+						, (Embedded, replace initReplace copy)
+						]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
+			>>*	 	[ OnAction  ActionClose 		 				   		(always (closeEditorAndAdministrate fileName))
+					, OnAction (Action ("File/Close " +++ fileName`))  		(always (closeEditorAndAdministrate fileName))
+					, OnAction (Action ("File/Save " +++ fileName`))   		(always (save copy >>| editor` file))
+					, OnAction (Action ("File/Save As..."))   		   		(always (saveAs copy >>| editor` file))
+					, OnAction (Action ("File/Revert " +++ fileName`)) 		(always (editor` file))
+					, OnAction (Action ("File/Open " +++ other fileName`))  (ifCond isIclOrDcl (launchEditorAndAdministrate fileName ts))
 	
 //							, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
 //																			  (const isIcl)
@@ -112,14 +110,14 @@ where
 	noReplace :: Replace -> Task Void 
 	noReplace cmnd 
 		=		actionTask
- 			>>*	[ OnAction (Action "File/Replace") always (const (showReplace cmnd))
+ 			>>*	[ OnAction (Action "File/Replace") (always (showReplace cmnd))
 				]
 
 	showReplace :: Replace -> Task Void 
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd // <<@ Window
- 			>>*	[ OnAction (Action "Replace") hasValue (substitute o getValue)
- 				, OnAction (Action "Cancel")  always   (const (noReplace cmnd))
+ 			>>*	[ OnAction (Action "Replace") (hasValue substitute)
+ 				, OnAction (Action "Cancel")  (always (noReplace cmnd))
  				]
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 

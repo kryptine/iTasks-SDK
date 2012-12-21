@@ -4,7 +4,7 @@ import iTasks
 import File, StdFile
 import Directory
 
-import IDE_State
+import IDE_State, SmallUtil
 
 derive class iTask MaybeError, FileInfo, Tm, FileError
 
@@ -21,14 +21,14 @@ selectFileInPath path pred
 where
 	select names
 		=				enterChoice ("File Selector",path) [] (filter pred names) <<@ Window
-		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
-						, OnAction ActionOk		hasValue (continue o getValue)
-						, OnAction ActionNew	always 	 (const (newFile))
+		>>*				[ OnAction ActionCancel (always (return (path,Nothing)))
+						, OnAction ActionOk		(hasValue continue)
+						, OnAction ActionNew	(always newFile)
 						]
 	newFile
 		=				enterInformation ("Create File",path) []
-		>>*				[ OnAction ActionCancel always   (const (return (path,Nothing)))
-						, OnAction ActionOk		hasValue (write o getValue)
+		>>*				[ OnAction ActionCancel (always (return (path,Nothing)))
+						, OnAction ActionOk		(hasValue write)
 						]
 	write name
 		=				accWorld (writeFile (path </> name) "")
@@ -60,9 +60,9 @@ where
 		=				enterChoice ("Store " +++ name,path) [] names
 						-&&-
 						updateInformation "File name" [] name
-		>>*				[ OnAction ActionCancel always  (const (return False))
-						, OnAction (Action "Browse")	hasValue (browse o getValue)
-						, OnAction ActionSave			hasValue (write o getValue)
+		>>*				[ OnAction ActionCancel 		(always (return False))
+						, OnAction (Action "Browse")	(hasValue browse)
+						, OnAction ActionSave			(hasValue write)
 						]
 	write (path,name)
 		=				accWorld (writeFile (path </> name) "")
@@ -121,21 +121,5 @@ actionTask = viewInformation Void [] Void
 
 launch task ts = appendTask Embedded (const task) ts @ const Void
 
-// tiny util
-
-
-always = const True
-never = const False
-
-hasValue (Value _ _) = True
-hasValue _ = False
-
-getValue (Value v _) = v
-
-ifValue pred (Value v _) = pred v
-ifValue _ _ = False
-
-ifStable (Value v Stable) = True
-ifStable _ = False
 
 

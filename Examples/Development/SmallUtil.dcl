@@ -6,23 +6,16 @@ definition module SmallUtil
 
 import iTasks
 
-actionTask 	:: Task Void																// does nothing, to be followed by >>*
-launch 		:: (Task a) (ReadWriteShared (TaskList a) Void) -> Task TaskId | iTask a		// launch simple parallel task
+actionTask :: Task Void
+launch :: (Task a) (ReadWriteShared (TaskList a) Void) -> Task Void | iTask a
 
-constVoid task :== \_ ->  task @ const Void
+always 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
+never 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
 
-// simple tests on task values
+hasValue	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+ifStable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+ifUnstable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
 
-hasValue 	:: (TaskValue a) -> Bool
-ifValue 	:: (a -> Bool) (TaskValue a) -> Bool
-ifStable 	:: (TaskValue a) -> Bool
-
-// simple conditions on actions
-
-always 		:: (a -> Bool)
-never 		:: (a -> Bool)
-
-// get values
-
-getValue 	:: (TaskValue a) -> a
+ifValue 	:: (a -> Bool) 	(a -> Task b) 	(TaskValue a) -> Maybe (Task b)
+ifCond 		:: Bool (Task b) 				(TaskValue a) -> Maybe (Task b)
 

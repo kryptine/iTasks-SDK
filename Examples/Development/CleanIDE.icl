@@ -65,53 +65,52 @@ topMenu ts
 							) 
 where
 	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
-	=	[ OnAction (Action "File/Open...") 	always 							(constVoid (openFileSelectorAndEdit ts))
-		, OnAction (Action "File/Save All") (const (openedFiles <> [])) 	(constVoid (saveAll openedFiles))
+	=	[ OnAction (Action "File/Open...") 						(always (openFileSelectorAndEdit ts))
+		, OnAction (Action "File/Save All") 					(if (openedFiles <> []) always never (saveAll openedFiles))
 		] 
 		++
-		[ OnAction (Action ("File/Recent Files/" +++ fileName)) always 		(constVoid (launchEditorAndAdministrate fileName ts)) 
+		[ OnAction (Action ("File/Recent Files/" +++ fileName)) (always (launchEditorAndAdministrate fileName ts)) 
 		\\ fileName <- recentFiles
 		] 
 		++
 		[ OnAction (Action ("File/Recent Projects/" +++ fileName +++ " (.prj)")) 
-																always 		(constVoid (reopenProject fileName)) 
+																(always (reopenProject fileName)) 
 		\\ fileName <- recentProjects
 		] 
 		++
-		[ OnAction (Action "Search/Search Identifier...")    	ifProject 	(constVoid (launch (search SearchIdentifier     ts) ts))
-		, OnAction (Action "Search/Search Definition...")     	ifProject 	(constVoid (launch (search SearchDefinition     ts) ts))
-		, OnAction (Action "Search/Search Implementation...") 	ifProject 	(constVoid (launch (search SearchImplementation ts) ts))
+		[ OnAction (Action "Search/Search Identifier...")    	(ifCond isProject (launch (search SearchIdentifier ts)     ts))
+		, OnAction (Action "Search/Search Definition...")     	(ifCond isProject (launch (search SearchDefinition ts)     ts))
+		, OnAction (Action "Search/Search Implementation...") 	(ifCond isProject (launch (search SearchImplementation ts) ts))
 		]
 		++
-		[ OnAction (Action "Project/New Project...")  			always 		(constVoid (launch (newProject ts) ts))
-		, OnAction (Action "Project/Open Project...") 			never 		(constVoid (openProject))							// temp to avoid selection
-//		, OnAction (Action "Project/Open Project...") always (const (openProject))							// BUG does not show window
+		[ OnAction (Action "Project/New Project...")  			(always (launch (newProject ts) ts))
+		, OnAction (Action "Project/Open Project...") 			(never  openProject)							// temp to avoid selection
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) 
-											(const (projectName <> ""))		(constVoid (launch (compile projectName <<@ Window) ts))	
+																(ifCond isProject (launch (compile projectName <<@ Window) ts))	
 		, OnAction (Action ("Project/Run " +++ projectName +++ " (.exe)")) 
-											(const (projectName <> ""))		(constVoid (launch (run projectName <<@ Window) ts))	
+																(ifCond isProject (launch (run projectName <<@ Window) ts))	
 		, OnAction (Action ("Project/Show Compiler Log..")) 
-											(const (projectName <> ""))		(constVoid (launch (showLog projectName ts <<@ Window) ts))	
-		, OnAction (Action "Project/Project Options...")    	ifProject 	(constVoid (changeProjectOptions))
-		, OnAction (Action "Project/Show/All Modules") 			always    	(constVoid (setProjectPaneOption InEnvironment))
-		, OnAction (Action "Project/Show/Modules In Project") 	ifProject 	(constVoid (setProjectPaneOption InProject))
-		, OnAction (Action "Project/Show/Not Used") 			ifProject 	(constVoid (setProjectPaneOption NotUsed))
+																(ifCond isProject (launch (showLog projectName ts <<@ Window) ts))	
+		, OnAction (Action "Project/Project Options...")    	(ifCond isProject changeProjectOptions)
+		, OnAction (Action "Project/Show/All Modules") 			(always (setProjectPaneOption InEnvironment))
+		, OnAction (Action "Project/Show/Modules In Project") 	(ifCond isProject (setProjectPaneOption InProject))
+		, OnAction (Action "Project/Show/Not Used") 			(ifCond isProject (setProjectPaneOption NotUsed))
 		]
 		++
 		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName)) 
-																always 		(constVoid (editEnvironment))
+																(always editEnvironment)
 		, OnAction (Action (selectedEnvironment +++ "/Import...")) 
-																always 		(constVoid (addEnvironment))
+																(always addEnvironment)
 		:[ OnAction (Action (selectedEnvironment +++ "/Select/" +++ target.target_name)) 
-																always  	(constVoid (selectEnvironment i)) 
+																(always (selectEnvironment i)) 
 		 \\ target <- envTargets & i <- [0..]
 		 ]
 		]
 		++ // BUG: temp fix: the latest state is not always shown: known bug in the current implementation
-		[ OnAction (Action "Temp/Refresh") 						always 		(constVoid (return Void)) ]	
+		[ OnAction (Action "Temp/Refresh") 						(always (return Void)) ]	
 	where
 
-		ifProject = const (projectName <> "")
+		isProject = (projectName <> "")
 
 		currentEnvName			= currEnvName state
 		selectedEnvironment 	= "_" +++ currentEnvName 
@@ -128,8 +127,8 @@ projectPane ts
 												     not (curstate.moduleOptions === state.moduleOptions) ) 	// show options changed 
 									 (return Void)) <<@ SetLayout (partLayout 0)
 					)
-	>>*				[ OnValue  ifStable (const recalculate)														// recompute on indicated change
-					, OnAction (Action "Project/Show/Refresh") always (const recalculate)						// recompute on action end user
+	>>*				[ OnValue  (ifStable (const recalculate))													// recompute on indicated change
+					, OnAction (Action "Project/Show/Refresh") (always recalculate)								// recompute on action end user
 					]
 where
 	layout = SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)} //???
@@ -198,8 +197,8 @@ where
 
 		handleSelected selected
 			=	forever (		viewSharedInformation (Title "Selected:") [] selected @? onlyJust
-							>>* [OnAction (Action "Open .icl") hasValue (\v -> openSelected (getValue v) ".icl" ts)
-								,OnAction (Action "Open .dcl") hasValue (\v -> openSelected (getValue v) ".dcl" ts)
+							>>* [OnAction (Action "Open .icl") (hasValue (\v -> openSelected  v ".icl" ts))
+								,OnAction (Action "Open .dcl") (hasValue (\v -> openSelected  v ".dcl" ts))
 								]
 						)
 		where							
@@ -244,8 +243,8 @@ search searchOption ts
 where
 	searching state identifier searchOption moduleOptions found
 		=			(findDialoque -|| handleFound 0 (toTable found))
-			>>*		[ OnAction ActionClose     always   (const (return Void))
-					, OnAction (Action "Find") (ifValue (\(s,_) -> s <> "")) (performSearch o getValue)
+			>>*		[ OnAction ActionClose     (always (return Void))
+					, OnAction (Action "Find") (ifValue (\(s,_) -> s <> "") (\v -> performSearch v))
 					] 
 					
 	where
@@ -261,8 +260,8 @@ where
 			= viewInformation "" [] (if (identifier == "") "" (identifier +++ " has not been found...")) @ const Void
 		handleFound i table
 			=	   updateChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] table (table!!i)  				
-			>>*    [ OnAction (Action "Open...") always (\v -> openFileSelected (getValue v) >>| handleNext)
-				   , OnAction ActionNext always   (const handleNext)
+			>>*    [ OnAction (Action "Open...") (hasValue (\v -> openFileSelected v >>| handleNext))
+				   , OnAction ActionNext 		 (always  handleNext)
 				   ]	
 		where
 			openFileSelected sel 
@@ -335,8 +334,8 @@ where
 newProject :: (ReadOnlyShared (TaskList Void)) -> Task Void
 newProject ts
 	=				updateInformation "Set name of project..." [] "" <<@ Window
-	>>*				[ OnAction ActionCancel   always   (const (return Void))
-					, OnAction (Action "Set") hasValue (storeNewProject o getValue)
+	>>*				[ OnAction ActionCancel   (always (return Void))
+					, OnAction (Action "Set") (hasValue (\v -> storeNewProject v))
 					]
 where
 	storeNewProject "" 
@@ -419,8 +418,8 @@ where
 	editEnvironment`
 		=				get_IDE_State
 		>>= \state ->	updateInformation (Title ("Edit " +++ currEnvName state))[] (fromTarget (getCurrEnv state))
-		>>*				[ OnAction ActionCancel   always   (const (return Void))
-						, OnAction (Action "Set") hasValue (\env -> updateEnvironment state.idx (toTarget (getValue env))) 
+		>>*				[ OnAction ActionCancel   (always (return Void))
+						, OnAction (Action "Set") (hasValue (\env -> updateEnvironment state.idx (toTarget env))) 
 						]
 	
 addEnvironment :: Task Void					
@@ -446,10 +445,10 @@ compile projectName
 	>>= \state ->	if (state.openedFiles == []) 
 					(compile` state)
 					(	viewInformation ("Clean Compiler","Do you want to save all ?") [] Void 
-					>>* [ OnAction ActionYes 	always (const (		saveAll state.openedFiles 
-																>>| compile` state))
-						, OnAction ActionNo  	always (const (compile` state))
-						, OnAction ActionCancel always (const (return Void))
+					>>* [ OnAction ActionYes 	(always (	   saveAll state.openedFiles 
+														  >>|  compile` state))
+						, OnAction ActionNo  	(always (compile` state))
+						, OnAction ActionCancel (always (return Void))
 						]
 					)
 where	

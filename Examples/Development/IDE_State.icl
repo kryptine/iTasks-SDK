@@ -37,7 +37,7 @@ get_IDE_State :: Task IDE_State
 get_IDE_State = get IDE_State 
 
 watch_IDE_State :: !(IDE_State -> Bool) !(Task a) -> Task a | iTask a
-watch_IDE_State pred task = watch IDE_State >>* [OnValue (pred o getValue) (const task)]
+watch_IDE_State pred task = watch IDE_State >>* [OnValue (ifValue pred (const task))]
 
 // updating the global IDE_State
 
