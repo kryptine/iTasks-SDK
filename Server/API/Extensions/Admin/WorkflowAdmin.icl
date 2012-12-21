@@ -9,17 +9,17 @@ from Map import qualified newMap
 // SPECIALIZATIONS
 derive class iTask Workflow
 
-gVisualizeText{|WorkflowTaskContainer|} _ _	= []
-gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
-gHeaders{|WorkflowTaskContainer|} _ 		= ["Workflow task container"]
-gGridRows{|WorkflowTaskContainer|} _ _ 		= Nothing
-gUpdate{|WorkflowTaskContainer|} val ust	= basicUpdate val (\Void x -> x) ust
-gVerify{|WorkflowTaskContainer|} _ um _ 	= alwaysValid um
-JSONEncode{|WorkflowTaskContainer|} c		= [dynamicJSONEncode c]
-JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)
-JSONDecode{|WorkflowTaskContainer|} r		= (Nothing,r)
-gEq{|WorkflowTaskContainer|} _ _			= True
-gDefault{|WorkflowTaskContainer|} _			= WorkflowTask (return Void)
+gVisualizeText{|WorkflowTaskContainer|} _ _			= []
+gVisualizeEditor{|WorkflowTaskContainer|} _ vst		= noVisualization vst
+gHeaders{|WorkflowTaskContainer|} _ 				= ["Workflow task container"]
+gGridRows{|WorkflowTaskContainer|} _ _ 				= Nothing
+gUpdate{|WorkflowTaskContainer|} target upd val		= basicUpdate (\Void x -> x) target upd val
+gVerify{|WorkflowTaskContainer|} _ um _ 			= alwaysValid um
+JSONEncode{|WorkflowTaskContainer|} c				= [dynamicJSONEncode c]
+JSONDecode{|WorkflowTaskContainer|} [c:r]			= (dynamicJSONDecode c,r)
+JSONDecode{|WorkflowTaskContainer|} r				= (Nothing,r)
+gEq{|WorkflowTaskContainer|} _ _					= True
+gDefault{|WorkflowTaskContainer|} _					= WorkflowTask (return Void)
 
 // SHARES
 // Available workflows

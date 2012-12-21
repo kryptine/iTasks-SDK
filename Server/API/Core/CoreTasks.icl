@@ -302,12 +302,8 @@ where
 
 matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
 	| taskId == matchId
-		# dp = s2dp name
-		| (dataPathLevel dp == 0)	= case fromJSON value of
-				Nothing	= (v,mask,ts,iworld)
-				Just nv	= (nv,Touched,taskTime,iworld)
 		| otherwise
-			# (nv,nmask)	= updateValueAndMask dp value (v,mask)
+			# (nv,nmask)	= updateValueAndMask (s2dp name) value (v,mask)
 			= (nv,nmask,taskTime,iworld)
 	| otherwise	= (v,mask,ts,iworld)
 matchAndApplyEvent (FocusEvent taskId) matchId taskTime v mask ts iworld

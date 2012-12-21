@@ -15,23 +15,14 @@ derive	gDefault UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive	gDefault Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive	gDefault Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
-:: *USt =
-	{ searchPath		:: !DataPath
-	, currentPath		:: !DataPath
-	, update			:: !JSONNode
-	, consPath			:: ![ConsPos]
-	, oldMask			:: ![InteractionMask]
-	, newMask			:: ![InteractionMask]
-	}
-
 //Update an existing value and its interaction mask
-generic gUpdate a | gDefault a :: !a !*USt -> (!a,!*USt)
+generic gUpdate a | gDefault a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask])
 
-derive gUpdate UNIT, PAIR, EITHER, CONS of {gcd_arity}, OBJECT of {gtd_num_conses,gtd_conses}, RECORD of {grd_arity}, FIELD
+derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
-//Wrapper functions for updating
+// Wrapper functions for updating
 defaultValue			:: a																	| gDefault{|*|} a
 updateValueAndMask  	:: !DataPath !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask)	| gUpdate{|*|} a
 
@@ -45,36 +36,22 @@ where
 
 instance GenMask InteractionMask
 
-// utility functions for custom gUpdate definitions
+// Utility functions for custom gUpdate definitions
 
 /**
-* Makes sure the value is not updated.
+* Convenient wrapper which automatically updates the interaction mask.
 *
-* @param The current update mode
-* @param A default value for creation
-* @param USt
-*
-* @return modified USt
-*/
-noUpdate :: !a !*USt -> *(!a,!*USt)
-/**
-* Updates a value.
-*
-* @param The value to update
 * @param A function defining how to update the value given an update
-* @param USt
 *
-* @return modified USt
+* @return The modified value
 */
-basicUpdate :: !a !(upd a -> a) !*USt -> *(!a,!*USt) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} upd
 /**
 * Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.
 *
 * @param The value to update
-* @param USt
 *
-* @return modified USt
+* @return The modified value
 */
-basicUpdateSimple :: !a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
-
+basicUpdateSimple :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} a

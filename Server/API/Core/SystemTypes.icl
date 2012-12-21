@@ -36,7 +36,7 @@ where
 			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val}
 			= ([(ui,addVerAttributes verRes newMap)],vst)
 
-gUpdate{|URL|} val ust = basicUpdate val (\json url -> maybe url (\s -> URL s) (fromJSON json)) ust
+gUpdate{|URL|} target upd val = basicUpdate (\json url -> maybe url (\s -> URL s) (fromJSON json)) target upd val
 
 gVerify{|URL|} _ um options = simpleVerify "Enter a uniform resource locator (URL)" um options
 
@@ -81,7 +81,7 @@ where
 			[line]	= Text line
 			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
 
-gUpdate{|Note|} val ust = basicUpdateSimple val ust
+gUpdate{|Note|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|Note|} _ um options = simpleVerify "Enter a long text" um options
 
@@ -124,7 +124,7 @@ where
 			[line]	= Text line
 			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
 
-gUpdate{|CleanCode|} val ust = basicUpdate val codeUpd ust
+gUpdate{|CleanCode|} target upd val = basicUpdate codeUpd target upd val
 where
 	codeUpd (JSONString s) _	= CleanCode s
 	codeUpd _ old				= old			
@@ -151,7 +151,7 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|EUR|} val ust = basicUpdateSimple val ust
+gUpdate{|EUR|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|EUR|} _ um options = simpleVerify "Enter an amount in EUR" um options
 
@@ -192,7 +192,7 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|USD|} val ust = basicUpdateSimple val ust
+gUpdate{|USD|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|USD|} _ um options = simpleVerify "Enter an amount in USD" um options
 
@@ -249,7 +249,7 @@ where
 
 gDefault{|Date|} _ = {day = 1, mon = 1, year = 1970}
 
-gUpdate{|Date|} d ust = basicUpdate d (\json old -> fromMaybe old (fromJSON json)) ust
+gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromMaybe old (fromJSON json)) target upd val
 
 gVerify{|Date|} _ um options = simpleVerify "Enter a date" um options
 
@@ -328,7 +328,7 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|Time|} t ust = basicUpdate t (\json old -> fromMaybe old (fromJSON json)) ust
+gUpdate{|Time|} target upd val = basicUpdate (\json old -> fromMaybe old (fromJSON json)) target upd val
 
 gVerify{|Time|} _ um options = simpleVerify "Enter a time of day" um options
 
@@ -448,18 +448,9 @@ where
 		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
 		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
-gUpdate {|Document|} s ust=:{searchPath, currentPath, update, oldMask, newMask}
-	# (cm,om)		= popMask oldMask
-	# ust			= {ust & currentPath = stepDataPath currentPath, oldMask = om}
-	| currentPath == searchPath
-		= case fromJSON update of
-			Nothing 	// Reset
-				= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
-			Just doc 	//Update
-				# ust					= {ust & newMask = appendToMask newMask (PartiallyTouched [])}
-				= (doc,ust)
-	| otherwise 
-		= (s, {ust & newMask = appendToMask newMask cm})
+gUpdate {|Document|} [] upd (val,[dmask:mask]) = case fromJSON upd of
+	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},[Blanked:mask])// Reset
+	Just doc	= (doc,[Touched:mask]) //Update 
 
 gVerify{|Document|} _ um options = simpleVerify "Upload a document" um options
 
@@ -491,7 +482,7 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
 		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|Username|} val ust = basicUpdateSimple val ust
+gUpdate{|Username|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|Username|} _ um options = simpleVerify "Enter a username" um options
 
@@ -527,7 +518,7 @@ where
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
 		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|Password|} val ust = basicUpdateSimple val ust
+gUpdate{|Password|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|Password|} _ um options = simpleVerify "Enter a password" um options
 
@@ -640,7 +631,7 @@ where
 	}
 derive JSONDecode MVCUpdate, ClickUpdate, ClickEvent, ClickSource, MarkerDragUpdate
 
-gUpdate{|GoogleMap|} val ust = basicUpdate val parseUpdate ust
+gUpdate{|GoogleMap|} target upd val = basicUpdate parseUpdate target upd val
 where
 	parseUpdate json orig
 		# mbMVC		= fromJSON json
@@ -706,8 +697,8 @@ where
 
 	curVal {Scale|cur} = cur
 
-gUpdate{|Scale|} val ust
-	= basicUpdate val (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) ust
+gUpdate{|Scale|} target upd val
+	= basicUpdate (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) target upd val
 
 gVerify{|Scale|} _ um _ = alwaysValid um
 
@@ -732,7 +723,7 @@ where
 							= ProgressRatio ratio
 		value {Progress|progress} = progress
 
-gUpdate{|Progress|}	val ust = noUpdate val ust
+gUpdate{|Progress|}	target upd val = val
 
 gVerify{|Progress|} _ um _ = alwaysValid um
 
@@ -759,7 +750,7 @@ where
 	viz name touched verRes vst
 		= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value=fmap (\(HtmlInclude path) -> IframeTag [SrcAttr path] []) val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|HtmlInclude|} val ust = noUpdate val ust
+gUpdate{|HtmlInclude|} target upd val = val
 
 gVerify{|HtmlInclude|} _ um _ = alwaysValid um
 
@@ -777,8 +768,8 @@ where
 		# iconCls = fmap (\b -> b.FormButton.icon) val
 		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|FormButton|} val ust
-	= basicUpdate val (\st b -> {FormButton|b & state = st}) ust
+gUpdate{|FormButton|} target upd val
+	= basicUpdate (\st b -> {FormButton|b & state = st}) target upd val
 
 gVerify{|FormButton|} _ um _ = alwaysValid um
 
@@ -824,8 +815,8 @@ where
 	options (Just (Table _ cells _))	= map (map toString) cells
 	options _							= []
 
-gUpdate{|Table|} val ust
-	= basicUpdate val (\json (Table headers cells _) -> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) ust
+gUpdate{|Table|} target upd val
+	= basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) target upd val
 
 gVerify{|Table|} _ um _ = alwaysValid um
 gDefault{|Table|} _ = Table [] [] Nothing
@@ -885,7 +876,7 @@ where
 	options	_										= []
 
  
-gUpdate{|ComboChoice|} _ _ _ _ val ust = updateChoice val (\idx (ComboChoice options _) -> ComboChoice options idx) ust	
+gUpdate{|ComboChoice|} _ _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
 
 gVerify{|ComboChoice|} _ _ v um options = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v um options
 
@@ -914,7 +905,7 @@ where
 	options (Just (ComboChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 
-gUpdate{|ComboChoiceNoView|} _ _ val ust = updateChoice val (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) ust
+gUpdate{|ComboChoiceNoView|} _ _ target upd val = updateChoice (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) target upd val
 
 gVerify{|ComboChoiceNoView|} _	v um options = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v um options
 
@@ -942,8 +933,8 @@ where
 	options (Just (RadioChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 
-gUpdate{|RadioChoice|} _ _ _ _ val ust
-	= updateChoice val (\idx (RadioChoice options _) -> RadioChoice options idx) ust
+gUpdate{|RadioChoice|} _ _ _ _ target upd val
+	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options idx) target upd val
 
 gVerify{|RadioChoice|} _ _		_ um options = simpleVerify "Choose one item" um options
 
@@ -972,8 +963,8 @@ where
 	options (Just (RadioChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 
-gUpdate{|RadioChoiceNoView|} _ _ val ust
-	= updateChoice val (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) ust
+gUpdate{|RadioChoiceNoView|} _ _ target upd val
+	= updateChoice (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) target upd val
 
 gVerify{|RadioChoiceNoView|} _	_ um options = simpleVerify "Choose one item" um options
 
@@ -987,9 +978,7 @@ gDefault{|TreeChoice|} _ _ _ = TreeChoice (Tree []) Nothing
 
 gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask}
-	# (cmv,vm)	= popMask verifyMask
-	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask=[cmv:vm]}
 	# ver		= verifyElementStr cmv
 	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
 	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
@@ -1015,19 +1004,13 @@ where
 				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
 	options _ _ = []
 
-gUpdate{|TreeChoice|} _ _ _ _ (TreeChoice options sel) ust=:{searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om)	= popMask oldMask
-	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
-	| currentPath == searchPath
-		= case fromJSON update of
-			Just ("sel",idx,val)
-				= (TreeChoice options (if val (Just idx) Nothing), {ust & newMask = appendToMask newMask (touch cm)})
-			Just ("exp",idx,val)
-				= (TreeChoice options sel, {ust & newMask = appendToMask newMask (if val (expand idx cm) (collapse idx cm))})
-			_
-				= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
-	| otherwise
-		= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
+gUpdate{|TreeChoice|} _ _ _ _ [] upd (TreeChoice options sel,[cmask:mask]) = case fromJSON upd of
+	Just ("sel",idx,val)	= (TreeChoice options (if val (Just idx) Nothing), [touch cmask:mask])
+	Just ("exp",idx,val)	= (TreeChoice options sel, [if val (expand idx cmask) (collapse idx cmask):mask])
+	_						= ((TreeChoice options sel), [cmask:mask])
+
+gUpdate{|TreeChoice|} _ _ _ _ target upd val = val
+
 
 gVerify{|TreeChoice|} _ _		_ um options = simpleVerify "Choose an element of the tree" um options
 
@@ -1062,7 +1045,7 @@ where
 			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
 	options _ = []
 
-gUpdate{|TreeChoiceNoView|} _ _ val ust = updateChoice val update ust
+gUpdate{|TreeChoiceNoView|} _ _ target upd val = updateChoice update target upd val
 where
 	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
 	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
@@ -1092,8 +1075,8 @@ where
 	options (Just (GridChoice options _))	= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]
 	options _								= []
 
-gUpdate{|GridChoice|} _ _ _ _ val ust
-	= updateChoice val (\idx (GridChoice options _) -> GridChoice options (Just idx)) ust
+gUpdate{|GridChoice|} _ _ _ _ target upd val
+	= updateChoice (\idx (GridChoice options _) -> GridChoice options (Just idx)) target upd val
 
 gVerify{|GridChoice|} _ _ _ um _ = alwaysValid um
 
@@ -1120,8 +1103,8 @@ where
 	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
 	options _										= []
 
-gUpdate{|GridChoiceNoView|} _ _ val ust
-	= updateChoice val (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) ust
+gUpdate{|GridChoiceNoView|} _ _ target upd val
+	= updateChoice (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) target upd val
 
 gVerify{|GridChoiceNoView|} _	_ um _ = alwaysValid um
 	
@@ -1149,10 +1132,10 @@ gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCGrid val)) vs
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 Nothing vst
 	= (NormalEditor [],vst)
 
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy	(DCCombo val)	ust = appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy val ust)
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy	(DCRadio val)	ust = appFst DCRadio (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy val ust)
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy	(DCTree val)	ust = appFst DCTree (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy val ust)
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy	(DCGrid val)	ust = appFst DCGrid (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy val ust)
+gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCTree val,mask)	= appFst DCTree (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCGrid val,mask)	= appFst DCGrid (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
 
 gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
 gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
@@ -1200,10 +1183,10 @@ gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCGridNoView val)) vs
 gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 Nothing vst
 	= (NormalEditor [],vst)
 
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx (DCComboNoView val)	ust = appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx val ust)
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx (DCRadioNoView val)	ust = appFst DCRadioNoView (gUpdate{|*->*|} gUpdx gDefx val ust)
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx (DCTreeNoView val) 	ust = appFst DCTreeNoView (gUpdate{|*->*|} gUpdx gDefx val ust)
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx (DCGridNoView val) 	ust = appFst DCGridNoView (gUpdate{|*->*|} gUpdx gDefx val ust)
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCComboNoView val,mask)	= appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCRadioNoView val,mask)	= appFst DCRadioNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCTreeNoView val,mask)	= appFst DCTreeNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCGridNoView val,mask)	= appFst DCGridNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
 
 gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
 gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
@@ -1248,7 +1231,7 @@ where
 	options (Just (CheckMultiChoice options _))		= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 
-gUpdate{|CheckMultiChoice|} _ _ _ _ val ust = basicUpdate val (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel) ust
+gUpdate{|CheckMultiChoice|} _ _ _ _ target upd val = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel) target upd val
 where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
@@ -1276,7 +1259,7 @@ collapse idx (TouchedWithState s) = case fromJSON s of
 	_			= TouchedWithState s
 collapse idx m = m
 
-updateChoice val select ust = basicUpdate val (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) ust
+updateChoice select target upd val = basicUpdate (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) target upd val
 
 
 setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
@@ -1350,9 +1333,9 @@ gVisualizeEditor{|VisualizationHint|} fx gx hx ix val vst=:{VSt|currentPath}
 		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
 
-gUpdate{|VisualizationHint|} 	gUpdx gDefx val=:(VHEditable s)		ust = wrapperUpdate gUpdx val fromVisualizationHint VHEditable ust
-gUpdate{|VisualizationHint|} 	gUpdx gDefx val=:(VHDisplay s)		ust = wrapperUpdate gUpdx val fromVisualizationHint VHDisplay ust
-gUpdate{|VisualizationHint|} 	gUpdx gDefx val=:(VHHidden s)		ust = wrapperUpdate gUpdx val fromVisualizationHint VHHidden ust
+gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHEditable s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val
+gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHDisplay s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHDisplay target upd val
+gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHHidden s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHHidden target upd val
 
 gVerify{|VisualizationHint|}	fx v um options = case v of
 	Just (VHEditable e)	= verifyEditable fx (Just e) um options
@@ -1370,11 +1353,10 @@ toVisualizationHint a = (VHEditable a)
 
 gVisualizeText{|Hidden|} _ _ _ = []
 
-gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
-	# (_,vm) = popMask verifyMask	
+gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask=[_:vm]}
 	= (HiddenEditor,{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
-gUpdate{|Hidden|} gUpdx gDefx val ust = wrapperUpdate gUpdx val fromHidden Hidden ust
+gUpdate{|Hidden|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromHidden Hidden target upd val
 
 gVerify{|Hidden|} _ _ um options = verifyHidden um
 
@@ -1390,7 +1372,7 @@ gVisualizeEditor{|Display|} fx _ _ _ val vst=:{VSt|currentPath,disabled}
 	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  disabled = True}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
-gUpdate{|Display|} gUpdx gDefx mode ust = wrapperUpdate gUpdx mode fromDisplay Display ust
+gUpdate{|Display|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromDisplay Display target upd val
 
 gVerify{|Display|} fx d um options = verifyDisplay fx (fmap fromDisplay d) um options
 
@@ -1406,7 +1388,7 @@ gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{VSt|currentPath, disabled}
 	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & disabled = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
-gUpdate{|Editable|} gUpdx gDefx val ust = wrapperUpdate gUpdx val fromEditable Editable ust
+gUpdate{|Editable|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromEditable Editable target upd val
 
 gVerify{|Editable|} fx e um options = verifyEditable fx (fmap fromEditable e) um options
 
@@ -1417,9 +1399,9 @@ toEditable :: !.a -> (Editable .a)
 toEditable a = (Editable a)
 
 //Utility for gUpdate 
-wrapperUpdate fx val get set ust=:{USt|currentPath}
-	# (w,ust) = fx (get val) ust
-	= (set w,{USt|ust & currentPath = stepDataPath currentPath})
+wrapperUpdate fx get set target upd (val,mask)
+	# (w,mask) = fx target upd (get val,mask)
+	= (set w,mask)
 		
 //Utility for gVerify	
 verifyEditable fx e um options = fx e um {VerifyOptions|options & disabled = False}
@@ -1486,60 +1468,24 @@ derive JSONDecode InteractionMask
 
 //Utility functions
 dp2s :: !DataPath -> String
-dp2s (DataPath path) = join "-" (map toString (reverse path))
+dp2s path = "v" + join "-" (map toString path)
 
 s2dp :: !String -> DataPath
-s2dp ""		= DataPath []
-s2dp str	= DataPath (reverse (map toInt (split "-" str)))
-
-isdps :: !String -> Bool
-isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
-
-startDataPath :: DataPath
-startDataPath = DataPath [0]
-
-emptyDataPath :: DataPath
-emptyDataPath = DataPath []
+s2dp str 
+	| textSize str < 2	= []
+						= map toInt (split "-" (subString 1 (textSize str) str))
 
 stepDataPath :: !DataPath -> DataPath
-stepDataPath dp=:(DataPath [])	= dp
-stepDataPath (DataPath [x:xs])	= DataPath [inc x:xs]
+stepDataPath []		= []
+stepDataPath [x]	= [inc x]
+stepDataPath [x:xs]	= [x:stepDataPath xs]
 
 shiftDataPath :: !DataPath -> DataPath
-shiftDataPath (DataPath path) = DataPath [0:path]
-
-childDataPath :: !DataPath !Int -> DataPath
-childDataPath (DataPath path) i = DataPath [i:path]
-
-parentDataPath :: !DataPath -> (!DataPath,!Int)
-parentDataPath (DataPath []) = (DataPath [], -1)
-parentDataPath (DataPath [i:path]) = (DataPath path, i)
-
-dataPathLevel :: !DataPath -> Int
-dataPathLevel (DataPath l) = length l
-
-instance == DataPath
-where
-	(==) (DataPath a) (DataPath b) = a == b
-
-dataPathList :: !DataPath -> [Int]
-dataPathList (DataPath list) = list
-
-dataPathFromList :: ![Int] -> DataPath
-dataPathFromList l = DataPath l
-
-// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
-// e.g. [1,0] <== [0] 
-(<==) infixr 1 :: !DataPath !DataPath -> Bool
-(<==) (DataPath pathA) (DataPath pathB) = tlEq (reverse pathA) (reverse pathB)
-where
-	tlEq _  	 []		= True
-	tlEq [] 	 _ 		= False
-	tlEq [a:as] [b:bs] 	= (a == b) && (tlEq as bs)
+shiftDataPath path = path ++ [0]
 
 gVisualizeText{|User|} _ val = [toString val]
 
-gUpdate{|User|} val ust = basicUpdateSimple val ust
+gUpdate{|User|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|User|} _ um options = simpleVerify "Select a username" um options 
 

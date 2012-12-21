@@ -165,7 +165,7 @@ where
 setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask
 setInvalid errors mask = seq (map setInvalid` errors) mask
 where
-	setInvalid` (p,msg) mask = hd (setInvalid`` (reverse (dataPathList p)) [mask])
+	setInvalid` (p,msg) mask = hd (setInvalid`` p [mask])
 	where
 		setInvalid`` [0]	[mask:masks] = [VMInvalid msg (childMasks mask):masks]
 		setInvalid`` [0:p]	[mask:masks] = [setChildren mask (setInvalid`` p (childMasks mask)):masks]

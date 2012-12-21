@@ -12,7 +12,7 @@ from IWorld				import :: IWorld
 from UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from LayoutCombinators	import :: Layout
 from Task				import :: Task, :: TaskId
-from iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, :: USt, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 //****************************************************************************//
@@ -474,27 +474,14 @@ derive JSONEncode InteractionMask
 derive JSONDecode InteractionMask
 
 //* Datapaths identify sub structures in a composite structure
-:: DataPath = DataPath [Int]
+:: DataPath :== [Int]
 
 //Utility functions for dealing with DataPath values
-startDataPath			:: DataPath			//Path initialized at position "0"
-emptyDataPath			:: DataPath			//Path initialized empty
 stepDataPath			:: !DataPath		-> DataPath
 shiftDataPath			:: !DataPath		-> DataPath
-childDataPath			:: !DataPath !Int	-> DataPath
-parentDataPath			:: !DataPath		-> (!DataPath,!Int)
-dataPathLevel			:: !DataPath		-> Int
-dataPathList 			:: !DataPath 		-> [Int]
-dataPathFromList		:: ![Int]			-> DataPath
 
 dp2s					:: !DataPath		-> String
 s2dp					:: !String			-> DataPath
-isdps					:: !String			-> Bool
-
-// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
-// e.g. [1,0] <== [0] 
-(<==) infixr 1 :: !DataPath !DataPath -> Bool
-instance == DataPath
 
 //* User identification
 :: User

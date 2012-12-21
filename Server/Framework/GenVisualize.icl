@@ -8,7 +8,7 @@ visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
 
 visualizeAsEditor :: !a !VerifyMask !TaskId !Layout !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gVisualizeEditor{|*|} a
 visualizeAsEditor v vmask taskId layout iworld
-	# vst		= {VSt|mkVSt taskId iworld & verifyMask = [vmask], currentPath = shiftDataPath emptyDataPath, layout = layout}
+	# vst		= {VSt|mkVSt taskId iworld & verifyMask = [vmask], currentPath = [], layout = layout}
 	# (res,vst)	= gVisualizeEditor{|*|} (Just v) vst
 	= (controlsOf res,kmVSt vst)
 	
@@ -57,10 +57,8 @@ gVisualizeText{|Char|}			_ val				= [toString val]
 gVisualizeText{|String|}		_ val				= [toString val]
 gVisualizeText{|Bool|}			_ val				= [toString val]
 
-
 gVisualizeText {|[]|} fx  mode val					= ["[":  flatten (intersperse [", "] [fx mode x \\ x <- val])] ++ ["]"]
 gVisualizeText{|Maybe|} fx mode val					= fromMaybe ["-"] (fmap (\v -> fx mode v) val)
-
 
 gVisualizeText{|Void|} _ _					= []
 gVisualizeText{|Dynamic|} _ _				= []
@@ -72,7 +70,7 @@ derive gVisualizeText Either, (,), (,,), (,,,), Timestamp, Map
 
 mkVSt :: !TaskId *IWorld -> *VSt
 mkVSt taskId iworld
-	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, disabled = False, verifyMask = []
+	= {VSt| currentPath = [], selectedConsIndex = -1, optional = False, disabled = False, verifyMask = []
 	  , taskId = taskId, layout = autoLayout, iworld = iworld}
 
 kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
@@ -333,8 +331,8 @@ derive gGridRows [], (,), (,,), (,,,), Maybe, Either, Void, Map, JSONNode, Times
 		
 visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
-	# (cmv,vm)	= popMask verifyMask
 	// only check mask if generating editor definition & not for labels
+	# (cmv,vm)	= popMask verifyMask
 	# touched	= isTouched cmv
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# ver		= verifyElementStr cmv
@@ -343,7 +341,7 @@ visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
 	
 noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
 noVisualization vst=:{VSt|currentPath,verifyMask}
-	# (_,vm) = popMask verifyMask
+	# (_,vm)	= popMask verifyMask
 	= (NormalEditor [], {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 childVisualizations :: !((Maybe a) -> .(*VSt -> *(!VisualizationResult,*VSt))) ![a] !*VSt -> *(![VisualizationResult],!*VSt)
