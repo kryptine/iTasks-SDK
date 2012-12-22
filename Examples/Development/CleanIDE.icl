@@ -88,7 +88,7 @@ where
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)")) 
 																(ifCond isProject (launch (compile projectName <<@ Window) ts))	
 		, OnAction (Action ("Project/Run " +++ projectName +++ " (.exe)")) 
-																(ifCond isProject (launch (run projectName <<@ Window) ts))	
+																(ifCond isProject (launch (run projectName ts <<@ Window) ts))	
 		, OnAction (Action ("Project/Show Compiler Log..")) 
 																(ifCond isProject (launch (showLog projectName ts <<@ Window) ts))	
 		, OnAction (Action "Project/Project Options...")    	(ifCond isProject changeProjectOptions)
@@ -463,12 +463,20 @@ where
 //						, OnAction ActionOk    always (\_ -> return Void)
 //						]
 						@ const Void 						
-run :: !ModuleName -> Task Void
-run projectName
+import redirect
+
+run projectName ts
 	=   			get_IDE_State
-	>>= \state ->	callProcess ("Run " +++ projectName +++ ".exe") [] (state.projectPath +++ projectName +++ ".exe") ["-cons > " +++ state.projectPath +++ projectName +++ ".txt"]
-	>>= \_ ->		return Void
+	>>= \state ->	call_process_and_redirect (state.projectPath +++ projectName +++ ".exe -con") 
+											  state.projectPath  
+											  (state.projectPath +++ projectName +++ ".out")
+											  (state.projectPath +++ projectName +++ ".err")
+	>>= \_ ->		launchEditorAndAdministrate (state.projectPath +++ projectName +++ ".out") ts
 					@ const Void
+where
+	call_process_and_redirect command directory out_file_name errors_file_name
+		= accWorld (call_process_with_redirected_std_out_and_error command directory out_file_name errors_file_name)
+	
 						
 showLog projectName ts
 	=				get_IDE_State
