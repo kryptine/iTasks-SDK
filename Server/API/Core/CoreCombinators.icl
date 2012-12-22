@@ -314,6 +314,7 @@ where
 		minimum [e:es] = let (Just mines) = minimum es in Just (if (e < mines) e mines)
 
 	isStable (Value _ stable) 	= stable
+	isStable _					= False
 	
 	//Helper function to help type inferencing a little
 	fixOverloading :: (TaskResult a) [(!ParallelTaskType,!ParallelTask a)] !b -> b

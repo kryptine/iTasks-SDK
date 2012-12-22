@@ -36,7 +36,7 @@ launchEditorAndAdministrate fileName ts
 	>>= \state ->	if (isMember fileName state.openedFiles)
 						(return Void)										// file already open in an editor
 						(			addFileToAdmin fileName 
-						>>|			launch (editor fileName ts) ts  
+						>>|			launch (editor fileName ts) ts @ const Void  
 						)
 
 closeEditorAndAdministrate :: FileName -> Task Void

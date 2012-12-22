@@ -83,27 +83,32 @@ where
 
 undef = undef
 
-always = const True
+always t = const (Just t)
 
-hasValue (Value _ _) = True
-hasValue _ = False
+hasValue  tf (Value v _) = Just (tf v)
+hasValue _ _ = Nothing
 
 getValue (Value v _) = v
 
-ifValue pred (Value v _) = pred v
-ifValue _ _ = False
+ifValue pred tf (Value v _) = if (pred v) (Just (tf v)) Nothing
+ifValue _ _ _ = Nothing
 
-ifStable (Value v Stable) = True
+ifStable (Value v stable) = stable
 ifStable _ = False
 
-returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
-returnF fun (Value v _) = return (fun v)
+returnF :: (a -> b) (TaskValue a) -> Maybe (Task b) | iTask b
+returnF fun (Value v _) = Just (return (fun v))
+returnF _ _				= Nothing
 
-returnC :: b (TaskValue a) -> Task b | iTask b
-returnC v _ = return v
+returnV :: (TaskValue a) -> Maybe (Task a) | iTask a
+returnV (Value v _) = Just (return v)
+returnV _			= Nothing
 
-returnV :: (TaskValue a) -> Task a | iTask a
-returnV (Value v _) = return v
+returnP :: (a -> Bool) (TaskValue a) -> Maybe (Task a) | iTask a
+returnP pred (Value v _)
+	| pred v	= Just (return v)
+				= Nothing
+returnP _ _		= Nothing
 
 toMaybe :: (TaskValue a) -> Maybe a
 toMaybe (Value v _) =  (Just v)
@@ -115,7 +120,7 @@ getUserName u = toString u
 //getUserName _ = "Anonymous"
 
 (>||) infixl 1 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
-(>||) ta tb = ta >>* [ OnValue  ifStable (const tb) ]
+(>||) ta tb = ta >>* [WhenStable (const tb)]
 
 //* The example tasks are colelcted in categories:
 
@@ -191,11 +196,11 @@ where
 		= 			noteE state 
 					-||- 
 					lineE state
-			>>* 	[OnAction ActionQuit always (return o toMaybe)]
+			>>* 	[OnAction ActionQuit (Just o return o toMaybe)]
 
 	noteE state 
 		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
-			>>*		[ OnAction (Action "Trim") always 	(\txt -> update trim state >>| noteE state)	
+			>>*		[ OnAction (Action "Trim") (\txt -> Just (update trim state >>| noteE state))	
 					]
 
 	lineE state
@@ -214,14 +219,14 @@ hello
 positiveNumber :: Task Int
 positiveNumber 
 	= 		enterInformation "Please enter a positive number" []
-		>>* [ OnAction  ActionOk (ifValue (\n -> n >= 0))  returnV
+		>>* [ OnAction  ActionOk (returnP (\n -> n >= 0))
             ] 
 
 palindrome :: Task (Maybe String)
 palindrome 
 	=   	enterInformation "Enter a palindrome" []
-		>>* [ OnAction  ActionOk     (ifValue palindrome) (returnF Just)
-            , OnAction  ActionCancel always   			  (returnC Nothing)
+		>>* [ OnAction  ActionOk     (ifValue palindrome (\v -> return (Just v)))
+            , OnAction  ActionCancel (always (return Nothing))
             ]
 where
 	palindrome s = lc == reverse lc
@@ -229,15 +234,12 @@ where
 		  lc = fromString s
 
 
-
-
-
 person1by1 :: [MyPerson] -> Task [MyPerson]
 person1by1 persons
 	=       enterInformation "Add a person" [] 	-|| viewInformation "List so far.." [] persons
-		>>*	[ OnAction  (Action "Add") 			hasValue  	(\v  -> person1by1  [getValue v : persons])  
-		    , OnAction  (Action "Finish")      	always 		(\_  -> return persons)
-		    , OnAction  ActionCancel 			always      (\_  -> return [] )
+		>>*	[ OnAction  (Action "Add") 			(hasValue (\v -> person1by1  [v : persons]))
+		    , OnAction  (Action "Finish")      	(always (return persons))
+		    , OnAction  ActionCancel 			(always (return []))
 	        ]
 
 // BUG? not always all record fields are shown in a choice...
@@ -249,19 +251,19 @@ editPersonList = editSharedList personStore
 editSharedList :: (Shared [a]) -> Task Void | iTask a
 editSharedList store 
 	=			enterSharedChoice "Choose an item to edit" [ChooseWith ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
-		>>*		[ OnAction (Action "Append")   hasValue (showAndDo append o getValue)
-				, OnAction (Action "Delete")   hasValue (showAndDo delete o getValue)
-				, OnAction (Action "Edit")     hasValue (showAndDo edit   o getValue)
-				, OnAction (Action "Clear")    always   (const (showAndDo append (-1,undef)))
-				, OnAction (Action "Quit")     always   (const (return Void))
+		>>*		[ OnAction (Action "Append")   (hasValue (showAndDo append))
+				, OnAction (Action "Delete")   (hasValue (showAndDo delete))
+				, OnAction (Action "Edit")     (hasValue (showAndDo edit))
+				, OnAction (Action "Clear")    (always (showAndDo append (-1,undef)))
+				, OnAction (Action "Quit")     (always (return Void))
 				]
 where
 	showAndDo fun ip
 		=		viewSharedInformation "In store" [] store
  		 		||- 
  		 		fun ip
- 		 	>>* [ OnValue 					 hasValue (const (editSharedList store))
- 		 		, OnAction (Action "Cancel") always   (const (editSharedList store))
+ 		 	>>* [ OnValue 					 (hasValue	(\_ -> editSharedList store))
+ 		 		, OnAction (Action "Cancel") (always	(editSharedList store))
  		 		]
 
 	append (i,_)
@@ -304,9 +306,9 @@ where
 		=			viewSharedInformation ("You are following " +++ follow) [] tweetsStore
 					||-
 					updateInformation "Add a tweet" [] message
-			>>*		[ OnAction (Action "Quit")    always (const (return Void))
+			>>*		[ OnAction (Action "Quit")    (always (return Void))
 	//				, OnAction (Action "Refresh") always (const (joinTweets me follow tweets)) 
-					, OnAction (Action "Commit")  (ifValue (\v -> True /*size v > 0*/)) (commit o getValue)
+					, OnAction (Action "Commit")  (ifValue (\v -> True /*size v > 0*/) commit )
 					]
 	where
 		commit :: String -> Task Void
@@ -328,14 +330,14 @@ calculateSumSteps :: Task Int
 calculateSumSteps = step1 0 0
 where
 	step1 n1 n2		=		updateInformation ("Number 1","Enter first number")  [] n1
-						>>*	[ OnAction ActionNext hasValue ((\n1 -> step2 n1 n2) o getValue)
+						>>*	[ OnAction ActionNext (hasValue (\n1 -> step2 n1 n2))
 							]
 	step2 n1 n2		=		updateInformation ("Number 2","Enter second number") [] n2
-						>>*	[ OnAction ActionPrevious always 	(const (step1 n1 n2))
-							, OnAction ActionNext     hasValue ((\n2 -> step3 n1 n2) o getValue)]
+						>>*	[ OnAction ActionPrevious (always 	(step1 n1 n2))
+							, OnAction ActionNext     (hasValue (\n2 -> step3 n1 n2))]
 	step3 n1 n2		=		viewInformation ("Sum","The sum of those numbers is:") [] (n1 + n2)
-						>>*	[ OnAction ActionPrevious always 	(const (step2 n1 n2))
-						  	, OnAction ActionOk  always  		(returnC (n1 + n2))
+						>>*	[ OnAction ActionPrevious	(always 	(step2 n1 n2))
+						  	, OnAction ActionOk  		(always  	(return (n1 + n2)))
 						  	]
 //
 :: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Display Int}
@@ -365,8 +367,8 @@ getCoins paid (product,toPay)
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
 					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith ChooseFromRadioButtons id] coins
-			>>*		[ OnAction ActionCancel 		always (const (stop ("Cancelled",paid)))
-					, OnAction (Action "Insert") 	always (handleMoney o getValue)
+			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
+					, OnAction (Action "Insert") 	(hasValue handleMoney)
 					]
 where				
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
@@ -391,25 +393,25 @@ calculator = calc initSt
 where
 	calc st
 	= 		viewInformation "Calculator" [ViewWith Display] st
-		>>* [ OnAction (Action "7") always (updateDigit 7 st) 
-			, OnAction (Action "8") always (updateDigit 8 st) 
-			, OnAction (Action "9") always (updateDigit 9 st) 
-			, OnAction (Action "4") always (updateDigit 4 st) 
-			, OnAction (Action "5") always (updateDigit 5 st) 
-			, OnAction (Action "6") always (updateDigit 6 st) 
-			, OnAction (Action "1") always (updateDigit 1 st) 
-			, OnAction (Action "2") always (updateDigit 2 st) 
-			, OnAction (Action "3") always (updateDigit 3 st) 
-			, OnAction (Action "0") always (updateDigit 0 st) 
-			, OnAction (Action "+") always (apply (+) st) 
-			, OnAction (Action "-") always (apply (-) st) 
-			, OnAction (Action "*") always (apply (*) st) 
-			, OnAction (Action "/") always (apply (/) st) 
+		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
+			, OnAction (Action "8") (always (updateDigit 8 st))
+			, OnAction (Action "9") (always (updateDigit 9 st))
+			, OnAction (Action "4") (always (updateDigit 4 st)) 
+			, OnAction (Action "5") (always (updateDigit 5 st))
+			, OnAction (Action "6") (always (updateDigit 6 st))
+			, OnAction (Action "1") (always (updateDigit 1 st)) 
+			, OnAction (Action "2") (always (updateDigit 2 st))
+			, OnAction (Action "3") (always (updateDigit 3 st)) 
+			, OnAction (Action "0") (always (updateDigit 0 st))
+			, OnAction (Action "+") (always (apply (+) st))
+			, OnAction (Action "-") (always (apply (-) st))
+			, OnAction (Action "*") (always (apply (*) st))
+			, OnAction (Action "/") (always (apply (/) st))
 			]
 	where
-		updateDigit n st _ = calc {st & n = st.n*10 + n}
+		updateDigit n st = calc {st & n = st.n*10 + n}
 	
-		apply op st _ = calc {display = op st.display st.n, n = 0}
+		apply op st = calc {display = op st.display st.n, n = 0}
 
 	initSt = { display = 0, n = 0}
 
@@ -444,7 +446,7 @@ editWithStatistics
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		]
-							>>*	 			[ OnAction (ActionQuit) always (const (return Void))
+							>>*	 			[ OnAction (ActionQuit) (always (return Void))
 											]
 											
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
@@ -459,11 +461,11 @@ showStatistics sharedFile _  = noStat
 where
 	noStat :: Task Void
 	noStat	=			viewInformation Void [] Void
- 				>>*		[ OnAction (Action "File/Show Statistics") always (const showStat)
+ 				>>*		[ OnAction (Action "File/Show Statistics") (always showStat)
  						]
 	showStat :: Task Void 
 	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
- 				>>*		[ OnAction (Action "File/Hide Statistics") always (const noStat)
+ 				>>*		[ OnAction (Action "File/Hide Statistics") (always noStat)
  						]
 
 
@@ -472,14 +474,14 @@ where
 	noReplace :: Replace -> Task Void
 	noReplace cmnd 
 		=		viewInformation Void [] Void
- 			>>*	[ OnAction (Action "File/Replace") always (const (showReplace cmnd))
+ 			>>*	[ OnAction (Action "File/Replace") (always (showReplace cmnd))
 				]
 
 	showReplace :: Replace -> Task Void 
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd 
- 			>>*	[ OnAction (Action "Replace") hasValue (substitute o getValue)
- 				, OnAction (Action "Cancel")  always   (const (noReplace cmnd))
+ 			>>*	[ OnAction (Action "Replace") (hasValue substitute)
+ 				, OnAction (Action "Cancel")  (always (noReplace cmnd))
  				]
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
@@ -511,7 +513,7 @@ where
 
 	chat who toView fromView notes
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
-			>>*		[OnAction (Action "Stop") always (const (return Void))]
+			>>*		[OnAction (Action "Stop") (always (return Void))]
 
 	toView   (me,you) 							= (Display you, Note me)
 	fromView _ (Display you, Note me) 	= (me,you) 
@@ -535,7 +537,7 @@ enterDateTimeOptions = enterInformation "Propose meeting dates and times..." []
 
 askPreferences :: [User] -> TaskStep [DateTime] [(User,[DateTime])]
 askPreferences users
-  = OnAction (Action "Continue") hasValue (ask users o getValue)
+  = OnAction (Action "Continue") (hasValue (ask users))
 
 ask :: [User] [DateTime] -> Task [(User,[DateTime])]
 ask users options
@@ -553,17 +555,17 @@ select user options = \_ -> (enterMultipleChoice "Enter preferences" [] options 
  
 tryAgain :: [User] -> TaskStep [(User,[DateTime])] DateTime
 tryAgain users
-  = OnAction (Action "Try again") (const True) (const (planMeeting users))
+  = OnAction (Action "Try again") (always (planMeeting users))
  
 decide :: TaskStep [(User,[DateTime])] DateTime
-decide = OnAction (Action "Make decision") hasValue (pick o getValue)
+decide = OnAction (Action "Make decision") (hasValue pick)
 
 pick :: [(User,[DateTime])] -> Task DateTime
 pick user_dates
   =   (enterChoice "Choose date" [] (transpose user_dates) @ fst)
       -||-
       (enterInformation "Enter override" [])
-  >>* [OnAction (Action "Continue") hasValue (return o getValue)]
+  >>* [OnAction (Action "Continue") returnV]
 
 transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]
