@@ -21,10 +21,9 @@ Start world = startEngine start_ide world
 /* BUGS:
 - shares: not always up-to-date
 - creation of a window not always possible
-- a project file newly created contains something which the other applications do not like (comparrison needed)
 - global title not implemented
 - strange: sometimes lines are doubled when opening files
-- more strange: a search returns the next line ???
+- more strange: a search returns the next line number ???
 */
 
 start_ide :: Task Void
@@ -33,7 +32,7 @@ start_ide
 	>>|				parallel Void // (Title "Clean IDE") 						// BUG: global title not implemented
 						[ (Embedded, topMenu)
 						, (Embedded, projectPane)
-						, (Embedded, compilerMessages)
+						, (Embedded, errorMessages)
 						] <<@ SetLayout layout @ const Void
 where
 	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 250 (sideMerge BottomSide 100 tabbedMerge)))
@@ -42,7 +41,7 @@ where
 		=				get_IDE_State																// read state as left from previous session, if any
 		>>= \state -> 	init state																	// initiate state 								
 	where
-		init state =:{projectName = ""	}															// no project set initially
+		init state =:{projectName = ""}																// no project set initially
 			=				currentDirectory														// determine directory of this CleanEditor
 			>>= \dir ->		set_Project (dir +++ "\\") (cleanPath dir) "" (initProject "") 			// store info in state
 			>>|				readEnvironmentFile  (cleanPath dir +++ EnvsFileName) 					// read environment file used for communication with BatchBuild	
@@ -216,10 +215,10 @@ where
 
 	noAnnotation (c,_) = (c,'Map'.newMap)
 
-// compilerMessages pane, shows error message produced by compiler in error file
+// errorMessages pane, shows error message produced by compiler in error file
 
-compilerMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
-compilerMessages _ 
+errorMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
+errorMessages _ 
 	= 				get_IDE_State
 	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
 					viewSharedInformation (Title "Error Messages...") [ViewWith (\txt -> Note txt)] sharedError
@@ -467,18 +466,22 @@ import redirect
 
 run projectName ts
 	=   			get_IDE_State
-	>>= \state ->	call_process_and_redirect (state.projectPath +++ projectName +++ ".exe -con") 
-											  state.projectPath  
-											  (state.projectPath +++ projectName +++ ".out")
-											  (state.projectPath +++ projectName +++ ".err")
-	>>= \_ ->		launchEditorAndAdministrate (state.projectPath +++ projectName +++ ".out") ts
-					@ const Void
+	>>= \state ->	call_process_and_redirect   (state.projectPath +++ projectName +++ ".exe -con") 
+											    state.projectPath  
+											    (state.projectPath +++ projectName +++ ".out")
+											    (state.projectPath +++ projectName +++ ".err")
+	>>| 			showOutput state
 where
 	call_process_and_redirect command directory out_file_name errors_file_name
 		= accWorld (call_process_with_redirected_std_out_and_error command directory out_file_name errors_file_name)
-	
 						
+	showOutput state
+		= 				let outputFile = externalFile (state.projectPath +++ projectName +++ ".out") in
+						viewSharedInformation (Title ("Executing " +++ projectName)) [ViewWith (\txt -> Note txt)] outputFile <<@ Window
+		>>|				return Void
+
 showLog projectName ts
 	=				get_IDE_State
 	>>= \state ->	launchEditorAndAdministrate (state.projectPath +++ projectName +++ ".log") ts
+
 
