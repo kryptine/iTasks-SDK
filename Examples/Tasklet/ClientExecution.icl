@@ -31,27 +31,32 @@ basicAPIExamples =
 
 undef = undef
 
-always = const True
+always t = const (Just t)
 
-hasValue (Value _ _) = True
-hasValue _ = False
+hasValue  tf (Value v _) = Just (tf v)
+hasValue _ _ = Nothing
 
 getValue (Value v _) = v
 
-ifValue pred (Value v _) = pred v
-ifValue _ _ = False
+ifValue pred tf (Value v _) = if (pred v) (Just (tf v)) Nothing
+ifValue _ _ _ = Nothing
 
-ifStable (Value v Stable) = True
+ifStable (Value v stable) = stable
 ifStable _ = False
 
-returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
-returnF fun (Value v _) = return (fun v)
+returnF :: (a -> b) (TaskValue a) -> Maybe (Task b) | iTask b
+returnF fun (Value v _) = Just (return (fun v))
+returnF _ _				= Nothing
 
-returnC :: b (TaskValue a) -> Task b | iTask b
-returnC v _ = return v
+returnV :: (TaskValue a) -> Maybe (Task a) | iTask a
+returnV (Value v _) = Just (return v)
+returnV _			= Nothing
 
-returnV :: (TaskValue a) -> Task a | iTask a
-returnV (Value v _) = return v
+returnP :: (a -> Bool) (TaskValue a) -> Maybe (Task a) | iTask a
+returnP pred (Value v _)
+	| pred v	= Just (return v)
+				= Nothing
+returnP _ _		= Nothing
 
 toMaybe :: (TaskValue a) -> Maybe a
 toMaybe (Value v _) =  (Just v)
@@ -102,14 +107,14 @@ hello
 positiveNumber :: Task Int
 positiveNumber 
 	= 		enterInformation "Please enter a positive number" []
-		>>* [ OnAction  ActionOk (ifValue (\n -> n >= 0))  returnV
+		>>* [ OnAction  ActionOk (returnP (\n -> n >= 0))
             ] 
 
 palindrome :: Task (Maybe String)
 palindrome 
 	=   	enterInformation "Enter a palindrome" []
-		>>* [ OnAction  ActionOk     (ifValue palindrome) (returnF Just)
-            , OnAction  ActionCancel always   			  (returnC Nothing)
+		>>* [ OnAction  ActionOk     (ifValue palindrome (\v -> return (Just v)))
+            , OnAction  ActionCancel (always (return Nothing))
             ]
 where
 	palindrome s = lc == reverse lc
@@ -128,14 +133,14 @@ calculateSumSteps :: Task Int
 calculateSumSteps = step1 0 0
 where
 	step1 n1 n2		=		updateInformation ("Number 1","Enter first number")  [] n1
-						>>*	[ OnAction ActionNext hasValue ((\n1 -> step2 n1 n2) o getValue)
+						>>*	[ OnAction ActionNext (hasValue (\n1 -> step2 n1 n2))
 							]
 	step2 n1 n2		=		updateInformation ("Number 2","Enter second number") [] n2
-						>>*	[ OnAction ActionPrevious always 	(const (step1 n1 n2))
-							, OnAction ActionNext     hasValue ((\n2 -> step3 n1 n2) o getValue)]
+						>>*	[ OnAction ActionPrevious (always 	(step1 n1 n2))
+							, OnAction ActionNext     (hasValue (\n2 -> step3 n1 n2))]
 	step3 n1 n2		=		viewInformation ("Sum","The sum of those numbers is:") [] (n1 + n2)
-						>>*	[ OnAction ActionPrevious always 	(const (step2 n1 n2))
-						  	, OnAction ActionOk  always  		(returnC (n1 + n2))
+						>>*	[ OnAction ActionPrevious	(always 	(step2 n1 n2))
+						  	, OnAction ActionOk  		(always  	(return (n1 + n2)))
 						  	]
 //
 :: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Display Int}
@@ -164,9 +169,9 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [] coins
-			>>*		[ OnAction ActionCancel 		always (const (stop ("Cancelled",paid)))
-					, OnAction (Action "Insert") 	always (handleMoney o getValue)
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith ChooseFromRadioButtons id] coins
+			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
+					, OnAction (Action "Insert") 	(hasValue handleMoney)
 					]
 where				
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
@@ -180,37 +185,38 @@ where
 	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
 	view2 (product,money)  = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]
 
+// BUG? needs more work on lay-out and should work on reals to allow dividing...
+
 :: CalculatorState = { display :: Int, n :: Int }
 
 derive class iTask CalculatorState
 
-calculator :: Task Int 
+calculator :: Task Int
 calculator = calc initSt
 where
 	calc st
 	= 		viewInformation "Calculator" [ViewWith Display] st
-		>>* [ OnAction (Action "7") always (updateDigit 7 st) 
-			, OnAction (Action "8") always (updateDigit 8 st) 
-			, OnAction (Action "9") always (updateDigit 9 st) 
-			, OnAction (Action "4") always (updateDigit 4 st) 
-			, OnAction (Action "5") always (updateDigit 5 st) 
-			, OnAction (Action "6") always (updateDigit 6 st) 
-			, OnAction (Action "1") always (updateDigit 1 st) 
-			, OnAction (Action "2") always (updateDigit 2 st) 
-			, OnAction (Action "3") always (updateDigit 3 st) 
-			, OnAction (Action "0") always (updateDigit 0 st) 
-			, OnAction (Action "+") always (apply (+) st) 
-			, OnAction (Action "-") always (apply (-) st) 
-			, OnAction (Action "*") always (apply (*) st) 
-			, OnAction (Action "/") always (apply (/) st) 
+		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
+			, OnAction (Action "8") (always (updateDigit 8 st))
+			, OnAction (Action "9") (always (updateDigit 9 st))
+			, OnAction (Action "4") (always (updateDigit 4 st)) 
+			, OnAction (Action "5") (always (updateDigit 5 st))
+			, OnAction (Action "6") (always (updateDigit 6 st))
+			, OnAction (Action "1") (always (updateDigit 1 st)) 
+			, OnAction (Action "2") (always (updateDigit 2 st))
+			, OnAction (Action "3") (always (updateDigit 3 st)) 
+			, OnAction (Action "0") (always (updateDigit 0 st))
+			, OnAction (Action "+") (always (apply (+) st))
+			, OnAction (Action "-") (always (apply (-) st))
+			, OnAction (Action "*") (always (apply (*) st))
+			, OnAction (Action "/") (always (apply (/) st))
 			]
 	where
-		updateDigit n st _ = calc {st & n = st.n*10 + n}
+		updateDigit n st = calc {st & n = st.n*10 + n}
 	
-		apply op st _ = calc {display = op st.display st.n, n = 0}
+		apply op st = calc {display = op st.display st.n, n = 0}
 
 	initSt = { display = 0, n = 0}
-
 
 Start :: *World -> *World
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist basicAPIExamples)) world

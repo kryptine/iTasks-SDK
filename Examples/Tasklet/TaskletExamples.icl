@@ -23,7 +23,7 @@ googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real)
 googleMapsTasklet cla clo = 
 	{ Tasklet
 	| generatorFunc		= googleMapsGUI
-	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) Unstable
+	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) False
 	, tweakUI  			= setTitle "Google Maps Tasklet"
 	}
 where
@@ -127,7 +127,7 @@ geoTasklet :: Tasklet (Maybe GPSCoord) (Maybe GPSCoord)
 geoTasklet = 
 	{ Tasklet
 	| generatorFunc		= geoTaskletGUI
-	, resultFunc		= \pos = Value pos Unstable
+	, resultFunc		= \pos = Value pos False
 	, tweakUI  			= setTitle "GEO Tasklet"
 	}
 
@@ -167,7 +167,7 @@ pushTasklet :: Tasklet Int Int
 pushTasklet = 
 	{ Tasklet
 	| generatorFunc		= pushGenerateGUI
-	, resultFunc		= \i = Value i Unstable
+	, resultFunc		= \i = Value i False
 	, tweakUI  			= setTitle "Push Tasklet"
 	}
 
@@ -213,7 +213,7 @@ info = "Draw something, but use the pencil _slowly_ in Chrome!"
 painterTasklet :: Tasklet PainterState Drawing
 painterTasklet = 
 	{ generatorFunc		= painterGenerateGUI
-	, resultFunc		= \{draw,finished} = Value (Drawing draw) (if finished Stable Unstable)
+	, resultFunc		= \{draw,finished} = Value (Drawing draw) finished
 	, tweakUI  			= setTitle "Drawing Tasklet"
 	}
 
@@ -438,27 +438,28 @@ taskletExamples =
 tasklet2 :: Task Drawing
 tasklet2
 	= 		mkTask painterTasklet
-		>>* [ OnValue ifStable returnV
-            ] 
+		>>* [ OnValue ifStable 
+			] 
 
 tasklet1 :: Task Int
 tasklet1
 	= 		mkTask pushTasklet
-		>>* [ OnAction ActionOk (ifValue (\n -> n >= 3)) returnV
+		>>* [ OnAction ActionOk (ifValue (\n -> n >= 3))
             ] 
 
 tasklet3 :: Task (Maybe GPSCoord)
 tasklet3
 	= 		mkTask geoTasklet
-		>>* [ OnAction ActionOk (ifValue isJust) returnV,
-		  	  OnAction ActionCancel (\_ = True) (returnC Nothing)
+		>>* [ OnAction ActionOk (ifValue isJust),
+		  	  OnAction ActionCancel (\_ = Nothing)
             ] 
 							 
-ifValue pred (Value v _) = pred v
-ifValue _ _ = False
+ifValue pred (Value v _) | pred v
+	= Just (return v)
+	= Nothing
 
-ifStable (Value v Stable) = True
-ifStable _ = False
+ifStable (Value v True) = Just (return v)
+ifStable _				= Nothing
 
 returnC :: b (TaskValue a) -> Task b | iTask b
 returnC v _ = return v

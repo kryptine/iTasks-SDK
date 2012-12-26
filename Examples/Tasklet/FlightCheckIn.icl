@@ -2,19 +2,8 @@ module FlightCheckIn
 
 import iTasks,Tasklet,FlightSupport
 
-ifStable (Value v Stable) = True
-ifStable _ = False
-
-always = const True
-
-returnV :: (TaskValue a) -> Task a | iTask a
-returnV (Value v _) = return v
-
-returnC :: b (TaskValue a) -> Task b | iTask b
-returnC v _ = return v
-
 maybeStable :: (Maybe a) -> (TaskValue a)
-maybeStable (Just v) = Value v Stable
+maybeStable (Just v) = Value v True
 maybeStable _        = NoValue
 
 :: BookingInfo = BookingReference String | PassangerLastName String
@@ -28,6 +17,7 @@ derive gHeaders Seat
 derive gGridRows Seat
 derive gUpdate Seat
 derive gVerify Seat
+derive gDefault Seat
 derive JSONEncode Seat
 derive JSONDecode Seat
 derive gEq Seat
