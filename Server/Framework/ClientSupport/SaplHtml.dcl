@@ -1,17 +1,16 @@
 definition module SaplHtml
 
-import StdString, Void
+import StdString, Void, Tasklet
 
 :: HtmlDocument
 :: HtmlObject
-:: TaskSID :== String	// String TaskId
 
 :: HtmlElementId :== String
 :: HtmlObjAttr :== String
 :: HtmlEventName :== String
 
 :: HtmlEvent st = HtmlEvent !HtmlElementId !HtmlEventName (HtmlEventHandlerFunc st)
-:: HtmlEventHandlerFunc st :== (st TaskSID HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
+:: HtmlEventHandlerFunc st :== (st TaskInstanceId HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
 
 /**
 * TODO:
@@ -28,15 +27,13 @@ import StdString, Void
 */
 
 // 2. layer
-handleJSEvent :: (HtmlEventHandlerFunc a) !TaskSID *HtmlObject -> Void
+handleJSEvent :: (HtmlEventHandlerFunc a) !TaskInstanceId *HtmlObject -> Void
 
 // creates 1. layer
-createEventHandler :: (HtmlEventHandlerFunc a) !TaskSID -> HtmlObject 
+createEventHandler :: (HtmlEventHandlerFunc a) !TaskInstanceId -> HtmlObject 
 
-getObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
-//getObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
-setObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr !a     -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
-//setObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+getObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr    -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+setObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr !a -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 
 // calls SAPL.toJS
 toHtmlObject :: !a -> HtmlObject

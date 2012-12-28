@@ -15,7 +15,7 @@ runOnClient task
 		, tweakUI			= id
 		}
 
-	= mkTask roc_tasklet
+	= mkInstanceId >>= \iid -> mkTask (iid, roc_tasklet)
 				
 toResult Nothing
 	= NoValue	
@@ -26,11 +26,10 @@ toResult (Just (_,_,TIValue NoValue _))
 toResult (Just (_,_,TIValue (Value json stab) _))
 	= Value (fromJust (fromJSON json)) stab
 
-roc_generator :: !(Task m) !TaskId (Maybe TaskState) !*IWorld -> *(!TaskletGUI TaskState, !TaskState, !*IWorld) | iTask m
-roc_generator task (TaskId instanceNo taskNo) _ iworld
+roc_generator :: !(Task m) !TaskInstanceId !TaskId (Maybe TaskState) !*IWorld -> *(!TaskletGUI TaskState, !TaskState, !*IWorld) | iTask m
+roc_generator task _ (TaskId instanceNo _) _ iworld
 
-	# (res, iworld) = loadTaskInstance instanceNo iworld
-	# (ameta, _, _) = fromOk res
+	# (Ok ameta, iworld) = loadTaskMeta instanceNo iworld
 	
 	# (newInstanceNo, iworld) = newInstanceId iworld
 	# ((meta, reduct, taskres, rep), iworld) = 
@@ -125,9 +124,9 @@ where
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
 	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
 
-	setStatus (ExceptionResult _ _) meta				= {meta & status = Stable}
-	setStatus (ValueResult (Value _ Stable) _ _ _) meta	= {meta & status = Stable}
-	setStatus _	meta									= {meta & status = Unstable}
+	setStatus (ExceptionResult _ _) meta				= {meta & status = True}
+	setStatus (ValueResult (Value _ True) _ _ _) meta	= {meta & status = True}
+	setStatus _	meta									= {meta & status = False}
 
 	tasktree (ValueResult _ _ _ tree)	= tree
 	tasktree (ExceptionResult _ _)		= TCNop

@@ -56,8 +56,8 @@ Ext.define('itwc.controller.Controller',{
 			  ],
 
 	// for tasklet and client side execution support
-	tasklets: {}, 				// taskId     -> tasklet
-	taskletControllers: {},		// instanceNo -> tasklet.controllerFunc	  
+	tasklets: {}, 				// tasklet instance id -> tasklet
+	taskletControllers: {},		// instanceNo          -> tasklet if controllerFunc is avaliable
 			  
 	init: function() {
 		this.viewport = null;
@@ -93,17 +93,23 @@ Ext.define('itwc.controller.Controller',{
 		if(this.taskletControllers[instanceNo] != null){
 		
 			controllerWrapper(
-					this.taskletControllers[instanceNo].taskletId,
+					this.taskletControllers[instanceNo].iid,
 					this.taskletControllers[instanceNo].controllerFunc, 
 					taskId, "edit", editorId, value);
 		
 		}else{	// Normal case (not a tasklet)
-		
-			var me = this,
-				params = {editEvent: Ext.encode([taskId,editorId,value])};
 			
-			me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
+			this.sendEditEvent(taskId, editorId, value);
+			
 		}
+	},
+	sendEditEvent: function(taskId, editorId, value){
+
+		var me = this,
+			params = {editEvent: Ext.encode([taskId,editorId,value])};
+		
+		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING	
+	
 	},
 	//iTasks action events
 	onAction: function(taskId, actionId) {
@@ -113,7 +119,7 @@ Ext.define('itwc.controller.Controller',{
 		if(this.taskletControllers[instanceNo] != null){
 			
 			controllerWrapper(
-					this.taskletControllers[instanceNo].taskletId,
+					this.taskletControllers[instanceNo].iid,
 					this.taskletControllers[instanceNo].controllerFunc, 
 					taskId, "commit", actionId);
 					

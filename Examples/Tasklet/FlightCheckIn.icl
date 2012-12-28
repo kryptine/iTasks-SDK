@@ -99,11 +99,11 @@ where
 		>>= return o fromString
 */
 
-chooseSeat (Just f) = mkTask seatTasklet
+chooseSeat (Just f) = mkInstanceId >>= \iid -> mkTask (iid, seatTasklet)
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
-		{ generatorFunc		= (\_ _ iworld -> (TaskletHTML gui, Nothing, iworld))
+		{ generatorFunc		= (\_ _ _ iworld -> (TaskletHTML gui, Nothing, iworld))
 		, resultFunc		= maybeStable
 		, tweakUI  			= setTitle "Seat chooser Tasklet"
 		}

@@ -2,11 +2,12 @@
 * eventType can be "edit" or "commit" or "init". It is necessary because eventValue can be null
 * even in the case of "edit" event.
 */
-function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,eventValue){
+function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventValue){
 	
 	console.time('controllerWrapper timer: eval');
 	
-	var state = controller.tasklets[taskletId].st;
+	var tasklet = controller.tasklets[iid];
+	var state = tasklet.st;
 
 	var tmp = [controllerFunc,[]];
 	tmp[1].push(taskId);
@@ -29,40 +30,38 @@ function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,e
 	var ys = Sapl.feval(tmp);
 	state = Sapl.heval(ys[3]);
 
-	controller.tasklets[taskletId].st = state;	// save it
+	controller.tasklets[iid].st = state;	// save it
 	
 	// toJS to make the result hyperstrict
-	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskletId].resultFunc,[state]]));	
+	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[state]]));	
 	
 	var mbTUI = Sapl.feval(ys[2]);
 		
-	// If mbTUI is Nothing, the task is finished
+	// If mbTUI is Nothing, the task is finished. TODO: is it still true?
 	if(mbTUI[0] == 0){
-		DB.removeTasklet(taskletId);
-		controller.onEdit(taskletId, "finalize", newres);
+		DB.removeTasklet(iid);
+		controller.sendEditEvent(tasklet.taskId, "finalize", newres);
 	}else{		
 		var tuistr = Sapl.feval(mbTUI[2]);
 
 		console.timeEnd('controllerWrapper timer: eval');
 		
 		console.time('controllerWrapper timer: serialization');
-		DB.updateTasklet(controller.tasklets[taskletId], 
+		DB.updateTasklet(tasklet, 
 						 null,
 						 tuistr);				
 		console.timeEnd('controllerWrapper timer: serialization');
 		
 		console.time('controllerWrapper timer: apply TUI');
 		eval("var tui = " + tuistr + ";");		
-		applytui(controller.tasklets[taskletId].tui, tui);
+		applytui(tasklet.tui, tui);
 		console.timeEnd('controllerWrapper timer: apply TUI');
 		
 		// Send result to the client if it is changed only
-		if(!geq(controller.tasklets[taskletId].lastResult, newres)){
-			controller.tasklets[taskletId].lastResult = newres;
-			controller.onEdit(taskletId, "result", newres);
-		}
-		
-				
+		if(!geq(controller.tasklets[iid].lastResult, newres)){
+			controller.tasklets[iid].lastResult = newres;
+			controller.sendEditEvent(tasklet.taskId, "result", newres);
+		}		
 	}
 	
 }
@@ -73,7 +72,12 @@ function applytui(widget,tui){
 		throw "ERROR: TUI/Object structure doesn't match!";
 		return;
 	}
-			
+	
+	// TODO: general solution for delete on missing properties
+	if(widget.items && !tui.items){
+		tui.items.items = [];
+	}
+	
 	for(var prop in tui) {
 		if(tui.hasOwnProperty(prop)){
 
@@ -136,35 +140,36 @@ function applytui(widget,tui){
 	}	
 }
 
-function __SaplHtml_handleJSEvent(expr,taskId,event){
+function __SaplHtml_handleJSEvent(expr,iid,event){
 	
-	var state = controller.tasklets[taskId].st;
+	var tasklet = controller.tasklets[iid];
+	var state = tasklet.st;
 	
 	// Returns a tuple of the JS document and HtmlEventResult	
 	// Looks like: [0, "Tuple2", document,HtmlEventResult]	
-	var ys = Sapl.feval([expr,[state,taskId,event,document]]);
+	var ys = Sapl.feval([expr,[state,iid,event,document]]);
 	
 	// The result is only in HNF, so both part of the tuple must be forced,
 	// but the document can be dropped after that.
 	Sapl.feval(ys[2]);
 	
 	var newstate = Sapl.feval(ys[3]);
-	controller.tasklets[taskId].st = newstate;
+	tasklet.st = newstate;
 	
 	try{
-		DB.updateTasklet(controller.tasklets[taskId], 
-						 controller.tasklets[taskId].getEl().dom.innerHTML,
+		DB.updateTasklet(tasklet, 
+						 tasklet.getEl().dom.innerHTML,
 						 null);
 	}catch(e){
 		// can happen that "dom" is null, but why? 
 	}
 						 
 	// toJS to make the result hyperstrict
-	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskId].resultFunc,[newstate]]));
+	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[newstate]]));
 	
 	// Send result to the client if it is changed only
-	if(!geq(controller.tasklets[taskId].lastResult, newres)){
-		controller.tasklets[taskId].lastResult = newres;
-		controller.onEdit(taskId, "result", newres);
+	if(!geq(tasklet.lastResult, newres)){
+		tasklet.lastResult = newres;
+		controller.onEdit(tasklet.taskId, "result", newres);
 	}
 }

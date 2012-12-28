@@ -86,7 +86,7 @@ from Map			import :: Map(..)
 	| UIIcon			!UISizeOpts	!UIIconOpts									// - Icon (information icon with tooltip text)
 	| UITab				!UISizeOpts	!UITabOpts									// - Tab (clicks trigger focus events)
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
-	| UITaskletPlaceholder !UISizeOpts !String
+	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
 	// Container components for composition:
 	| UIContainer		!UISizeOpts !UILayoutOpts ![UIControl] !UIContainerOpts	// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)
@@ -257,6 +257,7 @@ from Map			import :: Map(..)
 
 :: UITaskletOpts = 
 	{ taskId		 :: !String
+	, iid		     :: !String	// instance id
 	// It contains html _or_ tui
 	, html 			 :: !Maybe String
 	, tui			 :: !Maybe UIDef
@@ -267,6 +268,11 @@ from Map			import :: Map(..)
 	// They are a pair: the controller hijacks all the events sent to the given instance
 	, instanceNo	 :: !Maybe String
 	, controllerFunc :: !Maybe String
+	}
+
+:: UITaskletPHOpts =
+	{ taskId		 :: !String
+	, iid		     :: !String	// instance id
 	}
 
 :: UIContainerOpts =

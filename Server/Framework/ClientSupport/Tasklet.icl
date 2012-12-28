@@ -3,6 +3,7 @@ implementation module Tasklet
 import iTasks, Task, TaskState, UIDefinition
 import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
 import sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
+import Time
 from Map import newMap 
 
 //---------------------------------------------------------------------------------------
@@ -17,8 +18,24 @@ println msg iw=:{world}
 
 toDef c = UIControlSequence (newMap, [(c,newMap)], Vertical)
 
-mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkTask tasklet = Task taskFunc
+mkInstanceId :: Task String
+mkInstanceId = mkInstantTask taskFunc
+where
+	// TODO: generate actually unique id
+	taskFunc _ iw=:{world} 
+		# (c, world) = clock world
+		= (Ok ("i" +++ toString c), {iw & world = world})
+
+/*
+mkInstance :: (Tasklet st res) -> Task (TaskletInstance st res)
+mkInstance tasklet = mkInstantTask taskFunc
+where
+	// TODO: generate actually unique id
+	taskFunc _ iworld=:{taskTime} = (Ok ("i" +++ toString taskTime, tasklet), iworld)
+*/
+
+mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkTask (iid, tasklet) = Task taskFunc
 where
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId ts) iworld
@@ -60,7 +77,7 @@ where
 	// Commit
 	taskFunc event taskRepOpts (TCBasic taskId ts jsonRes _) iworld
 		# res = fromJust (fromJSON (jsonRes))
-		# rep = placeHolderRep taskId 
+		# rep = placeHolderRep taskId
 		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
 		= (result, println "commit" iworld)
 
@@ -70,18 +87,18 @@ where
 
 	taskInfo ts = {TaskInfo | lastEvent = ts, expiresIn = Nothing}
 
-	placeHolderRep taskId 
-		= TaskRep (toDef (UITaskletPlaceholder defaultSizeOpts (toString taskId))) []
+	placeHolderRep taskId
+		= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, iid = iid})) []
 
 	genRep taskId taskRepOpts mbState iworld 
-		# (gui, state, iworld) = tasklet.generatorFunc taskId mbState iworld
+		# (gui, state, iworld) = tasklet.generatorFunc iid taskId mbState iworld
 		= case gui of
 		
 			TaskletHTML gui 
 
 				# (state_js, script_js, events_js, rf_js, _, iworld) 
 					= linker state 
-							 (map (eventHandlerWrapper taskId) gui.eventHandlers)
+							 (map eventHandlerWrapper gui.eventHandlers)
 							 tasklet.Tasklet.resultFunc
 						     Nothing
 						     iworld
@@ -111,6 +128,7 @@ where
 		 = toDef (UITasklet defaultSizeOpts 
 		 			{UITaskletOpts 
 		 			| taskId   		 = toString taskId
+		 			, iid			 = iid
 					, html     		 = Nothing
 					, tui      		 = tui 
 					, st    		 = Just state_js
@@ -125,6 +143,7 @@ where
 			(UITasklet defaultSizeOpts 
 					 {UITaskletOpts 
 					 | taskId   	  = toString taskId
+ 		 			 , iid	  		  = iid
 					 , html     	  = Just (toString html)
 					 , tui	      	  = Nothing
 					 , st    		  = Just state_js
@@ -136,7 +155,7 @@ where
 
 	appTweak taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 
-	/* Controller wrapper to be easier to write controler function:
+	/* Controller wrapper to be easier to write controller function:
 	 * 1. taskId is parsed
 	 * 2. TUI result is stringified 
 	 */
@@ -145,8 +164,8 @@ where
 		= (fmap (toString o encodeUIDefinition) mbTUI, st)
 
 	// it uses the 2. layer (handleJSEvent), because it's created on the server
-	eventHandlerWrapper taskId (HtmlEvent id event f) 
-		= (id, event, handleJSEvent f (toString taskId))
+	eventHandlerWrapper (HtmlEvent id event f) 
+		= (id, event, handleJSEvent f iid)
 
 //---------------------------------------------------------------------------------------
 

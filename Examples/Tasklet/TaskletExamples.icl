@@ -21,16 +21,15 @@ import sapldebug
 
 googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real)
 googleMapsTasklet cla clo = 
-	{ Tasklet
-	| generatorFunc		= googleMapsGUI
+	{ generatorFunc		= googleMapsGUI
 	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) False
 	, tweakUI  			= setTitle "Google Maps Tasklet"
 	}
 where
-	googleMapsGUI taskId Nothing iworld 
-		= googleMapsGUI taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
+	googleMapsGUI iid taskId Nothing iworld 
+		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
 
-	googleMapsGUI taskId (Just st) iworld
+	googleMapsGUI iid _ (Just st) iworld
 
 		# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
 
@@ -69,21 +68,21 @@ where
 			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "zoom_changed", onChange]
 			= (d, {st & map = Just map})
 		where
-			onChange = createEventHandler updatePerspective (toString taskId)
+			onChange = createEventHandler updatePerspective iid
 
 		// Google maps API doesn't like to be loaded twice	
-		onInit st taskId e d
+		onInit st iid e d
 			# (d, mapsobj) = findObject d "google.maps"
 			| isUndefined mapsobj 
-			= (loadMapsAPI taskId e d, st)
-			= onScriptLoad st taskId e d
+			= (loadMapsAPI iid e d, st)
+			= onScriptLoad st iid e d
 		
-		loadMapsAPI taskId e d	
+		loadMapsAPI iid e d	
 			# (d, window)  = findObject d "window"	
-			# (d, _, _)    = setObjectAttr d window "gmapscallback" (createEventHandler onScriptLoad taskId)
+			# (d, _, _)    = setObjectAttr d window "gmapscallback" (createEventHandler onScriptLoad iid)
 	
 			= loadExternalJS d "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
-					(createEventHandler nullEventHandler taskId)
+					(createEventHandler nullEventHandler iid)
 
 		nullEventHandler st _ _ d = (d, st)
 
@@ -125,13 +124,12 @@ where
 
 geoTasklet :: Tasklet (Maybe GPSCoord) (Maybe GPSCoord)
 geoTasklet = 
-	{ Tasklet
-	| generatorFunc		= geoTaskletGUI
+	{ generatorFunc		= geoTaskletGUI
 	, resultFunc		= \pos = Value pos False
 	, tweakUI  			= setTitle "GEO Tasklet"
 	}
 
-geoTaskletGUI _ _ iworld
+geoTaskletGUI _ _ _ iworld
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 300
@@ -152,11 +150,11 @@ where
 		# (d, _) = setDomAttr d "loc" "innerHTML" "FAILURE"
     	= (d, st)
 
-	onInit st taskId _ d
+	onInit st iid _ d
 	    # (d, loc) = findObject d "navigator.geolocation" 
 		# (d, loc, _) = runObjectMethod d loc "getCurrentPosition" 
-							[createEventHandler onSuccess taskId
-							,createEventHandler onFailure taskId
+							[createEventHandler onSuccess iid
+							,createEventHandler onFailure iid
 				    		,toHtmlObject {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
 				
 		= (d, st)
@@ -165,17 +163,16 @@ where
 
 pushTasklet :: Tasklet Int Int 
 pushTasklet = 
-	{ Tasklet
-	| generatorFunc		= pushGenerateGUI
+	{ generatorFunc		= pushGenerateGUI
 	, resultFunc		= \i = Value i False
 	, tweakUI  			= setTitle "Push Tasklet"
 	}
 
-pushGenerateGUI :: !TaskId (Maybe Int) !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
+pushGenerateGUI :: !TaskInstanceId !TaskId (Maybe Int) !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
 
-pushGenerateGUI taskId Nothing iworld  = pushGenerateGUI taskId (Just 1) iworld
+pushGenerateGUI iid taskId Nothing iworld  = pushGenerateGUI iid taskId (Just 1) iworld
 
-pushGenerateGUI _ (Just st) iworld  
+pushGenerateGUI _ _ (Just st) iworld  
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 50
@@ -222,10 +219,10 @@ canvasHeight :== 300
 
 // TODO: http://jaspervdj.be/blaze/tutorial.html
 
-painterGenerateGUI taskId Nothing iworld  
-	= painterGenerateGUI taskId (Just {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}) iworld
+painterGenerateGUI iid taskId Nothing iworld  
+	= painterGenerateGUI iid taskId (Just {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}) iworld
 
-painterGenerateGUI _ (Just defSt) iworld  
+painterGenerateGUI _ _ (Just defSt) iworld  
 
 	# ws = toString canvasWidth
 	# hs = toString canvasHeight
@@ -433,26 +430,34 @@ taskletExamples =
 	[workflow "Simple push button tasklet" "Push the button 3(three) times" tasklet1,
 	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2,
 	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3,
-	 workflow "Google MAP" "Basic Google Maps functionality" (mkTask (googleMapsTasklet 47.471944 19.050278))]
+	 workflow "Google MAP" "Basic Google Maps functionality" tasklet4]
 
 tasklet2 :: Task Drawing
 tasklet2
-	= 		mkTask painterTasklet
+	= 		mkInstanceId >>= \iid ->
+			mkTask (iid, painterTasklet)
 		>>* [ OnValue ifStable 
 			] 
 
 tasklet1 :: Task Int
 tasklet1
-	= 		mkTask pushTasklet
+	= 		mkInstanceId >>= \iid ->
+			mkTask (iid, pushTasklet)
 		>>* [ OnAction ActionOk (ifValue (\n -> n >= 3))
             ] 
 
 tasklet3 :: Task (Maybe GPSCoord)
 tasklet3
-	= 		mkTask geoTasklet
+	= 		mkInstanceId >>= \iid ->
+			mkTask (iid, geoTasklet)
 		>>* [ OnAction ActionOk (ifValue isJust),
 		  	  OnAction ActionCancel (\_ = Nothing)
             ] 
+
+tasklet4 :: Task (Real, Real)
+tasklet4
+	= 		mkInstanceId >>= \iid ->
+	 		mkTask (iid, googleMapsTasklet 47.471944 19.050278)
 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
@@ -469,4 +474,3 @@ returnV (Value v _) = return v
     
 Start :: *World -> *World
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist taskletExamples)) world
- 

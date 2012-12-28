@@ -4,11 +4,12 @@ import StdString
 import Task, SaplHtml
 
 :: JSONString :== String
+:: TaskInstanceId :== String
 
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
                  | TaskletTUI  !(TaskletTUI  st)
 
-:: GeneratorFunc st :== TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
+:: GeneratorFunc st :== TaskInstanceId TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
 
 :: TaskletHTML st = 
 	{ width 			:: !UISize
@@ -44,5 +45,10 @@ import Task, SaplHtml
 	, tweakUI 			:: !(UIControl -> UIControl)
 	}
 
-mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res 
+:: TaskletInstance st res :== (TaskInstanceId, Tasklet st res)
+
+mkInstanceId :: Task String
+//mkInstance :: (Tasklet st res) -> Task (TaskletInstance st res)
+mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res 
+
 

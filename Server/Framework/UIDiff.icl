@@ -24,7 +24,7 @@ where
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
-derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts
+derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts, UITaskletPHOpts
 derive gEq UIControl, UILayoutOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
 derive gEq UIDef, UIAction
 
@@ -97,18 +97,31 @@ diffControls path event c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UITab sOpts1 opts1, UITab sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+
+		// Tasklet on the right hand side:
+		// check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
-			| opts1.UITaskletOpts.taskId == opts2.UITaskletOpts.taskId
-				= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
-				= [DiffImpossible]				
-		(UITaskletPlaceholder sOpts1 tid1, UITaskletPlaceholder sOpts2 tid2)
-			| tid1 == tid2
-				= [diffSizeOpts path sOpts1 sOpts2]
+			| opts1.UITaskletOpts.iid == opts2.UITaskletOpts.iid
+				= [DiffPossible [UIUpdate (toString path) 
+						(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId})]]
 				= [DiffImpossible]
-		(UITasklet sOpts1 opts1, UITaskletPlaceholder sOpts2 tid2)
-			| opts1.UITaskletOpts.taskId == tid2
-				= [diffSizeOpts path sOpts1 sOpts2]
-				= [DiffImpossible]				
+
+		(UITaskletPH sOpts1 opts1, UITasklet sOpts2 opts2)
+			| opts1.UITaskletPHOpts.iid == opts2.UITaskletOpts.iid		
+				= [DiffPossible [UIUpdate (toString path) 
+						(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId})]]
+				= [DiffImpossible]
+		
+		// Placeholder on the right hand side: update
+		(UITaskletPH sOpts1 opts1, UITaskletPH sOpts2 opts2)
+			| opts1.UITaskletPHOpts.iid == opts2.UITaskletPHOpts.iid		
+				= [DiffPossible [UIUpdate (toString path) (UITaskletPH sOpts2 opts2)]]
+				= [DiffImpossible]
+		(UITasklet sOpts1 opts1, UITaskletPH sOpts2 opts2)
+			| opts1.UITaskletOpts.iid == opts2.UITaskletPHOpts.iid		
+				= [DiffPossible [UIUpdate (toString path) (UITaskletPH sOpts2 opts2)]]
+				= [DiffImpossible]
+
 		(UIContainer sOpts1 lOpts1 items1 opts1, UIContainer sOpts2 lOpts2 items2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
 		(UIPanel sOpts1 lOpts1 items1 opts1, UIPanel sOpts2 lOpts2 items2 opts2)
@@ -129,7 +142,7 @@ diffControls path event c1 c2
 diffSizeOpts :: DiffPath UISizeOpts UISizeOpts -> DiffResult
 diffSizeOpts path opts1 opts2
 	| opts1 === opts2	= DiffPossible []
-						= DiffImpossible //DiffPossible [UIResize (toString path) opts2]
+						= DiffImpossible // DiffPossible [UIResize (toString path) opts2]
 
 diffViewOpts :: DiffPath (UIViewOpts a) (UIViewOpts a) -> DiffResult | gEq{|*|} a & encodeUIValue a
 diffViewOpts path opts1 opts2

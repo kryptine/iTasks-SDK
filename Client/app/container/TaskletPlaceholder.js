@@ -3,7 +3,7 @@ Ext.define('itwc.container.TaskletPlaceholder', {
 	alias: 'widget.itwc_tasklet_placeholder',
 				
 	initComponent: function(c) {
-		DB.loadTasklet(this.taskId, this);
+		DB.loadTasklet(this.iid, this);
 		this.callParent(arguments);		
 	},
 	

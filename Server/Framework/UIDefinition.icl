@@ -113,7 +113,7 @@ encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSO
 encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts] []
 encodeUIControl (UITab sopts opts)						= enc "itwc_tab" [toJSON sopts, toJSON opts] []
 encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts] []
-encodeUIControl (UITaskletPlaceholder sopts taskId)		= enc "itwc_tasklet_placeholder" [toJSON sopts, JSONObject [("taskId",toJSON taskId)]] []
+encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [toJSON sopts, toJSON opts] []
 encodeUIControl (UIContainer sopts lopts items opts)	= enc "itwc_container" [toJSON sopts, toJSON lopts, toJSON opts] items
 encodeUIControl (UIPanel sopts lopts items opts)		= enc "itwc_panel" [toJSON sopts, toJSON lopts, toJSON opts] items
 encodeUIControl (UIFieldSet sopts lopts items opts)		= enc "itwc_fieldset" [toJSON sopts, toJSON lopts, toJSON opts] items
@@ -123,7 +123,7 @@ encodeUIControl (UICustom json)							= json
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UILayoutOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
-derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts
+derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts
 derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}

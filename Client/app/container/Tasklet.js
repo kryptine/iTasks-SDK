@@ -3,6 +3,7 @@ Ext.define('itwc.container.Tasklet', {
 	alias: 'widget.itwc_tasklet',
 	
 	taskId:  null,
+	iid: null,
 	
 	// script fields
 	script: null,
@@ -29,6 +30,15 @@ Ext.define('itwc.container.Tasklet', {
 		
 		return h;
 	},
+
+	setTaskId: function(newTaskId) {
+		this.taskId = newTaskId;
+	},
+	
+	update: function(newTasklet) {
+		if(this.taskId != newTasklet.taskId)
+					this.setTaskId(newTasklet.taskId);
+	},	
 	
 	initComponent: function() {
 
@@ -38,7 +48,7 @@ Ext.define('itwc.container.Tasklet', {
 
 		eval("var tmp = eval(" + this.st + ");");
 		this.st = tmp;
-		controller.tasklets[this.taskId] = this;			
+		controller.tasklets[this.iid] = this;			
 
 		if(this.resultFunc != null){
 			eval("var tmp = eval(" + this.resultFunc + ");");
@@ -49,8 +59,7 @@ Ext.define('itwc.container.Tasklet', {
 		if(this.controllerFunc != null){
 			eval("var tmp = eval(" + this.controllerFunc + ");");
 			this.controllerFunc = tmp;
-			controller.taskletControllers[this.instanceNo] = 
-					{taskletId: this.taskId, controllerFunc: this.controllerFunc}
+			controller.taskletControllers[this.instanceNo] = this;
 		}			
 		
 		DB.saveTasklet(this);

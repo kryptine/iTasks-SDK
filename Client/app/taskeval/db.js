@@ -1,24 +1,25 @@
 DB = new function () {
 	
-	this.saveValue = function(taskletId, name, val){
+	this.saveValue = function(iid, name, val){
 		if(val){
-			localStorage.setItem(taskletId+"-"+name, val);
+			localStorage.setItem(iid+"-"+name, val);
 		}else{
-			localStorage.removeItem(taskletId+"-"+name);
+			localStorage.removeItem(iid+"-"+name);
 		}
 	}
 	
-	this.loadValue = function(taskletId, name){
-		return localStorage.getItem(taskletId+"-"+name);
+	this.loadValue = function(iid, name){
+		return localStorage.getItem(iid+"-"+name);
 	}	
 
-	this.removeValue = function(taskletId, name){
-		return localStorage.removeItem(taskletId+"-"+name);
+	this.removeValue = function(iid, name){
+		return localStorage.removeItem(iid+"-"+name);
 	}	
 	
 	this.saveTasklet = function(tasklet){
 	
-		var taskletId = tasklet.taskId;
+		var iid = tasklet.iid;
+		
 		// evaluate it completely to avoid serialize JS objects as much as possible
 		var st = DB.stringify(Sapl.heval(tasklet.st)); 
 		var events = DB.stringify(tasklet.events);
@@ -28,15 +29,15 @@ DB = new function () {
 		var controllerFunc = DB.stringify(tasklet.controllerFunc);
 		var instanceNo = tasklet.instanceNo;
 		
-		this.saveValue(taskletId, "st", st);
-		this.saveValue(taskletId, "events", events);
-		this.saveValue(taskletId, "resultFunc", resultFunc);
-		this.saveValue(taskletId, "tui", tui);
-		this.saveValue(taskletId, "html", html);
-		this.saveValue(taskletId, "controllerFunc", controllerFunc);
-		this.saveValue(taskletId, "instanceNo", instanceNo);
-		this.saveValue(taskletId, "width", tasklet.width);
-		this.saveValue(taskletId, "height", tasklet.height);
+		this.saveValue(iid, "st", st);
+		this.saveValue(iid, "events", events);
+		this.saveValue(iid, "resultFunc", resultFunc);
+		this.saveValue(iid, "tui", tui);
+		this.saveValue(iid, "html", html);
+		this.saveValue(iid, "controllerFunc", controllerFunc);
+		this.saveValue(iid, "instanceNo", instanceNo);
+		this.saveValue(iid, "width", tasklet.width);
+		this.saveValue(iid, "height", tasklet.height);
 	}
 	
 	this.stringify = function(o){
@@ -47,39 +48,39 @@ DB = new function () {
 		}
 	}
 		
-	this.loadTasklet = function(taskletId, o){
-		o.st = this.loadValue(taskletId, "st");
-		o.events = JSON.parse(this.loadValue(taskletId, "events"));
-		o.resultFunc = this.loadValue(taskletId, "resultFunc");
-		o.html = this.loadValue(taskletId, "html");
-		o.tui = JSON.parse(this.loadValue(taskletId, "tui"));
-		o.controllerFunc = this.loadValue(taskletId, "controllerFunc");
-		o.instanceNo = this.loadValue(taskletId, "instanceNo");
-		o.width = parseInt(this.loadValue(taskletId, "width"));
-		o.height = parseInt(this.loadValue(taskletId, "height"));
+	this.loadTasklet = function(iid, o){
+		o.st = this.loadValue(iid, "st");
+		o.events = JSON.parse(this.loadValue(iid, "events"));
+		o.resultFunc = this.loadValue(iid, "resultFunc");
+		o.html = this.loadValue(iid, "html");
+		o.tui = JSON.parse(this.loadValue(iid, "tui"));
+		o.controllerFunc = this.loadValue(iid, "controllerFunc");
+		o.instanceNo = this.loadValue(iid, "instanceNo");
+		o.width = parseInt(this.loadValue(iid, "width"));
+		o.height = parseInt(this.loadValue(iid, "height"));
 	}
 	
 	this.updateTasklet = function(tasklet, html, tuistr){
 	
-		var taskletId = tasklet.taskId;	
+		var iid = tasklet.iid;	
 		// evaluate it completely to avoid serialize JS objects as much as possible
 		var st = DB.stringify(Sapl.heval(tasklet.st)); 
 		
-		this.saveValue(taskletId, "st", st);
-		this.saveValue(taskletId, "tui", tuistr);
-		this.saveValue(taskletId, "html", html);	
+		this.saveValue(iid, "st", st);
+		this.saveValue(iid, "tui", tuistr);
+		this.saveValue(iid, "html", html);	
 	}
 	
-	this.removeTasklet = function(taskletId){
-		this.removeValue(taskletId, "st");
-		this.removeValue(taskletId, "events");
-		this.removeValue(taskletId, "resultFunc");
-		this.removeValue(taskletId, "tui");
-		this.removeValue(taskletId, "html");
-		this.removeValue(taskletId, "controllerFunc");
-		this.removeValue(taskletId, "instanceNo");
-		this.removeValue(taskletId, "width");
-		this.removeValue(taskletId, "height");			
+	this.removeTasklet = function(iid){
+		this.removeValue(iid, "st");
+		this.removeValue(iid, "events");
+		this.removeValue(iid, "resultFunc");
+		this.removeValue(iid, "tui");
+		this.removeValue(iid, "html");
+		this.removeValue(iid, "controllerFunc");
+		this.removeValue(iid, "instanceNo");
+		this.removeValue(iid, "width");
+		this.removeValue(iid, "height");			
 	}
 }
 

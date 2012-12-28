@@ -1,15 +1,15 @@
 implementation module SaplHtml
 
-import StdEnv, Void
+import StdEnv, Void, Tasklet
 
 :: HtmlDocument :== Void
 :: HtmlObject :== Void
 
-handleJSEvent :: (HtmlEventHandlerFunc a) !TaskSID *HtmlObject -> Void
-handleJSEvent origHandler taskId event = undef
+handleJSEvent :: (HtmlEventHandlerFunc a) !TaskInstanceId *HtmlObject -> Void
+handleJSEvent origHandler iid event = undef
 
-createEventHandler :: (HtmlEventHandlerFunc a) !TaskSID -> HtmlObject 
-createEventHandler origHandler taskId = undef
+createEventHandler :: (HtmlEventHandlerFunc a) !TaskInstanceId -> HtmlObject 
+createEventHandler origHandler iid = undef
 
 getDomElement :: !*HtmlDocument !HtmlElementId -> *(!*HtmlDocument, !HtmlObject)
 getDomElement document id = undef

@@ -278,21 +278,21 @@ function __SaplHtml_loadExternalJS(d, url, continuation){
 	return d;
 }
 
-function __SaplHtml_createEventHandler(expr, taskId){
+function __SaplHtml_createEventHandler(expr, iid){
 	expr = Sapl.feval(expr);
-	taskId = Sapl.feval(taskId);
+	taskId = Sapl.feval(iid);
 	
     // Creating a closure of 2. layer
-    var eventHandler = function(expr, taskId){
+    var eventHandler = function(expr, iid){
 		
 		var h = function(source){
-			return __SaplHtml_handleJSEvent(expr, taskId, source);
+			return __SaplHtml_handleJSEvent(expr, iid, source);
 		};
 		
 		return h;
     }
 	
-	return eventHandler(expr, taskId);
+	return eventHandler(expr, iid);
 }
 
 function __SaplHtml_isUndefined(obj){
