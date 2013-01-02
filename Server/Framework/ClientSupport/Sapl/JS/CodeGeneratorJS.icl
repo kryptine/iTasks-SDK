@@ -437,11 +437,11 @@ termCoder (SStrictLetDefinition name body) s a
 termCoder _ s a = abort "???"
 
 isdynamic (SName name _) | startsWith "_SystemDynamic." name
-	= True
+//	= True
 	= False
 
 isdynamic (SStrictName name) | startsWith "_SystemDynamic." name
-	= True
+//	= True
 	= False
 
 isdynamic _ = False
