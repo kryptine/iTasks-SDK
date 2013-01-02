@@ -32,6 +32,14 @@ handleJSEvent :: (HtmlEventHandlerFunc a) !TaskInstanceId *HtmlObject -> Void
 // creates 1. layer
 createEventHandler :: (HtmlEventHandlerFunc a) !TaskInstanceId -> HtmlObject 
 
+/*
+* Fire own event
+*/
+fireEvent :: !*HtmlDocument !TaskInstanceId !String a -> *HtmlDocument
+
+// Handle interface call on the client. Similar to handleJSEvent
+handleInterfaceCall :: !f !TaskInstanceId !arg -> Void 
+
 getObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr    -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 setObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr !a -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 

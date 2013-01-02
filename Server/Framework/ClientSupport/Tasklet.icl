@@ -35,7 +35,10 @@ where
 */
 
 mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkTask (iid, tasklet) = Task taskFunc
+mkTask ti = mkInterfaceTask ti []
+
+mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkInterfaceTask (iid, tasklet) fs = Task taskFunc
 where
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId ts) iworld
@@ -96,14 +99,15 @@ where
 		
 			TaskletHTML gui 
 
-				# (state_js, script_js, events_js, rf_js, _, iworld) 
-					= linker state 
+				# (state_js, script_js, events_js, intfcs_js, rf_js, _, iworld) 
+					= linker state
+							 (map interfaceWrapper fs) 
 							 (map eventHandlerWrapper gui.eventHandlers)
 							 tasklet.Tasklet.resultFunc
 						     Nothing
 						     iworld
 					
-				# tui = tHTMLToTasklet gui taskId state_js script_js events_js rf_js
+				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js
 				# rep = TaskRep (appTweak tui) []						
 				= (rep, state, iworld)
 
@@ -113,8 +117,9 @@ where
 						Just (iNo, eh) = (Just (toString iNo), Just eh)
 									   = (Nothing , Nothing)
 
-				# (state_js, script_js, _, rf_js, mb_cf_js, iworld) 
-					= linker state 
+				# (state_js, script_js, _, _, rf_js, mb_cf_js, iworld) 
+					= linker state
+							 []
 							 []
 							 tasklet.Tasklet.resultFunc
 						     (fmap controllerWrapper mb_cf)
@@ -134,11 +139,12 @@ where
 					, st    		 = Just state_js
 					, script   		 = Just script_js
 					, events   		 = Nothing
+					, interfaceFuncs = Nothing
 					, resultFunc	 = Just rf_js
 					, instanceNo	 = mb_ino
 					, controllerFunc = mb_cf_js})
 
-	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js rf_js
+	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js
 		= toDef (setSize width height 
 			(UITasklet defaultSizeOpts 
 					 {UITaskletOpts 
@@ -149,6 +155,7 @@ where
 					 , st    		  = Just state_js
 					 , script   	  = Just script_js
 					 , events   	  = Just events_js
+					 , interfaceFuncs = Just intfcs_js					 
 					 , resultFunc     = Just rf_js
 					 , instanceNo     = Nothing
 					 , controllerFunc = Nothing}))
@@ -167,6 +174,8 @@ where
 	eventHandlerWrapper (HtmlEvent id event f) 
 		= (id, event, handleJSEvent f iid)
 
+	interfaceWrapper (InterfaceFun fn f) = (fn, handleInterfaceCall f iid)
+
 //---------------------------------------------------------------------------------------
 
 instance toString HtmlDef
@@ -178,7 +187,7 @@ where
 handlerr (Error str) = abort ("Tasklet.icl: " +++ str)
 handlerr (Ok a) = a
 
-linker state eventHandlers resultFunc mbControllerFunc iworld
+linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 
@@ -204,6 +213,12 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 				 in (ls2, a2, [(e1,e2,f2):hs], iworld2)) 
 			(ls, a, [], iworld) eventHandlers
 
+	// link functions indicated by event handlers
+	# (ls, a, interfaceFuns, iworld) = foldl (\(ls, a, hs, iworld) (fn, f) = 
+				let (ls2, a2, f2, iworld2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) iworld
+				 in (ls2, a2, [(fn,f2):hs], iworld2)) 
+			(ls, a, [], iworld) interfaceFuns
+
 	/* 2. Generate function definitions and ParserState */
 
 	# sapl = toString a	
@@ -217,6 +232,9 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 
 	# events = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
 				(exprGenerateJS saplhandler mbPst)))) eventHandlers
+	
+	# intfcs = map (\(fn,saplfun) = (fn, toString (handlerr 
+				(exprGenerateJS saplfun mbPst)))) interfaceFuns	
 	
 	# rfjs = toString (handlerr (exprGenerateJS saplRF mbPst))		
 	
@@ -232,5 +250,5 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 	# (_, iworld) = writeFile "debug.js" script iworld
 
 
-	= (statejs, script, events, rfjs, cfjs, iworld)
+	= (statejs, script, events, intfcs, rfjs, cfjs, iworld)
  

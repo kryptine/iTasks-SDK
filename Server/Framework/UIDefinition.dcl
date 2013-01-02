@@ -264,6 +264,7 @@ from Map			import :: Map(..)
 	, st			 :: !Maybe String
 	, script		 :: !Maybe String
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
+	, interfaceFuncs :: !Maybe [(!String,!String)] 			// function name, function
 	, resultFunc     :: !Maybe String
 	// They are a pair: the controller hijacks all the events sent to the given instance
 	, instanceNo	 :: !Maybe String

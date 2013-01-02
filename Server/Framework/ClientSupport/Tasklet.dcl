@@ -49,6 +49,21 @@ import Task, SaplHtml
 
 mkInstanceId :: Task String
 //mkInstance :: (Tasklet st res) -> Task (TaskletInstance st res)
-mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res 
+
+mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+
+/*
+ * Interface task(let): a Tasklet with additional interface functions for communication
+ * with 3td party JavaScript. Interface functions can be called outside of the iTask world
+ * to interact with the Tasklet.
+ */
+
+:: InterfaceFun st = E.a: InterfaceFun !String !(st (Maybe Dynamic) *HtmlDocument -> *(!*HtmlDocument, st, a)) 
+
+mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+
+
+
+
 
 
