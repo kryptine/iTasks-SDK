@@ -6,6 +6,14 @@ isNumber = function(o){
 	return (typeof o == "number");
 }
 
+isFloat = function(n){
+  return n===+n && n!==(n|0);
+}
+
+isInteger = function(n){
+  return n===+n && n===(n|0);
+}
+
 isString = function(o){
 	return (typeof o == "string");
 }
