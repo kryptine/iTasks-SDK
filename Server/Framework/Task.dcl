@@ -10,6 +10,7 @@ from LayoutCombinators	import :: Layout
 
 derive JSONEncode		Task
 derive JSONDecode		Task
+derive gDefault			Task
 derive gUpdate			Task
 derive gVerify			Task
 derive gVisualizeText	Task
