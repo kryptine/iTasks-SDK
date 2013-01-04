@@ -48,14 +48,19 @@ Ext.define('itwc.container.Panel',{
 		this.callParent(arguments);
 	},
 	replaceWindow: function (index, def) {
+		this.windows = this.windows || [];
 		this.windows[index].destroy();
 		this.windows[index] = Ext.create('itwc.container.Window',def);
 		this.windows[index].panelRef = this;
 	},
 	insertWindow: function (index, def) {
-		console.log("TODO insertWindow");
+		this.windows = this.windows || [];
+		this.windows.splice(index,0,Ext.create('itwc.container.Window',def));
+		this.windows[index].panelRef = this;
 	},
 	removeWindow: function (index) {
-		console.log("TODO removeWindow");
+		this.windows = this.windows || [];
+		this.windows[index].destroy();
+		this.windows.splice(index,1);
 	}
 });

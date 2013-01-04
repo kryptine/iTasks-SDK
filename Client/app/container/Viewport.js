@@ -22,13 +22,15 @@ Ext.define('itwc.container.Viewport',{
 				if(!cmp)
 					return undef;
 			} else if (step === "w") {
-				if(cmp.windows && cmp.windows.length) {
-					if((i+1) < numSteps && cmp.windows[parseInt(steps[i+1])]) {
-						cmp = cmp.windows[parseInt(steps[i+1])];
-						i++;
+				if(i < numSteps - 1) { 
+					if(cmp.windows && cmp.windows.length) {
+						if((i+1) < numSteps && cmp.windows[parseInt(steps[i+1])]) {
+							cmp = cmp.windows[parseInt(steps[i+1])];
+							i++;
+						}
+					} else {
+						return undef;
 					}
-				} else {
-					return undef;
 				}
 			} else {
 				if(cmp.items && cmp.items.get) {
