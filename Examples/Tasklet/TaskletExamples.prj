@@ -2,7 +2,7 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Built:	True
-	Target:	iTasks
+	Target:	iTasks + Sapl
 	Exec:	{Project}\TaskletExamples.exe
 	CodeGen
 		CheckStacks:	False
@@ -1020,20 +1020,6 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	DocumentStore
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	Engine
 		Dir:	{Application}\iTasks-SDK\Server\Framework
 		Compiler
@@ -1188,48 +1174,6 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TUIDefinition
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TUIDiff
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TUIEncode
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	Task
 		Dir:	{Application}\iTasks-SDK\Server\Framework
 		Compiler
@@ -1273,6 +1217,34 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TaskStore
+		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	UIDefinition
+		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	UIDiff
 		Dir:	{Application}\iTasks-SDK\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
@@ -1763,6 +1735,20 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	HTML
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	PPrint
 		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
 		Compiler
 			NeverMemoryProfile:	False
