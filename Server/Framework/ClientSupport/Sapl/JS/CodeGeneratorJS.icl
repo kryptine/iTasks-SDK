@@ -59,6 +59,7 @@ pushArgs s [] = s
 prefix = "__"
 
 //escapeTable :: Char -> Maybe String
+escapeTable '.' = Just "_"	// this is the module name separator
 escapeTable '<' = Just "$3C"
 escapeTable '>' = Just "$3E"
 escapeTable '{' = Just "$7B"
@@ -80,7 +81,7 @@ escapeTable '/' = Just "$2F"
 escapeTable '|' = Just "$2F"
 escapeTable '%' = Just "$7C"
 escapeTable '@' = Just "$40"
-escapeTable '.' = Just "_"	// this is the module name separator
+escapeTable '\'' = Just "$27"
 escapeTable _ = Nothing
 
 // Escape identifier, except the "$eval" part if it ends like that		
