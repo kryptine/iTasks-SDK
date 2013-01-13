@@ -93,7 +93,7 @@ where
 	placeHolderRep taskId
 		= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, iid = iid})) []
 
-	genRep taskId taskRepOpts mbState iworld 
+	genRep taskId taskRepOpts mbState iworld
 		# (gui, state, iworld) = tasklet.generatorFunc iid taskId mbState iworld
 		= case gui of
 		
@@ -187,37 +187,37 @@ where
 handlerr (Error str) = abort ("Tasklet.icl: " +++ str)
 handlerr (Ok a) = a
 
-linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld
+linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{world}
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 
-	# (ls, iworld) = generateLoaderState iworld
+	# (ls, world) = generateLoaderState world
 	// link functions indicated by the state structure
 	# saplst = graph_to_sapl_string state
-	# (ls, a, saplst, iworld) = linkSaplforExprByLoaderState ls newAppender saplst iworld
+	# (ls, a, saplst, world) = linkSaplforExprByLoaderState ls newAppender saplst world
 
 	// link functions indicated by result func
 	# saplRF = graph_to_sapl_string resultFunc
-	# (ls, a, saplRF, iworld) = linkSaplforExprByLoaderState ls a saplRF iworld
+	# (ls, a, saplRF, world) = linkSaplforExprByLoaderState ls a saplRF world
 
 	// link functions indicated by controller func
-	# (ls, a, mbSaplCF, iworld) = case mbControllerFunc of
+	# (ls, a, mbSaplCF, world) = case mbControllerFunc of
 		Just cf # saplCF = graph_to_sapl_string cf
-				# (ls, a, saplCF, iworld) = linkSaplforExprByLoaderState ls a saplCF iworld
-				= (ls, a, Just saplCF, iworld)
-				= (ls, a, Nothing,  iworld)
+				# (ls, a, saplCF, world) = linkSaplforExprByLoaderState ls a saplCF world
+				= (ls, a, Just saplCF, world)
+				= (ls, a, Nothing,  world)
 				
 	// link functions indicated by event handlers
-	# (ls, a, eventHandlers, iworld) = foldl (\(ls, a, hs, iworld) (e1,e2,f) = 
-				let (ls2, a2, f2, iworld2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) iworld
-				 in (ls2, a2, [(e1,e2,f2):hs], iworld2)) 
-			(ls, a, [], iworld) eventHandlers
+	# (ls, a, eventHandlers, world) = foldl (\(ls, a, hs, world) (e1,e2,f) = 
+				let (ls2, a2, f2, world2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) world
+				 in (ls2, a2, [(e1,e2,f2):hs], world2)) 
+			(ls, a, [], world) eventHandlers
 
 	// link functions indicated by event handlers
-	# (ls, a, interfaceFuns, iworld) = foldl (\(ls, a, hs, iworld) (fn, f) = 
-				let (ls2, a2, f2, iworld2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) iworld
-				 in (ls2, a2, [(fn,f2):hs], iworld2)) 
-			(ls, a, [], iworld) interfaceFuns
+	# (ls, a, interfaceFuns, world) = foldl (\(ls, a, hs, world) (fn, f) = 
+				let (ls2, a2, f2, world2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) world
+				 in (ls2, a2, [(fn,f2):hs], world2)) 
+			(ls, a, [], world) interfaceFuns
 
 	/* 2. Generate function definitions and ParserState */
 
@@ -241,14 +241,14 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld
 	# cfjs = case mbSaplCF of
 		Just saplCF = Just (toString (handlerr (exprGenerateJS saplCF mbPst)))
 					= Nothing		
-					
+
 /* For debugging:*/
 
-	# (_, iworld) = writeFile "debug_state.sapl" saplst iworld
-	# (_, iworld) = writeFile "debug_state.js" statejs iworld	
-	# (_, iworld) = writeFile "debug.sapl" sapl iworld
-	# (_, iworld) = writeFile "debug.js" script iworld
+	# (_, world) = writeFile "debug_state.sapl" saplst world
+	# (_, world) = writeFile "debug_state.js" statejs world	
+	# (_, world) = writeFile "debug.sapl" sapl world
+	# (_, world) = writeFile "debug.js" script world
 
 
-	= (statejs, script, events, intfcs, rfjs, cfjs, iworld)
+	= (statejs, script, events, intfcs, rfjs, cfjs, {iworld & world=world})
  

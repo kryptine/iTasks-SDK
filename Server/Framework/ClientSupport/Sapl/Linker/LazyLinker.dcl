@@ -27,7 +27,7 @@ import StdString, StringAppender, IWorld
 * c) we don't want to use them on the client: 
 *       LazyLinker, CodeGeneratorJS
 */
-generateLoaderState :: !*IWorld -> *(LoaderStateExt, !*IWorld)
+generateLoaderState :: !*World -> *(LoaderStateExt, !*World)
 
 /**
 * Link an expression using a LoaderState
@@ -41,7 +41,7 @@ generateLoaderState :: !*IWorld -> *(LoaderStateExt, !*IWorld)
 * @return the original expression after macro substitution 
 * @return *IWorld
 */
-linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld -> *(LoaderStateExt, !StringAppender, !String, !*IWorld)
+linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*World -> *(LoaderStateExt, !StringAppender, !String, !*World)
 
 /**
 * Simplified linker
@@ -52,5 +52,5 @@ linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld 
 * @return the original expression after macro substitution
 * @return *IWorld
 */
-linkSaplforExpr :: !String *IWorld -> *(!String, !String,!*IWorld)
-
+linkSaplforExpr :: !String *World -> *(!String, !String,!*World)
+ 

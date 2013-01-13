@@ -17,8 +17,21 @@ from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCo
 handlerr (Error (c, str)) = abort ("LazyLinker.icl: " +++ str)
 handlerr (Ok a) = a
 
-generateLoaderState :: !*IWorld -> *(LoaderStateExt, !*IWorld)
-generateLoaderState iworld=:{IWorld|world} 
+generateLoaderStateHS :: !*World -> *(LoaderStateExt, !*World) 
+generateLoaderStateHS world
+	# module_directory = "sapl"
+	# builtin_module_directory = "sapl" </> "std"
+	
+	# (res,world) = readDirectory module_directory world
+	# ms = filter (\m = (snd (splitExtension m)) == sapl_module_name_extension) (handlerr res)
+
+	# ms = map (\m = (fst (splitExtension m), module_directory </> m)) ms
+
+	# mmap = fromList ms
+	= (((mmap, newMap, [], 0), newMap), world)
+	
+generateLoaderState :: !*World -> *(LoaderStateExt, !*World)
+generateLoaderState world 
 	# module_directory = "sapl"
 	# builtin_module_directory = "sapl" </> "std"
 	
@@ -54,16 +67,16 @@ generateLoaderState iworld=:{IWorld|world}
 	# mmap = del "LazyLinker" mmap
 	# mmap = del "CodeGeneratorJS" mmap
 	
-	= (((mmap, bmmap, [], 0), newMap), {iworld & world=world})
+	= (((mmap, bmmap, [], 0), newMap), world)
 
-linkSaplforExpr :: !String *IWorld -> *(!String, !String, !*IWorld)
-linkSaplforExpr expr iworld
-	# (ls, iworld) = generateLoaderState iworld
-	# (_, a, newexpr, iworld) = linkSaplforExprByLoaderState ls newAppender expr iworld
-	= (toString a, newexpr, iworld)
+linkSaplforExpr :: !String *World -> *(!String, !String, !*World)
+linkSaplforExpr expr world
+	# (ls, world) = generateLoaderState world
+	# (_, a, newexpr, world) = linkSaplforExprByLoaderState ls newAppender expr world
+	= (toString a, newexpr, world)
 
-linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld -> *(LoaderStateExt, !StringAppender, !String, !*IWorld)
-linkSaplforExprByLoaderState (ls,lmap) a expr iworld=:{IWorld|world} 
+linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*World -> *(LoaderStateExt, !StringAppender, !String, !*World)
+linkSaplforExprByLoaderState (ls,lmap) a expr world 
 	# maindeps = generate_dependencies (tokens expr) []
 	# (lmap, (_, ls), world, expra) = substitute_macros lmap maindeps (lazy_loader, ls) expr world newAppender
 
@@ -71,7 +84,7 @@ linkSaplforExprByLoaderState (ls,lmap) a expr iworld=:{IWorld|world}
 				= foldl (\(llmap, loader, world, a) d = generate_source llmap loader d world a) 
 					    (lmap, (lazy_loader, ls), world, a) maindeps
 
-	= ((ls,lmap), a, toString expra, {iworld & world=world})
+	= ((ls,lmap), a, toString expra, world)
 
 where
 	getModuleName name
