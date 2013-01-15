@@ -1076,7 +1076,7 @@ where
 	options _								= []
 
 gUpdate{|GridChoice|} _ _ _ _ target upd val
-	= updateChoice (\idx (GridChoice options _) -> GridChoice options (Just idx)) target upd val
+	= updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
 gVerify{|GridChoice|} _ _ _ um _ = alwaysValid um
 
@@ -1104,7 +1104,7 @@ where
 	options _										= []
 
 gUpdate{|GridChoiceNoView|} _ _ target upd val
-	= updateChoice (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) target upd val
+	= updateChoice (\idxs (GridChoiceNoView options _) -> GridChoiceNoView options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
 gVerify{|GridChoiceNoView|} _	_ um _ = alwaysValid um
 	

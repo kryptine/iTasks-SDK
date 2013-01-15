@@ -50,20 +50,35 @@ Ext.define('itwc.component.choice.Grid',{
 		if(Ext.isArray(me.value)) {
 			me.setValue(me.value.length ? me.value[0] : -1);
 		}
-		if(Ext.isNumber(me.value) && me.value >= 0 && me.value < numOptions) {
+		if(Ext.isNumber(me.value) && me.value >= 0) {
 			me.setValue(me.value);
 		}
 	
 	},
 	onItemClick: function(view,rec) {
-		this.value = rec.index;
+		this.value = [this.store.indexOf(rec)];
 		this.fireEvent('change');	
 	},
 	setValue: function(value) {
+		if(Ext.isArray(value) && value.length) {
+			value = value[0];
+		}
 		if(Ext.isNumber(value) && value < this.store.count() && value >= 0) {
-			this.getSelectionModel().select(value);
+			this.value = value;
+			this.getSelectionModel().select(value);		
 		} else {
 			this.getSelectionModel().deselectAll();
+		}
+	},
+	setOptions: function(options) {
+		var me = this,
+			numOptions = options.length;
+			
+		me.store.removeAll();
+		me.store.insert(0,options);
+		
+		if(Ext.isNumber(me.value) && me.value >= 0 && me.value < numOptions) {
+			me.setValue(me.value);
 		}
 	},
 	getValue: function() {

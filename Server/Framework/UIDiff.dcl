@@ -6,6 +6,7 @@ from Task import :: Event
 :: UIUpdate
 	//Leaf updates
 	= UISetValue		!UIPath !JSONNode		// Set the value of a component
+	| UISetOptions		!UIPath !JSONNode		// Change the options in a choice component
 	| UISetTaskId		!UIPath !String			// Set taskId a component belongs to
 	| UISetEditorId		!UIPath !String			// Set taskId a component belongs to
 	| UISetName			!UIPath !String			// Set name of a component
