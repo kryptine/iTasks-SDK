@@ -1,6 +1,6 @@
 implementation module FastString
 
-import StdEnv
+import StdEnv 
 
 startsWith :: !String !String -> Bool
 startsWith start str
@@ -51,3 +51,4 @@ matchAt s1 s2 p
 	| ((size s1) + p) > (size s2) 
 				= False
 				= and [s1.[i] == s2.[p + i] \\ i <- [0..((size s1) - 1)]]
+

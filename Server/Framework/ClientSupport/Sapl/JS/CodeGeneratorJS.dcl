@@ -27,12 +27,20 @@ from SaplParser import :: ParserState
 escapeName :: String StringAppender -> StringAppender
 
 /**
-* Generates JS from Sapl source
+* Generates JS from Sapl source. Clean flavour.
 *
 * @param Sapl source
 * @return (JS source / error message, error)
 */
 generateJS :: String -> (MaybeErrorString (StringAppender, ParserState))
+
+/**
+* Generates JS from Sapl source. Haskell (GHC) flavour.
+*
+* @param Sapl source
+* @return (JS source / error message, error)
+*/
+generateJS_fHS :: String -> (MaybeErrorString (StringAppender, ParserState))
 
 /**
 * Generates JS from Sapl source of sapl expression only

@@ -24,7 +24,10 @@ where
 // An identifier is a dependency if it contains a "."
 generate_dependencies :: [Token] [String] -> [String]
 generate_dependencies [TIdentifier name:ts] ds
+// Clean flavour
 	= if (isGlobalFunction name) (generate_dependencies ts [name:ds]) (generate_dependencies ts ds)
+// (HS) GHC flavour
+//	= generate_dependencies ts [name:ds]
 generate_dependencies [_:ts] ds = generate_dependencies ts ds
 generate_dependencies [] ds = ds
 

@@ -45,3 +45,4 @@ charIndexBackwards :: !String !Int !Char -> (!Bool,!Int)
 * @param The start position.
 */
 matchAt :: !String !String !Int -> Bool
+

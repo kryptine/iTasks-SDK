@@ -1,11 +1,21 @@
 implementation module LazyLinker
 
-import StdEnv, StdMaybe, Map
-import SaplTokenizer, SaplLinkerShared, StringAppender, FastString
+import StdEnv, StdMaybe, Map, Text
+import SaplTokenizer, SaplLinkerShared, StringAppender
 import IWorld
+
+from FastString import charIndexBackwards
 
 import FilePath, File, Directory, Error
 from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
+
+println :: !String !*World -> *World
+println msg world
+	# (console,world)	= stdio world
+	# console			= fwrites msg console
+	# console			= fwrites "\n" console
+	# (_,world)			= fclose console world
+	= world
 
 // Module name -> file name
 :: ModuleMap :== Map String String
@@ -17,18 +27,44 @@ from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCo
 handlerr (Error (c, str)) = abort ("LazyLinker.icl: " +++ str)
 handlerr (Ok a) = a
 
-generateLoaderStateHS :: !*World -> *(LoaderStateExt, !*World) 
-generateLoaderStateHS world
-	# module_directory = "sapl"
-	# builtin_module_directory = "sapl" </> "std"
-	
-	# (res,world) = readDirectory module_directory world
-	# ms = filter (\m = (snd (splitExtension m)) == sapl_module_name_extension) (handlerr res)
+isDirectory :: !String !*World -> *(!Bool, !*World)
+isDirectory path world
+	= case getFileInfo path world of
+		(Ok fi, world)   = (fi.FileInfo.directory, world)
+		(Error _, world) = (False, world)
 
-	# ms = map (\m = (fst (splitExtension m), module_directory </> m)) ms
+fileList :: !FilePath (FilePath -> Bool) !*World -> *(![FilePath], !*World)
+fileList path filter world 
+	# (fs, world) = readDirectory path world
+	= perFile path (handlerr fs) [] world
+where	
+	perFile basePath [] rs world
+		= (rs, world)
+	perFile basePath [f:fs] rs world
+		| f == "." || f == ".."
+			= perFile path fs rs world
+			= case isDirectory fullPath world of
+				(True,  world) 
+					# (fs2, world) = fileList fullPath filter world
+					= perFile path fs (rs++fs2) world
+				(False, world)
+					| filter f 
+						= perFile path fs (rs++[fullPath]) world
+						= perFile path fs rs world				
+	where
+		fullPath = basePath </>	f
 
-	# mmap = fromList ms
+generateLoaderState_fHS :: !*World -> *(LoaderStateExt, !*World) 
+generateLoaderState_fHS world
+	# (fs, world) = fileList module_directory (\f -> endsWith ".sapl" f) world 
+	# mmap = fromList (zip (map (toModuleName o dropExtension) fs, fs))
 	= (((mmap, newMap, [], 0), newMap), world)
+where
+	module_directory = "sapl"	
+	
+	toModuleName path = 
+		replaceSubString (toString pathSeparator) "." 
+				(subString (size module_directory + 1) (size path) path)
 	
 generateLoaderState :: !*World -> *(LoaderStateExt, !*World)
 generateLoaderState world 
@@ -88,7 +124,7 @@ linkSaplforExprByLoaderState (ls,lmap) a expr world
 
 where
 	getModuleName name
-		# (ok, pos) = charIndex name 1 '.'
+		# (ok, pos) = charIndexBackwards name (size name - 1) '.'
 		| ok
 			= name % (0,pos-1)
 			= ""

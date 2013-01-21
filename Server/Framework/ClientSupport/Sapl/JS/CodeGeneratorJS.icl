@@ -19,7 +19,7 @@ implementation module CodeGeneratorJS
  */
 
 import StdEnv, Maybe, Void, StringAppender, FastString
-import SaplTokenizer, SaplParser, BuiltInJS
+import SaplTokenizer, SaplParser, BuiltInJS, BuiltInJS_fHS
 
 :: CoderState = { cs_inbody 		:: Bool			     // The body of a function is generated (not signature)
 				, cs_intrfunc		:: Maybe SaplTerm    // The name of the currently genrenated function if it is tail recursive
@@ -30,6 +30,9 @@ import SaplTokenizer, SaplParser, BuiltInJS
 				, cs_CAFs			:: Map SaplTerm Void				
 				, cs_builtins		:: Map String (String, Int)
 				, cs_inlinefuncs	:: Map String (InlineCoderFunc, Int)
+
+				// It means rather GHC
+				, cs_haskell		:: Bool				
 		      	}
 
 newState :: ParserState -> CoderState
@@ -42,6 +45,21 @@ newState p = { cs_inbody 		= False
 			 , cs_CAFs			= p.ps_CAFs
 			 , cs_builtins		= builtInFunctions
 			 , cs_inlinefuncs	= inlineFunctions
+			 , cs_haskell		= False
+			 }
+
+newState_fHS :: ParserState -> CoderState
+newState_fHS p = 
+			 { cs_inbody 		= False
+			 , cs_intrfunc 		= Nothing
+			 , cs_inletdef 		= Nothing
+			 , cs_current_vars 	= []
+			 , cs_constructors 	= p.ps_constructors
+			 , cs_functions		= p.ps_functions
+			 , cs_CAFs			= p.ps_CAFs
+			 , cs_builtins		= builtInFunctions_fHS
+			 , cs_inlinefuncs	= inlineFunctions_fHS
+			 , cs_haskell		= True			 
 			 }
 
 // Returns True if a term can be inlined, i.e. no separate statement is needed
@@ -59,13 +77,15 @@ pushArgs s [] = s
 prefix = "__"
 
 //escapeTable :: Char -> Maybe String
-escapeTable '.' = Just "_"	// this is the module name separator
+escapeTable '.' = Just "_"	// this is the module name separator, most likely case
 escapeTable '<' = Just "$3C"
 escapeTable '>' = Just "$3E"
 escapeTable '{' = Just "$7B"
 escapeTable '}' = Just "$7D"
 escapeTable '(' = Just "$28"
 escapeTable ')' = Just "$29"
+escapeTable '[' = Just "$5B"
+escapeTable ']' = Just "$5D"
 escapeTable '*' = Just "$2A"
 escapeTable '+' = Just "$2B"
 escapeTable '-' = Just "$2D"
@@ -215,11 +235,15 @@ termArrayCoder [t:ts] sep s a
 	= a <++ termCoder t s <++ sep <++ termArrayCoder ts sep s
 termArrayCoder [] _ s a = a
 
+/*
+ * A let definition is not the spine of the function, avoid tail recursion optimization:
+ * {s & cs_intrfunc = Nothing}
+ */
 letDefCoder :: [SaplTerm] CoderState StringAppender -> StringAppender
-letDefCoder [t] s a = termCoder t s a
+letDefCoder [t] s a = termCoder t {s & cs_intrfunc = Nothing} a
 letDefCoder [t:ts] s a
 	# rs = tl (fromJust s.cs_inletdef) // remaining definitions
-	= a <++ termCoder (deStrictIfNeeded t rs) s <++ "," <++ letDefCoder ts {s & cs_inletdef = Just rs}
+	= a <++ termCoder (deStrictIfNeeded t rs) {s & cs_intrfunc = Nothing} <++ "," <++ letDefCoder ts {s & cs_inletdef = Just rs}
 letDefCoder [] _ a = a
 
 deStrictIfNeeded (SStrictLetDefinition var body) vs | isDependent vs body
@@ -269,7 +293,7 @@ forceTermCoder t=:(SApplication name args) s a
 	
 	// TODO: inline (...) doc
 	| (isJust inlinefunc && (snd (fromJust inlinefunc)) == length args)
-		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = forceTermCoder t s a) args <++ ")"
+		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t s a) args <++ ")"
 
 	| (isJust builtin && (snd (fromJust builtin)) == length args)
 		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
@@ -455,6 +479,15 @@ generateJS saplsrc
 					  # a = foldl (\a curr = funcCoder curr state a) newAppender funcs
 					  = Ok (a, s)
 		Error msg = Error msg
+		
+generateJS_fHS :: String -> (MaybeErrorString (StringAppender, ParserState))
+generateJS_fHS saplsrc
+	# pts = tokensWithPositions saplsrc
+	= case parse pts of
+		Ok (funcs, s) # state = newState_fHS s 
+					  # a = foldl (\a curr = funcCoder curr state a) newAppender funcs
+					  = Ok (a, s)
+		Error msg = Error msg		
 
 exprGenerateJS :: String (Maybe ParserState) -> (MaybeErrorString StringAppender)
 exprGenerateJS saplsrc mbPst

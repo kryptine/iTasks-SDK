@@ -17,7 +17,7 @@ import StdString, StringAppender, IWorld
 :: LoaderStateExt
 
 /**
-* Generate loader state:
+* Generate loader state (Clean flavour):
 * 1. read module lists from the appropriate directories
 * 2. exclude some modules from linking by deleting their names from the module name lists:
 * a) not possible to run them on the client: 
@@ -28,6 +28,13 @@ import StdString, StringAppender, IWorld
 *       LazyLinker, CodeGeneratorJS
 */
 generateLoaderState :: !*World -> *(LoaderStateExt, !*World)
+
+/**
+* Haskell flavour. Difference:
+* - no override dir
+* - hierarchical module system (sub directories are supported) 
+*/
+generateLoaderState_fHS :: !*World -> *(LoaderStateExt, !*World) 
 
 /**
 * Link an expression using a LoaderState
@@ -53,4 +60,4 @@ linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*World -
 * @return *IWorld
 */
 linkSaplforExpr :: !String *World -> *(!String, !String,!*World)
- 
+
