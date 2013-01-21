@@ -7,6 +7,8 @@ Sapl = new function () {
 			return Sapl.escapeName(name.substring(0, name.length - 5)) + "$eval";
 		} else {
 			name = encodeURIComponent(name);
+			name = name.replace(/\(/g, "%28");
+			name = name.replace(/\)/g, "%29");
 			name = name.replace(/!/g, "%21");
 			name = name.replace(/\*/g, "%2A");
 			name = name.replace(/-/g, "%2D");
@@ -77,7 +79,7 @@ Sapl = new function () {
 
 					return res + "}";
 				} else {
-					var res = this.toString(consfunc);
+					var res = this.toString(consname);
 
 					for (var i = 0; i < args.length; i++) {
 						var aarg = this.toString(this.feval(args[i]));
@@ -311,7 +313,10 @@ Sapl = new function () {
 					expr[0] = y[0];
 					expr[1] = y[1].concat(expr[1]);
 				} else return expr; // constructor
-			} else if (typeof (expr) == "function") expr = [expr, []]; // function
+			} else if (typeof (expr) == "function"){
+				if (expr.length == 0) return expr.apply(null, []);
+				expr = [expr, []];
+			}
 			else // simple value
 			return expr;
 		}
