@@ -86,6 +86,8 @@ gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx [index:target] upd (RECORD record,[
 	# childMasks = childMasksN recMask grd_arity
 	# (record,[targetMask:_]) = gUpdx (pairPath index grd_arity ++ target) upd (record,[childMasks !! index])
 	= (RECORD record,[PartiallyTouched (updateAt index targetMask childMasks):mask])
+
+gUpdate{|RECORD|} gUpdx gDefx _ _ val = val
 	
 gUpdate{|FIELD|} gUpdx gDefx target upd (FIELD field,mask)= appFst FIELD (gUpdx target upd (field,mask))
 

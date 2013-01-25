@@ -96,7 +96,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 	addMarkers: function() {
  		var	me = this,
 			map = this.map,
-			marker, infoWindow, clickHandler, dragHandler;
+			marker, infoWindow, clickHandler, dragHandler,icon;
 
 		for(var i=0; i<this.displayedMarkers.length; i++) {
 			this.displayedMarkers[i].setMap(null);
@@ -105,13 +105,25 @@ Ext.define('itwc.component.edit.GoogleMap',{
 		this.displayedMarkers = new Array();
         
 		for(var i=0; i<this.markers.length; i++) {
-            
+          
+			if(this.markers[i].icon && this.markers[i].icon[0] == "GoogleMapSimpleIcon" ) { 
+				icon = "/icons/" + this.markers[i].icon[1];	
+			} else if(this.markers[i].icon && this.markers[i].icon[0] == "GoogleMapComplexIcon" ) { 
+				icon = this.markers[i].icon[1];
+				icon = new google.maps.MarkerImage("/icons/" + icon.image
+						, new google.maps.Size(icon.size[0], icon.size[1])
+						, new google.maps.Point(icon.origin[0], icon.origin[1])
+						, new google.maps.Point(icon.anchor[0], icon.anchor[1])
+						);
+			} else {
+				icon = null;
+			} 
 			marker = new google.maps.Marker({
 				map : map,
 				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1]),
 				title : this.markers[i].title,
 				draggable : this.markers[i].draggable,
-				icon: this.markers[i].icon ? ('/googlemap-icons/' + this.markers[i].icon + '.png') : null
+				icon: icon
 			});
                 
 			if(this.markers[i].infoWindow) {

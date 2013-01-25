@@ -156,22 +156,33 @@ instance toString	FileException, ParseException, CallException, SharedException,
 :: GoogleMapMarker =
 	{ position				:: !GoogleMapPosition			// Position of the marker
 	, title					:: !Maybe String				// Title of the marker
-	, icon					:: !Maybe String				// Name of an icon to use
+	, icon					:: !Maybe GoogleMapIcon			// Name of an icon to use
 	, infoWindow			:: !Maybe HtmlTag				// Information which is shown on click
 	, draggable				:: !Bool						// Can the marker be dragged
 	, selected				:: !Bool
 	}
 
-derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gDefault			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gUpdate			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
-derive gVerify			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
+:: GoogleMapIcon
+	= GoogleMapSimpleIcon String				//Just the name of a png file in Static/icons/ of your application
+	| GoogleMapComplexIcon GoogleMapComplexIcon
+
+:: GoogleMapComplexIcon =
+	{ image		:: String		//Name of a png file in Static/icons of your application
+	, size		:: (Int,Int)	//Dimensions width/height
+	, origin	:: (Int,Int)	//Offset in the image x/y used for sprite icon
+	, anchor	:: (Int,Int)	//Which x/y in the image is placed on the specified lat/lng in the map
+	}
+
+derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gDefault			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gUpdate			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gVerify			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 
 //****************************************************************************//
 // Low level data types that can be used to construct more fine grained user
@@ -615,6 +626,7 @@ instance descr Void							//No prompt
 instance descr String						//Simple instruction
 instance descr (!String, !String)			//Title attribute + instruction
 instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
+//instance descr (!Icon, !Title)				//Icon attribute, title attribute 
 instance descr Title
 instance descr Hint
 instance descr Icon

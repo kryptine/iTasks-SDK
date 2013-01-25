@@ -129,8 +129,6 @@ derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UI
 JSONEncode{|UISideSizes|} {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
 
-
-
 JSONEncode{|UISize|} (ExactSize s)		= [JSONInt s]
 JSONEncode{|UISize|} WrapSize			= [JSONString "wrap"] 
 JSONEncode{|UISize|} FlexSize			= [JSONString "flex"] 

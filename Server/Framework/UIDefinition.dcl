@@ -5,7 +5,7 @@ definition module UIDefinition
 * to describe rich user interfaces and being leaving rendering details to the client framework.
 */
 import JSON_NG, GenEq_NG
-from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action
+from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: GoogleMapIcon
 from Task			import :: TaskId
 from HTML			import :: HtmlTag
 from Map			import :: Map(..)
@@ -188,12 +188,12 @@ from Map			import :: Map(..)
 :: UIGoogleMapMarker =
 	{ position				:: !(!Real,!Real)
 	, title					:: !Maybe String
-	, icon					:: !Maybe String
+	, icon					:: !Maybe GoogleMapIcon
 	, infoWindow			:: !Maybe String
 	, draggable				:: !Bool
 	, selected				:: !Bool
 	}
-		
+
 :: UIGoogleMapOptions =
 	{ mapTypeControl 	:: !Bool
 	, panControl		:: !Bool

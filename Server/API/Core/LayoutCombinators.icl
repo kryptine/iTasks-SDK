@@ -713,6 +713,8 @@ where
 	makeMenus menus []	= (menus,[])	
 	makeMenus menus [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) as
 		
+	addToMenus ["",main:item] taskId action enabled menus
+		= menus ++ [createButton main item taskId action enabled]
 	addToMenus [main:item] taskId action enabled [] //Create menu
 		= [createButton main item taskId action enabled]
 	addToMenus [main:item] taskId action enabled [m=:(UIMenuButton sOpts opts):ms] //Add to existing menu if it exists
@@ -738,6 +740,10 @@ where
 	itemText (UISubMenuItem {UIMenuButtonOpts|text})	= fromMaybe "" text
 	itemText _					= ""
 	
+	createButton item [] taskId action enabled
+		= UIActionButton defaultSizeOpts
+			{UIActionOpts|taskId=taskId,actionId=actionName action}
+			{UIButtonOpts|text=Just item,iconCls = Just (icon item), disabled = not enabled}
 	createButton item sub taskId action enabled
 		= UIMenuButton defaultSizeOpts
 			{UIMenuButtonOpts
