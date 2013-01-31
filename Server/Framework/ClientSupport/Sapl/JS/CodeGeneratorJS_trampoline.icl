@@ -105,7 +105,6 @@ escapeTable '&' = Just "$28"
 escapeTable '?' = Just "$63"
 escapeTable '^' = Just "$5E"
 escapeTable '\'' = Just "$27"
-
 escapeTable _ = Nothing
 
 // Escape identifier, except the "$eval" part if it ends like that		
@@ -134,8 +133,9 @@ callWrapper t s a
 		= termCoder t s a		
 	| (isJust s.cs_intrfunc) && (isTailRecursive (fromJust s.cs_intrfunc) t)
 		= forceTermCoder t s a
-//		= a <++ "return " <++ termCoder t s <++ ";" // Optimize for stack use. BUGGY
-		= a <++ "return " <++ forceTermCoder t s <++ ";" // Optimize for speed
+		= a <++ "return " <++ tailCallCoder t s <++ ";"
+// TRAMPOLINE!
+//		= a <++ "return " <++ forceTermCoder t s <++ ";" // Optimize for speed
 
 unpackName (SStrictName name) = name
 unpackName (SName name _) = name
@@ -289,7 +289,9 @@ forceTermCoder t=:(SApplication name args) s a
 			// It is posible that a tail recursive call has the same function as its
 			// argument. In this case, the deeper call can't be handled as tail recursive!
 			True = a <++ make_tr_app args {s & cs_intrfunc = Nothing}
-				 = a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
+				 = a <++ "Sapl.feval(" <++ func_name <++ "(" <++ make_app_args name args s <++ "))"
+// TRAMPOLINE!
+//				 = a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
 
 	// more arguments than needed
 	| (isJust function_args && (length (fromJust function_args) < length args))
@@ -353,6 +355,57 @@ where
 	isCAF = isJust (get t s.cs_CAFs)
 
 forceTermCoder t s a = termCoder t s a
+
+tailCallCoder :: SaplTerm CoderState StringAppender -> StringAppender
+tailCallCoder t=:(SApplication name args) s a
+// TRAMPOLINE!
+/*	| isdynamic name
+		= a <++ "[__dynamic_handler]"
+
+	// global function or constructor (not curried)
+	| (isJust constructor_args && (length (fromJust constructor_args) == length args)) || 
+	  (isJust function_args && (length (fromJust function_args) == length args))
+
+		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
+	
+	// TODO: inline (...) doc
+	| (isJust inlinefunc && (snd (fromJust inlinefunc)) == length args)
+		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t s a) args <++ ")"
+
+	| (isJust builtin && (snd (fromJust builtin)) == length args)
+		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"    */
+	
+	// Otherwise
+		= a <++ termCoder t s
+where
+	func_name a = a <++ escapeName (unpackName name) // skip level information
+
+	constructor_args = get name s.cs_constructors
+	function_args = get name s.cs_functions
+	builtin = get (unpackName name) s.cs_builtins
+	inlinefunc = get (unpackName name) s.cs_inlinefuncs	
+
+tailCallCoder t=:(SName name _) s a
+// TRAMPOLINE!
+/*	| any isStrictEq s.cs_current_vars
+		= termCoder t s a
+	| isMember t s.cs_current_vars
+		= a <++ termCoder t s
+	| (isJust constructor_args) && (length (fromJust constructor_args) == 0)
+		= a <++ escapeName name <++ "()"	
+	| isCAF
+		= a <++ escapeName name <++ "()"	
+	| (isJust function_args && (length (fromJust function_args) == 0))
+		= a <++ escapeName name <++ "()"	*/
+		= a <++ termCoder t s
+where
+	isStrictEq (SStrictName aname) = aname == name
+	isStrictEq _ = False	
+	constructor_args = get t s.cs_constructors
+	function_args = get t s.cs_functions	
+	isCAF = isJust (get t s.cs_CAFs)
+
+tailCallCoder t s a = termCoder t s a
 
 termCoder :: SaplTerm CoderState StringAppender -> StringAppender
 termCoder t=:(SName name level) s a
@@ -466,11 +519,11 @@ termCoder (SStrictLetDefinition name body) s a
 termCoder _ s a = abort "???"
 
 isdynamic (SName name _) | startsWith "_SystemDynamic." name
-	= True
+//	= True
 	= False
 
 isdynamic (SStrictName name) | startsWith "_SystemDynamic." name
-	= True
+//	= True
 	= False
 
 isdynamic _ = False
