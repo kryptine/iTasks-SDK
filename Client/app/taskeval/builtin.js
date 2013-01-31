@@ -10,6 +10,40 @@ function ___predefined__Tuple2(__a1, __a2) {
 
 // --------- Primitive functions -----------------------------
 
+function print(val){
+	val = Sapl.toJS(Sapl.feval(val));
+	var out = document.getElementById("output");
+	if(out){
+		if(val == "\n"){
+			var br = document.createElement("BR");
+			out.appendChild(br);
+		}else{
+			var span = document.createElement("SPAN");
+			span.innerHTML = val;
+			out.appendChild(span);
+		}
+	}else{
+		console.log(val);
+	}
+}
+
+function println(val){
+	print(val);
+	print("\n");
+}
+
+function __trace(val, cont){
+	print(val);
+	return Sapl.feval(cont);
+}
+
+function __traceln(val, cont){
+	println(val);
+	return Sapl.feval(cont);
+}
+
+// --------- Primitive functions -----------------------------
+
 function __atan(a){
     return Math.atan(Sapl.feval(a));
 }
