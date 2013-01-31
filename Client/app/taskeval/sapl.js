@@ -183,6 +183,9 @@ Sapl = new function () {
 					var date = this.feval(expr[2]);
 					var time = this.feval(expr[3]);
 					return this.toJS(date) + " " + this.toJS(time);
+				}else if(consname == "_SystemDynamic._DynamicTemp"){
+					// Do not do anything
+					return expr;
 				}
 				
 				if (record) {

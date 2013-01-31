@@ -42,6 +42,18 @@ function __neq(a,b){
     return Sapl.feval(a)!=Sapl.feval(b);
 }	
 
+function __pow(a,b){
+    return Math.pow(Sapl.feval(a),Sapl.feval(b));
+}	
+
+function __sin(a){
+    return Math.sin(Sapl.feval(a));
+}	
+
+function __cos(a){
+    return Math.cos(Sapl.feval(a));
+}	
+
 function __mod(a,b){
     return Sapl.feval(a)%Sapl.feval(b);
 }	
@@ -54,8 +66,28 @@ function __ge(a,b){
     return Sapl.feval(a)>=Sapl.feval(b);
 }
 
+function __lt(a,b){
+    return Sapl.feval(a)<Sapl.feval(b);
+}	
+
 function __not(a){
     return !Sapl.feval(a);
+}
+
+function __and(a,b){
+    return Sapl.feval(a) && Sapl.feval(b);
+}
+
+function __or(a,b){
+    return Sapl.feval(a) || Sapl.feval(b);
+}
+
+function __abs(a){
+    return Math.abs(Sapl.feval(a));
+}
+
+function __neg(a){
+    return Sapl.feval(a) * -1;
 }
 
 function __error(str){
@@ -83,7 +115,8 @@ function __strlen(str){
 }
 
 function __string_select(str, pos){
-    return Sapl.feval(str).charAt(Sapl.feval(pos));
+	var str = Sapl.feval(str);
+	return str.charAt(Sapl.feval(pos));
 }  
 
 function ___string_create(length){
