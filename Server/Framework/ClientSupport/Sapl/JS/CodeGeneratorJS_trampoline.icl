@@ -289,9 +289,9 @@ forceTermCoder t=:(SApplication name args) s a
 			// It is posible that a tail recursive call has the same function as its
 			// argument. In this case, the deeper call can't be handled as tail recursive!
 			True = a <++ make_tr_app args {s & cs_intrfunc = Nothing}
-				 = a <++ "Sapl.feval(" <++ func_name <++ "(" <++ make_app_args name args s <++ "))"
+				 = a <++ "Sapl.feval(" <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ "))"
 // TRAMPOLINE!
-//				 = a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
+//				 = a <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ ")"
 
 	// more arguments than needed
 	| (isJust function_args && (length (fromJust function_args) < length args))

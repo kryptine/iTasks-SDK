@@ -134,7 +134,6 @@ callWrapper t s a
 		= termCoder t s a		
 	| (isJust s.cs_intrfunc) && (isTailRecursive (fromJust s.cs_intrfunc) t)
 		= forceTermCoder t s a
-//		= a <++ "return " <++ termCoder t s <++ ";" // Optimize for stack use. BUGGY
 		= a <++ "return " <++ forceTermCoder t s <++ ";" // Optimize for speed
 
 unpackName (SStrictName name) = name
@@ -289,7 +288,7 @@ forceTermCoder t=:(SApplication name args) s a
 			// It is posible that a tail recursive call has the same function as its
 			// argument. In this case, the deeper call can't be handled as tail recursive!
 			True = a <++ make_tr_app args {s & cs_intrfunc = Nothing}
-				 = a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
+				 = a <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ ")"
 
 	// more arguments than needed
 	| (isJust function_args && (length (fromJust function_args) < length args))
@@ -466,11 +465,11 @@ termCoder (SStrictLetDefinition name body) s a
 termCoder _ s a = abort "???"
 
 isdynamic (SName name _) | startsWith "_SystemDynamic." name
-	= True
+//	= True
 	= False
 
 isdynamic (SStrictName name) | startsWith "_SystemDynamic." name
-	= True
+//	= True
 	= False
 
 isdynamic _ = False
