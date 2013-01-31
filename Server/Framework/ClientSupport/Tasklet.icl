@@ -129,6 +129,33 @@ where
 				# rep = TaskRep (appTweak tui) []							
 				= (rep, state, iworld)
 
+			NoGUI
+			
+				# (state_js, script_js, _, intfcs_js, rf_js, _, iworld) 
+					= linker state
+							 (map interfaceWrapper fs) 
+							 []
+							 tasklet.Tasklet.resultFunc
+						     Nothing
+						     iworld			
+			
+				# tui = toDef (UITasklet defaultSizeOpts 
+				 			{UITaskletOpts 
+				 			| taskId   		 = toString taskId
+				 			, iid			 = iid
+							, html     		 = Nothing
+							, tui      		 = Nothing 
+							, st    		 = Just state_js
+							, script   		 = Just script_js
+							, events   		 = Nothing
+							, interfaceFuncs = Just intfcs_js
+							, resultFunc	 = Just rf_js
+							, instanceNo	 = Nothing
+							, controllerFunc = Nothing})			
+			
+				# rep = TaskRep (appTweak tui) []				
+				= (rep, state, iworld)
+
 	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino rf_js mb_cf_js
 		 = toDef (UITasklet defaultSizeOpts 
 		 			{UITaskletOpts 
