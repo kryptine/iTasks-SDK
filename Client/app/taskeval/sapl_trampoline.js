@@ -306,20 +306,21 @@ Sapl = new function () {
 		while (1) {
 			if (typeof (expr) == "object") {
 				if (expr.length == 1){
-					//if (typeof (expr[0]) == "object" && expr[0].length == 1) {
-						//expr[0] = expr[0][0]; // boxed primitive
-					//}
-					//expr[0] = this.unfold(expr);
 					expr = expr[0];
 				}else if (typeof (expr[0]) == "function") { // closure
 					f = expr[0];
 					xs = expr[1];
 					if (f.length == xs.length) { // most often occuring case
-						y = this.unfold(f.apply(null, xs));
+					
+						// unfold embedded arrays
+						y = f.apply(null, xs);
+						while(typeof (y) == "object" && y.length == 1) {
+							y = y[0];
+						}
+												
 						expr[0] = y;
 						expr.length = 1;
 						expr = y;
-						//return y;
 					} else if (f.length < xs.length) { // less likely case
 						y = f.apply(null, xs.splice(0, f.length));
 						expr[0] = y;
