@@ -65,12 +65,12 @@ where
 						[ (Embedded, editFile fileName copy)
 						, (Embedded, replace initReplace copy)
 						]  @ const Void ) // <<@ AfterLayout (uiDefSetDirection Horizontal)
-			>>*	 	[ OnAction  ActionClose 		 				   		(always (closeEditorAndAdministrate fileName))
-					, OnAction (Action ("File/Close " +++ fileName`))  		(always (closeEditorAndAdministrate fileName))
-					, OnAction (Action ("File/Save " +++ fileName`))   		(always (save copy >>| editor` file))
-					, OnAction (Action ("File/Save As..."))   		   		(always (saveAs copy >>| editor` file))
-					, OnAction (Action ("File/Revert " +++ fileName`)) 		(always (editor` file))
-					, OnAction (Action ("File/Open " +++ other fileName`))  (ifCond isIclOrDcl (launchEditorAndAdministrate fileName ts))
+			>>*	 	[ OnAction  ActionClose 		 				   			(always (closeEditorAndAdministrate fileName))
+					, OnAction (Action ("File/Close " +++ fileName`) []) 		(always (closeEditorAndAdministrate fileName))
+					, OnAction (Action ("File/Save " +++ fileName`) []) 		(always (save copy >>| editor` file))
+					, OnAction (Action ("File/Save As...") []) 		   			(always (saveAs copy >>| editor` file))
+					, OnAction (Action ("File/Revert " +++ fileName`) []) 		(always (editor` file))
+					, OnAction (Action ("File/Open " +++ other fileName`) [])	(ifCond isIclOrDcl (launchEditorAndAdministrate fileName ts))
 	
 //							, OnAction (Action ("Project/Set Project/" +++ noSuffix +++ " (.prj)")) 
 //																			  (const isIcl)
@@ -110,14 +110,14 @@ where
 	noReplace :: Replace -> Task Void 
 	noReplace cmnd 
 		=		actionTask
- 			>>*	[ OnAction (Action "File/Replace") (always (showReplace cmnd))
+ 			>>*	[ OnAction (Action "File/Replace" []) (always (showReplace cmnd))
 				]
 
 	showReplace :: Replace -> Task Void 
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd // <<@ Window
- 			>>*	[ OnAction (Action "Replace") (hasValue substitute)
- 				, OnAction (Action "Cancel")  (always (noReplace cmnd))
+ 			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
+ 				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
  				]
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 

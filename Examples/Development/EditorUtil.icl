@@ -12,7 +12,7 @@ derive class iTask MaybeError, FileInfo, Tm, FileError
 
 // file selector...
 
-selectFileInPath :: !DirPathName !(!FileName -> Bool) -> Task !(DirPathName,Maybe !FileName)
+selectFileInPath :: !DirPathName !(FileName -> Bool) -> Task (DirPathName,Maybe FileName)
 selectFileInPath path pred
 	= 				accWorld (readDirectory path)
 	>>= \content -> case content of
@@ -49,7 +49,7 @@ where
 								(return (path,Just name))
 							_		-> selectFileInPath path pred
 
-storeFileInPath :: !DirPathName !FileName !String -> Task !Bool
+storeFileInPath :: !DirPathName !FileName !String -> Task Bool
 storeFileInPath name string path
 	= 				accWorld (readDirectory path)
 	>>= \content -> case content of
@@ -61,7 +61,7 @@ where
 						-&&-
 						updateInformation "File name" [] name
 		>>*				[ OnAction ActionCancel 		(always (return False))
-						, OnAction (Action "Browse")	(hasValue browse)
+						, OnAction (Action "Browse" [])	(hasValue browse)
 						, OnAction ActionSave			(hasValue write)
 						]
 	write (path,name)
@@ -82,7 +82,7 @@ where
 showError :: String a -> Task a | iTask a
 showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return val) <<@ Window
 
-currentDirectory :: Task !DirPathName
+currentDirectory :: Task DirPathName
 currentDirectory 
 	= 					accWorld getCurrentDirectory 
 		>>= \content ->	case content of
@@ -90,7 +90,7 @@ currentDirectory
 							_      -> showError "Could not obtain current directory name" ""
 
 
-searchFilesInPaths :: ![FileName] ![DirPathName] -> Task ![(!DirPathName,!FileName)]
+searchFilesInPaths :: ![FileName] ![DirPathName] -> Task [(!DirPathName,!FileName)]
 searchFilesInPaths fileNames pathNames = search fileNames pathNames []
 where
 	search [] _ found = return (reverse found)
@@ -100,7 +100,7 @@ where
 							(search fileNames pathNames found)
 							(search fileNames pathNames [(fromJust res,fileName):found])
 
-searchFileInPaths :: !FileName ![DirPathName] -> Task !(Maybe !DirPathName)
+searchFileInPaths :: !FileName ![DirPathName] -> Task (Maybe DirPathName)
 searchFileInPaths fileName paths = accWorld (searchDisk` paths)
 where
 	searchDisk` [] world = (Nothing,world)

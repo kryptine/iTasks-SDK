@@ -52,7 +52,7 @@ derive class iTask IDE_State, Module, ModuleOptions, SearchOptions
 init_IDE_State 		:: IDE_State			
 
 get_IDE_State 		:: Task IDE_State
-update_IDE_State 	:: !(IDE_State -> IDE_State) -> Task !Void
+update_IDE_State 	:: !(IDE_State -> IDE_State) -> Task Void
 
 watch_IDE_State 	:: !(IDE_State -> Bool) !(Task a) -> Task a | iTask a
 

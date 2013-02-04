@@ -123,21 +123,21 @@ fromTarget target
 								}		
 		}	
 
-readEnvironmentFile :: !FilePathName -> Task ![Target]
+readEnvironmentFile :: !FilePathName -> Task [Target]
 readEnvironmentFile env 
 	= 				accWorld (fileExists env)
 	>>= \ok ->		if (not ok) 
 						(showError ("Cannot read" +++ env) [])
 						(accWorld (openEnvironments ""  env))
 
-saveEnvironmentFile ::  !FilePathName ![Target]  -> Task !Bool
+saveEnvironmentFile ::  !FilePathName ![Target]  -> Task Bool
 saveEnvironmentFile file targets
 	= accWorld (saveEnvironments file targets)
 	
 
 // find all modules in search paths...
 
-findAllModulesInPaths :: !Extension !DirPathName !(List !DirPathName) -> Task ![(!DirPathName,![Module])]
+findAllModulesInPaths :: !Extension !DirPathName !(List DirPathName) -> Task [(!DirPathName,![Module])]
 findAllModulesInPaths extension rootDir searchpaths = accWorld (searchDisk` searchpaths [])
 where
 	searchDisk` [!!] found world = (reverse (map (\(d,ms)-> (d,map mkModule (sort ms))) found),world) // keep original order in paths
@@ -154,7 +154,7 @@ where
 
 // determine which modules are used in the project 
 
-findAllModulesInProject :: !DirPathName !(!DirPathName,!ModuleName) ![(!DirPathName,![Module])] -> Task ![(!DirPathName,![Module])] 
+findAllModulesInProject :: !DirPathName !(!DirPathName,!ModuleName) ![(!DirPathName,![Module])] -> Task [(!DirPathName,![Module])] 
 findAllModulesInProject rootDir (dirName,"") envPaths
 	=				return [(dirName,[{isUsed = False,moduleName = ""}]):envPaths]
 findAllModulesInProject rootDir (dirName,startModule) envPaths
@@ -192,14 +192,14 @@ where
 findImports	rootDir (dirName,moduleName) extension
 	=	findDefinitionInFile "" (rootDir +++ dirName +++ "\\" +++ moduleName +++ extension) True @ (StrictListToList o fst) 
 
-findDefinition	:: !Identifier !FileName -> Task !IdentifierPositionList
+findDefinition	:: !Identifier !FileName -> Task IdentifierPositionList
 findDefinition identifier fileName
 	=	findDefinitionInFile identifier fileName False @ snd
 
 findDefinitionInFile identifier fileName showImports
 	= accWorld (accFiles (FindDefinitionInFile showImports [!!] identifier fileName))
 
-findIdentifier :: !Identifier !FileName  -> Task !IdentifierPositionList
+findIdentifier :: !Identifier !FileName  -> Task IdentifierPositionList
 findIdentifier identifier  fileName 
 	=	findIdentifierInFile identifier fileName False @ snd
 

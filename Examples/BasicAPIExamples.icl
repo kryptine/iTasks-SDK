@@ -65,8 +65,8 @@ where
 		 	(viewTitle "iTasks Example Collection"
 		||-
 		 	enterInformation ("Login","Enter your credentials and login or press continue to remain anonymous") [])
-		>>* [WithResult (Action "Login") (const True) (browseAuthenticated examples)
-			,Always (Action "Continue") (browseAnonymous examples)
+		>>* [WithResult (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (const True) (browseAuthenticated examples)
+			,Always (Action "Continue" []) (browseAnonymous examples)
 			])
 	
 	browseAuthenticated examples {Credentials|username,password}
@@ -200,7 +200,7 @@ where
 
 	noteE state 
 		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
-			>>*		[ OnAction (Action "Trim") (\txt -> Just (update trim state >>| noteE state))	
+			>>*		[ OnAction (Action "Trim" []) (\txt -> Just (update trim state >>| noteE state))	
 					]
 
 	lineE state
@@ -237,8 +237,8 @@ where
 person1by1 :: [MyPerson] -> Task [MyPerson]
 person1by1 persons
 	=       enterInformation "Add a person" [] 	-|| viewInformation "List so far.." [] persons
-		>>*	[ OnAction  (Action "Add") 			(hasValue (\v -> person1by1  [v : persons]))
-		    , OnAction  (Action "Finish")      	(always (return persons))
+		>>*	[ OnAction  (Action "Add" []) 		(hasValue (\v -> person1by1  [v : persons]))
+		    , OnAction  (Action "Finish" [])    (always (return persons))
 		    , OnAction  ActionCancel 			(always (return []))
 	        ]
 
@@ -251,19 +251,19 @@ editPersonList = editSharedList personStore
 editSharedList :: (Shared [a]) -> Task Void | iTask a
 editSharedList store 
 	=			enterSharedChoice "Choose an item to edit" [ChooseWith ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
-		>>*		[ OnAction (Action "Append")   (hasValue (showAndDo append))
-				, OnAction (Action "Delete")   (hasValue (showAndDo delete))
-				, OnAction (Action "Edit")     (hasValue (showAndDo edit))
-				, OnAction (Action "Clear")    (always (showAndDo append (-1,undef)))
-				, OnAction (Action "Quit")     (always (return Void))
+		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
+				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
+				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
+				, OnAction (Action "Clear" [])    (always (showAndDo append (-1,undef)))
+				, OnAction (Action "Quit" [])     (always (return Void))
 				]
 where
 	showAndDo fun ip
 		=		viewSharedInformation "In store" [] store
  		 		||- 
  		 		fun ip
- 		 	>>* [ OnValue 					 (hasValue	(\_ -> editSharedList store))
- 		 		, OnAction (Action "Cancel") (always	(editSharedList store))
+ 		 	>>* [ OnValue 					    (hasValue	(\_ -> editSharedList store))
+ 		 		, OnAction (Action "Cancel" []) (always	(editSharedList store))
  		 		]
 
 	append (i,_)
@@ -306,9 +306,9 @@ where
 		=			viewSharedInformation ("You are following " +++ follow) [] tweetsStore
 					||-
 					updateInformation "Add a tweet" [] message
-			>>*		[ OnAction (Action "Quit")    (always (return Void))
-	//				, OnAction (Action "Refresh") always (const (joinTweets me follow tweets)) 
-					, OnAction (Action "Commit")  (ifValue (\v -> True /*size v > 0*/) commit )
+			>>*		[ OnAction (Action "Quit" [])    (always (return Void))
+	//				, OnAction (Action "Refresh" []) always (const (joinTweets me follow tweets)) 
+					, OnAction (Action "Commit" [])  (ifValue (\v -> True /*size v > 0*/) commit )
 					]
 	where
 		commit :: String -> Task Void
@@ -368,7 +368,7 @@ getCoins paid (product,toPay)
 					||-		
 					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith ChooseFromRadioButtons id] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
-					, OnAction (Action "Insert") 	(hasValue handleMoney)
+					, OnAction (Action "Insert" []) (hasValue handleMoney)
 					]
 where				
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
@@ -393,20 +393,20 @@ calculator = calc initSt
 where
 	calc st
 	= 		viewInformation "Calculator" [ViewWith Display] st
-		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
-			, OnAction (Action "8") (always (updateDigit 8 st))
-			, OnAction (Action "9") (always (updateDigit 9 st))
-			, OnAction (Action "4") (always (updateDigit 4 st)) 
-			, OnAction (Action "5") (always (updateDigit 5 st))
-			, OnAction (Action "6") (always (updateDigit 6 st))
-			, OnAction (Action "1") (always (updateDigit 1 st)) 
-			, OnAction (Action "2") (always (updateDigit 2 st))
-			, OnAction (Action "3") (always (updateDigit 3 st)) 
-			, OnAction (Action "0") (always (updateDigit 0 st))
-			, OnAction (Action "+") (always (apply (+) st))
-			, OnAction (Action "-") (always (apply (-) st))
-			, OnAction (Action "*") (always (apply (*) st))
-			, OnAction (Action "/") (always (apply (/) st))
+		>>* [ OnAction (Action "7" []) (always (updateDigit 7 st)) 
+			, OnAction (Action "8" []) (always (updateDigit 8 st))
+			, OnAction (Action "9" []) (always (updateDigit 9 st))
+			, OnAction (Action "4" []) (always (updateDigit 4 st)) 
+			, OnAction (Action "5" []) (always (updateDigit 5 st))
+			, OnAction (Action "6" []) (always (updateDigit 6 st))
+			, OnAction (Action "1" []) (always (updateDigit 1 st)) 
+			, OnAction (Action "2" []) (always (updateDigit 2 st))
+			, OnAction (Action "3" []) (always (updateDigit 3 st)) 
+			, OnAction (Action "0" []) (always (updateDigit 0 st))
+			, OnAction (Action "+" []) (always (apply (+) st))
+			, OnAction (Action "-" []) (always (apply (-) st))
+			, OnAction (Action "*" []) (always (apply (*) st))
+			, OnAction (Action "/" []) (always (apply (/) st))
 			]
 	where
 		updateDigit n st = calc {st & n = st.n*10 + n}
@@ -461,11 +461,11 @@ showStatistics sharedFile _  = noStat
 where
 	noStat :: Task Void
 	noStat	=			viewInformation Void [] Void
- 				>>*		[ OnAction (Action "File/Show Statistics") (always showStat)
+ 				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
  						]
 	showStat :: Task Void 
 	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
- 				>>*		[ OnAction (Action "File/Hide Statistics") (always noStat)
+ 				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
  						]
 
 
@@ -474,14 +474,14 @@ where
 	noReplace :: Replace -> Task Void
 	noReplace cmnd 
 		=		viewInformation Void [] Void
- 			>>*	[ OnAction (Action "File/Replace") (always (showReplace cmnd))
+ 			>>*	[ OnAction (Action "/File/Replace" []) (always (showReplace cmnd))
 				]
 
 	showReplace :: Replace -> Task Void 
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd 
- 			>>*	[ OnAction (Action "Replace") (hasValue substitute)
- 				, OnAction (Action "Cancel")  (always (noReplace cmnd))
+ 			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
+ 				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
  				]
  			
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
@@ -513,7 +513,7 @@ where
 
 	chat who toView fromView notes
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
-			>>*		[OnAction (Action "Stop") (always (return Void))]
+			>>*		[OnAction (Action "Stop" []) (always (return Void))]
 
 	toView   (me,you) 							= (Display you, Note me)
 	fromView _ (Display you, Note me) 	= (me,you) 
@@ -537,7 +537,7 @@ enterDateTimeOptions = enterInformation "Propose meeting dates and times..." []
 
 askPreferences :: [User] -> TaskStep [DateTime] [(User,[DateTime])]
 askPreferences users
-  = OnAction (Action "Continue") (hasValue (ask users))
+  = OnAction (Action "Continue" []) (hasValue (ask users))
 
 ask :: [User] [DateTime] -> Task [(User,[DateTime])]
 ask users options
@@ -555,17 +555,17 @@ select user options = \_ -> (enterMultipleChoice "Enter preferences" [] options 
  
 tryAgain :: [User] -> TaskStep [(User,[DateTime])] DateTime
 tryAgain users
-  = OnAction (Action "Try again") (always (planMeeting users))
+  = OnAction (Action "Try again" []) (always (planMeeting users))
  
 decide :: TaskStep [(User,[DateTime])] DateTime
-decide = OnAction (Action "Make decision") (hasValue pick)
+decide = OnAction (Action "Make decision" []) (hasValue pick)
 
 pick :: [(User,[DateTime])] -> Task DateTime
 pick user_dates
   =   (enterChoice "Choose date" [] (transpose user_dates) @ fst)
       -||-
       (enterInformation "Enter override" [])
-  >>* [OnAction (Action "Continue") returnV]
+  >>* [OnAction (Action "Continue" []) returnV]
 
 transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]

@@ -68,8 +68,8 @@ fromProject 	:: Project -> (RunTimeOptions, DiagnosticsOptions, ProfilingOptions
 // accessing environment files (of type [Target]):
 
 initTarget 			:: Target
-readEnvironmentFile :: !FilePathName 			-> Task ![Target]
-saveEnvironmentFile :: !FilePathName ![Target] 	-> Task !Bool
+readEnvironmentFile :: !FilePathName 			-> Task [Target]
+saveEnvironmentFile :: !FilePathName ![Target] 	-> Task Bool
 
 toTarget 			:: !Environment 	-> Target
 toTargets 			:: ![Environment] 	-> [Target]
@@ -80,10 +80,10 @@ fromTargets 		:: ![Target] 		-> [Environment]
 
 derive class iTask 	IdentifierPositionList
 
-findAllModulesInPaths	 :: !Extension !DirPathName !(List !DirPathName) -> Task ![(!DirPathName,![Module])]
-findAllModulesInProject	 :: !DirPathName !(!DirPathName,!ModuleName) ![(!DirPathName,![Module])] -> Task ![(!DirPathName,![Module])] 
+findAllModulesInPaths	 :: !Extension !DirPathName !(List DirPathName) -> Task [(!DirPathName,![Module])]
+findAllModulesInProject	 :: !DirPathName !(!DirPathName,!ModuleName) ![(!DirPathName,![Module])] -> Task [(!DirPathName,![Module])] 
 			   
-findDefinition	:: !Identifier !FileName -> Task !IdentifierPositionList
-findIdentifier  :: !Identifier !FileName -> Task !IdentifierPositionList
+findDefinition	:: !Identifier !FileName -> Task IdentifierPositionList
+findIdentifier  :: !Identifier !FileName -> Task IdentifierPositionList
  
 
