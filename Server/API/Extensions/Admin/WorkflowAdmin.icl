@@ -133,8 +133,8 @@ where
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
 	=	(viewSharedInformation Void [ViewWith view] currentUser	
-			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
-				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
+			>>* [AnyTime ActionRefresh			(\_ -> return Nothing)
+				,AnyTime (Action "Log out" [])	(\_ -> return (Just Logout))
 				]															
 		) <! isJust	<<@ AfterLayout (uiDefSetDirection Horizontal)
 	@	fromJust	
@@ -147,7 +147,7 @@ startWork list
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [WithResult (Action "Start Task") (const True) (startWorkflow list)]
+		>>* [WithResult (Action "Start Task" []) (const True) (startWorkflow list)]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
@@ -189,8 +189,8 @@ where
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
 	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														
-	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
-		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
+	>>* [WithResult (Action "Open" []) (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
+		,WithResult (Action "Delete" []) (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)

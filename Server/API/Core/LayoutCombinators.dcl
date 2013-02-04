@@ -14,7 +14,7 @@ import Maybe
 	, step		:: UIDef [UIAction] -> UIDef												//Combine current definition with the step actions
 	, parallel	:: UIControlSequence [UIDef] -> UIDef										//Combine the promp and parts of a parallel composition
 	, workOn	:: UIDef TIMeta -> UIDef													//When a detached task is worked on 
-	, final		:: UIDef -> UIFinal															//Last touches to the composition
+	, final		:: UIDef -> UIViewport														//Last touches to the composition
 	}
 
 // When the multiple parts of a parallel combinator need to be merged into a single definition
@@ -37,7 +37,7 @@ autoInteractionLayout	:: UIControlSequence UIControlSequence -> UIControlSequenc
 autoStepLayout			:: UIDef [UIAction]-> UIDef
 autoParallelLayout		:: UIControlSequence [UIDef] -> UIDef
 autoWorkOnLayout		:: UIDef TIMeta -> UIDef
-autoFinalLayout			:: UIDef -> UIFinal
+autoFinalLayout			:: UIDef -> UIViewport
 
 /**
 * This layout hides ui controls, but accumulates actions and attributes.
@@ -105,7 +105,7 @@ toContainer		:: !UIControl -> UIControl
 buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
 
 //Predefined action placement
-actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIAction])
+actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
 actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 

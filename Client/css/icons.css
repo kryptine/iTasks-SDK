@@ -64,6 +64,9 @@
 .icon-next {
 	background-image: url('../img/icons/arrow_right.png') !important;
 }
+.icon-preferences {
+	background-image: url('../img/icons/cog.png') !important;
+}
 
 
 

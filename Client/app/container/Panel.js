@@ -3,6 +3,7 @@ Ext.define('itwc.container.Panel',{
 	alias: 'widget.itwc_panel',
 	requires: ['itwc.layout.container.Box'],
 	autoScroll: true,
+	mixins: ['itwc.container.HotkeyArea'], 
 	
 	//Default container config
 	layout: 'itwc_box',
@@ -36,6 +37,12 @@ Ext.define('itwc.container.Panel',{
 		this.layout = {type:'itwc_box', direction: this.direction, halign: this.halign, valign: this.valign, padding: 0};
 		this.callParent(arguments);
 	},
+	afterRender: function() {
+		var me = this;
+		
+		me.callParent();
+		me.initHotkeys();
+	},
 	onDestroy: function () {
 		//Clean up the windows we created
 		if(this.windows && this.windows.length) {
@@ -45,6 +52,7 @@ Ext.define('itwc.container.Panel',{
 				this.windows[i].destroy();
 			}
 		}
+		this.destroyHotkeys();
 		this.callParent(arguments);
 	},
 	replaceWindow: function (index, def) {

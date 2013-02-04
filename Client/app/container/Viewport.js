@@ -1,8 +1,22 @@
 Ext.define('itwc.container.Viewport',{
 	extend: 'Ext.container.Viewport',
 	layout: 'fit',
+	mixins: ['itwc.container.HotkeyArea'],
+
 	initComponent: function() {
 		this.callParent(arguments);
+	},
+	afterRender: function() {
+		var me = this;
+		
+		me.callParent();
+		me.initHotkeys();
+	},
+	onDestroy: function () {
+		var me = this;
+
+		me.destroyHotkeys();
+		me.callParent(arguments);
 	},
 	getComponentByPath: function(path) {
 		var me = this,

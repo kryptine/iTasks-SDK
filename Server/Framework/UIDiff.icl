@@ -25,17 +25,16 @@ where
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts, UITaskletPHOpts
-derive gEq UIControl, UILayoutOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
-derive gEq UIDef, UIAction
+derive gEq UIViewport, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
+derive gEq UIDef, UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer, UIAction
 
-derive JSONEncode UITreeNode
+derive JSONEncode UITreeNode, UIActionOpts
 
+//TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event -> [UIUpdate]	
-diffUIDefinitions (UIFinal d1=:(UIViewport _ _ _)) (UIFinal d2=:(UIViewport _ _ _)) event
-	= replaceIfImpossible viewportPath d2 [diffControls viewportPath event d1 d2]
-where
-	viewportPath = [ItemStep 0]
-
+diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal (UIViewport iOpts2 opts2)) event
+	=	diffItems [ItemStep 0] event iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
+	++	diffHotkeys [ItemStep 0] (fromMaybe [] opts1.UIViewportOpts.hotkeys) (fromMaybe [] opts2.UIViewportOpts.hotkeys)
 diffUIDefinitions d1 d2 event
 	= diffItems [] event (uiDefControls d1) (uiDefControls d2) 
 
@@ -122,18 +121,14 @@ diffControls path event c1 c2
 				= [DiffPossible [UIUpdate (toString path) (UITaskletPH sOpts2 opts2)]]
 				= [DiffImpossible]
 
-		(UIContainer sOpts1 lOpts1 items1 opts1, UIContainer sOpts2 lOpts2 items2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
-		(UIPanel sOpts1 lOpts1 items1 opts1, UIPanel sOpts2 lOpts2 items2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffPanelOpts path event opts1 opts2]
-		(UIFieldSet sOpts1 lOpts1 items1 opts1, UIFieldSet sOpts2 lOpts2 items2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
-		(UIWindow sOpts1 lOpts1 items1 opts1, UIWindow sOpts2 lOpts2 items2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
-		(UIViewport lOpts1 items1 opts1, UIViewport lOpts2 items2 opts2)
-			= [diffLayoutOpts path lOpts1 lOpts2, DiffPossible (diffItems path event items1 items2), diffOpts opts1 opts2]
-		(UICustom opts1, UICustom opts2)
-			= [diffOpts opts1 opts2]
+		(UIContainer sOpts1 iOpts1 opts1, UIContainer sOpts2 iOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffOpts opts1 opts2]
+		(UIPanel sOpts1 iOpts1 opts1, UIPanel sOpts2 iOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffPanelOpts path event opts1 opts2]
+		(UIFieldSet sOpts1 iOpts1 opts1, UIFieldSet sOpts2 iOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffOpts opts1 opts2]
+		(UIWindow sOpts1 iOpts1 opts1, UIWindow sOpts2 iOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffOpts opts1 opts2]
 		(_,_)
 			= [DiffImpossible]		
 	= DiffPossible (replaceIfImpossible path c2 parts)
@@ -183,8 +178,14 @@ where
 diffActionOpts :: DiffPath UIActionOpts UIActionOpts -> DiffResult
 diffActionOpts path opts1 opts2 = diffOpts opts1 opts2
 
-diffLayoutOpts :: DiffPath UILayoutOpts UILayoutOpts -> DiffResult
-diffLayoutOpts path opts1 opts2 = diffOpts opts1 opts2
+diffItemsOpts :: DiffPath !Event UIItemsOpts UIItemsOpts -> DiffResult
+diffItemsOpts path event opts1 opts2
+	| opts1.UIItemsOpts.direction =!= opts2.UIItemsOpts.direction	= DiffImpossible
+	| opts1.UIItemsOpts.halign =!= opts2.UIItemsOpts.halign			= DiffImpossible
+	| opts1.UIItemsOpts.valign =!= opts2.UIItemsOpts.valign			= DiffImpossible
+	| opts1.UIItemsOpts.padding =!= opts2.UIItemsOpts.padding		= DiffImpossible
+	| otherwise
+		= DiffPossible (diffItems path event opts1.UIItemsOpts.items opts2.UIItemsOpts.items)
 
 diffOpts :: a a -> DiffResult | gEq{|*|} a	//Very crude, but always working fallback diff
 diffOpts opts1 opts2
@@ -195,7 +196,7 @@ diffOpts opts1 opts2
 diffPanelOpts :: DiffPath Event UIPanelOpts UIPanelOpts -> DiffResult
 diffPanelOpts path event opts1 opts2
 	| impossible	= DiffImpossible
-					= DiffPossible (foldr (++) [] [titleUpd,menusUpd,windowsUpd])
+					= DiffPossible (foldr (++) [] [titleUpd,menusUpd,windowsUpd,hotkeyUpd])
 where
 	impossible	=  opts1.UIPanelOpts.frame <> opts2.UIPanelOpts.frame
 				|| opts1.UIPanelOpts.iconCls <> opts2.UIPanelOpts.iconCls
@@ -207,6 +208,7 @@ where
 	titleUpd	= if (opts1.UIPanelOpts.title == opts2.UIPanelOpts.title) [] [UISetTitle (toString path) opts2.UIPanelOpts.title]
 	menusUpd	= diffItems [MenuStep:path] event (fromMaybe [] opts1.UIPanelOpts.tbar) (fromMaybe [] opts2.UIPanelOpts.tbar)
 	windowsUpd	= diffItems [WindowStep:path] event (fromMaybe [] opts1.UIPanelOpts.windows) (fromMaybe [] opts2.UIPanelOpts.windows)
+	hotkeyUpd	= diffHotkeys path (fromMaybe [] opts1.UIPanelOpts.hotkeys) (fromMaybe [] opts2.UIPanelOpts.hotkeys)
 
 diffItems :: DiffPath Event [UIControl] [UIControl] -> [UIUpdate]
 diffItems path event items1 items2 = diff path event 0 items1 items2
@@ -220,7 +222,10 @@ where
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
 		=	replaceIfImpossible [ItemStep i:path] c2 [diffControls [ItemStep i:path] event c1 c2]
 		++  diff path event (i + 1) c1s c2s
-		
+	
+diffHotkeys :: DiffPath [UIKeyAction] [UIKeyAction] -> [UIUpdate]
+diffHotkeys path keys1 keys2 = if (keys1 === keys2) [] [UISetHotkeys (toString path) keys2]
+
 //Try to diff a control in parts. If one of the parts is impossible, then return a full replace instruction
 replaceIfImpossible :: DiffPath UIControl [DiffResult] -> [UIUpdate]
 replaceIfImpossible path fallback parts
@@ -237,19 +242,18 @@ encodeUIUpdates :: ![UIUpdate] -> JSONNode
 encodeUIUpdates updates = JSONArray (flatten (map encodeUIUpdate updates))
 
 encodeUIUpdate :: UIUpdate -> [JSONNode]
-encodeUIUpdate (UISetValue path value)			= [node path "setValue"			[value]]
-encodeUIUpdate (UISetOptions path value)		= [node path "setOptions"		[value]]
-encodeUIUpdate (UISetTaskId path taskId)		= [node path "setTaskId"	 	[JSONString taskId]]
-encodeUIUpdate (UISetName path name)			= [node path "setName"			[JSONString name]]
-encodeUIUpdate (UISetEnabled path enabled)		= [node path "setDisabled"		[JSONBool (not enabled)]]
-encodeUIUpdate (UISetActive path active)		= [node path "setActive"		[JSONBool active]]
-encodeUIUpdate (UISetTitle path title)			= [node path "setTitle"			[toJSON title]]
-encodeUIUpdate (UIReplace path index def)		= [node path "replace" 			[JSONInt index, encodeUIControl def]]
-encodeUIUpdate (UIUpdate path def)				= [node path "update"			[encodeUIControl def]]
-encodeUIUpdate (UIAdd path index def)			= [node path "insert"			[JSONInt index, encodeUIControl def]]
-encodeUIUpdate (UIRemove path index)			= [node path "remove"			[JSONInt index]]
-encodeUIUpdate _								= []
+encodeUIUpdate (UISetValue path value)					= [enc path "setValue"		[value]]
+encodeUIUpdate (UISetOptions path value)				= [enc path "setOptions"	[value]]
+encodeUIUpdate (UISetTaskId path taskId)				= [enc path "setTaskId"		[JSONString taskId]]
+encodeUIUpdate (UISetName path name)					= [enc path "setName"		[JSONString name]]
+encodeUIUpdate (UISetEnabled path enabled)				= [enc path "setDisabled"	[JSONBool (not enabled)]]
+encodeUIUpdate (UISetActive path active)				= [enc path "setActive"		[JSONBool active]]
+encodeUIUpdate (UISetTitle path title)					= [enc path "setTitle"		[toJSON title]]
+encodeUIUpdate (UISetHotkeys path keys)					= [enc path "setHotkeys"	[toJSON keys]]
+encodeUIUpdate (UIReplace path index def)				= [enc path "replace" 		[JSONInt index, encodeUIControl def]]
+encodeUIUpdate (UIUpdate path def)						= [enc path "update"		[encodeUIControl def]]
+encodeUIUpdate (UIAdd path index def)					= [enc path "insert"		[JSONInt index, encodeUIControl def]]
+encodeUIUpdate (UIRemove path index)					= [enc path "remove"		[JSONInt index]]
+encodeUIUpdate _										= []
 
-node path method arguments
-	= JSONObject [("path",JSONString path),("method",JSONString method),("arguments",JSONArray arguments)]
-
+enc path method arguments = JSONObject [("path",JSONString path),("method",JSONString method),("arguments",JSONArray arguments)]

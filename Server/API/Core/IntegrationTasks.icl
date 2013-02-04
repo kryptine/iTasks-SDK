@@ -65,7 +65,7 @@ where
 	//Check for its result
 	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlSequence ('Map'.newMap,[],Vertical)) []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[],direction=Vertical}) []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -78,7 +78,7 @@ where
 						# layout			= repLayout repOpts
 						# (controls,iworld)	= makeView opts status (verifyMaskedValue status Touched) taskId layout iworld
 						# prompt			= toPrompt desc
-						# editor			= ('Map'.newMap,controls,Vertical)
+						# editor			= {UIControlSequence| attributes = 'Map'.newMap, controls = controls, direction = Vertical}
 						# rep				= TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) []
 						= (ValueResult (Value status False) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,iworld)
 					# (res, world) = 'File'.readFile outfile world
@@ -92,7 +92,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = CompletedProcess async.AsyncResult.exitcode 
-								= (ValueResult (Value result True) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlSequence ('Map'.newMap,[],Vertical)) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result True) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep (UIControlSequence {UIControlSequence|attributes = 'Map'.newMap,controls = [],direction = Vertical}) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization

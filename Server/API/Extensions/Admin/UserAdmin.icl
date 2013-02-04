@@ -77,13 +77,13 @@ deleteUser userId = update (filter (\acc -> identifyUserAccount acc <> userId)) 
 manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] userAccounts @ identifyUserAccount
-		>>*	[ AnyTime		(Action "New")									(\_ -> createUserFlow	@ const False)
-			, WithResult	(ActionEdit) (const True)						(\u -> updateUserFlow u @ const False)
-			, WithResult	(ActionDelete) (const True)						(\u -> deleteUserFlow u @ const False)
-			, AnyTime 		(Action "Import & export/Import CSV file...")	(\_ -> importUserFileFlow @ const False)
-			, AnyTime		(Action "Import & export/Export CSV file...")	(\_ -> exportUserFileFlow @ const False)
-			, AnyTime		(Action "Import & export/Import demo users")	(\_ -> importDemoUsersFlow @ const False)
-			, AnyTime		(ActionQuit)									(\_ -> return True)
+		>>*	[ AnyTime		(Action "New" [])									(\_ -> createUserFlow	@ const False)
+			, WithResult	(ActionEdit) (const True)							(\u -> updateUserFlow u @ const False)
+			, WithResult	(ActionDelete) (const True)							(\u -> deleteUserFlow u @ const False)
+			, AnyTime 		(Action "Import & export/Import CSV file..." [])	(\_ -> importUserFileFlow @ const False)
+			, AnyTime		(Action "Import & export/Export CSV file..." [])	(\_ -> exportUserFileFlow @ const False)
+			, AnyTime		(Action "Import & export/Import demo users" [])		(\_ -> importDemoUsersFlow @ const False)
+			, AnyTime		(ActionQuit)										(\_ -> return True)
 			]
 	) <! id @ const Void
 

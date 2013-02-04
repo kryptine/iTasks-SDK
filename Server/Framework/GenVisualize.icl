@@ -100,10 +100,10 @@ gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# controls = layout.Layout.editor (addLabel disabled gfd_name newMap,controls,Vertical)
+			# controls = layout.Layout.editor {UIControlSequence|attributes = addLabel disabled gfd_name newMap, controls = controls, direction = Vertical}
 			= (NormalEditor controls,vst)
 		OptionalEditor controls	
-			# controls = layout.Layout.editor (addLabel True gfd_name newMap,controls,Vertical)
+			# controls = layout.Layout.editor {UIControlSequence|attributes = addLabel True gfd_name newMap, controls = controls, direction = Vertical}
 			= (OptionalEditor controls, vst)
 
 
@@ -115,7 +115,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content	= layout.editor (newMap, (if (isTouched cmv) (controlsOf items) []), Vertical)
+		# content	= layout.editor {UIControlSequence|attributes = newMap, controls = (if (isTouched cmv) (controlsOf items) []), direction = Vertical}
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = toString taskId
@@ -226,7 +226,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item 
-		# controls	= map fst (layout.editor (newMap,controlsOf item,Vertical))
+		# controls	= map fst (layout.editor {UIControlSequence| attributes = newMap, controls = controlsOf item, direction = Vertical})
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}

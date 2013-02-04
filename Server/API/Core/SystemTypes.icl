@@ -8,7 +8,7 @@ import GenVisualize, GenUpdate
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
-from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIFinal, :: UIAction, :: UIControl, stringDisplay
+from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from LayoutCombinators import mergeAttributes, setMargins
 
 //* EmailAddress
@@ -1514,45 +1514,28 @@ where
 instance == Action
 where
 	(==) :: !Action !Action -> Bool
-	(==) (Action name0) (Action name1) = name0 == name1
+	(==) (Action name0 _) (Action name1 _) = name0 == name1
 	(==) a b = a === b
 
 actionName :: !Action -> ActionName
-actionName (Action name)		= name
-actionName ActionOk				= "Ok"
-actionName ActionCancel			= "Cancel"
-actionName ActionYes			= "Yes"
-actionName ActionNo				= "No"
-actionName ActionNext			= "Next"
-actionName ActionPrevious		= "Previous"
-actionName ActionFinish			= "Finish"
-actionName ActionContinue		= "Continue"
-actionName ActionOpen			= "File/Open"
-actionName ActionSave			= "File/Save"
-actionName ActionSaveAs			= "File/Save as"
-actionName ActionQuit			= "File/Quit"
-actionName ActionHelp			= "Help/Help"
-actionName ActionAbout			= "Help/About"
-actionName ActionFind			= "Edit/Find"
-actionName ActionNew			= "New"
-actionName ActionEdit			= "Edit"
-actionName ActionDelete			= "Delete"
-actionName ActionRefresh		= "Refresh"
-actionName ActionClose			= "Close"
-	
-actionIcon :: !Action -> String
-actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
+actionName (Action name _)	= name
 
-derive JSONEncode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gDefault			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gEq				TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gVisualizeText	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
-derive gVisualizeEditor	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gHeaders			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gGridRows		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action
-derive gUpdate			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
-derive gVerify			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action
+actionIcon :: !Action -> Maybe String
+actionIcon (Action name options) //= Just ("icon-" +++ (replaceSubString "." "" (replaceSubString " " "-" (toLowerCase (last (split "/" name))))))
+	= case [icon \\ ActionIcon icon <- options] of
+		[icon]	= Just ("icon-" + icon)
+		_		= Nothing
+
+derive JSONEncode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive gDefault			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive gEq				TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive gVisualizeText	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey
+derive gVisualizeEditor	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive gHeaders			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive gGridRows		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
+derive gUpdate			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey
+derive gVerify			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey
 
 derive class iTask TaskId, Config, ProcessStatus
 	
@@ -1563,40 +1546,54 @@ where
 	toString (IconEdit) = "edit"
 	
 instance descr Void
-where toPrompt _ = (newMap,[],Vertical)
+where
+	toPrompt _ = {UIControlSequence|attributes = newMap, controls =[], direction = Vertical}
 
 instance descr String
-where toPrompt prompt	= (newMap,[(stringDisplay prompt,newMap)],Vertical)
+where
+	toPrompt prompt = {UIControlSequence|attributes = newMap, controls = [(stringDisplay prompt,newMap)], direction = Vertical}
 	
 instance descr (!String,!String) 
-where toPrompt (title,prompt)	= (fromList [(TITLE_ATTRIBUTE,title)],[(stringDisplay prompt,newMap)],Vertical)
+where
+	toPrompt (title,prompt) = {UIControlSequence|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)], direction = Vertical}
 
 instance descr (!Icon,!String,!String)
-where toPrompt (icon,title,prompt)	= (fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)],[(stringDisplay prompt,newMap)],Vertical)
-									
+where
+	toPrompt (icon,title,prompt) = {UIControlSequence|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
+								   ,controls = [(stringDisplay prompt,newMap)]
+								   ,direction = Vertical}
 //instance descr (!Icon,!Title)
 //where toPrompt (icon,title)	= (fromList [(TITLE_ATTRIBUTE,toString title),(ICON_ATTRIBUTE, toString icon)],[],Vertical)
 
 instance descr Title
-where toPrompt (Title title)	= (put TITLE_ATTRIBUTE title newMap,[],Vertical)
+where
+	toPrompt (Title title) = {UIControlSequence|attributes = put TITLE_ATTRIBUTE title newMap, controls = [], direction = Vertical}
 	
 instance descr Hint
-where toPrompt (Hint hint)	= (put HINT_ATTRIBUTE hint newMap,[],Vertical)
+where
+	toPrompt (Hint hint) = {UIControlSequence|attributes = put HINT_ATTRIBUTE hint newMap, controls = [], direction = Vertical}
 	
 instance descr Icon
-where toPrompt icon	= (put ICON_ATTRIBUTE (toString icon) newMap,[],Vertical)
+where
+	toPrompt icon = {UIControlSequence|attributes = put ICON_ATTRIBUTE (toString icon) newMap, controls = [], direction = Vertical}
 
 instance descr Attribute
-where toPrompt (Attribute k v)	= (put k v newMap,[],Vertical)
+where
+	toPrompt (Attribute k v) = {UIControlSequence| attributes = put k v newMap, controls = [], direction = Vertical}
 	
 instance descr Att
-where toPrompt (Att a)			= toPrompt a
+where
+	toPrompt (Att a) = toPrompt a
 	
 instance descr [d] | descr d
 where
-	toPrompt list = foldr merge (newMap,[],Vertical) (map toPrompt list)
+	toPrompt list = foldr merge {UIControlSequence| attributes = newMap, controls = [], direction = Vertical} (map toPrompt list)
 	where
-		merge (a1,c1,d1) (a2,c2,d2) = (mergeAttributes a1 a2, c1 ++ c2,d1)
+		merge p1 p2  = {UIControlSequence
+					   |attributes = mergeAttributes p1.UIControlSequence.attributes p2.UIControlSequence.attributes
+					   ,controls = p1.UIControlSequence.controls ++ p2.UIControlSequence.controls
+					   ,direction = p1.UIControlSequence.direction
+					   }
 
 // Generic instances for common library types
 derive JSONEncode		Map, Either, HtmlTag, HtmlAttr

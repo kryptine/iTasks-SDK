@@ -5,18 +5,15 @@ definition module UIDefinition
 * to describe rich user interfaces and being leaving rendering details to the client framework.
 */
 import JSON_NG, GenEq_NG
-from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: GoogleMapIcon
+from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey, :: GoogleMapIcon
 from Task			import :: TaskId
 from HTML			import :: HtmlTag
 from Map			import :: Map(..)
 
 //TODO:
-//- Radio button control
-//- Checkbox control (for choices)
 //- Multi select in grids
 //- Multi select in trees
 // 
-
 /**
 * Rendering a user interface for a composition of is a staged process in which
 * the raw UI material provided by basic tasks is grouped by layout policies to reach
@@ -24,19 +21,36 @@ from Map			import :: Map(..)
 *
 * The UIDef type has contstructors for the various types of partial UI definitions.
 */
-
 :: UIDef
 	= UIControlSequence 	!UIControlSequence										//Components from an interact task
 	| UIActionSet			!UIActionSet											//Actions from a chooseAction task
 	| UIControlGroup		!UIControlGroup											//Components from a single or multiple interacts grouped by a shared step combinator
 	| UIAbstractContainer	!UIAbstractContainer									//A decorated, layed out set of controls that can be put in a container 
-	| UIFinal				!UIFinal												//The final viewport
+	| UIFinal				!UIViewport												//The final viewport
 
-:: UIControlSequence 	:== (!UIAttributes, !UIAnnotatedControls, !UIDirection)
-:: UIActionSet			:== (!UIAttributes, !UIActions)
-:: UIControlGroup		:== (!UIAttributes, !UIAnnotatedControls, !UIDirection, !UIActions)
-:: UIAbstractContainer	:== (!UIAttributes, !UIControls, !UIControls, !UIDirection, !UIActions)
-:: UIFinal				:== UIControl											
+:: UIControlSequence = 
+	{ attributes	:: UIAttributes
+	, controls		:: UIAnnotatedControls
+	, direction		:: UIDirection
+	}
+:: UIActionSet = 
+	{ attributes	:: UIAttributes
+	, actions		:: UIActions
+	}
+:: UIControlGroup =
+	{ attributes	:: UIAttributes
+	, controls		:: UIAnnotatedControls
+	, direction		:: UIDirection
+	, actions		:: UIActions
+	}
+:: UIAbstractContainer	= 
+	{ attributes	:: UIAttributes
+	, controls		:: UIControls
+	, actions		:: UIActions
+	, direction		:: UIDirection
+	, windows		:: [UIControl]
+	, hotkeys		:: [UIKeyAction]
+	}
 
 :: UIAttributes 		:== Map String String
 :: UIControls			:== [UIControl]
@@ -48,6 +62,15 @@ from Map			import :: Map(..)
 	{ taskId	:: !String
 	, action	:: !Action
 	, enabled	:: !Bool
+	}
+
+//The top level viewport
+:: UIViewport = UIViewport !UIItemsOpts !UIViewportOpts 
+
+:: UIViewportOpts =
+	{ title			:: !Maybe String
+	, tbar			:: !Maybe [UIControl]
+	, hotkeys		:: !Maybe [UIKeyAction]
 	}
 
 :: UIControl
@@ -88,13 +111,10 @@ from Map			import :: Map(..)
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
 	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
 	// Container components for composition:
-	| UIContainer		!UISizeOpts !UILayoutOpts ![UIControl] !UIContainerOpts	// - Container (lightweight wrapper to compose components)
-	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)
-	| UIFieldSet		!UISizeOpts !UILayoutOpts ![UIControl] !UIFieldSetOpts	// - Fieldset (wrapper with a simple border and title)
-	| UIWindow			!UISizeOpts !UILayoutOpts ![UIControl] !UIWindowOpts	// - Window (floating window)
-	| UIViewport					!UILayoutOpts ![UIControl] !UIViewportOpts	// - Viewport (top-level container)
-	// DEPRECATED: custom xtjs definition:
-	| UICustom			!JSONNode
+	| UIContainer		!UISizeOpts !UIItemsOpts !UIContainerOpts				// - Container (lightweight wrapper to compose components)
+	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
+	| UIFieldSet		!UISizeOpts !UIItemsOpts !UIFieldSetOpts				// - Fieldset (wrapper with a simple border and title)
+	| UIWindow			!UISizeOpts !UIItemsOpts !UIWindowOpts					// - Window (floating window)
 	
 :: UISizeOpts =
 	{ width		:: !Maybe UISize
@@ -113,8 +133,9 @@ from Map			import :: Map(..)
 	= ExactMin !Int
 	| WrapMin
 	
-:: UILayoutOpts =
-	{ direction	:: !UIDirection
+:: UIItemsOpts =
+	{ items		:: ![UIControl]
+	, direction	:: !UIDirection
 	, halign	:: !UIHAlign
 	, valign	:: !UIVAlign
 	, padding	:: !Maybe UISideSizes
@@ -145,8 +166,9 @@ from Map			import :: Map(..)
 	, right		:: !Int
 	, bottom	:: !Int
 	, left		:: !Int
-	}
-	
+	}	
+
+
 :: UIViewOpts a =
 	{ value			:: !Maybe a
 	}
@@ -161,6 +183,8 @@ from Map			import :: Map(..)
 	{ taskId		:: !String
 	, actionId		:: !String
 	}
+
+:: UIKeyAction :== (!Hotkey,!UIActionOpts)
 
 :: UIChoiceOpts a =
 	{ taskId		:: !String
@@ -286,6 +310,7 @@ from Map			import :: Map(..)
 	, frame			:: !Bool
 	, tbar			:: !Maybe [UIControl]
 	, windows		:: !Maybe [UIControl]
+	, hotkeys		:: !Maybe [UIKeyAction]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String
@@ -300,19 +325,14 @@ from Map			import :: Map(..)
 	, tbar			:: !Maybe [UIControl]
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
+	, hotkeys		:: !Maybe [UIKeyAction]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String
 	}
-
-:: UIViewportOpts =
-	{ title			:: !Maybe String
-	, tbar			:: !Maybe [UIControl]
-	}
-
 //Utility functions
 defaultSizeOpts			:: UISizeOpts
-defaultLayoutOpts		:: UILayoutOpts
+defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
 
 defaultContainer		:: ![UIControl]	-> UIControl
 defaultPanel			:: ![UIControl]	-> UIControl

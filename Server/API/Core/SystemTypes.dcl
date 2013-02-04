@@ -530,52 +530,114 @@ instance toUserConstraint UserId
 	| CompletedProcess !Int
 
 //* Next task actions
-:: Action	= Action !ActionName
-			| ActionOk
-			| ActionCancel
-			| ActionYes
-			| ActionNo
-			| ActionNext
-			| ActionPrevious
-			| ActionFinish
-			| ActionContinue
-			| ActionNew
-			| ActionOpen
-			| ActionSave
-			| ActionSaveAs
-			| ActionQuit
-			| ActionClose
-			| ActionHelp
-			| ActionAbout
-			| ActionFind
-			| ActionDelete
-			| ActionEdit
-			| ActionRefresh
+:: Action	= Action !ActionName ![ActionOption]
 
 :: ActionName	:== String	//Locally unique identifier for actions
+:: ActionOption
+	= ActionKey		!Hotkey	//Specifies a hotkey for the action. 
+	| ActionWeight	!Int	//Specifies a weight for specific sorting in menus
+	| ActionIcon	!String	//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
 
 actionName	:: !Action -> ActionName
-actionIcon 	:: !Action -> String
+actionIcon 	:: !Action -> Maybe String
 			
 :: Hotkey =	{ key	:: !Key
 			, ctrl	:: !Bool
 			, alt	:: !Bool
 			, shift	:: !Bool
 			}
-			
-:: Key :== Char
 
-derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action 
-derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action 		
+:: Key :== Int //Key code
 
-derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gVisualizeEditor	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gHeaders			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gGridRows		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
-derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action
+//Common action constants with predefined options
+ActionOk		:== Action "Ok"				[ActionIcon "ok", ActionKey (unmodified KEY_ENTER)]
+ActionCancel	:==	Action "Cancel"			[ActionIcon "cancel", ActionKey (unmodified KEY_ESC)]
+ActionYes		:== Action "Yes"			[ActionIcon "yes"]
+ActionNo		:== Action "No"				[ActionIcon "no"]
+ActionNext		:== Action "Next"			[ActionIcon "next"]
+ActionPrevious	:== Action "Previous"		[ActionIcon "previous"]
+ActionFinish	:== Action "Finish"			[ActionIcon "finish"]
+ActionContinue	:==	Action "Continue"		[ActionIcon "continue", ActionKey (unmodified KEY_ENTER)]
+ActionOpen		:== Action "/File/Open"		[ActionIcon "open", ActionKey (ctrl KEY_O)]
+ActionSave		:== Action "/File/Save" 	[ActionIcon "save", ActionKey (ctrl KEY_S)]
+ActionSaveAs 	:== Action "/File/Save as"	[ActionIcon "save"]
+ActionQuit		:== Action "/File/Quit"		[ActionIcon "quit"]
+ActionHelp		:==	Action "/Help/Help"		[ActionIcon "help"]
+ActionAbout		:== Action "/Help/About"	[ActionIcon "About"]
+ActionFind		:== Action "/Edit/Find"		[ActionIcon "find", ActionKey (ctrl KEY_F)]
+ActionNew		:== Action "New"			[ActionIcon "new", ActionKey (ctrl KEY_N)]
+ActionEdit		:== Action "Edit"			[ActionIcon "edit"]
+ActionDelete	:== Action "Delete"			[ActionIcon "delete", ActionKey (unmodified KEY_DELETE)]
+ActionRefresh	:== Action "Refresh"		[ActionIcon "refresh", ActionKey (unmodified KEY_F5)]
+ActionClose		:==	Action "Close"			[ActionIcon "close", ActionKey (unmodified KEY_ESC)]
+	
+//Common key codes
+KEY_ENTER		:== 13
+KEY_ESC			:== 27
+KEY_BACKSPACE	:== 8
+KEY_DELETE		:== 46
+KEY_LEFT		:== 37
+KEY_UP			:== 38
+KEY_RIGHT		:== 39
+KEY_DOWN		:== 40
+
+KEY_A		:== 65
+KEY_B		:== 66
+KEY_C		:== 67
+KEY_D		:== 68
+KEY_E		:== 69
+KEY_F		:== 70
+KEY_G		:== 71
+KEY_H		:== 72
+KEY_I		:== 73
+KEY_J		:== 74
+KEY_K		:== 75
+KEY_L		:== 76
+KEY_M		:== 77
+KEY_N		:== 78
+KEY_O		:== 79
+KEY_P		:== 80
+KEY_Q		:== 81
+KEY_R		:== 82
+KEY_S		:== 83
+KEY_T		:== 84
+KEY_U		:== 85
+KEY_V		:== 86
+KEY_W		:== 87
+KEY_X		:== 88
+KEY_Y		:== 89
+KEY_Z		:== 90
+
+KEY_F1		:== 112
+KEY_F2		:== 113
+KEY_F3		:== 114
+KEY_F4		:== 115
+KEY_F5		:== 116
+KEY_F6		:== 117
+KEY_F7		:== 118
+KEY_F8		:== 119
+KEY_F9		:== 120
+KEY_F10		:== 121
+KEY_F11		:== 122
+KEY_F12		:== 123
+
+//Common modifiers
+unmodified key	:== {key=key,ctrl=False,alt=False,shift=False}
+ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
+alt key			:== {key=key,ctrl=False,alt=True,shift=False}
+shift key		:== {key=key,ctrl=False,alt=False,shift=True}
+
+derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+
+derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gVisualizeEditor	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gHeaders			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gGridRows		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
 
 derive class iTask		TaskId, Config, ProcessStatus
 
@@ -603,7 +665,7 @@ VALID_ATTRIBUTE			:== "valid"
 ERROR_ATTRIBUTE			:== "error"
 LABEL_ATTRIBUTE			:== "label"
 ICON_ATTRIBUTE			:== "icon"
-CREATED_AT_ATTRIBUTE	:== "createdat"	//Creation task time, used for ordering but not real time
+CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
 FLOAT_ATTRIBUTE			:==	"float"		//Hint for layout functions. Currently only "window" has an effect
 

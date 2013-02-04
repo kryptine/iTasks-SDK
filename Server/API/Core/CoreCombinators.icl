@@ -15,7 +15,7 @@ from SharedDataSource	import writeFilterMsg, read
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
-noRep = TaskRep (UIControlSequence ('Map'.newMap,[],Vertical)) []
+noRep = TaskRep (UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[],direction=Vertical}) []
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
@@ -483,7 +483,7 @@ where
 		= (DestroyedResult,iworld)
 		
 	inUseDef worker
-		= UIControlSequence ('Map'.newMap,[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],Vertical)
+		= UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],direction=Vertical}
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

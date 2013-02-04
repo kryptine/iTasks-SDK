@@ -19,7 +19,7 @@ where
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 
-	rep = TaskRep (UIControlGroup (newMap,[],Vertical,[])) []
+	rep = TaskRep (UIControlGroup {UIControlGroup|attributes=newMap,controls=[],direction=Vertical,actions=[]}) []
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
