@@ -133,8 +133,8 @@ where
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
 	=	(viewSharedInformation Void [ViewWith view] currentUser	
-			>>* [AnyTime ActionRefresh			(\_ -> return Nothing)
-				,AnyTime (Action "Log out" [])	(\_ -> return (Just Logout))
+			>>* [AnyTime ActionRefresh								(\_ -> return Nothing)
+				,AnyTime (Action "Log out" [ActionIcon "logout"])	(\_ -> return (Just Logout))
 				]															
 		) <! isJust	<<@ AfterLayout (uiDefSetDirection Horizontal)
 	@	fromJust	

@@ -25,6 +25,7 @@ Ext.define('itwc.container.HotkeyArea',{
 				key.fn = function(taskId,actionId) {
 					return function() {me.onHotkey(taskId,actionId);};
 				}(hotkeys[i][1].taskId, hotkeys[i][1].actionId);
+				key.defaultEventAction = 'stopEvent';
 
 				binding.push(key);
 			}

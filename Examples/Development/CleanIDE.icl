@@ -166,7 +166,7 @@ where
 			fromEither (Left dir) 		= dir
 			fromEither (Right (name,_)) = name
 
-			mkTree :: !ModuleOptions ![(!DirPathName,![Module])] -> Tree (Either !DirPathName !(!ModuleName,!String))
+			mkTree :: !ModuleOptions ![(!DirPathName,![Module])] -> Tree (Either DirPathName (!ModuleName,!String))
 			mkTree option dirfiles = Tree (removeEmpties (seq [insertModule dir ms \\ (dir,ms) <- dirfiles] []))
 			where
 				insertModule dir ms nodeList = insertModule` (split "\\" dir) ms nodeList

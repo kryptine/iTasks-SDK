@@ -1521,10 +1521,14 @@ actionName :: !Action -> ActionName
 actionName (Action name _)	= name
 
 actionIcon :: !Action -> Maybe String
-actionIcon (Action name options) //= Just ("icon-" +++ (replaceSubString "." "" (replaceSubString " " "-" (toLowerCase (last (split "/" name))))))
-	= case [icon \\ ActionIcon icon <- options] of
-		[icon]	= Just ("icon-" + icon)
-		_		= Nothing
+actionIcon (Action _ options) = case [icon \\ ActionIcon icon <- options] of
+	[icon]	= Just ("icon-" + icon)
+	_		= Nothing
+
+actionWeight :: !Action -> Int
+actionWeight (Action _ options) = case [weight \\ ActionWeight weight <- options] of
+	[weight:_]	= weight
+	_			= 0 
 
 derive JSONEncode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
 derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey

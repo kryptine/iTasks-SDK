@@ -538,8 +538,9 @@ instance toUserConstraint UserId
 	| ActionWeight	!Int	//Specifies a weight for specific sorting in menus
 	| ActionIcon	!String	//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
 
-actionName	:: !Action -> ActionName
-actionIcon 	:: !Action -> Maybe String
+actionName		:: !Action -> ActionName
+actionIcon 		:: !Action -> Maybe String
+actionWeight	:: !Action -> Int			//Default weight is 0
 			
 :: Hotkey =	{ key	:: !Key
 			, ctrl	:: !Bool

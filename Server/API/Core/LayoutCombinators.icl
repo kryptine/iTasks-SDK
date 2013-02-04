@@ -91,15 +91,16 @@ autoFinalLayout (UIActionSet actions)
 	= UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,tbar = Nothing, hotkeys = Nothing}
 autoFinalLayout def=:(UIControlGroup {UIControlGroup|attributes,controls,direction,actions})
 	# (actions,_,panel)	= placeActions actions False (defToPanel (layoutControls def))
-	# (menu,_)			= actionsToMenus actions
+	# (menu,menukeys,_)	= actionsToMenus actions
 	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), hotkeys = Nothing}
+	# hotkeys			= case menukeys of [] = Nothing ; keys = Just keys
+	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}
 autoFinalLayout def=:(UIAbstractContainer {UIAbstractContainer|attributes,controls,direction,actions,windows,hotkeys})
-	# (menu,_)			= actionsToMenus actions
+	# (menu,menukeys,_)	= actionsToMenus actions
 	# items				= [defToPanel def]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	# hotkeys			= case hotkeys of [] = Nothing ; keys = Just keys
+	# hotkeys			= case hotkeys ++ menukeys of [] = Nothing ; keys = Just keys
 	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}
 autoFinalLayout (UIFinal final)
 	= final
@@ -226,14 +227,17 @@ placeActions actions placeMenus (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# items						= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
-	//Add hotkeys
+	//Add button hotkeys
 	# opts						= {UIPanelOpts|opts & hotkeys = case fromMaybe [] opts.UIPanelOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
 	| placeMenus
 		//Place menu actions
-		# (menus,actions)	= actionsToMenus actions
-		# opts				= case menus of
+		# (menus,hotkeys,actions)	= actionsToMenus actions
+		# opts	= case menus of
 			[]	= opts
-			_	= {UIPanelOpts|opts & tbar = Just menus}
+			_	
+				//Add menu hotkeys
+				# opts = {UIPanelOpts|opts & hotkeys = case fromMaybe [] opts.UIPanelOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
+				= {UIPanelOpts|opts & tbar = Just menus}
 		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts)
 	| otherwise
 		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts)
@@ -252,10 +256,12 @@ placeActions actions placeMenus (UIWindow sOpts iOpts=:{UIItemsOpts|items} opts)
 	# opts				= {UIWindowOpts|opts & hotkeys = case fromMaybe [] opts.UIWindowOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
 	| placeMenus
 		//Place menu actions
-		# (menus,actions)	= actionsToMenus actions
-		# opts				= case menus of
+		# (menus,hotkeys,actions)	= actionsToMenus actions
+		# opts = case menus of
 			[]	= opts
-			_	= {UIWindowOpts|opts & tbar = Just menus}
+			_	
+				# opts	= {UIWindowOpts|opts & hotkeys = case fromMaybe [] opts.UIWindowOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
+				= {UIWindowOpts|opts & tbar = Just menus}
 		= (actions, [], UIWindow sOpts {UIItemsOpts|iOpts & items = items} opts)
 	| otherwise
 		= (actions, [], UIWindow sOpts {UIItemsOpts|iOpts & items = items} opts)
@@ -714,14 +720,14 @@ where
 		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId=actionId}
 			{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled}
 			
-actionsToMenus :: ![UIAction] -> (![UIControl],![UIAction])
+actionsToMenus :: ![UIAction] -> (![UIControl],![UIKeyAction],![UIAction])
 actionsToMenus actions
-	# (menus,actions) = makeMenus [] actions
-	= (sortBy menuOrder menus,actions)
+	# (menus,hotkeys,actions) = makeMenus [] [] actions
+	= (sortBy menuOrder menus, hotkeys, actions)
 where
-	makeMenus :: [UIControl] [UIAction] -> ([UIControl],[UIAction])
-	makeMenus menus []	= (menus,[])	
-	makeMenus menus [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) as
+	makeMenus :: [UIControl] [UIKeyAction] [UIAction] -> ([UIControl],[UIKeyAction],[UIAction])
+	makeMenus menus hotkeys []	= (menus,hotkeys,[])	
+	makeMenus menus hotkeys [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) (addToHotkeys taskId action enabled hotkeys) as
 		
 	addToMenus ["",main:item] taskId action enabled menus
 		= menus ++ [createButton main item taskId action enabled]
@@ -753,32 +759,34 @@ where
 	createButton item [] taskId action enabled
 		= UIActionButton defaultSizeOpts
 			{UIActionOpts|taskId=taskId,actionId=actionName action}
-			{UIButtonOpts|text=Just item,iconCls = Just (icon item), disabled = not enabled}
+			{UIButtonOpts|text=Just item,iconCls = actionIcon action, disabled = not enabled}
 	createButton item sub taskId action enabled
 		= UIMenuButton defaultSizeOpts
 			{UIMenuButtonOpts
 			|text = Just item
-			,iconCls = Just (icon item)
+			,iconCls = actionIcon action //Just (icon item)
 			,disabled	= if (isEmpty sub) (not enabled) False
 			,menu = addToItems sub taskId action enabled []
 			}
 	createItem item [] taskId action enabled //Action item
 		= UIActionMenuItem
 			{UIActionOpts|taskId=taskId,actionId=actionName action}
-			{UIButtonOpts|text=Just item,iconCls = Just (icon item), disabled = not enabled}
+			{UIButtonOpts|text=Just item,iconCls = actionIcon action, disabled = not enabled}
 	createItem item sub taskId action enabled //Sub item
 		= UISubMenuItem
 				{ text = Just item
-				, iconCls = Just (icon item)
+				, iconCls = actionIcon action
 				, disabled = False
 				, menu = addToItems sub taskId action enabled []
 				}
 		
 	addToItem sub taskId action enabled item=:(UISubMenuItem opts=:{UIMenuButtonOpts|menu})
 		= UISubMenuItem {UIMenuButtonOpts|opts & menu = addToItems sub taskId action enabled menu}
-	
-	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
 
+	addToHotkeys taskId action enabled hotkeys = case actionToHotkey {taskId=taskId,action=action,enabled=enabled} of
+		Just hotkey = hotkeys ++ [hotkey]
+		Nothing		= hotkeys
+		
 	menuOrder (UIMenuButton _ {UIMenuButtonOpts|text=Just m1}) (UIMenuButton _ {UIMenuButtonOpts|text=Just m2}) = m1 < m2
 	menuOrder m1 m2 = False
 
