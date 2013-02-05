@@ -115,7 +115,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content	= layout.editor {UIControlSequence|attributes = newMap, controls = (if (isTouched cmv) (controlsOf items) []), direction = Vertical}
+		# content	= layout.editor {UIControlSequence|attributes = newMap, controls = (if (isTouched cmv) (controlsOf items) []), direction = Horizontal}
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = toString taskId
@@ -131,10 +131,12 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 		# (vis,vst) = fx x vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
-			NormalEditor [] = if (isTouched cmv || disabled) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
-			NormalEditor vis
-				= NormalEditor [(setDirection Horizontal (defaultContainer (addSpacing (map fst vis))),newMap)]
-			//TODO: Add case for OptionalEditor
+			NormalEditor []
+				= if (isTouched cmv || disabled) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
+			NormalEditor items
+				= NormalEditor (layout.editor {UIControlSequence|attributes = newMap, controls = items, direction = Horizontal})
+			OptionalEditor items
+				= OptionalEditor (layout.editor {UIControlSequence|attributes = newMap, controls = items, direction = Horizontal})
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 where
 	addSpacing [] = []

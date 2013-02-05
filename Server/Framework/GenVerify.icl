@@ -42,15 +42,17 @@ gVerify{|RECORD of {grd_arity}|} fx record [recordMask:um] options
 gVerify{|FIELD|} fx field um options = fx (fmap fromFIELD field) um options
 
 gVerify{|OBJECT|} fx object [] options = ([],[])
-gVerify{|OBJECT of {gtd_num_conses=1}|} fx object um options // ADT's with a single constructor
-	= fx (fmap fromOBJECT object) um options
+
 gVerify{|OBJECT of {gtd_num_conses}|} fx object [consMask:um] options=:{VerifyOptions|optional}
+	# hint = if (gtd_num_conses == 1) Nothing (Just "Select an option")
 	= case consMask of
-		Untouched				= ([VMUntouched (Just "Select an option") optional []],um)
 		Blanked | not optional	= ([VMInvalid BlankError []],um)
+		Untouched
+			# (vm,_)	= fx (fmap fromOBJECT object) [consMask] options
+			= ([VMUntouched hint optional vm],um)
 		_
 			# (vm,_)	= fx (fmap fromOBJECT object) [consMask] options
-			= ([VMValid (Just "Select an option") vm],um)
+			= ([VMValid hint vm],um)
 
 gVerify{|CONS|} fx cons [] options = ([],[])
 gVerify{|CONS of {gcd_arity}|} fx cons [consMask:um] options
