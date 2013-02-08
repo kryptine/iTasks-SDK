@@ -147,6 +147,16 @@ Sapl = new function () {
 		for(var i=0; i<arr.length; i++) prefix.push(arr[i]);
 		return prefix;
 	}
+
+	this.toList = function (arr){	
+		if(arr.length == 0){
+			return [1,'_predefined._Nil'];
+		}else{
+			var e = arr[0];
+			arr.shift();
+			return [0,'_predefined._Cons', e, this.toList(arr)];
+		}	
+	}	
 	
 	this.toJSON = function (expr) {
 		return JSON.stringify(this.toJS(expr));
