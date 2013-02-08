@@ -16,7 +16,13 @@ println msg iw=:{world}
 	# (_,world)			= fclose console world
 	= {iw & world = world} 
 
-toDef c = UIControlSequence (newMap, [(c,newMap)], Vertical)
+toDef c = UIControlSequence {UIControlSequence
+							| attributes = newMap
+							, controls	 = [(c,newMap)]
+							, direction	 = Vertical
+							}
+	
+//(newMap, [(c,newMap)], Vertical)
 
 mkInstanceId :: Task String
 mkInstanceId = mkInstantTask taskFunc

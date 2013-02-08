@@ -4,7 +4,7 @@ definition module SaplLinkerShared
 * Types and function definitions used by the different SAPL linker implementations
 */
 
-import StdString, StdClass, Maybe, SaplTokenizer, StringAppender
+import StdString, StdClass, StdMaybe, SaplTokenizer, StringAppender
 from Map import :: Map
 
 /**
