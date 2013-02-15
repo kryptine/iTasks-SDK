@@ -214,7 +214,7 @@
     <macrodef name="x-build-theme">
         <attribute name="theme" description="the path of the theme folder"/>
         <attribute name="buildsass" default="false"/>
-        <attribute name="basetheme" default="default"/>
+        <attribute name="basetheme" default="gray"/>
         <sequential>
             <local name="theme.name"/>
 
