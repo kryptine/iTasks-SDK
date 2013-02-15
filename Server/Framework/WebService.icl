@@ -183,13 +183,6 @@ where
                    "app/taskeval/builtin.js","app/taskeval/sapl.js",
                    "app/taskeval/db.js", "app/taskeval/debug.js",
                    "all-classes.js"]
-		//scriptfiles = ["ext/ext-debug.js",
-						 //"app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
-						 //"app/taskeval/builtin.js","app/taskeval/sapl.js",
-						 //"app/taskeval/db.js", "app/taskeval/debug.js",				   
-						 //"lib/codemirror-2.36/codemirror.js",
-						 //"app.js"]
-		//scriptfiles = ["/lib/ext/ext.js","/app-all.js"]
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
