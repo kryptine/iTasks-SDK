@@ -1,4 +1,4 @@
-Ext.define('itwc.component.misc.Label',{
+Ext.define('itwc.component.misc.Label', {
 	extend: 'Ext.form.Label',
 	alias: 'widget.itwc_label',
 	
@@ -12,12 +12,17 @@ Ext.define('itwc.component.misc.Label',{
 	},
 	afterRender: function() {
 		var next;
+    var props = {};
+
 		this.callParent(arguments);
 		
 		//Make this label target the next component
-		if(target = this.previous ? this.previousSibling() : this.nextSibling()) {
+    var target = this.previous ? this.previousSibling() : this.nextSibling();
+
+		if (target) {
 				this.forId = target.getId() + '-inputEl';
-				this.el.set({for: this.forId});
+        props["for"] = this.forId;
+				this.el.set(props);
 		}
 	}
 });

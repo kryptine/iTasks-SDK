@@ -3,7 +3,7 @@
 * the state of server-side session task instances and updates the user interface 
 * to reflect changes in those session task instance states
 */
-Ext.define('itwc.controller.Controller',{
+Ext.define('itwc.controller.Controller', {
 	extend: 'Ext.app.Controller',
 
 	requires: ['itwc.container.Viewport'		//Top level container
@@ -44,7 +44,7 @@ Ext.define('itwc.controller.Controller',{
 	
 			  ,'itwc.component.action.ActionButton'		//A button that triggers an action event
 			  ,'itwc.component.action.MenuButton'		//A button that opens a menu
-			  ,'itwc.component.action.Menu',			//A menu wrapper
+			  ,'itwc.component.action.Menu'			//A menu wrapper
 			  ,'itwc.component.action.ActionMenuItem'	//A menu item that triggers an action event
 			  ,'itwc.component.action.SubMenuItem'		//A menu item that leads to a sub menu 
 
@@ -211,7 +211,7 @@ Ext.define('itwc.controller.Controller',{
 	},
 	fullUpdate: function(viewportDef) {
 		var me = this,
-			viewport = me.viewport
+			viewport = me.viewport;
 	
 		//Update the main window title instead of the viewport panel	
 		document.title = viewportDef.title ? viewportDef.title : 'Untitled';
