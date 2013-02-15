@@ -9,7 +9,7 @@ testing: $(JSFILES)
 
 production: $(JSFILES)
 	$(BUILDCMD)
-	cp build/itwc/testing/all-classes.js .
+	cp build/itwc/production/all-classes.js .
 
 clean:
 	rm -rf build
