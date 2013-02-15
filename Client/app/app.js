@@ -4,8 +4,9 @@ Ext.application({
 
     views: ["Main"],
 
-    requires: ['itwc.patch.grid.View'
-              ,'itwc.patch.layout.Context'],
+    requires: ['itwc.patch.layout.Context'],
+    //requires: ['itwc.patch.grid.View'
+              //,'itwc.patch.layout.Context'],
 
     name: 'itwc',
 
