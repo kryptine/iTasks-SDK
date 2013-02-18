@@ -174,8 +174,8 @@ where
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = ["lib/codemirror-2.36/codemirror.css"
-           ,"resources/theme/app.css"
+		stylefiles = ["css/ext-all-gray.css"
+					 ,"lib/codemirror-2.36/codemirror.css"
 					 ,"css/icons.css"
 					 ,"css/app.css"
 					 ,appName +++ ".css"]
