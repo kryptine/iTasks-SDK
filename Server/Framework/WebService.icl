@@ -174,22 +174,18 @@ where
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = ["ext/resources/css/ext-all-gray.css"
+		stylefiles = ["lib/extjs-4.1.0/resources/css/ext-all-gray.css"
 					 ,"lib/codemirror-2.36/codemirror.css"
 					 ,"css/icons.css"
 					 ,"css/app.css"
 					 ,appName +++ ".css"]
-    scriptfiles = ["app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
-                   "app/taskeval/builtin.js","app/taskeval/sapl.js",
-                   "app/taskeval/db.js", "app/taskeval/debug.js",
-                   "all-classes.js"]
-		//scriptfiles = ["ext/ext-debug.js",
-						 //"app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
-						 //"app/taskeval/builtin.js","app/taskeval/sapl.js",
-						 //"app/taskeval/db.js", "app/taskeval/debug.js",				   
-						 //"lib/codemirror-2.36/codemirror.js",
-						 //"app.js"]
-		//scriptfiles = ["/lib/ext/ext.js","/app-all.js"]
+		scriptfiles = ["lib/extjs-4.1.0/ext-debug.js",
+					   "app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
+					   "app/taskeval/builtin.js","app/taskeval/sapl.js",
+					   "app/taskeval/db.js", "app/taskeval/debug.js",				   
+					   "lib/codemirror-2.36/codemirror.js",
+					   "app.js"]
+		//scriptfiles = ["/lib/ext-4.1.0/ext.js","/app-all.js"]
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
