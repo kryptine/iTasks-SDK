@@ -10,9 +10,7 @@ Ext.define('itwc.patch.layout.Context', {
     run: function () {
         var me = this,
             flushed = false,
-// BEGIN PATCH
             watchDog = 500;
-// END PATCH
 
         me.flushInvalidates();
 
@@ -56,7 +54,6 @@ Ext.define('itwc.patch.layout.Context', {
                 me.flushLayouts('finalizeQueue', 'finalizeLayout');
             }
         }
-
         return me.runComplete();
     }
 });
