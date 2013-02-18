@@ -4,5 +4,5 @@ Ext.define('itwc.component.view.Slider',{
 	disabled: true,
 
 	width: 'flex',	
-	minWidth: 200,
+	minWidth: 200
 });
