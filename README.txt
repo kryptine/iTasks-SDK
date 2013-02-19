@@ -14,9 +14,10 @@ This repository holds the iTasks Software Development Kit (SDK).
 
 = Additional steps if you need client side execution =
 - Please note that it works only with the Clean 2.4 32-bit distribution
+- You need to use the "iTasks-SDK/Compiler/CleanIDE.exe", which must be in the same folder as the regular CleanIDE.exe. If you want to use both, rename "iTasks-SDK/Compiler/CleanIDE.exe" and move it in the same folder as CleanIDE.exe.
 - Import the "iTasks + SAPL" environment by choosing "Environment" -> "Import..." from the menu
-  and selecting the "iTasks-SDK/Server/iTasks + Sapl.env" file. 
-- Unpack "iTasks-SDK/Compiler/StdEnv-Sapl.zip" into "Libraries/StdEnv/"
+  and selecting the "iTasks-SDK/Server/iTasks + Sapl.env" file.
+- Unpack "iTasks-SDK/Compiler/StdEnv-Sapl.zip" into "Libraries/StdEnv/". This should add the folder "Sapl" in "Libraries/StdEnv".
 - When you want to compile the current project to SAPL, choose "iTasks+SAPL" environment from the menu,
   and press CTRL-SHIFT-U to force the recompilation of the whole project.
   The compilation process creates a directory called "sapl" which contains all the necessary SAPL files;
