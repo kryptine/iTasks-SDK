@@ -275,13 +275,13 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{wo
 		Just saplCF = Just (toString (handlerr (exprGenerateJS saplCF mbPst)))
 					= Nothing		
 
-/* For debugging:*/
+/* For debugging:
 
 	# (_, world) = writeFile "debug_state.sapl" saplst world
 	# (_, world) = writeFile "debug_state.js" statejs world	
 	# (_, world) = writeFile "debug.sapl" sapl world
 	# (_, world) = writeFile "debug.js" script world
-
+*/
 
 	= (statejs, script, events, intfcs, rfjs, cfjs, {iworld & world=world})
  
