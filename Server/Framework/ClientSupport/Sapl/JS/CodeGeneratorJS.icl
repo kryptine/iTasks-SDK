@@ -296,10 +296,10 @@ forceTermCoder t=:(SApplication name args) s a
 	
 	// TODO: inline (...) doc
 	| (isJust inlinefunc && (snd (fromJust inlinefunc)) == length args)
-		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t s a) args <++ ")"
+		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t {s & cs_intrfunc = Nothing} a) args <++ ")"
 
 	| (isJust builtin && (snd (fromJust builtin)) == length args)
-		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
+		= a <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ ")"
 	
 	| (isNothing function_args) && (isNothing builtin)
 		= a <++ "Sapl.feval(" <++ termCoder t s <++ ")"

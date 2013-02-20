@@ -290,8 +290,6 @@ forceTermCoder t=:(SApplication name args) s a
 			// argument. In this case, the deeper call can't be handled as tail recursive!
 			True = a <++ make_tr_app args {s & cs_intrfunc = Nothing}
 				 = a <++ "Sapl.feval(" <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ "))"
-// TRAMPOLINE!
-//				 = a <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ ")"
 
 	// more arguments than needed
 	| (isJust function_args && (length (fromJust function_args) < length args))
@@ -299,10 +297,10 @@ forceTermCoder t=:(SApplication name args) s a
 	
 	// TODO: inline (...) doc
 	| (isJust inlinefunc && (snd (fromJust inlinefunc)) == length args)
-		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t s a) args <++ ")"
+		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t {s & cs_intrfunc = Nothing} a) args <++ ")"
 
 	| (isJust builtin && (snd (fromJust builtin)) == length args)
-		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
+		= a <++ func_name <++ "(" <++ make_app_args name args {s & cs_intrfunc = Nothing} <++ ")"
 	
 	| (isNothing function_args) && (isNothing builtin)
 		= a <++ "Sapl.feval(" <++ termCoder t s <++ ")"
@@ -343,9 +341,9 @@ forceTermCoder t=:(SName name _) s a
 	| (isJust constructor_args) && (length (fromJust constructor_args) == 0)
 		= a <++ escapeName name <++ "()"	
 	| isCAF
-		= a <++ escapeName name <++ "()"	
+		= a <++ "Sapl.feval(" <++ escapeName name <++ "())"	
 	| (isJust function_args && (length (fromJust function_args) == 0))
-		= a <++ escapeName name <++ "()"	
+		= a <++ "Sapl.feval(" <++ escapeName name <++ "())"	
 		= a <++ "Sapl.feval(" <++ termCoder t s <++ ")"
 where
 	isStrictEq (SStrictName aname) = aname == name
@@ -366,13 +364,16 @@ tailCallCoder t=:(SApplication name args) s a
 	| (isJust constructor_args && (length (fromJust constructor_args) == length args)) || 
 	  (isJust function_args && (length (fromJust function_args) == length args))
 
+		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"*/
+	
+	| (isJust constructor_args && (length (fromJust constructor_args) == length args))
 		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"
 	
 	// TODO: inline (...) doc
-	| (isJust inlinefunc && (snd (fromJust inlinefunc)) == length args)
+	| (isJust inlinefunc && s.cs_haskell && (snd (fromJust inlinefunc)) == length args)
 		= a <++ "(" <++ (fst (fromJust inlinefunc)) (\t a = (if s.cs_haskell termCoder forceTermCoder) t s a) args <++ ")"
 
-	| (isJust builtin && (snd (fromJust builtin)) == length args)
+/*	| (isJust builtin && (snd (fromJust builtin)) == length args)
 		= a <++ func_name <++ "(" <++ make_app_args name args s <++ ")"    */
 	
 	// Otherwise
@@ -390,10 +391,10 @@ tailCallCoder t=:(SName name _) s a
 /*	| any isStrictEq s.cs_current_vars
 		= termCoder t s a
 	| isMember t s.cs_current_vars
-		= a <++ termCoder t s
+		= a <++ termCoder t s*/
 	| (isJust constructor_args) && (length (fromJust constructor_args) == 0)
 		= a <++ escapeName name <++ "()"	
-	| isCAF
+/*	| isCAF
 		= a <++ escapeName name <++ "()"	
 	| (isJust function_args && (length (fromJust function_args) == 0))
 		= a <++ escapeName name <++ "()"	*/
