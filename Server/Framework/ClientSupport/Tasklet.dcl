@@ -59,7 +59,7 @@ mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncod
  * to interact with the Tasklet.
  */
 
-:: InterfaceFun st = E.a: InterfaceFun !String !(st (Maybe Dynamic) *HtmlDocument -> *(!*HtmlDocument, st, a)) 
+:: InterfaceFun st = E.a: InterfaceFun !String !(st (Maybe Dynamic) *EventQueue -> *(!*EventQueue, st, a)) 
 
 mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 

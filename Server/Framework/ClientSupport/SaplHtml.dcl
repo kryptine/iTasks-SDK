@@ -2,6 +2,7 @@ definition module SaplHtml
 
 import StdString, Void, Tasklet
 
+:: EventQueue
 :: HtmlDocument
 :: HtmlObject
 
@@ -35,7 +36,7 @@ createEventHandler :: (HtmlEventHandlerFunc a) !TaskInstanceId -> HtmlObject
 /*
 * Fire own event
 */
-fireEvent :: !*HtmlDocument !TaskInstanceId !String a -> *HtmlDocument
+fireEvent :: !*EventQueue !TaskInstanceId !String a -> *EventQueue
 
 // Handle interface call on the client. Similar to handleJSEvent
 handleInterfaceCall :: !f !TaskInstanceId !arg -> Void 

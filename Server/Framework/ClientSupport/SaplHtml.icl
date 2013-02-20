@@ -2,6 +2,7 @@ implementation module SaplHtml
 
 import StdEnv, Void, Tasklet
 
+:: EventQueue :== Void
 :: HtmlDocument :== Void
 :: HtmlObject :== Void
 
@@ -11,8 +12,8 @@ handleJSEvent origHandler iid event = undef
 createEventHandler :: (HtmlEventHandlerFunc a) !TaskInstanceId -> HtmlObject 
 createEventHandler origHandler iid = undef
 
-fireEvent :: !*HtmlDocument !TaskInstanceId !String a -> *HtmlDocument
-fireEvent document iid eventName eventValue = undef
+fireEvent :: !*EventQueue !TaskInstanceId !String a -> *EventQueue
+fireEvent eventqueue iid eventName eventValue = undef
 
 handleInterfaceCall :: !f !TaskInstanceId !arg -> Void 
 handleInterfaceCall origHandler iid arg = undef
