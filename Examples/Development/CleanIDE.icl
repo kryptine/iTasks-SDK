@@ -30,7 +30,7 @@ start_ide :: Task Void
 start_ide 
 	= 				init_ide												// initialize the IDE state
 	>>|				parallel Void // (Title "Clean IDE") 						// BUG: global title not implemented
-						[ (Embedded, topMenu)
+						[ (Embedded, workPane)
 						, (Embedded, projectPane)
 						, (Embedded, errorMessages)
 						] <<@ SetLayout layout @ const Void
@@ -54,19 +54,23 @@ where
 
 // top menu
 
-topMenu :: !(ReadOnlyShared (TaskList Void)) -> Task Void
-topMenu ts 
+workPane :: !(ReadOnlyShared (TaskList Void)) -> Task Void
+workPane ts 
 	= 				get_IDE_State												// new session, first recover previous screen
 	>>= \state -> 	openLastProject state.projectName 							// re-open last project
 	>>|				openEditorOnFiles state.openedFiles ts						// re-open editor on administated files
-	/*
-	>>|				forever (				(get_IDE_State 
-							>>= \state -> 	(actionTask >>*	handleMenu state))	// construct main menu
-							)*/
-	>>|				forever ( 				(get_IDE_State 					// wait till state has changed
-							>>= \state -> 	(actionTask >>*	handleMenu state))
-							)
+	>>|				topMenu ts
+
+topMenu ts
+	= forever (whileUnchangedWith visibleInMenu IDE_State (\s -> actionTask >>* handleMenu s ))
 where
+	visibleInMenu :: IDE_State IDE_State -> Bool
+	visibleInMenu old new 
+	= old.projectName <> new.projectName ||
+	  old.openedFiles <> new.openedFiles ||
+	  old.recentFiles <> new.recentFiles ||
+	  old.recentProjects <> new.recentProjects 
+
 	handleMenu :: IDE_State -> [TaskStep Void Void]
 	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
 	=	[ OnAction (Action "File/Open..." []) 						(always (launch (openFileSelectorAndEdit ts) ts))
@@ -110,8 +114,6 @@ where
 		 \\ target <- envTargets & i <- [0..]
 		 ]
 		]
-		++ // BUG: temp fix: the latest state is not always shown: known bug in the current implementation
-		[ OnAction (Action "Temp/Refresh" []) 					(always (return Void)) ]	
 	where
 		isProject task 	_ = if (projectName <> "") (Just task) Nothing
 

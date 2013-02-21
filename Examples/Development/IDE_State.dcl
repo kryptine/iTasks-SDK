@@ -48,6 +48,7 @@ import iTasks
 derive class iTask IDE_State, Module, ModuleOptions, SearchOptions 
 
 // access functions to global state
+IDE_State			:: Shared IDE_State
 
 init_IDE_State 		:: IDE_State			
 
