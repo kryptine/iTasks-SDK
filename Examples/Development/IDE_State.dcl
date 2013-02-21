@@ -54,7 +54,8 @@ init_IDE_State 		:: IDE_State
 get_IDE_State 		:: Task IDE_State
 update_IDE_State 	:: !(IDE_State -> IDE_State) -> Task Void
 
-watch_IDE_State 	:: !(IDE_State -> Bool) !(Task a) -> Task a | iTask a
+watch_IDE_State 	:: Task IDE_State
+watchIf_IDE_State 	:: !(IDE_State -> Bool) !(Task a) -> Task a | iTask a
 
 set_Project 		:: !ProjectPath !CleanPath !ModuleName !Project	-> Task Void
 	

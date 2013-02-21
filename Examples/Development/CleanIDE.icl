@@ -63,14 +63,17 @@ topMenu ts
 	>>|				forever (				(get_IDE_State 
 							>>= \state -> 	(actionTask >>*	handleMenu state))	// construct main menu
 							)*/
-	>>|				forever ( watch IDE_State >>* handleMenu)
+	>>|				forever ( 				(get_IDE_State 					// wait till state has changed
+							>>= \state -> 	(actionTask >>*	handleMenu state))
+							)
 where
-	handleMenu //state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
-	=	[ OnAction (Action "File/Open..." []) 					(always (launch (openFileSelectorAndEdit ts) ts))
-		, OnAction (Action "File/Save All" []) 					(if (openedFiles <> []) always never (saveAll openedFiles))
+	handleMenu :: IDE_State -> [TaskStep Void Void]
+	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
+	=	[ OnAction (Action "File/Open..." []) 						(always (launch (openFileSelectorAndEdit ts) ts))
+		, OnAction (Action "File/Save All" []) 						(if (openedFiles <> []) always never (saveAll openedFiles))
 		] 
 		++
-		[ OnAction (Action ("File/Recent Files/" +++ fileName) []) (always (launchEditorAndAdministrate fileName ts)) 
+		[ OnAction (Action ("File/Recent Files/" +++ fileName) [])  (always (launchEditorAndAdministrate fileName ts)) 
 		\\ fileName <- recentFiles
 		] 
 		++
@@ -87,32 +90,33 @@ where
 		[ OnAction (Action "Project/New Project..." [])  			(always (launch (newProject ts) ts))
 		, OnAction (Action "Project/Open Project..." []) 			(never  openProject)							// temp to avoid selection
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)") [ActionKey (ctrl KEY_U)]) 
-																	(ifCond isProject (launch (compile projectName <<@ Window) ts))	
+																	(isProject (launch (compile projectName <<@ Window) ts))	
 		, OnAction (Action ("Project/Run " +++ projectName +++ " (.exe)") [ActionKey (ctrl KEY_R)]) 
-																	(ifCond isProject (launch (run projectName ts <<@ Window) ts))	
+																	(isProject (launch (run projectName ts <<@ Window) ts))	
 		, OnAction (Action ("Project/Show Compiler Log..") []) 
-																	(ifCond isProject (launch (showLog projectName ts <<@ Window) ts))	
-		, OnAction (Action "Project/Project Options..." [])    		(ifCond isProject (launch changeProjectOptions ts))
-		, OnAction (Action "Project/Show/All Modules" []) 			(always (setProjectPaneOption InEnvironment))
-		, OnAction (Action "Project/Show/Modules In Project" [])	(ifCond isProject (setProjectPaneOption InProject))
-		, OnAction (Action "Project/Show/Not Used" []) 				(ifCond isProject (setProjectPaneOption NotUsed))
+																	(isProject (launch (showLog projectName ts <<@ Window) ts))	
+		, OnAction (Action "Project/Project Options..." [])    		(isProject (launch changeProjectOptions ts))
+		, OnAction (Action "Project/Show/All Modules" []) 			(always    (setProjectPaneOption InEnvironment))
+		, OnAction (Action "Project/Show/Modules In Project" [])	(isProject (setProjectPaneOption InProject))
+		, OnAction (Action "Project/Show/Not Used" []) 				(isProject (setProjectPaneOption NotUsed))
 		]
 		++
 		[ OnAction (Action (selectedEnvironment +++ "/Edit " +++ currentEnvName) []) 
-																(always editEnvironment)
+																	(always editEnvironment)
 		, OnAction (Action (selectedEnvironment +++ "/Import...") []) 
-																(always addEnvironment)
+																	(always addEnvironment)
 		:[ OnAction (Action (selectedEnvironment +++ "/Select/" +++ target.target_name) []) 
-																(always (selectEnvironment i)) 
+																	(always (selectEnvironment i)) 
 		 \\ target <- envTargets & i <- [0..]
 		 ]
 		]
 		++ // BUG: temp fix: the latest state is not always shown: known bug in the current implementation
 		[ OnAction (Action "Temp/Refresh" []) 					(always (return Void)) ]	
 	where
-		isProject (Value {IDE_State|projectName} _) task	= if (projectName <> "") (Just task) Nothing
-		isProject _	_										= Nothing
-		//isProject  = (projectName <> "")
+		isProject task 	_ = if (projectName <> "") (Just task) Nothing
+
+		isProject task 	_ = if (projectName <> "") (Just task) Nothing
+
 
 		currentEnvName			= currEnvName state
 		selectedEnvironment 	= "_" +++ currentEnvName 
@@ -124,7 +128,7 @@ projectPane ts
 	=				get_IDE_State
 	>>= \state -> 	( (showAndSelect state @ const Void)														// show search path directories 
 						-||-
-					  (watch_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
+					  (watchIf_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
 												     curstate.projectName <> state.projectName ||				// project changed
 												     not (curstate.moduleOptions === state.moduleOptions) ) 	// show options changed 
 									 (return Void)) <<@ SetLayout (partLayout 0)
