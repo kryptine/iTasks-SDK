@@ -160,10 +160,11 @@ where
 
 	hasMargin control = isJust (getSizeOpts control).UISizeOpts.margins
 
-	noMarginControl	(UIPanel _ _ _)	= True
-	noMarginControl	(UIGrid _ _ _)	= True
-	noMarginControl	(UITree _ _)	= True
-	noMarginControl _				= False
+	noMarginControl	(UIPanel _ _ _)			= True
+	noMarginControl	(UIGrid _ _ _)			= True
+	noMarginControl	(UITree _ _)			= True
+	noMarginControl	(UIEditGoogleMap _ _ _)	= True
+	noMarginControl _						= False
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: [(UIControl,UIAttributes)] -> [UIControl]

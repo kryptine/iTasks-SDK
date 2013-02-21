@@ -76,8 +76,8 @@ diffControls path event c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditButton sOpts1 eOpts1 opts1, UIEditButton sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
-		(UIEditGoogleMap sOpts1 eOpts1 opts1, UIEditGoogleMap sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
+		(m1=:UIEditGoogleMap sOpts1 eOpts1 opts1,m2=:UIEditGoogleMap sOpts2 eOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffOpts eOpts1 eOpts2, diffOpts opts1 opts2/* clientSideUpdate path m1 m2 */]
 		(UIEditCode sOpts1 eOpts1 opts1, UIEditCode sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIDropdown sOpts1 cOpts1, UIDropdown sOpts2 cOpts2)
@@ -156,7 +156,7 @@ where
 	valueUpd
 		| eventMatch opts2 event
 			# value2 = encodeUIValue opts2.UIEditOpts.value
-			= if (eventValue event === value2) [] [UISetValue (toString path) value2]
+			= if (eventValue event === value2)  [] [UISetValue (toString path) value2]
 		| otherwise 
 			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UISetValue (toString path) (encodeUIValue opts2.UIEditOpts.value)]
 
@@ -191,6 +191,12 @@ diffOpts :: a a -> DiffResult | gEq{|*|} a	//Very crude, but always working fall
 diffOpts opts1 opts2
 	| opts1 === opts2	= DiffPossible []
 						= DiffImpossible
+
+//Let the client figure out the update if there are differences
+clientSideUpdate :: DiffPath UIControl UIControl -> DiffResult
+clientSideUpdate path c1 c2
+	| c1 === c2	= DiffPossible []
+				= DiffPossible [UIUpdate (toString path) c2]
 
 //Specialized diffs for the control specific options
 diffPanelOpts :: DiffPath Event UIPanelOpts UIPanelOpts -> DiffResult

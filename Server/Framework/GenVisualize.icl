@@ -270,7 +270,9 @@ gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
 		
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 
-gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath,optional}
+gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath,optional,disabled}
+	| disabled && noValue val
+		= (OptionalEditor [], {VSt|vst & currentPath = stepDataPath currentPath})
 	# (viz,vst) = case val of
 		Just (Just x)	= fx (Just x) {VSt|vst & optional = True}
 		_				= fx Nothing {VSt|vst & optional = True}
@@ -278,8 +280,11 @@ gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath,optional}
 where
 	toOptional	(NormalEditor ex)	= OptionalEditor ex
 	toOptional	viz					= viz
+	
+	noValue (Just Nothing)			= True	
+	noValue Nothing					= True
+	noValue _						= False
 		
-
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
 gVisualizeEditor{|HtmlTag|}	val vst = visualizeCustom toControl vst
 where

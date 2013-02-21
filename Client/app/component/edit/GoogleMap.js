@@ -84,7 +84,6 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			
 				me.viewport = me.viewport || me.up('viewport');
 				me.viewport.fireEvent('edit',me.taskId, me.editorId,e);
-			
 			};
 			
 			//Add perspective change
@@ -138,9 +137,16 @@ Ext.define('itwc.component.edit.GoogleMap',{
 				};
 
 				google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
+			} else {
+				clickHandler = function(markerId) { return function(e) {
+               		me.viewport = me.viewport || me.up('viewport');
+					me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, event: "LEFTCLICK",});
+               	};};
+				google.maps.event.addListener(marker,'click',clickHandler(i));
 			}
             
 			if(this.markers[i].draggable) {
+	
 				dragHandler = function(markerId) { return function(e) {
                     			me.viewport = me.viewport || me.up('viewport');
 								me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
@@ -160,6 +166,16 @@ Ext.define('itwc.component.edit.GoogleMap',{
     	}
     	this.callParent(arguments);
     },
+	setValue: function(value) {
+	},
+	update: function(def) {
+		var me = this;
+	
+		//Update perspective
+
+		//Update markers
+		console.log(def);
+	},
 	onDestroy: function() {
 		if(this.map) {
 			google.maps.event.clearInstanceListeners(this.map);

@@ -618,20 +618,23 @@ gVisualizeText{|GoogleMapPosition|} _  {GoogleMapPosition|lat,lng} = [toString l
 	, type				:: !GoogleMapType
 	}	
 	
-:: ClickUpdate = 
+:: MapClickUpdate = 
 	{ event				:: !ClickEvent
-	, source			:: !ClickSource
 	, point				:: !(Real,Real)
 	}
 
 :: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
-:: ClickSource  = MAP | MARKER (Real,Real)
 
+:: MarkerClickUpdate =
+	{ index				:: !Int
+	, event				:: !ClickEvent
+	}
 :: MarkerDragUpdate = 
 	{ index				:: !Int
 	, point				:: !(Real,Real)
 	}
-derive JSONDecode MVCUpdate, ClickUpdate, ClickEvent, ClickSource, MarkerDragUpdate
+
+derive JSONDecode MVCUpdate, MapClickUpdate, ClickEvent, MarkerClickUpdate, MarkerDragUpdate
 
 gUpdate{|GoogleMap|} target upd val = basicUpdate parseUpdate target upd val
 where
@@ -640,19 +643,19 @@ where
 		| isJust mbMVC
 			# {MVCUpdate|center=(lat,lng),zoom,type} = fromJust mbMVC
 			= {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
-		# mbClick 	= fromJSON json
-		| isJust mbClick
-			# click = fromJust mbClick
-			# marker = {GoogleMapMarker | position = {lat=fst click.ClickUpdate.point,lng=snd click.ClickUpdate.point}, title = Nothing, icon = Nothing, infoWindow = Nothing, draggable = True, selected = False} 
-			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
 		# mbMarkerDrag = fromJSON json
 		| isJust mbMarkerDrag
 			# {MarkerDragUpdate|index,point=(lat,lng)}	= fromJust mbMarkerDrag
 			= {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
-		
-		| otherwise = orig
+		# mbMarkerClick = fromJSON json
+		| isJust mbMarkerClick
+			# {MarkerClickUpdate|index,event} = fromJust mbMarkerClick
+			= {GoogleMap| orig & markers = [{GoogleMapMarker|m & selected = i == index} \\ m <- orig.GoogleMap.markers & i <- [0..]]}
+		| otherwise	
+			= orig
 
 gVerify{|GoogleMap|} _ um _ = alwaysValid um
+//derive gVerify GoogleMap
 
 gDefault{|GoogleMapPerspective|} _ =
 	{ GoogleMapPerspective
