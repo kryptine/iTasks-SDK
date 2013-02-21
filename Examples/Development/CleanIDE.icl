@@ -59,11 +59,13 @@ topMenu ts
 	= 				get_IDE_State												// new session, first recover previous screen
 	>>= \state -> 	openLastProject state.projectName 							// re-open last project
 	>>|				openEditorOnFiles state.openedFiles ts						// re-open editor on administated files
+	/*
 	>>|				forever (				(get_IDE_State 
 							>>= \state -> 	(actionTask >>*	handleMenu state))	// construct main menu
-							) 
+							)*/
+	>>|				forever ( watch IDE_State >>* handleMenu)
 where
-	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
+	handleMenu //state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
 	=	[ OnAction (Action "File/Open..." []) 					(always (launch (openFileSelectorAndEdit ts) ts))
 		, OnAction (Action "File/Save All" []) 					(if (openedFiles <> []) always never (saveAll openedFiles))
 		] 
@@ -77,9 +79,9 @@ where
 		\\ fileName <- recentProjects
 		] 
 		++
-		[ OnAction (Action "Search/Search Identifier..." [])   		(ifCond isProject (launch (search SearchIdentifier ts)     ts))
-		, OnAction (Action "Search/Search Definition..." [])   		(ifCond isProject (launch (search SearchDefinition ts)     ts))
-		, OnAction (Action "Search/Search Implementation..." [])	(ifCond isProject (launch (search SearchImplementation ts) ts))
+		[ OnAction (Action "Search/Search Identifier..." [])   		(isProject (launch (search SearchIdentifier ts)     ts))
+		, OnAction (Action "Search/Search Definition..." [])   		(isProject (launch (search SearchDefinition ts)     ts))
+		, OnAction (Action "Search/Search Implementation..." [])	(isProject (launch (search SearchImplementation ts) ts))
 		]
 		++
 		[ OnAction (Action "Project/New Project..." [])  			(always (launch (newProject ts) ts))
@@ -108,8 +110,9 @@ where
 		++ // BUG: temp fix: the latest state is not always shown: known bug in the current implementation
 		[ OnAction (Action "Temp/Refresh" []) 					(always (return Void)) ]	
 	where
-
-		isProject = (projectName <> "")
+		isProject (Value {IDE_State|projectName} _) task	= if (projectName <> "") (Just task) Nothing
+		isProject _	_										= Nothing
+		//isProject  = (projectName <> "")
 
 		currentEnvName			= currEnvName state
 		selectedEnvironment 	= "_" +++ currentEnvName 
