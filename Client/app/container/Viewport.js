@@ -1,9 +1,15 @@
 Ext.define('itwc.container.Viewport',{
 	extend: 'Ext.container.Viewport',
-	layout: 'fit',
 	mixins: ['itwc.container.HotkeyArea'],
+	requires: ['itwc.layout.container.Box'],
+
+	padding: 0,
+	direction: 'vertical',
+	valign: 'middle',
+	halign: 'center',
 
 	initComponent: function() {
+		this.layout = {type:'itwc_box', direction: this.direction, halign: this.halign, valign: this.valign, padding: this.padding};
 		this.callParent(arguments);
 	},
 	afterRender: function() {
@@ -25,10 +31,10 @@ Ext.define('itwc.container.Viewport',{
 			cmp = me,
 			step, i, undef;
 			
-		if(path == "") {
+		if(path == "" || path == "0") {
 			return me;
 		}
-		for(i = 0; i < numSteps; i++) {
+		for(i = 1; i < numSteps; i++) {
 			step = steps[i];
 			
 			if(step === "m") {

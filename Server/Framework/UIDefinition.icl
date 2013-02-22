@@ -79,8 +79,8 @@ uiDefSetDirection direction (UIAbstractContainer cont)
 uiDefSetDirection direction def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
-encodeUIDefinition (UIFinal (UIViewport iopts opts))	= enc "itwc_panel" [toJSON iopts, toJSON opts]
-encodeUIDefinition def									= enc "itwc_panel" [toJSON (defaultItemsOpts (uiDefControls def))]
+encodeUIDefinition (UIFinal (UIViewport iopts opts))	= enc "itwc_viewport" [toJSON iopts, toJSON opts]
+encodeUIDefinition def									= enc "itwc_viewport" [toJSON (defaultItemsOpts (uiDefControls def))]
 
 encodeUIControl :: !UIControl -> JSONNode
 encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,encViewOpts vopts]

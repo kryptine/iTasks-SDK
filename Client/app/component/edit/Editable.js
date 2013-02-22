@@ -6,7 +6,7 @@
 Ext.define('itwc.component.edit.Editable',{
 	
 	editable: true,
-	editBufferTime: 200,
+	editBufferTime: 50,
 
 	syncEditsEnabled: false,
 	

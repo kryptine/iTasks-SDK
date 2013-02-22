@@ -69,7 +69,7 @@ from Map			import :: Map(..)
 
 :: UIViewportOpts =
 	{ title			:: !Maybe String
-	, tbar			:: !Maybe [UIControl]
+//	, tbar			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
 	}
 

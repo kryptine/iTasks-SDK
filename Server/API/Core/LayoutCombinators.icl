@@ -86,22 +86,23 @@ autoFinalLayout def=:(UIControlSequence {UIControlSequence|attributes,controls,d
 	# panel				= defToPanel (layoutControls def)
 	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
-	= UIViewport itemsOpts {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, tbar = Nothing, hotkeys = Nothing}
+	= UIViewport itemsOpts {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, hotkeys = Nothing}
 autoFinalLayout (UIActionSet actions)
-	= UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,tbar = Nothing, hotkeys = Nothing}
+	= UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing}
 autoFinalLayout def=:(UIControlGroup {UIControlGroup|attributes,controls,direction,actions})
 	# (actions,_,panel)	= placeActions actions False (defToPanel (layoutControls def))
 	# (menu,menukeys,_)	= actionsToMenus actions
-	# items				= [(setSize WrapSize WrapSize o setFramed True) panel]
+	# panel				= (setSize WrapSize WrapSize o setFramed True) panel
+	# items				= if (isEmpty menu) [panel] [setTBar menu panel]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			= case menukeys of [] = Nothing ; keys = Just keys
-	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}
+	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys}
 autoFinalLayout def=:(UIAbstractContainer {UIAbstractContainer|attributes,controls,direction,actions,windows,hotkeys})
 	# (menu,menukeys,_)	= actionsToMenus actions
-	# items				= [defToPanel def]
+	# items				= if (isEmpty menu) [defToPanel def] [setTBar menu (defToPanel def)]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			= case hotkeys ++ menukeys of [] = Nothing ; keys = Just keys
-	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes,tbar = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}
+	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys}
 autoFinalLayout (UIFinal final)
 	= final
 
@@ -422,7 +423,7 @@ hideLayout =
 	, step		= \def actions		-> noControls (addActions actions def)
 	, parallel	= \prompt defs		-> noControls (foldr mergeDefs (UIControlGroup {UIControlGroup|attributes = prompt.UIControlSequence.attributes,controls = prompt.UIControlSequence.controls, direction = prompt.UIControlSequence.direction, actions = []}) defs)
 	, workOn	= \def meta			-> noControls def
-	, final		= \def				-> UIViewport (defaultItemsOpts (uiDefControls (noControls def))) {UIViewportOpts|title=Nothing,tbar=Nothing,hotkeys=Nothing}
+	, final		= \def				-> UIViewport (defaultItemsOpts (uiDefControls (noControls def))) {UIViewportOpts|title=Nothing,hotkeys=Nothing}
 	}
 where
 	noControls (UIControlGroup group) = UIControlGroup {UIControlGroup|group & controls = []}
@@ -648,6 +649,11 @@ setValign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & valign = al
 setValign align (UIWindow sOpts iOpts opts)		= UIWindow sOpts {iOpts & valign = align} opts
 setValign align ctrl							= ctrl
 
+setTBar :: ![UIControl] !UIControl -> UIControl
+setTBar tbar (UIPanel sOpts iOpts opts)			= UIPanel sOpts iOpts {UIPanelOpts|opts & tbar = Just tbar}
+setTBar tbar (UIWindow sOpts iOpts opts)		= UIWindow sOpts iOpts {UIWindowOpts|opts & tbar = Just tbar}
+setTBar tbar ctrl								= ctrl
+
 //Container coercion
 toPanel	:: !UIControl -> UIControl
 //Panels are left untouched
@@ -802,7 +808,6 @@ actionToHotkey {taskId,action=Action actionId options,enabled=True}
 		[key:_] = Just (key,{taskId=taskId,actionId=actionId})
 		_		= Nothing
 actionToHotkey _ = Nothing
-
 
 hasWindowAttr :: UIAttributes -> Bool
 hasWindowAttr attributes	= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)

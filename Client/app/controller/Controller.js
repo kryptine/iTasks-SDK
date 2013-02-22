@@ -214,13 +214,11 @@ Ext.define('itwc.controller.Controller', {
 			viewport = me.viewport;
 	
 		//Update the main window title instead of the viewport panel	
-		document.title = viewportDef.title ? viewportDef.title : 'Untitled';
-		delete(viewportDef.title);
+		document.title = viewportDef.title ? viewportDef.title : '';
 		
 		//Update viewport
 		viewport.removeAll();
-		viewport.add(viewportDef);
-	
+		viewport.add(viewportDef.items);
 	},
 	partialUpdate: function(updates) {
 		var me = this,
