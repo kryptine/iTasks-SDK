@@ -14,6 +14,9 @@ from Task import :: Event
 	| UISetEnabled		!Bool				// Enable/disable form elements
 	| UISetActive		!Bool				// Make a tab active/inactive
 	| UISetTitle		!(Maybe String)		// Set/reset title of a container
+	| UISetText			!(Maybe String)		// Set/reset text of a button
+	| UISetIconCls		!(Maybe String)		// Set/reset icon of component
+	| UISetTooltip		!(Maybe String)		// Set/reset tooltip of a component
 	| UISetHotkeys		![UIKeyAction]		// Set hotkeys for a container
 	| UISelfUpdate		!UIControl			// Let a component update itself with a new UI definition (for custom components)
 	//Structure edits

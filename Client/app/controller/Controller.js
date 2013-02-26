@@ -235,7 +235,7 @@ Ext.define('itwc.controller.Controller', {
 					} else {
 						//If replace is not defined as function, try remove followed by add
 						if(update.method == 'replace' && typeof cmp['remove'] == 'function' && typeof cmp['insert'] == 'function') {
-							me.warn("Doing inefficient replace by using remove followed by add");
+							me.warn("Doing inefficient replace by using remove followed by add in " + update.arguments[1].xtype);
 							cmp.suspendLayout = true; //Don't layout in between remove and add
 							cmp.remove(update.arguments[0]);
 							cmp.insert(update.arguments[0],update.arguments[1]);

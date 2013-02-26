@@ -75,13 +75,13 @@ diffControls path event c1 c2
 		(UITree sOpts1 cOpts1, UITree sOpts2 cOpts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]
 		(UIActionButton sOpts1 aOpts1 opts1, UIActionButton sOpts2 aOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffActionOpts path aOpts1 aOpts2,diffOpts opts1 opts2]
+			= [diffSizeOpts path sOpts1 sOpts2,diffActionOpts path aOpts1 aOpts2,diffButtonOpts path opts1 opts2]
 		(UIMenuButton sOpts1 opts1, UIMenuButton sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UILabel sOpts1 opts1, UILabel sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UIIcon sOpts1 opts1, UIIcon sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+			= [diffSizeOpts path sOpts1 sOpts2,diffIconOpts path opts1 opts2]
 		(UITab sOpts1 opts1, UITab sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		// Tasklet on the right hand side:
@@ -188,7 +188,7 @@ selfUpdate path c1 c2
 diffPanelOpts :: UIPath Event UIPanelOpts UIPanelOpts -> DiffResult
 diffPanelOpts path event opts1 opts2
 	| impossible	= DiffImpossible
-					= DiffPossible (foldr (++) [] [titleUpd,menusUpd,hotkeyUpd])
+					= DiffPossible (flatten [titleUpd,menusUpd,hotkeyUpd])
 where
 	impossible	=  opts1.UIPanelOpts.frame <> opts2.UIPanelOpts.frame
 				|| opts1.UIPanelOpts.iconCls <> opts2.UIPanelOpts.iconCls
@@ -200,6 +200,19 @@ where
 	titleUpd	= if (opts1.UIPanelOpts.title == opts2.UIPanelOpts.title) [] [UIUpdate path (UISetTitle opts2.UIPanelOpts.title)]
 	menusUpd	= diffItems [MenuStep:path] event (fromMaybe [] opts1.UIPanelOpts.tbar) (fromMaybe [] opts2.UIPanelOpts.tbar)
 	hotkeyUpd	= diffHotkeys path (fromMaybe [] opts1.UIPanelOpts.hotkeys) (fromMaybe [] opts2.UIPanelOpts.hotkeys)
+
+diffButtonOpts :: UIPath UIButtonOpts UIButtonOpts -> DiffResult
+diffButtonOpts path b1 b2 = DiffPossible (flatten [textUpd,iconUpd,enabledUpd])
+where	
+	textUpd = if (b1.UIButtonOpts.text === b2.UIButtonOpts.text) [] [UIUpdate path (UISetText b2.UIButtonOpts.text)]
+	iconUpd = if (b1.UIButtonOpts.iconCls === b2.UIButtonOpts.iconCls) [] [UIUpdate path (UISetIconCls b2.UIButtonOpts.iconCls)]
+	enabledUpd = if (b1.UIButtonOpts.disabled === b2.UIButtonOpts.disabled) [] [UIUpdate path (UISetEnabled (not b2.UIButtonOpts.disabled))]
+
+diffIconOpts :: UIPath UIIconOpts UIIconOpts -> DiffResult
+diffIconOpts path i1 i2 = DiffPossible (flatten [iconUpd,tooltipUpd])
+where
+	iconUpd = if (i1.UIIconOpts.iconCls === i2.UIIconOpts.iconCls) [] [UIUpdate path (UISetIconCls (Just i2.UIIconOpts.iconCls))]
+	tooltipUpd = if (i1.UIIconOpts.tooltip === i2.UIIconOpts.tooltip) [] [UIUpdate path (UISetTooltip i2.UIIconOpts.tooltip)]
 
 diffItems :: UIPath Event [UIControl] [UIControl] -> [UIUpdate]
 diffItems path event items1 items2 = diff path event 0 items1 items2
@@ -269,6 +282,9 @@ encodeUIUpdateOperation (UISetName name)		= ("setName",		[JSONString name])
 encodeUIUpdateOperation (UISetEnabled enabled)	= ("setDisabled",	[JSONBool (not enabled)])
 encodeUIUpdateOperation (UISetActive active)	= ("setActive",		[JSONBool active])
 encodeUIUpdateOperation (UISetTitle title)		= ("setTitle",		[toJSON title])
+encodeUIUpdateOperation (UISetText text)		= ("setText",		[toJSON text])
+encodeUIUpdateOperation (UISetIconCls cls)		= ("setIconCls",	[toJSON cls])
+encodeUIUpdateOperation (UISetTooltip tip)		= ("setTooltip",	[toJSON tip])
 encodeUIUpdateOperation (UISetHotkeys keys)		= ("setHotkeys",	[toJSON keys])
 encodeUIUpdateOperation (UIReplace index def)	= ("replace",		[JSONInt index, encodeUIControl def])
 encodeUIUpdateOperation (UISelfUpdate def)		= ("selfUpdate",	[encodeUIControl def])

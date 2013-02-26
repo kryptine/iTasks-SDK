@@ -30,6 +30,11 @@ Ext.define('itwc.component.misc.Icon', {
 		this.setType(iconCls);
 	},
 	setTooltip: function(text) {
-		this.tooltip = new Ext.ToolTip({html: text, target: this.getEl()});
+		if(this.tooltip) {
+			this.tooltip.destroy();
+		}
+		if(text){
+			this.tooltip = new Ext.ToolTip({html: text, target: this.getEl()});
+		}
 	}
 });
