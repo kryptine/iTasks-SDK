@@ -83,7 +83,7 @@ diffControls path event c1 c2
 		(UIIcon sOpts1 opts1, UIIcon sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffIconOpts path opts1 opts2]
 		(UITab sOpts1 opts1, UITab sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+			= [diffSizeOpts path sOpts1 sOpts2,diffTabOpts path opts1 opts2]
 		// Tasklet on the right hand side:
 		// check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
@@ -162,7 +162,10 @@ where
 	optionDiff	= if (opts1.UIChoiceOpts.options === opts2.UIChoiceOpts.options) [] [UIUpdate path (UISetOptions (toJSON opts2.UIChoiceOpts.options))]
 
 diffActionOpts :: UIPath UIActionOpts UIActionOpts -> DiffResult
-diffActionOpts path opts1 opts2 = diffOpts opts1 opts2
+diffActionOpts path opts1 opts2 = DiffPossible (flatten [taskIdUpd,actionIdUpd])
+where
+	taskIdUpd	= if (opts1.UIActionOpts.taskId == opts2.UIActionOpts.taskId) [] [UIUpdate path (UISetTaskId opts2.UIActionOpts.taskId)]
+	actionIdUpd	= if (opts1.UIActionOpts.actionId == opts2.UIActionOpts.actionId) [] [UIUpdate path (UISetActionId opts2.UIActionOpts.actionId)]
 
 diffItemsOpts :: UIPath !Event UIItemsOpts UIItemsOpts -> DiffResult
 diffItemsOpts path event opts1 opts2
@@ -213,6 +216,15 @@ diffIconOpts path i1 i2 = DiffPossible (flatten [iconUpd,tooltipUpd])
 where
 	iconUpd = if (i1.UIIconOpts.iconCls === i2.UIIconOpts.iconCls) [] [UIUpdate path (UISetIconCls (Just i2.UIIconOpts.iconCls))]
 	tooltipUpd = if (i1.UIIconOpts.tooltip === i2.UIIconOpts.tooltip) [] [UIUpdate path (UISetTooltip i2.UIIconOpts.tooltip)]
+
+diffTabOpts :: UIPath UITabOpts UITabOpts -> DiffResult
+diffTabOpts path t1 t2 = DiffPossible (flatten [textUpd,activeUpd,focusUpd,closeUpd,iconUpd])
+where
+	textUpd = if (t1.UITabOpts.text === t2.UITabOpts.text) [] [UIUpdate path (UISetText (Just t2.UITabOpts.text))]
+	activeUpd = if (t1.UITabOpts.active == t2.UITabOpts.active) [] [UIUpdate path (UISetActive t2.UITabOpts.active)]
+	focusUpd = if (t1.UITabOpts.focusTaskId === t2.UITabOpts.focusTaskId) [] [UIUpdate path (UISetFocusTaskId t2.UITabOpts.focusTaskId)]
+	closeUpd = if (t1.UITabOpts.closeTaskId === t2.UITabOpts.closeTaskId) [] [UIUpdate path (UISetCloseTaskId t2.UITabOpts.closeTaskId)]
+	iconUpd = if (t1.UITabOpts.iconCls === t2.UITabOpts.iconCls) [] [UIUpdate path (UISetIconCls t2.UITabOpts.iconCls)]
 
 diffItems :: UIPath Event [UIControl] [UIControl] -> [UIUpdate]
 diffItems path event items1 items2 = diff path event 0 items1 items2
@@ -277,7 +289,11 @@ where
 encodeUIUpdateOperation :: UIUpdateOperation -> (!String,![JSONNode])
 encodeUIUpdateOperation (UISetValue value)		= ("setValue",		[value])
 encodeUIUpdateOperation (UISetOptions value)	= ("setOptions",	[value])
-encodeUIUpdateOperation (UISetTaskId taskId)	= ("setTaskId",		[JSONString taskId])
+encodeUIUpdateOperation (UISetTaskId id)		= ("setTaskId",		[JSONString id])
+encodeUIUpdateOperation (UISetCloseTaskId id)	= ("setCloseTaskId",[toJSON id])
+encodeUIUpdateOperation (UISetFocusTaskId id)	= ("setFocusTaskId",[toJSON id])
+encodeUIUpdateOperation (UISetEditorId id)		= ("setEditorId",	[JSONString id])
+encodeUIUpdateOperation (UISetActionId id)		= ("setActionId",	[JSONString id])
 encodeUIUpdateOperation (UISetName name)		= ("setName",		[JSONString name])
 encodeUIUpdateOperation (UISetEnabled enabled)	= ("setDisabled",	[JSONBool (not enabled)])
 encodeUIUpdateOperation (UISetActive active)	= ("setActive",		[JSONBool active])

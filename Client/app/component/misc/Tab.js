@@ -31,5 +31,21 @@ Ext.define('itwc.component.misc.Tab',{
 		} else {
 			me.viewport.fireEvent('focus',this.focusTaskId);
 		}
+	},
+	//Update operations
+	setFocusTaskId: function (focusTaskId) {
+		this.focusTaskId = focusTaskId;
+	},
+	setCloseTaskId: function (closeTaskId) {
+		this.closeTaskId = closeTaskId;
+		this.setClosable(Ext.isString(closeTaskId));
+	},
+	setActive: function (active) {
+		if(active) {
+			this.activate();
+		} else {
+			this.deactivate();
+		}
+		this.callParent(arguments);
 	}
 });

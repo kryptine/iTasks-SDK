@@ -215,8 +215,6 @@ defToControl :: UIDef -> UIControl
 defToControl def
 	| isJust (get TITLE_ATTRIBUTE (uiDefAttributes def))//If a title attribute is set, always make a panel
 		= defToPanel def
-	| not (isEmpty (uiDefWindows def)) //If there are windows, always make a panel
-		= defToPanel def
 	| otherwise
 		= case uiDefControls def of
 			[c=:(UIContainer _ _ _)]	= c //Already a container, no need to double wrap

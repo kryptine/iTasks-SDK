@@ -9,7 +9,10 @@ from Task import :: Event
 	= UISetValue		!JSONNode			// Set the value of a component
 	| UISetOptions		!JSONNode			// Change the options in a choice component
 	| UISetTaskId		!String				// Set taskId a component belongs to
-	| UISetEditorId		!String				// Set taskId a component belongs to
+	| UISetCloseTaskId	!(Maybe String)	
+	| UISetFocusTaskId	!(Maybe String)	
+	| UISetEditorId		!String				// Set editorId a component belongs to
+	| UISetActionId		!String				// Set actionId a component belongs to
 	| UISetName			!String				// Set name of a component
 	| UISetEnabled		!Bool				// Enable/disable form elements
 	| UISetActive		!Bool				// Make a tab active/inactive

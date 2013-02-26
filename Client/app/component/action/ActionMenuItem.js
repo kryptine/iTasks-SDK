@@ -12,5 +12,11 @@ Ext.define('itwc.component.action.ActionMenuItem',{
 		this.viewport = this.findViewport();
 		this.viewport.fireEvent('action',this.taskId, this.actionId);
 		return this.callParent(arguments);
+	},
+	setTaskId: function(taskId) {
+		this.taskId = taskId;
+	},
+	setActionId: function(actionId) {
+		this.actionId = actionId;
 	}
 });

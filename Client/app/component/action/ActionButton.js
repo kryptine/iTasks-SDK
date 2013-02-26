@@ -18,5 +18,11 @@ Ext.define('itwc.component.action.ActionButton',{
 		} else {
 			this.disable();
 		}
+	},
+	setTaskId: function(taskId) {
+		this.taskId = taskId;
+	},
+	setActionId: function(actionId) {
+		this.actionId = actionId;
 	}
 });
