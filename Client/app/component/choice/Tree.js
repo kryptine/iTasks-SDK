@@ -40,7 +40,6 @@ Ext.define('itwc.component.choice.Tree',{
 		}
 	},
 	onItemExpand: function(record) {
-		console.log("expand");
 		var value = record.raw && record.raw.value;
 		
 		this.viewport = this.viewport || this.up('viewport');
@@ -48,7 +47,6 @@ Ext.define('itwc.component.choice.Tree',{
 		return false;
 	},
 	onItemCollapse: function(record) {
-		console.log("collapse");
 		var value = record.raw && record.raw.value;
 		
 		this.viewport = this.viewport || this.up('viewport');
@@ -56,7 +54,6 @@ Ext.define('itwc.component.choice.Tree',{
 		return false;
 	},
 	onItemClick: function(tree,record,item) {
-		console.log(record);
 	
 		var value = record.raw && record.raw.value;
 		

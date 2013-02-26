@@ -3,26 +3,33 @@ definition module UIDiff
 import UIDefinition
 from Task import :: Event
 
-:: UIUpdate
+:: UIUpdate = UIUpdate !UIPath !UIUpdateOperation
+:: UIUpdateOperation
 	//Component updates
-	= UISetValue		!UIPath !JSONNode			// Set the value of a component
-	| UISetOptions		!UIPath !JSONNode			// Change the options in a choice component
-	| UISetTaskId		!UIPath !String				// Set taskId a component belongs to
-	| UISetEditorId		!UIPath !String				// Set taskId a component belongs to
-	| UISetName			!UIPath !String				// Set name of a component
-	| UISetEnabled		!UIPath !Bool				// Enable/disable form elements
-	| UISetActive		!UIPath !Bool				// Make a tab active/inactive
-	| UISetTitle		!UIPath !(Maybe String)		// Set/reset title of a container
-	| UISetHotkeys		!UIPath ![UIKeyAction]		// Set hotkeys for a container
-	| UIUpdate			!UIPath !UIControl			// Let a component update itself with a new UI definition (for custom components)
+	= UISetValue		!JSONNode			// Set the value of a component
+	| UISetOptions		!JSONNode			// Change the options in a choice component
+	| UISetTaskId		!String				// Set taskId a component belongs to
+	| UISetEditorId		!String				// Set taskId a component belongs to
+	| UISetName			!String				// Set name of a component
+	| UISetEnabled		!Bool				// Enable/disable form elements
+	| UISetActive		!Bool				// Make a tab active/inactive
+	| UISetTitle		!(Maybe String)		// Set/reset title of a container
+	| UISetHotkeys		![UIKeyAction]		// Set hotkeys for a container
+	| UISelfUpdate		!UIControl			// Let a component update itself with a new UI definition (for custom components)
 	//Structure edits
-	| UIAdd				!UIPath !Int !UIControl		//Add child element at index
-	| UIRemove			!UIPath !Int				//Remove child element at index
-	| UIReplace			!UIPath !Int !UIControl		//Replace child element at index
+	| UIAdd				!Int !UIControl		//Add child element at index
+	| UIRemove			!Int				//Remove child element at index
+	| UIReplace			!Int !UIControl		//Replace child element at index
+	| UIAddWindow		!Int !UIWindow		//Add a window
+	| UIRemoveWindow	!Int 				//Remove a window
 	//Changing size
-	| UIResize			!UIPath !UISizeOpts
+	| UIResize			!UISizeOpts
 	
-:: UIPath	:== String
+:: UIPath :== [UIStep] 
+:: UIStep
+	= ItemStep !Int		//Select item i
+	| MenuStep			//Select the menu bar
+	| WindowStep !Int	//Select window i (only possible as first step)
 
 diffUIDefinitions :: !UIDef !UIDef !Event -> [UIUpdate]	
 

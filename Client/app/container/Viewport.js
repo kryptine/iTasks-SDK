@@ -8,6 +8,8 @@ Ext.define('itwc.container.Viewport',{
 	valign: 'middle',
 	halign: 'center',
 
+	windows: [],
+
 	initComponent: function() {
 		this.layout = {type:'itwc_box', direction: this.direction, halign: this.halign, valign: this.valign, padding: this.padding};
 		this.callParent(arguments);
@@ -26,42 +28,42 @@ Ext.define('itwc.container.Viewport',{
 	},
 	getComponentByPath: function(path) {
 		var me = this,
-			steps = path.split('-'),
-			numSteps = steps.length,
+			numSteps,
 			cmp = me,
 			step, i, undef;
-			
-		if(path == "" || path == "0") {
-			return me;
+
+		if(path.length && path[0] === "w") { //Select window if the path starts with "w"
+			path.shift();
+			cmp = me.windows[path.shift()];
 		}
-		for(i = 1; i < numSteps; i++) {
-			step = steps[i];
+		numSteps = path.length;
+
+		for(i = 0; i < numSteps; i++) {
+			step = path[i];
 			
 			if(step === "m") {
 				cmp = cmp.getDockedComponent(0);
-				if(!cmp)
-					return undef;
-			} else if (step === "w") {
-				if(i < numSteps - 1) { 
-					if(cmp.windows && cmp.windows.length) {
-						if((i+1) < numSteps && cmp.windows[parseInt(steps[i+1])]) {
-							cmp = cmp.windows[parseInt(steps[i+1])];
-							i++;
-						}
-					} else {
-						return undef;
-					}
-				}
 			} else {
-				if(cmp.items && cmp.items.get) {
-					cmp = cmp.items.get(parseInt(step));
-					if(!cmp)
-						return undef;
-				} else {
-					return undef;
-				}
-			}	
+				cmp = cmp.items && cmp.items.get && cmp.items.get(step);
+			}
+			if(!cmp)
+				return undef;
 		}
 		return cmp;
+	},
+	setTitle: function(title) {
+		document.title = title; //Set the html document title
+	},
+	addWindow: function (index, def) {
+		var me = this;
+		me.windows = me.windows || [];
+		me.windows.splice(index,0,Ext.create('itwc.container.Window',def));
+		me.windows[index].viewport = me;
+	},
+	removeWindow: function (index) {
+		var me = this;
+		me.windows = me.windows || [];
+		me.windows[index].destroy();
+		me.windows.splice(index,1);
 	}
 });

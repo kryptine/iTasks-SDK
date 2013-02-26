@@ -227,39 +227,20 @@ Ext.define('itwc.controller.Controller', {
 			
 		for(i = 0; i < numUpdates; i++) {
 			update = updates[i];
-		
-			//Special case: title update of main window
-			if(update.method == 'setTitle' && update.path == '0') {
-				document.title = update.arguments[0];
-				continue;
-			}
-			//Special case: replace of the full viewport panel
-			//Change the main window title and remove it from the panel definition
-			if(update.method == 'replace' && update.path == '') {
-				document.title = update.arguments[1].title ? update.arguments[1].title : 'Untitled';
-				delete(update.arguments[1].title);	
-			}
 			try {
-				cmp	= me.viewport.getComponentByPath(update.path);
-				
-				if(cmp) {
-					//If the operation targets the window set of a panel
-					//Use different remove/insert/replace functions
-					if(update.path.endsWith('w')) {
-						switch(update.method) {
-							case 'replace': update.method = 'replaceWindow'; break;
-							case 'insert': update.method = 'insertWindow'; break;
-							case 'remove': update.method = 'removeWindow'; break;
-						}
-					}
+				if(cmp = me.viewport.getComponentByPath(update.path)) {
 					//Try to call the update method
 					if(cmp && typeof cmp[update.method] == 'function') {
 						cmp[update.method].apply(cmp,update.arguments);
 					} else {
 						//If replace is not defined as function, try remove followed by add
 						if(update.method == 'replace' && typeof cmp['remove'] == 'function' && typeof cmp['insert'] == 'function') {
+							me.warn("Doing inefficient replace by using remove followed by add");
+							cmp.suspendLayout = true; //Don't layout in between remove and add
 							cmp.remove(update.arguments[0]);
 							cmp.insert(update.arguments[0],update.arguments[1]);
+							cmp.suspendLayout = false;
+							cmp.doLayout(); //Now do the layout
 						} else {
 							me.error("Can't apply " + update.method + " to " + cmp.getId() + " (" + cmp.getXType() + ")");
 						}
@@ -275,5 +256,10 @@ Ext.define('itwc.controller.Controller', {
 	error: function(e) {
         alert(e);
 		//window.location = window.location;
+	},
+	warn: function(w) {
+		if(console && console.log) {
+			console.log("Warning:",w);
+		}
 	}
 });

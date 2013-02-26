@@ -112,8 +112,8 @@ actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 //Util
 defToContainer	:: UIDef -> UIControl
 defToPanel		:: UIDef -> UIControl
-defToWindow		:: UIDef -> UIControl
 defToControl	:: UIDef -> UIControl
+defToWindow		:: UIDef -> UIWindow
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 

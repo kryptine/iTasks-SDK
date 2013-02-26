@@ -13,9 +13,9 @@ defaultContainer :: ![UIControl] -> UIControl
 defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items) {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 
 defaultPanel :: ![UIControl] -> UIControl
-defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,windows=Nothing,hotkeys=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,hotkeys=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
-defaultWindow :: ![UIControl] -> UIControl
+defaultWindow :: ![UIControl] -> UIWindow
 defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|title=Nothing,tbar=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,hotkeys=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
 stringDisplay :: !String -> UIControl
@@ -54,7 +54,7 @@ uiDefDirection (UIControlGroup {UIControlGroup|direction})				= direction
 uiDefDirection (UIAbstractContainer {UIAbstractContainer|direction})	= direction
 uiDefDirection _														= Vertical
 
-uiDefWindows :: UIDef -> [UIControl]
+uiDefWindows :: UIDef -> [UIWindow]
 uiDefWindows (UIAbstractContainer {UIAbstractContainer|windows})		= windows
 uiDefWindows _															= []
 
@@ -79,7 +79,7 @@ uiDefSetDirection direction (UIAbstractContainer cont)
 uiDefSetDirection direction def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
-encodeUIDefinition (UIFinal (UIViewport iopts opts))	= enc "itwc_viewport" [toJSON iopts, toJSON opts]
+encodeUIDefinition (UIFinal (UIViewport iopts opts))	= enc "itwc_viewport" [toJSON iopts, encViewportOpts opts]
 encodeUIDefinition def									= enc "itwc_viewport" [toJSON (defaultItemsOpts (uiDefControls def))]
 
 encodeUIControl :: !UIControl -> JSONNode
@@ -117,12 +117,14 @@ encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [to
 encodeUIControl (UIContainer sopts iopts opts)			= enc "itwc_container" [toJSON sopts, toJSON iopts, toJSON opts] 
 encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts] 
 encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts] 
-encodeUIControl (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts, toJSON iopts, toJSON opts] 
+
+encodeUIWindow :: !UIWindow -> JSONNode
+encodeUIWindow (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts, toJSON iopts, toJSON opts]
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts
-derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
+derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
@@ -165,7 +167,6 @@ where
 	optsfields = flatten [fields \\ JSONObject fields <- opts]
 
 //Special cases
-
 encViewOpts :: (UIViewOpts a) -> JSONNode | encodeUIValue a
 encViewOpts {UIViewOpts|value}
 	= JSONObject [("value",encodeUIValue value)]
@@ -173,6 +174,14 @@ encViewOpts {UIViewOpts|value}
 encEditOpts :: (UIEditOpts a) -> JSONNode | encodeUIValue a
 encEditOpts {UIEditOpts|taskId,editorId,value}
 	= JSONObject [("taskId",JSONString taskId),("editorId",JSONString editorId),("value",encodeUIValue value)]
+
+encViewportOpts :: UIViewportOpts -> JSONNode
+encViewportOpts {UIViewportOpts|title,hotkeys,windows}
+	= JSONObject (
+		[("xtype",JSONString "itwc_viewport"),("windows",JSONArray [encodeUIWindow w \\ w <- windows])]	++
+		maybe [] (\t -> [("title",JSONString t)]) title ++
+		maybe [] (\k -> [("hotkeys",toJSON k)]) hotkeys
+		)
 
 class encodeUIValue a :: a -> JSONNode
 instance encodeUIValue String			where encodeUIValue v = JSONString v

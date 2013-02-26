@@ -26,20 +26,15 @@ Ext.define('itwc.component.edit.Editable',{
 		me.syncEditsEnabled = true;
 	},
 	findViewport: function() {
-		var viewport = this.viewport
-			searchIn = this;
-		
+		var viewport = this.viewport,
+			win;
 		if(viewport) {
 			return viewport;
-		}	
-		while(true) {
-			viewport = searchIn.up('viewport');
-			if(viewport) {
-				return viewport;
-			}else {
-				searchIn = (this.xtype == 'itwc_window') ? this.panelRef : this.up('itwc_window').panelRef;
-			}
-		}
+		} else if (viewport = this.up('viewport')) {
+			return this.viewport = viewport;
+		} else if (win = this.up('itwc_window')) {
+			return this.viewport = win.viewport;
+		}		
 	},
 	getTaskId: function() {
 		return this.taskId;

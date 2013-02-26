@@ -168,13 +168,12 @@ Ext.define('itwc.component.edit.GoogleMap',{
     },
 	setValue: function(value) {
 	},
-	update: function(def) {
+	selfUpdate: function(def) {
 		var me = this;
 	
 		//Update perspective
 
 		//Update markers
-		console.log(def);
 	},
 	onDestroy: function() {
 		if(this.map) {

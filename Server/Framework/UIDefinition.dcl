@@ -48,7 +48,7 @@ from Map			import :: Map(..)
 	, controls		:: UIControls
 	, actions		:: UIActions
 	, direction		:: UIDirection
-	, windows		:: [UIControl]
+	, windows		:: [UIWindow]
 	, hotkeys		:: [UIKeyAction]
 	}
 
@@ -69,8 +69,22 @@ from Map			import :: Map(..)
 
 :: UIViewportOpts =
 	{ title			:: !Maybe String
-//	, tbar			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
+	, windows		:: ![UIWindow]
+	}
+
+// Floating window
+:: UIWindow = UIWindow !UISizeOpts !UIItemsOpts !UIWindowOpts					
+	
+:: UIWindowOpts =
+	{ title			:: !Maybe String
+	, tbar			:: !Maybe [UIControl]
+	, focusTaskId	:: !Maybe String
+	, closeTaskId	:: !Maybe String
+	, hotkeys		:: !Maybe [UIKeyAction]
+	, iconCls		:: !Maybe String
+	, baseCls		:: !Maybe String
+	, bodyCls		:: !Maybe String
 	}
 
 :: UIControl
@@ -114,7 +128,6 @@ from Map			import :: Map(..)
 	| UIContainer		!UISizeOpts !UIItemsOpts !UIContainerOpts				// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UIItemsOpts !UIFieldSetOpts				// - Fieldset (wrapper with a simple border and title)
-	| UIWindow			!UISizeOpts !UIItemsOpts !UIWindowOpts					// - Window (floating window)
 	
 :: UISizeOpts =
 	{ width		:: !Maybe UISize
@@ -309,7 +322,6 @@ from Map			import :: Map(..)
 	{ title			:: !Maybe String
 	, frame			:: !Bool
 	, tbar			:: !Maybe [UIControl]
-	, windows		:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
@@ -319,24 +331,13 @@ from Map			import :: Map(..)
 :: UIFieldSetOpts =
 	{ title			:: !String
 	}
-	
-:: UIWindowOpts =
-	{ title			:: !Maybe String
-	, tbar			:: !Maybe [UIControl]
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, iconCls		:: !Maybe String
-	, baseCls		:: !Maybe String
-	, bodyCls		:: !Maybe String
-	}
 //Utility functions
 defaultSizeOpts			:: UISizeOpts
 defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
 
 defaultContainer		:: ![UIControl]	-> UIControl
 defaultPanel			:: ![UIControl]	-> UIControl
-defaultWindow			:: ![UIControl]	-> UIControl
+defaultWindow			:: ![UIControl]	-> UIWindow
 stringDisplay			:: !String		-> UIControl
 
 //Success guaranteed access to the possible parts of a ui definition
@@ -345,7 +346,7 @@ uiDefControls			:: UIDef -> [UIControl]
 uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
 uiDefActions			:: UIDef -> [UIAction]
 uiDefDirection			:: UIDef -> UIDirection
-uiDefWindows			:: UIDef -> [UIControl]
+uiDefWindows			:: UIDef -> [UIWindow]
 
 uiDefSetAttribute		:: String String UIDef -> UIDef
 uiDefSetDirection		:: UIDirection UIDef -> UIDef
@@ -353,6 +354,7 @@ uiDefSetDirection		:: UIDirection UIDef -> UIDef
 //can be interpreted by the client framework
 encodeUIDefinition		:: !UIDef -> JSONNode
 encodeUIControl			:: !UIControl -> JSONNode
+encodeUIWindow			:: !UIWindow -> JSONNode
 
 //Encoding of values for use in UI diffs
 class encodeUIValue a :: a -> JSONNode

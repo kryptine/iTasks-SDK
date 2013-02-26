@@ -19,18 +19,6 @@ Ext.define('itwc.container.Panel',{
 	minHeight: 'wrap',
 
 	initComponent: function() {
-		
-		//Create windows and link them back to this panel
-		if(this.windows && this.windows.length) {
-			var numWindows = this.windows.length,
-				i;
-			for(i = 0; i < numWindows; i++) {
-				this.windows[i] = Ext.create('itwc.container.Window',this.windows[i]);
-				//Create reference back to this panel
-				this.windows[i].panelRef = this;
-			}
-			
-		}
 		//Set shrinkWrap using width & height values
 		this.shrinkWrap = (this.width === 'wrap' ? 1 : 0) | (this.height === 'wrap' ? 2 : 0);
 
@@ -44,31 +32,7 @@ Ext.define('itwc.container.Panel',{
 		me.initHotkeys();
 	},
 	onDestroy: function () {
-		//Clean up the windows we created
-		if(this.windows && this.windows.length) {
-			var numWindows = this.windows.length,
-				i;
-			for(i = 0; i < numWindows; i++) {
-				this.windows[i].destroy();
-			}
-		}
 		this.destroyHotkeys();
 		this.callParent(arguments);
-	},
-	replaceWindow: function (index, def) {
-		this.windows = this.windows || [];
-		this.windows[index].destroy();
-		this.windows[index] = Ext.create('itwc.container.Window',def);
-		this.windows[index].panelRef = this;
-	},
-	insertWindow: function (index, def) {
-		this.windows = this.windows || [];
-		this.windows.splice(index,0,Ext.create('itwc.container.Window',def));
-		this.windows[index].panelRef = this;
-	},
-	removeWindow: function (index) {
-		this.windows = this.windows || [];
-		this.windows[index].destroy();
-		this.windows.splice(index,1);
 	}
 });

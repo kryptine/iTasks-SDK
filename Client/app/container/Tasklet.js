@@ -35,7 +35,7 @@ Ext.define('itwc.container.Tasklet', {
 		this.taskId = newTaskId;
 	},
 	
-	update: function(newTasklet) {
+	selfUpdate: function(newTasklet) {
 		if(this.taskId != newTasklet.taskId)
 					this.setTaskId(newTasklet.taskId);
 	},	
