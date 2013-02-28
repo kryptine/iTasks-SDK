@@ -58,12 +58,15 @@ Ext.define('itwc.controller.Controller', {
 	// for tasklet and client side execution support
 	tasklets: {}, 				// tasklet instance id -> tasklet
 	taskletControllers: {},		// instanceNo          -> tasklet if controllerFunc is avaliable
-			  
+
+	// central task event queue
+	taskEvents: [],
+	nextSendEventNo: 0,
+	flushingTaskEvents: false,
+
 	init: function() {
 		this.viewport = null;
 
-		this.version = 0;
-	
 		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);
 		this.control({
 			'viewport': {
@@ -73,17 +76,15 @@ Ext.define('itwc.controller.Controller', {
 				focus: this.onFocus
 			}
 		});
-
 		//Scary global reference for Tasklets
 		controller = this;
 	},
-
 	onViewportReady: function(viewport) {
 		//Keep reference to server
 		this.viewport = viewport;
 
 		//Sync with server for the first time
-		this.sendMessage();
+		this.queueTaskEvent({});
 	},
 	//iTasks edit events
 	onEdit: function(taskId, editorId, value) {
@@ -100,7 +101,6 @@ Ext.define('itwc.controller.Controller', {
 		}else{	// Normal case (not a tasklet)
 			
 			this.sendEditEvent(taskId, editorId, value);
-			
 		}
 	},
 	sendEditEvent: function(taskId, editorId, value){
@@ -108,8 +108,8 @@ Ext.define('itwc.controller.Controller', {
 		var me = this,
 			params = {editEvent: Ext.encode([taskId,editorId,value])};
 		
-		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING	
-	
+		//me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING	
+		me.queueTaskEvent(params);
 	},
 	//iTasks action events
 	onAction: function(taskId, actionId) {
@@ -128,46 +128,55 @@ Ext.define('itwc.controller.Controller', {
 			var me = this,
 				params = {actionEvent: Ext.encode([taskId,actionId])};
 
-			me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
+			me.queueTaskEvent(params);
 		}
 	},
 	//iTasks focus events
 	onFocus: function(taskId) {
 		var me = this,
 			params = {focusEvent: Ext.encode(taskId)};
-		me.sendMessage(params);
+		me.queueTaskEvent(params);
 	},
-	//Auto refresh event (triggered by tasks with an expiresIn value
+	//Auto refresh event (triggered by tasks with an expiresIn value)
 	onAutoRefresh: function () {
 		var me = this;
-		
-		me.sendMessage({});
-	},
-	//Send a message to the server
-	sendMessage: function(msg) {
-		var me = this,
-			params = {};
-		
-		if(msg) {
-			Ext.apply(params,msg);
+		if(me.taskEvents.length == 0) {//Only send empty event if we are idly waiting for events
+			me.queueTaskEvent({});
 		}
-        //Setup request parameters
-        params['version'] = me.version;
-
-        if(me.session)
-            params['session'] = me.session;
-
-		Ext.Ajax.request({
-            url: '?format=json-gui',
-            params: params,
-            scripts: false,
-            callback: me.receiveMessage,
-            scope: me
-        });
-
 	},
-	//Receive a message from the server
-	receiveMessage: function(options,success,response) {
+	//Queue a task event for processing
+	queueTaskEvent: function(eventData) {
+		var me = this;
+		me.taskEvents.push([me.nextSendEventNo++,eventData]);
+		me.flushTaskEvents();
+	},
+	//Flush the current task events to the server for processing
+	//If the force option is given, also flush an empty queue, effectively asking for a refresh
+	flushTaskEvents: function() {
+		var me = this,
+			params = {},
+			event;
+		if(!me.flushingTaskEvents && me.taskEvents.length) {
+			//Send events one at a time for now...
+			event = me.taskEvents.shift();
+			Ext.apply(params,event[1]);
+			params['version'] = event[0];
+
+        	if(me.session) {
+           		params['session'] = me.session;
+			}
+
+			me.flushingTaskEvents = true;
+			Ext.Ajax.request({
+				url: '?format=json-gui',
+				params: params,
+				scripts: false,
+				callback: me.receiveTaskUpdates,
+				scope: me
+			});
+		}
+	},
+	receiveTaskUpdates: function(options,success,response) {
 		var me = this,
 			message;
 		//Preprocess and check for errors
@@ -191,23 +200,23 @@ Ext.define('itwc.controller.Controller', {
 			me.error(message.error);
 			return;
 		}
-		
 		//Update session
 		me.session = message.session;
-		
-		//Update version for incremental updates
-		me.version = message.version + 1;
-		
-		//Schedule automatic refresh when an expiration time is set
-		if(Ext.isNumber(message.expiresIn)) {
-			me.refresher.delay(message.expiresIn);
-		}
-		//Take action
+
+		//Update user interface
         if(message.content) {
 			me.fullUpdate(message.content);
 		} else if(message.updates) {
 			me.partialUpdate(message.updates);
 		}
+		//Schedule automatic refresh when an expiration time is set
+		if(Ext.isNumber(message.expiresIn)) {
+			me.refresher.delay(message.expiresIn);
+		}
+
+		//Send remaining messages
+		me.flushingTaskEvents = false;
+		me.flushTaskEvents();
 	},
 	fullUpdate: function(viewportDef) {
 		var me = this,
