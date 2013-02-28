@@ -52,12 +52,13 @@ basicAPIExamples =
 	,workflow (distrTask +++ "Delegate Enter a person") 	"Delegate Enter a person" 			(delegate enterPerson)
 	,workflow (distrTask +++ "Chat with someone")   		"Chat with someone" 				chat
 	,workflow (distrTask +++ "Plan meeting") 				"Plan meeting" 						testMeeting
+	,workflow (distrTask +++ "Tic-Tac-Toe")                 "Play tic-tac-toe"                  tictactoe
 
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
-	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers 
+	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
-	
+
 Start :: *World -> *World
 Start world = startEngine [publish "/" WebApp (\_-> browseExamples basicAPIExamples),publish "/persons" WebApp (const enterPersons)] world
 where
@@ -573,10 +574,103 @@ transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (f
 worker :: User -> ManagementMeta
 worker (AuthenticatedUser id _ _) = {defaultValue & worker = UserWithId id}
 
+// tic-tac-toe, simplistic
+:: TicTacToe
+	= { board   :: ![[Maybe TicTac]]
+	  , player1 :: !User
+	  , player2 :: !User
+	  , turn    :: !Bool               // player 1 is playing
+	  }
+:: TicTac
+	= Tic | Tac
+instance ~ Bool where ~ b = not b
+derive class iTask TicTacToe, TicTac
+instance == TicTac where == t1 t2 = t1 === t2
+
+emptyBoard :: [[Maybe TicTac]]
+emptyBoard = repeatn 3 (repeatn 3 Nothing)
+
+viewBoard :: !(!Int,!Int) !TicTacToe -> HtmlTag
+viewBoard dimensions ttt
+	= TableTag [ BorderAttr "0" ] 
+	           [ tr [ td [TileTag dimensions (case cell of
+												Nothing  = "empty"
+												Just Tic = "cross"
+												Just Tac = "circle")
+						 ]
+					\\ cell <- row
+					] 
+			    \\ row <- ttt.board
+			    ]
+
+// shorthands for HTML:
+tr		= TrTag []
+td		= TdTag []
+text x	= TdTag [AlignAttr "center"] [Text (toString x)]
+
+TileTag :: !(!Int,!Int) !String -> HtmlTag
+TileTag (width,height) tile
+	= ImgTag [SrcAttr ("/"<+++ tile <+++ ".png"),w,h]
+where
+	(w,h) = (WidthAttr (toString width),HeightAttr (toString height))
+
+tictactoe :: Task String
+tictactoe
+	=             get currentUser
+	  >>= \me  -> enterSharedChoice "Who do you want to play Tic-Tac-Toe with:" [] users
+	  >>= \you -> withShared {board=emptyBoard,player1=me,player2=you,turn=True} 
+	                         (\sharedGameSt ->
+	                         (        (tictactoe_for_1 True  sharedGameSt)
+	                                       -||-
+	                          (you @: (tictactoe_for_1 False sharedGameSt))
+	                         ))
+	  >>= \winner -> viewInformation "And the winner is: " [] (toString winner)
+
+tictactoe_for_1 :: !Bool !(Shared TicTacToe) -> Task User
+tictactoe_for_1 my_turn sharedGameSt
+	= (viewSharedInformation "Board:" [ViewWith (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
+where
+	play= (updateSharedInformation "Play:" [UpdateWith Hidden (\gameSt _ -> gameSt)] sharedGameSt)
+	      >>* [ WhenValid game_over declare_winner
+              , WhenValid on_turn   make_a_move
+              ]
+
+	game_over {board}
+		= not (isEmpty [hd nodups \\ candidate <- rows ++ columns ++ diags
+		                           , nodups    <- [removeDup candidate]
+		                           | length nodups == 1 && isJust (hd nodups)
+		               ])
+	where
+		rows	= board
+		columns	= [[ board !! y !! x \\ y <- [0..2]] \\ x <- [0..2]]
+		diags   = [[row !! i \\ row <- board & i <- [0..]], [row !! (2-i) \\ row <- board & i <- [0..]]]
+
+	declare_winner gameSt
+		= if gameSt.turn (return gameSt.player2) (return gameSt.player1)
+	
+	on_turn gameSt=:{turn}
+		= turn == my_turn
+	
+	make_a_move gameSt=:{board,turn}
+		=              enterChoice "Choose coordinate:" [] (free_coordinates board)
+		  >>= \new  -> let board`  = add_cell new turn board
+		                   gameSt` = {gameSt & board = board`
+		                                     , turn = ~turn
+		                             }
+		                in set gameSt` sharedGameSt >>| play
+
+free_coordinates :: ![[Maybe a]] -> [(Int,Int)]
+free_coordinates board
+	= map fst (filter (isNothing o snd) (flatten [[((x,y),cell) \\ cell <- row & x <- [1..]] \\ row <- board & y <- [1..]]))
+
+add_cell :: !(!Int,!Int) !Bool ![[Maybe TicTac]] -> [[Maybe TicTac]]
+add_cell new turn board
+	= [ [  if (new == (x,y)) (Just (if turn Tic Tac)) cell
+	    \\ cell <- row & x <- [1..]
+	    ]
+	  \\ row <- board & y <- [1..]
+	  ]
+
 //* Customizing interaction with views
 
 //* Layout tuning
-
-
-
-
