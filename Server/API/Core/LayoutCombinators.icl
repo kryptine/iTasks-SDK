@@ -301,22 +301,22 @@ sequenceMerge :: ParallelLayout
 sequenceMerge = merge
 where
 	merge prompt=:{UIControlSequence|attributes,controls,direction} defs
-		# (actions,parts)	= unzip (map processDef defs)
-		# controls			= decoratePrompt controls ++ [c \\ Just (Left c) <- parts]
-		# windows			= [w \\ Just (Right w) <- parts]
-		# actions			= foldr (++) [] actions
+		# parts 					= (map processDef defs)
+		# controls					= decoratePrompt controls ++ [c \\ (_,_,Just c) <- parts]
+		# actions					= flatten [a \\ (a,_,_) <- parts]
+		# windows					= flatten [w \\ (_,w,_) <- parts]
 		= UIAbstractContainer {UIAbstractContainer|attributes=attributes,controls=controls,direction=direction,actions=actions,windows=windows,hotkeys=[]}
 	
 	//Action sets do not get a panel in the sequence. Their actions are passed upwards
 	processDef (UIActionSet {UIActionSet|actions})
-		= (actions,Nothing)
+		= (actions,[],Nothing)
 	processDef def
 		| hasWindowAttr (uiDefAttributes def) //TODO: Pass hotkeys along
 			# (actions,_, window)	= placeWindowActions (uiDefActions def) (defToWindow (layoutControls def))
-			= ([],Just (Right window))
+			= ([],[window:uiDefWindows def],Nothing)
 		| otherwise	
 			# (actions,_, panel)	= placePanelActions (uiDefActions def) False (defToPanel (layoutControls def))
-			= (actions,Just (Left panel))
+			= (actions,uiDefWindows def,Just panel)
 
 sideMerge :: UISide Int ParallelLayout -> ParallelLayout
 sideMerge side size restMerge = merge
@@ -395,7 +395,7 @@ where
 		# (tabsAndWindows,actions) = unzip [mkTabOrWindow (i == active) d \\ d <- defs & i <- [0..]]
 		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer [tab \\Left tab <- tabsAndWindows])
 		   ,[window \\ Right window <- tabsAndWindows]
-		   ,foldr (++) [] actions
+		   ,flatten actions
 		  )
 
 	mkTabOrWindow active def
@@ -411,7 +411,6 @@ where
 			# (close,actions)		= actionsToCloseId actions
 			# tabOpts				= {text = text ,focusTaskId = taskId, active = active, closeTaskId = close,iconCls=iconCls}
 			= (Left (UITab defaultSizeOpts tabOpts), if active actions [])
-
 
 hideLayout :: Layout
 hideLayout =

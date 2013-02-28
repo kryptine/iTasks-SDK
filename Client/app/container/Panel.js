@@ -26,10 +26,8 @@ Ext.define('itwc.container.Panel',{
 		this.callParent(arguments);
 	},
 	afterRender: function() {
-		var me = this;
-		
-		me.callParent();
-		me.initHotkeys();
+		this.callParent(arguments);
+		this.initHotkeys();
 	},
 	onDestroy: function () {
 		this.destroyHotkeys();

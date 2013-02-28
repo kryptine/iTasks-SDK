@@ -223,27 +223,33 @@ Ext.define('itwc.controller.Controller', {
 	partialUpdate: function(updates) {
 		var me = this,
 			numUpdates = updates.length,
-			update, cmp, i;
+			update, 
+			cmp, operations, numOperations, operation, i, j;
 			
 		for(i = 0; i < numUpdates; i++) {
 			update = updates[i];
 			try {
 				if(cmp = me.viewport.getComponentByPath(update.path)) {
-					//Try to call the update method
-					if(cmp && typeof cmp[update.method] == 'function') {
-						cmp[update.method].apply(cmp,update.arguments);
-					} else {
-						//If replace is not defined as function, try remove followed by add
-						if(update.method == 'replace' && typeof cmp['remove'] == 'function' && typeof cmp['insert'] == 'function') {
-							me.warn("Doing inefficient replace by using remove followed by add in " + update.arguments[1].xtype);
-							cmp.suspendLayout = true; //Don't layout in between remove and add
-							cmp.remove(update.arguments[0]);
-							cmp.insert(update.arguments[0],update.arguments[1]);
-							cmp.suspendLayout = false;
-							cmp.doLayout(); //Now do the layout
+					operations = update.operations;
+					numOperations = operations.length;
+
+					//If multiple operations need to be done on the same component, don't layout in between
+					if(numOperations > 1 && cmp.doLayout) { 
+						cmp.suspendLayout = true;
+					}
+					for(j = 0; j < numOperations; j++) {
+						operation = operations[j];	
+
+						//Try to call the update method
+						if(cmp && typeof cmp[operation.method] == 'function') {
+							cmp[operation.method].apply(cmp,operation.arguments);
 						} else {
-							me.error("Can't apply " + update.method + " to " + cmp.getId() + " (" + cmp.getXType() + ")");
+							me.error("Can't apply " + operation.method + " to " + cmp.getId() + " (" + cmp.getXType() + ")");
 						}
+					}
+					if(cmp.suspendLayout) {
+						cmp.suspendLayout = false;
+						cmp.doLayout();
 					}
 				} else {
 					me.error("Could not find user interface component at location " + update.path);

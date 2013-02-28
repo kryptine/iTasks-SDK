@@ -2,7 +2,8 @@ Ext.define('itwc.container.Window',{
 	extend: 'Ext.window.Window',
 	alias: 'widget.itwc_window',
 	requires: ['itwc.layout.container.Box'],
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.component.edit.Editable','itwc.container.HotkeyArea'],
+
 	autoShow: true,
 	autoScroll: true,
 	
@@ -45,5 +46,13 @@ Ext.define('itwc.container.Window',{
 		me.viewport = me.findViewport();
 		me.viewport.fireEvent('action',me.closeTaskId,'Close');
 		return false;	
+	},
+	afterRender: function() {
+		this.callParent(arguments);
+		this.initHotkeys();
+	},
+	onDestroy: function () {
+		this.destroyHotkeys();
+		this.callParent(arguments);
 	}
 });
