@@ -1,6 +1,7 @@
 definition module IWorld
 
 from FilePath			import :: FilePath
+from Void				import :: Void
 from Map				import :: Map
 from Maybe				import :: Maybe
 from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
@@ -49,6 +50,7 @@ instance FileSystem IWorld
 instance registerSDSDependency		InstanceNo	IWorld
 instance registerSDSChangeDetection				IWorld
 instance reportSDSChange			InstanceNo	IWorld
+instance reportSDSChange 			Void		IWorld
 
 //Sync work queue to disk (Only used with CGI wrapper)
 saveWorkQueue :: !*IWorld -> *IWorld

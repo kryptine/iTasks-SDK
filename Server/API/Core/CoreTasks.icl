@@ -3,7 +3,7 @@ implementation module CoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List_NG
 import qualified StdList
 import iTaskClass, Task, TaskState, TaskEval, TaskStore, UIDefinition, LayoutCombinators, Shared
-from SharedDataSource		import qualified read, readRegister, writeFilterMsg
+from SharedDataSource		import qualified read, readRegister, write, writeFilterMsg
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..)
 from SystemData				import topLevelTasks
@@ -33,7 +33,8 @@ set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,currentInstance}
-		# (res,iworld)	='SharedDataSource'.writeFilterMsg val ((<>) currentInstance) shared iworld
+		//# (res,iworld)	='SharedDataSource'.writeFilterMsg val ((<>) currentInstance) shared iworld
+		# (res,iworld)	='SharedDataSource'.write val shared iworld
 		= case res of
 			Ok _	= (Ok val,iworld)
 			Error e	= (Error (dynamic (SharedException e), e), iworld)
@@ -47,7 +48,8 @@ where
 			Error e		= (Error (dynamic (SharedException e), e), iworld)
 			Ok r	
 				# w				= fun r
-				# (er, iworld)	=  'SharedDataSource'.writeFilterMsg w ((<>) currentInstance) shared iworld
+				//# (er, iworld)	=  'SharedDataSource'.writeFilterMsg w ((<>) currentInstance) shared iworld
+				# (er, iworld)	=  'SharedDataSource'.write w shared iworld
 				= case er of
 					Ok _	= (Ok w, iworld)
 					Error e = (Error (dynamic (SharedException e), e), iworld)

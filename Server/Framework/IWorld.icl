@@ -100,6 +100,12 @@ where
 	reportSDSChange shareId filterFun iworld
 		= addOutdatedOnShareChange shareId filterFun iworld
 
+instance reportSDSChange Void IWorld
+where
+	reportSDSChange shareId _ iworld
+		= addOutdatedOnShareChange shareId (\_ -> True) iworld
+
+
 // serialise Work as dynamic since it contains functions on unique states
 JSONEncode{|Work|} work  = [JSONArray [JSONString "_FUNCTION_", JSONString (base64URLEncode (serialize work))]]
 JSONDecode{|Work|} [JSONArray [JSONString "_FUNCTION_",JSONString string]:c] = (Just (fromOk(deserialize {s` \\ s` <-: base64URLDecode string})) ,c)

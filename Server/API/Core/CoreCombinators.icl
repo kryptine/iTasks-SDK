@@ -11,7 +11,9 @@ from IWorld				import :: IWorld(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from TaskEval			import localShare, parListShare, topListShare
 from CoreTasks			import return
-from SharedDataSource	import writeFilterMsg, read
+from SharedDataSource	import write, writeFilterMsg, read
+
+WORKON_EXPIRY :== 5000 //NO REAL SOLUTION...
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -55,7 +57,8 @@ where
 		= case er of
 			Ok r = case projection val r of
 				Just w
-					# (ew, iworld) = writeFilterMsg w ((<>) currentInstance) share iworld
+					//# (ew, iworld) = writeFilterMsg w ((<>) currentInstance) share iworld
+					# (ew, iworld) = write w share iworld
 					= case ew of
 						Ok _	= (result, iworld)
 						Error e	= (exception e, iworld)
@@ -465,16 +468,16 @@ where
 		# layout			= repLayout repOpts
 		= case (meta,result,rep) of
 			(_,Ok (TIValue (Value _ True) _),_)
-				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} (finalizeRep repOpts noRep) tree, iworld)
 			(_,Ok (TIException _ _),_)
-				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} (finalizeRep repOpts noRep) tree, iworld)
 			(Ok meta=:{TIMeta|worker=Just worker},_,Ok (TaskRep def parts))
 				| worker == currentUser
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn def meta) parts)
-					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)
+					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn (inUseDef worker) meta) parts)
-					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)		
+					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} rep tree, iworld)		
 			_
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 
