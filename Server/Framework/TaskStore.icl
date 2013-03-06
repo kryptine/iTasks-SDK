@@ -21,6 +21,8 @@ derive JSONDecode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractCont
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
+derive gDefault TIMeta//, TIReduct, TIResult, TaskListEntry, TaskTree//, TaskRep, DeferredJSON, InteractionMask
+
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"
 SHARE_REGISTRATIONS		:== "share-registrations"
@@ -227,6 +229,18 @@ addOutdatedOnShareChange shareId filterFun iworld
 			# regs				= put shareId (filter (not o filterFun) outdated) regs
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
+
+taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+taskInstanceMeta instanceNo = storeAccess NS_TASK_INSTANCES (meta_store instanceNo) (abort "Read task instance meta too early")
+
+taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
+taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) (abort "Read task instance reduct too early") 
+
+taskInstanceResult :: !InstanceNo -> RWShared TIResult TIResult IWorld
+taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) (abort "Read task instance result too early")
+
+taskInstanceRep :: !InstanceNo -> RWShared TIRep TIRep IWorld
+taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) (abort "Read task representation result too early")
 		
 storeCurUI :: !SessionId !Int !UIDef !*IWorld -> *IWorld
 storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}

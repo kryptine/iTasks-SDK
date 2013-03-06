@@ -1,6 +1,6 @@
 implementation module SystemData
 
-import SystemTypes, TaskStore, Time, Shared, Util, Text, Task, Tuple, StdFile
+import SystemTypes, Store, TaskStore, Time, Shared, Util, Text, Task, Tuple, StdFile
 import Random
 import StdList, StdBool
 from StdFunc		import o, seq
@@ -9,6 +9,9 @@ from Util			import qualified currentDate, currentTime, currentDateTime, currentT
 
 SYSTEM_DATA_NS :== "SystemData"
 
+sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId defaultV
+/*
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = createChangeOnWriteSDS
 	"sharedStore" storeId
@@ -23,6 +26,7 @@ where
 		= (res,iworld)
 		
 	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
+*/
 	
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read

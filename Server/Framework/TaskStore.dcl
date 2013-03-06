@@ -8,7 +8,7 @@ definition module TaskStore
 import Maybe, Error, SystemTypes, Task, TaskState, UIDefinition
 
 from Time				import :: Timestamp
-from SharedDataSource	import :: BasicShareId
+from SharedDataSource	import :: BasicShareId, :: RWShared
 
 newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
 newInstanceId			:: !*IWorld -> (!InstanceNo, !*IWorld)
@@ -59,6 +59,12 @@ addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
 addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
+
+//Task state accessible as shared data sources
+taskInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
+taskInstanceResult		:: !InstanceNo -> RWShared TIResult TIResult IWorld
+taskInstanceRep			:: !InstanceNo -> RWShared TIRep TIRep IWorld
 
 //Keep last version of session user interfaces around, to be able to send differences to client
 storeCurUI				:: !SessionId !Int !UIDef !*IWorld -> *IWorld

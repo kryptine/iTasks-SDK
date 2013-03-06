@@ -2,6 +2,7 @@ implementation module Store
 
 import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON_NG, Functor, FilePath
+import SharedDataSource
 from IWorld			import :: IWorld(..), :: Work
 from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from UIDefinition	import :: UIDef, :: UIControl
@@ -15,7 +16,16 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 	}
 
 :: StoreFormat = SFPlain | SFDynamic
-	
+
+storeAccess :: !String !String a -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storeAccess namespace storeId defaultV = createChangeOnWriteSDS namespace storeId read write
+where
+	read iworld
+		# (mbV,iworld) = loadValue namespace storeId iworld
+		= (maybe (Ok defaultV) Ok mbV, iworld)
+	write v iworld
+		= (Ok Void,storeValue namespace storeId v iworld)
+
 storePath :: !FilePath !String -> FilePath
 storePath dataDir build = dataDir </> "store-" +++ build
 

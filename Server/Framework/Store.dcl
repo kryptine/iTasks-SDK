@@ -13,6 +13,7 @@ import JSON_NG
 from Time import :: Timestamp
 from IWorld import :: IWorld
 from FilePath import :: FilePath
+from SharedDataSource import :: RWShared
 
 // Storage formats
 :: StoreFormat = SFPlain | SFDynamic
@@ -25,6 +26,11 @@ from FilePath import :: FilePath
 NS_TASK_INSTANCES		:== "task-instances"
 NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
+
+/**
+* Create a shared data source for a piece of data in the store
+*/
+storeAccess :: !String !String a -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Determine the location of the store from data directory and build
