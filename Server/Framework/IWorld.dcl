@@ -36,12 +36,16 @@ from SharedDataSource	import class registerSDSDependency, class registerSDSChang
 updateCurrentDateTime :: !*IWorld -> *IWorld
 
 queueWork			:: !(!Work, !Maybe Timestamp)	!*IWorld -> *IWorld
+queueUrgentEvaluate	:: !InstanceNo					!*IWorld -> *IWorld
 dequeueWork			:: 								!*IWorld -> (!DequeueResult, !*IWorld)
 dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
+
+getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
 :: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
 
 :: Work	= Evaluate !InstanceNo
+		| EvaluateUrgent !InstanceNo
 		| TriggerSDSChange !BasicShareId
 		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
 

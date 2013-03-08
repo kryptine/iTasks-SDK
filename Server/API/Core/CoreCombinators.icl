@@ -11,9 +11,7 @@ from IWorld				import :: IWorld(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from TaskEval			import localShare, parListShare, topListShare
 from CoreTasks			import return
-from SharedDataSource	import write, writeFilterMsg, read
-
-WORKON_EXPIRY :== 5000 //NO REAL SOLUTION...
+from SharedDataSource	import write, writeFilterMsg, read, readRegister
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -57,7 +55,6 @@ where
 		= case er of
 			Ok r = case projection val r of
 				Just w
-					//# (ew, iworld) = writeFilterMsg w ((<>) currentInstance) share iworld
 					# (ew, iworld) = write w share iworld
 					= case ew of
 						Ok _	= (result, iworld)
@@ -268,12 +265,14 @@ where
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId event (Nothing,acc,iworld) {TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False}
-		= case loadTaskInstance instanceNo iworld of
-			(Error _, iworld)	= (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
-			(Ok (meta,_,res), iworld)
+		# (mbMeta,iworld)	= read (taskInstanceMeta instanceNo) iworld
+		# (mbResult,iworld)	= read (taskInstanceResult instanceNo) iworld
+		= case (mbMeta,mbResult) of
+			(Ok meta,Ok res)
 				# fixme = []	//TODO: Get the attributes from detached tasks
 				# (entry,iworld) = updateListEntryDetachedResult taskId entryId res meta.TIMeta.progress meta.TIMeta.management fixme iworld
 				= (Nothing,acc++[(entry,Nothing)],iworld)
+			_	= (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
 
 	//Do nothing if an exeption occurred or marked as removed
 	evalParTask taskId event (result,acc,iworld) entry = (result,acc,iworld) 
@@ -334,8 +333,8 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 			= (taskIda, EmbeddedState (dynamic task :: Task a^) (TCInit taskIda taskTime),iworld)
 		Detached management
 			# task									= parTask (parListShare taskId)
-			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,status=True,firstEvent=Nothing,latestEvent=Nothing}
-			# (taskIda=:TaskId instanceNo _,iworld)	= createPersistentInstance task management currentUser parent iworld
+			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
+			# (taskIda=:TaskId instanceNo _,iworld)	= createTopTaskInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= TIValue NoValue taskTime
 	# entry		= {entryId = taskIda, state = state, result = result, attributes = 'Map'.newMap, createdAt = taskTime, lastEvent = taskTime, expiresIn = Nothing, removed = False}
@@ -387,7 +386,7 @@ loadTaskList taskId=:(TaskId instanceNo taskNo) iworld=:{currentInstance,localLi
 	| instanceNo == currentInstance
 		= (fromMaybe [] ('Map'.get taskId localLists),iworld)
 	| otherwise
-		= case loadTaskReduct instanceNo iworld of
+		= case read (taskInstanceReduct instanceNo) iworld of
 			(Ok {TIReduct|lists},iworld)	= (fromMaybe [] ('Map'.get taskId lists),iworld)
 			(_,iworld)						= ([],iworld)
 
@@ -396,8 +395,10 @@ storeTaskList taskId=:(TaskId instanceNo taskNo) list iworld=:{currentInstance,l
 	| instanceNo == currentInstance
 		= {iworld & localLists = 'Map'.put taskId list localLists}
 	| otherwise
-		= case loadTaskReduct instanceNo iworld of
-			(Ok reduct=:{TIReduct|lists},iworld)	= storeTaskReduct instanceNo {TIReduct|reduct & lists = 'Map'.put taskId list lists} iworld
+		= case read (taskInstanceReduct instanceNo) iworld of
+			(Ok reduct=:{TIReduct|lists},iworld)	
+				# (_,iworld) = write {TIReduct|reduct & lists = 'Map'.put taskId list lists} (taskInstanceReduct instanceNo) iworld
+				= iworld
 			(_,iworld)								= iworld
 			
 readListId :: (SharedTaskList a) *IWorld -> (MaybeErrorString (TaskListId a),*IWorld)	| iTask a
@@ -427,7 +428,7 @@ where
 	append TopLevelTaskList parType parTask iworld=:{currentUser}
 		# meta						= case parType of Embedded = defaultValue; Detached meta = meta;
 		# task						= parTask topListShare
-		= createPersistentInstance task meta currentUser 0 iworld
+		= createTopTaskInstance task meta currentUser 0 iworld
 	append (ParallelTaskList parId) parType parTask iworld
 		= appendTaskToList parId (parType,parTask) iworld
 
@@ -456,33 +457,37 @@ workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{currentInstance,currentUser}
-		# iworld = setTaskWorker currentUser instanceNo iworld
-		# iworld = addTaskInstanceObserver currentInstance instanceNo iworld
-		= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
+		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld 
+		= case meta of
+			Ok meta
+				# (_,iworld)	= write {TIMeta|meta & worker=Just currentUser} (taskInstanceMeta instanceNo) iworld
+				# iworld		= queueUrgentEvaluate instanceNo iworld 
+				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
+			Error e
+				= (ExceptionResult (dynamic e) e,iworld)
 		
-	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{currentUser}
+	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{currentInstance,currentUser}
 		//Load instance
-		# (meta,iworld)		= loadTaskMeta instanceNo iworld
-		# (result,iworld)	= loadTaskResult instanceNo iworld
-		# (rep,iworld)		= loadTaskRep instanceNo iworld
+		# (meta,iworld)		= readRegister currentInstance (taskInstanceMeta instanceNo) iworld
+		# (result,iworld)	= readRegister currentInstance (taskInstanceResult instanceNo) iworld
+		# (rep,iworld)		= readRegister currentInstance (taskInstanceRep instanceNo) iworld
 		# layout			= repLayout repOpts
 		= case (meta,result,rep) of
 			(_,Ok (TIValue (Value _ True) _),_)
-				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 			(_,Ok (TIException _ _),_)
-				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 			(Ok meta=:{TIMeta|worker=Just worker},_,Ok (TaskRep def parts))
 				| worker == currentUser
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn def meta) parts)
-					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} rep tree, iworld)
+					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn (inUseDef worker) meta) parts)
-					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,expiresIn=Just WORKON_EXPIRY} rep tree, iworld)		
+					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)		
 			_
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld=:{currentInstance}
-		# iworld = removeTaskInstanceObserver currentInstance instanceNo iworld
 		= (DestroyedResult,iworld)
 		
 	inUseDef worker

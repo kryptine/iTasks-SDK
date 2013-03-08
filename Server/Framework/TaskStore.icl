@@ -37,8 +37,8 @@ newSessionId iworld=:{IWorld|world,timestamp}
 	# (Clock c, world)		= clock world
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) , {IWorld|iworld & world = world})
 	
-newInstanceId :: !*IWorld -> (!InstanceNo,!*IWorld)
-newInstanceId iworld
+newInstanceNo :: !*IWorld -> (!InstanceNo,!*IWorld)
+newInstanceNo iworld
 	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
 	= case mbNewTid of
 		Just tid
@@ -170,38 +170,6 @@ updateTaskInstanceMeta instanceNo f iworld
 			# iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) (f meta) iworld
 			= addOutdatedInstances [(instanceNo, Nothing)] iworld
 
-setTaskWorker :: !User !InstanceNo !*IWorld -> *IWorld
-setTaskWorker worker instanceNo iworld
-	= updateTaskInstanceMeta instanceNo (set worker) iworld
-where
-	set worker inst=:{TIMeta|worker=Nothing} = {TIMeta|inst & worker = Just worker}
-	set _ inst = inst
-	
-addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
-addTaskInstanceObserver observer observed iworld
-	# iworld = updateTaskInstanceMeta observer (\meta -> {TIMeta|meta & observes = removeDup (meta.observes ++ [observed])}) iworld
-	# iworld = updateTaskInstanceMeta observed (\meta -> {TIMeta|meta & observedBy = removeDup (meta.observedBy ++ [observer])}) iworld
-	= iworld
-	
-removeTaskInstanceObserver :: !InstanceNo !InstanceNo !*IWorld -> *IWorld
-removeTaskInstanceObserver observer observed iworld
-	# iworld = updateTaskInstanceMeta observer (\meta-> {TIMeta|meta & observes = filter ((<>) observed) meta.observes}) iworld
-	# iworld = updateTaskInstanceMeta observed (\meta-> {TIMeta|meta & observedBy = filter ((<>) observer) meta.observedBy}) iworld
-	= iworld
-	
-getTaskInstanceObserved :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
-getTaskInstanceObserved instanceNo iworld = case loadTaskMeta instanceNo iworld of
-	(Ok {observes},iworld)	= (observes, iworld)
-	(_, iworld)				= ([], iworld)
-	
-getTaskInstanceObservers :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
-getTaskInstanceObservers instanceNo iworld = case loadTaskMeta instanceNo iworld of
-	(Ok {observedBy},iworld)	= (observedBy, iworld)
-	(_, iworld)					= ([], iworld)
-
-addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
-addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
-
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 addShareRegistration shareId instanceNo iworld
 	# (mbRegs,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
@@ -230,8 +198,20 @@ addOutdatedOnShareChange shareId filterFun iworld
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 
+addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
+addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
+
+taskInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+taskInstances = storeAccess NS_TASK_INSTANCES "instances" newMap
+
 taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-taskInstanceMeta instanceNo = storeAccess NS_TASK_INSTANCES (meta_store instanceNo) (abort "Read task instance meta too early")
+taskInstanceMeta instanceNo = mapReadWriteError (readPrj,writePrj) taskInstances
+where
+	readPrj instances = case get instanceNo instances of
+		Just i	= Ok i
+		_		= Error ("Task instance " +++ toString instanceNo +++ " could not be found")
+
+	writePrj i instances = Ok (Just (put instanceNo i instances))
 
 taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
 taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) (abort "Read task instance reduct too early") 

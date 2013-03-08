@@ -51,34 +51,35 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			//Load or create session context and edit / evaluate
 			# (mbResult, mbPrevUI, iworld)	= case sessionParam of
 				""	
-					# (mbResult, iworld) = createSessionInstance (task req) RefreshEvent iworld
+					# (mbResult, iworld) = createSessionTaskInstance (task req) RefreshEvent iworld
 					= (mbResult, Nothing, iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
 					# (mbPrevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
-					# (mbResult, iworld) 	= evalSessionInstance sessionId event iworld
+					# (mbResult, iworld) 	= evalSessionTaskInstance sessionId event iworld
 					= (mbResult,mbPrevUI,iworld)
-			
-			# (json, iworld) = case mbResult of
+			//Determine expiry date	
+			# (json, iworld) 		= case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
 					Ok (ExceptionResult _ err,_,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (ValueResult (Value _ True) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ info curRep context,_,sessionId)
+					Ok (ValueResult _ info curRep context,instanceNo,sessionId)
+						# (expiresIn,iworld)	= getResponseExpiry instanceNo iworld
 						# json = case (mbPrevUI,curRep) of
 							(Nothing, TaskRep def _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
-											 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
+											 ,("expiresIn",toJSON expiresIn)
 											 ,("content", encodeUIDefinition def)
 											 ,("version",toJSON guiVersion)]
 							
 							(Just prevUI, TaskRep def _)
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
-												 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
+												 ,("expiresIn",toJSON expiresIn)
 												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI def event))
 												 ,("version",toJSON guiVersion)]
 							
@@ -95,9 +96,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the task in easily accessable JSON representation
 		JSONService
 			# (mbResult,iworld)	= case sessionParam of
-				""	= createSessionInstance (task req) RefreshEvent iworld
+				""	= createSessionTaskInstance (task req) RefreshEvent iworld
 				sessionId
-					= evalSessionInstance sessionId RefreshEvent iworld
+					= evalSessionTaskInstance sessionId RefreshEvent iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
@@ -107,7 +108,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (jsonResponse (serviceBusyResponse rep (uiDefActions def) (toList (uiDefAttributes def))), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
-			# (mbResult,iworld) = createSessionInstance (task req) RefreshEvent iworld
+			# (mbResult,iworld) = createSessionTaskInstance (task req) RefreshEvent iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)

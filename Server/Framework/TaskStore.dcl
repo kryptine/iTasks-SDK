@@ -11,26 +11,17 @@ from Time				import :: Timestamp
 from SharedDataSource	import :: BasicShareId, :: RWShared
 
 newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
-newInstanceId			:: !*IWorld -> (!InstanceNo, !*IWorld)
+newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
-storeTaskInstance		:: !TaskInstance !*IWorld -> *IWorld
+//Task instance state accessible as shared data sources
+taskInstances			:: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of available instances
 
-loadTaskInstance		:: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
-loadSessionInstance		:: !SessionId !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
-
-//Separated load functions
-loadTaskMeta			:: !InstanceNo !*IWorld -> (!MaybeErrorString TIMeta, !*IWorld)
-loadTaskReduct			:: !InstanceNo !*IWorld -> (!MaybeErrorString TIReduct, !*IWorld)
-loadTaskResult			:: !InstanceNo !*IWorld -> (!MaybeErrorString TIResult, !*IWorld)
-loadTaskRep				:: !InstanceNo !*IWorld -> (!MaybeErrorString TIRep, !*IWorld)
-
-//Store 
-storeTaskMeta			:: !InstanceNo !TIMeta !*IWorld -> *IWorld
-storeTaskReduct			:: !InstanceNo !TIReduct !*IWorld -> *IWorld
-storeTaskResult			:: !InstanceNo !TIResult !*IWorld -> *IWorld
-storeTaskRep			:: !InstanceNo !TIRep !*IWorld -> *IWorld
+taskInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
+taskInstanceResult		:: !InstanceNo -> RWShared TIResult TIResult IWorld
+taskInstanceRep			:: !InstanceNo -> RWShared TIRep TIRep IWorld
 
 deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
@@ -39,32 +30,14 @@ createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError 
 createDocumentWith		:: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
-
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 
-
-setTaskWorker				:: !User !InstanceNo !*IWorld -> *IWorld
-//Keep track of which instances depend on other instances
-//first instance observes second one
-addTaskInstanceObserver		:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
-removeTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
-//instances observed by given instance
-getTaskInstanceObserved		:: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
-//instances observing given instance
-getTaskInstanceObservers :: !InstanceNo !*IWorld -> (![InstanceNo], !*IWorld)
-
 //Keep track of outdated task instances that need to be refreshed
-addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
-
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
+//Queue evaluation when shares change
 addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-
-//Task state accessible as shared data sources
-taskInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
-taskInstanceResult		:: !InstanceNo -> RWShared TIResult TIResult IWorld
-taskInstanceRep			:: !InstanceNo -> RWShared TIRep TIRep IWorld
+addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 
 //Keep last version of session user interfaces around, to be able to send differences to client
 storeCurUI				:: !SessionId !Int !UIDef !*IWorld -> *IWorld

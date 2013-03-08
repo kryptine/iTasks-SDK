@@ -110,7 +110,8 @@ where
 				= (Nothing, iworld)
 			Work work
 				# iworld = case work of
-					(Evaluate instanceNo)		= refreshInstance instanceNo iworld
+					(Evaluate instanceNo)		= refreshTaskInstance instanceNo iworld
+					(EvaluateUrgent instanceNo)	= refreshTaskInstance instanceNo iworld
 					(TriggerSDSChange sdsId)	= addOutdatedOnShareChange sdsId (const True) iworld
 					(CheckSDS sdsId hash checkF)
 						# (checkRes,iworld)		= checkF iworld

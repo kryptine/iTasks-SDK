@@ -27,6 +27,7 @@ currentDate				:: ReadOnlyShared Date
 // Processes
 topLevelTasks 			:: SharedTaskList Void
 
+currentSessions 		:: ReadOnlyShared [TaskListItem Void]
 currentProcesses		:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 

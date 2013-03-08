@@ -13,7 +13,7 @@ from StdFile import instance FileSystem World
 from List_NG import splitWith
 from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 import TaskStore, Time, Util, StdList, Base64, _SystemArray, StdBool, StdTuple
-import SerializationGraphCopy //TODO: Make switchable from within iTasks module
+import SerializationGraphCopy 
 
 updateCurrentDateTime :: !*IWorld -> *IWorld
 updateCurrentDateTime iworld=:{IWorld|world}
@@ -36,11 +36,25 @@ where
 	
 instance == Work
 where
-	(==) (Evaluate instanceNoX)		(Evaluate instanceNoY)		= instanceNoX == instanceNoY
-	(==) (TriggerSDSChange sdsIdX)	(TriggerSDSChange sdsIdY)	= sdsIdX == sdsIdY
-	(==) (CheckSDS sdsIdX hashX _)	(CheckSDS sdsIdY hashY _)	= sdsIdX == sdsIdY && hashX == hashY
+	(==) (Evaluate instanceNoX)			(Evaluate instanceNoY)			= instanceNoX == instanceNoY
+	(==) (EvaluateUrgent instanceNoX)	(EvaluateUrgent instanceNoY)	= instanceNoX == instanceNoY
+	(==) (TriggerSDSChange sdsIdX)		(TriggerSDSChange sdsIdY)		= sdsIdX == sdsIdY
+	(==) (CheckSDS sdsIdX hashX _)		(CheckSDS sdsIdY hashY _)		= sdsIdX == sdsIdY && hashX == hashY
 	(==) _							_							= False
 
+queueUrgentEvaluate	:: !InstanceNo !*IWorld -> *IWorld
+queueUrgentEvaluate instanceNo iworld=:{workQueue}
+	= {iworld & workQueue = queue instanceNo workQueue}
+where
+	queue newInstanceNo []			= [(EvaluateUrgent instanceNo,Nothing)]
+	queue newInstanceNo [(EvaluateUrgent no,ts):qs]
+		| newInstanceNo == no		= [(EvaluateUrgent no,ts):qs]
+									= [(EvaluateUrgent no,ts):queue newInstanceNo qs]
+	queue newInstanceNo [(Evaluate no,ts):qs]		
+		| newInstanceNo == no		= [(EvaluateUrgent no,Nothing):qs]	
+									= [(Evaluate no,ts):queue newInstanceNo qs]
+	queue newInstanceNo [q:qs]		= [q:queue newInstanceNo qs]
+	
 dequeueWork	:: !*IWorld -> (!DequeueResult, !*IWorld)
 dequeueWork iworld=:{workQueue}
 	| isEmpty workQueue	= (Empty, iworld)
@@ -66,6 +80,23 @@ dequeueWorkFilter filter iworld=:{workQueue}
 where
 	filter` _		(work,Nothing)		= filter work
 	filter` curTime	(work,Just time)	= curTime >= time && filter work
+
+//Determine the expiration of request, thereby determining the poll interval of
+//polling clients
+REGULAR_EXPIRY		:== 10000
+FAST_EXPIRY			:== 100
+IMMEDIATE_EXPIRY	:== 0
+getResponseExpiry :: !InstanceNo !*IWorld -> (!Maybe Int, !*IWorld) 
+getResponseExpiry instanceNo iworld=:{workQueue}
+	= (Just (expiry instanceNo workQueue), iworld)
+where
+	expiry _ [] = REGULAR_EXPIRY	
+	expiry instanceNo [(Evaluate _,Just (Timestamp 0)):ws]		//HACK...
+								= IMMEDIATE_EXPIRY
+	expiry instanceNo [(Evaluate evalNo,_):ws]
+		| evalNo == instanceNo	= FAST_EXPIRY
+								= expiry instanceNo ws
+	expiry instanceNo [_:ws]	= expiry instanceNo ws
 
 //Wrapper instance for file access
 instance FileSystem IWorld

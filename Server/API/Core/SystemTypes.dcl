@@ -427,7 +427,7 @@ instance <			TaskId
 :: ProgressMeta =
 	{ issuedAt			:: !DateTime				//* When was the task created
 	, issuedBy			:: !User					//* By whom was the task created
-	, status			:: !Stability				//* Is a maintask active,suspended,finished or excepted
+	, stable			:: !Stability				//* Is a maintask stable
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
 	}

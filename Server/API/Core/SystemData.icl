@@ -1,6 +1,6 @@
 implementation module SystemData
 
-import SystemTypes, Store, TaskStore, Time, Shared, Util, Text, Task, Tuple, StdFile
+import SystemTypes, Store, TaskStore, Time, Shared, Util, Text, Task, Tuple, StdFile, Map
 import Random
 import StdList, StdBool
 from StdFunc		import o, seq
@@ -11,23 +11,7 @@ SYSTEM_DATA_NS :== "SystemData"
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId defaultV
-/*
-sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = createChangeOnWriteSDS
-	"sharedStore" storeId
-	(get (loadValue NS_APPLICATION_SHARES) defaultV)
-	write
-where	
-	get f defaultV iworld
-		# (mbV,iworld) = f storeId iworld
-		# res = case mbV of
-			Nothing	= Ok defaultV
-			Just v	= Ok v
-		= (res,iworld)
-		
-	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
-*/
-	
+
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where
@@ -56,30 +40,33 @@ where
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = createReadOnlySDS read
+topLevelTasks = mapRead readPrj currentProcesses
 where
-	read iworld
-		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= ({TaskList|listId = TopLevelTaskList, items = fromMaybe [] list}, iworld)
-		
+	readPrj items = {TaskList|listId = TopLevelTaskList, items = items}
+
+currentSessions ::ReadOnlyShared [TaskListItem Void]
+currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | isSession m]) (toReadOnly taskInstances)
+
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = createReadOnlySDS read
-where
-	read iworld
-		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= (fromMaybe [] list, iworld)
+currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | not (isSession m)]) (toReadOnly taskInstances)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
-processesForCurrentUser = createReadOnlySDS read
+processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
-	read iworld=:{currentUser}
-		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= (maybe [] (\l -> [ p \\ p <- l | forWorker currentUser p]) list, iworld)
-		
+	readPrj (items,user)	= filter (forWorker user) items
+
 	forWorker user {managementMeta=Just {ManagementMeta|worker=AnyUser}}									= True
 	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {ManagementMeta|worker=UserWithId uid2}}	= uid1 == uid2
 	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {ManagementMeta|worker=UserWithRole role}}	= isMember role roles
 	forWorker _ _																							= False
+
+isSession :: !TIMeta -> Bool
+isSession {TIMeta|sessionId=Just _}	= True
+isSession _						 	= False
+
+toTaskListItem :: !TIMeta -> TaskListItem a //TODO add task meta
+toTaskListItem {TIMeta|instanceNo,progress,management}
+	= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = [], progressMeta = Just progress, managementMeta = Just management}
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\iworld=:{currentUser} -> (currentUser,iworld))
