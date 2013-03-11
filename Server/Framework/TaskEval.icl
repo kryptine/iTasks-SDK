@@ -18,7 +18,7 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Map'.newMap}
 	# meta					= createMeta instanceNo (Just sessionId) 0 (Just worker) mmeta pmeta
 	# (_,iworld)			= 'SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -38,7 +38,7 @@ where
 createTopTaskInstance  :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
 createTopTaskInstance  task mmeta issuer parent iworld=:{currentDateTime,taskTime}
 	# (instanceNo,iworld)	= newInstanceNo iworld
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Map'.newMap}
 	# meta					= createMeta instanceNo Nothing parent Nothing mmeta pmeta
 	# (_,iworld)			= 'SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -152,7 +152,7 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			# (meta, iworld) = case 'SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
 				(Ok meta, iworld)		= (meta, iworld)
 				(_, iworld)				= (meta, iworld)
-			# meta						= {TIMeta|meta & progress = setStability result progress}
+			# meta						= {TIMeta|meta & progress = updateProgress currentDateTime result progress}
 			# (_,iworld)				= 'SharedDataSource'.writeFilterMsg meta ((<>) instanceNo) (taskInstanceMeta instanceNo) iworld //TODO Check error
 			//Store updated reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
@@ -171,9 +171,13 @@ where
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
 	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
 
-	setStability (ExceptionResult _ _) meta					= {meta & stable = True}
-	setStability (ValueResult (Value _ True) _ _ _) meta	= {meta & stable = True}
-	setStability _	meta									= {meta & stable = False}
+	updateProgress now result progress
+		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Just now}
+		= case result of
+			(ExceptionResult _ _)				= {progress & stable = True}
+			(ValueResult (Value _ True) _ _ _)	= {progress & stable = True}
+			(ValueResult _ _ (TaskRep ui _) _)	= {progress & stable = False, latestAttributes = uiDefAttributes ui}
+			_									= {progress & stable = False}
 
 	tasktree (ValueResult _ _ _ tree)	= tree
 	tasktree (ExceptionResult _ _)		= TCNop
@@ -254,7 +258,6 @@ where
 	toItem {TaskListEntry|entryId,state,result=TIValue val ts,attributes}
 		= 	{taskId			= entryId
 			,value			= deserialize val
-			,taskMeta		= 'Map'.toList attributes
 			,managementMeta = management
 			,progressMeta	= progress
 			}

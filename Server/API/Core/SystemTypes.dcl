@@ -412,8 +412,6 @@ instance ==			TaskId
 instance <			TaskId
 
 //* Meta-data of tasks
-:: TaskMeta		:==	[(!String,!String)]				//* Task meta data consists of untyped attributes
-
 :: ManagementMeta =
 	{ title				:: !Maybe String			//* Title to identify the task
 	, worker			:: !UserConstraint			//* Who has to do the task? 
@@ -430,6 +428,7 @@ instance <			TaskId
 	, stable			:: !Stability				//* Is a maintask stable
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
+	, latestAttributes	:: !Map String String		//* User interface attributes of latest execution
 	}
 
 //* Tasks can have three levels of priority
@@ -454,7 +453,6 @@ instance toString (TaskListId s)
 :: TaskListItem a =
 	{ taskId			:: !TaskId
 	, value				:: !TaskValue a
-	, taskMeta			:: !TaskMeta
 	, managementMeta	:: !Maybe ManagementMeta	//Only for detached tasks
 	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
 	}
@@ -466,7 +464,6 @@ instance toString (TaskListId s)
 	| Detached !ManagementMeta
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
-
 
 /** Interaction masks contain information about a value as it is being edited
 *   in an interactive task.

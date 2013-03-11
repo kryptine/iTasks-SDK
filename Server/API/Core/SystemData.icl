@@ -64,9 +64,9 @@ isSession :: !TIMeta -> Bool
 isSession {TIMeta|sessionId=Just _}	= True
 isSession _						 	= False
 
-toTaskListItem :: !TIMeta -> TaskListItem a //TODO add task meta
+toTaskListItem :: !TIMeta -> TaskListItem a 
 toTaskListItem {TIMeta|instanceNo,progress,management}
-	= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = [], progressMeta = Just progress, managementMeta = Just management}
+	= {taskId = TaskId instanceNo 0, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\iworld=:{currentUser} -> (currentUser,iworld))

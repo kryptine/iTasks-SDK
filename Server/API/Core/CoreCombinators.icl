@@ -268,8 +268,7 @@ where
 		# (mbResult,iworld)	= read (taskInstanceResult instanceNo) iworld
 		= case (mbMeta,mbResult) of
 			(Ok meta,Ok res)
-				# fixme = []	//TODO: Get the attributes from detached tasks
-				# (entry,iworld) = updateListEntryDetachedResult taskId entryId res meta.TIMeta.progress meta.TIMeta.management fixme iworld
+				# (entry,iworld) = updateListEntryDetachedResult taskId entryId res meta.TIMeta.progress meta.TIMeta.management iworld
 				= (Nothing,acc++[(entry,Nothing)],iworld)
 			_	= (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
 
@@ -324,7 +323,7 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 			= (taskIda, EmbeddedState (dynamic task :: Task a^) (TCInit taskIda taskTime),iworld)
 		Detached management
 			# task									= parTask (parListShare taskId)
-			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
+			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Map'.newMap}
 			# (taskIda=:TaskId instanceNo _,iworld)	= createTopTaskInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= TIValue NoValue taskTime
@@ -349,12 +348,12 @@ where
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
 
-updateListEntryDetachedResult :: !TaskId !TaskId TIResult !ProgressMeta !ManagementMeta !TaskMeta !*IWorld -> (!TaskListEntry,!*IWorld)
-updateListEntryDetachedResult listId entryId result progress management attributes iworld
+updateListEntryDetachedResult :: !TaskId !TaskId TIResult !ProgressMeta !ManagementMeta !*IWorld -> (!TaskListEntry,!*IWorld)
+updateListEntryDetachedResult listId entryId result progress management iworld
 	= updateListEntry listId entryId update iworld
 where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
-		= {TaskListEntry| e & state = DetachedState no progress management,result = result, attributes = 'Map'.fromList attributes}
+		= {TaskListEntry| e & state = DetachedState no progress management,result = result, attributes = progress.latestAttributes}
 	update e = e
 
 markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
