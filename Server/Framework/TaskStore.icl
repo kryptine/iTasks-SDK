@@ -21,13 +21,9 @@ derive JSONDecode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractCont
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
-//derive gDefault TIMeta//, TIReduct, TIResult, TaskListEntry, TaskTree//, TaskRep, DeferredJSON, InteractionMask
-
 INCREMENT				:== "increment"
-PERSISTENT_INDEX		:== "persistent-index"
 SHARE_REGISTRATIONS		:== "share-registrations"
 
-meta_store t	= toString t +++ "-meta"
 reduct_store t	= toString t +++ "-reduct"
 result_store t	= toString t +++ "-result"
 rep_store t		= toString t +++ "-rep"

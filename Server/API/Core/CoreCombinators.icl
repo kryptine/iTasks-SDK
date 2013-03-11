@@ -220,14 +220,13 @@ where
 					(Nothing,iworld=:{localLists})
 						//Destruction is ok, build parallel result
 						# rep				= parallelRep desc taskId repOpts entries
-						# expiry			= parallelExpiry entries
 						# values			= map (toValueAndTime o fst) entries 
 						# stable			= all (isStable o snd) values
 						# ts				= foldr max 0 [ts:map fst values]
 						# ts				= case event of
 							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
-						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,expiresIn=expiry} (finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Map'.put taskId (map fst entries) localLists})
+						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts} (finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Map'.put taskId (map fst entries) localLists})
 	//Cleanup
 	eval event repOpts (TCDestroy (TCParallel taskId ts)) iworld=:{localLists}
 		# entries = fromMaybe [] ('Map'.get taskId localLists)
@@ -306,14 +305,6 @@ where
 		# parts = [(uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent) (uiDefSetAttribute CREATED_AT_ATTRIBUTE (toString createdAt) (uiDefSetAttribute TASK_ATTRIBUTE (toString entryId) def)))
 					 \\ ({TaskListEntry|entryId,state=EmbeddedState _ _,result=TIValue val _,createdAt,lastEvent,removed=False},Just (TaskRep def _)) <- entries | not (isStable val)]	
 		= TaskRep (after (layout.Layout.parallel (toPrompt desc) parts)) []
-	
-	parallelExpiry :: [(!TaskListEntry,!Maybe TaskRep)] -> Maybe Int
-	parallelExpiry entries = minimum [exp \\ ({TaskListEntry|expiresIn=Just exp},_) <- entries]
-	where
-		//If we have multiple tasks in parallel, the lowest expiry determines the expiry of the set
-		minimum []	= Nothing
-		minimum [e]	= Just e
-		minimum [e:es] = let (Just mines) = minimum es in Just (if (e < mines) e mines)
 
 	isStable (Value _ stable) 	= stable
 	isStable _					= False
@@ -337,14 +328,14 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 			# (taskIda=:TaskId instanceNo _,iworld)	= createTopTaskInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= TIValue NoValue taskTime
-	# entry		= {entryId = taskIda, state = state, result = result, attributes = 'Map'.newMap, createdAt = taskTime, lastEvent = taskTime, expiresIn = Nothing, removed = False}
+	# entry		= {entryId = taskIda, state = state, result = result, attributes = 'Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)		
 
 updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
 updateListEntryEmbeddedResult listId entryId result iworld
 	= updateListEntry listId entryId (\e=:{TaskListEntry|state,lastEvent} ->
-		{TaskListEntry|e & state = newTree state result, result = serialize result, attributes = newAttr result, lastEvent = maxTime lastEvent result, expiresIn = expiresIn result}) iworld
+		{TaskListEntry|e & state = newTree state result, result = serialize result, attributes = newAttr result, lastEvent = maxTime lastEvent result}) iworld
 where
 	serialize (ValueResult val {TaskInfo|lastEvent} _ _) 		= TIValue (fmap toJSON val) lastEvent
 	serialize (ExceptionResult e str)							= TIException e str
@@ -357,9 +348,6 @@ where
 	
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
-
-	expiresIn (ValueResult _ {TaskInfo|expiresIn} _ _)			= expiresIn
-	expiresIn _													= Nothing
 
 updateListEntryDetachedResult :: !TaskId !TaskId TIResult !ProgressMeta !ManagementMeta !TaskMeta !*IWorld -> (!TaskListEntry,!*IWorld)
 updateListEntryDetachedResult listId entryId result progress management attributes iworld
@@ -474,18 +462,18 @@ where
 		# layout			= repLayout repOpts
 		= case (meta,result,rep) of
 			(_,Ok (TIValue (Value _ True) _),_)
-				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts} (finalizeRep repOpts noRep) tree, iworld)
 			(_,Ok (TIException _ _),_)
-				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts} (finalizeRep repOpts noRep) tree, iworld)
 			(Ok meta=:{TIMeta|worker=Just worker},_,Ok (TaskRep def parts))
 				| worker == currentUser
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn def meta) parts)
-					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)
+					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn (inUseDef worker) meta) parts)
-					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,expiresIn=Nothing} rep tree, iworld)		
+					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts} rep tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts} (finalizeRep repOpts noRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld=:{currentInstance}
 		= (DestroyedResult,iworld)

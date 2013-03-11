@@ -37,7 +37,6 @@ derive gPutRecordFields	Task
 :: TaskInfo =
 	{ lastEvent			:: TaskTime		//When was the last edit, action or focus event in this task
 //	, lastValueChange	:: TaskTime 	//When was the last time this task's value changed
-	, expiresIn			:: Maybe Int	//Guideline for the maximum amount of time to wait before automatically refreshing (in milliseconds)	
 	}
 
 :: TaskRepOpts	=
