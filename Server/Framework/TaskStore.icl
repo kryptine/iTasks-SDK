@@ -21,7 +21,7 @@ derive JSONDecode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractCont
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
-derive gDefault TIMeta//, TIReduct, TIResult, TaskListEntry, TaskTree//, TaskRep, DeferredJSON, InteractionMask
+//derive gDefault TIMeta//, TIReduct, TIResult, TaskListEntry, TaskTree//, TaskRep, DeferredJSON, InteractionMask
 
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"
@@ -60,84 +60,36 @@ newDocumentId iworld=:{world,timestamp}
 	# (Clock c,world)	= clock world
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
 
+deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
+deleteInstance instanceNo iworld
+	= case read taskInstances iworld of
+		(Ok instances,iworld)
+			# (_,iworld)	= write (del instanceNo instances) taskInstances iworld
+			= iworld
+		(_,iworld)
+			= iworld
 
-storeTaskInstance :: !TaskInstance !*IWorld -> *IWorld
-storeTaskInstance (meta=:{TIMeta|instanceNo,sessionId},reduct,result,rep) iworld
-	//Store all parts
-	# iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld
-	# iworld = storeValue NS_TASK_INSTANCES (reduct_store instanceNo) reduct iworld
-	# iworld = storeValue NS_TASK_INSTANCES (result_store instanceNo) result iworld
-	# iworld = storeValue NS_TASK_INSTANCES (rep_store instanceNo) rep iworld
-	= case sessionId of
-		Just sessionId	= updateSessionInstanceIndex (put sessionId instanceNo) iworld
-		Nothing			= updatePersistentInstanceIndex (replace (instanceToTaskListItem meta rep)) iworld
+taskInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+taskInstances = storeAccess NS_TASK_INSTANCES "instances" (Just newMap)
+
+taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+taskInstanceMeta instanceNo = mapReadWriteError (readPrj,writePrj) taskInstances
 where
-	replace item [] = [item]
-	replace item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:replace item is]
+	readPrj instances = case get instanceNo instances of
+		Just i	= Ok i
+		_		= Error ("Task instance " +++ toString instanceNo +++ " could not be found")
 
-	instanceToTaskListItem :: !TIMeta !TIRep -> TaskListItem a
-	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep def _)
-		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = toList (uiDefAttributes def), progressMeta = Just progress, managementMeta = Just management}
+	writePrj i instances = Ok (Just (put instanceNo i instances))
 
-loadTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
-loadTaskInstance instanceNo iworld
-	# (meta,iworld)		= loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
-	# (reduct,iworld)	= loadValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
-	# (result,iworld)	= loadValue NS_TASK_INSTANCES (result_store instanceNo) iworld
-	= case (meta,reduct,result) of
-		(Just meta,Just reduct,Just result)
-			= (Ok (meta,reduct,result),iworld)
-		_
-			= (Error ("Could not load instance state of task " +++ toString instanceNo),iworld)
+taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
+taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing 
+
+taskInstanceResult :: !InstanceNo -> RWShared TIResult TIResult IWorld
+taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) Nothing 
+
+taskInstanceRep :: !InstanceNo -> RWShared TIRep TIRep IWorld
+taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing 
 	
-loadSessionInstance	:: !SessionId !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
-loadSessionInstance sessionId iworld=:{sessions}
-	= case get sessionId sessions of
-		Just topno	= loadTaskInstance topno iworld
-		_			= (Error ("Could not load session " +++ sessionId), iworld)
-
-loadTaskMeta :: !InstanceNo !*IWorld -> (!MaybeErrorString TIMeta, !*IWorld)
-loadTaskMeta instanceNo iworld
-	# (meta,iworld)		= loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
-	= (maybe (Error ("Could not load meta state of task " +++ toString instanceNo)) Ok meta, iworld)
-loadTaskReduct :: !InstanceNo !*IWorld -> (!MaybeErrorString TIReduct, !*IWorld)
-loadTaskReduct instanceNo iworld
-	# (reduct,iworld)	= loadValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
-	= (maybe (Error ("Could not load reduct state of task " +++ toString instanceNo)) Ok reduct, iworld)
-
-loadTaskResult :: !InstanceNo !*IWorld -> (!MaybeErrorString TIResult, !*IWorld)
-loadTaskResult instanceNo iworld
-	# (result,iworld)	= loadValue NS_TASK_INSTANCES (result_store instanceNo) iworld
-	= (maybe (Error ("Could not load result state of task " +++ toString instanceNo)) Ok result, iworld)
-	
-loadTaskRep :: !InstanceNo !*IWorld -> (!MaybeErrorString TIRep, !*IWorld)
-loadTaskRep instanceNo iworld
-	# (rep,iworld)		= loadValue NS_TASK_INSTANCES (rep_store instanceNo) iworld
-	= (maybe (Error ("Could not load ui representation state of task " +++ toString instanceNo)) Ok rep, iworld)
-
-storeTaskMeta :: !InstanceNo !TIMeta !*IWorld -> *IWorld
-storeTaskMeta instanceNo meta iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld
-
-storeTaskReduct :: !InstanceNo !TIReduct !*IWorld -> *IWorld
-storeTaskReduct instanceNo reduct iworld = storeValue NS_TASK_INSTANCES (reduct_store instanceNo) reduct iworld
-
-storeTaskResult :: !InstanceNo !TIResult !*IWorld -> *IWorld
-storeTaskResult instanceNo result iworld = storeValue NS_TASK_INSTANCES (result_store instanceNo) result iworld
-
-storeTaskRep :: !InstanceNo !TIRep !*IWorld -> *IWorld
-storeTaskRep instanceNo rep iworld = storeValue NS_TASK_INSTANCES (rep_store instanceNo) rep iworld
-
-deleteTaskInstance :: !InstanceNo !*IWorld -> *IWorld
-deleteTaskInstance instanceNo iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (result_store instanceNo) iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (rep_store instanceNo) iworld
-	# iworld = updatePersistentInstanceIndex (delete instanceNo) iworld
-	= iworld
-where
-	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
-
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
@@ -161,14 +113,6 @@ loadDocumentMeta documentId iworld
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{build,dataDirectory}
 	= (storePath dataDirectory build </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
-
-updateTaskInstanceMeta :: !InstanceNo !(TIMeta -> TIMeta) !*IWorld -> *IWorld
-updateTaskInstanceMeta instanceNo f iworld
-	= case loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld of
-		(Nothing,iworld)	= iworld
-		(Just meta,iworld)
-			# iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) (f meta) iworld
-			= addOutdatedInstances [(instanceNo, Nothing)] iworld
 
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 addShareRegistration shareId instanceNo iworld
@@ -200,28 +144,7 @@ addOutdatedOnShareChange shareId filterFun iworld
 
 addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
-
-taskInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
-taskInstances = storeAccess NS_TASK_INSTANCES "instances" newMap
-
-taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-taskInstanceMeta instanceNo = mapReadWriteError (readPrj,writePrj) taskInstances
-where
-	readPrj instances = case get instanceNo instances of
-		Just i	= Ok i
-		_		= Error ("Task instance " +++ toString instanceNo +++ " could not be found")
-
-	writePrj i instances = Ok (Just (put instanceNo i instances))
-
-taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
-taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) (abort "Read task instance reduct too early") 
-
-taskInstanceResult :: !InstanceNo -> RWShared TIResult TIResult IWorld
-taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) (abort "Read task instance result too early")
-
-taskInstanceRep :: !InstanceNo -> RWShared TIRep TIRep IWorld
-taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) (abort "Read task representation result too early")
-		
+	
 storeCurUI :: !SessionId !Int !UIDef !*IWorld -> *IWorld
 storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
 
@@ -241,14 +164,3 @@ restoreUICache iworld
 	= case mbUis of
 		Just uis		= {IWorld|iworld & uis = uis}
 		_				= iworld
-
-updateSessionInstanceIndex :: !((Map SessionId InstanceNo)-> (Map SessionId InstanceNo)) !*IWorld -> *IWorld
-updateSessionInstanceIndex f iworld=:{sessions}
-	= {IWorld|iworld & sessions = f sessions}
-
-updatePersistentInstanceIndex :: !([TaskListItem Void] -> [TaskListItem Void]) !*IWorld -> *IWorld 
-updatePersistentInstanceIndex f iworld
-	# (index,iworld)	= loadValue NS_TASK_INSTANCES PERSISTENT_INDEX iworld
-	# iworld			= storeValue NS_TASK_INSTANCES PERSISTENT_INDEX (f (fromMaybe [] index)) iworld
-	= iworld
-

@@ -15,15 +15,16 @@ newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
-//Task instance state accessible as shared data sources
+//Create and delete task instances
+deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
+
+//Task instance state is accessible as shared data sources
 taskInstances			:: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of available instances
 
 taskInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
 taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
 taskInstanceResult		:: !InstanceNo -> RWShared TIResult TIResult IWorld
 taskInstanceRep			:: !InstanceNo -> RWShared TIRep TIRep IWorld
-
-deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

@@ -29,8 +29,14 @@ NS_APPLICATION_SHARES	:== "application-data"
 
 /**
 * Create a shared data source for a piece of data in the store
+*
+* @param The namespace in the store
+* @param The key of the value in the  store
+* @param Optionally a default value to be used on first read. If nothing is given an error will occur when reading before writing.
+*
+* @return The shared data source
 */
-storeAccess :: !String !String a -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Determine the location of the store from data directory and build

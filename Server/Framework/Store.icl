@@ -17,12 +17,12 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 
 :: StoreFormat = SFPlain | SFDynamic
 
-storeAccess :: !String !String a -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 storeAccess namespace storeId defaultV = createChangeOnWriteSDS namespace storeId read write
 where
 	read iworld
 		# (mbV,iworld) = loadValue namespace storeId iworld
-		= (maybe (Ok defaultV) Ok mbV, iworld)
+		= (maybe (maybe (Error ("Can't read " +++ storeId)) Ok defaultV) Ok mbV, iworld)
 	write v iworld
 		= (Ok Void,storeValue namespace storeId v iworld)
 

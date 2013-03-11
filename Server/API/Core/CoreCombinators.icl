@@ -287,7 +287,7 @@ where
 	
 	//Destroy detached tasks (Just delete the instance)
 	destroyParTask (_,iworld) {TaskListEntry|entryId,state=DetachedState instanceNo _ _}
-		= (Nothing,deleteTaskInstance instanceNo iworld)
+		= (Nothing,deleteInstance instanceNo iworld)
 		
 	toValueAndTime :: !TaskListEntry -> (!TaskTime,TaskValue a) | iTask a
 	toValueAndTime {TaskListEntry|result=TIValue val _,lastEvent}	= (lastEvent,deserialize val)	
@@ -448,7 +448,7 @@ where
 
 	remove :: !(TaskListId a) !TaskId !*IWorld -> *IWorld
 	remove TopLevelTaskList (TaskId instanceNo 0) iworld
-		= deleteTaskInstance instanceNo iworld
+		= deleteInstance instanceNo iworld
 	remove (ParallelTaskList parId) entryId iworld
 		= markListEntryRemoved parId entryId iworld
 	remove _ _ iworld = iworld

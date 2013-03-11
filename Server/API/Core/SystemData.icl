@@ -10,7 +10,7 @@ from Util			import qualified currentDate, currentTime, currentDateTime, currentT
 SYSTEM_DATA_NS :== "SystemData"
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId defaultV
+sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just defaultV)
 
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
