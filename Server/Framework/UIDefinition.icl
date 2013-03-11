@@ -1,6 +1,6 @@
 implementation module UIDefinition
 
-import JSON_NG, StdList, StdBool, StdTuple, GenEq_NG, StdFunc, HTML, Text, Map, List_NG
+import JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, HTML, Text, Map, List
 from SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey, :: GoogleMapIcon
 	
 defaultSizeOpts	:: UISizeOpts

@@ -1,6 +1,6 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG, JSON_NG
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic, JSON
 import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, Map, UIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a

@@ -1,6 +1,6 @@
 implementation module GenUpdate
 
-import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List_NG
+import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List
 import SystemTypes, Text, Util
 from StdFunc import id, flip, const, o
 from UIDefinition import :: UISize(..)

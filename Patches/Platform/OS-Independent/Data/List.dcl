@@ -1,6 +1,6 @@
-definition module List_NG
+definition module List
 
-import Functor, GenEq_NG
+import Functor, GenEq
 
 unzip3			:: ![(.a,.b,.c)]			-> ([.a],[.b],[.c])
 unzip4			:: ![(.a,.b,.c,.d)]			-> ([.a],[.b],[.c],[.d])

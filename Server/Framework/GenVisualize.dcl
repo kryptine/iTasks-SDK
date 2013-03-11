@@ -1,6 +1,6 @@
 definition module GenVisualize
 
-import HTML, JSON_NG, UIDefinition
+import HTML, JSON, UIDefinition
 import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map

@@ -7,7 +7,7 @@ from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: Sessi
 from Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from Shared			import :: Shared
 
-import Maybe, JSON_NG, Error
+import Maybe, JSON, Error
 import TaskState, iTaskClass
 
 /**

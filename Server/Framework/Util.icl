@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList, Maybe, Time, Text, FilePath, Directory, JSON_NG, Void, Error, GenEq_NG
+import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList, Maybe, Time, Text, FilePath, Directory, JSON, Void, Error, GenEq
 from SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
 from IWorld 		import :: IWorld{currentDateTime,timestamp}
 

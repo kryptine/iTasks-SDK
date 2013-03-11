@@ -1,7 +1,7 @@
 implementation module Store
 
 import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
-import File, Directory, OSError, Maybe, Map, Text, JSON_NG, Functor, FilePath
+import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 import SharedDataSource
 from IWorld			import :: IWorld(..), :: Work
 from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId

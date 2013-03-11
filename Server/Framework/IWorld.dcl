@@ -8,7 +8,7 @@ from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: Task
 from UIDefinition		import :: UIDef, :: UIControl
 from Time				import :: Timestamp
 from TaskState			import :: TaskListEntry
-from JSON_NG			import :: JSONNode
+from JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 

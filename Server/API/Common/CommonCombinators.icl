@@ -2,7 +2,7 @@ implementation module CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time, Tuple, List_NG
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time, Tuple, List
 import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
 from SystemTypes		import :: User(..), :: Note(..)

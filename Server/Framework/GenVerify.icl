@@ -1,6 +1,6 @@
 implementation module GenVerify
 
-import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic_NG
+import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic
 import GenUpdate, StdMisc
 
 verifyValue :: !a -> Bool | gVerify{|*|} a

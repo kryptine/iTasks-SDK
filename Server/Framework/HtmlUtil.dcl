@@ -3,7 +3,7 @@ definition module HtmlUtil
 * This module provides rudimentary utilities for generating simple html pages.
 *
 */
-import HTML, JSON_NG, HTTP
+import HTML, JSON, HTTP
 /*
 * Generate a 404 page
 */

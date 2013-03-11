@@ -1,6 +1,6 @@
 implementation module DBTasks
 
-import StdList, StdOrdList, Util, List_NG
+import StdList, StdOrdList, Util, List
 import iTaskClass, Task, Shared
 from CoreTasks			import get, set, return
 from CommonCombinators	import >>|, >>=

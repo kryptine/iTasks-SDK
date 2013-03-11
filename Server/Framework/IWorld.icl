@@ -6,11 +6,11 @@ from Maybe				import :: Maybe
 from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from Time				import :: Timestamp
 from TaskState			import :: TaskListEntry
-from JSON_NG			import :: JSONNode
+from JSON				import :: JSONNode
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
-from List_NG import splitWith
+from List import splitWith
 from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 import TaskStore, Time, Util, StdList, Base64, _SystemArray, StdBool, StdTuple
 import SerializationGraphCopy 

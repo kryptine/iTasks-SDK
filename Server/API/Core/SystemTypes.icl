@@ -2,7 +2,7 @@ implementation module SystemTypes
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
-import List_NG, JSON_NG, HTML, Text, Util, Map, Base64, Tuple, dynamic_string
+import List, JSON, HTML, Text, Util, Map, Base64, Tuple, dynamic_string
 import GenVisualize, GenUpdate
 
 from Time 		import :: Timestamp(..)
@@ -243,13 +243,13 @@ gVisualizeText{|Date|} _ val = [toString val]
 gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+		# val	= checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gDefault{|Date|} _ = {day = 1, mon = 1, year = 1970}
 
-gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromMaybe old (fromJSON json)) target upd val
+gUpdate{|Date|} target upd val = basicUpdate (\json old -> (fromMaybe old (fromJSON json))) target upd val
 
 gVerify{|Date|} _ um options = simpleVerify "Enter a date" um options
 

@@ -1,4 +1,4 @@
-implementation module JSON_NG
+implementation module JSON
 
 import StdGeneric, Maybe, StdList, StdOrdList, StdString, _SystemArray, StdTuple, StdBool, StdFunc, StdOverloadedList
 import Text, PPrint

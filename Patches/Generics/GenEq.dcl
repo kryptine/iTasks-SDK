@@ -1,4 +1,4 @@
-definition module GenEq_NG
+definition module GenEq
 
 import StdGeneric
 

@@ -2,7 +2,7 @@ implementation module TaskStore
 
 import StdEnv, Maybe
 
-import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, UIDefinition, Map, Func, Tuple
+import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON, UIDefinition, Map, Func, Tuple
 import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 

@@ -3,7 +3,7 @@ definition module SystemTypes
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-import GenEq_NG, Maybe, JSON_NG, Store, Void, Either, FilePath, HTML, Error, File, OS
+import GenEq, Maybe, JSON, Store, Void, Either, FilePath, HTML, Error, File, OS
 from Map 				import :: Map
 from Map 				import qualified get
 from HTML 				import class html
@@ -564,7 +564,7 @@ ActionSave		:== Action "/File/Save" 	[ActionIcon "save", ActionKey (ctrl KEY_S)]
 ActionSaveAs 	:== Action "/File/Save as"	[ActionIcon "save"]
 ActionQuit		:== Action "/File/Quit"		[ActionIcon "quit"]
 ActionHelp		:==	Action "/Help/Help"		[ActionIcon "help"]
-ActionAbout		:== Action "/Help/About"	[ActionIcon "About"]
+ActionAbout		:== Action "/Help/About"	[ActionIcon "about"]
 ActionFind		:== Action "/Edit/Find"		[ActionIcon "find", ActionKey (ctrl KEY_F)]
 ActionNew		:== Action "New"			[ActionIcon "new", ActionKey (ctrl KEY_N)]
 ActionEdit		:== Action "Edit"			[ActionIcon "edit"]

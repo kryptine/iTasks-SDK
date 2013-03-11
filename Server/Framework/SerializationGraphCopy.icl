@@ -6,7 +6,7 @@ from Store import :: StoreFormat(..)
 
 import Base64
 import Error
-import JSON_NG
+import JSON
 import Maybe
 
 serialize :: !a -> *String

@@ -1,6 +1,6 @@
 implementation module CoreTasks
 
-import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List_NG
+import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
 import qualified StdList
 import iTaskClass, Task, TaskState, TaskEval, TaskStore, UIDefinition, LayoutCombinators, Shared
 from SharedDataSource		import qualified read, readRegister, write, writeFilterMsg

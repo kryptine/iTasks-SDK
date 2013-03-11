@@ -3,7 +3,7 @@ implementation module TaskState
 import SystemTypes, UIDefinition
 from iTasks		import JSONEncode, JSONDecode
 from Task		import :: Event, :: TaskTime, :: TaskResult(..), :: TaskInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: TaskCompositionType
-import JSON_NG
+import JSON
 
 derive JSONEncode TIMeta, TIReduct, TIResult, TaskTree, TaskListEntry, TaskListEntryState
 derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree, TaskListEntry, TaskListEntryState

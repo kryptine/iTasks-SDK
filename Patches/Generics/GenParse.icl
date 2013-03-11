@@ -1,4 +1,4 @@
-implementation module GenParse_NG
+implementation module GenParse
 
 import StdGeneric, StdEnv, StdMaybe
 

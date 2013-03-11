@@ -1,4 +1,4 @@
-definition module GenParse_NG
+definition module GenParse
 
 import StdGeneric, StdMaybe
 

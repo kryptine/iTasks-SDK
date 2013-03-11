@@ -4,7 +4,7 @@ definition module UIDefinition
 * This representation seeks a middle ground between being fine grained enough
 * to describe rich user interfaces and being leaving rendering details to the client framework.
 */
-import JSON_NG, GenEq_NG
+import JSON, GenEq
 from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey, :: GoogleMapIcon
 from Task			import :: TaskId
 from HTML			import :: HtmlTag

@@ -1,4 +1,4 @@
-implementation module GenEq_NG
+implementation module GenEq
 
 import StdGeneric, StdEnv
 

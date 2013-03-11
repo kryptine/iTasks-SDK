@@ -1,4 +1,4 @@
-implementation module Generic_NG
+implementation module Generic
 
 import StdGeneric, StdList
 

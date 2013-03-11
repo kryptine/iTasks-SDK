@@ -1,6 +1,6 @@
-implementation module List_NG
+implementation module List
 
-import StdTuple, StdBool, StdList, StdOrdList, Functor, GenEq_NG
+import StdTuple, StdBool, StdList, StdOrdList, Functor, GenEq
 
 unzip3 :: ![(.a,.b,.c)] -> ([.a],[.b],[.c])
 unzip3 []				= ([], [], [])

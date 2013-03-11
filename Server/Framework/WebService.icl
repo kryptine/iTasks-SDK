@@ -1,7 +1,7 @@
 implementation module WebService
 
 import StdList, StdBool, StdTuple
-import Time, JSON_NG
+import Time, JSON
 import SystemTypes, Task, TaskState, TaskEval, TaskStore, UIDiff, Util, HtmlUtil, Map
 import Engine, IWorld
 

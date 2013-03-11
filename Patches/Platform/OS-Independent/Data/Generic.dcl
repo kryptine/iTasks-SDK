@@ -1,4 +1,4 @@
-definition module Generic_NG
+definition module Generic
 
 import StdGeneric
 

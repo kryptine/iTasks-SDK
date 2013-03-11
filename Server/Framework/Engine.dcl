@@ -5,7 +5,7 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 
-import Maybe, JSON_NG, FilePath, Task, StdList
+import Maybe, JSON, FilePath, Task, StdList
 from IWorld			import :: IWorld
 from HTTP			import :: HTTPRequest, :: HTTPResponse
 
