@@ -109,6 +109,10 @@ actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 
+
+//Partial operations
+layoutControls	:: UIDef -> UIDef
+
 //Util
 defToContainer	:: UIDef -> UIControl
 defToPanel		:: UIDef -> UIControl
