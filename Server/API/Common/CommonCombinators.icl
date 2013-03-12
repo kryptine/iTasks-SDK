@@ -218,8 +218,12 @@ appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const 
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskFor worker task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} task
 			
-instance tune Window
-where tune Window task = task <<@ AfterLayout (tweakAttr ('Map'.put FLOAT_ATTRIBUTE "window"))
+instance tune InWindow
+where tune InWindow task = task <<@ AfterLayout (tweakAttr ('Map'.put CONTAINER_ATTRIBUTE "window"))
+instance tune InContainer
+where tune InContainer task = task <<@ AfterLayout (tweakAttr ('Map'.put CONTAINER_ATTRIBUTE "container"))
+instance tune InPanel
+where tune InPanel task = task <<@ AfterLayout (tweakAttr ('Map'.put CONTAINER_ATTRIBUTE "panel"))
 
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

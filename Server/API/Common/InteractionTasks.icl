@@ -5,8 +5,7 @@ from SystemData import null
 from Tuple import appSnd
 from List import isMemberGen, instance Functor []
 from Time import :: Timestamp(..)
-from Map import qualified put
-from Util import kvSet
+from Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
@@ -261,8 +260,18 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 	_						= []
 
 viewTitle :: !a -> Task a | iTask a 
-viewTitle a = viewInformation Void  [ViewWith view] a
+viewTitle a = viewInformation (Title title) [ViewWith view] a <<@ InContainer <<@ AfterLayout (tweakAttr titleFromValue)
 where
-	title				= visualizeAsText AsLabel a
-	view a				= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
-	addTitleAttr attr	= 'Map'.put TITLE_ATTRIBUTE title attr
+	title	= visualizeAsText AsLabel a
+	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
+
+viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
+viewSharedTitle s = viewSharedInformation Void [ViewWith view] s <<@ InContainer <<@ AfterLayout (tweakAttr titleFromValue)
+where
+	view r	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsText AsLabel r)]]	
+
+titleFromValue :: UIAttributes -> UIAttributes
+titleFromValue attr = case 'Map'.get VALUE_ATTRIBUTE attr of
+	Just v	= 'Map'.put TITLE_ATTRIBUTE v attr
+	_		= attr
+

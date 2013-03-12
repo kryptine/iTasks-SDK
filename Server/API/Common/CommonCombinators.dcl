@@ -326,7 +326,9 @@ appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
 // Additional tuning shortcuts
-instance tune Window		//Indicate that this task should be a window
+instance tune InWindow		//Indicate that this task is preferred to be placed in a window
+instance tune InContainer	//Indicate that this task is preferred to be placed in a borderless container
+instance tune InPanel		//Indicate that this task is preferred to be placed in a panel with a border
 
 //Common derived task steps
 Always			:: Action (Task b)						-> TaskStep a b

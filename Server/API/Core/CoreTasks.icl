@@ -91,7 +91,7 @@ where
 										(l,nv,nmask)
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -133,7 +133,7 @@ where
 										(l,nv,nmask)
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -172,7 +172,7 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun nr) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -181,7 +181,7 @@ where
 		# v = toView r
 		= (r,v,Touched) 
 
-interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v
+interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v & iTask l
 interactNullEnter desc initFun fromf = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -200,7 +200,7 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun l nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -230,7 +230,7 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun l nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -259,7 +259,7 @@ where
 		# nl = l
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -291,7 +291,7 @@ where
 		# (nl,nv,nmask) 		= if changed (refreshFun l nr nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
-		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
@@ -308,10 +308,10 @@ matchAndApplyEvent (FocusEvent taskId) matchId taskTime v mask ts iworld
 matchAndApplyEvent _ matchId taskTime v mask ts iworld
 	= (v,mask,ts,iworld)
 
-visualizeView taskId repOpts v validity desc iworld
+visualizeView taskId repOpts v validity desc valueAttr iworld
 	# layout	= repLayout repOpts
 	# (controls,iworld) = visualizeAsEditor v validity taskId layout iworld
-	# uidef		= (afterLayout repOpts) (UIControlSequence (layout.Layout.interact (toPrompt desc) {UIControlSequence|attributes=newMap,controls=controls,direction=Vertical}))
+	# uidef		= (afterLayout repOpts) (UIControlSequence (layout.Layout.interact (toPrompt desc) {UIControlSequence|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls,direction=Vertical}))
 	= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
 could_not_read_shared_in_interact_exception iworld

@@ -329,6 +329,13 @@ waitForTimer	:: !Time			-> Task Time
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 
 /**
-* Visualizes data as a title and show it
+* View data as a title
 */
-viewTitle :: !a -> Task a | iTask a 
+viewTitle :: !a -> Task a | iTask a
+
+/**
+* View shared data as a title 
+*/
+viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
+
+

@@ -1594,7 +1594,7 @@ where
 	
 instance descr [d] | descr d
 where
-	toPrompt list = foldr merge {UIControlSequence| attributes = newMap, controls = [], direction = Vertical} (map toPrompt list)
+	toPrompt list = foldl merge {UIControlSequence| attributes = newMap, controls = [], direction = Vertical} (map toPrompt list)
 	where
 		merge p1 p2  = {UIControlSequence
 					   |attributes = mergeAttributes p1.UIControlSequence.attributes p2.UIControlSequence.attributes

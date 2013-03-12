@@ -37,7 +37,7 @@ autoInteractionLayout prompt editor
 autoStepLayout :: UIDef [UIAction]-> UIDef
 autoStepLayout (UIControlSequence {UIControlSequence|attributes,controls,direction}) actions
 	//Recognize special case of a complete empty interaction wrapped in a step as an actionset
-	| isEmpty controls && isEmpty (toList attributes)
+	| isEmpty controls
 		= UIActionSet {UIActionSet|attributes = attributes,actions = actions}
 	//Promote the control sequence to a control group because they are grouped by the step combinator
 		= UIControlGroup {UIControlGroup|attributes = attributes, controls = controls, direction = direction, actions = actions}
@@ -213,13 +213,19 @@ where
 //This can be a container, a panel or just a single control such as a textarea, a grid or a tree
 defToControl :: UIDef -> UIControl
 defToControl def
-	| isJust (get TITLE_ATTRIBUTE (uiDefAttributes def))//If a title attribute is set, always make a panel
-		= defToPanel def
-	| otherwise
-		= case uiDefControls def of
-			[c=:(UIContainer _ _ _)]	= c //Already a container, no need to double wrap
-			[c=:(UIPanel _ _ _)]		= c	//Idem...
-			_							= defToContainer def
+	= case (get CONTAINER_ATTRIBUTE attributes) of
+		(Just "panel")		= defToPanel def
+		(Just "container")	= makeContainer def
+		_					= case (get TITLE_ATTRIBUTE attributes) of
+			Just _		= defToPanel def	//If a title attribute is set make a panel
+			Nothing		= makeContainer def
+where
+	attributes = uiDefAttributes def
+	
+	makeContainer def = case uiDefControls def of
+		[c=:(UIContainer _ _ _)]	= c //Already a container, no need to double wrap
+		[c=:(UIPanel _ _ _)]		= c	//Idem...
+		_							= defToContainer def
 		
 placePanelActions :: [UIAction] Bool UIControl  -> ([UIAction],[UIKeyAction],UIControl)
 placePanelActions actions placeMenus (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
@@ -792,7 +798,7 @@ actionToHotkey {taskId,action=Action actionId options,enabled=True}
 actionToHotkey _ = Nothing
 
 hasWindowAttr :: UIAttributes -> Bool
-hasWindowAttr attributes	= maybe False ((==) "window") (get FLOAT_ATTRIBUTE attributes)
+hasWindowAttr attributes = maybe False ((==) "window") (get CONTAINER_ATTRIBUTE attributes)
 
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of
@@ -800,7 +806,7 @@ singleControl  def = case uiDefControls def of
 	_	= False
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
-mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> put k v attr) attr1 (toList attr2)
+mergeAttributes attr1 attr2 = foldl (\attr (k,v) -> put k v attr) attr1 (toList attr2)
 
 appDeep	:: [Int] (UIControl -> UIControl) UIControl -> UIControl
 appDeep [] f ctrl = f ctrl

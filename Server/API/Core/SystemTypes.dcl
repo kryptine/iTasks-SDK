@@ -657,6 +657,7 @@ derive class iTask		TaskId, Config, ProcessStatus
 				
 //Define initial meta attributes
 TASK_ATTRIBUTE			:== "task"
+VALUE_ATTRIBUTE			:== "value"
 TITLE_ATTRIBUTE			:== "title"
 HINT_ATTRIBUTE			:== "hint"
 VALID_ATTRIBUTE			:== "valid"
@@ -665,17 +666,24 @@ LABEL_ATTRIBUTE			:== "label"
 ICON_ATTRIBUTE			:== "icon"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
-FLOAT_ATTRIBUTE			:==	"float"		//Hint for layout functions. Currently only "window" has an effect
+
+//Preferred container attribute for abstract containers. Does not have to be honoured by layouts
+CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions. Possible preferences: "container", "panel", or "window"
 
 :: Att				= E.a: Att !a & descr a
 
 :: Title			= Title !String
 :: Hint				= Hint !String
-:: Window			= Window
+:: InWindow			= InWindow
+:: InContainer		= InContainer
+:: InPanel			= InPanel
 
 :: Icon				= Icon !String
 					| IconView
 					| IconEdit
+
+
+Window :== InWindow
 
 //Make the UI definition of the interaction prompt
 class descr d
