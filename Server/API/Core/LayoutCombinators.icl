@@ -58,11 +58,10 @@ autoParallelLayout prompt defs
 	| additionalActions defs	= additionalActionMerge prompt defs
 								= sequenceMerge prompt defs
 where
-	allPartial [] = True
+	allPartial []	= True
 	allPartial [UIControlSequence {UIControlSequence|attributes}:ds]
-		| hasWindowAttr attributes		= False
-										= allPartial ds
-	allPartial _						= False
+					= if (hasContainerAttr attributes) False (allPartial ds)
+	allPartial _	= False
 
 	additionalActions defs = scan False False defs
 	where
@@ -361,7 +360,6 @@ where
 	merge prompt=:{UIControlSequence|attributes} defs
 		# pcontrols					= decoratePrompt prompt.UIControlSequence.controls
 		# (activeIndex,activeDef)	= findActive defs	
-		
 		# (tabBar,windows,actions)	= mkTabsAndWindows activeIndex defs	
 		# (actions,_,tabContent)	= maybe ([],[],defaultPanel []) toTabContent activeDef
 		# controls					= pcontrols ++ [tabBar,tabContent]
@@ -400,7 +398,7 @@ where
 	mkTabsAndWindows active defs
 		# (tabsAndWindows,actions) = unzip [mkTabOrWindow (i == active) d \\ d <- defs & i <- [0..]]
 		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer [tab \\Left tab <- tabsAndWindows])
-		   ,[window \\ Right window <- tabsAndWindows]
+		   ,flatten (map uiDefWindows defs) ++ [window \\ Right window <- tabsAndWindows]
 		   ,flatten actions
 		  )
 
@@ -799,6 +797,9 @@ actionToHotkey _ = Nothing
 
 hasWindowAttr :: UIAttributes -> Bool
 hasWindowAttr attributes = maybe False ((==) "window") (get CONTAINER_ATTRIBUTE attributes)
+
+hasContainerAttr :: UIAttributes -> Bool
+hasContainerAttr attributes = isJust (get CONTAINER_ATTRIBUTE attributes) 
 
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of
