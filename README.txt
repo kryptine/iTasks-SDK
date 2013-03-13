@@ -28,7 +28,7 @@ There are version for the PC, Mac, and Linux.
   and selecting the "iTasks-SDK/Server/iTasks.env" environment file. 
 - Set your default heap size for projects to 8M by choosing "Project" -> "Project defaults..." from the menu
 
-= Additional steps if you need client side execution =
+= Additional steps you only have to do when you need client side execution =
 - Please note that it works only with the Clean 2.4 32-bit distribution
 - You need to use the "iTasks-SDK/Compiler/CleanIDE.exe", which must be in the same folder as the regular CleanIDE.exe. 
   If you want to use both, rename "iTasks-SDK/Compiler/CleanIDE.exe" and move it in the same folder as CleanIDE.exe.
