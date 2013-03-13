@@ -1,17 +1,37 @@
 This repository holds the iTasks Software Development Kit (SDK).
+
+=== What is it ? ==
+
+The iTask Software Development Kit enables you to write multi-user web applications.
+This can vary from a simple web application for filling in a web-form, a dedicated workflow system, an email application, or any application to support
+workers in an organizarion to work together on the internet accomplishing a common goal.
+So, it is a kit for developing multi-user software systems.
+
+Applications are defined on a high level of abstraction, called "Task Oriented Programming" (TOP).
+In this new style of programming, one defines the tasks humans and machines have to do.
+One can abstract from low level technical stuf, like the communication between browsers and the server, the generation and handling of user interfaces,
+the storage of information on disk or in databases.
+
+TOP can be seen as an Embedded Domain Specific language, realized with a Combinator Library programmed in the host language Clean,  
+
 === Setup ===
 
-= Preparation of the IDE =
+= First install the Clean 2.4 32-bit distribution on your machine (download it from the Clean site: http://wiki.clean.cs.ru.nl/Download_Clean). 
+There are version for the PC, Mac, and Linux.
+
+
+= Preparation of the Clean IDE for iTasks =
 - Make sure that this SDK is placed in the folder of the Clean 2.4 32-bit distribution (the one that contains "CleanIDE.exe")
   and is called "iTasks-SDK".
 - Start the CleanIDE
 - Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
-  and selecting the "iTasks-SDK/Server/iTasks.env" file. 
+  and selecting the "iTasks-SDK/Server/iTasks.env" environment file. 
 - Set your default heap size for projects to 8M by choosing "Project" -> "Project defaults..." from the menu
 
 = Additional steps if you need client side execution =
 - Please note that it works only with the Clean 2.4 32-bit distribution
-- You need to use the "iTasks-SDK/Compiler/CleanIDE.exe", which must be in the same folder as the regular CleanIDE.exe. If you want to use both, rename "iTasks-SDK/Compiler/CleanIDE.exe" and move it in the same folder as CleanIDE.exe.
+- You need to use the "iTasks-SDK/Compiler/CleanIDE.exe", which must be in the same folder as the regular CleanIDE.exe. 
+  If you want to use both, rename "iTasks-SDK/Compiler/CleanIDE.exe" and move it in the same folder as CleanIDE.exe.
 - Import the "iTasks + SAPL" environment by choosing "Environment" -> "Import..." from the menu
   and selecting the "iTasks-SDK/Server/iTasks + Sapl.env" file.
 - Unpack "iTasks-SDK/Compiler/StdEnv-Sapl.zip" into "Libraries/StdEnv/". This should add the folder "Sapl" in "Libraries/StdEnv".
@@ -19,10 +39,7 @@ This repository holds the iTasks Software Development Kit (SDK).
   and press CTRL-SHIFT-U to force the recompilation of the whole project.
   The compilation process creates a directory called "sapl" which contains all the necessary SAPL files;
   this directory will be used by the client side execution infrastucture of the iTask toolkit.
-  
-= Building the support tools ==
-- Build the RunAsync tool by opening the Clean project "iTasks-SDK/Tools/RunAsync/RunAsync.prj" and choosing ("Project" -> "Update") from the menu.
-
+ 
 = Building examples =
 The most up-to-date example suite to run at the moment is the examples collection for the CEFP Summerschool.
 
@@ -30,6 +47,9 @@ The most up-to-date example suite to run at the moment is the examples collectio
 - You build the project by choosing ("Project" -> "Update and Run") from the menu.
 - A BasicAPIExamples.exe server is started automatically which you can access at "http://localhost/"
 - Further instructions for setting up are given by the server 
+
+= Building the support tools ==
+- Build the RunAsync tool by opening the Clean project "iTasks-SDK/Tools/RunAsync/RunAsync.prj" and choosing ("Project" -> "Update") from the menu.
 
 === Content of the repository ===
 
