@@ -20,3 +20,13 @@ copy_string_to_graph.o: copy_string_to_graph.c
 copy_string_to_graph_interface.o: copy_string_to_graph_interface_linux.s
 	as copy_string_to_graph_interface_linux.s -o copy_string_to_graph_interface.o
 	cp copy_string_to_graph_interface.o "Clean System Files"/copy_string_to_graph_interface.o
+
+cleanup:
+	rm copy_graph_to_string.o
+	rm copy_graph_to_string_interface.o
+	rm copy_string_to_graph.o
+	rm copy_string_to_graph_interface.o
+	rm "Clean System Files"/copy_graph_to_string.o
+	rm "Clean System Files"/copy_graph_to_string_interface.o
+	rm "Clean System Files"/copy_string_to_graph.o
+	rm "Clean System Files"/copy_string_to_graph_interface.o
