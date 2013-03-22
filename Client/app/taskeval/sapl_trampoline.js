@@ -223,10 +223,11 @@ Sapl = new function () {
 					}
 
 					if (arraycons) {
-						var f = this.toJS(this.feval(args[0]));
-						res.push(f);
-						var s = this.toJS(this.feval(args[1]));
-						for (var i = 0; i < s.length; i++) res.push(s[i]);
+						while(this.isCons(expr[1])){
+							var f = this.toJS(this.feval(expr[2]));
+							res.push(f);
+							expr = this.feval(expr[3]);
+						}
 					} else {
 						for (var i = 0; i < args.length; i++) {
 							var aarg = this.toJS(this.feval(args[i]));
