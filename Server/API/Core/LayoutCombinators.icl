@@ -60,7 +60,7 @@ autoParallelLayout prompt defs
 where
 	allPartial []	= True
 	allPartial [UIControlSequence {UIControlSequence|attributes}:ds]
-					= if (hasContainerAttr attributes) False (allPartial ds)
+					= if (hasPanelContainerAttr attributes) False (allPartial ds)
 	allPartial _	= False
 
 	additionalActions defs = scan False False defs
@@ -316,7 +316,7 @@ where
 	processDef (UIActionSet {UIActionSet|actions})
 		= (actions,[],Nothing)
 	processDef def
-		| hasWindowAttr (uiDefAttributes def) //TODO: Pass hotkeys along
+		| hasWindowContainerAttr (uiDefAttributes def) //TODO: Pass hotkeys along
 			# (actions,_, window)	= placeWindowActions (uiDefActions def) (defToWindow (layoutControls def))
 			= ([],[window:uiDefWindows def],Nothing)
 		| otherwise	
@@ -374,11 +374,11 @@ where
 	where
 		find i bestSoFar [] = bestSoFar
 		find i bestSoFar=:(_,Nothing) [d:ds]
-			| hasWindowAttr (uiDefAttributes d)	= find (i+1) bestSoFar ds
-												= find (i+1) (i,Just d) ds
+			| hasWindowContainerAttr (uiDefAttributes d)	= find (i+1) bestSoFar ds
+															= find (i+1) (i,Just d) ds
 		find i bestSoFar=:(_,Just best) [d:ds]
-			| not (hasWindowAttr (uiDefAttributes d)) && later d best	= find (i+1) (i,Just d) ds
-																		= find (i+1) bestSoFar ds
+			| not (hasWindowContainerAttr (uiDefAttributes d)) && later d best	= find (i+1) (i,Just d) ds
+																				= find (i+1) bestSoFar ds
 
 		later defA defB
 			# a = uiDefAttributes defA
@@ -406,7 +406,7 @@ where
 		# attributes			= uiDefAttributes def
 		# actions				= uiDefActions def
 		# taskId				= get TASK_ATTRIBUTE attributes
-		| hasWindowAttr attributes
+		| hasWindowContainerAttr attributes
 			# (actions,_,window)	= placeWindowActions (uiDefActions def) (defToWindow (layoutControls def))
 			= (Right window, actions)
 		| otherwise
@@ -731,6 +731,10 @@ where
 			= [UIMenuButton sOpts {UIMenuButtonOpts|opts & menu = addToItems item taskId action enabled opts.UIMenuButtonOpts.menu}:ms]
 		| otherwise
 			= [m:addToMenus [main:item] taskId action enabled ms]
+	addToMenus [main:item] taskId action enabled [m:ms]
+		= [m:addToMenus [main:item] taskId action enabled ms]
+	addToMenus _ taskId action enabled menus
+		= menus
 			
 	addToItems [item:sub] taskId action enabled [] //Create item
 		= [createItem item sub taskId action enabled]
@@ -795,11 +799,15 @@ actionToHotkey {taskId,action=Action actionId options,enabled=True}
 		_		= Nothing
 actionToHotkey _ = Nothing
 
-hasWindowAttr :: UIAttributes -> Bool
-hasWindowAttr attributes = maybe False ((==) "window") (get CONTAINER_ATTRIBUTE attributes)
+hasWindowContainerAttr :: UIAttributes -> Bool
+hasWindowContainerAttr attributes = maybe False ((==) "window") (get CONTAINER_ATTRIBUTE attributes)
+
+hasPanelContainerAttr :: UIAttributes -> Bool
+hasPanelContainerAttr attributes = maybe False ((==) "panel") (get CONTAINER_ATTRIBUTE attributes)
 
 hasContainerAttr :: UIAttributes -> Bool
 hasContainerAttr attributes = isJust (get CONTAINER_ATTRIBUTE attributes) 
+
 
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of
