@@ -4,12 +4,14 @@ from FilePath			import :: FilePath
 from Map				import :: Map
 from Maybe				import :: Maybe
 from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
-from Time				import :: Timestamp
+from Time				import :: Timestamp, time
 from TaskState			import :: TaskListEntry
 from JSON				import :: JSONNode
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
+from HttpServer import class HttpEnv(..)
+
 from List import splitWith
 from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 import TaskStore, Time, Util, StdList, Base64, _SystemArray, StdBool, StdTuple
@@ -113,6 +115,12 @@ where
 	sfopen filename mode iworld=:{IWorld|world}
 		# (ok,file,world) = sfopen filename mode world
 		= (ok,file,{IWorld|iworld & world = world})
+
+instance HttpEnv IWorld
+where
+	httpServerTimestamp iworld=:{IWorld|world}
+		# (ts,world) = time world
+		= (ts,{IWorld|iworld & world = world})
 
 instance registerSDSDependency InstanceNo IWorld
 where

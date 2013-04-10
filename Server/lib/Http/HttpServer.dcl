@@ -14,7 +14,7 @@ from TCPChannelClass import :: Timeout
 :: HTTPServerOption st		= HTTPServerOptPort Int				// The port on which the server listens (default is 80)
 							| HTTPServerOptStaticFallback Bool	// If all request handlers fail, should the static file handler be tried (default False)
 							| HTTPServerOptParseArguments Bool	// Should the query and body of the request be parsed (default True)
-							| HTTPServerOptDebug Bool			// Should the server write debug info to the stdout
+							| HTTPServerOptDebug Int			// Debug level: 0 -> none, 1 -> short messages, 2 -> full output
 							| HTTPServerOptBackgroundProcess !(st -> *(!Maybe Timeout, !st))
 
 // Start the HTTP server
@@ -22,4 +22,10 @@ from TCPChannelClass import :: Timeout
 // The second argument is a list of pairs of predicates and request handlers
 // The predicate inspects the requested path (eg. /foo), if the predicate is true the corresponding request handler is invoked 
 
-http_startServer :: ![HTTPServerOption *st] [(!(String -> Bool),!(HTTPRequest *st-> (!HTTPResponse,!*st)))] !*st -> *st | ChannelEnv st & FileSystem st	
+http_startServer :: ![HTTPServerOption *st] [(!(String -> Bool),!(HTTPRequest *st-> (!HTTPResponse,!*st)))] !*st -> *st | ChannelEnv st & FileSystem st	& HttpEnv st
+
+class HttpEnv st
+where
+	httpServerTimestamp :: *st -> (!Timestamp,!*st)
+
+instance HttpEnv World

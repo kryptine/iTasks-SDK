@@ -28,7 +28,7 @@ startEngine publishable world
 	# world					= show (infoline app) world
 	//Check options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
-	# debug					= boolOpt "-debug" opts
+	# debug					= fromMaybe 0 (intOpt "-debug" opts)
 	# help					= boolOpt "-help" opts
 	# sdkOpt				= stringOpt "-sdk" opts
 	//If -help option is given show help and stop

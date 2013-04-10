@@ -11,6 +11,7 @@ from TaskState			import :: TaskListEntry
 from JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from HttpServer			import class HttpEnv
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -50,6 +51,8 @@ getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld)
 		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
 
 instance FileSystem IWorld
+
+instance HttpEnv IWorld
 
 instance registerSDSDependency		InstanceNo	IWorld
 instance registerSDSChangeDetection				IWorld
