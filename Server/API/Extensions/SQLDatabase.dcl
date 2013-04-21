@@ -31,6 +31,7 @@ sqlExecute	:: SQLDatabase (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCurso
 //Common helper functions for sqlExecute
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
 execInsert :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Int,*cur) | SQLCursor cur
+execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Void,*cur) | SQLCursor cur
 
 /**
 * Run a single query and fetch all results

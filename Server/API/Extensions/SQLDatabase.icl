@@ -56,6 +56,12 @@ execInsert query values cur
 	| isJust err		= (Error (toString (fromJust err)),cur)
 	= (Ok id,cur)
 
+execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Void,*cur) | SQLCursor cur
+execDelete query values cur
+    # (err,cur) 		= execute query values cur
+	| isJust err		= (Error (toString (fromJust err)),cur)
+	= (Ok Void,cur)
+
 sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db (execSelect query values) 
 
