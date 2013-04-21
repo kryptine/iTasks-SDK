@@ -8,7 +8,7 @@ from Time import :: Timestamp(..)
 from Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple
-import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
+import CoreTasks, OptimizedCoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
 
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 enterInformation d [EnterWith fromf]
