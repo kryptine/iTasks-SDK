@@ -26,7 +26,7 @@ Ext.define('itwc.component.edit.Document',{
 	},
 	getTriggerMarkup: function() {
 		var me = this,
-			hasValue = isObject(this.value),
+			hasValue = me.value && isObject(me.value),
 			inputElCfg = {
 				id: me.id + '-fileInputEl',
 				cls: Ext.baseCSSPrefix + 'form-file-input',
