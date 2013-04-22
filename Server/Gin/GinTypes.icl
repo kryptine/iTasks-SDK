@@ -3,7 +3,7 @@ implementation module GinTypes
 import StdBool
 import StdList
 import GenEq
-import Maybe, HTML, TUIDefinition
+import Maybe, HTML, UIDefinition
 
 from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, :: StaticVisualizationMode
 from iTasks import class iTask, generic gVisualizeText, generic gVisualizeHtml, generic gVisualizeEditor, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq

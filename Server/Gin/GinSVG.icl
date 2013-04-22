@@ -6,7 +6,7 @@ import StdList
 import StdString
 
 import Maybe
-import XML, HTML, TUIDefinition
+import XML, HTML, UIDefinition
 
 from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, :: StaticVisualizationMode
 from iTasks import class iTask, generic gVisualizeText, generic gVisualizeHtml, generic gVisualizeEditor, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
