@@ -3,13 +3,14 @@ definition module GinSyntax
 import Graph
 import Maybe, HTML, UIDefinition
 
-from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, :: StaticVisualizationMode
-from iTasks import class iTask, generic gVisualizeText, generic gVisualizeHtml, generic gVisualizeEditor, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+from iTasks import class iTask
+from GenVisualize import generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, generic gDefault, generic gUpdate, generic gVerify
 
 import GinAbstractSyntax
 from GinORYX import ::ORYXDiagram
 from GinSVG import ::SVGShape
 import GinTypes
+import GinParser
 
 // Graph definition
 :: GModule = { name        :: GIdentifier

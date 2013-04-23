@@ -2,8 +2,8 @@ definition module GinConfig
 
 import Maybe, HTML, UIDefinition
 
-from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, :: StaticVisualizationMode
-from iTasks import class iTask, generic gVisualizeText, generic gVisualizeHtml, generic gVisualizeEditor, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+import iTasks
+from iTasks import class iTask, generic gVisualizeText, generic gVisualizeEditor, generic gUpdate, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
 
 :: GinConfig =
 	{ cleanPath		:: !String
@@ -14,10 +14,10 @@ from iTasks import class iTask, generic gVisualizeText, generic gVisualizeHtml, 
 
 derive gEq        		GinConfig	
 derive gVisualizeText 	GinConfig
-derive gVisualizeHtml 	GinConfig
+//derive gVisualizeHtml 	GinConfig TODO
 derive gVisualizeEditor	GinConfig
 derive gUpdate    		GinConfig
-derive gDefaultMask		GinConfig
+//derive gDefaultMask		GinConfig TODO
 derive gVerify    		GinConfig
 derive JSONEncode 		GinConfig
 derive JSONDecode 		GinConfig

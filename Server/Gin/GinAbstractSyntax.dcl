@@ -3,10 +3,12 @@ definition module GinAbstractSyntax
 import StdOverloaded
 import GinTypes
 
-from iTaskClass import class iTask, gVisualizeText, gVisualizeHtml, gVisualizeEditor, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
+from iTaskClass import class iTask
 
-from GinParser import ::GPath, ::GPathNode, ::GParseState
-from GinPrinter import ::LineMap, ::Map
+from GinParser import :: GPath, :: GPathNode
+from GinPrinter import :: LineMap, :: Map
+import GenVisualize
+
 import Void
 
 :: AModule = { name        :: AIdentifier

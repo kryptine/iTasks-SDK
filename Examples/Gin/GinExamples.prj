@@ -1,0 +1,84 @@
+Version: 1.4
+Global
+	ProjectRoot:	.
+	Built:	True
+	Target:	OSXEnv
+	Exec:	{Project}/ginexamples
+	CodeGen
+		CheckStacks:	False
+		CheckIndexes:	True
+	Application
+		HeapSize:	2097152
+		StackSize:	512000
+		ExtraMemory:	8192
+		IntialHeapSize:	204800
+		HeapSizeMultiplier:	4096
+		ShowExecutionTime:	False
+		ShowGC:	False
+		ShowStackSize:	False
+		MarkingCollector:	False
+		StandardRuntimeEnv:	True
+		Profile
+			Memory:	False
+			MemoryMinimumHeapSize:	0
+			Time:	False
+			Stack:	False
+		Output
+			Output:	ShowConstructors
+			Font:	Monaco
+			FontSize:	9
+			WriteStdErr:	False
+	Link
+		LinkMethod:	Static
+		GenerateRelocations:	False
+		GenerateLinkMap:	False
+		LinkResources:	False
+		ResourceSource:	
+		GenerateDLL:	False
+		ExportedNames:	
+	Paths
+		Path:	{Project}
+		Path:	{Project}/Workflows
+        Path:   {Application}/iTasks-SDK/Patches/Platform/OS-Independent/Data
+        Path:   {Application}/iTasks-SDK/Patches/Platform/OS-Independent/Text
+        Path:   {Application}/iTasks-SDK/Server
+        Path:   {Application}/iTasks-SDK/Server/lib/Http
+        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/Internet
+        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/Math
+        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/System
+        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/Text/Encodings
+        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Mac/System
+        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Posix/System
+        Path:   {Application}/iTasks-SDK/Server/Gin
+        Path:   {Application}/iTasks-SDK/Server/Framework
+        Path:   {Application}/iTasks-SDK/Server/API
+        Path:   {Application}/iTasks-SDK/Server/API/Common
+        Path:   {Application}/iTasks-SDK/Server/API/Core
+        Path:   {Application}/iTasks-SDK/Server/API/Domains
+        Path:   {Application}/iTasks-SDK/Server/API/Extensions
+        Path:   {Application}/iTasks-SDK/Server/API/Extensions/Admin
+		Path:	{Application}/clean-platform-flat/OS-Independent
+		Path:	{Application}/clean-platform-flat/OS-Independent/Data
+		Path:	{Application}/clean-platform-flat/OS-Independent/Text
+		Path:	{Application}/clean-platform-flat/OS-Independent/Deprecated/StdLib
+		Path:	{Application}/clean-platform-flat/OS-Posix
+		Path:	{Application}/clean-platform-flat/OS-Mac
+		Path:	{Application}/lib/Generics
+		Path:	{Application}/lib/TCPIP
+		Path:	{Application}/lib/Dynamics
+	Precompile:	
+	Postlink:	
+MainModule
+	Name:	GinExamples
+	Dir:	{Project}
+	Compiler
+		NeverMemoryProfile:	False
+		NeverTimeProfile:	False
+		StrictnessAnalysis:	True
+		ListTypes:	StrictExportTypes
+		ListAttributes:	True
+		Warnings:	True
+		Verbose:	True
+		ReadableABC:	False
+		ReuseUniqueNodes:	True
+		Fusion:	False

@@ -9,8 +9,7 @@ import GinConfig
 import GinSyntax
 import GinAbstractSyntax
 
-from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, :: StaticVisualizationMode
-from iTasks import class iTask, generic gVisualizeText, generic gVisualizeHtml, generic gVisualizeEditor, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+from iTasks import class iTask
 
 :: GPath :== [GPathNode]
 
