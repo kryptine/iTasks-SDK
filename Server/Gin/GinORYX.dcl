@@ -1,13 +1,17 @@
 definition module GinORYX
 
-import GenEq
-import JSON, HTML, UIDefinition
-
 from iTasks import :: JSONNode
+from Maybe import :: Maybe
+from SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
+from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenVisualize import generic gVisualizeText, generic gVisualizeEditor
+from GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
+from GenVerify import generic gVerify
+from GenEq import generic gEq
 
-from GinSyntax import :: GModule, :: GGraph, :: Bindings, :: Binding
-from GinParser import :: GPath, :: GPathNode
-import GenVerify
+import GinTypes
+import GinSyntax
+import GinParser
 
 :: ORYXEditor =	{ diagram		:: ORYXDiagram
 				, stencilset	:: ORYXStencilSetReference
@@ -95,6 +99,7 @@ derive gVisualizeEditor	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYX
 derive gUpdate	    	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
 //derive gDefaultMask		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError TODO
 derive gVerify  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive gDefault  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
 
 oryxDiagramToGraph :: !Bindings !ORYXDiagram -> GGraph
 

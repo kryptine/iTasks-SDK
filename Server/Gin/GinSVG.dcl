@@ -1,10 +1,18 @@
 definition module GinSVG
 
-import Maybe
-import XML, HTML, UIDefinition
+//import Maybe
+//import XML, HTML, UIDefinition
 
+from Maybe import :: Maybe
+from XML import :: XMLNode
 from iTasks import class iTask
-import GenVisualize
+
+from GenVisualize import generic gVisualizeText, generic gVisualizeEditor
+from GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
+from GenVerify import generic gVerify
+from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+from SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
 
 :: SVGPosX	= XLeft
 			| XRight

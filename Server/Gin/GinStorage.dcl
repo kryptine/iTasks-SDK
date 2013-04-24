@@ -1,12 +1,14 @@
 definition module GinStorage
- 
-import Error
-import OSError
-import Maybe
-import Void
+
+from Error import :: MaybeErrorString, :: MaybeError
+
+//import OSError
+//import Maybe
+//import Void
 from Task import ::Task
-from GinSyntax import ::GModule
-from GinConfig import ::GinConfig
+
+import GinSyntax
+import GinConfig
 
 searchPathModules :: !GinConfig !*World -> ([String], *World)
 

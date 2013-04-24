@@ -1,8 +1,8 @@
 definition module GinCompiler
 
-import iTasks
-from GinSyntax import ::GModule
-from GinParser import ::GPath, ::GPathNode
+from iTasks import class iTask
+import GinSyntax
+import GinParser
 
 :: CompileResult a = CompileSuccess a | CompileGlobalError String | CompilePathError [(GPath,String)]
 

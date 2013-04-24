@@ -11,7 +11,7 @@ import GinConfig
 import GinCompiler
 import GinDomain
 import GinParser
-from GinPrinter import ::Doc, prettyPrint, instance Printer Doc
+from GinPrinter import :: Doc, prettyPrint, instance Printer Doc
 import GinStorage
 import GinSyntax
 

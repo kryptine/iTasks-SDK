@@ -5,16 +5,22 @@ from StdFunc import o
 import StdOrdList
 import StdList
 import StdString
+import StdClass, StdInt
 
 import Void
 import Map
 import Text
+import Maybe
 
-from GinParser import ::GPath(..)
-import GinTypes
+from GinParser import :: GPath(..), :: GTypeDefinition(..), :: GTypeExpression(..), :: GFormalParameter(..), :: GIdentifier(..), :: GTypeVariable(..), :: GTypeRhs(..), :: GRecordField(..), :: GDataConstructor(..)
+from GinTypes import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
+from GinTypes import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
+from GinTypes import printGTypeDefinition, typeIsDefined, printGTypeExpression
 import GinPrinter
 
-from iTaskClass import class iTask, gVisualizeText, gVisualizeHtml, gVisualizeEditor, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
+from GenEq import ===
+
+from iTaskClass import class iTask, gEq
 
 derive class iTask AModule, ADefinition, AExpression, ACaseAlt, AListComprehension, AGeneratorList, AGenerator, AFix
 

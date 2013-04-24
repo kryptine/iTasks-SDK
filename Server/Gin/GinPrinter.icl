@@ -2,6 +2,7 @@ implementation module GinPrinter
 
 import StdList
 import StdString
+import StdOverloaded, StdInt
 
 import Map
 

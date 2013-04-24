@@ -8,9 +8,16 @@ from StdFunc import o,flip,seq
 import StdList
 import StdOrdList
 import StdTuple
+import StdClass, StdInt
+import Error
 
 import GenPrint
 
+from iTasks import class iTask
+from GinTypes import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
+from GinTypes import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult, :: GTypeExpression, :: GTypeDefinition
+from GinTypes import printGTypeDefinition, typeIsDefined, printGTypeExpression
+from GinPrinter import class Printer
 //Clean-platform:
 import Graph
 import Map
@@ -19,7 +26,8 @@ import JSON
 import Text
 
 //Clean-compiler:
-from general	import	::Optional(..)
+
+from general import :: Optional(..)
 from syntax		import	
 						::ArrayKind,
 						::BasicValue,
@@ -34,9 +42,11 @@ from syntax		import
 						::FieldNameOrQualifiedFieldName,
 						::FieldSymbol,
 						::Global,
+                        ::ModuleIdent(..),
 						::Ident(..),
 						::LocalDefs,
-						::OptionalRecordName,
+                        ::Optional(..),
+						::OptionalRecordName(..),
 						::ParsedExpr(..),
 						::ParsedSelection,
 						::ParsedSelectorKind,

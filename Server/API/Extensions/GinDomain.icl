@@ -2,7 +2,7 @@ implementation module GinDomain
 
 from StdEnv import id, undef
 
-import iTasks, Text, HtmlUtil
+import Text, HtmlUtil
 import GinSyntax, GinFlowLibrary
 import GinCompiler, GinParser
 

@@ -1,16 +1,17 @@
 definition module GinSyntax
 
-import Graph
-import Maybe, HTML, UIDefinition
+from Graph import :: Graph
+from Monad import class Monad
 
 from iTasks import class iTask
 from GenVisualize import generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, generic gDefault, generic gUpdate, generic gVerify
 
 import GinAbstractSyntax
-from GinORYX import ::ORYXDiagram
-from GinSVG import ::SVGShape
+import GinORYX
+import GinSVG
 import GinTypes
 import GinParser
+import GinTypes
 
 // Graph definition
 :: GModule = { name        :: GIdentifier

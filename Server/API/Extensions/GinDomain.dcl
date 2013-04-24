@@ -1,6 +1,5 @@
 definition module GinDomain
 
-import iTasks
 import GinORYX
 
 derive gEq ORYXEditor

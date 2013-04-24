@@ -1,9 +1,16 @@
 definition module GinConfig
 
-import Maybe, HTML, UIDefinition
+from Maybe import :: Maybe
 
-import iTasks
-from iTasks import class iTask, generic gVisualizeText, generic gVisualizeEditor, generic gUpdate, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+from SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
+
+//from GinTypes import :: GTypeExpression, :: GTypeDefinition
+
+from GenVisualize import generic gVisualizeText, generic gVisualizeEditor
+from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+from GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
+from GenVerify import generic gVerify
 
 :: GinConfig =
 	{ cleanPath		:: !String

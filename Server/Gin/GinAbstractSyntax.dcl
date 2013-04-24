@@ -1,15 +1,12 @@
 definition module GinAbstractSyntax
 
-import StdOverloaded
 import GinTypes
+import GinParser
+import GinPrinter
 
 from iTaskClass import class iTask
 
-from GinParser import :: GPath, :: GPathNode
-from GinPrinter import :: LineMap, :: Map
-import GenVisualize
-
-import Void
+from Void import :: Void
 
 :: AModule = { name        :: AIdentifier
              , types       :: [GTypeDefinition]

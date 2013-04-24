@@ -1,10 +1,10 @@
 definition module GinCompilerLogParser
 
-import Maybe
+from Maybe import :: Maybe
 
-from GinParser import ::GPath, ::GPathNode
-from GinPrinter import ::LineMap, ::Map
-from GinAbstractSyntax import ::FunctionMap, ::AIdentifier
+import GinParser
+import GinPrinter
+import GinAbstractSyntax
 
 :: CompilerErrorContext :== (CompilerError, ErrorContext)
 

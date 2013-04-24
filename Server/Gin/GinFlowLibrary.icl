@@ -1,5 +1,7 @@
 implementation module GinFlowLibrary
 
+import Maybe
+
 import StdEnum
 from StdFunc import o
 import StdTuple

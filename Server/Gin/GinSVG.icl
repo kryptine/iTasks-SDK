@@ -4,16 +4,20 @@ import StdInt
 import StdGeneric
 import StdList
 import StdString
+import StdBool
 
 import Maybe
 import XML, HTML, UIDefinition
+
+from GinTypes import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
+from GinTypes import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult, :: GTypeExpression, :: GTypeDefinition
+from GinTypes import printGTypeDefinition, typeIsDefined, printGTypeExpression
+from GinPrinter import class Printer
 
 from iTasks import class iTask
 
 derive class iTask SVGPosX, SVGPosY, SVGElement, SVGStyle, SVGShape
 derive class iTask XMLDoc, XMLNode, XMLAttr, XMLQName
-
-derive bimap Maybe, (,)
 
 instance toString SVGShape
 where

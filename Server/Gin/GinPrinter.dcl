@@ -1,10 +1,10 @@
 definition module GinPrinter
 
 from Map import ::Map
-
-from GinParser import :: GPath(..), ::GPathNode(..), :: GResourceId(..)
-
 from PPrint import ::Doc
+
+import GinParser
+
 class Printer a
 where 
 	def :: a -> a

@@ -1,6 +1,6 @@
 definition module GinORYXExtensions
 
-import JSON
+//import JSON
 
 :: ORYXExtensionsFile = 
 	{ extensions	:: ![ORYXExtension]

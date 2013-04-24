@@ -1,7 +1,9 @@
 implementation module GinSyntax
 
-import iTasks
+from iTasks import class iTask
+import StdClass, StdBool, StdList
 import JSON
+import Monad // TODO
 
 import GinAbstractSyntax
 import GinORYX

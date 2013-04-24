@@ -1,12 +1,21 @@
 definition module GinTypes
 
-import GenEq
-import Maybe, HTML, UIDefinition
+//import GenEq
+//import HTML, UIDefinition
+
+from Maybe import :: Maybe
 
 from iTasks import class iTask
 
-from GinPrinter import class Printer
-import GenVisualize
+from StdGeneric import generic bimap, :: Bimap
+from GenVisualize import generic gVisualizeText, generic gVisualizeEditor
+from GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
+from GenVerify import generic gVerify
+from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+from SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
+
+import GinPrinter
 
 :: GTypeExpression = GConstructor GIdentifier
                    | GList GTypeExpression

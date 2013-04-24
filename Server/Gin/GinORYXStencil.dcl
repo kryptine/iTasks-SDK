@@ -1,8 +1,8 @@
 definition module GinORYXStencil
 
-import JSON
+//import JSON
 
-from GinSyntax import :: GModule
+import GinSyntax
 import GinORYX
 
 ::ORYXStencilSet =

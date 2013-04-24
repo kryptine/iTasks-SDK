@@ -1,9 +1,10 @@
 definition module GinDCLImport
 
-from GinSyntax import ::GModule
-from GinTypes import ::GTypeExpression
+import GinSyntax
+import GinTypes
+
 from syntax import ::Type
-import Error
+//import Error
 
 importDCL :: !String !String *World -> (MaybeErrorString GModule, *World)
 

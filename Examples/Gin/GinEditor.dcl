@@ -1,6 +1,6 @@
 definition module GinEditor
 
-import iTasks
+from iTasks import :: Task, :: WorkflowContainer
 
 import GinConfig
 import GinSyntax
