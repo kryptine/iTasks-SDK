@@ -149,7 +149,7 @@ gUpdate{|[]|} gUpdx gDefx target upd (l,[listMask:mask])
 			"mdn" = (swap l (index+1),swap childMasks (index+1))
 			"rem" = (removeAt index l,removeAt index childMasks)	
 			"add"
-				= (insertAt (index+1) (gDefx []) l, insertAt (index+1) Untouched childMasks)
+				= (insertAt (length l) /*(index+1)*/ (gDefx []) l, insertAt (length l)/*(index+1)*/ Untouched childMasks)
 			_ 	
 				= (l,childMasks)
 		= (l,[PartiallyTouched childMasks:mask])
