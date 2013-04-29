@@ -2,19 +2,28 @@ implementation module GinStorage
 
 import StdFile
 from 	StdFunc import o, seqList, ::St
-import StdMisc
+import StdMisc, StdClass, StdList, StdOrdList, StdChar, StdString
 
 from File import qualified fileExists, readFile
-import FilePath
-import Directory
-import Text
+from FilePath import addExtension, dropExtension, takeExtension, :: FilePath, </>
+import qualified FilePath
+from Text import class Text (..), instance Text String
+from Directory import readDirectory
+//import Directory
+//import Text
+from JSON import fromJSON, instance fromString JSONNode
 import OSError
+import Void
 
-import 	iTasks
+from iTasks import class iTask, enterChoice, >>*, >>|, >>=, :: Task, :: ChoiceOption (..), :: EnterOption (..), :: ViewOption (..), :: ActionOption (..), exportJSONFile
+from iTasks import class descr (..), instance descr String, class OptionContainer (..), instance OptionContainer [], return, enterInformation, viewInformation, :: Stability (..), exportTextFile, accWorld, accWorldOSError
+from iTasks import ActionNo, Always, ActionYes, :: TaskStep (..), :: Action (..), :: Hotkey (..), :: Key (..), :: ActionName (..), :: TaskValue (..), :: ChoiceType (..)
+from iTasks import :: Tree, :: MultiChoiceType, :: UIControlSequence, class Functor, instance Functor []
 
 import GinConfig
 import GinSyntax
 import GinParser
+import GinPrinter
 import GinFlowLibrary
 
 import GinDCLImport
@@ -119,9 +128,10 @@ newModuleName config
 		>>= \name ->		moduleExists config name
 		>>= \exists ->		if exists
 								(		viewInformation ("Module " +++ name +++ " already exists, do you want to overwrite?") [] Void
-									>?*	[ (ActionYes,	Always (return name))
-										, (ActionNo,	Always (newModuleName config))
-										]
+									>>*	[ ] // TODO
+                                    //(ActionYes,	Always (return name))
+										//, (ActionNo,	Always (newModuleName config))
+										//]
 								)
 								( return name )
 

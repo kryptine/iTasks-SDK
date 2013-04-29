@@ -2,13 +2,15 @@ implementation module GinDCLImport
 
 import StdEnv
 
-import File
-import FilePath
-import Error
-import Text
-import ParserCombinators
+from File import deleteFile
+from FilePath import dropDirectory, dropExtension, :: FilePath
+from Error import Error, Ok
+from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
+
+import Maybe
 
 import CleanDocParser
+
 import GinSyntax
 
 from general 	import 	::Optional(..)

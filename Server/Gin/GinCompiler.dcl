@@ -1,6 +1,6 @@
 definition module GinCompiler
 
-from iTasks import class iTask
+from iTasks import class iTask, :: IWorld
 import GinSyntax
 import GinParser
 

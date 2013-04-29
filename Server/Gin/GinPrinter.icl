@@ -2,7 +2,7 @@ implementation module GinPrinter
 
 import StdList
 import StdString
-import StdOverloaded, StdInt
+import StdOverloaded, StdInt, StdMisc
 
 import Map
 
@@ -24,7 +24,7 @@ where
 	align a = 'PPrint'.align a
 	(<->) a b = a 'PPrint'. <-> b
 	(<+>) a b = a 'PPrint'. <+> b
-	(</>) a b = a 'PPrint'. </> b
+	(<-/>) a b = a 'PPrint'. </> b
 	(<$>) a b = a 'PPrint'. <$> b
 	(<$?>) a b = a 'PPrint'. <$> b
 	empty = 'PPrint'.empty
@@ -72,7 +72,7 @@ where
 	align a = a
 	(<->) a b = Cat a b
 	(<+>) a b = Cat a (Cat space b)
-	(</>) a b = a <+> b
+	(<-/>) a b = a <+> b
 	(<$>) a b = Cat a (Line b)
 	(<$?>) a b = a <+> b
 	empty = Empty
@@ -90,7 +90,7 @@ where
 	punctuate p [d]    = [d]
 	punctuate p [d:ds] = [(d <-> p) : punctuate p ds]
 	hsep docs = fold (<->) docs
-	fillSep docs = fold (</>) docs
+	fillSep docs = fold (<-/>) docs
 	position p = Position p
 
 enclose :: !String !PDoc !String -> PDoc

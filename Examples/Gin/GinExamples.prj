@@ -39,6 +39,7 @@ Global
 	Paths
 		Path:	{Project}
 		Path:	{Project}/Workflows
+		Path:	{Application}/lib/Directory
         Path:   {Application}/iTasks-SDK/Patches/Platform/OS-Independent/Data
         Path:   {Application}/iTasks-SDK/Patches/Platform/OS-Independent/Text
         Path:   {Application}/iTasks-SDK/Server
@@ -51,6 +52,11 @@ Global
         Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Posix/System
         Path:   {Application}/iTasks-SDK/Server/lib/CleanCompiler
         Path:   {Application}/iTasks-SDK/Server/lib/CleanCompiler/frontend
+        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/Pm
+        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/MacOSX
+        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/Util
+        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/BatchBuild
+        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/Interfaces/LinkerInterface
         Path:   {Application}/iTasks-SDK/Server/Gin
         Path:   {Application}/iTasks-SDK/Server/Framework
         Path:   {Application}/iTasks-SDK/Server/API

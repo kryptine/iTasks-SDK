@@ -4,7 +4,7 @@ import GinSyntax
 import GinTypes
 
 from syntax import ::Type
-//import Error
+from Error import :: MaybeErrorString, :: MaybeError
 
 importDCL :: !String !String *World -> (MaybeErrorString GModule, *World)
 

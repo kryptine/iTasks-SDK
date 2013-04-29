@@ -278,10 +278,10 @@ printADefinitionType { ADefinition | name, formalParams, returnType }
 	  and (map (\fp = typeIsDefined fp.GFormalParameter.type) formalParams)
 	  = [	def ( text name
 	    	  <+> text "::"
-	    	  </> if (isEmpty formalParams)
+	    	  <-/> if (isEmpty formalParams)
 	    	  	  empty
 		          ( fillSep (map (\fp = printGTypeExpression True fp.GFormalParameter.type) formalParams) 
-		            </> (text "->" </> space) </> empty
+		            <-/> (text "->" <-/> space) <-/> empty
 		          )
 		      <-> printGTypeExpression False returnType
 		    )
@@ -314,9 +314,9 @@ printAStart POWriteDynamics aMod
 	# task = hd aMod.AModule.definitions
 	=	[ def (text "Start :: *World -> *World")
 	 	, def (text "Start world")
-		, text "# (_, world) = writeFile" </> dquotes (text (aMod.AModule.name +++ ".dyn")) 
-			</> parens (text "serialize" </> text (task.ADefinition.name))
-			</> text "world"
+		, text "# (_, world) = writeFile" <-/> dquotes (text (aMod.AModule.name +++ ".dyn")) 
+			<-/> parens (text "serialize" <-/> text (task.ADefinition.name))
+			<-/> text "world"
 		, text "= world"
 		]
 printAStart _ _ = []
@@ -334,15 +334,15 @@ printAExpression opt withParens (AppInfix i fix prec e1 e2)
 	# doc2 = case e2 of
 		(AppInfix e2i e2fix e2prec _ _) = printAExpression opt (e2prec < prec || i == e2i && fix == Infixr) e2
 		otherwise                       = printAExpression opt False e2
-	= doc1 <$> text i </> doc2
+	= doc1 <$> text i <-/> doc2
 printAExpression opt withParens (Lambda pat exp)
-	= addParens withParens (text "\\" <-> printAPattern opt pat </> text "->" </> printAExpression opt False exp)
+	= addParens withParens (text "\\" <-> printAPattern opt pat <-/> text "->" <-/> printAExpression opt False exp)
 printAExpression opt withParens (Let defs inexp) = addParens withParens (align (text "let" <+> 
-	newscope (map (\(pat,exp) -> text pat </> text "=" </> align (printAExpression opt False exp)) defs) <$>
-	text "in" </> align (printAExpression opt False inexp)))
+	newscope (map (\(pat,exp) -> text pat <-/> text "=" <-/> align (printAExpression opt False exp)) defs) <$>
+	text "in" <-/> align (printAExpression opt False inexp)))
 printAExpression opt withParens (Case exp alts) 
 	= addParens withParens 
-		(	align	(text "case" </> (printAExpression opt False exp) </> (text "of") <$>
+		(	align	(text "case" <-/> (printAExpression opt False exp) <-/> (text "of") <$>
 						newscope (map (\alt = printACaseAlt opt alt) alts)
 					)
     	)
@@ -359,19 +359,19 @@ addParens withParens a = if withParens (parens a) a
 printAListComprehension  :: PrintOption (AListComprehension Void) -> a | Printer a
 printAListComprehension opt alc = brackets
     ( (printAExpression opt False alc.AListComprehension.output) 
-      </> text "\\\\" 
-      </> printGeneratorList opt alc.AListComprehension.generators
-      </> hsep (map (\guard -> text "|" </> printAExpression opt False guard) alc.AListComprehension.guards))
+      <-/> text "\\\\" 
+      <-/> printGeneratorList opt alc.AListComprehension.generators
+      <-/> hsep (map (\guard -> text "|" <-/> printAExpression opt False guard) alc.AListComprehension.guards))
     
 printGeneratorList :: PrintOption (AGeneratorList Void) -> a | Printer a
 printGeneratorList opt (NestedGeneratorList generators) = fillSep (punctuate comma (map (printGenerator opt) generators))
 printGeneratorList opt (ParallelGeneratorList generators) = fillSep (punctuate (text "&") (map (printGenerator opt) generators))
 
 printGenerator :: PrintOption (AGenerator Void) -> a | Printer a
-printGenerator opt (Generator sel exp) = printAPattern opt sel </> text "<-" </> printAExpression opt False exp
+printGenerator opt (Generator sel exp) = printAPattern opt sel <-/> text "<-" <-/> printAExpression opt False exp
 
 printACaseAlt :: PrintOption (ACaseAlt Void) -> a | Printer a
-printACaseAlt opt (CaseAlt pat exp) = def (printAPattern opt pat </> text "=" </> align (printAExpression opt False exp))
+printACaseAlt opt (CaseAlt pat exp) = def (printAPattern opt pat <-/> text "=" <-/> align (printAExpression opt False exp))
 
 printAPattern :: PrintOption APattern -> a | Printer a
 printAPattern opt p = text p
@@ -380,4 +380,4 @@ printAIdentifier :: PrintOption AIdentifier -> a | Printer a
 printAIdentifier opt i = text i
 
 printComment :: PrintOption String -> a | Printer a
-printComment opt s = text "/*" </> text s </> text "*/"
+printComment opt s = text "/*" <-/> text s <-/> text "*/"

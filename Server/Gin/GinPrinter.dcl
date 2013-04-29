@@ -13,7 +13,7 @@ where
 	align :: a -> a
 	(<->) infixr 6 :: a a -> a
 	(<+>) infixr 6 :: a a -> a
-	(</>) infixr 5 :: a a -> a
+	(<-/>) infixr 5 :: a a -> a
 	(<$>) infixr 5 :: a a -> a
 	(<$?>) infixr 5 :: a a -> a
 	empty :: a
