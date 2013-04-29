@@ -55,7 +55,8 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts} (finalizeRep repOpts (TaskRep (UIControlSequence {UIControlSequence|attributes=newMap,controls=[],direction=Vertical}) [])) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,refreshSensitive=True}
+				(finalizeRep repOpts (TaskRep (UIControlSequence {UIControlSequence|attributes=newMap,controls=[],direction=Vertical}) [])) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -80,7 +81,7 @@ where
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr),iworld)//could_not_read_shared_in_interact_exception iworld
+		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# changed				= (nts =!= ts) || (nr =!= r) 
@@ -90,7 +91,8 @@ where
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld
 		# value 				= if (isValidMask validity) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts} (finalizeRep repOpts rep) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=True} (finalizeRep repOpts rep)
+			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 

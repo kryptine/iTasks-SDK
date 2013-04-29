@@ -23,8 +23,7 @@ taskInstances			:: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWor
 
 taskInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
 taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
-taskInstanceResult		:: !InstanceNo -> RWShared TIResult TIResult IWorld
-taskInstanceRep			:: !InstanceNo -> RWShared TIRep TIRep IWorld
+taskInstanceResult		:: !InstanceNo -> RWShared (TaskResult JSONNode) (TaskResult JSONNode) IWorld
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

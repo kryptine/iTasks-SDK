@@ -54,6 +54,8 @@ initIWorld sdkPath world
 	  ,nextTaskNo			= 0
 	  ,localShares			= newMap
 	  ,localLists			= newMap
+	  ,localTasks			= newMap
+      ,eventRoute			= newMap
 	  ,readShares			= []
 	  ,sessions				= newMap
 	  ,uis					= newMap

@@ -7,6 +7,7 @@ definition module Task
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
 from TaskState			import :: TaskTree
 from LayoutCombinators	import :: Layout
+from Map				import :: Map
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -35,8 +36,8 @@ derive gPutRecordFields	Task
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 
 :: TaskInfo =
-	{ lastEvent			:: TaskTime		//When was the last edit, action or focus event in this task
-//	, lastValueChange	:: TaskTime 	//When was the last time this task's value changed
+	{ lastEvent			:: !TaskTime		//When was the last edit, action or focus event in this task
+	, refreshSensitive	:: !Bool			//Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 
 :: TaskRepOpts	=

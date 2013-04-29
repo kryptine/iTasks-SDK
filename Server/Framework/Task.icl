@@ -10,11 +10,11 @@ mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts} (finalizeRep repOpts rep) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts rep) (TCStable taskId ts (DeferredJSON a)), iworld)
 		(Error (e,s), iworld)					= (ExceptionResult e s, iworld)
 
 	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts} (finalizeRep repOpts rep) state, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts rep) state, iworld)
 		Nothing	= (exception "Corrupt task result", iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)

@@ -63,7 +63,7 @@ where
 	//Check for its result
 	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent} (TaskRep (UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[],direction=Vertical}) []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False} (TaskRep (UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[],direction=Vertical}) []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -78,7 +78,7 @@ where
 						# prompt			= toPrompt desc
 						# editor			= {UIControlSequence| attributes = 'Map'.newMap, controls = controls, direction = Vertical}
 						# rep				= TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) []
-						= (ValueResult (Value status False) {TaskInfo|lastEvent=lastEvent} rep state,iworld)
+						= (ValueResult (Value status False) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state,iworld)
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
@@ -90,7 +90,9 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = CompletedProcess async.AsyncResult.exitcode 
-								= (ValueResult (Value result True) {TaskInfo|lastEvent=lastEvent} (TaskRep (UIControlSequence {UIControlSequence|attributes = 'Map'.newMap,controls = [],direction = Vertical}) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False}
+									(TaskRep (UIControlSequence {UIControlSequence|attributes = 'Map'.newMap,controls = [],direction = Vertical}) [])
+									(TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization

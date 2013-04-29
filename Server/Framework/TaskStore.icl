@@ -6,15 +6,15 @@ import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON, UIDefinit
 import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
-//Derives required for storage of TUI definitions
-derive JSONEncode TaskRep, TaskCompositionType
+//Derives required for storage of UI definitions
+derive JSONEncode TaskResult, TaskInfo, TaskRep, TaskCompositionType
 derive JSONEncode UIDef, UIAction, UIViewport, UIWindow, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts, UITreeNode
 derive JSONEncode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
 derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
-derive JSONDecode TaskRep, TaskCompositionType
+derive JSONDecode TaskResult, TaskInfo, TaskRep, TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIViewport, UIWindow, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts, UITreeNode
 derive JSONDecode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer
@@ -80,12 +80,9 @@ where
 taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
 taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing 
 
-taskInstanceResult :: !InstanceNo -> RWShared TIResult TIResult IWorld
+taskInstanceResult	:: !InstanceNo -> RWShared (TaskResult JSONNode) (TaskResult JSONNode) IWorld
 taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) Nothing 
 
-taskInstanceRep :: !InstanceNo -> RWShared TIRep TIRep IWorld
-taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing 
-	
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld

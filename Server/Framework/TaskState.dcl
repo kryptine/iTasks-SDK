@@ -4,12 +4,11 @@ import SystemTypes
 
 from Task		import :: TaskTime, :: TaskResult, :: TaskRep
 
-derive JSONEncode TIMeta, TIReduct, TIResult, TaskTree
-derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
+derive JSONEncode TIMeta, TIReduct, TaskTree
+derive JSONDecode TIMeta, TIReduct, TaskTree
 
 //Persistent context of active tasks
 //Split up version of task instance information
-:: TaskInstance :== (!TIMeta,!TIReduct,!TIResult,!TIRep)
 
 :: TIMeta =
 	{ instanceNo	:: !InstanceNo		//Unique global identification
@@ -26,16 +25,10 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	{ task			:: !Task JSONNode
 	, nextTaskNo	:: !TaskNo
 	, nextTaskTime	:: !TaskTime
-	, tree			:: !TaskTree						//Internal task tree state
 	, shares		:: !Map TaskId JSONNode				//Locally shared data
 	, lists			:: !Map TaskId [TaskListEntry]		//Parallel task lists
+	, tasks			:: !Map TaskId Dynamic				//Task functions of embedded parallel tasks
 	}
-
-:: TIResult
-	= TIValue !(TaskValue JSONNode) !TaskTime
-	| TIException !Dynamic !String
-	
-:: TIRep :== TaskRep
 
 :: TaskTree
 	= TCInit		!TaskId !TaskTime													//Initial state for all tasks
@@ -61,13 +54,13 @@ derive JSONDecode DeferredJSON
 :: TaskListEntry	=
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
-	, result			:: !TIResult				//Stored result of last evaluation (for detached tasks this is a cached copy)
+	, lastEval			:: !TaskResult JSONNode		//Result of last evaluation
 	, attributes		:: !Map String String		//Stored attributes of last evaluation
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
 	, lastEvent			:: !TaskTime				//Last modified time
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
-	}
+	}												//If it is false we have determined that this is not necessary during the last computation
 
 :: TaskListEntryState
-	= EmbeddedState !Dynamic !TaskTree 							//The task definition, task tree and last computed attributes
+	= EmbeddedState 											//An embedded task
 	| DetachedState !InstanceNo !ProgressMeta !ManagementMeta	//A reference to the detached task (management and progress meta are cached copies)

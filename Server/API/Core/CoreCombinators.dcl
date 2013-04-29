@@ -130,3 +130,8 @@ class tune b :: !b !(Task a) -> Task a
 instance tune	SetLayout				//Set layout algorithm
 instance tune	AfterLayout				//Apply a modification after a layout has been run
 instance tune	ModifyLayout			//Modify the existing layout
+
+/**
+*  Fine tune evaluation behaviour
+*/
+instance tune	LazyRefresh

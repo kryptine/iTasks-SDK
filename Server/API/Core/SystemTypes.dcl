@@ -703,6 +703,10 @@ instance descr Attribute
 instance descr Att
 instance descr [d] | descr d
 
+
+//Task evaluation tuning directives, for increasing performance
+:: LazyRefresh = LazyRefresh //If you tune a task in a parallel set with this directive, it not be evaluated unless its focused
+
 //****************************************************************************//
 // Generic instances for common library types
 //****************************************************************************//

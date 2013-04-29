@@ -27,6 +27,8 @@ from HttpServer			import class HttpEnv
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
 					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
 					, localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
+					, localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
+					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 					, uis					:: !Map SessionId (!Int,!UIDef)				// Previous ui versions to optimize output sent to clients
