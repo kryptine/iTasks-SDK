@@ -1,4 +1,4 @@
-implementation module GenPrint_NG
+implementation module GenPrint
 
 import StdGeneric, StdEnv, StdMaybe
 

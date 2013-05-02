@@ -1,4 +1,4 @@
-definition module GenPrint_NG
+definition module GenPrint
 
 import StdGeneric
 
