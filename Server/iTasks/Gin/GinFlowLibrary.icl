@@ -1,4 +1,4 @@
-implementation module GinFlowLibrary
+implementation module iTasks.Gin.FlowLibrary
 
 import Maybe
 
@@ -6,11 +6,11 @@ import StdEnum
 from StdFunc import o
 import StdTuple
 
-import GinAbstractSyntax
-import GinSyntax
-import GinParser
-import GinSVG
-import GinTypes
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.Syntax
+import iTasks.Gin.Parser
+import iTasks.Gin.SVG
+import iTasks.Gin.Types
 
 predefinedModule :: GModule
 predefinedModule = 

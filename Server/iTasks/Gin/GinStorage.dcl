@@ -1,14 +1,14 @@
-definition module GinStorage
+definition module iTasks.Gin.Storage
 
 from Error import :: MaybeErrorString, :: MaybeError
 
 //import OSError
 //import Maybe
 //import Void
-from Task import ::Task
+from iTasks.Framework.Task import ::Task
 
-import GinSyntax
-import GinConfig
+import iTasks.Gin.Syntax
+import iTasks.Gin.Config
 
 searchPathModules :: !GinConfig !*World -> ([String], *World)
 

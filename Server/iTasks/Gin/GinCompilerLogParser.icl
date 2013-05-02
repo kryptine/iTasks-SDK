@@ -1,4 +1,4 @@
-implementation module GinCompilerLogParser
+implementation module iTasks.Gin.CompilerLogParser
 
 import StdEnv
 import Maybe
@@ -7,9 +7,9 @@ import ParserCombinators
 
 import Map
 
-from GinParser import ::GPath(..), ::GPathNode(..), ::GResourceId(..)
-from GinPrinter import ::LineMap, ::Map
-from GinAbstractSyntax import ::FunctionMap, ::AIdentifier
+from iTasks.Gin.Parser import ::GPath(..), ::GPathNode(..), ::GResourceId(..)
+from iTasks.Gin.Printer import ::LineMap, ::Map
+from iTasks.Gin.AbstractSyntax import ::FunctionMap, ::AIdentifier
 
 parseCleanIDELog :: String -> [CompilerErrorContext]
 parseCleanIDELog s = (snd o hd) (begin1 parser (fromString s))

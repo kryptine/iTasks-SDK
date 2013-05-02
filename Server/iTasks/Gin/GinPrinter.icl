@@ -1,4 +1,4 @@
-implementation module GinPrinter
+implementation module iTasks.Gin.Printer
 
 import StdList
 import StdString
@@ -11,7 +11,7 @@ from PPrint import qualified <$>, <+>, <->, </>, align, empty, space, comma, lin
 from PPrint import qualified parens, braces, brackets, dquotes, tupled
 from PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, hang, indent, renderPretty, display
 
-from GinParser import ::GPath(..), :: GPathNode(..), ::GResourceId(..)
+from iTasks.Gin.Parser import ::GPath(..), :: GPathNode(..), ::GResourceId(..)
 
 prettyPrint :: Doc -> String
 prettyPrint doc = 'PPrint'.display ('PPrint'.renderPretty 0.9 120 doc)

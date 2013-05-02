@@ -1,15 +1,15 @@
-implementation module GinSyntax
+implementation module iTasks.Gin.Syntax
 
 from iTasks import class iTask
 import StdClass, StdBool, StdList
 import JSON
-import Monad // TODO
+import iTasks.Gin.Monad // TODO
 
-import GinAbstractSyntax
-import GinORYX
-import GinParser
-import GinSVG
-import GinTypes
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.ORYX
+import iTasks.Gin.Parser
+import iTasks.Gin.SVG
+import iTasks.Gin.Types
 
 // Generic functions
 derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration, GShape

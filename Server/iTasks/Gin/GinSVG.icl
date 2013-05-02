@@ -1,4 +1,4 @@
-implementation module GinSVG
+implementation module iTasks.Gin.SVG
 
 import StdInt
 import StdGeneric
@@ -7,12 +7,13 @@ import StdString
 import StdBool
 
 import Maybe
-import XML, HTML, UIDefinition
+import XML, HTML
+import iTasks.Framework.UIDefinition
 
-from GinTypes import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
-from GinTypes import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult, :: GTypeExpression, :: GTypeDefinition
-from GinTypes import printGTypeDefinition, typeIsDefined, printGTypeExpression
-from GinPrinter import class Printer
+from iTasks.Gin.Types import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
+from iTasks.Gin.Types import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult, :: GTypeExpression, :: GTypeDefinition
+from iTasks.Gin.Types import printGTypeDefinition, typeIsDefined, printGTypeExpression
+from iTasks.Gin.Printer import class Printer
 
 from iTasks import class iTask
 

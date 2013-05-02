@@ -1,4 +1,4 @@
-implementation module GinTypes
+implementation module iTasks.Gin.Types
 
 import StdBool
 import StdList
@@ -7,12 +7,12 @@ import Maybe, HTML, UIDefinition
 
 from iTasks import class iTask
 
-import GinPrinter
+import iTasks.Gin.Printer
 
-from GinParser import :: GPath(..), :: GTypeDefinition(..), :: GTypeExpression(..), :: GFormalParameter(..), :: GIdentifier(..), :: GTypeVariable(..), :: GTypeRhs(..), :: GRecordField(..), :: GDataConstructor(..)
-from GinTypes import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
-from GinTypes import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
-from GinTypes import printGTypeDefinition, typeIsDefined, printGTypeExpression
+from iTasks.Gin.Parser import :: GPath(..), :: GTypeDefinition(..), :: GTypeExpression(..), :: GFormalParameter(..), :: GIdentifier(..), :: GTypeVariable(..), :: GTypeRhs(..), :: GRecordField(..), :: GDataConstructor(..)
+from iTasks.Gin.Types import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
+from iTasks.Gin.Types import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
+from iTasks.Gin.Types import printGTypeDefinition, typeIsDefined, printGTypeExpression
 
 derive bimap (,)
 derive bimap Maybe

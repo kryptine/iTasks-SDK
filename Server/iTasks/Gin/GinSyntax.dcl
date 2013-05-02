@@ -1,17 +1,17 @@
-definition module GinSyntax
+definition module iTasks.Gin.Syntax
 
 from Graph import :: Graph
 from Monad import class Monad
 
 from iTasks import class iTask
-from GenVisualize import generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, generic gDefault, generic gUpdate, generic gVerify
+from iTasks.Framework.GenVisualize import generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, generic gDefault, generic gUpdate, generic gVerify
 
-import GinAbstractSyntax
-import GinORYX
-import GinSVG
-import GinTypes
-import GinParser
-import GinTypes
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.ORYX
+import iTasks.Gin.SVG
+import iTasks.Gin.Types
+import iTasks.Gin.Parser
+import iTasks.Gin.Types
 
 // Graph definition
 :: GModule = { name        :: GIdentifier

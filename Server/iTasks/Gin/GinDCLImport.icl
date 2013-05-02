@@ -1,4 +1,4 @@
-implementation module GinDCLImport
+implementation module iTasks.Gin.DCLImport
 
 import StdEnv
 
@@ -11,7 +11,7 @@ import Maybe
 
 import CleanDocParser
 
-import GinSyntax
+import iTasks.Gin.Syntax
 
 from general 	import 	::Optional(..)
 from Heap 		import 	::Ptr

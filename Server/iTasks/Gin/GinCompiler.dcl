@@ -1,8 +1,8 @@
-definition module GinCompiler
+definition module iTasks.Gin.Compiler
 
 from iTasks import class iTask, :: IWorld
-import GinSyntax
-import GinParser
+import iTasks.Gin.Syntax
+import iTasks.Gin.Parser
 
 :: CompileResult a = CompileSuccess a | CompileGlobalError String | CompilePathError [(GPath,String)]
 

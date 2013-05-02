@@ -1,9 +1,9 @@
-definition module GinPrinter
+definition module iTasks.Gin.Printer
 
 from Map import ::Map
 from PPrint import ::Doc
 
-import GinParser
+import iTasks.Gin.Parser
 
 class Printer a
 where 

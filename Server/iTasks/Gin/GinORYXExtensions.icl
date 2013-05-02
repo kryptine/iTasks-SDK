@@ -1,4 +1,4 @@
-implementation module GinORYXExtensions
+implementation module iTasks.Gin.ORYXExtensions
 
 import Maybe
 import JSON

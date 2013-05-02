@@ -1,4 +1,4 @@
-definition module GinTypes
+definition module iTasks.Gin.Types
 
 //import GenEq
 //import HTML, UIDefinition
@@ -8,14 +8,14 @@ from Maybe import :: Maybe
 from iTasks import class iTask
 
 from StdGeneric import generic bimap, :: Bimap
-from GenVisualize import generic gVisualizeText, generic gVisualizeEditor
-from GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
-from GenVerify import generic gVerify
+from iTasks.Framework.GenVisualize import generic gVisualizeText, generic gVisualizeEditor
+from iTasks.Framework.GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
+from iTasks.Framework.GenVerify import generic gVerify
 from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
-from SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
+from iTasks.API.Core.SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
 
-import GinPrinter
+import iTasks.Gin.Printer
 
 :: GTypeExpression = GConstructor GIdentifier
                    | GList GTypeExpression

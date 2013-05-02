@@ -1,13 +1,13 @@
-definition module GinParser
+definition module iTasks.Gin.Parser
 
 //import StdList
 //import GenPrint
 //import JSON
 //import Monad
 
-import GinConfig
-import GinSyntax
-import GinAbstractSyntax
+import iTasks.Gin.Config
+import iTasks.Gin.Syntax
+import iTasks.Gin.AbstractSyntax
 
 from iTasks import class iTask
 

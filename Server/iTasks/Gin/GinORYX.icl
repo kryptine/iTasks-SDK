@@ -1,4 +1,4 @@
-implementation module GinORYX
+implementation module iTasks.Gin.ORYX
 
 import StdBool
 import StdEnum
@@ -15,10 +15,10 @@ import Graph
 
 //import iTasks
 
-import GinAbstractSyntax
-import GinFlowLibrary
-import GinParser
-import GinSyntax
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.FlowLibrary
+import iTasks.Gin.Parser
+import iTasks.Gin.Syntax
 
 derive gEq		 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
 derive JSONEncode		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError

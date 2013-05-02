@@ -1,10 +1,10 @@
-definition module GinCompilerLogParser
+definition module iTasks.Gin.CompilerLogParser
 
 from Maybe import :: Maybe
 
-import GinParser
-import GinPrinter
-import GinAbstractSyntax
+import iTasks.Gin.Parser
+import iTasks.Gin.Printer
+import iTasks.Gin.AbstractSyntax
 
 :: CompilerErrorContext :== (CompilerError, ErrorContext)
 

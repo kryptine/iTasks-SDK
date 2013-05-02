@@ -1,4 +1,4 @@
-implementation module GinStorage
+implementation module iTasks.Gin.Storage
 
 import StdFile
 from 	StdFunc import o, seqList, ::St
@@ -20,13 +20,13 @@ from iTasks import class descr (..), instance descr String, class OptionContaine
 from iTasks import ActionNo, Always, ActionYes, :: TaskStep (..), :: Action (..), :: Hotkey (..), :: Key (..), :: ActionName (..), :: TaskValue (..), :: ChoiceType (..)
 from iTasks import :: Tree, :: MultiChoiceType, :: UIControlSequence, class Functor, instance Functor []
 
-import GinConfig
-import GinSyntax
-import GinParser
-import GinPrinter
-import GinFlowLibrary
+import iTasks.Gin.Config
+import iTasks.Gin.Syntax
+import iTasks.Gin.Parser
+import iTasks.Gin.Printer
+import iTasks.Gin.FlowLibrary
 
-import GinDCLImport
+import iTasks.Gin.DCLImport
 
 GRAPHICAL_EXTENSION :== "gcl"
 DEFINITION_EXTENSION :== "dcl"

@@ -1,9 +1,9 @@
-definition module GinORYXStencil
+definition module iTasks.Gin.ORYXStencil
 
 //import JSON
 
-import GinSyntax
-import GinORYX
+import iTasks.Gin.Syntax
+import iTasks.Gin.ORYX
 
 ::ORYXStencilSet =
 	{ title			:: !String

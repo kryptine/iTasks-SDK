@@ -1,10 +1,10 @@
-definition module GinAbstractSyntax
+definition module iTasks.Gin.AbstractSyntax
 
-import GinTypes
-import GinParser
-import GinPrinter
+import iTasks.Gin.Types
+import iTasks.Gin.Parser
+import iTasks.Gin.Printer
 
-from iTaskClass import class iTask
+from iTasks.Framework.iTaskClass import class iTask
 
 from Void import :: Void
 

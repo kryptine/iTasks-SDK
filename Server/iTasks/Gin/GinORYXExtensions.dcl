@@ -1,4 +1,4 @@
-definition module GinORYXExtensions
+definition module iTasks.Gin.ORYXExtensions
 
 //import JSON
 

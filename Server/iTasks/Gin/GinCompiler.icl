@@ -1,15 +1,15 @@
-implementation module GinCompiler
+implementation module iTasks.Gin.Compiler
 
 import StdFile
 import iTasks
-import IWorld
+import iTasks.Framework.IWorld
 
-import GinSyntax
-import GinAbstractSyntax
-import GinParser
+import iTasks.Gin.Syntax
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.Parser
 
-import GinCompilerLogParser
-import GinConfig
+import iTasks.Gin.CompilerLogParser
+import iTasks.Gin.Config
 
 import Text
 import Error

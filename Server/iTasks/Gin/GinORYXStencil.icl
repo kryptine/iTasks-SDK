@@ -1,4 +1,4 @@
-implementation module GinORYXStencil
+implementation module iTasks.Gin.ORYXStencil
 
 import StdArray
 import StdEnum
@@ -9,11 +9,11 @@ import GenEq
 import JSON
 import Text
 
-import GinSyntax
-import GinORYX
-import GinSVG
-import GinFlowLibrary
-import Util
+import iTasks.Gin.Syntax
+import iTasks.Gin.ORYX
+import iTasks.Gin.SVG
+import iTasks.Gin.FlowLibrary
+import iTasks.Framework.Util
 
 derive gEq		 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 derive JSONEncode	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXContainmentRule, ORYXMorphingRule

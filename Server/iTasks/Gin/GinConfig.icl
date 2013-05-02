@@ -1,4 +1,4 @@
-implementation module GinConfig
+implementation module iTasks.Gin.Config
 
 import Maybe
 import StdFile
@@ -10,7 +10,7 @@ from FilePath import takeDirectory, </>
 import OSError
 
 import CommandLine
-from Engine import determineAppName
+from iTasks.Framework.Engine import determineAppName
 
 import iTasks
 

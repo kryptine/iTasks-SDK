@@ -1,4 +1,4 @@
-implementation module GinParser
+implementation module iTasks.Gin.Parser
 
 import StdBool
 import StdArray
@@ -14,10 +14,10 @@ import Error
 import GenPrint
 
 from iTasks import class iTask
-from GinTypes import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
-from GinTypes import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult, :: GTypeExpression, :: GTypeDefinition
-from GinTypes import printGTypeDefinition, typeIsDefined, printGTypeExpression
-from GinPrinter import class Printer
+from iTasks.Gin.Types import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
+from iTasks.Gin.Types import :: JSONNode, :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult, :: GTypeExpression, :: GTypeDefinition
+from iTasks.Gin.Types import printGTypeDefinition, typeIsDefined, printGTypeExpression
+from iTasks.Gin.Printer import class Printer
 //Clean-platform:
 import Graph
 import Map
@@ -60,12 +60,12 @@ from syntax		import
 import CleanDocParser
 
 //GiN:
-import Monad
-import GinSyntax
-import GinAbstractSyntax
-import GinFlowLibrary
-import GinORYX
-import GinStorage
+import iTasks.Gin.Monad
+import iTasks.Gin.Syntax
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.FlowLibrary
+import iTasks.Gin.ORYX
+import iTasks.Gin.Storage
 
 //--------------------------------------------------------------------------------------------------
 //GParseState monadic combinators

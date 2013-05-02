@@ -1,17 +1,17 @@
-definition module GinORYX
+definition module iTasks.Gin.ORYX
 
 from iTasks import :: JSONNode
 from Maybe import :: Maybe
 from SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
 from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from GenVisualize import generic gVisualizeText, generic gVisualizeEditor
-from GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
-from GenVerify import generic gVerify
+from iTasks.Framework.GenVisualize import generic gVisualizeText, generic gVisualizeEditor
+from iTasks.Framework.GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
+from iTasks.Framework.GenVerify import generic gVerify
 from GenEq import generic gEq
 
-import GinTypes
-import GinSyntax
-import GinParser
+import iTasks.Gin.Types
+import iTasks.Gin.Syntax
+import iTasks.Gin.Parser
 
 :: ORYXEditor =	{ diagram		:: ORYXDiagram
 				, stencilset	:: ORYXStencilSetReference
