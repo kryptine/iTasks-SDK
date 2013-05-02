@@ -60,7 +60,7 @@ where
 		# (val,iworld)	= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
 			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,refreshSensitive=True}
-				(finalizeRep repOpts (TaskRep (UIControlSequence {UIControlSequence|attributes=newMap,controls=[],direction=Vertical}) [])) (TCInit taskId ts)
+				(finalizeRep repOpts NoRep) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)

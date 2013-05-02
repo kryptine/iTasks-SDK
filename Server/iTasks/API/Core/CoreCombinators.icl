@@ -20,8 +20,6 @@ from Data.SharedDataSource			import write, writeFilterMsg, read, readRegister
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
-noRep = TaskRep (UIControlSequence {UIControlSequence|attributes='Data.Map'.newMap,controls=[],direction=Vertical}) []
-
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
 
@@ -174,10 +172,11 @@ where
 		(OnException taskbf)		= call_with_DeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
+	doStepLayout taskId repOpts NoRep val
+		= finalizeRep repOpts (TaskRep ((repLayout repOpts).Layout.step (UIActionSet {UIActionSet|actions=[],attributes='Data.Map'.newMap}) (stepActions taskId val)) [])
 	doStepLayout taskId repOpts (TaskRep def parts) val 
 		= finalizeRep repOpts (TaskRep ((repLayout repOpts).Layout.step def (stepActions taskId val)) parts)
-	where
-		stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
+	stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
 
 	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -355,7 +354,7 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Data.Map'.newMap}
 			# (taskIda=:TaskId instanceNo _,iworld)	= createTopTaskInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
-	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} noRep (TCInit taskIda taskTime)
+	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)		
@@ -365,6 +364,8 @@ updateListEntryEmbeddedResult listId entryId result iworld
 	= updateListEntry listId entryId (\e=:{TaskListEntry|state,lastEvent} ->
 		{TaskListEntry|e & lastEval= wrap result, attributes = newAttr result, lastEvent = maxTime lastEvent result}) iworld
 where
+	wrap (ValueResult val info=:{TaskInfo|refreshSensitive=True} _ tree) //When we know for certain that we'll recompute the task on the next event, 
+		= ValueResult (fmap toJSON val) info NoRep tree					 //don't bother storing the task representation
 	wrap (ValueResult val info rep tree)	= ValueResult (fmap toJSON val) info rep tree
 	wrap (ExceptionResult e str)			= ExceptionResult e str
 
@@ -486,9 +487,9 @@ where
 		# layout			= repLayout repOpts
 		= case (meta,result) of
 			(_,Ok (ValueResult (Value _ True) _ _ _))
-				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 			(_,Ok (ExceptionResult _ _))
-				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 			(Ok meta=:{TIMeta|worker=Just worker},Ok (ValueResult _ _ (TaskRep def parts) _))
 				| worker == currentUser
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn def meta) parts)
@@ -497,7 +498,7 @@ where
 					# rep = finalizeRep repOpts (TaskRep (layout.Layout.workOn (inUseDef worker) meta) parts)
 					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,refreshSensitive=False} rep tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts noRep) tree, iworld)
+				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld=:{currentInstance}
 		= (DestroyedResult,iworld)

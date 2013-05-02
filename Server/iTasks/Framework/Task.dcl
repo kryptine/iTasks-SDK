@@ -49,8 +49,9 @@ derive gPutRecordFields	Task
 	, appFinalLayout	:: Bool
 	}
 	
-:: TaskRep			= TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
-
+:: TaskRep	= NoRep								//For some tasks no external representation is generated
+			| TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
+					
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]
 
