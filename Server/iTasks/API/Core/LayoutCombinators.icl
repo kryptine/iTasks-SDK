@@ -367,7 +367,7 @@ where
 		= (UIAbstractContainer {UIAbstractContainer|attributes=attributes,controls=controls,direction=Vertical,actions=[],windows=windows,hotkeys=[]})
 
 	toTabContent def
-		# def			= tweakAttr (del TITLE_ATTRIBUTE) def	//Prevent double titles
+		# def			= tweakAttr (del ICON_ATTRIBUTE o del TITLE_ATTRIBUTE) def	//Prevent double titles and icons
 		# (_,actions)	= actionsToCloseId (uiDefActions def)	//Remove close action, because it is handled by tab
 		= placePanelActions actions True (defToPanel (layoutControls def))
 		
