@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.SQLDatabase
 
-import iTasks, SQL, MySQL, Error
+import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error
 import iTasks.Framework.IWorld, iTasks.Framework.Shared
 
 derive class iTask SQLValue, SQLDate, SQLTime

@@ -5,7 +5,7 @@ definition module iTasks.API.Extensions.SQLDatabase
 *
 * It provides only mimimal functionality and currently only works with MySQL...
 */
-import iTasks, SQL, Error
+import iTasks, Database.SQL, Data.Error
 derive class iTask SQLValue, SQLTime, SQLDate
 
 
