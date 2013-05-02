@@ -4,16 +4,16 @@ import StdFile
 from 	StdFunc import o, seqList, ::St
 import StdMisc, StdClass, StdList, StdOrdList, StdChar, StdString
 
-from File import qualified fileExists, readFile
-from FilePath import addExtension, dropExtension, takeExtension, :: FilePath, </>
-import qualified FilePath
+from System.File import qualified fileExists, readFile
+from System.FilePath import addExtension, dropExtension, takeExtension, :: FilePath, </>
+import qualified System.FilePath
 from Text import class Text (..), instance Text String
-from Directory import readDirectory
+from System.Directory import readDirectory
 //import Directory
 //import Text
-from JSON import fromJSON, instance fromString JSONNode
-import OSError
-import Void
+from Text.JSON import fromJSON, instance fromString JSONNode
+import System.OSError
+import Data.Void
 
 from iTasks import class iTask, enterChoice, >>*, >>|, >>=, :: Task, :: ChoiceOption (..), :: EnterOption (..), :: ViewOption (..), :: ActionOption (..), exportJSONFile
 from iTasks import class descr (..), instance descr String, class OptionContainer (..), instance OptionContainer [], return, enterInformation, viewInformation, :: Stability (..), exportTextFile, accWorld, accWorldOSError
@@ -66,10 +66,10 @@ where
 	mp []           world = (Nothing, world)
 	mp [path:paths] world 
 		# filepath = (addExtension (path </> name) GRAPHICAL_EXTENSION)
-		# (exists, world) = 'File'.fileExists filepath world
+		# (exists, world) = 'System.File'.fileExists filepath world
 		| exists	= (Just filepath, world)
 		# filepath = (addExtension (path </> name) DEFINITION_EXTENSION)
-		# (exists, world) = 'File'.fileExists filepath world
+		# (exists, world) = 'System.File'.fileExists filepath world
 		| exists	= (Just filepath, world)
 		= mp paths world
 
@@ -78,7 +78,7 @@ readModule config name world
 	# (mPath, world) = modulePath config name world
 	| isNothing mPath = (Error ("Module " +++ name +++ " not found in search path"), world)
 	# path = fromJust mPath
-	# (res, world) = 'File'.readFile path world
+	# (res, world) = 'System.File'.readFile path world
 	| isError res = (Error ("Failed to read file " +++ fromJust mPath), world)
 	# contents = fromOk res
 	= case toLowerCase (takeExtension path) of

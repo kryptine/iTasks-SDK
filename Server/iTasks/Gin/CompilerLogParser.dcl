@@ -1,6 +1,6 @@
 definition module iTasks.Gin.CompilerLogParser
 
-from Maybe import :: Maybe
+from Data.Maybe import :: Maybe
 
 import iTasks.Gin.Parser
 import iTasks.Gin.Printer

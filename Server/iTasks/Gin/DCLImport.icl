@@ -2,12 +2,12 @@ implementation module iTasks.Gin.DCLImport
 
 import StdEnv
 
-from File import deleteFile
-from FilePath import dropDirectory, dropExtension, :: FilePath
-from Error import Error, Ok
-from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
+from System.File import deleteFile
+from System.FilePath import dropDirectory, dropExtension, :: FilePath
+from Data.Error import Error, Ok
+from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
 
-import Maybe
+import Data.Maybe
 
 import CleanDocParser
 

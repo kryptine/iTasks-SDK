@@ -2,12 +2,12 @@ implementation module CleanDocParser
 
 import StdEnv
 
-import File
+import System.File
 import Text
-import Maybe
-import Error
-import ParserCombinators
-import _Unsafe
+import Data.Maybe
+import Data.Error
+import Text.ParserCombinators
+import System._Unsafe
 
 import GenEq
 

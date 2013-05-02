@@ -4,7 +4,7 @@ import iTasks.Gin.Syntax
 import iTasks.Gin.Types
 
 from syntax import ::Type
-from Error import :: MaybeErrorString, :: MaybeError
+from Data.Error import :: MaybeErrorString, :: MaybeError
 
 importDCL :: !String !String *World -> (MaybeErrorString GModule, *World)
 

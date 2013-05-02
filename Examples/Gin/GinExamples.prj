@@ -39,6 +39,10 @@ Global
 	Paths
 		Path:	{Project}
 		Path:	{Project}/Workflows
+		Path:	{Application}/iTasks-SDK/Server/lib/CleanIDE/Pm
+		Path:	{Application}/iTasks-SDK/Server/lib/CleanIDE/Util
+		Path:	{Application}/iTasks-SDK/Server/lib/CleanIDE/Interfaces/LinkerInterface
+		Path:	{Application}/iTasks-SDK/Server/lib/CleanIDE/Win
 		Path:	{Application}/iTasks-SDK/Server/lib/CleanCompiler
 		Path:	{Application}/iTasks-SDK/Server/lib/CleanCompiler/frontend
 	Precompile:	

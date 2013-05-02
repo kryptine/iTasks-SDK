@@ -1,11 +1,11 @@
 implementation module iTasks.Gin.CompilerLogParser
 
 import StdEnv
-import Maybe
-import ParserCombinators
+import Data.Maybe
+import Text.ParserCombinators
 //import GenPrint
 
-import Map
+import Data.Map
 
 from iTasks.Gin.Parser import ::GPath(..), ::GPathNode(..), ::GResourceId(..)
 from iTasks.Gin.Printer import ::LineMap, ::Map

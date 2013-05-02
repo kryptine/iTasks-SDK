@@ -12,13 +12,13 @@ import iTasks.Gin.CompilerLogParser
 import iTasks.Gin.Config
 
 import Text
-import Error
-import OSError
+import Data.Error
+import System.OSError
 
-import FilePath
-from File import instance toString FileError, readFile, writeFile
-from Process import qualified callProcess
-from Map import newMap
+import System.FilePath
+from System.File import instance toString FileError, readFile, writeFile
+from System.Process import qualified callProcess
+from Data.Map import newMap
 
 from PmCleanSystem import 
 	::CompileOrCheckSyntax(..),
@@ -60,15 +60,18 @@ from linkargs import
 
 import UtilStrictLists
 
-from File import deleteFile
+from System.File import deleteFile
 
 derive class iTask CompileResult
 
 derive JSONEncode CompilingInfo, CompilerProcess
 derive JSONDecode CompilingInfo, CompilerProcess
 
+tmpDirectory :: *IWorld -> String
+tmpDirectory iworld=:{dataDirectory} = dataDirectory +++ "-gin-temp"
+
 runCompiler :: !GModule !(AModule -> (String, FunctionMap, LineMap)) (String String GinConfig FunctionMap LineMap *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
-runCompiler gMod printfun compiler iworld=:{tmpDirectory}
+runCompiler gMod printfun compiler iworld
 //1. Load configuration
 # (config,iworld) = accWorldIWorld ginLoadConfig iworld 
 | isNothing config = (CompileGlobalError "Configuration not found", iworld)
@@ -82,7 +85,7 @@ runCompiler gMod printfun compiler iworld=:{tmpDirectory}
 # (basename,iworld) = getUniqueBasename iworld
 # (source,functionMap,lineMap) = printfun { AModule | aMod & name = basename }
 //4. Write source code to temp icl file
-# fullname = (filenameFromConfig config tmpDirectory basename "icl")
+# fullname = (filenameFromConfig config (tmpDirectory iworld) basename "icl")
 # (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
 | isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
 //5. Call compiler function
@@ -105,7 +108,7 @@ where
 	prefix = "temp"
 
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
-batchBuild gMod iworld=:{tmpDirectory} = runCompiler gMod printfun build iworld
+batchBuild gMod iworld = runCompiler gMod printfun build iworld
 where
 	printfun :: AModule -> (String, FunctionMap, LineMap)
 	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap, newMap)
@@ -115,20 +118,20 @@ where
 	# (res, iworld) = accWorldIWorld (readFile (config.iTasksPath </> "Server" </> "Gin" </> "project-template")) iworld
 	| isError res = (CompileGlobalError ("Failed to read project template file: " +++ toString (fromError res)), iworld)
 	# projectFile = replaceSubString "{UserPath}" config.userPath (replaceSubString "{Basename}" basename (fromOk res))
-	# (res, iworld) = accWorldIWorld (writeFile (filenameFromConfig config tmpDirectory basename "prj") projectFile) iworld
+	# (res, iworld) = accWorldIWorld (writeFile (filenameFromConfig config (tmpDirectory iworld) basename "prj") projectFile) iworld
 	| isError res = (CompileGlobalError ("Failed to write project file: " +++ toString (fromError res)), iworld)
-	# projectFile = filenameFromConfig config tmpDirectory basename "prj"
-	# (res, iworld) = accWorldIWorld ('Process'.callProcess (config.cleanPath </> "CleanIDE.exe") ["--batch-build", projectFile] (Just config.cleanPath)) iworld
+	# projectFile = filenameFromConfig config (tmpDirectory iworld) basename "prj"
+	# (res, iworld) = accWorldIWorld ('System.Process'.callProcess (config.cleanPath </> "CleanIDE.exe") ["--batch-build", projectFile] (Just config.cleanPath)) iworld
 	# (deleted,iworld) = accWorldIWorld (deleteFile projectFile) iworld
 	| isError deleted = (CompileGlobalError ("Failed to delete file " +++ projectFile +++ ": " +++ snd (fromError deleted)), iworld)
 	| isError res = (CompileGlobalError ("Calling Clean IDE failed: " +++ snd (fromError res)), iworld)
 	| fromOk res == 0
-		# batchfile = (filenameFromConfig config tmpDirectory basename "bat")
-		# (res, iworld) = accWorldIWorld ('Process'.callProcess batchfile [] Nothing) iworld
+		# batchfile = (filenameFromConfig config (tmpDirectory iworld) basename "bat")
+		# (res, iworld) = accWorldIWorld ('System.Process'.callProcess batchfile [] Nothing) iworld
 		| isError res = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError res)), iworld)
-		# dynfile = filenameFromConfig config tmpDirectory basename "dyn"
+		# dynfile = filenameFromConfig config (tmpDirectory iworld) basename "dyn"
 	    = (CompileSuccess dynfile, iworld)
-	# (res, iworld) = accWorldIWorld (readFile (filenameFromConfig config tmpDirectory basename "log")) iworld
+	# (res, iworld) = accWorldIWorld (readFile (filenameFromConfig config (tmpDirectory iworld) basename "log")) iworld
 	| isError res = (CompileGlobalError ("Read log file failed: " +++ toString (fromError res)), iworld)
 	# log = fromOk res
 	= (CompileGlobalError log, iworld)
@@ -141,7 +144,7 @@ syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile Synt
 // --------------------------------------------------------------------------------
 
 compile :: CompileOrCheckSyntax !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult Void, *IWorld)
-compile compileOrCheckSyntax source basename config functionMap lineMap iworld=:{tmpDirectory}
+compile compileOrCheckSyntax source basename config functionMap lineMap iworld
 # (mCompilingInfo, iworld) = loadCompilingInfo iworld
 # compilingInfo = case mCompilingInfo of
 	Just c = c
@@ -159,7 +162,7 @@ where
 		if (config.GinConfig.cleanPath </> "" == takeDirectory config.GinConfig.iTasksPath </> "")
 			(dropDirectory config.GinConfig.iTasksPath </> "Compiler")
 			("Tools" </> "Clean System")
-	# env = { errors = [], world = world }
+	# env = { LogEnv | errors = [], world = world }
 	# compilingInfo = InitCompilingInfo //<- TODO: remove
 	# (compilingInfo, (env, _, compilerMsg)) = 
 		CompilePersistent
@@ -169,7 +172,7 @@ where
 		        (\_ x -> x)                                //Types display function
 		        compileOrCheckSyntax
 		        (basename +++ ".icl")
-		        (ListToStrictList (searchPaths config tmpDirectory))
+		        (ListToStrictList (searchPaths config (tmpDirectory iworld)))
 		        False                                      //No memory profiling
 		        False                                      //No time profiling
 		        True                                       //Eager or dynamic linking
@@ -308,7 +311,7 @@ convertFail (CompileGlobalError msg) = CompileGlobalError msg
 convertFail (CompilePathError paths) = CompilePathError paths
 
 addError :: [String] LogEnv -> LogEnv
-addError err env = 	/* trace_n (join "\n" err) */ { env & errors = env.errors ++ [err] }
+addError err {LogEnv | errors=errs, world=w } = {LogEnv | errors = errs ++ [err], world=w} 	/* trace_n (join "\n" err) */
 
 accWorldIWorld :: (*World -> (b, *World)) *IWorld -> (b, *IWorld)
 accWorldIWorld f iworld

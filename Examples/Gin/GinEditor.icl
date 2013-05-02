@@ -12,7 +12,7 @@ import Data.Void
 import iTasks.Gin.AbstractSyntax
 import iTasks.Gin.Config
 import iTasks.Gin.Compiler
-import iTasks.Gin.Domain
+import iTasks.API.Extensions.Gin.Domain
 import iTasks.Gin.Parser
 from iTasks.Gin.Printer import :: Doc, prettyPrint, instance Printer Doc
 import iTasks.Gin.Storage
