@@ -2,11 +2,11 @@ implementation module iTasks.API.Core.SystemTypes
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
-import List, JSON, HTML, Text, Map, Base64, Tuple, dynamic_string
+import Data.List, Text.JSON, Text.HTML, Text, Data.Map, Text.Encodings.Base64, Data.Tuple, dynamic_string
 import iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate
 import iTasks.Framework.Util
 
-from Time 		import :: Timestamp(..)
+from System.Time 		import :: Timestamp(..)
 from iTasks.Framework.Task		import :: TaskValue
 
 from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIViewport, :: UIAction, :: UIControl, stringDisplay

@@ -5,11 +5,12 @@ definition module iTasks.Framework.Engine
 * environment in which worfklow specifications can be executed.
 */
 
-import StdList, Maybe, JSON, FilePath
+import StdList
+import Data.Maybe, Text.JSON, System.FilePath
 import iTasks.Framework.Task
 from iTasks.Framework.IWorld	import :: IWorld
 
-from HTTP			import :: HTTPRequest, :: HTTPResponse
+from Internet.HTTP			import :: HTTPRequest, :: HTTPResponse
 
 //* Configuarion defaults
 DEFAULT_PORT		:== IF_POSIX_OR_WINDOWS 8080 80

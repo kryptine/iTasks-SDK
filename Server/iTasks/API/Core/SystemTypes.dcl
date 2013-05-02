@@ -3,13 +3,14 @@ definition module iTasks.API.Core.SystemTypes
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-import GenEq, Maybe, JSON, Void, Either, FilePath, HTML, Error, File, OS
+import GenEq
+import Data.Maybe, Text.JSON, Data.Void, Data.Either, System.FilePath, Text.HTML, Data.Error, System.File, System.OS
 import iTasks.Framework.Store
 
-from Map 				import :: Map
-from Map 				import qualified get
-from HTML 				import class html
-from Time				import :: Timestamp
+from Data.Map 				import :: Map
+from Data.Map 				import qualified get
+from Text.HTML 				import class html
+from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld			import :: IWorld
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from iTasks.Framework.Task				import :: Task, :: TaskId

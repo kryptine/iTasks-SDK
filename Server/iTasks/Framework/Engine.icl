@@ -1,8 +1,9 @@
 implementation module iTasks.Framework.Engine
 
-import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, Func
+import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool
 from StdFunc import o, seqList, ::St
-import Map, Time, CommandLine, Environment, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
+import Data.Map, Data.Error, Data.Func, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.IWorld, iTasks.Framework.WebService
 

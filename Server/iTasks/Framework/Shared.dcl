@@ -1,10 +1,10 @@
 definition module iTasks.Framework.Shared
 
-import Void, Error
+import Data.Void, Data.Error
 import iTasks.Framework.IWorld
-from SharedDataSource import :: RWShared, null, ::ROShared, :: WOShared
-from SharedDataSource import mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly, >+<, >+|, |+<, |+|
-from SharedDataSource import createChangeOnWriteSDS, createPollingSDS, createReadOnlySDS, createReadOnlySDSError, createReadOnlySDSPredictable, createReadOnlySDSErrorPredictable
+from Data.SharedDataSource import :: RWShared, null, ::ROShared, :: WOShared
+from Data.SharedDataSource import mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly, >+<, >+|, |+<, |+|
+from Data.SharedDataSource import createChangeOnWriteSDS, createPollingSDS, createReadOnlySDS, createReadOnlySDSError, createReadOnlySDSPredictable, createReadOnlySDSErrorPredictable
 
 :: ReadWriteShared r w	:== RWShared r w IWorld
 :: Shared a				:== ReadWriteShared a a

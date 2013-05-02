@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.GenVerify
 
-import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, StdMisc, Maybe, Functor, Text, Generic
+import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, StdMisc, Data.Maybe, Data.Functor, Text, Data.Generic
 import iTasks.Framework.GenUpdate, iTasks.Framework.Util
 
 verifyValue :: !a -> Bool | gVerify{|*|} a

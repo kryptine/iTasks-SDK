@@ -9,10 +9,10 @@ definition module iTasks.Framework.Store
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
 * functions) should they be used.
 */
-import JSON
-from Time import :: Timestamp
-from FilePath import :: FilePath
-from SharedDataSource import :: RWShared
+import Text.JSON
+from System.Time import :: Timestamp
+from System.FilePath import :: FilePath
+from Data.SharedDataSource import :: RWShared
 from iTasks.Framework.IWorld import :: IWorld
 
 // Storage formats

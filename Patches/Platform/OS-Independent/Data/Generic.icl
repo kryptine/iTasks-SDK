@@ -1,4 +1,4 @@
-implementation module Generic
+implementation module Data.Generic
 
 import StdGeneric, StdList
 

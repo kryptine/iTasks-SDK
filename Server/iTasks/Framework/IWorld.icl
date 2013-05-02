@@ -1,10 +1,10 @@
 implementation module iTasks.Framework.IWorld
 
-from FilePath			import :: FilePath
-from Map				import :: Map
-from Maybe				import :: Maybe
-from Time				import :: Timestamp, time
-from JSON				import :: JSONNode
+from System.FilePath			import :: FilePath
+from Data.Map				import :: Map
+from Data.Maybe				import :: Maybe
+from System.Time				import :: Timestamp, time
+from Text.JSON				import :: JSONNode
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from iTasks.Framework.TaskState			import :: TaskListEntry
 
@@ -12,10 +12,10 @@ from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
 from HttpServer import class HttpEnv(..)
 
-from List import splitWith
-from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from Data.List import splitWith
+from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 
-import Time, StdList, Base64, _SystemArray, StdBool, StdTuple
+import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple
 import iTasks.Framework.TaskStore, iTasks.Framework.Util
 import iTasks.Framework.SerializationGraphCopy 
 

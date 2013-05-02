@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.HtmlUtil
 
-import HTML, JSON, Text, HTTP, Map, OS
+import Text.HTML, Text.JSON, Text, Internet.HTTP, Data.Map, System.OS
 import StdList, StdBool
 
 embeddedStyle :: HtmlTag

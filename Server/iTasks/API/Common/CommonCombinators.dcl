@@ -5,8 +5,8 @@ definition module iTasks.API.Common.CommonCombinators
 import iTasks.API.Core.CoreCombinators, iTasks.API.Core.LayoutCombinators
 
 from iTasks.API.Core.SystemTypes		import :: User
-from Map				import :: Map
-from Either				import :: Either
+from Data.Map				import :: Map
+from Data.Either				import :: Either
 
 /**
 * Infix shorthand for step combinator

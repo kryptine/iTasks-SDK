@@ -1,6 +1,6 @@
 definition module HttpUtil
 
-import HTTP, StdFile
+import Internet.HTTP, StdFile
 
 //General utility functions
 http_splitMultiPart :: !String !String -> [([(String,String)], String)]

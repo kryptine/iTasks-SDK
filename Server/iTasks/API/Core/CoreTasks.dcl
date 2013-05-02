@@ -5,8 +5,8 @@ definition module iTasks.API.Core.CoreTasks
 
 import iTasks.Framework.iTaskClass, iTasks.Framework.Shared
 from iTasks.Framework.Task	import :: Task
-from Error					import ::MaybeError(..)
-from OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
+from Data.Error					import ::MaybeError(..)
+from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter

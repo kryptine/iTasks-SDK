@@ -1,7 +1,7 @@
-implementation module JSON
+implementation module Text.JSON
 
-import StdGeneric, Maybe, StdList, StdOrdList, StdString, _SystemArray, StdTuple, StdBool, StdFunc, StdOverloadedList
-import Text, PPrint
+import StdGeneric, Data.Maybe, StdList, StdOrdList, StdString, _SystemArray, StdTuple, StdBool, StdFunc, StdOverloadedList
+import Text, Text.PPrint
 
 //Token type which is the intermediary representation during JSON parsing
 :: Token	= TokenInt !Int

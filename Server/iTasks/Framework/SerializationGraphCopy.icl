@@ -4,10 +4,10 @@ import StdEnv
 import dynamic_string
 from iTasks.Framework.Store import :: StoreFormat(..)
 
-import Base64
-import Error
-import JSON
-import Maybe
+import Text.Encodings.Base64
+import Data.Error
+import Text.JSON
+import Data.Maybe
 
 serialize :: !a -> *String
 serialize value = copy_to_string value

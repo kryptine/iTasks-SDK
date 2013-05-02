@@ -2,7 +2,7 @@ implementation module iTasks.API.Core.CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
 
-import HTTP,  GenEq, Time, Text, Func, Tuple, List
+import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
 import iTasks.Framework.Util, iTasks.Framework.Shared, iTasks.Framework.Store, iTasks.Framework.GenUpdate
 import iTasks.Framework.iTaskClass, iTasks.Framework.UIDefinition
@@ -10,17 +10,17 @@ import iTasks.API.Core.SystemTypes, iTasks.API.Common.InteractionTasks, iTasks.A
 
 import iTasks.Framework.ClientSupport.ClientOverride
 
-from Map						import qualified get, put, del, newMap, toList, fromList
+from Data.Map						import qualified get, put, del, newMap, toList, fromList
 from StdFunc					import id, const, o, seq
 from iTasks						import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.Framework.TaskEval	import localShare, parListShare, topListShare
 from iTasks.API.Core.CoreTasks	import return
-from SharedDataSource			import write, writeFilterMsg, read, readRegister
+from Data.SharedDataSource			import write, writeFilterMsg, read, readRegister
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
-noRep = TaskRep (UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[],direction=Vertical}) []
+noRep = TaskRep (UIControlSequence {UIControlSequence|attributes='Data.Map'.newMap,controls=[],direction=Vertical}) []
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
@@ -204,7 +204,7 @@ where
 	//Create initial task list
 	eval event repOpts (TCInit taskId ts) iworld=:{IWorld|localLists}
 		//Append the initial tasks to the list 
-		# iworld	= foldl append {iworld & localLists = 'Map'.put taskId [] localLists} initTasks
+		# iworld	= foldl append {iworld & localLists = 'Data.Map'.put taskId [] localLists} initTasks
 		//Evaluate the parallel
 		= eval event repOpts (TCParallel taskId ts) iworld
 	where
@@ -232,13 +232,13 @@ where
 						# ts				= case event of
 							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
-						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,refreshSensitive=refreshSensitive} (finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Map'.put taskId (map fst entries) localLists})
+						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,refreshSensitive=refreshSensitive} (finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Data.Map'.put taskId (map fst entries) localLists})
 	//Cleanup
 	eval event repOpts (TCDestroy (TCParallel taskId ts)) iworld=:{localLists}
-		# entries = fromMaybe [] ('Map'.get taskId localLists)
+		# entries = fromMaybe [] ('Data.Map'.get taskId localLists)
 		= case foldl destroyParTask (Nothing,iworld) entries of
-			(Nothing,iworld)						= (DestroyedResult,{iworld & localLists = 'Map'.del taskId localLists})			//All destroyed
-			(Just (ExceptionResult e str),iworld)	= (ExceptionResult e str,{iworld & localLists = 'Map'.del taskId localLists})	//An exception occurred	
+			(Nothing,iworld)						= (DestroyedResult,{iworld & localLists = 'Data.Map'.del taskId localLists})			//All destroyed
+			(Just (ExceptionResult e str),iworld)	= (ExceptionResult e str,{iworld & localLists = 'Data.Map'.del taskId localLists})	//An exception occurred	
 			(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in step"),iworld)
 	//Fallback
 	eval _ _ _ iworld
@@ -246,12 +246,12 @@ where
 	
 	evalParTasks :: !TaskId !Event !*IWorld -> (!Maybe (TaskResult [(TaskTime,TaskValue a)]),![(!TaskListEntry,!Maybe TaskRep)],!*IWorld) | iTask a
 	evalParTasks taskId event iworld=:{localLists,eventRoute}
-		= evalFrom 0 [] (fromMaybe [] ('Map'.get taskId localLists)) ('Map'.get taskId eventRoute) iworld
+		= evalFrom 0 [] (fromMaybe [] ('Data.Map'.get taskId localLists)) ('Data.Map'.get taskId eventRoute) iworld
 	where
 		evalFrom n acc list mbEventIndex iworld = case foldl (evalParTask taskId event mbEventIndex) (Nothing,acc,iworld) [(i,e) \\ e <- drop n list & i <- [n..]]  of
 			(Just (ExceptionResult e str),acc,iworld)	= (Just (ExceptionResult e str),acc,iworld)
 			(Nothing,acc,iworld=:{localLists})			
-				# nlist = fromMaybe [] ('Map'.get taskId localLists)
+				# nlist = fromMaybe [] ('Data.Map'.get taskId localLists)
 				# lenlist = length list
 				| length nlist > lenlist	= evalFrom lenlist acc nlist Nothing iworld	//Extra branches were added -> evaluate these as well 
 											= (Nothing,acc,iworld)						//Done
@@ -268,7 +268,7 @@ where
 										= info.TaskInfo.refreshSensitive	//Also evaluate if the branch is refresh sensitive
 		| evalNeeded
 			//Evaluate the branch
-			= case 'Map'.get entryId localTasks of
+			= case 'Data.Map'.get entryId localTasks of
 				Just (Task evala :: Task a^)
 					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} tree iworld
 					= case result of
@@ -300,7 +300,7 @@ where
 	destroyParTask :: (!Maybe (TaskResult a),!*IWorld) !TaskListEntry -> (!Maybe (TaskResult a),!*IWorld) | iTask a
 	//Destroy embedded tasks
 	destroyParTask (_,iworld=:{localTasks}) {TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult _ _ _ tree}
-		= case 'Map'.get entryId localTasks of
+		= case 'Data.Map'.get entryId localTasks of
 			Just (Task evala :: Task a^)
 				# (result,iworld) = evala RefreshEvent {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} (TCDestroy tree) iworld
 				= case result of
@@ -349,14 +349,14 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 		Embedded
 			# (taskIda,iworld)	= getNextTaskId iworld
 			# task		= parTask (parListShare taskId)
-			= (taskIda, EmbeddedState, {iworld & localTasks = 'Map'.put taskIda (dynamic task :: Task a^) localTasks})
+			= (taskIda, EmbeddedState, {iworld & localTasks = 'Data.Map'.put taskIda (dynamic task :: Task a^) localTasks})
 		Detached management
 			# task									= parTask (parListShare taskId)
-			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Map'.newMap}
+			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Data.Map'.newMap}
 			# (taskIda=:TaskId instanceNo _,iworld)	= createTopTaskInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} noRep (TCInit taskIda taskTime)
-	# entry		= {entryId = taskIda, state = state, lastEval = lastEval, attributes = 'Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
+	# entry		= {entryId = taskIda, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)		
 
@@ -369,7 +369,7 @@ where
 	wrap (ExceptionResult e str)			= ExceptionResult e str
 
 	newAttr (ValueResult _ _ (TaskRep def _) _)					= uiDefAttributes def
-	newAttr _													= 'Map'.newMap
+	newAttr _													= 'Data.Map'.newMap
 	
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
@@ -397,20 +397,20 @@ updateListEntry listId entryId f iworld
 loadTaskList :: !TaskId !*IWorld -> (![TaskListEntry],!*IWorld)	
 loadTaskList taskId=:(TaskId instanceNo taskNo) iworld=:{currentInstance,localLists}
 	| instanceNo == currentInstance
-		= (fromMaybe [] ('Map'.get taskId localLists),iworld)
+		= (fromMaybe [] ('Data.Map'.get taskId localLists),iworld)
 	| otherwise
 		= case read (taskInstanceReduct instanceNo) iworld of
-			(Ok {TIReduct|lists},iworld)	= (fromMaybe [] ('Map'.get taskId lists),iworld)
+			(Ok {TIReduct|lists},iworld)	= (fromMaybe [] ('Data.Map'.get taskId lists),iworld)
 			(_,iworld)						= ([],iworld)
 
 storeTaskList :: !TaskId ![TaskListEntry] !*IWorld -> *IWorld	
 storeTaskList taskId=:(TaskId instanceNo taskNo) list iworld=:{currentInstance,localLists}
 	| instanceNo == currentInstance
-		= {iworld & localLists = 'Map'.put taskId list localLists}
+		= {iworld & localLists = 'Data.Map'.put taskId list localLists}
 	| otherwise
 		= case read (taskInstanceReduct instanceNo) iworld of
 			(Ok reduct=:{TIReduct|lists},iworld)	
-				# (_,iworld) = write {TIReduct|reduct & lists = 'Map'.put taskId list lists} (taskInstanceReduct instanceNo) iworld
+				# (_,iworld) = write {TIReduct|reduct & lists = 'Data.Map'.put taskId list lists} (taskInstanceReduct instanceNo) iworld
 				= iworld
 			(_,iworld)								= iworld
 			
@@ -503,7 +503,7 @@ where
 		= (DestroyedResult,iworld)
 		
 	inUseDef worker
-		= UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],direction=Vertical}
+		= UIControlSequence {UIControlSequence|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)],direction=Vertical}
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to
@@ -520,7 +520,7 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
 where	
 	eval event repOpts (TCInit taskId ts) iworld=:{localShares}
-		# localShares				= 'Map'.put taskId (toJSON initial) localShares
+		# localShares				= 'Data.Map'.put taskId (toJSON initial) localShares
 		# (taskIda,iworld)			= getNextTaskId iworld
 		= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & localShares = localShares}
 		
@@ -542,7 +542,7 @@ where
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld //First destroy inner task, then remove shared state
 		# (Task evala)					= stask (localShare taskId)
 		# (resa,iworld=:{localShares})	= evala event repOpts (TCDestroy treea) iworld
-		= (resa,{iworld & localShares = 'Map'.del taskId localShares})
+		= (resa,{iworld & localShares = 'Data.Map'.del taskId localShares})
 	
 	eval _ _ _ iworld
 		= (exception "Corrupt task state in withShared", iworld)	

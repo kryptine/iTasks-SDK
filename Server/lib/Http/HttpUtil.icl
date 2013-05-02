@@ -1,8 +1,8 @@
 implementation module HttpUtil
 
-import HTTP
+import Internet.HTTP
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList, StdFunc, StdTuple
-import Time, Text, UrlEncoding, Map
+import System.Time, Text, Text.Encodings.UrlEncoding, Data.Map
 
 http_splitMultiPart :: !String !String -> [([(String,String)], String)]
 http_splitMultiPart boundary body

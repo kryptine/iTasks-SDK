@@ -8,7 +8,7 @@ from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from iTasks.Framework.Shared		import :: Shared
 
-import Maybe, JSON, Error
+import Data.Maybe, Text.JSON, Data.Error
 import iTasks.Framework.TaskState, iTasks.Framework.iTaskClass
 
 /**

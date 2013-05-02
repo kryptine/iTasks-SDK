@@ -4,10 +4,10 @@ definition module iTasks.Framework.UIDefinition
 * This representation seeks a middle ground between being fine grained enough
 * to describe rich user interfaces and being leaving rendering details to the client framework.
 */
-import JSON, GenEq
+import Text.JSON, GenEq
 from iTasks.Framework.Task	import :: TaskId
-from HTML			import :: HtmlTag
-from Map			import :: Map(..)
+from Text.HTML			import :: HtmlTag
+from Data.Map			import :: Map(..)
 from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey, :: GoogleMapIcon
 
 //TODO:

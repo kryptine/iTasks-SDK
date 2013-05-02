@@ -1,6 +1,6 @@
-definition module List
+definition module Data.List
 
-import Functor, GenEq
+import Data.Functor, GenEq
 
 unzip3			:: ![(.a,.b,.c)]			-> ([.a],[.b],[.c])
 unzip4			:: ![(.a,.b,.c,.d)]			-> ([.a],[.b],[.c],[.d])

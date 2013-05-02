@@ -2,10 +2,10 @@ implementation module iTasks.API.Common.InteractionTasks
 
 from StdFunc import id, const, o, flip
 from iTasks.API.Core.SystemData import null
-from Tuple import appSnd
-from List import isMemberGen, instance Functor []
-from Time import :: Timestamp(..)
-from Map import qualified get, put
+from Data.Tuple import appSnd
+from Data.List import isMemberGen, instance Functor []
+from System.Time import :: Timestamp(..)
+from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple
 import iTasks.API.Core.CoreTasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Core.CoreCombinators
@@ -272,7 +272,7 @@ where
 	view r	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsText AsLabel r)]]	
 
 titleFromValue :: UIAttributes -> UIAttributes
-titleFromValue attr = case 'Map'.get VALUE_ATTRIBUTE attr of
-	Just v	= 'Map'.put TITLE_ATTRIBUTE v attr
+titleFromValue attr = case 'Data.Map'.get VALUE_ATTRIBUTE attr of
+	Just v	= 'Data.Map'.put TITLE_ATTRIBUTE v attr
 	_		= attr
 

@@ -3,7 +3,7 @@ definition module iTasks.API.Core.CoreCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from Time								import :: Timestamp
+from System.Time								import :: Timestamp
 from iTasks.API.Core.LayoutCombinators	import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: Layout
 import iTasks.Framework.Task, iTasks.Framework.Shared
 

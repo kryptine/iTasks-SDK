@@ -5,11 +5,11 @@ definition module iTasks.Framework.Task
 
 import iTasks.API.Core.SystemTypes
 import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.GenRecord
-import HTTP
+import Internet.HTTP
 
 from iTasks.Framework.TaskState			import :: TaskTree
 from iTasks.API.Core.LayoutCombinators	import :: Layout
-from Map				import :: Map
+from Data.Map				import :: Map
 
 derive JSONEncode		Task
 derive JSONDecode		Task

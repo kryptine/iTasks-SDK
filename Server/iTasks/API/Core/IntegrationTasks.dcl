@@ -3,9 +3,9 @@ definition module iTasks.API.Core.IntegrationTasks
 * This module provides tasks for interaction with other systems.
 */
 
-from Maybe	import :: Maybe
-from Void	import :: Void
-from Error	import :: MaybeError, :: MaybeErrorString
+from Data.Maybe	import :: Maybe
+from Data.Void	import :: Void
+from Data.Error	import :: MaybeError, :: MaybeErrorString
 
 import iTasks.Framework.iTaskClass
 from iTasks.Framework.Task 				import :: Task

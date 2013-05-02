@@ -1,16 +1,16 @@
 definition module iTasks.Framework.IWorld
 
-from FilePath			import :: FilePath
-from Void				import :: Void
-from Map				import :: Map
-from Maybe				import :: Maybe
-from Time				import :: Timestamp
+from System.FilePath			import :: FilePath
+from Data.Void				import :: Void
+from Data.Map				import :: Map
+from Data.Maybe				import :: Maybe
+from System.Time				import :: Timestamp
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
 from iTasks.Framework.TaskState			import :: TaskListEntry
-from JSON				import :: JSONNode
+from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
-from SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 from HttpServer			import class HttpEnv
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	

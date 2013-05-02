@@ -1,14 +1,17 @@
 implementation module iTasks.Framework.Store
 
-import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
-import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
-import SharedDataSource
+import StdEnv
+import Data.Void
+import Data.Maybe, Data.Map, Data.Functor
+import System.File, System.Directory, System.OSError, System.FilePath
+import Text, Text.JSON
+import Data.SharedDataSource
 from iTasks.Framework.IWorld		import :: IWorld(..), :: Work
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
 from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
-from Time 							import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
+from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 
 :: StoreItem =
 	{ format		:: !StoreFormat

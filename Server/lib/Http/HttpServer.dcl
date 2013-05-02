@@ -6,7 +6,7 @@ definition module HttpServer
 //
 // This module is based upon the original Clean HTTP server by Paul de Mast
 
-import HTTP, Time
+import Internet.HTTP, System.Time
 from TCPIP import class ChannelEnv
 from StdFile import class FileSystem
 from TCPChannelClass import :: Timeout

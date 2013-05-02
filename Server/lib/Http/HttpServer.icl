@@ -3,16 +3,16 @@ implementation module HttpServer
 import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc
 import StdMaybe
 
-import 	Time, Map, Text
+import 	System.Time, Data.Map, Text
 import	TCPChannelClass,
 		TCPChannels,
 		TCPEvent,
 		TCPStringChannels,
 		TCPDef
 		
-from HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol, :: Map
-from HTTP import newHTTPRequest
-from HTTP import instance toString HTTPRequest, instance toString HTTPResponse
+from Internet.HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol, :: Map
+from Internet.HTTP import newHTTPRequest
+from Internet.HTTP import instance toString HTTPRequest, instance toString HTTPResponse
 
 from HttpUtil import http_addRequestData, http_parseArguments, http_makeResponse, http_encodeResponse, http_serverControl
 

@@ -5,12 +5,12 @@ definition module iTasks.Framework.TaskStore
 * Session instances: temporary tasks for each interactive session between a user and the server. 
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
-import Maybe, Error
+import Data.Maybe, Data.Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition
 import iTasks.API.Core.SystemTypes
 
-from Time				import :: Timestamp
-from SharedDataSource	import :: BasicShareId, :: RWShared
+from System.Time			import :: Timestamp
+from Data.SharedDataSource	import :: BasicShareId, :: RWShared
 
 newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
 newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)

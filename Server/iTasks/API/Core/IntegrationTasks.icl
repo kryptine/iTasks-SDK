@@ -2,7 +2,7 @@ implementation module iTasks.API.Core.IntegrationTasks
 
 import StdInt, StdFile, StdTuple, StdList
 
-import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
+import System.Directory, System.File, System.FilePath, Data.Error, System.OSError, Text.Encodings.UrlEncoding, Text, Data.Tuple, Text.JSON
 
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.Shared
@@ -11,10 +11,10 @@ import iTasks.API.Common.InteractionTasks, iTasks.API.Common.CommonCombinators /
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
-from File				import qualified fileExists, readFile
-from Map				import qualified newMap, put
-from Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
-from Process			import :: ProcessHandle(..)
+from System.File				import qualified fileExists, readFile
+from Data.Map				import qualified newMap, put
+from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
+from System.Process			import :: ProcessHandle(..)
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
@@ -52,7 +52,7 @@ where
 							, "--process"
 							, cmd
 							: args]
-		# (res,world)	= 'Process'.runProcess runAsync runAsyncArgs Nothing world
+		# (res,world)	= 'System.Process'.runProcess runAsync runAsyncArgs Nothing world
 		# nstate		= case res of
 			Error e	= state taskId ts (Left e)
 			Ok _	= state taskId ts (Right outfile)
@@ -64,12 +64,12 @@ where
 	//Check for its result
 	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False} (TaskRep (UIControlSequence {UIControlSequence|attributes='Map'.newMap,controls=[],direction=Vertical}) []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False} (TaskRep (UIControlSequence {UIControlSequence|attributes='Data.Map'.newMap,controls=[],direction=Vertical}) []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
 					//Check status
-					# (exists,world) = 'File'.fileExists outfile world
+					# (exists,world) = 'System.File'.fileExists outfile world
 					| not exists
 						//Still busy
 						# iworld			= {IWorld|iworld & world = world}
@@ -77,10 +77,10 @@ where
 						# layout			= repLayout repOpts
 						# (controls,iworld)	= makeView opts status (verifyMaskedValue status Touched) taskId layout iworld
 						# prompt			= toPrompt desc
-						# editor			= {UIControlSequence| attributes = 'Map'.newMap, controls = controls, direction = Vertical}
+						# editor			= {UIControlSequence| attributes = 'Data.Map'.newMap, controls = controls, direction = Vertical}
 						# rep				= TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) []
 						= (ValueResult (Value status False) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state,iworld)
-					# (res, world) = 'File'.readFile outfile world
+					# (res, world) = 'System.File'.readFile outfile world
 					| isError res
 						//Failed to read file
 						= (exception (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
@@ -92,7 +92,7 @@ where
 							| async.AsyncResult.success
 								# result = CompletedProcess async.AsyncResult.exitcode 
 								= (ValueResult (Value result True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False}
-									(TaskRep (UIControlSequence {UIControlSequence|attributes = 'Map'.newMap,controls = [],direction = Vertical}) [])
+									(TaskRep (UIControlSequence {UIControlSequence|attributes = 'Data.Map'.newMap,controls = [],direction = Vertical}) [])
 									(TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
@@ -119,7 +119,7 @@ callInstantProcess :: !FilePath ![String] -> Task Int
 callInstantProcess cmd args = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,world}
-		# (res,world)	= 'Process'.callProcess cmd args Nothing world
+		# (res,world)	= 'System.Process'.callProcess cmd args Nothing world
 		= case res of
 			Error e
 				# ex = CallFailed e

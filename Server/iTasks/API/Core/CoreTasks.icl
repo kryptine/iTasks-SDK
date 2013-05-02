@@ -1,17 +1,17 @@
 implementation module iTasks.API.Core.CoreTasks
 
-import StdList, StdBool, StdInt, StdTuple,StdMisc, Time, Error, OSError, Map, Tuple, List
+import StdList, StdBool, StdInt, StdTuple,StdMisc, System.Time, Data.Error, System.OSError, Data.Map, Data.Tuple, Data.List
 import qualified StdList
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDefinition, iTasks.Framework.Shared
 import iTasks.API.Core.LayoutCombinators
 
-from SharedDataSource			import qualified read, readRegister, write, writeFilterMsg
+from Data.SharedDataSource			import qualified read, readRegister, write, writeFilterMsg
 from StdFunc					import o, id
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.API.Core.SystemData	import topLevelTasks
-from Map						import qualified get
+from Data.Map						import qualified get
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -23,7 +23,7 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
-		# (val,iworld) = 'SharedDataSource'.read shared iworld
+		# (val,iworld) = 'Data.SharedDataSource'.read shared iworld
 		= case val of
 			Ok val		= (Ok val,iworld)
 			Error e		= (Error (dynamic (SharedException e), e), iworld)
@@ -32,8 +32,8 @@ set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,currentInstance}
-		//# (res,iworld)	='SharedDataSource'.writeFilterMsg val ((<>) currentInstance) shared iworld
-		# (res,iworld)	='SharedDataSource'.write val shared iworld
+		//# (res,iworld)	='Data.SharedDataSource'.writeFilterMsg val ((<>) currentInstance) shared iworld
+		# (res,iworld)	='Data.SharedDataSource'.write val shared iworld
 		= case res of
 			Ok _	= (Ok val,iworld)
 			Error e	= (Error (dynamic (SharedException e), e), iworld)
@@ -42,13 +42,13 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,currentInstance}
-		# (er, iworld)	= 'SharedDataSource'.read shared iworld
+		# (er, iworld)	= 'Data.SharedDataSource'.read shared iworld
 		= case er of
 			Error e		= (Error (dynamic (SharedException e), e), iworld)
 			Ok r	
 				# w				= fun r
-				//# (er, iworld)	=  'SharedDataSource'.writeFilterMsg w ((<>) currentInstance) shared iworld
-				# (er, iworld)	=  'SharedDataSource'.write w shared iworld
+				//# (er, iworld)	=  'Data.SharedDataSource'.writeFilterMsg w ((<>) currentInstance) shared iworld
+				# (er, iworld)	=  'Data.SharedDataSource'.write w shared iworld
 				= case er of
 					Ok _	= (Ok w, iworld)
 					Error e = (Error (dynamic (SharedException e), e), iworld)
@@ -57,7 +57,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
+		# (val,iworld)	= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
 			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,refreshSensitive=True}
 				(finalizeRep repOpts (TaskRep (UIControlSequence {UIControlSequence|attributes=newMap,controls=[],direction=Vertical}) [])) (TCInit taskId ts)
@@ -71,7 +71,7 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,v,InteractionMask)) (l r v Interacti
 interact desc shared initFun refreshFun = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
@@ -84,7 +84,7 @@ where
 		//Determine next v by applying edit event if applicable 	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed

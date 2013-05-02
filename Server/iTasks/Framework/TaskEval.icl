@@ -1,15 +1,15 @@
 implementation module iTasks.Framework.TaskEval
 
 import StdList, StdBool, StdTuple
-import Error, Func
+import Data.Error, Data.Func
 import iTasks.Framework.IWorld, iTasks.Framework.Shared, iTasks.Framework.Task, iTasks.Framework.TaskState 
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.iTaskClass
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 
 from iTasks.Framework.IWorld	import dequeueWorkFilter
 from iTasks.API.Core.CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
-from Map				import qualified newMap, fromList, toList, get, put
-from SharedDataSource	import qualified read, write, writeFilterMsg
+from Data.Map				import qualified newMap, fromList, toList, get, put
+from Data.SharedDataSource	import qualified read, write, writeFilterMsg
 
 createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld) |  iTask a
 createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
@@ -18,11 +18,11 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Map'.newMap}
+	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Data.Map'.newMap}
 	# meta					= createMeta instanceNo (Just sessionId) 0 (Just worker) mmeta pmeta
-	# (_,iworld)			= 'SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
-	# (_,iworld)			= 'SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
-	# (_,iworld)			= 'SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
 	//Register the sessionId -> instanceNo relation
 	# iworld				= registerSession sessionId instanceNo iworld
 	//Evaluate once
@@ -32,16 +32,16 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 		Error e		= (Error e, iworld)
 where
 	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
-		= {IWorld|iworld & sessions = 'Map'.put sessionId instanceNo sessions}
+		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 
 createTopTaskInstance  :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
 createTopTaskInstance  task mmeta issuer parent iworld=:{currentDateTime,taskTime}
 	# (instanceNo,iworld)	= newInstanceNo iworld
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Map'.newMap}
+	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing,latestAttributes='Data.Map'.newMap}
 	# meta					= createMeta instanceNo Nothing parent Nothing mmeta pmeta
-	# (_,iworld)			= 'SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
-	# (_,iworld)			= 'SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
-	# (_,iworld)			= 'SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
 	= (TaskId instanceNo 0, iworld)
 
 createMeta :: !InstanceNo (Maybe SessionId) InstanceNo !(Maybe User) !ManagementMeta !ProgressMeta  -> TIMeta
@@ -50,7 +50,7 @@ createMeta instanceNo sessionId parent worker mmeta pmeta
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
-	= {TIReduct|task=toJSONTask task,nextTaskNo=2,nextTaskTime=1,shares = 'Map'.newMap, lists = 'Map'.newMap, tasks= 'Map'.newMap}
+	= {TIReduct|task=toJSONTask task,nextTaskNo=2,nextTaskTime=1,shares = 'Data.Map'.newMap, lists = 'Data.Map'.newMap, tasks= 'Data.Map'.newMap}
 where
 	toJSONTask (Task eval) = Task eval`
 	where
@@ -59,7 +59,7 @@ where
 			(ExceptionResult e str,iworld)			= (ExceptionResult e str,iworld)
 
 createResult :: !InstanceNo !TaskTime -> TaskResult JSONNode
-createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep (UIControlGroup {UIControlGroup|attributes='Map'.newMap, controls=[],direction = Vertical,actions = []}) []) (TCInit (TaskId instanceNo 0) 1)
+createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep (UIControlGroup {UIControlGroup|attributes='Data.Map'.newMap, controls=[],direction = Vertical,actions = []}) []) (TCInit (TaskId instanceNo 0) 1)
 
 //Evaluate a session task instance when a new event is received from a client
 evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld)
@@ -88,7 +88,7 @@ evalSessionTaskInstance sessionId event iworld
 			Error e		= (Error e, iworld)
 where
 	determineSessionInstanceNo sessionId iworld=:{IWorld|sessions}
-		= case 'Map'.get sessionId sessions of
+		= case 'Data.Map'.get sessionId sessions of
 			Just no	= (no,iworld)
 			_		= (0, iworld)
 
@@ -118,13 +118,13 @@ where
 evalTaskInstance :: !Event !InstanceNo !*IWorld -> (!MaybeErrorString (TaskResult JSONNode),!*IWorld)
 evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
 	//Read the task instance data
-	# (meta, iworld)			= 'SharedDataSource'.read (taskInstanceMeta instanceNo) iworld
+	# (meta, iworld)			= 'Data.SharedDataSource'.read (taskInstanceMeta instanceNo) iworld
 	| isError meta				= (liftError meta, iworld)
 	# meta=:{TIMeta|sessionId,parent,worker=Just worker,progress} = fromOk meta
-	# (reduct, iworld)			= 'SharedDataSource'.read (taskInstanceReduct instanceNo) iworld
+	# (reduct, iworld)			= 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld
 	| isError reduct			= (liftError reduct, iworld)
 	# reduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk reduct
-	# (result, iworld)			= 'SharedDataSource'.read (taskInstanceResult instanceNo) iworld
+	# (result, iworld)			= 'Data.SharedDataSource'.read (taskInstanceResult instanceNo) iworld
 	| isError result			= (liftError result, iworld)
 	= case fromOk result of
 		(ExceptionResult e msg)		= (Ok (ExceptionResult e msg), iworld)
@@ -148,20 +148,20 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			//Apply task's eval function and take updated nextTaskId from iworld
 			# (result,iworld)			= eval event repAs tree iworld
 			//Update meta data
-			# (meta, iworld) = case 'SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
+			# (meta, iworld) = case 'Data.SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
 				(Ok meta, iworld)		= (meta, iworld)
 				(_, iworld)				= (meta, iworld)
 			# meta						= {TIMeta|meta & progress = updateProgress currentDateTime result progress}
-			# (_,iworld)				= 'SharedDataSource'.writeFilterMsg meta ((<>) instanceNo) (taskInstanceMeta instanceNo) iworld //TODO Check error
+			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg meta ((<>) instanceNo) (taskInstanceMeta instanceNo) iworld //TODO Check error
 			//Store updated reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
 			# (shares,iworld)			= getLocalShares iworld
 			# (lists,iworld)			= getLocalLists iworld
 			# (tasks,iworld)			= getLocalTasks iworld
 			# reduct					= {TIReduct|reduct & nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, shares = shares, lists = lists, tasks = tasks}
-			# (_,iworld)				= 'SharedDataSource'.writeFilterMsg reduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld //TODO Check error
+			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg reduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld //TODO Check error
 			//Store the result
-			# (_,iworld)				= 'SharedDataSource'.writeFilterMsg result ((<>) instanceNo) (taskInstanceResult instanceNo) iworld //TODO Check error
+			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg result ((<>) instanceNo) (taskInstanceResult instanceNo) iworld //TODO Check error
 			//Return the result
 			= (Ok result, iworld)
 where
@@ -179,14 +179,14 @@ where
 			_									= {progress & stable = False}
 
 determineEventRoute :: Event (Map TaskId [TaskListEntry]) -> Map TaskId Int
-determineEventRoute RefreshEvent _ = 'Map'.newMap 
-determineEventRoute (EditEvent id _ _) lists	= determineEventRoute` id ('Map'.toList lists)
-determineEventRoute (ActionEvent id _) lists	= determineEventRoute` id ('Map'.toList lists)
-determineEventRoute (FocusEvent id) lists		= determineEventRoute` id ('Map'.toList lists)
+determineEventRoute RefreshEvent _ = 'Data.Map'.newMap 
+determineEventRoute (EditEvent id _ _) lists	= determineEventRoute` id ('Data.Map'.toList lists)
+determineEventRoute (ActionEvent id _) lists	= determineEventRoute` id ('Data.Map'.toList lists)
+determineEventRoute (FocusEvent id) lists		= determineEventRoute` id ('Data.Map'.toList lists)
 
 //TODO: Optimize this search function
 determineEventRoute` :: TaskId [(TaskId,[TaskListEntry])] -> Map TaskId Int 
-determineEventRoute` eventId lists = 'Map'.fromList (search eventId)
+determineEventRoute` eventId lists = 'Data.Map'.fromList (search eventId)
 where
 	search searchId = case searchInLists searchId lists of	
 		Just (parId, index)	= [(parId,index):search parId]
@@ -221,7 +221,7 @@ where
 	read iworld=:{currentInstance,localShares}
 		//Local share
 		| instanceNo == currentInstance
-			= case 'Map'.get taskId localShares of
+			= case 'Data.Map'.get taskId localShares of
 				Just encs	
 					= case fromJSON encs of
 						Just s	= (Ok s, iworld)
@@ -229,9 +229,9 @@ where
 				_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
 		//Share of ancestor
 		| otherwise
-			= case 'SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
+			= case 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
 				(Ok reduct,iworld)
-					=  case 'Map'.get taskId reduct.TIReduct.shares of
+					=  case 'Data.Map'.get taskId reduct.TIReduct.shares of
 						Just encs
 							= case fromJSON encs of	
 								Just s	= (Ok s, iworld)
@@ -243,12 +243,12 @@ where
 				
 	write value iworld=:{currentInstance,localShares}
 		| instanceNo == currentInstance
-			= (Ok Void, {iworld & localShares = 'Map'.put taskId (toJSON value) localShares})
+			= (Ok Void, {iworld & localShares = 'Data.Map'.put taskId (toJSON value) localShares})
 		| otherwise
-			= case 'SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
+			= case 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
 				(Ok reduct,iworld)
-					# reduct		= {TIReduct|reduct & shares = 'Map'.put taskId (toJSON value) reduct.TIReduct.shares}
-					# (_,iworld)	= 'SharedDataSource'.write reduct (taskInstanceReduct instanceNo) iworld
+					# reduct		= {TIReduct|reduct & shares = 'Data.Map'.put taskId (toJSON value) reduct.TIReduct.shares}
+					# (_,iworld)	= 'Data.SharedDataSource'.write reduct (taskInstanceReduct instanceNo) iworld
 					= (Ok Void, iworld)
 				(Error _,iworld)
 					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
@@ -266,14 +266,14 @@ where
 	shareKey = toString taskId
 	read iworld=:{currentInstance,localLists}
 		| instanceNo == currentInstance		
-			= case 'Map'.get taskId localLists of
+			= case 'Data.Map'.get taskId localLists of
 				Just entries
 					= (Ok {TaskList|listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 				_	= (Error ("Could not read local task list " +++ shareKey), iworld)
 		| otherwise
-			= case 'SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
+			= case 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
 				(Ok reduct, iworld)
-					= case 'Map'.get taskId reduct.TIReduct.lists of					
+					= case 'Data.Map'.get taskId reduct.TIReduct.lists of					
 						Just entries
 							= (Ok {TaskList|listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)

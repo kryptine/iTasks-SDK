@@ -6,7 +6,7 @@ import iTasks.Framework.UIDefinition
 from iTasks.Framework.Task import :: TaskCompositionType
 from iTasks.Framework.TaskState import :: TIMeta
 
-import Maybe
+import Data.Maybe
 
 // Definition of a layout as collection of combination functions
 :: Layout =

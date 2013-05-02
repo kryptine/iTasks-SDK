@@ -1,4 +1,4 @@
-definition module Generic
+definition module Data.Generic
 
 import StdGeneric
 

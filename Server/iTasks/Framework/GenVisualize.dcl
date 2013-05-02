@@ -1,8 +1,8 @@
 definition module iTasks.Framework.GenVisualize
 
-import HTML, JSON 
-import StdGeneric, Maybe, Void, Either
-from Map import :: Map
+import Text.HTML, Text.JSON
+import StdGeneric, Data.Maybe, Data.Void, Data.Either
+from Data.Map import :: Map
 
 import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition
 from iTasks.API.Core.LayoutCombinators import :: Layout

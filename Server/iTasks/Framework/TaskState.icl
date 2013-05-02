@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.TaskState
 
-import JSON
+import Text.JSON
 import iTasks.Framework.UIDefinition
 
 from iTasks					import JSONEncode, JSONDecode

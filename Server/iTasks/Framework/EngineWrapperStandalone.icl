@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.EngineWrapperStandalone
 
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString, StdFunc
-import TCPIP, tcp, HTTP, HttpServer, CommandLine, Func
+import TCPIP, tcp, Internet.HTTP, HttpServer, System.CommandLine, Data.Func
 
 import iTasks.Framework.Engine, iTasks.Framework.IWorld, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.Util

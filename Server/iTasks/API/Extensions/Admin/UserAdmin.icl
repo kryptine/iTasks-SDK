@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.Admin.UserAdmin
 
-import iTasks, Text, Tuple
+import iTasks, Text, Data.Tuple
 
 derive class iTask UserAccount
 

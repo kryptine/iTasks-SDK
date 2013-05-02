@@ -31,7 +31,7 @@ import	iTasks.Framework.Engine						// basic iTask system creator
 	,	iTasks.API.Core.LayoutCombinators
 	
 	//	Miscellaneous machinery
-	,	JSON								// Functions for serializing/deserializing strings
+	,	Text.JSON							// Functions for serializing/deserializing strings
 	, 	iTasks.Framework.Shared				// Shared data sources
 	,	iTasks.Framework.GenVisualize		// Functions for generating GUIs
 	,	iTasks.Framework.GenUpdate			// Functions for updating arbitrary values
@@ -53,4 +53,4 @@ import	iTasks.Framework.Engine						// basic iTask system creator
 	,	StdOverloaded
 
 from StdFunc import id, const, o
-from List import instance Functor []
+from Data.List import instance Functor []

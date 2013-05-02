@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.Util
 
 import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Maybe, Time, Text, FilePath, Directory, JSON, Void, Error, GenEq
+import Data.Maybe, System.Time, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
 from iTasks.Framework.IWorld 		import :: IWorld{currentDateTime,timestamp}
 from iTasks.API.Core.SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
 

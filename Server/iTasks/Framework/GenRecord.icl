@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.GenRecord
 
-import StdTuple, StdList, StdFunc, Error, Map, Generic, Tuple
+import StdTuple, StdList, StdFunc, Data.Error, Data.Map, Data.Generic, Data.Tuple
 import iTasks.Framework.Util, iTasks.Framework.GenUpdate
 from dynamic_string import copy_to_string, copy_from_string
 

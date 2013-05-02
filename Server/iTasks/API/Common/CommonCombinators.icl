@@ -2,13 +2,14 @@ implementation module iTasks.API.Common.CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, Text, Time, Tuple, List, Either
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
+import Text, System.Time, Data.Tuple, Data.List, Data.Either
 import iTasks.Framework.Util, iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate, iTasks.Framework.GenRecord
 from StdFunc			import id, const, o
 from iTasks.API.Core.SystemTypes		import :: User(..), :: Note(..)
 from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON
 from iTasks.API.Core.SystemData			import randomInt, topLevelTasks
-from Map				import qualified put
+from Data.Map				import qualified put
 
 import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
 
@@ -219,11 +220,11 @@ appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserCons
 appendTopLevelTaskFor worker task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} task
 			
 instance tune InWindow
-where tune InWindow task = task <<@ AfterLayout (tweakAttr ('Map'.put CONTAINER_ATTRIBUTE "window"))
+where tune InWindow task = task <<@ AfterLayout (tweakAttr ('Data.Map'.put CONTAINER_ATTRIBUTE "window"))
 instance tune InContainer
-where tune InContainer task = task <<@ AfterLayout (tweakAttr ('Map'.put CONTAINER_ATTRIBUTE "container"))
+where tune InContainer task = task <<@ AfterLayout (tweakAttr ('Data.Map'.put CONTAINER_ATTRIBUTE "container"))
 instance tune InPanel
-where tune InPanel task = task <<@ AfterLayout (tweakAttr ('Map'.put CONTAINER_ATTRIBUTE "panel"))
+where tune InPanel task = task <<@ AfterLayout (tweakAttr ('Data.Map'.put CONTAINER_ATTRIBUTE "panel"))
 
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

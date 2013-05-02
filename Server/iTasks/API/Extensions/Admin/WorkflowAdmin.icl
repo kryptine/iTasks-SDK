@@ -1,10 +1,10 @@
 implementation module iTasks.API.Extensions.Admin.WorkflowAdmin
 
 import iTasks
-import StdMisc, Tuple, Text 
+import StdMisc, Data.Tuple, Text 
 import iTasks.Framework.Shared
 from StdFunc import seq
-from Map import qualified newMap
+from Data.Map import qualified newMap
 
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -162,7 +162,7 @@ where
 	onlyRight (Value (Right wf) s)	= Value wf s
 	onlyRight _						= NoValue
 
-	noAnnotation (c,_) = (c,'Map'.newMap)
+	noAnnotation (c,_) = (c,'Data.Map'.newMap)
 	
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel

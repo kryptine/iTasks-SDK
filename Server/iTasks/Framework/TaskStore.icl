@@ -1,12 +1,12 @@
 implementation module iTasks.Framework.TaskStore
 
 import StdEnv
-import Maybe, Text, Time, Random, JSON, Map, Func, Tuple
+import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Func, Data.Tuple
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
 
-import SharedDataSource
+import Data.SharedDataSource
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of UI definitions

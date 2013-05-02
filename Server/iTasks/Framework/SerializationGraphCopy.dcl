@@ -1,8 +1,8 @@
 definition module iTasks.Framework.SerializationGraphCopy
 
-from JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
-from Error import ::MaybeError, ::MaybeErrorString
-from Maybe import ::Maybe
+from Text.JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
+from Data.Error import ::MaybeError, ::MaybeErrorString
+from Data.Maybe import ::Maybe
 from iTasks.Framework.Store import :: StoreFormat
 
 serialize :: !a -> *String

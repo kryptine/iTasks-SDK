@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic, JSON
-import Maybe, Functor, Text, HTML, Map
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, Data.List, Data.Generic, Text.JSON
+import Data.Maybe, Data.Functor, Text, Text.HTML, Data.Map
 import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition, iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 
