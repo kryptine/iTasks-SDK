@@ -1,6 +1,6 @@
 implementation module iTasks.Gin.Compiler
 
-import StdFile
+import StdFile, StdMisc
 import iTasks
 import iTasks.Framework.IWorld
 
@@ -71,41 +71,41 @@ tmpDirectory :: *IWorld -> String
 tmpDirectory iworld=:{dataDirectory} = dataDirectory +++ "-gin-temp"
 
 runCompiler :: !GModule !(AModule -> (String, FunctionMap, LineMap)) (String String GinConfig FunctionMap LineMap *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
-runCompiler gMod printfun compiler iworld
-//1. Load configuration
-# (config,iworld) = accWorldIWorld ginLoadConfig iworld 
-| isNothing config = (CompileGlobalError "Configuration not found", iworld)
-# config = fromJust config
-//2. Parse and transform GModule
-# (st, iworld) = accWorldIWorld (gToAModule gMod config) iworld
-# result = runParse st
-| isParseError result = (CompilePathError (getParseError result), iworld)
-# aMod = expandModule (getParseSuccess result)
-//3. (Pretty-)print module
-# (basename,iworld) = getUniqueBasename iworld
-# (source,functionMap,lineMap) = printfun { AModule | aMod & name = basename }
-//4. Write source code to temp icl file
-# fullname = (filenameFromConfig config (tmpDirectory iworld) basename "icl")
-# (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
-| isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
-//5. Call compiler function
-# (result, iworld) = compiler source basename config functionMap lineMap iworld
-//6. Delete temp icl file
-# (deleted,iworld) = accWorldIWorld (deleteFile fullname) iworld
-| isError deleted = (CompileGlobalError ("Failed to delete file " +++ fullname +++ ": " +++ snd (fromError deleted)), iworld)
-= (result, iworld)
+runCompiler gMod printfun compiler iworld = undef // TODO
+////1. Load configuration
+//# (config,iworld) = accWorldIWorld ginLoadConfig iworld 
+//| isNothing config = (CompileGlobalError "Configuration not found", iworld)
+//# config = fromJust config
+////2. Parse and transform GModule
+//# (st, iworld) = accWorldIWorld (gToAModule gMod config) iworld
+//# result = runParse st
+//| isParseError result = (CompilePathError (getParseError result), iworld)
+//# aMod = expandModule (getParseSuccess result)
+////3. (Pretty-)print module
+//# (basename,iworld) = getUniqueBasename iworld
+//# (source,functionMap,lineMap) = printfun { AModule | aMod & name = basename }
+////4. Write source code to temp icl file
+//# fullname = (filenameFromConfig config (tmpDirectory iworld) basename "icl")
+//# (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
+//| isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
+////5. Call compiler function
+//# (result, iworld) = compiler source basename config functionMap lineMap iworld
+////6. Delete temp icl file
+//# (deleted,iworld) = accWorldIWorld (deleteFile fullname) iworld
+//| isError deleted = (CompileGlobalError ("Failed to delete file " +++ fullname +++ ": " +++ snd (fromError deleted)), iworld)
+//= (result, iworld)
 
 getUniqueBasename :: *IWorld -> (String, *IWorld)
-getUniqueBasename iworld
-# (mCounter, iworld) = loadValue key iworld
-# counter = case mCounter of
-	Just c = c + 1
-	Nothing = 0
-# iworld = storeValue key counter iworld
-= (prefix +++ (toString counter), iworld)
-where
-	key = "gin-tempfile"
-	prefix = "temp"
+getUniqueBasename iworld = undef // TODO
+//# (mCounter, iworld) = loadValue key iworld
+//# counter = case mCounter of
+	//Just c = c + 1
+	//Nothing = 0
+//# iworld = storeValue key counter iworld
+//= (prefix +++ (toString counter), iworld)
+//where
+	//key = "gin-tempfile"
+	//prefix = "temp"
 
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
 batchBuild gMod iworld = runCompiler gMod printfun build iworld
@@ -114,27 +114,27 @@ where
 	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap, newMap)
 
 	build :: !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult String, *IWorld)
-	build source basename config functionMap lineMap iworld
-	# (res, iworld) = accWorldIWorld (readFile (config.iTasksPath </> "Server" </> "Gin" </> "project-template")) iworld
-	| isError res = (CompileGlobalError ("Failed to read project template file: " +++ toString (fromError res)), iworld)
-	# projectFile = replaceSubString "{UserPath}" config.userPath (replaceSubString "{Basename}" basename (fromOk res))
-	# (res, iworld) = accWorldIWorld (writeFile (filenameFromConfig config (tmpDirectory iworld) basename "prj") projectFile) iworld
-	| isError res = (CompileGlobalError ("Failed to write project file: " +++ toString (fromError res)), iworld)
-	# projectFile = filenameFromConfig config (tmpDirectory iworld) basename "prj"
-	# (res, iworld) = accWorldIWorld ('System.Process'.callProcess (config.cleanPath </> "CleanIDE.exe") ["--batch-build", projectFile] (Just config.cleanPath)) iworld
-	# (deleted,iworld) = accWorldIWorld (deleteFile projectFile) iworld
-	| isError deleted = (CompileGlobalError ("Failed to delete file " +++ projectFile +++ ": " +++ snd (fromError deleted)), iworld)
-	| isError res = (CompileGlobalError ("Calling Clean IDE failed: " +++ snd (fromError res)), iworld)
-	| fromOk res == 0
-		# batchfile = (filenameFromConfig config (tmpDirectory iworld) basename "bat")
-		# (res, iworld) = accWorldIWorld ('System.Process'.callProcess batchfile [] Nothing) iworld
-		| isError res = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError res)), iworld)
-		# dynfile = filenameFromConfig config (tmpDirectory iworld) basename "dyn"
-	    = (CompileSuccess dynfile, iworld)
-	# (res, iworld) = accWorldIWorld (readFile (filenameFromConfig config (tmpDirectory iworld) basename "log")) iworld
-	| isError res = (CompileGlobalError ("Read log file failed: " +++ toString (fromError res)), iworld)
-	# log = fromOk res
-	= (CompileGlobalError log, iworld)
+	build source basename config functionMap lineMap iworld = undef // TODO
+	//# (res, iworld) = accWorldIWorld (readFile (config.iTasksPath </> "Server" </> "Gin" </> "project-template")) iworld
+	//| isError res = (CompileGlobalError ("Failed to read project template file: " +++ toString (fromError res)), iworld)
+	//# projectFile = replaceSubString "{UserPath}" config.userPath (replaceSubString "{Basename}" basename (fromOk res))
+	//# (res, iworld) = accWorldIWorld (writeFile (filenameFromConfig config (tmpDirectory iworld) basename "prj") projectFile) iworld
+	//| isError res = (CompileGlobalError ("Failed to write project file: " +++ toString (fromError res)), iworld)
+	//# projectFile = filenameFromConfig config (tmpDirectory iworld) basename "prj"
+	//# (res, iworld) = accWorldIWorld ('System.Process'.callProcess (config.cleanPath </> "CleanIDE.exe") ["--batch-build", projectFile] (Just config.cleanPath)) iworld
+	//# (deleted,iworld) = accWorldIWorld (deleteFile projectFile) iworld
+	//| isError deleted = (CompileGlobalError ("Failed to delete file " +++ projectFile +++ ": " +++ snd (fromError deleted)), iworld)
+	//| isError res = (CompileGlobalError ("Calling Clean IDE failed: " +++ snd (fromError res)), iworld)
+	//| fromOk res == 0
+		//# batchfile = (filenameFromConfig config (tmpDirectory iworld) basename "bat")
+		//# (res, iworld) = accWorldIWorld ('System.Process'.callProcess batchfile [] Nothing) iworld
+		//| isError res = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError res)), iworld)
+		//# dynfile = filenameFromConfig config (tmpDirectory iworld) basename "dyn"
+		//= (CompileSuccess dynfile, iworld)
+	//# (res, iworld) = accWorldIWorld (readFile (filenameFromConfig config (tmpDirectory iworld) basename "log")) iworld
+	//| isError res = (CompileGlobalError ("Read log file failed: " +++ toString (fromError res)), iworld)
+	//# log = fromOk res
+	//= (CompileGlobalError log, iworld)
 	
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
 syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile SyntaxCheck) iworld
@@ -144,62 +144,62 @@ syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile Synt
 // --------------------------------------------------------------------------------
 
 compile :: CompileOrCheckSyntax !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult Void, *IWorld)
-compile compileOrCheckSyntax source basename config functionMap lineMap iworld
-# (mCompilingInfo, iworld) = loadCompilingInfo iworld
-# compilingInfo = case mCompilingInfo of
-	Just c = c
-	Nothing = InitCompilingInfo
-# ((compileResult, compilingInfo), iworld) = accWorldIWorld (compile` compilingInfo) iworld
-# iworld = storeCompilingInfo compilingInfo iworld
-# iworld = exitCompiler iworld //<- TODO: remove
-= (compileResult, iworld)
-where
-	compile` :: CompilingInfo *World -> ((CompileResult Void, CompilingInfo), *World)
-	compile` compilingInfo world
-	//Take iTasks compiler if iTasks is in subdirectory of Clean distribution
-	//Otherwise, fallback to compiler shipped with Clean distribution
-	# compilerPath = 
-		if (config.GinConfig.cleanPath </> "" == takeDirectory config.GinConfig.iTasksPath </> "")
-			(dropDirectory config.GinConfig.iTasksPath </> "Compiler")
-			("Tools" </> "Clean System")
-	# env = { LogEnv | errors = [], world = world }
-	# compilingInfo = InitCompilingInfo //<- TODO: remove
-	# (compilingInfo, (env, _, compilerMsg)) = 
-		CompilePersistent
-				(compilerPath </> "CleanCompiler.exe" +++ " : -h 64M -dynamics -generics")
-		        False                                      //Don't write module times
-		        addError                                   //Error display function
-		        (\_ x -> x)                                //Types display function
-		        compileOrCheckSyntax
-		        (basename +++ ".icl")
-		        (ListToStrictList (searchPaths config (tmpDirectory iworld)))
-		        False                                      //No memory profiling
-		        False                                      //No time profiling
-		        True                                       //Eager or dynamic linking
-		        { DefaultCompilerOptions & listTypes = NoTypes }
-		        config.cleanPath
-		        compilingInfo
-		        env
-	# log = join "\n" (map (join "\n") env.LogEnv.errors)
-	| compilerMsg == GlobalError
-		= ((CompileGlobalError ("Calling Clean compiler failed: " +++ log), compilingInfo), env.LogEnv.world)
-	| compilerMsg == CompilerOK
-		= ((CompileSuccess Void, compilingInfo), env.LogEnv.world)
-	# errors = (findPathErrors (parseCleanCompilerLog log) functionMap lineMap)
-	| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world)
-	= ((CompilePathError errors, compilingInfo), env.LogEnv.world)
+compile compileOrCheckSyntax source basename config functionMap lineMap iworld = undef // TODO
+//# (mCompilingInfo, iworld) = loadCompilingInfo iworld
+//# compilingInfo = case mCompilingInfo of
+	//Just c = c
+	//Nothing = InitCompilingInfo
+//# ((compileResult, compilingInfo), iworld) = accWorldIWorld (compile` compilingInfo) iworld
+//# iworld = storeCompilingInfo compilingInfo iworld
+//# iworld = exitCompiler iworld //<- TODO: remove
+//= (compileResult, iworld)
+//where
+	//compile` :: CompilingInfo *World -> ((CompileResult Void, CompilingInfo), *World)
+	//compile` compilingInfo world
+	////Take iTasks compiler if iTasks is in subdirectory of Clean distribution
+	////Otherwise, fallback to compiler shipped with Clean distribution
+	//# compilerPath = 
+		//if (config.GinConfig.cleanPath </> "" == takeDirectory config.GinConfig.iTasksPath </> "")
+			//(dropDirectory config.GinConfig.iTasksPath </> "Compiler")
+			//("Tools" </> "Clean System")
+	//# env = { LogEnv | errors = [], world = world }
+	//# compilingInfo = InitCompilingInfo //<- TODO: remove
+	//# (compilingInfo, (env, _, compilerMsg)) = 
+		//CompilePersistent
+				//(compilerPath </> "CleanCompiler.exe" +++ " : -h 64M -dynamics -generics")
+				//False                                      //Don't write module times
+				//addError                                   //Error display function
+				//(\_ x -> x)                                //Types display function
+				//compileOrCheckSyntax
+				//(basename +++ ".icl")
+				//(ListToStrictList (searchPaths config (tmpDirectory iworld)))
+				//False                                      //No memory profiling
+				//False                                      //No time profiling
+				//True                                       //Eager or dynamic linking
+				//{ DefaultCompilerOptions & listTypes = NoTypes }
+				//config.cleanPath
+				//compilingInfo
+				//env
+	//# log = join "\n" (map (join "\n") env.LogEnv.errors)
+	//| compilerMsg == GlobalError
+		//= ((CompileGlobalError ("Calling Clean compiler failed: " +++ log), compilingInfo), env.LogEnv.world)
+	//| compilerMsg == CompilerOK
+		//= ((CompileSuccess Void, compilingInfo), env.LogEnv.world)
+	//# errors = (findPathErrors (parseCleanCompilerLog log) functionMap lineMap)
+	//| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world)
+	//= ((CompilePathError errors, compilingInfo), env.LogEnv.world)
 
 loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
-loadCompilingInfo iworld = loadValue compilerId iworld
+loadCompilingInfo iworld = undef // TODO loadValue compilerId iworld
 
 storeCompilingInfo :: CompilingInfo *IWorld -> *IWorld
-storeCompilingInfo compilingInfo iworld = storeValue compilerId compilingInfo iworld
+storeCompilingInfo compilingInfo iworld = undef // TODO storeValue compilerId compilingInfo iworld
 
 compilerId :: String
 compilerId = "gin-compiler"
 
 deleteCompilingInfo :: *IWorld -> *IWorld
-deleteCompilingInfo iworld = deleteValue compilerId iworld
+deleteCompilingInfo iworld = undef // TODO deleteValue compilerId iworld
 
 exitCompiler :: *IWorld -> *IWorld
 exitCompiler iworld

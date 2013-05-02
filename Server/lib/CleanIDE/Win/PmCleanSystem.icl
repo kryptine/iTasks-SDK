@@ -1,14 +1,14 @@
 implementation module PmCleanSystem
 
 import StdEnv
-import File
-import FilePath
-import Directory
-import OSError
-import Void
+import System.File
+import System.FilePath
+import System.Directory
+import System.OSError
+import Data.Void
 
-from Maybe import qualified ::Maybe(..)
-from Process import qualified callProcess
+from Data.Maybe import qualified ::Maybe(..)
+from System.Process import qualified callProcess
 
 import PmCompilerOptions
 import PmPath
@@ -120,7 +120,7 @@ CompilePersistent
 		  ++ CompileBuildCommand out_file_name errors_file_name compileOrCheckSyntax path paths
 			projectHeapProfiling projectTimeProfiling projectEagerOrDynamic co
 	
-	# (res, world) = 'Process'.callProcess cocl cocl_arguments ('Maybe'.Just cocl_dir) env.world
+	# (res, world) = 'System.Process'.callProcess cocl cocl_arguments ('Data.Maybe'.Just cocl_dir) env.world
 	# env = { env & world = world }
 	# (compile_ok, exitcode,(cstate,env)) = case res of
 		Ok exitcode	= (True, exitcode, (cstate,env))
@@ -237,7 +237,7 @@ CodeGen cgen` wf genAsmOrCode path timeprofile cgo tp ao startupdir ps
 //TODO: restore error redirection to file
   		errorsfilename		= tooltempdir +++ DirSeparatorString +++ "errors"
   		
-		(res, world) 		= 'Process'.callProcess cgen args ('Maybe'.Just cgendir) ps.world
+		(res, world) 		= 'System.Process'.callProcess cgen args ('Data.Maybe'.Just cgendir) ps.world
 		ps					= { ps & world = world }
 	| isError res
 		= (objpath,False,wf [  "Error: Unable to run code generator: "+++cgen
@@ -342,7 +342,7 @@ Link linker` winfun path
 
 	# linkopts = ["-I", linkoptspath, "-O", linkerrspath]
 	
-	# (res, world) = 'Process'.callProcess linker linkopts ('Maybe'.Just linkerdir) ps.world
+	# (res, world) = 'System.Process'.callProcess linker linkopts ('Data.Maybe'.Just linkerdir) ps.world
 	# ps = { ps & world = world }
 	| isError res = (winfun ["Error: Unable to run linker: "+++linker] ps, False)
 	# exit_code = fromOk res
