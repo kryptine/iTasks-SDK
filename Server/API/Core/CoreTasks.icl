@@ -1,13 +1,17 @@
 implementation module CoreTasks
 
-import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
+import StdList, StdBool, StdInt, StdTuple,StdMisc, Time, Error, OSError, Map, Tuple, List
 import qualified StdList
-import iTaskClass, Task, TaskState, TaskEval, TaskStore, UIDefinition, LayoutCombinators, Shared
-from SharedDataSource		import qualified read, readRegister, write, writeFilterMsg
-from StdFunc				import o, id
-from IWorld					import :: IWorld(..)
-from SystemData				import topLevelTasks
-from Map					import qualified get
+import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
+import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
+import iTasks.Framework.UIDefinition, iTasks.Framework.Shared
+import LayoutCombinators
+
+from SharedDataSource			import qualified read, readRegister, write, writeFilterMsg
+from StdFunc					import o, id
+from iTasks.Framework.IWorld	import :: IWorld(..)
+from SystemData					import topLevelTasks
+from Map						import qualified get
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))

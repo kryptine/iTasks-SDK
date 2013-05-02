@@ -1,11 +1,12 @@
 implementation module SystemData
 
-import SystemTypes, Store, TaskStore, Time, Shared, Util, Text, Task, Tuple, StdFile, Map
-import Random
-import StdList, StdBool
-from StdFunc		import o, seq
-from IWorld			import :: IWorld(..)
-from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
+import StdList, StdBool, StdFile, Time, Text, Tuple, Map, Random
+import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Shared, iTasks.Framework.Util
+import iTasks.Framework.Task
+import SystemTypes
+from StdFunc					import o, seq
+from iTasks.Framework.IWorld	import :: IWorld(..)
+from iTasks.Framework.Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
 SYSTEM_DATA_NS :== "SystemData"
 
@@ -16,24 +17,24 @@ currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where
 	read iworld
-		# (dateTime, iworld)		= 'Util'.currentDateTime iworld
-		# (Timestamp ts, iworld)	= 'Util'.currentTimestamp iworld
+		# (dateTime, iworld)		= 'iTasks.Framework.Util'.currentDateTime iworld
+		# (Timestamp ts, iworld)	= 'iTasks.Framework.Util'.currentTimestamp iworld
 		= ((dateTime, Timestamp (ts + 1)), iworld)
 		
 currentTime :: ReadOnlyShared Time
 currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
 where
 	read iworld
-		# (time, iworld)			= 'Util'.currentTime iworld
-		# (Timestamp ts, iworld)	= 'Util'.currentTimestamp iworld
+		# (time, iworld)			= 'iTasks.Framework.Util'.currentTime iworld
+		# (Timestamp ts, iworld)	= 'iTasks.Framework.Util'.currentTimestamp iworld
 		= ((time, Timestamp (ts + 1)), iworld)
 		
 currentDate :: ReadOnlyShared Date
 currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
 where
 	read iworld
-		# (DateTime date time, iworld)	= 'Util'.currentDateTime iworld
-		# (Timestamp ts, iworld)		= 'Util'.currentTimestamp iworld
+		# (DateTime date time, iworld)	= 'iTasks.Framework.Util'.currentDateTime iworld
+		# (Timestamp ts, iworld)		= 'iTasks.Framework.Util'.currentTimestamp iworld
 		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
 
 	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
@@ -108,7 +109,7 @@ externalFile :: !FilePath -> Shared String
 externalFile path = createPollingSDS "externalFile" path read write
 where
 	read iworld
-		# (Timestamp ts, iworld)	= 'Util'.currentTimestamp iworld
+		# (Timestamp ts, iworld)	= 'iTasks.Framework.Util'.currentTimestamp iworld
 		# (res, iworld)				= read` iworld
 		= (fmap (\r -> (r, Timestamp (ts + EXTERNAL_FILE_POLLING_RATE), checkF r)) res, iworld)
 	
@@ -124,7 +125,7 @@ where
 	checkF old iworld
 		# (res,iworld)= read` iworld
 		| isOk res && (fromOk res) <> old = (Changed, iworld)
-		# (Timestamp ts, iworld) = 'Util'.currentTimestamp iworld
+		# (Timestamp ts, iworld) = 'iTasks.Framework.Util'.currentTimestamp iworld
 		= (CheckAgain (Timestamp (ts + EXTERNAL_FILE_POLLING_RATE)), iworld)
 		
 	write content iworld=:{world}

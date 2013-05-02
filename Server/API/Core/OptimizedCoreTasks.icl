@@ -1,11 +1,14 @@
 implementation module OptimizedCoreTasks
 
-import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
+import StdList, StdBool, StdInt, StdTuple,StdMisc, Time, Error, OSError, Map, Tuple, List
 import qualified StdList
-import iTaskClass, Task, TaskState, TaskEval, TaskStore, UIDefinition, LayoutCombinators, Shared
+import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval
+import iTasks.Framework.TaskStore, iTasks.Framework.UIDefinition, iTasks.Framework.Shared
+import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
+import LayoutCombinators 
 from SharedDataSource		import qualified read, readRegister, write, writeFilterMsg
 from StdFunc				import o, id
-from IWorld					import :: IWorld(..)
+from iTasks.Framework.IWorld	import :: IWorld(..)
 from SystemData				import topLevelTasks
 from Map					import qualified get
 

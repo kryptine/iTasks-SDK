@@ -4,10 +4,10 @@ import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
 
-import SystemTypes, IWorld, Task, TaskState
-import LayoutCombinators
+import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
+import iTasks.Framework.Shared
+import SystemTypes, LayoutCombinators
 import CoreTasks, InteractionTasks, CommonCombinators
-import Shared
 
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile

@@ -1,9 +1,10 @@
 definition module LayoutCombinators
 
-import SystemTypes, UIDefinition
+import SystemTypes
+import iTasks.Framework.UIDefinition
 
-from Task import :: TaskCompositionType
-from TaskState import :: TIMeta
+from iTasks.Framework.Task import :: TaskCompositionType
+from iTasks.Framework.TaskState import :: TIMeta
 
 import Maybe
 

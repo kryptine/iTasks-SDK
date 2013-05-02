@@ -2,13 +2,14 @@ implementation module SystemTypes
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
-import List, JSON, HTML, Text, Util, Map, Base64, Tuple, dynamic_string
-import GenVisualize, GenUpdate
+import List, JSON, HTML, Text, Map, Base64, Tuple, dynamic_string
+import iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate
+import iTasks.Framework.Util
 
 from Time 		import :: Timestamp(..)
-from Task		import :: TaskValue
+from iTasks.Framework.Task		import :: TaskValue
 
-from UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
+from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from LayoutCombinators import mergeAttributes, setMargins
 
 //* EmailAddress

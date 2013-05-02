@@ -1,13 +1,14 @@
 implementation module LayoutCombinators
 
 import StdTuple, StdList, StdBool, StdOrdList
-import Maybe, Text, Tuple, Map, Util, HtmlUtil
-import SystemTypes, UIDefinition
+import Maybe, Text, Tuple, Map
+import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
+import SystemTypes, iTasks.Framework.UIDefinition
 
 from StdFunc import o
 
-from Task import :: TaskCompositionType, :: TaskCompositionType(..)
-from TaskState import :: TIMeta(..)
+from iTasks.Framework.Task import :: TaskCompositionType, :: TaskCompositionType(..)
+from iTasks.Framework.TaskState import :: TIMeta(..)
 derive gEq TaskCompositionType
 
 autoLayout :: Layout

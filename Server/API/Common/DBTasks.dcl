@@ -1,6 +1,6 @@
 definition module DBTasks
 
-import iTaskClass, Task, Shared
+import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.Shared
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

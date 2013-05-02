@@ -2,7 +2,8 @@ definition module ImportTasks
 /**
 * This module provides tasks for importing external data into a workflow.
 */
-import FilePath, SystemTypes, Task
+import FilePath, SystemTypes
+import iTasks.Framework.Task
 /**
 * Import a file on the server's filesystem as a Document
 *

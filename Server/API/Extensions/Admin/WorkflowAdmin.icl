@@ -1,9 +1,10 @@
 implementation module WorkflowAdmin
 
 import iTasks
-import StdMisc, Tuple, Text, Shared
+import StdMisc, Tuple, Text 
+import iTasks.Framework.Shared
 from StdFunc import seq
-from Util import mb2list, kvGet
+from iTasks.Framework.Util import mb2list, kvGet
 from Map import qualified newMap
 
 // SPECIALIZATIONS

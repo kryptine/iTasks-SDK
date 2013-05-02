@@ -1,7 +1,8 @@
 implementation module DBTasks
 
-import StdList, StdOrdList, Util, List
-import iTaskClass, Task, Shared
+import StdList, StdOrdList, List
+import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.Shared
+import iTasks.Framework.Util
 from CoreTasks			import get, set, return
 from CommonCombinators	import >>|, >>=
 

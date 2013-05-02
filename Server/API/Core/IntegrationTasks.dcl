@@ -7,10 +7,10 @@ from Maybe	import :: Maybe
 from Void	import :: Void
 from Error	import :: MaybeError, :: MaybeErrorString
 
-from Task 			import :: Task
+import iTasks.Framework.iTaskClass
+from iTasks.Framework.Task 			import :: Task
 from SystemTypes	import :: Note, :: EmailAddress
 from InteractionTasks	import :: ViewOption
-import iTaskClass
 
 :: HTTPMethod = GET | POST
 

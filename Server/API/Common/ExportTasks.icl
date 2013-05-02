@@ -1,6 +1,7 @@
 implementation module ExportTasks
 
-import StdBool, FilePath, CSV, File, Map, IWorld, Task, TaskState, TaskStore
+import StdBool, FilePath, CSV, File, Map
+import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore
 
 exportDocument :: !FilePath !Document -> Task Document
 exportDocument filename document = mkInstantTask eval

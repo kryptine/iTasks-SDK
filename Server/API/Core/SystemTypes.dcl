@@ -3,17 +3,19 @@ definition module SystemTypes
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-import GenEq, Maybe, JSON, Store, Void, Either, FilePath, HTML, Error, File, OS
+import GenEq, Maybe, JSON, Void, Either, FilePath, HTML, Error, File, OS
+import iTasks.Framework.Store
+
 from Map 				import :: Map
 from Map 				import qualified get
 from HTML 				import class html
 from Time				import :: Timestamp
-from IWorld				import :: IWorld
-from UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
+from iTasks.Framework.IWorld				import :: IWorld
+from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from LayoutCombinators	import :: Layout
-from Task				import :: Task, :: TaskId
-from iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
-from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from iTasks.Framework.Task					import :: Task, :: TaskId
+from iTasks.Framework.iTaskClass			import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from iTasks.Framework.Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 //****************************************************************************//
 // Common data types that have specialized user interfaces

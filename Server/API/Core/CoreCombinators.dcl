@@ -5,9 +5,9 @@ definition module CoreCombinators
 */
 from Time				import :: Timestamp
 from LayoutCombinators	import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: Layout
-import Task, Shared
+import iTasks.Framework.Task, iTasks.Framework.Shared
 
-import iTaskClass
+import iTasks.Framework.iTaskClass
 derive class iTask ParallelTaskType, WorkOnStatus
 /**
 * Adds a result transformation function to a task.

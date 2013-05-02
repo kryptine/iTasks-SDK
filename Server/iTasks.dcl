@@ -3,12 +3,12 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	Engine						// basic iTask system creator
-	,	EngineWrapperStandalone		// standalone wrapper
-	//,	EngineWrapperCGI			// CGI wrapper
+import	iTasks.Framework.Engine						// basic iTask system creator
+	,	iTasks.Framework.EngineWrapperStandalone	// standalone wrapper
+	//,	iTasks.Framework.EngineWrapperCGI			// CGI wrapper
 	
-	,	SerializationGraphCopy		// use serialization via graph_copy
-	//,	SerializationDynamicLinker	// use serialization via dynamic linker
+	,	iTasks.Framework.SerializationGraphCopy		// use serialization via graph_copy
+	//,	iTasks.Framework.SerializationDynamicLinker	// use serialization via dynamic linker
 
 	//	System data
 	,	SystemData
@@ -30,10 +30,12 @@ import	Engine						// basic iTask system creator
 	,	LayoutCombinators
 	
 	//	Miscellaneous machinery
-	,	JSON						// Functions for serializing/deserializing strings
-	,	GenVisualize				// Functions for generating GUIs
-	,	GenUpdate					// Functions for updating arbitrary values
-	,	GenVerify					// Functions for appending errors and hints to form values
+	,	JSON								// Functions for serializing/deserializing strings
+	, 	iTasks.Framework.Shared				// Shared data sources
+	,	iTasks.Framework.GenVisualize		// Functions for generating GUIs
+	,	iTasks.Framework.GenUpdate			// Functions for updating arbitrary values
+	,	iTasks.Framework.GenVerify			// Functions for appending errors and hints to form values
+	,	iTasks.Framework.GenRecord			// Functions for manipulating records
 	
 	//	API extensions for user  & workflow management
 	,	UserAdmin
@@ -52,5 +54,5 @@ import	Engine						// basic iTask system creator
 from StdFunc import id, const, o
 
 //Types
-import Shared, SystemTypes, GenRecord
+import SystemTypes
 from List import instance Functor []

@@ -1,6 +1,7 @@
 implementation module SQLDatabase
 
-import iTasks, SQL, MySQL, Error, IWorld, Shared
+import iTasks, SQL, MySQL, Error
+import iTasks.Framework.IWorld, iTasks.Framework.Shared
 
 derive class iTask SQLValue, SQLDate, SQLTime
 

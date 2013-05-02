@@ -3,10 +3,10 @@ definition module CoreTasks
 * This module provides the core 'basic tasks' from which more specialized tasks can be derived.
 */
 
-import iTaskClass, Shared
-from Error				import ::MaybeError(..)
-from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from Task				import :: Task
+import iTasks.Framework.iTaskClass, iTasks.Framework.Shared
+from iTasks.Framework.Task	import :: Task
+from Error					import ::MaybeError(..)
+from OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter

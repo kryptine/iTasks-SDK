@@ -1,3 +1,6 @@
 implementation module iTasks
 
-import GenUpdate, GenVisualize, GenVerify, JSON
+import JSON
+import iTasks.Framework.GenUpdate
+import iTasks.Framework.GenVisualize
+import iTasks.Framework.GenVerify

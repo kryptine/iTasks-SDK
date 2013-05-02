@@ -5,8 +5,8 @@ definition module OptimizedCoreTasks
 * if not all expressive power is needed.
 */
 
-import iTaskClass, Shared
-from Task				import :: Task
+import iTasks.Framework.iTaskClass, iTasks.Framework.Shared
+from iTasks.Framework.Task	import :: Task
 
 interactNullEnter		:: !d !v (v->l) -> Task l | descr d & iTask v & iTask l
 interactNullUpdate		:: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v

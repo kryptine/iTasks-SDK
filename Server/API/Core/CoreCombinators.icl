@@ -1,17 +1,22 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskState, TaskStore, TaskEval, Util, HTTP, GenUpdate, GenEq, Store, SystemTypes, Time, Text, Shared, Func, Tuple, List
-import iTaskClass, InteractionTasks, LayoutCombinators, UIDefinition
-import ClientOverride
 
-from Map				import qualified get, put, del, newMap, toList, fromList
-from StdFunc			import id, const, o, seq
-from IWorld				import :: IWorld(..)
-from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-from TaskEval			import localShare, parListShare, topListShare
-from CoreTasks			import return
-from SharedDataSource	import write, writeFilterMsg, read, readRegister
+import HTTP,  GenEq, SystemTypes, Time, Text, Func, Tuple, List
+import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
+import iTasks.Framework.Util, iTasks.Framework.Shared, iTasks.Framework.Store, iTasks.Framework.GenUpdate
+import iTasks.Framework.iTaskClass, iTasks.Framework.UIDefinition
+import SystemTypes, InteractionTasks, LayoutCombinators 
+
+import iTasks.Framework.ClientSupport.ClientOverride
+
+from Map						import qualified get, put, del, newMap, toList, fromList
+from StdFunc					import id, const, o, seq
+from iTasks						import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+from iTasks.Framework.IWorld	import :: IWorld(..)
+from iTasks.Framework.TaskEval	import localShare, parListShare, topListShare
+from CoreTasks					import return
+from SharedDataSource			import write, writeFilterMsg, read, readRegister
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
