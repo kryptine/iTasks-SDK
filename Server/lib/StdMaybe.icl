@@ -1,6 +1,6 @@
 implementation module StdMaybe
 
-import Maybe, Functor
+import Data.Maybe, Data.Functor
 
 mapMaybe :: .(.x -> .y) !(Maybe .x) -> Maybe .y
 mapMaybe f Nothing = Nothing
