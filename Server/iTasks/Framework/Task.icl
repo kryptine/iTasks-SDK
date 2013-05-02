@@ -2,11 +2,11 @@ implementation module iTasks.Framework.Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, HTTP, Map
 import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.IWorld, iTasks.Framework.GenRecord, iTasks.Framework.Util
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
-from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
-from LayoutCombinators				import :: Layout(..), autoLayout
-from iTasks							import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
+from iTasks.API.Core.LayoutCombinators	import :: Layout(..), autoLayout
+from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)

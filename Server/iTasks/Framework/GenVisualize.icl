@@ -3,7 +3,7 @@ implementation module iTasks.Framework.GenVisualize
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic, JSON
 import Maybe, Functor, Text, HTML, Map
 import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition, iTasks.Framework.Util, iTasks.Framework.HtmlUtil
-import SystemTypes, LayoutCombinators
+import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)

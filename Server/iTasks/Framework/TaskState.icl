@@ -5,7 +5,7 @@ import iTasks.Framework.UIDefinition
 
 from iTasks					import JSONEncode, JSONDecode
 from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: TaskCompositionType
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
 derive JSONEncode TIMeta, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo
 derive JSONDecode TIMeta, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo

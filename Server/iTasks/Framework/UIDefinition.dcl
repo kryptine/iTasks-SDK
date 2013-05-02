@@ -8,7 +8,7 @@ import JSON, GenEq
 from iTasks.Framework.Task	import :: TaskId
 from HTML			import :: HtmlTag
 from Map			import :: Map(..)
-from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey, :: GoogleMapIcon
+from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey, :: GoogleMapIcon
 
 //TODO:
 //- Multi select in grids

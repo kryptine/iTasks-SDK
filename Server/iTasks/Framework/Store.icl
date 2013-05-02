@@ -6,9 +6,9 @@ import SharedDataSource
 from iTasks.Framework.IWorld		import :: IWorld(..), :: Work
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
 from iTasks.Framework.TaskState		import :: TaskListEntry
-from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
-from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
+from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
+from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
+from Time 							import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 
 :: StoreItem =
 	{ format		:: !StoreFormat

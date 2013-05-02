@@ -5,7 +5,7 @@ from Void				import :: Void
 from Map				import :: Map
 from Maybe				import :: Maybe
 from Time				import :: Timestamp
-from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
+from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
 from iTasks.Framework.TaskState			import :: TaskListEntry
 from JSON				import :: JSONNode

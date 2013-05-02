@@ -3,11 +3,12 @@ definition module iTasks.Framework.Task
 * This module provides types for the definition of tasks.
 */
 
-import SystemTypes, HTTP
+import iTasks.API.Core.SystemTypes
 import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.GenRecord
+import HTTP
 
 from iTasks.Framework.TaskState			import :: TaskTree
-from LayoutCombinators	import :: Layout
+from iTasks.API.Core.LayoutCombinators	import :: Layout
 from Map				import :: Map
 
 derive JSONEncode		Task

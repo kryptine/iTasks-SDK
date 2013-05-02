@@ -7,7 +7,7 @@ definition module iTasks.Framework.TaskStore
 */
 import Maybe, Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
 from Time				import :: Timestamp
 from SharedDataSource	import :: BasicShareId, :: RWShared

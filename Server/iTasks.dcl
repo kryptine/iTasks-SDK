@@ -11,23 +11,24 @@ import	iTasks.Framework.Engine						// basic iTask system creator
 	//,	iTasks.Framework.SerializationDynamicLinker	// use serialization via dynamic linker
 
 	//	System data
-	,	SystemData
+	,	iTasks.API.Core.SystemData
+	,	iTasks.API.Core.SystemTypes
 
 	//	Basic tasks
-	,	CoreTasks					// Core basic tasks
-	,	InteractionTasks			// Tasks for interaction with users
-	,	DBTasks						// convenience wrapper functions for databases with multiple values of type a
+	,	iTasks.API.Core.CoreTasks					// Core basic tasks
+	,	iTasks.API.Common.InteractionTasks			// Tasks for interaction with users
+	,	iTasks.API.Common.DBTasks						// convenience wrapper functions for databases with multiple values of type a
 		
-	,	ImportTasks					// tasks for importing external data
-	,	ExportTasks					// tasks for exporting data	
-	,	IntegrationTasks			// Tasks for integration with other systems
+	,	iTasks.API.Common.ImportTasks					// tasks for importing external data
+	,	iTasks.API.Common.ExportTasks					// tasks for exporting data	
+	,	iTasks.API.Core.IntegrationTasks			// Tasks for integration with other systems
 	
 	//	Task combinators
-	,	CoreCombinators				// The core iTask combinators
-	,	CommonCombinators			// Set of derived useful iTask combinators
+	,	iTasks.API.Core.CoreCombinators				// The core iTask combinators
+	,	iTasks.API.Common.CommonCombinators			// Set of derived useful iTask combinators
 	
 	//	Layout tuning
-	,	LayoutCombinators
+	,	iTasks.API.Core.LayoutCombinators
 	
 	//	Miscellaneous machinery
 	,	JSON								// Functions for serializing/deserializing strings
@@ -38,8 +39,8 @@ import	iTasks.Framework.Engine						// basic iTask system creator
 	,	iTasks.Framework.GenRecord			// Functions for manipulating records
 	
 	//	API extensions for user  & workflow management
-	,	UserAdmin
-	,	WorkflowAdmin
+	,	iTasks.API.Extensions.Admin.UserAdmin
+	,	iTasks.API.Extensions.Admin.WorkflowAdmin
 	
 	//StdEnv modules
 	,	StdInt
@@ -52,7 +53,4 @@ import	iTasks.Framework.Engine						// basic iTask system creator
 	,	StdOverloaded
 
 from StdFunc import id, const, o
-
-//Types
-import SystemTypes
 from List import instance Functor []

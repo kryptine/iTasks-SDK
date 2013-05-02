@@ -4,10 +4,10 @@ import StdList, StdBool, StdTuple
 import Error, Func
 import iTasks.Framework.IWorld, iTasks.Framework.Shared, iTasks.Framework.Task, iTasks.Framework.TaskState 
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.iTaskClass
-import SystemTypes, LayoutCombinators
+import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 
 from iTasks.Framework.IWorld	import dequeueWorkFilter
-from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
+from iTasks.API.Core.CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Map				import qualified newMap, fromList, toList, get, put
 from SharedDataSource	import qualified read, write, writeFilterMsg
 

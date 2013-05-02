@@ -1,7 +1,7 @@
 definition module iTasks.Framework.Util
 
 import StdGeneric, Error, GenEq, StdClass
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])

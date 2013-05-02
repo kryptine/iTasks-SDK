@@ -2,7 +2,7 @@ implementation module iTasks.Framework.GenUpdate
 
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List, Text
 import iTasks.Framework.Util
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
 from StdFunc import id, flip, const, o
 from iTasks.Framework.UIDefinition import :: UISize(..)

@@ -3,7 +3,7 @@ implementation module iTasks.Framework.Util
 import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
 import Maybe, Time, Text, FilePath, Directory, JSON, Void, Error, GenEq
 from iTasks.Framework.IWorld 		import :: IWorld{currentDateTime,timestamp}
-from SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
+from iTasks.API.Core.SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
 
 mb2list	:: !(Maybe [a]) -> [a]
 mb2list	Nothing = []

@@ -5,7 +5,7 @@ import StdGeneric, Maybe, Void, Either
 from Map import :: Map
 
 import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition
-from LayoutCombinators import :: Layout
+from iTasks.API.Core.LayoutCombinators import :: Layout
 
 :: StaticVisualizationMode = AsDisplay | AsLabel
 

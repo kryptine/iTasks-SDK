@@ -4,7 +4,7 @@ import StdGeneric, Maybe, Void, Either
 from Map	import :: Map
 
 import iTasks.Framework.Store
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
 /**
 * Creates default values

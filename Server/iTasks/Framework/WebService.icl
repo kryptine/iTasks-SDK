@@ -4,7 +4,7 @@ import StdList, StdBool, StdTuple
 import Time, JSON, Map
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
-import SystemTypes
+import iTasks.API.Core.SystemTypes
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]

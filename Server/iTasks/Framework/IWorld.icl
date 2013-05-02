@@ -5,7 +5,7 @@ from Map				import :: Map
 from Maybe				import :: Maybe
 from Time				import :: Timestamp, time
 from JSON				import :: JSONNode
-from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
+from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from iTasks.Framework.TaskState			import :: TaskListEntry
 
 from StdFile import class FileSystem(..)

@@ -5,7 +5,7 @@ definition module iTasks.Framework.GenRecord
 * All fields with the same name & type can be copied automatically, only different fields have to be mapped manually.
 */
 
-import SystemTypes, iTasks.Framework.GenUpdate
+import iTasks.API.Core.SystemTypes, iTasks.Framework.GenUpdate
 
 /**
 * Copies all fields with same name & type from one record to another.

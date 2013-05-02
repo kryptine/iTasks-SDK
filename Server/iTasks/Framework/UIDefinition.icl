@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.UIDefinition
 
 import JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, HTML, Text, Map, List
-from SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey, :: GoogleMapIcon
+from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey, :: GoogleMapIcon
 	
 defaultSizeOpts	:: UISizeOpts
 defaultSizeOpts = {width = Nothing, minWidth = Nothing, height = Nothing, minHeight = Nothing, margins = Nothing}
