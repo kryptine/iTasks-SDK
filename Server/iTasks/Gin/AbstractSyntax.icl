@@ -7,10 +7,10 @@ import StdList
 import StdString
 import StdClass, StdInt
 
-import Void
-import Map
+import Data.Void
+import Data.Map
 import Text
-import Maybe
+import Data.Maybe
 
 from iTasks.Gin.Parser import :: GPath(..), :: GTypeDefinition(..), :: GTypeExpression(..), :: GFormalParameter(..), :: GIdentifier(..), :: GTypeVariable(..), :: GTypeRhs(..), :: GRecordField(..), :: GDataConstructor(..)
 from iTasks.Gin.Types import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor
@@ -257,17 +257,17 @@ printADefinition opt def =
 
 printADefinitionComment :: PrintOption ADefinition -> [a] | Printer a
 printADefinitionComment PODCL def =
-	[	text "/**" <$>
-		text "*" <+> text def.ADefinition.name <$>
-		text "*" <$>
+	[	text "/**" <-$>
+		text "*" <+> text def.ADefinition.name <-$>
+		text "*" <-$>
 		(if (isEmpty def.ADefinition.formalParams) 
 			empty 
-			( foldr (<$>) empty (map (\fp -> text "* @param" <+> text fp.GFormalParameter.name) 
+			( foldr (<-$>) empty (map (\fp -> text "* @param" <+> text fp.GFormalParameter.name) 
 						def.ADefinition.formalParams
 				   )
 			)
-		) <$>
-	//	text "* @return" <$>
+		) <-$>
+	//	text "* @return" <-$>
 		text "*/"
 	]
 printADefinitionComment _ _ = []
@@ -334,15 +334,15 @@ printAExpression opt withParens (AppInfix i fix prec e1 e2)
 	# doc2 = case e2 of
 		(AppInfix e2i e2fix e2prec _ _) = printAExpression opt (e2prec < prec || i == e2i && fix == Infixr) e2
 		otherwise                       = printAExpression opt False e2
-	= doc1 <$> text i <-/> doc2
+	= doc1 <-$> text i <-/> doc2
 printAExpression opt withParens (Lambda pat exp)
 	= addParens withParens (text "\\" <-> printAPattern opt pat <-/> text "->" <-/> printAExpression opt False exp)
 printAExpression opt withParens (Let defs inexp) = addParens withParens (align (text "let" <+> 
-	newscope (map (\(pat,exp) -> text pat <-/> text "=" <-/> align (printAExpression opt False exp)) defs) <$>
+	newscope (map (\(pat,exp) -> text pat <-/> text "=" <-/> align (printAExpression opt False exp)) defs) <-$>
 	text "in" <-/> align (printAExpression opt False inexp)))
 printAExpression opt withParens (Case exp alts) 
 	= addParens withParens 
-		(	align	(text "case" <-/> (printAExpression opt False exp) <-/> (text "of") <$>
+		(	align	(text "case" <-/> (printAExpression opt False exp) <-/> (text "of") <-$>
 						newscope (map (\alt = printACaseAlt opt alt) alts)
 					)
     	)

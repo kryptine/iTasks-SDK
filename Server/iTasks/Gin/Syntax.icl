@@ -2,7 +2,7 @@ implementation module iTasks.Gin.Syntax
 
 from iTasks import class iTask
 import StdClass, StdBool, StdList
-import JSON
+import Text.JSON
 import iTasks.Gin.Monad // TODO
 
 import iTasks.Gin.AbstractSyntax

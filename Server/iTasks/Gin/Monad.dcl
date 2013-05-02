@@ -1,4 +1,4 @@
-definition module Monad
+definition module iTasks.Gin.Monad
 
 /** 
 * Standard Monad class. 

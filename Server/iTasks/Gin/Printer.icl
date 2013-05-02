@@ -4,44 +4,44 @@ import StdList
 import StdString
 import StdOverloaded, StdInt, StdMisc
 
-import Map
+import Data.Map
 
-from PPrint import ::Doc, ::SimpleDoc, display, renderPretty
-from PPrint import qualified <$>, <+>, <->, </>, align, empty, space, comma, line, char, text, string
-from PPrint import qualified parens, braces, brackets, dquotes, tupled
-from PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, hang, indent, renderPretty, display
+from Text.PPrint import ::Doc, ::SimpleDoc, display, renderPretty
+from Text.PPrint import qualified <$>, <+>, <->, </>, align, empty, space, comma, line, char, text, string
+from Text.PPrint import qualified parens, braces, brackets, dquotes, tupled
+from Text.PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, hang, indent, renderPretty, display
 
 from iTasks.Gin.Parser import ::GPath(..), :: GPathNode(..), ::GResourceId(..)
 
 prettyPrint :: Doc -> String
-prettyPrint doc = 'PPrint'.display ('PPrint'.renderPretty 0.9 120 doc)
+prettyPrint doc = 'Text.PPrint'.display ('Text.PPrint'.renderPretty 0.9 120 doc)
 
 instance Printer Doc
 where
-	def a = 'PPrint'.hang 4 a
-	scope docs = 'PPrint'.vsep docs
-	newscope docs = 'PPrint'.indent 4 (scope docs)
-	align a = 'PPrint'.align a
-	(<->) a b = a 'PPrint'. <-> b
-	(<+>) a b = a 'PPrint'. <+> b
-	(<-/>) a b = a 'PPrint'. </> b
-	(<$>) a b = a 'PPrint'. <$> b
-	(<$?>) a b = a 'PPrint'. <$> b
-	empty = 'PPrint'.empty
-	space = 'PPrint'.space
-	comma = 'PPrint'.comma
-	char c = 'PPrint'.char c
-	text s = 'PPrint'.text s
-	string s = 'PPrint'.string s
-	parens doc = 'PPrint'.parens doc
-	brackets doc = 'PPrint'.brackets doc
-	braces doc = 'PPrint'.braces doc
-	dquotes doc = 'PPrint'.dquotes doc
-	tupled docs = 'PPrint'.tupled docs
-	punctuate doc docs = 'PPrint'.punctuate doc docs
-	hsep docs = 'PPrint'.hsep docs
-	fillSep docs = 'PPrint'.fillSep docs
-	position _ = 'PPrint'.empty
+	def a = 'Text.PPrint'.hang 4 a
+	scope docs = 'Text.PPrint'.vsep docs
+	newscope docs = 'Text.PPrint'.indent 4 (scope docs)
+	align a = 'Text.PPrint'.align a
+	(<->) a b = a 'Text.PPrint'. <-> b
+	(<+>) a b = a 'Text.PPrint'. <+> b
+	(<-/>) a b = a 'Text.PPrint'. </> b
+	(<-$>) a b = a 'Text.PPrint'. <$> b
+	(<$?>) a b = a 'Text.PPrint'. <$> b
+	empty = 'Text.PPrint'.empty
+	space = 'Text.PPrint'.space
+	comma = 'Text.PPrint'.comma
+	char c = 'Text.PPrint'.char c
+	text s = 'Text.PPrint'.text s
+	string s = 'Text.PPrint'.string s
+	parens doc = 'Text.PPrint'.parens doc
+	brackets doc = 'Text.PPrint'.brackets doc
+	braces doc = 'Text.PPrint'.braces doc
+	dquotes doc = 'Text.PPrint'.dquotes doc
+	tupled docs = 'Text.PPrint'.tupled docs
+	punctuate doc docs = 'Text.PPrint'.punctuate doc docs
+	hsep docs = 'Text.PPrint'.hsep docs
+	fillSep docs = 'Text.PPrint'.fillSep docs
+	position _ = 'Text.PPrint'.empty
 
 ::  PDoc = Empty
 		| Text String //must not contain newlines
@@ -67,13 +67,13 @@ where
 instance Printer PDoc
 where
 	def a = Cat a (char ';')
-	scope docs = fold (<$>) docs
+	scope docs = fold (<-$>) docs
 	newscope docs = braces (scope docs)
 	align a = a
 	(<->) a b = Cat a b
 	(<+>) a b = Cat a (Cat space b)
 	(<-/>) a b = a <+> b
-	(<$>) a b = Cat a (Line b)
+	(<-$>) a b = Cat a (Line b)
 	(<$?>) a b = a <+> b
 	empty = Empty
 	space = Text " " 

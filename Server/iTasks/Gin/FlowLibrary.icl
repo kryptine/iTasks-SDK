@@ -1,6 +1,6 @@
 implementation module iTasks.Gin.FlowLibrary
 
-import Maybe
+import Data.Maybe
 
 import StdEnum
 from StdFunc import o

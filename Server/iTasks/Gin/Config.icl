@@ -1,15 +1,15 @@
 implementation module iTasks.Gin.Config
 
-import Maybe
+import Data.Maybe
 import StdFile
 from StdFunc import iter
 
-import Directory
-from File import qualified fileExists, readFile, writeFile
-from FilePath import takeDirectory, </>
-import OSError
+import System.Directory
+from System.File import qualified fileExists, readFile, writeFile
+from System.FilePath import takeDirectory, </>
+import System.OSError
 
-import CommandLine
+import System.CommandLine
 from iTasks.Framework.Engine import determineAppName
 
 import iTasks
@@ -52,14 +52,14 @@ where
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginLoadConfig world
 	# (filename, world) = ginConfigFilename world
-	# (res,world) = 'File'.readFile filename world
+	# (res,world) = 'System.File'.readFile filename world
 	| isError res = (Nothing, world)
 	= (fromJSON (fromString (fromOk res)),world)
 	
 ginStoreConfig :: !GinConfig !*World -> *World
 ginStoreConfig config world
 	# (filename, world) = ginConfigFilename world
-	# (_, world) = 'File'.writeFile filename (toString (toJSON config)) world
+	# (_, world) = 'System.File'.writeFile filename (toString (toJSON config)) world
 	= world
 
 ginConfigFilename :: *World -> (!String, *World) 
@@ -79,10 +79,10 @@ where
 
 ginCheckConfig :: !GinConfig !*World -> (Maybe String, *World)
 ginCheckConfig config world
-# (ok, world) = 'File'.fileExists (config.cleanPath </> "CleanIDE.exe") world
+# (ok, world) = 'System.File'.fileExists (config.cleanPath </> "CleanIDE.exe") world
 | not ok = (Just "Clean path incorrect", world) 
-# (ok, world) = 'File'.fileExists (config.iTasksPath </> "Server" </> "iTasks.dcl") world
+# (ok, world) = 'System.File'.fileExists (config.iTasksPath </> "Server" </> "iTasks.dcl") world
 | not ok = (Just "iTasks path incorrect", world)
-# (ok, world) = 'File'.fileExists config.userPath world
+# (ok, world) = 'System.File'.fileExists config.userPath world
 | not ok = (Just "user path incorrect", world)
 = (Nothing, world)

@@ -9,7 +9,7 @@ import StdList
 import StdOrdList
 import StdTuple
 import StdClass, StdInt
-import Error
+import Data.Error
 
 import GenPrint
 
@@ -19,10 +19,10 @@ from iTasks.Gin.Types import :: JSONNode, :: InteractionMask, :: VerifyMask, :: 
 from iTasks.Gin.Types import printGTypeDefinition, typeIsDefined, printGTypeExpression
 from iTasks.Gin.Printer import class Printer
 //Clean-platform:
-import Graph
-import Map
-import Void
-import JSON
+import Data.Graph
+import Data.Map
+import Data.Void
+import Text.JSON
 import Text
 
 //Clean-compiler:

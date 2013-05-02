@@ -1,6 +1,6 @@
-definition module iTasks.API.Extensions.GinDomain
+definition module iTasks.API.Extensions.Gin.Domain
 
-import GinORYX
+import iTasks.Gin.ORYX
 
 derive gEq ORYXEditor
 derive gVisualizeText ORYXEditor

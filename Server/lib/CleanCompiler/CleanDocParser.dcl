@@ -1,7 +1,7 @@
 definition module CleanDocParser
 
-from Maybe		import	::Maybe
-from Error		import	::MaybeErrorString, ::MaybeError
+from Data.Maybe		import	::Maybe
+from Data.Error		import	::MaybeErrorString, ::MaybeError
 from hashtable	import	::HashTable
 from syntax		import	::ParsedDefinition, ::ParsedExpr, ::Type
 

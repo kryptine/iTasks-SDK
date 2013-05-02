@@ -3,7 +3,7 @@ implementation module iTasks.Gin.Types
 import StdBool
 import StdList
 import GenEq
-import Maybe, HTML, UIDefinition
+import Data.Maybe, Text.HTML, iTasks.Framework.UIDefinition
 
 from iTasks import class iTask
 

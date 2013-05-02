@@ -1,7 +1,7 @@
 definition module iTasks.Gin.Syntax
 
-from Graph import :: Graph
-from Monad import class Monad
+from Data.Graph import :: Graph
+from iTasks.Gin.Monad import class Monad
 
 from iTasks import class iTask
 from iTasks.Framework.GenVisualize import generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, generic gDefault, generic gUpdate, generic gVerify

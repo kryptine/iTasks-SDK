@@ -1,12 +1,13 @@
-implementation module iTasks.API.Extensions.GinDomain
+implementation module iTasks.API.Extensions.Gin.Domain
 
 from StdEnv import id, undef
 
 import Text, HtmlUtil
-import GinSyntax, GinFlowLibrary
-import GinCompiler, GinParser
-
-import GinORYX
+import iTasks.Gin.Syntax
+import iTasks.Gin.FlowLibrary
+import iTasks.Gin.Compiler
+import iTasks.Gin.Parser
+import iTasks.Gin.ORYX
 
 gVisualizeText{|ORYXEditor|} _ _ = ["(ORYX editor: No textual representation available)"]
 //gVisualizeHtml{|ORYXEditor|} _ _ = [Text "(ORYX editor: No html representation available)"] TODO

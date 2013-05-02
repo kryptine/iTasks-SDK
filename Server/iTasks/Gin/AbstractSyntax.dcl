@@ -6,7 +6,7 @@ import iTasks.Gin.Printer
 
 from iTasks.Framework.iTaskClass import class iTask
 
-from Void import :: Void
+from Data.Void import :: Void
 
 :: AModule = { name        :: AIdentifier
              , types       :: [GTypeDefinition]

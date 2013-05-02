@@ -2,7 +2,7 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Built:	True
-	Target:	OSXEnv
+	Target:	iTasks
 	Exec:	{Project}/ginexamples
 	CodeGen
 		CheckStacks:	False
@@ -39,41 +39,8 @@ Global
 	Paths
 		Path:	{Project}
 		Path:	{Project}/Workflows
-		Path:	{Application}/lib/Directory
-        Path:   {Application}/iTasks-SDK/Patches/Platform/OS-Independent/Data
-        Path:   {Application}/iTasks-SDK/Patches/Platform/OS-Independent/Text
-        Path:   {Application}/iTasks-SDK/Server
-        Path:   {Application}/iTasks-SDK/Server/lib/Http
-        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/Internet
-        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/Math
-        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/System
-        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Independent/Text/Encodings
-        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Mac/System
-        Path:   {Application}/iTasks-SDK/Server/lib/Platform/OS-Posix/System
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanCompiler
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanCompiler/frontend
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/Pm
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/MacOSX
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/Util
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/BatchBuild
-        Path:   {Application}/iTasks-SDK/Server/lib/CleanIDE/Interfaces/LinkerInterface
-        Path:   {Application}/iTasks-SDK/Server/Gin
-        Path:   {Application}/iTasks-SDK/Server/Framework
-        Path:   {Application}/iTasks-SDK/Server/API
-        Path:   {Application}/iTasks-SDK/Server/API/Common
-        Path:   {Application}/iTasks-SDK/Server/API/Core
-        Path:   {Application}/iTasks-SDK/Server/API/Domains
-        Path:   {Application}/iTasks-SDK/Server/API/Extensions
-        Path:   {Application}/iTasks-SDK/Server/API/Extensions/Admin
-		Path:	{Application}/clean-platform-flat/OS-Independent
-		Path:	{Application}/clean-platform-flat/OS-Independent/Data
-		Path:	{Application}/clean-platform-flat/OS-Independent/Text
-		Path:	{Application}/clean-platform-flat/OS-Independent/Deprecated/StdLib
-		Path:	{Application}/clean-platform-flat/OS-Posix
-		Path:	{Application}/clean-platform-flat/OS-Mac
-		Path:	{Application}/lib/Generics
-		Path:	{Application}/lib/TCPIP
-		Path:	{Application}/lib/Dynamics
+		Path:	{Application}/iTasks-SDK/Server/lib/CleanCompiler
+		Path:	{Application}/iTasks-SDK/Server/lib/CleanCompiler/frontend
 	Precompile:	
 	Postlink:	
 MainModule

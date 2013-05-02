@@ -3,7 +3,7 @@ definition module iTasks.Gin.Types
 //import GenEq
 //import HTML, UIDefinition
 
-from Maybe import :: Maybe
+from Data.Maybe import :: Maybe
 
 from iTasks import class iTask
 
@@ -11,7 +11,7 @@ from StdGeneric import generic bimap, :: Bimap
 from iTasks.Framework.GenVisualize import generic gVisualizeText, generic gVisualizeEditor
 from iTasks.Framework.GenUpdate import generic gUpdate, generic gDefault, generic gHeaders, generic gGridRows
 from iTasks.Framework.GenVerify import generic gVerify
-from JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 from iTasks.API.Core.SystemTypes import :: InteractionMask, :: VerifyMask, :: VerifyOptions, :: ConsPos, :: StaticVisualizationMode, :: VSt, :: VisualizationResult
 

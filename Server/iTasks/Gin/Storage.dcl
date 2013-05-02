@@ -1,6 +1,6 @@
 definition module iTasks.Gin.Storage
 
-from Error import :: MaybeErrorString, :: MaybeError
+from Data.Error import :: MaybeErrorString, :: MaybeError
 
 //import OSError
 //import Maybe

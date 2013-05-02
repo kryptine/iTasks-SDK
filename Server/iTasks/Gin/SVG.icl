@@ -6,8 +6,8 @@ import StdList
 import StdString
 import StdBool
 
-import Maybe
-import XML, HTML
+import Data.Maybe
+import Text.XML, Text.HTML
 import iTasks.Framework.UIDefinition
 
 from iTasks.Gin.Types import generic gEq, generic JSONDecode, generic JSONEncode, generic gVerify, generic gUpdate, generic gDefault, generic gGridRows, generic gHeaders, generic gVisualizeText, generic gVisualizeEditor

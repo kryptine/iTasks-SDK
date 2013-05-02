@@ -6,23 +6,23 @@ from StdMisc import undef
 //import GenEq
 //import Text
 import iTasks
-import Maybe
-import Void
+import Data.Maybe
+import Data.Void
 
-import GinAbstractSyntax
-import GinConfig
-import GinCompiler
-import GinDomain
-import GinParser
-from GinPrinter import :: Doc, prettyPrint, instance Printer Doc
-import GinStorage
-import GinSyntax
+import iTasks.Gin.AbstractSyntax
+import iTasks.Gin.Config
+import iTasks.Gin.Compiler
+import iTasks.Gin.Domain
+import iTasks.Gin.Parser
+from iTasks.Gin.Printer import :: Doc, prettyPrint, instance Printer Doc
+import iTasks.Gin.Storage
+import iTasks.Gin.Syntax
 
 import CleanDocParser
-import GinDCLImport
+import iTasks.Gin.DCLImport
 
 //import FilePath, File
-from Tuple import appFst
+from Data.Tuple import appFst
 
 
 /*

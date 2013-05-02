@@ -1,7 +1,7 @@
 definition module iTasks.Gin.Printer
 
-from Map import ::Map
-from PPrint import ::Doc
+from Data.Map import ::Map
+from Text.PPrint import ::Doc
 
 import iTasks.Gin.Parser
 
@@ -14,7 +14,7 @@ where
 	(<->) infixr 6 :: a a -> a
 	(<+>) infixr 6 :: a a -> a
 	(<-/>) infixr 5 :: a a -> a
-	(<$>) infixr 5 :: a a -> a
+	(<-$>) infixr 5 :: a a -> a
 	(<$?>) infixr 5 :: a a -> a
 	empty :: a
 	space :: a

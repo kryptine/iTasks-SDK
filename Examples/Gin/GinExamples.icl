@@ -2,10 +2,10 @@ implementation module GinExamples
 
 from iTasks import :: Task
 
-import GinFlowLibrary
+import iTasks.Gin.FlowLibrary
 import GinEditor
-import GinDomain
-import GinSyntax
+import iTasks.API.Extensions.Gin.Domain
+import iTasks.Gin.Syntax
 
 Start :: *World -> *World
 Start world = world // startEngine (manageWorkflows workflows) world
