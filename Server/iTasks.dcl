@@ -10,25 +10,8 @@ import	iTasks.Framework.Engine						// basic iTask system creator
 	,	iTasks.Framework.SerializationGraphCopy		// use serialization via graph_copy
 	//,	iTasks.Framework.SerializationDynamicLinker	// use serialization via dynamic linker
 
-	//	System data
-	,	iTasks.API.Core.SystemData
-	,	iTasks.API.Core.SystemTypes
-
-	//	Basic tasks
-	,	iTasks.API.Core.CoreTasks					// Core basic tasks
-	,	iTasks.API.Common.InteractionTasks			// Tasks for interaction with users
-	,	iTasks.API.Common.DBTasks						// convenience wrapper functions for databases with multiple values of type a
-		
-	,	iTasks.API.Common.ImportTasks					// tasks for importing external data
-	,	iTasks.API.Common.ExportTasks					// tasks for exporting data	
-	,	iTasks.API.Core.IntegrationTasks			// Tasks for integration with other systems
-	
-	//	Task combinators
-	,	iTasks.API.Core.CoreCombinators				// The core iTask combinators
-	,	iTasks.API.Common.CommonCombinators			// Set of derived useful iTask combinators
-	
-	//	Layout tuning
-	,	iTasks.API.Core.LayoutCombinators
+    // iTasks API
+    ,   iTasks.API
 	
 	//	Miscellaneous machinery
 	,	Text.JSON							// Functions for serializing/deserializing strings
