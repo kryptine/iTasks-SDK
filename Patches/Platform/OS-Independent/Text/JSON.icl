@@ -20,11 +20,10 @@ import Text, Text.PPrint
 //Basic JSON serialization
 instance toString JSONNode
 where
-	//Escape all strings -> make target string -> copy characters
+	//make target string -> copy characters
 	//The reason why first a big string is made into which the characters are copied is to
 	//avoid many string concatenations with big strings
 	toString node
-		# node = escapeAll node
 		# len = sizeOf node
 		= snd (copyNode 0 node (createArray len '\0'))
 
@@ -35,27 +34,67 @@ sizeOf (JSONBool True)	= 4
 sizeOf (JSONBool False)	= 5
 sizeOf (JSONInt x)		= size (toString x)
 sizeOf (JSONReal x)		= size (toString x)
-sizeOf (JSONString x)	= size x + 2
+sizeOf (JSONString x)	= size x + 2 + count_escape_chars 0 x
 sizeOf (JSONArray x)	= let len = length x in (if (len > 0) (foldl (\s x -> s + sizeOf x) (len - 1) x) 0) + 2
 sizeOf (JSONObject x)	= let len = length x in (if (len > 0) (foldl (\s (l,o) -> s + size l + 2 + 1 + sizeOf o) (len - 1) x) 0) + 2
 sizeOf (JSONRaw x)		= size x
 sizeOf (JSONError)		= 0
 
-//Escape all strings in a JSON structure
-escapeAll :: !JSONNode -> JSONNode
-escapeAll (JSONString s)	= JSONString (jsonEscape s)
-escapeAll (JSONArray x)		= JSONArray (map escapeAll x)
-escapeAll (JSONObject x)	= JSONObject (map (\(l,o) -> (l,escapeAll o)) x)
-escapeAll node				= node
+count_escape_chars :: !Int !String -> Int
+count_escape_chars i s
+	| i < size s
+		# c = s.[i]
+		| c >= '0'
+			| c <> '\\'
+				= count_escape_chars (i + 1) s
+				= count_more_escape_chars (i + 1) s 1
+			| c == '"' || c == '/' || c == '\b' || c == '\f' || c == '\n' || c == '\r' || c == '\t'
+				= count_more_escape_chars (i + 1) s 1
+				= count_escape_chars (i + 1) s
+		= 0
+where
+	count_more_escape_chars :: !Int !String !Int -> Int
+	count_more_escape_chars i s n
+		| i < size s
+			# c = s.[i]
+			| c >= '0'
+				| c <> '\\'
+					= count_more_escape_chars (i + 1) s n
+					= count_more_escape_chars (i + 1) s (n+1)
+				| c == '"' || c == '/' || c == '\b' || c == '\f' || c == '\n' || c == '\r' || c == '\t'
+					= count_more_escape_chars (i + 1) s (n+1)
+					= count_more_escape_chars (i + 1) s n
+			= n
 
 //Copy structure to a string
 copyNode :: !Int !JSONNode !*{#Char} -> *(!Int, !*{#Char})
-copyNode start (JSONNull) buffer		= (start + 4, copyChars start 0 4 "null" buffer)
-copyNode start (JSONBool True) buffer	= (start + 4, copyChars start 0 4 "true" buffer)
-copyNode start (JSONBool False) buffer	= (start + 5, copyChars start 0 5 "false" buffer)
-copyNode start (JSONInt x) buffer		= let s = toString x in (start + size s, copyChars start 0 (size s) s buffer)
-copyNode start (JSONReal x) buffer		= let s = toString x in (start + size s, copyChars start 0 (size s) s buffer)
-copyNode start (JSONString x) buffer	= let len = size x in (start + len + 2 , copyChars (start + 1) 0 len x {buffer & [start] = '"', [start + len + 1] = '"'})
+copyNode start (JSONNull) buffer		= (start + 4, copyChars start 4 "null" buffer)
+copyNode start (JSONBool True) buffer	= (start + 4, copyChars start 4 "true" buffer)
+copyNode start (JSONBool False) buffer	= (start + 5, copyChars start 5 "false" buffer)
+copyNode start (JSONInt x) buffer		= let s = toString x in (start + size s, copyChars start (size s) s buffer)
+copyNode start (JSONReal x) buffer		= let s = toString x in (start + size s, copyChars start (size s) s buffer)
+copyNode start (JSONString s) buffer
+	# reps = findChars 0 s
+	| reps=:[!!]
+		# len = size s
+		= (start + len + 2, copyChars (start + 1) len s {buffer & [start] = '"', [start + len + 1] = '"'})
+		# buffer & [start] = '"'
+		  (start,buffer) = copyAndReplaceChars 0 (start+1) reps s buffer
+		= (start+1, {buffer & [start] = '"'})
+	where
+		// Copy the escaped string from the original and the replacements		
+		copyAndReplaceChars :: !Int !Int ![!(Int,Char)!] !String !*String -> (!Int,!*String)
+		copyAndReplaceChars is id [!(ir,c):rs!] src dest
+			# (is,id,src,dest) = copyCharsI is id ir src dest
+			= copyAndReplaceChars (is + 1) (id + 2) rs src {dest & [id] = '\\', [id + 1] = c}
+		copyAndReplaceChars is id [!!] src dest
+			= copyRemainingChars is id src dest
+
+		copyRemainingChars :: !Int !Int !String !*String -> (!Int,!*String)
+		copyRemainingChars is id src dest
+			| is < size src
+				= copyRemainingChars (is + 1) (id + 1) src {dest & [id] = src.[is]}
+				= (id,dest)
 copyNode start (JSONArray items) buffer
 	# (start,buffer)	= (start + 1, {buffer & [start] = '['})
 	# (start,buffer)	= copyArrayItems start items buffer
@@ -73,19 +112,33 @@ copyNode start (JSONObject items) buffer
 where
 	copyObjectItems start [] buffer = (start,buffer)
 	copyObjectItems start [(l,x)] buffer
-		# (start,buffer) = let len = size l in (start + len + 3 , copyChars (start + 1) 0 len l {buffer & [start] = '"', [start + len + 1] = '"', [start + len + 2] = ':'})
+		# (start,buffer) = let len = size l in (start + len + 3 , copyChars (start + 1) len l {buffer & [start] = '"', [start + len + 1] = '"', [start + len + 2] = ':'})
 		= copyNode start x buffer
 	copyObjectItems start [(l,x):xs] buffer
-		# (start,buffer) = let len = size l in (start + len + 3 , copyChars (start + 1) 0 len l {buffer & [start] = '"', [start + len + 1] = '"', [start + len + 2] = ':'})
+		# (start,buffer) = let len = size l in (start + len + 3 , copyChars (start + 1) len l {buffer & [start] = '"', [start + len + 1] = '"', [start + len + 2] = ':'})
 		# (start,buffer) = copyNode start x buffer
 		= copyObjectItems (start + 1) xs {buffer & [start] = ','}
-copyNode start (JSONRaw x) buffer	= (start + size x, copyChars start 0 (size x) x buffer) 	
+copyNode start (JSONRaw x) buffer	= (start + size x, copyChars start (size x) x buffer) 	
 copyNode start _ buffer				= (start,buffer)
 
-copyChars :: !Int !Int !Int !String !*String -> *String
-copyChars offset i num src dst
-	| i == num		= dst
-	| otherwise		= copyChars offset (inc i) num src {dst & [offset + i] = src.[i]}
+copyChars :: !Int !Int !String !*String -> *String
+copyChars offset i src dst
+	| i>3
+		# di = offset + i
+		  dst & [di-4] = src.[i-4]
+		  dst & [di-3] = src.[i-3]
+		  dst & [di-2] = src.[i-2]
+		  dst & [di-1] = src.[i-1]
+		= copyChars offset (i-4) src dst
+	| i>1
+		# dst & [offset] = src.[0]
+		# dst & [offset+1] = src.[1]
+		| i==3
+			= {dst & [offset+2] = src.[2]}
+			= dst
+		| i==1
+			= {dst & [offset] = src.[0]}
+			= dst
 
 //Basic JSON deserialization (just structure)
 instance fromString JSONNode
@@ -223,26 +276,6 @@ jsonEscape src
 		[!!] -> src
 		reps -> copyAndReplaceChars 0 0 reps src (createArray (size src + Length reps) '\0')
 where
-	//Find the special characters
-	findChars :: Int String -> [!(Int,Char)!]
-	findChars i s
-		| i >= size s
-			= [!!]
-		# c = s.[i]
-		| c == '\\' || c == '"' || c == '/'
-			= [!(i,c): findChars (i + 1) s!]
-		| c == '\b'
-			= [!(i,'b'): findChars (i + 1) s!]
-		| c == '\f'
-			= [!(i,'f'): findChars (i + 1) s!]
-		| c == '\n'
-			= [!(i,'n'): findChars (i + 1) s!]
-		| c == '\r'
-			= [!(i,'r'): findChars (i + 1) s!]
-		| c == '\t'
-			= [!(i,'t'): findChars (i + 1) s!]
-			= findChars (i + 1) s
-
 	//Build the escaped string from the original and the replacements		
 	copyAndReplaceChars :: !Int !Int ![!(Int,Char)!] !String !*String -> *String
 	copyAndReplaceChars is id reps=:[!(ir,c):rs!] src dest
@@ -250,7 +283,31 @@ where
 		= copyAndReplaceChars (is + 1) (id + 2) rs src {dest & [id] = '\\', [id + 1] = c}
 	copyAndReplaceChars is id [!!] src dest
 		= copyRemainingChars is id src dest
-	
+
+//Find the special characters
+findChars :: Int String -> [!(Int,Char)!]
+findChars i s
+	| i < size s
+		# c = s.[i]
+		| c >= '0'
+			| c <> '\\'
+				= findChars (i + 1) s
+				= [!(i,c): findChars (i + 1) s!]
+			| c == '"' || c == '/'
+				= [!(i,c): findChars (i + 1) s!]
+			| c == '\b'
+				= [!(i,'b'): findChars (i + 1) s!]
+			| c == '\f'
+				= [!(i,'f'): findChars (i + 1) s!]
+			| c == '\n'
+				= [!(i,'n'): findChars (i + 1) s!]
+			| c == '\r'
+				= [!(i,'r'): findChars (i + 1) s!]
+			| c == '\t'
+				= [!(i,'t'): findChars (i + 1) s!]
+				= findChars (i + 1) s
+		= [!!]
+
 //Unescape a string
 jsonUnescape :: !String -> String
 jsonUnescape src
@@ -324,6 +381,10 @@ JSONEncode{|Bool|} x = [JSONBool x]
 JSONEncode{|String|} x = [JSONString x]
 JSONEncode{|UNIT|} (UNIT) = []
 JSONEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
+where
+	(++) infixr 5::![.a] u:[.a] -> u:[.a]
+	(++) [hd:tl]	list	= [hd:tl ++ list]
+	(++) nil 		list	= list
 JSONEncode{|EITHER|} fx fy (LEFT x) = fx x
 JSONEncode{|EITHER|} fx fy (RIGHT y) = fy y
 JSONEncode{|OBJECT|} fx (OBJECT x) = fx x
@@ -338,7 +399,7 @@ JSONEncode{|RECORD of {grd_fields}|} fx (RECORD x)
 where
 	isNotNull JSONNull = False
 	isNotNull _ = True
-JSONEncode{|FIELD|} fx (FIELD x) = fx x							
+JSONEncode{|FIELD|} fx (FIELD x) = fx x
 JSONEncode{|[]|} fx x = [JSONArray (flatten [fx e \\ e <- x])]
 JSONEncode{|(,)|} fx fy (x,y) = [JSONArray (fx x ++ fy y)]
 JSONEncode{|(,,)|} fx fy fz (x,y,z) = [JSONArray (fx x ++ fy y ++ fz z)]
@@ -563,5 +624,3 @@ where
 	pretty (JSONObject attr)	= encloseSep lbrace rbrace comma [dquotes (string label) <-> colon <-> pretty val \\ (label,val) <- attr]
 	pretty (JSONRaw x)			= string x
 	pretty JSONError			= string "null"
-
-

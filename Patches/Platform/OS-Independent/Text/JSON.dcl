@@ -76,7 +76,23 @@ jsonQuery :: !String !JSONNode -> Maybe a | JSONDecode{|*|} a
 * for each type you want to encode in JSON format.
 */
 generic JSONEncode t :: !t -> [JSONNode]
-derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, RECORD of {grd_fields}, FIELD, CONS of {gcd_arity,gcd_name}, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
+derive  JSONEncode Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode,
+	UNIT, EITHER, CONS of {gcd_arity,gcd_name}, OBJECT
+
+JSONEncode{|RECORD of {grd_fields}|} fx (RECORD x)
+	= [JSONObject [(name, o) \\ o <- fx x & name <- grd_fields | isNotNull o]]
+where
+	isNotNull JSONNull = False
+	isNotNull _ = True
+
+JSONEncode{|FIELD|} fx (FIELD x) = fx x					
+
+JSONEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
+where
+	(++) infixr 5::![.a] u:[.a] -> u:[.a]
+	(++) [hd:tl]	list	= [hd:tl ++ list]
+	(++) nil 		list	= list
+
 /**
 * Generic decoding function. This function should not be used
 * directly, but always through the fromJSON function. It must be derived
