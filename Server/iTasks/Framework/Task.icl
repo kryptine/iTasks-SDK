@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc
-import Text.HTML, Internet.HTTP, Data.Map
+import Text.HTML, Internet.HTTP, Data.Map, Data.Error, Text.JSON
 import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.IWorld, iTasks.Framework.GenRecord, iTasks.Framework.Util
 import iTasks.API.Core.SystemTypes
 

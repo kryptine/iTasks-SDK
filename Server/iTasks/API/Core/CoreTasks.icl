@@ -1,6 +1,7 @@
 implementation module iTasks.API.Core.CoreTasks
 
-import StdList, StdBool, StdInt, StdTuple,StdMisc, System.Time, Data.Error, System.OSError, Data.Map, Data.Tuple, Data.List
+import StdList, StdBool, StdInt, StdTuple,StdMisc
+import System.Time, Data.Error, System.OSError, Data.Map, Data.Tuple, Data.List, Text.JSON
 import qualified StdList
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore

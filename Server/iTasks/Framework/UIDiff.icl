@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.UIDiff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
-import Text
+import Text, Text.JSON
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
 from iTasks.Framework.Task import :: Event(..)
 

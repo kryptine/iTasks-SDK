@@ -3,14 +3,14 @@ definition module iTasks.API.Core.IntegrationTasks
 * This module provides tasks for interaction with other systems.
 */
 
-from Data.Maybe	import :: Maybe
-from Data.Void	import :: Void
-from Data.Error	import :: MaybeError, :: MaybeErrorString
+from Data.Maybe  import :: Maybe
+from Data.Void   import :: Void
+from Data.Error  import :: MaybeError, :: MaybeErrorString
 
 import iTasks.Framework.iTaskClass
-from iTasks.Framework.Task 				import :: Task
-from iTasks.API.Core.SystemTypes		import :: Note, :: EmailAddress
-from iTasks.API.Common.InteractionTasks	import :: ViewOption		//TODO: We shouldn't import from Common in Core
+from iTasks.Framework.Task               import :: Task
+from iTasks.API.Core.SystemTypes         import :: Note, :: EmailAddress
+from iTasks.API.Common.InteractionTasks  import :: ViewOption //TODO: We shouldn't import from Common in Core
 
 :: HTTPMethod = GET | POST
 

@@ -1,6 +1,7 @@
 implementation module iTasks.API.Core.SystemData
 
-import StdList, StdBool, StdFile, System.Time, Text, Data.Tuple, Data.Map, Math.Random
+import StdList, StdBool, StdFile
+import System.Time, Text, Data.Tuple, Data.Map, Math.Random, Data.Functor, Data.Error, System.File
 import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Shared, iTasks.Framework.Util
 import iTasks.Framework.Task
 import iTasks.API.Core.SystemTypes

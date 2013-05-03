@@ -1,8 +1,7 @@
 implementation module iTasks.Gin.Storage
 
-import StdFile
-from 	StdFunc import o, seqList, ::St
-import StdMisc, StdClass, StdList, StdOrdList, StdChar, StdString
+from    StdFunc import o, seqList, ::St
+import  StdMisc, StdClass, StdList, StdOrdList, StdChar, StdString, StdFile
 
 from System.File import qualified fileExists, readFile
 from System.FilePath import addExtension, dropExtension, takeExtension, :: FilePath, </>
@@ -25,7 +24,6 @@ import iTasks.Gin.Syntax
 import iTasks.Gin.Parser
 import iTasks.Gin.Printer
 import iTasks.Gin.FlowLibrary
-
 import iTasks.Gin.DCLImport
 
 GRAPHICAL_EXTENSION :== "gcl"
@@ -128,10 +126,8 @@ newModuleName config
 		>>= \name ->		moduleExists config name
 		>>= \exists ->		if exists
 								(		viewInformation ("Module " +++ name +++ " already exists, do you want to overwrite?") [] Void
-									>>*	[ ] // TODO
-                                    //(ActionYes,	Always (return name))
-										//, (ActionNo,	Always (newModuleName config))
-										//]
+									>>*	 [  Always ActionYes (return name)
+                                         ,  Always ActionNo (newModuleName config)]
 								)
 								( return name )
 

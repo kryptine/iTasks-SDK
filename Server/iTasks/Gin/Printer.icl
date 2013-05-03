@@ -1,8 +1,6 @@
 implementation module iTasks.Gin.Printer
 
-import StdList
-import StdString
-import StdOverloaded, StdInt, StdMisc
+import StdList, StdString, StdOverloaded, StdInt, StdMisc
 
 import Data.Map
 
@@ -11,7 +9,7 @@ from Text.PPrint import qualified <$>, <+>, <->, </>, align, empty, space, comma
 from Text.PPrint import qualified parens, braces, brackets, dquotes, tupled
 from Text.PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, hang, indent, renderPretty, display
 
-from iTasks.Gin.Parser import ::GPath(..), :: GPathNode(..), ::GResourceId(..)
+from iTasks.Gin.Parser import :: GPath (..), :: GPathNode (..), :: GResourceId (..)
 
 prettyPrint :: Doc -> String
 prettyPrint doc = 'Text.PPrint'.display ('Text.PPrint'.renderPretty 0.9 120 doc)

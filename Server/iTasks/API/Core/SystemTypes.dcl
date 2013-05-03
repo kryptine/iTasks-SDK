@@ -3,10 +3,27 @@ definition module iTasks.API.Core.SystemTypes
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-import GenEq
-import Data.Maybe, Text.JSON, Data.Void, Data.Either, System.FilePath, Text.HTML, Data.Error, System.File, System.OS
+//import GenEq
+//import Data.Maybe, Text.JSON, Data.Void, Data.Either, System.FilePath, Text.HTML, Data.Error, System.File, System.OS
+
 import iTasks.Framework.Store
 
+// TODO: Remove these big-bang imports
+import Data.Void, Text.HTML, GenEq
+
+from Data.Maybe import :: Maybe
+from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
+from Data.Void import :: Void
+from Data.Either import :: Either
+from System.FilePath import :: FilePath
+from Text.HTML import :: HtmlTag, :: HtmlAttr
+from Data.Functor import class Functor
+from Data.Error import :: MaybeError
+from System.File import :: FileError
+from System.OSError import :: OSError, :: OSErrorMessage, :: OSErrorCode
+from StdOverloaded import class +, class -, class <, class zero, class fromString, class toInt
+from StdGeneric import :: ConsPos
+from GenEq import generic gEq
 from Data.Map 				import :: Map
 from Data.Map 				import qualified get
 from Text.HTML 				import class html

@@ -2,7 +2,7 @@ definition module iTasks.API.Common.ImportTasks
 /**
 * This module provides tasks for importing external data into a workflow.
 */
-import System.FilePath
+from System.FilePath import :: FilePath
 import iTasks.API.Core.SystemTypes
 import iTasks.Framework.Task
 /**

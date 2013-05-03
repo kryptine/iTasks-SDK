@@ -6,6 +6,8 @@ definition module iTasks.Framework.Engine
 */
 
 from StdList import ++, iterate, take
+from System.FilePath import </>
+from System.OS import IF_POSIX_OR_WINDOWS
 
 import iTasks.Framework.Task
 from iTasks.Framework.IWorld	import :: IWorld

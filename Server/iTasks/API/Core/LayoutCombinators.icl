@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.LayoutCombinators
 
 import StdTuple, StdList, StdBool, StdOrdList
-import Data.Maybe, Text, Data.Tuple, Data.Map
+import Data.Maybe, Text, Data.Tuple, Data.Map, Data.Either, Data.Functor
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.UIDefinition
 import iTasks.API.Core.SystemTypes
 

@@ -1,7 +1,7 @@
 implementation module iTasks.API.Common.ImportTasks
  
 import StdBool, _SystemArray, StdInt
-import Text.Encodings.MIME, Text, Text.CSV, System.File, Data.Map
+import Text.Encodings.MIME, Text, Text.CSV, System.File, Data.Map, Text.JSON, Data.Error, System.FilePath
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore
 import iTasks.Framework.Util
 from StdFunc import id

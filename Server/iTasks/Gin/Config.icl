@@ -16,10 +16,11 @@ import iTasks
 
 derive gEq				GinConfig	
 derive gVisualizeText	GinConfig
-//derive gVisualizeHtml	GinConfig TODO
 derive gVisualizeEditor	GinConfig
 derive gUpdate			GinConfig
-//derive gDefaultMask		GinConfig TODO
+derive gHeaders    		GinConfig
+derive gGridRows   		GinConfig
+derive gDefault   		GinConfig
 derive JSONEncode		GinConfig
 derive JSONDecode		GinConfig
 

@@ -3,6 +3,7 @@ implementation module iTasks.API.Core.IntegrationTasks
 import StdInt, StdFile, StdTuple, StdList
 
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError, Text.Encodings.UrlEncoding, Text, Data.Tuple, Text.JSON
+import Data.Either, System.OS
 
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.Shared

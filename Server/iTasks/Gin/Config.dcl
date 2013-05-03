@@ -21,11 +21,12 @@ from iTasks.Framework.GenVerify import generic gVerify
 
 derive gEq        		GinConfig	
 derive gVisualizeText 	GinConfig
-//derive gVisualizeHtml 	GinConfig TODO
 derive gVisualizeEditor	GinConfig
 derive gUpdate    		GinConfig
-//derive gDefaultMask		GinConfig TODO
 derive gVerify    		GinConfig
+derive gHeaders    		GinConfig
+derive gGridRows   		GinConfig
+derive gDefault   		GinConfig
 derive JSONEncode 		GinConfig
 derive JSONDecode 		GinConfig
 
