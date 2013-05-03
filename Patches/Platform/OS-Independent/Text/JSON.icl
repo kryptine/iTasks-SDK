@@ -151,6 +151,13 @@ lex :: !Int !String -> [Token]
 lex offset input
 	| offset<size input
 		# c = input.[offset]
+		| c=='"'
+			# offset=offset+1
+			= lexString offset offset input
+		| c==','
+			= [TokenComma : lex (offset+1) input]
+		| c==':'
+			= [TokenColon : lex (offset+1) input]
 		| c=='['
 			= [TokenBracketOpen : lex (offset+1) input]
 		| c==']'
@@ -159,10 +166,6 @@ lex offset input
 			= [TokenBraceOpen : lex (offset+1) input]
 		| c=='}'
 			= [TokenBraceClose : lex (offset+1) input]
-		| c==':'
-			= [TokenColon : lex (offset+1) input]
-		| c==','
-			= [TokenComma : lex (offset+1) input]
 		| c=='n' && offset+3<size input && input.[offset+1]=='u' && input.[offset+2]=='l' && input.[offset+3]=='l'
 			= [TokenNull : lex (offset+4) input]
 		| c=='t' && offset+3<size input && input.[offset+1]=='r' && input.[offset+2]=='u' && input.[offset+3]=='e'
@@ -171,9 +174,6 @@ lex offset input
 			= [TokenBool False : lex (offset+5) input]
 		| c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\f' || c=='\v' // inlined isSpace c
 			= lex (offset+1) input
-		| c=='"'
-			# offset = offset+1;
-			= lexString offset offset input
 		| IsDigit c
 			= lexNumber (offset+1) offset input
 		| c=='-' && offset+1<size input && IsDigit input.[offset+1]
@@ -183,14 +183,15 @@ lex offset input
 where
 	lexString :: !Int !Int !{#Char} -> [Token]
 	lexString offset stringCharsOffset input
-		| offset>=size input
+		| offset<size input
+			# c=input.[offset]
+			| c <> '"'
+				| c <> '\\'
+					= lexString (offset + 1) stringCharsOffset input
+					= lexString (offset + 2) stringCharsOffset input // skip the escaped character
+				#! string = input % (stringCharsOffset,offset-1)
+				= [TokenString string : lex (offset+1) input]
 			= [TokenFail] // missing '"'
-		| input.[offset] == '"'
-			#! string = input % (stringCharsOffset,offset-1)
-			= [TokenString string : lex (offset+1) input]
-		| input.[offset] == '\\'
-			= lexString (offset + 2) stringCharsOffset input // skip the escaped character
-			= lexString (offset + 1) stringCharsOffset input
 
 	lexNumber :: !Int !Int !{#Char} -> [Token]
 	lexNumber offset numberOffset input
@@ -251,7 +252,7 @@ where
 		= case (parse tokens) of
 			(node,[TokenComma:ts])	= parseArrayItems ts [node:nodes]
 			(node,ts)				= (ts,[node:nodes])
-parse [TokenBraceOpen:TokenBraceClose:ts]		= (JSONObject [], ts)
+parse [TokenBraceOpen,TokenBraceClose:ts]		= (JSONObject [], ts)
 parse [TokenBraceOpen:ts]
 	= case (parseObjectItems ts []) of
 		([TokenBraceClose:ts`],items)	= (JSONObject (reverse items), ts`)
@@ -440,12 +441,14 @@ JSONDecode{|String|} l					= (Nothing, l)
 
 JSONDecode{|UNIT|} l					= (Just UNIT, l)
 
-JSONDecode{|PAIR|} fx fy l = case fx l of
-	(Just x,xs)	= case fy xs of
-		(Just y, ys)			= (Just (PAIR x y), ys)
-		_						= (Nothing, l)
-	_							= (Nothing, l)
-	
+JSONDecode{|PAIR|} fx fy l = d1 (fx l) l
+where
+	d1 (Just x,xs)  l = d2 x (fy xs) l
+	d1 (Nothing, _) l = (Nothing, l)
+
+	d2 x (Just y, ys) l = (Just (PAIR x y), ys)
+	d2 x (Nothing, _) l = (Nothing, l)
+
 JSONDecode{|EITHER|} fx fy l = case fx l of
 	(Just x, xs)				= (Just (LEFT x),xs)
 	(Nothing, xs)				= case fy l of
@@ -455,7 +458,6 @@ JSONDecode{|EITHER|} fx fy l = case fx l of
 JSONDecode{|OBJECT|} fx l = case fx l of
 	(Just x, xs)	= (Just (OBJECT x),xs)
 	_				= (Nothing, l)
-
 
 JSONDecode{|CONS of {gcd_arity=0,gcd_name}|} fx l=:[JSONString name: xs]
 	//Constructor without parameters
@@ -471,24 +473,22 @@ JSONDecode{|CONS of {gcd_name}|} fx l=:[JSONArray [JSONString name:fields] :xs]
 	| otherwise						= (Nothing, l)		
 JSONDecode{|CONS|} fx l = (Nothing, l)
 
-
-JSONDecode{|RECORD|} fx l=:[JSONObject fields: xs]
-	= case fx [JSONObject fields] of
-		(Just x, _)					= (Just (RECORD x),xs)
-		_							= (Nothing, l)
+JSONDecode{|RECORD|} fx l=:[obj=:JSONObject fields : xs] = d (fx [obj]) xs l
+where
+	d (Just x, _)  xs l = (Just (RECORD x),xs)
+	d (Nothing, _) xs l = (Nothing, l)
 JSONDecode{|RECORD|} fx l = (Nothing,l)
-	
+
 JSONDecode{|FIELD of {gfd_name}|} fx l =: [JSONObject fields]
 	# field = findField gfd_name fields
 	= case fx field of
 		(Just x, _)	= (Just (FIELD x), l)
-		_			= (Nothing, l)
+		(_, _)		= (Nothing, l)
 where
-	findField match [] 	= []
 	findField match [(l,x):xs]
 		| l == match 	= [x]
-						= findField match xs
-						
+						= findField match xs						
+	findField match [] 	= []
 JSONDecode{|FIELD|} fx l = (Nothing, l)
 
 JSONDecode{|[]|} fx l =:[JSONArray items:xs]
