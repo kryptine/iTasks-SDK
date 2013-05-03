@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.WebService
 
 import StdList, StdBool, StdTuple
-import System.Time, Text.JSON, Data.Map
+import System.Time, Text.JSON, Data.Map, Internet.HTTP
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
 import iTasks.API.Core.SystemTypes

@@ -1,6 +1,6 @@
 definition module iTasks.Framework.SerializationDynamicLinker
 
-import JSON
+from JSON import :: JSONNode
 from Error import ::MaybeError, ::MaybeErrorString
 from iTasks.Framework.Store import ::StoreFormat
 

@@ -1,7 +1,10 @@
 definition module iTasks.Framework.GenUpdate
 
-import StdGeneric, Data.Maybe, Data.Void, Data.Either
+import StdGeneric
 from Data.Map	import :: Map
+from Data.Maybe import :: Maybe
+from Data.Void import :: Void
+from Data.Either import :: Either
 
 import iTasks.Framework.Store
 import iTasks.API.Core.SystemTypes

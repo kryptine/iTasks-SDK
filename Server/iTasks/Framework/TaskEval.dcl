@@ -8,8 +8,10 @@ from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from iTasks.Framework.Shared		import :: Shared
 
-import Data.Maybe, Text.JSON, Data.Error
 import iTasks.Framework.TaskState, iTasks.Framework.iTaskClass
+
+from Text.JSON import :: JSONNode
+from Data.Error import :: MaybeErrorString, :: MaybeError
 
 /**
 * Create a new session task instance and evaluate its immediately

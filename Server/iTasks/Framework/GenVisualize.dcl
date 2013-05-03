@@ -1,7 +1,11 @@
 definition module iTasks.Framework.GenVisualize
 
-import Text.HTML, Text.JSON
-import StdGeneric, Data.Maybe, Data.Void, Data.Either
+import StdGeneric
+from Text.JSON import :: JSONNode
+from Data.Either import :: Either
+from Data.Void import :: Void
+from Data.Maybe import :: Maybe
+from Text.HTML import :: HtmlTag
 from Data.Map import :: Map
 
 import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition

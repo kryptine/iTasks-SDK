@@ -9,7 +9,9 @@ definition module iTasks.Framework.Store
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
 * functions) should they be used.
 */
-import Text.JSON
+//import Text.JSON
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.Maybe import :: Maybe
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from Data.SharedDataSource import :: RWShared

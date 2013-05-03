@@ -1,7 +1,8 @@
 definition module iTasks.Framework.Util
 
-import StdGeneric, GenEq, StdClass
-import Data.Error
+from StdClass import class Eq
+from Data.Error import :: MaybeErrorString, :: MaybeError
+
 import iTasks.API.Core.SystemTypes
 
 mb2list				:: !(Maybe [a]) -> [a]
@@ -31,5 +32,5 @@ toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)
 
 //Simple key value functions when fullblown maps are overkill
 kvGet		:: k	![(k,v)]	-> Maybe v	| Eq k
-kvSet		:: k v	![(k,v)]	-> [(k,v)]	| Eq k 
-kvSetOnce	:: k v	![(k,v)]	-> [(k,v)]	| Eq k 
+kvSet		:: k v	![(k,v)]	-> [(k,v)]	| Eq k
+kvSetOnce	:: k v	![(k,v)]	-> [(k,v)]	| Eq k

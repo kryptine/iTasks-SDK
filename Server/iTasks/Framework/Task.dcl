@@ -5,7 +5,6 @@ definition module iTasks.Framework.Task
 
 import iTasks.API.Core.SystemTypes
 import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.GenRecord
-import Internet.HTTP
 
 from iTasks.Framework.TaskState			import :: TaskTree
 from iTasks.API.Core.LayoutCombinators	import :: Layout

@@ -5,8 +5,8 @@ definition module iTasks.Framework.Engine
 * environment in which worfklow specifications can be executed.
 */
 
-import StdList
-import Data.Maybe, Text.JSON, System.FilePath
+from StdList import ++, iterate, take
+
 import iTasks.Framework.Task
 from iTasks.Framework.IWorld	import :: IWorld
 

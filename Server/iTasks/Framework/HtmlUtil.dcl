@@ -3,7 +3,9 @@ definition module iTasks.Framework.HtmlUtil
 * This module provides rudimentary utilities for generating simple html pages.
 *
 */
-import Text.HTML, Text.JSON, Internet.HTTP
+from Internet.HTTP import :: HTTPRequest, :: HTTPResponse
+from Text.HTML import :: HtmlTag
+
 /*
 * Generate a 404 page
 */

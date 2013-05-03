@@ -4,7 +4,8 @@ definition module iTasks.Framework.UIDefinition
 * This representation seeks a middle ground between being fine grained enough
 * to describe rich user interfaces and being leaving rendering details to the client framework.
 */
-import Text.JSON, GenEq
+from Text.JSON import :: JSONNode
+from Data.Maybe import :: Maybe
 from iTasks.Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map(..)
