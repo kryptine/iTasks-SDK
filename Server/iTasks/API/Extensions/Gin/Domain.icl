@@ -2,7 +2,8 @@ implementation module iTasks.API.Extensions.Gin.Domain
 
 from StdEnv import id, undef
 
-import Text, iTasks.Framework.HtmlUtil
+import Text, Text.JSON, Data.Maybe
+import iTasks.Framework.HtmlUtil
 import iTasks.Gin.Syntax
 import iTasks.Gin.FlowLibrary
 import iTasks.Gin.Compiler
