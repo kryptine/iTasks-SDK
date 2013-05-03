@@ -220,7 +220,7 @@ where
 				# (removed,entries)	= splitWith (\({TaskListEntry|removed},_) -> removed) entries
 				= case foldl destroyParTask (Nothing,iworld) (map fst removed) of
 					(Just (ExceptionResult e str),iworld)	= (ExceptionResult e str,iworld)	//An exception occurred	
-					(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in step"),iworld)
+					(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in parallel"),iworld)
 					(Nothing,iworld=:{localLists})
 						//Destruction is ok, build parallel result
 						# rep				= parallelRep desc taskId repOpts entries
@@ -231,13 +231,16 @@ where
 						# ts				= case event of
 							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
-						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,refreshSensitive=refreshSensitive} (finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Data.Map'.put taskId (map fst entries) localLists})
+						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,refreshSensitive=refreshSensitive}
+							(finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Data.Map'.put taskId (map fst entries) localLists})
 	//Cleanup
 	eval event repOpts (TCDestroy (TCParallel taskId ts)) iworld=:{localLists}
 		# entries = fromMaybe [] ('Data.Map'.get taskId localLists)
 		= case foldl destroyParTask (Nothing,iworld) entries of
-			(Nothing,iworld)						= (DestroyedResult,{iworld & localLists = 'Data.Map'.del taskId localLists})			//All destroyed
-			(Just (ExceptionResult e str),iworld)	= (ExceptionResult e str,{iworld & localLists = 'Data.Map'.del taskId localLists})	//An exception occurred	
+			(Nothing,iworld=:{localLists}) //All destroyed
+				= (DestroyedResult,{iworld & localLists = 'Data.Map'.del taskId localLists})
+			(Just (ExceptionResult e str),iworld=:{localLists}) //An exception occurred
+				= (ExceptionResult e str,{iworld & localLists = 'Data.Map'.del taskId localLists})
 			(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in step"),iworld)
 	//Fallback
 	eval _ _ _ iworld
@@ -302,6 +305,7 @@ where
 		= case 'Data.Map'.get entryId localTasks of
 			Just (Task evala :: Task a^)
 				# (result,iworld) = evala RefreshEvent {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} (TCDestroy tree) iworld
+				# iworld = {iworld & localTasks = 'Data.Map'.del entryId localTasks}
 				= case result of
 					DestroyedResult		= (Nothing,iworld)
 					_					= (Just result,iworld)
@@ -339,7 +343,7 @@ where
 	//Helper function to help type inferencing a little
 	fixOverloading :: (TaskResult a) [(!ParallelTaskType,!ParallelTask a)] !b -> b
 	fixOverloading _ _ x = x
-							
+						
 //SHARED HELPER FUNCTIONS
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,currentUser,currentDateTime,localTasks}
