@@ -42,6 +42,8 @@ autoStepLayout (UIControlSequence {UIControlSequence|attributes,controls,directi
 		= UIActionSet {UIActionSet|attributes = attributes,actions = actions}
 	//Promote the control sequence to a control group because they are grouped by the step combinator
 		= UIControlGroup {UIControlGroup|attributes = attributes, controls = controls, direction = direction, actions = actions}
+autoStepLayout (UIActionSet set=:{UIActionSet|attributes,actions}) extraActions
+	= UIActionSet {UIActionSet|set & actions = actions ++ extraActions}
 autoStepLayout (UIAbstractContainer cont=:{UIAbstractContainer|actions}) stepActions
 	//If an abstract container is placed under a step container, we add the actions to the remaining actions
 	= UIAbstractContainer {UIAbstractContainer|cont & actions = actions ++ stepActions}
