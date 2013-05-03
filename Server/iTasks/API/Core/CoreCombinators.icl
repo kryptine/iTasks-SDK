@@ -304,7 +304,7 @@ where
 	destroyParTask (_,iworld=:{localTasks}) {TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult _ _ _ tree}
 		= case 'Data.Map'.get entryId localTasks of
 			Just (Task evala :: Task a^)
-				# (result,iworld) = evala RefreshEvent {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} (TCDestroy tree) iworld
+				# (result,iworld=:{localTasks}) = evala RefreshEvent {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} (TCDestroy tree) iworld
 				# iworld = {iworld & localTasks = 'Data.Map'.del entryId localTasks}
 				= case result of
 					DestroyedResult		= (Nothing,iworld)
