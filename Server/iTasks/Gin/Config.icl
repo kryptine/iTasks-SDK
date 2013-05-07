@@ -80,8 +80,10 @@ where
 
 ginCheckConfig :: !GinConfig !*World -> (Maybe String, *World)
 ginCheckConfig config world
-# (ok, world) = 'System.File'.fileExists (config.cleanPath </> "CleanIDE.exe") world
-| not ok = (Just "Clean path incorrect", world) 
+# (ok1, world) = 'System.File'.fileExists (config.cleanPath </> "CleanIDE.exe") world
+# (ok2, world) = 'System.File'.fileExists (config.cleanPath </> "batch_build") world
+# (ok3, world) = 'System.File'.fileExists (config.cleanPath </> "cpm") world
+| not (ok1 || ok2 || ok3)  = (Just "Clean path incorrect", world) 
 # (ok, world) = 'System.File'.fileExists (config.iTasksPath </> "Server" </> "iTasks.dcl") world
 | not ok = (Just "iTasks path incorrect", world)
 # (ok, world) = 'System.File'.fileExists config.userPath world
