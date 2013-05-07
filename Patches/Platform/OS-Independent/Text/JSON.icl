@@ -3,20 +3,6 @@ implementation module Text.JSON
 import StdGeneric, Data.Maybe, StdList, StdOrdList, StdString, _SystemArray, StdTuple, StdBool, StdFunc, StdOverloadedList
 import Text, Text.PPrint
 
-//Token type which is the intermediary representation during JSON parsing
-:: Token	= TokenInt !Int
-			| TokenReal	!Real
-			| TokenString !String
-			| TokenBool	!Bool
-			| TokenNull
-			| TokenBracketOpen
-			| TokenBracketClose
-			| TokenBraceOpen
-			| TokenBraceClose
-			| TokenColon
-			| TokenComma
-			| TokenFail	
-
 //Basic JSON serialization
 instance toString JSONNode
 where
@@ -143,131 +129,197 @@ copyChars offset i src dst
 //Basic JSON deserialization (just structure)
 instance fromString JSONNode
 where
-	fromString s = fst (parse (lex 0 s))
+	fromString s = fst (parse 0 s)
 
 IsDigit c :== c >= '0' && c <= '9'
 
-lex :: !Int !String -> [Token]
-lex offset input
+parse :: !Int !String -> (!JSONNode,!Int)
+parse offset input
 	| offset<size input
-		# c = input.[offset]
+		# c=input.[offset]
 		| c=='"'
 			# offset=offset+1
-			= lexString offset offset input
-		| c==','
-			= [TokenComma : lex (offset+1) input]
-		| c==':'
-			= [TokenColon : lex (offset+1) input]
-		| c=='['
-			= [TokenBracketOpen : lex (offset+1) input]
-		| c==']'
-			= [TokenBracketClose : lex (offset+1) input]
-		| c=='{'
-			= [TokenBraceOpen : lex (offset+1) input]
-		| c=='}'
-			= [TokenBraceClose : lex (offset+1) input]
+			= parse_string offset offset input
 		| c=='n' && offset+3<size input && input.[offset+1]=='u' && input.[offset+2]=='l' && input.[offset+3]=='l'
-			= [TokenNull : lex (offset+4) input]
+			= (JSONNull,offset+4)
 		| c=='t' && offset+3<size input && input.[offset+1]=='r' && input.[offset+2]=='u' && input.[offset+3]=='e'
-			= [TokenBool True : lex (offset+4) input]
+			= (JSONBool True, offset+4)
 		| c=='f' && offset+4<size input && input.[offset+1]=='a' && input.[offset+2]=='l' && input.[offset+3]=='s' && input.[offset+4]=='e'
-			= [TokenBool False : lex (offset+5) input]
-		| c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\f' || c=='\v' // inlined isSpace c
-			= lex (offset+1) input
+			= (JSONBool False, offset+5)
 		| IsDigit c
-			= lexNumber (offset+1) offset input
+			= parse_number (offset+1) offset input
 		| c=='-' && offset+1<size input && IsDigit input.[offset+1]
-			= lexNumber (offset+2) offset input
-			= [TokenFail]
-		= []
+			= parse_number (offset+2) offset input
+		| c=='['
+			= parse_array (offset+1) input
+		| c=='{'
+		 	= parse_object (offset+1) input
+		| c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\f' || c=='\v' // inlined isSpace c
+			= parse (skip_spaces (offset+1) input) input
+			= (JSONError, offset)
+		= (JSONError, offset)
 where
-	lexString :: !Int !Int !{#Char} -> [Token]
-	lexString offset stringCharsOffset input
+	parse_string :: !Int !Int !{#Char} -> (!JSONNode,!Int)
+	parse_string offset stringCharsOffset input
 		| offset<size input
 			# c=input.[offset]
 			| c <> '"'
 				| c <> '\\'
-					= lexString (offset + 1) stringCharsOffset input
-					= lexString (offset + 2) stringCharsOffset input // skip the escaped character
+					= parse_string (offset + 1) stringCharsOffset input
+					= parse_string_with_escape (offset + 2) stringCharsOffset input // skip the escaped character
 				#! string = input % (stringCharsOffset,offset-1)
-				= [TokenString string : lex (offset+1) input]
-			= [TokenFail] // missing '"'
+				= (JSONString string, offset+1)
+			= (JSONError,offset) // missing '"'
+	where
+		parse_string_with_escape :: !Int !Int !{#Char} -> (!JSONNode,!Int)
+		parse_string_with_escape offset stringCharsOffset input
+			| offset<size input
+				# c=input.[offset]
+				| c <> '"'
+					| c <> '\\'
+						= parse_string_with_escape (offset + 1) stringCharsOffset input
+						= parse_string_with_escape (offset + 2) stringCharsOffset input // skip the escaped character
+					#! string = input % (stringCharsOffset,offset-1)
+					= (JSONString (jsonUnescape string), offset+1)
+				= (JSONError,offset) // missing '"'
 
-	lexNumber :: !Int !Int !{#Char} -> [Token]
-	lexNumber offset numberOffset input
+	skip_spaces :: !Int !String -> Int
+	skip_spaces offset input
+		| offset<size input
+			# c = input.[offset]
+			| c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\f' || c=='\v' // inlined isSpace c
+				= skip_spaces (offset+1) input
+				= offset
+			= offset
+
+	parse_number :: !Int !Int !{#Char} -> (!JSONNode,!Int)
+	parse_number offset numberOffset input
 		| offset>=size input
 			#! i = toInt (input % (numberOffset,offset-1))
-			= [TokenInt i]
+			= (JSONInt i,offset)
 		# c = input.[offset]
 		| IsDigit c
-			= lexNumber (offset+1) numberOffset input
+			= parse_number (offset+1) numberOffset input
 		| c<>'.'
 			#! i = toInt (input % (numberOffset,offset-1))
-			= [TokenInt i : lex offset input]
-			= lexReal (offset+1) numberOffset input
+			= (JSONInt i, offset)
+			= parse_real (offset+1) numberOffset input
+	where
+		parse_real :: !Int !Int !{#Char} -> (!JSONNode,!Int)
+		parse_real offset numberOffset input
+			| offset>=size input
+				#! r = toReal (input % (numberOffset,offset-1))
+				= (JSONReal r,offset)
+			# c = input.[offset]
+			| IsDigit c
+				= parse_real (offset+1) numberOffset input
+			| c<>'e' && c<>'E'
+				#! r = toReal (input % (numberOffset,offset-1))
+				= (JSONReal r, offset)
+			| offset+1<size input && IsDigit input.[offset+1]
+				= parse_real_with_exponent (offset+2) numberOffset input
+			| offset+2<size input && input.[offset+1]=='-' && IsDigit input.[offset+2]
+				= parse_real_with_exponent (offset+3) numberOffset input
+				#! r = toReal (input % (numberOffset,offset-1))
+				= (JSONReal r, offset)
+	
+		parse_real_with_exponent :: !Int !Int !{#Char} -> (!JSONNode,!Int)
+		parse_real_with_exponent offset numberOffset input
+			| offset>=size input
+				#! r = toReal (input % (numberOffset,offset-1))
+				= (JSONReal r,offset)
+			| IsDigit input.[offset]
+				= parse_real_with_exponent (offset+1) numberOffset input
+				#! r = toReal (input % (numberOffset,offset-1))
+				= (JSONReal r, offset)
 
-	lexReal :: !Int !Int !{#Char} -> [Token]
-	lexReal offset numberOffset input
-		| offset>=size input
-			#! r = toReal (input % (numberOffset,offset-1))
-			= [TokenReal r]
-		# c = input.[offset]
-		| IsDigit c
-			= lexReal (offset+1) numberOffset input
-		| c<>'e' && c<>'E'
-			#! r = toReal (input % (numberOffset,offset-1))
-			= [TokenReal r : lex offset input]
-		| offset+1<size input && IsDigit input.[offset+1]
-			= lexRealWithExponent (offset+2) numberOffset input
-		| offset+2<size input && input.[offset+1]=='-' && IsDigit input.[offset+2]
-			= lexRealWithExponent (offset+3) numberOffset input
-			#! r = toReal (input % (numberOffset,offset-1))
-			= [TokenReal r : lex offset input]
+	parse_array :: !Int !{#Char} -> (!JSONNode,!Int)
+	parse_array offset input
+		| offset<size input && input.[offset]==']'
+			= (JSONArray [], offset+1)
+		# offset = skip_spaces offset input
+		| offset<size input && input.[offset]==']'
+			= (JSONArray [], offset+1)
+			= parse_array_items offset [] offset input
+	where
+		parse_array_items :: !Int !*[JSONNode] !Int !{#Char} -> (!JSONNode,!Int)
+		parse_array_items offset items offset_after_bracket_open input
+			# (item,offset) = parse offset input
+			| offset<size input && input.[offset]==','
+				= parse_array_items (offset+1) [item:items] offset_after_bracket_open input
+			| offset<size input && input.[offset]==']'
+				= (JSONArray (reverse_append items [item]), offset+1)
+			# offset = skip_spaces offset input
+			| offset<size input && input.[offset]==','
+				= parse_array_items (offset+1) [item:items] offset_after_bracket_open input
+			| offset<size input && input.[offset]==']'
+				= (JSONArray (reverse_append items [item]), offset+1)
+				= (JSONError, offset_after_bracket_open)
 
-	lexRealWithExponent :: !Int !Int !{#Char} -> [Token]
-	lexRealWithExponent offset numberOffset input
-		| offset>=size input
-			#! r = toReal (input % (numberOffset,offset-1))
-			= [TokenReal r]
-		| IsDigit input.[offset]
-			= lexRealWithExponent (offset+1) numberOffset input
-			#! r = toReal (input % (numberOffset,offset-1))
-			= [TokenReal r : lex offset input]
+	parse_object :: !Int !{#Char} -> (!JSONNode,!Int)
+	parse_object offset input
+		| offset<size input && input.[offset]=='}'
+			= (JSONObject [], offset+1)
+		# offset = skip_spaces offset input
+		| offset<size input && input.[offset]=='}'
+			= (JSONObject [], offset+1)
+			= parse_object_items offset [] offset input
+	where
+		parse_object_items :: !Int !*[({#Char},JSONNode)] !Int !{#Char} -> (!JSONNode,!Int)
+		parse_object_items offset items offset_after_bracket_open input
+			| offset<size input && input.[offset]=='"'
+				# offset=offset+1
+				# (label,offset) = lex_label offset offset input
+				| offset>=0
+					| offset<size input && input.[offset]==':'
+						= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
+					# offset = skip_spaces offset input
+					| offset<size input && input.[offset]==':'
+						= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
+						= (JSONError, offset_after_bracket_open)
+				= (JSONError, offset_after_bracket_open)
+		where
+			lex_label :: !Int !Int !{#Char} -> (!{#Char},!Int)
+			lex_label offset stringCharsOffset input
+				| offset<size input
+					# c=input.[offset]
+					| c <> '"'
+						| c <> '\\'
+							= lex_label (offset + 1) stringCharsOffset input
+							= lex_label_with_escape (offset + 2) stringCharsOffset input // skip the escaped character
+						#! string = input % (stringCharsOffset,offset-1)
+						= (string, offset+1)
+					= ("",-1) // missing '"'
 
-//Simple recursive descent parser
-parse :: ![Token] -> (!JSONNode,![Token])
-parse [TokenNull:ts] 							= (JSONNull, ts)
-parse [TokenBool x:ts] 							= (JSONBool x, ts)
-parse [TokenInt x:ts]							= (JSONInt x, ts)
-parse [TokenReal x:ts] 							= (JSONReal x, ts)
-parse [TokenString x:ts]						= (JSONString (jsonUnescape x), ts)
-parse [TokenBracketOpen,TokenBracketClose:ts]	= (JSONArray [], ts)
-parse [TokenBracketOpen:ts]
-	= case (parseArrayItems ts []) of
-		([TokenBracketClose:ts`],items)	= (JSONArray (reverse items), ts`)
-		_								= (JSONError, ts)
-where
-	parseArrayItems :: ![Token] ![JSONNode] -> (![Token],![JSONNode])
-	parseArrayItems tokens nodes
-		= case (parse tokens) of
-			(node,[TokenComma:ts])	= parseArrayItems ts [node:nodes]
-			(node,ts)				= (ts,[node:nodes])
-parse [TokenBraceOpen,TokenBraceClose:ts]		= (JSONObject [], ts)
-parse [TokenBraceOpen:ts]
-	= case (parseObjectItems ts []) of
-		([TokenBraceClose:ts`],items)	= (JSONObject (reverse items), ts`)
-		_								= (JSONError, ts)
-where
-	parseObjectItems :: ![Token] ![(!String,!JSONNode)] -> (![Token],![(!String,!JSONNode)])
-	parseObjectItems tokens nodes
-		= case (parse tokens) of
-			(JSONString label,[TokenColon:ts])
-				= case (parse ts) of
-					(node,[TokenComma:ts`])	= parseObjectItems ts` [(label,node):nodes]
-					(node,ts`)				= (ts`,[(label,node):nodes])
-			_
-				= (tokens,nodes)
-parse tokens = (JSONError,tokens)
+			lex_label_with_escape :: !Int !Int !{#Char} -> (!{#Char},!Int)
+			lex_label_with_escape offset stringCharsOffset input
+				| offset<size input
+					# c=input.[offset]
+					| c <> '"'
+						| c <> '\\'
+							= lex_label_with_escape (offset + 1) stringCharsOffset input
+							= lex_label_with_escape (offset + 2) stringCharsOffset input // skip the escaped character
+						#! string = input % (stringCharsOffset,offset-1)
+						= (jsonUnescape string, offset+1)
+					= ("",-1) // missing '"'
+
+		parse_object_items_after_label_and_colon :: !{#Char} !Int !*[({#Char},JSONNode)] !Int !{#Char} -> (!JSONNode,!Int)
+		parse_object_items_after_label_and_colon label offset items offset_after_brace_open input
+			# (item,offset) = parse offset input
+			| offset<size input && input.[offset]==','
+				= parse_object_items (offset+1) [(label,item):items] offset_after_brace_open input
+			| offset<size input && input.[offset]=='}'
+				= (JSONObject (reverse_append items [(label,item)]), offset+1)
+			# offset = skip_spaces offset input
+			| offset<size input && input.[offset]==','
+				= parse_object_items (offset+1) [(label,item):items] offset_after_brace_open input
+			| offset<size input && input.[offset]=='}'
+				= (JSONObject (reverse_append items [(label,item)]), offset+1)
+				= (JSONError, offset_after_brace_open)
+
+	reverse_append :: !*[.a] *[.a] -> *[.a]
+	reverse_append [hd:tl] list	= reverse_append tl [hd:list]
+	reverse_append [] list		= list
 
 //Escape a string
 jsonEscape :: !String -> String
