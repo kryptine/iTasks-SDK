@@ -4,7 +4,7 @@ definition module PmPath
 import StdFile, StdOverloaded//, StdString
 import StdPathname
 from UtilStrictLists	import :: List
-from PmTypes			import :: Modulename, :: Processor
+from PmTypes			import :: Modulename, :: Processor, ::ModuleDirAndName
 
 IsDefPathname :: !Pathname -> Bool;
 IsImpPathname :: !Pathname -> Bool;
@@ -18,11 +18,15 @@ MakeObjPathname				:: !Processor !String	-> Pathname;
 MakeProjectPathname			:: !String				-> Pathname;
 MakeExecPathname			:: !String				-> Pathname;
 MakeSystemPathname			:: !Pathname			-> Pathname;
-MakeABCSystemPathname		:: !Pathname			-> Pathname
-MakeObjSystemPathname		:: !Processor !Pathname	-> Pathname
 MakeAssemblySystemPathname	:: !Pathname			-> Pathname
 
+ModuleDirAndNameToDefPathname :: !ModuleDirAndName -> Pathname
+ModuleDirAndNameToImpPathname :: !ModuleDirAndName -> Pathname
+ModuleDirAndNameToABCSystemPathname :: !ModuleDirAndName -> Pathname
+ModuleDirAndNameToObjSystemPathname :: !Processor !ModuleDirAndName -> Pathname
+
 GetModuleName :: !Pathname -> Modulename;
+determine_dir_and_filename :: !{#Char} !(List {#Char}) -> (!ModuleDirAndName,!{#Char})
 
 /* The name of the system directory */
 SystemDir			:== "Clean System Files";
@@ -39,3 +43,5 @@ symAppPath	:: !Pathname !Pathname			-> Pathname
 fulAppPath	:: !Pathname !Pathname			-> Pathname
 symAppPaths	:: !Pathname !(List Pathname)	-> List Pathname
 fulAppPaths	:: !Pathname !(List Pathname)	-> List Pathname
+
+subdir_and_file_name_of_hmodule_name :: !Int !{#Char} !{#Char} -> (!*{#Char},!{#Char})

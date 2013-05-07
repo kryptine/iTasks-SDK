@@ -320,11 +320,11 @@ DefCodeGenOptions =
 
 DefApplicationOptions :: ApplicationOptions;
 DefApplicationOptions =
-	{	hs	= 409600
-	,	ss	= 102400
-	,	em	= 81920
-	,	heap_size_multiple = 4096/*16*256*/
-	,	initial_heap_size = 204800
+	{	hs	= 2<<20
+	,	ss	= 500<<10
+	,	em	= 8<<10
+	,	heap_size_multiple = 16<<8
+	,	initial_heap_size = 200<<10
 	,	set	= False
 	,	sgc	= False
 	,	pss	= False

@@ -52,9 +52,10 @@ PR_ProjectSet	:: !Project -> Bool
 PR_NewProject	:: !String !EditWdOptions !CompilerOptions !CodeGenOptions !ApplicationOptions
 					!(List String) !LinkOptions -> Project
 
-PR_SetBuilt					:: !(List Modulename) !.Project -> .Project
+PR_SetBuilt					:: ![!ModuleDirAndName] !u:Project -> u:Project
 PR_ClearDependencies		:: !Project -> Project
 PR_SetRoot					:: !String !EditWdOptions !CompilerOptions !Project -> Project
+PR_SetRelativeRootDir	    :: !String !Project -> Project
 PR_SetCompiled				:: !Modulename !Project -> Project
 PR_SetCodeGenerated			:: !Modulename !Project -> Project
 PR_SetSysCodeGenerated		:: !Project -> Project
@@ -71,13 +72,14 @@ PR_GetPaths					:: !Project -> List String
 PR_GetRootModuleName		:: !Project -> String
 PR_GetRootPathName			:: !Project -> (!String,!Project)
 PR_GetRootModuleDir			:: !Project -> String
+PR_GetRootModuleDirAndName	:: !Project -> (!ModuleDirAndName,!Project)
 PR_GetRootDir :: !Project -> String
 PR_GetRelativeRootDir :: !Project -> String
 PR_GetModulenames			:: !Bool !Def_and_Imp !Project -> (List String,Project)
+PR_GetDirAndModulenames		:: !Project -> ([!ModuleDirAndName],Project)
 PR_GetOpenModulenames		:: !Project -> List String
 PR_GetModuleStuff			:: !Project -> List (Modulename,String,Modulename,String)
 
-PR_Built					:: !Project -> Bool
 PR_SrcUpToDate				:: !Modulename !Project -> Bool
 PR_ABCUpToDate				:: !Modulename !Project -> Bool
 PR_SysUptoDate				:: !Project -> Bool
@@ -92,8 +94,7 @@ PR_UpdateModules			:: ![Modulename] !(ModInfo -> ModInfo) !Project -> Project
 PR_SetLinkOptions			:: !Project !LinkOptions -> Project
 PR_GetLinkOptions			:: !Project -> LinkOptions
 
-PR_AddABCInfo				:: !String !(List LinkObjFileName) !(List LinkLibraryName)
-								!CompilerOptions !EditWdOptions !EditWdOptions !Project -> Project
+PR_AddABCInfo				:: !ModuleDirAndName !(List LinkObjFileName) !(List LinkLibraryName) !CompilerOptions !Project -> Project
 
 PR_GetABCLinkInfo			:: !Project -> ABCLinkInfo
 

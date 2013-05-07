@@ -25,8 +25,7 @@ Unmodified				:== False;
 //	The Project: A list of constituent modules and their mutual dependencies
 
 ::	Project	=
-	{ built						:: !Bool					// Was dependency list generated?
-	, saved						:: !Bool
+	{ saved						:: !Bool
 	, exec						:: !Bool					// exe linked ok?
 	, inflist					:: !InfList					// list with constituent modules
 	, codegenopt				:: !CodeGenOptions			// code generator options
@@ -61,8 +60,7 @@ Unmodified				:== False;
 
 PR_InitProject :: Project;
 PR_InitProject =
-	{ built				= True
-	, saved				= True
+	{ saved				= True
 	, exec				= True
 	, execpath			= EmptyPathname
 	, inflist			= Nil
@@ -102,8 +100,7 @@ PR_NewProject main_module_file_name eo compilerOptions cgo ao prjpaths linkOptio
 	# modname	= GetModuleName main_module_file_name;
 	  dirname	= RemoveFilename main_module_file_name;
 	= { PR_InitProject
-	& built			= False
-	, saved			= False
+	& saved			= False
 	, exec			= False
 	, execpath		= PlatformDependant	//MakeExecPathname main_module_file_name
 						("{Project}"+++DirSeparatorString+++modname+++".exe")		// Win
@@ -128,33 +125,33 @@ PR_NewProject main_module_file_name eo compilerOptions cgo ao prjpaths linkOptio
 	, root_directory = dirname
 	}
 
-PR_SetBuilt	:: !(List Modulename) !.Project -> .Project;
+PR_SetBuilt	:: ![!ModuleDirAndName] !u:Project -> u:Project;
 PR_SetBuilt used project=:{inflist=Nil}
-	= {Project | project & built = True};
+	= project;
 PR_SetBuilt used prj=:{inflist=infl=:(root:!rest),saved}
 	#! len		= LLength rest
-	# used		= Map GetModuleName used
 	# rest		= RemoveUnusedModules used rest
 	# len`		= LLength rest
 	# unchanged	= len == len`
-	= {prj & built=True,saved=saved && unchanged,inflist= root:!rest}
+	= {prj & saved=saved && unchanged,inflist= root:!rest}
 where	
 	{mn=rootmn,info} = root
 	RemoveUnusedModules used list = FilterR member list
 	where
-		member {mn}	= StringOccurs mn used && rootmn <> mn
+		member {mn}	= module_occurs mn used && rootmn <> mn
 
-PR_AddABCInfo :: !String !(List LinkObjFileName) !(List LinkLibraryName) !CompilerOptions !EditWdOptions !EditWdOptions !Project -> Project
-PR_AddABCInfo mod_path dep_objects dep_libraries compilerOptions defeo impeo project=:{inflist=Nil}
+module_occurs :: !String ![!ModuleDirAndName] -> Bool
+module_occurs s [|x:xs] = x.mdn_name == s || module_occurs s xs
+module_occurs s [!] =  False
+
+PR_AddABCInfo :: !ModuleDirAndName !(List LinkObjFileName) !(List LinkLibraryName) !CompilerOptions !Project -> Project
+PR_AddABCInfo mdn dep_objects dep_libraries compilerOptions project=:{inflist=Nil}
 	= project
-PR_AddABCInfo mod_path dep_objects dep_libraries compilerOptions defeo impeo project=:{inflist}
+PR_AddABCInfo {mdn_dir=mod_dir,mdn_name=mod_name} dep_objects dep_libraries compilerOptions project=:{inflist}
 	# inflist		= TryInsertInList mod_name mod_dir inflist
 	# (inflist,_)	= UpdateList mod_name update inflist;
-	= {project & saved=False,inflist=inflist, built=False}
+	= {project & saved=False,inflist=inflist}
 where
-	mod_name			= GetModuleName mod_path
-	mod_dir				= RemoveFilename mod_path
-
 	update infListItem=:{InfListItem | info}
 		= (	{ InfListItem | infListItem
 			& info.abcLinkInfo.linkObjFileNames		= dep_objects
@@ -193,9 +190,9 @@ where
 
 PR_ClearDependencies :: !Project -> Project
 PR_ClearDependencies project=:{inflist=Nil}
-	= {project & saved = False, inflist = Nil, built = False}
+	= {project & saved = False, inflist = Nil}
 PR_ClearDependencies project=:{inflist=il=:(root :! rest)}
-	= {project & saved = False, inflist = root` :! Nil, built = False}
+	= {project & saved = False, inflist = root` :! Nil}
 where
 	root` = {InfListItem | root & info.abcLinkInfo = {linkObjFileNames = Nil, linkLibraryNames = Nil}}
 
@@ -204,7 +201,6 @@ PR_SetRoot root eo co project=:{inflist=Nil}
 	= project;
 PR_SetRoot newroot eo compilerOptions project=:{prjpaths}
 	=	{project &	saved	= False,
-					built	= False,
 					exec	= False,
 					inflist	= {	mn		= modname,
 								info	= {	dir		= dirname,
@@ -329,13 +325,11 @@ PR_GetLinkOptions project
 
 PR_SetPaths	:: !Bool !(List String) !(List String) !Project -> Project;
 PR_SetPaths def defs new project=:{Project | inflist=Nil} = project;
-PR_SetPaths def defs new project=:{Project | built,inflist=infl=:((root=:{InfListItem | info={dir}}):!rest),prjpaths,saved}
+PR_SetPaths def defs new project=:{Project | inflist=infl=:((root=:{InfListItem | info={dir}}):!rest),prjpaths,saved}
 	| def	= {Project | project &
-							built				= built && olddirs,
 							saved				= saved && olddirs,
 							inflist				= inflist1 };
 			= {Project | project &
-							built 				= built && olddirs,
 							saved				= saved && unchanged && olddirs,
 							inflist				= inflist1,
 							prjpaths			= prjpaths1 };
@@ -390,6 +384,14 @@ PR_GetRootModuleDir {inflist={mn,info={dir}}:!rest}
 		= EmptyPathname;
 		= dir;
 
+PR_GetRootModuleDirAndName :: !Project -> (!ModuleDirAndName,!Project)
+PR_GetRootModuleDirAndName p=:{inflist=Nil}
+	= ({mdn_dir=EmptyPathname,mdn_name=""},p)
+PR_GetRootModuleDirAndName p=:{inflist={mn,info={dir}}:!rest}
+	| size dir==0
+		= ({mdn_dir=EmptyPathname,mdn_name=""},p)
+		= ({mdn_dir=dir,mdn_name=mn},p)
+
 PR_GetRootDir :: !Project -> String
 PR_GetRootDir {root_directory}
 	= root_directory;
@@ -397,6 +399,9 @@ PR_GetRootDir {root_directory}
 PR_GetRelativeRootDir :: !Project -> String
 PR_GetRelativeRootDir {relative_root_directory}	
 	= relative_root_directory
+
+PR_SetRelativeRootDir	:: !String !Project -> Project
+PR_SetRelativeRootDir pth prj = {prj & relative_root_directory = pth}
 
 PR_GetModulenames	:: !Bool !Def_and_Imp !Project -> (List String,Project)
 PR_GetModulenames full def project=:{inflist}
@@ -409,6 +414,16 @@ where
 		| full && def	= MakeFullPathname dir (MakeDefPathname mn)
 		| full			= MakeFullPathname dir (MakeImpPathname mn)
 						= mn
+
+PR_GetDirAndModulenames	:: !Project -> ([!ModuleDirAndName],Project)
+PR_GetDirAndModulenames project=:{inflist}
+	# modnames = get_dir_and_module_names_r inflist [|]
+	= (modnames,project)
+where
+	get_dir_and_module_names_r ({mn,info={dir}}:!inflist) r
+		= get_dir_and_module_names_r inflist [|{mdn_dir=dir,mdn_name=mn}:r]
+	get_dir_and_module_names_r Nil r
+		= r
 
 PR_GetOpenModulenames	:: !Project -> List String
 PR_GetOpenModulenames project=:{inflist}
@@ -423,8 +438,8 @@ where
 		| impopen				= impname :! Nil
 								= Nil
 	where
-		defname = MakeFullPathname dir (MakeDefPathname mn)
-		impname = MakeFullPathname dir (MakeImpPathname mn)
+		defname = ModuleDirAndNameToDefPathname {mdn_dir=dir,mdn_name=mn}
+		impname = ModuleDirAndNameToImpPathname {mdn_dir=dir,mdn_name=mn}
 
 PR_GetModuleStuff :: !Project -> List (Modulename,String,Modulename,String)
 PR_GetModuleStuff project=:{inflist}
@@ -435,9 +450,6 @@ where
 	GetModulenames :: !InfListItem -> ((!Modulename,!String,!Modulename,!String),!Bool)
 	GetModulenames {mn,info={dir}}
 						= ((MakeDefPathname mn,dir,MakeImpPathname mn,dir),True)
-
-PR_Built :: !Project -> Bool;
-PR_Built project=:{Project | built} =  built;
 		
 PR_SrcUpToDate :: !Modulename !Project -> Bool;
 PR_SrcUpToDate modname project=:{inflist}
@@ -464,12 +476,11 @@ PR_ExecUpToDate project=:{exec} = exec;
 PR_Saved :: !Project -> Bool;
 PR_Saved {Project | saved} = saved;
 
-PR_AddRootModule ::	!Bool !CodeGenOptions !ApplicationOptions !(List String) !LinkOptions
+PR_AddRootModule ::	!CodeGenOptions !ApplicationOptions !(List String) !LinkOptions
 					!Modulename !ModInfo -> Project;
-PR_AddRootModule built cg ao prjs linkOptions mn info=:{dir}
+PR_AddRootModule cg ao prjs linkOptions mn info=:{dir}
   = { PR_InitProject
-  	& built			= built && dir <> ""
-	, saved			= False
+  	& saved			= False
 	, exec			= True
 	, execpath		= ""
 	, code_gen_options_unchanged
@@ -486,15 +497,15 @@ where
 	root	= {	mn		= mn,info	= info,src		= True,abc		= True };
 
 PR_AddModule :: !Modulename !ModInfo !Project -> Project;
-PR_AddModule mn info=:{dir} project=:{built,inflist=root:!rest}
-	= {project & built = built && dir<>"", inflist = root:!new:!rest};
+PR_AddModule mn info=:{dir} project=:{inflist=root:!rest}
+	= {project & inflist = root:!new:!rest};
 where 
 	new	= {	mn		= mn,
 			info	= info,
 			src		= True,
 			abc		= True };
-PR_AddModule mn info=:{dir} project=:{built,inflist=Nil}
-	= {project & built = built && dir<>"", inflist = new:!Nil};
+PR_AddModule mn info=:{dir} project=:{inflist=Nil}
+	= {project & inflist = new:!Nil};
 where 
 	new	= {	mn		= mn,
 			info	= info,
@@ -563,7 +574,7 @@ FindInList key ((itm=:{mn,info}):!rest)	| mn <> key	= FindInList key rest
 
 SetProject :: !{#Char} !{#Char} !ProjectGlobalOptions -> Project
 SetProject applicationDir project_file_dir
-		{ pg_built, pg_codegen, pg_application
+		{ pg_codegen, pg_application
 		, pg_projectPaths, pg_link, pg_mainModuleInfo={name, info}, pg_otherModules
 		, pg_target, pg_staticLibInfo, pg_execpath, pg_dynamic
 		, pg_root_directory, pg_precompile, pg_postlink
@@ -572,7 +583,7 @@ SetProject applicationDir project_file_dir
 
 	# paths = ExpandPaths applicationDir project_dir pg_projectPaths
 	# linkOptions = ExpandLinkOptionsPaths applicationDir project_dir pg_link
-	# project = PR_AddRootModule pg_built pg_codegen pg_application paths linkOptions name (ExpandModuleInfoPaths applicationDir project_dir info)
+	# project = PR_AddRootModule pg_codegen pg_application paths linkOptions name (ExpandModuleInfoPaths applicationDir project_dir info)
 	# project		= addModules pg_otherModules project_dir project
 	# staticLibInfo = ExpandStaticLibPaths applicationDir project_dir pg_staticLibInfo
 	# project		= PR_SetStaticLibsInfo staticLibInfo project
@@ -597,13 +608,15 @@ GetProject applicationDir project
 	  post_link = case project.posl of
 					Just post_link -> Just (SubstitutePath applicationDir project_dir post_link)
 					Nothing -> Nothing 
+	  mainModuleName = PR_GetRootModuleName project
+	  target = PR_GetTarget project
+	  (otherModuleNames,project`) = PR_GetModulenames False IclMod project
 	  mainModuleInfo = getModule project_dir mainModuleName
 	  otherModules = Map (getModule project_dir) (Filter ((<>) mainModuleName) otherModuleNames)
 	  linkOptions = SubstituteLinkOptionsPaths applicationDir project_dir (PR_GetLinkOptions project)
 	  projectPaths = SubstitutePaths applicationDir project_dir (PR_GetPaths project)
 	  staticLibInfo = SubstituteStaticLibPaths applicationDir project_dir (PR_GetStaticLibsInfo project)
-	=	{ pg_built				= PR_Built project
-		, pg_codegen			= PR_GetCodeGenOptions project
+	=	{ pg_codegen			= PR_GetCodeGenOptions project
 		, pg_application		= PR_GetApplicationOptions project
 		, pg_projectPaths		= projectPaths
 		, pg_link				= linkOptions
@@ -622,16 +635,11 @@ where
 		# xp	= PR_GetExecPath project
 		= symPath applicationDir project_dir xp
 
-	mainModuleName		=	PR_GetRootModuleName project
-	(otherModuleNames,project`)	=	PR_GetModulenames False IclMod project
-
 	getModule project_dir name
 		# info = PR_GetModuleInfo name project
 		# info = if (isJust info) (fromJust info) defaultModInfo
 		# info = SubstituteModuleInfoPaths applicationDir project_dir info
 		= {name = name, info = info}
-
-	target				=	PR_GetTarget project
 
 	defaultModInfo :: ModInfo
 	defaultModInfo	=

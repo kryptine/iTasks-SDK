@@ -10,6 +10,8 @@ import	UtilDate
 
 ::	Modulename			:== String
 
+:: ModuleDirAndName = {mdn_dir :: !{#Char}, mdn_name :: !{#Char}}
+
 ::	Processor //= CurrentProcessor | MC68000 | MC68020 | MC68020_and_68881
 DefaultProcessor :: Processor
 PlatformProcessors :: [Processor]

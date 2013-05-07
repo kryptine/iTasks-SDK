@@ -11,8 +11,7 @@ from PmPath import convert_path_separators,convert_exec_path_separators_and_exte
 ProjectFileVersion :== "1.4"
 
 :: ProjectGlobalOptions =
-	{ pg_built				:: !Bool
-	, pg_codegen			:: CodeGenOptions
+	{ pg_codegen			:: CodeGenOptions
 	, pg_application		:: ApplicationOptions
 	, pg_link				:: LinkOptions
 	, pg_projectPaths		:: List Pathname
@@ -89,7 +88,6 @@ wrap s = Just s
 ProjectGlobalOptionsTable :: OptionsTable ProjectGlobalOptions
 ProjectGlobalOptionsTable =
 	{	project_root_option
-	,	SimpleOption	"Built"									(\a->a.pg_built)			(\v a->{a & pg_built=v})
 	,	target_option
 	,	SimpleWithStringConversionOption convert_exec_path_separators_and_extension "Exec" (\a->a.pg_execpath) (\v a->{a & pg_execpath=v})
 	,	code_gen_option

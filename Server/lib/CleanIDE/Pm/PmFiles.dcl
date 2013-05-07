@@ -19,8 +19,7 @@ ApplicationOptionsTable	:: OptionsTable ApplicationOptions
 ProjectFileVersion :== "1.4"
 
 :: ProjectGlobalOptions =
-	{ pg_built				:: !Bool
-	, pg_codegen			:: CodeGenOptions
+	{ pg_codegen			:: CodeGenOptions
 	, pg_application		:: ApplicationOptions
 	, pg_link				:: LinkOptions
 	, pg_projectPaths		:: List Pathname
