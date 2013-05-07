@@ -54,7 +54,7 @@ MainModule
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False
 		StrictnessAnalysis:	True
-		ListTypes:	StrictExportTypes
+		ListTypes:	InferredTypes
 		ListAttributes:	True
 		Warnings:	True
 		Verbose:	True
