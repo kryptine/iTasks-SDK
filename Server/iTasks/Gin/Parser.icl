@@ -57,7 +57,8 @@ from syntax		import
 						::SymbolPtr,
 						::SymbolTableEntry,
 						::TypeKind
-import CleanDocParser
+
+from CleanDocParser import parseExpressionUnsafe
 
 //GiN:
 import iTasks.Gin.Monad

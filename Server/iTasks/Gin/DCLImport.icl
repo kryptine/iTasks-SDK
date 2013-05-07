@@ -5,11 +5,11 @@ import StdEnv
 from System.File import deleteFile
 from System.FilePath import dropDirectory, dropExtension, :: FilePath
 from Data.Error import Error, Ok
-from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
+from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode, :: MaybeError, :: MaybeErrorString
 
 import Data.Maybe
 
-import CleanDocParser
+from CleanDocParser import parseModule, parseFunctionComment, emptyFunctionComment, :: FunctionComment (..), :: ParamComment (..)
 
 import iTasks.Gin.Syntax
 

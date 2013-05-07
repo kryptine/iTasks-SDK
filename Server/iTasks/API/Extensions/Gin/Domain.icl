@@ -4,6 +4,7 @@ from StdEnv import id, undef
 
 import Text, Text.JSON, Data.Maybe
 import iTasks.Framework.HtmlUtil
+import iTasks.Framework.GenUpdate
 import iTasks.Gin.Syntax
 import iTasks.Gin.FlowLibrary
 import iTasks.Gin.Compiler
@@ -19,7 +20,7 @@ instance toString ORYXEditor
 where
 	toString {diagram} = toString (toJSON diagram)
 
-gUpdate{|ORYXEditor|} mode ust _ = undef // TODO basicUpdate mode parseUpdate emptyORYXEditor ust // TODO
+gUpdate{|ORYXEditor|} mode ust _ = undef //  basicUpdate mode parseUpdate emptyORYXEditor ust // TODO
 where
 	parseUpdate diagram orig = { ORYXEditor | orig & diagram = diagram }
 

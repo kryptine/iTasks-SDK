@@ -20,38 +20,38 @@ from System.File import instance toString FileError, readFile, writeFile
 from System.Process import qualified callProcess
 from Data.Map import newMap
 
-from PmCleanSystem import 
-	::CompileOrCheckSyntax(..),
-	::CodeGenerateAsmOrCode(..),
-	::CompilerMsg(..), 
-	::CompilerOptions(..), 
-	::CompilerProcess,
-	::CompilingInfo,
-	::List,
-	::ListTypes(..),
-	::LogEnv(..),
-	::Pathname, 
-	::WindowFun,
-	CodeGen,
-	CompilePersistent,
-	DefaultCompilerOptions,
-	ExitCleanCompiler,
-	InitCompilingInfo,
-	Link,
-	instance == CompilerMsg
+//from PmCleanSystem import 
+	//::CompileOrCheckSyntax(..),
+	//::CodeGenerateAsmOrCode(..),
+	//::CompilerMsg(..), 
+	//::CompilerOptions(..), 
+	//::CompilerProcess,
+	//::CompilingInfo,
+	//::List,
+	//::ListTypes(..),
+	//::LogEnv(..),
+	//::Pathname, 
+	//::WindowFun,
+	//CodeGen,
+	//CompilePersistent,
+	//DefaultCompilerOptions,
+	//ExitCleanCompiler,
+	//InitCompilingInfo,
+	//Link,
+	//instance == CompilerMsg
 
-from PmPath import 
-	MakeABCSystemPathname,
-	MakeObjSystemPathname
+//from PmPath import 
+	//MakeABCSystemPathname,
+	//MakeObjSystemPathname
 	
-from PmTypes import
-	:: ApplicationOptions(..),
-	:: CodeGenOptions(..),
-	:: Output(..),
-	:: Processor,
-	DefApplicationOptions,
-	DefaultProcessor,
-	DefCodeGenOptions
+//from PmTypes import
+	//:: ApplicationOptions(..),
+	//:: CodeGenOptions(..),
+	//:: Output(..),
+	//:: Processor,
+	//DefApplicationOptions,
+	//DefaultProcessor,
+	//DefCodeGenOptions
 	
 from linkargs import
 	:: LinkInfo`(..),
@@ -64,8 +64,8 @@ from System.File import deleteFile
 
 derive class iTask CompileResult
 
-derive JSONEncode CompilingInfo, CompilerProcess
-derive JSONDecode CompilingInfo, CompilerProcess
+//derive JSONEncode CompilingInfo, CompilerProcess
+//derive JSONDecode CompilingInfo, CompilerProcess
 
 tmpDirectory :: *IWorld -> String
 tmpDirectory iworld=:{dataDirectory} = dataDirectory +++ "-gin-temp"
@@ -137,13 +137,13 @@ where
 	//= (CompileGlobalError log, iworld)
 	
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
-syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile SyntaxCheck) iworld
+syntaxCheck gMod iworld = undef // runCompiler gMod syntaxCheckPrintAModule (compile SyntaxCheck) iworld
 
 // --------------------------------------------------------------------------------
 // Compiler interface
 // --------------------------------------------------------------------------------
 
-compile :: CompileOrCheckSyntax !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult Void, *IWorld)
+//compile :: CompileOrCheckSyntax !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult Void, *IWorld)
 compile compileOrCheckSyntax source basename config functionMap lineMap iworld = undef // TODO
 //# (mCompilingInfo, iworld) = loadCompilingInfo iworld
 //# compilingInfo = case mCompilingInfo of
@@ -189,10 +189,10 @@ compile compileOrCheckSyntax source basename config functionMap lineMap iworld =
 	//| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world)
 	//= ((CompilePathError errors, compilingInfo), env.LogEnv.world)
 
-loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
+//loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
 loadCompilingInfo iworld = undef // TODO loadValue compilerId iworld
 
-storeCompilingInfo :: CompilingInfo *IWorld -> *IWorld
+//storeCompilingInfo :: CompilingInfo *IWorld -> *IWorld
 storeCompilingInfo compilingInfo iworld = undef // TODO storeValue compilerId compilingInfo iworld
 
 compilerId :: String
@@ -202,12 +202,12 @@ deleteCompilingInfo :: *IWorld -> *IWorld
 deleteCompilingInfo iworld = undef // TODO deleteValue compilerId iworld
 
 exitCompiler :: *IWorld -> *IWorld
-exitCompiler iworld
-# (mCompilingInfo, iworld) = loadCompilingInfo iworld
-| isNothing mCompilingInfo = iworld
-# compilingInfo = fromJust mCompilingInfo
-# (_, iworld) = accWorldIWorld (curry ExitCleanCompiler (fromJust mCompilingInfo)) iworld
-= deleteCompilingInfo iworld
+exitCompiler iworld = undef
+//# (mCompilingInfo, iworld) = loadCompilingInfo iworld
+//| isNothing mCompilingInfo = iworld
+//# compilingInfo = fromJust mCompilingInfo
+//# (_, iworld) = accWorldIWorld (curry ExitCleanCompiler (fromJust mCompilingInfo)) iworld
+//= deleteCompilingInfo iworld
 
 /*
 // --------------------------------------------------------------------------------
@@ -310,8 +310,8 @@ convertFail :: (CompileResult a) -> (CompileResult b)
 convertFail (CompileGlobalError msg) = CompileGlobalError msg
 convertFail (CompilePathError paths) = CompilePathError paths
 
-addError :: [String] LogEnv -> LogEnv
-addError err {LogEnv | errors=errs, world=w } = {LogEnv | errors = errs ++ [err], world=w} 	/* trace_n (join "\n" err) */
+//addError :: [String] LogEnv -> LogEnv
+addError err _ = undef //{LogEnv | errors=errs, world=w } = {LogEnv | errors = errs ++ [err], world=w} 	/* trace_n (join "\n" err) */
 
 accWorldIWorld :: (*World -> (b, *World)) *IWorld -> (b, *IWorld)
 accWorldIWorld f iworld
@@ -328,8 +328,8 @@ filenameFromConfig config tempPath basename extension = tempPath </> basename ++
 // Project settings
 // --------------------------------------------------------------------------------
 
-ginApplicationOptions :: ApplicationOptions
-ginApplicationOptions = { DefApplicationOptions & o = NoConsole}
+//ginApplicationOptions :: ApplicationOptions
+ginApplicationOptions = undef // { DefApplicationOptions & o = NoConsole}
 
 searchPaths :: !GinConfig !String -> [String]
 searchPaths config tempPath = 
