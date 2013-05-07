@@ -343,4 +343,4 @@ allTokens sState
 	EndOfFileToken = [EndOfFileToken]
 	t = [t : allTokens sState]
 	
-Start = allTokens (stringScanner "a")
+//Start = allTokens (stringScanner "a")
