@@ -5,12 +5,12 @@ Status: very drafty
 */
 
 import iTasks, Text
-import qualified Map
+import qualified Data.Map
 import projectManager
-
+import StdGeneric, Data.Either, System.FilePath
 import SmallUtil, IDE_State, CleanEditor
 from StdFunc import seq
-
+import iTasks.Framework.iTaskClass
 derive class iTask FileError
 
 // It Starts here..
@@ -28,9 +28,9 @@ Start world = startEngine start_ide world
 
 start_ide :: Task Void
 start_ide 
-	= 				init_ide												// initialize the IDE state
+	= 				init_ide													// initialize the IDE state
 	>>|				parallel Void // (Title "Clean IDE") 						// BUG: global title not implemented
-						[ (Embedded, workPane)
+						[ (Embedded, workPane)									
 						, (Embedded, projectPane)
 						, (Embedded, errorMessages)
 						] <<@ SetLayout layout @ const Void
@@ -52,13 +52,13 @@ where
 
 		cleanPath dir 	= subString 0 (indexOf "iTasks-SDK" dir) dir
 
-// top menu
+// work Pane
 
 workPane :: !(ReadOnlyShared (TaskList Void)) -> Task Void
 workPane ts 
 	= 				get_IDE_State												// new session, first recover previous screen
 	>>= \state -> 	openLastProject state.projectName 							// re-open last project
-	>>|				openEditorOnFiles state.openedFiles ts						// re-open editor on administated files
+	>>|				openEditorOnFiles state.openedFiles ts						// re-open editor on administrated files
 	>>|				topMenu ts
 
 topMenu ts
@@ -222,7 +222,7 @@ where
 			onlyJust (Value (Just v) s) = Value v s
 			onlyJust _					= NoValue
 
-	noAnnotation (c,_) = (c,'Map'.newMap)
+	noAnnotation (c,_) = (c,'Data.Map'.newMap)
 
 // errorMessages pane, shows error message produced by compiler in error file
 

@@ -8,7 +8,7 @@ import StdMaybe
 import Platform
 import PmTypes
 
-import Directory, StdBool, File, Error
+import System.Directory, StdBool, System.File, Data.Error
 
 EnvsFileName :== "IDEEnvs"
 

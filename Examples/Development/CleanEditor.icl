@@ -1,8 +1,9 @@
 implementation module CleanEditor
 
 import iTasks, Text
-import qualified Map
+import qualified Data.Map
 import projectManager
+import System.FilePath
 
 import SmallUtil, IDE_State
 
@@ -123,5 +124,5 @@ where
  	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
  						>>| showReplace cmnd
 
-noHints = AfterLayout (tweakControls (\controls -> [(c,'Map'.del VALID_ATTRIBUTE ('Map'.del HINT_ATTRIBUTE m)) \\ (c,m) <- controls]))
+noHints = AfterLayout (tweakControls (\controls -> [(c,'Data.Map'.del VALID_ATTRIBUTE ('Data.Map'.del HINT_ATTRIBUTE m)) \\ (c,m) <- controls]))
 

@@ -4,7 +4,8 @@ import iTasks
 import EditorUtil
 
 import PmTypes, PmProject, PmParse, PmEnvironment, UtilStrictLists
-import Directory, File
+import System.Directory, System.File
+import System.FilePath
 						   
 derive class iTask 	RunTimeOptions, DiagnosticsOptions, ProfilingOptions, TimeProfileOptions, HeapProfileOptions, HeapProfile
 derive class iTask  Environment, ToolsOptions

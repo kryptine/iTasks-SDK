@@ -1,8 +1,9 @@
 implementation module EditorUtil
 
 import iTasks
-import File, StdFile
-import Directory
+import System.File, StdFile
+import System.Directory
+import System.FilePath
 
 import IDE_State, SmallUtil
 
