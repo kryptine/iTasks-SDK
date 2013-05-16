@@ -6,11 +6,12 @@ import iTasks.Gin.FlowLibrary
 import GinEditor
 import iTasks.API.Extensions.Gin.Domain
 import iTasks.Gin.Syntax
+import iTasks.API.Extensions.Admin.WorkflowAdmin
 
 Start :: *World -> *World
-Start world = world // startEngine (manageWorkflows workflows) world
-//where
-	//workflows = flatten [ ginExamples ]
+Start world = startEngine (manageWorkflows workflows) world
+where
+    workflows = [ ginEditor ] //flatten [ ginExamples ]
 
 //ginExamples :: [Workflow]
 //ginExamples = [ workflow "Examples/Graphical Editors/GiN Editor" "Create or edit workflows in GiN notation" ginEditor

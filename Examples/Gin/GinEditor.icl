@@ -19,7 +19,7 @@ from iTasks.Gin.Printer import :: Doc, prettyPrint, instance Printer Doc
 import iTasks.Gin.Storage
 import iTasks.Gin.Syntax
 
-import CleanDocParser
+from CleanDocParser import parseTypeUnsafe
 import iTasks.Gin.DCLImport
 
 //import FilePath, File
@@ -41,11 +41,11 @@ readDynamicTask filename = importTextFile filename >>= \dynString ->
 */
 readDynamicTask filename = return (viewInformation "Error: dynamic linker not enabled" [] Void)
 
-ginEditor :: WorkflowContainer Void
-ginEditor = undef // TODO Workflow initManagerProperties ginEditor`
+ginEditor :: Workflow
+ginEditor = workflow "GiN Editor" "Use the GiN editor to design diagrams" ginEditor`
 
 getAndSetupConfig :: Task GinConfig
-getAndSetupConfig = getConfig >>= \config -> accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) setupDialog 
+getAndSetupConfig = getConfig >>= \config -> accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) setupDialog
 
 getConfig :: Task GinConfig
 getConfig = accWorld ginLoadConfig >>= \mbConfig -> case mbConfig of
@@ -53,9 +53,9 @@ getConfig = accWorld ginLoadConfig >>= \mbConfig -> case mbConfig of
     Nothing = accWorld ginDefaultConfig >>= \config -> appWorld (ginStoreConfig config) >>| return config
 
 setupDialog :: Task GinConfig
-setupDialog = getConfig >>= dialog >>= \config -> appWorld (ginStoreConfig config) >>|return config
+setupDialog = getConfig >>= dialog >>= \config -> appWorld (ginStoreConfig config) >>| return config
 where
-    dialog config = updateInformation "GiN editor setup" [] config >>= \config = 
+    dialog config = updateInformation "GiN editor setup" [] config >>= \config =
                     accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
 
 :: EditorState =
@@ -75,7 +75,7 @@ derive class iTask EditorState
 getInitialState :: Task EditorState
 getInitialState = getAndSetupConfig >>= \config -> return
     { EditorState
-    | config		= config
+    | config        = config
     , name			= Nothing
     , gMod			= updateDiagramExtensions newModule
     , checkSyntax	= True
@@ -103,7 +103,7 @@ ginEditor` =
     getAndSetupConfig >>|
     getInitialState >>= \initialState ->
     withShared initialState runPar
-    //TODO ginParallelLayout @>> 
+    //TODO ginParallelLayout @>>
     //parallel
         //"GiN Editor"
         //initialState
@@ -118,10 +118,11 @@ ginEditor` =
         //]
   where  runPar = \st -> parallel "GiN Editor"
                    // forever undef // updateSharedInformation "Workflow diagram" [] (taskListState initialState) // undef
-                   [ (Embedded, \_  -> undef) // forever (updateSharedInformation "Workflow diagram" [] st)) // TODO UpdateWith
-                   , (Embedded, \tl -> chooseAction (actions st tl) >>= id)
-                   , (Embedded, \_  -> activator st)
-                   ]
+                    [ (Embedded, \_  -> forever (updateTask st))
+                    , (Embedded, \tl -> chooseAction (actions st tl) >>= id)
+                    , (Embedded, \_  -> activator st)
+                    ]
+         updateTask st = updateSharedInformation "Workflow diagram" [UpdateWith diagramView diagramUpdate] st
 
 //ginParallelLayout :: ParallelLayouter
 //ginParallelLayout = undef// \par=:{UIParallel|title,instruction,items}-> 
@@ -143,8 +144,8 @@ diagramView { EditorState | gMod = { moduleKind = GGraphicalModule defs }, error
     & errors = errors
     }
 
-diagramUpdate :: ORYXEditor Void EditorState -> EditorState
-diagramUpdate editor _ state = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
+diagramUpdate :: EditorState ORYXEditor -> EditorState
+diagramUpdate state editor = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
 where
     setDiagram :: !GModule !ORYXEditor -> GModule
     setDiagram gMod =:{moduleKind = (GGraphicalModule defs)} editor=:{diagram}
