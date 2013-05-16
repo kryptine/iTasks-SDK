@@ -3,6 +3,10 @@ implementation module iTasks.Framework.UIDefinition
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
 from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey, :: GoogleMapIcon
 	
+:: UIExtension = ...
+
+derive JSONEncode UIExtension
+
 defaultSizeOpts	:: UISizeOpts
 defaultSizeOpts = {width = Nothing, minWidth = Nothing, height = Nothing, minHeight = Nothing, margins = Nothing}
 
@@ -100,6 +104,7 @@ encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts
 encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, encEditOpts eopts]
 encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, encEditOpts eopts]
 encodeUIControl (UIEditGoogleMap sopts eopts opts)		= enc "itwc_edit_googlemap" [toJSON sopts, encEditOpts eopts, toJSON opts]
+encodeUIControl (UIEditOryx sopts eopts opts)		    = enc "itwc_edit_oryx" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIEditCode sopts eopts opts)			= enc "itwc_edit_code" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts]
@@ -123,7 +128,7 @@ encodeUIWindow (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts,
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
-derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts
+derive JSONEncode UIIconOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts, UIOryxOpts
 derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}

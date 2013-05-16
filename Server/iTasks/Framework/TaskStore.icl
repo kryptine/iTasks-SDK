@@ -15,14 +15,14 @@ derive JSONEncode UIDef, UIAction, UIViewport, UIWindow, UIControl, UISizeOpts, 
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts, UITreeNode
 derive JSONEncode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
-derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
+derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, UIOryxOpts
 
 derive JSONDecode TaskResult, TaskInfo, TaskRep, TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIViewport, UIWindow, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITaskletPHOpts, UITreeNode
 derive JSONDecode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts
-derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
+derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, UIOryxOpts
 
 INCREMENT				:== "increment"
 SHARE_REGISTRATIONS		:== "share-registrations"

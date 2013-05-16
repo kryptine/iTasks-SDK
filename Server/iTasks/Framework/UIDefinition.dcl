@@ -110,6 +110,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	| UIEditButton		!UISizeOpts !(UIEditOpts JSONNode) !UIButtonOpts		// - Button that sends edit events on click
 	| UIEditGoogleMap	!UISizeOpts !(UIEditOpts JSONNode) !UIGoogleMapOpts		// - Google Map panel
 	| UIEditCode		!UISizeOpts !(UIEditOpts JSONNode) !UICodeOpts			// - Source code editor component
+	| UIEditOryx		!UISizeOpts !(UIEditOpts JSONNode) !UIOryxOpts			// - Oryx editor component
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
@@ -129,7 +130,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	| UIContainer		!UISizeOpts !UIItemsOpts !UIContainerOpts				// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UIItemsOpts !UIFieldSetOpts				// - Fieldset (wrapper with a simple border and title)
-	
+
 :: UISizeOpts =
 	{ width		:: !Maybe UISize
 	, minWidth	:: !Maybe UIMinSize
@@ -246,6 +247,10 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 :: UICodeOpts =
 	{ lineNumbers		:: !Bool
 	}
+
+:: UIOryxOpts =
+  { stencilsetUrl :: !String
+  }
 
 :: UIGridOpts =
 	{ columns		:: ![String]

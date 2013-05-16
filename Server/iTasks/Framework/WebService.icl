@@ -178,6 +178,7 @@ where
 		
 		stylefiles = ["lib/extjs-4.1.0/resources/css/ext-all-gray.css"
 					 ,"lib/codemirror-2.36/codemirror.css"
+					 ,"lib/oryx/css/theme_norm.css"
 					 ,"css/icons.css"
 					 ,"css/app.css"
 					 ,appName +++ ".css"]

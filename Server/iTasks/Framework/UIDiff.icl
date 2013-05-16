@@ -10,7 +10,7 @@ from iTasks.Framework.Task import :: Event(..)
 	| DiffPossible [UIUpdate]
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
+derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts, UITaskletPHOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
 derive gEq UIDef, UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer, UIAction

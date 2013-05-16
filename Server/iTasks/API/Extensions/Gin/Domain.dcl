@@ -9,3 +9,6 @@ derive gUpdate ORYXEditor
 derive gVerify ORYXEditor
 derive JSONEncode ORYXEditor
 derive JSONDecode ORYXEditor
+derive gHeaders ORYXEditor
+derive gGridRows ORYXEditor
+derive gDefault ORYXEditor
