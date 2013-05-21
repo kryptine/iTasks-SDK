@@ -1,6 +1,6 @@
 implementation module SaplParser
 
-import StdEnv, StdMaybe, Map, Void, Error
+import StdEnv, StdMaybe, Data.Map, Data.Void, Data.Error
 import SaplTokenizer
 
 instance ==	SaplTerm

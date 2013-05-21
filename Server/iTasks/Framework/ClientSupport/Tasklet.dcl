@@ -1,7 +1,7 @@
 definition module Tasklet
 
 import StdString
-import Task, SaplHtml
+import iTasks.Framework.Task, SaplHtml
 
 :: JSONString :== String
 :: TaskInstanceId :== String

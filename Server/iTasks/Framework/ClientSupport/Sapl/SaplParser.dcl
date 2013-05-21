@@ -1,6 +1,6 @@
 definition module SaplParser
 
-import SaplTokenizer, Map, Void, Error
+import SaplTokenizer, Data.Map, Data.Void, Data.Error
 
 // Cannot be abstract because code generator uses it
 :: ParserState = { ps_level 		:: Int

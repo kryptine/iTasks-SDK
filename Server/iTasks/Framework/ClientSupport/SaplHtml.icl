@@ -1,6 +1,6 @@
 implementation module SaplHtml
 
-import StdEnv, Void, Tasklet
+import StdEnv, Data.Void, Tasklet
 
 :: EventQueue :== Void
 :: HtmlDocument :== Void

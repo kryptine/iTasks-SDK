@@ -1,8 +1,8 @@
 implementation module SaplLinkerShared
 
 import StdEnv, StdMaybe
-import SaplTokenizer, Map, StringAppender, FastString
-import File, Directory, Error
+import SaplTokenizer, Data.Map, Text.StringAppender, FastString
+import System.File, System.Directory, Data.Error
 
 instance toString LineType
 where

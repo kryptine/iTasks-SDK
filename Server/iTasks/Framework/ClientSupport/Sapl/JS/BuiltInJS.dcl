@@ -6,7 +6,8 @@ import SaplTokenizer, SaplParser
 * Definitions of built-in and inline functions for the JavaScript code generator.
 */
 
-import SaplParser, StringAppender, Map
+import SaplParser
+import Text.StringAppender, Data.Map
 
 :: Arity :== Int
 

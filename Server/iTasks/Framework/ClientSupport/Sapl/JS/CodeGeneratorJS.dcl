@@ -14,7 +14,7 @@ definition module CodeGeneratorJS
 * needed by the expression.
 */
 
-import StringAppender, Error
+import Text.StringAppender, Data.Error
 from SaplParser import :: ParserState
 
 /**

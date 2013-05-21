@@ -1,6 +1,6 @@
 implementation module BuiltInJS_fHS
 
-import StdEnv, Map, StringAppender, BuiltInJS
+import StdEnv, Data.Map, Text.StringAppender, BuiltInJS
 
 builtInFunctions_fHS :: Map String (String, Arity)
 builtInFunctions_fHS = fromList

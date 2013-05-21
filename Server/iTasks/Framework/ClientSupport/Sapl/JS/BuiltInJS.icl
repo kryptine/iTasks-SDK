@@ -1,6 +1,6 @@
 implementation module BuiltInJS
 
-import StdEnv, Map, StringAppender
+import StdEnv, Data.Map, Text.StringAppender
 
 builtInFunctions :: Map String (String, Arity)
 builtInFunctions = fromList

@@ -1,13 +1,13 @@
 implementation module LazyLinker
 
-import StdEnv, StdMaybe, Map, Text
-import SaplTokenizer, SaplLinkerShared, StringAppender
-import IWorld
+import StdEnv, StdMaybe, Data.Map, Text
+import SaplTokenizer, SaplLinkerShared, Text.StringAppender
+import iTasks.Framework.IWorld
 
 from FastString import charIndexBackwards
 
-import FilePath, File, Directory, Error
-from OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
+import System.FilePath, System.File, System.Directory, Data.Error
+from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorMessage, :: OSErrorCode
 
 println :: !String !*World -> *World
 println msg world

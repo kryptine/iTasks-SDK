@@ -1,6 +1,6 @@
 definition module SaplHtml
 
-import StdString, Void, Tasklet
+import StdString, Data.Void, Tasklet
 
 :: EventQueue
 :: HtmlDocument

@@ -1,10 +1,10 @@
 implementation module Tasklet
 
-import iTasks, Task, TaskState, UIDefinition
+import iTasks, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition
 import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
 import sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
-import Time
-from Map import newMap 
+import System.Time
+from Data.Map import newMap 
 
 //---------------------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ where
 	taskFunc event taskRepOpts (TCDestroy _) iworld
 		= (DestroyedResult, println "destroy" iworld)
 
-	taskInfo ts = {TaskInfo | lastEvent = ts, expiresIn = Nothing}
+	taskInfo ts = {TaskInfo | lastEvent = ts, refreshSensitive = True} // expiresIn = Nothing}
 
 	placeHolderRep taskId
 		= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, iid = iid})) []

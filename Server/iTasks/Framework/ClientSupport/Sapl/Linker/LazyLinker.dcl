@@ -12,7 +12,7 @@ definition module LazyLinker
 * from some functions.
 */
 
-import StdString, StringAppender, IWorld
+import StdString, Text.StringAppender, iTasks.Framework.IWorld
 
 :: LoaderStateExt
 

@@ -9,7 +9,7 @@ import SaplTokenizer, SaplParser, BuiltInJS
  * In GHC primitive functions are strict and saturated, they can be inlined any time.
  */
 
-import SaplParser, StringAppender, Map
+import SaplParser, Text.StringAppender, Data.Map
 
 builtInFunctions_fHS :: Map String (String, Arity)
 

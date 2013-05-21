@@ -18,7 +18,7 @@ implementation module CodeGeneratorJS
  *     see deStrictIfNeeded
  */
 
-import StdEnv, Maybe, Void, StringAppender, FastString
+import StdEnv, Data.Maybe, Data.Void, Text.StringAppender, FastString
 import SaplTokenizer, SaplParser, BuiltInJS, BuiltInJS_fHS
 
 :: CoderState = { cs_inbody 		:: Bool			     // The body of a function is generated (not signature)
