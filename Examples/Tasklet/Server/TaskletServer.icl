@@ -1,7 +1,7 @@
 module TaskletServer
 
 import iTasks, Tasklet
-import StringAppender, CodeGeneratorJS, graph_to_sapl_string
+import Text.StringAppender, CodeGeneratorJS, graph_to_sapl_string
 import sapldebug
 
 //-------------------------------------------------------------------------

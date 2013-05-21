@@ -53,7 +53,8 @@ bookingStore = sharedStore "Bookings"
 	, {firstName = "Adam",   lastName = "Smith", bookingRef = "BHJZ346", flightNumber = "BA5623", id = Hidden "ID8I", seat = Nothing}
 	, {firstName = "Teodor", lastName = "Domoszlai", bookingRef = "BHJZ347", flightNumber = "BA1234", id = Hidden "ID3T", seat = Just (Seat 1 1)}]
 */
-	[ {firstName = "Laszlo", lastName = "Domoszlai", bookingRef = "BHJZ345", flightNumber = "BA1234", id = Hidden "ID1L", seat = Nothing}
+	[ {firstName = "Rinus", lastName = "P", bookingRef = "b", flightNumber = "BA1234", id = Hidden "id", seat = Nothing}
+	, {firstName = "Laszlo", lastName = "Domoszlai", bookingRef = "BHJZ345", flightNumber = "BA1234", id = Hidden "ID1L", seat = Nothing}
 	, {firstName = "Igor",   lastName = "Domoszlai", bookingRef = "BHJZ346", flightNumber = "BA1234", id = Hidden "ID8I", seat = Nothing}
 	, {firstName = "Teodor", lastName = "Domoszlai", bookingRef = "BHJZ347", flightNumber = "BA1234", id = Hidden "ID3T", seat = Just (Seat 1 1)}]
 

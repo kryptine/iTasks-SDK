@@ -1,6 +1,6 @@
 implementation module FlightSupport
 
-import StdEnv, Maybe
+import StdEnv, Data.Maybe
 
 instance == Seat
 where

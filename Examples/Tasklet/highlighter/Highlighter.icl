@@ -9,7 +9,7 @@ highlighterTasklet :: Tasklet Void Void
 highlighterTasklet = 
 	{ Tasklet
 	| generatorFunc		= highlighterGUI
-	, resultFunc		= \_ = Value Void Unstable
+	, resultFunc		= \_ = Value Void False
 	, tweakUI  			= id
 	}
 

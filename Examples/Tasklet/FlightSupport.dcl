@@ -1,6 +1,6 @@
 definition module FlightSupport
 
-import StdString, StdClass, Maybe
+import StdString, StdClass, Data.Maybe
 
 :: Seat = Seat Int Int
 
