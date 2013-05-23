@@ -23,6 +23,8 @@ There are version for the PC, Mac, and Linux.
 = Preparation of the Clean IDE for iTasks =
 - Make sure that this SDK is placed in the folder of the Clean 2.4 32-bit distribution (the one that contains "CleanIDE.exe")
   and is called "iTasks-SDK".
+- The standard CleanIDE does not support searching for definitions in combination with hierarchical imports. 
+  If you want to use this, copy "iTasks-SDK/Compiler/CleanIDE.exe" to the place of the old CleanIDE.exe and rename the old CleanIDE.exe.
 - Start the CleanIDE
 - Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
   and selecting the "iTasks-SDK/Server/iTasks.env" environment file. 
@@ -32,6 +34,7 @@ There are version for the PC, Mac, and Linux.
 - Please note that it works only with the Clean 2.4 32-bit distribution
 - You need to use the "iTasks-SDK/Compiler/CleanIDE.exe", which must be in the same folder as the regular CleanIDE.exe. 
   If you want to use both, rename "iTasks-SDK/Compiler/CleanIDE.exe" and move it in the same folder as CleanIDE.exe.
+  As said above, you also need this CleanIDE for searching definitions in combination with hierarchical imports.
 - Import the "iTasks + SAPL" environment by choosing "Environment" -> "Import..." from the menu
   and selecting the "iTasks-SDK/Server/iTasks + Sapl.env" file.
 - Unpack "iTasks-SDK/Compiler/StdEnv-Sapl.zip" into "Libraries/StdEnv/". This should add the folder "Sapl" in "Libraries/StdEnv".
