@@ -8,9 +8,13 @@ Ext.define('itwc.component.view.HTML',{
 		this.callParent(arguments);
 	},
 	setValue: function(value) {
-		this.getEl().update(value);
-		if(this.ownerCt) {
-			this.ownerCt.doLayout();
+		if(this.rendered) {
+			this.el.update(value);
+			if(this.ownerCt) {
+				this.ownerCt.doLayout();
+			}
+		} else {
+			this.value = value;
 		}
 	}
 });

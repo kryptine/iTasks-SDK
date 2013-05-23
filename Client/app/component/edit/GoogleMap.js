@@ -140,7 +140,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			} else {
 				clickHandler = function(markerId) { return function(e) {
                		me.viewport = me.viewport || me.up('viewport');
-					me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, event: "LEFTCLICK",});
+					me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, event: "LEFTCLICK"});
                	};};
 				google.maps.event.addListener(marker,'click',clickHandler(i));
 			}

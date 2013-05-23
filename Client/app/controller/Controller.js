@@ -6,9 +6,10 @@
 Ext.define('itwc.controller.Controller', {
 	extend: 'Ext.app.Controller',
 
-	requires: ['itwc.container.Viewport'		//Top level container
-			  ,'itwc.container.Container'		//Minimalist container that uses the itasks layout directives
+	requires: ['itwc.container.Container'		//Minimalist container that uses the itasks layout directives
 			  ,'itwc.container.Panel'			//More configurable container with headers and stuff
+			  ,'itwc.container.TabSet'			//Container for grouping a set of panels as a stack of tabs
+			  ,'itwc.container.TabItem'			//Container that is one tab in a set.
 			  ,'itwc.container.FieldSet'		//Logical grouping of components
 			  ,'itwc.container.Window'			//Floating window
 
@@ -168,7 +169,7 @@ Ext.define('itwc.controller.Controller', {
 
 			me.flushingTaskEvents = true;
 			Ext.Ajax.request({
-				url: '?format=json-gui',
+				url: '/?format=json-gui',
 				params: params,
 				scripts: false,
 				callback: me.receiveTaskUpdates,
@@ -237,7 +238,7 @@ Ext.define('itwc.controller.Controller', {
 			
 		for(i = 0; i < numUpdates; i++) {
 			update = updates[i];
-			try {
+			//try {
 				if(cmp = me.viewport.getComponentByPath(update.path)) {
 					operations = update.operations;
 					numOperations = operations.length;
@@ -263,9 +264,9 @@ Ext.define('itwc.controller.Controller', {
 				} else {
 					me.error("Could not find user interface component at location " + update.path);
 				}
-			} catch (e) {
-				me.error("Failed to update user interface " + e);
-			}
+			//} catch (e) {
+			//	me.error("Failed to update user interface " + e);
+			//}
 		}
 	},
 	error: function(e) {

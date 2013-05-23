@@ -119,7 +119,7 @@ where
 						= case checkRes of
 							Changed				= addOutdatedOnShareChange sdsId (const True) iworld
 							(CheckAgain time)	= queueWork (CheckSDS sdsId hash checkF, Just time) iworld
-				= (Just 0, iworld) // give http server the chance to handle request
+				= (Just 100, iworld) // give http server the chance to handle request
 			WorkAt time
 				# (curTime, iworld) = currentTimestamp iworld
 				= (Just (toTimeout curTime time), iworld)

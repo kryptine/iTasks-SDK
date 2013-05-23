@@ -6,8 +6,8 @@ Ext.define('itwc.layout.container.Box', {
 
     /* Begin Definitions */
 
-	alias: 'layout.itwc_box',
-    extend: 'Ext.layout.container.Container',
+	alias: ['layout.itwc_box'],
+	extend: 'Ext.layout.container.Container',
 
     requires: [
         'Ext.layout.container.boxOverflow.None',
@@ -95,14 +95,19 @@ Ext.define('itwc.layout.container.Box', {
 	 *   - **vertical** - child items are layed out vertically from top to bottom (**default**)
 	 *   - **horizontal** - child items are layed out horizontally from left to right (**default**)
 	 */
+
     direction: 'vertical',
 
     type: 'box',
     itemCls: Ext.baseCSSPrefix + 'box-item',
     targetCls: Ext.baseCSSPrefix + 'box-layout-ct',
+	targetElCls: Ext.baseCSSPrefix + 'box-target',
     innerCls: Ext.baseCSSPrefix + 'box-inner',
 
+	reserveOffset: true,
     manageMargins: true,
+	createsInnerCt: true,
+
     horizontal: false,
 
     childEls: [
@@ -110,39 +115,25 @@ Ext.define('itwc.layout.container.Box', {
         'targetEl'
     ],
 
-    renderTpl: [
-        '{%var oc,l=values.$comp.layout,oh=l.overflowHandler;',
-        'if (oh.getPrefixConfig!==Ext.emptyFn) {',
-            'if(oc=oh.getPrefixConfig())dh.generateMarkup(oc, out)',
-        '}%}',
-        '<div id="{ownerId}-innerCt" class="{[l.innerCls]} {[oh.getOverflowCls()]}" role="presentation">',
-            '<div id="{ownerId}-targetEl" style="position:absolute;',
-                    // This width for the "CSS container box" of the box child items gives
-                    // them the room they need to avoid being "crushed" (aka, "wrapped").
-                    // On Opera, elements cannot be wider than 32767px or else they break
-                    // the scrollWidth (it becomes == offsetWidth) and you cannot scroll
-                    // the content.
-                    'width:20000px;',
-                    // On IE quirks and IE6/7 strict, a text-align:center style trickles
-                    // down to this el at times and will cause it to move off the left edge.
-                    // The easy fix is to just always set left:0px here. The top:0px part
-                    // is just being paranoid. The requirement for targetEl is that its
-                    // origin align with innerCt... this ensures that it does!
-                    'left:0px;top:0px;',
-                    // If we don't give the element a height, it does not always participate
-                    // in the scrollWidth.
-                    'height:1px">',
-                '{%this.renderBody(out, values)%}',
-            '</div>',
-        '</div>',
-        '{%if (oh.getSuffixConfig!==Ext.emptyFn) {',
-            'if(oc=oh.getSuffixConfig())dh.generateMarkup(oc, out)',
-        '}%}',
-        {
-            disableFormats: true,
-            definitions: 'var dh=Ext.DomHelper;'
-        }
-    ],
+	
+	renderTpl: [
+		'{%var oc,l=values.$comp.layout,oh=l.overflowHandler;',
+		'if (oh.getPrefixConfig!==Ext.emptyFn) {',
+			'if(oc=oh.getPrefixConfig())dh.generateMarkup(oc, out)',
+		'}%}',
+		'<div id="{ownerId}-innerCt" class="{[l.innerCls]} {[oh.getOverflowCls()]}" role="presentation">',
+			'<div id="{ownerId}-targetEl" class="{targetElCls}">',
+				'{%this.renderBody(out, values)%}',
+			'</div>',
+		'</div>',
+		'{%if (oh.getSuffixConfig!==Ext.emptyFn) {',
+			'if(oc=oh.getSuffixConfig())dh.generateMarkup(oc, out)',
+		'}%}',
+		{
+			disableFormats: true,
+			definitions: 'var dh=Ext.DomHelper;'
+		}
+	],
 
     constructor: function(config) {
         var me = this,
@@ -163,6 +154,7 @@ Ext.define('itwc.layout.container.Box', {
         }
 
     },
+
     getItemSizePolicy: function (item, ownerSizeModel) {
 		return {
 			setsWidth: item.width === 'flex',
@@ -177,6 +169,8 @@ Ext.define('itwc.layout.container.Box', {
     isItemShrinkWrap: function (item) {
 		return true;
     },
+
+
     beginLayout: function (ownerContext) {
         var me = this,
             style = me.innerCt.dom.style,
@@ -207,6 +201,7 @@ Ext.define('itwc.layout.container.Box', {
 
         me.cacheFlexes(ownerContext);
     },
+
     beginLayoutCycle: function (ownerContext, firstCycle) {
         var me = this,
             childItems, childItemsLength, childContext, i, shrinkWrap, calculated;
@@ -235,13 +230,18 @@ Ext.define('itwc.layout.container.Box', {
 				childContext.heightModel = shrinkWrap;
 			}
 		}
+
+		//Prevent crushing
+		me.targetEl.setWidth(20000);
     },
+
     /**
      * This method is called to (re)cache our understanding of flexes. This happens during beginLayout and may need to
      * be called again if the flexes are changed during the layout (e.g., like ColumnLayout).
      * @param {Object} ownerContext
      * @protected
      */
+
     cacheFlexes: function (ownerContext) {
         var me = this,
 			vtotalFlex = 0,
@@ -279,7 +279,7 @@ Ext.define('itwc.layout.container.Box', {
             targetSize = me.getContainerSize(ownerContext),
             state = ownerContext.state,
             plan = state.boxPlan || (state.boxPlan = {});
-
+	
         plan.targetSize = targetSize;
 
         if (!state.parallelDone) {
@@ -287,23 +287,25 @@ Ext.define('itwc.layout.container.Box', {
             state.parallelDone = me.calculateParallel(ownerContext, plan);
 			//me.printBoxes(ownerContext,["after parallel",state.parallelDone]);
         }
+
         if (!state.perpendicularDone) {
 			//me.printBoxes(ownerContext,["before perpendicular",state.perpendicularDone]);
             state.perpendicularDone = me.calculatePerpendicular(ownerContext, plan);
 			//me.printBoxes(ownerContext,["after perpendicular",state.perpendicularDone]);
         }
-
         if (state.parallelDone && state.perpendicularDone) {
             if (me.done && !state.flexedDone) {
 				me.reCalculateFlexed(ownerContext, plan);
                 state.flexedDone = true;
             }
             me.publishInnerCtSize(ownerContext, 0);
+
+			me.overflowHandler.calculate(ownerContext);
+
         } else {
             me.done = false;
         }
     },
-
     calculateParallel: function(ownerContext, plan) {
         var me = this,
             shrinkWrap = me.horizontal ? ownerContext.widthModel.shrinkWrap : ownerContext.heightModel.shrinkWrap,
@@ -348,6 +350,7 @@ Ext.define('itwc.layout.container.Box', {
 				nonFlexSize += childSize;
 			}
         }
+
 
         // If we get here, we have all the parallel sizes for non-flexed items and minimum sizes of the flexible ones...
         if (shrinkWrap) {
@@ -580,6 +583,7 @@ Ext.define('itwc.layout.container.Box', {
 			}
         }
 	},
+
 	onBeforeInvalidateChild: function (childContext, options) {
 			if(childContext.hflex) {
 				childContext.widthModel = Ext.layout.SizeModel.calculated;
@@ -588,6 +592,7 @@ Ext.define('itwc.layout.container.Box', {
 				childContext.heightModel = Ext.layout.SizeModel.calculated;
 			}
 	},
+
 	onAfterInvalidateChild: function (childContext, options) {
 
 		childContext.setProp('x', options.childX);
@@ -605,7 +610,6 @@ Ext.define('itwc.layout.container.Box', {
         var me = this;
 
         me.overflowHandler.completeLayout(ownerContext);
-		me.callParent(arguments);
     },
 
     finishedLayout: function(ownerContext) {
@@ -613,7 +617,9 @@ Ext.define('itwc.layout.container.Box', {
 
         me.overflowHandler.finishedLayout(ownerContext);
         me.callParent(arguments);
+
     },
+
     publishInnerCtSize: function(ownerContext, reservedSpace) {
         var me = this,
 			isCenter = me.horizontal ? ownerContext.valign.middle : ownerContext.halign.center,
@@ -649,6 +655,7 @@ Ext.define('itwc.layout.container.Box', {
             me.done = false;
         }
     },
+
     onRemove: function(comp){
         var me = this;
         me.callParent(arguments);
@@ -659,6 +666,7 @@ Ext.define('itwc.layout.container.Box', {
             delete comp.layoutMarginCap;
         }
     },
+
     /**
      * @private
      */
@@ -695,9 +703,11 @@ Ext.define('itwc.layout.container.Box', {
 
     // Overridden method from Ext.layout.container.Container.
     // Used by Container classes to insert special DOM elements which must exist in addition to the child components
+
     getElementTarget: function() {
         return this.innerCt;
     },
+
     /**
      * @private
      */
@@ -705,7 +715,16 @@ Ext.define('itwc.layout.container.Box', {
         Ext.destroy(this.innerCt, this.overflowHandler);
         this.callParent(arguments);
     },
+
+	getRenderData: function() {
+		var data = this.callParent();
+
+		data.targetElCls = this.targetElCls;
+
+		return data;
+	},
 	//UTIL
+
     flexSort: function (a, b) { //(This is actually a static method)
 		var me = this, aMin, bMin;
 
@@ -721,9 +740,11 @@ Ext.define('itwc.layout.container.Box', {
 		}
         return bMin - aMin;
     },
+
     roundFlex: function(width) {
         return Math.ceil(width);
     },
+
 	printBoxes: function(ownerContext,extra) {
 		var childItems = ownerContext.childItems,
 			childItemsLength = childItems.length,

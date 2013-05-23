@@ -14,6 +14,10 @@ Ext.define('itwc.component.view.String',{
 		return (Ext.Array.map(value.split("\n"),Ext.htmlEncode)).join("<br>");
 	},
 	setValue: function(value) {
-		this.getEl().update(this.toHtml(value));
+		if(this.rendered) {
+			this.el.update(this.toHtml(value));
+		} else {
+			this.value = value;
+		}
 	}
 });

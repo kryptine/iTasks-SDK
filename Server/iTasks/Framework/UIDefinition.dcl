@@ -88,6 +88,9 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, bodyCls		:: !Maybe String
 	}
 
+// A tab that goes into a tab set.
+:: UITab = UITab !UIItemsOpts !UITabOpts
+
 :: UIControl
 	// Components for viewing data:
 	= UIViewString		!UISizeOpts	!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
@@ -123,14 +126,14 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	// Misc auxiliary components:
 	| UILabel			!UISizeOpts	!UILabelOpts								// - Label (non-wrapping text label, clicks focus next component)
 	| UIIcon			!UISizeOpts	!UIIconOpts									// - Icon (information icon with tooltip text)
-	| UITab				!UISizeOpts	!UITabOpts									// - Tab (clicks trigger focus events)
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
 	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
 	// Container components for composition:
 	| UIContainer		!UISizeOpts !UIItemsOpts !UIContainerOpts				// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UIItemsOpts !UIFieldSetOpts				// - Fieldset (wrapper with a simple border and title)
-
+	| UITabSet			!UISizeOpts !UITabSetOpts
+	
 :: UISizeOpts =
 	{ width		:: !Maybe UISize
 	, minWidth	:: !Maybe UIMinSize
@@ -290,14 +293,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, tooltip		:: !Maybe String
 	}
 
-:: UITabOpts =
-	{ text			:: !String
-	, active		:: !Bool
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	, iconCls		:: !Maybe String
-	}
-
 :: UITaskletOpts = 
 	{ taskId		 :: !String
 	, iid		     :: !String	// instance id
@@ -337,6 +332,21 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 :: UIFieldSetOpts =
 	{ title			:: !String
 	}
+
+:: UITabSetOpts =
+	{ items		:: ![UITab]
+	, activeTab	:: !Maybe Int
+	}
+
+:: UITabOpts =
+	{ title			:: !String
+	, tbar			:: !Maybe [UIControl]
+	, hotkeys		:: !Maybe [UIKeyAction]
+	, focusTaskId	:: !Maybe String
+	, closeTaskId	:: !Maybe String
+	, iconCls		:: !Maybe String
+	}
+
 //Utility functions
 defaultSizeOpts			:: UISizeOpts
 defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
@@ -360,6 +370,7 @@ uiDefSetDirection		:: UIDirection UIDef -> UIDef
 //can be interpreted by the client framework
 encodeUIDefinition		:: !UIDef -> JSONNode
 encodeUIControl			:: !UIControl -> JSONNode
+encodeUITab				:: !UITab -> JSONNode
 encodeUIWindow			:: !UIWindow -> JSONNode
 
 //Encoding of values for use in UI diffs

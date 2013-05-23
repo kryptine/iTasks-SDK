@@ -18,6 +18,7 @@ Ext.define('itwc.component.choice.Grid',{
 	options: [],
 	columns: [],
 	value: null,
+	border: false,
 
 	initComponent: function() {
 

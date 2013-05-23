@@ -362,27 +362,21 @@ tabbedMerge = merge
 where
 	merge prompt=:{UIControlSequence|attributes} defs
 		# pcontrols					= decoratePrompt prompt.UIControlSequence.controls
-		# (activeIndex,activeDef)	= findActive defs	
-		# (tabBar,windows,actions)	= mkTabsAndWindows activeIndex defs	
-		# (actions,_,tabContent)	= maybe ([],[],defaultPanel []) toTabContent activeDef
-		# controls					= pcontrols ++ [tabBar,tabContent]
+		# activeIndex				= findActive defs	
+		# (tabs,windows,actions)	= mkTabsAndWindows defs	
+		# controls					= pcontrols ++ [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeIndex}] 
 		= (UIAbstractContainer {UIAbstractContainer|attributes=attributes,controls=controls,direction=Vertical,actions=[],windows=windows,hotkeys=[]})
 
-	toTabContent def
-		# def			= tweakAttr (del ICON_ATTRIBUTE o del TITLE_ATTRIBUTE) def	//Prevent double titles and icons
-		# (_,actions)	= actionsToCloseId (uiDefActions def)	//Remove close action, because it is handled by tab
-		= placePanelActions actions True (defToPanel (layoutControls def))
-		
-	findActive defs = find 0 (0,Nothing) defs
+	findActive defs = find 0 Nothing defs
 	where
-		find i bestSoFar [] = bestSoFar
-		find i bestSoFar=:(_,Nothing) [d:ds]
-			| hasWindowContainerAttr (uiDefAttributes d)	= find (i+1) bestSoFar ds
-															= find (i+1) (i,Just d) ds
-		find i bestSoFar=:(_,Just best) [d:ds]
-			| not (hasWindowContainerAttr (uiDefAttributes d)) && later d best	= find (i+1) (i,Just d) ds
-																				= find (i+1) bestSoFar ds
-
+		find i bestSoFar [] = fmap fst bestSoFar
+		find i Nothing [d:ds]
+			| hasWindowContainerAttr (uiDefAttributes d)	= find i Nothing ds
+															= find (i+1) (Just (i,d)) ds
+		find i bestSoFar=:(Just (ibest,dbest)) [d:ds]
+			| hasWindowContainerAttr (uiDefAttributes d)	= find i bestSoFar ds
+			| later d dbest									= find (i+1) (Just (i,d)) ds
+															= find (i+1) bestSoFar ds
 		later defA defB
 			# a = uiDefAttributes defA
 			# b = uiDefAttributes defB
@@ -397,15 +391,14 @@ where
 			(Just _,Nothing)	= True
 			_					= False
 			
-		
-	mkTabsAndWindows active defs
-		# (tabsAndWindows,actions) = unzip [mkTabOrWindow (i == active) d \\ d <- defs & i <- [0..]]
-		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer [tab \\Left tab <- tabsAndWindows])
+	mkTabsAndWindows defs
+		# (tabsAndWindows,actions) = unzip [mkTabOrWindow d \\ d <- defs]
+		= ([tab \\Left tab <- tabsAndWindows]
 		   ,flatten (map uiDefWindows defs) ++ [window \\ Right window <- tabsAndWindows]
 		   ,flatten actions
 		  )
 
-	mkTabOrWindow active def
+	mkTabOrWindow def
 		# attributes			= uiDefAttributes def
 		# actions				= uiDefActions def
 		# taskId				= get TASK_ATTRIBUTE attributes
@@ -416,8 +409,10 @@ where
 			# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 			# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
 			# (close,actions)		= actionsToCloseId actions
-			# tabOpts				= {text = text ,focusTaskId = taskId, active = active, closeTaskId = close,iconCls=iconCls}
-			= (Left (UITab defaultSizeOpts tabOpts), if active actions [])
+			# (actions,_,UIPanel _ itemsOpts {UIPanelOpts|tbar,hotkeys})
+				= placePanelActions actions True (defToPanel (layoutControls def))
+			# tabOpts				= {UITabOpts|title = text , tbar = tbar, hotkeys = hotkeys, focusTaskId = taskId, closeTaskId = close,iconCls=iconCls}
+			= (Left (UITab itemsOpts tabOpts), actions /*if active actions []*/)
 
 hideLayout :: Layout
 hideLayout =
@@ -485,7 +480,6 @@ updSizeOpts f (UIActionButton sOpts aOpts opts)		= (UIActionButton (f sOpts) aOp
 updSizeOpts f (UIMenuButton	sOpts opts)				= (UIMenuButton	(f sOpts) opts)	
 updSizeOpts f (UILabel sOpts opts)					= (UILabel (f sOpts) opts)
 updSizeOpts f (UIIcon sOpts opts)					= (UIIcon (f sOpts) opts)
-updSizeOpts f (UITab sOpts opts)					= (UITab (f sOpts) opts)
 updSizeOpts f (UITasklet sOpts opts)				= (UITasklet (f sOpts) opts)
 updSizeOpts f (UITaskletPH sOpts opts)				= (UITaskletPH (f sOpts) opts)
 updSizeOpts f (UIContainer sOpts iOpts opts)		= (UIContainer (f sOpts) iOpts opts)
@@ -522,12 +516,12 @@ getSizeOpts (UIActionButton sOpts aOpts opts)		= sOpts
 getSizeOpts (UIMenuButton	sOpts opts)				= sOpts	
 getSizeOpts (UILabel sOpts opts)					= sOpts
 getSizeOpts (UIIcon sOpts opts)						= sOpts
-getSizeOpts (UITab sOpts opts)						= sOpts
 getSizeOpts (UITasklet sOpts opts)					= sOpts
 getSizeOpts (UITaskletPH sOpts optd)				= sOpts
 getSizeOpts (UIContainer sOpts iOpts opts)			= sOpts
 getSizeOpts (UIPanel sOpts iOpts opts)				= sOpts
 getSizeOpts (UIFieldSet sOpts iOpts opts)			= sOpts
+getSizeOpts (UITabSet sOpts opts)					= sOpts
 
 setSize :: !UISize !UISize !UIControl -> UIControl
 setSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) ctrl
@@ -620,7 +614,6 @@ setIconCls :: !String !UIControl -> UIControl
 setIconCls iconCls (UIActionButton sOpts aOpts opts)	= UIActionButton sOpts aOpts {UIButtonOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIMenuButton sOpts opts)			= UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIIcon sOpts opts)					= UIIcon sOpts {UIIconOpts|opts & iconCls = iconCls}
-setIconCls iconCls (UITab sOpts opts)					= UITab sOpts {UITabOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIPanel sOpts iOpts opts) 			= UIPanel sOpts iOpts {UIPanelOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls ctrl									= ctrl
 

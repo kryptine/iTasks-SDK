@@ -6,6 +6,10 @@ import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskE
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
 import iTasks.API.Core.SystemTypes
 
+//Flag for disabling use of the compiled version of the client javascript
+//only useful when doing work on the client framework
+IF_CLIENT_DEV yes no	:== no
+
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
 :: ServiceResponsePart =
@@ -176,19 +180,21 @@ where
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = ["lib/extjs-4.1.0/resources/css/ext-all-gray.css"
-					 ,"lib/codemirror-2.36/codemirror.css"
-					 ,"lib/oryx/css/theme_norm.css"
-					 ,"css/icons.css"
-					 ,"css/app.css"
-					 ,appName +++ ".css"]
-		scriptfiles = ["lib/extjs-4.1.0/ext-debug.js",
-					   "app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
-					   "app/taskeval/builtin.js","app/taskeval/sapl.js",
-					   "app/taskeval/db.js", "app/taskeval/debug.js",				   
-					   "lib/codemirror-2.36/codemirror.js",
-					   "app.js"]
-		//scriptfiles = ["/lib/ext-4.1.0/ext.js","/app-all.js"]
+		stylefiles =
+			[IF_CLIENT_DEV "bootstrap.css" "build/itwc/production/resources/itwc-all.css"
+			 ,"lib/codemirror-2.36/codemirror.css"
+			 ,"lib/oryx/css/theme_norm.css"
+			 ,"css/icons.css"
+			 ,"css/app.css"
+			 ,appName +++ ".css"]
+
+		scriptfiles = (IF_CLIENT_DEV ["ext/ext-debug.js"] [])
+			++  ["app/taskeval/utils.js","app/taskeval/itask.js" //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
+				,"app/taskeval/builtin.js","app/taskeval/sapl.js"
+				,"app/taskeval/db.js", "app/taskeval/debug.js"
+				,"lib/codemirror-2.36/codemirror.js"
+				]
+			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"])
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld

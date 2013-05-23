@@ -11,8 +11,8 @@ from iTasks.Framework.Task import :: Event(..)
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
-derive gEq UILabelOpts, UITabOpts, UIIconOpts, UITaskletOpts, UITaskletPHOpts
-derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection
+derive gEq UILabelOpts, UIIconOpts, UITaskletOpts, UITaskletPHOpts
+derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer, UIAction
 
 derive JSONEncode UITreeNode, UIActionOpts, UISizeOpts, UISideSizes, UIMinSize, UISize
@@ -83,8 +83,6 @@ diffControls path event c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UIIcon sOpts1 opts1, UIIcon sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffIconOpts path opts1 opts2]
-		(UITab sOpts1 opts1, UITab sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffTabOpts path opts1 opts2]
 		// Tasklet on the right hand side:
 		// check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
@@ -106,15 +104,14 @@ diffControls path event c1 c2
 			| opts1.UITaskletOpts.iid == opts2.UITaskletPHOpts.iid		
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl (UITaskletPH sOpts2 opts2)])]]]
 				= [DiffImpossible]
-
 		(UIContainer sOpts1 iOpts1 opts1, UIContainer sOpts2 iOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffOpts opts1 opts2]
 		(UIPanel sOpts1 iOpts1 opts1, UIPanel sOpts2 iOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffPanelOpts path event opts1 opts2]
 		(UIFieldSet sOpts1 iOpts1 opts1, UIFieldSet sOpts2 iOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffOpts opts1 opts2]
-		//(UIWindow sOpts1 iOpts1 opts1, UIWindow sOpts2 iOpts2 opts2)
-		//	= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event iOpts1 iOpts2, diffOpts opts1 opts2]
+		(UITabSet sOpts1 opts1, UITabSet sOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2, diffTabSetOpts path event opts1 opts2]
 		(_,_)
 			= [DiffImpossible]		
 	= DiffPossible (replaceControlIfImpossible path c2 parts)
@@ -176,6 +173,12 @@ diffItemsOpts path event opts1 opts2
 	| otherwise
 		= DiffPossible (diffItems path event opts1.UIItemsOpts.items opts2.UIItemsOpts.items)
 
+diffTabSetOpts :: UIPath !Event UITabSetOpts UITabSetOpts -> DiffResult
+diffTabSetOpts path event opts1 opts2
+	= DiffPossible (diffTabItemsSet path event opts1.UITabSetOpts.items opts2.UITabSetOpts.items ++ activeTabUpd)
+where
+	activeTabUpd = if (opts1.UITabSetOpts.activeTab === opts2.UITabSetOpts.activeTab) [] [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab])]]
+
 diffOpts :: a a -> DiffResult | gEq{|*|} a	//Very crude, but always working fallback diff
 diffOpts opts1 opts2
 	| opts1 === opts2	= DiffPossible []
@@ -188,10 +191,10 @@ selfUpdate path c1 c2
 				= DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl c2])]]
 
 //Group multiple operations in a single component update
-diffMultiProperties :: UIPath [[UIUpdateOperation]] -> DiffResult
+diffMultiProperties :: UIPath [[UIUpdateOperation]] -> [UIUpdate]
 diffMultiProperties path ops = case flatten ops of
-	[]	= DiffPossible []
-	ops	= DiffPossible [UIUpdate path ops]
+	[]	= []
+	ops	= [UIUpdate path ops]
 
 //Specialized diffs for the control specific options
 diffPanelOpts :: UIPath Event UIPanelOpts UIPanelOpts -> DiffResult
@@ -230,27 +233,31 @@ where
 	menusUpd	= diffItems [MenuStep:path] event (fromMaybe [] opts1.UIWindowOpts.tbar) (fromMaybe [] opts2.UIWindowOpts.tbar)
 
 diffButtonOpts :: UIPath UIButtonOpts UIButtonOpts -> DiffResult
-diffButtonOpts path b1 b2 = diffMultiProperties path [textUpd,iconUpd,enabledUpd] 
+diffButtonOpts path b1 b2 = DiffPossible (diffMultiProperties path [textUpd,iconUpd,enabledUpd])
 where	
 	textUpd = if (b1.UIButtonOpts.text === b2.UIButtonOpts.text) [] [("setText",[toJSON b2.UIButtonOpts.text])]
 	iconUpd = if (b1.UIButtonOpts.iconCls === b2.UIButtonOpts.iconCls) [] [("setIconCls",[toJSON b2.UIButtonOpts.iconCls])]
 	enabledUpd = if (b1.UIButtonOpts.disabled === b2.UIButtonOpts.disabled) [] [("setDisabled",[toJSON b2.UIButtonOpts.disabled])]
 
 diffIconOpts :: UIPath UIIconOpts UIIconOpts -> DiffResult
-diffIconOpts path i1 i2 = diffMultiProperties path [iconUpd,tooltipUpd]
+diffIconOpts path i1 i2 = DiffPossible (diffMultiProperties path [iconUpd,tooltipUpd])
 where
 	iconUpd = if (i1.UIIconOpts.iconCls === i2.UIIconOpts.iconCls) [] [("setIconCls",[toJSON i2.UIIconOpts.iconCls])]
 	tooltipUpd = if (i1.UIIconOpts.tooltip === i2.UIIconOpts.tooltip) [] [("setTooltip",[toJSON i2.UIIconOpts.tooltip])]
 
-diffTabOpts :: UIPath UITabOpts UITabOpts -> DiffResult
-diffTabOpts path t1 t2 = diffMultiProperties path [textUpd,activeUpd,focusUpd,closeUpd,iconUpd]
+diffTabOpts :: UIPath Event UITabOpts UITabOpts -> DiffResult
+diffTabOpts path event t1 t2
+	| (isJust t1.UITabOpts.tbar && isNothing t1.UITabOpts.tbar)	//Can only update menu items, not create a menubar suddenly
+		|| (isNothing t1.UITabOpts.tbar && isJust t2.UITabOpts.tbar)	= DiffImpossible
+	| otherwise
+		= DiffPossible ((diffMultiProperties path [titleUpd,focusUpd,closeUpd,iconUpd,hotkeyUpd]) ++ menusUpd)
 where
-	textUpd = if (t1.UITabOpts.text === t2.UITabOpts.text) [] [("setText",[toJSON t2.UITabOpts.text])]
-	activeUpd = if (t1.UITabOpts.active == t2.UITabOpts.active) [] [("setActive",[toJSON t2.UITabOpts.active])]
+	titleUpd = if (t1.UITabOpts.title === t2.UITabOpts.title) [] [("setTitle",[toJSON t2.UITabOpts.title])]
 	focusUpd = if (t1.UITabOpts.focusTaskId === t2.UITabOpts.focusTaskId) [] [("setFocusTaskId",[toJSON t2.UITabOpts.focusTaskId])]
 	closeUpd = if (t1.UITabOpts.closeTaskId === t2.UITabOpts.closeTaskId) [] [("setCloseTaskId",[toJSON t2.UITabOpts.closeTaskId])]
 	iconUpd = if (t1.UITabOpts.iconCls === t2.UITabOpts.iconCls) [] [("setIconCls",[toJSON t2.UITabOpts.iconCls])]
-
+	menusUpd = diffItems [MenuStep:path] event (fromMaybe [] t1.UITabOpts.tbar) (fromMaybe [] t2.UITabOpts.tbar)
+	hotkeyUpd = diffHotkeys (fromMaybe [] t1.UITabOpts.hotkeys) (fromMaybe [] t2.UITabOpts.hotkeys)
 
 diffItems :: UIPath Event [UIControl] [UIControl] -> [UIUpdate]
 diffItems path event items1 items2 = diff path event 0 items1 items2
@@ -264,6 +271,26 @@ where
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
 		=	replaceControlIfImpossible [ItemStep i:path] c2 [diffControls [ItemStep i:path] event c1 c2]
 		++  diff path event (i + 1) c1s c2s
+
+diffTabItemsSet :: UIPath Event [UITab] [UITab] -> [UIUpdate]
+diffTabItemsSet path event items1 items2 = diff path event 0 items1 items2
+where
+	diff path event i [] []
+		= []
+	diff path event i items1 [] 
+		= [UIUpdate path [("remove",[toJSON n])] \\ n <- reverse [i.. i + length items1 - 1 ]] 
+	diff path event i [] items2 //More items in new than old
+		= [UIUpdate path [("add",[toJSON n,encodeUITab def])] \\ n <- [i..] & def <- items2]	
+	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
+		=	diffTabs [ItemStep i:path] event c1 c2
+		++  diff path event (i + 1) c1s c2s
+		
+		//=	replaceTabItemIfImpossible [ItemStep i:path] c2 [diffTabItems [ItemStep i:path] event c1 c2]
+
+diffTabs :: UIPath Event UITab UITab -> [UIUpdate]
+diffTabs path event t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts2)
+	= replaceTabIfImpossible path t2 [diffItemsOpts path event iOpts1 iOpts2
+									 ,diffTabOpts path event opts1 opts2]
 
 diffAllWindows :: Event [UIWindow] [UIWindow] -> [UIUpdate]
 diffAllWindows event windows1 windows2 = diff event 0 windows1 windows2
@@ -293,6 +320,14 @@ replaceControlIfImpossible path fallback parts
 	| allDiffsPossible parts	= flatten [d \\DiffPossible d <- parts]
 								= [UIUpdate parentPath [("remove",[toJSON parentIndex])
 													   ,("add",[toJSON parentIndex,encodeUIControl fallback])]]
+where
+	[ItemStep parentIndex:parentPath] = path
+
+replaceTabIfImpossible :: UIPath UITab [DiffResult] -> [UIUpdate]
+replaceTabIfImpossible path fallback parts
+	| allDiffsPossible parts	= flatten [d \\ DiffPossible d <- parts]
+								= [UIUpdate parentPath [("remove",[toJSON parentIndex])
+													   ,("add",[toJSON parentIndex,encodeUITab fallback])]]
 where
 	[ItemStep parentIndex:parentPath] = path
 
