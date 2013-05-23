@@ -55,8 +55,15 @@ viewInformation d _ m = viewInformation d [ViewWith id] m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d [UpdateWith tof fromf] shared
 	= interact d (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,v,Touched))
-				(\l r v m ok -> if ok (if (fromf r (tof r) =!= l) (let nv = tof r in (fromf r nv,nv,Touched)) (fromf r v,v,m)) (l,v,m))
+				(\r -> let v = tof r in ((r,fromf r v),v,Touched))
+				(\l r v m ok -> if ok
+					(if (r =!= fst l) //If the share changed, refresh the view
+						(let nv = tof r in ((r,fromf r nv),nv,Touched))
+						((r,fromf r v),v,m)
+					)
+					(l,v,m)
+				)
+				@ snd
 				@> (mapval,shared)
 updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
@@ -72,6 +79,7 @@ updateSharedInformation d _ shared
 				(\r -> let v = (Display r,defaultValue) in (defaultValue,v,PartiallyTouched [Touched,Untouched]))
 				(\l r (_,v) (PartiallyTouched [_,m]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,PartiallyTouched [Touched,m])))
 				@> (mapval,shared)	
+
 
 mapval (Value w _) _	= Just w
 mapval _ _				= Nothing
