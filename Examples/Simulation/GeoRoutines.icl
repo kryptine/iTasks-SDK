@@ -61,14 +61,23 @@ translate (lat,lon) direction distance = normalizeLatLong (newlat,newlon)
 where newlat = lat + cos direction * distance / earth_radius
       newlon = lon + sin direction * distance / (earth_radius * cos lat)
       
-translateCurve :: LatLng !Real !Real !Real -> LatLng
-translateCurve pos direction angle radius = translate pos (direction + angleDirection) distlinear
+translateAlongCurve :: LatLng !Real !Real !Real -> LatLng
+translateAlongCurve pos direction angle radius = translate pos (direction + angleDirection) distlinear
 where angleDirection = angle / 2.0
       distlinear     = 2.0 * radius * sin angleDirection
 
+turningPoint :: LatLng LatLng LatLng !Real -> LatLng
+turningPoint p1 p2 p3 radius = distpoint
+where heading12 = getHeadingToPosition p1 p2
+      heading23 = getHeadingToPosition p2 p3
+      deltaH    = heading23 - heading12
+      distTurn  = distanceForTurning deltaH radius
+      distpoint = translate p1 heading12 (distance p1 p2 - distTurn)
+
+
 // 2d functions
-dist4Corner :: !Real !Real -> Real
-dist4Corner deltaAngle radius = radius * (1.0 - cos deltaAngle) / sin deltaAngle
+distanceForTurning :: !Real !Real -> Real
+distanceForTurning deltaAngle radius = radius * (1.0 - cos deltaAngle) / sin deltaAngle
 
 acceleration2radius :: !Real !Real -> Real
 acceleration2radius accel speed = speed * speed / accel
@@ -97,6 +106,7 @@ dif2 (x1,x2) (y1,y2) = (x1-y1,x2-y2)
 normsq :: (!Real,!Real) -> Real
 normsq p = inner2 p p
 
+// Relative position in plane
 relPosition :: LatLng LatLng -> (!Real,!Real)
 relPosition p1 p2 = dirDist2vector (getHeadingToPosition p1 p2) (distance p1 p2)
 
