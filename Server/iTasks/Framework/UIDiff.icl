@@ -177,7 +177,7 @@ diffTabSetOpts :: UIPath !Event UITabSetOpts UITabSetOpts -> DiffResult
 diffTabSetOpts path event opts1 opts2
 	= DiffPossible (diffTabItemsSet path event opts1.UITabSetOpts.items opts2.UITabSetOpts.items ++ activeTabUpd)
 where
-	activeTabUpd = if (opts1.UITabSetOpts.activeTab === opts2.UITabSetOpts.activeTab) [] [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab])]]
+	activeTabUpd = if (opts1.UITabSetOpts.activeTab === opts2.UITabSetOpts.activeTab) [] [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab,JSONBool True])]]
 
 diffGoogleMapOpts :: UIPath UIGoogleMapOpts UIGoogleMapOpts -> DiffResult
 diffGoogleMapOpts path opts1 opts2
@@ -272,7 +272,10 @@ where
 diffTabOpts :: UIPath Event UITabOpts UITabOpts -> DiffResult
 diffTabOpts path event t1 t2
 	| (isJust t1.UITabOpts.tbar && isNothing t1.UITabOpts.tbar)	//Can only update menu items, not create a menubar suddenly
-		|| (isNothing t1.UITabOpts.tbar && isJust t2.UITabOpts.tbar)	= DiffImpossible
+		|| (isNothing t1.UITabOpts.tbar && isJust t2.UITabOpts.tbar)	
+		|| (isJust t1.UITabOpts.closeTaskId && isNothing t2.UITabOpts.closeTaskId) //We cannot make a non-closable tab closable or vice-versa
+		|| (isNothing t1.UITabOpts.closeTaskId && isJust t2.UITabOpts.closeTaskId) 
+		= DiffImpossible
 	| otherwise
 		= DiffPossible ((diffMultiProperties path [titleUpd,focusUpd,closeUpd,iconUpd,hotkeyUpd]) ++ menusUpd)
 where

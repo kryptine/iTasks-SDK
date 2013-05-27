@@ -12,6 +12,16 @@ Ext.define('itwc.container.TabSet',{
 		me.callParent(arguments);	
 		me.addManagedListener(me,'tabchange',me.onTabChange, me);
 	},
+	setActiveTab: function (tab, noEvent) {
+		var me = this;
+		if(noEvent) {
+			me.suspendEvent('tabchange');
+			me.callParent([tab]);
+			me.resumeEvent('tabchange');
+		} else {
+			me.callParent([tab]);
+		}	
+	},
 	onTabChange: function (set,ntab,otab) {
 		var me = this;
 

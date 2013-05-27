@@ -49,6 +49,5 @@ Ext.define('itwc.container.TabItem',{
 	},
 	setCloseTaskId: function (closeTaskId) {
 		this.closeTaskId = closeTaskId;
-		this.setClosable(Ext.isString(closeTaskId));
 	}
 });

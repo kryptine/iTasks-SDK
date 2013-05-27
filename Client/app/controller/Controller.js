@@ -109,7 +109,6 @@ Ext.define('itwc.controller.Controller', {
 		var me = this,
 			params = {editEvent: Ext.encode([taskId,editorId,value])};
 		
-		//me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING	
 		me.queueTaskEvent(params);
 	},
 	//iTasks action events
