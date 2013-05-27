@@ -5,9 +5,9 @@ Ext.define('itwc.component.edit.Decimal',{
 	allowDecimals: true,
 	hideTrigger: true,
 
-	initComponent: function() {
-		Ext.applyIf(this,{decimalPrecision: 20});
+	decimalPrecision: 20,
 
+	initComponent: function() {
 		this.callParent(arguments);
 		this.initEditable();
 	}

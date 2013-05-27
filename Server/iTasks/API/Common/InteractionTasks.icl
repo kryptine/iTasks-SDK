@@ -65,6 +65,7 @@ updateSharedInformation d [UpdateWith tof fromf] shared
 				)
 				@ snd
 				@> (mapval,shared)
+
 updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
 	//If different types are used we can only resort to a display of type r and an enter of type w
@@ -79,7 +80,6 @@ updateSharedInformation d _ shared
 				(\r -> let v = (Display r,defaultValue) in (defaultValue,v,PartiallyTouched [Touched,Untouched]))
 				(\l r (_,v) (PartiallyTouched [_,m]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,PartiallyTouched [Touched,m])))
 				@> (mapval,shared)	
-
 
 mapval (Value w _) _	= Just w
 mapval _ _				= Nothing

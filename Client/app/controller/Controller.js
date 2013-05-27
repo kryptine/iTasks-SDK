@@ -169,7 +169,7 @@ Ext.define('itwc.controller.Controller', {
 
 			me.flushingTaskEvents = true;
 			Ext.Ajax.request({
-				url: '/?format=json-gui',
+				url: '?format=json-gui',
 				params: params,
 				scripts: false,
 				callback: me.receiveTaskUpdates,

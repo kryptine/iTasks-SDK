@@ -43,7 +43,7 @@ Ext.define('itwc.component.edit.Time',{
 			selModel: {
 				mode: 'SINGLE'
 			},
-			cls: undefined,
+			//cls: undefined,
 			minValue: me.minValue,
 			maxValue: me.maxValue,
 			increment: me.increment,

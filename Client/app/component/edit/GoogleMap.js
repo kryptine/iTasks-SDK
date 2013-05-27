@@ -30,7 +30,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 				me.setupMap();
 				break;
 			case 'loading':
-				this.self.googleApiWaiters.push(Ext.bind(me.setupMap,me));
+				me.self.googleApiWaiters.push(Ext.bind(me.setupMap,me));
 				break;
 			case 'unloaded':
 				me.self.googleApiStatus = 'loading';
@@ -51,12 +51,8 @@ Ext.define('itwc.component.edit.GoogleMap',{
 		this.self.googleApiStatus = 'loaded';
 		this.setupMap();
 	},
-	apiLoaded: function() {
-		this.self.googleApiStatus = 'loaded';
-		this.setupMap();
-	},
 	getMapType : function (mapType){
-		return eval("google.maps.MapTypeId."+mapType);
+		return google.maps.MapTypeId[mapType];
 	},
 	getOptions : function() {
 		var me = this, options = me.options;
@@ -70,7 +66,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 	setupMap: function() {
 		var me = this;
 		
-		if(!me.map) {
+		if(!me.map && me.el) {
 			
 			me.map = new google.maps.Map(me.el.dom, me.getOptions());
 			me.addMarkers();
@@ -159,21 +155,55 @@ Ext.define('itwc.component.edit.GoogleMap',{
 		}
 	},
     afterComponentLayout: function() {
-    	if(this.map) {
-    		google.maps.event.trigger(this.map, 'resize');
-    		//Correct center after resize
-    		this.map.setCenter(new google.maps.LatLng(this.center[0],this.center[1]));	
-    	}
-    	this.callParent(arguments);
-    },
-	setValue: function(value) {
-	},
-	selfUpdate: function(def) {
 		var me = this;
-	
-		//Update perspective
 
-		//Update markers
+    	if(me.map) {
+    		google.maps.event.trigger(me.map, 'resize');
+    		//Correct center after resize
+    		me.setCenter(me.center);	
+    	}
+    	me.callParent(arguments);
+    },
+	setValue: Ext.emptyFn,
+
+	//Functions for incremental diff
+	setCenter: function (center) {
+		var me = this;
+		me.center = center;
+		if(me.rendered) {
+    		me.map.setCenter(new google.maps.LatLng(center[0],center[1]));	
+		}
+	},
+	setMapType: function (mapType) {
+		var me = this;
+		me.mapType = mapType;
+		if(me.rendered) {
+			me.map.setMapTypeId(me.getMapType(mapType));
+		}
+	},
+	setOptions: function (options) {
+		var me = this;	
+		me.options = options;
+		if(me.rendered) {
+			me.map.setOptions(me.getOptions());
+		}
+		console.log("setOptions",options);
+	},
+	addMarker: function(index, def) {
+		console.log("addMarker",index,def);
+	},
+	updateMarker: function(index, def) {
+		var me = this,
+			marker = me.displayedMarkers[index];
+		
+		me.markers[index] = def;	
+		if(me.rendered) {
+			//Update position
+			marker.setPosition(new google.maps.LatLng(def.position[0],def.position[1]));
+		}
+	},
+	removeMarker: function(index) {
+		console.log("removeMarker",index);
 	},
 	onDestroy: function() {
 		if(this.map) {
