@@ -28,14 +28,20 @@ where p1xyz = normalizedlatLong2XYZ p1
       ip1p2 = inner3 p1xyz p2xyz
       alpha = acos ip1p2
 
-getHeadingToPositionDeg :: LatLng LatLng -> Real
-getHeadingToPositionDeg (lat1,lon1) (lat2,lon2) 
-= radials2degrees (getHeadingToPosition (degrees2radials lat1,degrees2radials lon1) (degrees2radials lat2,degrees2radials lon2))
+getDirectionToPositionDeg :: LatLng LatLng -> Real
+getDirectionToPositionDeg (lat1,lon1) (lat2,lon2) 
+= radials2degrees (getDirectionToPosition (degrees2radials lat1,degrees2radials lon1) (degrees2radials lat2,degrees2radials lon2))
 
-getHeadingToPosition :: LatLng LatLng -> Real
-getHeadingToPosition (lat1,lon1) (lat2,lon2) 
-=  atan ((sin(lon2 - lon1) * cos lat2) / 
-   (cos lat1 * sin lat2- sin lat1 * cos lat2  * cos(lon2 - lon1)))
+getDirectionToPosition :: LatLng LatLng -> Real
+getDirectionToPosition (lat1,lon1) (lat2,lon2) 
+= normalizeDirection (atan (x / y) + correction)
+where
+ x = sin(lon2 - lon1) * cos lat2  
+ y = cos lat1 * sin lat2- sin lat1 * cos lat2  * cos(lon2 - lon1)
+ correction | y < 0.0 && x < 0.0  = ~pi 
+            | y < 0.0 && x > 0.0  = pi
+            | y < 0.0 && x == 0.0 = ~pi
+            | otherwise           = 0.0
             
 normalizedlatLong2XYZ :: LatLng -> (!Real,!Real,!Real)
 normalizedlatLong2XYZ (lat,lng) = (r * cos lng,r * sin lng, sin lat)
@@ -49,13 +55,21 @@ inner2 (a1,a2) (b1,b2) = a1*b1+a2*b2
 
 normalizeLatLong :: LatLng -> LatLng
 normalizeLatLong (lat,lon) = (fst nn, normlon (snd nn))
-where nn | lat > pi / 2.0       = (pi - lat,      lon + pi)
-         | lat < 0.0 - pi / 2.0 = (0.0 - pi - lat,lon + pi)
+where nn | lat > pi / 2.0       = (pi - lat, lon + pi)
+         | lat < ~pi / 2.0      = (~pi - lat,lon + pi)
          | otherwise            = (lat,lon)
-      normlon lon | lon > pi       = normlon (lon - 2.0 * pi)
-                  | lon < 0.0 - pi = normlon (lon + 2.0 * pi)
-                  | otherwise      = lon
+      normlon lon | lon > pi    = normlon (lon - 2.0 * pi)
+                  | lon < ~pi   = normlon (lon + 2.0 * pi)
+                  | otherwise   = lon
+
+normalizeDirection :: !Real -> Real
+normalizeDirection direction | direction < ~pi = direction + 2.0 * pi
+                             | direction > pi  = direction - 2.0 * pi
+                                               = direction
       
+translateDeg :: LatLng !Real !Real -> LatLng
+translateDeg pos dir dist = translate pos (degrees2radials dir) dist
+
 translate :: LatLng !Real !Real -> LatLng
 translate (lat,lon) direction distance = normalizeLatLong (newlat,newlon)
 where newlat = lat + cos direction * distance / earth_radius
@@ -68,8 +82,8 @@ where angleDirection = angle / 2.0
 
 turningPoint :: LatLng LatLng LatLng !Real -> LatLng
 turningPoint p1 p2 p3 radius = distpoint
-where heading12 = getHeadingToPosition p1 p2
-      heading23 = getHeadingToPosition p2 p3
+where heading12 = getDirectionToPosition p1 p2
+      heading23 = getDirectionToPosition p2 p3
       deltaH    = heading23 - heading12
       distTurn  = distanceForTurning deltaH radius
       distpoint = translate p1 heading12 (distance p1 p2 - distTurn)
@@ -89,7 +103,7 @@ radius2angularVelocity :: !Real !Real -> Real
 radius2angularVelocity radius speed= speed / radius
 
 acceleration2angularVelocity :: !Real !Real -> Real
-acceleration2angularVelocity accel  speed= accel / speed;
+acceleration2angularVelocity accel  speed = accel / speed;
 
 angularVelocity2acceleration :: !Real !Real -> Real
 angularVelocity2acceleration w speed = speed / w
@@ -108,7 +122,16 @@ normsq p = inner2 p p
 
 // Relative position in plane
 relPosition :: LatLng LatLng -> (!Real,!Real)
-relPosition p1 p2 = dirDist2vector (getHeadingToPosition p1 p2) (distance p1 p2)
+relPosition p1 p2 = dirDist2vector (getDirectionToPosition p1 p2) (distance p1 p2)
+
+deltaDirection :: !Real !Real -> Real
+deltaDirection currentDir nextDir = delta
+where 
+ deltaTemp = nextDir - currentDir
+ delta | deltaTemp < ~pi = 2.0 * pi + deltaTemp
+       | deltaTemp > pi  = -2.0 * pi + deltaTemp
+       | otherwise       = deltaTemp
+    
 
 
 

@@ -1,6 +1,6 @@
 definition module GeoRoutines
 
-import StdEnv
+//import StdEnv
 
 :: LatLng :== (!Real,!Real)
 
@@ -12,13 +12,17 @@ toDegrees   ::  LatLng ->(Real,Real)
 // 3d part
 distance :: LatLng LatLng -> Real
 
-getHeadingToPositionDeg :: LatLng LatLng -> Real
+getDirectionToPositionDeg :: LatLng LatLng -> Real
+getDirectionToPosition :: LatLng LatLng -> Real
 
-getHeadingToPosition :: LatLng LatLng -> Real
+normalizeDirection :: !Real -> Real
                   
+translateDeg :: LatLng !Real !Real -> LatLng
 translate :: LatLng !Real !Real -> LatLng
       
 translateAlongCurve :: LatLng !Real !Real !Real -> LatLng
+
+deltaDirection :: !Real !Real -> Real
 
 // 2d part
 distanceForTurning :: !Real !Real -> Real
