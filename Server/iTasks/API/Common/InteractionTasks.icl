@@ -25,8 +25,8 @@ enterInformation d _ = enterInformation d [EnterWith id]
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInformation d [UpdateWith tof fromf] m
 	= interact d null
-		(\r -> let v = tof m in (m,v,Touched))
-		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,m))) (l,v,m))
+		(\r -> let v = tof m in (m,(v,Touched)))
+		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
 
 //TODO: THIS OPTIMIZATION IS WRONG!
 //	= interactNullUpdate d tof fromf m
@@ -36,8 +36,8 @@ updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)]
 updateInitialInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInitialInformation d [UpdateWith tof fromf] m
 	= interact d null
-		(\r -> let v = tof m in (m,v,Untouched))
-		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,m))) (l,v,m))
+		(\r -> let v = tof m in (m,(v,Untouched)))
+		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
 		
 updateInitialInformation d _ m = updateInitialInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
 
@@ -55,15 +55,14 @@ viewInformation d _ m = viewInformation d [ViewWith id] m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d [UpdateWith tof fromf] shared
 	= interact d (toReadOnly shared)
-				(\r -> let v = tof r in ((r,fromf r v),v,Touched))
-				(\l r v m ok -> if ok
-					(if (r =!= fst l) //If the share changed, refresh the view
-						(let nv = tof r in ((r,fromf r nv),nv,Touched))
-						((r,fromf r v),v,m)
+				(\r -> let v = tof r in (fromf r v,(v,Touched)))
+				(\l r (v,m) rCh vCh vOk -> if vOk
+					(if rCh //If the share changed, refresh the view
+						(let nv = tof r in (fromf r nv,(nv,Touched)))
+						(fromf r v,(v,m))
 					)
-					(l,v,m)
+					(l,(v,m))
 				)
-				@ snd
 				@> (mapval,shared)
 
 updateSharedInformation d _ shared			
@@ -72,13 +71,13 @@ updateSharedInformation d _ shared
 	= case dynamic id :: A.a: (a -> a) of
 		(rtow :: (r^ -> w^))
 			= interact d (toReadOnly shared)
-				(\r -> let v = rtow r in (rtow r,v,Touched))
-				(\l r v m ok -> if ok (if (rtow r =!= l) (let nv = rtow r in (nv,nv,Touched)) (v,v,m)) (l,v,m))
+				(\r -> let v = rtow r in (rtow r,(v,Touched)))
+				(\l r (v,m) rCh vCh vOk -> if vOk (if (rtow r =!= l) (let nv = rtow r in (nv,(nv,Touched))) (v,(v,m))) (l,(v,m)))
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)
-				(\r -> let v = (Display r,defaultValue) in (defaultValue,v,PartiallyTouched [Touched,Untouched]))
-				(\l r (_,v) (PartiallyTouched [_,m]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,PartiallyTouched [Touched,m])))
+				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,PartiallyTouched [Touched,Untouched])))
+				(\l r ((_,v),(PartiallyTouched [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,PartiallyTouched [Touched,m]))))
 				@> (mapval,shared)	
 
 mapval (Value w _) _	= Just w
@@ -97,12 +96,12 @@ viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
 updateInformationWithShared d [UpdateWith tof fromf] shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = tof (r,m) in (m,v,Touched))
-		(\l r v msk ok -> let nl = if ok (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,v,Touched)))
+		(\r -> let v = tof (r,m) in (m,(v,Touched)))
+		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,Touched))))
 updateInformationWithShared d _ shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = (Display r,m) in (m,v,PartiallyTouched [Touched,Untouched]))
-		(\l r (_,v) (PartiallyTouched [_,msk]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,PartiallyTouched [Touched,msk])))
+		(\r -> let v = (Display r,m) in (m,(v,PartiallyTouched [Touched,Untouched])))
+		(\l r ((_,v),(PartiallyTouched [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,PartiallyTouched [Touched,msk]))))
 
 enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d options container

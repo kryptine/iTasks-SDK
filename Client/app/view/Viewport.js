@@ -54,7 +54,11 @@ Ext.define('itwc.view.Viewport', {
 		return cmp;
 	},
 	setTitle: function(title) {
-		document.title = title; //Set the html document title
+		if(Ext.isString(title)) {
+			document.title = title; //Set the html document title
+		} else {
+			document.title = "";
+		}
 	},
 	addWindow: function (index, def) {
 		var me = this;

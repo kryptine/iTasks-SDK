@@ -132,7 +132,7 @@ where
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
-	=	(viewSharedInformation Void [ViewWith view] currentUser	
+	=	(viewSharedInformation attr [ViewWith view] currentUser	
 			>>* [AnyTime ActionRefresh								(\_ -> return Nothing)
 				,AnyTime (Action "Log out" [ActionIcon "logout"])	(\_ -> return (Just Logout))
 				]															
@@ -140,6 +140,7 @@ controlDashboard list
 	@	fromJust	
 where
 	view user	= "Welcome " +++ toString user		
+	attr		= Attribute "buttonPosition" "right"
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list

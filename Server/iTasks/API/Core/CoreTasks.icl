@@ -67,7 +67,7 @@ where
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 
-interact :: !d !(ReadOnlyShared r) (r -> (l,v,InteractionMask)) (l r v InteractionMask Bool -> (l,v,InteractionMask))
+interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
 			-> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun = Task eval
 where
@@ -76,7 +76,7 @@ where
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
-				# (l,v,mask)	= initFun r
+				# (l,(v,mask))	= initFun r
 				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
 	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{taskTime}
@@ -89,9 +89,10 @@ where
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
-		# changed				= (nts =!= ts) || (nr =!= r) 
-		# valid					= isValidMask (verifyMaskedValue nv nmask)
-		# (nl,nv,nmask) 		= if changed (refreshFun l nr nv nmask valid) (l,nv,mask)
+		# rChanged				= nr =!= r
+		# vChanged				= nts =!= ts
+		# vValid				= isValidMask (verifyMaskedValue nv nmask)
+		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,mask))
 		//Make visualization
 		# validity				= verifyMaskedValue nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc (visualizeAsText AsLabel nl) iworld

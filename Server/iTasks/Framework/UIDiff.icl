@@ -23,6 +23,7 @@ diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal (UIViewport iOpts
 	=	diffItems [] event iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
 	++	diffAllWindows event opts1.UIViewportOpts.windows opts2.UIViewportOpts.windows
 	++	(case (diffHotkeys (fromMaybe [] opts1.UIViewportOpts.hotkeys) (fromMaybe [] opts2.UIViewportOpts.hotkeys)) of [] = []; ops = [UIUpdate [] ops])
+	++	if (opts1.UIViewportOpts.title === opts2.UIViewportOpts.title) [] [UIUpdate [] [("setTitle",[toJSON opts2.UIViewportOpts.title])]]
 
 diffUIDefinitions d1 d2 event
 	= diffItems [] event (uiDefControls d1) (uiDefControls d2) 

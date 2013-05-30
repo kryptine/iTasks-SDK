@@ -92,16 +92,17 @@ autoFinalLayout def=:(UIControlSequence {UIControlSequence|attributes,controls,d
 autoFinalLayout (UIActionSet actions)
 	= UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing, windows = []}
 autoFinalLayout def=:(UIControlGroup {UIControlGroup|attributes,controls,direction,actions})
-	# (actions,_,panel)	= placePanelActions actions False (defToPanel (layoutControls def))
+	# (actions,_,panel)	= placePanelActions attributes direction actions False (defToPanel (layoutControls def))
 	# (menu,menukeys,_)	= actionsToMenus actions
 	# panel				= (setSize WrapSize WrapSize o setFramed True) panel
 	# items				= if (isEmpty menu) [panel] [setTBar menu panel]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			= case menukeys of [] = Nothing ; keys = Just keys
 	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys, windows = []}
-autoFinalLayout def=:(UIAbstractContainer {UIAbstractContainer|attributes,controls,direction,actions,windows,hotkeys})
+autoFinalLayout def=:(UIAbstractContainer ac=:{UIAbstractContainer|attributes,controls,direction,actions,windows,hotkeys})
 	# (menu,menukeys,_)	= actionsToMenus actions
-	# items				= if (isEmpty menu) [defToPanel def] [setTBar menu (defToPanel def)]
+	# panel				= defToPanel (UIAbstractContainer {UIAbstractContainer|ac & attributes = del TITLE_ATTRIBUTE attributes})
+	# items				= if (isEmpty menu) [panel] [setTBar menu panel]
 	# itemsOpts			= {defaultItemsOpts items & direction = direction, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			= case hotkeys ++ menukeys of [] = Nothing ; keys = Just keys
 	= UIViewport itemsOpts {UIViewportOpts|title= get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys, windows = windows}
@@ -229,11 +230,11 @@ where
 		[c=:(UIPanel _ _ _)]		= c	//Idem...
 		_							= defToContainer def
 		
-placePanelActions :: [UIAction] Bool UIControl  -> ([UIAction],[UIKeyAction],UIControl)
-placePanelActions actions placeMenus (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
+placePanelActions :: UIAttributes UIDirection [UIAction] Bool UIControl  -> ([UIAction],[UIKeyAction],UIControl)
+placePanelActions attr direction actions placeMenus (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
-	# items						= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
+	# (items,direction)			= addButtonPanel attr direction buttons items 
 	//Add button hotkeys
 	# opts						= {UIPanelOpts|opts & hotkeys = case fromMaybe [] opts.UIPanelOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
 	| placeMenus
@@ -245,24 +246,41 @@ placePanelActions actions placeMenus (UIPanel sOpts iOpts=:{UIItemsOpts|items} o
 				//Add menu hotkeys
 				# opts = {UIPanelOpts|opts & hotkeys = case fromMaybe [] opts.UIPanelOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
 				= {UIPanelOpts|opts & tbar = Just menus}
-		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts)
+		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items, direction = direction} opts)
 	| otherwise
-		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts)
-placePanelActions actions _ (UIContainer sOpts iOpts=:{UIItemsOpts|items} opts=:{UIContainerOpts|baseCls,bodyCls}) 
+		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items, direction = direction} opts)
+placePanelActions attr direction actions _ (UIContainer sOpts iOpts=:{UIItemsOpts|items} opts=:{UIContainerOpts|baseCls,bodyCls}) 
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
-	# items						= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
-	= (actions, hotkeys, UIContainer sOpts {UIItemsOpts|iOpts & items = items} opts) 
-placePanelActions actions _ control = (actions, [], control)
+	# (items,direction)			= addButtonPanel attr direction buttons items 
+	= (actions, hotkeys, UIContainer sOpts {UIItemsOpts|iOpts & items = items, direction = direction} opts) 
+placePanelActions attr direction actions _ control = (actions, [], control)
 
-placeWindowActions :: [UIAction] UIWindow -> ([UIAction],[UIKeyAction],UIWindow)
-placeWindowActions actions (UIWindow sOpts iOpts=:{UIItemsOpts|items} opts)
+//Adds a button panel to a set of controls
+//(not the prettiest code)
+addButtonPanel :: UIAttributes UIDirection [UIControl] [UIControl] -> (![UIControl],!UIDirection)
+addButtonPanel attr direction [] items = (items,direction)
+addButtonPanel attr direction buttons items 
+	= case (get "buttonPosition" attr,direction) of
+		(Nothing,Vertical)			= (items ++ [buttonPanel buttons],Vertical)
+		(Nothing,Horizontal)		= ([setDirection Horizontal (defaultContainer items),buttonPanel buttons],Vertical)
+		(Just "left",Vertical)		= ([buttonPanel buttons,setDirection Vertical (defaultContainer items)],Horizontal)
+		(Just "left",Horizontal)	= ([buttonPanel buttons:items],Horizontal)
+		(Just "right",Vertical)		= ([setDirection Vertical (defaultContainer items),buttonPanel buttons],Horizontal)
+		(Just "right",Horizontal)	= (items ++ [buttonPanel buttons],Horizontal)	
+		(Just "top",Vertical)		= ([buttonPanel buttons:items],Vertical)
+		(Just "top",Horizontal)		= ([buttonPanel buttons,setDirection Horizontal (defaultContainer items)],Vertical)
+		(Just "bottom",Vertical)	= (items ++ [buttonPanel buttons],Vertical)
+		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),buttonPanel buttons],Vertical)
+
+placeWindowActions ::  UIAttributes UIDirection [UIAction] UIWindow -> ([UIAction],[UIKeyAction],UIWindow)
+placeWindowActions attr direction actions (UIWindow sOpts iOpts=:{UIItemsOpts|items} opts)
 	//Place close action
 	# (close,actions)	= actionsToCloseId actions
 	# opts				= {UIWindowOpts|opts & closeTaskId = close}
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
-	# items				= if (isEmpty buttons) items (items ++ [buttonPanel buttons])
+	# (items,direction)	= addButtonPanel attr direction buttons items //if (isEmpty buttons) items (items ++ [buttonPanel buttons])
 	# opts				= {UIWindowOpts|opts & hotkeys = case fromMaybe [] opts.UIWindowOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
 	//Place menu actions
 	# (menus,hotkeys,actions)	= actionsToMenus actions
@@ -271,7 +289,7 @@ placeWindowActions actions (UIWindow sOpts iOpts=:{UIItemsOpts|items} opts)
 		_	
 			# opts	= {UIWindowOpts|opts & hotkeys = case fromMaybe [] opts.UIWindowOpts.hotkeys ++ hotkeys of [] = Nothing; hotkeys = Just hotkeys}
 			= {UIWindowOpts|opts & tbar = Just menus}
-	= (actions, [], UIWindow sOpts {UIItemsOpts|iOpts & items = items} opts)
+	= (actions, [], UIWindow sOpts {UIItemsOpts|iOpts & items = items, direction = direction} opts)
 
 //Merge the fragments of a composed interactive task into a single definition
 partialMerge :: UIControlSequence [UIDef] -> UIDef
@@ -319,11 +337,12 @@ where
 	processDef (UIActionSet {UIActionSet|actions})
 		= (actions,[],Nothing)
 	processDef def
-		| hasWindowContainerAttr (uiDefAttributes def) //TODO: Pass hotkeys along
-			# (actions,_, window)	= placeWindowActions (uiDefActions def) (defToWindow (layoutControls def))
+		# attributes = uiDefAttributes def
+		| hasWindowContainerAttr attributes //TODO: Pass hotkeys along
+			# (actions,_, window)			= placeWindowActions attributes (uiDefDirection def) (uiDefActions def) (defToWindow (layoutControls def))
 			= ([],[window:uiDefWindows def],Nothing)
 		| otherwise	
-			# (actions,_, panel)	= placePanelActions (uiDefActions def) False (defToPanel (layoutControls def))
+			# (actions,_, panel)	= placePanelActions attributes (uiDefDirection def) (uiDefActions def) False (defToPanel (layoutControls def))
 			= (actions,uiDefWindows def,Just panel)
 
 sideMerge :: UISide Int ParallelLayout -> ParallelLayout
@@ -339,8 +358,8 @@ where
 			LeftSide	= Horizontal
 		# restPart		= (restMerge noPrompt restParts)
 		
-		# (sideA,sideHK,sideUI)	= placePanelActions (uiDefActions sidePart) False (defToControl (layoutControls sidePart))
-		# (restA,restHK,restUI)	= placePanelActions (uiDefActions restPart) False (defToControl (layoutControls restPart))
+		# (sideA,sideHK,sideUI)	= placePanelActions (uiDefAttributes sidePart) (uiDefDirection sidePart) (uiDefActions sidePart) False (defToControl (layoutControls sidePart))
+		# (restA,restHK,restUI)	= placePanelActions (uiDefAttributes restPart) (uiDefDirection restPart) (uiDefActions restPart) False (defToControl (layoutControls restPart))
 		# sideUI				= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill sideUI)
 		# restUI				= fill restUI
 		# controls				= ifTL side [sideUI,restUI] [restUI,sideUI]
@@ -403,14 +422,14 @@ where
 		# actions				= uiDefActions def
 		# taskId				= get TASK_ATTRIBUTE attributes
 		| hasWindowContainerAttr attributes
-			# (actions,_,window)	= placeWindowActions (uiDefActions def) (defToWindow (layoutControls def))
+			# (actions,_,window)	= placeWindowActions attributes (uiDefDirection def) actions (defToWindow (layoutControls def))
 			= (Right window, actions)
 		| otherwise
 			# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 			# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
 			# (close,actions)		= actionsToCloseId actions
 			# (actions,_,UIPanel _ itemsOpts {UIPanelOpts|tbar,hotkeys})
-				= placePanelActions actions True (defToPanel (layoutControls def))
+				= placePanelActions attributes (uiDefDirection def) actions True (defToPanel (layoutControls def))
 			# tabOpts				= {UITabOpts|title = text , tbar = tbar, hotkeys = hotkeys, focusTaskId = taskId, closeTaskId = close,iconCls=iconCls}
 			= (Left (UITab itemsOpts tabOpts), actions /*if active actions []*/)
 

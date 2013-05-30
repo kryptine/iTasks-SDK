@@ -97,7 +97,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 *
 * @gin False
 */
-interact :: !d !(ReadOnlyShared r) (r -> (l,v,InteractionMask)) (l r v InteractionMask Bool -> (l,v,InteractionMask)) -> Task l | descr d & iTask l & iTask r & iTask v
+interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask))) -> Task l | descr d & iTask l & iTask r & iTask v
 
 /**
 * Evaluate a "World" function that does not yield any result once.
