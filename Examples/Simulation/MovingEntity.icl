@@ -44,10 +44,18 @@ where deltaTime                   = toReal (time - timeLate)
                                        
 //distanceToTarget :: MovingEntity LatLng -> Real
 
-moveAlongWayPoints :: MovingEntity [LatLng] Int -> (MovingEntity,[LatLng])
-moveAlongWayPoints me                                   []     time = ({me & speed = 0.0},[])
-moveAlongWayPoints me=:{direction,position,angVelocity} [p:ps] time  
-| dist2wp < deltaDist = moveAlongWayPoints me ps time
+moveAlongWayPoints :: MovingEntity [LatLng] Int Int -> (MovingEntity,Int)
+moveAlongWayPoints me=:{direction,position,angVelocity} ps pos  time | pos >= length ps = ({me & speed = 0.0},pos)
+                                                                     | dist2wp < deltaDist = moveAlongWayPoints me ps (pos+1) time
+                                                                     | otherwise           = (moveToTarget me p time,pos)
+where p            = ps !! pos
+      dist2wp      = distance position p
+      deltaDist    = toReal (time - me.timeLate) * me.speed 
+
+moveAlongWayPointsOld :: MovingEntity [LatLng] Int -> (MovingEntity,[LatLng])
+moveAlongWayPointsOld me                                   []     time = ({me & speed = 0.0},[])
+moveAlongWayPointsOld me=:{direction,position,angVelocity} [p:ps] time  
+| dist2wp < deltaDist = moveAlongWayPointsOld me ps time
 | otherwise           = (moveToTarget me p time,[p:ps])
 where dist2wp      = distance position p
       deltaDist    = toReal (time - me.timeLate) * me.speed 

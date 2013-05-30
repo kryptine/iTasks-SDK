@@ -3,9 +3,9 @@ module Airplane
 * This module provides a simple simulation of an airplane flying a route over the Netherlands
 */
 
-import iTasks, StdInt, StdOverloaded
+import iTasks, StdInt, StdOverloaded, MovingEntity
 
-:: LatLng :== (!Real,!Real)
+//:: LatLng :== (!Real,!Real)
 
 INITIAL_ROUTE = [(52.187704,4.776612)
 				,(52.709971,6.062013)
@@ -17,10 +17,12 @@ INITIAL_ROUTE = [(52.187704,4.776612)
 
 SIMULATE_INTERVAL :== 1 //In seconds
 
+derive class iTask MovingEntity, EntityProperties
+
 simulateInteractive :: Task [LatLng]
 simulateInteractive
 	= withShared INITIAL_ROUTE
-		\route -> simulateAirplanePosition route
+		\route -> simulateAirplanePosition route <<@ SetLayout (partLayout 0)
 	>&>
 		\mbPos -> interactWithSimulation (route >+| (mapRead fromJust mbPos))
 
@@ -28,15 +30,20 @@ simulateInteractive
 //First very simple simulation. Just round robin version of clock
 simulateAirplanePosition :: (Shared [LatLng]) -> Task LatLng //Just stay in one position
 simulateAirplanePosition route
-	= withShared 0
-		(\pos -> 
-			//Return the n-th waypoint
-			watch (mapRead (\(route,pos) -> route !! ( pos rem length route)) (route |+| pos))
+	= withShared (newMovingEntity 0 (fromDegrees (INITIAL_ROUTE !! 0)) 300.0 0, 1, 0)
+		(\state ->
+			watch (mapRead (\(plane,pos,time) -> toDegrees plane.MovingEntity.position) state)
+			
 			-||
 			//Step the position
-			forever (wait SIMULATE_INTERVAL >>- update inc pos) <<@ SetLayout (partLayout 0)
+			forever (wait SIMULATE_INTERVAL >>- update newPlanePosition (state >+| route))
 		)
-
+where
+	newPlanePosition :: ((MovingEntity,Int,Int),[LatLng]) -> (MovingEntity,Int,Int)
+	newPlanePosition ((plane,pos,time),route)
+		# (plane,pos) = moveAlongWayPoints plane (map fromDegrees route) pos time
+		= (plane,pos,time + 10)
+		
 //Interact with the running simulation
 interactWithSimulation :: (ReadWriteShared ([LatLng],LatLng) [LatLng]) -> Task [LatLng]
 interactWithSimulation sim

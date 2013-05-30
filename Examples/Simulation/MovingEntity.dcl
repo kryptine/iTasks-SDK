@@ -19,7 +19,8 @@ import GeoRoutines, iTasks
 
 newMovingEntity :: Int LatLng !Real !Int -> MovingEntity
 
-moveAlongWayPoints :: MovingEntity [LatLng] Int -> (MovingEntity,[LatLng])
+moveAlongWayPoints :: MovingEntity [LatLng] Int Int -> (MovingEntity,Int)
+moveAlongWayPointsOld    :: MovingEntity [LatLng] Int -> (MovingEntity,[LatLng])
 
 updatePosition :: MovingEntity !Int -> MovingEntity
 
