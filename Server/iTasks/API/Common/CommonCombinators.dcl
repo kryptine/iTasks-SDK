@@ -335,6 +335,7 @@ instance tune InPanel		//Indicate that this task is preferred to be placed in a 
 Always			:: Action (Task b)						-> TaskStep a b
 AnyTime 		:: Action ((Maybe a) -> Task b)			-> TaskStep a b
 WithResult 		:: Action (a -> Bool) (a -> Task b)		-> TaskStep a b
+WithValue       :: Action (a -> Task b)                 -> TaskStep a b
 WithoutResult	:: Action (Task b)						-> TaskStep a b
 WhenValid		:: (a -> Bool) (a -> Task b)			-> TaskStep a b
 WhenStable		:: (a -> Task b)						-> TaskStep a b
