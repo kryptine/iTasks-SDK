@@ -237,7 +237,11 @@ AnyTime a f = OnAction a (Just o f o valToMaybe)
 	
 WithResult :: Action (a -> Bool) (a -> Task b) -> TaskStep a b
 WithResult a p f = OnAction a (\tv -> if (maybe False p (valToMaybe tv)) (Just (f (fromJust (valToMaybe tv)))) Nothing)
-	
+//WithResult a p f = OnAction a (\tv -> maybe Nothing (\x -> if (p x) (Just (f x)) Nothing) tv) // TODO: Same as above? Can be eta-reduced...
+
+WithValue :: Action (a -> Task b) -> TaskStep a b
+WithValue a f = OnAction a (maybe Nothing (Just o f) o valToMaybe)
+
 WithoutResult :: Action (Task b) -> TaskStep a b
 WithoutResult a t = OnAction a (\tv -> if (isNothing (valToMaybe tv)) (Just t) Nothing)
 	
