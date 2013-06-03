@@ -35,6 +35,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.Document'	//An editor for uploading documents
 			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
 			  ,'itwc.component.edit.GoogleMap'	//An embedded Google map
+			  ,'itwc.component.edit.Oryx'	//A diagram editor
 			  ,'itwc.component.edit.Code'		//A source code text editor
 			  
 			  ,'itwc.component.choice.Dropdown'	     //A simple dropdown box for choosing from a fixed set
