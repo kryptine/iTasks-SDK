@@ -15,6 +15,13 @@ INITIAL_ROUTE = [(52.187704,4.776612)
 				,(51.556885,5.095216)
 				]
 
+MY_ROUTE = [(52.05586831074774, 5.50140380859375),(52.07444183716456, 6.336364746093759),
+            (52.07444183716456, 6.33636474609375),(51.82219818336938, 6.46820068359375), 
+            (51.67936786087718, 5.99578857421875),(51.80691653515817, 5.44647216796875)]
+
+ROUTE2 = [(52.9047608002297, 4.7124481201171875),(52.904346653702405, 4.8401641845703125),
+         (52.83927653705786, 4.857330322265625),(52.82932091031373, 4.7076416015625)]
+
 SIMULATE_INTERVAL :== 1 //In seconds
 
 derive class iTask MovingEntity, EntityProperties
@@ -30,7 +37,7 @@ simulateInteractive
 //First very simple simulation. Just round robin version of clock
 simulateAirplanePosition :: (Shared [LatLng]) -> Task LatLng //Just stay in one position
 simulateAirplanePosition route
-	= withShared (newMovingEntity 0 (fromDegrees (INITIAL_ROUTE !! 0)) 300.0 0, 1, 0)
+	= withShared (newMovingEntity 0 (fromDegrees (INITIAL_ROUTE!! 0)) 300.0 0, 1, 0)
 		(\state ->
 			watch (mapRead (\(plane,pos,time) -> toDegrees plane.MovingEntity.position) state)
 			
