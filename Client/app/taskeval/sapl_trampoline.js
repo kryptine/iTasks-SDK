@@ -42,7 +42,7 @@ Sapl = new function () {
 
 	this.print_consname = function (name) {
 		var a = name.trim();
-		var dot = a.indexOf(".");
+		var dot = a.lastIndexOf(".");
 		if(dot>0){
 			a = a.substring(dot+1);
 		}
@@ -126,11 +126,11 @@ Sapl = new function () {
 	}
 
 	this.isJust = function (consname){
-		return consname == "StdMaybe.Just" || consname == "Maybe.Just";
+		return consname == "StdMaybe.Just" || consname == "Data.Maybe.Just";
 	}
 
 	this.isNothing = function (consname){
-		return consname == "StdMaybe.Nothing" || consname == "Maybe.Nothing";
+		return consname == "StdMaybe.Nothing" || consname == "Data.Maybe.Nothing";
 	}
 
 	this.isCons = function (consname){
@@ -177,19 +177,19 @@ Sapl = new function () {
 				record = isArray(consfunc.fields);
 
 				// SPECIALIZED OVERRIDES!!!
-				if(consname == "SystemTypes.Username" || consname == "SystemTypes.Password"){
+				if(consname == "iTasks.API.Core.SystemTypes.Username" || consname == "iTasks.API.Core.SystemTypes.Password"){
 					return Sapl.feval(expr[2]);
-				}else if(consname == "SystemTypes._Date"){
+				}else if(consname == "iTasks.API.Core.SystemTypes._Date"){
 					var year = this.feval(expr[4]),
 					    month = this.feval(expr[3]),
 						day = this.feval(expr[2]);
 					return year.toString().lpad("0",4)+"-"+month.toString().lpad("0",2)+"-"+day.toString().lpad("0",2);
-				}else if(consname == "SystemTypes._Time"){
+				}else if(consname == "iTasks.API.Core.SystemTypes._Time"){
 					var hour = this.feval(expr[2]),
 					    min = this.feval(expr[3]),
 						sec = this.feval(expr[4]);
 					return hour.toString().lpad("0",2)+":"+min.toString().lpad("0",2)+":"+sec.toString().lpad("0",2);
-				}else if(consname == "SystemTypes.DateTime"){
+				}else if(consname == "iTasks.API.Core.SystemTypes.DateTime"){
 					var date = this.feval(expr[2]);
 					var time = this.feval(expr[3]);
 					return this.toJS(date) + " " + this.toJS(time);
