@@ -1,10 +1,11 @@
 implementation module Tasklet
 
 import iTasks, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition
-import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
-import sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
-import System.Time
-from Data.Map import newMap 
+import Sapl.Linker.LazyLinker, Sapl.Target.JS.CodeGeneratorJS, SaplHtml
+import graph_to_sapl_string, sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
+import System.Time, System.File, System.FilePath
+
+from Data.Map import newMap
 
 //---------------------------------------------------------------------------------------
 
@@ -220,35 +221,47 @@ where
 handlerr (Error str) = abort ("Tasklet.icl: " +++ str)
 handlerr (Ok a) = a
 
-linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{world}
+linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{world,sdkDirectory}
+	
+	/* 0. Load Clean flavour */
+	
+	# flavfile = sdkDirectory </> "Server" </> "lib" </> "SAPL" </>"clean.f"
+	
+	# (flavres, world) = readFile flavfile world
+	| isError flavres
+		= abort ("Flavour file cannot be found at " +++ flavfile)
+
+	# mbFlav = toFlavour (fromOk flavres)
+	| isNothing mbFlav
+		= abort "Error in flavour file"
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 
-	# (ls, world) = generateLoaderState world
+	# (ls, world) = generateLoaderState ["sapl"] [] world
 	// link functions indicated by the state structure
 	# saplst = graph_to_sapl_string state
-	# (ls, a, saplst, world) = linkSaplforExprByLoaderState ls newAppender saplst world
+	# (ls, a, saplst, world) = linkByExpr ls newAppender saplst world
 
 	// link functions indicated by result func
 	# saplRF = graph_to_sapl_string resultFunc
-	# (ls, a, saplRF, world) = linkSaplforExprByLoaderState ls a saplRF world
+	# (ls, a, saplRF, world) = linkByExpr ls a saplRF world
 
 	// link functions indicated by controller func
 	# (ls, a, mbSaplCF, world) = case mbControllerFunc of
 		Just cf # saplCF = graph_to_sapl_string cf
-				# (ls, a, saplCF, world) = linkSaplforExprByLoaderState ls a saplCF world
+				# (ls, a, saplCF, world) = linkByExpr ls a saplCF world
 				= (ls, a, Just saplCF, world)
 				= (ls, a, Nothing,  world)
 				
 	// link functions indicated by event handlers
 	# (ls, a, eventHandlers, world) = foldl (\(ls, a, hs, world) (e1,e2,f) = 
-				let (ls2, a2, f2, world2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) world
+				let (ls2, a2, f2, world2) = linkByExpr ls a (graph_to_sapl_string f) world
 				 in (ls2, a2, [(e1,e2,f2):hs], world2)) 
 			(ls, a, [], world) eventHandlers
 
 	// link functions indicated by event handlers
 	# (ls, a, interfaceFuns, world) = foldl (\(ls, a, hs, world) (fn, f) = 
-				let (ls2, a2, f2, world2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) world
+				let (ls2, a2, f2, world2) = linkByExpr ls a (graph_to_sapl_string f) world
 				 in (ls2, a2, [(fn,f2):hs], world2)) 
 			(ls, a, [], world) interfaceFuns
 
@@ -257,22 +270,22 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{wo
 	# sapl = toString a	
 	# (script, mbPst) = case sapl of
 		"" = ("", Nothing)
-		   = let (script, pst) = handlerr (generateJS sapl) in (toString script, Just pst)
+		   = let (script, pst) = handlerr (generateJS (fromJust mbFlav) False sapl) in (toString script, Just pst)
 	
 	/* 3. Generate expressions by ParserState */
 									
-	# statejs = toString (handlerr (exprGenerateJS saplst mbPst))
+	# statejs = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplst mbPst))
 
 	# events = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
-				(exprGenerateJS saplhandler mbPst)))) eventHandlers
+				(exprGenerateJS (fromJust mbFlav) False saplhandler mbPst)))) eventHandlers
 	
 	# intfcs = map (\(fn,saplfun) = (fn, toString (handlerr 
-				(exprGenerateJS saplfun mbPst)))) interfaceFuns	
+				(exprGenerateJS (fromJust mbFlav) False saplfun mbPst)))) interfaceFuns	// No trampolining
 	
-	# rfjs = toString (handlerr (exprGenerateJS saplRF mbPst))		
+	# rfjs = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplRF mbPst))		
 	
 	# cfjs = case mbSaplCF of
-		Just saplCF = Just (toString (handlerr (exprGenerateJS saplCF mbPst)))
+		Just saplCF = Just (toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplCF mbPst)))
 					= Nothing		
 
 /* For debugging:
