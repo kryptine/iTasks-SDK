@@ -15,11 +15,12 @@ from iTasks.Framework.IWorld	import :: IWorld
 from Internet.HTTP			import :: HTTPRequest, :: HTTPResponse
 
 //* Configuarion defaults
-DEFAULT_PORT		:== IF_POSIX_OR_WINDOWS 8080 80
-SEARCH_PATHS		:== RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
-DEFAULT_LOCATIONS	:== IF_POSIX_OR_WINDOWS ["/usr/lib/itasks"] ["C:\\Clean 2.3","C:\\Program Files"]
-RELATIVE_LOCATIONS	:== [".": take 5 (iterate ((</>) "..") "..")]
-URL_PREFIX			:== ""
+DEFAULT_PORT			:== IF_POSIX_OR_WINDOWS 8080 80
+DEFAULT_KEEPALIVE_TIME	:== 300 // 5 minutes
+SEARCH_PATHS			:== RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
+DEFAULT_LOCATIONS		:== IF_POSIX_OR_WINDOWS ["/usr/lib/itasks"] ["C:\\Clean 2.4","C:\\Program Files"]
+RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
+URL_PREFIX				:== ""
 
 :: PublishedTask =
 	{ url			:: String
@@ -33,6 +34,7 @@ URL_PREFIX			:== ""
 :: ServiceFormat
 	= WebApp			
 	| JSONGui
+	| JSONGuiEventStream
 	| JSONService
 	| JSONPlain
 

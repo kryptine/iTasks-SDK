@@ -18,9 +18,7 @@ where
 		= [((==) (URL_PREFIX +++ url), webService task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
 	defaultHandlers
-		= [((==) "/stop", handleStopRequest)
-		  ,(startsWith URL_PREFIX, handleStaticResourceRequest)
-		  ]
+		= [(startsWith URL_PREFIX, handleStaticResourceRequest)]
 
 initIWorld :: !FilePath !*World -> *IWorld
 initIWorld sdkPath world
@@ -60,6 +58,7 @@ initIWorld sdkPath world
 	  ,sessions				= newMap
 	  ,uis					= newMap
 	  ,workQueue			= []
+	  ,shutdown				= False
 	  ,world				= world
 	  }
 where
@@ -110,9 +109,6 @@ where
 	//Translate a URL path to a filesystem path
 	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 	mimeType path	= extensionToMimeType (takeExtension path)
-
-handleStopRequest :: HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-handleStopRequest req iworld = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, iworld) //Stop
 
 path2name path = last (split "/" path)
 

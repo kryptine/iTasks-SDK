@@ -8,7 +8,7 @@ import iTasks.API.Core.SystemTypes
 
 //Flag for disabling use of the compiled version of the client javascript
 //only useful when doing work on the client framework
-IF_CLIENT_DEV yes no	:== yes
+IF_CLIENT_DEV yes no	:== no
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
@@ -51,7 +51,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve start page
 		WebApp	
 			=  (appStartResponse application, iworld)
-		//Serve the user interface representations
+		//Serve the user interface representation once, or if possible the diff between the current task GUI and a previous version
 		JSONGui
 			//Load or create session context and edit / evaluate
 			# (mbResult, mbPrevUI, iworld)	= case sessionParam of
@@ -98,6 +98,15 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
 			= (jsonResponse json, iworld)
+		//Serve the task representation as a continuous stream of GUI update events.
+		JSONGuiEventStream
+			# (_,iworld)	= case sessionParam of
+				""	= createSessionTaskInstance (task req) RefreshEvent iworld
+				sessionId
+					= evalSessionTaskInstance sessionId event iworld
+			# events = []
+			= (eventsResponse events, iworld)
+
 		//Serve the task in easily accessable JSON representation
 		JSONService
 			# (mbResult,iworld)	= case sessionParam of
@@ -128,6 +137,7 @@ where
 	format			= case formatParam of
 		"webapp"			= WebApp
 		"json-gui"			= JSONGui
+		"json-gui-events"	= JSONGuiEventStream
 		"json-service"		= JSONService
 		"json-plain"		= JSONPlain
 		_					= defaultFormat
@@ -154,7 +164,7 @@ where
 	guiVersion			= toInt versionParam
 
 	jsonResponse json
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = /*toString*/ jsonPrettyPrint json}
+		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString /*jsonPrettyPrint*/ json}
 	errorResponse msg
 		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
 			
@@ -170,10 +180,15 @@ where
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
-
-	appStartPage appName = HtmlTag [] [head,body]
+	eventsResponse events
+		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")], rsp_data = formatEvents events}
 	where
+		formatEvents events = ""//TODO	
+
+	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
+	where
+		appStartPage appName = HtmlTag [] [head,body]
+
 		head = HeadTag [] [TitleTag [] [Text appName]: styles ++ scripts]
 		body = BodyTag [] []
 	

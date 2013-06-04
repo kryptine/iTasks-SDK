@@ -142,3 +142,8 @@ accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a
 * @gin False
 */
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
+
+/**
+* Terminates a running task server
+*/
+shutDown :: Task Void

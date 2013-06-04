@@ -133,7 +133,7 @@ where
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
 	=	(viewSharedInformation attr [ViewWith view] currentUser	
-			>>* [AnyTime ActionRefresh								(\_ -> return Nothing)
+			>>* [AnyTime (Action "Shutdown" [ActionIcon "close"])	(\_ -> shutDown @ (const Nothing))
 				,AnyTime (Action "Log out" [ActionIcon "logout"])	(\_ -> return (Just Logout))
 				]															
 		) <! isJust	<<@ AfterLayout (uiDefSetDirection Horizontal)

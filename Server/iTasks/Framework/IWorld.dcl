@@ -10,8 +10,8 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
 from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
-from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
-from HttpServer			import class HttpEnv
+from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.TaskServer	import class HttpServerEnv
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -33,6 +33,7 @@ from HttpServer			import class HttpEnv
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 					, uis					:: !Map SessionId (!Int,!UIDef)				// Previous ui versions to optimize output sent to clients
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
+					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					, world					:: !*World									// The outside world
 					}
 
@@ -54,7 +55,7 @@ getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld)
 
 instance FileSystem IWorld
 
-instance HttpEnv IWorld
+instance HttpServerEnv IWorld
 
 instance registerSDSDependency		InstanceNo	IWorld
 instance registerSDSChangeDetection				IWorld

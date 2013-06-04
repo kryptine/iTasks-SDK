@@ -10,7 +10,7 @@ from iTasks.Framework.TaskState			import :: TaskListEntry
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
-from HttpServer import class HttpEnv(..)
+from iTasks.Framework.TaskServer import class HttpServerEnv(..)
 
 from Data.List import splitWith
 from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
@@ -118,9 +118,9 @@ where
 		# (ok,file,world) = sfopen filename mode world
 		= (ok,file,{IWorld|iworld & world = world})
 
-instance HttpEnv IWorld
+instance HttpServerEnv IWorld
 where
-	httpServerTimestamp iworld=:{IWorld|world}
+	serverTime iworld=:{IWorld|world}
 		# (ts,world) = time world
 		= (ts,{IWorld|iworld & world = world})
 

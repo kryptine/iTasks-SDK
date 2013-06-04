@@ -146,3 +146,6 @@ where
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
+
+shutDown :: Task Void 
+shutDown = mkInstantTask (\taskId iworld -> (Ok Void, {IWorld|iworld & shutdown = True}))
