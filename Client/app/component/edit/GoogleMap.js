@@ -194,12 +194,27 @@ Ext.define('itwc.component.edit.GoogleMap',{
 	},
 	updateMarker: function(index, def) {
 		var me = this,
-			marker = me.displayedMarkers[index];
+			marker = me.displayedMarkers[index],
+			icon;
 		
 		me.markers[index] = def;	
 		if(me.rendered) {
 			//Update position
 			marker.setPosition(new google.maps.LatLng(def.position[0],def.position[1]));
+			//Update icon
+			if(def.icon && def.icon[0] == "GoogleMapSimpleIcon" ) { 
+				icon = "/icons/" + def.icon[1];	
+			} else if(def.icon && def.icon[0] == "GoogleMapComplexIcon" ) { 
+				icon = def.icon[1];
+				icon = new google.maps.MarkerImage("/icons/" + icon.image
+						, new google.maps.Size(icon.size[0], icon.size[1])
+						, new google.maps.Point(icon.origin[0], icon.origin[1])
+						, new google.maps.Point(icon.anchor[0], icon.anchor[1])
+						);
+			} else {
+				icon = null;
+			} 
+			marker.setIcon(icon);
 		}
 	},
 	removeMarker: function(index) {

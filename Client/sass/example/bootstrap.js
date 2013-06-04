@@ -811,6 +811,7 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.grid.column.Number": [
     "Ext.grid.NumberColumn"
   ],
+  "itwc.component.edit.Oryx": [],
   "Ext.draw.engine.Svg": [],
   "Ext.grid.property.Grid": [
     "Ext.grid.PropertyGrid"
@@ -1913,6 +1914,9 @@ Ext.ClassManager.addNameAliasMappings({
   ],
   "Ext.grid.column.Number": [
     "widget.numbercolumn"
+  ],
+  "itwc.component.edit.Oryx": [
+    "widget.itwc_edit_oryx"
   ],
   "Ext.draw.engine.Svg": [],
   "Ext.grid.property.Grid": [

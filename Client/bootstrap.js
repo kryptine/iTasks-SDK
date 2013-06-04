@@ -88,6 +88,7 @@ Ext.ClassManager.addNameAlternateMappings({
   "itwc.component.view.Checkbox": [],
   "itwc.component.choice.Tree": [],
   "itwc.view.Viewport": [],
+  "itwc.component.edit.Oryx": [],
   "Ext.ux.statusbar.StatusBar": [
     "Ext.ux.StatusBar"
   ],
@@ -296,6 +297,9 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.itwc_choice_tree"
   ],
   "itwc.view.Viewport": [],
+  "itwc.component.edit.Oryx": [
+    "widget.itwc_edit_oryx"
+  ],
   "Ext.ux.statusbar.StatusBar": [
     "widget.statusbar"
   ],
