@@ -277,6 +277,7 @@ where
 					| offset<size input && input.[offset]==':'
 						= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
 						= (JSONError, offset_after_bracket_open)
+					= (JSONError, offset_after_bracket_open)
 				= (JSONError, offset_after_bracket_open)
 		where
 			lex_label :: !Int !Int !{#Char} -> (!{#Char},!Int)
