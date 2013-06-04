@@ -8,6 +8,9 @@ import iTasks.API.Extensions.Gin.Domain
 import iTasks.Gin.Syntax
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 
+//Start :: *World -> *World
+//Start world = startEngine [ publish "/" WebApp (const ginEditor`)
+                          //, publish "/stencils" JSONPlain stencilService] world
 Start :: *World -> *World
 Start world = startEngine (manageWorkflows workflows) world
 where

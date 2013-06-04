@@ -7,6 +7,7 @@ from StdMisc import undef
 //import Text
 from Text import class Text (..), instance Text String
 import iTasks
+import Data.Error
 import Data.Maybe
 import Data.Void
 
@@ -14,6 +15,8 @@ import iTasks.Gin.AbstractSyntax
 import iTasks.Gin.Config
 import iTasks.Gin.Compiler
 import iTasks.API.Extensions.Gin.Domain
+import iTasks.Gin.ORYXStencil
+import iTasks.Gin.ORYXExtensions
 import iTasks.Gin.Parser
 from iTasks.Gin.Printer import :: Doc, prettyPrint, instance Printer Doc
 import iTasks.Gin.Storage
@@ -58,19 +61,6 @@ where
     dialog config = updateInformation "GiN editor setup" [] config >>= \config =
                     accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
 
-:: EditorState =
-    { config        :: !GinConfig
-    , name          :: !Maybe String
-    , gMod          :: !GModule
-    , checkSyntax	:: !Bool
-    , changed		:: !Bool
-    , dirty			:: !Bool
-    , errors		:: ![ORYXError]
-    , source		:: !String
-    , compiled		:: !Maybe String
-    }
-
-derive class iTask EditorState
 
 getInitialState :: Task EditorState
 getInitialState = getAndSetupConfig >>= \config -> return
@@ -86,7 +76,22 @@ getInitialState = getAndSetupConfig >>= \config -> return
     , compiled		= Nothing
     }
 
+:: EditorState =
+    { config        :: !GinConfig
+    , name          :: !Maybe String
+    , gMod          :: !GModule
+    , checkSyntax	:: !Bool
+    , changed		:: !Bool
+    , dirty			:: !Bool
+    , errors		:: ![ORYXError]
+    , source		:: !String
+    , compiled		:: !Maybe String
+    }
+    
+derive class iTask EditorState
+
 //------------------------------------------------------------------------------
+
 ActionCompile          :== Action "File/Compile" []
 ActionRun              :== Action "File/Run"    []
 ActionViewDeclaration  :== Action "View/Declaration" []
@@ -98,7 +103,7 @@ ActionEnableSC         :== Action "Options/Enable syntax checking" []
 ActionDisableSC        :== Action "Options/Disable syntax checking" []
 ActionConfiguration    :== Action "Options/Configuration" []
 
-//ginEditor` :: Task Void
+ginEditor` :: Task [(TaskTime,TaskValue EditorState)]
 ginEditor` =
     getAndSetupConfig >>|
     getInitialState >>= \initialState ->
@@ -122,7 +127,8 @@ ginEditor` =
                     , (Embedded, \tl -> chooseAction (actions st tl) >>= id)
                     , (Embedded, \_  -> activator st)
                     ]
-         updateTask st = updateSharedInformation "Workflow diagram" [UpdateWith diagramView diagramUpdate] st
+         updateTask st = getStencilUrl UseSearchPathStencil >>= \surl -> // TODO: No hardcoding
+                         updateSharedInformation "Workflow diagram" [UpdateWith (diagramView surl) (diagramUpdate surl)] st
 
 //ginParallelLayout :: ParallelLayouter
 //ginParallelLayout = undef// \par=:{UIParallel|title,instruction,items}-> 
@@ -137,15 +143,16 @@ ginEditor` =
             //({UIDef | hd interaction.editorParts & width = Just (FillParent 1 (FixedMinSize 400))},interaction.UIInteraction.actions)
         //_ 	= defaultInteractionLayout interaction
 
-diagramView :: EditorState -> ORYXEditor
-diagramView { EditorState | gMod = { moduleKind = GGraphicalModule defs }, errors } =
+diagramView :: String EditorState -> ORYXEditor
+diagramView surl { EditorState | gMod = { moduleKind = GGraphicalModule defs }, errors } =
     { ORYXEditor
     | (ginORYXEditor (hd defs).GDefinition.body)
     & errors = errors
+    , stencilset.ORYXStencilSetReference.url = surl
     }
 
-diagramUpdate :: EditorState ORYXEditor -> EditorState
-diagramUpdate state editor = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
+diagramUpdate :: String EditorState ORYXEditor -> EditorState
+diagramUpdate surl state editor = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
 where
     setDiagram :: !GModule !ORYXEditor -> GModule
     setDiagram gMod =:{moduleKind = (GGraphicalModule defs)} editor=:{diagram}
@@ -400,11 +407,11 @@ where
 
 tryRender :: GModule GinConfig PrintOption *World -> (String, *World)
 tryRender gMod config printOption world
-# (st, world) = gToAModule gMod config world
-# source = case runParse st of
-    GSuccess aMod -> prettyPrintAModule printOption aMod
-    GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = msg) errors)))
-= (source, world)
+  # (st, world) = gToAModule gMod config world
+  # source = case runParse st of
+      GSuccess aMod -> prettyPrintAModule printOption aMod
+      GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = msg) errors)))
+  = (source, world)
 
 showAbout :: EditorState -> Task EditorState
 showAbout state = viewInformation "Gin workflow editor" [] "version 0.2" >>| return state
@@ -415,4 +422,71 @@ where
     eval taskNr iworld
         # (res,iworld) = fun iworld
         = (Ok res, iworld)
+
+getStencilUrl :: StencilServiceOpt -> Task String
+getStencilUrl so = stencilService so >>= generateStencil >>= return o stencilUrl
+
+generateStencil :: JSONNode -> Task Document
+generateStencil src = withTemporaryDirectory (\tmpDir ->
+  let tmpFile = tmpDir </> "ginstencil"
+  in  exportTextFile tmpFile (toString src) >>| importDocument tmpFile)
+
+stencilUrl :: Document -> String
+stencilUrl {Document|contentUrl} = contentUrl
+
+:: StencilServiceOpt = UseSearchPathStencil | UsePredefinedStencil | UseModuleStencil String
+
+stencilService :: StencilServiceOpt -> Task JSONNode
+stencilService opt = accIWorld mkStencilService
+  where  errorResponse message  = JSONObject [("success",JSONBool False),("error", JSONString message)]
+         okResponse stencilset  = toJSON stencilset
+         mkStencilService iworld
+           # iworld=:{world}    = iworld
+           # (mConfig, world)   = ginLoadConfig world
+           | isNothing mConfig  = (errorResponse "Failed to load configuration", {iworld & world = world})
+           | otherwise          =
+             case opt of
+               UseSearchPathStencil
+                   # (modules, world) = searchPathModules (fromJust mConfig) world
+                   = (okResponse (makeORYXExtensionsFile modules), {iworld & world = world})
+               UsePredefinedStencil
+                   = (okResponse predefinedStencilSet, iworld)
+               (UseModuleStencil name)
+                   # (mbContents, world) =  readModule (fromJust mConfig) name world
+                   | isError mbContents = (errorResponse (fromError mbContents), {iworld & world = world})
+                   = (okResponse (makeStencilSet (fromOk mbContents)), {iworld & world = world})
+
+//stencilService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+//stencilService url format path req iworld
+	//# iworld=:{world}		= iworld
+	//# (mConfig,world)		= ginLoadConfig world	
+	//| isNothing mConfig
+		//= (errorResponse "Failed to load configuration", {iworld & world = world})
+	//| otherwise
+		//= case path of
+		//[]
+			//# (modules, world) = searchPathModules (fromJust mConfig) world  
+			//= (okResponse (makeORYXExtensionsFile modules), {iworld & world = world})
+		//["gin"]
+			//= (okResponse predefinedStencilSet, iworld)
+		//["gin", name]
+			//# (mbContents, world) =  readModule (fromJust mConfig) name world  
+			//| isError mbContents = (errorResponse (fromError mbContents), {iworld & world = world})
+			//= (okResponse (makeStencilSet (fromOk mbContents)), {iworld & world = world})
+		//_
+			//= (notFoundResponse req, {iworld & world = world})
+//where
+	//html			= format == "html"
+	//sessionParam	= paramValue "session" req
+	//params			= [("session", sessionParam, False)]
+	
+	//errorResponse message
+		//# json	= JSONObject [("success",JSONBool False),("error", JSONString message)]
+		//= serviceResponse html "stencils" description url params json
+	
+	//okResponse stencilset
+		//# json	= toJSON stencilset
+		//= serviceResponse html "stencils" description url params json
+
+//description :== "This service provides a list of stencils that are available for placement in graphical workflow diagrams."
 
