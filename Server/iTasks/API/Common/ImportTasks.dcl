@@ -50,7 +50,7 @@ importCSVDocument	:: !Document -> Task [[String]]
 *
 * @return The imported content
 * @throws FileException
-* 
+*
 * @gin False
 */
 importCSVFileWith		:: !Char !Char !Char !FilePath -> Task [[String]]

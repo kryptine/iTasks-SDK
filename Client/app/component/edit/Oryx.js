@@ -103,32 +103,43 @@ Ext.define('itwc.component.edit.Oryx', {
 
     switch(oryxState) {
       case 'loaded':
+        console.log("afterRender: loaded");
         me.buildEditor();
         break;
 
       case 'loading':
-        waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        console.log("afterRender: loading");
+        //waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        //console.log(waitingForOryx);
+        window.onOryxResourcesLoaded();
+        //
         break;
 
       case 'unloaded':
+        console.log("afterRender: unloaded");
         oryxState = 'loading';
+
         var script = document.createElement("script");
         script.setAttribute('type', 'text/javascript');
         script.setAttribute('src', 'oryx-all.js');
         Ext.getHead().appendChild(script);
+
+        waitingForOryx.push(Ext.bind(me.buildEditor, me));
         break;
     }
   },
 
   buildEditor: function() {
-    var url = this.stencilsetURL[0] === '/' ?
-                this.stencilsetURL :
-                ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetURL;
+    console.log("logging stencilset URL: " + this.stencilsetUrl);
+    var url = this.stencilsetUrl[0] === '/' ?
+                this.stencilsetUrl :
+                ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetUrl;
 
+    console.log("buildEditor");
     this.facade = new ORYX.Editor({
       parentContainer: this,
       stencilset: {
-          url: url
+          url: this.stencilsetUrl //url
       }
     });
 
@@ -163,5 +174,6 @@ Ext.define('itwc.component.edit.Oryx', {
 
 window.onOryxResourcesLoaded = function() {
   oryxState = 'loaded';
+  console.log("In onOryxResourcesLoaded");
   waitingForOryx.each(function(build){build();});
 };

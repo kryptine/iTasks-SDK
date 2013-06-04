@@ -24,7 +24,8 @@ gVisualizeEditor{|ORYXEditor|} val vst=:{VSt | taskId, iworld}
   = (NormalEditor [(UIEditOryx sizeOpts editOpts oryxOpts, newMap)], {VSt | vst & iworld = iworld})
   where  sizeOpts = { UISizeOpts | width = Just FlexSize, minWidth = Just (ExactMin 400), height = Just FlexSize, minHeight = Just (ExactMin 400), margins = Nothing }
          editOpts = { UIEditOpts | taskId = toString taskId, editorId = "ORYX Editor", value = Nothing }//TODO
-         oryxOpts = { UIOryxOpts | stencilsetUrl = ""} // oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url}
+         oryxOpts = { UIOryxOpts | stencilsetUrl = oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url}
+         oryx     = fromMaybe emptyORYXEditor val
 
 //gVisualizeEditor{|ORYXEditor|} val vst=:{VSt | taskId, iworld}
   //# (uis, iw) = visualizeAsEditor val (VMUntouched Nothing True []) taskId autoLayout iworld

@@ -149,7 +149,7 @@ enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionC
 * @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
 *
 * @return 					The option chosen by the user
-* 
+*
 * @gin-icon choice
 */
 updateChoice :: !d ![ChoiceOption o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
@@ -162,10 +162,10 @@ updateChoice :: !d ![ChoiceOption o] !(container o) o -> Task o | descr d & Opti
 * @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
 *                           @default [] @gin-visible False
 * @param Shared:			Reference to the shared state including the options the user can choose from
-*
+*                           @share
 * @return 					The option chosen by the user
 * @throws					SharedException
-* 
+*
 * @gin-icon choice
 */
 enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
@@ -182,7 +182,7 @@ enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) -> 
 *
 * @return 					The option chosen by the user
 * @throws					SharedException
-* 
+*
 * @gin-icon choice
 */
 updateSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)

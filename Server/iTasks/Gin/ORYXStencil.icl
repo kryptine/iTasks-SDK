@@ -6,7 +6,8 @@ import StdList
 import StdOrdList
 import GenEq
 
-import JSON
+import Text.JSON
+import Text.XML
 import Text
 
 import iTasks.Gin.Syntax

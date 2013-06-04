@@ -2,6 +2,7 @@ definition module iTasks.Gin.ORYXStencil
 
 //import JSON
 
+from iTasks.Gin.SVG import :: SVGShape
 import iTasks.Gin.Syntax
 import iTasks.Gin.ORYX
 
@@ -60,7 +61,5 @@ derive JSONDecode 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, O
 
 makeStencilSet :: GModule -> ORYXStencilSet
 predefinedStencilSet :: ORYXStencilSet
-
-from GinSVG import :: SVGShape
 
 diagramView :: SVGShape

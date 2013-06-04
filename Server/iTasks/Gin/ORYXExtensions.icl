@@ -1,7 +1,7 @@
 implementation module iTasks.Gin.ORYXExtensions
 
-import Maybe
-import JSON
+import Data.Maybe
+import Text.JSON
 
 derive JSONEncode ORYXExtensionsFile, ORYXPerspective
 derive JSONDecode ORYXExtensionsFile, ORYXPerspective
