@@ -12,7 +12,11 @@
 
 // DO NOT DELETE - this directive is required for Sencha Cmd packages to work.
 //@require @packageOverrides
-
+ Ext.Loader.setConfig({
+     enabled : true //enable the dynamic dependency loading feature
+     ,disableCaching : false //Comment this line out when you need to reload your Extjs js files
+ });
+ 
 Ext.application({
 	name: 'itwc', //iTasks Web Client
 	

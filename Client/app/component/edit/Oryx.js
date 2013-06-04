@@ -1,6 +1,3 @@
-var oryxState = 'unloaded';
-var waitingForOryx = []; // Track components that wait for the api to load
-
 // Main impl
 Ext.define('itwc.component.edit.Oryx', {
   extend: 'Ext.panel.Panel',
@@ -10,6 +7,11 @@ Ext.define('itwc.component.edit.Oryx', {
   defaultWidth: 600,
   height: 'flex',
   defaultHeight: 400,
+
+  statics: {
+    oryxState: 'unloaded',
+    waitingForOryx: [] // Track components that wait for the api to load
+  },
 
   initComponent : function() {
     Ext.apply(this,
@@ -101,7 +103,7 @@ Ext.define('itwc.component.edit.Oryx', {
 
     me.callParent(arguments);//TODO Or callSuper?
 
-    switch(oryxState) {
+    switch(me.self.oryxState) {
       case 'loaded':
         console.log("afterRender: loaded");
         me.buildEditor();
@@ -109,45 +111,74 @@ Ext.define('itwc.component.edit.Oryx', {
 
       case 'loading':
         console.log("afterRender: loading");
-        //waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        me.self.waitingForOryx.push(Ext.bind(me.buildEditor, me));
         //console.log(waitingForOryx);
-        window.onOryxResourcesLoaded();
+        //window.onOryxResourcesLoaded();
         //
         break;
 
       case 'unloaded':
         console.log("afterRender: unloaded");
-        oryxState = 'loading';
+        me.self.oryxState = 'loading';
+        me.self.waitingForOryx.push(Ext.bind(me.buildEditor, me));
+
+        //window.onOryxResourcesLoaded = function() {
+          //Ext.bind(me.oryxResourcesLoaded, me);
+        //};
+
+        window.onOryxResourcesLoaded = Ext.bind(me.afterOryxResourcesLoaded, me);
 
         var script = document.createElement("script");
         script.setAttribute('type', 'text/javascript');
-        script.setAttribute('src', 'oryx-all.js');
+        script.setAttribute('src', '/lib/oryx/scripts/config.js');
         Ext.getHead().appendChild(script);
 
-        waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        var script = document.createElement("script");
+        script.setAttribute('type', 'text/javascript');
+        script.setAttribute('src', '/lib/oryx/oryx-all.js');
+        Ext.getHead().appendChild(script);
+
+        //waitingForOryx.push(Ext.bind(me.buildEditor, me));
         break;
     }
   },
 
+  afterOryxResourcesLoaded : function() {
+    var me = this;
+    me.self.oryxState = 'loaded';
+    console.log("In afterOryxResourcesLoaded");
+    //this.buildEditor();
+
+    me.self.waitingForOryx.each(function(build){build();});
+  },
+
   buildEditor: function() {
-    console.log("logging stencilset URL: " + this.stencilsetUrl);
-    var url = this.stencilsetUrl[0] === '/' ?
-                this.stencilsetUrl :
-                ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetUrl;
+    if (!this.rendered) {
+      return null;
+    }
+    var url = this.stencilsetUrl;
+    console.log("logging stencilset URL: " + url);
+    //var url = this.stencilsetUrl[0] === '/' ?
+                //this.stencilsetUrl :
+                //ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetUrl;
+
+    ORYX.CONFIG.SS_EXTENSIONS_CONFIG = url;
+    ORYX.CONFIG.ROOT_PATH = '/lib/oryx';
 
     console.log("buildEditor");
+    console.log("this.rendered: " + this.rendered);
     this.facade = new ORYX.Editor({
       parentContainer: this,
       stencilset: {
-          url: this.stencilsetUrl //url
+          url: url
       }
     });
 
-    this.facade.importJSON(this.value.diagram);
+    //this.facade.importJSON(this.value.diagram);
 
     var oryxControl = this;
-    this.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS,
-                                function(){ oryxControl.onChange(); });
+    //this.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS,
+                                //function(){ oryxControl.onChange(); });
   },
 
   setError: function(message) { },
@@ -172,8 +203,9 @@ Ext.define('itwc.component.edit.Oryx', {
   }
 });
 
-window.onOryxResourcesLoaded = function() {
-  oryxState = 'loaded';
-  console.log("In onOryxResourcesLoaded");
-  waitingForOryx.each(function(build){build();});
-};
+//window.onOryxResourcesLoaded = function() {
+  //Ext.bind()
+  //oryxState = 'loaded';
+  //console.log("In onOryxResourcesLoaded");
+  //waitingForOryx.each(function(build){build();});
+//};
