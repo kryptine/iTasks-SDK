@@ -6,6 +6,9 @@ definition module GeoRoutines
 
 earth_radius :: Real
 
+degrees2radials :: Real -> Real
+radials2degrees :: Real -> Real
+
 fromDegrees :: (Real,Real) -> LatLng
 toDegrees   ::  LatLng ->(Real,Real)
 

@@ -35,12 +35,11 @@ simulateInteractive
 
 //Simulate the movement of the airplane
 //First very simple simulation. Just round robin version of clock
-simulateAirplanePosition :: (Shared [LatLng]) -> Task LatLng //Just stay in one position
+simulateAirplanePosition :: (Shared [LatLng]) -> Task (LatLng,Int) //Position and heading
 simulateAirplanePosition route
 	= withShared (newMovingEntity 0 (fromDegrees (INITIAL_ROUTE!! 0)) 300.0 0, 1, 0)
 		(\state ->
-			watch (mapRead (\(plane,pos,time) -> toDegrees plane.MovingEntity.position) state)
-			
+			watch (mapRead (\(plane,pos,time) -> (toDegrees plane.MovingEntity.position, toInt (radials2degrees plane.MovingEntity.direction))) state)
 			-||
 			//Step the position
 			forever (wait SIMULATE_INTERVAL >>- update newPlanePosition (state >+| route))
@@ -52,14 +51,16 @@ where
 		= (plane,pos,time + 10)
 		
 //Interact with the running simulation
-interactWithSimulation :: (ReadWriteShared ([LatLng],LatLng) [LatLng]) -> Task [LatLng]
+interactWithSimulation :: (ReadWriteShared ([LatLng],(LatLng,Int)) [LatLng]) -> Task [LatLng]
 interactWithSimulation sim
 	= updateSharedInformation "Waypoints and position" [UpdateWith toPrj fromPrj] sim
 where
-	toPrj (route,pos) = {GoogleMap|defaultValue & perspective = perspective, markers = markers}
+	toPrj (route,(pos,heading)) = {GoogleMap|defaultValue & perspective = perspective, markers = markers}
 	where
 		markers			= waypointMarkers ++ [planeMarker]
-		planeMarker		= {GoogleMapMarker|defaultValue & title = Just "Airforce one", position = {GoogleMapPosition|lat=fst pos,lng=snd pos}, icon = Just ( GoogleMapSimpleIcon "jsf.png")}
+		planeMarker		= {GoogleMapMarker|defaultValue & title = Just "Airforce one", position = {GoogleMapPosition|lat=fst pos,lng=snd pos}, icon = Just planeIcon }
+		planeIcon		= GoogleMapComplexIcon {image="jsf-sprite.png",size=(24,24),origin=(0, 24 * headingIndex),anchor=(12,12)}
+		headingIndex	= ((heading + 360) rem 360) / 15
 		waypointMarkers = [{GoogleMapMarker|defaultValue & title = Just ("Waypoint " <+++ i), position = {GoogleMapPosition|lat=lat,lng=lng}} \\ (lat,lng) <- route & i <- [1..]]
 		perspective		= {GoogleMapPerspective|defaultValue.perspective & center = {lat = 52.948300, lng = 4.776007}, zoom = 7}
 		

@@ -11,7 +11,10 @@ earth_radius = 6371000.0
 
 pi = 3.141592653589
 
+degrees2radials :: Real -> Real
 degrees2radials deg = deg * pi / 180.0
+
+radials2degrees :: Real -> Real
 radials2degrees rad = rad * 180.0 / pi
 
 fromDegrees :: (Real,Real) -> LatLng
