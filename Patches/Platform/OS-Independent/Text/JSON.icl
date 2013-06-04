@@ -267,17 +267,22 @@ where
 	where
 		parse_object_items :: !Int !*[({#Char},JSONNode)] !Int !{#Char} -> (!JSONNode,!Int)
 		parse_object_items offset items offset_after_bracket_open input
-			| offset<size input && input.[offset]=='"'
-				# offset=offset+1
-				# (label,offset) = lex_label offset offset input
-				| offset>=0
-					| offset<size input && input.[offset]==':'
-						= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
-					# offset = skip_spaces offset input
-					| offset<size input && input.[offset]==':'
-						= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
+			| offset<size input
+				| input.[offset]=='"'
+					# offset=offset+1
+					# (label,offset) = lex_label offset offset input
+					| offset>=0
+						| offset<size input && input.[offset]==':'
+							= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
+							# offset = skip_spaces offset input
+							| offset<size input && input.[offset]==':'
+								= parse_object_items_after_label_and_colon label (offset+1) items offset_after_bracket_open input
+								= (JSONError, offset_after_bracket_open)
 						= (JSONError, offset_after_bracket_open)
-					= (JSONError, offset_after_bracket_open)
+					# c = input.[offset]
+					| c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\f' || c=='\v' // inlined isSpace c
+						= parse_object_items (skip_spaces (offset+1) input) items offset_after_bracket_open input
+						= (JSONError, offset_after_bracket_open)
 				= (JSONError, offset_after_bracket_open)
 		where
 			lex_label :: !Int !Int !{#Char} -> (!{#Char},!Int)
