@@ -435,21 +435,21 @@ taskletExamples =
 tasklet2 :: Task Drawing
 tasklet2
 	= 		mkInstanceId >>= \iid ->
-			mkTask (iid, painterTasklet)
+			mkTask (iid, painterTasklet) id
 		>>* [ OnValue ifStable 
 			] 
 
 tasklet1 :: Task Int
 tasklet1
 	= 		mkInstanceId >>= \iid ->
-			mkTask (iid, pushTasklet)
+			mkTask (iid, pushTasklet) id
 		>>* [ OnAction ActionOk (ifValue (\n -> n >= 3))
             ] 
 
 tasklet3 :: Task (Maybe GPSCoord)
 tasklet3
 	= 		mkInstanceId >>= \iid ->
-			mkTask (iid, geoTasklet)
+			mkTask (iid, geoTasklet) id
 		>>* [ OnAction ActionOk (ifValue isJust),
 		  	  OnAction ActionCancel (\_ = Nothing)
             ] 
@@ -457,7 +457,7 @@ tasklet3
 tasklet4 :: Task (Real, Real)
 tasklet4
 	= 		mkInstanceId >>= \iid ->
-	 		mkTask (iid, googleMapsTasklet 47.471944 19.050278)
+	 		mkTask (iid, googleMapsTasklet 47.471944 19.050278) id
 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)

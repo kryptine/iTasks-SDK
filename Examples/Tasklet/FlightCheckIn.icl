@@ -100,7 +100,7 @@ where
 		>>= return o fromString
 */
 
-chooseSeat (Just f) = mkInstanceId >>= \iid -> mkTask (iid, seatTasklet)
+chooseSeat (Just f) = mkInstanceId >>= \iid -> mkTask (iid, seatTasklet) id
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
@@ -147,7 +147,7 @@ where
 taskletExamples :: [Workflow]
 taskletExamples =
 	[workflow "Check-in" "Flight check-in" task_checkin]
-    
+
 Start :: *World -> *World
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist taskletExamples)) world
 
