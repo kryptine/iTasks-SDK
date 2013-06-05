@@ -51,7 +51,7 @@ import iTasks.Framework.Task, SaplHtml
 mkInstanceId :: Task String
 //mkInstance :: (Tasklet st res) -> Task (TaskletInstance st res)
 
-mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkTask :: (TaskletInstance st res) (st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 
 /*
  * Interface task(let): a Tasklet with additional interface functions for communication
@@ -61,7 +61,7 @@ mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncod
 
 :: InterfaceFun st = E.a: InterfaceFun !String !(st (Maybe Dynamic) *EventQueue -> *(!*EventQueue, st, a)) 
 
-mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] (st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 
 
 

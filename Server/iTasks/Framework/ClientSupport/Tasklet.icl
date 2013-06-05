@@ -41,11 +41,11 @@ where
 	taskFunc _ iworld=:{taskTime} = (Ok ("i" +++ toString taskTime, tasklet), iworld)
 */
 
-mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkTask ti = mkInterfaceTask ti []
+mkTask :: (TaskletInstance st res) (st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkTask ti pf = mkInterfaceTask ti [] pf
 
-mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkInterfaceTask (iid, tasklet) fs = Task taskFunc
+mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] (st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkInterfaceTask (iid, tasklet) fs parameterFunc = Task taskFunc
 where
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId ts) iworld
@@ -106,15 +106,16 @@ where
 		
 			TaskletHTML gui 
 
-				# (state_js, script_js, events_js, intfcs_js, rf_js, _, iworld) 
+				# (state_js, script_js, events_js, intfcs_js, rf_js, pf_js, _, iworld) 
 					= linker state
 							 (map interfaceWrapper fs) 
 							 (map eventHandlerWrapper gui.eventHandlers)
 							 tasklet.Tasklet.resultFunc
+							 parameterFunc
 						     Nothing
 						     iworld
 					
-				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js
+				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js pf_js
 				# rep = TaskRep (appTweak tui) []						
 				= (rep, state, iworld)
 
@@ -124,25 +125,27 @@ where
 						Just (iNo, eh) = (Just (toString iNo), Just eh)
 									   = (Nothing , Nothing)
 
-				# (state_js, script_js, _, _, rf_js, mb_cf_js, iworld) 
+				# (state_js, script_js, _, _, rf_js, pf_js, mb_cf_js, iworld) 
 					= linker state
 							 []
 							 []
 							 tasklet.Tasklet.resultFunc
+							 parameterFunc
 						     (fmap controllerWrapper mb_cf)
 						     iworld
 					
-				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino rf_js mb_cf_js
+				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino rf_js pf_js mb_cf_js
 				# rep = TaskRep (appTweak tui) []							
 				= (rep, state, iworld)
 
 			NoGUI
 			
-				# (state_js, script_js, _, intfcs_js, rf_js, _, iworld) 
+				# (state_js, script_js, _, intfcs_js, rf_js, pf_js, _, iworld) 
 					= linker state
 							 (map interfaceWrapper fs) 
 							 []
 							 tasklet.Tasklet.resultFunc
+							 parameterFunc
 						     Nothing
 						     iworld			
 			
@@ -157,13 +160,14 @@ where
 							, events   		 = Nothing
 							, interfaceFuncs = Just intfcs_js
 							, resultFunc	 = Just rf_js
+							, parameterFunc  = Just pf_js
 							, instanceNo	 = Nothing
 							, controllerFunc = Nothing})			
 			
 				# rep = TaskRep (appTweak tui) []				
 				= (rep, state, iworld)
 
-	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino rf_js mb_cf_js
+	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino rf_js pf_js mb_cf_js
 		 = toDef (UITasklet defaultSizeOpts 
 		 			{UITaskletOpts 
 		 			| taskId   		 = toString taskId
@@ -175,10 +179,11 @@ where
 					, events   		 = Nothing
 					, interfaceFuncs = Nothing
 					, resultFunc	 = Just rf_js
+					, parameterFunc  = Just pf_js
 					, instanceNo	 = mb_ino
 					, controllerFunc = mb_cf_js})
 
-	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js
+	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js pf_js
 		= toDef (setSize width height 
 			(UITasklet defaultSizeOpts 
 					 {UITaskletOpts 
@@ -191,6 +196,7 @@ where
 					 , events   	  = Just events_js
 					 , interfaceFuncs = Just intfcs_js					 
 					 , resultFunc     = Just rf_js
+ 					 , parameterFunc  = Just pf_js
 					 , instanceNo     = Nothing
 					 , controllerFunc = Nothing}))
 
@@ -221,7 +227,7 @@ where
 handlerr (Error str) = abort ("Tasklet.icl: " +++ str)
 handlerr (Ok a) = a
 
-linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{world,sdkDirectory}
+linker state interfaceFuns eventHandlers resultFunc parameterFunc mbControllerFunc iworld=:{world,sdkDirectory}
 	
 	/* 0. Load Clean flavour */
 	
@@ -245,6 +251,10 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{wo
 	// link functions indicated by result func
 	# saplRF = graph_to_sapl_string resultFunc
 	# (ls, a, saplRF, world) = linkByExpr ls a saplRF world
+
+	// link functions indicated by parameter func
+	# saplPF = graph_to_sapl_string parameterFunc
+	# (ls, a, saplPF, world) = linkByExpr ls a saplPF world
 
 	// link functions indicated by controller func
 	# (ls, a, mbSaplCF, world) = case mbControllerFunc of
@@ -283,6 +293,7 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{wo
 				(exprGenerateJS (fromJust mbFlav) False saplfun mbPst)))) interfaceFuns	// No trampolining
 	
 	# rfjs = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplRF mbPst))		
+	# pfjs = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplPF mbPst))		
 	
 	# cfjs = case mbSaplCF of
 		Just saplCF = Just (toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplCF mbPst)))
@@ -296,5 +307,5 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc iworld=:{wo
 	# (_, world) = writeFile "debug.js" script world
 */
 
-	= (statejs, script, events, intfcs, rfjs, cfjs, {iworld & world=world})
+	= (statejs, script, events, intfcs, rfjs, pfjs, cfjs, {iworld & world=world})
  
