@@ -304,6 +304,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
 	, interfaceFuncs :: !Maybe [(!String,!String)] 			// function name, function
 	, resultFunc     :: !Maybe String
+	, parameterFunc  :: !Maybe String
 	// They are a pair: the controller hijacks all the events sent to the given instance
 	, instanceNo	 :: !Maybe String
 	, controllerFunc :: !Maybe String
