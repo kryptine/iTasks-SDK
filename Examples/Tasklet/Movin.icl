@@ -37,13 +37,17 @@ where
 tasklet :: Task Void
 tasklet
 	= mkInstanceId >>= \iid ->
-	  mkTask (iid, movinTasklet) id >>|
-	  forever (waitForTime delay >>| mkTask (iid, movinTasklet) moveLeft) 
+	  forever (wait 10 -||- mkTask (iid, movinTasklet) moveLeft) 
 where
-	delay = {Time | hour = 0, min = 0, sec = 3}
-
 	moveLeft :: Position -> Position
 	moveLeft x = x + 10
-							     
+
+//Wait for (at least) n seconds
+wait :: Int -> Task Void
+wait n = get currentTime >>= \start -> watch currentTime >>* [OnValue (\(Value now _) -> if (now > addSeconds n start) (Just (return Void)) Nothing)]
+where
+	//ONLY CORRECT FOR n < 60
+	addSeconds n t = t + {Time|hour=0,min=0,sec=n}
+						     
 Start :: *World -> *World
 Start world = startEngine tasklet world
