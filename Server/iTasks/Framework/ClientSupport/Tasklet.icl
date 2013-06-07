@@ -98,7 +98,7 @@ where
 	taskInfo ts = {TaskInfo | lastEvent = ts, refreshSensitive = True} // expiresIn = Nothing}
 
 	placeHolderRep taskId
-		= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, iid = iid})) []
+		= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, iid = iid, script = Nothing, parameterFunc = Nothing})) []
 
 	genRep taskId taskRepOpts mbState iworld
 		# (gui, state, iworld) = tasklet.generatorFunc iid taskId mbState iworld

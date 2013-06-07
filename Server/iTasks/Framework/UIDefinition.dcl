@@ -313,6 +313,8 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 :: UITaskletPHOpts =
 	{ taskId		 :: !String
 	, iid		     :: !String	// instance id
+	, script		 :: !Maybe String
+	, parameterFunc  :: !Maybe String
 	}
 
 :: UIContainerOpts =

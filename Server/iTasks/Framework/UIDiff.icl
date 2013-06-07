@@ -89,12 +89,14 @@ diffControls path event c1 c2
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
 			| opts1.UITaskletOpts.iid == opts2.UITaskletOpts.iid
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId})])]]]
+					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId,
+														 script = opts2.UITaskletOpts.script, parameterFunc = opts2.UITaskletOpts.parameterFunc})])]]]
 				= [DiffImpossible]
 		(UITaskletPH sOpts1 opts1, UITasklet sOpts2 opts2)
 			| opts1.UITaskletPHOpts.iid == opts2.UITaskletOpts.iid		
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId})])]]]
+					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId, 
+					                                     script = opts2.UITaskletOpts.script, parameterFunc = opts2.UITaskletOpts.parameterFunc})])]]]
 				= [DiffImpossible]
 		// Placeholder on the right hand side: update
 		(UITaskletPH sOpts1 opts1, UITaskletPH sOpts2 opts2)

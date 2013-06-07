@@ -31,7 +31,7 @@ where
     style = "position:absolute; left:"+++toString x+++"px;top:8em;width:5em;line-height:3em;background:#99ccff;border:1px solid #003366;white-space:nowrap;padding:0.5em;"
     
 	onInit x _ _ d
-		# (d, str) = setDomAttr d "object" "style.left" (toString x)
+		# (d, str) = setDomAttr d "object" "style.left" (toString x+++"px")
 		= (d, x)
  
 tasklet :: Task Void
@@ -40,7 +40,7 @@ tasklet
 	  forever (wait 10 -||- mkTask (iid, movinTasklet) moveLeft) 
 where
 	moveLeft :: Position -> Position
-	moveLeft x = x + 10
+	moveLeft x = x + 40
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void
