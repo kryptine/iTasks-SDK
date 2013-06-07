@@ -23,13 +23,13 @@
 
 /**
  * This little script is used to enable debugging without the need to change oryx.js
- * 
+ *
  * It is included in the test/examples/*.xhtml files as separate script
  * To enable inclusion in the WAR file, build-with-script-files-flag has to be used together with
  * build-with-xhtml-test-files-flag target
  */
 
-// hack for Firebug 1.4.0a12, since console does not seem to be loaded automatically 
+// hack for Firebug 1.4.0a12, since console does not seem to be loaded automatically
 // this is causes no harm for Firebug 1.3.3
 loadFirebugConsole();
 
@@ -37,5 +37,5 @@ loadFirebugConsole();
 // this doesn't work with Firebug 1.4.0a12
 //if(typeof loadFirebugConsole == 'function') {
 	ORYX_LOGLEVEL = ORYX_LOGLEVEL_DEBUG
-//} 
+//}
 

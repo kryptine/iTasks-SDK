@@ -25,15 +25,15 @@ Ext.ns("Oryx.Plugins");
 
 ORYX.Plugins.BPMNImport = Clazz.extend({
     converterUrl: ORYX.CONFIG.ROOT_PATH + "bpmn2pn",
-    
+
     // Offers the plugin functionality
     construct: function(facade){
-    
+
         this.facade = facade;
-       
+
         this.importBpmn();
     },
-    
+
     /**
      * General helper method for parsing a param out of current location url
      * E.g. "http://oryx.org?param=value", getParamFromUrl("param") => "value"
@@ -51,14 +51,14 @@ ORYX.Plugins.BPMNImport = Clazz.extend({
             return results[1];
         }
     },
-    
+
     /**
      * Posts rdf (BPNM) to server and loads erdf (Petri net) into canvas
      * @param {Object} bpmnRdf
      */
     bpmnToPn: function(bpmnRdf){
         Ext.Msg.updateProgress(0.66, ORYX.I18N.BPMN2PNConverter.progress.convertingModel);
-        
+
        Ext.Ajax.request({
             url: this.converterUrl,
             method: 'POST',
@@ -80,22 +80,22 @@ ORYX.Plugins.BPMNImport = Clazz.extend({
                 rdf: bpmnRdf
             }
         });
-        
+
     },
-    
+
     /**
      * Loads rdf of given bpmn url
      */
     importBpmn: function(){
         var importBPMNUrl = this.getParamFromUrl("importBPMN");
-        
+
         if(!importBPMNUrl) return; //return if no model to import is given
-        
-        Ext.Msg.progress(ORYX.I18N.BPMN2PNConverter.progress.status, 
+
+        Ext.Msg.progress(ORYX.I18N.BPMN2PNConverter.progress.status,
                          ORYX.I18N.BPMN2PNConverter.progress.importingModel
         );
         Ext.Msg.updateProgress(0.33, ORYX.I18N.BPMN2PNConverter.progress.fetchingModel);
-        
+
         Ext.Ajax.request({
             url: this.getRdfUrl(importBPMNUrl),
             success: function(request){
@@ -108,9 +108,9 @@ ORYX.Plugins.BPMNImport = Clazz.extend({
             method: "GET"
         })
     },
-    
+
     /**
-     * getRdfUrl("http://localhost:8080/backend/poem/model/7/self") 
+     * getRdfUrl("http://localhost:8080/backend/poem/model/7/self")
      * => "http://localhost:8080/backend/poem/model/7/rdf"
      * getRdfUrl("http://localhost:8080/backend/poem/model/7/rdf" => "http://localhost:8080/backend/poem/model/7/rdf")
      * @param {String} url
@@ -123,9 +123,9 @@ ORYX.Plugins.BPMNImport = Clazz.extend({
 ORYX.Plugins.PNExport = Clazz.extend({
     // Offers the plugin functionality
     construct: function(facade){
-    
+
         this.facade = facade;
-       
+
         this.facade.offer({
             'name': ORYX.I18N.BPMN2PNConverter.name,
             'functionality': this.exportIt.bind(this),
@@ -138,7 +138,7 @@ ORYX.Plugins.PNExport = Clazz.extend({
             'maxShape': 0
         });
     },
-    
+
     exportIt: function(){
         //Throw error if model hasn't been saved before
     	var reqURI='';
@@ -149,7 +149,7 @@ ORYX.Plugins.PNExport = Clazz.extend({
 		else{
 			reqURI = '/backend/poem/'+(location.hash.slice(1).replace(/^\/?/,"").replace(/\/?$/,""))+"/rdf";
 		}
-        
+
         this.facade.raiseEvent({type: ORYX.Plugins.SyntaxChecker.RESET_ERRORS_EVENT});
         this.facade.raiseEvent({
             type: ORYX.Plugins.SyntaxChecker.CHECK_FOR_ERRORS_EVENT,
@@ -159,7 +159,7 @@ ORYX.Plugins.PNExport = Clazz.extend({
             }.bind(this)
         });
     },
-    
+
     /**
      * Opens petri net editor with bpmn model import
      * @methodOf: ORYX.Plugins.BPMNImport.prototype

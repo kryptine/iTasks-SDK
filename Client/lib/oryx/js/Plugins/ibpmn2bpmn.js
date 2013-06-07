@@ -26,24 +26,24 @@ if(!ORYX.Plugins)
 
 /**
  * Supports EPCs by offering a syntax check and export and import ability..
- * 
- * 
+ *
+ *
  */
 ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 
 	facade: undefined,
-	
+
 	TransformServletURL: './ibpmn2bpmn',
 
 	/**
 	 * Offers the plugin functionality:
-	 * 
+	 *
 	 */
 	construct: function(facade) {
-		
+
 		this.facade = facade;
-			
-			
+
+
 		this.facade.offer({
 			'name':				"Transform from iBPMN to BPMN",
 			'functionality': 	this.transform.bind(this),
@@ -58,20 +58,20 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 
 	},
 
-	
+
 	/**
 	 * Imports an AML description
-	 * 
+	 *
 	 */
 	transform: function(){
 		this._showImportDialog();
-	},		
+	},
 
-	
-	
+
+
 	/**
-	 * 
-	 * 
+	 *
+	 *
 	 * @param {Object} url
 	 * @param {Object} params
 	 * @param {Object} successcallback
@@ -85,43 +85,43 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
             asynchronous	: false,
             parameters		: params,
 			onSuccess		: function(transport) {
-				
+
 				suc = true;
-				
+
 				if(successcallback){
-					successcallback( transport.responseText )	
+					successcallback( transport.responseText )
 				}
-				
+
 			}.bind(this),
-			
+
 			onFailure		: function(transport) {
 
 				if(failedcallback){
-					
+
 					failedcallback( );
-					
+
 				} else {
 					Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.ERDFSupport.impFailed);
-					ORYX.log.warn("Transform failed: " + transport.responseText);	
+					ORYX.log.warn("Transform failed: " + transport.responseText);
 				}
-				
-			}.bind(this)		
+
+			}.bind(this)
 		});
-		
-		
+
+
 		return suc;
-							
+
 	},
 
 
 	transformToBPMN: function( rdfString, success, failed ){
-		
+
 		var s 	= rdfString;
-		s 		= s.startsWith('<?xml') ? s : '<?xml version="1.0" encoding="utf-8"?>'+s+'';	
-						
-		var parser	= new DOMParser();			
+		s 		= s.startsWith('<?xml') ? s : '<?xml version="1.0" encoding="utf-8"?>'+s+'';
+
+		var parser	= new DOMParser();
 		var doc 	=  parser.parseFromString( s ,"text/xml");
-							
+
 		if( doc.firstChild.tagName == "parsererror" ){
 
 			Ext.MessageBox.show({
@@ -130,27 +130,27 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 					buttons: 	Ext.MessageBox.OK,
 					icon: 		Ext.MessageBox.ERROR
 				});
-																
+
 			if(failed)
 				failed();
-				
+
 		} else {
-			
+
 			/**
 			 * SUCCESSCALLBACK for positive return while transformation
-			 * 
+			 *
 			 */
 			var transformSuccessCallback = function( e ){
-				
+
 				e = '<?xml version="1.0" encoding="utf-8"?><div>'+e+'</div>';
 
-				var parser	= new DOMParser();			
+				var parser	= new DOMParser();
 				var doc 	=  parser.parseFromString( e ,"text/xml");
-				
+
 				this.facade.importERDF( doc );
-				
+
 			}.bind(this);
-			
+
 			var xsl = "";
 			source=ORYX.PATH + "lib/extract-rdf.xsl";
 			new Ajax.Request(source, {
@@ -163,7 +163,7 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 					ORYX.Log.error("XSL load failed" + transport);
 				}).bind(this)
 			});
-			
+
 			var parser = new DOMParser();
 			var parsedDOM = parser.parseFromString(s, "text/xml");
 			var xslObject = domParser.parseFromString(xsl, "text/xml");
@@ -175,35 +175,35 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 				if (!serialized_rdf.startsWith("<?xml")) {
 					serialized_rdf = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + serialized_rdf;
 				}
-						
+
 				// Send request
 				this.sendRequest( this.TransformServletURL, {data:serialized_rdf}, transformSuccessCallback)
-			
+
 			}catch(e){}
-		
+
 			if(success)
 				success();
-		
+
 		}
 	},
 
-	
+
 
 	/**
 	 * Opens a upload dialog.
-	 * 
+	 *
 	 */
 	_showImportDialog: function( successCallback ){
-	
+
 	    var form = new Ext.form.FormPanel({
 			baseCls: 		'x-plain',
 	        labelWidth: 	50,
 	        defaultType: 	'textfield',
 	        items: [{
-	            text : 		ORYX.I18N.ERDFSupport.selectFile, 
+	            text : 		ORYX.I18N.ERDFSupport.selectFile,
 				style : 	'font-size:12px;margin-bottom:10px;display:block;',
 	            anchor:		'100%',
-				xtype : 	'label' 
+				xtype : 	'label'
 	        },{
 	            fieldLabel: ORYX.I18N.ERDFSupport.file,
 	            name: 		'subject',
@@ -214,24 +214,24 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 	            xtype: 'textarea',
 	            hideLabel: true,
 	            name: 'msg',
-	            anchor: '100% -63'  
+	            anchor: '100% -63'
 	        }]
 	    });
 
 
 
 		// Create the panel
-		var dialog = new Ext.Window({ 
-			autoCreate: true, 
+		var dialog = new Ext.Window({
+			autoCreate: true,
 			layout: 	'fit',
 			plain:		true,
 			bodyStyle: 	'padding:5px;',
-			title: 		ORYX.I18N.ERDFSupport.impERDF, 
-			height: 	350, 
+			title: 		ORYX.I18N.ERDFSupport.impERDF,
+			height: 	350,
 			width:		500,
 			modal:		true,
-			fixedcenter:true, 
-			shadow:		true, 
+			fixedcenter:true,
+			shadow:		true,
 			proxyDrag: 	true,
 			resizable:	true,
 			items: 		[form],
@@ -239,32 +239,32 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 				{
 					text:ORYX.I18N.ERDFSupport.impBtn,
 					handler:function(){
-						
+
 						var loadMask = new Ext.LoadMask(Ext.getBody(), {msg:ORYX.I18N.ERDFSupport.impProgress});
 						loadMask.show();
-						
+
 						window.setTimeout(function(){
-					
-							
+
+
 							var rdfString =  form.items.items[2].getValue();
 							this.transformToBPMN(rdfString, function(){loadMask.hide();dialog.hide()}.bind(this), function(){loadMask.hide();}.bind(this))
-														
-														
-							
+
+
+
 						}.bind(this), 100);
-			
+
 					}.bind(this)
 				},{
 					text:ORYX.I18N.ERDFSupport.close,
 					handler:function(){
-						
+
 						dialog.hide();
-					
+
 					}.bind(this)
 				}
 			]
 		});
-		
+
 		// Destroy the panel when hiding
 		dialog.on('hide', function(){
 			dialog.destroy(true);
@@ -274,14 +274,14 @@ ORYX.Plugins.IBPMN2BPMN = Clazz.extend({
 
 		// Show the panel
 		dialog.show();
-		
-				
-		// Adds the change event handler to 
+
+
+		// Adds the change event handler to
 		form.items.items[1].getEl().dom.addEventListener('change',function(evt){
 				var text = evt.target.files[0].getAsBinary();
 				form.items.items[2].setValue( text );
 			}, true)
 
 	}
-	
+
 });

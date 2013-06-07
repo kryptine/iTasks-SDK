@@ -21,9 +21,9 @@
  * DEALINGS IN THE SOFTWARE.
  **/
 
-if (!ORYX) 
+if (!ORYX)
 	ORYX = new Object();
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
 	ORYX.Plugins = new Object();
 
 ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
@@ -42,13 +42,13 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 		});
 	},
 	layout: function(){
-		
+
 		this.facade.raiseEvent({
             type: ORYX.CONFIG.EVENT_LOADING_ENABLE,
 			text: ORYX.I18N.Layouting.doing
         });
-		
-		
+
+
 		new Ajax.Request(ORYX.CONFIG.BPMN_LAYOUTER, {
 			method : 'POST',
 			asynchronous : false,
@@ -63,7 +63,7 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 			onSuccess: function(request){
 
 				/*Ext.Msg.alert("Oryx", "New Layout arrived:!\n" + request.responseText);*/
-				
+
 				var setLayoutCommandClass = ORYX.Core.Command.extend({
 					construct: function(layoutArray, plugin){
 						this.layoutArray = layoutArray;
@@ -74,29 +74,29 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 						this.layoutArray.each(function(elem){
 							/* get shape */
 							var shape = this.plugin.facade.getCanvas().getChildShapeByResourceId(elem.id);
-							
+
 							/* save old layout for undo*/
 							var oldLayout = {
 								id : elem.id,
 								bounds : shape.bounds.clone()
 							};
 							this.oldLayoutArray.push(oldLayout);
-							
+
 							/* set new bounds */
 							var bound = elem.bounds.split(" ");
 							shape.bounds.set(bound[0],bound[1],bound[2],bound[3]);
-							
+
 							/* set new dockers */
 							if(elem.dockers != null){
 								this.plugin.setDockersBad(shape,elem.dockers);
 							}
-							
+
 							shape.update();
 						}.bind(this));
-						
+
 						this.plugin.facade.getCanvas().update();
-						this.plugin.facade.updateSelection();					
-						
+						this.plugin.facade.updateSelection();
+
 					},
 					rollback: function(){
 						this.oldLayoutArray.each(function(elem){
@@ -104,13 +104,13 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 							shape.bounds.set(elem.bounds);
 							shape.update();
 						}.bind(this));
-						
+
 						this.plugin.facade.getCanvas().update();
-						this.plugin.facade.updateSelection();	
+						this.plugin.facade.updateSelection();
 					}
 				});
-				
-				
+
+
 				var resp = request.responseText.evalJSON();
 				if (resp instanceof Array && resp.size() > 0) {
 					/* create command */
@@ -137,15 +137,15 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 	setDockersGood: function(shape, dockers){
 		if(elem.dockers.length == 1){
 			/* docked event */
-			
+
 		}else{
-			
+
 			/* clear all except of the first and last dockers */
 			var dockers = shape.getDockers().slice(1,-1);
 			dockers.each(function(docker){
 				shape.removeDocker(docker);
 			});
-			
+
 			/* set first and last docker */
 			var firstDocker = shape.getDockers()[0];
 			if (firstDocker.getDockedShape()) {
@@ -155,7 +155,7 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 				firstDocker.bounds.moveTo(elem.dockers[0].x,elem.dockers[0].y);
 			}
 			firstDocker.refresh();
-			
+
 			var lastDocker = shape.getDockers()[1];
 			if (lastDocker.getDockedShape()) {
 				lastDocker.setReferencePoint(elem.dockers[elem.dockers.length - 1]);
@@ -164,7 +164,7 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 				lastDocker.bounds.moveTo(elem.dockers[elem.dockers.length - 1].x, elem.dockers[elem.dockers.length - 1].y);
 			}
 			lastDocker.refresh();
-			
+
 			/* add new dockers except of the first and last */
 			var dockersToAdd = elem.dockers.slice(1,-1);
 			dockersToAdd.each(function(dockerPoint){
@@ -174,6 +174,6 @@ ORYX.Plugins.BpmnLayouter = ORYX.Plugins.AbstractPlugin.extend({
 				/*newDocker.setReferencePoint(dockerPoint);*/
 				newDocker.update();
 			});
-		}		
+		}
 	}
 });

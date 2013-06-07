@@ -26,47 +26,47 @@ if(!ORYX.Plugins)
 
 /**
  * This plugin offers the serialize callbacks used in the BPMNplus stencil set.
- * 
+ *
  * @class ORYX.Plugins.BPMNPlus
  * @extends Clazz
  * @param {Object} facade The editor facade for plugins.
  */
 ORYX.Plugins.BPMNPlusSerialization = {
 	/** @lends ORYX.Plugins.BPMNPlusLayout.prototype */
-	
+
 	/**
 	 *	Constructor
 	 *	@param {Object} Facade: The Facade of the Editor
 	 */
 	construct: function(facade){
 		this.facade = facade;
-		
-		this.facade.registerOnEvent("serialize.bpmnplus.pool", 
+
+		this.facade.registerOnEvent("serialize.bpmnplus.pool",
 							this.handleSerializePool.bind(this));
-		this.facade.registerOnEvent("serialize.bpmnplus.variable", 
+		this.facade.registerOnEvent("serialize.bpmnplus.variable",
 							this.handleSerializeVariable.bind(this));
-		this.facade.registerOnEvent("serialize.bpmnplus.dataobject", 
+		this.facade.registerOnEvent("serialize.bpmnplus.dataobject",
 							this.handleSerializeDataObject.bind(this));
-		this.facade.registerOnEvent("serialize.bpmnplus.attachedevent", 
+		this.facade.registerOnEvent("serialize.bpmnplus.attachedevent",
 							this.handleSerializeAttachedEvent.bind(this));
-		this.facade.registerOnEvent("serialize.bpmnplus.unidirectedassociation", 
+		this.facade.registerOnEvent("serialize.bpmnplus.unidirectedassociation",
 							this.handleSerializeUnidirectedAssociation.bind(this));
-		this.facade.registerOnEvent("serialize.bpmnplus.directedassociation", 
+		this.facade.registerOnEvent("serialize.bpmnplus.directedassociation",
 							this.handleSerializeDirectedAssociation.bind(this));
-		this.facade.registerOnEvent("serialize.bpmnplus.messageflow", 
-							this.handleSerializeMessageFlow.bind(this));					
+		this.facade.registerOnEvent("serialize.bpmnplus.messageflow",
+							this.handleSerializeMessageFlow.bind(this));
 	},
-	
+
 	/**
 	 * Handler to serialize the BPMN+ pool
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The serialize event
 	 */
 	handleSerializePool: function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
+
 		var poolId = shape.resourceId;
 		var processId = shape.properties["oryx-processid"];
 		if (processId == "") {
@@ -80,25 +80,25 @@ ORYX.Plugins.BPMNPlusSerialization = {
 			}
 			processRec.value=processId;
 		}
-		
+
 		event.result = data;
 	},
-	
+
 	/**
 	 * The handler to serialize a bpmnplus variable
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The serialization event to handle
 	 */
 	handleSerializeVariable: function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
+
 		// serialize pool, poolSet, process and subProcess
 		var parent = shape.getParentShape();
 		var subProcess = false;
 		while(parent.getParentShape != undefined) {
-			if ((parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#Scope") || 
+			if ((parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#Scope") ||
 				(parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#FaultHandler") ||
 				(parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#CompensationHandler") ||
 				(parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#TerminationHandler") ||
@@ -115,13 +115,13 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				if (!subProcess) {
 					data.push({
 						name:"subprocess",
-					 	prefix:"oryx",				 
+					 	prefix:"oryx",
 					 	value:id,
 						type:"literal"
-					});										
+					});
 					subProcess = true;
 				}
-				parent = parent.getParentShape();					
+				parent = parent.getParentShape();
 			} else if (	(parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#Pool") ||
 						(parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#PoolSet")) {
 				// generate pool and process
@@ -131,7 +131,7 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				} else {
 					name = "poolset";
 				}
-				
+
 				var poolId = parent.resourceId;
 				if (poolId == "") {
 					poolId = parent.resourceId;
@@ -139,14 +139,14 @@ ORYX.Plugins.BPMNPlusSerialization = {
 						poolId = "";
 					}
 				}
-				
+
 				data.push({
 					name:name,
-				 	prefix:"oryx",				 
+				 	prefix:"oryx",
 				 	value:poolId,
 					type:"literal"
 				});
-						
+
 				if (!subProcess) {
 					var processId = parent.properties["oryx-processid"];
 					if (processId == "") {
@@ -154,34 +154,34 @@ ORYX.Plugins.BPMNPlusSerialization = {
 					}
 					data.push({
 						name:"process",
-					 	prefix:"oryx",				 
+					 	prefix:"oryx",
 					 	value:processId,
 						type:"literal"
 					});
 				}
-										
+
 				break;
 			} else {
 				parent = parent.getParentShape();
 			}
 		}
-		
+
 		event.result =  data;
 	},
-	
+
 	/**
 	 * The handle to serialize any kind of data object
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The serialization event
 	 */
 	handleSerializeDataObject : function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
-		
+
+
 		// serialize pool or poolSet
-		var parent = shape.getParentShape();		
+		var parent = shape.getParentShape();
 		while(parent.getParentShape != undefined) {
 			if ((parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#Pool") ||
 				(parent.getStencil().id() == "http://b3mn.org/stencilset/bpmnplus#PoolSet")) {
@@ -192,7 +192,7 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				} else {
 					name = "poolset";
 				}
-				
+
 				var poolId = parent.resourceId;
 				if (poolId == "") {
 					poolId = parent.resourceId;
@@ -200,37 +200,37 @@ ORYX.Plugins.BPMNPlusSerialization = {
 						poolId = "";
 					}
 				}
-				
+
 				data.push({
 					name:name,
-				 	prefix:"oryx",				 
+				 	prefix:"oryx",
 				 	value:poolId,
 					type:"literal"
-				});													
-										
+				});
+
 				break;
 			} else {
 				parent = parent.getParentShape();
 			}
 		}
-		
+
 		event.result = data;
 	},
-	
+
 	/**
 	 * The handler to serialize attached events
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The serialization event
 	 */
 	handleSerializeAttachedEvent : function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
+
 		var attached;
 		var incomingShapes = shape.getIncomingShapes();
-		incomingShapes.each(function(next) { 
-			var roles = next.getStencil().roles();						
+		incomingShapes.each(function(next) {
+			var roles = next.getStencil().roles();
 			for (var i = 0; i < roles.length; i++) {
 				if (roles[i] == next.getStencil().namespace() + "attachmentAllowed") {
 					attached = next;
@@ -247,26 +247,26 @@ ORYX.Plugins.BPMNPlusSerialization = {
 			if (attachedId != undefined) {
 				data.push({
 					name:"target",
-				 	prefix:"oryx",				 
+				 	prefix:"oryx",
 				 	value:attachedId,
 			 		type:"literal"
 				});
 			}
 	 	}
-		
+
 		event.result = data;
 	},
-	
+
 	/**
 	 * The handler to serialize an unidirected association
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The serialization event
 	 */
 	handleSerializeUnidirectedAssociation : function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
+
 		var sources = shape.getIncomingShapes();
 		var switched = false;
 		if (sources.length > 0) {
@@ -292,7 +292,7 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				 	value:"None",
 				 	type:"literal",
 				});
-			
+
 			if (id != undefined) {
 				data.push({
 						name:name,
@@ -324,15 +324,15 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				});
 			}
 		}
-		
+
 		event.result = data;
 	},
-	
+
 	handleSerializeDirectedAssociation : function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
-		
+
+
 		var sources = shape.getIncomingShapes();
 		var switched = false;
 		if (sources.length > 0) {
@@ -372,8 +372,8 @@ ORYX.Plugins.BPMNPlusSerialization = {
 					 	type:"literal"
 				});
 			}
-		}											
-		
+		}
+
 		// determine oryx-target
 		var targets = shape.getOutgoingShapes();
 		if (targets.length > 0) {
@@ -397,20 +397,20 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				});
 			}
 		}
-		
+
 		event.result = data;
 	},
-	
+
 	/**
 	 * The handler to serialize a message flow
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The serialization event
 	 */
 	handleSerializeMessageFlow: function(event) {
 		var shape = event.shape;
 		var data = event.data;
-		
+
 		var sources = shape.getIncomingShapes();
 		if (sources.length > 0) {
 			var source = sources[0];
@@ -424,7 +424,7 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				});
 			}
 		}
-		
+
 		var targets = shape.getOutgoingShapes();
 		if (targets.length > 0) {
 			var target = targets[0];
@@ -438,7 +438,7 @@ ORYX.Plugins.BPMNPlusSerialization = {
 				});
 			}
 		}
-		
+
 		event.result = data;
 	}
 };

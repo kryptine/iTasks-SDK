@@ -23,7 +23,7 @@
 
 if(!ORYX.Plugins)
 	ORYX.Plugins = new Object();
-	
+
 ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
 
 	/**
@@ -34,7 +34,7 @@ ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
         arguments.callee.$.construct.apply(this, arguments);
 
         this.dialog2BPELSupport = new ORYX.Plugins.TransformationDownloadDialogForBPEL4Chor();
-        
+
 	    this.facade.offer({
 			'name':ORYX.I18N.BPEL4Chor2BPELSupport.exp,
 			'functionality': this.exportProcess.bind(this),
@@ -47,43 +47,43 @@ ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
 			'maxShape': 0
 		});
 	},
-	
-	/***************************** export **********************************/	
-		
+
+	/***************************** export **********************************/
+
 	exportProcess: function(){
-	
+
 		// raise loading enable event
         this.facade.raiseEvent({
             type: ORYX.CONFIG.EVENT_LOADING_ENABLE
         });
-            
+
 		// asynchronously ...
         window.setTimeout((function(){
-			
+
 			// ... save synchronously
             this.exportSynchronously();
-			
+
 			// raise loading disable event.
             this.facade.raiseEvent({
                 type: ORYX.CONFIG.EVENT_LOADING_DISABLE
             });
-			
+
         }).bind(this), 10);
 
 		return true;
     },
-    
+
     exportSynchronously: function() {
 
         var resource = location.href;
-		
+
 		try {
 			var serialized_rdf = this.getRDFFromDOM();
 
 			if (!serialized_rdf.startsWith("<?xml")) {
 				serialized_rdf = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + serialized_rdf;
 			}
-						
+
 			// Send the request to the server.
 			new Ajax.Request(ORYX.CONFIG.BPEL4CHOR2BPEL_EXPORT_URL, {
 				method: 'POST',
@@ -96,24 +96,24 @@ ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
                 	this.displayResult(response.responseText);
 				}.bind(this)
 			});
-                	
-			
+
+
 		} catch (error){
 			this.facade.raiseEvent({type:ORYX.CONFIG.EVENT_LOADING_DISABLE});
 			Ext.Msg.alert(ORYX.I18N.Oryx.title, error);
 	 	}
-    
+
 	},
-	
-	
+
+
 	/**
 	 * Builds up the data that will be shown in the result dialog of
 	 * the BPEL4Chor to BPEL transformation.
-	 * For this purpose the process and wsdl names are determined 
+	 * For this purpose the process and wsdl names are determined
 	 * it is checked if them were generated successfully.
-	 * 
+	 *
 	 * @param {String[]} bpelArray    The generated process array of bpel processes
-	 * @param {String[]} wsdlArray    The generated wsdl array of bpel processes 
+	 * @param {String[]} wsdlArray    The generated wsdl array of bpel processes
 	 */
 	buildTransData: function(bpelArray, wsdlArray) {
 		var data = new Array();
@@ -124,9 +124,9 @@ ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
 			}
 			data[i] = [name, bpelArray[i], this.dialog2BPELSupport.getResultInfo(bpelArray[i])];
 		}
-		
+
 		for(var i = 0; i < wsdlArray.length; i++){
-			var name = this.dialog2BPELSupport.getBPELName(bpelArray[i]);	// name of wsdl file should be same with bpel file 
+			var name = this.dialog2BPELSupport.getBPELName(bpelArray[i]);	// name of wsdl file should be same with bpel file
 			name = name + "-wsdl";
 			if(name == undefined){
 				name = "WSDL " + (i+1);
@@ -134,34 +134,34 @@ ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
 			data[i+bpelArray.length] = [name, wsdlArray[i], this.dialog2BPELSupport.getResultInfo(wsdlArray[i])];
 		}
 		return data;
-	},	
-	
+	},
+
 	/**
 	 * Analyzes the result of the servlet call.
-	 * 
+	 *
 	 * If an fault occured or the answer is undefined, the error is shown
 	 * using a message dialog.
-	 * 
-	 * If the first result starts with "ParserError" the error is shown using an 
+	 *
+	 * If the first result starts with "ParserError" the error is shown using an
 	 * error dialog. Otherwise the result is shown using the result dialog.
-	 * 
+	 *
 	 * @param {Object} result - the result of the transformation servlet (JSON)
 	 */
 	displayResult: function(result) {
 		this.facade.raiseEvent({type:ORYX.CONFIG.EVENT_LOADING_DISABLE});
 
 		var resultString = '(' + result + ')';
-		
+
 		//alert (resultString);
-		
+
 		var resultObject;
-		
+
 		try {
 			resultObject = eval(resultString);
 		} catch (e1) {
 			alert("Error during evaluation of result: " + e1 + "\r\n" + resultString);
 		}
-		
+
 		if ((!resultObject.res) || (resultObject.res.length == 0)) {
 			this.dialog2BPELSupport.openMessageDialog(ORYX.I18N.TransformationDownloadDialog.error,ORYX.I18N.TransformationDownloadDialog.noResult);
 		} else if (resultObject.res[0].contentBPEL.indexOf("Parser Error")>0) {
@@ -174,11 +174,11 @@ ORYX.Plugins.BPEL4Chor2BPELSupport = ORYX.Plugins.AbstractPlugin.extend({
 				wsdlArray[i] = resultObject.res[i].contentWSDL;
 			}
 			var data = this.buildTransData(bpelArray, wsdlArray);
-			
+
 			//alert(data);
-			
+
 			this.dialog2BPELSupport.openResultDialog(data);
 		}
 	}
 });
-	
+

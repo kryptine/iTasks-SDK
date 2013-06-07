@@ -3,7 +3,7 @@
  * Armin Zamani
  **/
 
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
@@ -11,10 +11,10 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 
 	construct: function(){
 		arguments.callee.$.construct.apply(this, arguments);
-		
+
         this.active = false;
         this.raisedEventIds = [];
-		
+
 		this.facade.offer({
 			'name': ORYX.I18N.BPMN2YAWLMapper.name,
 			'functionality': this.perform.bind(this),
@@ -28,7 +28,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 			'isEnabled': 		this._isStencilSetExtensionLoaded.bind(this)
 
 		});
-		
+
         this.facade.registerOnEvent(ORYX.Plugins.BPMN2YAWLMapper.RESET_ERRORS_EVENT, this.resetErrors.bind(this));
         this.facade.registerOnEvent(ORYX.Plugins.BPMN2YAWLMapper.SHOW_ERRORS_EVENT, this.doShowErrors.bind(this));
 	},
@@ -51,7 +51,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 		}
 		});
 	},
-	
+
 	/**
      * Sets the activated state of the plugin
      * @param {Object} activated
@@ -63,7 +63,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
             this.active = activated;
         }
     },
-	
+
 	checkSyntaxAndMapBPMNtoYAWL: function(options){
 		Ext.applyIf(options || {}, {
 	          showErrors: true,
@@ -71,7 +71,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 	          onErrors: Ext.emptyFn,
 	          onFailure: Ext.emptyFn
 	        });
-		
+
 		var data = this.getRDFFromDOM();
 		this.openDownload(ORYX.CONFIG.BPMN2YAWL_URL,data);
 //		new Ajax.Request(ORYX.CONFIG.BPMN2YAWL_URL, {
@@ -82,9 +82,9 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 //			},
 //			onSuccess: function(request){
 //				var resp = request.responseText.evalJSON();
-//				
+//
 //				Ext.Msg.hide();
-//				
+//
 //				if (resp instanceof Object) {
 //					resp = $H(resp)
 //					if (resp.size() > 0) {
@@ -106,16 +106,16 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 //			}
 //		});
 	},
-	
+
 	/** Called on SHOW_ERRORS_EVENT.
-     * 
+     *
      * @param {Object} event
      * @param {Object} args
      */
     doShowErrors: function(event, args){
         this.showErrors(event.errors);
     },
-    
+
     /**
      * Shows overlays for each given error
      * @methodOf ORYX.Plugins.BPMN2YAWLMapper.prototype
@@ -131,7 +131,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
         if(!(errors instanceof Hash)){
             errors = new Hash(errors);
         }
-        
+
         // Get all Valid ResourceIDs and collect all shapes
         errors.keys().each(function(value){
             var sh = this.facade.getCanvas().getChildShapeByResourceId(value);
@@ -141,7 +141,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
         }.bind(this));
         //this.active = !this.active;
     },
-    
+
     /**
      * Resets all (displayed) errors
      * @methodOf ORYX.Plugins.BPMN2YAWLMapper.prototype
@@ -153,11 +153,11 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
                 id: id
             });
         }.bind(this))
-        
+
         this.raisedEventIds = [];
         this.active = false;
     },
-    
+
     raiseOverlay: function(shape, errorMsg){
         var id = "syntaxchecker." + this.raisedEventIds.length;
         var crossId = ORYX.Editor.provideId();
@@ -169,7 +169,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
             "d": "M20,-5 L5,-20 M5,-5 L20,-20",
             "line-captions": "round"
         }]);
-        
+
         this.facade.raiseEvent({
             type: ORYX.CONFIG.EVENT_OVERLAY_SHOW,
             id: id,
@@ -177,9 +177,9 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
             node: cross,
             nodePosition: shape instanceof ORYX.Core.Edge ? "START" : "NW"
         });
-        
+
         this.raisedEventIds.push(id);
-        
+
         return cross;
     },
 	openDownload: function(url, content) {
@@ -189,7 +189,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 			win.document.write("<html><body>");
 			var submitForm = win.document.createElement("form");
 			win.document.body.appendChild(submitForm);
-			
+
 			var createHiddenElement = function(name, value) {
 				var newElement = document.createElement("input");
 				newElement.name=name;
@@ -197,10 +197,10 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 				newElement.value = value;
 				return newElement
 			}
-			
+
 			submitForm.appendChild( createHiddenElement("data", content) );
-			
-			
+
+
 			submitForm.method = "POST";
 			win.document.write("</body></html>");
 			win.document.close();
@@ -209,7 +209,7 @@ ORYX.Plugins.BPMN2YAWLMapper = ORYX.Plugins.AbstractPlugin.extend({
 			window.setTimeout(function(){
 				win.close();
 			}.bind(this), 1000);
-		}		
+		}
 	}
 });
 

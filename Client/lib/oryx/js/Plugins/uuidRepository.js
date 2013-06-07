@@ -16,11 +16,11 @@
 
 if (!ORYX.Plugins) {
 	ORYX.Plugins = {};
-}  
+}
 
 if (!ORYX.Config) {
 	ORYX.Config = {};
-} 
+}
 
 // needed to change icons dynamically:
 Ext.override(Ext.Button, {
@@ -39,14 +39,14 @@ Ext.Button.override({
         Ext.QuickTips.register({
             target: btnEl.id,
             text: qtipText
-        });             
+        });
     }
 });
 
 ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
-	
+
     facade: undefined,
-	
+
     construct: function(facade){
 		this.facade = facade;
 		this.facade.offer({
@@ -59,7 +59,7 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 			'minShape': 0,
 			'maxShape': 0
 		});
-		
+
 		//capability to set autosave on or off
 		if (ORYX.CONFIG.UUID_AUTOSAVE_DEFAULT === undefined) {
 			ORYX.CONFIG.UUID_AUTOSAVE_DEFAULT = true;
@@ -71,7 +71,7 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 			autosaveicon = ORYX.BASE_FILE_PATH + "images/disk_multiple.png";
 			autosavetip = ORYX.I18N.Save.autosaveDesc_on;
 		}
-					
+
 		autosavecfg = {
 			'name': ORYX.I18N.Save.autosave,
 			'group': ORYX.I18N.Save.group,
@@ -96,22 +96,22 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 		this.facade.offer(autosavecfg);
 
 		// ask before closing the window
-		this.changeDifference = 0;		
+		this.changeDifference = 0;
 		this.facade.registerOnEvent(ORYX.CONFIG.EVENT_UNDO_EXECUTE, function(){ this.changeDifference++; });
 		this.facade.registerOnEvent(ORYX.CONFIG.EVENT_EXECUTE_COMMANDS, function(){this.changeDifference++; });
 		this.facade.registerOnEvent(ORYX.CONFIG.EVENT_UNDO_ROLLBACK, function(){this.changeDifference--; });
-		
+
 		window.onbeforeunload = function(){
 			if (this.changeDifference > 0){
 				return ORYX.I18N.Save.unsavedData;
 			}
 		}.bind(this);
-		
+
 		// let's set autosave on.
 		this.autosaveFunction = function() { if (/*savePlugin.changeDifference != 0*/true) { this._save(this, true, true); }}.bind(this, autosavecfg);
 		this.setautosave(ORYX.CONFIG.UUID_AUTOSAVE_INTERVAL);
 	},
-	
+
 	/**
 	 * Switches autosave on or off.
 	 * @param savePlugin the button.
@@ -120,24 +120,24 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 		if (this.autosaving === undefined) {
 			this.autosaving = !ORYX.CONFIG.UUID_AUTOSAVE_DEFAULT;
 		}
-		
+
 		value = !this.autosaving;
 		if (value) {
 			this.autosaveInternalId = self.setInterval(this.autosaveFunction, interval);
 		} else {
 			self.clearInterval(this.autosaveInternalId);
 		}
-		
+
 		this.autosaving = value;
 	},
-	
+
 	/**
 	 * Saves the current model.
 	 */
 	save: function() {
 		this._save(this, false, false);
 	},
-	
+
 	/**
 	 * Saves data by calling the backend.
 	 * @param asynchronous whether saving should occur asynchronously
@@ -168,7 +168,7 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 
 
 				Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.Save.failed);
-				
+
 				ORYX.log.warn("Saving failed: " + transport.responseText);
 			}).bind(this),
 			on403: (function(transport) {
@@ -179,14 +179,14 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 
 
 				Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.Save.noRights);
-				
+
 				ORYX.log.warn("Saving failed (403): " + transport.responseText);
 			}).bind(this)
 		});
 		this.hideSaveStatus(savePlugin, asynchronous);
 		return true;
 	},
-	
+
 	/**
 	 * Shows the saving status
 	 * @param asynchronous whether the save is synchronous or asynchronous.
@@ -197,7 +197,7 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 			autosavecfg.buttonInstance.setIcon(ORYX.BASE_FILE_PATH + "images/ajax-loader.gif");
 		}
 	},
-	
+
 	/**
 	 * Shows the saving status
 	 * @param asynchronous whether the save is synchronous or asynchronous.
@@ -212,9 +212,9 @@ ORYX.Plugins.UUIDRepositorySave = ORYX.Plugins.AbstractPlugin.extend({
 
 
 ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
-	
+
     facade: undefined,
-	
+
     construct: function(facade){
 		this.facade = facade;
 		//this.facade.offer({
@@ -227,7 +227,7 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 		//	'minShape': 0,
 		//	'maxShape': 0
 		//});
-		
+
 		//capability to set autosave on or off
 		//if (ORYX.CONFIG.UUID_AUTOSAVE_DEFAULT === undefined) {
 			ORYX.CONFIG.UUID_AUTOSAVE_DEFAULT = false;
@@ -239,7 +239,7 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 		//	autosaveicon = ORYX.BASE_FILE_PATH + "images/disk_multiple.png";
 		//	autosavetip = ORYX.I18N.Save.autosaveDesc_on;
 		//}
-					
+
 		autosavecfg = {
 			'name': ORYX.I18N.Save.autosave,
 			'group': ORYX.I18N.Save.group,
@@ -264,22 +264,22 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 		//this.facade.offer(autosavecfg);
 
 		// ask before closing the window
-		//this.changeDifference = 0;		
+		//this.changeDifference = 0;
 		//this.facade.registerOnEvent(ORYX.CONFIG.EVENT_UNDO_EXECUTE, function(){ this.changeDifference++; });
 		//this.facade.registerOnEvent(ORYX.CONFIG.EVENT_EXECUTE_COMMANDS, function(){this.changeDifference++; });
 		//this.facade.registerOnEvent(ORYX.CONFIG.EVENT_UNDO_ROLLBACK, function(){this.changeDifference--; });
-		
+
 		//window.onbeforeunload = function(){
 		//	if (this.changeDifference > 0){
 		//		return ORYX.I18N.Save.unsavedData;
 		//	}
 		//}.bind(this);
-		
+
 		// let's set autosave on.
 		//this.autosaveFunction = function() { if (/*savePlugin.changeDifference != 0*/true) { this._save(this, true, true); }}.bind(this, autosavecfg);
 		//this.setautosave(ORYX.CONFIG.UUID_AUTOSAVE_INTERVAL);
 	},
-	
+
 	/**
 	 * Switches autosave on or off.
 	 * @param savePlugin the button.
@@ -288,24 +288,24 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 		//if (this.autosaving === undefined) {
 		//	this.autosaving = !ORYX.CONFIG.UUID_AUTOSAVE_DEFAULT;
 		//}
-		
+
 		//value = !this.autosaving;
 		//if (value) {
 		//	this.autosaveInternalId = self.setInterval(this.autosaveFunction, interval);
 		//} else {
 		//	self.clearInterval(this.autosaveInternalId);
 		//}
-		
+
 		//this.autosaving = value;
 	},
-	
+
 	/**
 	 * Saves the current model.
 	 */
 	save: function() {
 		//this._save(this, false, false);
 	},
-	
+
 	/**
 	 * Saves data by calling the backend.
 	 * @param asynchronous whether saving should occur asynchronously
@@ -336,7 +336,7 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 
 
 		//		Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.Save.failed);
-				
+
 		//		ORYX.log.warn("Saving failed: " + transport.responseText);
 		//	}).bind(this),
 		//	on403: (function(transport) {
@@ -347,14 +347,14 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 
 
 		//		Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.Save.noRights);
-		//		
+		//
 		//		ORYX.log.warn("Saving failed (403): " + transport.responseText);
 		//	}).bind(this)
 		//});
 		//this.hideSaveStatus(savePlugin, asynchronous);
 		return true;
 	},
-	
+
 	/**
 	 * Shows the saving status
 	 * @param asynchronous whether the save is synchronous or asynchronous.
@@ -365,7 +365,7 @@ ORYX.Plugins.UUIDRepositoryDummySave = ORYX.Plugins.AbstractPlugin.extend({
 			//autosavecfg.buttonInstance.setIcon(ORYX.BASE_FILE_PATH + "images/ajax-loader.gif");
 		//}
 	},
-	
+
 	/**
 	 * Shows the saving status
 	 * @param asynchronous whether the save is synchronous or asynchronous.
@@ -391,7 +391,7 @@ window.onOryxResourcesLoaded = function() {
 		}
 	};
 	if(!(ORYX.UUID === undefined)) {
-		
+
  		//load the model from the repository from its uuid
 		new Ajax.Request(ORYX.CONFIG.UUID_URL(), {
             asynchronous: false,
@@ -407,7 +407,7 @@ window.onOryxResourcesLoaded = function() {
 				    	ORYX.LOG.error(err);
 				    }
 				}
-				
+
 			},
             onFailure: function(transport) {
             	ORYX.LOG.error("Could not load the model for uuid " + ORYX.UUID);

@@ -30,19 +30,19 @@
 	ORYX.Plugins = new Object();
 
 /**
- * The XForms plugin provides layout methods primarily referring to the XForms stencilset. 
- * 
+ * The XForms plugin provides layout methods primarily referring to the XForms stencilset.
+ *
  * @class ORYX.Plugins.XForms
  * @extends Clazz
  * @param {Object} facade The facade of the editor
  */
-ORYX.Plugins.XForms = 
+ORYX.Plugins.XForms =
 /** @lends ORYX.Plugins.XForms.prototype */
 {
 	/**
 	 * Creates a new instance of the XForms plugin and registers it on the
 	 * layout events listed in the XForms stencil set.
-	 * 
+	 *
 	 * @constructor
 	 * @param {Object} facade The facade of the editor
 	 */
@@ -55,20 +55,20 @@ ORYX.Plugins.XForms =
 		this.facade.registerOnEvent('layout.xforms.case', this.handleLayoutCase.bind(this));
 		this.facade.registerOnEvent('layout.xforms.action', this.handleLayoutAction.bind(this));
 	},
-	
+
 	/**
-	 * 
+	 *
 	 * @param {Object} event
 	 */
 	handleLayoutLabel : function(event) {
 		var shape = event.shape;
 		var moveX = event.moveX;
 		var moveY = event.moveY;
-		
+
 		var labels = shape.getChildNodes(false).findAll(function(node) {
 				return (node.getStencil().id() === "http://b3mn.org/stencilset/xforms#Label");
 			});
-			
+
 			if(labels.length > 0) {
 				labels.each(function(label) {
 					var ul = label.bounds.upperLeft();
@@ -81,22 +81,22 @@ ORYX.Plugins.XForms =
 				});
 			}
 	},
-	
+
 	handleLayoutLabelButton : function(event) {
 		var shape = event.shape;
-		
+
 		var labels = shape.getChildNodes(false).findAll(function(node) {
 			return (node.getStencil().id() === "http://b3mn.org/stencilset/xforms#Label");
 		});
-		
+
 		if(labels.length > 0) {
 			labels.each(function(label) {
-				
+
 				var ul = label.bounds.upperLeft();
 				var lr = label.bounds.lowerRight();
 				ul.y = 2;
 				lr.y = 2 + label.bounds.height();
-				
+
 				if((shape.bounds.width()-4)<label.bounds.width()) {
 					var sul = shape.bounds.upperLeft();
 					var slr = shape.bounds.lowerRight();
@@ -110,20 +110,20 @@ ORYX.Plugins.XForms =
 			});
 		}
 	},
-	
+
 	handleLayoutItem : function(event) {
 		var shape = event.shape;
-		
+
 		var items = shape.getChildNodes(false).findAll(function(node) {
 			return ((node.getStencil().id()==="http://b3mn.org/stencilset/xforms#Item")||(node.getStencil().id()==="http://b3mn.org/stencilset/xforms#Choices")||(node.getStencil().id()==="http://b3mn.org/stencilset/xforms#Itemset"));
 		});
-		
+
 		if(items.length > 0) {
-		
+
 			items = items.sortBy(function(item) {
 				return item.bounds.upperLeft().y;
 			});
-			
+
 			var shapeWidth = shape.bounds.width();
 			var shapeHeight = 0;
 			items.each(function(item) {
@@ -142,15 +142,15 @@ ORYX.Plugins.XForms =
 				lr.x = shapeWidth;
 				item.bounds.set(ul, lr);
 			});
-			
+
 			var upl = shape.bounds.upperLeft();
 			shape.bounds.set(upl.x, upl.y, shape.bounds.lowerRight().x, upl.y + shapeHeight + 5);
 		}
-		
+
 		var labels = shape.getChildNodes(false).findAll(function(node) {
 			return (node.getStencil().id() === "http://b3mn.org/stencilset/xforms#Label");
 		});
-		
+
 		if(labels.length > 0) {
 			labels.each(function(label) {
 				var ul = label.bounds.upperLeft();
@@ -163,23 +163,23 @@ ORYX.Plugins.XForms =
 			});
 		}
 	},
-	
+
 	handleLayoutCase : function(event) {
 		var shape = event.shape;
-		
+
 		var cases = shape.getChildNodes(false);
-				
+
 		var maxWidth = 0;
 		cases.each(function(c) {
 			if(c.bounds.width()>maxWidth) maxWidth = c.bounds.width();
 		});
 
 		if(cases.length > 0) {
-			
+
 			cases = cases.sortBy(function(c) {
 				return c.bounds.upperLeft().y;
 			});
-			
+
 			var shapeHeight = 5;
 			cases.each(function(c) {
 				var ul = c.bounds.upperLeft();
@@ -191,19 +191,19 @@ ORYX.Plugins.XForms =
 				lr.x = maxWidth;
 				c.bounds.set(ul, lr);
 			});
-			
+
 			var upl = shape.bounds.upperLeft();
 			shape.bounds.set(upl.x, upl.y, upl.x + maxWidth, upl.y + shapeHeight + 20);
 		}
 	},
-	
+
 	handleLayoutLabelItem : function(event) {
 		var shape = event.shape;
-		
+
 		var labels = shape.getChildNodes(false).findAll(function(node) {
 			return (node.getStencil().id() === "http://b3mn.org/stencilset/xforms#Label");
 		});
-		
+
 		if(labels.length > 0) {
 			labels.each(function(label) {
 				var ul = label.bounds.upperLeft();
@@ -216,18 +216,18 @@ ORYX.Plugins.XForms =
 			});
 		}
 	},
-	
+
 	handleLayoutAction : function(event) {
 		var shape = event.shape;
-		
+
 		var actions = shape.getChildNodes(false);
 
 		if(actions.length > 0) {
-			
+
 			actions = actions.sortBy(function(action) {
 				return action.bounds.upperLeft().y;
 			});
-			
+
 			var shapeHeight = 5;
 			actions.each(function(action) {
 				var ul = action.bounds.upperLeft();
@@ -239,13 +239,13 @@ ORYX.Plugins.XForms =
 				lr.x = 2 + action.bounds.width();
 				action.bounds.set(ul, lr);
 			});
-			
+
 			var upl = shape.bounds.upperLeft();
 			var lor = shape.bounds.lowerRight();
 			shape.bounds.set(upl.x, upl.y, lor.x, upl.y + shapeHeight + 15);
 		}
 	}
-	
+
 };
 
 ORYX.Plugins.XForms = Clazz.extend(ORYX.Plugins.XForms);

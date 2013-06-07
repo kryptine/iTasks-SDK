@@ -1,15 +1,15 @@
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.PluginLoader = Clazz.extend({
-	
+
     facade: undefined,
 	mask: undefined,
 	processURI: undefined,
-	
+
     construct: function(facade){
 		this.facade = facade;
-		
+
 		this.facade.offer({
 			'name': ORYX.I18N.PluginLoad.AddPluginButtonName,
 			'functionality': this.showManageDialog.bind(this),
@@ -29,14 +29,14 @@ ORYX.Plugins.PluginLoader = Clazz.extend({
 	var loadedStencilSetsNamespaces = this.facade.getStencilSets().keys();
 	//get all plugins which could be acivated
 	this.facade.getAvailablePlugins().each(function(match) {
-	if ((!match.requires 	|| !match.requires.namespaces 	
+	if ((!match.requires 	|| !match.requires.namespaces
 			|| match.requires.namespaces.any(function(req){ return loadedStencilSetsNamespaces.indexOf(req) >= 0 }) )
-		&&(!match.notUsesIn 	|| !match.notUsesIn.namespaces 	
+		&&(!match.notUsesIn 	|| !match.notUsesIn.namespaces
 				|| !match.notUsesIn.namespaces.any(function(req){ return loadedStencilSetsNamespaces.indexOf(req) >= 0 }))){
 		plugins.push( match );
 
 	}});
-	
+
 	plugins.each(function(plugin){
 			data.push([plugin.name, plugin.engaged===true]);
 			})
@@ -44,13 +44,13 @@ ORYX.Plugins.PluginLoader = Clazz.extend({
 		var reader = new Ext.data.ArrayReader({}, [
         {name: 'name'},
 		{name: 'engaged'} ]);
-		
+
 		var sm = new Ext.grid.CheckboxSelectionModel({
 			listeners:{
 			beforerowselect: function(sm,nbr,exist,rec){
 			this.mask = new Ext.LoadMask(Ext.getBody(), {msg:ORYX.I18N.Oryx.pleaseWait});
 			this.mask.show();
-				this.facade.activatePluginByName(rec.data.name, 
+				this.facade.activatePluginByName(rec.data.name,
 						function(sucess,err){
 						this.mask.hide();
 
@@ -79,7 +79,7 @@ ORYX.Plugins.PluginLoader = Clazz.extend({
 		            data: data
 		        	}),
 		        cm: new Ext.grid.ColumnModel([
-		            
+
 		            {id:'name',width:390, sortable: true, dataIndex: 'name'},
 					sm]),
 			sm: sm,
@@ -105,9 +105,9 @@ ORYX.Plugins.PluginLoader = Clazz.extend({
 	    });
 
 		var newURLWin = new Ext.Window({
-					title:		ORYX.I18N.PluginLoad.WindowTitle, 
-					//bodyStyle:	"background:white;padding:0px", 
-					width:		'auto', 
+					title:		ORYX.I18N.PluginLoad.WindowTitle,
+					//bodyStyle:	"background:white;padding:0px",
+					width:		'auto',
 					height:		'auto',
 					modal:		true
 					//html:"<div style='font-weight:bold;margin-bottom:10px'></div><span></span>",
@@ -118,4 +118,4 @@ ORYX.Plugins.PluginLoader = Clazz.extend({
 
 		}
 		})
-			
+

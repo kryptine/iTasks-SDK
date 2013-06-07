@@ -26,8 +26,8 @@ if(!ORYX.Plugins)
 
 /**
  * Supports EPCs by offering a syntax check and export and import ability..
- * 
- * 
+ *
+ *
  */
 ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 
@@ -35,11 +35,11 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 
 	/**
 	 * Offers the plugin functionality:
-	 * 
+	 *
 	 */
 	construct: function(facade) {
 		this.facade = facade;
-		
+
 		this.facade.offer({
 			'name':ORYX.I18N.EPCSupport.exp,
 			'functionality': this.exportEPC.bind(this),
@@ -49,7 +49,7 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 			'index': 1,
 			'minShape': 0,
 			'maxShape': 0});
-			
+
 		this.facade.offer({
 			'name':ORYX.I18N.EPCSupport.imp,
 			'functionality': this.importEPC.bind(this),
@@ -59,18 +59,18 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 			'index': 2,
 			'minShape': 0,
 			'maxShape': 0});
-	
+
 	},
 
-	
+
 	/**
 	 * Imports an AML or EPML description
 	 */
 	importEPC: function(){
 		this.openUploadDialog();
-	},		
+	},
 
-	
+
 	/**
 	 * Exports the diagram into an AML or EPML file
 	 */
@@ -79,12 +79,12 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		this.facade.raiseEvent({type:ORYX.CONFIG.EVENT_LOADING_ENABLE, text:ORYX.I18N.EPCSupport.progressExp});
 		var xmlSerializer = new XMLSerializer();
 
-		
+
 		// TODO: a Syntax Syntax-Check should be triggered, here.
-		 
+
 		// TODO: get process' name
 		var resource = "Oryx-EPC";
-		
+
 		// Force to set all resource IDs
 		var serializedDOM = DataManager.serializeDOM( this.facade );
 
@@ -106,10 +106,10 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		'" />' +
 		'</head><body>' +
 		serializedDOM +
-		'<div id="generatedProcessInfos"><span class="oryx-id">' + resource + '</span>' + 
+		'<div id="generatedProcessInfos"><span class="oryx-id">' + resource + '</span>' +
 		'<span class="oryx-name">' + resource + '</span></div>' +
 		'</body></html>';
-		
+
 		/*
 		 * Transform eRDF -> RDF
 		 */
@@ -126,12 +126,12 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 				rdfResultString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + rdfResultString;
 			}
 		}
-		
+
 		/*
 		 * Transform RDF -> EPML
 		 */
 		var rdf2epmlXslt = ORYX.PATH + "/xslt/RDF2EPML.xslt";
-		
+
 		var epmlResult = this.transformDOM(rdfResult, rdf2epmlXslt, true);
 		var epmlResultString;
 		if (epmlResult instanceof String) {
@@ -143,35 +143,35 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 				epmlResultString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + epmlResultString;
 			}
 		}
-		
+
 		this.facade.raiseEvent({type:ORYX.CONFIG.EVENT_LOADING_DISABLE});
-		
+
 		// At the moment, only EPML is going to be returned.
 		this.openDownloadWindow(resource + ".epml", epmlResultString);
     },
-	
+
 	/**
 	 * Transforms the given string via xslt.
-	 * 
+	 *
 	 * @param {String} string
 	 * @param {String} xsltPath
 	 * @param {Boolean} getDOM
 	 */
 	transformString: function(string_, xsltPath, getDOM){
 		var parser = new DOMParser();
-		var parsedDOM = parser.parseFromString(string_,"text/xml");	
-		
+		var parsedDOM = parser.parseFromString(string_,"text/xml");
+
 		return this.transformDOM(parsedDOM, xsltPath, getDOM);
 	},
-	
+
 	/**
 	 * Transforms the given dom via xslt.
-	 * 
+	 *
 	 * @param {Object} domContent
 	 * @param {String} xsltPath
 	 * @param {Boolean} getDOM
 	 */
-	transformDOM: function(domContent, xsltPath, getDOM){	
+	transformDOM: function(domContent, xsltPath, getDOM){
 		if (domContent == null) {
 			return new String("Parse Error: \nThe given dom content is null.");
 		}
@@ -207,10 +207,10 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 
 	/**
 	 * Opens a upload dialog.
-	 * 
+	 *
 	 */
 	openUploadDialog: function(){
-		
+
 		var form = new Ext.form.FormPanel({
 			frame : 		true,
 			bodyStyle:		'padding:5px;',
@@ -221,7 +221,7 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		  	enctype : 		'multipart/form-data',
 		  	items : [
 		  	{
-		    	text : 		ORYX.I18N.EPCSupport.selectFile, 
+		    	text : 		ORYX.I18N.EPCSupport.selectFile,
 				style : 	'font-size:12px;margin-bottom:10px;display:block;',
 				xtype : 	'label'
 		  	},{
@@ -233,15 +233,15 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		});
 
 
-		var dialog = new Ext.Window({ 
-			autoCreate: true, 
-			title: 		ORYX.I18N.EPCSupport.impPanel, 
-			height: 	'auto', 
-			width: 		'auto', 
+		var dialog = new Ext.Window({
+			autoCreate: true,
+			title: 		ORYX.I18N.EPCSupport.impPanel,
+			height: 	'auto',
+			width: 		'auto',
 			modal:		true,
 			collapsible:false,
-			fixedcenter:true, 
-			shadow:		true, 
+			fixedcenter:true,
+			shadow:		true,
 			proxyDrag: 	true,
 			resizable:	false,
 			items: [form],
@@ -249,25 +249,25 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 				{
 					text:ORYX.I18N.EPCSupport.impBtn,
 					handler: function(){
-						
-							
+
+
 						var loadMask = new Ext.LoadMask(Ext.getBody(), {msg:ORYX.I18N.EPCSupport.progressImp});
 						loadMask.show();
-												
+
 						form.form.submit({
 				      		url: ORYX.PATH + '/epc-upload',
 				      		success: function(f,a){
-								
+
 								dialog.hide();
-								
-								// Get the erdf string					
+
+								// Get the erdf string
 								var erdf = a.result;
-								erdf = erdf.startsWith('<?xml') ? erdf : '<?xml version="1.0" encoding="utf-8"?><div>'+erdf+'</div>';	
+								erdf = erdf.startsWith('<?xml') ? erdf : '<?xml version="1.0" encoding="utf-8"?><div>'+erdf+'</div>';
 								// Load the content to the editor
 								this.loadContent(erdf);
 								// Hide the waiting panel
 								loadMask.hide();
-								
+
 				      		}.bind(this),
 							failure: function(f,a){
 								dialog.hide();
@@ -296,11 +296,11 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		});
 		dialog.show();
 	},
-	
+
 	/**
 	 * Creates a hidden form element to communicate parameter values
 	 * to a php file.
-	 * 
+	 *
 	 * @param {Object} name  The name of the hidden field
 	 * @param {Object} value The value of the hidden field
 	 */
@@ -311,10 +311,10 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		newElement.value = value;
 		return newElement
 	},
-	
+
 	/**
 	 * Returns the file name to the given result-entry.
-	 * 
+	 *
 	 * @param {String} entry.
 	 */
 	getFileName: function(entry) {
@@ -326,14 +326,14 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 		}
 		return entry
 	},
-	
+
 	/**
 	 * Opens a download window for downloading the given content.
-	 * 
-	 * Creates a submit form to communicate the contents to the 
+	 *
+	 * Creates a submit form to communicate the contents to the
 	 * download.php file.
-	 * 
-	 * @param {Object} content The content to be downloaded. If it is a zip 
+	 *
+	 * @param {Object} content The content to be downloaded. If it is a zip
 	 *                         file, then this should be an array of contents.
 	 * @param {Object} zip     True, if it is a zip file, false otherwise
 	 */
@@ -344,33 +344,33 @@ ORYX.Plugins.EPCSupport = ORYX.Plugins.AbstractPlugin.extend({
 			win.document.write("<html><body>");
 			var submitForm = win.document.createElement("form");
 			win.document.body.appendChild(submitForm);
-			
+
 			var file = this.getFileName(file);
 			submitForm.appendChild( this.createHiddenElement("download", content));
 			submitForm.appendChild( this.createHiddenElement("file", file));
-			
-			
+
+
 			submitForm.method = "POST";
 			win.document.write("</body></html>");
 			win.document.close();
 			submitForm.action= ORYX.PATH + "/download";
 			submitForm.submit();
-		}		
+		}
 	},
-	
-	
+
+
 	/**
 	 * Loads the imported string into the oryx
-	 * 
+	 *
 	 * @param {Object} content
 	 */
 	loadContent: function( content ){
-		
-		var parser	= new DOMParser();			
+
+		var parser	= new DOMParser();
 		var doc 	= parser.parseFromString( content ,"text/xml");
-		
+
 		this.facade.importERDF( doc );
-		
+
 	}
-	
+
 });

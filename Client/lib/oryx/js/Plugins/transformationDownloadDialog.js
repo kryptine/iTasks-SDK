@@ -31,36 +31,36 @@ ORYX.Plugins.TransformationDownloadDialog = {
 
 	construct: function() {
 	},
-	
-	
 
-	
+
+
+
 	/**
 	 * Opens a message dialog with the given title that shows
-	 * the content. The dialog just shows a message and has a 
+	 * the content. The dialog just shows a message and has a
 	 * "OK" button to be closed.
-	 * 
+	 *
 	 * @param {String} title   The title of the dialog
 	 * @param {String} content The content to be shown in the dialog
 	 */
 	openMessageDialog: function(title, content) {
-		
-		var dialog = new Ext.Window({ 
-			autoCreate: true, 
-			title: title, 
+
+		var dialog = new Ext.Window({
+			autoCreate: true,
+			title: title,
 			modal:true,
 			height: 120,
 			width: 400,
 			collapsible:false,
-			fixedcenter: true, 
-			shadow:true, 
+			fixedcenter: true,
+			shadow:true,
 			resizable:true,
 			proxyDrag: true,
 			autoScroll:true,
 			buttonAlign:"center",
             bodyStyle:'padding:10px',
             html:'<span class="ext-mb-text">' + content + '</span>'
-                        
+
 		});
 		//dialog.addKeyListener(27, dialog.hide, dialog);
 		dialog.addButton('OK', dialog.hide, dialog);
@@ -68,15 +68,15 @@ ORYX.Plugins.TransformationDownloadDialog = {
 			dialog.destroy(true);
 			delete dialog;
 		});
-		
+
 		dialog.show();
 	},
-	
-	
+
+
 	/**
 	 * Opens an error dialog that shows the given content.
 	 * The error is shown in a text area.
-	 * 
+	 *
 	 * @param {String} content The error to be shown
 	 */
 	openErrorDialog: function(content) {
@@ -91,16 +91,16 @@ ORYX.Plugins.TransformationDownloadDialog = {
 			value: content,
 			readOnly:true
         });
-		
-		var dialog = new Ext.Window({ 
-			autoCreate: true, 
-			title: ORYX.I18N.TransformationDownloadDialog.errorParsing, 
+
+		var dialog = new Ext.Window({
+			autoCreate: true,
+			title: ORYX.I18N.TransformationDownloadDialog.errorParsing,
 			modal:true,
 			height: 450,
 			width: 650,
 			collapsible:false,
-			fixedcenter: true, 
-			shadow:true, 
+			fixedcenter: true,
+			shadow:true,
 			resizable:false,
 			proxyDrag: true,
 			autoScroll:false
@@ -113,18 +113,18 @@ ORYX.Plugins.TransformationDownloadDialog = {
 			delete text;
 		});
 		text.render(dialog.body);
-		
+
 		dialog.show();
 	},
-	
-	
+
+
 	/**
 	 * Opens a dialog that presents the results of a transformation.
 	 * The dialog shows a list containing the resulting XML files.
 	 * Each file can be shown in a new window or downloaded.
      *
 	 * @param {Object} data The data to be shown in the dialog
-	 * Format: array with three elements: 
+	 * Format: array with three elements:
 	 *   * file - the file
 	 *   * result - the content of file, may also be an error message.
 	 *   * info - status of the result: "success" or "error"
@@ -139,7 +139,7 @@ ORYX.Plugins.TransformationDownloadDialog = {
 	               {name: 'info', type: 'string'}
 	        	])
 		});
-		
+
 		ds.load();
 
 		// renderer
@@ -151,35 +151,35 @@ ORYX.Plugins.TransformationDownloadDialog = {
             }
             return val;
         };
-	
+
 		var cm = new Ext.grid.ColumnModel([
 		    {id:'file',header: "File", width: 200, sortable: false, dataIndex: 'file', resizable: false},
-		    {header: "Info", width: 75, sortable: false, dataIndex: 'info', renderer: infoRenderer, resizable: false} 
+		    {header: "Info", width: 75, sortable: false, dataIndex: 'info', renderer: infoRenderer, resizable: false}
 		]);
-				
+
 		var grid = new Ext.grid.GridPanel({
 			store:ds,
 	        cm: cm,
 	        sm: new Ext.grid.RowSelectionModel({ 	singleSelect:true }),
 			autoWidth: true
 	    });
-		
+
 	    var toolbar = new Ext.Toolbar();
-		
-		var dialog = new Ext.Window({ 
-			autoCreate: true, 
-			title: ORYX.I18N.TransformationDownloadDialog.transResult, 
-			autoHeight: true, 
-			width: 297, 
+
+		var dialog = new Ext.Window({
+			autoCreate: true,
+			title: ORYX.I18N.TransformationDownloadDialog.transResult,
+			autoHeight: true,
+			width: 297,
 			modal:true,
 			collapsible:false,
-			fixedcenter: true, 
-			shadow:true, 
+			fixedcenter: true,
+			shadow:true,
 			proxyDrag: true,
 			resizable:false,
 			items:[toolbar, grid]
 		});
-	
+
 		dialog.on('hide', function(){
 			dialog.destroy(true);
 			grid.destroy(true);
@@ -187,7 +187,7 @@ ORYX.Plugins.TransformationDownloadDialog = {
 			delete grid;
 		});
 		dialog.show();
-		
+
 		toolbar.add({
 			icon: 'images/view.png', // icons can also be specified inline
 	        cls: 'x-btn-icon',
@@ -224,19 +224,19 @@ ORYX.Plugins.TransformationDownloadDialog = {
 	        cls: 'x-btn-icon',
     	    tooltip: ORYX.I18N.TransformationDownloadDialog.downloadAll,
 			handler: function() {
-				var ds = grid.getStore();				
+				var ds = grid.getStore();
 				this.openDownloadWindow(ds.getRange(0, ds.getCount()), true);
 			}.bind(this)
-		});			
-		
+		});
+
 		// Select the first row
 		grid.getSelectionModel().selectFirstRow();
 	},
-	
-	
+
+
 	/**
 	 * Opens a new window that shows the given XML content.
-	 * 
+	 *
 	 * @param {Object} content The XML content to be shown.
 	 */
 	openXMLWindow: function(content) {
@@ -247,11 +247,11 @@ ORYX.Plugins.TransformationDownloadDialog = {
 		   '_blank', "resizable=yes,width=600,height=600,toolbar=0,scrollbars=yes"
 		);
 	},
-	
-	
+
+
 	/**
 	 * Opens a window that shows the given text content.
-	 * 
+	 *
 	 * @param {Object} content The text content to be shown.
 	 */
 	openErrorWindow: function(content) {
@@ -262,12 +262,12 @@ ORYX.Plugins.TransformationDownloadDialog = {
 		   '_blank', "resizable=yes,width=800,height=300,toolbar=0,scrollbars=yes"
 		);
 	},
-	
-	
+
+
 	/**
 	 * Creates a hidden form element to communicate parameter values
 	 * to a php file.
-	 * 
+	 *
 	 * @param {Object} name  The name of the hidden field
 	 * @param {Object} value The value of the hidden field
 	 */
@@ -278,13 +278,13 @@ ORYX.Plugins.TransformationDownloadDialog = {
 		newElement.value = value;
 		return newElement
 	},
-	
-	
+
+
 	/**
 	 * Adds a file extension to the given file name. If the file
 	 * has the name "topology" or "XPDL4Chor" an .xml extension will
 	 * be added. Otherwise a .bpel extension will be added
-	 * 
+	 *
 	 * @param {Object} file The file name to add the extension to.
 	 */
 	addFileExtension: function(file) {
@@ -294,15 +294,15 @@ ORYX.Plugins.TransformationDownloadDialog = {
 			return file + ".bpel";
 		}
 	},
-	
-	
+
+
 	/**
 	 * Opens a download window for downloading the given content.
-	 * 
-	 * Creates a submit form to send the contents to the 
+	 *
+	 * Creates a submit form to send the contents to the
 	 * Oryx Legacy File Download Servlet (MultiDownloader).
-	 * 
-	 * @param {Object} content The content to be downloaded. If it is a zip 
+	 *
+	 * @param {Object} content The content to be downloaded. If it is a zip
 	 *                         file, then this should be an array of contents.
 	 * @param {Object} zip     True, if it is a zip file, false otherwise
 	 */
@@ -313,7 +313,7 @@ ORYX.Plugins.TransformationDownloadDialog = {
 			win.document.write("<html><body>");
 			var submitForm = win.document.createElement("form");
 			win.document.body.appendChild(submitForm);
-			
+
 			if (zip) {
 				for (var i = 0; i < content.length; i++) {
 					var file = this.addFileExtension(content[i].get("file"));
@@ -325,21 +325,21 @@ ORYX.Plugins.TransformationDownloadDialog = {
 				submitForm.appendChild( this.createHiddenElement("download", content.get("result")));
 				submitForm.appendChild( this.createHiddenElement("file", file));
 			}
-			
+
 			submitForm.method = "POST";
 			win.document.write("</body></html>");
 			win.document.close();
 			submitForm.action= "download";
 			submitForm.submit();
-		}		
+		}
 	},
-	
-		
+
+
 	/**
 	 * Determines if the result is an XML file or not.
 	 * For this purpose it is determined if the given
 	 * result starts with "<?xml".
-	 * 
+	 *
 	 * @param {Object} result The result to be checked.
 	 * @return "success" if it is an XML file, "error" otherwise
 	 */
@@ -349,15 +349,15 @@ ORYX.Plugins.TransformationDownloadDialog = {
 		} else if (result.substr(0, 5) == "<?xml") {
 			return "success";
 		}
-		
+
 		return "error";
 	},
 
-	
+
 	/**
 	 * Determines the process name for a given process
-	 * string. 
-	 * 
+	 * string.
+	 *
 	 * @param {String} process The BPEL4Chor process.
 	 */
 	getProcessName: function(process) {

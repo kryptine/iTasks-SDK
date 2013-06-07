@@ -21,7 +21,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 function gup(name){
@@ -29,19 +29,19 @@ function gup(name){
     var regexS = "[\\?&]" + name + "=([^&#]*)";
     var regex = new RegExp(regexS);
     var results = regex.exec(window.location.href);
-    if (results == null) 
+    if (results == null)
         return "";
-    else 
+    else
         return results[1];
 }
 
 ORYX.Plugins.Pnmlexport = ORYX.Plugins.AbstractPlugin.extend({
 
     facade: undefined,
-    
+
     construct: function(facade){
         this.facade = facade;
-        
+
         this.facade.offer({
             'name': ORYX.I18N.Pnmlexport.name,
             'functionality': this.exportIt.bind(this),
@@ -52,43 +52,43 @@ ORYX.Plugins.Pnmlexport = ORYX.Plugins.AbstractPlugin.extend({
             'minShape': 0,
             'maxShape': 0
         });
-        
+
     },
-    
+
     exportIt: function(){
-    
+
         // raise loading enable event
         this.facade.raiseEvent({
             type: ORYX.CONFIG.EVENT_LOADING_ENABLE
         });
-        
+
         // asynchronously ...
         window.setTimeout((function(){
-        
+
             // ... save synchronously
             this.exportSynchronously();
-            
+
             // raise loading disable event.
             this.facade.raiseEvent({
                 type: ORYX.CONFIG.EVENT_LOADING_DISABLE
             });
-            
+
         }).bind(this), 10);
-        
+
         return true;
     },
-    
+
     exportSynchronously: function(){
-    
+
         var resource = location.href;
-        
-        
+
+
         try {
             var serialized_rdf =this.getRDFFromDOM();
             //serialized_rdf = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + serialized_rdf;
-            
+
             var diagramTitle = gup('resource');
-            
+
             // Send the request to the server.
             new Ajax.Request(ORYX.CONFIG.PNML_EXPORT_URL, {
                 method: 'POST',
@@ -132,8 +132,8 @@ ORYX.Plugins.Pnmlexport = ORYX.Plugins.AbstractPlugin.extend({
                     }
                 }
             });
-            
-        } 
+
+        }
         catch (error) {
             this.facade.raiseEvent({
                 type: ORYX.CONFIG.EVENT_LOADING_DISABLE

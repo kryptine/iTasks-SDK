@@ -32,24 +32,24 @@ ORYX.Plugins.PetriNet = {
 	 */
 	construct: function(facade){
 		this.facade = facade;
-		
+
 		this.facade.registerOnEvent(ORYX.CONFIG.EVENT_PROPWINDOW_PROP_CHANGED, this.handlePropertyChanged.bind(this));
 	},
-	
+
 	/**
-	 * Checks if the number of tokens on a place has changed. Up to four the 
+	 * Checks if the number of tokens on a place has changed. Up to four the
 	 * tokens are visualized as drawings, otherwise a number gets displayed.
 	 */
 	handlePropertyChanged: function(option) {
 		var shapes = option.elements;
 		var propertyKey = option.key;
 		var propertyValue = option.value;
-		
+
 		var changed = false;
 		shapes.each(function(shape){
 			if((shape.getStencil().id() === "http://b3mn.org/stencilset/petrinet#Place") &&
 				(propertyKey === "oryx-numberoftokens")) {
-				
+
 				/* Visualize number of Tokens */
 				if(propertyValue == 0) {
 					shape.setProperty("oryx-numberoftokens_text", "");
@@ -79,10 +79,10 @@ ORYX.Plugins.PetriNet = {
 				changed = true;
 			}
 		});
-		
+
 		if(changed) {this.facade.getCanvas().update();}
 	}
 };
-	
+
 ORYX.Plugins.PetriNet = ORYX.Plugins.AbstractPlugin.extend(ORYX.Plugins.PetriNet);
-	
+

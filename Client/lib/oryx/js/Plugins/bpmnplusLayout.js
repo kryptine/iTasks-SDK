@@ -28,17 +28,17 @@
 if(!ORYX.Plugins)
 	ORYX.Plugins = new Object();
 
-	
+
 /**
  * This plugin offers the layout callbacks used in the BPMNplus stencil set.
- * 
+ *
  * @class ORYX.Plugins.BPMNPlus
  * @extends Clazz
  * @param {Object} facade The editor facade for plugins.
  */
 ORYX.Plugins.BPMNPlusLayout = {
 	/** @lends ORYX.Plugins.BPMNPlusLayout.prototype */
-	
+
 	/**
 	 *	Constructor
 	 *	@param {Object} Facade: The Facade of the Editor
@@ -49,10 +49,10 @@ ORYX.Plugins.BPMNPlusLayout = {
 		this.facade.registerOnEvent('layout.bpmnplus.pool', this.handleLayoutPool.bind(this));
 		this.facade.registerOnEvent('layout.bpmnplus.poolset', this.handleLayoutPoolSet.bind(this));
 	},
-	
+
 	/**
 	 * 'layout.bpmnplus.pool' event handler
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The layout event.
 	 */
@@ -61,12 +61,12 @@ ORYX.Plugins.BPMNPlusLayout = {
 		var lanes = shape.getChildNodes(false).findAll(function(node) {
 			return (node.getStencil().id() === "http://b3mn.org/stencilset/bpmnplus#Lane");
 		});
-		
+
 		if(lanes.length > 0) {
 			lanes = lanes.sortBy(function(lane) {
 				return lane.bounds.upperLeft().y;
 			});
-			
+
 			var shapeWidth = shape.bounds.width();
 			var shapeHeight = 0;
 			lanes.each(function(lane) {
@@ -79,50 +79,50 @@ ORYX.Plugins.BPMNPlusLayout = {
 				lr.x = shapeWidth;
 				lane.bounds.set(ul, lr);
 			});
-			
+
 			var upl = shape.bounds.upperLeft();
 			shape.bounds.set(upl.x, upl.y, shape.bounds.lowerRight().x, upl.y + shapeHeight);
-			
+
 			// set label at the middle
 			shape.getLabels().each(function(label) {
 				label.y = shapeHeight / 2;
 				label.x = 12;
 			});
-		}		
+		}
 	},
-	
+
 	/**
 	 * The event handler for the 'layout.bpmnplus.poolset' event
-	 * 
+	 *
 	 * @param {Object} event
 	 * 		The layout event to handle
 	 */
 	handleLayoutPoolSet: function(event) {
 		var shape = event.shape;
-		
+
 		var lanes = shape.getChildNodes(false).findAll(function(node) {
 			return (node.getStencil().id() === "http://b3mn.org/stencilset/bpmnplus#Lane");
 		});
-		
+
 		if(lanes.length > 0) {
-		
+
 			lanes = lanes.sortBy(function(lane) {
 				return lane.bounds.upperLeft().y;
 			});
-			
+
 			var shapeWidth = shape.bounds.width();
 			var laneWidth = shapeWidth * 500 / 515;
-			
+
 			// calculate height based on the contained lanes
 			var oldShapeHeight = 0;
 			lanes.each(function(lane) {
 				oldShapeHeight += lane.bounds.height();
 			});
-			
+
 			// calculate new height based on the pool set shade
-			var newShapeHeight = oldShapeHeight * 315 / 300;					
+			var newShapeHeight = oldShapeHeight * 315 / 300;
 			var diff = newShapeHeight - oldShapeHeight;
-			
+
 			// calculate lane bounds
 			var shapeHeight = diff;
 			lanes.each(function(lane) {
@@ -135,11 +135,11 @@ ORYX.Plugins.BPMNPlusLayout = {
 				lr.x = laneWidth;
 				lane.bounds.set(ul, lr);
 			});
-			
+
 			// calculate shape bounds
 			var upl = shape.bounds.upperLeft();
 			shape.bounds.set(upl.x, upl.y, shape.bounds.lowerRight().x, upl.y + shapeHeight);
-			
+
 			// set labels at the middle
 			shape.getLabels().each(function(label) {
 				label.y = shapeHeight / 2;
@@ -147,7 +147,7 @@ ORYX.Plugins.BPMNPlusLayout = {
 			});
 		}
 	}
-	
+
 };
 
 ORYX.Plugins.BPMNPlusLayout = Clazz.extend(ORYX.Plugins.BPMNPlusLayout);

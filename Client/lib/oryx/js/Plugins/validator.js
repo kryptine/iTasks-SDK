@@ -20,18 +20,18 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
     construct: function(facade){
         this.facade = facade;
-        
+
         this.active = false;
         this.raisedEventIds = [];
-        
+
         this.buttonId = ORYX.Editor.provideId();
-        
+
         this.facade.offer({
             'name': ORYX.I18N.Validator.name,
             'id': this.buttonId,
@@ -45,7 +45,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             'maxShape': 0
         });
     },
-    
+
     load: function(button, pressed){
         if (!pressed) {
             this.hideOverlays();
@@ -55,7 +55,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             this.validate(button);
         }
     },
-    
+
     setActive: function(active){
         this.active = active;
         this.facade.raiseEvent({
@@ -64,7 +64,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             pressed: active
         });
     },
-    
+
     hideOverlays: function(){
         this.raisedEventIds.each(function(id){
             this.facade.raiseEvent({
@@ -73,7 +73,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             });
         }
 .bind(this));
-        
+
         this.raisedEventIds = [];
     },
     validate: function(button){
@@ -81,7 +81,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             type: ORYX.CONFIG.EVENT_LOADING_ENABLE,
             text: ORYX.I18N.Validator.checking
         });
-      
+
         // Send the request to the server.
         new Ajax.Request(ORYX.CONFIG.VALIDATOR_URL, {
             method: 'POST',
@@ -92,12 +92,12 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             },
             onSuccess: function(request){
                 var result = Ext.decode(request.responseText);
-                
+
                 this.facade.raiseEvent({
                     type: ORYX.CONFIG.EVENT_LOADING_DISABLE
                 });
-                
-                // This should be implemented by child instances of validator 
+
+                // This should be implemented by child instances of validator
                 this.handleValidationResponse(result, button);
             }
 .bind(this),
@@ -109,13 +109,13 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             }.bind(this)
         });
     },
-    
+
     showOverlay: function(shape, errorMsg, errorTitle){
-    
+
         var id = "syntaxchecker." + this.raisedEventIds.length;
-        
+
         var crossId = ORYX.Editor.provideId();
-        
+
         var cross = ORYX.Editor.graft("http://www.w3.org/2000/svg", null, ['path', {
         	"id":crossId,
         	"title":"",
@@ -124,7 +124,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             "d": "M20,-5 L5,-20 M5,-5 L20,-20",
             "line-captions": "round"
         }]);
-        
+
         this.facade.raiseEvent({
             type: ORYX.CONFIG.EVENT_OVERLAY_SHOW,
             id: id,
@@ -132,19 +132,19 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             node: cross,
             nodePosition: shape instanceof ORYX.Core.Edge ? "START" : "NW"
         });
-        
+
         this.raisedEventIds.push(id);
-        
+
         var tooltip = new Ext.ToolTip({
         	showDelay:50,
         	title:errorTitle,
         	html:errorMsg,
         	target:crossId
-        });   
-        
+        });
+
         return cross;
     },
-    
+
     /**
      * Registers handler for deactivating syntax checker as soon as somewhere is clicked...
      * @param {Ext.Button} Toolbar button
@@ -154,7 +154,7 @@ ORYX.Plugins.Validator = ORYX.Plugins.AbstractPlugin.extend({
             this.setActive(false);
             this.facade.unregisterOnEvent(ORYX.CONFIG.EVENT_MOUSEDOWN, deactivate);
         };
-        
+
         this.facade.registerOnEvent(ORYX.CONFIG.EVENT_MOUSEDOWN, deactivate.bind(this));
     }
 });
@@ -166,7 +166,7 @@ ORYX.Plugins.BPMNValidator = Ext.extend(ORYX.Plugins.Validator, {
         var unsafeNode = result.unsafeNode;
         // Only stay active if there is anything to visualize
         this.setActive(conflictingNodes.size() > 0);
-        
+
 //        if (!leadsToEnd) {
 //            Ext.Msg.alert("Validation Result", "The process will never reach a final state!");
 //        }
@@ -216,7 +216,7 @@ ORYX.Plugins.EPCValidator = Ext.extend(ORYX.Plugins.Validator, {
   findShapeById: function(id){
     return this.facade.getCanvas().getChildShapeByResourceId(id);
   },
-  
+
     handleValidationResponse: function(result, button){
       //TODO use Ext XTemplate
         var isSound = result.isSound;
@@ -224,17 +224,17 @@ ORYX.Plugins.EPCValidator = Ext.extend(ORYX.Plugins.Validator, {
         var badEndArcs = result.badEndArcs;
         var goodInitialMarkings = result.goodInitialMarkings;
         var goodFinalMarkings = result.goodFinalMarkings;
-        
+
         var message = "";
-        
+
         if (isSound) {
           message += ORYX.I18N.Validator.epcIsSound;
         } else {
           message += ORYX.I18N.Validator.epcNotSound;
         }
-        
+
         message += "<hr />";
-        
+
         var arrayOfArraysToMessage = function(arrayOfArrays, formatter){
           var message = "<ul>"
           arrayOfArrays.each(function(array){
@@ -255,7 +255,7 @@ ORYX.Plugins.EPCValidator = Ext.extend(ORYX.Plugins.Validator, {
           message += "</ul>";
           return message;
         }
-        
+
         message += "<p>There are "+ goodInitialMarkings.length +" initial markings which does not run into a deadlock.</p>";
         message += arrayOfArraysToMessage(goodInitialMarkings, function(arc){
           return this.getLabelOfShape(this.findShapeById(arc.id).getIncomingShapes()[0]);
@@ -264,9 +264,9 @@ ORYX.Plugins.EPCValidator = Ext.extend(ORYX.Plugins.Validator, {
         message += arrayToMessage(badStartArcs, function(arc){
           return this.getLabelOfShape(this.findShapeById(arc.id).getIncomingShapes()[0]);
         }.createDelegate(this));
-        
+
         message += "<hr />";
-        
+
         message += "<p>There are "+ goodFinalMarkings.length +" final markings which can be reached from the initial markings.</p>";
         message += arrayOfArraysToMessage(goodFinalMarkings, function(arc){
           return this.getLabelOfShape(this.findShapeById(arc.id).getOutgoingShapes()[0]);
@@ -275,13 +275,13 @@ ORYX.Plugins.EPCValidator = Ext.extend(ORYX.Plugins.Validator, {
         message += arrayToMessage(badEndArcs, function(arc){
           return this.getLabelOfShape(this.findShapeById(arc.id).getOutgoingShapes()[0]);
         }.createDelegate(this))
-        
+
         message += "<hr />";
-        
+
         message += "<p><i>Remark: Set titles of functions and events to get some nicer output (names instead of ids)</i></p>"
-        
+
         Ext.Msg.alert('Validation Result', message);
-        
+
         this.setActive(false);
     }
 });

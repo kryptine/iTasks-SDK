@@ -19,20 +19,20 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.ResourceAssignment = Clazz.extend({
 
     facade: undefined,
-    
+
     construct: function(facade){
-		
+
         this.facade = facade;
-        
+
 		this.active 		= false;
 		this.raisedEventIds = [];
-		
+
         this.facade.offer({
             'name': ORYX.I18N.ResourceAssignment.name,
             'functionality': this.assignResource.bind(this),
@@ -45,9 +45,9 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
             'minShape': 1,
             'maxShape': 0
         });
-		
+
     },
-    
+
 	assignResource: function(){
     	//variable declaration
     	var selectedElements = this.facade.getSelection(); //all selected elements
@@ -55,7 +55,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
     	var checkedValues = []; //values checked in resource selection dialog
     	var i = 0; //counter
     	var len = selectedElements.length; //number of selected elements
-    	
+
     	//get only selected tasks
     	for (var index = 0; index < len; index++) {
     		var item = selectedElements[index];
@@ -73,7 +73,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
 		if(allocationTypeData[0] != null) { //skip following if no resource/ role is selected
 			var resourceData = allocationTypeData[0];
 			var allocationType = allocationTypeData[1];
-			
+
 			if(resourceData != "--automatic execution--") { //skip following if automatic execution shall take place
 				//Dialog to select resources respectively roles
 				var resourceSelection = new Ext.Window({
@@ -120,7 +120,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
 			}
 		}
     },
-	
+
 	getResourceData: function(allocationType) { //Ajax request to get resource/ role information from servlet
 		var resp;
 		//get Resource List
@@ -137,7 +137,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
     	});
 		return resp;
 	},
-	
+
 	getCheckedValues: function(resourceSelection) { //identify check elements and return the value
 		var selectedValues = [];
 		var j = 0;
@@ -149,7 +149,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
 		}
 		return selectedValues;
 	},
-	
+
 	writeAssignments: function(newResources, taskElements, allocationType) { //create and write JSON object to task attributes
 		for (var taskCounter = 0; taskCounter < taskElements.length; taskCounter++) {
 			var jsonObjectString;
@@ -172,7 +172,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
 						}
 					}
 				}
-				
+
 				//write existing assignments
 				jsonObjectString = "{'totalCount':" + totalCount + ", 'items':[{assignmentType:\"" + items[0].assignmentType + "\", assignmentName:\"" + items[0].assignmentName + "\"}";
 				for (var c = 1; c < items.length; c++) {
@@ -194,10 +194,10 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
 			}
 			//complete allocation by writing final entry
 			currentTask.setProperty("oryx-resourceassignments", jsonObjectString);
-			
+
 		}
 	},
-	
+
 	handleAllocationTypeData: function(taskId) { //ask for type of allocation via a prompt and collect resource information to return it
 		var returnValue = [];
 		var resourceData;
@@ -231,7 +231,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
 		}
 		return returnValue;
 	},
-    
+
     getSavedAssignmentsData: function(taskElement) {
     	var returnValue = [];
     	var elementIds = []; //collection of used ids for saved assignments
@@ -257,7 +257,7 @@ ORYX.Plugins.ResourceAssignment = Clazz.extend({
     		}
 	        j++;
     	}
-    	
+
     	//get highest element id
     	for(var index = 0; index < elementIds.length; index++) {
     		if(elementIds[index] > highestId) {

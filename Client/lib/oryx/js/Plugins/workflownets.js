@@ -32,10 +32,10 @@ ORYX.Plugins.Workflownets = {
 	 */
 	construct: function(facade){
 		this.facade = facade;
-		
+
 		this.facade.registerOnEvent("Workflownets.Activity.serialize", this.handleSerialize.bind(this));
 	},
-	
+
 	handleSerialize: function(event) {
 		var shape = event.shape;
 		var data = event.data;
@@ -46,7 +46,7 @@ ORYX.Plugins.Workflownets = {
 				  value:numOfOutgoings,
 				  type:"literal"
 				  });
-		
+
 		event.result = data;
 	}
 };

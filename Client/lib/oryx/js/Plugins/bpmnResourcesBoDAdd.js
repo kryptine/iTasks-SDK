@@ -19,20 +19,20 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 
     facade: undefined,
-    
+
     construct: function(facade){
-		
+
         this.facade = facade;
-        
+
 		this.active 		= false;
 		this.raisedEventIds = [];
-		
+
         this.facade.offer({
             'name': ORYX.I18N.ResourcesBoDAdd.name,
             'functionality': this.defineBoD.bind(this),
@@ -45,9 +45,9 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
             'minShape': 2,
             'maxShape': 0
         });
-		
+
     },
-    
+
 	defineBoD: function(){
     	//variable declaration
     	var selectedElements = this.facade.getSelection(); //all selected elements
@@ -55,7 +55,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     	var selectedTasks; //new tasks to be separated
     	var i = 0; //counter
     	var len = selectedElements.length; //number of selected elements
-    	
+
     	//get only selected tasks
     	for (var index = 0; index < len; index++) {
     		var item = selectedElements[index];
@@ -72,13 +72,13 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     			i++;
     		}
     	}
-    	
+
 		if (taskElements.length > 1) {
 			for (var taskCounter = 0; taskCounter < taskElements.length; taskCounter++) {
 				//variable declaration
 				var savedBindingsData = [];	//already saved bindings
 				var savedSeparationsData = false; //already saved separations
-				
+
 				//check whether other bindings are defined for current task
 				if (taskElements[taskCounter].properties["oryx-bindingsofduties"] != "") {
 					savedBindingsData = this.bindingsCheck(taskElements[taskCounter], selectedTasks);
@@ -89,7 +89,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 					savedBindingsData[1] = 0; //total number of binding entries is 0 as field is empty
 					savedBindingsData[2] = 0; //highest id used is 0 as no id is used
 				}
-				
+
 				//check whether a contradicting separation is defined for current task
 				if (taskElements[taskCounter].properties["oryx-separationofduties"] != ("")) {
 					savedSeparationsData = this.separationsCheck(taskElements[taskCounter], selectedTasks);
@@ -97,7 +97,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 						break;
 					}
 				}
-				
+
 				//write entry
 				this.writeEntry(savedBindingsData, selectedTasks, taskElements[taskCounter]);
 			}
@@ -105,7 +105,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 			alert("Please select at least two tasks to define constraints for.");
 		}
     },
-    
+
     bindingsCheck: function(taskElement, selectedTasks) { //check for existing bindings with same tasks
 		var returnValue = [];
 		//get previous binding of duties assignments
@@ -143,16 +143,16 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     		taskIds[n] = bindings; //get last task ids entry
     	}
     	taskIds[n]= taskIds[n].substring(0,taskIds[n].indexOf('"'));
-    	
+
         //check whether entry does already exist
         var boundTasksCopy = selectedTasks; //working copy
         var singleTaskIdsInsertedBinding = []; //task ids of new bindings
         var singleTaskIdsSavedBindings = []; //task ids of saved bindings
-		
+
         var y = 0; //counter
-        
+
 		var equal = false; //duplicate existing?
-        
+
         //extract task ids of newly entered binding tasks
     	while(boundTasksCopy.indexOf(';') > -1) {
     		singleTaskIdsInsertedBinding[y] = boundTasksCopy.substring(0, boundTasksCopy.indexOf(';'));
@@ -160,7 +160,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	        y++;
         }
     	singleTaskIdsInsertedBinding[y] = boundTasksCopy;
-        
+
         //extract task ids of stored binding tasks
         for(var index = 0; index < taskIds.length; index++) {
         	var z = 0; //counter
@@ -172,7 +172,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	        }
         	singleTaskIdsSavedBindings[z] = taskIds[index];
         	z++;
-        	
+
 			//compare all collected tasks/ task ids
         	if(singleTaskIdsInsertedBinding.length == singleTaskIdsSavedBindings.length) {
         		for(var x = 0; x < singleTaskIdsSavedBindings.length; x++) {
@@ -224,7 +224,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	        	break;
 	        }
         }
-		
+
     	//get highest element id
     	for(var index = 0; index < elementIds.length; index++) {
     		if(elementIds[index] > highestId) {
@@ -237,7 +237,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     	returnValue[3] = equal;
     	return returnValue;
     },
-    
+
     separationsCheck: function(taskElement, selectedTasks) { //check for existing separation with same tasks
     	var returnValue;
 		//get previous binding of duties assignments
@@ -266,7 +266,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     		boundTaskIds[q] = separations; //never reached?
     	}
     	boundTaskIds[q]= boundTaskIds[q].substring(0,boundTaskIds[q].indexOf('"'));
-    	
+
         //check whether entry does already exist
         var separatedTasksCopy = selectedTasks; //working copy
         var singleTaskIdsInsertedSeparation = []; ////task ids of new separations
@@ -274,7 +274,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
         var s = 0; //counter
         var t = 0; //counter
         var duplicate = false; //duplicate existing?
-        
+
         //extract task ids of newly entered separation tasks
     	while(separatedTasksCopy.indexOf(';') > -1) {
     		singleTaskIdsInsertedSeparation[s] = separatedTasksCopy.substring(0, separatedTasksCopy.indexOf(';'));
@@ -282,7 +282,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	        s++;
         }
     	singleTaskIdsInsertedSeparation[s] = separatedTasksCopy;
-        
+
         //extract task ids of stored bound tasks
         for(var index = 0; index < boundTaskIds.length; index++) {
         	while(boundTaskIds[index].indexOf(';') > -1) {
@@ -291,7 +291,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 		        t++;
 	        }
         	singleTaskIdsSavedSeparations[t] = boundTaskIds[index];
-        	
+
 	        var check = 0;
         	if(singleTaskIdsInsertedSeparation.length >= singleTaskIdsSavedSeparations.length) {
         		for(var x = 0; x < singleTaskIdsSavedSeparations.length; x++) {
@@ -326,7 +326,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     				}
         		}
         	}
-        	
+
 	        if(duplicate == true) { //entry does exist, delete?
 				var bodDelete = confirm("Do you want to delete the existing contradicting separation for allowing this binding constraint to be entered? Otherwise, this binding constraint will be discarded.");
 				if(bodDelete == true) {
@@ -336,15 +336,15 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	        	break;
 	        }
         }//end check whether separation entry does already exist
-    	
+
         returnValue = duplicate;
         return returnValue;
     },
-    
+
     writeEntry: function(savedBindingsData, selectedTasks, taskElement) { //create JSON object and write to task attributes
     	if(savedBindingsData[1] > 0) { //saved entries do exist
     		savedBindingsData[1]++; //number of entries
-    		savedBindingsData[2]++; //highestId needs to be higher than all found ids 
+    		savedBindingsData[2]++; //highestId needs to be higher than all found ids
     		savedBindingsData[0] = savedBindingsData[0].substring((savedBindingsData[0].indexOf(':'))+2);
     		savedBindingsData[0] = "{'totalCount':" + savedBindingsData[1] + savedBindingsData[0] + ", {bodId:\"" + savedBindingsData[2] + "\", BoundTasks:\"" + selectedTasks + "\"}]}";
     	} else { //first entry to be done
@@ -354,7 +354,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
     	}
     	taskElement.setProperty("oryx-bindingsofduties", savedBindingsData[0]);
     },
-	
+
 	deleteBindingEntry: function(taskElement, elementId) { //delete given entry from given task from binding contraints
 		var returnValue = [];
 		var bindings = taskElement.properties["oryx-bindingsofduties"]; //get saved separations
@@ -377,25 +377,25 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 			bindings = bindings.substring((bindings.indexOf('}'))+3); //'bodId'", BoundTasks:"task_c; task_d; task_e"} or //{bodId:"'id'", BoundTasks:"task_c; task_d; task_e"},_
 			var entry = "{'totalCount':" + totalCount + ", 'items':" + keptBindings + bindings + "]}";
 			taskElement.setProperty("oryx-bindingsofduties", entry);
-			
+
 			entry = entry.toString();
 			entry = entry.substring(0,entry.indexOf(']'));
-		
+
 		} else {
 			var entry = "";
 			taskElement.setProperty("oryx-bindingsofduties", entry);
 		}
-		
+
 		returnValue[0] = entry;
 		returnValue[1] = totalCount;
 		return returnValue;
 	},
-	
+
 	findSeparationEntry: function(taskIds) { //find separation entry with given task ids to be deleted at all affected tasks
 		var taskIdsCopy = taskIds;
 		var singleTaskIds = [];
 		var s = 0;
-		
+
 		//extract task ids of affected tasks
     	while(taskIdsCopy.indexOf(';') > -1) {
     		singleTaskIds[s] = taskIdsCopy.substring(0, taskIdsCopy.indexOf(';'));
@@ -403,7 +403,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	        s++;
         }
     	singleTaskIds[s] = taskIdsCopy;
-		
+
 		taskIdsCopy = taskIds + ";";
 		for (var m = 0; m < singleTaskIds.length; m++) { //go through all affected tasks
 			var currentTask = this.getTaskById(singleTaskIds[m]);
@@ -433,9 +433,9 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 	    		separatedTaskIds[j] = separations; //never reached??
 	    	}
 	    	separatedTaskIds[j]= separatedTaskIds[j].substring(0,separatedTaskIds[j].indexOf('"'));
-						
+
 			var singleTaskIdsStoredSeparation = [];
-			
+
 			//check each separation entry
 			for (var index = 0; index < separatedTaskIds.length; index++) {
 				var separatedTasksCopy = separatedTaskIds[index];
@@ -447,7 +447,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 					t++;
 				}
 				singleTaskIdsStoredSeparation[t] = separatedTasksCopy;
-				
+
 				if (singleTaskIds.length >= singleTaskIdsStoredSeparation.length) {
 					var equalCounter = 0;
 					for (var x = 0; x < singleTaskIdsStoredSeparation.length; x++) {
@@ -467,7 +467,7 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 			}
 		}
 	},
-	
+
 	deleteSeparationEntry: function(taskElement, elementId) { //delete defined entry in given task
 		var separations = taskElement.properties["oryx-separationofduties"]; //get saved separations
 		var keptSeparations;
@@ -489,16 +489,16 @@ ORYX.Plugins.ResourcesBoDAdd = Clazz.extend({
 			separations = separations.substring((separations.indexOf('}'))+3); //'sodId'", SeparatedTasks:"task_c; task_d; task_e"} or //{sodId:"'id'", SeparatedTasks:"task_c; task_d; task_e"},_
 			var entry = "{'totalCount':" + totalCount + ", 'items':" + keptSeparations + separations + "]}";
 			taskElement.setProperty("oryx-separationofduties", entry);
-			
+
 			entry = entry.toString();
 			entry = entry.substring(0,entry.indexOf(']'));
-		
-		} else { //remove last entry 
+
+		} else { //remove last entry
 			var entry = "";
 			taskElement.setProperty("oryx-separationofduties", entry);
 		}
 	},
-	
+
 	getTaskById: function(taskId){
 		var shapes = this.facade.getCanvas().getChildShapes(true);
 		var task;

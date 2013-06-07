@@ -26,7 +26,7 @@ if(!ORYX.Plugins)
 
 /**
  * Supports creating and editing ad-hoc completion conditions
- * 
+ *
  */
 ORYX.Plugins.AdHocCC = Clazz.extend({
 
@@ -35,11 +35,11 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 
 	/**
 	 * Offers the plugin functionality:
-	 * 
+	 *
 	 */
 	construct: function(facade) {
 		this.facade = facade;
-		
+
 		this.facade.offer({
 			'name':ORYX.I18N.AdHocCC.compl,
 			'functionality': this.editCC.bind(this),
@@ -52,42 +52,42 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 			// ISSUE: Should the Context Area this Plugin is creating be removed?
 		});
 	},
-	
-	
+
+
 	/**
 	 * Opens a Dialog that can be used to edit an ad-hoc activity's completion condition
-	 * 
+	 *
 	 */
-	editCC: function(){	
-	
+	editCC: function(){
+
 		/*
 		 * 	check pre conditions
-		 */ 
+		 */
 		var elements = this.facade.getSelection();
 		if (elements.length != 1) {
 			// Should not happen!
 			this.openErroDialog(ORYX.I18N.AdHocCC.notOne);
-			return ; 
+			return ;
 		}
 		var adHocActivity = elements[0];
 		if (adHocActivity._stencil.id() != "http://b3mn.org/stencilset/bpmnexec#Subprocess" || !adHocActivity.properties['oryx-isadhoc']){
-			this.openErroDialog(ORYX.I18N.AdHocCC.nodAdHocCC); 
+			this.openErroDialog(ORYX.I18N.AdHocCC.nodAdHocCC);
 			return ;
 		}
-	
+
 		/*
 		 * 	load relevant data
-		 */ 	
+		 */
 		var oldCC = adHocActivity.properties['oryx-adhoccompletioncondition'];
 		var taskArrayFields = ['resourceID', 'resourceName'];
-		var taskArray = []; 
+		var taskArray = [];
 		var stateArrayFields = ['state'];
 		var stateArray = [ ['ready'], ['skipped'], ['completed'] ];
 		var dataArrayFields = ['resourceID_FieldName', 'dataNameAndFieldName'];
 		var dataArray = [];
 
 		var parser = new DOMParser();
-		
+
 		var childNodes = adHocActivity.getChildNodes();
 		for (var i = 0; i < childNodes.length; i++) {
 			var child = childNodes[i];
@@ -129,25 +129,25 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 				}
 			}
 		}
-				
+
 		/*
 		 * 	initialiaze UI
-		 */ 
+		 */
 		var taskStore = new Ext.data.SimpleStore({
    			fields: taskArrayFields,
     		data : taskArray
 		});
-		
+
 		var stateStore = new Ext.data.SimpleStore({
    			fields: stateArrayFields,
     		data : stateArray
 		});
-		
+
 		var dataStore = new Ext.data.SimpleStore({
    			fields: dataArrayFields,
     		data : dataArray
 		});
-		
+
 		var taskCombo = new Ext.form.ComboBox({
     		store: taskStore,
 			valueField: taskArrayFields[0],
@@ -160,7 +160,7 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 			editable: false,
 			width: 180
 		});
-		
+
 		var stateCombo = new Ext.form.ComboBox({
     		store: stateStore,
     		displayField: stateArrayFields[0],
@@ -185,7 +185,7 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 				}
 			}.bind(this)
 		});
-		
+
 		var dataCombo = new Ext.form.ComboBox({
     		store: dataStore,
 			valueField: dataArrayFields[0],
@@ -198,12 +198,12 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 			editable: false,
 			width: 180
 		});
-		
+
 		var valueField = new Ext.form.TextField({
 			width: 180,
 			emptyText: ORYX.I18N.AdHocCC.enterEqual,
 		});
-		
+
 		var addDataExprButton = new Ext.Button({
 			text: ORYX.I18N.AdHocCC.addExp,
 			handler: function(){
@@ -216,61 +216,61 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 				}
 			}.bind(this)
 		});
-		
+
 		var addAndButton = new Ext.Button({
-			text: ORYX.I18N.AdHocCC.and, 
+			text: ORYX.I18N.AdHocCC.and,
 			minWidth: 50,
 			handler: function(){
 				this.addStringToTextArea(textArea, "&");
 			}.bind(this)
 		});
-					
+
 		var addOrButton = new Ext.Button({
-			text: ORYX.I18N.AdHocCC.or, 
+			text: ORYX.I18N.AdHocCC.or,
 			minWidth: 50,
 			handler: function(){
 				this.addStringToTextArea(textArea, "|");
 			}.bind(this)
 		});
-		
+
 		var addLPButton = new Ext.Button({
-			text: "(", 
+			text: "(",
 			minWidth: 50,
 			handler: function(){
 				this.addStringToTextArea(textArea, "(");
 			}.bind(this)
 		});
-					
+
 		var addRPButton = new Ext.Button({
-			text: ")", 
+			text: ")",
 			minWidth: 50,
 			handler: function(){
 				this.addStringToTextArea(textArea, ")");
 			}.bind(this)
 		});
-		
+
 		var addNotButton = new Ext.Button({
-			text: ORYX.I18N.AdHocCC.not, 
+			text: ORYX.I18N.AdHocCC.not,
 			minWidth: 50,
 			handler: function(){
 				this.addStringToTextArea(textArea, "!");
 			}.bind(this)
 		});
-		
+
 		var textArea = new Ext.form.TextArea({
 			width: 418,
 			height: 100,
 			value: oldCC
 		});
-		
+
 		var clearButton = new Ext.Button({
 			text: ORYX.I18N.AdHocCC.clearCC,
 			handler: function(){
 				textArea.setValue("");
 			}
 		});
-		
-		var win = new Ext.Window({ 
+
+		var win = new Ext.Window({
 			width: 450,
 			//minWidth: 400,
 			height: 485,
@@ -292,11 +292,11 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 				{}, {items: [taskCombo], colspan: 6},
 				{}, {items: [stateCombo], colspan: 4}, {items: [addStateExprButton]}, {},
 				{colspan: 7},
-				{ items: [new Ext.form.Label({text: ORYX.I18N.AdHocCC.addDataExp, style: 'font-size:12px;'})], colspan: 7},	
+				{ items: [new Ext.form.Label({text: ORYX.I18N.AdHocCC.addDataExp, style: 'font-size:12px;'})], colspan: 7},
 				{}, {items: [dataCombo], colspan: 6},
 				{}, {items: [valueField], colspan: 4}, {items: [addDataExprButton]}, {},
 				{colspan: 7},
-				{ items: [new Ext.form.Label({text: ORYX.I18N.AdHocCC.addLogOp, style: 'font-size:12px;'})], colspan: 7},	
+				{ items: [new Ext.form.Label({text: ORYX.I18N.AdHocCC.addLogOp, style: 'font-size:12px;'})], colspan: 7},
 				{}, {items: [addAndButton]}, {items: [addOrButton]}, {items: [addLPButton]}, {items: [addRPButton]}, {items: [addNotButton]}, {},
 				{colspan: 7},
 				{ items: [new Ext.form.Label({text: ORYX.I18N.AdHocCC.curCond, style: 'font-size:12px;'})], colspan: 7},
@@ -324,15 +324,15 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 	        	fn: function(){win.hide();}
 	    	}]
 		});
-		win.show();	
+		win.show();
 	},
-	
-	
+
+
 	/**
 	 * Adds an string into a text area
-	 * 
+	 *
 	 * NOTE: This implementation does only work with Gecko browsers (e.g. Mozilla Firefox)
-	 * 
+	 *
 	 * @param {TextField} textArea
 	 * @param {String} string
 	 */
@@ -344,10 +344,10 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
 		textArea.getEl().dom.selectionStart = selectionStart + string.length;
 		textArea.getEl().dom.selectionEnd = textArea.getEl().dom.selectionStart;
 	},
-	
+
 	/**
 	 * Opens an error dialog
-	 * 
+	 *
 	 * @param {String} errorMsg
 	 */
 	openErroDialog: function(errorMsg){
@@ -357,6 +357,6 @@ ORYX.Plugins.AdHocCC = Clazz.extend({
            buttons: Ext.MessageBox.OK,
            icon: Ext.MessageBox.ERROR
        });
-	}	
-	
+	}
+
 });

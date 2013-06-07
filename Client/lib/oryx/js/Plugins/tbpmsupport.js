@@ -21,7 +21,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 /**
@@ -30,17 +30,17 @@ if (!ORYX.Plugins)
 ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
 
 	facade: undefined,
-	
+
 	tbpmImportServletURL: ORYX.CONFIG.TBPMIMPORT,
-	
+
 	canvasId: "ext-gen56",
-	
+
 	TMP_FOLDER: ORYX.PATH + "/tmp/",
-	
+
     construct: function(){
         // Call super class constructor
         arguments.callee.$.construct.apply(this, arguments);
-        
+
         this.facade.offer({
             'name': ORYX.I18N.TBPMSupport.imp.name,
             'functionality': this.showImportDialog.bind(this),
@@ -54,7 +54,7 @@ ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
             'maxShape': 0
         });
     },
-    
+
     /**
      * Opens a upload dialog.
      *
@@ -79,7 +79,7 @@ ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
                 itemCls: 'ext_specific_window_overflow'
             }]
         });
-        
+
         // Create the panel
         this.dialog = new Ext.Window({
             autoCreate: true,
@@ -105,61 +105,61 @@ ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
                 }.bind(this)
             }]
         });
-        
+
         this.dialog.on('hide', function(){
 			this.dialog.destroy(true);
 			delete this.dialog;
 		}.bind(this));
-        
+
         // Show the panel
-        this.dialog.show();        
+        this.dialog.show();
     },
-    
-    uploadImage: function(button, event) {    	
-    	  	
+
+    uploadImage: function(button, event) {
+
     	var imageName = this.form.items.items[1].getValue().replace("png", "jpg");
-    	
+
 		var loadMask = new Ext.LoadMask(Ext.getBody(), {
 		    msg: ORYX.I18N.TBPMSupport.imp.progress
 		});
 		loadMask.show();
-    	
-		this.form.form.submit({	
-    				url: this.tbpmImportServletURL, 
+
+		this.form.form.submit({
+    				url: this.tbpmImportServletURL,
     				clientValidation: true,
     				waitMsg:'Saving Data...',
     				method: "POST",
-    				
+
     				success: function(form, action) {
 						obj = Ext.util.JSON.decode(action.response.responseText);
 						alert(object);
     			    	this.dialog.hide();
     					this.showConfirmDialog(imageName);
     					// Hide the waiting panel
-    					loadMask.hide()  ;  					
+    					loadMask.hide()  ;
     			    }.bind(this),
-    			    
+
     			    // invokes failure handler even i case of successful response (no idea why)
     				failure: function(form, action){
     			    	this.dialog.hide();
     					this.showConfirmDialog(imageName, action.response.responseText);
     					// Hide the waiting panel
     					loadMask.hide()  ;
-    			    	
+
     			    	//this.dialog.hide();
     			    	//loadMask.hide();
     					//Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.TBPMSupport.imp.impFailed);
     				}.bind(this)
     	});
-        
-    },  
-    
+
+    },
+
     /*
      * show image with highlighted shapes
      * import model and image layer if image confirmed
      */
     showConfirmDialog: function(imageName, json){
-    	
+
     	var confirmDialog = new Ext.Window({
     		autoCreate: true,
     		layout: 'fit',
@@ -176,7 +176,7 @@ ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
     	    html: '<div style="width:100%;">' +
             			'<img src="'+ this.TMP_FOLDER + imageName + '" style="width:550px;"></img>'+
             		'</div>',
-    	    
+
     	    buttons: [{
                 text: ORYX.I18N.TBPMSupport.imp.btnImp,
                 handler: function() {
@@ -190,27 +190,27 @@ ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
                 }.bind(this)
             }]
     	});
-    	
+
     	confirmDialog.show();
     },
-    
+
     processImport: function(imageName, json){
-    	
+
     	this.addImageLayer(imageName);
     	this.importShapes(json);
-    	
+
     	// update the canvas
 		this.facade.getCanvas().update();
     },
-    
+
     /*
      * show transparent Layer with image
-     * 
+     *
      */
-    addImageLayer: function(imageName){  
+    addImageLayer: function(imageName){
 		$(this.canvasId).style.background = "url(" + this.TMP_FOLDER + imageName + ") no-repeat scroll center center";
     },
-    
+
     /*
      * generate detected shapes
      */
@@ -218,5 +218,5 @@ ORYX.Plugins.TBPMSupport = ORYX.Plugins.AbstractPlugin.extend({
     	this.facade.importJSON(json, true);
     }
 
-   
+
 });

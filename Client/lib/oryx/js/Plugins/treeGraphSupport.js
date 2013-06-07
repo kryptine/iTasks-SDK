@@ -21,22 +21,22 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.TreeGraphSupport = Clazz.extend({
 
     facade: undefined,
-    
+
 	/**
-	 * 
+	 *
 	 * @param {Object} facade
 	 */
     construct: function(facade){
-        
+
 		// Save the facade
 		this.facade = facade;
-        
+
 		// Offer new functionality
         this.facade.offer({
             'name'				: ORYX.I18N.TreeGraphSupport.syntaxCheckName,
@@ -48,19 +48,19 @@ ORYX.Plugins.TreeGraphSupport = Clazz.extend({
             'minShape'			: 0,
             'maxShape'			: 0
         });
-        
+
     },
-    
+
 	/**
-	 * 
+	 *
 	 */
     syntaxCheck: function() {
 		this.facade.raiseEvent({
 			type: 			ORYX.CONFIG.EVENT_OVERLAY_HIDE,
 			id: 			"treegraph",
 		});
-		
-		
+
+
          // Send the request to the server.
         new Ajax.Request(ORYX.CONFIG.TREEGRAPH_SUPPORT, {
             method: 'POST',
@@ -73,16 +73,16 @@ ORYX.Plugins.TreeGraphSupport = Clazz.extend({
 
 				if (resp instanceof Array ) {
 					if (resp.length > 0) {
-					
+
 						// Get all Valid ResourceIDs and collect all shapes
-						resp.each(function( value ){ 
-						
+						resp.each(function( value ){
+
 							var sh = this.facade.getCanvas().getChildShapeByResourceId( value );
 
 							if( sh ){
-								
+
 								this.highlightShape(sh);
-								
+
 							}
 						}.bind(this));
 					}
@@ -93,9 +93,9 @@ ORYX.Plugins.TreeGraphSupport = Clazz.extend({
 	            	icon		: Ext.MessageBox.INFO
 	            });
             }.bind(this),
-            	
 
-                        
+
+
 			onFailure: function(request){
             	Ext.Msg.show({
 				   title	: ORYX.I18N.Oryx.title,
@@ -106,12 +106,12 @@ ORYX.Plugins.TreeGraphSupport = Clazz.extend({
         });
 
     },
-    
+
 	highlightShape: function(shape){
 		// Creates overlay for an enabled shape
 		// display is beeing ignored
 		if(!(shape instanceof ORYX.Core.Shape)) return;
-		
+
 		var attr;
 		if(shape instanceof ORYX.Core.Edge) {
 			attr = {stroke: "red"};
@@ -119,10 +119,10 @@ ORYX.Plugins.TreeGraphSupport = Clazz.extend({
 		else {
 			attr = {fill: "red", stroke:"black", "stroke-width": 2};
 		}
-		
-		
 
-											
+
+
+
 		this.facade.raiseEvent({
 				type: 			ORYX.CONFIG.EVENT_OVERLAY_SHOW,
 				id: 			"treegraph",

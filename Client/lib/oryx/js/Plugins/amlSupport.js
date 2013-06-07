@@ -21,7 +21,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 /**
@@ -32,14 +32,14 @@ if (!ORYX.Plugins)
 ORYX.Plugins.AMLSupport = Clazz.extend({
 
     facade: undefined,
-    
+
     /**
      * Offers the plugin functionality:
      *
      */
     construct: function(facade){
         this.facade = facade;
-        
+
         this.facade.offer({
             'name': ORYX.I18N.AMLSupport.imp,
             'functionality': this.importAML.bind(this),
@@ -50,12 +50,12 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             'minShape': 0,
             'maxShape': 0
         });
-        
-        
+
+
         this.AMLServletURL = '/amlsupport';
     },
-    
-    
+
+
     /**
      * Imports an AML description
      *
@@ -63,27 +63,27 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
     importAML: function(){
         this._showUploadDialog(this.loadDiagrams.bind(this));
     },
-    
-    
+
+
     /**
      * Shows all included diagrams and imports them
      *
      */
     loadDiagrams: function(erdf){
-		
+
 		//if parameter does not start with <, it is an error message.
 		if(!erdf.startsWith("<")) {
 			Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.AMLSupport.failed + erdf);
             ORYX.Log.warn("Import AML failed: " + erdf);
 			return;
 		}
-		
+
         var doc;
         try {
 			// Get the dom-structure
             doc = this.parseToDoc(erdf);
-            
-            
+
+
             // Get the several process diagrams
             var values = $A(doc.firstChild.childNodes).collect(function(node){
                 return {
@@ -91,23 +91,23 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
                     data: node
                 }
             }.bind(this))
-			
+
             // Sort the values
             values.sort(function(a, b){
                 return a.title > b.title
             })
-            
+
             this._showPanel(values, function(result){
-            
+
                 if (result.length > 1) {
-                
+
                     var requestsSuccessfull = true;
-                    
+
                     var loadedDiagrams = [];
-                    
+
                     // Generate for every diagram a new url
                     result.each(function(item){
-                    
+
                         // Set url, dummy data, and params for the request, to get a new url
                         var url = '/backend/poem' + ORYX.CONFIG.ORYX_NEW_URL + "?stencilset=/stencilsets/epc/epc.json";
                         var dummyData = '<div class="processdata"><div class="-oryx-canvas" id="oryx-canvas123" style="display: none; width:1200px; height:600px;"><a href="/stencilsets/epc/epc.json" rel="oryx-stencilset"></a><span class="oryx-mode">writeable</span><span class="oryx-mode">fullscreen</span></div></div>';
@@ -119,61 +119,61 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
                             summary: "",
                             type: "http://b3mn.org/stencilset/epc#"
                         };
-                        
+
                         // Send the request
                         requestsSuccessfull = this.sendRequest(url, params, function(transport){
-                        
+
                             var loc = transport.getResponseHeader('location');
                             var id = this.getNodesByClassName(item.data, "div", "-oryx-canvas")[0].getAttribute("id");
-                            
+
                             loadedDiagrams.push({
                                 name: item.name,
                                 data: item.data,
                                 url: loc,
                                 id: id
                             });
-                            
+
                         }.bind(this));
-                        
+
                         // If an error during the reqest occurs, return
                         if (!requestsSuccessfull) {
                             throw $break
                         }
-                        
+
                     }.bind(this));
-                    
+
                     // If an error during the reqest occurs, return
                     if (!requestsSuccessfull) {
                         return
                     }
-                    
-                    
+
+
                     // Replace all IDs within every process diagrams with the new url
                     // First, find all 'oryx-uriref' spans
                     var allURIRefs = loadedDiagrams.collect(function(item){
                         return $A(this.getNodesByClassName(item.data, "span", "oryx-refuri"))
                     }.bind(this)).flatten()
-					
+
                     // Second, replace it, if there is a url for it, otherwise, delete the link
                     allURIRefs.each(function(uriRef){
-                    
+
                         if (uriRef.textContent.length == 0) {
                             return
                         }
-                        
+
                         var findURL = loadedDiagrams.find(function(item){
                             return uriRef.textContent == item.id
                         })
-                        
+
                         uriRef.textContent = findURL ? findURL.url : "";
-                        
+
                     })
-                    
-                    
-                    
+
+
+
                     // Send all diagrams to the server
                     loadedDiagrams.each(function(item){
-                    
+
                         // Get the URL
                         var url = item.url;
                         // Define the svg
@@ -186,57 +186,57 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
                             data: data,
                             svg: dummySVG
                         };
-                        
+
                         // Send the request
                         requestsSuccessfull = this.sendRequest(url, params);
-                        
-                        
+
+
                         // If an error during the reqest occurs, return
                         if (!requestsSuccessfull) {
                             throw $break
                         }
-                        
+
                     }.bind(this));
-                    
+
                     // If an error during the reqest occurs, return
                     if (!requestsSuccessfull) {
                         return
                     }
-                    
-                    // Show the results	
+
+                    // Show the results
                     this._showResultPanel(loadedDiagrams.collect(function(item){
                         return {
                             name: item.name,
                             url: item.url
                         }
                     }));
-                    
+
                 }
                 else {
-                
+
                     var erdfDOM = result[0].data;
-                    
+
 					// Delete all uri-refs
                     $A(this.getNodesByClassName(erdfDOM, "span", "oryx-refuri")).each(function(node){
                         node.textContent = ""
                     });
-					
+
 					// Import the erdf strucutre
 					this.facade.importERDF(erdfDOM);
-                
-                }  
-                
+
+                }
+
             }.bind(this))
-            
-        } 
+
+        }
         catch (e) {
             Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.AMLSupport.failed2 + e);
             ORYX.Log.warn("Import AML failed: " + e);
         }
-        
+
     },
-    
-    
+
+
     /**
      *
      *
@@ -245,47 +245,47 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
      * @param {Object} successcallback
      */
     sendRequest: function(url, params, successcallback){
-    
+
         var suc = false;
-        
+
         new Ajax.Request(url, {
             method: 'POST',
             asynchronous: false,
             parameters: params,
             onSuccess: function(transport){
-            
+
                 suc = true;
-                
+
                 if (successcallback) {
                     successcallback(transport)
                 }
-                
+
             }
 .bind(this)            ,
-            
+
             onFailure: function(transport){
-            
+
                 Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.AMLSupport.failed2);
                 ORYX.Log.warn("Import AML failed: " + transport.responseText);
-                
+
             }
 .bind(this)            ,
-            
+
             on403: function(transport){
-            
+
                 Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.AMLSupport.noRights);
                 ORYX.Log.warn("Import AML failed: " + transport.responseText);
-                
+
             }
 .bind(this)
         });
-        
-        
+
+
         return suc;
-        
+
     },
-    
-    
+
+
     /**
      * Give all child nodes with the given class name
      *
@@ -293,15 +293,15 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
      * @param {Object} id
      */
     getChildNodesByClassName: function(doc, id){
-    
+
         return $A(doc.childNodes).findAll(function(el){
             return $A(el.attributes).any(function(attr){
                 return attr.nodeName == 'class' && attr.nodeValue == id
             })
         })
-        
+
     },
-    
+
     /**
      * Give all child nodes with the given class name
      *
@@ -309,37 +309,37 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
      * @param {Object} id
      */
     getNodesByClassName: function(doc, tagName, className){
-    
+
         return $A(doc.getElementsByTagName(tagName)).findAll(function(el){
             return $A(el.attributes).any(function(attr){
                 return attr.nodeName == 'class' && attr.nodeValue == className
             })
         })
-        
+
     },
-    
+
     /**
      * Parses the erdf string to an xml-document
      *
      * @param {Object} erdfString
      */
     parseToDoc: function(erdfString){
-    
+
         erdfString = erdfString.startsWith('<?xml') ? erdfString : '<?xml version="1.0" encoding="utf-8"?>' + erdfString + '';
-        
+
         var parser = new DOMParser();
-        
+
         return parser.parseFromString(erdfString, "text/xml");
-        
+
     },
-    
-    
+
+
     /**
      * Opens a upload dialog.
      *
      */
     _showUploadDialog: function(successCallback){
-    
+
         var form = new Ext.form.FormPanel({
             frame: true,
             bodyStyle: 'padding:5px;',
@@ -359,7 +359,7 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
                 itemCls: 'ext_specific_window_overflow'
             }]
         });
-        
+
         var dialog = new Ext.Window({
             autoCreate: true,
             title: ORYX.I18N.AMLSupport.importBtn,
@@ -375,27 +375,27 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             buttons: [{
                 text: ORYX.I18N.AMLSupport.impText,
                 handler: function(){
-                
+
                     var loadMask = new Ext.LoadMask(Ext.getBody(), {
                         msg: ORYX.I18N.AMLSupport.get
                     });
                     loadMask.show();
-                    
+
                     form.form.submit({
                         url: ORYX.PATH + this.AMLServletURL,
                         success: function(f, a){
-                        
+
                             loadMask.hide();
                             dialog.hide();
                             successCallback(a.result);
-                            
+
                         }
 .bind(this)                        ,
                         failure: function(f, a){
-                        
+
                             loadMask.hide();
                             dialog.hide();
-                            
+
                             Ext.MessageBox.show({
                                 title: 'Error',
                                 msg: a.response.responseText.substring(a.response.responseText.indexOf("content:'") + 9, a.response.responseText.indexOf("'}")),
@@ -414,23 +414,23 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
 .bind(this)
             }]
         });
-        
+
         dialog.on('hide', function(){
             dialog.destroy(true);
             delete dialog;
         });
         dialog.show();
     },
-    
+
     _showPanel: function(values, successCallback){
-    
-    
+
+
         // Extract the data
         var data = [];
         values.each(function(value){
             data.push([value.title, value.data])
         });
-        
+
         // Create a new Selection Model
         var sm = new Ext.grid.CheckboxSelectionModel({
             header: '',
@@ -458,7 +458,7 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             iconCls: 'icon-grid',
             //draggable: true
         });
-        
+
         // Create a new Panel
         var panel = new Ext.Panel({
             items: [{
@@ -469,7 +469,7 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             height: 'auto',
             frame: true
         })
-        
+
         // Create a new Window
         var extWindow = new Ext.Window({
             width: 327,
@@ -484,12 +484,12 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             buttons: [{
                 text: ORYX.I18N.AMLSupport.impText,
                 handler: function(){
-                
+
                     var loadMask = new Ext.LoadMask(Ext.getBody(), {
                         msg: ORYX.I18N.AMLSupport.impProgress
                     });
                     loadMask.show();
-                    
+
                     var selectionModel = grid.getSelectionModel();
                     var result = selectionModel.selections.items.collect(function(item){
                         return {
@@ -498,16 +498,16 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
                         };
                     })
                     extWindow.close();
-                    
+
                     window.setTimeout(function(){
-                    
+
                         successCallback(result);
                         loadMask.hide();
-                        
+
                     }
 .bind(this), 100);
-                    
-                    
+
+
                 }
 .bind(this)
             }, {
@@ -518,22 +518,22 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
 .bind(this)
             }]
         })
-        
+
         // Show the window
         extWindow.show();
-        
+
     },
-    
+
     _showResultPanel: function(values){
-    
-    
+
+
         // Extract the data
         var data = [];
         values.each(function(value){
             data.push([value.name, '<a href="' + value.url + '" target="_blank">' + value.url + '</a>'])
         });
-        
-        
+
+
         // Create a new Grid with a selection box
         var grid = new Ext.grid.GridPanel({
             store: new Ext.data.SimpleStore({
@@ -556,7 +556,7 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             height: 300,
             iconCls: 'icon-grid'
         });
-        
+
         // Create a new Panel
         var panel = new Ext.Panel({
             items: [{
@@ -567,7 +567,7 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             height: 'auto',
             frame: true
         })
-        
+
         // Create a new Window
         var extWindow2 = new Ext.Window({
             width: 'auto',
@@ -581,17 +581,17 @@ ORYX.Plugins.AMLSupport = Clazz.extend({
             buttons: [{
                 text: ORYX.I18N.AMLSupport.ok,
                 handler: function(){
-                
+
                     extWindow2.close()
-                    
+
                 }
 .bind(this)
             }]
         })
-        
+
         // Show the window
         extWindow2.show();
-        
+
     },
     /**
      *

@@ -25,7 +25,7 @@ if(!ORYX.Plugins)
 	ORYX.Plugins = new Object();
 
 ORYX.Plugins.XFormsExportOrbeon = ORYX.Plugins.AbstractPlugin.extend({
-	
+
 	CSS_URL: ORYX.PATH + "/css/xforms_default.css",
 
 	facade: undefined,
@@ -50,20 +50,20 @@ ORYX.Plugins.XFormsExportOrbeon = ORYX.Plugins.AbstractPlugin.extend({
         this.facade.raiseEvent({
             type: ORYX.CONFIG.EVENT_LOADING_ENABLE
         });
-		
+
 		//this.checkClientXFormsSupport();
-            
+
 		// asynchronously ...
         window.setTimeout((function(){
-			
+
 			// ... save synchronously
             this.exportSynchronously();
-			
+
 			// raise loading disable event.
             this.facade.raiseEvent({
                 type: ORYX.CONFIG.EVENT_LOADING_DISABLE
             });
-			
+
         }).bind(this), 10);
 
 		return true;
@@ -72,8 +72,8 @@ ORYX.Plugins.XFormsExportOrbeon = ORYX.Plugins.AbstractPlugin.extend({
     exportSynchronously: function() {
 
         var resource = location.href;
-		
-		
+
+
 		try {
 			var serialized_rdf 	= this.getRDFFromDOM();
 			serialized_rdf 		= serialized_rdf.startsWith("<?xml") ? serialized_rdf : "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + serialized_rdf;
@@ -88,26 +88,26 @@ ORYX.Plugins.XFormsExportOrbeon = ORYX.Plugins.AbstractPlugin.extend({
 					css: this.CSS_URL
 				},
 				onSuccess: function(request){
-					
+
 						var win = window.open("");
 						win.document.write(request.responseText);
-						
+
 				},
 				onFailure: function(request){
 					var win = window.open("");
 					win.document.write(request.responseText);
 				}
 			});
-			
+
 		} catch (error){
 			this.facade.raiseEvent({type:ORYX.CONFIG.EVENT_LOADING_DISABLE});
 			Ext.Msg.alert(ORYX.I18N.Oryx.title, error);
 	 	}
 	},
-	
+
 	checkClientXFormsSupport: function() {
 		if(!clientSupportsXForms) {
-			
+
 			var output = ORYX.I18N.XFormsSerialization.noClientXFormsSupportDesc;
 
 			var win = new Ext.Window({
@@ -127,7 +127,7 @@ ORYX.Plugins.XFormsExportOrbeon = ORYX.Plugins.AbstractPlugin.extend({
                             }]
                         });
         	win.show();
-			
+
 		}
 	}
 

@@ -1,6 +1,6 @@
 ;(function(window, $) {
     window.notifications = (function() {
-        var 
+        var
             defaults = {
                 tapToDismiss: true,
                 notificationClass: 'notification',
@@ -59,7 +59,7 @@
             },
 
             notify = function(map) {
-                var 
+                var
                     options = getOptions(),
                     iconClass = map.iconClass || options.iconClass,
                     intervalId = null,
@@ -86,7 +86,7 @@
                 var fadeAway = function() {
                     if ($(':focus', $notificationElement).length > 0)
                 		return
-                	
+
                     var fade = function() {
                         return $notificationElement.fadeOut(options.fadeOut)
                     }

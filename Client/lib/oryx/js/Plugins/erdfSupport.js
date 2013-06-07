@@ -26,24 +26,24 @@ if(!ORYX.Plugins)
 
 /**
  * Supports EPCs by offering a syntax check and export and import ability..
- * 
- * 
+ *
+ *
  */
 ORYX.Plugins.ERDFSupport = Clazz.extend({
 
 	facade: undefined,
-	
+
 	ERDFServletURL: '/erdfsupport',
 
 	/**
 	 * Offers the plugin functionality:
-	 * 
+	 *
 	 */
 	construct: function(facade) {
-		
+
 		this.facade = facade;
-			
-			
+
+
 		this.facade.offer({
 			'name':				ORYX.I18N.ERDFSupport.exp,
 			'functionality': 	this.exportERDF.bind(this),
@@ -55,7 +55,7 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 			'minShape': 		0,
 			'maxShape': 		0
 		});
-					
+
 		this.facade.offer({
 			'name':				ORYX.I18N.ERDFSupport.imp,
 			'functionality': 	this.importERDF.bind(this),
@@ -70,19 +70,19 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 
 	},
 
-	
+
 	/**
 	 * Imports an AML description
-	 * 
+	 *
 	 */
 	importERDF: function(){
 		this._showImportDialog();
-	},		
+	},
 
-	
+
 	/**
 	 * Imports an AML description
-	 * 
+	 *
 	 */
 	exportERDF: function(){
         // Show deprecation message
@@ -93,18 +93,18 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
            fn: function(buttonId){
                if(buttonId === 'yes'){
                     var s   = this.facade.getERDF();
-                    
+
                     //this.openXMLWindow( s );
                     this.openDownloadWindow(window.document.title + ".xml", s);
                }
            }.bind(this),
-           icon: Ext.MessageBox.WARNING 
+           icon: Ext.MessageBox.WARNING
         });
 	},
-	
+
 	/**
-	 * 
-	 * 
+	 *
+	 *
 	 * @param {Object} url
 	 * @param {Object} params
 	 * @param {Object} successcallback
@@ -118,43 +118,43 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
             asynchronous	: false,
             parameters		: params,
 			onSuccess		: function(transport) {
-				
+
 				suc = true;
-				
+
 				if(successcallback){
-					successcallback( transport.result )	
+					successcallback( transport.result )
 				}
-				
+
 			}.bind(this),
-			
+
 			onFailure		: function(transport) {
 
 				if(failedcallback){
-					
+
 					failedcallback();
-					
+
 				} else {
 					Ext.Msg.alert(ORYX.I18N.Oryx.title, ORYX.I18N.ERDFSupport.impFailed);
-					ORYX.log.warn("Import ERDF failed: " + transport.responseText);	
+					ORYX.log.warn("Import ERDF failed: " + transport.responseText);
 				}
-				
-			}.bind(this)		
+
+			}.bind(this)
 		});
-		
-		
+
+
 		return suc;
-							
+
 	},
 
 
 	loadERDF: function( erdfString, success, failed ){
-		
+
 		var s 	= erdfString;
-		s 		= s.startsWith('<?xml') ? s : '<?xml version="1.0" encoding="utf-8"?>'+s+'';	
-						
-		var parser	= new DOMParser();			
+		s 		= s.startsWith('<?xml') ? s : '<?xml version="1.0" encoding="utf-8"?>'+s+'';
+
+		var parser	= new DOMParser();
 		var doc 	=  parser.parseFromString( s ,"text/xml");
-							
+
 		if( doc.firstChild.tagName == "parsererror" ){
 
 			Ext.MessageBox.show({
@@ -163,56 +163,56 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 					buttons: 	Ext.MessageBox.OK,
 					icon: 		Ext.MessageBox.ERROR
 				});
-																
+
 			if(failed)
 				failed();
-				
+
 		} else if( !this.hasStencilSet(doc) ){
-			
+
 			if(failed)
-				failed();		
-		
+				failed();
+
 		} else {
-			
+
 			this.facade.importERDF( doc );
-			
+
 			if(success)
 				success();
-		
+
 		}
 	},
 
 	hasStencilSet: function( doc ){
-		
+
 		var getElementsByClassNameFromDiv 	= function(doc, id){ return $A(doc.getElementsByTagName('div')).findAll(function(el){ return $A(el.attributes).any(function(attr){ return attr.nodeName == 'class' && attr.nodeValue == id }) })	}
 
 		// Get Canvas Node
 		var editorNode 		= getElementsByClassNameFromDiv( doc, '-oryx-canvas')[0];
-		
+
 		if( !editorNode ){
 			this.throwWarning(ORYX.I18N.ERDFSupport.noCanvas);
 			return false
 		}
-		
+
 		var stencilSetNode 	= $A(editorNode.getElementsByTagName('a')).find(function(node){ return node.getAttribute('rel') == 'oryx-stencilset'});
 
 		if( !stencilSetNode ){
 			this.throwWarning(ORYX.I18N.ERDFSupport.noSS);
 			return false
 		}
-		
+
 		var stencilSetUrl	= stencilSetNode.getAttribute('href').split("/")
 		stencilSetUrl		= stencilSetUrl[stencilSetUrl.length-2] + "/" + stencilSetUrl[stencilSetUrl.length-1];
-		
+
 //		var isLoaded = this.facade.getStencilSets().values().any(function(ss){ return ss.source().endsWith( stencilSetUrl ) })
 //		if( !isLoaded ){
 //			this.throwWarning(ORYX.I18N.ERDFSupport.wrongSS);
 //			return false
 //		}
-				
+
 		return true;
 	},
-	
+
 	throwWarning: function( text ){
 		Ext.MessageBox.show({
 					title: 		ORYX.I18N.Oryx.title,
@@ -221,10 +221,10 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 					icon: 		Ext.MessageBox.WARNING
 				});
 	},
-	
+
 	/**
 	 * Opens a new window that shows the given XML content.
-	 * 
+	 *
 	 * @param {Object} content The XML content to be shown.
 	 */
 	openXMLWindow: function(content) {
@@ -235,10 +235,10 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 		   '_blank', "resizable=yes,width=600,height=600,toolbar=0,scrollbars=yes"
 		);
 	},
-	
+
 	/**
 	 * Opens a download window for downloading the given content.
-	 * 
+	 *
 	 */
 	openDownloadWindow: function(file, content) {
 		var win = window.open("");
@@ -247,22 +247,22 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 			win.document.write("<html><body>");
 			var submitForm = win.document.createElement("form");
 			win.document.body.appendChild(submitForm);
-			
+
 			submitForm.appendChild( this.createHiddenElement("download", content));
 			submitForm.appendChild( this.createHiddenElement("file", file));
-			
-			
+
+
 			submitForm.method = "POST";
 			win.document.write("</body></html>");
 			win.document.close();
 			submitForm.action= ORYX.PATH + "/download";
 			submitForm.submit();
-		}		
+		}
 	},
-	
+
 	/**
 	 * Creates a hidden form element to communicate parameter values.
-	 * 
+	 *
 	 * @param {Object} name  The name of the hidden field
 	 * @param {Object} value The value of the hidden field
 	 */
@@ -276,19 +276,19 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 
 	/**
 	 * Opens a upload dialog.
-	 * 
+	 *
 	 */
 	_showImportDialog: function( successCallback ){
-	
+
 	    var form = new Ext.form.FormPanel({
 			baseCls: 		'x-plain',
 	        labelWidth: 	50,
 	        defaultType: 	'textfield',
 	        items: [{
-	            text : 		ORYX.I18N.ERDFSupport.selectFile, 
+	            text : 		ORYX.I18N.ERDFSupport.selectFile,
 				style : 	'font-size:12px;margin-bottom:10px;display:block;',
 	            anchor:		'100%',
-				xtype : 	'label' 
+				xtype : 	'label'
 	        },{
 	            fieldLabel: ORYX.I18N.ERDFSupport.file,
 	            name: 		'subject',
@@ -299,24 +299,24 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 	            xtype: 'textarea',
 	            hideLabel: true,
 	            name: 'msg',
-	            anchor: '100% -63'  
+	            anchor: '100% -63'
 	        }]
 	    });
 
 
 
 		// Create the panel
-		var dialog = new Ext.Window({ 
-			autoCreate: true, 
+		var dialog = new Ext.Window({
+			autoCreate: true,
 			layout: 	'fit',
 			plain:		true,
 			bodyStyle: 	'padding:5px;',
-			title: 		ORYX.I18N.ERDFSupport.impERDF, 
-			height: 	350, 
+			title: 		ORYX.I18N.ERDFSupport.impERDF,
+			height: 	350,
 			width:		500,
 			modal:		true,
-			fixedcenter:true, 
-			shadow:		true, 
+			fixedcenter:true,
+			shadow:		true,
 			proxyDrag: 	true,
 			resizable:	true,
 			items: 		[form],
@@ -324,32 +324,32 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 				{
 					text:ORYX.I18N.ERDFSupport.impBtn,
 					handler:function(){
-						
+
 						var loadMask = new Ext.LoadMask(Ext.getBody(), {msg:ORYX.I18N.ERDFSupport.impProgress});
 						loadMask.show();
-						
+
 						window.setTimeout(function(){
-					
-							
+
+
 							var erdfString =  form.items.items[2].getValue();
 							this.loadERDF(erdfString, function(){loadMask.hide();dialog.hide()}.bind(this), function(){loadMask.hide();}.bind(this))
-														
-														
-							
+
+
+
 						}.bind(this), 100);
-			
+
 					}.bind(this)
 				},{
 					text:ORYX.I18N.ERDFSupport.close,
 					handler:function(){
-						
+
 						dialog.hide();
-					
+
 					}.bind(this)
 				}
 			]
 		});
-		
+
 		// Destroy the panel when hiding
 		dialog.on('hide', function(){
 			dialog.destroy(true);
@@ -359,14 +359,14 @@ ORYX.Plugins.ERDFSupport = Clazz.extend({
 
 		// Show the panel
 		dialog.show();
-		
-				
-		// Adds the change event handler to 
+
+
+		// Adds the change event handler to
 		form.items.items[1].getEl().dom.addEventListener('change',function(evt){
 				var text = evt.target.files[0].getAsText('UTF-8');
 				form.items.items[2].setValue( text );
 			}, true)
 
 	}
-	
+
 });

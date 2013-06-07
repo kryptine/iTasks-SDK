@@ -19,21 +19,21 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 
     facade: undefined,
-    
+
     construct: function(facade){
-		
+
         this.facade = facade;
-        
+
 		this.active 		= false;
 		this.raisedOverlayEventIds = [];
 		this.raisedHighlightEventIds = [];
-		
+
         this.facade.offer({
             'name': ORYX.I18N.ResourcesSoDShow.name,
             'functionality': this.showSoD.bind(this),
@@ -46,9 +46,9 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
             'minShape': 1,
             'maxShape': 1
         });
-		
+
     },
-    
+
 	showSoD: function(){
 		this.removeHighlightsAndOverlays();
 		var selectedElements = this.facade.getSelection();
@@ -59,18 +59,18 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 			alert("Please select a task to show the related Separation of Duties constraints.");
 		}
 	},
-	
+
 	highlightSelectedTask: function(task){ //edge marking of selected/ given task
 		if(!(task instanceof ORYX.Core.Shape)) return;
 		this.facade.raiseEvent({
-			type:			ORYX.CONFIG.EVENT_HIGHLIGHT_SHOW, 
+			type:			ORYX.CONFIG.EVENT_HIGHLIGHT_SHOW,
 			highlightId:	task.properties["oryx-id"],
 			elements:		[task],
 			color:			'#FF0000'
 		});
 		this.raisedHighlightEventIds.push(task.properties["oryx-id"]);
 	},
-	
+
 	showOverlaysForSeparations: function(task, elementId) { //colour given task red
 		if(!(task instanceof ORYX.Core.Shape)) return;
 		//colour element
@@ -91,7 +91,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 		for(index = 0; index < this.raisedOverlayEventIds.length; index++) {
 			if (task.properties["oryx-id"] == this.raisedOverlayEventIds[index]) {
 				appearanceCounter++;
-			} 
+			}
 		}
 		switch(appearanceCounter) { //avoid overlappings of dependency markers as long as not more than 8 exist
 			case 0:		nodePosition = 'NW';
@@ -151,7 +151,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 		}
 		if(appearanceCounter < 8) { //skip number representation, if task occurs too often
 			//create circle of marker
-			var circle = ORYX.Editor.graft("http://www.w3.org/2000/svg", null, 
+			var circle = ORYX.Editor.graft("http://www.w3.org/2000/svg", null,
 				['circle', {"cx":cx, "cy":cy, "r":"10", "stroke":"white", "fill":"white", "stroke-width":"2"}]
 			);
 			this.facade.raiseEvent({
@@ -162,7 +162,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 				nodePosition:	nodePosition
 			});
 			//create text/ number of marker
-			var text = ORYX.Editor.graft("http://www.w3.org/2000/svg", null, 
+			var text = ORYX.Editor.graft("http://www.w3.org/2000/svg", null,
 				['text', {"x":x, "y":y, "style": "font-size: 12px;"}, elementId]
 			);
 			this.facade.raiseEvent({
@@ -175,7 +175,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 		}
 		this.raisedOverlayEventIds.push(task.properties["oryx-id"]);
 	},
-	
+
 	prepareOverlays: function(task) { //identify tasks to be coloured as a constraint exist with given and initiate colouring
 		if(task.properties["oryx-separationofduties"] != "") {
 			var jsonObject = task.properties["oryx-separationofduties"].evalJSON();
@@ -197,7 +197,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 			alert("No Separation of Duties Constraints are defined for this task");
 		}
 	},
-	
+
 	removeHighlightsAndOverlays: function(){
 		var allShapes = this.facade.getCanvas().getChildShapes(true);
 		var allShapeIds = [];
@@ -209,7 +209,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 				i++;
 			}
     	}
-		
+
 		//remove highlights
 		allShapeIds.each(function(id){
 			this.facade.raiseEvent({
@@ -218,8 +218,8 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 				});
 		}.bind(this))
 		this.raisedHighlightEventIds = [];
-		
-		//remove overlays 
+
+		//remove overlays
 		allShapeIds.each(function(id){
 			this.facade.raiseEvent({
 					type: 	ORYX.CONFIG.EVENT_OVERLAY_HIDE,
@@ -228,7 +228,7 @@ ORYX.Plugins.ResourcesSoDShow = Clazz.extend({
 		}.bind(this))
 		this.raisedOverlayEventIds = [];
 	},
-	
+
 	getTaskById: function(taskId){
 		var shapes = this.facade.getCanvas().getChildShapes(true);
 		var task;

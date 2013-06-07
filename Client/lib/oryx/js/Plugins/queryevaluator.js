@@ -19,20 +19,20 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 
     facade: undefined,
-    
+
     construct: function(facade){
-		
+
         this.facade = facade;
-        
+
 		this.active 		= false;
 		this.raisedEventIds = [];
-		
+
         this.facade.offer({
             'name': ORYX.I18N.QueryEvaluator.name,
             'functionality': this.showOverlay.bind(this),
@@ -44,13 +44,13 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
             'minShape': 0,
             'maxShape': 0
         });
-		
+
     },
-    
+
 	showOverlay: function(button, pressed){
 
 		if (!pressed) {
-			
+
 /*			this.raisedEventIds.each(function(id){
 				this.facade.raiseEvent({
 						type: 	ORYX.CONFIG.EVENT_OVERLAY_HIDE,
@@ -60,14 +60,14 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 */
 			this.raisedEventIds = [];
 			this.active 		= !this.active;
-			
+
 			return;
-		} 
-		
+		}
+
 		var options = {
 			command : 'undef'
 		}
-		
+
 		var optionsPopup = new Ext.Window({
 			layout      : 'fit',
             width       : 500,
@@ -76,13 +76,13 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
             plain       : true,
 			modal		: true,
 			id			: 'optionsPopup',
-			
+
 			buttons: [{
 				text	: 'Submit',
 				handler	: function(){
 					// set options
 					options = formPanel.getForm().getValues(false);
-					
+
 					optionsPopup.close();
 					this.issueQuery(options);
 				}.bind(this)
@@ -94,7 +94,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
             }]
 
 		})
-		
+
 		var modelIdField = new Ext.form.TextField({
 			fieldLabel	: 'Model ID',
 			name		: 'modelID',
@@ -102,9 +102,9 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 //			hideLabel	: true
 		});
 		modelIdField.hide();
-		
+
 		var checkListener = function(field, checked){
-			// keep checked states of all relevant fields in this array 
+			// keep checked states of all relevant fields in this array
 			if (!this.fieldStates) {
 				this.fieldStates = [];
 			}
@@ -136,7 +136,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 				modelIdField.hide();
 			}
 		}
-		
+
 		var formPanel = new Ext.form.FormPanel({
 			frame		: true,
 			title		: 'Query options',
@@ -150,23 +150,23 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 				defaultType	: 'radio',
 				items		: [
                     {
-						boxLabel	: 'Process query', 
-						fieldLabel	: 'Query Type', 
-						name		: 'command', 
-						inputValue	: 'processQuery', 
+						boxLabel	: 'Process query',
+						fieldLabel	: 'Query Type',
+						name		: 'command',
+						inputValue	: 'processQuery',
 						checked: true},
 					{
 					// this is edited by Ahmed Awad on 28.07.09 to reflect compliance checking in the Oryx editor
-						boxLabel	: 'Process Compliance Query', 
-						labelSeparator: '', 
-						name		: 'command', 
-						inputValue	: 'processComplianceQuery', 
+						boxLabel	: 'Process Compliance Query',
+						labelSeparator: '',
+						name		: 'command',
+						inputValue	: 'processComplianceQuery',
 						//listeners	: {
 						//	'check': checkListener.bind(this)
-						//} 
+						//}
 					},
                     {
-						boxLabel	: 'Run query against specific model', 
+						boxLabel	: 'Run query against specific model',
 						labelSeparator: '',
 						name		: 'command',
 						inputValue	: 'runQueryAgainstModel',
@@ -175,7 +175,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 						}
 					},
 					{
-						boxLabel	: 'Run compliance query against specific model', 
+						boxLabel	: 'Run compliance query against specific model',
 						labelSeparator: '',
 						name		: 'command',
 						inputValue	: 'runComplianceQueryAgainstModel',
@@ -184,9 +184,9 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 						}
 					},
  //                   {
-//						boxLabel	: 'Process MultiQuery', 
-//						labelSeparator: '', 
-//						name		: 'command', 
+//						boxLabel	: 'Process MultiQuery',
+//						labelSeparator: '',
+//						name		: 'command',
 //						inputValue	: 'processMultiQuery'},
 					{
 						xtype		: 'checkbox',
@@ -198,13 +198,13 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 			}]
 		});
 		formPanel.add(modelIdField);
-		
+
 		optionsPopup.add(formPanel);
 		optionsPopup.show();
-		
+
 		button.toggle();
 	},
-	
+
 	issueQuery : function(options){
 
 		try {
@@ -230,26 +230,26 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
                     this.facade.raiseEvent({
 						type:ORYX.CONFIG.EVENT_LOADING_DISABLE
 					});
-					
+
 					var respXML = response.responseXML;
                     var root = respXML.firstChild;
                     var processList = new Array();
                     var nodecnt, graph;
                     var pchildren = root.getElementsByTagName("ProcessGraph");
-                    
-                    // puts all matching process models into array processList with model ID 
+
+                    // puts all matching process models into array processList with model ID
                     // and model elements
 					for (nodecnt = 0; nodecnt < pchildren.length; nodecnt++) {
                         graph = pchildren.item(nodecnt);
                         var graphID = graph.getAttributeNode("modelID").nodeValue;
-                        
+
                         processList.push({
 							id 			: graphID,
 							elements 	: this.processResultGraph(graph),
 							metadata    : '',
 							description	: this.processMatchDescription(graph) //Ahmed Awad on 28.07.09
 						});
-                        
+
                     }
 					try {
 						this.processProcessList(processList);
@@ -257,7 +257,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 						Ext.Msg.alert(ORYX.I18N.Oryx.title, error);
 					}
                 }.bind(this),
-				
+
 				onFailure: function(response){
 					this.facade.raiseEvent({
 						type:ORYX.CONFIG.EVENT_LOADING_DISABLE
@@ -266,17 +266,17 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 						+ response.responseText);
 				}.bind(this)
 			});
-			
+
 		} catch (error){
 			this.facade.raiseEvent({type:ORYX.CONFIG.EVENT_LOADING_DISABLE});
 			Ext.Msg.alert(ORYX.I18N.Oryx.title, error);
 	 	}
 
 	},
-	
+
     processResultGraph: function(xmlNode){
         var graphElements = new Array();
-		
+
 		for (var k = 0; k < xmlNode.childNodes.length; k++) {
             var node = xmlNode.childNodes.item(k);
             if (!(node instanceof Text)) {
@@ -285,7 +285,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 						nodeType : node.nodeName,
 						nodeId : node.getAttributeNode("id").nodeValue
 					});
-					
+
 				} else if ((node.hasAttribute("from"))
 						&& node.hasAttribute("to")) { // it is an edge
 					graphElements.push({
@@ -301,27 +301,27 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 	// Added by Ahmed Awad on 28.07.09 to extract the diagnosis and the match meta data
 	processMatchDescription: function(xmlNode){
         var metadata = new Array();
-		
+
 		for (var k = 0; k < xmlNode.childNodes.length; k++) {
             var node = xmlNode.childNodes.item(k);
             if ((node.nodeName === "diagnosis")) {
-                
+
 					metadata.push({
 						diagnosis : node.textContent
 					});
-					
+
 				} else if ((node.nodeName === "match")) { // it is an edge
 					metadata.push({
 						match : node.textContent
 					});
 				}
-            
+
         }
 		return metadata;
     },
 	/**
-	 * 
-	 * @param {Array} processList; 
+	 *
+	 * @param {Array} processList;
 	 * 		elements' fields: id location identifier for process
 	 * 						  elements array of graph nodes/edges
 	 */
@@ -330,12 +330,12 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 			Ext.Msg.alert(ORYX.I18N.Oryx.title, "Found no matching processes!");
 			return;
 		}
-		
+
 		this.isRendering = true;
-		
+
 		// load process model meta data
 		processList.each(this.getModelMetaData.bind(this));
-		
+
 		// transform array of objects into array of arrays
 		var data = [];
 		processList.each(function( pair ){
@@ -347,11 +347,11 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 					return;
 				}
 			}.bind(this));
-*/			
+*/
 			data.push( [ pair.id, pair.metadata.thumbnailUri + "?" + Math.random(), unescape(pair.metadata.title), pair.metadata.type, pair.metadata.author, pair.elements, pair.description ] )  // Modified by Ahmed
 		}.bind(this));
 
-		
+
 		// following is mostly UI logic
 		var myProcsPopup = new Ext.Window({
 			layout      : 'fit',
@@ -363,7 +363,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 			autoScroll  : true, // Added by Ahmed Awad on 30.07.2009
 			title       : 'Query Result',
 			id			: 'procResPopup',
-			
+
 			buttons: [{
                 text     : 'Close',
                 handler  : function(){
@@ -372,7 +372,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
             }]
 
 		});
-		
+
 		var tableModel = new Ext.data.SimpleStore({
 			fields: [
 				{name: 'id'}, //, type: 'string', mapping: 'metadata.id'},
@@ -385,29 +385,29 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 			],
 			data : data
 		});
-		
+
 		var iconPanel = new Ext.Panel({
 			border	: false,
 			autoScroll : true, // Added by Ahmed Awad
 	        items	: new this.dataGridPanel({
-				store       : tableModel, 
+				store       : tableModel,
 				listeners   :{
 					dblclick:this._onDblClick.bind(this)
 				}
 			})
 	    });
 		this.setPanelStyle();
-		
+
 		myProcsPopup.add(iconPanel);
-		
+
 		this.isRendering = false;
-		
+
 		myProcsPopup.show();
 	},
-	
+
 	getModelMetaData : function(processEntry) {
 		var metaUri = processEntry.id.replace(/\/rdf$/, '/meta');
-		new Ajax.Request(metaUri, 
+		new Ajax.Request(metaUri,
 			 {
 				method			: "get",
 				asynchronous 	: false,
@@ -418,11 +418,11 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 					Ext.MessageBox.alert(ORYX.I18N.Oryx.title, "Error loading model meta data.");
 				}.bind(this)
 			});
-		
+
 	},
-	
+
 	_onDblClick: function(dataGrid, index, node, e){
-		
+
 		// Select the new range
 		dataGrid.selectRange(index, index);
 
@@ -436,7 +436,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 		// escape JSON string to become URI-compliant
 		var encodedJson = encodeURIComponent(elementsAsJson);
 		var encodedDescription = encodeURIComponent(descriptionAsJson);
-		
+
 		// remove the last URI segment, append editor's 'self' and json of model elements
 		var slashPos = modelId.lastIndexOf("/");
 		//var uri	= modelId.substr(0, slashPos) + "/self" + "?matches=" + encodedJson;
@@ -448,13 +448,13 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
                 if(!editor || !editor.opener || editor.closed) {
                         Ext.MessageBox.alert(ORYX.I18N.Oryx.title, ORYX.I18N.Oryx.editorOpenTimeout).setIcon(Ext.MessageBox.QUESTION);
                 }
-	        }, 5000);			
-		
+	        }, 5000);
+
 	},
-	
+
 	dataGridPanel : Ext.extend(Ext.DataView, {
 		multiSelect		: true,
-		//simpleSelect	: true, 
+		//simpleSelect	: true,
 	    cls				: 'iconview',
 	    itemSelector	: 'dd',
 	    overClass		: 'over',
@@ -473,8 +473,8 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 			'</dl>',
         '</div>'
 	    )
-	}), 
-	
+	}),
+
 	setPanelStyle : function() {
 		var styleRules = '\
 .repository_iconview dd{\
@@ -521,5 +521,5 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 }';
 		Ext.util.CSS.createStyleSheet(styleRules, 'queryResultStyle');
 	},
-    
+
 });

@@ -19,20 +19,20 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  **/
-if (!ORYX.Plugins) 
+if (!ORYX.Plugins)
     ORYX.Plugins = new Object();
 
 ORYX.Plugins.ClearSodBodHighlights = Clazz.extend({
 
     facade: undefined,
-    
+
     construct: function(facade){
-		
+
         this.facade = facade;
-        
+
 		this.active 		= false;
 		this.raisedEventIds = [];
-		
+
         this.facade.offer({
             'name': ORYX.I18N.ClearSodBodHighlights.name,
             'functionality': this.removeHighlightsAndOverlays.bind(this),
@@ -44,9 +44,9 @@ ORYX.Plugins.ClearSodBodHighlights = Clazz.extend({
             'minShape': 0,
             'maxShape': 0
         });
-		
+
     },
-    
+
 	removeHighlightsAndOverlays: function(){
 		var allShapes = this.facade.getCanvas().getChildShapes(true);
 		var allShapeIds = [];
@@ -60,7 +60,7 @@ ORYX.Plugins.ClearSodBodHighlights = Clazz.extend({
 				}
 			}
     	}
-		
+
 		//remove highlights
 		allShapeIds.each(function(id){
 			this.facade.raiseEvent({
@@ -68,8 +68,8 @@ ORYX.Plugins.ClearSodBodHighlights = Clazz.extend({
 					highlightId: 	id
 				});
 		}.bind(this))
-		
-		//remove overlays 
+
+		//remove overlays
 		allShapeIds.each(function(id){
 			this.facade.raiseEvent({
 					type: 	ORYX.CONFIG.EVENT_OVERLAY_HIDE,

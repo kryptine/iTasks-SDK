@@ -46,26 +46,26 @@ ORYX.Plugins.ShapeConnector = Clazz.extend({
             toggle: 		true,
 			minShape: 		0,
 			maxShape: 		0});
-		
+
 		this.facade.registerOnEvent(ORYX.CONFIG.EVENT_MOUSEDOWN, this.handleMouseDown.bind(this));
 	},
-	
+
 	enableConnector: function(button, pressed) {
 		this.connectButton = button;
 		if (!pressed){
         	this.active = false;
         	this.sourceNode = null;
         }
-		else 
+		else
 			this.active = true;
-	},	
+	},
 	/**
 	 * MouseDown Handler
 	 *
-	 */	
+	 */
 	handleMouseDown: function(event, uiObj) {
 		if (this.active && uiObj instanceof ORYX.Core.Node) {
-            if (this.sourceNode){	
+            if (this.sourceNode){
             	this.createEdge( this.sourceNode, uiObj)
             }
         	this.sourceNode = uiObj
@@ -76,13 +76,13 @@ ORYX.Plugins.ShapeConnector = Clazz.extend({
 			}
 		}
 	},
-    
+
 	createEdge: function(source, target){
 
-		// Create a new Stencil		
-		var ssn 	= this.facade.getStencilSets().keys()[0];						
+		// Create a new Stencil
+		var ssn 	= this.facade.getStencilSets().keys()[0];
 		var stencil = ORYX.Core.StencilSet.stencil(ssn + "SequenceFlow");
-			
+
 		// Create a new Shape
 		var edge = new ORYX.Core.Edge({'eventHandlerCallback':this.facade.raiseEvent }, stencil);
 		edge.dockers.first().setDockedShape( source );
@@ -91,13 +91,13 @@ ORYX.Plugins.ShapeConnector = Clazz.extend({
 
 		edge.dockers.last().setDockedShape( target );
 		edge.dockers.last().setReferencePoint({x: target.bounds.width() / 2.0, y: target.bounds.height() / 2.0});
-		
+
 		// Add the shape to the canvas
 		this.facade.getCanvas().add(edge);
-		this.facade.getCanvas().update();		
-		
+		this.facade.getCanvas().update();
+
 		return edge;
-					
+
 	},
 });
 
