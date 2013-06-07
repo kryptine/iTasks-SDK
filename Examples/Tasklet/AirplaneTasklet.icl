@@ -15,9 +15,11 @@ import sapldebug
           			   ,mapTypeId :: HtmlObject
         			   };
 
-:: GoogleMapsState = {map      :: Maybe HtmlObject
-					 ,centerLA :: Real
-					 ,centerLO :: Real}
+:: GoogleMapsState = {map       :: Maybe HtmlObject
+					 ,centerLA  :: Real
+					 ,centerLO  :: Real
+					 ,waypoints :: [(!Real,!Real)]
+					 }
 
 :: MarkerOptions = {map        ::  HtmlObject
 				   ,position   ::  HtmlObject
@@ -25,15 +27,15 @@ import sapldebug
 				   ,draggable  ::  Bool
 				   }
 
-googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real)
+googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real,[(!Real,!Real)])
 googleMapsTasklet cla clo = 
 	{ generatorFunc		= googleMapsGUI
-	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) False
+	, resultFunc		= \{centerLA,centerLO,waypoints} = Value (centerLA,centerLO,waypoints) False
 	, tweakUI  			= setTitle "Google Maps Tasklet"
 	}
 where
 	googleMapsGUI iid taskId Nothing iworld 
-		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
+		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo,waypoints = []}) iworld
 
 	googleMapsGUI iid _ (Just st) iworld
 
@@ -57,10 +59,15 @@ where
 			# (d, center, lo) = runObjectMethod d center "lng" []
 			= (d, {GoogleMapsState| st & centerLA = fromHtmlObject la, centerLO = fromHtmlObject lo})	
 
-		addMarker st=:{GoogleMapsState|map = Just map} _ e  d 
-			# (d, e, latlo) = getObjectAttr d e "latLng" 
-			# (d, marker)   = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = latlo, title = toHtmlObject "Hoppakee",draggable = True}]		
-			= (d, st)	
+		addMarker st=:{GoogleMapsState|map = Just map, waypoints} _ e  d 
+			# (d, e, latlo)  = getObjectAttr d e "latLng"
+			# (d, latlo, la) = runObjectMethod d latlo "lat" []
+			# (d, latlo, lo) = runObjectMethod d latlo "lng" []
+			# waypoints      = addWP  (fromHtmlObject la,fromHtmlObject lo) waypoints 
+			# (d, marker)    = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = latlo, title = toHtmlObject "Hoppakee",draggable = True}]		
+			= (d, {st & waypoints = waypoints})	
+			
+		addWP wp wps = wps ++ [wp]
 
 	    onScriptLoad st _ _ d
 		    # (d, _) = setDomAttr d "map_place_holder" "innerHTML" "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>"
@@ -131,10 +138,11 @@ taskletExamples :: [Workflow]
 taskletExamples =
 	[workflow "Google MAP" "Basic Google Maps functionality" tasklet4]
 
-tasklet4 :: Task (Real, Real)
+//tasklet4 :: Task (Real, Real, [(!Real,!Real)])
 tasklet4
 	= 		mkInstanceId >>= \iid ->
 	 		mkTask (iid, googleMapsTasklet 47.471944 19.050278) id
+	 		>>= \(lat,lo,wps) -> viewInformation "The result is" [] wps       
 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
