@@ -1,2 +1,2 @@
 #!/bin/bash
-find js -name "*.js" -exec uglifyjs {} \;  > oryx-all.js
+NODE_PATH=$NODE_PATH:/usr/local/share/npm/lib/node_modules/ node mkdist.js > oryx-all.js
