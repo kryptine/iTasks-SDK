@@ -23,7 +23,8 @@ generateGUI _ _ (Just x) iworld
 			| width  		= ExactSize 800
 			, height 		= ExactSize 600
 			, html   		= HtmlDef ("<div id=\"object\" style=\""+++style+++"\">Airplane</div>")
-			, eventHandlers = [HtmlEvent "tasklet" "init" onInit]
+			, eventHandlers = [ HtmlEvent "tasklet" "init" onInit
+							  , HtmlEvent "tasklet" "update" onInit]			
 			}
 			
 	= (TaskletHTML gui, x, iworld)
