@@ -47,7 +47,7 @@ Ext.define('itwc.container.Tasklet', {
 		if(this.parameterFunc != null){
 			eval("var tmp = eval(" + this.parameterFunc + ");");
 			this.parameterFunc = tmp;
-			this.st = Sapl.toJS(Sapl.feval([this.parameterFunc,[this.st]]));
+			this.st = Sapl.feval([this.parameterFunc,[this.st]]);
 			this.fireTaskletEvent("update");
 		}		
 					
