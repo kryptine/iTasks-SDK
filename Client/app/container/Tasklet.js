@@ -10,7 +10,8 @@ Ext.define('itwc.container.Tasklet', {
 	st: null, // current task state	
 	events: [],
 	resultFunc: null,
-	parameterFunc: null,
+	updateFunc: null,
+	updateVal: null,
 	tui: null,	// default TUI
 	controllerFunc: null,
 	instanceNo: null,
@@ -28,7 +29,7 @@ Ext.define('itwc.container.Tasklet', {
 			tmp[1].push(event.browserEvent); // Stupid ExtJS wraps the original event
 			Sapl.feval(tmp);
 		};
-		
+
 		return h;
 	},
 
@@ -40,17 +41,12 @@ Ext.define('itwc.container.Tasklet', {
 		if(this.taskId != newTasklet.taskId)
 					this.setTaskId(newTasklet.taskId);
 					
-		if(this.script != null && this.script != "" && !sapldebug){
-			evalScript(this.script);
-		}
-
-		if(this.parameterFunc != null){
-			eval("var tmp = eval(" + this.parameterFunc + ");");
-			this.parameterFunc = tmp;
-			this.st = Sapl.feval([this.parameterFunc,[this.st]]);
+		if(this.updateFunc != null && newTasklet.updateVal != null){
+			eval("var tmp = eval(" + this.updateFunc + ");");
+			this.updateFunc = tmp;
+			this.st = Sapl.feval([this.updateFunc,[newTasklet.updateVal, this.st]]);
 			this.fireTaskletEvent("update");
-		}		
-					
+		}					
 	},	
 	
 	initComponent: function() {

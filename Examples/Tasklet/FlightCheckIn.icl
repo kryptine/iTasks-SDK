@@ -100,7 +100,7 @@ where
 		>>= return o fromString
 */
 
-chooseSeat (Just f) = mkInstanceId >>= \iid -> mkTask (iid, seatTasklet) id
+chooseSeat (Just f) = mkInstanceId >>= \iid -> mkTask (iid, seatTasklet) 
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 

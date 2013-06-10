@@ -1,4 +1,4 @@
-$image-search-path: '/Users/bas/Clean/iTasks-SDK/Client/build/itwc/production/resources';
+$image-search-path: 'C:/Clean 2.4/iTasks-SDK/Client/build/itwc/production/resources';
 $theme-name:  'ext-theme-gray' !default;
 $include-ext-abstractcomponent: true;
 $include-ext-abstractmanager: true;
@@ -573,13 +573,13 @@ $include-itwc-patch-grid-gridviewlayout: true;
 $include-itwc-patch-grid-view: true;
 $include-itwc-patch-layout-context: true;
 $include-itwc-view-viewport: true;
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-base */
 @import '../../../packages/ext-theme-base/sass/etc/all';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-classic */
 @import '../../../packages/ext-theme-classic/sass/etc/all';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-gray */
 @import '../../../packages/ext-theme-gray/sass/etc/all';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-gray */
 @import '../../../packages/ext-theme-gray/sass/var/Component';
 @import '../../../packages/ext-theme-gray/sass/var/ProgressBar';
 @import '../../../packages/ext-theme-gray/sass/var/button/Button';
@@ -595,7 +595,7 @@ $relative-image-path-for-uis: 'images';
 @import '../../../packages/ext-theme-gray/sass/var/layout/container/Accordion';
 @import '../../../packages/ext-theme-gray/sass/var/menu/Menu';
 @import '../../../packages/ext-theme-gray/sass/var/tab/Panel';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-classic */
 @import '../../../packages/ext-theme-classic/sass/var/Component';
 @import '../../../packages/ext-theme-classic/sass/var/LoadMask';
 @import '../../../packages/ext-theme-classic/sass/var/ProgressBar';
@@ -625,7 +625,7 @@ $relative-image-path-for-uis: 'images';
 @import '../../../packages/ext-theme-classic/sass/var/resizer/Resizer';
 @import '../../../packages/ext-theme-classic/sass/var/slider/Multi';
 @import '../../../packages/ext-theme-classic/sass/var/tab/Panel';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-neutral */
 @import '../../../packages/ext-theme-neutral/sass/var/Component';
 @import '../../../packages/ext-theme-neutral/sass/var/FocusManager';
 @import '../../../packages/ext-theme-neutral/sass/var/LoadMask';
@@ -672,9 +672,11 @@ $relative-image-path-for-uis: 'images';
 @import '../../../packages/ext-theme-neutral/sass/var/slider/Multi';
 @import '../../../packages/ext-theme-neutral/sass/var/tab/Panel';
 @import '../../../packages/ext-theme-neutral/sass/var/tree/Panel';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-base */
 @import '../../../packages/ext-theme-base/sass/var/Component';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-base */
+$ext-theme-base-resource-path: 'images' !default;
+$relative-image-path-for-uis: $ext-theme-base-resource-path;
 @import '../../../packages/ext-theme-base/sass/src/rtl/util/Renderable';
 @import '../../../packages/ext-theme-base/sass/src/Component';
 @import '../../../packages/ext-theme-base/sass/src/layout/container/Container';
@@ -719,7 +721,9 @@ $relative-image-path-for-uis: 'images';
 @import '../../../packages/ext-theme-base/sass/src/resizer/SplitterTracker';
 @import '../../../packages/ext-theme-base/sass/src/slider/Multi';
 @import '../../../packages/ext-theme-base/sass/src/tab/Panel';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-neutral */
+$ext-theme-neutral-resource-path: 'images' !default;
+$relative-image-path-for-uis: $ext-theme-neutral-resource-path;
 @import '../../../packages/ext-theme-neutral/sass/src/Component';
 @import '../../../packages/ext-theme-neutral/sass/src/Editor';
 @import '../../../packages/ext-theme-neutral/sass/src/FocusManager';
@@ -779,7 +783,9 @@ $relative-image-path-for-uis: 'images';
 @import '../../../packages/ext-theme-neutral/sass/src/tab/Panel';
 @import '../../../packages/ext-theme-neutral/sass/src/tree/Panel';
 @import '../../../packages/ext-theme-neutral/sass/src/tree/ViewDropZone';
-$relative-image-path-for-uis: 'images';
+/* including package ext-theme-classic */
+$ext-theme-classic-resource-path: 'images' !default;
+$relative-image-path-for-uis: $ext-theme-classic-resource-path;
 @import '../../../packages/ext-theme-classic/sass/src/dom/Element';
 @import '../../../packages/ext-theme-classic/sass/src/toolbar/Toolbar';
 @import '../../../packages/ext-theme-classic/sass/src/window/MessageBox';

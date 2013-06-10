@@ -116,12 +116,12 @@ encodeUIControl (UIActionButton sopts aopts opts)		= enc "itwc_actionbutton" [to
 encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sopts, toJSON opts]
 encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts]
 encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts]
-encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
-encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [toJSON sopts, toJSON opts]
 encodeUIControl (UIContainer sopts iopts opts)			= enc "itwc_container" [toJSON sopts, toJSON iopts, toJSON opts] 
 encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts] 
 encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts] 
 encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts] 
+encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
+encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [toJSON sopts, toJSON opts]
 
 encodeUIWindow :: !UIWindow -> JSONNode
 encodeUIWindow (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts, toJSON iopts, toJSON opts]
@@ -131,8 +131,9 @@ encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON 
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
-derive JSONEncode UIIconOpts, UITaskletOpts, UITaskletPHOpts, UIOryxOpts
+derive JSONEncode UIIconOpts, UIOryxOpts
 derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
+derive JSONEncode UITaskletOpts, UITaskletPHOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]

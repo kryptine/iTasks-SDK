@@ -34,14 +34,23 @@ where
 	onInit x _ _ d
 		# (d, str) = setDomAttr d "object" "style.left" (toString x+++"px")
 		= (d, x)
- 
+
 tasklet :: Task Void
 tasklet
-	= mkInstanceId >>= \iid ->
-	  forever (wait 10 -||- mkTask (iid, movinTasklet) moveLeft) 
+	= mkInstanceId >>= \iid -> withShared 0 (\pos ->
+	  	  mkTaskWithShared (iid, movinTasklet) pos moveLeft2
+		  -||  
+		  forever (wait 10 >>- update moveLeft pos ))
 where
 	moveLeft :: Position -> Position
 	moveLeft x = x + 40
+
+	moveLeft2 :: Position Position -> Position
+	moveLeft2 x _ = x
+
+//UTIL
+(>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
+(>>-) taska taskb = step taska [WhenStable (const taskb)]
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void
@@ -49,6 +58,6 @@ wait n = get currentTime >>= \start -> watch currentTime >>* [OnValue (\(Value n
 where
 	//ONLY CORRECT FOR n < 60
 	addSeconds n t = t + {Time|hour=0,min=0,sec=n}
-						     
+	     
 Start :: *World -> *World
 Start world = startEngine tasklet world

@@ -126,6 +126,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	// Misc auxiliary components:
 	| UILabel			!UISizeOpts	!UILabelOpts								// - Label (non-wrapping text label, clicks focus next component)
 	| UIIcon			!UISizeOpts	!UIIconOpts									// - Icon (information icon with tooltip text)
+	// Tasklet stuff
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
 	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
 	// Container components for composition:
@@ -304,7 +305,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
 	, interfaceFuncs :: !Maybe [(!String,!String)] 			// function name, function
 	, resultFunc     :: !Maybe String
-	, parameterFunc  :: !Maybe String
+	, updateFunc     :: !Maybe String
 	// They are a pair: the controller hijacks all the events sent to the given instance
 	, instanceNo	 :: !Maybe String
 	, controllerFunc :: !Maybe String
@@ -313,8 +314,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 :: UITaskletPHOpts =
 	{ taskId		 :: !String
 	, iid		     :: !String	// instance id
-	, script		 :: !Maybe String
-	, parameterFunc  :: !Maybe String
+	, updateVal		 :: !Maybe String
 	}
 
 :: UIContainerOpts =

@@ -11,9 +11,10 @@ from iTasks.Framework.Task import :: Event(..)
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
-derive gEq UILabelOpts, UIIconOpts, UITaskletOpts, UITaskletPHOpts
+derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer, UIAction
+derive gEq UITaskletOpts, UITaskletPHOpts
 
 derive JSONEncode UITreeNode, UIActionOpts, UISizeOpts, UISideSizes, UIMinSize, UISize, UIGoogleMapOptions, UIGoogleMapMarker
 
@@ -89,14 +90,12 @@ diffControls path event c1 c2
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
 			| opts1.UITaskletOpts.iid == opts2.UITaskletOpts.iid
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId,
-														 script = opts2.UITaskletOpts.script, parameterFunc = opts2.UITaskletOpts.parameterFunc})])]]]
+					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
 				= [DiffImpossible]
 		(UITaskletPH sOpts1 opts1, UITasklet sOpts2 opts2)
 			| opts1.UITaskletPHOpts.iid == opts2.UITaskletOpts.iid		
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId, 
-					                                     script = opts2.UITaskletOpts.script, parameterFunc = opts2.UITaskletOpts.parameterFunc})])]]]
+					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
 				= [DiffImpossible]
 		// Placeholder on the right hand side: update
 		(UITaskletPH sOpts1 opts1, UITaskletPH sOpts2 opts2)
