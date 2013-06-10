@@ -57,3 +57,5 @@ where
 instance Publishable (Task a) | iTask a
 instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
+
+determineAppName :: !*World -> (!String,!*World)
