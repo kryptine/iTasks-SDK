@@ -127,7 +127,7 @@ ginEditor` =
                     , (Embedded, \tl -> chooseAction (actions st tl) >>= id)
                     , (Embedded, \_  -> activator st)
                     ]
-         updateTask st = getStencilUrl UseSearchPathStencil >>= \surl -> // TODO: No hardcoding
+         updateTask st = getStencilUrl UsePredefinedStencil >>= \surl -> // TODO: No hardcoding
                          updateSharedInformation "Workflow diagram" [UpdateWith (diagramView surl) (diagramUpdate surl)] st
 
 //ginParallelLayout :: ParallelLayouter
@@ -432,7 +432,7 @@ generateStencil src = withTemporaryDirectory (\tmpDir ->
   in  exportTextFile tmpFile (toString src) >>| importDocument tmpFile)
 
 stencilUrl :: Document -> String
-stencilUrl {Document|contentUrl} = contentUrl
+stencilUrl {Document|contentUrl} = "/" +++ contentUrl
 
 :: StencilServiceOpt = UseSearchPathStencil | UsePredefinedStencil | UseModuleStencil String
 
