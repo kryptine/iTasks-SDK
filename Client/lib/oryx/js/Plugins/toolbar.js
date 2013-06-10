@@ -93,7 +93,7 @@ ORYX.Plugins.Toolbar = Clazz.extend({
 
 		ORYX.Log.trace("Creating a toolbar.")
 		if(!this.toolbar){
-			this.toolbar = new Ext.ux.SlicedToolbar({
+			this.toolbar = new ORYX.Plugins.SlicedToolbar({
 			height: 24
 		});
 				var region = this.facade.addToRegion("north", this.toolbar, "Toolbar");
@@ -153,7 +153,7 @@ ORYX.Plugins.Toolbar = Clazz.extend({
                 
                 // Create a new split button if this is the first plugin using it 
                 if(splitButton === undefined){
-                    splitButton = currentGroupsDropDownButton[value.dropDownGroupIcon] = new Ext.Toolbar.SplitButton({
+                    splitButton = currentGroupsDropDownButton[value.dropDownGroupIcon] = new Ext.toolbar.Toolbar.SplitButton({
                         cls: "x-btn-icon", //show icon only
                         icon: value.dropDownGroupIcon,
                         menu: new Ext.menu.Menu({
@@ -260,8 +260,8 @@ ORYX.Plugins.Toolbar = Clazz.extend({
 	}
 });
 
-Ext.ns("Ext.ux");
-Ext.ux.SlicedToolbar = Ext.extend(Ext.Toolbar, {
+Ext.ns("Oryx.Plugins");
+ORYX.Plugins.SlicedToolbar = Ext.define('Ext.toolbar.Toolbar', {
     currentSlice: 0,
     iconStandardWidth: 22, //22 px 
     seperatorStandardWidth: 2, //2px, minwidth for Ext.Toolbar.Fill
@@ -270,15 +270,15 @@ Ext.ux.SlicedToolbar = Ext.extend(Ext.Toolbar, {
     initComponent: function(){
         Ext.apply(this, {
         });
-        Ext.ux.SlicedToolbar.superclass.initComponent.apply(this, arguments);
+        ORYX.Plugins.SlicedToolbar.superclass.initComponent.apply(this, arguments);
     },
     
     onRender: function(){
-        Ext.ux.SlicedToolbar.superclass.onRender.apply(this, arguments);
+        ORYX.Plugins.SlicedToolbar.superclass.onRender.apply(this, arguments);
     },
     
     onResize: function(){
-        Ext.ux.SlicedToolbar.superclass.onResize.apply(this, arguments);
+        ORYX.Plugins.SlicedToolbar.superclass.onResize.apply(this, arguments);
     },
     
     calcSlices: function(){

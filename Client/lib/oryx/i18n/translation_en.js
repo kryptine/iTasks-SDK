@@ -547,12 +547,6 @@ ORYX.I18N.Validator.description = "Validation for BPMN";
 ORYX.I18N.SSExtensionLoader.labelImport = "Import";
 ORYX.I18N.SSExtensionLoader.labelCancel = "Cancel";
 
-Ext.MessageBox.buttonText.yes = "Yes";
-Ext.MessageBox.buttonText.no = "No";
-Ext.MessageBox.buttonText.cancel = "Cancel";
-Ext.MessageBox.buttonText.ok = "OK";
-
-
 /** New Language Properties: 28.01.2009 */
 if(!ORYX.I18N.BPMN2XPDL) ORYX.I18N.BPMN2XPDL = {};
 ORYX.I18N.BPMN2XPDL.group = "Export";

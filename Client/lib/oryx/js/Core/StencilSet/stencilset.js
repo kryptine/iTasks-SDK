@@ -59,12 +59,14 @@ ORYX.Core.StencilSet.StencilSet = Clazz.extend({
 		this._extensions = new Hash();
         
         this._source = source;
-        this._baseUrl = ORYX.PATH + "stencilset/" + source + "/"
+        //this._baseUrl = ORYX.PATH + "stencilset/" + source + "/"
+        this._baseUrl = source;
         this._jsonObject = {};
         
         this._stencils = new Hash();
 		this._availableStencils = new Hash();
-		new Ajax.Request(ORYX.PATH + "stencilset/" + source, {
+		//new Ajax.Request(ORYX.PATH + "stencilset/" + source, {
+		new Ajax.Request(source, {
             asynchronous: false,
             method: 'get',
             onSuccess: this._init.bind(this),

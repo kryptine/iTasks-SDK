@@ -1,5 +1,5 @@
-//Ext.ns('Ext.ux');
-Ext.ux.PanelCollapsedTitlePlugin = function() {
+Ext.ns('Oryx.Plugins');
+ORYX.Plugins.PanelCollapsedTitlePlugin = function() {
   var rotatedCls = 'x-panel-header-rotated';
   var supportsSVG = 
     !!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1");
@@ -64,44 +64,46 @@ Ext.ux.PanelCollapsedTitlePlugin = function() {
     if (p.collapsible) {
       var verticalText = ((p.region == 'east') || (p.region == 'west'));
       // update the collapsed header title also
-      p.setTitle = Ext.Panel.prototype.setTitle.createSequence(function(t) {
-        if (this.rendered && this.collapsedHeaderText) {
-          // if the collapsed title element is regular html dom
-          if (this.collapsedHeaderText.dom) {
-            this.collapsedHeaderText.dom.innerHTML = t;
-          // or if this is an SVG text node
-          } else if (this.collapsedHeaderText.replaceData) {
-            this.collapsedHeaderText.nodeValue = t;
-          };
-        };
-      });
+      // TODO: Revisit
+      //p.setTitle = Ext.Panel.prototype.setTitle.createSequence(function(t) {
+        //if (this.rendered && this.collapsedHeaderText) {
+          //// if the collapsed title element is regular html dom
+          //if (this.collapsedHeaderText.dom) {
+            //this.collapsedHeaderText.dom.innerHTML = t;
+          //// or if this is an SVG text node
+          //} else if (this.collapsedHeaderText.replaceData) {
+            //this.collapsedHeaderText.nodeValue = t;
+          //};
+        //};
+      //});
       // update the collapsed icon class also
-      p.setCollapsedIconClass = function(cls) {
-        var old = this.collapsedIconCls;
-        this.collapsedIconCls = cls;
-        if(this.rendered && this.collapsedHeader){
-          var hd = this.collapsedHeader,
-          img = hd.child('img.x-panel-inline-icon');
-          // if an icon image is already shown, modify it or remove it
-          if(img) {
-            if (this.collapsedIconCls) {
-              Ext.fly(img).replaceClass(old, this.collapsedIconCls);
-            } else {
-              // remove img node if the icon class is removed
-              Ext.fly(img).remove();
-            };
-          // otherwise create the img for the icon
-          } else if (this.collapsedIconCls) {
-            Ext.DomHelper.insertBefore(hd.dom.firstChild, {
-              tag:'img', src: Ext.BLANK_IMAGE_URL, 
-              cls:'x-panel-inline-icon '+this.collapsedIconCls,
-              style: verticalText 
-                ? 'display: block; margin: 1px 2px;' 
-                : 'margin-top: 2px; margin-right: 4px'
-            });
-          };
-        };
-      };
+      // TODO: Revisit
+      //p.setCollapsedIconClass = function(cls) {
+        //var old = this.collapsedIconCls;
+        //this.collapsedIconCls = cls;
+        //if(this.rendered && this.collapsedHeader){
+          //var hd = this.collapsedHeader,
+          //img = hd.child('img.x-panel-inline-icon');
+          //// if an icon image is already shown, modify it or remove it
+          //if(img) {
+            //if (this.collapsedIconCls) {
+              //Ext.fly(img).replaceClass(old, this.collapsedIconCls);
+            //} else {
+              //// remove img node if the icon class is removed
+              //Ext.fly(img).remove();
+            //};
+          //// otherwise create the img for the icon
+          //} else if (this.collapsedIconCls) {
+            //Ext.DomHelper.insertBefore(hd.dom.firstChild, {
+              //tag:'img', src: Ext.BLANK_IMAGE_URL, 
+              //cls:'x-panel-inline-icon '+this.collapsedIconCls,
+              //style: verticalText 
+                //? 'display: block; margin: 1px 2px;' 
+                //: 'margin-top: 2px; margin-right: 4px'
+            //});
+          //};
+        //};
+      //};
       p.on('render', function() {
         if (this.ownerCt.rendered && this.ownerCt.layout.hasLayout) {
           patchCollapsedElem.call(p);

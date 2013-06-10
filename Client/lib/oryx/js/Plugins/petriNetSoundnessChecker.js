@@ -121,7 +121,7 @@ ORYX.Plugins.PetriNetSoundnessChecker = ORYX.Plugins.AbstractPlugin.extend({
     showCheckerWindow: function(){
         var plugin = this;
 
-        var CheckNode = Ext.extend(Ext.tree.TreeNode, {
+        var CheckNode = Ext.define('Ext.tree.TreeNode', {
             constructor: function(config) {
                 if(!config.icon && !this.icon)
                     config.icon = CheckNode.UNKNOWN_STATUS;
@@ -410,7 +410,7 @@ ORYX.Plugins.PetriNetSoundnessChecker = ORYX.Plugins.AbstractPlugin.extend({
                 });
 
             },
-            items: [new Ext.tree.TreePanel({
+            items: [Ext.create('Ext.tree.Panel', {
                 useArrows: true,
                 autoScroll: true,
                 rootVisible: false,

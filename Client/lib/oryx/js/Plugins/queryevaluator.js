@@ -452,7 +452,7 @@ ORYX.Plugins.QueryEvaluator = ORYX.Plugins.AbstractPlugin.extend({
 
 	},
 
-	dataGridPanel : Ext.extend(Ext.DataView, {
+	dataGridPanel : Ext.define('Ext.view.View', {
 		multiSelect		: true,
 		//simpleSelect	: true,
 	    cls				: 'iconview',

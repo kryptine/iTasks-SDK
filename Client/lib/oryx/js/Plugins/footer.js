@@ -65,7 +65,7 @@ ORYX.Plugins.Footer = Clazz.extend({
 
 		ORYX.Log.trace("Creating a footer.")
 		if(!this.footer){
-			this.footer = new Ext.ux.SlicedToolbar({
+			this.footer = new ORYX.Plugins.SlicedToolbar({
 			height: 24
 		});
 				var region = this.facade.addToRegion("south", this.footer, "Footer");
@@ -211,8 +211,8 @@ ORYX.Plugins.Footer = Clazz.extend({
 	}
 });
 
-Ext.ns("Ext.ux");
-Ext.ux.SlicedToolbar = Ext.extend(Ext.Toolbar, {
+Ext.ns("Oryx.Plugins");
+ORYX.Plugins.SlicedToolbar = Ext.define('Ext.toolbar.Toolbar', {
     currentSlice: 0,
     iconStandardWidth: 22, //22 px 
     seperatorStandardWidth: 2, //2px, minwidth for Ext.Toolbar.Fill
@@ -221,15 +221,15 @@ Ext.ux.SlicedToolbar = Ext.extend(Ext.Toolbar, {
     initComponent: function(){
         Ext.apply(this, {
         });
-        Ext.ux.SlicedToolbar.superclass.initComponent.apply(this, arguments);
+        ORYX.Plugins.SlicedToolbar.superclass.initComponent.apply(this, arguments);
     },
     
     onRender: function(){
-        Ext.ux.SlicedToolbar.superclass.onRender.apply(this, arguments);
+        ORYX.Plugins.SlicedToolbar.superclass.onRender.apply(this, arguments);
     },
     
     onResize: function(){
-        Ext.ux.SlicedToolbar.superclass.onResize.apply(this, arguments);
+        ORYX.Plugins.SlicedToolbar.superclass.onResize.apply(this, arguments);
     },
     
     calcSlices: function(){

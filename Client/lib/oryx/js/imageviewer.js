@@ -1,4 +1,4 @@
-ImageViewer = Ext.extend(Ext.Window, {
+ImageViewer = Ext.define('Ext.window.Window', {
     initComponent: function() {
         var uid = Ext.id();
         ORYX.EDITOR.imagePreviewSVG = this.src;

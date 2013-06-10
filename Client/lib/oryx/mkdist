@@ -1,2 +1,5 @@
 #!/bin/bash
-NODE_PATH=$NODE_PATH:/usr/local/share/npm/lib/node_modules/ node mkdist.js > oryx-all.js
+# This requires nodejs and uglifyjs > 2.3 to be installed
+TARGET=oryx-all.js
+rm -f $TARGET
+NODE_PATH=$NODE_PATH:/usr/local/share/npm/lib/node_modules/ node mkdist.js > $TARGET

@@ -128,7 +128,6 @@ ORYX.Editor = {
         	ORYX.Core.StencilSet.loadStencilSet(ssUrl, this.id);
 		}
 		
-        
         //load the extensions
         if(!!ORYX.CONFIG.SSEXTS){
         	ORYX.CONFIG.SSEXTS.each(function(ssext){
@@ -284,12 +283,12 @@ ORYX.Editor = {
             html: ""
         });
 
-		this.simResultsTree = new Ext.tree.TreePanel({
+		this.simResultsTree = Ext.create('Ext.tree.Panel', {
 			id: "simresultscharts",
 			title: "Simulation Graphs",
 			autoheight: true, 
 			animate:true,
-			loader: new Ext.tree.TreeLoader(),
+			store: Ext.create('Ext.data.TreeStore'),
 			rootVisible: false,
 			autoScroll:false,
 			lines: true,
@@ -299,13 +298,15 @@ ORYX.Editor = {
 		        }
 		    }
 		});
-		var simTreeRoot = new Ext.tree.TreeNode({
-		    draggable: false,
-		    id: 'simcharts'
-		});
-		this.simResultsTree.setRootNode(simTreeRoot);
+		//var simTreeRoot = new Ext.tree.TreeNode({
+        // TODO: Revisit
+		//var simTreeRoot = new Ext.tree.View({
+			//draggable: false,
+			//id: 'simcharts'
+		//});
+		//this.simResultsTree.setRootNode(simTreeRoot);
 
-		this.simResultsContentPanelLayout = new Ext.Panel({
+		this.simResultsContentPanelLayout = Ext.create('Ext.panel.Panel', {
 		    width: "100%",
             height: 1000,
 		    layout: 'border',
@@ -406,7 +407,7 @@ ORYX.Editor = {
                     collapsible : true,
                     titleCollapse: true,
                     title: "Properties",
-                    plugins: new Ext.ux.PanelCollapsedTitlePlugin()
+                    plugins: new ORYX.Plugins.PanelCollapsedTitlePlugin()
 				}),
 
 				// DEFINES BOTTOM-AREA
@@ -432,7 +433,7 @@ ORYX.Editor = {
 					collapsible : true,
 					titleCollapse: true,
 					title: "Shape Repository",
-					plugins: new Ext.ux.PanelCollapsedTitlePlugin()
+					plugins: new ORYX.Plugins.PanelCollapsedTitlePlugin()
 				}),
 				
 				
@@ -808,7 +809,7 @@ ORYX.Editor = {
 		var div = ORYX.Editor.graft("http://www.w3.org/1999/xhtml", null, ['div']);
 		// set class for custom styling
 		div.addClassName("ORYX_Editor");
-						
+
 		// create the canvas
 		this._canvas = new ORYX.Core.Canvas({
 			width					: ORYX.CONFIG.CANVAS_WIDTH,

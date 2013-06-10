@@ -41,9 +41,9 @@ ORYX.Plugins.ShapeRepository = {
 			
 		})
 
-		var panel = new Ext.tree.TreePanel({
+		var panel = Ext.create('Ext.tree.Panel', {
             cls:'shaperepository',
-			loader: new Ext.tree.TreeLoader(),
+            store: Ext.create('Ext.data.TreeStore'),
 			root: this.shapeList,
 			autoScroll:true,
 			rootVisible: false,

@@ -1,6 +1,6 @@
 Ext.ns('Extensive.grid');
 
-Extensive.grid.ItemDeleter = Ext.extend(Ext.grid.RowSelectionModel, {
+Extensive.grid.ItemDeleter = Ext.define('Ext.grid.RowSelectionModel', {
 
     width: 30,
     

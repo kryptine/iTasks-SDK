@@ -106,32 +106,33 @@ Ext.define('itwc.component.edit.Oryx', {
     switch(me.self.oryxState) {
       case 'loaded':
         console.log("afterRender: loaded");
-        me.buildEditor();
+        //console.log("afterRender: loaded");
+        //me.buildEditor();
         break;
 
       case 'loading':
         console.log("afterRender: loading");
-        me.self.waitingForOryx.push(Ext.bind(me.buildEditor, me));
-        //console.log(waitingForOryx);
-        //window.onOryxResourcesLoaded();
-        //
+        //console.log("afterRender: loading");
+        //me.self.waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        ////console.log(waitingForOryx);
+        ////window.onOryxResourcesLoaded();
         break;
 
       case 'unloaded':
         console.log("afterRender: unloaded");
         me.self.oryxState = 'loading';
-        me.self.waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        //me.self.waitingForOryx.push(Ext.bind(me.buildEditor, me));
 
-        //window.onOryxResourcesLoaded = function() {
-          //Ext.bind(me.oryxResourcesLoaded, me);
-        //};
+        ////window.onOryxResourcesLoaded = function() {
+          ////Ext.bind(me.oryxResourcesLoaded, me);
+        ////};
 
-        window.onOryxResourcesLoaded = Ext.bind(me.afterOryxResourcesLoaded, me);
+        //window.onOryxResourcesLoaded = Ext.bind(me.afterOryxResourcesLoaded, me);
 
-        var script = document.createElement("script");
-        script.setAttribute('type', 'text/javascript');
-        script.setAttribute('src', '/lib/oryx/scripts/config.js');
-        Ext.getHead().appendChild(script);
+        //var script = document.createElement("script");
+        //script.setAttribute('type', 'text/javascript');
+        //script.setAttribute('src', '/lib/oryx/scripts/config.js');
+        //Ext.getHead().appendChild(script);
 
         var script = document.createElement("script");
         script.setAttribute('type', 'text/javascript');
@@ -139,47 +140,100 @@ Ext.define('itwc.component.edit.Oryx', {
         Ext.getHead().appendChild(script);
 
         //waitingForOryx.push(Ext.bind(me.buildEditor, me));
+        this.startIt();
         break;
     }
   },
 
-  afterOryxResourcesLoaded : function() {
+  startIt : function () {
+    console.log("startIt");
     var me = this;
-    me.self.oryxState = 'loaded';
-    console.log("In afterOryxResourcesLoaded");
-    //this.buildEditor();
 
-    me.self.waitingForOryx.each(function(build){build();});
-  },
-
-  buildEditor: function() {
-    if (!this.rendered) {
-      return null;
+    if(typeof ORYX === 'undefined') {
+      console.log("startIt: setTimeout");
+      setTimeout(Ext.bind(me.startIt, me), 200);
+      return;
     }
-    var url = this.stencilsetUrl;
-    console.log("logging stencilset URL: " + url);
-    //var url = this.stencilsetUrl[0] === '/' ?
-                //this.stencilsetUrl :
-                //ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetUrl;
+
+    console.log("startIt: on to loaded");
+    me.self.oryxState = 'loaded';
+    //initEditorInstance();
+    //startEditorInstance();
+    //
+    var url = me.stencilsetUrl;
+
+    console.log("stencilsetUrl:" + url);
 
     ORYX.CONFIG.SS_EXTENSIONS_CONFIG = url;
-    ORYX.CONFIG.ROOT_PATH = '/lib/oryx';
+    ORYX.CONFIG.ROOT_PATH = '/lib/oryx/';
+    ORYX.PATH = '/lib/oryx/';
 
-    console.log("buildEditor");
-    console.log("this.rendered: " + this.rendered);
-    this.facade = new ORYX.Editor({
-      parentContainer: this,
+    var editorParameters = {
+      fullscreen: false,
+      stencilset: {
+        url: url
+      }
+    };
+    Kickstart.load();
+
+    ORYX.EDITOR = new ORYX.Editor({
+      parentContainer: me,
+      fullscreen: false,
       stencilset: {
           url: url
       }
     });
 
-    //this.facade.importJSON(this.value.diagram);
+    me.facade = ORYX.EDITOR;
 
-    var oryxControl = this;
-    //this.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS,
-                                //function(){ oryxControl.onChange(); });
+    me.facade.importJSON(me.value.diagram);
+
+    //var oryxControl = this;
+    me.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS,
+                              function(){ me.onChange(); });
+
   },
+
+  //afterOryxResourcesLoaded : function() {
+    //var me = this;
+    //me.self.oryxState = 'loaded';
+    //console.log("In afterOryxResourcesLoaded");
+    ////this.buildEditor();
+
+    //me.self.waitingForOryx.each(function(build){build();});
+  //},
+
+  //buildEditor: function() {
+    //var me = this;
+
+    //if (!me.rendered) {
+      //return null;
+    //}
+    //var url = me.stencilsetUrl;
+    //console.log("logging stencilset URL: " + url);
+    ////var url = this.stencilsetUrl[0] === '/' ?
+                ////this.stencilsetUrl :
+                ////ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetUrl;
+
+    //ORYX.CONFIG.SS_EXTENSIONS_CONFIG = url;
+    //ORYX.CONFIG.ROOT_PATH = '/lib/oryx';
+
+    //console.log("buildEditor");
+    //console.log("this.rendered: " + me.rendered);
+    //this.facade = new ORYX.Editor({
+      //parentContainer: me,
+      //fullscreen: false,
+      //stencilset: {
+          //url: url
+      //}
+    //});
+
+    //me.facade.importJSON(me.value.diagram);
+
+    ////var oryxControl = this;
+    //me.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS,
+                              //function(){ me.onChange(); });
+  //},
 
   setError: function(message) { },
   setHint: function(message) { },

@@ -1,4 +1,4 @@
-SVGViewer = Ext.extend(Ext.Window, {
+SVGViewer = Ext.define('Ext.window.Window', {
     initComponent: function() {
         var uid = Ext.id();
         this.bodyCfg = {
