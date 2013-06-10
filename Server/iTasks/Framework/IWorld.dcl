@@ -7,6 +7,7 @@ from Data.Maybe				import :: Maybe
 from System.Time				import :: Timestamp
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
+from iTasks.Framework.UIDiff			import :: UIUpdate
 from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
@@ -31,8 +32,10 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
-					, uis					:: !Map SessionId (!Int,!UIDef)				// Previous ui versions to optimize output sent to clients
+
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
+					, uiUpdates				:: !Map SessionId [UIUpdate]				// Updates for the user interfaces of sessions
+
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					, world					:: !*World									// The outside world
 					}
@@ -45,6 +48,9 @@ dequeueWork			:: 								!*IWorld -> (!DequeueResult, !*IWorld)
 dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
+
+addUIUpdates		:: !SessionId ![UIUpdate] 		!*IWorld -> *IWorld
+getUIUpdates		:: !SessionId					!*IWorld -> (![UIUpdate],!*IWorld)
 
 :: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
 

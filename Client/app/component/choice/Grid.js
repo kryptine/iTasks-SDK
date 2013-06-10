@@ -61,14 +61,16 @@ Ext.define('itwc.component.choice.Grid',{
 		this.fireEvent('change');	
 	},
 	setValue: function(value) {
+		var me = this;
+
 		if(Ext.isArray(value) && value.length) {
 			value = value[0];
 		}
-		if(Ext.isNumber(value) && value < this.store.count() && value >= 0) {
-			this.value = value;
-			this.getSelectionModel().select(value);		
+		if(Ext.isNumber(value) && value < me.store.count()) {
+			me.value = value;
+			me.getSelectionModel().select(value);		
 		} else {
-			this.getSelectionModel().deselectAll();
+			me.getSelectionModel().deselectAll();
 		}
 	},
 	setOptions: function(options) {

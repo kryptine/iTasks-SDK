@@ -140,23 +140,4 @@ addOutdatedOnShareChange shareId filterFun iworld
 
 addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
-	
-storeCurUI :: !SessionId !Int !UIDef !*IWorld -> *IWorld
-storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
 
-loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe UIDef, !*IWorld)
-loadPrevUI sid version iworld=:{IWorld|uis} 
-	= case get sid uis of
-		Just (prev,def)	| version == (prev + 1)	= (Just def, iworld)
-		_										= (Nothing, iworld)
-
-saveUICache	:: !*IWorld -> *IWorld
-saveUICache iworld=:{IWorld|uis}
-	= storeValue NS_TASK_INSTANCES "ui-cache" uis iworld
-
-restoreUICache :: !*IWorld -> *IWorld
-restoreUICache iworld
-	# (mbUis,iworld)	= loadValue NS_TASK_INSTANCES "ui-cache" iworld
-	= case mbUis of
-		Just uis		= {IWorld|iworld & uis = uis}
-		_				= iworld

@@ -8,6 +8,7 @@ import Text, Text.JSON
 import Data.SharedDataSource
 from iTasks.Framework.IWorld		import :: IWorld(..), :: Work
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
+from iTasks.Framework.UIDiff		import :: UIUpdate
 from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree

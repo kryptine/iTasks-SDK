@@ -1,12 +1,13 @@
 implementation module iTasks.Framework.IWorld
 
-from System.FilePath			import :: FilePath
-from Data.Map				import :: Map
-from Data.Maybe				import :: Maybe
-from System.Time				import :: Timestamp, time
-from Text.JSON				import :: JSONNode
-from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
-from iTasks.Framework.TaskState			import :: TaskListEntry
+from System.FilePath				import :: FilePath
+from Data.Map						import :: Map
+from Data.Maybe						import :: Maybe
+from System.Time					import :: Timestamp, time
+from Text.JSON						import :: JSONNode
+from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
+from iTasks.Framework.TaskState		import :: TaskListEntry
+from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
@@ -15,7 +16,7 @@ from iTasks.Framework.TaskServer import class HttpServerEnv(..)
 from Data.List import splitWith
 from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 
-import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error
+import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Data.Map
 import iTasks.Framework.TaskStore, iTasks.Framework.Util
 import iTasks.Framework.SerializationGraphCopy 
 
@@ -101,6 +102,15 @@ where
 		| evalNo == instanceNo	= FAST_EXPIRY
 								= expiry instanceNo ws
 	expiry instanceNo [_:ws]	= expiry instanceNo ws
+
+
+addUIUpdates :: !SessionId ![UIUpdate] !*IWorld -> *IWorld
+addUIUpdates sessionId updates iworld=:{uiUpdates}
+	= {iworld & uiUpdates = put sessionId (maybe updates (\u -> u ++ updates) (get sessionId uiUpdates)) uiUpdates}
+
+getUIUpdates :: !SessionId !*IWorld -> (![UIUpdate],!*IWorld)
+getUIUpdates sessionId iworld=:{uiUpdates}
+	= (fromMaybe [] (get sessionId uiUpdates),{iworld & uiUpdates = del sessionId uiUpdates})
 
 //Wrapper instance for file access
 instance FileSystem IWorld

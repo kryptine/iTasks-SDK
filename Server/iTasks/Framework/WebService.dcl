@@ -8,4 +8,8 @@ from iTasks.Framework.Engine	import :: ServiceFormat
 from iTasks.Framework.IWorld	import :: IWorld
 import iTasks.Framework.iTaskClass
 
-webService :: !(HTTPRequest -> Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+webService :: !(HTTPRequest -> Task a) !ServiceFormat ->
+				 (!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld))
+				 ,!(HTTPRequest (Maybe {#Char}) SessionId *IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld))
+				 ,!(HTTPRequest SessionId *IWorld -> *IWorld)
+				 ) | iTask a

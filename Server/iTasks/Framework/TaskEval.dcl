@@ -7,6 +7,7 @@ from iTasks.API.Core.SystemTypes	import :: TaskListItem, :: User, :: TaskId, :: 
 from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from iTasks.Framework.Shared		import :: Shared
+from iTasks.Framework.UIDiff		import :: UIUpdate
 
 import iTasks.Framework.TaskState, iTasks.Framework.iTaskClass
 
@@ -23,7 +24,7 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld) |  iTask a
+createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId, ![UIUpdate]), !*IWorld) |  iTask a
 
 /**
 * Create a stored task instance in the task pool (lazily without evaluating it)
@@ -48,7 +49,7 @@ createTopTaskInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld ->
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld)
+evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId, ![UIUpdate]), !*IWorld)
 
 /**
 * Evaluate a task instance without any events

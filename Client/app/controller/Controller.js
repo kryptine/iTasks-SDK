@@ -66,6 +66,9 @@ Ext.define('itwc.controller.Controller', {
 	nextSendEventNo: 0,
 	flushingTaskEvents: false,
 
+	refresher: null,
+	uiUpdateSource: null,
+
 	init: function() {
 		this.viewport = null;
 
@@ -85,8 +88,24 @@ Ext.define('itwc.controller.Controller', {
 		//Keep reference to server
 		this.viewport = viewport;
 
-		//Sync with server for the first time
-		this.queueTaskEvent({});
+		//Try to setup a server-side event source for receiving gui updates
+		//continuously via push events
+		if (!!window.EventSource) {
+  			this.uiUpdateSource = new EventSource('?format=json-gui-events');
+			this.uiUpdateSource.addEventListener('session', Ext.bind(this.onSessionPushEvent,this), false);
+			this.uiUpdateSource.addEventListener('message', Ext.bind(this.onUpdatePushEvent,this), false);
+		} else {
+			//Fallback...
+			
+			//Sync with server for the first time
+			this.queueTaskEvent({});
+		}
+	},
+	onSessionPushEvent: function (e) {
+		this.session = e.data;
+	},
+	onUpdatePushEvent: function (e) {
+		this.partialUpdate(Ext.decode(e.data));
 	},
 	//iTasks edit events
 	onEdit: function(taskId, editorId, value) {
@@ -101,7 +120,6 @@ Ext.define('itwc.controller.Controller', {
 					taskId, "edit", editorId, value);
 		
 		}else{	// Normal case (not a tasklet)
-			
 			this.sendEditEvent(taskId, editorId, value);
 		}
 	},
@@ -211,7 +229,8 @@ Ext.define('itwc.controller.Controller', {
 			me.partialUpdate(message.updates);
 		}
 		//Schedule automatic refresh when an expiration time is set
-		if(Ext.isNumber(message.expiresIn)) {
+		//and we do not have a push event source
+		if(!me.uiUpdateSource && Ext.isNumber(message.expiresIn)) {
 			me.refresher.delay(message.expiresIn);
 		}
 

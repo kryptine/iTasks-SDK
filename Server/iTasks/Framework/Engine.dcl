@@ -8,11 +8,9 @@ definition module iTasks.Framework.Engine
 from StdList import ++, iterate, take
 from System.FilePath import </>
 from System.OS import IF_POSIX_OR_WINDOWS
-
 import iTasks.Framework.Task
-from iTasks.Framework.IWorld	import :: IWorld
 
-from Internet.HTTP			import :: HTTPRequest, :: HTTPResponse
+from Internet.HTTP			import :: HTTPRequest
 
 //* Configuarion defaults
 DEFAULT_PORT			:== IF_POSIX_OR_WINDOWS 8080 80
@@ -39,12 +37,13 @@ URL_PREFIX				:== ""
 	| JSONPlain
 
 /**
-* Creates the iTasks system from a set of published tasks
+* Starts the task engine with a list of published task definitions.
 *
-* @param  The config record
-* @param  A task to execute
+* @param Tasks to start
+* @param The world
+* @return The world
 */
-engine :: publish -> [(!String -> Bool,!HTTPRequest *IWorld -> (!HTTPResponse, !*IWorld))] | Publishable publish
+startEngine :: a !*World -> *World | Publishable a
 
 /**
 * Wraps a task together with a url to make it publishable by the engine
@@ -58,29 +57,3 @@ where
 instance Publishable (Task a) | iTask a
 instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
-
-/**
-* Inititialize the iworld
-*/
-initIWorld :: !FilePath !*World -> *IWorld
-
-/**
-* Finalize the iworld
-*/
-finalizeIWorld :: !*IWorld -> *World
-
-/**
-* Determines the server executables path
-*/
-determineAppPath :: !*World -> (!FilePath, !*World)
-
-/**
-* Determine the name of the application based on the executable's name
-*/
-determineAppName :: !*World -> (!String,!*World)
-
-/**
-* Determine the location of the iTasks SDK
-*/
-determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
-

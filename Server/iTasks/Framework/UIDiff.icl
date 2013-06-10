@@ -142,9 +142,9 @@ where
 	valueUpd
 		| eventMatch opts2 event
 			# value2 = encodeUIValue opts2.UIEditOpts.value
-			= if (eventValue event === value2)  [] [UIUpdate path [("setValue",[value2])]]
+			= if (eventValue event === value2)  [] [UIUpdate path [("setValue",[value2,JSONBool True])]]
 		| otherwise 
-			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setValue",[encodeUIValue opts2.UIEditOpts.value])]]
+			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setValue",[encodeUIValue opts2.UIEditOpts.value,JSONBool True])]]
 
 	eventMatch {UIEditOpts|taskId,editorId} (EditEvent matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
 	eventMatch _ _ = False
@@ -158,7 +158,7 @@ diffChoiceOpts path opts1 opts2
 	| opts1.UIChoiceOpts.options =!= opts2.UIChoiceOpts.options		= DiffImpossible
 	= DiffPossible valueDiff //(valueDiff ++ optionDiff)
 where
-	valueDiff	= if (opts1.UIChoiceOpts.value === opts2.UIChoiceOpts.value) [] [UIUpdate path [("setValue",[toJSON opts2.UIChoiceOpts.value])]]
+	valueDiff	= if (opts1.UIChoiceOpts.value === opts2.UIChoiceOpts.value) [] [UIUpdate path [("setValue",[toJSON opts2.UIChoiceOpts.value,JSONBool True])]]
 	optionDiff	= if (opts1.UIChoiceOpts.options === opts2.UIChoiceOpts.options) [] [UIUpdate path [("setOptions",[toJSON opts2.UIChoiceOpts.options])]]
 
 diffActionOpts :: UIPath UIActionOpts UIActionOpts -> DiffResult
@@ -178,9 +178,13 @@ diffItemsOpts path event opts1 opts2
 
 diffTabSetOpts :: UIPath !Event UITabSetOpts UITabSetOpts -> DiffResult
 diffTabSetOpts path event opts1 opts2
-	= DiffPossible (diffTabItemsSet path event opts1.UITabSetOpts.items opts2.UITabSetOpts.items ++ activeTabUpd)
+	# (tabUpdates,replacedTabs) = diffTabItemsSet path event opts1.UITabSetOpts.items opts2.UITabSetOpts.items 
+	= DiffPossible (tabUpdates ++ activeTabUpd replacedTabs)
 where
-	activeTabUpd = if (opts1.UITabSetOpts.activeTab === opts2.UITabSetOpts.activeTab) [] [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab,JSONBool True])]]
+	activeTabUpd replacedTabs
+	| opts1.UITabSetOpts.activeTab =!= opts2.UITabSetOpts.activeTab || maybe False (\i -> isMember i replacedTabs) opts2.UITabSetOpts.activeTab
+		= [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab,JSONBool True])]]
+		= []
 
 diffGoogleMapOpts :: UIPath UIGoogleMapOpts UIGoogleMapOpts -> DiffResult
 diffGoogleMapOpts path opts1 opts2
@@ -302,25 +306,29 @@ where
 		=	replaceControlIfImpossible [ItemStep i:path] c2 [diffControls [ItemStep i:path] event c1 c2]
 		++  diff path event (i + 1) c1s c2s
 
-diffTabItemsSet :: UIPath Event [UITab] [UITab] -> [UIUpdate]
+diffTabItemsSet :: UIPath Event [UITab] [UITab] -> ([UIUpdate],[Int])
 diffTabItemsSet path event items1 items2 = diff path event 0 items1 items2
 where
 	diff path event i [] []
-		= []
+		= ([],[])
 	diff path event i items1 [] 
-		= [UIUpdate path [("remove",[toJSON n])] \\ n <- reverse [i.. i + length items1 - 1 ]] 
+		= ([UIUpdate path [("remove",[toJSON n])] \\ n <- reverse [i.. i + length items1 - 1 ]], [])
 	diff path event i [] items2 //More items in new than old
-		= [UIUpdate path [("add",[toJSON n,encodeUITab def])] \\ n <- [i..] & def <- items2]	
+		= ([UIUpdate path [("add",[toJSON n,encodeUITab def])] \\ n <- [i..] & def <- items2], [])	
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
-		=	diffTabs [ItemStep i:path] event c1 c2
-		++  diff path event (i + 1) c1s c2s
-		
-		//=	replaceTabItemIfImpossible [ItemStep i:path] c2 [diffTabItems [ItemStep i:path] event c1 c2]
+		# (tabUpdates,replaced) = diffTabs [ItemStep i:path] event c1 c2
+		# (restUpdates,replacedTabs) = diff path event (i + 1) c1s c2s
+		= (tabUpdates ++ restUpdates,replacedTabs ++ if replaced [i] [])
 
-diffTabs :: UIPath Event UITab UITab -> [UIUpdate]
+diffTabs :: UIPath Event UITab UITab -> ([UIUpdate],Bool)
 diffTabs path event t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts2)
-	= replaceTabIfImpossible path t2 [diffItemsOpts path event iOpts1 iOpts2
-									 ,diffTabOpts path event opts1 opts2]
+	# parts = [diffItemsOpts path event iOpts1 iOpts2, diffTabOpts path event opts1 opts2]
+	| allDiffsPossible parts
+		= (flatten [d \\ DiffPossible d <- parts],False)
+	| otherwise
+		= ([UIUpdate parentPath [("remove",[toJSON parentIndex]),("add",[toJSON parentIndex,encodeUITab t2])]],True)
+where
+	[ItemStep parentIndex:parentPath] = path
 
 diffAllWindows :: Event [UIWindow] [UIWindow] -> [UIUpdate]
 diffAllWindows event windows1 windows2 = diff event 0 windows1 windows2
@@ -350,14 +358,6 @@ replaceControlIfImpossible path fallback parts
 	| allDiffsPossible parts	= flatten [d \\DiffPossible d <- parts]
 								= [UIUpdate parentPath [("remove",[toJSON parentIndex])
 													   ,("add",[toJSON parentIndex,encodeUIControl fallback])]]
-where
-	[ItemStep parentIndex:parentPath] = path
-
-replaceTabIfImpossible :: UIPath UITab [DiffResult] -> [UIUpdate]
-replaceTabIfImpossible path fallback parts
-	| allDiffsPossible parts	= flatten [d \\ DiffPossible d <- parts]
-								= [UIUpdate parentPath [("remove",[toJSON parentIndex])
-													   ,("add",[toJSON parentIndex,encodeUITab fallback])]]
 where
 	[ItemStep parentIndex:parentPath] = path
 

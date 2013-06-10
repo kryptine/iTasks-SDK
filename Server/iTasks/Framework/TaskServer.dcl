@@ -4,8 +4,8 @@ from Data.Maybe 		import :: Maybe
 from StdFile			import class FileSystem
 from TCPIP				import class ChannelEnv, :: IPAddress, :: Timeout
 from Internet.HTTP		import :: HTTPRequest, :: HTTPResponse
-from System.Time		import :: Timestamp
-
+from System.Time				import :: Timestamp
+from iTasks.Framework.IWorld	import :: IWorld
 // Core server
 startServer :: !Int 
 				(IPAddress *env -> (loc,*env)) ((Maybe {#Char}) loc *env -> *(Maybe {#Char},!Bool, !loc, !*env)) (loc *env -> *env)
@@ -26,9 +26,14 @@ startHTTPServer :: !Int !Int
 						 ,!(HTTPRequest loc *env -> *env)
 						 )] (*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) *env -> *env | ChannelEnv env & HttpServerEnv env
 
+// Task Server
+
+// Temporary util
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *env -> (!HTTPResponse,*env))
 	->
 	(!(String -> Bool),!Bool,!(HTTPRequest *env -> (HTTPResponse, Maybe loc,*env))
 							,!(HTTPRequest (Maybe {#Char}) loc *env -> (!Maybe {#Char}, !Bool, loc, !*env))
 							,!(HTTPRequest loc *env -> *env))
+
+instance ChannelEnv IWorld

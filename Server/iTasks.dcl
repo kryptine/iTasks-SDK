@@ -3,10 +3,8 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	iTasks.Framework.Engine						// basic iTask system creator
-	,	iTasks.Framework.EngineWrapperStandalone	// standalone wrapper
-	//,	iTasks.Framework.EngineWrapperCGI			// CGI wrapper
-	
+import	iTasks.Framework.Engine						// iTasks engine 
+
 	,	iTasks.Framework.SerializationGraphCopy		// use serialization via graph_copy
 	//,	iTasks.Framework.SerializationDynamicLinker	// use serialization via dynamic linker
 

@@ -2,17 +2,15 @@ implementation module iTasks.Framework.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray
 import Data.Maybe, System.Time, Data.List, Data.Map, Text
-import TCPChannelClass,
-       TCPChannels,
-       TCPEvent,
-       TCPStringChannels,
-       TCPDef
+import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
+
 
 from Internet.HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol
 from Internet.HTTP import newHTTPRequest, newHTTPResponse
 from Internet.HTTP import instance toString HTTPRequest, instance toString HTTPResponse
 
 from HttpUtil import http_addRequestData, http_parseArguments
+import iTasks.Framework.IWorld
 
 // TCP level server
 startServer :: !Int 
@@ -262,3 +260,17 @@ where
 
 // Task level server
 
+//Wrapper instance for TCP channels with IWorld
+instance ChannelEnv IWorld
+where
+	channelEnvKind iworld=:{IWorld|world}
+		# (kind,world) = channelEnvKind world
+		= (kind,{IWorld|iworld & world = world})
+	
+	mb_close_inet_receiver_without_id b (endpoint,cat) iworld=:{IWorld|world}
+		= {IWorld|iworld & world = mb_close_inet_receiver_without_id b (endpoint,cat) world}
+	
+	channel_env_get_current_tick iworld=:{IWorld|world}
+		# (tick,world) = channel_env_get_current_tick world
+		= (tick,{IWorld|iworld & world = world})
+	
