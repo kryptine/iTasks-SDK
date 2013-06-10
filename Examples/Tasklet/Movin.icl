@@ -37,16 +37,14 @@ where
 
 tasklet :: Task Void
 tasklet
-	= mkInstanceId >>= \iid -> withShared 0 (\pos ->
-	  	  mkTaskWithShared (iid, movinTasklet) pos moveLeft2
-		  -||  
-		  forever (wait 10 >>- update moveLeft pos ))
+	= mkInstanceId >>= \iid -> 
+		withShared 0 (\pos ->
+	  		  mkTaskWithShared (iid, movinTasklet) pos updateFun
+			  -||  
+			  forever (wait 10 >>- update ((+) 40) pos ))
 where
-	moveLeft :: Position -> Position
-	moveLeft x = x + 40
-
-	moveLeft2 :: Position Position -> Position
-	moveLeft2 x _ = x
+	updateFun :: Position Position -> Position
+	updateFun sharedval st = sharedval
 
 //UTIL
 (>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
