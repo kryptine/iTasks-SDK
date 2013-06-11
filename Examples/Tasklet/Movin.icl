@@ -1,6 +1,6 @@
 module Movin
 
-import iTasks, Tasklet
+import iTasks, iTasks.Framework.iTaskClass, Tasklet
 import Text.StringAppender, graph_to_sapl_string
 import sapldebug
 
@@ -12,7 +12,7 @@ movinTasklet :: Tasklet Position Void
 movinTasklet = 
 	{ generatorFunc		= generateGUI
 	, resultFunc		= const (Value Void False)
-	, tweakUI  			= id //setTitle "Moving object"
+	, tweakUI  			= id
 	}
 
 generateGUI :: !TaskInstanceId !TaskId (Maybe Position) !*IWorld -> *(!TaskletGUI Position, !Position, !*IWorld)
@@ -35,16 +35,23 @@ where
 		# (d, str) = setDomAttr d "object" "style.left" (toString x+++"px")
 		= (d, x)
 
+:: Cmd = SetPosX Position
+
+derive class iTask Cmd
+
 tasklet :: Task Void
 tasklet
 	= mkInstanceId >>= \iid -> 
-		withShared 0 (\pos ->
+		withShared (SetPosX 0) (\pos ->
 	  		  mkTaskWithShared (iid, movinTasklet) pos updateFun
 			  -||  
-			  forever (wait 10 >>- update ((+) 40) pos ))
+			  forever (wait 10 >>- update (moveForward 40) pos ))
 where
-	updateFun :: Position Position -> Position
-	updateFun sharedval st = sharedval
+	updateFun :: Cmd Position -> Position
+	updateFun (SetPosX x) st = x
+
+	moveForward :: Position Cmd -> Cmd
+	moveForward px (SetPosX x) = SetPosX (x+px)
 
 //UTIL
 (>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b

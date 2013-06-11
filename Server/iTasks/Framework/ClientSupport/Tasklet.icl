@@ -40,31 +40,30 @@ mkTaskWithShared (iid, tasklet) shared updateFunc = Task taskFunc
 where
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (rep, st, iworld) = genRep taskId taskRepOpts Nothing iworld
-		# res = tasklet.Tasklet.resultFunc st
-
-		# (val,iworld)	= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
-		# result = case val of
-			Ok val		= ValueResult res (taskInfo ts) rep (TCInteract taskId ts (toJSON res) (toJSON val) (toJSON Void) Untouched)
-			Error e		= exception (SharedException e)
-
-		= (result, println "mkTaskWithShared: init" iworld)		
-
-		// Refresh: server restart. anything else?
-	taskFunc RefreshEvent taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
-//		# (rep, st, iworld) = genRep taskId taskRepOpts Nothing iworld
-
-		//No res from jsonRes! because state and value will be out of sync!
-		# res = fromJust (fromJSON rJsonRes)
-		# oldval = fromJust (fromJSON vJsonRes)
-//		# res = tasklet.Tasklet.resultFunc st
 
 		# (mbval,iworld)	= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
 		| isError mbval		= (exception (fromError mbval),iworld)
 		# val = fromOk mbval
-		# valChanged = oldval =!= val
 
-		# rep = placeHolderRep taskId (if valChanged (Just (graph_to_sapl_string val)) Nothing)
+		# (rep, st, iworld) = genRep taskId taskRepOpts Nothing (Just val) iworld
+		# res = tasklet.Tasklet.resultFunc st
+
+		# result = ValueResult res (taskInfo ts) rep (TCInteract taskId ts (toJSON res) (toJSON val) (toJSON Void) Untouched)
+		= (result, println "mkTaskWithShared: init" iworld)		
+
+		// Refresh: server restart. anything else?
+	taskFunc RefreshEvent taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
+		# res = fromJust (fromJSON rJsonRes)
+		# oldval = fromJust (fromJSON vJsonRes)
+
+		# (mbval,iworld)	= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		| isError mbval		= (exception (fromError mbval),iworld)
+		# val = fromOk mbval
+
+		# (rep, iworld) = case oldval =!= val of
+				True # (js, iworld) = linker_update val iworld
+					 = (placeHolderRep taskId (Just js), iworld)
+					 = (placeHolderRep taskId Nothing, iworld)
 
 		# result = ValueResult res (taskInfo ts) rep (TCInteract taskId ts (toJSON res) (toJSON val) d1 d2)	
 		= (result, println ("mkTaskWithShared: refresh") iworld)
@@ -104,7 +103,7 @@ where
 	placeHolderRep taskId mbUpdateVal
 		= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, iid = iid, updateVal = mbUpdateVal})) []
 
-	genRep taskId taskRepOpts mbState iworld
+	genRep taskId taskRepOpts mbState mbUpdateVal iworld
 		# (gui, state, iworld) = tasklet.generatorFunc iid taskId mbState iworld
 		= case gui of
 		
@@ -117,6 +116,7 @@ where
 							 tasklet.Tasklet.resultFunc
 						     Nothing
 						     (Just updateFunc)
+						     mbUpdateVal
 						     iworld
 					
 				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js mb_uf_js
@@ -136,6 +136,7 @@ where
 							 tasklet.Tasklet.resultFunc
 						     (fmap controllerWrapper mb_cf)
 						     (Just updateFunc)
+						     mbUpdateVal
 						     iworld
 					
 				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino rf_js mb_cf_js mb_uf_js
@@ -151,6 +152,7 @@ where
 							 tasklet.Tasklet.resultFunc
 						     Nothing
 						     (Just updateFunc)
+						     mbUpdateVal
 						     iworld			
 			
 				# tui = toDef (UITasklet defaultSizeOpts 
@@ -289,6 +291,7 @@ where
 							 tasklet.Tasklet.resultFunc
 						     Nothing
 						     Nothing
+						     Nothing
 						     iworld
 					
 				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js
@@ -308,6 +311,7 @@ where
 							 tasklet.Tasklet.resultFunc
 						     (fmap controllerWrapper mb_cf)
 						     Nothing
+						     Nothing
 						     iworld
 					
 				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino rf_js mb_cf_js
@@ -321,6 +325,7 @@ where
 							 (map interfaceWrapper fs) 
 							 []
 							 tasklet.Tasklet.resultFunc
+						     Nothing
 						     Nothing
 						     Nothing
 						     iworld			
@@ -403,7 +408,7 @@ where
 handlerr (Error str) = abort ("Tasklet.icl: " +++ str)
 handlerr (Ok a) = a
 
-linker_update updateFunc iworld=:{world,sdkDirectory}
+linker_update updateVal iworld=:{world,sdkDirectory}
 
 	/* 0. Load Clean flavour */
 	
@@ -419,19 +424,11 @@ linker_update updateFunc iworld=:{world,sdkDirectory}
 
 	# (ls, world) = generateLoaderState ["sapl"] [] world
 
-	// link functions indicated by result updateFunc
-	# saplUF = graph_to_sapl_string updateFunc
-	# (ls, a, saplUF, world) = linkByExpr ls newAppender saplUF world
+	# sapl = graph_to_sapl_string updateVal
+	# valjs = toString (handlerr (exprGenerateJS (fromJust mbFlav) False sapl Nothing))			
+	= (valjs, {iworld & world=world})
 
-	# sapl = toString a	
-	# (script, mbPst) = case sapl of
-		"" = ("", Nothing)
-		   = let (script, pst) = handlerr (generateJS (fromJust mbFlav) False sapl) in (toString script, Just pst)
-	
-	# ufjs = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplUF mbPst))			
-	= (script, ufjs, {iworld & world=world})
-
-linker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUpdateFunc iworld=:{world,sdkDirectory}
+linker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUpdateFunc mbUpdateVal iworld=:{world,sdkDirectory}
 	
 	/* 0. Load Clean flavour */
 	
@@ -462,6 +459,13 @@ linker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUpdateFun
 				# (ls, a, _, world) = linkByExpr ls a saplUF world
 				= (ls, a, Just saplUF, world)
 				= (ls, a, Nothing, world)				
+		
+	// only link by update value (if given)
+	# (ls, a, world) = case mbUpdateVal of
+		Just cf # sapl = graph_to_sapl_string cf
+				# (ls, a, _, world) = linkByExpr ls a sapl world
+				= (ls, a, world)
+				= (ls, a, world)		
 				
 	// link functions indicated by controller func (if given)
 	# (ls, a, mbSaplCF, world) = case mbControllerFunc of

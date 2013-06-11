@@ -44,7 +44,10 @@ Ext.define('itwc.container.Tasklet', {
 		if(this.updateFunc != null && newTasklet.updateVal != null){
 			eval("var tmp = eval(" + this.updateFunc + ");");
 			this.updateFunc = tmp;
-			this.st = Sapl.feval([this.updateFunc,[newTasklet.updateVal, this.st]]);
+			eval("var tmp = eval(" + newTasklet.updateVal + ");");
+			this.updateVal = tmp;
+			
+			this.st = Sapl.feval([this.updateFunc,[this.updateVal, this.st]]);
 			this.fireTaskletEvent("update");
 		}					
 	},	
