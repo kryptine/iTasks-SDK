@@ -48,6 +48,10 @@ function __atan(a){
     return Math.atan(Sapl.feval(a));
 }
 
+function __acos(a){
+    return Math.acos(Sapl.feval(a));
+}
+
 function __mult(a,b){
     return Sapl.feval(a)*Sapl.feval(b);
 }
