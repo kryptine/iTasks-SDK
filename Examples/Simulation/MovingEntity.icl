@@ -2,19 +2,19 @@ implementation module MovingEntity
 
 import iTasks, GeoRoutines
 
-::MovingEntity = {id :: Int
-                 ,position    :: LatLng
-                 ,altitude    :: !Real
-                 ,direction   :: !Real
-                 ,speed       :: !Real
-                 ,vertSpeed   :: !Real
-                 ,angVelocity :: !Real                 
-                 ,timeLate    :: !Int
+::MovingEntity = {id          :: !Int
+                 ,position    :: (!Real,!Real)
+                 ,altitude    :: Real
+                 ,direction   :: Real
+                 ,speed       :: Real
+                 ,vertSpeed   :: Real
+                 ,angVelocity :: Real                 
+                 ,timeLate    :: Int
                  ,properties  ::  EntityProperties
                  }
 
-:: EntityProperties = {maxSpeed :: !Real
-                      ,maxAccel :: !Real
+:: EntityProperties = {maxSpeed :: Real
+                      ,maxAccel :: Real
                       }
                  
 newMovingEntity :: Int LatLng !Real !Int -> MovingEntity
@@ -45,7 +45,7 @@ where deltaTime                   = toReal (time - timeLate)
 //distanceToTarget :: MovingEntity LatLng -> Real
 
 moveAlongWayPoints :: MovingEntity [LatLng] Int Int -> (MovingEntity,Int)
-moveAlongWayPoints me=:{direction,position,angVelocity} ps pos  time | pos >= length ps = ({me & speed = 0.0},pos)
+moveAlongWayPoints me=:{direction,position,angVelocity} ps pos  time | pos >= length ps = ({me & speed = 0.0, altitude = 666.0},pos)
                                                                      | dist2wp < deltaDist = moveAlongWayPoints me ps (pos+1) time
                                                                      | otherwise           = (moveToTarget me p time,pos)
 where p            = ps !! pos
@@ -64,7 +64,7 @@ where dist2wp      = distance position p
 // Make entity move in the direction of target pos
 moveToTarget :: MovingEntity LatLng !Int -> MovingEntity        
 moveToTarget me=:{direction,position,speed,properties} pos time 
-= updatePosition {me & direction = newdir,angVelocity = newAngVel} time
+= updatePosition {me & direction = newdir,angVelocity = newAngVel,altitude = 888.0} time
 where targetdir  = getDirectionToPosition position pos
       deltadir   = deltaDirection direction targetdir
       deltatime  = toReal (time - me.timeLate)

@@ -2,19 +2,19 @@ definition module MovingEntity
 
 import GeoRoutines, iTasks
 
-::MovingEntity = {id :: Int
-                 ,position    :: LatLng
-                 ,altitude    :: !Real
-                 ,direction   :: !Real
-                 ,speed       :: !Real
-                 ,vertSpeed   :: !Real
-                 ,angVelocity :: !Real                 
-                 ,timeLate    :: !Int
-                 ,properties  :: EntityProperties
+::MovingEntity = {id          :: !Int
+                 ,position    :: (!Real,!Real)
+                 ,altitude    :: Real
+                 ,direction   :: Real
+                 ,speed       :: Real
+                 ,vertSpeed   :: Real
+                 ,angVelocity :: Real                 
+                 ,timeLate    :: Int
+                 ,properties  ::  EntityProperties
                  }
 
-:: EntityProperties = {maxSpeed :: !Real
-                      ,maxAccel :: !Real
+:: EntityProperties = {maxSpeed :: Real
+                      ,maxAccel :: Real
                       }
 
 newMovingEntity :: Int LatLng !Real !Int -> MovingEntity
