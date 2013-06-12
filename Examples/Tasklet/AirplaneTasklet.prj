@@ -37,6 +37,7 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
+		Path:	{Application}\iTasks-SDK\Examples\Simulation
 	Precompile:	
 	Postlink:	
 MainModule
@@ -54,6 +55,34 @@ MainModule
 		ReuseUniqueNodes:	True
 		Fusion:	False
 OtherModules
+	Module
+		Name:	GeoRoutines
+		Dir:	{Application}\iTasks-SDK\Examples\Simulation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	MovingEntity
+		Dir:	{Application}\iTasks-SDK\Examples\Simulation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
 	Module
 		Name:	StdDynamic
 		Dir:	{Application}\Libraries\Dynamics
@@ -1062,20 +1091,6 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Engine
-		Dir:	{Application}\iTasks-SDK\Server
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	iTasks.Framework.EngineWrapperStandalone
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False

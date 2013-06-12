@@ -1,7 +1,7 @@
 module AirplaneTasklet
 
 import iTasks, Tasklet
-import Text.StringAppender, graph_to_sapl_string
+import Text.StringAppender, graph_to_sapl_string, MovingEntity
 import sapldebug
 
 //-------------------------------------------------------------------------
@@ -16,34 +16,44 @@ import sapldebug
         			   };
 
 :: GoogleMapsState = {map       :: Maybe HtmlObject
+                     ,time      :: Int
 					 ,centerLA  :: Real
 					 ,centerLO  :: Real
-					 ,waypoints :: [(!Real,!Real)]
+					 ,waypoints :: [(!Int,!Real,!Real)]
+					 ,plane     :: MovingEntity
+					 ,wppos     :: Int
+					 ,planejs   :: Maybe HtmlObject
 					 }
 
 :: MarkerOptions = {map        ::  HtmlObject
 				   ,position   ::  HtmlObject
 				   ,title      ::  HtmlObject
 				   ,draggable  ::  Bool
+				   ,icon       ::  Maybe HtmlObject
 				   }
 
-googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real,[(!Real,!Real)])
+derive class iTask MovingEntity, EntityProperties
+
+googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState ([(!Int,!Real,!Real)],MovingEntity)
 googleMapsTasklet cla clo = 
 	{ generatorFunc		= googleMapsGUI
-	, resultFunc		= \{centerLA,centerLO,waypoints} = Value (centerLA,centerLO,waypoints) False
+	, resultFunc		= \{centerLA,centerLO,waypoints,plane,time} = Value (waypoints,plane) False
 	, tweakUI  			= setTitle "Google Maps Tasklet"
 	}
 where
 	googleMapsGUI iid taskId Nothing iworld 
-		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo,waypoints = []}) iworld
+		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo,
+		                                  waypoints = [], time = 0, wppos = 0,planejs = Nothing,
+		                                  plane = newMovingEntity 1 (fromDegrees (cla,clo)) 300.0 0}) iworld
+//		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo,waypoints = [],planePos = (cla,clo)}) iworld
 
 	googleMapsGUI iid _ (Just st) iworld
 
 		# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
 
 		# gui = { TaskletHTML
-				| width  		= ExactSize 600
-				, height 		= ExactSize 300
+				| width  		= FlexSize //ExactSize 600
+				, height 		= FlexSize //ExactSize 300
 				, html   		= HtmlDef (html canvas)
 				, eventHandlers = [HtmlEvent "tasklet" "init" onInit
 				                  ,HtmlEvent "tasklet" "destroy" onDestroy
@@ -59,36 +69,60 @@ where
 			# (d, center, lo) = runObjectMethod d center "lng" []
 			= (d, {GoogleMapsState| st & centerLA = fromHtmlObject la, centerLO = fromHtmlObject lo})	
 
-		addMarker st=:{GoogleMapsState|map = Just map, waypoints} _ e  d 
+		onDragWP wpid st=:{GoogleMapsState|waypoints} _ e  d
 			# (d, e, latlo)  = getObjectAttr d e "latLng"
 			# (d, latlo, la) = runObjectMethod d latlo "lat" []
 			# (d, latlo, lo) = runObjectMethod d latlo "lng" []
-			# waypoints      = addWP  (fromHtmlObject la,fromHtmlObject lo) waypoints 
-			# (d, marker)    = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = latlo, title = toHtmlObject "Hoppakee",draggable = True}]		
+			# waypoints      = updateWP wpid la lo waypoints
+			= (d, {st & waypoints = waypoints})	
+
+		doStep st=:{GoogleMapsState|waypoints,plane,time,wppos,planejs} _  _ d
+			# (plane=:{MovingEntity|position},wppos,time) = newPlanePosition ((plane,wppos,time),waypoints)
+			# position        = toDegrees position
+		    # (d, newpos)     = createObject d "google.maps.LatLng" [toHtmlObject (fst position), toHtmlObject (snd position)]
+			# (d, planejs, _) = runObjectMethod d (fromJust planejs) "setPosition" [newpos]
+			= (d, {st & plane = plane, time = time, wppos = wppos})	
+
+		addMarker st=:{GoogleMapsState|map = Just map, waypoints} _ e  d 
+			# (d, e, latlo)    = getObjectAttr d e "latLng"
+			# (d, latlo, la)   = runObjectMethod d latlo "lat" []
+			# (d, latlo, lo)   = runObjectMethod d latlo "lng" []
+			# wpid             = length waypoints
+			# waypoints        = waypoints ++  [(wpid,fromHtmlObject la,fromHtmlObject lo)] 
+			# (d, marker)      = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = latlo, title = toHtmlObject (toString wpid),draggable = True, icon = Nothing}]		
+		    # (d, mapevent)    = findObject d "google.maps.event" 
+			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [marker, toHtmlObject "dragend", createEventHandler (onDragWP wpid) iid]
 			= (d, {st & waypoints = waypoints})	
 			
-		addWP wp wps = wps ++ [wp]
-
+        updateWP wpid nla nlo wps = map ud wps
+        where ud wp=:(wid,la,lo) | wpid == wid = (wid,fromHtmlObject nla,fromHtmlObject nlo)
+                                               = wp
+                                               
 	    onScriptLoad st _ _ d
 		    # (d, _) = setDomAttr d "map_place_holder" "innerHTML" "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>"
-		    # (d, mapdiv) = getDomElement d "map_canvas"
+		    # (d, mapdiv) = getDomElement d "map_canvas"  
 	        
 		    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
 		    # (d, center) = createObject d "google.maps.LatLng" [toHtmlObject st.centerLA, toHtmlObject st.centerLO]
 
 		    # (d, map) = createObject d "google.maps.Map" 
 		    				[mapdiv
-		    				,toHtmlObject {center = center, zoom = 8, mapTypeId = typeId}]
+		    				,toHtmlObject {center = center, zoom = 10, mapTypeId = typeId}]
 
 		    # (d, mapevent) = findObject d "google.maps.event" 
 			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "dragend", onChange]
 			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "maptypeid_changed", onChange]
 			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "click", onClick]
 			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "zoom_changed", onChange]
-			= (d, {GoogleMapsState| st & map = Just map})
+			# (d, planejs)     = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = center, 
+			                                                                        title = toHtmlObject "JSF",draggable = False, 
+			                                                                        icon = Just (toHtmlObject "icons/jsf.png")}]		
+			# (d, window)  = findObject d "window"	
+			# (d, _, _)    = runObjectMethod d window "setInterval" [createEventHandler doStep iid, toHtmlObject 1000]
+			= (d, {GoogleMapsState| st & map = Just map, planejs = Just planejs})
 		where
 			onChange = createEventHandler updatePerspective iid
-			onClick = createEventHandler addMarker iid
+			onClick  = createEventHandler addMarker iid
 
 		// Google maps API doesn't like to be loaded twice	
 		onInit st iid e d
@@ -107,11 +141,11 @@ where
 		nullEventHandler st _ _ d = (d, st)
 
 		onDestroy st=:{GoogleMapsState| map = Just map} _ _ d
-		    # (d, mapevent) = findObject d "google.maps.event" 
+		    # (d, mapevent)    = findObject d "google.maps.event" 
 			# (d, mapevent, _) = runObjectMethod d mapevent "clearInstanceListeners" [map]
 		
 			// clear generated stuff
-			# (d, _) = setDomAttr d "map_place_holder" "innerHTML" ""
+			# (d, _)           = setDomAttr d "map_place_holder" "innerHTML" ""
 		
 			= (d, {st & GoogleMapsState.map = Nothing})
 
@@ -131,18 +165,42 @@ where
 		onResize st _ _ d
 			= (d, st)
 
+newPlanePosition :: ((MovingEntity,Int,Int),[(Int,Real,Real)]) -> (MovingEntity,Int,Int)
+newPlanePosition ((plane,pos,time),[]) = ({plane&timeLate = time, altitude = 111.0},pos,time + 1)
+newPlanePosition ((plane,pos,time),route) //= ({plane & timeLate = time, altitude = 345.0},pos,time + 1)
+# (plane,pos) = moveAlongWayPoints {plane&altitude = 222.0} (map f route) pos time
+= (plane,pos,time + 1)
+where f = fromDegrees o g
+      g (_,la,lo) = (la,lo)
+
 
 //-------------------------------------------------------------------------
 
 taskletExamples :: [Workflow]
 taskletExamples =
-	[workflow "Google MAP" "Basic Google Maps functionality" tasklet4]
+	[workflow "Google MAP" "Basic Google Maps functionality" tasklet4
+	,workflow "Google MAP with sharing" "Basic Google Maps functionality" tasklet2]
 
 //tasklet4 :: Task (Real, Real, [(!Real,!Real)])
+//tasklet1 :: Task Real
+tasklet1	
+=	 mkInstanceId >>= \iid -> 
+    	withShared [] (\wps ->
+	  		  (mkTaskWithShared (iid, googleMapsTasklet 52.8825984009408 4.74849700927734) wps updateFun @> (mapWp,wps) >>= \(wps,_) -> viewInformation "test" [] wps)
+			  -||-
+			  viewSharedInformation "The waypoint are" [] wps)
+updateFun wps st = {st & waypoints = wps}
+
+mapWp (Value (wps,_) _) _ = Just wps
+
+tasklet2 = 	mkInstanceId >>= \iid -> 
+    	    withShared [] (\wps ->
+	  		    mkTaskWithShared (iid, googleMapsTasklet 52.8825984009408 4.74849700927734) wps updateFun 
+	  		    >>= \(wps,_) -> viewInformation "test" [] wps)					 
 tasklet4
 	= 		mkInstanceId >>= \iid ->
-	 		mkTask (iid, googleMapsTasklet 47.471944 19.050278) id
-	 		>>= \(lat,lo,wps) -> viewInformation "The result is" [] wps       
+	 		mkTask (iid, googleMapsTasklet 52.8825984009408 4.74849700927734) 
+	 		>>= \v -> viewInformation "The result is" [] v       
 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
