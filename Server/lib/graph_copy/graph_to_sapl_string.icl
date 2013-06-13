@@ -133,7 +133,7 @@ where
 	| desc_type == 'R' && ds.[dnr-1].[5] == 'l' && ds.[dnr-1].[6] == 'R'// unboxed list of records
 	                    = makeUnBoxedListOfRecords   pos
 	| desc_type == 'R' && ds.[dnr-1].[5] == 'l'// unboxed list 
-	                    = makeUnBoxedList  (ds.[dnr-1]%(6,6)) pos
+	                    = makeUnBoxedList  ds.[dnr-1].[6] pos
 	| desc_type == 'R' // records constructor & unboxed constructors
 	                    = makeRecord pos
 	| desc_type == 'n' = (ListS [],pos+4)// empty list 
@@ -153,16 +153,18 @@ where
 	
 	makeUnboxedArray typedes size pos  
 	    | typedes%(0,0) == "i" || typedes%(0,0) == "b" || typedes%(0,0) == "c" 
-	     # (elems,rest) = readUMany (typedes%(0,0)) size pos  []
+	     # (elems,rest) = readUMany typedes.[0] size pos  []
 	     = (ArrayS size elems,rest)
 	    | typedes%(0,0) == "R"  
 	    = makeUnBoxedArrayOfRecords size (pos-4)
 	     
 	
 	readUDMany types 0 pos res        = (res,pos)
+	readUDMany ['r':types] n pos res = readUDMany types (n-2) (pos+8) (res ++ [makeRealType pos])
 	readUDMany [type:types] n pos res = readUDMany types (n-1) (pos+4) (res ++ [makeType type pos])
 	
 	readUMany type 0 pos res = (res,pos)
+	readUMany type=:'r' n pos res = readUMany type (n-1) (pos+4) (res ++ [makeRealType pos])
 	readUMany type n pos res = readUMany type (n-1) (pos+4) (res ++ [makeType type pos])
 	
 	makeBoxedArray size pos 
@@ -191,16 +193,16 @@ where
 	    # modnr       = selectmodnr 3 desc
 	    # start_types = if (desc.[5] == 'd') 6 (if (desc.[5] == 'l' && desc.[6] == 'R') 7 5)
 	    # modname     = md.[modnr-1]
-	    # typedesc    = map toString (takeWhile (\a -> a <> '\0') [c\\ c <-: desc%(start_types,size str-1)])
-	    # alltypes    = [t\\ t <- typedesc| (t <> "(") && (t <> ")") && (t <> ",")]
-	    # ubtypes     = [c\\ c <- alltypes| c <> "a"]
+	    # typedesc    = takeWhile (\a -> a <> '\0') [c\\ c <-: desc%(start_types,size str-1)]
+	    # alltypes    = [t\\ t <- typedesc| (t <> '(') && (t <> ')') && (t <> ',')]
+	    # ubtypes     = [c\\ c <- alltypes| c <> 'a']
 	    # name        = getName (start_types+length typedesc+1) desc
         | start_types <> 7 = (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc)   // normal record
                            = (name,modname,tsize-1,nrpointer-1,nrub,droplast alltypes,ubtypes,droplast typedesc)   // list: drop last of pointer part (= pointer to tail)
     
 
 	merge_elems [] _ _                  = [] 
-	merge_elems ["a":types]  ubels bels = [hd bels  : merge_elems types ubels (tl bels)]
+	merge_elems ['a':types]  ubels bels = [hd bels  : merge_elems types ubels (tl bels)]
 	merge_elems [_:types]    ubels bels = [hd ubels : merge_elems types (tl ubels) bels]
 	
 	readMany  0 pos res = (res,pos)
@@ -241,9 +243,12 @@ where
 	# dnr               = sifs pos str 
 	| dnr < 0           = (elems,pos+4) // always nil
 	# desc_type         = ds.[dnr-1].[0]
-	|  desc_type == 'R' 
-	   # elem = makeType type (pos+4) 
-	   = readUBListElems type (pos+8) (elems++[elem]) 
+	| desc_type == 'R'
+	   | type=='r'
+		   # elem = makeRealType (pos+4) 
+		   = readUBListElems type (pos+12) (elems++[elem]) 
+		   # elem = makeType type (pos+4) 
+		   = readUBListElems type (pos+8) (elems++[elem]) 
 	   = (elems,pos+4)
 
 	makeUnBoxedArrayOfRecords size pos 
@@ -284,9 +289,11 @@ where
 	= readUBArrayRecordElems (size-1) pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc) (elems++[elem]) 
 	
 
-	makeType "i" pos  = IntS (sifs pos str)
-	makeType "c" pos  = CharS (scfs pos str)
-	makeType "b" pos  = BoolS (sbfs pos str)
+	makeType 'i' pos  = IntS (sifs pos str)
+	makeType 'c' pos  = CharS (scfs pos str)
+	makeType 'b' pos  = BoolS (sbfs pos str)
+
+	makeRealType pos  = RealS (srfs pos str)
 
 
 //Start = testmrt "(1(2))34"
@@ -311,22 +318,22 @@ where
  mt [] [] = []
        
 
-makeRecordType ltypes  = mrt [ltype\\ ltype <- ltypes| ltype <> ","] 
+makeRecordType ltypes  = mrt [ltype\\ ltype <- ltypes| ltype <> ','] 
 where
- mrt ["(":ltypes] = [first : mrt (tl rs)]
- where (first,rs) = dostartpars ["(":ltypes]
- mrt [")":ltypes] = mrt ltypes
+ mrt ['(':ltypes] = [first : mrt (tl rs)]
+ where (first,rs) = dostartpars ['(':ltypes]
+ mrt [')':ltypes] = mrt ltypes
  mrt [_  :ltypes] = [[0] : mrt ltypes]
  mrt []           = []
- dostartpars ["(":ltypes]  
+ dostartpars ['(':ltypes]  
  # f = gettuplength 1 0 ltypes
  # (fs,rs) = dostartpars ltypes
  = ([f:fs],rs)
  dostartpars rs = ([],rs)
  
-gettuplength 1 length [")":rs] = length
-gettuplength n length [")":rs] = gettuplength (n-1) length rs
-gettuplength n length ["(":rs] = gettuplength (n+1) length rs
+gettuplength 1 length [')':rs] = length
+gettuplength n length [')':rs] = gettuplength (n-1) length rs
+gettuplength n length ['(':rs] = gettuplength (n+1) length rs
 gettuplength n length [r:rs]   = gettuplength n  (length+1) rs
 
 droplast [x] = []
