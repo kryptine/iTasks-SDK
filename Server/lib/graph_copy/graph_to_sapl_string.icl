@@ -164,7 +164,7 @@ where
 	readUDMany [type:types] n pos res = readUDMany types (n-1) (pos+4) (res ++ [makeType type pos])
 	
 	readUMany type 0 pos res = (res,pos)
-	readUMany type=:'r' n pos res = readUMany type (n-1) (pos+4) (res ++ [makeRealType pos])
+	readUMany type=:'r' n pos res = readUMany type (n-2) (pos+8) (res ++ [makeRealType pos])
 	readUMany type n pos res = readUMany type (n-1) (pos+4) (res ++ [makeType type pos])
 	
 	makeBoxedArray size pos 
