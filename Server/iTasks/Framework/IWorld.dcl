@@ -7,7 +7,7 @@ from Data.Maybe				import :: Maybe
 from System.Time				import :: Timestamp
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
-from iTasks.Framework.UIDiff			import :: UIUpdate
+from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIDiffers
 from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
@@ -31,6 +31,7 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 					, localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
 					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
+					, uiDiffers				:: !UIDiffers								// The user custom user interface diff functions
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]

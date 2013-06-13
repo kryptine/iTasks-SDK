@@ -129,6 +129,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	// Tasklet stuff
 	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
 	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
+	| UIEditlet			!UISizeOpts	!UIEditletOpts								// - Editlet (custom clientside editor)
 	// Container components for composition:
 	| UIContainer		!UISizeOpts !UIItemsOpts !UIContainerOpts				// - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
@@ -315,6 +316,18 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	{ taskId		 :: !String
 	, iid		     :: !String	// instance id
 	, updateVal		 :: !Maybe String
+	}
+
+:: UIEditletOpts =
+	{ taskId		:: !String
+	, editorId		:: !String
+	, value			:: !JSONNode
+	, html			:: !String
+	, script		:: !Maybe String
+	, events		:: !Maybe [(!String,!String,!String)]
+	, initValue		:: !Maybe String
+	, genDiff		:: !Maybe String
+	, appDiff		:: !Maybe String
 	}
 
 :: UIContainerOpts =

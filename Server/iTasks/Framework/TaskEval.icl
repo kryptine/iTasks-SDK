@@ -152,6 +152,7 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 												  , localLists = lists
 												  , localTasks = tasks
 												  , eventRoute = eventRoute
+												  , uiDiffers = 'Data.Map'.newMap
 												  } 
 			//Clear the instance's registrations for share changes
 			# iworld					= clearShareRegistrations instanceNo iworld
@@ -168,6 +169,7 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			# (shares,iworld)			= getLocalShares iworld
 			# (lists,iworld)			= getLocalLists iworld
 			# (tasks,iworld)			= getLocalTasks iworld
+			# (differs,iworld)			= getUIDiffers iworld
 			# newReduct					= {TIReduct|oldReduct & nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, shares = shares, lists = lists, tasks = tasks}
 			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld //TODO Check error
 			//Store the result
@@ -175,7 +177,7 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			//Determine user interface updates by comparing the previous UI to the newly calculated one
 			# updates					= case newMeta.TIMeta.sessionId of
 				Just sessionId	= case (oldResult,newResult) of
-					(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	= Just (sessionId, diffUIDefinitions oldUI newUI event)
+					(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	= Just (sessionId, diffUIDefinitions oldUI newUI event differs)
 					(_,_)	= Nothing
 				_				= Nothing
 			//Return the result
@@ -185,6 +187,7 @@ where
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
 	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
 	getLocalTasks iworld=:{IWorld|localTasks}	= (localTasks,iworld)
+	getUIDiffers iworld=:{IWorld|uiDiffers}		= (uiDiffers,iworld)
 
 	updateProgress now result progress
 		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Just now}

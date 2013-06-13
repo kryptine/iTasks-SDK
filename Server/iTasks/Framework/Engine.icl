@@ -187,6 +187,7 @@ initIWorld sdkPath world
 	  ,localTasks			= newMap
       ,eventRoute			= newMap
 	  ,readShares			= []
+	  ,uiDiffers			= newMap
 	  ,sessions				= newMap
 	  ,workQueue			= []
 	  ,uiUpdates			= newMap

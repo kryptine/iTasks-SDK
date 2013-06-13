@@ -866,7 +866,7 @@ derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonSt
 gDefault{|ComboChoice|} _ _ _ = ComboChoice [] Nothing
 gVisualizeText{|ComboChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|ComboChoice|} fx gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
+gVisualizeEditor{|ComboChoice|} fx gx _ _ _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled
@@ -896,7 +896,7 @@ where
 gDefault{|ComboChoiceNoView|} _ _ = ComboChoiceNoView [] Nothing
 gVisualizeText{|ComboChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gVisualizeEditor{|ComboChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
+gVisualizeEditor{|ComboChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled
@@ -924,7 +924,7 @@ where
 gDefault{|RadioChoice|} _ _ _ = RadioChoice [] Nothing
 gVisualizeText{|RadioChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
+gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled
@@ -954,7 +954,7 @@ where
 gDefault{|RadioChoiceNoView|} _ _ = RadioChoiceNoView [] Nothing
 gVisualizeText{|RadioChoiceNoView|}	fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gVisualizeEditor{|RadioChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
+gVisualizeEditor{|RadioChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled
@@ -984,7 +984,7 @@ gDefault{|TreeChoice|} _ _ _ = TreeChoice (Tree []) Nothing
 
 gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask=[cmv:vm]}
+gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask=[cmv:vm]}
 	# ver		= verifyElementStr cmv
 	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
 	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
@@ -1031,7 +1031,7 @@ gDefault{|TreeChoiceNoView|} _ _ = TreeChoiceNoView (Tree []) Nothing
 
 gVisualizeText{|TreeChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
+gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
 		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},newMap)],vst)
@@ -1069,7 +1069,7 @@ gDefault{|GridChoice|} _ _ _ = GridChoice [] Nothing
 
 gVisualizeText{|GridChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
 
-gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeCustom viz vst
+gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
@@ -1097,7 +1097,7 @@ gDefault{|GridChoiceNoView|} _ _ = GridChoiceNoView [] Nothing
 
 gVisualizeText{|GridChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))	
 
-gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix val vst = visualizeCustom viz vst
+gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix jex jdx val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
@@ -1127,15 +1127,15 @@ gVisualizeText{|DynamicChoice|}		fv fo mode (DCCombo val)	= gVisualizeText{|*->*
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCGrid val)		= gVisualizeText{|*->*->*|} fv fo mode val
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCTree val)		= gVisualizeText{|*->*->*|} fv fo mode val
 
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCCombo val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCRadio val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCTree val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCGrid val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 Nothing vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCCombo val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCRadio val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCTree val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCGrid val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 Nothing vst
 	= (NormalEditor [],vst)
 
 gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
@@ -1178,15 +1178,15 @@ gVisualizeText{|DynamicChoiceNoView|} fo mode (DCComboNoView val)	= gVisualizeTe
 gVisualizeText{|DynamicChoiceNoView|} fo mode (DCTreeNoView val)	= gVisualizeText{|*->*|} fo mode val
 gVisualizeText{|DynamicChoiceNoView|} fo mode (DCGridNoView val)	= gVisualizeText{|*->*|} fo mode val
 
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCComboNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCRadioNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCTreeNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCGridNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 Nothing vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCComboNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCRadioNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCTreeNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCGridNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 Nothing vst
 	= (NormalEditor [],vst)
 
 gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCComboNoView val,mask)	= appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
@@ -1220,7 +1220,7 @@ where
 gDefault{|CheckMultiChoice|} _ _ _ = CheckMultiChoice [] []
 gVisualizeText{|CheckMultiChoice|} fv _ _ val = gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 
-gVisualizeEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _  val vst = visualizeCustom viz vst
+gVisualizeEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled
@@ -1332,11 +1332,11 @@ gVisualizeText{|VisualizationHint|} fx mode val = case val of
 	VHDisplay x		= gVisualizeText{|* -> *|} fx mode (Display x)
 	VHEditable x	= gVisualizeText{|* -> *|} fx mode (Editable x)
 
-gVisualizeEditor{|VisualizationHint|} fx gx hx ix val vst=:{VSt|currentPath}
+gVisualizeEditor{|VisualizationHint|} fx gx hx ix jex jdx val vst=:{VSt|currentPath}
 	= case val of
-		Just (VHHidden x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Hidden x)) vst
-		Just (VHDisplay x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Display x)) vst
-		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Editable x)) vst
+		Just (VHHidden x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Hidden x)) vst
+		Just (VHDisplay x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Display x)) vst
+		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
 
 gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHEditable s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val
@@ -1359,7 +1359,7 @@ toVisualizationHint a = (VHEditable a)
 
 gVisualizeText{|Hidden|} _ _ _ = []
 
-gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask=[_:vm]}
+gVisualizeEditor{|Hidden|} fx _ _ _ _ _ val vst=:{VSt | currentPath, verifyMask=[_:vm]}
 	= (HiddenEditor,{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
 gUpdate{|Hidden|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromHidden Hidden target upd val
@@ -1374,7 +1374,7 @@ toHidden x = (Hidden x)
 
 gVisualizeText{|Display|} fx mode (Display val)	= fx mode val
 
-gVisualizeEditor{|Display|} fx _ _ _ val vst=:{VSt|currentPath,disabled}
+gVisualizeEditor{|Display|} fx _ _ _ _ _ val vst=:{VSt|currentPath,disabled}
 	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  disabled = True}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
@@ -1390,7 +1390,7 @@ toDisplay a = (Display a)
 
 gVisualizeText{|Editable|} fx mode(Editable val) = fx mode val
 
-gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{VSt|currentPath, disabled}
+gVisualizeEditor{|Editable|} fx _ _ _ _ _ val vst=:{VSt|currentPath, disabled}
 	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & disabled = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 

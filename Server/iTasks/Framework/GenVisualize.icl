@@ -2,7 +2,7 @@ implementation module iTasks.Framework.GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, Data.List, Data.Generic, Text.JSON
 import Data.Maybe, Data.Functor, Text, Text.HTML, Data.Map
-import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition, iTasks.Framework.Util, iTasks.Framework.HtmlUtil
+import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition, iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
@@ -79,12 +79,12 @@ kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
 kmVSt {VSt|iworld} = iworld
 
 //Generic visualizer
-generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a)!*VSt -> (!VisualizationResult,!*VSt)
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a, JSONEncode a, JSONDecode a :: !(Maybe a)!*VSt -> (!VisualizationResult,!*VSt)
 
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
-gVisualizeEditor{|RECORD|} fx _ _ _ val vst=:{VSt|currentPath,verifyMask,optional,disabled,taskId}
+gVisualizeEditor{|RECORD|} fx _ _ _ _ _ val vst=:{VSt|currentPath,verifyMask,optional,disabled,taskId}
 	# (cmv,vm)	= popMask verifyMask
 	//When optional and no value yet, just show the checkbox
 	| optional && isNothing val && not disabled
@@ -97,7 +97,7 @@ gVisualizeEditor{|RECORD|} fx _ _ _ val vst=:{VSt|currentPath,verifyMask,optiona
 where
 	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = dp2s currentPath, value = Just checked},newMap)
 	
-gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
+gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ val vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
@@ -109,7 +109,7 @@ gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 			= (OptionalEditor controls, vst)
 
 
-gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId,layout}
+gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId,layout}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -144,14 +144,14 @@ where
 	addSpacing [] = []
 	addSpacing [d:ds] = [d:map (setMargins 0 0 0 5) ds]
 
-gVisualizeEditor{|CONS of {gcd_index}|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|CONS of {gcd_index}|} fx _ _ _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ vst=:{VSt|taskId,currentPath,optional,disabled}
 		# x = fmap fromCONS val
 		# (viz,vst)	= fx x vst
 		= (controlsOf viz, {VSt | vst & selectedConsIndex = gcd_index})
 
-gVisualizeEditor{|PAIR|} fx _ _ _ fy _ _ _ val vst
+gVisualizeEditor{|PAIR|} fx _ _ _ _ _ fy _ _ _ _ _ val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
 	# (vizx, vst)	= fx x vst
 	# (vizy, vst)	= fy y vst
@@ -167,7 +167,7 @@ gVisualizeEditor{|PAIR|} fx _ _ _ fy _ _ _ val vst
 		(HiddenEditor,		HiddenEditor)			= (HiddenEditor, vst)
 		
 		
-gVisualizeEditor{|EITHER|} fx _ _ _ fy _ _ _ val vst = case val of
+gVisualizeEditor{|EITHER|} fx _ _ _ _ _ fy _ _ _ _ _ val vst = case val of
 		Nothing			= fx Nothing vst
 		Just (LEFT x)	= fx (Just x) vst
 		Just (RIGHT y)	= fy (Just y) vst
@@ -210,7 +210,7 @@ where
 		| otherwise		= ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 
-gVisualizeEditor{|[]|} fx _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask,layout}
+gVisualizeEditor{|[]|} fx _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask,layout}
 	# (cmv,vm)		= popMask verifyMask
 	# vst			= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# ver			= verifyElementStr cmv
@@ -256,7 +256,7 @@ where
 	numItemsText 1 = "1 item"
 	numItemsText n = toString n +++ " items"
 	
-gVisualizeEditor{|(,)|} fx _ _ _ fy _ _ _ val vst=:{VSt|currentPath,verifyMask}
+gVisualizeEditor{|(,)|} fx _ _ _ _ _ fy _ _ _ _ _ val vst=:{VSt|currentPath,verifyMask}
 	# (x,y)			= (fmap fst val, fmap snd val)
 	# (cmv,vm)		= popMask verifyMask
 	# vst			= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
@@ -268,11 +268,11 @@ gVisualizeEditor{|(,)|} fx _ _ _ fy _ _ _ val vst=:{VSt|currentPath,verifyMask}
 				 
 	= (viz, {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
-gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
+gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ _ vst	= noVisualization vst
 		
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 
-gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath,optional,disabled}
+gVisualizeEditor{|Maybe|} fx _ _ _ _ _ val vst=:{VSt|currentPath,optional,disabled}
 	| disabled && noValue val
 		= (OptionalEditor [], {VSt|vst & currentPath = stepDataPath currentPath})
 	# (viz,vst) = case val of

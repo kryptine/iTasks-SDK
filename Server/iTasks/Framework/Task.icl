@@ -41,13 +41,12 @@ JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
 
-	
 gUpdate{|Task|} _ _ target upd val = basicUpdate (\Void t -> t) target upd val
 
 gVerify{|Task|} _ _ um _ = alwaysValid um
 
 gVisualizeText{|Task|} _ _ _ = ["<Task>"]
-gVisualizeEditor{|Task|} _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
+gVisualizeEditor{|Task|} _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
 
 gHeaders{|Task|} _ _ = ["Task"]
 gGridRows{|Task|} _ _ _ _	= Nothing	

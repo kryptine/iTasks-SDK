@@ -63,8 +63,25 @@ mkTaskWithShared :: (TaskletInstance st res) !(Shared r) (r st -> st) -> Task re
 
 mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 
+//Experimental new Editlet definition that can be used in data structures visualized and updated
+//using the normal generic functions in the iTask class
+:: Editlet a d =
+	{	value		:: a 
+	,	html		:: HtmlDef
+	,	handlers	:: [HtmlEvent a]
+	//	Functions for efficient bidirectional synchronisation of the editlet value
+	,	genDiff		:: a a -> Maybe d
+	,	appDiff		:: d a -> a
+	}
 
+derive JSONEncode		Editlet
+derive JSONDecode		Editlet
+derive gDefault			Editlet
+derive gEq				Editlet
 
-
-
-
+derive gVisualizeText	Editlet
+derive gVisualizeEditor	Editlet
+derive gHeaders			Editlet
+derive gGridRows		Editlet
+derive gUpdate			Editlet
+derive gVerify			Editlet

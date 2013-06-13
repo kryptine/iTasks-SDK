@@ -504,6 +504,8 @@ updSizeOpts f (UITaskletPH sOpts opts)				= (UITaskletPH (f sOpts) opts)
 updSizeOpts f (UIContainer sOpts iOpts opts)		= (UIContainer (f sOpts) iOpts opts)
 updSizeOpts f (UIPanel sOpts iOpts opts)			= (UIPanel (f sOpts) iOpts opts)
 updSizeOpts f (UIFieldSet sOpts iOpts opts)			= (UIFieldSet (f sOpts) iOpts opts)
+updSizeOpts f (UITabSet sOpts opts)					= (UITabSet (f sOpts) opts)
+updSizeOpts f (UIEditlet sOpts opts)				= (UIEditlet (f sOpts) opts)
 
 getSizeOpts :: UIControl -> UISizeOpts
 getSizeOpts (UIViewString	sOpts vOpts)			= sOpts
@@ -541,6 +543,7 @@ getSizeOpts (UIContainer sOpts iOpts opts)			= sOpts
 getSizeOpts (UIPanel sOpts iOpts opts)				= sOpts
 getSizeOpts (UIFieldSet sOpts iOpts opts)			= sOpts
 getSizeOpts (UITabSet sOpts opts)					= sOpts
+getSizeOpts (UIEditlet sOpts opts)					= sOpts
 
 setSize :: !UISize !UISize !UIControl -> UIControl
 setSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) ctrl

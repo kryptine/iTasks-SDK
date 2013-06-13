@@ -8,7 +8,8 @@ from Data.Maybe import :: Maybe
 from Text.HTML import :: HtmlTag
 from Data.Map import :: Map
 
-import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition
+import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition, iTasks.Framework.UIDiff
+
 from iTasks.API.Core.LayoutCombinators import :: Layout
 
 :: StaticVisualizationMode = AsDisplay | AsLabel
@@ -30,17 +31,17 @@ derive gVisualizeText Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 * @return The visualization result
 * @return The visualization state
 */
-generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a, JSONEncode a, JSONDecode a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
 
 //Default available instances
 derive gVisualizeEditor
 	UNIT,
-	EITHER with ve1 _ _ _ ve2 _ _ _,
-	PAIR with ve1 _ _ _ ve2 _ _ _,
-	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ _,
-	CONS of {gcd_index} with ve1 _ _ _,
-	RECORD with ve1 _ _ _,
-	FIELD of {gfd_name} with ve1 _ _ _
+	EITHER with ve1 _ _ _ _ _ ve2 _ _ _ _ _,
+	PAIR with ve1 _ _ _ _ _ ve2 _ _ _ _ _,
+	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ _ _ _,
+	CONS of {gcd_index} with ve1 _ _ _ _ _,
+	RECORD with ve1 _ _ _ _ _,
+	FIELD of {gfd_name} with ve1 _ _ _ _ _
 	
 derive gVisualizeEditor Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gVisualizeEditor Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
