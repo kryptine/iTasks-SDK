@@ -97,22 +97,22 @@ Ext.define('itwc.component.edit.Editlet',{
 		var me = this,
 			args, i, k;
 		
+		if(obj === null) {
+			return [0,"JSONNull"];
+		}
 		switch(typeof(obj)) {
 			case "boolean":
 				return [1,"JSONBool",obj];
 			case "number":
-				if(isFloat(obj)) {
-					return [3,"JSONReal",obj];
-				} else {
+				if(isInteger(obj)) {
 					return [2,"JSONInt",obj];
+				} else {
+					return [3,"JSONReal",obj];
 				}
 			case "string":
 				return [4,"JSONString",obj]
 			case "object": //Null, array or object
-				if(obj === null) {
-					return [0,"JSONNull"];
-				}
-				if(isArray) {
+				if(isArray(obj)) {
 					//Don't use Sapl.toList to prevent going through the array twice
 					args = [1,"_predefined._Nil"];
 					for(i = obj.length - 1; i >= 0; i--) {

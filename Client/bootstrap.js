@@ -21,6 +21,7 @@ Ext.ClassManager.addNameAlternateMappings({
   "itwc.component.edit.Date": [],
   "itwc.component.misc.Icon": [],
   "Ext.ux.DataView.DragSelector": [],
+  "itwc.component.edit.Editlet": [],
   "Ext.ux.grid.menu.ListMenu": [],
   "itwc.patch.grid.View": [],
   "itwc.container.Container": [],
@@ -33,8 +34,8 @@ Ext.ClassManager.addNameAlternateMappings({
   "itwc.layout.component.edit.Code": [],
   "itwc.component.action.MenuButton": [],
   "itwc.patch.AbstractComponent": [],
-  "Ext.ux.ajax.SimXhr": [],
   "itwc.component.action.ActionButton": [],
+  "Ext.ux.ajax.SimXhr": [],
   "Ext.ux.event.RecorderManager": [],
   "Ext.ux.ProgressBarPager": [],
   "Ext.ux.CellDragDrop": [],
@@ -147,6 +148,9 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.itwc_icon"
   ],
   "Ext.ux.DataView.DragSelector": [],
+  "itwc.component.edit.Editlet": [
+    "widget.itwc_edit_editlet"
+  ],
   "Ext.ux.grid.menu.ListMenu": [],
   "itwc.patch.grid.View": [],
   "itwc.container.Container": [
@@ -170,10 +174,10 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.itwc_menubutton"
   ],
   "itwc.patch.AbstractComponent": [],
-  "Ext.ux.ajax.SimXhr": [],
   "itwc.component.action.ActionButton": [
     "widget.itwc_actionbutton"
   ],
+  "Ext.ux.ajax.SimXhr": [],
   "Ext.ux.event.RecorderManager": [
     "widget.eventrecordermanager"
   ],
