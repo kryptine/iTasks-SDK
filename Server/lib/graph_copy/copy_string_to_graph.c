@@ -62,6 +62,9 @@ Int *copy_string_to_graph (Int *string_p,void *begin_free_heap,void *end_free_he
 			if (!(desc & 1)){
 				*string_p=(Int)heap_p;
 				*arg_a=heap_p;
+#ifdef MACH_O64
+				desc+=(Int)&__ARRAY__;
+#endif
 				*heap_p=desc;
 				if (desc & 2){
 					unsigned Int arity;
@@ -647,7 +650,11 @@ Int *copy_string_to_graph (Int *string_p,void *begin_free_heap,void *end_free_he
 
 #ifdef THREAD
 				if (desc & 2){
+# ifdef MACH_O64
+					node_p=(Int*)(desc-3)+(Int)&__ARRAY__;
+# else
 					node_p=(Int*)(desc-3);
+# endif
 					*arg_a=node_p;
 					++string_p;
 					break;
@@ -683,7 +690,11 @@ void remove_forwarding_pointers_from_string (Int *string_p,Int *end_forwarding_p
 			Int desc;
 			
 			desc=*(Int*)forwarding_pointer;
+#ifdef MACH_O64
+			*string_p=desc-(Int)&__ARRAY__;
+#else
 			*string_p=desc;
+#endif
 			if (desc & 2){
 				unsigned Int arity;
 				

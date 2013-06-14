@@ -61,7 +61,11 @@ Int *copy_graph_to_string (Int *node_p,void *begin_free_heap,void *end_free_heap
 			if (((unsigned Int)node_p-(unsigned Int)begin_heap)>=heap_size){
 				if (heap_p>=(Int*)stack_begin)
 					return NULL;
+# ifdef MACH_O64
+				heap_p[0]=3+(Int)node_p-(Int)&__ARRAY__;
+# else
 				heap_p[0]=3+(Int)node_p;
+# endif
 				++heap_p;
 				break;
 			}
@@ -74,8 +78,11 @@ Int *copy_graph_to_string (Int *node_p,void *begin_free_heap,void *end_free_heap
 			
 			if (!(desc & 1)){
 				*node_p=1+(Int)heap_p;
+#ifdef MACH_O64
+				*heap_p++=desc-(Int)&__ARRAY__;
+#else
 				*heap_p++=desc;
-				
+#endif
 				if (desc & 2){
 					unsigned Int arity;
 					
@@ -474,8 +481,12 @@ void remove_forwarding_pointers_from_graph (Int *node_p,Int **stack_end)
 			forwarding_pointer=*node_p;
 			if ((forwarding_pointer & 1)==0)
 				break;
-			
+
+#ifdef MACH_O64
+			desc = (Int)&__ARRAY__ + *((Int*)(forwarding_pointer-1));
+#else
 			desc = *((Int*)(forwarding_pointer-1));
+#endif
 			*node_p=desc;
 			
 			if (desc & 2){
