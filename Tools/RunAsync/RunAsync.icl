@@ -5,15 +5,12 @@ import StdMaybe
 import ArgEnv
 import TCPIP
 
-import FilePath
-from File import ::FileError, writeFile, moveFile
-from Maybe import qualified ::Maybe(..)
-import Error
-from JSON_NG import ::JSONNode, generic JSONEncode, toJSON, instance toString JSONNode
-from OSError import ::OSError(..), ::OSErrorCode, ::OSErrorMessage, ::MaybeOSError(..)
-from Process import callProcess
-import Text
-import Void
+import Text, Data.Void, Data.Error, System.FilePath
+from Data.Maybe import qualified ::Maybe(..)
+from System.File import :: FileError, writeFile, moveFile
+from System.OSError import ::OSError(..), ::OSErrorCode, ::OSErrorMessage, ::MaybeOSError(..)
+from System.Process import callProcess
+from Text.JSON import ::JSONNode, generic JSONEncode, toJSON, instance toString JSONNode
 
 Start :: *World -> *World
 Start world
@@ -91,7 +88,7 @@ process path args outfile world
 where
 	call :: !FilePath ![String] !*World -> *(AsyncResult, *World)
 	call path args world
-		# (res, world) = callProcess path args 'Maybe'.Nothing world
+		# (res, world) = callProcess path args 'Data.Maybe'.Nothing world
 		| isError res = ({ AsyncResult | success = False, exitcode = -1, message = snd (fromError res)}, world)
 		= ({ AsyncResult | success = True, exitcode = fromOk res, message = ""}, world)
 	
