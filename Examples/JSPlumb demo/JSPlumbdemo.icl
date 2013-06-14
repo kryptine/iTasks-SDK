@@ -20,8 +20,8 @@ targetOptions = {anchor 				= "TopCenter"
                 ,maxConnections 		= -1
                 ,isSource 				= False
                 ,isTarget 				= True
-                ,endPoint 				= toHtmlObject [toHtmlObject "Dot",toHtmlObject {radius = 1}]
-                ,paintStyle 			= {fillStyle =  "red"}//"#66CC00"}
+                ,endPoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
+                ,paintStyle 			= {fillStyle = "#66CC00"}
                 ,setDragAllowedWhenFull = True
                 }
 
@@ -29,7 +29,7 @@ sourceOptions = {anchor 				= "BottomCenter"
                 ,maxConnections 		= -1
                 ,isSource 				= True
                 ,isTarget 				= False
-                ,endPoint 				= toHtmlObject [toHtmlObject "Dot",toHtmlObject {radius = 5}]
+                ,endPoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
                 ,paintStyle 			= {fillStyle =  "#EEDD00"}
                 ,setDragAllowedWhenFull = True
                 }
@@ -40,11 +40,11 @@ sourceOptions = {anchor 				= "BottomCenter"
           			   ,maxConnections  		:: Int
           			   ,isSource  				:: Bool
           			   ,isTarget  				:: Bool
-          			   ,endPoint        		:: HtmlObject
+          			   ,endPoint        		:: [HtmlObject]
           			   ,paintStyle      		:: FillStyle
           			   ,setDragAllowedWhenFull  :: Bool
         			   }
-        			   
+
 :: Radius = {radius :: Int}
 :: FillStyle = {fillStyle :: String}
 
@@ -65,8 +65,8 @@ where
 		# canvas = DivTag [IdAttr "plumb_place_holder", StyleAttr "width:100%; height:100%"] []
 
 		# gui = { TaskletHTML
-				| width  		= ExactSize 300
-				, height 		= ExactSize 300
+				| width  		= FlexSize // 300
+				, height 		= FlexSize // 300
 				, html   		= HtmlDef (html canvas)
 				, eventHandlers = [HtmlEvent "tasklet" "init" onInit
 				                  ,HtmlEvent "tasklet" "destroy" onDestroy
