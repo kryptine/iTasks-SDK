@@ -570,7 +570,7 @@ JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ c = (Nothing,c)
 
 gDefault{|Editlet|} fa _ cPos
-	= {Editlet|value=fa cPos,html = HtmlDef "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
+	= {Editlet|value=fa cPos,html = \_ -> HtmlDef "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
 
 gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
 
@@ -585,7 +585,7 @@ where
 	editorId = dp2s currentPath
 
 	ui jsScript jsEvents jsIV jsGD jsAD
-		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=toString taskId,editorId=editorId,value=toJSONA value, html = toString html
+		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=toString taskId,editorId=editorId,value=toJSONA value, html = toString (html editorId)
 								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, genDiff = Just jsGD, appDiff = Just jsAD}
 	
 	toJSONA a = case jsonEncA a of
@@ -609,7 +609,10 @@ where
 	clientAppDiff json old = case jsonDecD [json] of
 		(Just diff,_)	= appDiff diff old
 		_				= old
-	clientGenDiff = genDiff
+	
+	clientGenDiff old new = case (genDiff old new) of
+		Just diff		= toJSOND diff
+		_				= JSONNull
 	
 	addDiffer iworld=:{IWorld|uiDiffers}
 		= {IWorld|iworld & uiDiffers = put (toString taskId,editorId) serverGenDiff uiDiffers}
@@ -617,6 +620,13 @@ where
 gHeaders{|Editlet|} fa _ {Editlet|value} = fa value
 gGridRows{|Editlet|} fa _ _ _ {Editlet|value} rows = fa value rows
 
-gUpdate{|Editlet|} fa _ _ _ path json (ov,omask) = (ov,omask)
+import StdDebug
+gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},omask)
+	= case jDecd [json] of
+		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},[Touched])
+		_				= (ov,omask)
+	
+gUpdate{|Editlet|} fa _ _ _ _ _ _ _ (ov,mask) = (ov,mask)
+
 gVerify{|Editlet|} fa _ mbv imask _ = alwaysValid imask
 

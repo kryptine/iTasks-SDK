@@ -67,7 +67,7 @@ mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSON
 //using the normal generic functions in the iTask class
 :: Editlet a d =
 	{	value		:: a 
-	,	html		:: HtmlDef
+	,	html		:: TaskInstanceId -> HtmlDef
 	,	handlers	:: [HtmlEvent a]
 	//	Functions for efficient bidirectional synchronisation of the editlet value
 	,	genDiff		:: a a -> Maybe d

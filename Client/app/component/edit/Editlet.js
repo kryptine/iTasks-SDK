@@ -1,6 +1,7 @@
 Ext.define('itwc.component.edit.Editlet',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_edit_editlet',
+	mixins: ['itwc.component.edit.Editable'],
 	
 	width: 600,//'flex',
 	minWidth: 400,
@@ -9,8 +10,7 @@ Ext.define('itwc.component.edit.Editlet',{
 	
 	initComponent: function() {
 		var me = this,
-			tmp;
-			
+			tmp;	
 		if(me.script != null && me.script != ""){
 			evalScript(me.script);
 		}
@@ -22,7 +22,11 @@ Ext.define('itwc.component.edit.Editlet',{
 		if(me.appDiff != null) {
 			eval("tmp = eval(" + me.appDiff + ");");
 			me.appDiff = tmp;	
-		}	
+		}
+		if(me.genDiff != null) {
+			eval("tmp = eval(" + me.genDiff + ");");
+			me.genDiff = tmp;	
+		}
 		me.callParent(arguments);
 	},
 	afterRender: function() {
@@ -39,6 +43,9 @@ Ext.define('itwc.component.edit.Editlet',{
 			if(elName == "editlet"){
 				if(eventName == "init") {
 					(me.eventHandler(expr))(me);
+				} else {
+					el = Ext.get(me.editorId);
+					el.on(eventName, me.eventHandler(expr));
 				}
 			} else {
 				el = Ext.get(elName);
@@ -70,7 +77,7 @@ Ext.define('itwc.component.edit.Editlet',{
 		var me = this;
 		
 		var h = function(event){			
-			eval("fun = eval(" + expr + ");");
+			eval("var fun = eval(" + expr + ");");
 		
 			var ys = Sapl.feval([fun,[me.value,me.editorId,event.browserEvent,document]]);
 	
@@ -78,7 +85,16 @@ Ext.define('itwc.component.edit.Editlet',{
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
 	
+			//Determine diff before overwriting me.value (using superstrict evaluation)
+			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[3]]]));
+			
 			me.value = ys[3];
+			
+			//Synchronize
+			if(diff !== null) {
+				me.viewport = me.viewport || me.findViewport();
+				me.viewport.fireEvent('edit',me.taskId, me.editorId,diff);
+			}
 		};
 		return h;
 	},
@@ -98,19 +114,19 @@ Ext.define('itwc.component.edit.Editlet',{
 			args, i, k;
 		
 		if(obj === null) {
-			return [0,"JSONNull"];
+			return [0,"Text.JSON.JSONNull"];
 		}
 		switch(typeof(obj)) {
 			case "boolean":
-				return [1,"JSONBool",obj];
+				return [1,"Text.JSON.JSONBool",obj];
 			case "number":
 				if(isInteger(obj)) {
-					return [2,"JSONInt",obj];
+					return [2,"Text.JSON.JSONInt",obj];
 				} else {
-					return [3,"JSONReal",obj];
+					return [3,"Text.JSON.JSONReal",obj];
 				}
 			case "string":
-				return [4,"JSONString",obj]
+				return [4,"Text.JSON.JSONString",obj]
 			case "object": //Null, array or object
 				if(isArray(obj)) {
 					//Don't use Sapl.toList to prevent going through the array twice
@@ -118,19 +134,47 @@ Ext.define('itwc.component.edit.Editlet',{
 					for(i = obj.length - 1; i >= 0; i--) {
 						args = [0,"_predefined._Cons",me.jsToSaplJSONNode(obj[i]),args];
 					}
-					return [5,"JSONArray",args];
+					return [5,"Text.JSON.JSONArray",args];
 				} else {
 					args = [];
 					i = 0;
 					for(k in obj) {
 						args[i++] = [k,me.jsToSaplJSONNode(obj[k])];
 					}
-					return [6,"JSONObject",Sapl.toList(args)];
+					return [6,"Text.JSON.JSONObject",Sapl.toList(args)];
 				}
 		}
 		return [8,'JSONError'];
 	},	
 	jsFromSaplJSONNode: function (sapl) {
-		return sapl;//TODO
+		switch(sapl[0]) {
+			case 0:	return null;
+			case 1: return sapl[2];
+			case 2: return sapl[2];
+			case 3: return sapl[2];
+			case 4: return sapl[2];
+			case 5: return this.jsFromList(sapl[2]);
+			case 6:
+				return this.jsFromFieldList({},sapl[2]);			
+		}
+	},
+	jsFromList: function(sapl) {
+		if(sapl[0] == 0) {
+			return ([this.jsFromSaplJSONNode(sapl[2])]).concat(this.jsFromList(sapl[3]));
+		} else {
+			return [];
+		}
+	},
+	jsFromFieldList: function (fields,sapl) {
+		
+		if(sapl[0] == 0) {
+			fields = this.jsFromField(fields,sapl[2]);
+			fields = this.jsFromFieldList(fields,sapl[3]);
+		}
+		return fields;
+	},
+	jsFromField: function (fields,sapl) {
+		fields[sapl[2]] = this.jsFromSaplJSONNode(sapl[3]);
+		return fields;
 	}
 })

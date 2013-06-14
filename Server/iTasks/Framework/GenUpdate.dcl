@@ -22,7 +22,7 @@ derive	gDefault Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynam
 derive	gDefault Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 //Update an existing value and its interaction mask
-generic gUpdate a | gDefault a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask])
+generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask])
 
 derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic

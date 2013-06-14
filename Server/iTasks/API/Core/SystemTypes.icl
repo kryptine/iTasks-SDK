@@ -882,7 +882,7 @@ where
 	options	_										= []
 
  
-gUpdate{|ComboChoice|} _ _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
+gUpdate{|ComboChoice|} _ _ _ _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
 
 gVerify{|ComboChoice|} _ _ v um options = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v um options
 
@@ -911,7 +911,7 @@ where
 	options (Just (ComboChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 
-gUpdate{|ComboChoiceNoView|} _ _ target upd val = updateChoice (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) target upd val
+gUpdate{|ComboChoiceNoView|} _ _ _ target upd val = updateChoice (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) target upd val
 
 gVerify{|ComboChoiceNoView|} _	v um options = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v um options
 
@@ -939,7 +939,7 @@ where
 	options (Just (RadioChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 
-gUpdate{|RadioChoice|} _ _ _ _ target upd val
+gUpdate{|RadioChoice|} _ _ _ _ _ _ target upd val
 	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options idx) target upd val
 
 gVerify{|RadioChoice|} _ _		_ um options = simpleVerify "Choose one item" um options
@@ -969,7 +969,7 @@ where
 	options (Just (RadioChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
 	options	_												= []
 
-gUpdate{|RadioChoiceNoView|} _ _ target upd val
+gUpdate{|RadioChoiceNoView|} _ _ _ target upd val
 	= updateChoice (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) target upd val
 
 gVerify{|RadioChoiceNoView|} _	_ um options = simpleVerify "Choose one item" um options
@@ -1010,12 +1010,12 @@ where
 				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
 	options _ _ = []
 
-gUpdate{|TreeChoice|} _ _ _ _ [] upd (TreeChoice options sel,[cmask:mask]) = case fromJSON upd of
+gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,[cmask:mask]) = case fromJSON upd of
 	Just ("sel",idx,val)	= (TreeChoice options (if val (Just idx) Nothing), [touch cmask:mask])
 	Just ("exp",idx,val)	= (TreeChoice options sel, [if val (expand idx cmask) (collapse idx cmask):mask])
 	_						= ((TreeChoice options sel), [cmask:mask])
 
-gUpdate{|TreeChoice|} _ _ _ _ target upd val = val
+gUpdate{|TreeChoice|} _ _ _ _ _ _ target upd val = val
 
 
 gVerify{|TreeChoice|} _ _		_ um options = simpleVerify "Choose an element of the tree" um options
@@ -1051,7 +1051,7 @@ where
 			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
 	options _ = []
 
-gUpdate{|TreeChoiceNoView|} _ _ target upd val = updateChoice update target upd val
+gUpdate{|TreeChoiceNoView|} _ _ _ target upd val = updateChoice update target upd val
 where
 	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
 	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
@@ -1081,7 +1081,7 @@ where
 	options (Just (GridChoice options _))	= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]
 	options _								= []
 
-gUpdate{|GridChoice|} _ _ _ _ target upd val
+gUpdate{|GridChoice|} _ _ _ _ _ _ target upd val
 	= updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
 gVerify{|GridChoice|} _ _ _ um _ = alwaysValid um
@@ -1109,7 +1109,7 @@ where
 	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
 	options _										= []
 
-gUpdate{|GridChoiceNoView|} _ _ target upd val
+gUpdate{|GridChoiceNoView|} _ _ _ target upd val
 	= updateChoice (\idxs (GridChoiceNoView options _) -> GridChoiceNoView options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
 gVerify{|GridChoiceNoView|} _	_ um _ = alwaysValid um
@@ -1138,10 +1138,10 @@ gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 Nothing vst
 	= (NormalEditor [],vst)
 
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCTree val,mask)	= appFst DCTree (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
-gUpdate{|DynamicChoice|} gUpdx gDefx gUpdy gDefy target upd	(DCGrid val,mask)	= appFst DCGrid (gUpdate{|*->*->*|} gUpdx gDefx gUpdy gDefy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCTree val,mask)	= appFst DCTree (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCGrid val,mask)	= appFst DCGrid (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
 
 gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
 gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
@@ -1189,10 +1189,10 @@ gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCGridNoView va
 gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 Nothing vst
 	= (NormalEditor [],vst)
 
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCComboNoView val,mask)	= appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCRadioNoView val,mask)	= appFst DCRadioNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCTreeNoView val,mask)	= appFst DCTreeNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx target upd (DCGridNoView val,mask)	= appFst DCGridNoView (gUpdate{|*->*|} gUpdx gDefx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCComboNoView val,mask)= appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCRadioNoView val,mask)= appFst DCRadioNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCTreeNoView val,mask)	= appFst DCTreeNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
+gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCGridNoView val,mask)	= appFst DCGridNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 
 gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
 gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
@@ -1237,7 +1237,7 @@ where
 	options (Just (CheckMultiChoice options _))		= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 
-gUpdate{|CheckMultiChoice|} _ _ _ _ target upd val = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel) target upd val
+gUpdate{|CheckMultiChoice|} _ _ _ _ _ _ target upd val = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel) target upd val
 where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
@@ -1339,9 +1339,9 @@ gVisualizeEditor{|VisualizationHint|} fx gx hx ix jex jdx val vst=:{VSt|currentP
 		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
 
-gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHEditable s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val
-gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHDisplay s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHDisplay target upd val
-gUpdate{|VisualizationHint|} 	gUpdx gDefx target upd val=:(VHHidden s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHHidden target upd val
+gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHEditable s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val
+gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHDisplay s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHDisplay target upd val
+gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHHidden s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHHidden target upd val
 
 gVerify{|VisualizationHint|}	fx v um options = case v of
 	Just (VHEditable e)	= verifyEditable fx (Just e) um options
@@ -1362,7 +1362,7 @@ gVisualizeText{|Hidden|} _ _ _ = []
 gVisualizeEditor{|Hidden|} fx _ _ _ _ _ val vst=:{VSt | currentPath, verifyMask=[_:vm]}
 	= (HiddenEditor,{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
-gUpdate{|Hidden|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromHidden Hidden target upd val
+gUpdate{|Hidden|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromHidden Hidden target upd val
 
 gVerify{|Hidden|} _ _ um options = verifyHidden um
 
@@ -1378,7 +1378,7 @@ gVisualizeEditor{|Display|} fx _ _ _ _ _ val vst=:{VSt|currentPath,disabled}
 	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  disabled = True}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
-gUpdate{|Display|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromDisplay Display target upd val
+gUpdate{|Display|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromDisplay Display target upd val
 
 gVerify{|Display|} fx d um options = verifyDisplay fx (fmap fromDisplay d) um options
 
@@ -1394,7 +1394,7 @@ gVisualizeEditor{|Editable|} fx _ _ _ _ _ val vst=:{VSt|currentPath, disabled}
 	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & disabled = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
 
-gUpdate{|Editable|} gUpdx gDefx target upd val = wrapperUpdate gUpdx fromEditable Editable target upd val
+gUpdate{|Editable|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromEditable Editable target upd val
 
 gVerify{|Editable|} fx e um options = verifyEditable fx (fmap fromEditable e) um options
 

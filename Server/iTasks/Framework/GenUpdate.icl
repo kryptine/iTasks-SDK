@@ -45,22 +45,22 @@ updateValueAndMask path update (a,oldMask)
 	= (a,newMask)
 
 //Generic updater
-generic gUpdate a | gDefault a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a, ![InteractionMask])
+generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a, ![InteractionMask])
 
 gUpdate{|UNIT|} _ _ val = val
 
-gUpdate{|PAIR|} gUpdx gDefx gUpdy gDefy [0:target] upd (PAIR x y, mask)
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [0:target] upd (PAIR x y, mask)
 	# (x,mask) = gUpdx target upd (x,mask)
 	= (PAIR x y,mask)
-gUpdate{|PAIR|} gUpdx gDefx gUpdy gDefy [1:target] upd (PAIR x y, mask)
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [1:target] upd (PAIR x y, mask)
 	# (y,mask) = gUpdy target upd (y,mask)
 	= (PAIR x y,mask)
-gUpdate{|PAIR|} gUpdx gDefx gUpdy gDefy target upd val = val
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd val = val
 
-gUpdate{|EITHER|} gUpdx gDefx gUpdy gDefy target upd (LEFT x,mask) = appFst LEFT (gUpdx target upd (x,mask))
-gUpdate{|EITHER|} gUpdx gDefx gUpdy gDefy target upd (RIGHT y,mask) = appFst RIGHT (gUpdy target upd (y,mask))
+gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (LEFT x,mask) = appFst LEFT (gUpdx target upd (x,mask))
+gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (RIGHT y,mask) = appFst RIGHT (gUpdy target upd (y,mask))
 
-gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx [] upd (OBJECT x, [_:mask]) //Update is a constructor switch
+gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jDecx [] upd (OBJECT x, [_:mask]) //Update is a constructor switch
 	# consIdx = case upd of
 		JSONInt i	= i
 		_			= 0
@@ -71,27 +71,27 @@ gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx [] upd (OBJECT x, [
 where
 	path consIdx = if (consIdx < gtd_num_conses) (consPath consIdx gtd_num_conses) []
 
-gUpdate{|OBJECT|} gUpdx gDefx target upd (OBJECT object, mask) //Update is targeted somewhere in a substructure of this value
+gUpdate{|OBJECT|} gUpdx gDefx jDecx target upd (OBJECT object, mask) //Update is targeted somewhere in a substructure of this value
 	= appFst OBJECT (gUpdx target upd (object,mask))
 
-gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx [index:target] upd (CONS cons,[consMask:mask])
+gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jDecx [index:target] upd (CONS cons,[consMask:mask])
 	| index >= gcd_arity
 		= (CONS cons,[consMask:mask])	
 	# childMasks = childMasksN consMask gcd_arity
 	# (cons,[targetMask:_]) = gUpdx (pairPath index gcd_arity ++ target) upd (cons,[childMasks !! index])
 	= (CONS cons,[PartiallyTouched (updateAt index targetMask childMasks):mask])
-gUpdate{|CONS|} gUpdx gDefx target upd val = val
+gUpdate{|CONS|} gUpdx gDefx jDecx target upd val = val
 
-gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx [index:target] upd (RECORD record,[recMask:mask])
+gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jDecx [index:target] upd (RECORD record,[recMask:mask])
 	| index >= grd_arity
 		= (RECORD record,[recMask:mask])
 	# childMasks = childMasksN recMask grd_arity
 	# (record,[targetMask:_]) = gUpdx (pairPath index grd_arity ++ target) upd (record,[childMasks !! index])
 	= (RECORD record,[PartiallyTouched (updateAt index targetMask childMasks):mask])
 
-gUpdate{|RECORD|} gUpdx gDefx _ _ val = val
+gUpdate{|RECORD|} gUpdx gDefx jDecx _ _ val = val
 	
-gUpdate{|FIELD|} gUpdx gDefx target upd (FIELD field,mask)= appFst FIELD (gUpdx target upd (field,mask))
+gUpdate{|FIELD|} gUpdx gDefx jDecx target upd (FIELD field,mask)= appFst FIELD (gUpdx target upd (field,mask))
 
 consPath i n
 	| i >= n	
@@ -119,7 +119,7 @@ gUpdate{|Char|}		target upd val = basicUpdateSimple target upd val
 gUpdate{|Bool|}		target upd val = basicUpdateSimple target upd val
 gUpdate{|String|}	target upd val = basicUpdateSimple target upd val
 			
-gUpdate{|Maybe|} gUpdx gDefx target upd (m,[mmask:mask])
+gUpdate{|Maybe|} gUpdx gDefx jDecx target upd (m,[mmask:mask])
 	| isEmpty target && (upd === JSONNull || upd === JSONBool False)
 		= (Nothing, [Blanked:mask]) //Reset
 	| otherwise
@@ -133,7 +133,7 @@ gUpdate{|Maybe|} gUpdx gDefx target upd (m,[mmask:mask])
 			Just x
 				= appFst Just (gUpdx target upd (x,[mmask:mask]))
 
-gUpdate{|[]|} gUpdx gDefx target upd (l,[listMask:mask])
+gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,[listMask:mask])
 	# (l,childMasks)
 		= case ((not (isEmpty target)) && (hd target >= (length l))) of
 			True
@@ -176,7 +176,7 @@ where
 			= updateAt (index-1) l (updateAt index f list)
 		
 gUpdate{|Dynamic|}		target upd val = basicUpdate (\Void v -> v) target upd val
-gUpdate{|(->)|} _ _ gUpdy _ target upd val = basicUpdate (\Void v -> v) target upd val
+gUpdate{|(->)|} _ _ gUpdy _ _ _ target upd val = basicUpdate (\Void v -> v) target upd val
 
 gUpdate{|HtmlTag|} target upd val = val
 
