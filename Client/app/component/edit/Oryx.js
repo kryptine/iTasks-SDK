@@ -129,11 +129,6 @@ Ext.define('itwc.component.edit.Oryx', {
 
         //window.onOryxResourcesLoaded = Ext.bind(me.afterOryxResourcesLoaded, me);
 
-        //var script = document.createElement("script");
-        //script.setAttribute('type', 'text/javascript');
-        //script.setAttribute('src', '/lib/oryx/scripts/config.js');
-        //Ext.getHead().appendChild(script);
-
         var script = document.createElement("script");
         script.setAttribute('type', 'text/javascript');
         script.setAttribute('src', '/lib/oryx/oryx-all.js');
