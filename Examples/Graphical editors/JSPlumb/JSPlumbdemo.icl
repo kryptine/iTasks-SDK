@@ -15,35 +15,77 @@ plumbtasklet :: Task Void
 plumbtasklet
 	= 		mkInstanceId >>= \iid ->
 	 		mkTask (iid, jsPlumbTasklet)
-							 
-targetOptions = {anchor 				= "TopCenter"
-                ,maxConnections 		= -1
-                ,isSource 				= False
-                ,isTarget 				= True
-                ,endpoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
-                ,paintStyle 			= {fillStyle = "#66CC00"}
-                ,setDragAllowedWhenFull = True
+							
+targetOptions = {mkEndpoint & anchor 			= Just [toHtmlObject "TopCenter"]
+							, maxConnections 	= Just -1
+							, isTarget 			= Just True
+							, endpoint 			= Just [toHtmlObject "Dot",toHtmlObject {radius = 5}]
+							, paintStyle 		= Just {fillStyle =  "#66CC00"}
+                }
+                
+sourceOptions = {mkEndpoint & anchor 			= Just [toHtmlObject "BottomCenter"]
+							, maxConnections 	= Just -1
+							, isSource 			= Just True
+							, endpoint 			= Just [toHtmlObject "Dot",toHtmlObject {radius = 5}]
+							, paintStyle 		= Just {fillStyle =  "#EEDD00"}
                 }
 
-sourceOptions = {anchor 				= "BottomCenter"
-                ,maxConnections 		= -1
-                ,isSource 				= True
-                ,isTarget 				= False
-                ,endpoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
-                ,paintStyle 			= {fillStyle =  "#EEDD00"}
-                ,setDragAllowedWhenFull = True
-                }
+:: EndPointOptions =
+	{ anchor    				:: Maybe [HtmlObject]
+	, endpoint 					:: Maybe [HtmlObject]
+	, enabled 					:: Maybe Bool
+    , paintStyle      		 	:: Maybe FillStyle
+    , hoverPaintStyle 			:: Maybe FillStyle
+    , cssClass 					:: Maybe String
+    , hoverClas 				:: Maybe String
+    , source 					:: Maybe String
+    , canvas 					:: Maybe HtmlObject
+    , container 				:: Maybe String
+    , connections 				:: Maybe [HtmlObject]
+	, isSource  				:: Maybe Bool
+	, maxConnections  			:: Maybe Int
+	, dragOptions 				:: Maybe HtmlObject
+	, connectorStyle 			:: Maybe FillStyle
+	, connectorHoverStyle 		:: Maybe FillStyle
+	, connector 				:: Maybe [HtmlObject]
+	, connectorOverlays 		:: Maybe [HtmlObject]
+	, connectorClass 			:: Maybe String
+	, connectorHoverClass 		:: Maybe String
+	, connectionDetachable 		:: Maybe Bool
+    , isTarget  				:: Maybe Bool
+    , dropOptions 				:: Maybe HtmlObject
+    , reattach 					:: Maybe Bool
+    , parameters 				:: Maybe HtmlObject
+    }
 
-//derive  JSONEncode  EndPointOptions, FillStyle
-               
-:: EndPointOptions =   {anchor    				:: String
-          			   ,maxConnections  		:: Int
-          			   ,isSource  				:: Bool
-          			   ,isTarget  				:: Bool
-          			   ,endpoint        		:: [HtmlObject]
-          			   ,paintStyle      		:: FillStyle
-          			   ,setDragAllowedWhenFull  :: Bool
-        			   }
+mkEndpoint :: EndPointOptions
+mkEndpoint =
+	{ anchor    				= Nothing
+	, endpoint 					= Nothing
+	, enabled 					= Nothing
+    , paintStyle      		 	= Nothing
+    , hoverPaintStyle 			= Nothing
+    , cssClass 					= Nothing
+    , hoverClas 				= Nothing
+    , source 					= Nothing
+    , canvas 					= Nothing
+    , container 				= Nothing
+    , connections 				= Nothing
+	, isSource  				= Nothing
+	, maxConnections  			= Nothing
+	, dragOptions 				= Nothing
+	, connectorStyle 			= Nothing
+	, connectorHoverStyle 		= Nothing
+	, connector 				= Nothing
+	, connectorOverlays 		= Nothing
+	, connectorClass 			= Nothing
+	, connectorHoverClass 		= Nothing
+	, connectionDetachable 		= Nothing
+    , isTarget  				= Nothing
+    , dropOptions 				= Nothing
+    , reattach 					= Nothing
+    , parameters 				= Nothing
+    }
 
 :: Radius = {radius :: Int}
 :: FillStyle = {fillStyle :: String}
@@ -121,12 +163,17 @@ where
 jsPlumb :: *HtmlDocument -> *(*HtmlDocument,HtmlObject)
 jsPlumb d = findObject d "jsPlumb"
 
-addEndpoint :: HtmlObject a b *HtmlDocument -> *(*HtmlDocument,HtmlObject)
-addEndpoint plumb target opts d
-	# (d, p, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject target,toHtmlObject opts]
+bind :: HtmlObject String HtmlObject *HtmlDocument -> *(*HtmlDocument, HtmlObject)
+bind plumb event cb d
+	# (d, p, _) = runObjectMethod d plumb "bind" [toHtmlObject event, toHtmlObject cb]
 	= (d, p)
 
-draggable :: HtmlObject a *HtmlDocument -> *(*HtmlDocument,HtmlObject)
+addEndpoint :: HtmlObject String EndPointOptions *HtmlDocument -> *(*HtmlDocument,HtmlObject)
+addEndpoint plumb target opts d
+	# (d, p, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject target, toHtmlObject opts]
+	= (d, p)
+
+draggable :: HtmlObject String *HtmlDocument -> *(*HtmlDocument,HtmlObject)
 draggable plumb target d
 	# (d, p, _) = runObjectMethod d plumb "draggable" [toHtmlObject target]
 	= (d, p)
