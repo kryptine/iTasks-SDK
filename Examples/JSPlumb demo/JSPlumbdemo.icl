@@ -20,7 +20,7 @@ targetOptions = {anchor 				= "TopCenter"
                 ,maxConnections 		= -1
                 ,isSource 				= False
                 ,isTarget 				= True
-                ,endPoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
+                ,endpoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
                 ,paintStyle 			= {fillStyle = "#66CC00"}
                 ,setDragAllowedWhenFull = True
                 }
@@ -29,7 +29,7 @@ sourceOptions = {anchor 				= "BottomCenter"
                 ,maxConnections 		= -1
                 ,isSource 				= True
                 ,isTarget 				= False
-                ,endPoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
+                ,endpoint 				= [toHtmlObject "Dot",toHtmlObject {radius = 5}]
                 ,paintStyle 			= {fillStyle =  "#EEDD00"}
                 ,setDragAllowedWhenFull = True
                 }
@@ -40,7 +40,7 @@ sourceOptions = {anchor 				= "BottomCenter"
           			   ,maxConnections  		:: Int
           			   ,isSource  				:: Bool
           			   ,isTarget  				:: Bool
-          			   ,endPoint        		:: [HtmlObject]
+          			   ,endpoint        		:: [HtmlObject]
           			   ,paintStyle      		:: FillStyle
           			   ,setDragAllowedWhenFull  :: Bool
         			   }
@@ -53,7 +53,7 @@ sourceOptions = {anchor 				= "BottomCenter"
 jsPlumbTasklet ::  Tasklet PlumbState Void
 jsPlumbTasklet = 
 	{ generatorFunc		= jsPlumbGUI
-	, resultFunc		= \_ = Value Void False
+	, resultFunc		= \_ -> Value Void False
 	, tweakUI  			= setTitle "JSPlumb Tasklet"
 	}
 where
@@ -62,11 +62,11 @@ where
 
 	jsPlumbGUI iid _ (Just st) iworld
 
-		# canvas = DivTag [IdAttr "plumb_place_holder", StyleAttr "width:100%; height:100%"] []
+		# canvas = DivTag [IdAttr "plumb_canvas", StyleAttr "width:100%; height:100%"] []
 
 		# gui = { TaskletHTML
-				| width  		= FlexSize // 300
-				, height 		= FlexSize // 300
+				| width  		= ExactSize 600
+				, height 		= ExactSize 600
 				, html   		= HtmlDef (html canvas)
 				, eventHandlers = [HtmlEvent "tasklet" "init" onInit
 				                  ,HtmlEvent "tasklet" "destroy" onDestroy
@@ -78,71 +78,58 @@ where
 	where
 
 	    onScriptLoad st _ _ d
-		    # (d, _) = setDomAttr d "plumb_place_holder" "innerHTML"
-		    				("<div id=\"plumb_canvas\" style=\"width:100%; height:100%\">" +++
-		    					"<div class='node' id='block1' style='position: absolute; top: 50px; left: 50px; border: 1px solid black;'>Block 1</div>" +++
-		    					"<div class='node' id='block2' style='position: absolute; top: 100px; left: 100px; border: 1px solid black;'>Block 2</div>" +++
-		    				"</div>")
-		    # (d, mapdiv) = getDomElement d "plumb_canvas"
-	        
-		    # (d, jsPlumb)    = findObject d "jsPlumb"
-			# (d, jsPlumb, _) = runObjectMethod d jsPlumb "ready" [createEventHandler onReady iid]
+		    # (d, _) = setDomAttr d "plumb_canvas" "innerHTML"
+		    				("<div class='node' id='block1' style='position: absolute; top: 50px; left: 50px; border: 1px solid black;'>Block 1</div>" +++
+		    				 "<div class='node' id='block2' style='position: absolute; top: 100px; left: 100px; border: 1px solid black;'>Block 2</div>")
+		    
+		    # (d, plumb)    = jsPlumb d
+			# (d, plumb, _) = runObjectMethod d plumb "ready" [createEventHandler onReady iid]
+			= (d, {st & plumb = Just plumb})
 
-	
-		    //# (d, mapevent) = findObject d "google.maps.event" 
-			//# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "dragend", onChange]
-			//# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "maptypeid_changed", onChange]
-			//# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "zoom_changed", onChange]
-			= (d, {st & plumb = Just jsPlumb})
-		//where
-			//onChange = createEventHandler updatePerspective iid
-
-		// Google maps API doesn't like to be loaded twice	
 		onInit st iid e d
-			# (d, jsPlumb) = findObject d "jsPlumb"
-			| isUndefined jsPlumb 
+			# (d, plumb) = jsPlumb d
+			| isUndefined plumb 
 			= (loadPlumbAPI iid e d, st)
 			= onScriptLoad st iid e d
 		
 		onReady st iid e d
-			# (d, plumb) = findObject d "jsPlumb"
-			# (d, plumb, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject "block1",toHtmlObject targetOptions]
-			# (d, plumb, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject "block1",toHtmlObject sourceOptions]
-			# (d, plumb, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject "block2",toHtmlObject targetOptions]
-			# (d, plumb, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject "block2",toHtmlObject sourceOptions]						
-			# (d, plumb, _) = runObjectMethod d plumb "draggable" [toHtmlObject "block1"]
-			# (d, plumb, _) = runObjectMethod d plumb "draggable" [toHtmlObject "block2"]
+			# (d, plumb) = jsPlumb d
+			# (d, plumb) = addEndpoint plumb "block1" targetOptions d
+			# (d, plumb) = addEndpoint plumb "block1" sourceOptions d
+			# (d, plumb) = addEndpoint plumb "block2" targetOptions d
+			# (d, plumb) = addEndpoint plumb "block2" sourceOptions d
+			# (d, plumb) = draggable plumb "block1" d
+			# (d, plumb) = draggable plumb "block2" d
 			= (d, plumb)
 		
-		loadPlumbAPI iid e d	
-			# (d, window)  = findObject d "window"	
-			//# (d, _, _)    = setObjectAttr d window "gmapscallback" (createEventHandler onScriptLoad iid)
-	
-			= d
+		loadPlumbAPI _ _ d = d
 
 		nullEventHandler st _ _ d = (d, st)
 
 		onDestroy st=:{plumb = Just plumb} _ _ d
-		    # (d, mapevent) = findObject d "jsPlumb" 
-			# (d, mapevent, _) = runObjectMethod d mapevent "clearInstanceListeners" [plumb]
-		
 			// clear generated stuff
-			# (d, _) = setDomAttr d "plumb_place_holder" "innerHTML" ""
+			# (d, _) = setDomAttr d "plumb_canvas" "innerHTML" ""
 		
 			= (d, {st & plumb = Nothing})
 
 		onDestroy st _ _ d
 			= (d, st)
 
-		// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
-		onAfterLayout st=:{plumb = Just plumb} _ _ d
-		    //# (d, mapevent) = findObject d "google.maps.event" 
-			//# (d, mapevent, _) = runObjectMethod d mapevent "trigger" [plumb, toHtmlObject "resize"]
-		
-			= (d, st)
-
 		onAfterLayout st _ _ d
 			= (d, st)
+
+jsPlumb :: *HtmlDocument -> *(*HtmlDocument,HtmlObject)
+jsPlumb d = findObject d "jsPlumb"
+
+addEndpoint :: HtmlObject a b *HtmlDocument -> *(*HtmlDocument,HtmlObject)
+addEndpoint plumb target opts d
+	# (d, p, _) = runObjectMethod d plumb "addEndpoint" [toHtmlObject target,toHtmlObject opts]
+	= (d, p)
+
+draggable :: HtmlObject a *HtmlDocument -> *(*HtmlDocument,HtmlObject)
+draggable plumb target d
+	# (d, p, _) = runObjectMethod d plumb "draggable" [toHtmlObject target]
+	= (d, p)
 
 //-------------------------------------------------------------------------
 
