@@ -20,12 +20,22 @@ copy_to_string g = code {
 	.o 1 0
 }
 
-get_D_from_string :: !{#Char} !Int -> Int;
-get_D_from_string s i = code inline {
+get_D_from_string s i :== IF_INT_64_OR_32 (get_D_from_string_64 s i) (get_D_from_string_32 s i);
+
+get_D_from_string_32 :: !{#Char} !Int -> Int;
+get_D_from_string_32 s i = code inline {
 	push_a_b 0
 	pop_a 1
 	addI
 	load_i 8
+}
+
+get_D_from_string_64 :: !{#Char} !Int -> Int;
+get_D_from_string_64 s i = code inline {
+	push_a_b 0
+	pop_a 1
+	addI
+	load_i 16
 }
 
 get_D_arity :: !Int -> Int;
@@ -103,22 +113,46 @@ get_D_name d = code {
 	.o 1 0
 }
 
-get_D_cons_module :: !Int -> Int;
-get_D_cons_module d = code {
+get_D_cons_module d :== IF_INT_64_OR_32 (get_D_cons_module_64 d) (get_D_cons_module_32 d);
+
+get_D_cons_module_32 :: !Int -> Int;
+get_D_cons_module_32 d = code {
 	push_b 0
 	load_si16 0
 	addI
 	load_i 6
 }
 
-get_D_record_module :: !Int -> Int;
-get_D_record_module d = code {
+get_D_cons_module_64 :: !Int -> Int;
+get_D_cons_module_64 d = code {
+	push_b 0
+	load_si16 0
+	addI
+	load_si32 6
+}
+
+get_D_record_module d :== IF_INT_64_OR_32 (get_D_record_module_64 d) (get_D_record_module_32 d);
+
+get_D_record_module_32 :: !Int -> Int;
+get_D_record_module_32 d = code {
 	load_i -10
 }
 
-get_module_name_size :: !Int -> Int;
-get_module_name_size a = code {
+get_D_record_module_64 :: !Int -> Int;
+get_D_record_module_64 d = code {
+	load_si32 -10
+}
+
+get_module_name_size a :== IF_INT_64_OR_32 (get_module_name_size_64 a) (get_module_name_size_32 a);
+
+get_module_name_size_32 :: !Int -> Int;
+get_module_name_size_32 a = code {
 	load_i 0
+}
+
+get_module_name_size_64 :: !Int -> Int;
+get_module_name_size_64 a = code {
+	load_si32 0
 }
 
 get_module_name_char :: !Int !Int -> Char;
@@ -133,20 +167,40 @@ get_record_type_char a i = code {
 	load_ui8 2
 }
 
-get_array_elem_D :: !a !Int -> Int;
-get_array_elem_D a offset = code {
+get_array_elem_D a offset :== IF_INT_64_OR_32 (get_array_elem_D_64 a offset) (get_array_elem_D_32 a offset);
+
+get_array_elem_D_32 :: !a !Int -> Int;
+get_array_elem_D_32 a offset = code {
 	push_a_b 0
 	addI
 	pop_a 1
 	load_i 8
 }
 
-get_array_size :: !a !Int -> Int;
-get_array_size a offset = code {
+get_array_elem_D_64 :: !a !Int -> Int;
+get_array_elem_D_64 a offset = code {
+	push_a_b 0
+	addI
+	pop_a 1
+	load_i 16
+}
+
+get_array_size a offset :== IF_INT_64_OR_32 (get_array_size_64 a offset) (get_array_size_32 a offset);
+
+get_array_size_32 :: !a !Int -> Int;
+get_array_size_32 a offset = code {
 	push_a_b 0
 	addI
 	pop_a 1
 	load_i 4
+}
+
+get_array_size_64 :: !a !Int -> Int;
+get_array_size_64 a offset = code {
+	push_a_b 0
+	addI
+	pop_a 1
+	load_i 8
 }
 
 get_record_type :: !Int -> {#Char};
@@ -171,7 +225,7 @@ get_n_non_pointers_and_array_elem_desc d v offset
 		| is_Int_D d || is_Char_D d || is_Bool_D d
 			= (1,0);
 		| is_Real_D d
-			= (2,0);
+			= (IF_INT_64_OR_32 1 2,0);
 		| is__Array__D d
 			# ed=get_array_elem_D v offset;
 			| ed==0
@@ -179,13 +233,13 @@ get_n_non_pointers_and_array_elem_desc d v offset
 			| is_Int_D ed
 				= (2+get_array_size v offset,ed);
 			| is_Real_D ed
-				= (2+(get_array_size v offset<<1),ed);
+				= (2+(IF_INT_64_OR_32 (get_array_size v offset) (get_array_size v offset<<1)),ed);
 			| is_Bool_D ed
-				= (2+((get_array_size v offset+3)>>2),ed);
+				= (2+((get_array_size v offset+IF_INT_64_OR_32 7 3)>>(IF_INT_64_OR_32 3 2)),ed);
 				# arity = get_D_node_arity ed;
 				= (2 + get_array_size v offset * (arity-256-get_D_record_a_arity ed),ed);
 		| is__String__D d
-			= (1+((get_array_size v offset+3)>>2),0);
+			= (1+((get_array_size v offset+IF_INT_64_OR_32 7 3)>>(IF_INT_64_OR_32 3 2)),0);
 			= (0,0);
 	| arity < 256
 		= (0,0);
@@ -242,7 +296,10 @@ add_desc_or_mod_to_tree desc desc_n EmptyDescOrModTree
 
 store_int_in_string :: !*{#Char} !Int !Int -> *{#Char};
 store_int_in_string s i n
-	= {s & [i]=toChar n,[i+1]=toChar (n>>8),[i+2]=toChar (n>>16),[i+3]=toChar (n>>24)};
+	= IF_INT_64_OR_32
+		{s & [i]=toChar n,[i+1]=toChar (n>>8),[i+2]=toChar (n>>16),[i+3]=toChar (n>>24),
+			 [i+4]=toChar (n >> 32),[i+5]=toChar (n>>40),[i+6]=toChar (n>>48),[i+7]=toChar (n>>56)}
+		{s & [i]=toChar n,[i+1]=toChar (n>>8),[i+2]=toChar (n>>16),[i+3]=toChar (n>>24)};
 
 replace_descs_by_desc_numbers_and_build_desc_tree :: !Int !*{#Char} !Int !DescOrModTree -> (!*{#Char},!Int,!DescOrModTree);
 replace_descs_by_desc_numbers_and_build_desc_tree i s n_descs desc_tree
@@ -250,16 +307,16 @@ replace_descs_by_desc_numbers_and_build_desc_tree i s n_descs desc_tree
 		= (s,n_descs,desc_tree);
 	#! desc=get_D_from_string s i;
 	| desc bitand 1<>0
-		= replace_descs_by_desc_numbers_and_build_desc_tree (i+4) s n_descs desc_tree;
+		= replace_descs_by_desc_numbers_and_build_desc_tree (i+IF_INT_64_OR_32 8 4) s n_descs desc_tree;
 	| desc bitand 2==0
 		= abort ("unevaluated node in replace_descs_by_desc_numbers_and_build_desc_tree "+++toString desc);
 	#! a=cast_string_to_a s;
-	# (d,array_elem_desc) = get_n_non_pointers_and_array_elem_desc desc a (i+8);
+	# (d,array_elem_desc) = get_n_non_pointers_and_array_elem_desc desc a (i+IF_INT_64_OR_32 16 8);
 	# (s,n_descs,desc_tree) = store_desc_n_and_add_desc desc i s n_descs desc_tree;
 	| array_elem_desc==0
-		= replace_descs_by_desc_numbers_and_build_desc_tree (i+4+(d<<2)) s n_descs desc_tree;
-		# (s,n_descs,desc_tree) = store_desc_n_and_add_desc array_elem_desc (i+8) s n_descs desc_tree;
-		= replace_descs_by_desc_numbers_and_build_desc_tree (i+4+(d<<2)) s n_descs desc_tree;
+		= replace_descs_by_desc_numbers_and_build_desc_tree (i+IF_INT_64_OR_32 8 4+(d<<(IF_INT_64_OR_32 3 2))) s n_descs desc_tree;
+		# (s,n_descs,desc_tree) = store_desc_n_and_add_desc array_elem_desc (i+IF_INT_64_OR_32 16 8) s n_descs desc_tree;
+		= replace_descs_by_desc_numbers_and_build_desc_tree (i+IF_INT_64_OR_32 8 4+(d<<(IF_INT_64_OR_32 3 2))) s n_descs desc_tree;
 {}{
 	store_desc_n_and_add_desc :: Int Int !*{#Char} !Int !DescOrModTree -> (!*{#Char},!Int,!DescOrModTree);
 	store_desc_n_and_add_desc desc i s n_descs desc_tree
