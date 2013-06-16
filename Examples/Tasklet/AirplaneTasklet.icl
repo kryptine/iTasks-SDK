@@ -45,7 +45,7 @@ where
 	googleMapsGUI iid taskId Nothing iworld 
 		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo,
 		                                  waypoints = [], time = 0, wppos = 0,planejs = Nothing,waypointsjs = [],
-		                                  plane = Just (newMovingEntity 1 (fromDegrees (cla,clo)) 300.0 0)}) iworld
+		                                  plane = Just (newMovingEntity 1 ( (cla,clo)) 300.0 0)}) iworld
 
 	googleMapsGUI iid _ (Just st) iworld
 
@@ -166,7 +166,7 @@ where
 		// doStep is for simulation on the client
 		doStep st=:{GoogleMapsState|waypoints,plane = Just plane,time,wppos,planejs} _  _ d
 			# (plane=:{MovingEntity|position},wppos,time) = newPlanePosition ((plane,wppos,time),waypoints)
-			# position        = toDegrees position
+			# position        = position
 		    # (d, newpos)     = createObject d "google.maps.LatLng" [toHtmlObject (fst position), toHtmlObject (snd position)]
 			# (d, planejs, _) = runObjectMethod d (fromJust planejs) "setPosition" [newpos]
 			= (d, {st & plane = Just plane, time = time, wppos = wppos, planejs = Just planejs})	
@@ -196,9 +196,9 @@ setPosition obj position d
 newPlanePosition :: ((MovingEntity,Int,Int),[(Int,Real,Real)]) -> (MovingEntity,Int,Int)
 newPlanePosition ((plane,pos,time),[]) = ({plane&timeLate = time},pos,time + 1)
 newPlanePosition ((plane,pos,time),route) 
-# (plane,pos) = moveAlongWayPoints plane (map f route) pos time
+# (plane,pos) = moveAlongWayPointsDeg plane (map f route) pos time
 = (plane,pos,time + 1)
-where f = fromDegrees o g
+where f =  g
       g (_,la,lo) = (la,lo)
 
 //-------------------------------------------------------------------------
