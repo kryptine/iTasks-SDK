@@ -28,7 +28,7 @@ derive class iTask MovingEntity, EntityProperties
 
 simulateInteractive :: Task [LatLng]
 simulateInteractive
-	= withShared INITIAL_ROUTE
+	= withShared ROUTE2
 		\route -> simulateAirplanePosition route <<@ SetLayout (partLayout 0)
 	>&>
 		\mbPos -> interactWithSimulation (route >+| (mapRead fromJust mbPos))
@@ -37,9 +37,9 @@ simulateInteractive
 //First very simple simulation. Just round robin version of clock
 simulateAirplanePosition :: (Shared [LatLng]) -> Task (LatLng,Int) //Position and heading
 simulateAirplanePosition route
-	= withShared (newMovingEntity 0 (fromDegrees (INITIAL_ROUTE!! 0)) 300.0 0, 1, 0)
+	= withShared (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
 		(\state ->
-			watch (mapRead (\(plane,pos,time) -> (toDegrees plane.MovingEntity.position, toInt (radials2degrees plane.MovingEntity.direction))) state)
+			watch (mapRead (\(plane,pos,time) -> ( plane.MovingEntity.position, toInt ( plane.MovingEntity.direction))) state)
 			-||
 			//Step the position
 			forever (wait SIMULATE_INTERVAL >>- update newPlanePosition (state >+| route))
@@ -47,8 +47,8 @@ simulateAirplanePosition route
 where
 	newPlanePosition :: ((MovingEntity,Int,Int),[LatLng]) -> (MovingEntity,Int,Int)
 	newPlanePosition ((plane,pos,time),route)
-		# (plane,pos) = moveAlongWayPoints plane (map fromDegrees route) pos time
-		= (plane,pos,time + 10)
+		# (plane,pos) = moveAlongWayPointsDeg plane route pos time
+		= (plane,pos,time + 1)
 		
 //Interact with the running simulation
 interactWithSimulation :: (ReadWriteShared ([LatLng],(LatLng,Int)) [LatLng]) -> Task [LatLng]
@@ -62,7 +62,7 @@ where
 		planeIcon		= GoogleMapComplexIcon {image="jsf-sprite.png",size=(24,24),origin=(0, 24 * headingIndex),anchor=(12,12)}
 		headingIndex	= ((heading + 360) rem 360) / 15
 		waypointMarkers = [{GoogleMapMarker|defaultValue & title = Just ("Waypoint " <+++ i), position = {GoogleMapPosition|lat=lat,lng=lng}} \\ (lat,lng) <- route & i <- [1..]]
-		perspective		= {GoogleMapPerspective|defaultValue.perspective & center = {lat = 52.948300, lng = 4.776007}, zoom = 7}
+		perspective		= {GoogleMapPerspective|defaultValue.perspective & center = {lat = 52.948300, lng = 4.776007}, zoom = 11}
 		
 
 	fromPrj (route,_) map = route

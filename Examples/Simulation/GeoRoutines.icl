@@ -24,6 +24,9 @@ toDegrees ::  LatLng ->(Real,Real)
 toDegrees (e,t) = (radials2degrees e,radials2degrees t)
 
 // 3d part
+distanceDeg :: LatLng LatLng -> Real
+distanceDeg p1 p2 = distance (fromDegrees p1) (fromDegrees p2)
+
 distance :: LatLng LatLng -> Real
 distance p1 p2 = alpha * earth_radius
 where p1xyz = normalizedlatLong2XYZ p1
@@ -70,14 +73,26 @@ normalizeDirection direction | direction < ~pi = direction + 2.0 * pi
                              | direction > pi  = direction - 2.0 * pi
                                                = direction
       
+normalizeDirectionDeg :: !Real -> Real
+normalizeDirectionDeg direction | direction < -180.0 = direction + 360.0
+                                | direction > 180.0  = direction - 360.0
+                                                     = direction
+      
 translateDeg :: LatLng !Real !Real -> LatLng
-translateDeg pos dir dist = translate pos (degrees2radials dir) dist
+translateDeg pos dir dist = toDegrees (translate (fromDegrees pos) (degrees2radials dir) dist)
 
 translate :: LatLng !Real !Real -> LatLng
 translate (lat,lon) direction distance = normalizeLatLong (newlat,newlon)
 where newlat = lat + cos direction * distance / earth_radius
       newlon = lon + sin direction * distance / (earth_radius * cos lat)
       
+translateAlongCurveDeg :: LatLng !Real !Real !Real -> LatLng
+translateAlongCurveDeg pos direction angle radius 
+= toDegrees (translateAlongCurve (fromDegrees pos) 
+                       (degrees2radials direction) 
+                       (degrees2radials angle) 
+                       radius )
+
 translateAlongCurve :: LatLng !Real !Real !Real -> LatLng
 translateAlongCurve pos direction angle radius = translate pos (direction + angleDirection) distlinear
 where angleDirection = angle / 2.0
@@ -106,7 +121,10 @@ radius2angularVelocity :: !Real !Real -> Real
 radius2angularVelocity radius speed= speed / radius
 
 acceleration2angularVelocity :: !Real !Real -> Real
-acceleration2angularVelocity accel  speed = accel / speed;
+acceleration2angularVelocity accel  speed = accel / speed
+
+acceleration2angularVelocityDeg :: !Real !Real -> Real
+acceleration2angularVelocityDeg accel  speed = radials2degrees (accel / speed)
 
 angularVelocity2acceleration :: !Real !Real -> Real
 angularVelocity2acceleration w speed = speed / w
@@ -126,6 +144,14 @@ normsq p = inner2 p p
 // Relative position in plane
 relPosition :: LatLng LatLng -> (!Real,!Real)
 relPosition p1 p2 = dirDist2vector (getDirectionToPosition p1 p2) (distance p1 p2)
+
+deltaDirectionDeg :: !Real !Real -> Real
+deltaDirectionDeg currentDir nextDir = delta
+where 
+ deltaTemp = nextDir - currentDir
+ delta | deltaTemp < -180.0 = 360.0 + deltaTemp
+       | deltaTemp >180.0  = -360.0 + deltaTemp
+       | otherwise       = deltaTemp
 
 deltaDirection :: !Real !Real -> Real
 deltaDirection currentDir nextDir = delta
