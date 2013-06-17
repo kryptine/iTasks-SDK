@@ -16,41 +16,44 @@ import StdString, Data.Void
 :: HtmlEventHandlerFunc st :== (st ComponentId HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
 
 
-getDomElement :: !HtmlElementId !*HtmlWindow -> *(!a, !*HtmlWindow)
+// class JS a
+// class JSObject a | JS a
 
-getObjectAttr :: !a !HtmlObjAttr !*HtmlWindow -> *(!a, !b, !*HtmlWindow)
+getDomElement :: !HtmlElementId !*HtmlWindow -> *(!a, !*HtmlWindow) // | JSObject a
 
-setObjectAttr :: !a !HtmlObjAttr !b !*HtmlWindow -> *(!a, !b, !*HtmlWindow)
+getObjectAttr :: !a !HtmlObjAttr !*HtmlWindow -> *(!a, !b, !*HtmlWindow) // | JSObject a & JS b
 
-runObjectMethod :: !a !String ![b] !*HtmlWindow -> *(!a, !c, !*HtmlWindow)
+setObjectAttr :: !a !HtmlObjAttr !b !*HtmlWindow -> *(!a, !b, !*HtmlWindow) // | JSObject a & JS b
+
+runObjectMethod :: !a !String ![b] !*HtmlWindow -> *(!a, !c, !*HtmlWindow) // | JSObject a & JS b & JS c
 
 getDomAttr :: !HtmlElementId !HtmlObjAttr !*HtmlWindow -> *(!String, !*HtmlWindow)
 
-setDomAttr :: !HtmlElementId !HtmlObjAttr !a !*HtmlWindow -> *(!a, !*HtmlWindow)
+setDomAttr :: !HtmlElementId !HtmlObjAttr !a !*HtmlWindow -> *(!a, !*HtmlWindow) // | JS a
 
 /*
 * Find a browser object or constant like:
 * - window, document
 * - google.maps.MapTypeId.ROADMAP
 */
-findObject :: !String !*HtmlWindow -> *(!a, !*HtmlWindow)
+findObject :: !String !*HtmlWindow -> *(!a, !*HtmlWindow) // | JSObject a
 
 /*
 * Create a JS object, like:
 * - new google.maps.LatLng(-34.397, 150.644)
 */
-createObject :: !String ![a] !*HtmlWindow -> *(!b, !*HtmlWindow)
+createObject :: !String ![a] !*HtmlWindow -> *(!b, !*HtmlWindow) // | JS a & JSObject b
 
 /*
 * Load external JS by its URL. A continuation must be given,
 * which is called when script is actually loaded
 */
-loadExternalJS :: !String !a !*HtmlWindow -> *HtmlWindow
+loadExternalJS :: !String !a !*HtmlWindow -> *HtmlWindow // | JS a
 
-isUndefined :: !a !*HtmlWindow -> (!Bool, !*HtmlWindow)
+isUndefined :: !a !*HtmlWindow -> (!Bool, !*HtmlWindow) // | JS a
 
 // calls SAPL.toJS
-toHtmlObject :: !a !*HtmlWindow -> (!HtmlObject, !*HtmlWindow)
+toHtmlObject :: !a !*HtmlWindow -> (!b, !*HtmlWindow) // | JS b
 
 // does nothing, use it carefully!
-fromHtmlObject :: !HtmlObject !*HtmlWindow -> (!a, !*HtmlWindow) 
+fromHtmlObject :: !b !*HtmlWindow -> (!a, !*HtmlWindow) // | JS b
