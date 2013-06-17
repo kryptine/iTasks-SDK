@@ -36,7 +36,7 @@ createObject objname args win = undef
 loadExternalJS :: !String !a !*HtmlWindow -> *HtmlWindow
 loadExternalJS url continuation win = undef
 
-isUndefined :: !HtmlObject !*HtmlWindow -> (!Bool, !*HtmlWindow)
+isUndefined :: !a !*HtmlWindow -> (!Bool, !*HtmlWindow)
 isUndefined object win = undef
 
 toHtmlObject :: !a !*HtmlWindow -> (!HtmlObject, !*HtmlWindow)

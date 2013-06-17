@@ -47,7 +47,7 @@ createObject :: !String ![a] !*HtmlWindow -> *(!b, !*HtmlWindow)
 */
 loadExternalJS :: !String !a !*HtmlWindow -> *HtmlWindow
 
-isUndefined :: !HtmlObject !*HtmlWindow -> (!Bool, !*HtmlWindow)
+isUndefined :: !a !*HtmlWindow -> (!Bool, !*HtmlWindow)
 
 // calls SAPL.toJS
 toHtmlObject :: !a !*HtmlWindow -> (!HtmlObject, !*HtmlWindow)
