@@ -13,7 +13,7 @@ import StdString, Data.Void
 :: ComponentId :== String
 
 :: HtmlEvent st = HtmlEvent !HtmlElementId !HtmlEventName (HtmlEventHandlerFunc st)
-:: HtmlEventHandlerFunc st :== (st TaskInstanceId HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
+:: HtmlEventHandlerFunc st :== (st ComponentId HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
 
 
 getDomElement :: !HtmlElementId !*HtmlWindow -> *(!a, !*HtmlWindow)
