@@ -3,7 +3,7 @@ implementation module iTasks.API.Common.CommonCombinators
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
-import Text, System.Time, Data.Tuple, Data.List, Data.Either
+import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Framework.Util, iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate, iTasks.Framework.GenRecord
 from StdFunc			import id, const, o
 from iTasks.API.Core.SystemTypes		import :: User(..), :: Note(..)

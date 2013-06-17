@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.GenUpdate
 
-import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Data.Maybe, StdGeneric, StdEnum, Data.Tuple, Data.List, Text, Text.JSON
+import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Data.Maybe, StdGeneric, StdEnum, Data.Tuple, Data.List, Text, Text.JSON, Data.Functor
 import iTasks.Framework.Util
 import iTasks.API.Core.SystemTypes
 

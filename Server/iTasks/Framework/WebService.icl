@@ -203,14 +203,12 @@ where
 		scriptfiles = (IF_CLIENT_DEV ["ext/ext-debug.js"] [])
 			++  ["app/taskeval/utils.js","app/taskeval/itask.js" //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
 				,"app/taskeval/builtin.js","app/taskeval/sapl.js"
+				,"app/taskeval/editlet.js"
 				,"app/taskeval/db.js", "app/taskeval/debug.js"
 				,"app/taskeval/editlet.js"
 				,"lib/codemirror-2.36/codemirror.js"
 				]
 			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"])
-			++ (IF_CLIENT_DEV ["lib/jquery/jquery-2.0.2.js"] ["lib/jquery/jquery-2.0.2.min.js"])
-			++ (IF_CLIENT_DEV ["lib/jquery/jquery-ui-1.10.3.js"] ["lib/jquery/jquery-ui-1.10.3.min.js"])
-			++ (IF_CLIENT_DEV ["lib/jsplumb/jquery.jsplumb-1.4.1-all.js"] ["lib/jsplumb/jquery.jsplumb-1.4.1-all-min.js"])
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
