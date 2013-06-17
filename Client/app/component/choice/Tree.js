@@ -60,9 +60,7 @@ Ext.define('itwc.component.choice.Tree',{
 		this.selectedNode = value;
 		this.viewport = this.viewport || this.up('viewport');
 		
-		if(record.isLeaf()) {
-			this.viewport.fireEvent('edit', this.taskId, this.editorId, ["sel",value,true]);
-		}
+		this.viewport.fireEvent('edit', this.taskId, this.editorId, ["sel",value,true]);
 	},
 	getValue: function() {
 		return this.selectedNode;
