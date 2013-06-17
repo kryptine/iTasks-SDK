@@ -167,20 +167,20 @@ where
 		  newpos = first_char_pos + ((strsize + IF_INT_64_OR_32 7 3) bitand (IF_INT_64_OR_32 (-8) (-4)))
 		= (StringS (str % (first_char_pos,first_char_pos + strsize - 1)), newpos)
 
-	makeUnboxedArray typedes size pos  
-	    | typedes%(0,0) == "i" || typedes%(0,0) == "b" || typedes%(0,0) == "c" 
+	makeUnboxedArray typedes size pos
+		# t=typedes.[0];
+	    | t=='i' || t=='b' || t=='c' || t=='r'
 	     # (elems,rest) = readUMany typedes.[0] size pos  []
 	     = (ArrayS size elems,rest)
-	    | typedes%(0,0) == "R"  
+	    | t=='R'  
 	    = makeUnBoxedArrayOfRecords size (pos-IF_INT_64_OR_32 8 4)
-	     
-	
+
 	readUDMany types 0 pos res        = (res,pos)
 	readUDMany ['r':types] n pos res = readUDMany types (n-IF_INT_64_OR_32 1 2) (pos+8) (res ++ [makeRealType pos])
 	readUDMany [type:types] n pos res = readUDMany types (n-1) (pos+IF_INT_64_OR_32 8 4) (res ++ [makeType type pos])
 	
 	readUMany type 0 pos res = (res,pos)
-	readUMany type=:'r' n pos res = readUMany type (n-2) (pos+IF_INT_64_OR_32 16 8) (res ++ [makeRealType pos])
+	readUMany type=:'r' n pos res = readUMany type (n-IF_INT_64_OR_32 1 2) (pos+8) (res ++ [makeRealType pos])
 	readUMany type n pos res = readUMany type (n-1) (pos+IF_INT_64_OR_32 8 4) (res ++ [makeType type pos])
 	
 	makeBoxedArray size pos 
