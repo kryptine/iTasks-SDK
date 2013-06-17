@@ -39,9 +39,9 @@ loadExternalJS url continuation win = undef
 isUndefined :: !a !*HtmlWindow -> (!Bool, !*HtmlWindow)
 isUndefined object win = undef
 
-toHtmlObject :: !a !*HtmlWindow -> (!HtmlObject, !*HtmlWindow)
+toHtmlObject :: !a !*HtmlWindow -> (!b, !*HtmlWindow)
 toHtmlObject a win = undef
 
-fromHtmlObject :: !HtmlObject !*HtmlWindow -> (!a, !*HtmlWindow) 
+fromHtmlObject :: !b !*HtmlWindow -> (!a, !*HtmlWindow) 
 fromHtmlObject obj win = undef
 
