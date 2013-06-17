@@ -167,7 +167,10 @@ Int *copy_string_to_graph (Int *string_p,void *begin_free_heap,void *end_free_he
 							array_size=string_p[1];
 							elem_desc=string_p[2];
 							string_p+=3;
-		
+#ifdef MACH_O64
+							if (elem_desc!=0)
+								elem_desc+=(Int)&__ARRAY__;
+#endif
 							heap_p[1]=array_size;
 							heap_p[2]=elem_desc;
 							heap_p+=3;
@@ -727,7 +730,7 @@ void remove_forwarding_pointers_from_string (Int *string_p,Int *end_forwarding_p
 						array_size=string_p[1];
 						elem_desc=string_p[2];
 						string_p+=3;
-													
+
 						if (elem_desc==0){
 						} else if (elem_desc==(Int)&INT_descriptor+2
 #if ARCH_64

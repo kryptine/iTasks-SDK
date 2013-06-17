@@ -137,7 +137,11 @@ Int *copy_graph_to_string (Int *node_p,void *begin_free_heap,void *end_free_heap
 							node_p+=3;
 		
 							heap_p[0]=array_size;
+#ifdef MACH_O64
+							heap_p[1]=elem_desc==0 ? elem_desc : elem_desc-(Int)&__ARRAY__;
+#else
 							heap_p[1]=elem_desc;
+#endif
 							heap_p+=2;
 													
 							if (elem_desc==0){
@@ -500,7 +504,7 @@ void remove_forwarding_pointers_from_graph (Int *node_p,Int **stack_end)
 						Int elem_desc;
 
 						elem_desc=node_p[2];
-													
+
 						if (elem_desc==0){
 							Int array_size;
 							
