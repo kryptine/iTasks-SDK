@@ -1,22 +1,22 @@
-function __ClientInterface_getDomElement(id, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_getDomElement(id, w){
+    w = Sapl.feval(w);
     id = Sapl.feval(id);
     
-    return ___predefined__Tuple2(d.getElementById(id), d);
+    return ___predefined__Tuple2(w.document.getElementById(id), w);
 }
 
-function __ClientInterface_getObjectAttr(e, attr, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_getObjectAttr(e, attr, w){
+    w = Sapl.feval(w);
     e = Sapl.feval(e);
     attr = Sapl.feval(attr);    
     
     var value = eval("e."+attr+";");
     
-    return ___predefined__Tuple3(e, value, d);
+    return ___predefined__Tuple3(e, value, w);
 }
 
-function __ClientInterface_runObjectMethod(obj, method, params, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_runObjectMethod(obj, method, params, w){
+    w = Sapl.feval(w);
     params = Sapl.toJS(Sapl.feval(params));
     obj = Sapl.feval(obj);
     method = Sapl.feval(method);
@@ -27,11 +27,11 @@ function __ClientInterface_runObjectMethod(obj, method, params, d){
 	}
 	
     var value = streval.apply(null, eargs);
-    return ___predefined__Tuple3(obj, value, d);
+    return ___predefined__Tuple3(obj, value, w);
 }
 
-function __ClientInterface_setObjectAttr(e, attr, value, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_setObjectAttr(e, attr, value, w){
+    w = Sapl.feval(w);
     e = Sapl.feval(e);
     value = Sapl.toJS(Sapl.feval(value));
     attr = Sapl.feval(attr);      
@@ -42,30 +42,30 @@ function __ClientInterface_setObjectAttr(e, attr, value, d){
 	}
 	
     eval("e."+attr+"=value;");
-    return ___predefined__Tuple3(e, value, d);
+    return ___predefined__Tuple3(e, value, w);
 }
 
-function __ClientInterface_getDomAttr(id, attr, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_getDomAttr(id, attr, w){
+    w = Sapl.feval(w);
     id = Sapl.feval(id);
     attr = Sapl.feval(attr);
 
-    var value = eval("d.getElementById(\""+id+"\")."+attr+";");
-    return ___predefined__Tuple2(value, d);
+    var value = eval("w.document.getElementById(\""+id+"\")."+attr+";");
+    return ___predefined__Tuple2(value, w);
 }
 
-function __ClientInterface_setDomAttr(id, attr, value, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_setDomAttr(id, attr, value, w){
+    w = Sapl.feval(w);
     value = Sapl.feval(value);
     id = Sapl.feval(id);
     attr = Sapl.feval(attr);
     
-    eval("d.getElementById(\""+id+"\")."+attr+"=value;");
-    return ___predefined__Tuple2(value, d);
+    eval("w.document.getElementById(\""+id+"\")."+attr+"=value;");
+    return ___predefined__Tuple2(value, w);
 }
 
-function __ClientInterface_findObject(name, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_findObject(name, w){
+    w = Sapl.feval(w);
     name = Sapl.feval(name);
 
     var obj;
@@ -75,11 +75,11 @@ function __ClientInterface_findObject(name, d){
 		// possibly undefined. don't do anything. 
 	}
 	
-    return ___predefined__Tuple2(obj, d);
+    return ___predefined__Tuple2(obj, w);
 }
 
-function __ClientInterface_createObject(obj, params, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_createObject(obj, params, w){
+    w = Sapl.feval(w);
     params = Sapl.toJS(Sapl.feval(params));
     obj = Sapl.feval(obj);
 
@@ -89,11 +89,11 @@ function __ClientInterface_createObject(obj, params, d){
 	}
 	
     var value = streval.apply(null, eargs);	
-    return ___predefined__Tuple2(value, d);
+    return ___predefined__Tuple2(value, w);
 }
 
-function __ClientInterface_loadExternalJS(url, continuation, d){
-    d = Sapl.feval(d);
+function __iTasks_Framework_ClientInterface_loadExternalJS(url, continuation, w){
+    w = Sapl.feval(w);
     continuation = Sapl.feval(continuation);
     url = Sapl.feval(url);	
 		
@@ -104,23 +104,23 @@ function __ClientInterface_loadExternalJS(url, continuation, d){
     script.setAttribute("src", url);
     document.getElementsByTagName("head")[0].appendChild(script);
 	
-    return d;
+    return w;
 }
 
-function __ClientInterface_isUndefined(obj, win){
+function __iTasks_Framework_ClientInterface_isUndefined(obj, win){
     win = Sapl.feval(win);
     obj = Sapl.feval(obj);
 	
     return ___predefined__Tuple2(obj == null, win);
 }
 
-function __ClientInterface_toHtmlObject(val, win){
+function __iTasks_Framework_ClientInterface_toHtmlObject(val, win){
   win = Sapl.feval(win);
   val = Sapl.feval(val);
   return ___predefined__Tuple2(Sapl.toJS(val), win);
 }
 
-function __ClientInterface_fromHtmlObject(obj, win){
+function __iTasks_Framework_ClientInterface_fromHtmlObject(obj, win){
   return ___predefined__Tuple2(Sapl.feval(obj), win);
 }
 

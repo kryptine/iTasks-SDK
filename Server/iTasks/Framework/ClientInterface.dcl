@@ -2,8 +2,6 @@ definition module iTasks.Framework.ClientInterface
 
 import StdString, Data.Void
 
-// :: EventQueue
-:: HtmlDocument
 :: HtmlWindow
 :: HtmlObject
 
@@ -12,9 +10,8 @@ import StdString, Data.Void
 :: HtmlEventName :== String
 :: ComponentId :== String
 
-:: HtmlEvent st = HtmlEvent !HtmlElementId !HtmlEventName (HtmlEventHandlerFunc st)
-:: HtmlEventHandlerFunc st :== (st ComponentId HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
-
+:: ComponentEvent a = ComponentEvent !HtmlElementId !HtmlEventName (ComponentEventHandlerFunc a)
+:: ComponentEventHandlerFunc a :== (ComponentId HtmlObject a *HtmlWindow -> *(a, !*HtmlWindow))
 
 // class JS a
 // class JSObject a | JS a

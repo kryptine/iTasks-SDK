@@ -33,6 +33,7 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UI
 from iTasks.Framework.Task				import :: Task, :: TaskId
 from iTasks.Framework.iTaskClass		import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from iTasks.Framework.ClientInterface	import :: ComponentEvent, :: ComponentId
 from iTasks.API.Core.LayoutCombinators	import :: Layout
 
 //****************************************************************************//
@@ -399,6 +400,32 @@ derive gHeaders			Hidden, Display, Editable, VisualizationHint
 derive gGridRows		Hidden, Display, Editable, VisualizationHint
 derive gUpdate			Hidden, Display, Editable, VisualizationHint
 derive gVerify			Hidden, Display, Editable, VisualizationHint
+
+//****************************************************************************//
+// Wrapper types for defining custom editor components that can process events
+// that are defined server-side but run client-side
+//****************************************************************************//
+
+:: Editlet a d =
+	{	value		:: a 
+	,	html		:: ComponentId -> HtmlTag
+	,	handlers	:: [ComponentEvent a]
+	//	Functions for efficient bidirectional synchronisation of the editlet value
+	,	genDiff		:: a a -> Maybe d
+	,	appDiff		:: d a -> a
+	}
+
+derive JSONEncode		Editlet
+derive JSONDecode		Editlet
+derive gDefault			Editlet
+derive gEq				Editlet
+derive gVisualizeText	Editlet
+derive gVisualizeEditor	Editlet
+derive gHeaders			Editlet
+derive gGridRows		Editlet
+derive gUpdate			Editlet
+derive gVerify			Editlet
+
 
 //****************************************************************************//
 // Framework types.

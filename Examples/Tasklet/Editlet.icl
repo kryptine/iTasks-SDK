@@ -1,13 +1,13 @@
 module Editlet
 
 import iTasks
-import Tasklet
+import iTasks.Framework.ClientInterface
 
 :: TimeDelta = SetSec !Int | SetMin !Int | SetHour !Int
 derive class iTask TimeDelta
 
 buienLet :: Editlet String Void
-buienLet = {Editlet|value="Buienradar",html=const (HtmlDef html), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
+buienLet = {Editlet|value="Buienradar",html=const (RawText html), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
 where
 	html = "<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>"
 
@@ -15,36 +15,36 @@ where
 derive class iTask StringDelta
 
 stringlet :: Editlet String [String]
-stringlet = {Editlet|value = "Hello world",html = \id -> HtmlDef (TextareaTag [IdAttr id] [])
-			,handlers = [HtmlEvent "editlet" "init" onUpdate
-						,HtmlEvent "editlet" "update" onUpdate
-						,HtmlEvent "editlet" "keyup" onChange]
+stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id] []
+			,handlers = [ComponentEvent "editlet" "init" onUpdate
+						,ComponentEvent "editlet" "update" onUpdate
+						,ComponentEvent "editlet" "keyup" onChange]
 			,genDiff = \o n -> if (o == n) Nothing (Just [n,n])
 			,appDiff = \n _ -> hd n
 			}
 where
-	onUpdate :: String TaskInstanceId HtmlObject *HtmlDocument -> *(!*HtmlDocument, String)
-	onUpdate val id event doc
-		# (doc,_) 	= setDomAttr doc id "value" val
-		= (doc,val)
+	onUpdate :: ComponentId HtmlObject String *HtmlWindow -> *(String, !*HtmlWindow)
+	onUpdate id event val win
+		# (_,win) 	= setDomAttr id "value" val win
+		= (val,win)
 	
-	onChange :: String TaskInstanceId HtmlObject *HtmlDocument -> *(!*HtmlDocument, String)
-	onChange val id event doc = getDomAttr doc id "value"
+	onChange :: ComponentId HtmlObject String *HtmlWindow -> *(String, !*HtmlWindow)
+	onChange id event val win = getDomAttr id "value" win
 
 timeEditlet :: Time -> Editlet Time [TimeDelta]
 timeEditlet t =	{Editlet
 				|value		= t
-				,html		= \id -> HtmlDef ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
-				,handlers	= [HtmlEvent "editlet" "init" onUpdate, HtmlEvent "editlet" "update" onUpdate]
+				,html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
+				,handlers	= [ComponentEvent "editlet" "init" onUpdate, ComponentEvent "editlet" "update" onUpdate]
 				,genDiff	= genDiff
 				,appDiff	= appDiff
 				}
 where
-	onUpdate :: Time TaskInstanceId HtmlObject *HtmlDocument -> *(!*HtmlDocument, Time)
-	onUpdate val id obj doc
-		# (doc,_) 	= setDomAttr doc id "innerHTML" (toString val)
-		# (doc,_)	= setDomAttr doc id "style.color" (colors !! (val.Time.sec rem (length colors)))
-		= (doc,val)
+	onUpdate :: ComponentId HtmlObject Time *HtmlWindow -> *(Time, !*HtmlWindow)
+	onUpdate id obj val win
+		# (_,win) 	= setDomAttr id "innerHTML" (toString val) win
+		# (_,win)	= setDomAttr id "style.color" (colors !! (val.Time.sec rem (length colors))) win
+		= (val,win)
 		
 	colors = ["#f0f","#00f","#f00","#30f","#ff0","#66f"]
 	
@@ -71,4 +71,4 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> repeatn 2 (timeEditlet
 test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
 
 Start :: *World -> *World
-Start world = startEngine test world
+Start world = startEngine test3 world

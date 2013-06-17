@@ -8,7 +8,7 @@ import iTasks.API.Core.SystemTypes
 
 //Flag for disabling use of the compiled version of the client javascript
 //only useful when doing work on the client framework
-IF_CLIENT_DEV yes no	:== no
+IF_CLIENT_DEV yes no	:== yes
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
