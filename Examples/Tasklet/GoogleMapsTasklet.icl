@@ -39,29 +39,36 @@ ROUTE2 = [(52.9047608002297, 4.7124481201171875),(52.904346653702405, 4.84016418
          (52.83927653705786, 4.857330322265625),(52.82932091031373, 4.7076416015625)]
 
 
+tasklet :: Task ([LatLng],Maybe MovingEntity)
 tasklet = withShared (ROUTE2,Just (newMovingEntity 0 (ROUTE2!! 0) 300.0 0)) 
                (\state -> 	interactWithSimulation state
                      -||    simulateAirplanePosition state)
+tasklet1 :: Task ([LatLng],Maybe MovingEntity)
+tasklet1 = withShared ([],Nothing) 
+               (\state -> 	interactWithSimulation state
+                     -||    simulateAirplanePosition state
+                     -||    viewSharedInformation "state" [] state)
                    
 simulateAirplanePosition :: (Shared ([LatLng],Maybe MovingEntity)) -> Task ((Int,Int),([LatLng],Maybe MovingEntity)) 
 simulateAirplanePosition state
-	= withShared (1, 0)
+	= withShared (0, 0)
 		(\postime ->
 			forever (wait 1 >>- update newPlanePosition (postime >+< state))
 		) 
 
 newPlanePosition :: ((Int,Int),([(Real,Real)],Maybe MovingEntity)) -> ((Int,Int),([(Real,Real)],Maybe MovingEntity))
 newPlanePosition ((pos,time),([],Just plane)) = ((pos,time + 1),([],Just {plane&timeLate = time}))
-newPlanePosition ((pos,time),(route,Nothing)) = ((pos,time + 1),(route,Nothing))
+newPlanePosition ((pos,time),([],Nothing))    = ((pos,time + 1),([],Nothing))
+newPlanePosition ((pos,time),([wp:route],Nothing)) = ((pos+1,time + 1),([wp:route],Just (newMovingEntity 0 wp 300.0 (time+1))))
 newPlanePosition ((pos,time),(route,Just plane)) 
 # (plane,pos) = moveAlongWayPointsDeg plane route pos time
 = ((pos,time + 1),(route,Just plane))
 
 interactWithSimulation :: (Shared ([(!Real,!Real)],Maybe MovingEntity))  -> Task ([(!Real,!Real)],Maybe MovingEntity)
 interactWithSimulation state 
-= 
- mkInstanceId >>= \iid -> 
+= mkInstanceId >>= \iid -> 
 	  		  (mkTaskWithShared (iid, googleMapsTasklet (52.8825984009408,4.74849700927734) 10) state updateFun  @> (mapWp,state)) 
+
 updateFun (wps,plane) st = {st & waypoints = wps, plane = plane}
 mapWp (Value wpp _) _ = Just wpp
 
@@ -74,9 +81,13 @@ googleMapsTasklet (cla,clo) zoom =
 	}
 where
 	googleMapsGUI iid taskId Nothing iworld 
-		= googleMapsGUI iid taskId (Just {map = Nothing, center = (cla, clo),
-		                                  waypoints = [], planejs = Nothing,waypointsjs = [],
-		                                  plane = Just (newMovingEntity 1 ( (cla,clo)) 300.0 0),initialized = False}) iworld
+		= googleMapsGUI iid taskId (Just { map         = Nothing
+		                                 , center      = (cla, clo)
+		                                 , waypoints   = []
+		                                 , planejs     = Nothing
+		                                 , waypointsjs = []
+		                                 , plane       = Nothing 
+		                                 , initialized = False}) iworld
 
 	googleMapsGUI iid _ (Just st) iworld
 
@@ -157,10 +168,10 @@ where
 
 		// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
 		onResize st=:{GoogleMapsState| map = Just map} _ _ d
-		    # (d, mapevent) = findObject d "google.maps.event" 
+		    # (d, mapevent)    = findObject d "google.maps.event" 
 			# (d, mapevent, _) = runObjectMethod d mapevent "trigger" [map, toHtmlObject "resize"]		
-		    # (d, center) = createObject d "google.maps.LatLng" [toHtmlObject(fst (st.GoogleMapsState.center)), toHtmlObject (snd (st.GoogleMapsState.center))]
-			# (d, map, _) = runObjectMethod d map "setCenter" [center]	
+		    # (d, center)      = createObject d "google.maps.LatLng" [toHtmlObject(fst (st.GoogleMapsState.center)), toHtmlObject (snd (st.GoogleMapsState.center))]
+			# (d, map, _)      = runObjectMethod d map "setCenter" [center]	
 		
 			= (d, st)
 
@@ -190,6 +201,9 @@ where
                                                = (la,lo)
                                                
 		updateView :: GoogleMapsState *HtmlDocument -> (*HtmlDocument,GoogleMapsState)
+		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Nothing,planejs = Nothing} d
+		= (d,{st&initialized = True})
+		
 		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Just plane=:{MovingEntity|position},planejs = Nothing} d
 		# (d, newpos)     = createObject d "google.maps.LatLng" [toHtmlObject (fst position), toHtmlObject (snd position)]
 		# (d, planejs)     = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = newpos, 
