@@ -1,8 +1,8 @@
-module GoogleMapsTasklet
+module GoogleMapsTasklet2
 
 import iTasks, Tasklet
 import Text.StringAppender, graph_to_sapl_string, MovingEntity
-import sapldebug
+import sapldebug//, StdListExtensions
 
 taskletExamples :: [Workflow]
 taskletExamples =
@@ -14,7 +14,7 @@ Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageW
 
 :: GoogleMapsOptions = {center    :: HtmlObject
           			   ,zoom      :: Int
-          			   ,mapTypeId :: HtmlObject
+          		 	   ,mapTypeId :: HtmlObject
         			   }
  
 :: GoogleMapsState = {map         :: Maybe HtmlObject
@@ -195,17 +195,26 @@ where
 		# (d, planejs)     = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = newpos, 
 					                                                                        title = toHtmlObject "JSF",draggable = False, 
 					                                                                        icon = Just (toHtmlObject "icons/jsf.png")}]	
-		#(newwpsjs,d) = doElems waypoints waypointsjs d
-		# curid       = length waypointsjs
-		#(d,extrawps) = createWaypoints curid map (drop curid waypoints)  d
-		= (d, {st & waypointsjs = waypointsjs ++ extrawps, initialized = True, planejs = Just planejs})
+		//#(newwpsjs,d) = doElems waypoints waypointsjs d
+		//# curid       = length waypointsjs
+		//#(d,extrawps) = createWaypoints curid map (drop curid waypoints)  d
+		= (d, {st & waypointsjs = waypointsjs, initialized = True, planejs =  Just planejs})
+
+		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Just plane=:{MovingEntity|position},planejs = Just planejs} d
+		//# (d, newpos)     = createObject d "google.maps.LatLng" [toHtmlObject (fst position), toHtmlObject (snd position)]
+		//# (d, planejs)     = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = newpos, 
+		//			                                                                        title = toHtmlObject "JSF",draggable = False, 
+		//			                                                                        icon = Just (toHtmlObject "icons/jsf.png")}]	
+		//#(newwpsjs,d) = doElems waypoints waypointsjs d
+		//# curid       = length waypointsjs
+		//#(d,extrawps) = createWaypoints curid map (drop curid waypoints)  d
+		# (planejs,d) = deleteMarker planejs d
+		# (waypointsjs,d) = umap deleteMarker waypointsjs d  
+		= (d, {st & waypointsjs = waypointsjs, initialized = True, planejs =  Just planejs})
 					                                                                        	
-		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Just plane=:{MovingEntity|position},planejs = Just planejs} d 
-		#(newwpsjs,d) = doElems waypoints waypointsjs d
-		#(d,planejs)  = setPosition planejs position d
-		# curid       = length waypointsjs
-		#(d,extrawps) = createWaypoints curid map (drop curid waypoints)  d
-		= (d, {st & waypointsjs = waypointsjs ++ extrawps, initialized = True, planejs = Just planejs})
+		deleteMarker marker d
+		# (d,marker,_)   = runObjectMethod d marker "setMap" [toHtmlObject Void]
+		= (marker,d)
 		
 		doElems :: [(!Real,!Real)] [HtmlObject] *HtmlDocument -> ([HtmlObject],*HtmlDocument)
 		doElems [] ws d  = (ws,d)
@@ -262,4 +271,10 @@ returnC v _ = return v
 
 returnV :: (TaskValue a) -> Task a | iTask a
 returnV (Value v _) = return v
+
+umap f [] d     = ([],d)
+umap f [x:xs] d
+# (fx,d)   = f x d
+# (fxs,d)  = umap f xs d
+=([fx:fxs],d)
 
