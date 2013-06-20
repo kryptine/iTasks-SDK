@@ -3,11 +3,12 @@ module GoogleMapsTasklet
 import iTasks, Tasklet
 import Text.StringAppender, graph_to_sapl_string, MovingEntity
 import sapldebug
+from StdEnv import undef
 
 taskletExamples :: [Workflow]
 taskletExamples =
-	[workflow "Google MAP with sharing" "Basic Google Maps functionality" tasklet]
-    
+	[workflow "Google MAP with sharing" "Basic Google Maps functionality" tasklet1]
+     
 Start :: *World -> *World
 //Start world = startEngine tasklet0 world
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist taskletExamples)) world
@@ -24,6 +25,7 @@ Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageW
 					 ,planejs     :: Maybe HtmlObject
 					 ,waypointsjs :: [HtmlObject]
 					 ,initialized :: Bool
+					 ,hack       :: MovingEntity
 					 }
 
 :: MarkerOptions = {map        ::  HtmlObject
@@ -35,18 +37,26 @@ Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageW
 
 derive class iTask MovingEntity, EntityProperties
 
-ROUTE2 = [(52.9047608002297, 4.7124481201171875),(52.904346653702405, 4.8401641845703125),
-         (52.83927653705786, 4.857330322265625),(52.82932091031373, 4.7076416015625)]
+ROUTE2 = [(52.9047608002297, 4.7124481201171875),(52.904346653702405, 4.8401641845703125)]
+         //,(52.83927653705786, 4.857330322265625),(52.82932091031373, 4.7076416015625)]
 
 
 tasklet :: Task ([LatLng],Maybe MovingEntity)
 tasklet = withShared (ROUTE2,Just (newMovingEntity 0 (ROUTE2!! 0) 300.0 0)) 
                (\state -> 	interactWithSimulation state
                      -||    simulateAirplanePosition state)
+
+
 tasklet1 :: Task ([LatLng],Maybe MovingEntity)
 tasklet1 = withShared ([],Nothing) 
-               (\state -> 	interactWithSimulation state
+               (\state -> 	interactWithSimulation state 
+                     //-||    viewSharedInformation "state" [] state
                      -||    simulateAirplanePosition state
+               )
+                   
+//tasklet2 :: Task ([LatLng],Maybe MovingEntity)
+tasklet2 = withShared (ROUTE2,Nothing) 
+               (\state -> 	simulateAirplanePosition state
                      -||    viewSharedInformation "state" [] state)
                    
 simulateAirplanePosition :: (Shared ([LatLng],Maybe MovingEntity)) -> Task ((Int,Int),([LatLng],Maybe MovingEntity)) 
@@ -59,7 +69,7 @@ simulateAirplanePosition state
 newPlanePosition :: ((Int,Int),([(Real,Real)],Maybe MovingEntity)) -> ((Int,Int),([(Real,Real)],Maybe MovingEntity))
 newPlanePosition ((pos,time),([],Just plane)) = ((pos,time + 1),([],Just {plane&timeLate = time}))
 newPlanePosition ((pos,time),([],Nothing))    = ((pos,time + 1),([],Nothing))
-newPlanePosition ((pos,time),([wp:route],Nothing)) = ((pos+1,time + 1),([wp:route],Just (newMovingEntity 0 wp 300.0 (time+1))))
+newPlanePosition ((pos,time),([wp:route],Nothing)) = ((pos,time + 1),([wp:route],Just (newMovingEntity 0 wp 300.0 (time+1))))
 newPlanePosition ((pos,time),(route,Just plane)) 
 # (plane,pos) = moveAlongWayPointsDeg plane route pos time
 = ((pos,time + 1),(route,Just plane))
@@ -87,7 +97,9 @@ where
 		                                 , planejs     = Nothing
 		                                 , waypointsjs = []
 		                                 , plane       = Nothing 
-		                                 , initialized = False}) iworld
+		                                 , initialized = False
+		                                 , hack       = newMovingEntity 0 (ROUTE2!! 0) 300.0 0
+		                                 }) iworld
 
 	googleMapsGUI iid _ (Just st) iworld
 
@@ -194,7 +206,7 @@ where
 			# (d, marker)      = createObject d "google.maps.Marker" [toHtmlObject {MarkerOptions| map = map, position = latlo, title = toHtmlObject (toString wpid),draggable = True, icon = Nothing}]		
 		    # (d, mapevent)    = findObject d "google.maps.event" 
 			# (d, _, _)        = runObjectMethod d mapevent "addListener" [marker, toHtmlObject "dragend", createEventHandler (onDragWP wpid) iid]
-			= (d, {st & waypoints = waypoints, waypointsjs = waypointsjs ++ [marker]})	
+			= (d, {st & waypoints = waypoints, waypointsjs = waypointsjs ++ [marker], initialized = True})	
 			
         updateWP wpid nla nlo wps = map ud [(wid,la,lo)\\ (la,lo)<- wps & wid <- [0..]]
         where ud wp=:(wid,la,lo) | wpid == wid = (fromHtmlObject nla,fromHtmlObject nlo)
@@ -202,7 +214,9 @@ where
                                                
 		updateView :: GoogleMapsState *HtmlDocument -> (*HtmlDocument,GoogleMapsState)
 		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Nothing,planejs = Nothing} d
-		= (d,{st&initialized = True})
+		# curid       = length waypointsjs
+		#(d,extrawps) = createWaypoints curid map (drop curid waypoints)  d
+		= (d, {st & waypointsjs = waypointsjs ++ extrawps, initialized = True})
 		
 		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Just plane=:{MovingEntity|position},planejs = Nothing} d
 		# (d, newpos)     = createObject d "google.maps.LatLng" [toHtmlObject (fst position), toHtmlObject (snd position)]
@@ -215,6 +229,7 @@ where
 		= (d, {st & waypointsjs = waypointsjs ++ extrawps, initialized = True, planejs = Just planejs})
 					                                                                        	
 		updateView st=:{map = Just map,waypoints,waypointsjs,plane = Just plane=:{MovingEntity|position},planejs = Just planejs} d 
+		# hack = newMovingEntity 0 (ROUTE2!! 0) 300.0 0
 		#(newwpsjs,d) = doElems waypoints waypointsjs d
 		#(d,planejs)  = setPosition planejs position d
 		# curid       = length waypointsjs
