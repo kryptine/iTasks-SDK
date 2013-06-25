@@ -79,12 +79,12 @@ Ext.define('itwc.component.edit.Editlet',{
 		var h = function(event){			
 			eval("var fun = eval(" + expr + ");");
 		
-			var ys = Sapl.feval([fun,[me.editorId,event.browserEvent,me.value,window]]);
+			var ys = Sapl.feval([fun,[me.editorId,event.browserEvent,me.value,"JSWorld"]]);
 	
-			//Strict evaluation of both the fields in the result tuple
+			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
-	
+			
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
 			

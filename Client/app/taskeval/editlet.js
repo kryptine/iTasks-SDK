@@ -1,126 +1,132 @@
-function __iTasks_Framework_ClientInterface_getDomElement(id, w){
-    w = Sapl.feval(w);
-    id = Sapl.feval(id);
-    
-    return ___predefined__Tuple2(w.document.getElementById(id), w);
+//Small versions
+
+
+//jsNull :: (JSPtr a)
+function __iTasks_Framework_ClientInterface_jsNull() {
+	return null;
+}
+//jsWindow :: (JSPtr JSWindow)
+function __iTasks_Framework_ClientInterface_jsWindow() {
+	return window;
+}
+//jsThis :: !*JSWorld -> (!JSPtr a,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsThis(world) {
+	world = Sapl.feval(world);
+	return ___predefined__Tuple2([this], [world]);
+}
+//jsEmptyObject :: !*JSWorld -> (!JSPtr a, !*JSWorld)
+function __iTasks_Framework_ClientInterface_jsEmptyObject(world) {
+	world = Sapl.feval(world);
+	return ___predefined__Tuple2([{}], [world]);
+}
+//jsNewObject	:: !(JSPtr JSFunction) !*JSWorld -> (!JSPtr a, !*JSWorld)
+function __iTasks_Framework_ClientInterface_jsNewObject(cons,world) {
+	cons = Sapl.feval(cons);
+	world = Sapl.feval(world);
+	return ___predefined__Tuple2([new cons], [world]);
 }
 
-function __iTasks_Framework_ClientInterface_getObjectAttr(e, attr, w){
-    w = Sapl.feval(w);
-    e = Sapl.feval(e);
-    attr = Sapl.feval(attr);    
-    
-    var value = eval("e."+attr+";");
-    
-    return ___predefined__Tuple3(e, value, w);
-}
-
-function __iTasks_Framework_ClientInterface_runObjectMethod(obj, method, params, w){
-    w = Sapl.feval(w);
-    params = Sapl.toJS(Sapl.feval(params));
-    obj = Sapl.feval(obj);
-    method = Sapl.feval(method);
-
-	var eargs = [obj, method];
-	for(var i=0; i<params.length; i++){
-		eargs.push(params[i]);
-	}
+//jsGetObjectAttr :: !String !(JSPtr a) !*JSWorld -> (!b,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsGetObjectAttr(attr,obj,world) {
 	
-    var value = streval.apply(null, eargs);
-    return ___predefined__Tuple3(obj, value, w);
-}
+	attr = Sapl.feval(attr);
+	obj = Sapl.feval(obj);
+	world = Sapl.feval(world);
 
-function __iTasks_Framework_ClientInterface_setObjectAttr(e, attr, value, w){
-    w = Sapl.feval(w);
-    e = Sapl.feval(e);
-    value = Sapl.toJS(Sapl.feval(value));
-    attr = Sapl.feval(attr);      
+	return ___predefined__Tuple2([obj[attr]], [world]);
+}
+//jsGetObjectEl :: !Int !(JSPtr a) !*JSWorld -> (!b,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsGetObjectEl(index,obj,world) {
+	
+	index = Sapl.feval(index);
+	obj = Sapl.feval(obj);
+	world = Sapl.feval(world);
+
+	return ___predefined__Tuple2([obj[index]], [world]);
+}
+//jsSetObjectAttr :: !String !b !(JSPtr a) !*JSWorld -> *JSWorld
+function __iTasks_Framework_ClientInterface_jsSetObjectAttr(attr,value,obj,world) {
+
+    attr = Sapl.feval(attr);   
+    value = Sapl.feval(value);
+    obj = Sapl.feval(obj);
+    world = Sapl.feval(world);
     
 	// unbox function value, boxed by Sapl.feval
 	if(isArray(value) && value.length == 2 && typeof (value[0]) == "function" && value[1].length == 0){
 		value = value[0];
 	}
 	
-    eval("e."+attr+"=value;");
-    return ___predefined__Tuple3(e, value, w);
-}
-
-function __iTasks_Framework_ClientInterface_getDomAttr(id, attr, w){
-    w = Sapl.feval(w);
-    id = Sapl.feval(id);
-    attr = Sapl.feval(attr);
-
-    var value = eval("w.document.getElementById(\""+id+"\")."+attr+";");
-    return ___predefined__Tuple2(value, w);
-}
-
-function __iTasks_Framework_ClientInterface_setDomAttr(id, attr, value, w){
-    w = Sapl.feval(w);
-    value = Sapl.feval(value);
-    id = Sapl.feval(id);
-    attr = Sapl.feval(attr);
+    obj[attr] = value;
     
-    eval("w.document.getElementById(\""+id+"\")."+attr+"=value;");
-    return ___predefined__Tuple2(value, w);
+    return [world];
 }
+//jsSetObjectEl :: !Int !b !(JSPtr a) !*JSWorld -> *JSWorld
+function __iTasks_Framework_ClientInterface_jsSetObjectEl(index,value,obj,world) {
 
-function __iTasks_Framework_ClientInterface_findObject(name, w){
-    w = Sapl.feval(w);
-    name = Sapl.feval(name);
-
-    var obj;
-	try{
-		eval("obj = "+name+";");
-	} catch (e) {	
-		// possibly undefined. don't do anything. 
-	}
-	
-    return ___predefined__Tuple2(obj, w);
-}
-
-function __iTasks_Framework_ClientInterface_createObject(obj, params, w){
-    w = Sapl.feval(w);
-    params = Sapl.toJS(Sapl.feval(params));
+    index = Sapl.feval(index);   
+    value = Sapl.feval(value);
     obj = Sapl.feval(obj);
-
-	var eargs = [obj, null];
-	for(var i=0; i<params.length; i++){
-		eargs.push(params[i]);
+    world = Sapl.feval(world);
+    
+	// unbox function value, boxed by Sapl.feval
+	if(isArray(value) && value.length == 2 && typeof (value[0]) == "function" && value[1].length == 0){
+		value = value[0];
 	}
 	
-    var value = streval.apply(null, eargs);	
-    return ___predefined__Tuple2(value, w);
+    obj[index] = value;
+    
+    return [world];
+}
+//jsApply :: !(JSPtr JSFunction) !(JSPtr a) !(JSPtr b) !*JSWorld -> (!c,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsApply(fun,scope,args,world) {
+	fun = Sapl.feval(fun);
+	scope = Sapl.feval(scope);
+	args = Sapl.feval(args);
+	world = Sapl.feval(world);
+	
+	return ___predefined__Tuple2([fun.apply(scope,args)], [world]);
 }
 
-function __iTasks_Framework_ClientInterface_loadExternalJS(url, continuation, w){
-    w = Sapl.feval(w);
-    continuation = Sapl.feval(continuation);
-    url = Sapl.feval(url);	
+//jsTypeof :: !a !*JSWorld -> (!String,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsTypeof(obj,world) {
+	obj = Sapl.feval(obj);
+	world = Sapl.feval(world);
+
+	return ___predefined__Tuple2([typeof obj],[world])
+}
+
+//jsCallObjectMethod :: !String ![b] !(JSPtr a)  !*JSWorld -> (!c,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsCallObjectMethod(attr,args,obj,world) {
+	
+	attr = Sapl.feval(attr);
+    args = Sapl.toJS(Sapl.feval(args)); //TODO, check if just converting the spine is enough
+    obj = Sapl.feval(obj);
+	world = Sapl.feval(world);
+
+	console.log(obj,attr,args);
+    return ___predefined__Tuple2([(obj[attr]).apply(obj,args)], [world]);
+}
+
+//jsWrapFun :: !a !*JSWorld -> (!JSPtr JSFunction,!*JSWorld)
+function __iTasks_Framework_ClientInterface_jsWrapFun(fun,world) {
+	fun = Sapl.feval(fun);
+	world = Sapl.feval(world);
 		
-    var script=document.createElement('script');
-    script.setAttribute("type","text/javascript");
-    script.onload = continuation;
+	var jsfun = function() {
+		//Prepare sapl expression
+		var args = [];
+		for(var i = 0; i < arguments.length; i++) {
+			args.push([arguments[i]]);
+		}
+		args.push(["JSWorld"]);
+		
+		var res = Sapl.toJS(Sapl.feval([fun,args]));
+		
+		if(res.length > 1) {
+			return res[0];
+		}
+	};
 	
-    script.setAttribute("src", url);
-    document.getElementsByTagName("head")[0].appendChild(script);
-	
-    return w;
+	return ___predefined__Tuple2([jsfun], [world]);
 }
-
-function __iTasks_Framework_ClientInterface_isUndefined(obj, win){
-    win = Sapl.feval(win);
-    obj = Sapl.feval(obj);
-	
-    return ___predefined__Tuple2(obj == null, win);
-}
-
-function __iTasks_Framework_ClientInterface_toHtmlObject(val, win){
-  win = Sapl.feval(win);
-  val = Sapl.feval(val);
-  return ___predefined__Tuple2(Sapl.toJS(val), win);
-}
-
-function __iTasks_Framework_ClientInterface_fromHtmlObject(obj, win){
-  return ___predefined__Tuple2(Sapl.feval(obj), win);
-}
-

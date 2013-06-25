@@ -1,47 +1,121 @@
 implementation module iTasks.Framework.ClientInterface
 
-import StdEnv, Data.Void
+import StdEnv, Data.Void, Data.Maybe, Text
 
-//:: EventQueue :== Void
-:: HtmlDocument = HtmlDocument
-:: HtmlWindow = HtmlWindow
-:: HtmlObject = HtmlObject
+:: JSWorld = JSWorld
+:: JSPtr a = JSPtr
 
-// TODO: Add a JS constraint on universally quantified types.
+:: JSWindow = JSWindow
+:: JSDocument = JSDocument
+:: JSFunction = JSFunction
 
-getDomElement :: !HtmlElementId !*HtmlWindow -> *(!a, !*HtmlWindow)
-getDomElement id win = undef
+jsNull :: (JSPtr a)
+jsNull = undef
 
-getObjectAttr :: !a !HtmlObjAttr !*HtmlWindow -> *(!a, !b, !*HtmlWindow)
-getObjectAttr object attr win = undef
+jsWindow :: (JSPtr JSWindow)
+jsWindow = undef
 
-setObjectAttr :: !a !HtmlObjAttr !b !*HtmlWindow -> *(!a, !b, !*HtmlWindow)
-setObjectAttr object attr value win = undef
+jsEmptyObject :: !*JSWorld -> (!JSPtr a, !*JSWorld)
+jsEmptyObject world = undef
 
-runObjectMethod :: !a !String ![b] !*HtmlWindow -> *(!a, !c, !*HtmlWindow)
-runObjectMethod object method args win = undef
+jsNewObject	:: !(JSPtr JSFunction) !*JSWorld -> (!JSPtr a, !*JSWorld)
+jsNewObject constructor world = undef
 
-getDomAttr :: !HtmlElementId !HtmlObjAttr !*HtmlWindow -> *(!String, !*HtmlWindow)
-getDomAttr id attr win = undef
+jsGetObjectAttr :: !String !(JSPtr a) !*JSWorld -> (!b,!*JSWorld)
+jsGetObjectAttr attr obj world = undef
 
-setDomAttr :: !HtmlElementId !HtmlObjAttr !a !*HtmlWindow -> *(!a, !*HtmlWindow)
-setDomAttr id attr value win = undef
+jsGetObjectEl :: !Int !(JSPtr a) !*JSWorld -> (!b,!*JSWorld)
+jsGetObjectEl index obj world = undef
 
-findObject :: !String !*HtmlWindow -> *(!a, !*HtmlWindow)
-findObject objname win = undef 
+jsSetObjectAttr :: !String !b !(JSPtr a) !*JSWorld -> *JSWorld
+jsSetObjectAttr attr value obj world = undef
 
-createObject :: !String ![a] !*HtmlWindow -> *(!b, !*HtmlWindow)
-createObject objname args win = undef 
+jsSetObjectEl :: !Int !b !(JSPtr a) !*JSWorld -> *JSWorld
+jsSetObjectEl index value obj world = undef
 
-loadExternalJS :: !String !a !*HtmlWindow -> *HtmlWindow
-loadExternalJS url continuation win = undef
+jsApply :: !(JSPtr JSFunction) !(JSPtr a) !(JSPtr b) !*JSWorld -> (!c,!*JSWorld)
+jsApply fun scope args world = undef
 
-isUndefined :: !a !*HtmlWindow -> (!Bool, !*HtmlWindow)
-isUndefined object win = undef
+jsThis :: !*JSWorld -> (!JSPtr a,!*JSWorld)
+jsThis world = undef
 
-toHtmlObject :: !a !*HtmlWindow -> (!b, !*HtmlWindow)
-toHtmlObject a win = undef
+jsTypeof :: !a !*JSWorld -> (!String,!*JSWorld)
+jsTypeof obj world = undef
 
-fromHtmlObject :: !b !*HtmlWindow -> (!a, !*HtmlWindow) 
-fromHtmlObject obj win = undef
+jsWrapFun :: !f !*JSWorld -> (!JSPtr JSFunction,!*JSWorld)
+jsWrapFun fun world = undef
+
+
+//UTIL
+
+jsDocument :: !*JSWorld -> (!JSPtr JSDocument,!*JSWorld)
+jsDocument world
+	= jsGetObjectAttr "document" jsWindow world
+
+newJSArray :: !*JSWorld -> (!JSPtr a, !*JSWorld)
+newJSArray world
+	# (constructor,world) = jsGetObjectAttr "Array" (jsWindow) world
+	= jsNewObject constructor world
+
+jsIsUndefined :: !a !*JSWorld -> (!Bool,!*JSWorld)
+jsIsUndefined obj world
+	# (type,world) = jsTypeof obj world
+	= (type == "undefined",world)
+	
+getDomElement :: !DomElementId !*JSWorld ->(!JSPtr a, !*JSWorld)
+getDomElement elemId world
+	# (document,world) = jsDocument world
+	= callObjectMethod "getElementById" [elemId] document world
+
+getDomAttr :: !DomElementId !String !*JSWorld -> (!a, !*JSWorld)
+getDomAttr elemId attr world
+	# (elem,world)	= getDomElement elemId world
+	= jsGetObjectAttr attr elem world
+	
+setDomAttr :: !DomElementId !String !b !*JSWorld -> *JSWorld
+setDomAttr elemId attr value world
+	# (elem,world)	= getDomElement elemId world
+	= jsSetObjectAttr attr value elem world
+
+findObject :: !String !*JSWorld -> *(!JSPtr a, !*JSWorld)
+findObject query world
+	# (obj,world)		= jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
+	= case attrs of
+		[]	= (obj,world)
+			= foldl op (obj,world) attrs
+where
+	[attr:attrs]	= split "." query
+	op (obj,world) attr = jsGetObjectAttr attr obj world
+
+callObjectMethod :: !String ![b] !(JSPtr a) !*JSWorld -> (!c,!*JSWorld)
+callObjectMethod method args obj world
+	# (fun,world) = jsGetObjectAttr method obj world
+	# (arr,world) = newJSArray world
+	# world = foldl (op arr) world [(i,a) \\ a <- args & i <- [0..]]
+	= jsApply fun obj arr world
+where
+	op arr world (i,arg) = jsSetObjectEl i arg arr world 
+	
+
+addJSFromUrl :: !String !(Maybe (JSPtr JSFunction)) *JSWorld -> *JSWorld
+addJSFromUrl url mbCallback world
+	# (document,world) = jsDocument world
+	//Create script tag
+	# (script,world)	= callObjectMethod "createElement" ["script"] document world
+	# world				= jsSetObjectAttr "src" url script world
+	# world				= jsSetObjectAttr "type" "text/javascript" script world
+	# world				= case mbCallback of
+		Nothing			= world
+		Just callback	= jsSetObjectAttr "onload" callback script world
+	//Inject into the document head
+	# (head,world)		= callObjectMethod "getElementsByTagName" ["head"] document world
+	# (head,world)		= jsGetObjectEl 0 head world
+	# (_,world)			= callObjectMethod "appendChild" [script] head world
+	= world
+
+jsTrace :: a *JSWorld -> *JSWorld
+jsTrace val world
+	# (console,world)	= findObject "console" world
+	# (_,world)			= callObjectMethod "log" [val] console world
+	= world
 

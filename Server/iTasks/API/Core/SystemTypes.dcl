@@ -33,7 +33,7 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UI
 from iTasks.Framework.Task				import :: Task, :: TaskId
 from iTasks.Framework.iTaskClass		import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
-from iTasks.Framework.ClientInterface	import :: ComponentEvent, :: ComponentId
+from iTasks.Framework.ClientInterface	import :: JSWorld, :: JSPtr
 from iTasks.API.Core.LayoutCombinators	import :: Layout
 
 //****************************************************************************//
@@ -414,6 +414,13 @@ derive gVerify			Hidden, Display, Editable, VisualizationHint
 	,	genDiff		:: a a -> Maybe d
 	,	appDiff		:: d a -> a
 	}
+
+:: EditletEvent = EditletEvent
+
+:: ComponentId :== String
+:: ComponentEventName :== String
+:: ComponentEvent a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc a)
+:: ComponentEventHandlerFunc a :== ComponentId (JSPtr EditletEvent) a *JSWorld -> *(!a,!*JSWorld)
 
 derive JSONEncode		Editlet
 derive JSONDecode		Editlet
