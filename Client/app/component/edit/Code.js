@@ -53,8 +53,10 @@ Ext.define('itwc.component.edit.Code',{
 			value: me.value,
 			lineNumbers: true,
 			onChange: function(editor, change){
-				me.viewport = me.findViewport();	
-				me.viewport.fireEvent('edit',me.taskId,me.getEditorId(),editor.getValue());
+				var val = editor.getValue();
+
+				me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.getEditorId(),val);
+				me.lastEditVal = val;
 			}
 		});
 

@@ -8,8 +8,11 @@ Ext.define('itwc.component.edit.EditButton',{
 		this.callParent(arguments);
 	},
 	onClick: function() {
-		this.viewport = this.viewport || this.findViewport();
-		this.viewport.fireEvent('edit',this.taskId, this.editorId,this.value);
+
+		var val = this.value;
+	
+		this.lastEditNo = itwc.global.controller.sendEditEvent(this.taskId,this.getEditorId(),val);
+		this.lastEditVal = val;
 	},
 	setValue: function(value) {
 		this.value = value;

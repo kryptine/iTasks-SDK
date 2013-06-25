@@ -44,8 +44,7 @@ Ext.define('itwc.component.choice.CheckboxGroup',{
 		me.updateChoice(field.inputValue,nVal); 
 	
 		//Sync change
-		me.viewport = me.findViewport();	
-		me.viewport.fireEvent('edit',me.taskId,me.getEditorId(),[field.inputValue,nVal]);
+		me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.getEditorId(),[field.inputValue,nVal]);
 	},
 	updateChoice: function(i,val) {
 		var me = this;

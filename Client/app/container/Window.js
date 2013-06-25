@@ -43,7 +43,7 @@ Ext.define('itwc.container.Window',{
 	onBeforeClose: function() {
 		var me = this;
 		
-		me.viewport.fireEvent('action',me.closeTaskId,'Close');
+		itwc.global.controller.sendActionEvent(me.closeTaskId, "Close");
 		return false;	
 	},
 	afterRender: function() {

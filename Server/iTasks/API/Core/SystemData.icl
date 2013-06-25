@@ -63,7 +63,7 @@ where
 	forWorker _ _																							= False
 
 isSession :: !TIMeta -> Bool
-isSession {TIMeta|sessionId=Just _}	= True
+isSession {TIMeta|session=Just _}	= True
 isSession _						 	= False
 
 toTaskListItem :: !TIMeta -> TaskListItem a 

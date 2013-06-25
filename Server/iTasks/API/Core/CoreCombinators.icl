@@ -76,10 +76,10 @@ where
 	eval event repOpts (TCStep taskId ts (Left treea)) iworld=:{taskTime}
 		# (resa, iworld) 	= evala event {repOpts & appFinalLayout = False} treea iworld
 		# ts				= case event of
-							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
 		# mbcommit			= case event of
-			(ActionEvent t action)
+			(ActionEvent _ t action)
 				| t == taskId 		= Just action
 			_						= Nothing
 		# mbCont			= case resa of
@@ -97,9 +97,9 @@ where
 				//Cleanup state of left-hand side
 				# iworld	= case mbTreeA of
 					Nothing		= iworld
-					Just treea	= snd (evala RefreshEvent {repOpts & appFinalLayout = False} (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
+					Just treea	= snd (evala (toRefresh event) {repOpts & appFinalLayout = False} (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= evalb RefreshEvent {repOpts & appFinalLayout = False} (TCInit taskIdb lastEvent) iworld 
+				# (resb,iworld)		= evalb (toRefresh event) {repOpts & appFinalLayout = False} (TCInit taskIdb lastEvent) iworld 
 				= case resb of
 					ValueResult val info rep nstateb	
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
@@ -108,7 +108,7 @@ where
 	//Eval right-hand side
 	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{taskTime}
 		# ts				= case event of
-							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
 		= case restoreTaskB sel enca of
 			Just (Task evalb)
@@ -229,7 +229,7 @@ where
 						# refreshSensitive	= foldr (\(e,_) s -> s || refreshSensitive e) False entries
 						# ts				= foldr max 0 [ts:map fst values]
 						# ts				= case event of
-							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
 						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,refreshSensitive=refreshSensitive}
 							(finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & localLists = 'Data.Map'.put taskId (map fst entries) localLists})
@@ -304,7 +304,7 @@ where
 	destroyParTask (_,iworld=:{localTasks}) {TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult _ _ _ tree}
 		= case 'Data.Map'.get entryId localTasks of
 			Just (Task evala :: Task a^)
-				# (result,iworld=:{localTasks}) = evala RefreshEvent {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} (TCDestroy tree) iworld
+				# (result,iworld=:{localTasks}) = evala (RefreshEvent Nothing) {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=False} (TCDestroy tree) iworld
 				# iworld = {iworld & localTasks = 'Data.Map'.del entryId localTasks}
 				= case result of
 					DestroyedResult		= (Nothing,iworld)
@@ -531,7 +531,7 @@ where
 		
 	eval event repOpts (TCShared taskId ts treea) iworld=:{taskTime}
 		# ts						= case event of
-			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
 		# (Task evala)				= stask (localShare taskId)
 		# (resa,iworld)				= evala event repOpts treea iworld

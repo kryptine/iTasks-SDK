@@ -92,8 +92,8 @@ Ext.define('itwc.component.edit.Editlet',{
 			
 			//Synchronize
 			if(diff !== null) {
-				me.viewport = me.viewport || me.findViewport();
-				me.viewport.fireEvent('edit',me.taskId, me.editorId,diff);
+				var val = me.getEditorValue();
+				me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,diff);
 			}
 		};
 		return h;

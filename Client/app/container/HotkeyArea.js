@@ -41,8 +41,7 @@ Ext.define('itwc.container.HotkeyArea',{
 	onHotkey: function(taskId,actionId) {
 		var me = this;
 
-		me.viewport = me.findViewport();
-		me.viewport.fireEvent('action',taskId, actionId);
+		itwc.global.controller.sendActionEvent(taskId,actionId);
 	},
 	destroyHotkeys: function() {
 		var me = this;

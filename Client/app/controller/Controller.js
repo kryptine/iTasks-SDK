@@ -4,6 +4,7 @@
 * to reflect changes in those session task instance states
 */
 Ext.define('itwc.controller.Controller', {
+
 	extend: 'Ext.app.Controller',
 
 	requires: ['itwc.container.Container'		//Minimalist container that uses the itasks layout directives
@@ -55,7 +56,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.misc.Label'		//Label for standard forms
 			  ,'itwc.component.misc.Icon'		//Icons with help text
 
-			  ,'itwc.component.misc.Tab'		//A tab that can trigger focus events and close action events
+			  //,'itwc.component.misc.Tab'		//A tab that can trigger focus events and close action events
 			  ],
 
 	// for tasklet and client side execution support
@@ -67,6 +68,7 @@ Ext.define('itwc.controller.Controller', {
 	nextSendEventNo: 0,
 	flushingTaskEvents: false,
 
+	lastReceivedEventNo: 0,
 	refresher: null,
 	uiUpdateSource: null,
 
@@ -76,14 +78,13 @@ Ext.define('itwc.controller.Controller', {
 		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);
 		this.control({
 			'viewport': {
-				render: this.onViewportReady,
-				edit: this.onEdit,
-				action: this.onAction,
-				focus: this.onFocus
+				render: this.onViewportReady
 			}
 		});
-		//Scary global reference for Tasklets
-		controller = this;
+
+		//Set global reference
+		Ext.ns("itwc.global");
+		itwc.global.controller = this;
 	},
 	onViewportReady: function(viewport) {
 		//Keep reference to server
@@ -109,8 +110,7 @@ Ext.define('itwc.controller.Controller', {
 		this.partialUpdate(Ext.decode(e.data));
 	},
 	//iTasks edit events
-	onEdit: function(taskId, editorId, value) {
-		
+	sendEditEvent: function(taskId, editorId, value){
 		// Client side execution hook!
 		var instanceNo = taskId.split("-")[0];
 		if(this.taskletControllers[instanceNo] != null){
@@ -121,19 +121,14 @@ Ext.define('itwc.controller.Controller', {
 					taskId, "edit", editorId, value);
 		
 		}else{	// Normal case (not a tasklet)
-			this.sendEditEvent(taskId, editorId, value);
+			var me = this,
+				params = {editEvent: Ext.encode([taskId,editorId,value])};
+		
+			return me.queueTaskEvent(params);
 		}
 	},
-	sendEditEvent: function(taskId, editorId, value){
-
-		var me = this,
-			params = {editEvent: Ext.encode([taskId,editorId,value])};
-		
-		me.queueTaskEvent(params);
-	},
 	//iTasks action events
-	onAction: function(taskId, actionId) {
-	
+	sendActionEvent: function(taskId, actionId) {
 		// Client side execution hook!
 		var instanceNo = taskId.split("-")[0];
 		if(this.taskletControllers[instanceNo] != null){
@@ -143,32 +138,37 @@ Ext.define('itwc.controller.Controller', {
 					this.taskletControllers[instanceNo].controllerFunc, 
 					taskId, "commit", actionId);
 					
-		}else{	// Normal case (not a tasklet)
+		} else { // Normal case (not a tasklet)
 	
 			var me = this,
 				params = {actionEvent: Ext.encode([taskId,actionId])};
 
-			me.queueTaskEvent(params);
+			return me.queueTaskEvent(params);
 		}
 	},
 	//iTasks focus events
-	onFocus: function(taskId) {
+	sendFocusEvent: function(taskId) {
 		var me = this,
 			params = {focusEvent: Ext.encode(taskId)};
-		me.queueTaskEvent(params);
+		return me.queueTaskEvent(params);
 	},
 	//Auto refresh event (triggered by tasks with an expiresIn value)
 	onAutoRefresh: function () {
 		var me = this;
 		if(me.taskEvents.length == 0) {//Only send empty event if we are idly waiting for events
-			me.queueTaskEvent({});
+			return me.queueTaskEvent({});
 		}
 	},
 	//Queue a task event for processing
 	queueTaskEvent: function(eventData) {
-		var me = this;
-		me.taskEvents.push([me.nextSendEventNo++,eventData]);
+		var me = this,
+			eventNo;
+		eventNo = me.nextSendEventNo;
+		me.taskEvents.push([eventNo,eventData]);
 		me.flushTaskEvents();
+		me.nextSendEventNo++;
+
+		return eventNo;
 	},
 	//Flush the current task events to the server for processing
 	//If the force option is given, also flush an empty queue, effectively asking for a refresh
@@ -180,7 +180,7 @@ Ext.define('itwc.controller.Controller', {
 			//Send events one at a time for now...
 			event = me.taskEvents.shift();
 			Ext.apply(params,event[1]);
-			params['version'] = event[0];
+			params['eventNo'] = event[0];
 
         	if(me.session) {
            		params['session'] = me.session;
@@ -222,6 +222,9 @@ Ext.define('itwc.controller.Controller', {
 		}
 		//Update session
 		me.session = message.session;
+
+		//Update last received event no
+		me.lastReceivedEventNo = message.lastEvent;
 
 		//Update user interface
         if(message.content) {

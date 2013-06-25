@@ -78,8 +78,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			
 				var e = {center : [center.lat(),center.lng()], zoom: zoom, type : type}
 			
-				me.viewport = me.viewport || me.up('viewport');
-				me.viewport.fireEvent('edit',me.taskId, me.editorId,e);
+				me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,e);
 			};
 			
 			//Add perspective change
@@ -135,8 +134,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 				google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
 			} else {
 				clickHandler = function(markerId) { return function(e) {
-               		me.viewport = me.viewport || me.up('viewport');
-					me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, event: "LEFTCLICK"});
+					me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, event: "LEFTCLICK"});
                	};};
 				google.maps.event.addListener(marker,'click',clickHandler(i));
 			}
@@ -144,8 +142,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			if(this.markers[i].draggable) {
 	
 				dragHandler = function(markerId) { return function(e) {
-                    			me.viewport = me.viewport || me.up('viewport');
-								me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
+								me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
                 		};};
                 
 				google.maps.event.addListener(marker,'dragend', dragHandler(i));

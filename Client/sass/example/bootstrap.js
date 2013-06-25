@@ -859,7 +859,6 @@ Ext.ClassManager.addNameAlternateMappings({
   ],
   "Ext.selection.RowModel": [],
   "Ext.layout.ContextItem": [],
-  "itwc.component.misc.Tab": [],
   "itwc.component.edit.Checkbox": [],
   "Ext.util.MixedCollection": []
 });
@@ -1972,9 +1971,6 @@ Ext.ClassManager.addNameAliasMappings({
     "selection.rowmodel"
   ],
   "Ext.layout.ContextItem": [],
-  "itwc.component.misc.Tab": [
-    "widget.itwc_tab"
-  ],
   "itwc.component.edit.Checkbox": [
     "widget.itwc_edit_checkbox"
   ],

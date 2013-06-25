@@ -217,13 +217,13 @@ where
 		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
+matchAndApplyEvent (EditEvent _ taskId name value) matchId taskTime v mask ts iworld
 	| taskId == matchId
 		| otherwise
 			# (nv,nmask)	= updateValueAndMask (s2dp name) value (v,mask)
 			= (nv,nmask,taskTime,iworld)
 	| otherwise	= (v,mask,ts,iworld)
-matchAndApplyEvent (FocusEvent taskId) matchId taskTime v mask ts iworld
+matchAndApplyEvent (FocusEvent _ taskId) matchId taskTime v mask ts iworld
 	= (v,mask, if (taskId == matchId) taskTime ts, iworld)
 matchAndApplyEvent _ matchId taskTime v mask ts iworld
 	= (v,mask,ts,iworld)

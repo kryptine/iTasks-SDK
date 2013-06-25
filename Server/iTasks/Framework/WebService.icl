@@ -8,7 +8,7 @@ import iTasks.API.Core.SystemTypes
 
 //Flag for disabling use of the compiled version of the client javascript
 //only useful when doing work on the client framework
-IF_CLIENT_DEV yes no	:== no
+IF_CLIENT_DEV yes no	:== yes
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
@@ -60,7 +60,7 @@ where
 			JSONGui
 				//Load or create session context and edit / evaluate
 				# (mbResult, iworld)	= case sessionParam of
-					""			= createSessionTaskInstance (task req) RefreshEvent iworld
+					""			= createSessionTaskInstance (task req) event iworld
 					sessionId	= evalSessionTaskInstance sessionId event iworld
 				# (json, iworld) 		= case mbResult of
 					Error err
@@ -69,14 +69,15 @@ where
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (ValueResult (Value _ True) _ _ _,_,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ info curRep context,instanceNo,sessionId,updates)
+					Ok (ValueResult _ info curRep context,instanceNo,{SessionInfo|sessionId,lastEvent},updates)
 						//Determine expiry date	
 						# (expiresIn,iworld)	= getResponseExpiry instanceNo iworld
 						# json	= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
 											 ,("expiresIn",toJSON expiresIn)
+											 ,("lastEvent",JSONInt lastEvent)
 											 ,("updates", encodeUIUpdates updates)
-											 ,("version",toJSON guiVersion)]
+											 ]
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
@@ -84,18 +85,18 @@ where
 			//Serve the task representation as a continuous stream of GUI update events.
 			JSONGuiEventStream
 				# (mbResult, iworld)	= case sessionParam of
-					""			= createSessionTaskInstance (task req) RefreshEvent iworld
+					""			= createSessionTaskInstance (task req) event iworld
 					sessionId	= evalSessionTaskInstance sessionId event iworld
 				= case mbResult of
-					Ok (ValueResult _ _ _ _,instanceNo,sessionId,updates)
+					Ok (ValueResult _ _ _ _,instanceNo,{SessionInfo|sessionId},updates)
 						= (eventsResponse sessionId updates, Just sessionId, iworld)	
 					_
 						= (errorResponse "Failed to initialize event stream", Nothing, iworld)
 			//Serve the task in easily accessable JSON representation
 			JSONService
 				# (mbResult,iworld)	= case sessionParam of
-					""			= createSessionTaskInstance (task req) RefreshEvent iworld
-					sessionId	= evalSessionTaskInstance sessionId RefreshEvent iworld
+					""			= createSessionTaskInstance (task req) event iworld
+					sessionId	= evalSessionTaskInstance sessionId event iworld
 				= case mbResult of
 					Ok (ExceptionResult _ err,_,_,_)
 						= (errorResponse err, Nothing, iworld)
@@ -105,7 +106,7 @@ where
 						= (jsonResponse (serviceBusyResponse rep (uiDefActions def) (toList (uiDefAttributes def))), Nothing, iworld)
 			//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 			JSONPlain
-				# (mbResult,iworld) = createSessionTaskInstance (task req) RefreshEvent iworld
+				# (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
 				= case mbResult of
 					Ok (ExceptionResult _ err,_,_,_)
 						= (errorResponse err, Nothing, iworld)
@@ -121,21 +122,20 @@ where
 		downloadParam		= paramValue "download" req
 		uploadParam			= paramValue "upload" req
 
-		versionParam		= paramValue "version" req
+		eventNoParam		= paramValue "eventNo" req
+		eventNo				= toInt eventNoParam
 
 		editEventParam		= paramValue "editEvent" req
 		actionEventParam	= paramValue "actionEvent" req
 		focusEventParam		= paramValue "focusEvent" req
 	
 		event = case (fromJSON (fromString editEventParam)) of
-			Just (taskId,name,value)	= EditEvent (fromString taskId) name value
+			Just (taskId,name,value)	= EditEvent eventNo (fromString taskId) name value
 			_	= case (fromJSON (fromString actionEventParam)) of
-				Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
+				Just (taskId,actionId)	= ActionEvent eventNo (fromString taskId) actionId
 				_	= case (fromJSON (fromString focusEventParam)) of
-					Just taskId			= FocusEvent (fromString taskId)
-					_					= RefreshEvent
-
-		guiVersion			= toInt versionParam
+					Just taskId			= FocusEvent eventNo (fromString taskId)
+					_					= RefreshEvent (Just eventNo)
 
 	dataFun :: HTTPRequest (Maybe {#Char}) !SessionId !*IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld)
 	dataFun req _ sessionId iworld
@@ -203,7 +203,6 @@ where
 		scriptfiles = (IF_CLIENT_DEV ["ext/ext-debug.js"] [])
 			++  ["app/taskeval/utils.js","app/taskeval/itask.js" //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
 				,"app/taskeval/builtin.js","app/taskeval/sapl.js"
-				,"app/taskeval/editlet.js"
 				,"app/taskeval/db.js", "app/taskeval/debug.js"
 				,"app/taskeval/editlet.js"
 				,"lib/codemirror-2.36/codemirror.js"

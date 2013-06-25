@@ -9,8 +9,8 @@ Ext.define('itwc.component.action.ActionMenuItem',{
 		this.callParent(arguments);
 	},
 	onClick: function() {
-		this.viewport = this.findViewport();
-		this.viewport.fireEvent('action',this.taskId, this.actionId);
+		itwc.global.controller.sendActionEvent(this.taskId,this.actionId);
+
 		return this.callParent(arguments);
 	},
 	setTaskId: function(taskId) {

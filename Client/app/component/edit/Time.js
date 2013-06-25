@@ -30,10 +30,7 @@ Ext.define('itwc.component.edit.Time',{
 		});
 		this.callParent(arguments);
 		this.initEditable();
-	},/*
-	getEditorValue: function() {
-		return this.getRawValue();
-	},*/
+	},
 	createPicker: function() {
 		var me = this,
 			picker;

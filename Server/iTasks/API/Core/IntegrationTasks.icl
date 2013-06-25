@@ -264,7 +264,7 @@ where
 	eval event repOpts (TCShared taskId ts treea) iworld=:{build,dataDirectory,taskTime}
 		# tmpdir 					= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
 		# ts						= case event of
-			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
 		# (Task evala)				= taskfun tmpdir 
 		# (resa,iworld)				= evala event repOpts treea iworld

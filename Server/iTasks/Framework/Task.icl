@@ -5,7 +5,7 @@ import Text.HTML, Internet.HTTP, Data.Map, Data.Error, Text.JSON
 import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.IWorld, iTasks.Framework.GenRecord, iTasks.Framework.Util
 import iTasks.API.Core.SystemTypes
 
-from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
+from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: SessionInfo(..)
 from iTasks.API.Core.LayoutCombinators	import :: Layout(..), autoLayout
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
@@ -58,6 +58,12 @@ where
 	
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
+
+toRefresh :: Event -> Event
+toRefresh (EditEvent no _ _ _)	= RefreshEvent (Just no)
+toRefresh (ActionEvent no _ _)	= RefreshEvent (Just no)
+toRefresh (FocusEvent no _)		= RefreshEvent (Just no)
+toRefresh (RefreshEvent mbNo)	= RefreshEvent mbNo
 
 exception :: !e -> TaskResult a | TC, toString e
 exception e = ExceptionResult (dynamic e) (toString e)

@@ -60,7 +60,7 @@ Ext.define('itwc.container.Tasklet', {
 
 		eval("var tmp = eval(" + this.st + ");");
 		this.st = tmp;
-		controller.tasklets[this.iid] = this;			
+		itwc.global.controller.tasklets[this.iid] = this;			
 
 		if(this.resultFunc != null){
 			eval("var tmp = eval(" + this.resultFunc + ");");
@@ -71,7 +71,7 @@ Ext.define('itwc.container.Tasklet', {
 		if(this.controllerFunc != null){
 			eval("var tmp = eval(" + this.controllerFunc + ");");
 			this.controllerFunc = tmp;
-			controller.taskletControllers[this.instanceNo] = this;
+			itwc.global.controller.taskletControllers[this.instanceNo] = this;
 		}			
 		
 		DB.saveTasklet(this);

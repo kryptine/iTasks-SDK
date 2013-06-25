@@ -2,23 +2,25 @@ definition module iTasks.Framework.TaskState
 
 import iTasks.API.Core.SystemTypes
 
-from iTasks.Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep
+from iTasks.Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo
 
-derive JSONEncode TIMeta, TIReduct, TaskTree
-derive JSONDecode TIMeta, TIReduct, TaskTree
+derive JSONEncode TIMeta, SessionInfo, TIReduct, TaskTree
+derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 
 //Persistent context of active tasks
 //Split up version of task instance information
 
 :: TIMeta =
-	{ instanceNo	:: !InstanceNo		//Unique global identification
-	, sessionId		:: !Maybe SessionId	//zero for top-level instances, instance that detached this one otherwise
+	{ instanceNo	:: !InstanceNo			//Unique global identification
+	, session		:: !Maybe SessionInfo	//Set for task instances that are linked to user sessions
 	, parent		:: !InstanceNo		
-	, observes		:: ![InstanceNo]	//List of instances that this instance observes (using workOn)
-	, observedBy	:: ![InstanceNo]	//List of instances that may be affected by changes in this instance
-	, worker		:: !Maybe User		//Identity of the user working on this instance (this determines the value of the currentUser share)
+	, worker		:: !Maybe User			//Identity of the user working on this instance (this determines the value of the currentUser share)
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
+	}
+:: SessionInfo =
+	{ sessionId		:: SessionId
+	, lastEvent		:: EventNo
 	}
 	
 :: TIReduct = 

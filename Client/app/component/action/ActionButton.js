@@ -8,8 +8,7 @@ Ext.define('itwc.component.action.ActionButton',{
 		this.callParent(arguments);
 	},
 	onClick: function() {
-		this.viewport = this.findViewport();
-		this.viewport.fireEvent('action',this.taskId, this.actionId);
+		itwc.global.controller.sendActionEvent(this.taskId,this.actionId);
 	},
 	//Update operations
 	setEnabled: function(enabled) {

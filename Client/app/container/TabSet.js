@@ -26,8 +26,7 @@ Ext.define('itwc.container.TabSet',{
 		var me = this;
 
 		if(ntab.focusTaskId) {
-			me.viewport = me.findViewport();
-			me.viewport.fireEvent('focus',ntab.focusTaskId);
+			itwc.global.controller.sendFocusEvent(ntab.focusTaskId);
 		}
 	}
 });

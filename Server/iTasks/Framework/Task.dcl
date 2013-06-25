@@ -26,11 +26,12 @@ derive gPutRecordFields	Task
 // Tasks
 :: Task a = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
-:: Event	= EditEvent		!TaskId !String !JSONNode	//Update something in an interaction: Task id, edit name, value
-			| ActionEvent	!TaskId !String				//Progress in a step combinator: Task id, action id
-			| FocusEvent	!TaskId						//Update last event time without changing anything: Task id
-			| RefreshEvent								//No event, just recalcalutate the entire task instance
-			
+:: Event	= EditEvent		!EventNo !TaskId !String !JSONNode		//Update something in an interaction: Task id, edit name, value
+			| ActionEvent	!EventNo !TaskId !String				//Progress in a step combinator: Task id, action id
+			| FocusEvent	!EventNo !TaskId						//Update last event time without changing anything: Task id
+			| RefreshEvent	!(Maybe EventNo)						//No event, just recalcalutate the entire task instance
+
+:: EventNo	:== Int	
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskInfo !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
@@ -62,6 +63,11 @@ derive gPutRecordFields	Task
 	| ParallelComposition
 
 :: TaskPart			:== (!String, !JSONNode)		//Task id, value
+
+/**
+* 'downgrades' an event to a refresh, but keeps the client given event number
+*/
+toRefresh :: Event -> Event
 
 /**
 * Creates an execption result

@@ -19,22 +19,12 @@ Ext.define('itwc.component.edit.Editable',{
 		me.addEvents('edit');
 
 		me.addManagedListener(me,'change',function () {
-			this.viewport = this.findViewport();	
-			this.viewport.fireEvent('edit',this.taskId,this.getEditorId(),this.getEditorValue());
+			var val = me.getEditorValue();
+			me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.getEditorId(),val);
+			me.lastEditVal = val;
 		},me,{buffer: me.editBufferTime});
 
 		me.syncEditsEnabled = true;
-	},
-	findViewport: function() {
-		var viewport = this.viewport,
-			win;
-		if(viewport) {
-			return viewport;
-		} else if (viewport = this.up('viewport')) {
-			return this.viewport = viewport;
-		} else if (win = this.up('itwc_window')) {
-			return this.viewport = win.viewport;
-		}		
 	},
 	getTaskId: function() {
 		return this.taskId;
@@ -56,8 +46,18 @@ Ext.define('itwc.component.edit.Editable',{
 		this.editorId = editorId;
 	},
 	setEditorValue: function(value) {
-		this.suspendEvents();
-		this.setValue(value);
-		this.resumeEvents();
+		var receivedNo = itwc.global.controller.lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+
+		//Don't consider outdated values
+		if(receivedNo >= sentNo) {
+			if(receivedNo == sentNo && value == this.lastEditVal) {
+				//Ignore confirmations of changed values that we just told the server about
+				return;
+			}
+			this.suspendEvents();
+			this.setValue(value);
+			this.resumeEvents();
+		}
 	}
 });

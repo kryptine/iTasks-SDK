@@ -3,7 +3,6 @@ Ext.define('itwc.view.Viewport', {
 	mixins: ['itwc.container.HotkeyArea'],
 	requires: ['itwc.layout.container.Box','itwc.container.Window'],
 
-
 	padding: 0,
 	direction: 'vertical',
 	valign: 'middle',

@@ -40,27 +40,24 @@ Ext.define('itwc.component.choice.Tree',{
 		}
 	},
 	onItemExpand: function(record) {
-		var value = record.raw && record.raw.value;
-		
-		this.viewport = this.viewport || this.up('viewport');
-		this.viewport.fireEvent('edit', this.taskId, this.editorId, ["exp",value,true]);
+		var val = ["exp",record.raw && record.raw.value,true];
+		this.lastEditNo = itwc.global.controller.sendEditEvent(this.taskId,this.editorId,val);
+		this.lastEditVal = val;
 		return false;
 	},
 	onItemCollapse: function(record) {
-		var value = record.raw && record.raw.value;
-		
-		this.viewport = this.viewport || this.up('viewport');
-		this.viewport.fireEvent('edit', this.taskId, this.editorId, ["exp",value,false]);
+		var val = ["exp",record.raw && record.raw.value,false];
+		this.lastEditNo = itwc.global.controller.sendEditEvent(this.taskId,this.editorId,val);
+		this.lastEditVal = val;
 		return false;
 	},
 	onItemClick: function(tree,record,item) {
-	
-		var value = record.raw && record.raw.value;
-		
+		var value = record.raw && record.raw.value,
+			val = ["sel",value,true];
+
 		this.selectedNode = value;
-		this.viewport = this.viewport || this.up('viewport');
-		
-		this.viewport.fireEvent('edit', this.taskId, this.editorId, ["sel",value,true]);
+		this.lastEditNo = itwc.global.controller.sendEditEvent(this.taskId,this.editorId,val);
+		this.lastEditVal = val;
 	},
 	getValue: function() {
 		return this.selectedNode;

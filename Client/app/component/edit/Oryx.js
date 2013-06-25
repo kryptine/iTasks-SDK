@@ -92,9 +92,7 @@ Ext.define('itwc.component.edit.Oryx', {
   onChange : function() {
     if (!this.inUpdate) {
       var me = this;
-
-      me.viewport = me.findViewport();
-      me.viewport.fireEvent('edit', me.taskId, me.name, me.facade.getJSON());
+	  me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.name,me.facade.getJSON());
     }
   },
 

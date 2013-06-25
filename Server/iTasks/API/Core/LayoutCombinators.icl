@@ -7,8 +7,8 @@ import iTasks.API.Core.SystemTypes
 
 from StdFunc import o
 
-from iTasks.Framework.Task import :: TaskCompositionType, :: TaskCompositionType(..)
-from iTasks.Framework.TaskState import :: TIMeta(..)
+from iTasks.Framework.Task import :: TaskCompositionType, :: TaskCompositionType(..), :: EventNo
+from iTasks.Framework.TaskState import :: TIMeta(..), :: SessionInfo(..)
 derive gEq TaskCompositionType
 
 autoLayout :: Layout

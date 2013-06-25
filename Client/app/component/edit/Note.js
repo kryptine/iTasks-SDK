@@ -9,15 +9,5 @@ Ext.define('itwc.component.edit.Note',{
 	initComponent: function() {
 		this.callParent(arguments);
 		this.initEditable();
-	},
-	setValue: function (value, noEvent) {
-		var me = this;
-		if(noEvent) {
-			me.suspendEvent('change');
-			me.callParent([value]);
-			me.resumeEvent('change');
-		} else {
-			me.callParent([value]);
-		}	
 	}
 });

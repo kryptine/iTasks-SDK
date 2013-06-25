@@ -102,13 +102,13 @@ where
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
+	matchAndApplyEvent (EditEvent eventNo taskId name value) matchId taskTime v mask ts iworld
 		| taskId == matchId
 			| otherwise
 				# (nv,nmask)	= updateValueAndMask (s2dp name) value (v,mask)
 				= (nv,nmask,taskTime,iworld)
 		| otherwise	= (v,mask,ts,iworld)
-	matchAndApplyEvent (FocusEvent taskId) matchId taskTime v mask ts iworld
+	matchAndApplyEvent (FocusEvent eventNo taskId) matchId taskTime v mask ts iworld
 		= (v,mask, if (taskId == matchId) taskTime ts, iworld)
 	matchAndApplyEvent _ matchId taskTime v mask ts iworld
 		= (v,mask,ts,iworld)

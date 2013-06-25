@@ -38,8 +38,7 @@ Ext.define('itwc.container.TabItem',{
 		var me = this;
 
 		if(me.closeTaskId) {
-			me.viewport = me.findViewport();
-			me.viewport.fireEvent('action',this.closeTaskId,'Close');
+			itwc.global.controller.sendActionEvent(me.closeTaskId, "Close");
 		}
 		return false;
 	},

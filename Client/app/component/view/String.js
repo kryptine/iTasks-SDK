@@ -16,6 +16,9 @@ Ext.define('itwc.component.view.String',{
 	setValue: function(value) {
 		if(this.rendered) {
 			this.el.update(this.toHtml(value));
+			if(this.ownerCt) {
+				this.ownerCt.doLayout();
+			}
 		} else {
 			this.value = value;
 		}

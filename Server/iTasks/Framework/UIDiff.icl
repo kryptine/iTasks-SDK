@@ -3,7 +3,7 @@ implementation module iTasks.Framework.UIDiff
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
 import Text, Text.JSON, Data.Map
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
-from iTasks.Framework.Task import :: Event(..)
+from iTasks.Framework.Task import :: Event(..), :: EventNo
 
 :: DiffResult
 	= DiffImpossible
@@ -146,14 +146,16 @@ where
 	valueUpd
 		| eventMatch opts2 event
 			# value2 = encodeUIValue opts2.UIEditOpts.value
-			= if (eventValue event === value2)  [] [UIUpdate path [("setValue",[value2,JSONBool True])]]
+		//	= if (eventValue event === value2)  [] [UIUpdate path [("setValue",[value2,JSONBool True])]]
+			= if (eventValue event === value2)  [] [UIUpdate path [("setEditorValue",[value2])]]
 		| otherwise 
-			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setValue",[encodeUIValue opts2.UIEditOpts.value,JSONBool True])]]
+			//= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setValue",[encodeUIValue opts2.UIEditOpts.value,JSONBool True])]]
+			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setEditorValue",[encodeUIValue opts2.UIEditOpts.value])]]
 
-	eventMatch {UIEditOpts|taskId,editorId} (EditEvent matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
+	eventMatch {UIEditOpts|taskId,editorId} (EditEvent _ matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
 	eventMatch _ _ = False
 	
-	eventValue (EditEvent _ _ value) = value
+	eventValue (EditEvent _ _ _ value) = value
 	
 diffEditletOpts :: UIPath UIDiffers UIEditletOpts UIEditletOpts -> DiffResult
 diffEditletOpts path differs opts1 opts2
