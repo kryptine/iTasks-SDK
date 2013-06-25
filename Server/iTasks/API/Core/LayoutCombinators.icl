@@ -740,10 +740,12 @@ actionsToMenus actions
 where
 	makeMenus :: [UIControl] [UIKeyAction] [UIAction] -> ([UIControl],[UIKeyAction],[UIAction])
 	makeMenus menus hotkeys []	= (menus,hotkeys,[])	
-	makeMenus menus hotkeys [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) (addToHotkeys taskId action enabled hotkeys) as
+	makeMenus menus hotkeys [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (path action) taskId action enabled menus) (addToHotkeys taskId action enabled hotkeys) as
+
+	path action = case (split "/" (actionName action)) of
+		["":p]	= p
+		p		= p
 		
-	addToMenus ["",main:item] taskId action enabled menus
-		= menus ++ [createButton main item taskId action enabled]
 	addToMenus [main:item] taskId action enabled [] //Create menu
 		= [createButton main item taskId action enabled]
 	addToMenus [main:item] taskId action enabled [m=:(UIMenuButton sOpts opts):ms] //Add to existing menu if it exists

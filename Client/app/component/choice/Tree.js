@@ -23,7 +23,7 @@ Ext.define('itwc.component.choice.Tree',{
 		
 		me.callParent(arguments);
 		
-		me.addManagedListener(me,'itemclick',me.onItemClick,me);
+		me.addManagedListener(me,'select',me.onSelect,me);
 		me.addManagedListener(me,'beforeitemexpand',me.onItemExpand,me);
 		me.addManagedListener(me,'beforeitemcollapse',me.onItemCollapse,me);
 		me.initEditable();
@@ -51,7 +51,7 @@ Ext.define('itwc.component.choice.Tree',{
 		this.lastEditVal = val;
 		return false;
 	},
-	onItemClick: function(tree,record,item) {
+	onSelect: function(tree,record,item) {
 		var value = record.raw && record.raw.value,
 			val = ["sel",value,true];
 

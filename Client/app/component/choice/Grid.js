@@ -41,7 +41,7 @@ Ext.define('itwc.component.choice.Grid',{
 		});
 
 		me.callParent(arguments);
-		me.on('itemclick', me.onItemClick, me);		
+		me.on('select', me.onSelect, me);		
 		me.initEditable();
 	},
 	afterRender: function() {
@@ -56,7 +56,7 @@ Ext.define('itwc.component.choice.Grid',{
 		}
 	
 	},
-	onItemClick: function(view,rec) {
+	onSelect: function(view,rec) {
 		this.value = [this.store.indexOf(rec)];
 		this.fireEvent('change');	
 	},
