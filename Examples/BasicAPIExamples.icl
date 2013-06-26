@@ -300,23 +300,30 @@ twitterId name  = sharedStore ("Twitter with " +++ name) []
 followTweets 
 	= 					get currentUser
 		>>= \me ->		enterSharedChoice "Whoms tweets you want to see?" [] users
-		>>= \user ->	let name = getUserName user in joinTweets (getUserName me) name "type in your tweet" (twitterId name)
+		>>= \user ->	let name = getUserName user in joinTweets me user "type in your tweet" (twitterId name)
 where
-	joinTweets  :: String String String (Shared [Tweet]) -> Task Void
-	joinTweets me follow message tweetsStore
-		=			viewSharedInformation ("You are following " +++ follow) [] tweetsStore
+	joinTweets  :: User User String (Shared [Tweet]) -> Task Void
+	joinTweets me you message tweetsStore
+		=			(viewSharedInformation ("You are following " +++ tweeter) [] tweetsStore)
 					||-
-					updateInformation "Add a tweet" [] message
-			>>*		[ OnAction (Action "Quit" [])    (always (return Void))
-	//				, OnAction (Action "Refresh" []) always (const (joinTweets me follow tweets)) 
-					, OnAction (Action "Commit" [])  (ifValue (\v -> True /*size v > 0*/) commit )
-					]
+					(you @: tweeting)
 	where
+		tweeter = getUserName you
+
+		tweeting 
+			=			updateInformation "Add a tweet" [] message
+						-||
+						viewSharedInformation ("Tweets of " +++ tweeter) [] tweetsStore
+				>>*		[ OnAction (Action "Quit" [])    (always (return Void))
+						, OnAction (Action "Commit" [])  (hasValue commit )
+						]
+
 		commit :: String -> Task Void
 		commit message
-			=				update (\tweets -> tweets ++ [(me,message)]) tweetsStore 
-				>>| 		joinTweets me follow "type in your tweet" tweetsStore
+			=				update (\tweets -> [(tweeter,message)] ++ tweets) tweetsStore 
+				>>| 		tweeting 
 
+	
 //
 
 calculateSum :: Task Int
@@ -443,7 +450,7 @@ editWithStatistics :: Task Void
 editWithStatistics 
  =						enterInformation "Give name of text file you want to edit..." []
 	>>= \fileName -> 	let file = sharedStore fileName ""
-						in	parallel Void 	[ (Embedded, showStatistics file)
+						in	parallel Void 	[ (Embedded, showStatistics file )
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		]
@@ -458,7 +465,7 @@ where
 	toV text 			= Note text
 	fromV _ (Note text) = text
 
-showStatistics sharedFile _  = noStat 
+showStatistics sharedFile _  = noStat <<@ Window
 where
 	noStat :: Task Void
 	noStat	=			viewInformation Void [] Void
@@ -470,7 +477,7 @@ where
  						]
 
 
-replace cmnd sharedFile _ = noReplace cmnd
+replace cmnd sharedFile _ = noReplace cmnd <<@ Window
 where
 	noReplace :: Replace -> Task Void
 	noReplace cmnd 
