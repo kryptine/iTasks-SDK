@@ -237,7 +237,7 @@ where
 
 person1by1 :: [MyPerson] -> Task [MyPerson]
 person1by1 persons
-	=       enterInformation "Add a person" [] 	-|| viewInformation "List so far.." [] persons
+	=       enterInformation "Add a person" [] 	//-|| viewInformation "List so far.." [] persons
 		>>*	[ OnAction  (Action "Add" []) 		(hasValue (\v -> person1by1  [v : persons]))
 		    , OnAction  (Action "Finish" [])    (always (return persons))
 		    , OnAction  ActionCancel 			(always (return []))
@@ -625,13 +625,18 @@ tictactoe :: Task String
 tictactoe
 	=             get currentUser
 	  >>= \me  -> enterSharedChoice "Who do you want to play Tic-Tac-Toe with:" [] users
-	  >>= \you -> withShared {board=emptyBoard,player1=me,player2=you,turn=True} 
+	  >>= \you -> playGame me you {board=emptyBoard,player1=me,player2=you,turn=True}
+where
+	playGame me you board 
+	  =				withShared  board
 	                         (\sharedGameSt ->
 	                         (        (tictactoe_for_1 True  sharedGameSt)
 	                                       -||-
 	                          (you @: (tictactoe_for_1 False sharedGameSt))
 	                         ))
-	  >>= \winner -> viewInformation "And the winner is: " [] (toString winner)
+	  >>|			playGame me you {board	& turn = not board.turn}	
+
+
 
 tictactoe_for_1 :: !Bool !(Shared TicTacToe) -> Task User
 tictactoe_for_1 my_turn sharedGameSt
@@ -649,11 +654,13 @@ where
 		               ])
 	where
 		rows	= board
-		columns	= [[ board !! y !! x \\ y <- [0..2]] \\ x <- [0..2]]
+		columns	= [[ board !! x !! y \\ x <- [0..2]] \\ y <- [0..2]]
 		diags   = [[row !! i \\ row <- board & i <- [0..]], [row !! (2-i) \\ row <- board & i <- [0..]]]
 
 	declare_winner gameSt
-		= if gameSt.turn (return gameSt.player2) (return gameSt.player1)
+		= 	let winner = if gameSt.turn gameSt.player2 gameSt.player1 
+			in 		viewInformation "And the winner is: " [] (toString winner)
+				>>|	return winner
 	
 	on_turn gameSt=:{turn}
 		= turn == my_turn
