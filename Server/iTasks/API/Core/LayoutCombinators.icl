@@ -166,7 +166,7 @@ where
 
 	noMarginControl	(UIPanel _ _ _)			= True
 	noMarginControl	(UIGrid _ _ _)			= True
-	noMarginControl	(UITree _ _)			= True
+	noMarginControl	(UITree _ _ _)			= True
 	noMarginControl	(UIEditGoogleMap _ _ _)	= True
 	noMarginControl _						= False
 
@@ -232,6 +232,9 @@ where
 		
 placePanelActions :: UIAttributes UIDirection [UIAction] Bool UIControl  -> ([UIAction],[UIKeyAction],UIControl)
 placePanelActions attr direction actions placeMenus (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
+    //Place triggers
+    # (triggers,actions)        = actionsToTriggers actions
+    # items                     = addTriggers triggers items
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)			= addButtonPanel attr direction buttons items 
@@ -250,6 +253,9 @@ placePanelActions attr direction actions placeMenus (UIPanel sOpts iOpts=:{UIIte
 	| otherwise
 		= (actions, [], UIPanel sOpts {UIItemsOpts|iOpts & items = items, direction = direction} opts)
 placePanelActions attr direction actions _ (UIContainer sOpts iOpts=:{UIItemsOpts|items} opts=:{UIContainerOpts|baseCls,bodyCls}) 
+    //Place triggers
+    # (triggers,actions)        = actionsToTriggers actions
+    # items                     = addTriggers triggers items
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)			= addButtonPanel attr direction buttons items 
@@ -273,11 +279,27 @@ addButtonPanel attr direction buttons items
 		(Just "bottom",Vertical)	= (items ++ [buttonPanel buttons],Vertical)
 		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),buttonPanel buttons],Vertical)
 
+addTriggers :: [(Trigger,String,String)] [UIControl] -> [UIControl]
+addTriggers triggers items = foldl addTriggerToItems items triggers
+where
+    addTriggerToItems items t = map (addTriggerToItem t) items
+
+    addTriggerToItem (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
+    addTriggerToItem (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
+    //For recursive application
+    addTriggerToItem t (UIContainer sOpts iOpts=:{UIItemsOpts|items} opts) = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggerToItem t) items} opts
+    addTriggerToItem t (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts) = UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggerToItem t) items} opts
+    //TODO move down into tabs and fieldsets??
+    addTriggerToItem t c = c
+
 placeWindowActions ::  UIAttributes UIDirection [UIAction] UIWindow -> ([UIAction],[UIKeyAction],UIWindow)
 placeWindowActions attr direction actions (UIWindow sOpts iOpts=:{UIItemsOpts|items} opts)
 	//Place close action
 	# (close,actions)	= actionsToCloseId actions
 	# opts				= {UIWindowOpts|opts & closeTaskId = close}
+    //Place triggers
+    # (triggers,actions)        = actionsToTriggers actions
+    # items                     = addTriggers triggers items
 	//Place button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)	= addButtonPanel attr direction buttons items //if (isEmpty buttons) items (items ++ [buttonPanel buttons])
@@ -494,7 +516,7 @@ updSizeOpts f (UIDropdown sOpts cOpts)				= (UIDropdown (f sOpts) cOpts)
 updSizeOpts f (UIRadioGroup sOpts cOpts)			= (UIRadioGroup (f sOpts) cOpts)
 updSizeOpts f (UICheckboxGroup sOpts cOpts)			= (UICheckboxGroup (f sOpts) cOpts)
 updSizeOpts f (UIGrid sOpts cOpts opts)				= (UIGrid (f sOpts) cOpts opts)
-updSizeOpts f (UITree sOpts cOpts)					= (UITree (f sOpts) cOpts)
+updSizeOpts f (UITree sOpts cOpts opts)				= (UITree (f sOpts) cOpts opts)
 updSizeOpts f (UIActionButton sOpts aOpts opts)		= (UIActionButton (f sOpts) aOpts opts)	
 updSizeOpts f (UIMenuButton	sOpts opts)				= (UIMenuButton	(f sOpts) opts)	
 updSizeOpts f (UILabel sOpts opts)					= (UILabel (f sOpts) opts)
@@ -532,7 +554,7 @@ getSizeOpts (UIDropdown sOpts cOpts)				= sOpts
 getSizeOpts (UIRadioGroup sOpts cOpts)				= sOpts
 getSizeOpts (UICheckboxGroup sOpts cOpts)			= sOpts
 getSizeOpts (UIGrid sOpts cOpts opts)				= sOpts
-getSizeOpts (UITree sOpts cOpts)					= sOpts
+getSizeOpts (UITree sOpts cOpts opts)				= sOpts
 getSizeOpts (UIActionButton sOpts aOpts opts)		= sOpts	
 getSizeOpts (UIMenuButton	sOpts opts)				= sOpts	
 getSizeOpts (UILabel sOpts opts)					= sOpts
@@ -808,6 +830,17 @@ where
 		
 	menuOrder (UIMenuButton _ {UIMenuButtonOpts|text=Just m1}) (UIMenuButton _ {UIMenuButtonOpts|text=Just m2}) = m1 < m2
 	menuOrder m1 m2 = False
+
+actionsToTriggers :: ![UIAction] -> ([(Trigger,String,String)], [UIAction])
+actionsToTriggers [] = ([],[])
+actionsToTriggers [a=:{taskId,action=(Action name options)}:as]
+    # (ts,as) = actionsToTriggers as
+    = case [ t \\ ActionTrigger t <- options] of
+        []          = (ts,[a:as])
+        triggers    = ([(t,taskId,name) \\ t <- triggers] ++ ts, [{a & action= Action name (filter (not o isTrigger) options)}:as])
+where
+    isTrigger (ActionTrigger _) = True
+    isTrigger _                 = False
 
 actionsToCloseId :: ![UIAction] -> (!Maybe String, ![UIAction])
 actionsToCloseId [] = (Nothing,[])

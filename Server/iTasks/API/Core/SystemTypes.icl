@@ -814,9 +814,9 @@ gVisualizeEditor{|Table|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
-			{UIGridOpts|columns = columns val},addVerAttributes verRes newMap)],vst)
-	
+            {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
+            {UIGridOpts|columns = columns val,doubleClickAction=Nothing},addVerAttributes verRes newMap)],vst)
+
 	value (Just (Table _ _ mbSel))	= maybe [] (\s->[s]) mbSel
 	value _							= []
 	
@@ -991,7 +991,7 @@ gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fma
 
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask=[cmv:vm]}
 	# ver		= verifyElementStr cmv
-	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv} {UITreeOpts|doubleClickAction=Nothing},addVerAttributes ver newMap)]
 	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
 	value  (Just (TreeChoice _ mbSel)) 	= maybe [] (\s->[s]) mbSel
@@ -1039,7 +1039,7 @@ gVisualizeText{|TreeChoiceNoView|} fo mode val = fromMaybe ["No item selected"] 
 gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
-		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},newMap)],vst)
+		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val} {UITreeOpts|doubleClickAction=Nothing},newMap)],vst)
 
 	value (Just (TreeChoiceNoView _ mbSel)) = maybe [] (\s->[s]) mbSel
 	value _									= []
@@ -1079,7 +1079,7 @@ where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
 			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
-			{UIGridOpts|columns = hx undef},addVerAttributes verRes newMap)],vst)
+			{UIGridOpts|columns = hx undef, doubleClickAction=Nothing},addVerAttributes verRes newMap)],vst)
 	
 	value (Just (GridChoice options mbSel)) = maybe [] (\s->[s]) mbSel
 	value _									= []
@@ -1107,7 +1107,7 @@ where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
 			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options =options val}
-			{UIGridOpts|columns = hx undef},newMap)],vst)
+			{UIGridOpts|columns = hx undef,doubleClickAction=Nothing},newMap)],vst)
 	
 	value (Just (GridChoiceNoView options mbSel))	= maybe [] (\s->[s]) mbSel
 	value _											= []
@@ -1645,16 +1645,16 @@ actionWeight (Action _ options) = case [weight \\ ActionWeight weight <- options
 	[weight:_]	= weight
 	_			= 0 
 
-derive JSONEncode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive gDefault			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive gEq				TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive gVisualizeText	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey
-derive gVisualizeEditor	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive gHeaders			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive gGridRows		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey
-derive gUpdate			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey
-derive gVerify			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey
+derive JSONEncode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVisualizeText	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVisualizeEditor	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gHeaders			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gGridRows		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
 	

@@ -12,7 +12,7 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo
 :: UIDiffers	:== Map (String,String) (JSONNode JSONNode -> Maybe JSONNode)
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
+derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer, UIAction
@@ -77,8 +77,8 @@ diffControls path event differs c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]
 		(UIGrid sOpts1 cOpts1 opts1, UIGrid sOpts2 cOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2,diffOpts opts1 opts2]
-		(UITree sOpts1 cOpts1, UITree sOpts2 cOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]
+		(UITree sOpts1 cOpts1 opts1, UITree sOpts2 cOpts2 opts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2,diffOpts opts1 opts2]
 		(UIActionButton sOpts1 aOpts1 opts1, UIActionButton sOpts2 aOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffActionOpts path aOpts1 aOpts2,diffButtonOpts path opts1 opts2]
 		(UIMenuButton sOpts1 opts1, UIMenuButton sOpts2 opts2)

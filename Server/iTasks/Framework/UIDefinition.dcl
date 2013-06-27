@@ -117,7 +117,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
-	| UITree			!UISizeOpts	!(UIChoiceOpts UITreeNode) 					// - Tree (selecting a node in a tree structure)
+	| UITree			!UISizeOpts	!(UIChoiceOpts UITreeNode) !UITreeOpts		// - Tree (selecting a node in a tree structure)
 	| UIRadioGroup		!UISizeOpts !(UIChoiceOpts String)						// - A mutually exclusive set of radio buttons 
 	| UICheckboxGroup	!UISizeOpts !(UIChoiceOpts String)						// - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
@@ -258,7 +258,12 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
   }
 
 :: UIGridOpts =
-	{ columns		:: ![String]
+	{ columns			:: ![String]
+	, doubleClickAction	:: !Maybe (String,String)
+	}
+
+:: UITreeOpts =
+	{ doubleClickAction	:: !Maybe (String,String)
 	}
 
 :: UITreeNode =

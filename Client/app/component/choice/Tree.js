@@ -24,6 +24,9 @@ Ext.define('itwc.component.choice.Tree',{
 		me.callParent(arguments);
 		
 		me.addManagedListener(me,'select',me.onSelect,me);
+        if(me.doubleClickAction && me.doubleClickAction.length == 2) {
+            me.addManagedListener(me,'itemdblclick', me.onItemDblClick, me);
+        }
 		me.addManagedListener(me,'beforeitemexpand',me.onItemExpand,me);
 		me.addManagedListener(me,'beforeitemcollapse',me.onItemCollapse,me);
 		me.initEditable();
@@ -59,6 +62,13 @@ Ext.define('itwc.component.choice.Tree',{
 		this.lastEditNo = itwc.global.controller.sendEditEvent(this.taskId,this.editorId,val);
 		this.lastEditVal = val;
 	},
+    onItemDblClick: function() {
+        var me = this;
+
+        if(me.doubleClickAction && me.doubleClickAction.length == 2) {
+            itwc.global.controller.sendActionEvent(me.doubleClickAction[0],me.doubleClickAction[1]);
+        }
+    },
 	getValue: function() {
 		return this.selectedNode;
 	},

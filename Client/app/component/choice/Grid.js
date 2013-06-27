@@ -42,6 +42,9 @@ Ext.define('itwc.component.choice.Grid',{
 
 		me.callParent(arguments);
 		me.on('select', me.onSelect, me);		
+        if(me.doubleClickAction && me.doubleClickAction.length == 2) {
+            me.on('itemdblclick', me.onItemDblClick, me);
+        }
 		me.initEditable();
 	},
 	afterRender: function() {
@@ -60,6 +63,13 @@ Ext.define('itwc.component.choice.Grid',{
 		this.value = [this.store.indexOf(rec)];
 		this.fireEvent('change');	
 	},
+    onItemDblClick: function() {
+        var me = this;
+
+        if(me.doubleClickAction && me.doubleClickAction.length == 2) {
+            itwc.global.controller.sendActionEvent(me.doubleClickAction[0],me.doubleClickAction[1]);
+        }
+    },
 	setValue: function(value) {
 		var me = this;
 

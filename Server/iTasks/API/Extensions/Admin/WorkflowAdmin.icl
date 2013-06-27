@@ -108,7 +108,7 @@ installInitialWorkflows iflows
 	| OpenProcess			
 		
 :: WorklistRow =
-	{ title		:: Maybe String
+    { title		:: Maybe String
 	, priority	:: TaskPriority
 	, date		:: DateTime
 	, deadline	:: Maybe DateTime
@@ -148,7 +148,7 @@ startWork list
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [WithResult (Action "Start Task" []) (const True) (startWorkflow list)]
+		>>* [WithResult (Action "Start Task" [ActionKey (unmodified KEY_ENTER)]) (const True) (startWorkflow list)]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
@@ -189,20 +189,20 @@ where
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														
-	>>* [WithResult (Action "Open" []) (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
-		,WithResult (Action "Delete" []) (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
+	(	enterSharedChoice Void [ChooseWith ChooseFromGrid snd] processes @ fst
+	>>* [WithResult (Action "Open" [ActionTrigger DoubleClick]) (const True) (\taskId -> openTask taskList taskId @ const OpenProcess)
+		,WithResult (Action "Delete" []) (const True) (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess)]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapRead (\(procs,ownPid) -> filter (show ownPid) (filter isActive procs)) (processesForCurrentUser |+| currentTopTask)
+	processes = mapRead (\(procs,ownPid) -> [(p.TaskListItem.taskId,mkRow p) \\ p <- procs | show ownPid p && isActive p])  (processesForCurrentUser |+| currentTopTask)
 	where
 		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid
 		show ownPid _ = False
 		
 	isActive {progressMeta=Just {stable}}	= not stable 
 
-	mkRow {TaskListItem|progressMeta=Just pmeta,managementMeta=Just mmeta} =
+	mkRow {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just mmeta} =
 		{WorklistRow
 		|title = mmeta.ManagementMeta.title	
 		,priority = mmeta.ManagementMeta.priority

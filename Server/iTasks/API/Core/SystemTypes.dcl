@@ -585,9 +585,10 @@ instance toUserConstraint UserId
 
 :: ActionName	:== String	//Locally unique identifier for actions
 :: ActionOption
-	= ActionKey		!Hotkey	//Specifies a hotkey for the action. 
-	| ActionWeight	!Int	//Specifies a weight for specific sorting in menus
-	| ActionIcon	!String	//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
+	= ActionKey		!Hotkey		//Specifies a hotkey for the action. 
+	| ActionWeight	!Int		//Specifies a weight for specific sorting in menus
+	| ActionIcon	!String		//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
+	| ActionTrigger	!Trigger	//Special event that triggers this action (other than clicking the action button/menu item)
 
 actionName		:: !Action -> ActionName
 actionIcon 		:: !Action -> Maybe String
@@ -600,6 +601,8 @@ actionWeight	:: !Action -> Int			//Default weight is 0
 			}
 
 :: Key :== Int //Key code
+
+:: Trigger	= DoubleClick	//Currently only doubleclick is supported as special trigger
 
 //Common action constants with predefined options
 ActionOk		:== Action "Ok"				[ActionIcon "ok", ActionKey (unmodified KEY_ENTER)]
@@ -679,17 +682,17 @@ ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
 alt key			:== {key=key,ctrl=False,alt=True,shift=False}
 shift key		:== {key=key,ctrl=False,alt=False,shift=True}
 
-derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
-derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gVisualizeEditor	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gHeaders			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gGridRows		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
-derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey
+derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVisualizeEditor	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gHeaders			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gGridRows		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 

@@ -111,7 +111,7 @@ encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON
 encodeUIControl (UIRadioGroup sopts copts)				= enc "itwc_choice_radiogroup" [toJSON sopts, toJSON copts]
 encodeUIControl (UICheckboxGroup sopts copts)			= enc "itwc_choice_checkboxgroup" [toJSON sopts, toJSON copts]
 encodeUIControl (UIGrid sopts copts opts)				= enc "itwc_choice_grid" [toJSON sopts, toJSON copts, toJSON opts]
-encodeUIControl (UITree sopts copts)					= enc "itwc_choice_tree" [toJSON sopts, toJSON copts]
+encodeUIControl (UITree sopts copts opts)				= enc "itwc_choice_tree" [toJSON sopts, toJSON copts, toJSON opts]
 encodeUIControl (UIActionButton sopts aopts opts)		= enc "itwc_actionbutton" [toJSON sopts, toJSON aopts, toJSON opts]
 encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sopts, toJSON opts]
 encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts]
@@ -131,7 +131,7 @@ encodeUITab :: !UITab -> JSONNode
 encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON opts]
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
-derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UIButtonOpts, UITreeNode, UILabelOpts
+derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UIOryxOpts
 derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
 derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
