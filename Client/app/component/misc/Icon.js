@@ -39,7 +39,6 @@ Ext.define('itwc.component.misc.Icon', {
 			me.tooltip.destroy();
 		}
 		if(text){
-            console.log(text);
             me.tooltip = Ext.create('Ext.tip.ToolTip', {
                     target: me.getEl(),
                     html: text
