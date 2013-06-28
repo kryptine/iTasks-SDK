@@ -34,15 +34,15 @@ gVisualizeText{|URL|}	_ val	= [toString val]
 
 gVisualizeEditor{|URL|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
+	viz name mask verRes vst=:{VSt|taskId,disabled}
 		| disabled
 			= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(URL url) -> ATag [HrefAttr url] [Text url]) val},newMap)], vst)
 		| otherwise
-			# val = checkMask touched val
-			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val}
+			# val = checkMask mask (fmap (toJSON o toString) val)
+			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val}
 			= ([(ui,addVerAttributes verRes newMap)],vst)
 
-gUpdate{|URL|} target upd val = basicUpdate (\json url -> maybe url (\s -> URL s) (fromJSON json)) target upd val
+gUpdate{|URL|} target upd val = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) target upd val
 
 gVerify{|URL|} _ um options = simpleVerify "Enter a uniform resource locator (URL)" um options
 
@@ -71,12 +71,12 @@ gVisualizeText{|Note|}			_ val	= [toString val]
 
 gVisualizeEditor{|Note|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 //		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
 		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
-
-		| otherwise	= ([(UIEditNote sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	
+            = ([(UIEditNote sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(Note v)  -> v)) val},addVerAttributes verRes newMap)],vst)
 	
 	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
 	
@@ -118,8 +118,8 @@ gVisualizeText{|CleanCode|}		_ val		= [toString val]
 
 gVisualizeEditor{|CleanCode|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap codeToHtml val}),newMap)],vst)
 		| otherwise	= ([(UIEditCode sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(CleanCode v) -> JSONString v) val} {UICodeOpts|lineNumbers=True},addVerAttributes verRes newMap)],vst)
 	
@@ -132,8 +132,8 @@ where
 
 gUpdate{|CleanCode|} target upd val = basicUpdate codeUpd target upd val
 where
-	codeUpd (JSONString s) _	= CleanCode s
-	codeUpd _ old				= old			
+	codeUpd (JSONString s) _	= Just (CleanCode s)
+	codeUpd _ old				= Just old
 
 gVerify{|CleanCode|} _ um options = simpleVerify "Enter a piece of Clean code" um options
 
@@ -152,10 +152,10 @@ gVisualizeText{|EUR|} _ val = [toString val]
 
 gVisualizeEditor{|EUR|}	val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(EUR v) -> toReal v / 100.0)) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|EUR|} target upd val = basicUpdateSimple target upd val
 
@@ -193,10 +193,10 @@ gVisualizeText{|USD|} _ val = [toString val]
 
 gVisualizeEditor{|USD|}	val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(USD v) -> toReal v / 100.0)) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|USD|} target upd val = basicUpdateSimple target upd val
 
@@ -248,16 +248,16 @@ gVisualizeText{|Date|} _ val = [toString val]
 
 gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val	= checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val	= checkMaskValue mask val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gDefault{|Date|} _ = {day = 1, mon = 1, year = 1970}
 
-gUpdate{|Date|} target upd val = basicUpdate (\json old -> (fromMaybe old (fromJSON json))) target upd val
+gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
-gVerify{|Date|} _ um options = simpleVerify "Enter a date" um options
+gVerify{|Date|} _ um options = simpleVerify "Enter a date (yyy-mm-dd)" um options
 
 derive gEq			Date
 derive gHeaders		Date
@@ -329,14 +329,14 @@ gVisualizeText{|Time|} _ val = [toString val]
 
 gVisualizeEditor{|Time|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMaskValue mask val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
-gUpdate{|Time|} target upd val = basicUpdate (\json old -> fromMaybe old (fromJSON json)) target upd val
+gUpdate{|Time|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
-gVerify{|Time|} _ um options = simpleVerify "Enter a time of day" um options
+gVerify{|Time|} _ um options = simpleVerify "Enter a time (hh:mm:ss)" um options
 
 derive gDefault		Time
 derive gEq			Time
@@ -452,7 +452,7 @@ where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		# val = checkMask touched val
 		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
-		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toJSON val},addVerAttributes verRes newMap)],vst)
 
 gUpdate {|Document|} [] upd (val,[dmask:mask]) = case fromJSON upd of
 	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},[Blanked:mask])// Reset
@@ -483,10 +483,10 @@ JSONDecode{|Username|} c = (Nothing,c)
 
 gVisualizeEditor{|Username|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(Username v) -> v)) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|Username|} target upd val = basicUpdateSimple target upd val
 
@@ -519,10 +519,10 @@ gVisualizeText{|Password|} _ val = ["********"]
 
 gVisualizeEditor{|Password|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
-		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (toJSON o (\(Password v) -> v)) val},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|Password|} target upd val = basicUpdateSimple target upd val
 
@@ -648,17 +648,17 @@ where
 		# mbMVC		= fromJSON json
 		| isJust mbMVC
 			# {MVCUpdate|center=(lat,lng),zoom,type} = fromJust mbMVC
-			= {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
+			= Just {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
 		# mbMarkerDrag = fromJSON json
 		| isJust mbMarkerDrag
 			# {MarkerDragUpdate|index,point=(lat,lng)}	= fromJust mbMarkerDrag
-			= {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
+			= Just {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
 		# mbMarkerClick = fromJSON json
 		| isJust mbMarkerClick
 			# {MarkerClickUpdate|index,event} = fromJust mbMarkerClick
-			= {GoogleMap| orig & markers = [{GoogleMapMarker|m & selected = i == index} \\ m <- orig.GoogleMap.markers & i <- [0..]]}
+			= Just {GoogleMap| orig & markers = [{GoogleMapMarker|m & selected = i == index} \\ m <- orig.GoogleMap.markers & i <- [0..]]}
 		| otherwise	
-			= orig
+			= Just orig
 
 gVerify{|GoogleMap|} _ um _ = alwaysValid um
 //derive gVerify GoogleMap
@@ -696,20 +696,20 @@ gVisualizeText{|Scale|}	_ {Scale|cur} = [toString cur]
 
 gVisualizeEditor{|Scale|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask mask val
 		# sliderOpts	= {UISliderOpts|minValue=maybe 1 (\{Scale|min} -> min) val,maxValue=maybe 5 (\{Scale|max} -> max) val}
 		| disabled									
 			# viewOpts = {UIViewOpts|value = fmap curVal val}  
 			= ([(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
 		| otherwise
-			# editOpts = {UIEditOpts|taskId = toString taskId, editorId = name, value = fmap curVal val}
+			# editOpts = {UIEditOpts|taskId = toString taskId, editorId = name, value = fmap (toJSON o curVal) val}
 			= ([(UIEditSlider defaultSizeOpts editOpts sliderOpts, addVerAttributes verRes newMap)],vst)
 
 	curVal {Scale|cur} = cur
 
 gUpdate{|Scale|} target upd val
-	= basicUpdate (\json i -> maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)) target upd val
+	= basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) target upd val
 
 gVerify{|Scale|} _ um _ = alwaysValid um
 
@@ -780,7 +780,7 @@ where
 		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
 
 gUpdate{|FormButton|} target upd val
-	= basicUpdate (\st b -> {FormButton|b & state = st}) target upd val
+	= basicUpdate (\st b -> Just {FormButton|b & state = st}) target upd val
 
 gVerify{|FormButton|} _ um _ = alwaysValid um
 
@@ -827,7 +827,7 @@ where
 	options _							= []
 
 gUpdate{|Table|} target upd val
-	= basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) target upd val
+	= basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) target upd val
 
 gVerify{|Table|} _ um _ = alwaysValid um
 gDefault{|Table|} _ = Table [] [] Nothing
@@ -1242,7 +1242,7 @@ where
 	options (Just (CheckMultiChoice options _))		= [concat (gx AsLabel v) \\ (v,_) <- options]
 	options	_										= []
 
-gUpdate{|CheckMultiChoice|} _ _ _ _ _ _ target upd val = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel) target upd val
+gUpdate{|CheckMultiChoice|} _ _ _ _ _ _ target upd val = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) target upd val
 where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
@@ -1256,6 +1256,7 @@ where
 	getSelectionViews (CheckMultiChoice options sels)			= fmap fst (getListOptions options sels)
 
 // Utility functions for Choice and MultiChoice instances
+touch (TouchedUnparsed r)	= TouchedUnparsed r
 touch (TouchedWithState s)	= TouchedWithState s
 touch (PartiallyTouched c)	= PartiallyTouched c
 touch _						= Touched
@@ -1270,8 +1271,7 @@ collapse idx (TouchedWithState s) = case fromJSON s of
 	_			= TouchedWithState s
 collapse idx m = m
 
-updateChoice select target upd val = basicUpdate (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) target upd val
-
+updateChoice select target upd val = basicUpdate (\json choice -> Just (maybe choice (\i -> select i choice) (fromJSON json))) target upd val
 
 setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
 setListOption options newSel

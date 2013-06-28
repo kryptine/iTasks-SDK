@@ -51,7 +51,7 @@ instance GenMask InteractionMask
 *
 * @return The modified value
 */
-basicUpdate :: !(upd a -> a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} upd
 /**
 * Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.

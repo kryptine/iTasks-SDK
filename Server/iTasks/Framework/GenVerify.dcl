@@ -6,6 +6,7 @@ instance GenMask VerifyMask //TODO: Remove once no longer needed
 
 :: ErrorMessage = BlankError			//A required field is missing
 				| FormatError !String	//The entered value does not have the right format
+                | ParseError !JSONNode  //The value can not be parsed, use raw value instead
 				
 :: HintMessage :== String
 :: Optional :== Bool

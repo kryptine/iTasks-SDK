@@ -100,20 +100,20 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	| UIViewSlider		!UISizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
 	| UIViewProgress	!UISizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
 	// Components for editing data:
-	| UIEditString		!UISizeOpts	!(UIEditOpts String)						// - String (single line text field)
-	| UIEditNote		!UISizeOpts	!(UIEditOpts String)						// - Note (multi-line text field)
-	| UIEditPassword	!UISizeOpts	!(UIEditOpts String)						// - Password (single line text field that hides the text)
-	| UIEditInt			!UISizeOpts	!(UIEditOpts Int)							// - Int (integer number field)
-	| UIEditDecimal		!UISizeOpts	!(UIEditOpts Real)							// - Decimal (decimal number field)
-	| UIEditCheckbox	!UISizeOpts	!(UIEditOpts Bool)							// - Checkbox (editable checkbox)
-	| UIEditSlider		!UISizeOpts	!(UIEditOpts Int) !UISliderOpts				// - Slider (editable slider)
-	| UIEditDate		!UISizeOpts	!(UIEditOpts Date)							// - Date (date picker)
-	| UIEditTime		!UISizeOpts	!(UIEditOpts Time)							// - Time (time picker)
-	| UIEditDocument	!UISizeOpts	!(UIEditOpts Document)						// - Document (info + upload possibility)
-	| UIEditButton		!UISizeOpts !(UIEditOpts JSONNode) !UIButtonOpts		// - Button that sends edit events on click
-	| UIEditGoogleMap	!UISizeOpts !(UIEditOpts JSONNode) !UIGoogleMapOpts		// - Google Map panel
-	| UIEditCode		!UISizeOpts !(UIEditOpts JSONNode) !UICodeOpts			// - Source code editor component
-	| UIEditOryx		!UISizeOpts !(UIEditOpts JSONNode) !UIOryxOpts			// - Oryx editor component
+	| UIEditString		!UISizeOpts	!UIEditOpts 					                // - String (single line text field)
+	| UIEditNote		!UISizeOpts	!UIEditOpts 						            // - Note (multi-line text field)
+	| UIEditPassword	!UISizeOpts	!UIEditOpts 						            // - Password (single line text field that hides the text)
+	| UIEditInt			!UISizeOpts	!UIEditOpts 							        // - Int (integer number field)
+	| UIEditDecimal		!UISizeOpts	!UIEditOpts 							        // - Decimal (decimal number field)
+	| UIEditCheckbox	!UISizeOpts	!UIEditOpts 							        // - Checkbox (editable checkbox)
+	| UIEditSlider		!UISizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
+	| UIEditDate		!UISizeOpts	!UIEditOpts 							        // - Date (date picker)
+	| UIEditTime		!UISizeOpts	!UIEditOpts 							        // - Time (time picker)
+	| UIEditDocument	!UISizeOpts	!UIEditOpts 						            // - Document (info + upload possibility)
+	| UIEditButton		!UISizeOpts !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
+	| UIEditGoogleMap	!UISizeOpts !UIEditOpts  !UIGoogleMapOpts		            // - Google Map panel
+	| UIEditCode		!UISizeOpts !UIEditOpts  !UICodeOpts			            // - Source code editor component
+	| UIEditOryx		!UISizeOpts !UIEditOpts  !UIOryxOpts			            // - Oryx editor component
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
@@ -193,10 +193,10 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	{ value			:: !Maybe a
 	}
 	
-:: UIEditOpts a =
+:: UIEditOpts =
 	{ taskId		:: !String
 	, editorId		:: !String
-	, value			:: !Maybe a
+	, value			:: !Maybe JSONNode
 	}
 
 :: UIActionOpts =

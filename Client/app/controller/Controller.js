@@ -73,6 +73,8 @@ Ext.define('itwc.controller.Controller', {
 	uiUpdateSource: null,
 
 	init: function() {
+
+
 		this.viewport = null;
 
 		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);

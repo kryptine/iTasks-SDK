@@ -1,6 +1,17 @@
 body {
 
 }
+/* Fix for tooltip width bug in Ext 4.2.0 */
+.x-tip {
+    width: auto !important;
+}
+.x-tip-body {
+    width: auto !important;
+}
+.x-tip-body span {
+    width: auto !important;
+}
+
 .itwc-prompt {
 	border: #999 solid;
 	border-width: 0 0 1px 0;

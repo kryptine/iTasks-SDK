@@ -4,6 +4,8 @@ Ext.define('itwc.component.edit.Int',{
 	mixins: ['itwc.component.edit.Editable'],
 	allowDecimals: false,
 	hideTrigger: true,
+    validateOnChange: false,
+    validateOnBlur: false,
 	initComponent: function() {
 		this.callParent(arguments);
 		this.initEditable();

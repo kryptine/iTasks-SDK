@@ -134,7 +134,7 @@ diffViewOpts path opts1 opts2
 	| opts1 === opts2	= DiffPossible []
 						= DiffPossible [UIUpdate path [("setValue",[encodeUIValue opts2.UIViewOpts.value])]]
 
-diffEditOpts :: UIPath Event (UIEditOpts a) (UIEditOpts a) -> DiffResult | gEq{|*|} a & encodeUIValue a
+diffEditOpts :: UIPath Event UIEditOpts UIEditOpts -> DiffResult
 diffEditOpts path event opts1 opts2
 	| isEmpty taskIdUpd && isEmpty editorIdUpd
 		= DiffPossible (flatten [taskIdUpd,editorIdUpd,valueUpd])
@@ -145,17 +145,14 @@ where
 	editorIdUpd = if (opts1.UIEditOpts.editorId == opts2.UIEditOpts.editorId) [] [UIUpdate path [("setEditorId",[toJSON opts2.UIEditOpts.editorId])]]
 	valueUpd
 		| eventMatch opts2 event
-			# value2 = encodeUIValue opts2.UIEditOpts.value
-		//	= if (eventValue event === value2)  [] [UIUpdate path [("setValue",[value2,JSONBool True])]]
-			= if (eventValue event === value2)  [] [UIUpdate path [("setEditorValue",[value2])]]
+			= if (eventValue event === opts2.UIEditOpts.value)  [] [UIUpdate path [("setEditorValue",[toJSON opts2.UIEditOpts.value])]]
 		| otherwise 
-			//= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setValue",[encodeUIValue opts2.UIEditOpts.value,JSONBool True])]]
-			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setEditorValue",[encodeUIValue opts2.UIEditOpts.value])]]
+			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setEditorValue",[toJSON opts2.UIEditOpts.value])]]
 
 	eventMatch {UIEditOpts|taskId,editorId} (EditEvent _ matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
 	eventMatch _ _ = False
 	
-	eventValue (EditEvent _ _ _ value) = value
+	eventValue (EditEvent _ _ _ value) = Just value
 	
 diffEditletOpts :: UIPath UIDiffers UIEditletOpts UIEditletOpts -> DiffResult
 diffEditletOpts path differs opts1 opts2

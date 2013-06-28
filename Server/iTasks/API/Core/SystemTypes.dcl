@@ -525,6 +525,7 @@ instance toString (TaskListId s)
 :: InteractionMask
 	= Untouched								//The value has not been touched by the user
 	| Touched								//The value has been touched by the user, now it makes sense to check the input
+    | TouchedUnparsed !JSONNode              //The user has edited the value to something that cannot be parsed to a valid value
 	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
 	| PartiallyTouched ![InteractionMask]	//The value is a compound structure of which some parts are, and some aren't touched
 	| Blanked								//The value was previously touched, but has been made blank again

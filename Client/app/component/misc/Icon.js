@@ -9,10 +9,14 @@ Ext.define('itwc.component.misc.Icon', {
 		this.callParent(arguments);
 	},
 	afterRender: function() {
-		this.callParent(arguments);
+        var me = this;
+		me.callParent(arguments);
 
-		if (this.tooltip) {
-			this.tooltip = new Ext.ToolTip({html: this.tooltip, target: this.getEl()});
+		if (me.tooltip) {
+            me.tooltip = Ext.create('Ext.tip.ToolTip', {
+                    target: me.getEl(),
+                    html: me.tooltip
+            });
        	}
 	},
 	onDestroy: function() {
@@ -30,11 +34,16 @@ Ext.define('itwc.component.misc.Icon', {
 		this.setType(iconCls);
 	},
 	setTooltip: function(text) {
-		if(this.tooltip) {
-			this.tooltip.destroy();
+        var me = this;
+		if(me.tooltip) {
+			me.tooltip.destroy();
 		}
 		if(text){
-			this.tooltip = new Ext.ToolTip({html: text, target: this.getEl()});
+            console.log(text);
+            me.tooltip = Ext.create('Ext.tip.ToolTip', {
+                    target: me.getEl(),
+                    html: text
+            });
 		}
 	}
 });

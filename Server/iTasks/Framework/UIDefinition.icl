@@ -181,9 +181,9 @@ encViewOpts :: (UIViewOpts a) -> JSONNode | encodeUIValue a
 encViewOpts {UIViewOpts|value}
 	= JSONObject [("value",encodeUIValue value)]
 
-encEditOpts :: (UIEditOpts a) -> JSONNode | encodeUIValue a
+encEditOpts :: UIEditOpts  -> JSONNode
 encEditOpts {UIEditOpts|taskId,editorId,value}
-	= JSONObject [("taskId",JSONString taskId),("editorId",JSONString editorId),("value",encodeUIValue value)]
+	= JSONObject ([("taskId",JSONString taskId),("editorId",JSONString editorId)] ++ maybe [] (\v -> [("value",v)]) value)
 
 encViewportOpts :: UIViewportOpts -> JSONNode
 encViewportOpts {UIViewportOpts|title,hotkeys,windows}

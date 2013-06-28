@@ -152,6 +152,7 @@ customVerify mbHint pred mkErrMsg mbVal [mask:um] options=:{VerifyOptions|option
 		PartiallyTouched _		= maybe (VMValid mbHint []) (validateValue) mbVal
 		Touched					= maybe (VMValid mbHint []) (validateValue) mbVal
 		TouchedWithState s		= maybe (VMValidWithState mbHint [] s) (validateValueWithState s) mbVal		
+		TouchedUnparsed r		= VMInvalid (ParseError r) []
 		Blanked					= if optional (VMValid mbHint []) (VMInvalid BlankError [])
 	= ([vm],um)
 where

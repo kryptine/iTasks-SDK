@@ -175,22 +175,25 @@ where
 			# l = list !! (index)
 			= updateAt (index-1) l (updateAt index f list)
 		
-gUpdate{|Dynamic|}		target upd val = basicUpdate (\Void v -> v) target upd val
-gUpdate{|(->)|} _ _ gUpdy _ _ _ target upd val = basicUpdate (\Void v -> v) target upd val
+gUpdate{|Dynamic|}		target upd val = basicUpdate (\Void v -> Just v) target upd val
+gUpdate{|(->)|} _ _ gUpdy _ _ _ target upd val = basicUpdate (\Void v -> Just v) target upd val
 
 gUpdate{|HtmlTag|} target upd val = val
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
 
-basicUpdate :: !(upd a -> a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} upd
 basicUpdate toV target upd (v,[vmask:mask])
 	| isEmpty target
-		= (fromMaybe v (fmap (\u -> toV u v) (fromJSON upd)), [if (upd === JSONNull) Blanked Touched:mask])
+        # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
+        # v     = fromMaybe v mbV
+        # vmask = if (upd === JSONNull) Blanked (if (isNothing mbV) (TouchedUnparsed upd) Touched)
+        = (v,[vmask:mask])
 	| otherwise
 		= (v,[vmask:mask])
 
 basicUpdateSimple :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} a
-basicUpdateSimple target upd val = basicUpdate (\json old -> fromMaybe old (fromJSON json)) target upd val
+basicUpdateSimple target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
 instance GenMask InteractionMask
 where
@@ -211,6 +214,8 @@ where
 	
 	isTouched :: !InteractionMask -> Bool
 	isTouched  Touched					= True
+	isTouched (TouchedUnparsed _)		= True
 	isTouched (TouchedWithState _)		= True
 	isTouched (PartiallyTouched _)		= True
 	isTouched _							= False
+

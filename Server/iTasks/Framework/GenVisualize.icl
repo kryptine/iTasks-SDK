@@ -95,7 +95,7 @@ gVisualizeEditor{|RECORD|} fx _ _ _ _ _ val vst=:{VSt|currentPath,verifyMask,opt
 	# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldViz]) fieldViz	
 	= (viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
-	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = dp2s currentPath, value = Just checked},newMap)
+	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = dp2s currentPath, value = Just (JSONBool checked)},newMap)
 	
 gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ val vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
@@ -172,43 +172,45 @@ gVisualizeEditor{|EITHER|} fx _ _ _ _ _ fy _ _ _ _ _ val vst = case val of
 		Just (LEFT x)	= fx (Just x) vst
 		Just (RIGHT y)	= fy (Just y) vst
 
-
-
 gVisualizeEditor{|Int|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditInt defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		| disabled	
+            = ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+		| otherwise
+            = ([(UIEditInt defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=checkMaskValue mask val},addVerAttributes verRes newMap)],vst)
 	
 gVisualizeEditor{|Real|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		| disabled	
+            = ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+		| otherwise
+            = ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=checkMaskValue mask val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Char|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val},addVerAttributes verRes newMap)],vst)
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		| disabled	
+            = ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+		| otherwise
+            = ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=checkMaskValue mask val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|String|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		| disabled
+            = ([(UIViewString defaultSizeOpts {UIViewOpts|value= checkMask mask val},newMap)],vst)
+		| otherwise
+            = ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=checkMaskValue mask val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Bool|} val vst = visualizeCustom viz vst
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
-		| disabled		= ([(UIViewCheckbox defaultSizeOpts {UIViewOpts|value = val},addVerAttributes verRes newMap)],vst)
-		| otherwise		= ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
-
+	viz name mask verRes vst=:{VSt|taskId,disabled}
+		| disabled		
+            = ([(UIViewCheckbox defaultSizeOpts {UIViewOpts|value =checkMask mask val},addVerAttributes verRes newMap)],vst)
+		| otherwise	
+            = ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=checkMaskValue mask val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|[]|} fx _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask,layout}
 	# (cmv,vm)		= popMask verifyMask
@@ -342,10 +344,9 @@ visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
 	// only check mask if generating editor definition & not for labels
 	# (cmv,vm)	= popMask verifyMask
-	# touched	= isTouched cmv
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# ver		= verifyElementStr cmv
-	# (vis,vst) = tuiF (dp2s currentPath) touched ver vst
+	# (vis,vst) = tuiF (dp2s currentPath) cmv ver vst
 	= (NormalEditor vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
@@ -379,6 +380,7 @@ verifyElementStr cmv = case cmv of
 	VMUntouched mbHnt _ _					= maybe NoMsg HintMsg mbHnt
 	VMInvalid (FormatError e) _				= ErrorMsg e
 	VMInvalid BlankError _					= ErrorMsg "This value is required"
+	VMInvalid (ParseError _) _				= ErrorMsg "This value is not in the required format"
 	VMInvalidWithState (FormatError e) _ _	= ErrorMsg e
 	VMInvalidWithState BlankError _ _		= ErrorMsg "This value is required"
 
@@ -393,9 +395,16 @@ addLabel optional label attr = put LABEL_ATTRIBUTE (format optional label) attr
 where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
 
-checkMask :: !Bool !(Maybe a) -> (Maybe a)
-checkMask False _	= Nothing
-checkMask _ val 	= val
+checkMask :: !VerifyMask !(Maybe a) -> (Maybe a)
+checkMask mask val
+    | isTouched mask    = val
+                        = Nothing
+
+checkMaskValue :: !VerifyMask !(Maybe a) -> Maybe JSONNode | JSONEncode{|*|} a
+checkMaskValue (VMValid _ _) val               = fmap toJSON val
+checkMaskValue (VMValidWithState _ _ _) val    = fmap toJSON val
+checkMaskValue (VMInvalid (ParseError r) _) _  = Just r
+checkMaskValue _ _                             = Nothing
 
 controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
 controlsOf (NormalEditor controls)		= controls

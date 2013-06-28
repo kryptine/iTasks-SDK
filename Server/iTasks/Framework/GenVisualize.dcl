@@ -104,7 +104,8 @@ visualizeAsText			:: !StaticVisualizationMode !a				-> String									| gVisuali
 
 //Utility functions making specializations of gVisualizeEditor
 
-checkMask			:: !Bool !(Maybe a) -> (Maybe a)
+checkMask			:: !VerifyMask !(Maybe a) -> (Maybe a)
+checkMaskValue      :: !VerifyMask !(Maybe a) -> Maybe JSONNode | JSONEncode{|*|} a
 verifyElementStr	:: !VerifyMask -> VerifyResult
 addVerAttributes	:: !VerifyResult !UIAttributes -> UIAttributes
 
@@ -140,7 +141,7 @@ visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated TUI definition
 */
-:: UIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![(!UIControl,!UIAttributes)],!*VSt))
+:: UIVizFunction :== String VerifyMask VerifyResult -> .(*VSt -> *(![(!UIControl,!UIAttributes)],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a
