@@ -1,7 +1,7 @@
-implementation module Tasklet
+implementation module iTasks.Framework.ClientSupport.Tasklet
 
 import iTasks, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition
-import Sapl.Linker.LazyLinker, Sapl.Target.JS.CodeGeneratorJS, SaplHtml
+import Sapl.Linker.LazyLinker, Sapl.Target.JS.CodeGeneratorJS, iTasks.Framework.ClientSupport.SaplHtml
 import graph_to_sapl_string, sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
 import System.Time, System.File, System.FilePath
 
@@ -52,7 +52,7 @@ where
 		= (result, println "mkTaskWithShared: init" iworld)		
 
 		// Refresh: server restart. anything else?
-	taskFunc RefreshEvent taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
+	taskFunc (RefreshEvent _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
 		# res = fromJust (fromJSON rJsonRes)
 		# oldval = fromJust (fromJSON vJsonRes)
 
@@ -69,19 +69,19 @@ where
 		= (result, println ("mkTaskWithShared: refresh") iworld)
 
 	// Focus: tab switch. anything else?
-	taskFunc (FocusEvent _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
+	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
 		# res = fromJust (fromJSON (rJsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) context
 		= (result, println "mkTaskWithShared: focus" iworld)
   
 	// Edit: "result"
-	taskFunc (EditEvent targetTaskId "result" jsonRes) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts _ vJsonRes d1 d2) iworld
+	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts _ vJsonRes d1 d2) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) (TCInteract taskId ts jsonRes vJsonRes d1 d2)
 		= (result, println "mkTaskWithShared: result" iworld) 
  
 	// Edit: "finalize"
-	taskFunc (EditEvent targetTaskId "finalize" jsonRes) taskRepOpts (TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
+	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
 		# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))
@@ -233,7 +233,7 @@ where
 		= (result, println "init" iworld)
 
 	// Refresh: server restart. anything else?
-	taskFunc RefreshEvent taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (RefreshEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# (rep, st, iworld) = genRep taskId taskRepOpts Nothing iworld
 
 		//No! because state and value will be out of sync!
@@ -244,19 +244,19 @@ where
 		= (result, println "refresh" iworld)
 
 	// Focus: tab switch. anything else?
-	taskFunc (FocusEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId) context
 		= (result, println "focus" iworld)
  
 	// Edit: "result"
-	taskFunc (EditEvent targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId) (TCBasic taskId ts jsonRes False)
 		= (result, println "result" iworld) 
  
 	// Edit: "finalize"
-	taskFunc (EditEvent targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
 		# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))

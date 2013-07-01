@@ -1,6 +1,6 @@
-implementation module SaplHtml
+implementation module iTasks.Framework.ClientSupport.SaplHtml
 
-import StdEnv, Data.Void, Tasklet
+import StdEnv, Data.Void, iTasks.Framework.ClientSupport.Tasklet
 
 :: EventQueue :== Void
 :: HtmlDocument :== Void

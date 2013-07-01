@@ -6,7 +6,7 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 	
 	console.time('controllerWrapper timer: eval');
 	
-	var tasklet = controller.tasklets[iid];
+	var tasklet = itwc.global.controller.tasklets[iid];
 	var state = tasklet.st;
 
 	var tmp = [controllerFunc,[]];
@@ -30,7 +30,7 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 	var ys = Sapl.feval(tmp);
 	state = Sapl.heval(ys[3]);
 
-	controller.tasklets[iid].st = state;	// save it
+	itwc.global.controller.tasklets[iid].st = state;	// save it
 	
 	// toJS to make the result hyperstrict
 	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[state]]));	
@@ -40,7 +40,7 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 	// If mbTUI is Nothing, the task is finished. TODO: is it still true?
 	if(mbTUI[0] == 0){
 		DB.removeTasklet(iid);
-		controller.sendEditEvent(tasklet.taskId, "finalize", newres);
+		itwc.global.controller.sendEditEvent(tasklet.taskId, "finalize", newres);
 	}else{		
 		var tuistr = Sapl.feval(mbTUI[2]);
 
@@ -58,9 +58,9 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 		console.timeEnd('controllerWrapper timer: apply TUI');
 		
 		// Send result to the client if it is changed only
-		if(!geq(controller.tasklets[iid].lastResult, newres)){
-			controller.tasklets[iid].lastResult = newres;
-			controller.sendEditEvent(tasklet.taskId, "result", newres);
+		if(!geq(itwc.global.controller.tasklets[iid].lastResult, newres)){
+			itwc.global.controller.tasklets[iid].lastResult = newres;
+			itwc.global.controller.sendEditEvent(tasklet.taskId, "result", newres);
 		}		
 	}
 	
@@ -140,9 +140,9 @@ function applytui(widget,tui){
 	}	
 }
 
-function __SaplHtml_handleJSEvent(expr,iid,event){
+function __iTasks_Framework_ClientSupport_SaplHtml_handleJSEvent(expr,iid,event){
 	
-	var tasklet = controller.tasklets[iid];
+	var tasklet = itwc.global.controller.tasklets[iid];
 	var state = tasklet.st;
 	
 	// Returns a tuple of the JS document and HtmlEventResult	
@@ -170,6 +170,6 @@ function __SaplHtml_handleJSEvent(expr,iid,event){
 	// Send result to the client if it is changed only
 	if(!geq(tasklet.lastResult, newres)){
 		tasklet.lastResult = newres;
-		controller.onEdit(tasklet.taskId, "result", newres);
+		itwc.global.controller.sendEditEvent(tasklet.taskId, "result", newres);
 	}
 }

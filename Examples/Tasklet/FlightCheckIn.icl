@@ -1,6 +1,6 @@
 module FlightCheckIn
 
-import iTasks,Tasklet,FlightSupport
+import iTasks,iTasks.Framework.ClientSupport.Tasklet,FlightSupport
 
 maybeStable :: (Maybe a) -> (TaskValue a)
 maybeStable (Just v) = Value v True

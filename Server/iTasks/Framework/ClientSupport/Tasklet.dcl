@@ -1,7 +1,7 @@
-definition module Tasklet
+definition module iTasks.Framework.ClientSupport.Tasklet
 
 import StdString
-import iTasks.Framework.Task, iTasks.Framework.Shared, SaplHtml
+import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.Framework.ClientSupport.SaplHtml
 
 :: JSONString :== String
 :: TaskInstanceId :== String

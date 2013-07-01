@@ -1,6 +1,6 @@
 module GoogleMapsTasklet2
 
-import iTasks, Tasklet
+import iTasks, iTasks.Framework.ClientSupport.Tasklet
 import Text.StringAppender, graph_to_sapl_string, MovingEntity
 import sapldebug//, StdListExtensions
 

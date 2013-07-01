@@ -1,4 +1,4 @@
-implementation module RunOnClient
+implementation module iTasks.Framework.ClientSupport.RunOnClient
 
 import StdMisc
 import iTasks, Task, Tasklet, TaskState, TaskStore, TaskEval, UIDefinition

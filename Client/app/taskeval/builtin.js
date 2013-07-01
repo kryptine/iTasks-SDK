@@ -239,14 +239,14 @@ function __shiftright(a,b){
 
 // --------- SaplHtml stuff -----------------------------
 
-function __SaplHtml_getDomElement(d, id){
+function __iTasks_Framework_ClientSupport_SaplHtml_getDomElement(d, id){
     d = Sapl.feval(d);
     id = Sapl.feval(id);
     
     return ___predefined__Tuple2(d, d.getElementById(id));
 }
 
-function __SaplHtml_getObjectAttr(d, e, attr){
+function __iTasks_Framework_ClientSupport_SaplHtml_getObjectAttr(d, e, attr){
     d = Sapl.feval(d);
     e = Sapl.feval(e);
     attr = Sapl.feval(attr);    
@@ -256,7 +256,7 @@ function __SaplHtml_getObjectAttr(d, e, attr){
     return ___predefined__Tuple3(d, e, value);
 }
 
-function __SaplHtml_runObjectMethod(d, obj, method, params){
+function __iTasks_Framework_ClientSupport_SaplHtml_runObjectMethod(d, obj, method, params){
     d = Sapl.feval(d);
     params = Sapl.toJS(Sapl.feval(params));
     obj = Sapl.feval(obj);
@@ -271,7 +271,7 @@ function __SaplHtml_runObjectMethod(d, obj, method, params){
     return ___predefined__Tuple3(d, obj, value);
 }
 
-function __SaplHtml_setObjectAttr(d, e, attr, value){
+function __iTasks_Framework_ClientSupport_SaplHtml_setObjectAttr(d, e, attr, value){
     d = Sapl.feval(d);
     e = Sapl.feval(e);
     value = Sapl.toJS(Sapl.feval(value));
@@ -286,7 +286,7 @@ function __SaplHtml_setObjectAttr(d, e, attr, value){
     return ___predefined__Tuple3(d, e, value);
 }
 
-function __SaplHtml_getDomAttr(d, id, attr){
+function __iTasks_Framework_ClientSupport_SaplHtml_getDomAttr(d, id, attr){
     d = Sapl.feval(d);
     id = Sapl.feval(id);
     attr = Sapl.feval(attr);
@@ -295,7 +295,7 @@ function __SaplHtml_getDomAttr(d, id, attr){
     return ___predefined__Tuple2(d, value);
 }
 
-function __SaplHtml_setDomAttr(d, id, attr, value){
+function __iTasks_Framework_ClientSupport_SaplHtml_setDomAttr(d, id, attr, value){
     d = Sapl.feval(d);
     value = Sapl.feval(value);
     id = Sapl.feval(id);
@@ -305,7 +305,7 @@ function __SaplHtml_setDomAttr(d, id, attr, value){
     return ___predefined__Tuple2(d, value);
 }
 
-function __SaplHtml_findObject(d, name){
+function __iTasks_Framework_ClientSupport_SaplHtml_findObject(d, name){
 
     d = Sapl.feval(d);
     name = Sapl.feval(name);
@@ -320,7 +320,7 @@ function __SaplHtml_findObject(d, name){
     return ___predefined__Tuple2(d, obj);
 }
 
-function __SaplHtml_createObject(d, obj, params){
+function __iTasks_Framework_ClientSupport_SaplHtml_createObject(d, obj, params){
     d = Sapl.feval(d);
     params = Sapl.toJS(Sapl.feval(params));
     obj = Sapl.feval(obj);
@@ -334,7 +334,7 @@ function __SaplHtml_createObject(d, obj, params){
     return ___predefined__Tuple2(d, value);
 }
 
-function __SaplHtml_loadExternalJS(d, url, continuation){
+function __iTasks_Framework_ClientSupport_SaplHtml_loadExternalJS(d, url, continuation){
     d = Sapl.feval(d);
 	continuation = Sapl.feval(continuation);
     url = Sapl.feval(url);	
@@ -349,7 +349,7 @@ function __SaplHtml_loadExternalJS(d, url, continuation){
 	return d;
 }
 
-function __SaplHtml_createEventHandler(expr, iid){
+function __iTasks_Framework_ClientSupport_SaplHtml_createEventHandler(expr, iid){
 	expr = Sapl.feval(expr);
 	taskId = Sapl.feval(iid);
 	
@@ -357,7 +357,7 @@ function __SaplHtml_createEventHandler(expr, iid){
     var eventHandler = function(expr, iid){
 		
 		var h = function(source){
-			return __SaplHtml_handleJSEvent(expr, iid, source);
+			return __iTasks_Framework_ClientSupport_SaplHtml_handleJSEvent(expr, iid, source);
 		};
 		
 		return h;
@@ -366,18 +366,18 @@ function __SaplHtml_createEventHandler(expr, iid){
 	return eventHandler(expr, iid);
 }
 
-function __SaplHtml_isUndefined(obj){
+function __iTasks_Framework_ClientSupport_SaplHtml_isUndefined(obj){
 	obj = Sapl.feval(obj);
 	
 	return obj == null;
 }
 
-function __SaplHtml_toHtmlObject(val){
+function __iTasks_Framework_ClientSupport_SaplHtml_toHtmlObject(val){
 	val = Sapl.feval(val);
 	return Sapl.toJS(val);
 }
 
-function __SaplHtml_fromHtmlObject(obj){
+function __iTasks_Framework_ClientSupport_SaplHtml_fromHtmlObject(obj){
 	return Sapl.feval(obj);
 }
 
@@ -388,15 +388,15 @@ function __sapldebug_sapldebug(a,b){
 	return b;
 }
 
-function __ClientOverride_onClient(){
+function __iTasks_Framework_ClientSupport_ClientOverride_onClient(){
 	return true;
 }
 
-function __ClientOverride_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
+function __iTasks_Framework_ClientSupport_ClientOverride_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
     return Sapl.feval(__a_2);
 };
 
-function __ClientOverride_cast(___vTC_0, ___vTC_1, __a_2) {
+function __iTasks_Framework_ClientSupport_ClientOverride_cast(___vTC_0, ___vTC_1, __a_2) {
     return Sapl.feval(__a_2);
 };
 

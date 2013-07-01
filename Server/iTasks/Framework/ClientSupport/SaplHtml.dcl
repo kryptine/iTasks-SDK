@@ -1,6 +1,6 @@
-definition module SaplHtml
+definition module iTasks.Framework.ClientSupport.SaplHtml
 
-import StdString, Data.Void, Tasklet
+import StdString, Data.Void, iTasks.Framework.ClientSupport.Tasklet
 
 :: EventQueue
 :: HtmlDocument

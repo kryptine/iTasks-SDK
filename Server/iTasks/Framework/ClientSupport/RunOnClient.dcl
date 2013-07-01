@@ -1,4 +1,4 @@
-definition module RunOnClient
+definition module iTasks.Framework.ClientSupport.RunOnClient
 
 import iTasks
 

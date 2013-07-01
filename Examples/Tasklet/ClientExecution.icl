@@ -1,6 +1,6 @@
 module ClientExecution
 
-import RunOnClient, FastString
+import iTasks.Framework.ClientSupport.RunOnClient, FastString
 
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
