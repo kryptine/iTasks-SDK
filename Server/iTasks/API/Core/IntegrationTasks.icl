@@ -20,93 +20,63 @@ from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
 
-:: AsyncResult = 
-	{ success	:: !Bool
-	, exitcode	:: !Int
-	, message	:: !String
-	}
+derive JSONEncode ProcessHandle
+derive JSONDecode ProcessHandle
 
-derive JSONEncode MaybeError
-derive JSONDecode MaybeError
+instance toString (OSErrorCode,String)
+where
+    toString (_,e) = e
 
-derive JSONDecode AsyncResult
-
-worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e 
+worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e & toString e
 worldIO f = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,world}
 		= case f world of 
 			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
-			(Error e,world)	= (Error (dynamic e,"World IO failed"), {IWorld|iworld & world = world})
+			(Error e,world)	= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
-callProcess desc opts cmd args = Task eval
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
+callProcess desc opts cmd args dir = Task eval
 where
-	//Start the external process
-	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
-		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
-		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
-		# runAsyncArgs	=	[ "--taskid"
-							, toString taskId 
-							, "--outfile"
-							, outfile
-							, "--process"
-							, cmd
-							: args]
-		# (res,world)	= 'System.Process'.runProcess runAsync runAsyncArgs Nothing world
-		# nstate		= case res of
-			Error e	= state taskId ts (Left e)
-			Ok _	= state taskId ts (Right outfile)
-		= eval event repOpts nstate {IWorld|iworld & world = world}
-	where
-		state :: TaskId TaskTime (Either OSError FilePath) -> TaskTree
-		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
-
-	//Check for its result
-	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
+    //Start the process
+    eval event repOpts (TCInit taskId ts) iworld=:{IWorld|world}
+        //Call the external process
+        # (res,world) = 'System.Process'.runProcess cmd args dir world
+        = case res of
+			Error e	= (ExceptionResult (dynamic e) (snd e), {IWorld|iworld & world = world})
+			Ok handle
+		        = eval event repOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
+    //Check the process
+	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,currentInstance}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False} (TaskRep (UIControlSequence {UIControlSequence|attributes='Data.Map'.newMap,controls=[],direction=Vertical}) []) state, iworld)
+            # status        = fromJust (fromJSON encv) 
+            # (rep,iworld)  = makeRep taskId repOpts status iworld
+            # iworld = queueWork (Evaluate currentInstance,Nothing) iworld
+			= (ValueResult (Value status True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state, iworld)
 		| otherwise
-			= case fromJSON encv of
-				Just (Right outfile)
-					//Check status
-					# (exists,world) = 'System.File'.fileExists outfile world
-					| not exists
-						//Still busy
-						# iworld			= {IWorld|iworld & world = world}
-						# status			= RunningProcess cmd
-						# layout			= repLayout repOpts
-						# (controls,iworld)	= makeView opts status (verifyMaskedValue status Touched) taskId layout iworld
-						# prompt			= toPrompt desc
-						# editor			= {UIControlSequence| attributes = 'Data.Map'.newMap, controls = controls, direction = Vertical}
-						# rep				= TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) []
-						= (ValueResult (Value status False) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state,iworld)
-					# (res, world) = 'System.File'.readFile outfile world
-					| isError res
-						//Failed to read file
-						= (exception (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
-					= case fromJSON (fromString (fromOk res)) of
-						//Failed to parse file
-						Nothing
-							= (exception (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
-						Just async	
-							| async.AsyncResult.success
-								# result = CompletedProcess async.AsyncResult.exitcode 
-								= (ValueResult (Value result True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=False}
-									(TaskRep (UIControlSequence {UIControlSequence|attributes = 'Data.Map'.newMap,controls = [],direction = Vertical}) [])
-									(TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
-							| otherwise
-								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
-				//Error during initialization
-				(Just (Left e))
-					= (exception (CallFailed e), {IWorld|iworld & world = world})
-				Nothing
-					= (exception (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
-	//Clean up
-	eval event repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
-		//TODO: kill runasync for this task and clean up tmp files
+            //Check status
+            # handle = fromJust (fromJSON encv)
+            # (res,world) = 'System.Process'.checkProcess handle world
+            = case res of
+			    Error e	= (ExceptionResult (dynamic e) (snd e), {IWorld|iworld & world = world})
+                Ok mbExitCode
+                    # (status,stable,state) = case mbExitCode of
+                        Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
+                        Nothing = (RunningProcess cmd,False, state)
+                    # (rep,iworld)  = makeRep taskId repOpts status {IWorld|iworld & world = world}
+                    # iworld = queueWork (Evaluate currentInstance,Nothing) iworld
+                    = (ValueResult (Value status stable) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state, iworld)
+
+	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)
-	
+
+    makeRep taskId repOpts status iworld
+	    # layout			= repLayout repOpts
+		# (controls,iworld)	= makeView opts status (verifyMaskedValue status Touched) taskId layout iworld
+		# prompt			= toPrompt desc
+		# editor			= {UIControlSequence| attributes = 'Data.Map'.newMap, controls = controls, direction = Vertical}
+		= (TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) [],iworld)
+						
 	makeView [ViewWith viewFun] status vmask taskId layout iworld
 		= visualizeAsEditor (Display (viewFun status)) vmask taskId layout iworld
 	makeView _ status vmask taskId layout iworld
@@ -116,11 +86,11 @@ where
 	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
 	defaultViewFun (CompletedProcess exit) = {Progress|progress=ProgressRatio 1.0,description=cmd +++ " done (" +++ toString exit +++ ")"}
 		
-callInstantProcess :: !FilePath ![String] -> Task Int
-callInstantProcess cmd args = mkInstantTask eval
+callInstantProcess :: !FilePath ![String] !(Maybe FilePath) -> Task Int
+callInstantProcess cmd args dir = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,world}
-		# (res,world)	= 'System.Process'.callProcess cmd args Nothing world
+		# (res,world)	= 'System.Process'.callProcess cmd args dir world
 		= case res of
 			Error e
 				# ex = CallFailed e
@@ -135,10 +105,10 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) [] cmd args
-	>>= \(CompletedProcess exitCode) -> if (exitCode > 0)
+	>>- \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) [] cmd args Nothing
+	>>- \(CompletedProcess exitCode) -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
-		(importTextFile outfile >>= \result -> case parseResult result of
+		(importTextFile outfile >>- \result -> case parseResult result of
 			Ok res	= return res
 			Error e = throw (RPCException e)
 		)
@@ -248,6 +218,22 @@ curlError exitCode =
         87      = "unable to parse FTP file list"
         88      = "FTP chunk callback reported error "
 
+from iTasks.API.Common.ExportTasks import exportTextFile
+from iTasks.API.Common.ImportTasks import importDocument
+
+httpDownloadDocument :: String -> Task Document
+httpDownloadDocument url = withTemporaryDirectory
+    \tmpdir ->
+        callHTTP GET url "" Ok
+    >>-         exportTextFile (tmpdir </> "download")
+    >>- \_ ->   importDocument (tmpdir </> "download")
+
+httpDownloadDocumentTo  :: String FilePath -> Task FilePath
+httpDownloadDocumentTo url path
+    =   callHTTP GET url "" Ok
+    >>-         exportTextFile path 
+    @  \_ -> path
+
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval
 where
@@ -261,18 +247,24 @@ where
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
 
-	eval event repOpts (TCShared taskId ts treea) iworld=:{build,dataDirectory,taskTime}
+	eval event repOpts (TCShared taskId ts treea) iworld=:{build,dataDirectory,taskTime,world}
 		# tmpdir 					= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+        # (mbCurdir,world)          = getCurrentDirectory world
+        | isError mbCurdir          = (exception (fromError mbCurdir), {IWorld|iworld & world = world})
+        # (mbErr,world)             = setCurrentDirectory tmpdir world 
+        | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
-		# (Task evala)				= taskfun tmpdir 
-		# (resa,iworld)				= evala event repOpts treea iworld
+		# (Task evala)				= taskfun tmpdir
+		# (resa,iworld=:{world})	= evala event repOpts treea {IWorld|iworld & world = world}
+        # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
+        | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
 		= case resa of
 			ValueResult value info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
-			ExceptionResult e str = (ExceptionResult e str,iworld)
+				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
+			ExceptionResult e str = (ExceptionResult e str,{IWorld|iworld & world = world})
 	
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{build,dataDirectory} //First destroy inner task
 		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")

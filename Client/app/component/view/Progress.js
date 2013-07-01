@@ -22,5 +22,22 @@ Ext.define('itwc.component.view.Progress',{
 		if(me.waiting) {
 			me.wait({animate: true, interval: 500, text: me.text});
 		}
-	}
+	},
+    setValue: function (value) {
+        var me = this;
+		if(value == 'undetermined') {
+			me.value = 0.0;
+			me.waiting = true;
+		} else {
+            me.value = value;
+            if(me.waiting) {
+                me.reset();
+                me.waiting = false;
+            }
+        }
+        me.updateProgress(me.value);
+        if(me.waiting) {
+			me.wait({animate: true, interval: 500, text: me.text});
+        }
+    }
 });

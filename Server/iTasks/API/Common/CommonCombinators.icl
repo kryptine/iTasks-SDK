@@ -22,6 +22,9 @@ import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Co
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>!) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf]
 
+(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>-) taska taskbf = step taska [WhenStable taskbf]
+
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = step taska [WithResult ActionContinue (const True) (const taskb), WhenStable (const taskb)]
 

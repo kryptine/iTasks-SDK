@@ -6,70 +6,80 @@ module BuildDistribution
 * It is experimental and incomplete... (but beats making packages completely by hand...)
 */
 import iTasks
-import Directory, File, Tuple, Text
-from Util import pad
+import System.Directory, System.File, System.FilePath, Data.Tuple, Text
+from iTasks.Framework.Util import pad
+
+instance toString (OSErrorCode,String)
+where
+    toString (_,e) = e
+
 
 :: Platform		= Windows32 | Windows64 | Linux32 | Linux64 | Mac
 
 :: DistroOptions =
-	{ exportPath	:: FilePath
-	, platform		:: Platform
-	, branch		:: String		//Which branch
+	{ targetPlatform		:: Platform
+	, iTasksBranch		    :: String		//Which branch
+    , packageName           :: String
 	}
 
 derive class iTask Platform, DistroOptions
 
-makeDistribution :: Task FilePath
+makeDistribution :: Task Document
 makeDistribution
-	=	editOptions
+    = catchAll (
+		editOptions
 	>>= buildDistro
+    >>- downloadDistro
+    ) (\e -> viewInformation (Title "Oops!") [] e >>| makeDistribution)
 
 editOptions :: Task DistroOptions
 editOptions
 	=		viewTitle "Build an iTasks distribution"
-	||-		updateInformation ("Export path","Specify where you want to export the distribution") [] "."
-	-&&-	updateChoice ("Target platform","Choose a target platform to make a distribution for") []
+	||-	    updateChoice ("Target platform","Choose a target platform to make a distribution for") [ChooseWith ChooseFromComboBox id]
 				[Windows32,Windows64,Linux32,Linux64,Mac] Windows32
 	-&&-	updateInformation ("Svn branch","Choose which svn branch you want to make a distribution from") [] "trunk"	
-	@ 	\(path,(platform,branch)) ->
-			{exportPath=path,platform=platform,branch=branch}
-
-buildDistro:: DistroOptions -> Task FilePath
-buildDistro options
-	=	createTargetFolder options.exportPath options.branch
-	>>=	\target ->
-		addCleanSystem options.platform True target
-	>>| addITasksSDK options.branch target
-	>>| applyPatches options.platform target
-	>>| cleanupDistro options.platform target
-	>>| zipDistro options.exportPath target
-	>>|	viewInformation ("Done","You can find your distribution in the following location") [] target
+    -&&-    (get currentDate @ defaultPackageName >>= updateInformation ("Package name","Specify the name of the package") [])
+	@ 	\(platform,(branch,packageName)) ->
+			{targetPlatform=platform,iTasksBranch=branch,packageName=packageName}
 where
-	//Create datestamped folder
-	createTargetFolder exportPath branch
-		=	get currentDate
-		>>= \date -> 
-			let target = (exportPath </> ("iTasks-" <+++ safeName branch <+++ "-" <+++ pad 4 date.year <+++ pad 2 date.mon <+++ pad 2 date.day)) in 
-					checkDirectory target
-				>>= \exists -> if exists
-					(return target)
-					(worldIO (createDirectory target) @ const target)
-	
-	safeName branch = last (split "/" branch)
+    defaultPackageName date
+        = "CleanWithiTasks-" <+++ pad 4 date.year <+++ pad 2 date.mon <+++ pad 2 date.day
+
+buildDistro:: DistroOptions -> Task Document
+buildDistro options = withTemporaryDirectory build
+where
+    build tmpDir = autoSequence ("Building distro","Building iTasks distribution...")
+        [createTargetFolder targetDir
+        ,addCleanSystem options.targetPlatform True targetDir
+        ,addITasksSDK options.iTasksBranch targetDir
+        ,unpackSAPLFiles targetDir
+        ,cleanupDistro options.targetPlatform targetDir
+        ,zipDistro tmpDir targetDir targetDoc
+        ] >>- \_ -> importDocument targetDoc
+    where
+        targetDir = options.packageName
+        targetDoc = addExtension options.packageName "zip"
+
+    autoSequence :: d [Task a] -> Task a | iTask a & descr d
+    autoSequence prompt tasks = withShared 0
+        \progress ->
+                viewSharedInformation prompt [ViewWith (toPrj (length tasks))] progress
+            ||- sequence progress [(i,t) \\ t <- tasks & i <- [1..]]
+    where
+        sequence progress [(i,t)] = set i progress >>| t
+        sequence progress [(i,t):ts] = set i progress >>| t>>- \_ -> sequence progress ts
+
+        toPrj num cur
+            = {progress = ProgressRatio (toReal cur /  toReal num) , description ="Step " <+++ cur <+++ " of " <+++ num}
+
+	createTargetFolder target
+        = worldIO (createDirectory target) @ const Void
 
 	//Download and add Clean system, remove unnecessary files and libraries
 	addCleanSystem platform include target
-		=	checkFile zipFile
-		>>= \exists -> if exists
-			(return zipFile)
-			(	callHTTP GET (downloadUrl platform) "" Ok
-				>>= \content ->
-				exportTextFile zipFile content	//UGLY: We should not have to pass the data through here...
-			)
-		>>| checkDirectory zipTarget
-		>>= \exists -> if exists
-			(return zipTarget)
-			(callProcess "Unzipping Clean" [] zipExe zipArgs @ const zipTarget)
+        =   httpDownloadDocumentTo (downloadUrl platform) zipFile
+        >>- \_ -> callProcess "Unzipping Clean" [] zipExe zipArgs Nothing
+        @   const Void
 	where
 		zipFile	= target </> "Clean_2.4.zip"
 		zipTarget = target </> "Clean 2.4"
@@ -80,10 +90,8 @@ where
 		
 	//Export iTasks SDK from subversion
 	addITasksSDK branch target
-		=	checkDirectory svnTarget
-		>>=	\exists -> if exists
-			(return svnTarget)
-			(callProcess "Exporting iTasks from subversion" [] svnExe svnArgs @ const svnTarget)
+		=   callProcess "Exporting iTasks from subversion" [] svnExe svnArgs Nothing
+        @   const Void
 	where
 		svnTarget = target </> "Clean 2.4" </> "iTasks-SDK"
 		
@@ -92,10 +100,21 @@ where
 		svnArgs = ["export","--native-eol","CRLF",svnUrl,svnTarget]
 	
 	//Apply patches
-	applyPatches platform target
+	unpackSAPLFiles target
+        =   callProcess "Unpacking SAPL files" [] zipExe zipArgs Nothing
+        @   const Void
+    where
+		zipFile	= target </>"Clean 2.4"</>"iTasks-SDK"</>"Compiler"</>"StdEnv-Sapl.zip"
+		zipTarget = target </>"Clean 2.4"</>"Libraries"</>"StdEnv"
+
+		zipExe = IF_POSIX_OR_WINDOWS "/usr/bin/unzip" "C:\\Program Files\\7-Zip\\7z.exe"
+		zipArgs = IF_POSIX_OR_WINDOWS ["-q", zipFile,"-d", target] ["-o"+++target,"x", zipFile]
+
+    /*
 		=	patchLibraries
 		>>| addITasksEnvironment
-		>>| setDefaultHeapSize
+		>>| setDefaultHeapSize 
+        >>| return Void
 	where
 		base = target </> "Clean 2.4"
 		
@@ -110,34 +129,27 @@ where
 					  ,(base</>"iTasks-SDK"</>"Compiler"</>"TCPChannels.dcl",base</>"Libraries"</>"TCPIP"</>"TCPChannels.dcl")
 					  ,(base</>"iTasks-SDK"</>"Compiler"</>"TCPChannels.icl",base</>"Libraries"</>"TCPIP"</>"TCPChannels.icl")
 					  ]
-			
 		addITasksEnvironment = viewInformation (Title "Add iTasks environment to IDE") []
 			"Add the iTasks environment to the clean IDE"
 
 		setDefaultHeapSize = viewInformation (Title "Set default heap size") []
 			"Set the default heap size of the IDE to 16M (16777216 bytes)" 
+	*/		
 
 	//Remove files not required for the target platform
-	cleanupDistro platform target 
-		= viewInformation ("Cleanup",
-			"Remove all files unneccessary for the " <+++ platform <+++ " platform in " <+++ target)
-			[] Void
+	cleanupDistro platform target
+        = worldIO (deleteFile (target </> "Clean_2.4.zip")) @ const Void //Delete Clean zip archive
+
 	//Create a zipped version 
-	zipDistro exportPath target
-		= viewInformation ("Zip distro", "Create a zip archive of the following folder") [] target
-		//= callInstantProcess "/usr/bin/zip" ["-j","-r",exportPath</>addExtension (dropDirectory target) "zip",target]
+	zipDistro tmpDir targetDir targetDoc
+        = callProcess ("Creating package " +++ targetDoc) [] zipExe zipArgs (Just tmpDir) @ const Void
+    where
+		zipExe = IF_POSIX_OR_WINDOWS "/usr/bin/zip" "C:\\Program Files\\7-Zip\\7z.exe"
+		zipArgs = IF_POSIX_OR_WINDOWS ["-r", targetDoc,targetDir] [] 
+
+downloadDistro:: Document -> Task Document
+downloadDistro doc
+    = viewInformation ("Done!", "Your package has successfully been created.") [] doc
 
 Start :: *World -> *World
 Start world = startEngine makeDistribution world
-
-derive class iTask FileInfo, Tm
-
-checkDirectory :: FilePath -> Task Bool
-checkDirectory path
-	= catchAll (worldIO (getFileInfo path) @ \info -> info.FileInfo.directory) (\_ -> return False)
-	
-checkFile :: FilePath -> Task Bool
-checkFile path = worldIO exists 
-where
-	exists:: *World -> (MaybeErrorString Bool, *World)
-	exists world = appFst Ok (fileExists path world)

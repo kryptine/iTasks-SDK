@@ -6,7 +6,7 @@ import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskStat
 import iTasks.Framework.Util
 from StdFunc import id
 
-CHUNK_SIZE :== 1024
+CHUNK_SIZE :== 1048576 // 1M
 
 importDocument :: !FilePath -> Task Document
 importDocument filename = mkInstantTask eval

@@ -22,8 +22,9 @@ from Data.Either				import :: Either
 //Standard monadic operations:
 
 /**
-* Combines two tasks sequentially. The first task is executed first. When it is finished
-* the second task is executed with the result of the first task as parameter.
+* Combines two tasks sequentially. The first task is executed first. When it has a value
+* the user may continue to the second task, which is executed with the result of the first task as parameter.
+* If the first task becomes stable, the second task is started automatically.
 *
 * @param First: The first task to be executed
 * @param Second: The second task, which receives the result of the first task
@@ -33,7 +34,7 @@ from Data.Either				import :: Either
 */
 (>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 /**
-* Combines two tasks sequentially but waits for user input to confirm the completion of
+* Combines two tasks sequentially but explicitly waits for user input to confirm the completion of
 * the first task.
 *
 * @param First: The first task to be executed
@@ -43,6 +44,14 @@ from Data.Either				import :: Either
 * @gin False
 */
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+/**
+* Combines two tasks sequentially but continues only when the first task has a stable value.
+*
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
+* @return The combined task
+*/
+(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 /**
 * Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
 *
@@ -64,6 +73,7 @@ from Data.Either				import :: Either
 * @gin False
 */
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a| iTask a & iTask b
+
 /**
 * Infix shorthand for transform combinator
 * 

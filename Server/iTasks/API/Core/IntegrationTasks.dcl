@@ -19,7 +19,7 @@ from iTasks.API.Common.InteractionTasks  import :: ViewOption //TODO: We shouldn
 *
 * @param The function to call
 */
-worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e
+worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e & toString e
 
 /**
 * Calls an external executable. The call is non-blocking.
@@ -27,22 +27,24 @@ worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e
 * @param Task description
 * @param Executable: path to the executable
 * @param Arguments: a list of command-line arguments
+@ @param Optional startup directory
 * @return return-code of the process
 * @throws CallException
 * 
 * @gin-title Start executable
 * @gin-icon executable
 */
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
 
 /**
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.
 * @param Executable: path to the executable
 * @param Arguments: a list of command-line arguments
+@ @param Optional startup directory
 * @return return-code of the process
 * @throws CallException
 */
-callInstantProcess :: !FilePath ![String] -> Task Int
+callInstantProcess :: !FilePath ![String] !(Maybe FilePath)-> Task Int
 
 /**
 * Calls an external HTTP webservice.
@@ -60,7 +62,30 @@ callInstantProcess :: !FilePath ![String] -> Task Int
 callHTTP	:: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 
+/**
+* Downloads a document from the web
+*
+* @param URL: The url that has to be downloaded
+* @return The downloaded document
+*/
+httpDownloadDocument    :: String -> Task Document
 
+/**
+* Downloads a document from the web to a specific location
+*
+* @param URL: The url that has to be downloaded
+* @param URL: The location to which the document is downloaded
+* @return The location of the downloaded document
+*/
+httpDownloadDocumentTo  :: String FilePath -> Task FilePath
+
+/**
+* Creates a temporary directory on the server's file system for the duration of a task
+*
+* @param The task that gets the temporary directory's location as argument
+*
+* @return The result of the task
+*/
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 
 /**
