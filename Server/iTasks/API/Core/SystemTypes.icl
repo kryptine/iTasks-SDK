@@ -1427,7 +1427,6 @@ derive gHeaders			Hidden, Display, Editable, VisualizationHint
 derive gGridRows		Hidden, Display, Editable, VisualizationHint
 
 //* Client-side types
-
 JSONEncode{|Editlet|} _ _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ c = (Nothing,c)
@@ -1446,9 +1445,10 @@ gVisualizeEditor{|Editlet|} fa textA headersA rowsA jsonEncA jsonDecA _ _ _ _ js
 	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & currentPath = stepDataPath currentPath, iworld = iworld})
 where
 	editorId = dp2s currentPath
+    htmlId = "editlet-" +++ toString taskId +++ "-" +++ editorId
 
 	ui jsScript jsEvents jsIV jsGD jsAD
-		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=toString taskId,editorId=editorId,value=toJSONA value, html = toString (html editorId)
+		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=toString taskId,editorId=editorId,value=toJSONA value, html = toString (html htmlId)
 								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, genDiff = Just jsGD, appDiff = Just jsAD}
 	
 	toJSONA a = case jsonEncA a of
@@ -1527,7 +1527,7 @@ gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},oma
 	= case jDecd [json] of
 		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},[Touched])
 		_				= (ov,omask)
-	
+
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ (ov,mask) = (ov,mask)
 
 gVerify{|Editlet|} fa _ mbv imask _ = alwaysValid imask

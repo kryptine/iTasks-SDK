@@ -18,6 +18,7 @@ import	iTasks.Framework.Engine						// iTasks engine
 	,	iTasks.Framework.GenUpdate			// Functions for updating arbitrary values
 	,	iTasks.Framework.GenVerify			// Functions for appending errors and hints to form values
 	,	iTasks.Framework.GenRecord			// Functions for manipulating records
+	,	iTasks.Framework.GenSpecialize		// Functions for custom specializations
 	
 	//	API extensions for user  & workflow management
 	,	iTasks.API.Extensions.Admin.UserAdmin

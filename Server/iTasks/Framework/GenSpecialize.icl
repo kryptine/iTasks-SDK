@@ -15,4 +15,6 @@ customGVisualizeEditor :: (a -> b)  (Maybe a) !*VSt -> (!VisualizationResult,!*V
 customGVisualizeEditor toPrj mba vst = gVisualizeEditor{|*|} (fmap toPrj mba) vst
 
 customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | gUpdate{|*|} b
-customGUpdate toPrj fromPrj path upd (a,amask) = let (b,bmask) = gUpdate{|*|} path upd (toPrj a,amask) in (fromPrj b, bmask)
+customGUpdate toPrj fromPrj path upd (a,amask)
+    # (b,bmask) = gUpdate{|*|} path upd (toPrj a,amask)
+    = (fromPrj b, bmask)

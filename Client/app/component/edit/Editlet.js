@@ -11,6 +11,9 @@ Ext.define('itwc.component.edit.Editlet',{
 	initComponent: function() {
 		var me = this,
 			tmp;	
+
+        me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
+
 		if(me.script != null && me.script != ""){
 			evalScript(me.script);
 		}
@@ -33,7 +36,7 @@ Ext.define('itwc.component.edit.Editlet',{
 		var me = this,
 			numEvents = me.events.length,
 			el, elName, eventName, expr, i;
-			
+		
 		for (i = 0; i < numEvents; i++){
 			
 			elName = me.events[i][0];
@@ -44,8 +47,10 @@ Ext.define('itwc.component.edit.Editlet',{
 				if(eventName == "init") {
 					(me.eventHandler(expr))(me);
 				} else {
-					el = Ext.get(me.editorId);
-					el.on(eventName, me.eventHandler(expr));
+					el = Ext.get(me.htmlId); //FIXME
+                    if(el) {
+					    el.on(eventName, me.eventHandler(expr));
+                    }
 				}
 			} else {
 				el = Ext.get(elName);
@@ -79,7 +84,8 @@ Ext.define('itwc.component.edit.Editlet',{
 		var h = function(event){			
 			eval("var fun = eval(" + expr + ");");
 		
-			var ys = Sapl.feval([fun,[me.editorId,event.browserEvent,me.value,"JSWorld"]]);
+
+			var ys = Sapl.feval([fun,[me.htmlId,event.browserEvent,me.value,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
@@ -98,6 +104,9 @@ Ext.define('itwc.component.edit.Editlet',{
 		};
 		return h;
 	},
+    getValue: function () {
+        return this.value;
+    },
 	applyValue: function (val) {
 		this.value = val;
 	},
