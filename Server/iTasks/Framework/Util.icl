@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.Util
 
 import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Data.Maybe, System.Time, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
+import Data.Maybe, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
 from iTasks.Framework.IWorld 		import :: IWorld{currentDateTime,timestamp}
 from iTasks.API.Core.SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
 
@@ -76,13 +76,15 @@ where
 
 toCanonicalPath	:: !FilePath !*World -> (!FilePath,!*World)
 toCanonicalPath path world
-	= case split {pathSeparator} path of
-		["":ds]		= (join {pathSeparator} ["":canonicalize ds],world)
-		ds			= case getCurrentDirectory world of
-			(Ok curDir,world)	= (join {pathSeparator} [curDir:canonicalize ds], world)
-			(_,world)			= (join {pathSeparator} (canonicalize ds), world)
+	| isAbsolute path = (canonicalize path,world)
+	| otherwise
+		= case getCurrentDirectory world of
+			(Ok curDir,world)	= (canonicalize (curDir</>path), world)
+			(_,world)			= (canonicalize path,world)
 where
-	canonicalize path = undot [] path
+	isAbsolute path = IF_POSIX_OR_WINDOWS (startsWith {pathSeparator}) (startsWith "C:" path)
+
+	canonicalize path = join {pathSeparator} (undot [] (split {pathSeparator} path))
 
 	undot acc []				= reverse acc
 	undot []  ["..":ds]			= undot [] ds

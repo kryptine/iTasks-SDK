@@ -140,7 +140,7 @@ MAX_TIMEOUT :== 86400000 // one day
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
 					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld))
-					  ,!(HTTPRequest (Maybe {#Char}) !SessionId *IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld))
+					  ,!(HTTPRequest (Maybe {#Char}) SessionId *IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld))
 					  ,!(HTTPRequest SessionId *IWorld -> *IWorld)
 					  )] | Publishable publish
 engine publishable
@@ -263,8 +263,8 @@ where
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
-	# ([arg:_],world) = getCommandLine world
-	| dropDirectory arg <> "ConsoleClient.exe" = toCanonicalPath arg world
+	# ([arg:_],world) = getCommandLine world 
+	| dropDirectory arg <> "ConsoleClient.exe"	= toCanonicalPath arg world
 	//Using dynamic linker:	
 	# (res, world)				= getCurrentDirectory world	
 	| isError res				= abort "Cannot get current directory."	
