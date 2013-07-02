@@ -53,6 +53,7 @@ where
         ,addCleanSystem options.targetPlatform True targetDir
         ,addITasksSDK options.iTasksBranch targetDir
         ,unpackSAPLFiles targetDir
+        ,prepareIDE targetDir
         ,cleanupDistro options.targetPlatform targetDir
         ,zipDistro tmpDir targetDir targetDoc
         ] >>- \_ -> importDocument targetDoc
@@ -99,7 +100,7 @@ where
 		svnExe = IF_POSIX_OR_WINDOWS "/usr/bin/svn" "C:\\Program Files\\Subversion\\bin\\svn.exe"
 		svnArgs = ["export","--native-eol","CRLF",svnUrl,svnTarget]
 	
-	//Apply patches
+	//Unpack Sapl libraries
 	unpackSAPLFiles target
         =   callProcess "Unpacking SAPL files" [] zipExe zipArgs Nothing
         @   const Void
@@ -108,37 +109,43 @@ where
 		zipTarget = target </>"Clean 2.4"</>"Libraries"</>"StdEnv"
 
 		zipExe = IF_POSIX_OR_WINDOWS "/usr/bin/unzip" "C:\\Program Files\\7-Zip\\7z.exe"
-		zipArgs = IF_POSIX_OR_WINDOWS ["-q", zipFile,"-d", target] ["-o"+++target,"x", zipFile]
+		zipArgs = IF_POSIX_OR_WINDOWS ["-q", zipFile,"-d", zipTarget] ["-o"+++target,"x", zipFile]
 
-    /*
-		=	patchLibraries
-		>>| addITasksEnvironment
-		>>| setDefaultHeapSize 
-        >>| return Void
-	where
-		base = target </> "Clean 2.4"
-		
-		//DONE BY HAND BECAUSE OF A STUPID COPY BUG
-		patchLibraries = viewInformation (Title "Patch libraries") []
-			(SpanTag [] [Text "Copy the following files:",BrTag [],
-				UlTag [] [LiTag [] [Text "From ",BTag [] [Text fromfile], Text " to ",BTag [] [Text tofile]] \\ (fromfile,tofile) <- patches]
-				])
-		where
-			patches = [(base</>"iTasks-SDK"</>"Compiler"</>"StdGeneric.dcl",base</>"Libraries"</>"StdEnv"</>"StdGeneric.dcl")
-					  ,(base</>"iTasks-SDK"</>"Compiler"</>"StdGeneric.icl",base</>"Libraries"</>"StdEnv"</>"StdGeneric.icl")
-					  ,(base</>"iTasks-SDK"</>"Compiler"</>"TCPChannels.dcl",base</>"Libraries"</>"TCPIP"</>"TCPChannels.dcl")
-					  ,(base</>"iTasks-SDK"</>"Compiler"</>"TCPChannels.icl",base</>"Libraries"</>"TCPIP"</>"TCPChannels.icl")
-					  ]
-		addITasksEnvironment = viewInformation (Title "Add iTasks environment to IDE") []
-			"Add the iTasks environment to the clean IDE"
+    //Prepare the IDE
+    prepareIDE target
+        =   copyITasksIDE
+        >>| importITasksEnvironment
+        >>| updateDefaultSettings
+        @   const Void
+    where
+        copyITasksIDE
+            =   importDocument (target</>"Clean 2.4"</>"iTasks-SDK"</>"Compiler"</>"CleanIDE.exe") //UGLY COPY
+            >>- exportDocument (target</>"Clean 2.4"</>"CleanIDE.exe")
 
-		setDefaultHeapSize = viewInformation (Title "Set default heap size") []
-			"Set the default heap size of the IDE to 16M (16777216 bytes)" 
-	*/		
+        importITasksEnvironment
+            =   importTextFile envsFile
+            >>- \envs ->
+                importTextFile (target</>"Clean 2.4"</>"iTasks-SDK"</>"Server"</>"iTasks.env")
+            >>- \iTasksEnv ->
+                exportTextFile envsFile (envs +++ removeFirstLines iTasksEnv)
+        where
+            envsFile = target</>"Clean 2.4"</>"Config"</>"IDEEnvs"
+            removeFirstLines s = join "\r\n" (drop 2 (split "\r\n" s))
+
+        updateDefaultSettings
+            =   importTextFile prefsFile
+            >>- \prefs ->
+                exportTextFile prefsFile (setHeapSize 41943040 prefs) //40M
+        where
+            prefsFile =  target</>"Clean 2.4"</>"Config"</>"IDEPrefs"
+            setHeapSize n s = replaceSubString "\tHeapSize:\t2097152" ("\tHeapSize:\t" +++ toString n) s
 
 	//Remove files not required for the target platform
 	cleanupDistro platform target
         = worldIO (deleteFile (target </> "Clean_2.4.zip")) @ const Void //Delete Clean zip archive
+        //Remove unneeded platform file
+        //Remove unneeded Clean Libraries
+        //Remove unneeded ExtJS files
 
 	//Create a zipped version 
 	zipDistro tmpDir targetDir targetDoc
