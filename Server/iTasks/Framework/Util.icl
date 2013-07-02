@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.Util
 
-import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
+import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
 import Data.Maybe, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
 from iTasks.Framework.IWorld 		import :: IWorld{currentDateTime,timestamp}
 from iTasks.API.Core.SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
@@ -80,16 +80,17 @@ toCanonicalPath path world
 	| otherwise
 		= case getCurrentDirectory world of
 			(Ok curDir,world)	= (canonicalize (curDir</>path), world)
-			(_,world)			= (canonicalize path,world)
+			(_,world)		= (canonicalize path,world)
 where
-	isAbsolute path = IF_POSIX_OR_WINDOWS (startsWith {pathSeparator}) (startsWith "C:" path)
+	isAbsolute path = IF_POSIX_OR_WINDOWS (startsWith {pathSeparator} path) (size path >= 2 && isUpper path.[0] && path.[1] == ':')
 
 	canonicalize path = join {pathSeparator} (undot [] (split {pathSeparator} path))
 
 	undot acc []				= reverse acc
 	undot []  ["..":ds]			= undot [] ds
-	undot [_:acc] ["..":ds]		= undot acc ds
+	undot [_:acc] ["..":ds]			= undot acc ds
 	undot acc [".":ds]			= undot acc ds
+	undot [] ["":ds]			= undot [""] ds //Only allowed at the beginning
 	undot acc ["":ds]			= undot acc ds
 	undot acc [d:ds] 			= undot [d:acc] ds
 
