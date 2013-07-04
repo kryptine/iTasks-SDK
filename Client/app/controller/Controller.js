@@ -74,7 +74,6 @@ Ext.define('itwc.controller.Controller', {
 
 	init: function() {
 
-
 		this.viewport = null;
 
 		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);
@@ -92,26 +91,21 @@ Ext.define('itwc.controller.Controller', {
 		//Keep reference to server
 		this.viewport = viewport;
 
-		//Try to setup a server-side event source for receiving gui updates
-		//continuously via push events
-		if (!!window.EventSource) {
-  			this.uiUpdateSource = new EventSource('?format=json-gui-events');
-			this.uiUpdateSource.addEventListener('session', Ext.bind(this.onSessionPushEvent,this), false);
-			this.uiUpdateSource.addEventListener('message', Ext.bind(this.onUpdatePushEvent,this), false);
-		} else {
-			//Fallback...
-			
-			//Sync with server for the first time
-			this.queueTaskEvent({});
-		}
+        //Start session
+		this.queueTaskEvent({});
 	},
-	onSessionPushEvent: function (e) {
-		this.session = e.data;
-	},
-	onUpdatePushEvent: function (e) {
+    startUIUpdateSource: function() {
+  		this.uiUpdateSource = new EventSource('?format=json-gui-events&session='+this.session);
+		this.uiUpdateSource.addEventListener('reset', Ext.bind(this.onResetPushEvent,this), false);
+		this.uiUpdateSource.addEventListener('message', Ext.bind(this.onUpdatePushEvent,this), false);
+    },
+    onUpdatePushEvent: function (e) {
 		this.partialUpdate(Ext.decode(e.data));
 	},
-	//iTasks edit events
+    onResetPushEvent: function(e) {
+        this.resetApplication(Ext.decode(e.data));
+    },
+    //iTasks edit events
 	sendEditEvent: function(taskId, editorId, value){
 		// Client side execution hook!
 		var instanceNo = taskId.split("-")[0];
@@ -122,7 +116,7 @@ Ext.define('itwc.controller.Controller', {
 					this.taskletControllers[instanceNo].controllerFunc, 
 					taskId, "edit", editorId, value);
 		
-		}else{	// Normal case (not a tasklet)
+		} else {// Normal case (not a tasklet)
 			var me = this,
 				params = {editEvent: Ext.encode([taskId,editorId,value])};
 		
@@ -219,7 +213,7 @@ Ext.define('itwc.controller.Controller', {
         }
 		//Server errors
 		if(message.error) {
-			me.error(message.error);
+            me.resetApplication(message.error);
 			return;
 		}
 		//Update session
@@ -229,31 +223,21 @@ Ext.define('itwc.controller.Controller', {
 		me.lastReceivedEventNo = message.lastEvent;
 
 		//Update user interface
-        if(message.content) {
-			me.fullUpdate(message.content);
-		} else if(message.updates) {
-			me.partialUpdate(message.updates);
-		}
+		me.partialUpdate(message.updates);
+
 		//Schedule automatic refresh when an expiration time is set
 		//and we do not have a push event source
-		if(!me.uiUpdateSource && Ext.isNumber(message.expiresIn)) {
-			me.refresher.delay(message.expiresIn);
-		}
+		if (!me.uiUpdateSource) {
+            if(!!window.EventSource) {
+                me.startUIUpdateSource();
+            } else if(Ext.isNumber(message.expiresIn)) {
+			    me.refresher.delay(message.expiresIn);
+            }
+        }
 
 		//Send remaining messages
 		me.flushingTaskEvents = false;
 		me.flushTaskEvents();
-	},
-	fullUpdate: function(viewportDef) {
-		var me = this,
-			viewport = me.viewport;
-	
-		//Update the main window title instead of the viewport panel	
-		document.title = viewportDef.title ? viewportDef.title : '';
-		
-		//Update viewport
-		viewport.removeAll();
-		viewport.add(viewportDef.items);
 	},
 	partialUpdate: function(updates) {
 		var me = this,
@@ -294,9 +278,28 @@ Ext.define('itwc.controller.Controller', {
 			//}
 		}
 	},
+    resetApplication: function(message) {
+		var me = this,
+			viewport = me.viewport;
+
+        //Reset viewport
+        viewport.reset();
+        //Close push connection;
+        if(me.uiUpdateSource) {
+            me.uiUpdateSource.close();
+        }
+        //Clear event queue and event counter
+        me.taskEvents = [];
+        me.nextSendEventNo = 0;
+        me.lastReceivedEventNo = 0;
+        me.flushingTaskEvents = false;
+
+        if(message) {
+            me.error(message);
+        }
+    },
 	error: function(e) {
         alert(e);
-		//window.location = window.location;
 	},
 	warn: function(w) {
 		if(console && console.log) {

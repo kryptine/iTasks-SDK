@@ -8,7 +8,7 @@ import iTasks.API.Core.SystemTypes
 
 //Flag for disabling use of the compiled version of the client javascript
 //only useful when doing work on the client framework
-IF_CLIENT_DEV yes no	:== no
+IF_CLIENT_DEV yes no	:== yes
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
@@ -84,14 +84,14 @@ where
 				= (jsonResponse json, Nothing, iworld)
 			//Serve the task representation as a continuous stream of GUI update events.
 			JSONGuiEventStream
-				# (mbResult, iworld)	= case sessionParam of
-					""			= createSessionTaskInstance (task req) event iworld
-					sessionId	= evalSessionTaskInstance sessionId event iworld
-				= case mbResult of
-					Ok (ValueResult _ _ _ _,instanceNo,{SessionInfo|sessionId},updates)
-						= (eventsResponse sessionId updates, Just sessionId, iworld)	
-					_
-						= (errorResponse "Failed to initialize event stream", Nothing, iworld)
+                = case sessionParam of
+                    ""  = (errorResponse "Event stream is only possible for existing sessions", Nothing, iworld)
+                    sessionId	
+				        = case evalSessionTaskInstance sessionId event iworld of
+					        (Ok (ValueResult _ _ _ _,instanceNo,{SessionInfo|sessionId},updates),iworld)
+						        = (eventsResponse updates, Just sessionId, iworld)	
+					        (_,iworld)
+						        = (errorResponse "Failed to initialize event stream", Nothing, iworld)
 			//Serve the task in easily accessable JSON representation
 			JSONService
 				# (mbResult,iworld)	= case sessionParam of
@@ -177,13 +177,12 @@ where
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	eventsResponse sessionId updates
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")], rsp_data = formatSessionEvent sessionId +++ formatMessageEvents [UIUpdates updates]}
+	eventsResponse updates
+		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
+                        , rsp_data = formatMessageEvents [UIUpdates updates]}
 	
-	formatSessionEvent sessionId = "event: session\ndata: " +++ sessionId +++ "\n\n"
-
 	formatMessageEvents messages = join "" (map format messages)
-    where 
+    where
         format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
         format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 

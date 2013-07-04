@@ -70,5 +70,18 @@ Ext.define('itwc.view.Viewport', {
 		me.windows = me.windows || [];
 		me.windows[index].destroy();
 		me.windows.splice(index,1);
-	}
+	},
+    reset: function() {
+        var me = this, num, i;
+
+        //Remove all items
+        me.removeAll(true);
+        //Remove all windows
+        me.windows = me.windows || [];
+        num = me.windows.length;
+        for(i = 0; i < 0; i++) {
+            me.windows[i].destroy();
+        }
+        me.windows = [];
+    }
 });
