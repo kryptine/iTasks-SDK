@@ -76,8 +76,8 @@ updateSharedInformation d _ shared
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)
-				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,PartiallyTouched [Touched,Untouched])))
-				(\l r ((_,v),(PartiallyTouched [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,PartiallyTouched [Touched,m]))))
+				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,CompoundMask [Touched,Untouched])))
+				(\l r ((_,v),(CompoundMask [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [Touched,m]))))
 				@> (mapval,shared)	
 
 mapval (Value w _) _	= Just w
@@ -100,8 +100,8 @@ updateInformationWithShared d [UpdateWith tof fromf] shared m
 		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,Touched))))
 updateInformationWithShared d _ shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = (Display r,m) in (m,(v,PartiallyTouched [Touched,Untouched])))
-		(\l r ((_,v),(PartiallyTouched [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,PartiallyTouched [Touched,msk]))))
+		(\r -> let v = (Display r,m) in (m,(v,CompoundMask [Touched,Untouched])))
+		(\l r ((_,v),(CompoundMask [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [Touched,msk]))))
 
 enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d options container

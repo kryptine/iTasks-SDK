@@ -454,9 +454,9 @@ where
 		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
 		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toJSON val},addVerAttributes verRes newMap)],vst)
 
-gUpdate {|Document|} [] upd (val,[dmask:mask]) = case fromJSON upd of
-	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},[Blanked:mask])// Reset
-	Just doc	= (doc,[Touched:mask]) //Update 
+gUpdate {|Document|} [] upd (val,mask) = case fromJSON upd of
+	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked)// Reset
+	Just doc	= (doc,Touched) //Update 
 
 gVerify{|Document|} _ um options = simpleVerify "Upload a document" um options
 
@@ -1015,10 +1015,10 @@ where
 				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
 	options _ _ = []
 
-gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,[cmask:mask]) = case fromJSON upd of
-	Just ("sel",idx,val)	= (TreeChoice options (if val (Just idx) Nothing), [touch cmask:mask])
-	Just ("exp",idx,val)	= (TreeChoice options sel, [if val (expand idx cmask) (collapse idx cmask):mask])
-	_						= ((TreeChoice options sel), [cmask:mask])
+gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,mask) = case fromJSON upd of
+	Just ("sel",idx,val)	= (TreeChoice options (if val (Just idx) Nothing), touch mask)
+	Just ("exp",idx,val)	= (TreeChoice options sel, if val (expand idx mask) (collapse idx mask))
+	_						= ((TreeChoice options sel), mask)
 
 gUpdate{|TreeChoice|} _ _ _ _ _ _ target upd val = val
 
@@ -1258,7 +1258,7 @@ where
 // Utility functions for Choice and MultiChoice instances
 touch (TouchedUnparsed r)	= TouchedUnparsed r
 touch (TouchedWithState s)	= TouchedWithState s
-touch (PartiallyTouched c)	= PartiallyTouched c
+touch (CompoundMask c)	    = CompoundMask c
 touch _						= Touched
 
 expand idx (TouchedWithState s) = case fromJSON s of
@@ -1525,7 +1525,7 @@ gGridRows{|Editlet|} fa _ _ _ {Editlet|value} rows = fa value rows
 
 gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},omask)
 	= case jDecd [json] of
-		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},[Touched])
+		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},Touched)
 		_				= (ov,omask)
 
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ (ov,mask) = (ov,mask)
@@ -1570,8 +1570,8 @@ where
 	toString (TopLevelTaskList)					= "tasklist-top"
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 
-derive JSONEncode InteractionMask
-derive JSONDecode InteractionMask
+derive JSONEncode InteractionMask, Verification
+derive JSONDecode InteractionMask, Verification
 
 //Utility functions
 dp2s :: !DataPath -> String

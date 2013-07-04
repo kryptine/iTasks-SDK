@@ -35,7 +35,7 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
-					, uiUpdates				:: !Map SessionId [UIUpdate]				// Updates for the user interfaces of sessions
+					, uiMessages            :: !Map SessionId [UIMessage]				// Messages for communicating with the user interfaces of sessions
 
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					, world					:: !*World									// The outside world
@@ -50,8 +50,11 @@ dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
-addUIUpdates		:: !SessionId ![UIUpdate] 		!*IWorld -> *IWorld
-getUIUpdates		:: !SessionId					!*IWorld -> (![UIUpdate],!*IWorld)
+addUIMessage		:: !SessionId !UIMessage 		!*IWorld -> *IWorld
+getUIMessages		:: !SessionId					!*IWorld -> (![UIMessage],!*IWorld)
+
+
+:: UIMessage = UIUpdates ![UIUpdate] | UIReset !String
 
 :: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
 

@@ -6,7 +6,7 @@ import Data.Maybe, Data.Map, Data.Functor
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.JSON
 import Data.SharedDataSource
-from iTasks.Framework.IWorld		import :: IWorld(..), :: Work
+from iTasks.Framework.IWorld		import :: IWorld(..), :: Work, :: UIMessage
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIDiffers
 from iTasks.Framework.TaskState		import :: TaskListEntry

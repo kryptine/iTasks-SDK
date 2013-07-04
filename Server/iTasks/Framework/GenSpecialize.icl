@@ -14,7 +14,7 @@ customGVisualizeText toPrj mode val = gVisualizeText{|*|} mode (toPrj val)
 customGVisualizeEditor :: (a -> b)  (Maybe a) !*VSt -> (!VisualizationResult,!*VSt) | gVisualizeEditor{|*|} b
 customGVisualizeEditor toPrj mba vst = gVisualizeEditor{|*|} (fmap toPrj mba) vst
 
-customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | gUpdate{|*|} b
+customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} b
 customGUpdate toPrj fromPrj path upd (a,amask)
     # (b,bmask) = gUpdate{|*|} path upd (toPrj a,amask)
     = (fromPrj b, bmask)

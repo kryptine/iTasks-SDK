@@ -38,7 +38,7 @@ customGVisualizeText :: (a -> b) !StaticVisualizationMode !a -> [String] | gVisu
 customGVisualizeEditor :: (a -> b)  (Maybe a) !*VSt -> (!VisualizationResult,!*VSt) | gVisualizeEditor{|*|} b
 
 //generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask])
-customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | gUpdate{|*|} b
+customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} b
 
 //generic gVerify a :: !(Maybe a) ![InteractionMask] !VerifyOptions -> ([VerifyMask],[InteractionMask])
 //customGVerify :: ((b,[InteractionMask]) -> (a,[InteractionMask])) !(Maybe a) ![InteractionMask] !VerifyOptions -> ([VerifyMask],[InteractionMask]) | gVerify{|*|} b

@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.WebService
 
 import StdList, StdBool, StdTuple
-import System.Time, Text.JSON, Data.Map, Internet.HTTP, Data.Error
+import System.Time, Text, Text.JSON, Data.Map, Internet.HTTP, Data.Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
 import iTasks.API.Core.SystemTypes
@@ -141,10 +141,10 @@ where
 	dataFun req _ sessionId iworld
 		= case format req of
 			JSONGuiEventStream
-				# (updates,iworld)	= getUIUpdates sessionId iworld	
-				= case updates of
+				# (messages,iworld)	= getUIMessages sessionId iworld	
+				= case messages of
 					[]	= (Nothing,False,sessionId,iworld)
-					_	= (Just (formatUpdateEvents updates),False,sessionId,iworld)
+					_	= (Just (formatMessageEvents messages),False,sessionId,iworld)
 			_
 				= (Nothing,True,sessionId,iworld)	
 
@@ -177,11 +177,15 @@ where
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	eventsResponse sessionId events
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")], rsp_data = formatSessionEvent sessionId +++ formatUpdateEvents events}
+	eventsResponse sessionId updates
+		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")], rsp_data = formatSessionEvent sessionId +++ formatMessageEvents [UIUpdates updates]}
 	
 	formatSessionEvent sessionId = "event: session\ndata: " +++ sessionId +++ "\n\n"
-	formatUpdateEvents events = "data: " +++ toString (encodeUIUpdates events) +++ "\n\n"
+
+	formatMessageEvents messages = join "" (map format messages)
+    where 
+        format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
+        format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 
 	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
 	where

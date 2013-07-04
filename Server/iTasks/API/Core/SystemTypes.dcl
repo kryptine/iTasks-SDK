@@ -527,11 +527,21 @@ instance toString (TaskListId s)
 	| Touched								//The value has been touched by the user, now it makes sense to check the input
     | TouchedUnparsed !JSONNode              //The user has edited the value to something that cannot be parsed to a valid value
 	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
-	| PartiallyTouched ![InteractionMask]	//The value is a compound structure of which some parts are, and some aren't touched
 	| Blanked								//The value was previously touched, but has been made blank again
+	| CompoundMask ![InteractionMask]	    //The value is a compound structure of which some parts are, and some aren't touched
 
-derive JSONEncode InteractionMask
-derive JSONDecode InteractionMask
+:: MaskedValue a :== (a,InteractionMask)
+
+:: Verification
+    = CorrectValue !(Maybe String)
+    | IncorrectValue !String
+    | MissingValue
+    | CompoundVerification [Verification]
+
+:: VefifiedValue a :== (a,InteractionMask,Verification)
+
+derive JSONEncode InteractionMask, Verification
+derive JSONDecode InteractionMask, Verification
 
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]

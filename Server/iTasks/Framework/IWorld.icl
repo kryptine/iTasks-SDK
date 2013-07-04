@@ -104,13 +104,13 @@ where
 	expiry instanceNo [_:ws]	= expiry instanceNo ws
 
 
-addUIUpdates :: !SessionId ![UIUpdate] !*IWorld -> *IWorld
-addUIUpdates sessionId updates iworld=:{uiUpdates}
-	= {iworld & uiUpdates = put sessionId (maybe updates (\u -> u ++ updates) (get sessionId uiUpdates)) uiUpdates}
+addUIMessage :: !SessionId !UIMessage !*IWorld -> *IWorld
+addUIMessage sessionId message iworld=:{uiMessages}
+	= {iworld & uiMessages = put sessionId (maybe [message] (\m -> m ++ [message]) (get sessionId uiMessages)) uiMessages}
 
-getUIUpdates :: !SessionId !*IWorld -> (![UIUpdate],!*IWorld)
-getUIUpdates sessionId iworld=:{uiUpdates}
-	= (fromMaybe [] (get sessionId uiUpdates),{iworld & uiUpdates = del sessionId uiUpdates})
+getUIMessages :: !SessionId !*IWorld -> (![UIMessage],!*IWorld)
+getUIMessages sessionId iworld=:{uiMessages}
+	= (fromMaybe [] (get sessionId uiMessages),{iworld & uiMessages = del sessionId uiMessages})
 
 //Wrapper instance for file access
 instance FileSystem IWorld

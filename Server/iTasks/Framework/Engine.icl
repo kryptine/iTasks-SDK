@@ -190,7 +190,7 @@ initIWorld sdkPath world
 	  ,uiDiffers			= newMap
 	  ,sessions				= newMap
 	  ,workQueue			= []
-	  ,uiUpdates			= newMap
+	  ,uiMessages           = newMap
 	  ,shutdown				= False
 	  ,world				= world
 	  }

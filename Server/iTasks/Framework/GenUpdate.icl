@@ -40,54 +40,52 @@ defaultValue :: a | gDefault{|*|} a
 defaultValue = gDefault{|*|} []
 
 updateValueAndMask :: !DataPath !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} a
-updateValueAndMask path update (a,oldMask)
-	# (a,[newMask:_]) = gUpdate{|*|} path update (a,[oldMask])
-	= (a,newMask)
+updateValueAndMask path update (a,mask) = gUpdate{|*|} path update (a,mask)
 
 //Generic updater
-generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a, ![InteractionMask])
+generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,!InteractionMask) -> (!a, !InteractionMask)
 
 gUpdate{|UNIT|} _ _ val = val
 
-gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [0:target] upd (PAIR x y, mask)
-	# (x,mask) = gUpdx target upd (x,mask)
-	= (PAIR x y,mask)
-gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [1:target] upd (PAIR x y, mask)
-	# (y,mask) = gUpdy target upd (y,mask)
-	= (PAIR x y,mask)
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [0:target] upd (PAIR x y, xmask)
+	# (x,xmask) = gUpdx target upd (x,xmask)
+	= (PAIR x y,xmask)
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [1:target] upd (PAIR x y, ymask)
+	# (y,ymask) = gUpdy target upd (y,ymask)
+	= (PAIR x y,ymask)
 gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd val = val
 
 gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (LEFT x,mask) = appFst LEFT (gUpdx target upd (x,mask))
 gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (RIGHT y,mask) = appFst RIGHT (gUpdy target upd (y,mask))
 
-gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jDecx [] upd (OBJECT x, [_:mask]) //Update is a constructor switch
+gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jDecx [] upd (OBJECT x, _) //Update is a constructor switch
 	# consIdx = case upd of
 		JSONInt i	= i
 		_			= 0
-	# objectMask	= case upd of
+	# mask	        = case upd of
 		JSONNull	= Blanked	//Reset
-		_			= PartiallyTouched (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
-	= (OBJECT (gDefx (path consIdx)),[objectMask:mask])
+		_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
+	= (OBJECT (gDefx (path consIdx)), mask)
 where
 	path consIdx = if (consIdx < gtd_num_conses) (consPath consIdx gtd_num_conses) []
 
 gUpdate{|OBJECT|} gUpdx gDefx jDecx target upd (OBJECT object, mask) //Update is targeted somewhere in a substructure of this value
 	= appFst OBJECT (gUpdx target upd (object,mask))
 
-gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jDecx [index:target] upd (CONS cons,[consMask:mask])
+gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jDecx [index:target] upd (CONS cons,mask)
 	| index >= gcd_arity
-		= (CONS cons,[consMask:mask])	
-	# childMasks = childMasksN consMask gcd_arity
-	# (cons,[targetMask:_]) = gUpdx (pairPath index gcd_arity ++ target) upd (cons,[childMasks !! index])
-	= (CONS cons,[PartiallyTouched (updateAt index targetMask childMasks):mask])
+		= (CONS cons,mask)	
+	# childMasks = childMasksN mask gcd_arity
+	# (cons,targetMask) = gUpdx (pairPath index gcd_arity ++ target) upd (cons,childMasks !! index)
+	= (CONS cons,CompoundMask (updateAt index targetMask childMasks))
 gUpdate{|CONS|} gUpdx gDefx jDecx target upd val = val
 
-gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jDecx [index:target] upd (RECORD record,[recMask:mask])
+gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jDecx [index:target] upd (RECORD record,mask)
 	| index >= grd_arity
-		= (RECORD record,[recMask:mask])
-	# childMasks = childMasksN recMask grd_arity
-	# (record,[targetMask:_]) = gUpdx (pairPath index grd_arity ++ target) upd (record,[childMasks !! index])
-	= (RECORD record,[PartiallyTouched (updateAt index targetMask childMasks):mask])
+		= (RECORD record,mask)
+	# childMasks = childMasksN mask grd_arity
+	# (record,targetMask) = gUpdx (pairPath index grd_arity ++ target) upd (record,childMasks !! index)
+	= (RECORD record,CompoundMask (updateAt index targetMask childMasks))
 
 gUpdate{|RECORD|} gUpdx gDefx jDecx _ _ val = val
 	
@@ -112,28 +110,28 @@ pairPath i n
 		= [0: pairPath i (n /2)]
 	| otherwise
 		= [1: pairPath (i - (n/2)) (n - (n/2))]
-			
+
 gUpdate{|Int|}		target upd val = basicUpdateSimple target upd val
 gUpdate{|Real|}		target upd val = basicUpdateSimple target upd val
 gUpdate{|Char|}		target upd val = basicUpdateSimple target upd val
 gUpdate{|Bool|}		target upd val = basicUpdateSimple target upd val
 gUpdate{|String|}	target upd val = basicUpdateSimple target upd val
 			
-gUpdate{|Maybe|} gUpdx gDefx jDecx target upd (m,[mmask:mask])
+gUpdate{|Maybe|} gUpdx gDefx jDecx target upd (m,mmask)
 	| isEmpty target && (upd === JSONNull || upd === JSONBool False)
-		= (Nothing, [Blanked:mask]) //Reset
+		= (Nothing, Blanked) //Reset
 	| otherwise
 		= case m of
 			Nothing
 				// Create a default value
 				# x  	= gDefx []
 				// Search in the default value
-				# (x,[mmask:_])	= gUpdx target upd (x,[Untouched])
-				= (Just x, [mmask:mask])
+				# (x,mmask)	= gUpdx target upd (x,Untouched)
+				= (Just x, mmask)
 			Just x
-				= appFst Just (gUpdx target upd (x,[mmask:mask]))
+				= appFst Just (gUpdx target upd (x,mmask))
 
-gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,[listMask:mask])
+gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,listMask)
 	# (l,childMasks)
 		= case ((not (isEmpty target)) && (hd target >= (length l))) of
 			True
@@ -151,17 +149,17 @@ gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,[listMask:mask])
 			"mdn" = (swap l (index+1),swap childMasks (index+1))
 			"rem" = (removeAt index l,removeAt index childMasks)	
 			"add"
-				= (insertAt (length l) /*(index+1)*/ (gDefx []) l, insertAt (length l)/*(index+1)*/ Untouched childMasks)
+				= (insertAt (length l) (gDefx []) l, insertAt (length l) Untouched childMasks)
 			_ 	
 				= (l,childMasks)
-		= (l,[PartiallyTouched childMasks:mask])
+		= (l,CompoundMask childMasks)
 	| otherwise
-		= (l,[PartiallyTouched childMasks:mask])
+		= (l,CompoundMask childMasks)
 where
 	updateElements fx [i:target] upd elems masks
 		| i >= (length elems)
 			= (elems,masks)
-		# (nx,[nm:_])	= fx target upd (elems !! i,[masks !! i])
+		# (nx,nm)	= fx target upd (elems !! i,masks !! i)
 		= (updateAt i nx elems, updateAt i nm masks) 
 	updateElements fx target upd elems masks
 		= (elems,masks)
@@ -182,17 +180,17 @@ gUpdate{|HtmlTag|} target upd val = val
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
 
-basicUpdate :: !(upd a -> Maybe a) ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} upd
-basicUpdate toV target upd (v,[vmask:mask])
+basicUpdate :: !(upd a -> Maybe a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | JSONDecode{|*|} upd
+basicUpdate toV target upd (v,vmask)
 	| isEmpty target
         # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
         # v     = fromMaybe v mbV
         # vmask = if (upd === JSONNull) Blanked (if (isNothing mbV) (TouchedUnparsed upd) Touched)
-        = (v,[vmask:mask])
+        = (v,vmask)
 	| otherwise
-		= (v,[vmask:mask])
+		= (v,vmask)
 
-basicUpdateSimple :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask]) | JSONDecode{|*|} a
+basicUpdateSimple :: ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | JSONDecode{|*|} a
 basicUpdateSimple target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
 instance GenMask InteractionMask
@@ -205,17 +203,17 @@ where
 	appendToMask l m	= l ++ [m]
 
 	childMasks :: !InteractionMask -> [InteractionMask]
-	childMasks (PartiallyTouched  cm)	= cm
-	childMasks _						= []
+	childMasks (CompoundMask  cm)	= cm
+	childMasks _					= []
 
 	childMasksN :: !InteractionMask !Int -> [InteractionMask]
-	childMasksN (PartiallyTouched cm) n	= cm
-	childMasksN um n					= repeatn n um
+	childMasksN (CompoundMask cm) n	= cm
+	childMasksN um n				= repeatn n um
 	
 	isTouched :: !InteractionMask -> Bool
 	isTouched  Touched					= True
 	isTouched (TouchedUnparsed _)		= True
 	isTouched (TouchedWithState _)		= True
-	isTouched (PartiallyTouched _)		= True
+	isTouched (CompoundMask _)		    = True
 	isTouched _							= False
 

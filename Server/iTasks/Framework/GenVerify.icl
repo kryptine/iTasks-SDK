@@ -149,7 +149,7 @@ customVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) ![Interac
 customVerify mbHint pred mkErrMsg mbVal [mask:um] options=:{VerifyOptions|optional,disabled} 
 	# vm = case mask of
 		Untouched				= VMUntouched mbHint optional []
-		PartiallyTouched _		= maybe (VMValid mbHint []) (validateValue) mbVal
+		CompoundMask _		    = maybe (VMValid mbHint []) (validateValue) mbVal
 		Touched					= maybe (VMValid mbHint []) (validateValue) mbVal
 		TouchedWithState s		= maybe (VMValidWithState mbHint [] s) (validateValueWithState s) mbVal		
 		TouchedUnparsed r		= VMInvalid (ParseError r) []
