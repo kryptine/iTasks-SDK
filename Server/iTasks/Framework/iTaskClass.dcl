@@ -4,10 +4,9 @@ import iTasks.Framework.GenVisualize
 
 //iTask context restriction
 class iTask a
-	| gVisualizeEditor{|*|}
+	| gEditor{|*|}
+	, gEditMeta{|*|}
 	, gVisualizeText{|*|}
-	, gHeaders{|*|}
-	, gGridRows{|*|}
 	, gDefault{|*|}
 	, gUpdate{|*|}
 	, gVerify{|*|}

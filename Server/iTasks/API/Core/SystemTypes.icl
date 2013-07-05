@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.SystemTypes
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
+import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
 import Data.List, Data.Functor, Text.JSON, Text.HTML, Text, Data.Map, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
 import iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.Util
@@ -23,35 +23,32 @@ derive JSONDecode		EmailAddress
 derive gDefault			EmailAddress
 derive gEq				EmailAddress
 derive gVisualizeText	EmailAddress
-derive gVisualizeEditor	EmailAddress
-derive gHeaders			EmailAddress
-derive gGridRows		EmailAddress
+derive gEditor			EmailAddress
+derive gEditMeta		EmailAddress
 derive gUpdate			EmailAddress
 derive gVerify			EmailAddress
 
 //* URL
 gVisualizeText{|URL|}	_ val	= [toString val]
 
-gVisualizeEditor{|URL|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
-		| disabled
-			= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(URL url) -> ATag [HrefAttr url] [Text url]) val},newMap)], vst)
-		| otherwise
-			# val = checkMask mask (fmap (toJSON o toString) val)
-			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val}
-			= ([(ui,addVerAttributes verRes newMap)],vst)
+gEditor{|URL|} dp vv=:(URL url,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (ATag [HrefAttr url] [Text url])},newMap)], vst)
+	| otherwise
+		# value = checkMaskValue mask url
+		# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}
+		= (NormalEditor [(ui,verifyAttributes vv (gEditMeta{|*|} (URL url)))],vst)
 
 gUpdate{|URL|} target upd val = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) target upd val
 
-gVerify{|URL|} _ um options = simpleVerify "Enter a uniform resource locator (URL)" um options
+gVerify{|URL|} mv options = simpleVerify mv options
+
+gEditMeta{|URL|} _ = [{label=Nothing,hint=Just "Enter a uniform resource locator (URL)"}]
 
 derive JSONEncode		URL
 derive JSONDecode		URL
 derive gDefault			URL
 derive gEq				URL
-derive gHeaders			URL
-derive gGridRows		URL
 
 instance toString URL
 where
@@ -69,15 +66,14 @@ JSONDecode{|Note|} c = (Nothing,c)
 
 gVisualizeText{|Note|}			_ val	= [toString val]
 
-gVisualizeEditor{|Note|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
+gEditor{|Note|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
 		# val = checkMask mask val
-//		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
-		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
-		| otherwise	
-            = ([(UIEditNote sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(Note v)  -> v)) val},addVerAttributes verRes newMap)],vst)
-	
+		= (NormalEditor [(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
+	| otherwise	
+		# value = checkMaskValue mask ((\(Note v)  -> v) val)
+		= (NormalEditor [(UIEditNote sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+where	
 	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
 	
 	// THIS IS A HACK!
@@ -89,12 +85,12 @@ where
 
 gUpdate{|Note|} target upd val = basicUpdateSimple target upd val
 
-gVerify{|Note|} _ um options = simpleVerify "Enter a long text" um options
+gVerify{|Note|} mv options = simpleVerify mv options
+gEditMeta{|Note|} _ = [{label=Nothing,hint=Just "You may enter multiple lines of text"}]
+
 
 derive gDefault			Note
 derive gEq				Note
-derive gHeaders			Note
-derive gGridRows		Note
 
 instance toString Note
 where
@@ -116,13 +112,14 @@ JSONDecode{|CleanCode|} c = (Nothing,c)
 
 gVisualizeText{|CleanCode|}		_ val		= [toString val]
 
-gVisualizeEditor{|CleanCode|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
+gEditor{|CleanCode|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled	
 		# val = checkMask mask val
-		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap codeToHtml val}),newMap)],vst)
-		| otherwise	= ([(UIEditCode sizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(CleanCode v) -> JSONString v) val} {UICodeOpts|lineNumbers=True},addVerAttributes verRes newMap)],vst)
-	
+		= (NormalEditor [(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap codeToHtml val}),newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask ((\(CleanCode v) -> v) val)
+		= (NormalEditor [(UIEditCode sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value} {UICodeOpts|lineNumbers=True},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+where	
 	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
 	
 	codeToHtml (CleanCode s)
@@ -135,12 +132,11 @@ where
 	codeUpd (JSONString s) _	= Just (CleanCode s)
 	codeUpd _ old				= Just old
 
-gVerify{|CleanCode|} _ um options = simpleVerify "Enter a piece of Clean code" um options
+gVerify{|CleanCode|} mv options = simpleVerify mv options
+gEditMeta{|CleanCode|} _ = [{label=Nothing,hint=Just "Enter a piece of Clean code"}]
 
 derive gDefault		CleanCode
 derive gEq			CleanCode
-derive gHeaders		CleanCode
-derive gGridRows	CleanCode
 
 instance toString CleanCode
 where
@@ -150,16 +146,18 @@ where
 
 gVisualizeText{|EUR|} _ val = [toString val]
 
-gVisualizeEditor{|EUR|}	val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
+gEditor{|EUR|}	dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled	
 		# val = checkMask mask val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(EUR v) -> toReal v / 100.0)) val},addVerAttributes verRes newMap)],vst)
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
+		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gUpdate{|EUR|} target upd val = basicUpdateSimple target upd val
 
-gVerify{|EUR|} _ um options = simpleVerify "Enter an amount in EUR" um options
+gVerify{|EUR|} mv options = simpleVerify mv options
+gEditMeta{|EUR|} _ = [{label=Nothing,hint=Just "Enter an amount in EUR"}]
 
 instance toString EUR
 where
@@ -191,16 +189,18 @@ where
 
 gVisualizeText{|USD|} _ val = [toString val]
 
-gVisualizeEditor{|USD|}	val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
+gEditor{|USD|}	dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled	
 		# val = checkMask mask val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(USD v) -> toReal v / 100.0)) val},addVerAttributes verRes newMap)],vst)
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
+		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gUpdate{|USD|} target upd val = basicUpdateSimple target upd val
 
-gVerify{|USD|} _ um options = simpleVerify "Enter an amount in USD" um options
+gVerify{|USD|} mv options = simpleVerify mv options
+gEditMeta{|USD|} _ = [{label=Nothing,hint=Just "Enter an amount in USD"}]
 
 instance toString USD
 where
@@ -234,34 +234,31 @@ derive JSONEncode		EUR, USD
 derive JSONDecode		EUR, USD
 derive gDefault			EUR, USD
 derive gEq				EUR, USD
-derive gHeaders			EUR, USD
-derive gGridRows		EUR, USD
 
 //* (Local) date and time
 
 JSONEncode{|Date|} d		= [JSONString (toString d)]
 
-JSONDecode{|Date|} [JSONString s:c] 	= (Just (fromString s), c)
-JSONDecode{|Date|} c					= (Nothing, c)
+JSONDecode{|Date|} [JSONString s:c] | isDateFormat s	= (Just (fromString s), c)
+JSONDecode{|Date|} c									= (Nothing, c)
+isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s.[i] == '-') (isDigit s.[i]))) True [0..9]
 
 gVisualizeText{|Date|} _ val = [toString val]
 
-gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
-		# val	= checkMaskValue mask val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+gEditor{|Date|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		# val = checkMask mask val
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+	| otherwise
+		# value	= checkMaskValue mask val
+		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gDefault{|Date|} _ = {day = 1, mon = 1, year = 1970}
-
 gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
-
-gVerify{|Date|} _ um options = simpleVerify "Enter a date (yyy-mm-dd)" um options
+gVerify{|Date|} mv options = simpleVerify mv options
+gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)"}]
 
 derive gEq			Date
-derive gHeaders		Date
-derive gGridRows	Date
 
 instance toString Date
 where
@@ -322,26 +319,27 @@ where
 		| otherwise																			= False
 
 JSONEncode{|Time|} t					= [JSONString (toString t)]
-JSONDecode{|Time|} [JSONString s:c]		= (Just (fromString s), c)
-JSONDecode{|Time|} c					= (Nothing, c)
+JSONDecode{|Time|} [JSONString s:c]	| isTimeFormat s	= (Just (fromString s), c)
+JSONDecode{|Time|} c									= (Nothing, c)
+isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.[i] == ':') (isDigit s.[i]))) True [0..7]
 
 gVisualizeText{|Time|} _ val = [toString val]
 
-gVisualizeEditor{|Time|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
-		# val = checkMaskValue mask val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
+gEditor{|Time|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		# val = checkMask mask val
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask val
+		= (NormalEditor [(UIEditTime defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gUpdate{|Time|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
-gVerify{|Time|} _ um options = simpleVerify "Enter a time (hh:mm:ss)" um options
+gVerify{|Time|} mv options = simpleVerify mv options
+gEditMeta{|Time|} _ = [{label=Nothing,hint=Just "Enter a time (hh:mm:ss)"}]
 
 derive gDefault		Time
 derive gEq			Time
-derive gHeaders		Time
-derive gGridRows	Time
 
 instance toString Time
 where
@@ -401,10 +399,13 @@ JSONDecode{|DateTime|} c				= (Nothing, c)
 
 derive gDefault			DateTime
 derive gEq				DateTime
-derive gVisualizeText	DateTime
-derive gVisualizeEditor	DateTime
-derive gHeaders			DateTime
-derive gGridRows		DateTime
+derive gEditor	DateTime
+
+gVisualizeText{|DateTime|} _ (DateTime date time)
+	= [visualizeAsLabel date +++" "+++ visualizeAsLabel time]
+gEditMeta{|DateTime|} _
+	= [{label=Nothing,hint=Just "Enter a date and time"}]
+
 derive gUpdate			DateTime
 derive gVerify			DateTime
 
@@ -447,25 +448,25 @@ gVisualizeText{|Document|} _ val
 	| val.Document.size == 0			= ["No Document"]
 	| otherwise							= [val.Document.name]
 
-gVisualizeEditor {|Document|} val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask touched val
-		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
-		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toJSON val},addVerAttributes verRes newMap)],vst)
+gEditor {|Document|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		# val = checkMask mask val
+		= (NormalEditor [(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask val
+		= (NormalEditor [(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gUpdate {|Document|} [] upd (val,mask) = case fromJSON upd of
 	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked)// Reset
 	Just doc	= (doc,Touched) //Update 
 
-gVerify{|Document|} _ um options = simpleVerify "Upload a document" um options
+gVerify{|Document|} mv options = simpleVerify mv options
+gEditMeta{|Document|} _ = [{label=Nothing,hint=Just "Upload a document"}]
 
 derive JSONEncode		Document
 derive JSONDecode		Document
 derive gDefault			Document
 derive gEq				Document
-derive gHeaders			Document
-derive gGridRows		Document
 
 instance toString Document
 where
@@ -481,22 +482,21 @@ JSONDecode{|Username|} [JSONString u:c] = (Just (Username u),c)
 
 JSONDecode{|Username|} c = (Nothing,c)
 
-gVisualizeEditor{|Username|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
+gEditor{|Username|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled	
 		# val = checkMask mask val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (toJSON o (\(Username v) -> v)) val},addVerAttributes verRes newMap)],vst)
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask ((\(Username v) -> v) val)
+		= (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gUpdate{|Username|} target upd val = basicUpdateSimple target upd val
-
-gVerify{|Username|} _ um options = simpleVerify "Enter a username" um options
+gVerify{|Username|} mv options = simpleVerify mv options
+gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username"}]
 
 derive gDefault			Username
 derive gEq				Username
 derive gVisualizeText	Username
-derive gHeaders			Username
-derive gGridRows		Username
 
 instance toString Username
 where
@@ -512,26 +512,22 @@ where
 
 JSONEncode{|Password|} (Password p) = [JSONString p]
 JSONDecode{|Password|} [JSONString p:c] = (Just (Password p),c)
-
 JSONDecode{|Password|} c = (Nothing,c)
 
 gVisualizeText{|Password|} _ val = ["********"]
 
-gVisualizeEditor{|Password|} val vst = visualizeCustom viz vst
-where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask mask val
-		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
-		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (toJSON o (\(Password v) -> v)) val},addVerAttributes verRes newMap)],vst)
-
+gEditor{|Password|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled	
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
+	| otherwise	
+		# value = checkMaskValue mask ((\(Password v) -> v) val)
+		= (NormalEditor [(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 gUpdate{|Password|} target upd val = basicUpdateSimple target upd val
-
-gVerify{|Password|} _ um options = simpleVerify "Enter a password" um options
+gVerify{|Password|} mv options = simpleVerify mv options
+gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password"}]
 
 derive gDefault			Password
 derive gEq				Password
-derive gHeaders			Password
-derive gGridRows		Password
 
 instance toString Password
 where
@@ -585,13 +581,11 @@ derive class iTask	FileException, ParseException, CallException, SharedException
 derive class iTask	FileError
 
 //* Geograpic data and Google Maps
-gVisualizeEditor{|GoogleMap|} val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst=:{VSt|taskId}
-		# editOpts	= {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing}
-		# opts		= mapOpts (fromMaybe defaultValue val)
-		= ([(UIEditGoogleMap defaultSizeOpts editOpts opts,addVerAttributes verRes newMap)],vst)
-	
+gEditor{|GoogleMap|} dp vv=:(val,mask,ver) vst=:{VSt|taskId}
+	# editOpts	= {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Nothing}
+	# opts		= mapOpts val
+	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,verifyAttributes vv (gEditMeta{|*|} val))],vst)
+where	
 	mapOpts map =
 		{ UIGoogleMapOpts
 		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
@@ -660,7 +654,7 @@ where
 		| otherwise	
 			= Just orig
 
-gVerify{|GoogleMap|} _ um _ = alwaysValid um
+gVerify{|GoogleMap|} _ mv = alwaysValid mv
 //derive gVerify GoogleMap
 
 gDefault{|GoogleMapPerspective|} _ =
@@ -685,61 +679,52 @@ derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMap
 derive gDefault			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 
 //* A sliding scale
 gVisualizeText{|Scale|}	_ {Scale|cur} = [toString cur]
 
-gVisualizeEditor{|Scale|} val vst = visualizeCustom viz vst
+gEditor{|Scale|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	# sliderOpts	= {UISliderOpts|minValue=(\{Scale|min} -> min) val,maxValue=(\{Scale|max} -> max) val}
+	| disabled
+		# val = checkMask mask val							
+		# viewOpts = {UIViewOpts|value = fmap curVal val}  
+		= (NormalEditor [(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask (curVal val)
+		# editOpts = {UIEditOpts|taskId = taskId, editorId = editorId dp, value = value}
+		= (NormalEditor [(UIEditSlider defaultSizeOpts editOpts sliderOpts, verifyAttributes vv (gEditMeta{|*|} val))],vst)
 where
-	viz name mask verRes vst=:{VSt|taskId,disabled}
-		# val = checkMask mask val
-		# sliderOpts	= {UISliderOpts|minValue=maybe 1 (\{Scale|min} -> min) val,maxValue=maybe 5 (\{Scale|max} -> max) val}
-		| disabled									
-			# viewOpts = {UIViewOpts|value = fmap curVal val}  
-			= ([(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
-		| otherwise
-			# editOpts = {UIEditOpts|taskId = toString taskId, editorId = name, value = fmap (toJSON o curVal) val}
-			= ([(UIEditSlider defaultSizeOpts editOpts sliderOpts, addVerAttributes verRes newMap)],vst)
-
 	curVal {Scale|cur} = cur
 
 gUpdate{|Scale|} target upd val
 	= basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) target upd val
 
-gVerify{|Scale|} _ um _ = alwaysValid um
+gVerify{|Scale|} _ mv = alwaysValid mv
 
 gDefault{|Scale|} _ = {Scale|min=1,cur=3,max=5}
-gHeaders{|Scale|} _	= [""]
-gGridRows{|Scale|} _ _ = Nothing
+gEditMeta{|Scale|} _	= [{label=Nothing,hint=Just "You can change the value by sliding the scale"}]
 
 //* Progress bars
 gVisualizeText{|Progress|}	_ {Progress|description} = [description]
 
-gVisualizeEditor{|Progress|} val vst = visualizeCustom viz vst
+gEditor{|Progress|} dp (val,mask,ver) vst=:{VSt|taskId}
+	= (NormalEditor [(UIViewProgress defaultSizeOpts {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val},newMap)],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId}
-		= ([(UIViewProgress defaultSizeOpts {UIViewOpts|value=fmap value val} {UIProgressOpts|text = text val},newMap)],vst)
-	where
-		text (Just {Progress|description}) 	= description
-		text _								= ""
+	text {Progress|description}	= description
 		
-		value {Progress|progress=ProgressRatio ratio} 
-			| ratio < 0.0	= ProgressRatio 0.0
-			| ratio > 1.0	= ProgressRatio 1.0
-							= ProgressRatio ratio
-		value {Progress|progress} = progress
+	value {Progress|progress=ProgressRatio ratio} 
+		| ratio < 0.0	= ProgressRatio 0.0
+		| ratio > 1.0	= ProgressRatio 1.0
+						= ProgressRatio ratio
+	value {Progress|progress} = progress
 
 gUpdate{|Progress|}	target upd val = val
-
-gVerify{|Progress|} _ um _ = alwaysValid um
-
-gHeaders{|Progress|} _		= [""]
-gGridRows{|Progress|} _ _	= Nothing
+gVerify{|Progress|} _ mv = alwaysValid mv
+gEditMeta{|Progress|} _		= [{label=Nothing,hint=Nothing}]
 
 derive gDefault			Progress
 
@@ -747,47 +732,40 @@ gVisualizeText{|ProgressAmount|} _ ProgressUndetermined		= ["Undetermined"]
 gVisualizeText{|ProgressAmount|} _ (ProgressRatio r)		= [toString (entier (100.0 * r)) + "%"]
 
 derive gDefault			ProgressAmount
-derive gVisualizeEditor ProgressAmount
-derive gHeaders			ProgressAmount
-derive gGridRows		ProgressAmount
+derive gEditor 			ProgressAmount
+derive gEditMeta		ProgressAmount
 derive gUpdate			ProgressAmount
 derive gVerify			ProgressAmount
 
 //* Inclusion of external html files
 gVisualizeText{|HtmlInclude|}	_ (HtmlInclude location)	= ["<External html: " + location + ">"]
 
-gVisualizeEditor{|HtmlInclude|} val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst
-		= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value=fmap (\(HtmlInclude path) -> IframeTag [SrcAttr path] []) val},addVerAttributes verRes newMap)],vst)
+gEditor{|HtmlInclude|} dp vv=:(HtmlInclude path,mask,ver) vst
+	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},verifyAttributes vv (gEditMeta{|*|} (HtmlInclude path)))],vst)
 
 gUpdate{|HtmlInclude|} target upd val = val
 
-gVerify{|HtmlInclude|} _ um _ = alwaysValid um
+gVerify{|HtmlInclude|} _ mv = alwaysValid mv
 
 derive gDefault HtmlInclude
-derive gHeaders HtmlInclude
-derive gGridRows HtmlInclude
+derive gEditMeta HtmlInclude
 
 //* Form buttons
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
 
-gVisualizeEditor{|FormButton|} val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# text = fmap (\b -> b.FormButton.label) val
-		# iconCls = fmap (\b -> b.FormButton.icon) val
-		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
+gEditor{|FormButton|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	# text = Just val.FormButton.label
+	# iconCls = Just val.FormButton.icon
+	= (NormalEditor [(UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gUpdate{|FormButton|} target upd val
 	= basicUpdate (\st b -> Just {FormButton|b & state = st}) target upd val
 
-gVerify{|FormButton|} _ um _ = alwaysValid um
+gVerify{|FormButton|} _ mv = alwaysValid mv
 
 gDefault{|FormButton|} _ = {FormButton | label = "Form Button", icon="", state = NotPressed}
 
-derive gHeaders FormButton
-derive gGridRows FormButton
+derive gEditMeta FormButton
 
 instance toString FormButton
 where
@@ -800,57 +778,45 @@ where
 gVisualizeText{|ButtonState|}	_ NotPressed		= ["not pressed"]
 gVisualizeText{|ButtonState|}	_ Pressed			= ["pressed"]
 
-derive gDefault ButtonState
-derive gVisualizeEditor ButtonState
-derive gHeaders ButtonState
-derive gGridRows ButtonState
-derive gUpdate ButtonState
-derive gVerify ButtonState
+derive gDefault		ButtonState
+derive gEditor		ButtonState
+derive gEditMeta	ButtonState
+derive gUpdate		ButtonState
+derive gVerify		ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gVisualizeText{|Table|}	_ _	= ["<Table>"]
 
-gVisualizeEditor{|Table|} val vst = visualizeCustom viz vst 
+gEditor{|Table|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	= (NormalEditor [(UIGrid defaultSizeOpts
+        {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
+        {UIGridOpts|columns = columns val,doubleClickAction=Nothing},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		= ([(UIGrid defaultSizeOpts
-            {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
-            {UIGridOpts|columns = columns val,doubleClickAction=Nothing},addVerAttributes verRes newMap)],vst)
-
-	value (Just (Table _ _ mbSel))	= maybe [] (\s->[s]) mbSel
-	value _							= []
+	value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
+	columns (Table headers _ _)	= headers
+	options (Table _ cells _)	= map (map toString) cells
 	
-	columns (Just (Table headers _ _))	= headers
-	columns _							= []
-	
-	options (Just (Table _ cells _))	= map (map toString) cells
-	options _							= []
-
 gUpdate{|Table|} target upd val
 	= basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) target upd val
 
-gVerify{|Table|} _ um _ = alwaysValid um
+gVerify{|Table|} _ mv = alwaysValid mv
 gDefault{|Table|} _ = Table [] [] Nothing
 
-derive gHeaders Table
-derive gGridRows Table
+derive gEditMeta Table
 
-toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+toTable	:: ![a] -> Table | gEditMeta{|*|} a & gVisualizeText{|*|} a
 toTable a = Table (headers a undef) (map row a) Nothing
 where
-	headers:: [a] a -> [String] | gHeaders{|*|} a
-	headers _ a = gHeaders{|*|} a
+	headers:: [a] a -> [String] | gEditMeta{|*|} a
+	headers _ a = [fromMaybe "" label \\ {EditMeta|label} <- gEditMeta{|*|} a]
 
-	row x = case (gGridRows{|*|} x []) of
-		Just cells	= [Text cell \\ cell <- cells]
-		Nothing		= [Text (visualizeAsText AsLabel x)]
+	row x =  [Text cell \\ cell <- gVisualizeText{|*|} AsRow x]
 	
 //* Simple tree type (used primarily for creating trees to choose from)
 derive gDefault			Tree, TreeNode
 derive gVisualizeText	Tree, TreeNode
-derive gVisualizeEditor	Tree, TreeNode
-derive gHeaders			Tree, TreeNode
-derive gGridRows		Tree, TreeNode
+derive gEditor	Tree, TreeNode
+derive gEditMeta			Tree, TreeNode
 derive gUpdate			Tree, TreeNode
 derive gVerify			Tree, TreeNode
 		
@@ -871,25 +837,21 @@ derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonSt
 gDefault{|ComboChoice|} _ _ _ = ComboChoice [] Nothing
 gVisualizeText{|ComboChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|ComboChoice|} fx gx _ _ _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
+gEditor{|ComboChoice|} fx gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+	| otherwise
+		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		| disabled
-			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsLabel (fst(options !! sel ))))
+	vvalue _								= Nothing
+	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
 
-	vvalue (Just (ComboChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
-	vvalue _										= Nothing
-	evalue (Just (ComboChoice _ mbSel))				= maybe [] (\s->[s]) mbSel
-	evalue _										= []
-	options (Just (ComboChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
-	options	_										= []
-
+	options (ComboChoice options _)			= [concat (gx AsLabel v) \\ (v,_) <- options]
  
 gUpdate{|ComboChoice|} _ _ _ _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
 
-gVerify{|ComboChoice|} _ _ v um options = customVerify (Just "Choose one item") (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") v um options
+gVerify{|ComboChoice|} _ _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
 
 instance Choice ComboChoice
 where
@@ -901,24 +863,21 @@ where
 gDefault{|ComboChoiceNoView|} _ _ = ComboChoiceNoView [] Nothing
 gVisualizeText{|ComboChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gVisualizeEditor{|ComboChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		| disabled
-			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+gEditor{|ComboChoiceNoView|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+	| otherwise
+		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*|} hx val))],vst)
+where	
+	vvalue (ComboChoiceNoView options (Just sel))	= Just (hd (gx AsLabel (options !! sel )))
+	vvalue _										= Nothing
+	evalue (ComboChoiceNoView _ mbSel)				= maybe [] (\s->[s]) mbSel
 	
-	vvalue (Just (ComboChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
-	vvalue _												= Nothing
-	evalue (Just (ComboChoiceNoView _ mbSel))				= maybe [] (\s->[s]) mbSel
-	evalue _												= []
-	options (Just (ComboChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
-	options	_												= []
+	options (ComboChoiceNoView options _)		= [concat (gx AsLabel v) \\ v <- options]
 
 gUpdate{|ComboChoiceNoView|} _ _ _ target upd val = updateChoice (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) target upd val
 
-gVerify{|ComboChoiceNoView|} _	v um options = customVerify (Just "Choose one item") (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") v um options
+gVerify{|ComboChoiceNoView|} _ mv options = customVerify (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") mv options
 
 instance ChoiceNoView ComboChoiceNoView
 where
@@ -929,25 +888,23 @@ where
 gDefault{|RadioChoice|} _ _ _ = RadioChoice [] Nothing
 gVisualizeText{|RadioChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
+gEditor{|RadioChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+	| otherwise
+		= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		| disabled
-			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-		| otherwise
-			= ([(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+	vvalue (RadioChoice options (Just sel))	= Just (hd (gx AsLabel (fst(options !! sel ))))
+	vvalue _								= Nothing
+	evalue (RadioChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
+	
+	options (RadioChoice options _)			= [concat (gx AsLabel v) \\ (v,_) <- options]
 
-	vvalue (Just (RadioChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
-	vvalue _										= Nothing
-	evalue (Just (RadioChoice _ mbSel))				= maybe [] (\i -> [i]) mbSel
-	evalue _										= []
-	options (Just (RadioChoice options _))			= [concat (gx AsLabel v) \\ (v,_) <- options]
-	options	_										= []
 
 gUpdate{|RadioChoice|} _ _ _ _ _ _ target upd val
 	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options idx) target upd val
 
-gVerify{|RadioChoice|} _ _		_ um options = simpleVerify "Choose one item" um options
+gVerify{|RadioChoice|} _ _		mv options = simpleVerify mv options
 
 instance Choice RadioChoice
 where
@@ -959,25 +916,22 @@ where
 gDefault{|RadioChoiceNoView|} _ _ = RadioChoiceNoView [] Nothing
 gVisualizeText{|RadioChoiceNoView|}	fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gVisualizeEditor{|RadioChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
+gEditor{|RadioChoiceNoView|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+	| otherwise
+		= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*|} hx val))],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		| disabled
-			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-		| otherwise
-			= ([(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+	vvalue (RadioChoiceNoView options (Just sel))	= Just (hd (gx AsLabel (options !! sel )))
+	vvalue _										= Nothing
+	evalue (RadioChoiceNoView _ mbSel)				= maybe [] (\s->[s]) mbSel
 
-	vvalue (Just (RadioChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
-	vvalue _												= Nothing
-	evalue (Just (RadioChoiceNoView _ mbSel))				= maybe [] (\s->[s]) mbSel
-	evalue _												= []
-	options (Just (RadioChoiceNoView options _))			= [concat (gx AsLabel v) \\ v <- options]
-	options	_												= []
+	options (RadioChoiceNoView options _)			= [concat (gx AsLabel v) \\ v <- options]
 
 gUpdate{|RadioChoiceNoView|} _ _ _ target upd val
 	= updateChoice (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) target upd val
 
-gVerify{|RadioChoiceNoView|} _	_ um options = simpleVerify "Choose one item" um options
+gVerify{|RadioChoiceNoView|} _	mv options = simpleVerify mv options
 
 instance ChoiceNoView RadioChoiceNoView
 where
@@ -989,20 +943,17 @@ gDefault{|TreeChoice|} _ _ _ = TreeChoice (Tree []) Nothing
 
 gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
-gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask=[cmv:vm]}
-	# ver		= verifyElementStr cmv
-	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv} {UITreeOpts|doubleClickAction=Nothing},addVerAttributes ver newMap)]
-	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+gEditor{|TreeChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val mask} {UITreeOpts|doubleClickAction=Nothing},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))]
+	= (NormalEditor viz,vst)
 where
-	value  (Just (TreeChoice _ mbSel)) 	= maybe [] (\s->[s]) mbSel
-	value _								= []
+	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
-	options (Just (TreeChoice (Tree nodes) _)) msk = fst (mkTree nodes 0 )
+	options (TreeChoice (Tree nodes) _) msk = fst (mkTree nodes 0 )
 		where
 			expanded = case msk of
-				VMValidWithState _ _ s 		= case fromJSON s of Just expanded = expanded; _ = []
-				VMInvalidWithState _ _ s	= case fromJSON s of Just expanded = expanded; _ = []
-				_							= []
+				TouchedWithState s 	= case fromJSON s of Just expanded = expanded; _ = []
+				_					= []
 				
 			mkTree [] idx
 				= ([],idx)
@@ -1023,7 +974,7 @@ gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,mask) = case fr
 gUpdate{|TreeChoice|} _ _ _ _ _ _ target upd val = val
 
 
-gVerify{|TreeChoice|} _ _		_ um options = simpleVerify "Choose an element of the tree" um options
+gVerify{|TreeChoice|} _ _ mv options = simpleVerify mv options
 
 instance Choice TreeChoice
 where
@@ -1036,14 +987,12 @@ gDefault{|TreeChoiceNoView|} _ _ = TreeChoiceNoView (Tree []) Nothing
 
 gVisualizeText{|TreeChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ _ _ val vst = visualizeCustom viz vst
+gEditor{|TreeChoiceNoView|} _ gx _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId}
+	= (NormalEditor [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val} {UITreeOpts|doubleClickAction=Nothing},newMap)],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId}
-		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val} {UITreeOpts|doubleClickAction=Nothing},newMap)],vst)
-
-	value (Just (TreeChoiceNoView _ mbSel)) = maybe [] (\s->[s]) mbSel
-	value _									= []
-	options (Just (TreeChoiceNoView (Tree nodes) _)) = fst (mkTree nodes 0)
+	value (TreeChoiceNoView _ mbSel) = maybe [] (\s->[s]) mbSel
+	
+	options (TreeChoiceNoView (Tree nodes) _) = fst (mkTree nodes 0)
 	where
 		mkTree [] idx
 			= ([],idx)
@@ -1062,7 +1011,7 @@ where
 	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
 	update _					treechoice							= treechoice
 
-gVerify{|TreeChoiceNoView|} _	_ um options = simpleVerify "Choose an element of the tree" um options
+gVerify{|TreeChoiceNoView|} _ mv options = simpleVerify mv options
 	
 instance ChoiceNoView TreeChoiceNoView
 where
@@ -1074,22 +1023,18 @@ gDefault{|GridChoice|} _ _ _ = GridChoice [] Nothing
 
 gVisualizeText{|GridChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
 
-gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		= ([(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
-			{UIGridOpts|columns = hx undef, doubleClickAction=Nothing},addVerAttributes verRes newMap)],vst)
-	
-	value (Just (GridChoice options mbSel)) = maybe [] (\s->[s]) mbSel
-	value _									= []
-	options (Just (GridChoice options _))	= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]
-	options _								= []
+gEditor{|GridChoice|} _ gx _ hx _ _ _ _ _ _ _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	= (NormalEditor [(UIGrid defaultSizeOpts
+		{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
+		{UIGridOpts|columns = [fromMaybe "" label\\ {EditMeta|label} <- hx undef], doubleClickAction=Nothing},newMap)],vst)
+where	
+	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
+	options (GridChoice options _)		= [gx AsRow opt \\ (opt,_) <- options]
 
 gUpdate{|GridChoice|} _ _ _ _ _ _ target upd val
 	= updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
-gVerify{|GridChoice|} _ _ _ um _ = alwaysValid um
+gVerify{|GridChoice|} _ _ _ mv = alwaysValid mv
 
 instance Choice GridChoice
 where
@@ -1102,22 +1047,18 @@ gDefault{|GridChoiceNoView|} _ _ = GridChoiceNoView [] Nothing
 
 gVisualizeText{|GridChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))	
 
-gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix jex jdx val vst = visualizeCustom viz vst
+gEditor{|GridChoiceNoView|} _ gx _ hx jex jdx dp (val,mask,ver) vst=:{VSt|taskId,disabled}
+	= (NormalEditor [(UIGrid defaultSizeOpts
+			{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options =options val}
+			{UIGridOpts|columns = [fromMaybe "" label\\ {EditMeta|label} <-hx undef],doubleClickAction=Nothing},newMap)],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		= ([(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options =options val}
-			{UIGridOpts|columns = hx undef,doubleClickAction=Nothing},newMap)],vst)
+	value (GridChoiceNoView options mbSel)	= maybe [] (\s->[s]) mbSel
+	options (GridChoiceNoView options _)	= [gx AsRow opt \\ opt <- options]
 	
-	value (Just (GridChoiceNoView options mbSel))	= maybe [] (\s->[s]) mbSel
-	value _											= []
-	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
-	options _										= []
-
 gUpdate{|GridChoiceNoView|} _ _ _ target upd val
 	= updateChoice (\idxs (GridChoiceNoView options _) -> GridChoiceNoView options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
-gVerify{|GridChoiceNoView|} _	_ um _ = alwaysValid um
+gVerify{|GridChoiceNoView|} _ _ mv= alwaysValid mv
 	
 instance ChoiceNoView GridChoiceNoView
 where
@@ -1132,27 +1073,24 @@ gVisualizeText{|DynamicChoice|}		fv fo mode (DCCombo val)	= gVisualizeText{|*->*
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCGrid val)		= gVisualizeText{|*->*->*|} fv fo mode val
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCTree val)		= gVisualizeText{|*->*->*|} fv fo mode val
 
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCCombo val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCRadio val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCTree val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just (DCGrid val)) vst
-	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 (Just val) vst
-gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 Nothing vst
-	= (NormalEditor [],vst)
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCCombo val,mask,ver) vst
+	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCRadio val,mask,ver) vst
+	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCTree val,mask,ver) vst
+	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCGrid val,mask,ver) vst
+	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
 
 gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
 gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
 gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCTree val,mask)	= appFst DCTree (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
 gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCGrid val,mask)	= appFst DCGrid (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
 
-gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
-gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
-gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
-gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) um options = gVerify{|*->*->*|} fx fy (Just v) um options
-gVerify{|DynamicChoice|} fx fy	Nothing um options = alwaysValid um
+gVerify{|DynamicChoice|} fx fy options (DCCombo v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
+gVerify{|DynamicChoice|} fx fy options (DCRadio v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
+gVerify{|DynamicChoice|} fx fy options (DCTree v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
+gVerify{|DynamicChoice|} fx fy options (DCGrid v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
 	
 instance Choice DynamicChoice
 where
@@ -1183,28 +1121,25 @@ gVisualizeText{|DynamicChoiceNoView|} fo mode (DCComboNoView val)	= gVisualizeTe
 gVisualizeText{|DynamicChoiceNoView|} fo mode (DCTreeNoView val)	= gVisualizeText{|*->*|} fo mode val
 gVisualizeText{|DynamicChoiceNoView|} fo mode (DCGridNoView val)	= gVisualizeText{|*->*|} fo mode val
 
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCComboNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCRadioNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCTreeNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 (Just (DCGridNoView val)) vst
-	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 f5 f6 (Just val) vst
-gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 Nothing vst
-	= (NormalEditor [],vst)
+gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCComboNoView val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCRadioNoView val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCTreeNoView val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCGridNoView val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
 
 gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCComboNoView val,mask)= appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCRadioNoView val,mask)= appFst DCRadioNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCTreeNoView val,mask)	= appFst DCTreeNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCGridNoView val,mask)	= appFst DCGridNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 
-gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
-gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
-gVerify{|DynamicChoiceNoView|} fx (Just (DCTreeNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
-gVerify{|DynamicChoiceNoView|} fx (Just (DCGridNoView v)) um options = gVerify{|*->*|} fx (Just v) um options
-gVerify{|DynamicChoiceNoView|} fx Nothing um options = alwaysValid um
-	
+gVerify{|DynamicChoiceNoView|} fx options (DCComboNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoiceNoView|} fx options (DCRadioNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoiceNoView|} fx options (DCTreeNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoiceNoView|} fx options (DCGridNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
+
 instance ChoiceNoView DynamicChoiceNoView
 where
 	selectOptionNoView newSel (DCComboNoView choice)	= DCComboNoView (selectOptionNoView newSel choice)
@@ -1225,29 +1160,22 @@ where
 gDefault{|CheckMultiChoice|} _ _ _ = CheckMultiChoice [] []
 gVisualizeText{|CheckMultiChoice|} fv _ _ val = gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 
-gVisualizeEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ _ _ val vst = visualizeCustom viz vst
+gEditor{|CheckMultiChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (vvalue val)},newMap)],vst)
+	| otherwise
+		= (NormalEditor [(UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
 where
-	viz name touched verRes vst=:{VSt|taskId,disabled}
-		| disabled
-			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-		| otherwise
-			= ([(UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
-
-	vvalue (Just (CheckMultiChoice options sel))	= Just (join "," ([hd (gx AsLabel (fst (options !! i ))) \\ i <- sel]))
-	vvalue _										= Nothing
-
-	evalue (Just (CheckMultiChoice _ sel))			= sel
-	evalue _										= []
-	
-	options (Just (CheckMultiChoice options _))		= [concat (gx AsLabel v) \\ (v,_) <- options]
-	options	_										= []
+	vvalue (CheckMultiChoice options sel)	= join "," ([hd (gx AsLabel (fst (options !! i ))) \\ i <- sel])
+	evalue (CheckMultiChoice _ sel)			= sel
+	options (CheckMultiChoice options _)	= [concat (gx AsLabel v) \\ (v,_) <- options]
 
 gUpdate{|CheckMultiChoice|} _ _ _ _ _ _ target upd val = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) target upd val
 where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
 
-gVerify{|CheckMultiChoice|} _ _	_ um options = simpleVerify "Choose a number of items" um options
+gVerify{|CheckMultiChoice|} _ _	vm options = simpleVerify vm options
 	
 instance MultiChoice CheckMultiChoice
 where
@@ -1326,10 +1254,8 @@ derive JSONDecode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoi
 derive JSONDecode		ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
 derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 derive gEq				ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
-derive gHeaders			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gHeaders			ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
-derive gGridRows		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gGridRows		ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
+derive gEditMeta			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive gEditMeta			ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
 
 //* Visualization wrappers
 gVisualizeText{|VisualizationHint|} fx mode val = case val of
@@ -1337,23 +1263,20 @@ gVisualizeText{|VisualizationHint|} fx mode val = case val of
 	VHDisplay x		= gVisualizeText{|* -> *|} fx mode (Display x)
 	VHEditable x	= gVisualizeText{|* -> *|} fx mode (Editable x)
 
-gVisualizeEditor{|VisualizationHint|} fx gx hx ix jex jdx val vst=:{VSt|currentPath}
-	= case val of
-		Just (VHHidden x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Hidden x)) vst
-		Just (VHDisplay x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Display x)) vst
-		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix jex jdx (Just (Editable x)) vst
-		Nothing				= fx Nothing vst
+gEditor{|VisualizationHint|} fx gx dx hx jex jdx dp (val,mask,ver) vst = case val of
+	VHHidden x		= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Hidden x,mask,ver) vst
+	VHDisplay x		= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Display x,mask,ver) vst
+	VHEditable x	= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Editable x,mask,ver) vst
 
 gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHEditable s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val
 gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHDisplay s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHDisplay target upd val
-gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHHidden s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHHidden target upd val
+gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHHidden s,mask)		= wrapperUpdate gUpdx fromVisualizationHint VHHidden target upd val
 
-gVerify{|VisualizationHint|}	fx v um options = case v of
-	Just (VHEditable e)	= verifyEditable fx (Just e) um options
-	Just (VHDisplay d)	= verifyDisplay fx (Just d) um options
-	Just (VHHidden _)	= verifyHidden um
-	_					= ([],um)
-			
+gVerify{|VisualizationHint|} fx options (v,mask) = case v of
+	(VHEditable v) = verifyEditable fx options (v,mask)
+	(VHDisplay v) = verifyDisplay fx options (v,mask)
+	(VHHidden v) = fx options (v,mask)
+	
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
 fromVisualizationHint (VHDisplay a) = a
@@ -1364,12 +1287,11 @@ toVisualizationHint a = (VHEditable a)
 
 gVisualizeText{|Hidden|} _ _ _ = []
 
-gVisualizeEditor{|Hidden|} fx _ _ _ _ _ val vst=:{VSt | currentPath, verifyMask=[_:vm]}
-	= (HiddenEditor,{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+gEditor{|Hidden|} fx _ _ _ _ _ dp val vst = (HiddenEditor,vst)
 
 gUpdate{|Hidden|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromHidden Hidden target upd val
 
-gVerify{|Hidden|} _ _ um options = verifyHidden um
+gVerify{|Hidden|} fx options (Hidden v,mask) = fx options (v,mask)
 
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x
@@ -1379,13 +1301,13 @@ toHidden x = (Hidden x)
 
 gVisualizeText{|Display|} fx mode (Display val)	= fx mode val
 
-gVisualizeEditor{|Display|} fx _ _ _ _ _ val vst=:{VSt|currentPath,disabled}
-	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  disabled = True}
-	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
+gEditor{|Display|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled}
+	# (def,vst) = fx dp (fromDisplay val,mask,ver) {VSt | vst &  disabled = True}
+	= (def,{VSt | vst & disabled = disabled})
 
 gUpdate{|Display|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromDisplay Display target upd val
 
-gVerify{|Display|} fx d um options = verifyDisplay fx (fmap fromDisplay d) um options
+gVerify{|Display|} fx options (Display d,mask) = verifyDisplay fx options (d,mask)
 
 fromDisplay :: !(Display .a) -> .a
 fromDisplay (Display a) = a
@@ -1395,14 +1317,14 @@ toDisplay a = (Display a)
 
 gVisualizeText{|Editable|} fx mode(Editable val) = fx mode val
 
-gVisualizeEditor{|Editable|} fx _ _ _ _ _ val vst=:{VSt|currentPath, disabled}
-	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & disabled = False}
-	= (def,{VSt | vst & currentPath = stepDataPath currentPath, disabled = disabled})
+gEditor{|Editable|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled}
+	# (def,vst) = fx dp (fromEditable val,mask,ver) {VSt | vst & disabled = False}
+	= (def,{VSt | vst & disabled = disabled})
 
 gUpdate{|Editable|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromEditable Editable target upd val
 
-gVerify{|Editable|} fx e um options = verifyEditable fx (fmap fromEditable e) um options
-
+gVerify{|Editable|} fx options (Editable e,mask) = verifyEditable fx options (e,mask)
+	
 fromEditable :: !(Editable .a) -> .a
 fromEditable (Editable a) = a
 
@@ -1415,16 +1337,15 @@ wrapperUpdate fx get set target upd (val,mask)
 	= (set w,mask)
 		
 //Utility for gVerify	
-verifyEditable fx e um options = fx e um {VerifyOptions|options & disabled = False}
-verifyDisplay fx d um options = fx d um {VerifyOptions|options & disabled = True}
-verifyHidden um = ([VMValid Nothing []],um)
+verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
+verifyDisplay fx options mv = fx {VerifyOptions|options & disabled = True} mv
+
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
 derive gDefault			Hidden, Display, Editable, VisualizationHint
 derive gEq				Hidden, Display, Editable, VisualizationHint
-derive gHeaders			Hidden, Display, Editable, VisualizationHint
-derive gGridRows		Hidden, Display, Editable, VisualizationHint
+derive gEditMeta			Hidden, Display, Editable, VisualizationHint
 
 //* Client-side types
 JSONEncode{|Editlet|} _ _ tt = [dynamicJSONEncode tt]		
@@ -1438,17 +1359,15 @@ gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare valu
 
 gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
 
-gVisualizeEditor{|Editlet|} fa textA headersA rowsA _ _ _ _ _ _ _ _ Nothing vst = (HiddenEditor, vst) //TODO deal with 'enter*' case
-gVisualizeEditor{|Editlet|} fa textA headersA rowsA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD (Just {Editlet|value,html,handlers,genDiff,appDiff}) vst=:{VSt|currentPath,taskId,iworld}
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,handlers,genDiff,appDiff},mask,ver) vst=:{VSt|taskId,iworld}
 	# (jsScript,jsEvents, jsIV, jsGD, jsAD, iworld)	= linkEditletJS [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientGenDiff clientAppDiff iworld
 	# iworld									= addDiffer iworld
-	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & currentPath = stepDataPath currentPath, iworld = iworld})
+	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
 where
-	editorId = dp2s currentPath
-    htmlId = "editlet-" +++ toString taskId +++ "-" +++ editorId
+    htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 
 	ui jsScript jsEvents jsIV jsGD jsAD
-		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=toString taskId,editorId=editorId,value=toJSONA value, html = toString (html htmlId)
+		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=taskId,editorId=editorId dp,value=toJSONA value, html = toString (html htmlId)
 								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, genDiff = Just jsGD, appDiff = Just jsAD}
 	
 	toJSONA a = case jsonEncA a of
@@ -1478,7 +1397,7 @@ where
 		_				= JSONNull
 	
 	addDiffer iworld=:{IWorld|uiDiffers}
-		= {IWorld|iworld & uiDiffers = put (toString taskId,editorId) serverGenDiff uiDiffers}
+		= {IWorld|iworld & uiDiffers = put (taskId,editorId dp) serverGenDiff uiDiffers}
 
 //Copy/paste from tasklet linker
 linkEditletJS eventHandlers initValueFunc genDiffFunc appDiffFunc iworld=:{IWorld|world,sdkDirectory}
@@ -1519,18 +1438,16 @@ linkEditletJS eventHandlers initValueFunc genDiffFunc appDiffFunc iworld=:{IWorl
 handlerr (Error str) = abort ("Editlet error: " +++ str)
 handlerr (Ok a) = a
 
-gHeaders{|Editlet|} fa _ {Editlet|value} = fa value
-
-gGridRows{|Editlet|} fa _ _ _ {Editlet|value} rows = fa value rows
+gEditMeta{|Editlet|} fa _ {Editlet|value} = fa value
 
 gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},omask)
 	= case jDecd [json] of
 		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},Touched)
 		_				= (ov,omask)
 
-gUpdate{|Editlet|} fa _ _ _ _ _ _ _ (ov,mask) = (ov,mask)
+gUpdate{|Editlet|} fa _ _ _ _ _ _ _ mv = mv
 
-gVerify{|Editlet|} fa _ mbv imask _ = alwaysValid imask
+gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
 //* Framework types
 
@@ -1570,31 +1487,71 @@ where
 	toString (TopLevelTaskList)					= "tasklist-top"
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 
+subMasks :: !Int InteractionMask -> [InteractionMask]
+subMasks n (CompoundMask ms) = ms
+subMasks n m = repeatn n m
+
+isTouched :: !InteractionMask -> Bool
+isTouched Touched = True
+isTouched (TouchedUnparsed _)	= True
+isTouched (TouchedWithState _)	= True
+isTouched Blanked	 			= True
+isTouched (CompoundMask ms)		= or (map isTouched ms) //TODO make more efficient
+isTouched _						= False
+
+toPairMask :: !Int !InteractionMask -> InteractionMask
+toPairMask len mask = split len (subMasks len mask)
+where
+	split 1 [mask] = mask
+	split 2 masks 	= CompoundMask masks
+	split n masks	= CompoundMask [split middle left,split (n - middle) right]
+	where
+		middle = n / 2
+		(left,right) = splitAt middle masks
+
+subVerifications :: !Int Verification -> [Verification]
+subVerifications n (CompoundVerification vs) = vs
+subVerifications n v = repeatn n v
+
+toPairVerification :: !Int !Verification -> Verification
+toPairVerification 0 ver = ver
+toPairVerification 1 ver = ver
+toPairVerification len ver = split len (subVerifications len ver)
+where
+	split 1 [ver] 	= ver
+	split 2 vers 	= CompoundVerification vers
+	split n vers	= CompoundVerification [split middle left,split (n - middle) right]
+	where
+		middle = n / 2
+		(left,right) = splitAt middle vers
+
+fromPairVerification :: !Int !Verification -> Verification
+fromPairVerification 0 ver = ver
+fromPairVerification 1 ver = ver
+fromPairVerification len ver = CompoundVerification (join len ver)
+where	
+	join 1 ver = [ver]
+	join 2 (CompoundVerification vers)			= vers
+	join n (CompoundVerification [left,right])	= join middle left ++ join (n - middle) right
+	where
+		middle = n / 2
+		
 derive JSONEncode InteractionMask, Verification
 derive JSONDecode InteractionMask, Verification
 
 //Utility functions
-dp2s :: !DataPath -> String
-dp2s path = "v" + join "-" (map toString path)
+editorId :: !DataPath -> String
+editorId dp = "v" + join "-" (map toString dp)
 
 s2dp :: !String -> DataPath
 s2dp str 
 	| textSize str < 2	= []
 						= map toInt (split "-" (subString 1 (textSize str) str))
 
-stepDataPath :: !DataPath -> DataPath
-stepDataPath []		= []
-stepDataPath [x]	= [inc x]
-stepDataPath [x:xs]	= [x:stepDataPath xs]
-
-shiftDataPath :: !DataPath -> DataPath
-shiftDataPath path = path ++ [0]
-
 gVisualizeText{|User|} _ val = [toString val]
-
 gUpdate{|User|} target upd val = basicUpdateSimple target upd val
 
-gVerify{|User|} _ um options = simpleVerify "Select a username" um options 
+gVerify{|User|} mv options = simpleVerify mv options 
 
 instance toString User
 where
@@ -1650,9 +1607,8 @@ derive JSONDecode		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskLi
 derive gDefault			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gEq				TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gVisualizeText	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVisualizeEditor	TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gHeaders			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gGridRows		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gUpdate			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gVerify			TaskValue, ManagementMeta, ProgressMeta, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
 

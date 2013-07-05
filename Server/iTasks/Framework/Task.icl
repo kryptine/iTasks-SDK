@@ -43,13 +43,12 @@ JSONDecode{|Task|} _ c = (Nothing,c)
 
 gUpdate{|Task|} _ _ _ target upd val = basicUpdate (\Void t -> Just t) target upd val
 
-gVerify{|Task|} _ _ um _ = alwaysValid um
+gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gVisualizeText{|Task|} _ _ _ = ["<Task>"]
-gVisualizeEditor{|Task|} _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
+gEditor{|Task|} _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
 
-gHeaders{|Task|} _ _ = ["Task"]
-gGridRows{|Task|} _ _ _ _	= Nothing	
+gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gDefault{|Task|} gDefx _ = Task (\_ -> abort error)

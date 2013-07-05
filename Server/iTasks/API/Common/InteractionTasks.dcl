@@ -24,7 +24,7 @@ class OptionContainer container | Functor container
 where
 	toOptionList				:: !(container o) -> [o]
 	toOptionTree				:: !(container o) -> Tree o
-	suggestedChoiceType			:: !(container o) -> ChoiceType		| gHeaders{|*|} o
+	suggestedChoiceType			:: !(container o) -> ChoiceType		| gEditMeta{|*|} o
 	suggestedMultiChoiceType	:: !(container o) -> MultiChoiceType
 	
 instance OptionContainer []

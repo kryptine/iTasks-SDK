@@ -31,7 +31,7 @@ from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld			import :: IWorld
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from iTasks.Framework.Task				import :: Task, :: TaskId
-from iTasks.Framework.iTaskClass		import class iTask, generic gVerify, :: VerifyMask, :: VerifyOptions, generic gDefault, generic gUpdate, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from iTasks.Framework.iTaskClass		import class iTask, generic gVerify, :: VerifyOptions, generic gDefault, generic gUpdate, generic gEditor, generic gEditMeta, generic gVisualizeText, :: EditMeta, :: VSt, :: VisualizationResult, :: VisualizationFormat(..), visualizeAsText
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.Framework.ClientInterface	import :: JSWorld, :: JSPtr
 from iTasks.API.Core.LayoutCombinators	import :: Layout
@@ -128,9 +128,8 @@ derive gDefault			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, Date
 derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
 derive gVisualizeText	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gVisualizeEditor EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gHeaders			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gGridRows		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEditor 			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEditMeta		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gUpdate			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
 derive gVerify			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
@@ -199,9 +198,8 @@ derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMap
 derive gDefault			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gHeaders			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gGridRows		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditMeta			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gUpdate			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVerify			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 
@@ -243,7 +241,7 @@ instance toString FormButton
 //* Table consisting of headers, the displayed data cells & possibly a selection
 :: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
 
-toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+toTable	:: ![a] -> Table | gEditMeta{|*|} a & gVisualizeText{|*|} a
 
 //* Simple tree type (used primarily for creating trees to choose from)
 :: Tree a = Tree !.[.TreeNode a]
@@ -256,9 +254,8 @@ derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, But
 derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gVisualizeEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gHeaders			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gGridRows		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+derive gEditMeta			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
 
@@ -302,12 +299,10 @@ derive gEq				ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, Tr
 derive gEq				DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gVisualizeText	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
 derive gVisualizeText	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gVisualizeEditor	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gVisualizeEditor	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gHeaders			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gHeaders			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gGridRows		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gGridRows		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gEditor	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gEditor	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive gEditMeta			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
+derive gEditMeta			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gUpdate			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
 derive gUpdate			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 derive gVerify			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
@@ -395,9 +390,8 @@ derive JSONDecode		Hidden, Display, Editable, VisualizationHint
 derive gDefault			Hidden, Display, Editable, VisualizationHint
 derive gEq				Hidden, Display, Editable, VisualizationHint
 derive gVisualizeText	Hidden, Display, Editable, VisualizationHint
-derive gVisualizeEditor	Hidden, Display, Editable, VisualizationHint
-derive gHeaders			Hidden, Display, Editable, VisualizationHint
-derive gGridRows		Hidden, Display, Editable, VisualizationHint
+derive gEditor			Hidden, Display, Editable, VisualizationHint
+derive gEditMeta			Hidden, Display, Editable, VisualizationHint
 derive gUpdate			Hidden, Display, Editable, VisualizationHint
 derive gVerify			Hidden, Display, Editable, VisualizationHint
 
@@ -427,9 +421,8 @@ derive JSONDecode		Editlet
 derive gDefault			Editlet
 derive gEq				Editlet
 derive gVisualizeText	Editlet
-derive gVisualizeEditor	Editlet
-derive gHeaders			Editlet
-derive gGridRows		Editlet
+derive gEditor	Editlet
+derive gEditMeta			Editlet
 derive gUpdate			Editlet
 derive gVerify			Editlet
 
@@ -532,13 +525,22 @@ instance toString (TaskListId s)
 
 :: MaskedValue a :== (a,InteractionMask)
 
+subMasks	:: !Int InteractionMask -> [InteractionMask]
+toPairMask	:: !Int !InteractionMask -> InteractionMask
+isTouched	:: !InteractionMask -> Bool
+
 :: Verification
     = CorrectValue !(Maybe String)
     | IncorrectValue !String
+    | UnparsableValue
     | MissingValue
     | CompoundVerification [Verification]
 
-:: VefifiedValue a :== (a,InteractionMask,Verification)
+:: VerifiedValue a :== (a,InteractionMask,Verification)
+
+subVerifications :: !Int Verification -> [Verification]
+toPairVerification :: !Int !Verification -> Verification
+fromPairVerification :: !Int !Verification -> Verification
 
 derive JSONEncode InteractionMask, Verification
 derive JSONDecode InteractionMask, Verification
@@ -546,11 +548,8 @@ derive JSONDecode InteractionMask, Verification
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]
 
-//Utility functions for dealing with DataPath values
-stepDataPath			:: !DataPath		-> DataPath
-shiftDataPath			:: !DataPath		-> DataPath
-
-dp2s					:: !DataPath		-> String
+//Generate the editorId string for a given datapath
+editorId 				:: !DataPath 		-> String
 s2dp					:: !String			-> DataPath
 
 //* User identification
@@ -699,9 +698,8 @@ derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPri
 derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVisualizeEditor	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gHeaders			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gGridRows		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 

@@ -122,7 +122,6 @@ where
 		
 			// clear generated stuff
 			# (d, _)           = setDomAttr d "map_place_holder" "innerHTML" ""
-		
 			= (d, {st & GoogleMapsState.map = Nothing})
 
 		onDestroy st _ _ d

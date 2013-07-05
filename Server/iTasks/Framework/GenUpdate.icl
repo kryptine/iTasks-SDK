@@ -39,11 +39,11 @@ derive gDefault Either, Void, Map, JSONNode, Timestamp
 defaultValue :: a | gDefault{|*|} a
 defaultValue = gDefault{|*|} []
 
-updateValueAndMask :: !DataPath !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} a
+updateValueAndMask :: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | gUpdate{|*|} a
 updateValueAndMask path update (a,mask) = gUpdate{|*|} path update (a,mask)
 
 //Generic updater
-generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,!InteractionMask) -> (!a, !InteractionMask)
+generic gUpdate a | gDefault a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) -> (MaskedValue a)
 
 gUpdate{|UNIT|} _ _ val = val
 
@@ -75,7 +75,7 @@ gUpdate{|OBJECT|} gUpdx gDefx jDecx target upd (OBJECT object, mask) //Update is
 gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jDecx [index:target] upd (CONS cons,mask)
 	| index >= gcd_arity
 		= (CONS cons,mask)	
-	# childMasks = childMasksN mask gcd_arity
+	# childMasks = subMasks gcd_arity mask
 	# (cons,targetMask) = gUpdx (pairPath index gcd_arity ++ target) upd (cons,childMasks !! index)
 	= (CONS cons,CompoundMask (updateAt index targetMask childMasks))
 gUpdate{|CONS|} gUpdx gDefx jDecx target upd val = val
@@ -83,7 +83,7 @@ gUpdate{|CONS|} gUpdx gDefx jDecx target upd val = val
 gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jDecx [index:target] upd (RECORD record,mask)
 	| index >= grd_arity
 		= (RECORD record,mask)
-	# childMasks = childMasksN mask grd_arity
+	# childMasks = subMasks grd_arity mask
 	# (record,targetMask) = gUpdx (pairPath index grd_arity ++ target) upd (record,childMasks !! index)
 	= (RECORD record,CompoundMask (updateAt index targetMask childMasks))
 
@@ -136,9 +136,9 @@ gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,listMask)
 		= case ((not (isEmpty target)) && (hd target >= (length l))) of
 			True
 				# nv = gDefx []
-				= (l++[nv],childMasksN listMask (length l) ++ [Untouched])
+				= (l++[nv], subMasks (length l) listMask ++ [Untouched])
 			False
-				= (l, childMasksN listMask (length l))
+				= (l, subMasks (length l) listMask)
 	# (l,childMasks)	= updateElements gUpdx target upd l childMasks
 	| isEmpty target
 		//Process the reordering commands 
@@ -180,7 +180,7 @@ gUpdate{|HtmlTag|} target upd val = val
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
 
-basicUpdate :: !(upd a -> Maybe a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | JSONDecode{|*|} upd
 basicUpdate toV target upd (v,vmask)
 	| isEmpty target
         # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
@@ -190,30 +190,6 @@ basicUpdate toV target upd (v,vmask)
 	| otherwise
 		= (v,vmask)
 
-basicUpdateSimple :: ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | JSONDecode{|*|} a
+basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | JSONDecode{|*|} a
 basicUpdateSimple target upd val = basicUpdate (\json old -> fromJSON json) target upd val
-
-instance GenMask InteractionMask
-where
-	popMask :: ![InteractionMask] -> (!InteractionMask, ![InteractionMask])
-	popMask []			= (Untouched, [])
-	popMask [c:cm]		= (c,cm)
-
-	appendToMask :: ![InteractionMask] !InteractionMask -> [InteractionMask]
-	appendToMask l m	= l ++ [m]
-
-	childMasks :: !InteractionMask -> [InteractionMask]
-	childMasks (CompoundMask  cm)	= cm
-	childMasks _					= []
-
-	childMasksN :: !InteractionMask !Int -> [InteractionMask]
-	childMasksN (CompoundMask cm) n	= cm
-	childMasksN um n				= repeatn n um
-	
-	isTouched :: !InteractionMask -> Bool
-	isTouched  Touched					= True
-	isTouched (TouchedUnparsed _)		= True
-	isTouched (TouchedWithState _)		= True
-	isTouched (CompoundMask _)		    = True
-	isTouched _							= False
 

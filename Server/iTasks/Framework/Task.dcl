@@ -16,9 +16,8 @@ derive gDefault			Task
 derive gUpdate			Task
 derive gVerify			Task
 derive gVisualizeText	Task
-derive gVisualizeEditor	Task
-derive gHeaders			Task
-derive gGridRows		Task
+derive gEditor			Task
+derive gEditMeta		Task
 derive gEq				Task
 derive gGetRecordFields	Task
 derive gPutRecordFields	Task

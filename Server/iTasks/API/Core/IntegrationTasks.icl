@@ -72,15 +72,17 @@ where
 
     makeRep taskId repOpts status iworld
 	    # layout			= repLayout repOpts
-		# (controls,iworld)	= makeView opts status (verifyMaskedValue status Touched) taskId layout iworld
+		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
 		# editor			= {UIControlSequence| attributes = 'Data.Map'.newMap, controls = controls, direction = Vertical}
 		= (TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) [],iworld)
 						
-	makeView [ViewWith viewFun] status vmask taskId layout iworld
-		= visualizeAsEditor (Display (viewFun status)) vmask taskId layout iworld
-	makeView _ status vmask taskId layout iworld
-		= visualizeAsEditor (Display (defaultViewFun status)) vmask taskId layout iworld
+	makeView [ViewWith viewFun] status taskId layout iworld
+		# ver = verifyMaskedValue (Display (viewFun status),Touched)
+		= visualizeAsEditor (Display (viewFun status),Touched,ver) taskId layout iworld
+	makeView _ status taskId layout iworld
+		# ver = verifyMaskedValue (Display (defaultViewFun status),Touched)
+		= visualizeAsEditor (Display (defaultViewFun status),Touched,ver) taskId layout iworld
 	
 	//By default show a progress bar 
 	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}

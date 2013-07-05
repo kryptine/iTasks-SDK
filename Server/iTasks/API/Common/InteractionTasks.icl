@@ -138,7 +138,7 @@ updateInformationWithSharedChoiceNoView :: d (ReadWriteShared (b c) a) (Maybe c)
 updateInformationWithSharedChoiceNoView d shared m
 	= interactSharedChoiceNoView d (toReadOnly shared) m toViewId
   where
-	toViewId :: (container a) (Maybe a) -> DynamicChoiceNoView a | OptionContainer container & gEq{|*|},gHeaders{|*|} a
+	toViewId :: (container a) (Maybe a) -> DynamicChoiceNoView a | OptionContainer container & gEq{|*|},gEditMeta{|*|} a
 	toViewId container mbSel
 		# choice = initChoiceNoView (suggestedChoiceType container) container
 		= maybe choice (\sel -> selectOptionNoView sel choice) mbSel
@@ -147,7 +147,7 @@ updateInformationWithSharedChoice :: !d ![ChoiceOption c] !(ReadWriteShared (b c
 updateInformationWithSharedChoice d [ChooseWith type view] shared m
 	= interactSharedChoice d (toReadOnly shared) m (toView type view)
   where
-	toView :: ChoiceType (a -> b) (c a) (Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gHeaders{|*|} a
+	toView :: ChoiceType (a -> b) (c a) (Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gEditMeta{|*|} a
 	toView type view container mbSel
 		# choice = initChoice type container view
 		= case mbSel of
@@ -205,8 +205,8 @@ where
 		| otherwise							= ChooseFromRadioButtons
 	where
 		// unify type of list elements with type to determine headers for
-		headers :: [a] a -> [String] | gHeaders{|*|} a
-		headers _ a = gHeaders{|*|} a
+		headers :: [a] a -> [String] | gEditMeta{|*|} a
+		headers _ a = [fromMaybe "" label \\{EditMeta|label} <- gEditMeta{|*|} a]
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 	
 instance OptionContainer Tree
@@ -223,7 +223,7 @@ where
 choiceToUpdate :: [ChoiceOption o] -> [UpdateOption (container o, Maybe o) (container o, Maybe o)] | OptionContainer container & iTask o
 choiceToUpdate [ChooseWith type view] = [UpdateWith (toView type view) fromView]
 where
-	toView :: ChoiceType (a -> b) (c a,Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gHeaders{|*|} a
+	toView :: ChoiceType (a -> b) (c a,Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gEditMeta{|*|} a
 	toView type view (container,mbSel)
 		= let choice = initChoice type container view in
 			maybe choice (\sel -> selectOption sel choice) mbSel
@@ -270,13 +270,13 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 viewTitle :: !a -> Task a | iTask a 
 viewTitle a = viewInformation (Title title) [ViewWith view] a <<@ InContainer <<@ AfterLayout (tweakAttr titleFromValue)
 where
-	title	= visualizeAsText AsLabel a
+	title	= visualizeAsLabel a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
 
 viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
 viewSharedTitle s = viewSharedInformation Void [ViewWith view] s <<@ InContainer <<@ AfterLayout (tweakAttr titleFromValue)
 where
-	view r	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsText AsLabel r)]]	
+	view r	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsLabel r)]]	
 
 titleFromValue :: UIAttributes -> UIAttributes
 titleFromValue attr = case 'Data.Map'.get VALUE_ATTRIBUTE attr of
