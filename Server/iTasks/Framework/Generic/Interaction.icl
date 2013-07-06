@@ -51,14 +51,18 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx dp (x,mask,ver) vst
-		# content	= layout.editor {UIControlSequence|attributes = newMap, controls = (if (isTouched mask) (controlsOf items) []), direction = Horizontal}
+        # (controls,choice) = case mask of
+            Untouched   = ([],[])
+            Blanked     = ([],[])
+            _           = (controlsOf items,[selectedConsIndex])
+		# content	= layout.editor {UIControlSequence|attributes = newMap, controls = controls, direction = Horizontal}
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = taskId
 								, editorId = editorId dp
-								, value = if (isTouched mask) [selectedConsIndex] []
+								, value = choice
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
-							,verifyAttributes (x,mask,ver) (hx x))
+							, newMap /*verifyAttributes (x,mask,ver) (hx x) */) //TODO
 						: content
 						]
 		  			,{vst & selectedConsIndex = oldSelectedConsIndex})
@@ -99,7 +103,7 @@ gEditor{|PAIR|} fx _ _ _ _ _ fy _ _ _ _ _ dp (PAIR x y, CompoundMask [xmask,ymas
 
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
 pairPath 0 dp = dp
-pairPath 1 dp = dp
+pairPath 1 dp = dp ++ [0]
 pairPath n dp = [0, n - 1: dp]
 
 pairPathSplit [begin,end:dp]
