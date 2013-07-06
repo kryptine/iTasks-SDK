@@ -3,15 +3,15 @@ implementation module iTasks.API.Core.OptimizedCoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc
 import System.Time, Data.Error, System.OSError, Data.Map, Data.Tuple, Data.List, Text.JSON
 import qualified StdList
-import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval
+import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval
 import iTasks.Framework.TaskStore, iTasks.Framework.UIDefinition, iTasks.Framework.Shared
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.API.Core.LayoutCombinators 
-from Data.SharedDataSource				import qualified read, readRegister, write, writeFilterMsg
+from Data.SharedDataSource			import qualified read, readRegister, write, writeFilterMsg
 from StdFunc						import o, id
 from iTasks.Framework.IWorld		import :: IWorld(..)
 from iTasks.API.Core.SystemData		import topLevelTasks
-from Data.Map							import qualified get
+from Data.Map						import qualified get
 
 interactSharedChoice :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t v l)
 						-> Task (Maybe l) | descr d & Choice t & iTask r & iTask l & iTask (t v l)

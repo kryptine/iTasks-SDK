@@ -1,90 +1,21 @@
-implementation module iTasks.Framework.GenVisualize
+implementation module iTasks.Framework.Generic.Interaction
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, Data.List, Data.Generic, Text.JSON
-import Data.Maybe, Data.Functor, Text, Text.HTML, Data.Map
-import iTasks.Framework.GenUpdate, iTasks.Framework.GenVerify, iTasks.Framework.UIDefinition, iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil
-import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
-
-visualizeAsLabel :: !a -> String | gVisualizeText{|*|} a
-visualizeAsLabel v = concat (gVisualizeText{|*|} AsLabel v)
-
-visualizeAsText :: !a -> String | gVisualizeText{|*|} a
-visualizeAsText v = join "\n" (gVisualizeText{|*|} AsText v)
-
-visualizeAsRow :: !a -> [String] | gVisualizeText{|*|} a
-visualizeAsRow v = gVisualizeText{|*|} AsRow v
+import StdList, StdBool, StdTuple, StdFunc, StdMisc
+import Data.Maybe, Data.Map, Data.Generic, Data.Functor, Data.Tuple
+import Text, Text.JSON
+import iTasks.Framework.IWorld
+import iTasks.Framework.UIDefinition
+import iTasks.Framework.Util
+import iTasks.API.Core.LayoutCombinators
 
 visualizeAsEditor :: !(VerifiedValue a) !TaskId !Layout !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a
 visualizeAsEditor (v,mask,ver) taskId layout iworld
-	# vst		= {VSt|mkVSt taskId iworld & layout = layout}
-	# (res,vst)	= gEditor{|*|} [] (v,mask,ver) vst
-	= (controlsOf res,kmVSt vst)
-	
-//Generic text visualizer
-generic gVisualizeText a :: !VisualizationFormat !a -> [String]
+	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
+	# (res,vst=:{VSt|iworld})	= gEditor{|*|} [] (v,mask,ver) vst
+	= (controlsOf res,iworld)
 
-gVisualizeText{|UNIT|} _ _ = []
-
-gVisualizeText{|RECORD|} fx mode (RECORD x)
-	# viz = fx mode x
-	= case mode of
-		AsLabel		= take 1 viz
-		AsText		= viz
-		AsRow		= viz
-		
-gVisualizeText{|FIELD of {gfd_name}|} fx mode (FIELD x)
-	# viz = fx mode x
-	= case mode of
-		AsText		= [camelCaseToWords gfd_name, ": ": viz] ++ [" "]
-		AsLabel		= viz
-		AsRow		= viz
-		
-gVisualizeText{|OBJECT|} fx mode (OBJECT x) = fx mode x
-
-gVisualizeText{|CONS of {gcd_name,gcd_type_def}|} fx mode (CONS x)
-	= normalADTStaticViz (fx mode x)
-where
-	normalADTStaticViz viz
-		//If viz is empty, only show constructor name
-		| isEmpty viz
-			= [gcd_name]
-		//If there are multiple constructors, also show the name of the constructor
-		| gcd_type_def.gtd_num_conses > 1
-			= intersperse " " [gcd_name:viz]
-		//Otherwise show visualisation of fields separated by spaces
-		| otherwise
-			= intersperse " " viz
-
-gVisualizeText{|PAIR|} fx fy mode (PAIR x y) = fx mode x ++ fy mode y
-
-gVisualizeText{|EITHER|} fx fy mode either = case either of
-	LEFT x	= fx mode x
-	RIGHT y	= fy mode y
-
-gVisualizeText{|Int|}			_ val				= [toString val]
-gVisualizeText{|Real|}			_ val				= [toString val]
-gVisualizeText{|Char|}			_ val				= [toString val]
-gVisualizeText{|String|}		_ val				= [toString val]
-gVisualizeText{|Bool|}			_ val				= [toString val]
-
-gVisualizeText {|[]|} fx  mode val					= [concat (["[":  flatten (intersperse [", "] [fx mode x \\ x <- val])] ++ ["]"])]
-gVisualizeText{|Maybe|} fx mode val					= fromMaybe ["-"] (fmap (\v -> fx mode v) val)
-
-gVisualizeText{|Void|} _ _					= []
-gVisualizeText{|Dynamic|} _ _				= []
-gVisualizeText{|(->)|} _ _ _ _				= []
-gVisualizeText{|JSONNode|} _ val			= [toString val]
-gVisualizeText{|HtmlTag|} _ html			= [toString html]
-
-derive gVisualizeText Either, (,), (,,), (,,,), Timestamp, Map
-
-mkVSt :: !TaskId *IWorld -> *VSt
-mkVSt taskId iworld
-	= {VSt| selectedConsIndex = -1, optional = False, disabled = False
-	  , taskId = toString taskId, layout = autoLayout, iworld = iworld}
-
-kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
-kmVSt {VSt|iworld} = iworld
+updateValueAndMask :: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | gUpdate{|*|} a
+updateValueAndMask path update (a,mask) = gUpdate{|*|} path update (a,mask)
 
 //Generic visualizer
 generic gEditor a | gVisualizeText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
@@ -305,21 +236,199 @@ gEditMeta{|[]|} fx _		= fx undef
 
 derive gEditMeta (,), (,,), (,,,), Either, Void, Map, JSONNode, Timestamp
 
-//***** UTILITY FUNCTIONS *************************************************************************************************	
-	
-childVisualizations :: !(DataPath (VerifiedValue a) -> .(*VSt -> *(!VisualizationResult,*VSt))) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![VisualizationResult],!*VSt)
-childVisualizations fx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
-where
-	childVisualizations` i [] [] [] acc vst
-		= (reverse acc,vst)
-	childVisualizations` i [child:children] [mask:masks] [ver:vers] acc vst
-		# (childV,vst) = fx [i:dp] (child,mask,ver) vst
-		= childVisualizations` (i + 1) children masks vers [childV:acc] vst
+//Generic Verify
+generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
 
-newChildVisualization :: !((Maybe a) -> .(*VSt -> *(VisualizationResult,*VSt))) !Bool !*VSt -> *(!VisualizationResult,!*VSt)
-newChildVisualization fx newOptional vst=:{VSt|optional}
-	# (childV,vst) = fx Nothing {VSt|vst & optional = newOptional}
-	= (childV,{VSt|vst & optional = optional})
+gVerify{|UNIT|} _ (value,mask) = CorrectValue Nothing
+
+gVerify{|PAIR|} fx fy options (PAIR x y, CompoundMask [xmask,ymask]) 
+	= CompoundVerification [fx options (x,xmask), fy options (y,ymask)]
+	
+gVerify{|EITHER|} fx _ options (LEFT x,mask) = fx options (x,mask)
+	
+gVerify{|EITHER|} _ fy options (RIGHT y,mask) = fy options (y,mask)
+	
+gVerify{|RECORD of {grd_arity}|} fx options (RECORD x, mask)
+	= fromPairVerification grd_arity (fx options (x, toPairMask grd_arity mask))
+	
+gVerify{|FIELD|} fx options (FIELD x,mask) = fx options (x,mask)
+	
+gVerify{|OBJECT|} fx options (OBJECT x,mask) = fx options (x,mask)
+	
+gVerify{|CONS of {gcd_arity}|} fx options (CONS x,mask)
+	= fromPairVerification gcd_arity (fx options (x, toPairMask gcd_arity mask))
+	
+gVerify{|Int|} options mv = simpleVerify options mv
+gVerify{|Real|} options mv = simpleVerify options mv
+gVerify{|Char|} options mv = simpleVerify options mv
+gVerify{|String|} options mv = simpleVerify options mv
+gVerify{|Bool|} options mv = alwaysValid mv
+
+gVerify{|Maybe|} fx options (Nothing, mask) = CorrectValue Nothing
+gVerify{|Maybe|} fx options (Just x, mask) = fx {VerifyOptions|options & optional = True} (x,mask)
+	
+gVerify{|[]|} fx  options=:{VerifyOptions|optional,disabled} (list,mask)
+	= CompoundVerification (verifyListItems list (subMasks (length list) mask))
+where
+	verifyListItems [] [] = []
+	verifyListItems [x:xs] [m:ms] = [fx options (x,m):verifyListItems xs ms]
+		
+gVerify{|(->)|} _ _ _ mv	= alwaysValid mv
+gVerify{|Dynamic|}	_ mv	= alwaysValid mv
+
+gVerify{|HtmlTag|} _ mv = alwaysValid mv
+gVerify{|JSONNode|} _ mv = alwaysValid mv
+
+derive gVerify (,), (,,), (,,,), Void, Either, Timestamp, Map
+
+//Generic updater
+generic gUpdate a | gDefault a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) -> (MaskedValue a)
+
+gUpdate{|UNIT|} _ _ val = val
+
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [0:target] upd (PAIR x y, xmask)
+	# (x,xmask) = gUpdx target upd (x,xmask)
+	= (PAIR x y,xmask)
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [1:target] upd (PAIR x y, ymask)
+	# (y,ymask) = gUpdy target upd (y,ymask)
+	= (PAIR x y,ymask)
+gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd val = val
+
+gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (LEFT x,mask) = appFst LEFT (gUpdx target upd (x,mask))
+gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (RIGHT y,mask) = appFst RIGHT (gUpdy target upd (y,mask))
+
+gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jDecx [] upd (OBJECT x, _) //Update is a constructor switch
+	# consIdx = case upd of
+		JSONInt i	= i
+		_			= 0
+	# mask	        = case upd of
+		JSONNull	= Blanked	//Reset
+		_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
+	= (OBJECT (gDefx (path consIdx)), mask)
+where
+	path consIdx = if (consIdx < gtd_num_conses) (consPath consIdx gtd_num_conses) []
+
+gUpdate{|OBJECT|} gUpdx gDefx jDecx target upd (OBJECT object, mask) //Update is targeted somewhere in a substructure of this value
+	= appFst OBJECT (gUpdx target upd (object,mask))
+
+gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jDecx [index:target] upd (CONS cons,mask)
+	| index >= gcd_arity
+		= (CONS cons,mask)	
+	# childMasks = subMasks gcd_arity mask
+	# (cons,targetMask) = gUpdx (updPairPath index gcd_arity ++ target) upd (cons,childMasks !! index)
+	= (CONS cons,CompoundMask (updateAt index targetMask childMasks))
+gUpdate{|CONS|} gUpdx gDefx jDecx target upd val = val
+
+gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jDecx [index:target] upd (RECORD record,mask)
+	| index >= grd_arity
+		= (RECORD record,mask)
+	# childMasks = subMasks grd_arity mask
+	# (record,targetMask) = gUpdx (updPairPath index grd_arity ++ target) upd (record,childMasks !! index)
+	= (RECORD record,CompoundMask (updateAt index targetMask childMasks))
+
+gUpdate{|RECORD|} gUpdx gDefx jDecx _ _ val = val
+	
+gUpdate{|FIELD|} gUpdx gDefx jDecx target upd (FIELD field,mask)= appFst FIELD (gUpdx target upd (field,mask))
+
+consPath i n
+	| i >= n	
+		= []
+	| n == 1
+		= []
+	| i < (n/2)
+		= [ ConsLeft : consPath i (n/2) ]
+	| otherwise
+		= [ ConsRight : consPath (i - (n/2)) (n - (n/2)) ]
+
+updPairPath i n
+	| i >= n
+		= []
+	| n == 1
+		= []
+	| i < (n /2)
+		= [0: updPairPath i (n /2)]
+	| otherwise
+		= [1: updPairPath (i - (n/2)) (n - (n/2))]
+
+gUpdate{|Int|}		target upd val = basicUpdateSimple target upd val
+gUpdate{|Real|}		target upd val = basicUpdateSimple target upd val
+gUpdate{|Char|}		target upd val = basicUpdateSimple target upd val
+gUpdate{|Bool|}		target upd val = basicUpdateSimple target upd val
+gUpdate{|String|}	target upd val = basicUpdateSimple target upd val
+			
+gUpdate{|Maybe|} gUpdx gDefx jDecx target upd (m,mmask)
+	| isEmpty target && (upd === JSONNull || upd === JSONBool False)
+		= (Nothing, Blanked) //Reset
+	| otherwise
+		= case m of
+			Nothing
+				// Create a default value
+				# x  	= gDefx []
+				// Search in the default value
+				# (x,mmask)	= gUpdx target upd (x,Untouched)
+				= (Just x, mmask)
+			Just x
+				= appFst Just (gUpdx target upd (x,mmask))
+
+gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,listMask)
+	# (l,childMasks)
+		= case ((not (isEmpty target)) && (hd target >= (length l))) of
+			True
+				# nv = gDefx []
+				= (l++[nv], subMasks (length l) listMask ++ [Untouched])
+			False
+				= (l, subMasks (length l) listMask)
+	# (l,childMasks)	= updateElements gUpdx target upd l childMasks
+	| isEmpty target
+		//Process the reordering commands 
+		# split = split "_" (fromMaybe "" (fromJSON upd))
+		# index = toInt (last split)
+		# (l,childMasks) = case hd split of	
+			"mup" = (swap l index,swap childMasks index) 
+			"mdn" = (swap l (index+1),swap childMasks (index+1))
+			"rem" = (removeAt index l,removeAt index childMasks)	
+			"add"
+				= (insertAt (length l) (gDefx []) l, insertAt (length l) Untouched childMasks)
+			_ 	
+				= (l,childMasks)
+		= (l,CompoundMask childMasks)
+	| otherwise
+		= (l,CompoundMask childMasks)
+where
+	updateElements fx [i:target] upd elems masks
+		| i >= (length elems)
+			= (elems,masks)
+		# (nx,nm)	= fx target upd (elems !! i,masks !! i)
+		= (updateAt i nx elems, updateAt i nm masks) 
+	updateElements fx target upd elems masks
+		= (elems,masks)
+	
+	swap []	  _		= []
+	swap list index
+		| index == 0 			= list //prevent move first element up
+		| index >= length list 	= list //prevent move last element down
+		| otherwise				
+			# f = list !! (index-1)
+			# l = list !! (index)
+			= updateAt (index-1) l (updateAt index f list)
+		
+gUpdate{|Dynamic|}		target upd val = basicUpdate (\Void v -> Just v) target upd val
+gUpdate{|(->)|} _ _ gUpdy _ _ _ target upd val = basicUpdate (\Void v -> Just v) target upd val
+
+gUpdate{|HtmlTag|} target upd val = val
+
+derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
+
+checkMask :: !InteractionMask a -> Maybe a
+checkMask mask val
+    | isTouched mask    = Just val
+                        = Nothing
+
+checkMaskValue :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
+checkMaskValue Touched val               = Just (toJSON val)
+checkMaskValue (TouchedWithState s) val  = Just (toJSON val)
+checkMaskValue (TouchedUnparsed r) _  	 = Just r
+checkMaskValue _ _                       = Nothing
 
 verifyAttributes :: !(VerifiedValue a) [EditMeta] -> UIAttributes
 verifyAttributes (val,mask,ver) meta
@@ -333,32 +442,69 @@ verifyAttributes (val,mask,ver) meta
 		= case meta of	
 			[{EditMeta|hint=Just hint}:_]	= put HINT_ATTRIBUTE hint newMap
 			_								= newMap
+			
+controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
+controlsOf (NormalEditor controls)		= controls
+controlsOf (OptionalEditor controls)	= controls
+controlsOf HiddenEditor					= []
 
 addLabel :: !Bool !String !UIAttributes -> UIAttributes
 addLabel optional label attr = put LABEL_ATTRIBUTE (format optional label) attr
 where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
 
-checkMask :: !InteractionMask a -> Maybe a
-checkMask mask val
-    | isTouched mask    = Just val
-                        = Nothing
+childVisualizations :: !(DataPath (VerifiedValue a) -> .(*VSt -> *(!VisualizationResult,*VSt))) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![VisualizationResult],!*VSt)
+childVisualizations fx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
+where
+	childVisualizations` i [] [] [] acc vst
+		= (reverse acc,vst)
+	childVisualizations` i [child:children] [mask:masks] [ver:vers] acc vst
+		# (childV,vst) = fx [i:dp] (child,mask,ver) vst
+		= childVisualizations` (i + 1) children masks vers [childV:acc] vst
 
-checkMaskValue :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
-checkMaskValue Touched val               = Just (toJSON val)
-checkMaskValue (TouchedWithState s) val  = Just (toJSON val)
-checkMaskValue (TouchedUnparsed r) _  	 = Just r
-checkMaskValue _ _                       = Nothing
-
-controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
-controlsOf (NormalEditor controls)		= controls
-controlsOf (OptionalEditor controls)	= controls
-controlsOf HiddenEditor					= []
-
-//*********************************************************************************************************************
+verifyValue :: !a -> Verification | gVerify{|*|} a
+verifyValue val = verifyMaskedValue (val,Touched)
 	
-(+++>) infixr 5	:: !a !String -> String | gVisualizeText{|*|} a
-(+++>) a s = visualizeAsLabel a +++ s
+verifyMaskedValue :: !(MaskedValue a) -> Verification | gVerify{|*|} a
+verifyMaskedValue mv = gVerify{|*|} {VerifyOptions|optional = False, disabled = False} mv 
 
-(<+++) infixl 5	:: !String !a -> String | gVisualizeText{|*|} a
-(<+++) s a = s +++ visualizeAsLabel a
+isValid :: !Verification -> Bool
+isValid (CorrectValue _) = True
+isValid (CompoundVerification vs) = allValid vs
+where
+	allValid [] = True
+	allValid [v:vs] = isValid v && allValid vs
+isValid _ = False
+
+alwaysValid :: !(MaskedValue a) -> Verification
+alwaysValid _ = CorrectValue Nothing
+
+simpleVerify :: !VerifyOptions !(MaskedValue a) -> Verification
+simpleVerify options mv = customVerify (const True) (const undef) options mv
+
+customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Verification
+customVerify pred mkErrMsg options=:{VerifyOptions|optional,disabled} (val,mask)
+	= case mask of
+		Untouched				= if optional (CorrectValue Nothing) MissingValue
+		Touched					= validateValue val
+		TouchedWithState s		= validateValue val		
+		TouchedUnparsed r		= UnparsableValue
+		Blanked					= if optional (CorrectValue Nothing) MissingValue
+		CompoundMask _		    = validateValue val
+where
+	validateValue val
+		| pred val	= CorrectValue Nothing
+		| otherwise	= IncorrectValue(mkErrMsg val)
+
+basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | JSONDecode{|*|} upd
+basicUpdate toV target upd (v,vmask)
+	| isEmpty target
+        # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
+        # v     = fromMaybe v mbV
+        # vmask = if (upd === JSONNull) Blanked (if (isNothing mbV) (TouchedUnparsed upd) Touched)
+        = (v,vmask)
+	| otherwise
+		= (v,vmask)
+
+basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | JSONDecode{|*|} a
+basicUpdateSimple target upd val = basicUpdate (\json old -> fromJSON json) target upd val

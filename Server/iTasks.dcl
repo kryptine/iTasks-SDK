@@ -12,12 +12,9 @@ import	iTasks.Framework.Engine						// iTasks engine
     ,   iTasks.API
 	
 	//	Miscellaneous machinery
-	,	Text.JSON							// Functions for serializing/deserializing strings
+	,	Text.JSON							// JSON is used for serializing/deserializing strings
+	,	iTasks.Framework.Generic			// Generic foundation modules
 	, 	iTasks.Framework.Shared				// Shared data sources
-	,	iTasks.Framework.GenVisualize		// Functions for generating GUIs
-	,	iTasks.Framework.GenUpdate			// Functions for updating arbitrary values
-	,	iTasks.Framework.GenVerify			// Functions for appending errors and hints to form values
-	,	iTasks.Framework.GenRecord			// Functions for manipulating records
 	,	iTasks.Framework.GenSpecialize		// Functions for custom specializations
 	
 	//	API extensions for user  & workflow management

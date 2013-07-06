@@ -5,8 +5,11 @@ definition module iTasks.API.Core.OptimizedCoreTasks
 * if not all expressive power is needed.
 */
 
-import iTasks.Framework.iTaskClass, iTasks.Framework.Shared
+import iTasks.Framework.Generic
+import iTasks.Framework.Shared
+
 from iTasks.Framework.Task	import :: Task
+from iTasks.API.Core.SystemTypes import class descr, class Choice, class ChoiceNoView
 
 interactNullEnter		:: !d !v (v->l) -> Task l | descr d & iTask v & iTask l
 interactNullUpdate		:: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v

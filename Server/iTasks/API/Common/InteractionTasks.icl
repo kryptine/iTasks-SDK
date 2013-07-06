@@ -10,6 +10,7 @@ from Data.Map import qualified get, put
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
 import iTasks.API.Core.CoreTasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Core.CoreCombinators
 import iTasks.API.Common.CommonCombinators, iTasks.API.Core.LayoutCombinators, iTasks.API.Core.SystemData
+import iTasks.Framework.Generic.Interaction
 
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 enterInformation d [EnterWith fromf]

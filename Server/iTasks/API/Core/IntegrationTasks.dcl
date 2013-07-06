@@ -6,10 +6,11 @@ definition module iTasks.API.Core.IntegrationTasks
 from Data.Maybe  import :: Maybe
 from Data.Void   import :: Void
 from Data.Error  import :: MaybeError, :: MaybeErrorString
+from System.FilePath import :: FilePath
 
-import iTasks.Framework.iTaskClass
+import iTasks.Framework.Generic
 from iTasks.Framework.Task               import :: Task
-from iTasks.API.Core.SystemTypes         import :: Note, :: EmailAddress
+from iTasks.API.Core.SystemTypes         import class descr, :: Note, :: EmailAddress, :: ProcessStatus, :: Document
 from iTasks.API.Common.InteractionTasks  import :: ViewOption //TODO: We shouldn't import from Common in Core
 
 :: HTTPMethod = GET | POST

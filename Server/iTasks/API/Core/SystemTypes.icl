@@ -3,7 +3,9 @@ from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
 import Data.List, Data.Functor, Text.JSON, Text.HTML, Text, Data.Map, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
-import iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate
+import iTasks.Framework.UIDefinition
+import iTasks.Framework.Generic.Interaction
+import iTasks.Framework.Generic.Visualization
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.Util
 import iTasks.Framework.SerializationGraphCopy
 import iTasks.Framework.IWorld

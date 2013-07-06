@@ -7,6 +7,7 @@ import Data.Either, System.OS
 
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.Shared
+import iTasks.Framework.Generic.Interaction
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.CoreTasks, iTasks.API.Core.LayoutCombinators
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.CommonCombinators //TODO don't import from Common in Core
 

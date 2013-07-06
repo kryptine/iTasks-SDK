@@ -4,7 +4,7 @@ definition module iTasks.Framework.Task
 */
 
 import iTasks.API.Core.SystemTypes
-import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.GenRecord
+import iTasks.Framework.Generic
 
 from iTasks.Framework.TaskState			import :: TaskTree
 from iTasks.API.Core.LayoutCombinators	import :: Layout
@@ -19,8 +19,6 @@ derive gVisualizeText	Task
 derive gEditor			Task
 derive gEditMeta		Task
 derive gEq				Task
-derive gGetRecordFields	Task
-derive gPutRecordFields	Task
 
 // Tasks
 :: Task a = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))

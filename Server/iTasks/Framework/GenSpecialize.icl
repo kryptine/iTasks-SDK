@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.GenSpecialize
 import Text.JSON, Data.Functor
-import iTasks.Framework.iTaskClass
+import iTasks.Framework.Generic
 
 customJSONEncode :: (a -> b) a -> [JSONNode] | JSONEncode{|*|} b
 customJSONEncode toPrj a = JSONEncode{|*|} (toPrj a)

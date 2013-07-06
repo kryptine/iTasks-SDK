@@ -4,7 +4,7 @@ import StdList, StdBool, StdInt, StdTuple,StdMisc
 import System.Time, Data.Error, System.OSError, Data.Map, Data.Tuple, Text.JSON
 import qualified StdList
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
-import iTasks.Framework.iTaskClass, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
+import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDefinition, iTasks.Framework.Shared
 import iTasks.API.Core.LayoutCombinators
 

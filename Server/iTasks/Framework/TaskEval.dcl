@@ -9,7 +9,7 @@ from iTasks.Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskRep
 from iTasks.Framework.Shared		import :: Shared
 from iTasks.Framework.UIDiff		import :: UIUpdate
 
-import iTasks.Framework.TaskState, iTasks.Framework.iTaskClass
+import iTasks.Framework.TaskState, iTasks.Framework.Generic
 
 from Text.JSON import :: JSONNode
 from Data.Error import :: MaybeErrorString, :: MaybeError

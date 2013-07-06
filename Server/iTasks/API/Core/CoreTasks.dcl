@@ -3,8 +3,10 @@ definition module iTasks.API.Core.CoreTasks
 * This module provides the core 'basic tasks' from which more specialized tasks can be derived.
 */
 
-import iTasks.Framework.iTaskClass, iTasks.Framework.Shared
-from iTasks.Framework.Task	import :: Task
+import iTasks.Framework.Generic
+import iTasks.Framework.Shared
+from iTasks.Framework.Task			import :: Task
+from iTasks.API.Core.SystemTypes	import class descr
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 

@@ -1,6 +1,8 @@
 definition module iTasks.API.Common.InteractionTasks
 
 import iTasks.API.Core.CoreTasks
+from iTasks.API.Core.SystemTypes import :: Tree, :: Date, :: Time, :: Action
+from Data.Functor import class Functor
 
 //Option types for customizing interaction
 :: ViewOption a 		= E.v: ViewWith 	(a -> v)			& iTask v

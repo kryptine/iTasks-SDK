@@ -18,9 +18,9 @@ from Data.Maybe import :: Maybe
 from StdGeneric import :: ConsPos
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
-from iTasks.Framework.GenVisualize import :: VisualizationFormat,:: VSt, :: VisualizationResult, :: EditMeta
-from iTasks.Framework.GenVisualize import generic gVisualizeText, generic gEditor, generic gEditMeta
-from iTasks.Framework.GenUpdate import generic gUpdate, generic gDefault
+from iTasks.Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gUpdate, :: VSt, :: VisualizationResult, :: EditMeta
+from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat
+from iTasks.Framework.Generic.Defaults import generic gDefault
 
 from iTasks.API.Core.SystemTypes import :: DataPath, :: InteractionMask, :: Verification, :: MaskedValue, :: VerifiedValue
 

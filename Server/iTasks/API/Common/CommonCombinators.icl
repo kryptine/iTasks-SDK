@@ -4,7 +4,7 @@ implementation module iTasks.API.Common.CommonCombinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
 import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks.Framework.Util, iTasks.Framework.GenVisualize, iTasks.Framework.GenUpdate, iTasks.Framework.GenRecord
+import iTasks.Framework.Util
 from StdFunc			import id, const, o
 from iTasks.API.Core.SystemTypes		import :: User(..), :: Note(..)
 from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON
@@ -93,7 +93,6 @@ where
 						, lastWorkedOn	:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
-derive class GenRecord ProcessControlView, UserConstraint, ManagementMeta, TaskPriority
 
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 (@:) worker task = assign {defaultValue & worker = toUserConstraint worker} task

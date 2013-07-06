@@ -2,8 +2,9 @@ implementation module iTasks.Framework.Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc
 import Text.HTML, Internet.HTTP, Data.Map, Data.Error, Text.JSON
-import iTasks.Framework.GenVisualize, iTasks.Framework.iTaskClass, iTasks.Framework.IWorld, iTasks.Framework.GenRecord, iTasks.Framework.Util
+import iTasks.Framework.IWorld, iTasks.Framework.UIDefinition, iTasks.Framework.Util
 import iTasks.API.Core.SystemTypes
+import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction
 
 from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: SessionInfo(..)
 from iTasks.API.Core.LayoutCombinators	import :: Layout(..), autoLayout
@@ -34,9 +35,6 @@ fromJSONOfDeferredJSON (DeferredJSONNode json)
 
 make_dynamic v = dynamic v
 
-derive gGetRecordFields	TaskValue
-derive gPutRecordFields	TaskValue
-
 JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
@@ -55,9 +53,6 @@ gDefault{|Task|} gDefx _ = Task (\_ -> abort error)
 where
 	error = "Creating default task functions is impossible"
 	
-gGetRecordFields{|Task|} _ _ _ fields = fields
-gPutRecordFields{|Task|} _ t _ fields = (t,fields)
-
 toRefresh :: Event -> Event
 toRefresh (EditEvent no _ _ _)	= RefreshEvent (Just no)
 toRefresh (ActionEvent no _ _)	= RefreshEvent (Just no)

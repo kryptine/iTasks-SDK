@@ -31,7 +31,10 @@ from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld			import :: IWorld
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from iTasks.Framework.Task				import :: Task, :: TaskId
-from iTasks.Framework.iTaskClass		import class iTask, generic gVerify, :: VerifyOptions, generic gDefault, generic gUpdate, generic gEditor, generic gEditMeta, generic gVisualizeText, :: EditMeta, :: VSt, :: VisualizationResult, :: VisualizationFormat(..), visualizeAsText
+from iTasks.Framework.Generic				import class iTask
+from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
+from iTasks.Framework.Generic.Visualization	import generic gVisualizeText, :: VisualizationFormat(..), visualizeAsText
+from iTasks.Framework.Generic.Defaults		import generic gDefault
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.Framework.ClientInterface	import :: JSWorld, :: JSPtr
 from iTasks.API.Core.LayoutCombinators	import :: Layout
