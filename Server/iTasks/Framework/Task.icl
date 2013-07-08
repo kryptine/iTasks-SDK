@@ -49,7 +49,7 @@ gEditor{|Task|} _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",new
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
-gDefault{|Task|} gDefx _ = Task (\_ -> abort error)
+gDefault{|Task|} gDefx = Task (\_ -> abort error)
 where
 	error = "Creating default task functions is impossible"
 	

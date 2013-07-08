@@ -18,7 +18,7 @@ JSONEncode{|WorkflowTaskContainer|} c				= [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} [c:r]			= (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} r				= (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _					= True
-gDefault{|WorkflowTaskContainer|} _					= WorkflowTask (return Void)
+gDefault{|WorkflowTaskContainer|}					= WorkflowTask (return Void)
 
 // SHARES
 // Available workflows

@@ -1,13 +1,13 @@
 definition module iTasks.Framework.Generic.Defaults
 
-from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos
+from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD
 /**
 * Creates default values
 *
 * @param Conspos path, this may be passed to create a specific constructor of an ADT.
 *        If you simply want to create the first constructor you can pass an empty list.
 */
-generic gDefault a :: [ConsPos] -> a
+generic gDefault a :: a
 
 derive	gDefault UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive	gDefault Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic

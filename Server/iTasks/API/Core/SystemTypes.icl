@@ -255,7 +255,7 @@ gEditor{|Date|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 		# value	= checkMaskValue mask val
 		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
-gDefault{|Date|} _ = {day = 1, mon = 1, year = 1970}
+gDefault{|Date|} = {day = 1, mon = 1, year = 1970}
 gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 gVerify{|Date|} mv options = simpleVerify mv options
 gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)"}]
@@ -659,13 +659,13 @@ where
 gVerify{|GoogleMap|} _ mv = alwaysValid mv
 //derive gVerify GoogleMap
 
-gDefault{|GoogleMapPerspective|} _ =
+gDefault{|GoogleMapPerspective|} =
 	{ GoogleMapPerspective
 	| type				= ROADMAP
 	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
 	, zoom				= 10
 	}
-gDefault{|GoogleMapSettings|} _ =
+gDefault{|GoogleMapSettings|} =
 	{ GoogleMapSettings
 	| mapTypeControl	= True
 	, panControl		= True
@@ -707,7 +707,7 @@ gUpdate{|Scale|} target upd val
 
 gVerify{|Scale|} _ mv = alwaysValid mv
 
-gDefault{|Scale|} _ = {Scale|min=1,cur=3,max=5}
+gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
 gEditMeta{|Scale|} _	= [{label=Nothing,hint=Just "You can change the value by sliding the scale"}]
 
 //* Progress bars
@@ -765,7 +765,7 @@ gUpdate{|FormButton|} target upd val
 
 gVerify{|FormButton|} _ mv = alwaysValid mv
 
-gDefault{|FormButton|} _ = {FormButton | label = "Form Button", icon="", state = NotPressed}
+gDefault{|FormButton|} = {FormButton | label = "Form Button", icon="", state = NotPressed}
 
 derive gEditMeta FormButton
 
@@ -802,7 +802,7 @@ gUpdate{|Table|} target upd val
 	= basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) target upd val
 
 gVerify{|Table|} _ mv = alwaysValid mv
-gDefault{|Table|} _ = Table [] [] Nothing
+gDefault{|Table|} = Table [] [] Nothing
 
 derive gEditMeta Table
 
@@ -836,7 +836,7 @@ derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, But
 derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode 
 
 //* Choices
-gDefault{|ComboChoice|} _ _ _ = ComboChoice [] Nothing
+gDefault{|ComboChoice|} _ _ = ComboChoice [] Nothing
 gVisualizeText{|ComboChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
 gEditor{|ComboChoice|} fx gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
@@ -862,7 +862,7 @@ where
 	getMbSelection (ComboChoice options mbSel)					= fmap snd (getListOption options mbSel)
 	getMbSelectionView (ComboChoice options mbSel)				= fmap fst (getListOption options mbSel)
 
-gDefault{|ComboChoiceNoView|} _ _ = ComboChoiceNoView [] Nothing
+gDefault{|ComboChoiceNoView|} _ = ComboChoiceNoView [] Nothing
 gVisualizeText{|ComboChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
 gEditor{|ComboChoiceNoView|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
@@ -887,7 +887,7 @@ where
 	getSelectionNoView combo									= fromJust (getMbSelectionNoView combo)
 	getMbSelectionNoView (ComboChoiceNoView options mbSel)		= getListOption options mbSel
 
-gDefault{|RadioChoice|} _ _ _ = RadioChoice [] Nothing
+gDefault{|RadioChoice|} _ _ = RadioChoice [] Nothing
 gVisualizeText{|RadioChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
 gEditor{|RadioChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
@@ -915,7 +915,7 @@ where
 	getMbSelection (RadioChoice options mbSel)					= fmap snd (getListOption options mbSel)
 	getMbSelectionView (RadioChoice options mbSel)				= fmap fst (getListOption options mbSel)
 
-gDefault{|RadioChoiceNoView|} _ _ = RadioChoiceNoView [] Nothing
+gDefault{|RadioChoiceNoView|} _ = RadioChoiceNoView [] Nothing
 gVisualizeText{|RadioChoiceNoView|}	fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
 gEditor{|RadioChoiceNoView|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
@@ -941,7 +941,7 @@ where
 	getSelectionNoView radios									= fromJust (getMbSelectionNoView radios)
 	getMbSelectionNoView (RadioChoiceNoView options mbSel)		= getListOption options mbSel
 
-gDefault{|TreeChoice|} _ _ _ = TreeChoice (Tree []) Nothing
+gDefault{|TreeChoice|} _ _ = TreeChoice (Tree []) Nothing
 
 gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
@@ -985,7 +985,7 @@ where
 	getMbSelection (TreeChoice options mbSel)					= fmap snd (getTreeOption options mbSel)
 	getMbSelectionView (TreeChoice options mbSel)				= fmap fst (getTreeOption options mbSel)
 
-gDefault{|TreeChoiceNoView|} _ _ = TreeChoiceNoView (Tree []) Nothing
+gDefault{|TreeChoiceNoView|} _ = TreeChoiceNoView (Tree []) Nothing
 
 gVisualizeText{|TreeChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
@@ -1021,7 +1021,7 @@ where
 	getSelectionNoView tree										= fromJust (getMbSelectionNoView tree)
 	getMbSelectionNoView (TreeChoiceNoView options mbSel)		= getTreeOption options mbSel
 
-gDefault{|GridChoice|} _ _ _ = GridChoice [] Nothing
+gDefault{|GridChoice|} _ _ = GridChoice [] Nothing
 
 gVisualizeText{|GridChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
 
@@ -1045,7 +1045,7 @@ where
 	getMbSelection (GridChoice options mbSel)					= fmap snd (getListOption options mbSel)
 	getMbSelectionView (GridChoice options mbSel)				= fmap fst (getListOption options mbSel)
 
-gDefault{|GridChoiceNoView|} _ _ = GridChoiceNoView [] Nothing
+gDefault{|GridChoiceNoView|} _ = GridChoiceNoView [] Nothing
 
 gVisualizeText{|GridChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))	
 
@@ -1068,7 +1068,7 @@ where
 	getSelectionNoView grid										= fromJust (getMbSelectionNoView grid)
 	getMbSelectionNoView (GridChoiceNoView options mbSel)		= getListOption options mbSel
 
-gDefault{|DynamicChoice|} fx fy path = DCRadio (gDefault{|*->*->*|} fx fy path)
+gDefault{|DynamicChoice|} fx fy = DCRadio (gDefault{|*->*->*|} fx fy)
 
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCRadio val)	= gVisualizeText{|*->*->*|} fv fo mode val
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCCombo val)	= gVisualizeText{|*->*->*|} fv fo mode val
@@ -1116,7 +1116,7 @@ where
 	getMbSelectionView (DCTree choice)		= getMbSelectionView choice
 	getMbSelectionView (DCGrid choice)		= getMbSelectionView choice
 
-gDefault{|DynamicChoiceNoView|} fx path = DCRadioNoView (gDefault{|*->*|} fx path)
+gDefault{|DynamicChoiceNoView|} fx = DCRadioNoView (gDefault{|*->*|} fx)
 
 gVisualizeText{|DynamicChoiceNoView|} fo mode (DCRadioNoView val)	= gVisualizeText{|*->*|} fo mode val
 gVisualizeText{|DynamicChoiceNoView|} fo mode (DCComboNoView val)	= gVisualizeText{|*->*|} fo mode val
@@ -1159,7 +1159,7 @@ where
 	getMbSelectionNoView (DCTreeNoView choice)	= getMbSelectionNoView choice
 	getMbSelectionNoView (DCGridNoView choice)	= getMbSelectionNoView choice
 
-gDefault{|CheckMultiChoice|} _ _ _ = CheckMultiChoice [] []
+gDefault{|CheckMultiChoice|} _ _ = CheckMultiChoice [] []
 gVisualizeText{|CheckMultiChoice|} fv _ _ val = gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 
 gEditor{|CheckMultiChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
@@ -1354,8 +1354,8 @@ JSONEncode{|Editlet|} _ _ tt = [dynamicJSONEncode tt]
 JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ c = (Nothing,c)
 
-gDefault{|Editlet|} fa _ cPos
-	= {Editlet|value=fa cPos,html = \_ -> RawText "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
+gDefault{|Editlet|} fa _
+	= {Editlet|value=fa,html = \_ -> RawText "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
 
 gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
 

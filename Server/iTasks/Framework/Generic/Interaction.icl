@@ -205,7 +205,7 @@ gEditor{|Maybe|} fx _ dx _ _ _ dp (val,mask,ver) vst=:{VSt|optional,disabled}
 	| disabled && isNothing val = (OptionalEditor [], vst)
 	# (viz,vst) = case val of
 		(Just x)	= fx dp (x,mask,ver) {VSt|vst & optional = True}
-		_			= fx dp (dx [],Untouched,ver) {VSt|vst & optional = True}
+		_			= fx dp (dx,Untouched,ver) {VSt|vst & optional = True}
 	= (toOptional viz, {VSt|vst & optional = optional})
 where
 	toOptional	(NormalEditor ex)	= OptionalEditor ex
@@ -298,19 +298,27 @@ gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy [1:target] upd (PAIR x y, ym
 	= (PAIR x y,ymask)
 gUpdate{|PAIR|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd val = val
 
-gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (LEFT x,mask) = appFst LEFT (gUpdx target upd (x,mask))
-gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (RIGHT y,mask) = appFst RIGHT (gUpdy target upd (y,mask))
+gUpdate{|EITHER|} gUpdx gDefx jDecx gUpdy gDefy jDecy [t:ts] upd (either,mask)
+    | t == -1 = case ts of
+        [] = (LEFT (gDefx), Untouched)
+        _  = appFst LEFT (gUpdx ts upd (gDefx,Untouched))
+    | t == -2 = case ts of
+        [] = (RIGHT (gDefy), Untouched)
+        _  = appFst RIGHT (gUpdy ts upd (gDefy,Untouched))
+    | otherwise
+        = case either of
+            (LEFT x)  = appFst LEFT (gUpdx [t:ts] upd (x,mask))
+            (RIGHT y) = appFst RIGHT (gUpdy [t:ts] upd (y,mask))
 
-gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jDecx [] upd (OBJECT x, _) //Update is a constructor switch
+gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jDecx [] upd (OBJECT x,mask) //Update is a constructor switch
 	# consIdx = case upd of
 		JSONInt i	= i
 		_			= 0
 	# mask	        = case upd of
 		JSONNull	= Blanked	//Reset
 		_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
-	= (OBJECT (gDefx (path consIdx)), mask)
-where
-	path consIdx = if (consIdx < gtd_num_conses) (consPath consIdx gtd_num_conses) []
+    # (x,_)         = gUpdx (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) upd (x,mask)
+	= (OBJECT x, mask)
 
 gUpdate{|OBJECT|} gUpdx gDefx jDecx target upd (OBJECT object, mask) //Update is targeted somewhere in a substructure of this value
 	= appFst OBJECT (gUpdx target upd (object,mask))
@@ -334,15 +342,15 @@ gUpdate{|RECORD|} gUpdx gDefx jDecx _ _ val = val
 	
 gUpdate{|FIELD|} gUpdx gDefx jDecx target upd (FIELD field,mask)= appFst FIELD (gUpdx target upd (field,mask))
 
-consPath i n
-	| i >= n	
+updConsPath i n
+ 	| i >= n	
 		= []
 	| n == 1
 		= []
 	| i < (n/2)
-		= [ ConsLeft : consPath i (n/2) ]
+		= [ -1: updConsPath i (n/2) ]
 	| otherwise
-		= [ ConsRight : consPath (i - (n/2)) (n - (n/2)) ]
+		= [ -2: updConsPath (i - (n/2)) (n - (n/2)) ]
 
 updPairPath i n
 	| i >= n
@@ -367,7 +375,7 @@ gUpdate{|Maybe|} gUpdx gDefx jDecx target upd (m,mmask)
 		= case m of
 			Nothing
 				// Create a default value
-				# x  	= gDefx []
+				# x  	= gDefx
 				// Search in the default value
 				# (x,mmask)	= gUpdx target upd (x,Untouched)
 				= (Just x, mmask)
@@ -378,8 +386,7 @@ gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,listMask)
 	# (l,childMasks)
 		= case ((not (isEmpty target)) && (hd target >= (length l))) of
 			True
-				# nv = gDefx []
-				= (l++[nv], subMasks (length l) listMask ++ [Untouched])
+				= (l++[gDefx], subMasks (length l) listMask ++ [Untouched])
 			False
 				= (l, subMasks (length l) listMask)
 	# (l,childMasks)	= updateElements gUpdx target upd l childMasks
@@ -392,7 +399,7 @@ gUpdate{|[]|} gUpdx gDefx jDecx target upd (l,listMask)
 			"mdn" = (swap l (index+1),swap childMasks (index+1))
 			"rem" = (removeAt index l,removeAt index childMasks)	
 			"add"
-				= (insertAt (length l) (gDefx []) l, insertAt (length l) Untouched childMasks)
+				= (insertAt (length l) gDefx l, insertAt (length l) Untouched childMasks)
 			_ 	
 				= (l,childMasks)
 		= (l,CompoundMask childMasks)
