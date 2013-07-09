@@ -586,7 +586,7 @@ derive class iTask	FileError
 gEditor{|GoogleMap|} dp vv=:(val,mask,ver) vst=:{VSt|taskId}
 	# editOpts	= {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Nothing}
 	# opts		= mapOpts val
-	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,verifyAttributes vv (gEditMeta{|*|} val))],vst)
+	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,/*verifyAttributes vv (gEditMeta{|*|} val*/ newMap)],vst)
 where	
 	mapOpts map =
 		{ UIGoogleMapOpts

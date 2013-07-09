@@ -25,8 +25,8 @@ gEditor{|UNIT|} dp _ vst = (NormalEditor [],vst)
 
 gEditor{|RECORD of {grd_arity}|} fx _ _ _ _ _ dp (RECORD x,mask,ver) vst=:{VSt|optional,disabled,taskId}
 	//When optional and no value yet, just show the checkbox
-	| optional &&  not (isTouched mask) && not disabled
-		= (OptionalEditor [checkbox False], vst)
+	| optional &&  not (isTouched mask)
+		= if disabled (OptionalEditor [],vst) (OptionalEditor [checkbox False], vst)
 	# (fieldsViz,vst) = fx (pairPath grd_arity dp) (x,toPairMask grd_arity mask,toPairVerification grd_arity ver) {VSt|vst & optional = False}
 	//For optional records we add the checkbox to clear the entire record
 	# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldsViz]) fieldsViz	
@@ -72,7 +72,7 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
 			NormalEditor []
-				= if (isTouched mask || disabled) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
+				= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
 			NormalEditor items
 				= NormalEditor (layout.editor {UIControlSequence|attributes = newMap, controls = items, direction = Horizontal})
 			OptionalEditor items
@@ -84,7 +84,7 @@ where
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId,optional,disabled}
 	# (viz,vst)	= fx (pairPath gcd_arity dp) (fromCONS val,toPairMask gcd_arity mask,toPairVerification gcd_arity ver) vst
-	= (NormalEditor (controlsOf viz), {VSt | vst & selectedConsIndex = gcd_index})
+    = (viz,{VSt | vst & selectedConsIndex = gcd_index})
 
 gEditor{|PAIR|} fx _ _ _ _ _ fy _ _ _ _ _ dp (PAIR x y, CompoundMask [xmask,ymask],CompoundVerification [xver,yver]) vst
 	# (dpx,dpy)		= pairPathSplit dp
@@ -143,7 +143,7 @@ gEditor{|String|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 
 gEditor{|Bool|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 	| disabled		
-		= (NormalEditor [(UIViewCheckbox defaultSizeOpts {UIViewOpts|value =checkMask mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIViewCheckbox defaultSizeOpts {UIViewOpts|value =checkMask mask val},newMap)],vst)
 	| otherwise	
 		= (NormalEditor [(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
@@ -202,7 +202,6 @@ gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst	= (HiddenEditor,vst)
 gEditor{|Dynamic|} _ _ vst	= (HiddenEditor,vst)
 
 gEditor{|Maybe|} fx _ dx _ _ _ dp (val,mask,ver) vst=:{VSt|optional,disabled}
-	| disabled && isNothing val = (OptionalEditor [], vst)
 	# (viz,vst) = case val of
 		(Just x)	= fx dp (x,mask,ver) {VSt|vst & optional = True}
 		_			= fx dp (dx,Untouched,ver) {VSt|vst & optional = True}
