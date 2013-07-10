@@ -60,8 +60,10 @@ where
 	updateFun :: Position Position -> Position
 	updateFun sharedval st = sharedval
 
-Start :: *World -> *World
-Start world = startEngine taskletSlider world
+//Start :: *World -> *World
+//Start world = startEngine taskletSlider world
+
+Start = acos 10.2
 
 
 
