@@ -49,7 +49,7 @@ where
 		# res = tasklet.Tasklet.resultFunc st
 
 		# result = ValueResult res (taskInfo ts) rep (TCInteract taskId ts (toJSON res) (toJSON val) (toJSON Void) Untouched)
-		= (result, println "mkTaskWithShared: init" iworld)		
+		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): init") iworld)		
 
 		// Refresh: server restart. anything else?
 	taskFunc (RefreshEvent _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
@@ -66,7 +66,7 @@ where
 					 = (placeHolderRep taskId Nothing, iworld)
 
 		# result = ValueResult res (taskInfo ts) rep (TCInteract taskId ts (toJSON res) (toJSON val) d1 d2)	
-		= (result, println ("mkTaskWithShared: refresh") iworld)
+		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): refresh") iworld)
 
 	// Focus: tab switch. anything else?
 	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
@@ -78,7 +78,7 @@ where
 	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts _ vJsonRes d1 d2) iworld
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) (TCInteract taskId ts jsonRes vJsonRes d1 d2)
-		= (result, println "mkTaskWithShared: result" iworld) 
+		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): result") iworld) 
  
 	// Edit: "finalize"
 	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
