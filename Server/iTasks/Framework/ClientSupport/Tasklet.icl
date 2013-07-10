@@ -51,7 +51,7 @@ where
 		# result = ValueResult res (taskInfo ts) rep (TCInteract taskId ts (toJSON res) (toJSON val) (toJSON Void) Untouched)
 		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): init") iworld)		
 
-		// Refresh: server restart. anything else?
+	// Refresh: server restart, shared changes
 	taskFunc (RefreshEvent _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
 		# res = fromJust (fromJSON rJsonRes)
 		# oldval = fromJust (fromJSON vJsonRes)
@@ -72,27 +72,29 @@ where
 	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
 		# res = fromJust (fromJSON (rJsonRes))
 		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) context
-		= (result, println "mkTaskWithShared: focus" iworld)
+		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): focus") iworld)
   
 	// Edit: "result"
 	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts _ vJsonRes d1 d2) iworld
-		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) (TCInteract taskId ts jsonRes vJsonRes d1 d2)
-		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): result") iworld) 
+		| targetTaskId == taskId
+			# res = fromJust (fromJSON (jsonRes))
+			# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) (TCInteract taskId ts jsonRes vJsonRes d1 d2)
+			= (result, println ("mkTaskWithShared ("+++toString taskId+++"): result") iworld) 
  
 	// Edit: "finalize"
 	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
-		# res = fromJust (fromJSON (jsonRes))
-		# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
-		# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))
-		= (result, println "mkTaskWithShared: finalize" iworld)  
+		| targetTaskId == taskId	
+			# res = fromJust (fromJSON (jsonRes))
+			# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
+			# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))
+			= (result, println ("mkTaskWithShared ("+++toString taskId+++"): finalize") iworld)  
   
-	// Commit
+	// Do nothing. commit or wrong traget
 	taskFunc event taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes _ _) iworld
 		# res = fromJust (fromJSON (rJsonRes))
 		# rep = placeHolderRep taskId Nothing
 		# result = ValueResult res (taskInfo ts) rep context
-		= (result, println "mkTaskWithShared: commit" iworld)
+		= (result, println ("mkTaskWithShared ("+++toString taskId+++"): skip") iworld)
 
 	// Destroy
 	taskFunc event taskRepOpts (TCDestroy _) iworld
