@@ -24,6 +24,7 @@ DB = new function () {
 		var st = DB.stringify(Sapl.heval(tasklet.st)); 
 		var events = DB.stringify(tasklet.events);
 		var resultFunc = DB.stringify(tasklet.resultFunc);
+		var updateFunc = DB.stringify(tasklet.updateFunc);
 		var tui = JSON.stringify(tasklet.tui);
 		var html = tasklet.html;
 		var controllerFunc = DB.stringify(tasklet.controllerFunc);
@@ -32,6 +33,7 @@ DB = new function () {
 		this.saveValue(iid, "st", st);
 		this.saveValue(iid, "events", events);
 		this.saveValue(iid, "resultFunc", resultFunc);
+		this.saveValue(iid, "updateFunc", updateFunc);
 		this.saveValue(iid, "tui", tui);
 		this.saveValue(iid, "html", html);
 		this.saveValue(iid, "controllerFunc", controllerFunc);
@@ -52,6 +54,7 @@ DB = new function () {
 		o.st = this.loadValue(iid, "st");
 		o.events = JSON.parse(this.loadValue(iid, "events"));
 		o.resultFunc = this.loadValue(iid, "resultFunc");
+		o.updateFunc = this.loadValue(iid, "updateFunc");
 		o.html = this.loadValue(iid, "html");
 		o.tui = JSON.parse(this.loadValue(iid, "tui"));
 		o.controllerFunc = this.loadValue(iid, "controllerFunc");
@@ -75,6 +78,7 @@ DB = new function () {
 		this.removeValue(iid, "st");
 		this.removeValue(iid, "events");
 		this.removeValue(iid, "resultFunc");
+		this.removeValue(iid, "updateFunc");
 		this.removeValue(iid, "tui");
 		this.removeValue(iid, "html");
 		this.removeValue(iid, "controllerFunc");
