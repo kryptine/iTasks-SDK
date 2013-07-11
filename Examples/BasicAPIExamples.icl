@@ -7,6 +7,9 @@ import Text
 
 //* Running the tasks in a workflow browser
 
+
+import ligrettoTOP
+
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
 costumTypes :== bae +++ "/Interaction with custom types/"
@@ -57,6 +60,7 @@ basicAPIExamples =
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
+	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
 	]
 
 Start :: *World -> *World

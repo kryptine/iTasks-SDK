@@ -465,11 +465,11 @@ where
 						closeEditorAndAdministrate compilerMessages
 			>>|			exportTextFile compilerMessages ""						//Empty the log file...
 			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"]
-//						-&&-
-//						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ Window
-//			>>*			[ OnAction ActionClose always (\_ -> return Void)
-//						, OnAction ActionOk    always (\_ -> return Void)
-//						]
+						-&&-
+						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ Window
+			>>*			[ OnAction ActionClose (always (return Void))
+						, OnAction ActionOk    (always (return Void))
+						]
 						@ const Void 						
 import redirect
 

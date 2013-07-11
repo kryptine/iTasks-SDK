@@ -16,8 +16,7 @@ derive class iTask Cmd
 
 createSquare :: Color Int (Shared Cmd) -> Task Bool
 createSquare color number shared 
-	= mkInstanceId >>= \iid -> 
-	  		  mkTaskWithShared (iid, squareTasklet) shared updateFun
+	= mkTaskWithShared squareTasklet shared updateFun
 where
 	squareTasklet :: Tasklet Square Bool 
 	squareTasklet = 
@@ -89,4 +88,4 @@ where
 	destroy _ = Destroy
 
 Start :: *World -> *World
-Start world = startEngine (tasklet 1 -&&- (/*wait 1 >>-*/ tasklet 2)) world
+Start world = startEngine (tasklet 1 -&&- (wait 1 >>- tasklet 2)) world

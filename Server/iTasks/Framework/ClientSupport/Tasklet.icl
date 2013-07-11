@@ -35,8 +35,13 @@ where
 mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 mkTask ti = mkInterfaceTask ti []
 
-mkTaskWithShared :: (TaskletInstance st res) !(Shared r) (r st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res & iTask r
-mkTaskWithShared (iid, tasklet) shared updateFunc = Task taskFunc
+//mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res & iTask r
+mkTaskWithShared tasklet shared updateFunc 
+	= 						mkInstanceId 
+		>>= \iid ->  		mkTaskWithShared` (iid, tasklet) shared updateFunc
+
+mkTaskWithShared` :: (TaskletInstance st res) !(Shared r) (r st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res & iTask r
+mkTaskWithShared` (iid, tasklet) shared updateFunc = Task taskFunc
 where
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
