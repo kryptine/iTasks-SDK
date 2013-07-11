@@ -14,7 +14,6 @@ camelCaseToWords 	:: !String -> String
 
 instance toString (Maybe a) | toString a
 
-pad					:: !Int !Int -> String
 decFormat			:: !Int -> String
 
 // Functions for accessing dates and times

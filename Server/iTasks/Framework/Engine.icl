@@ -201,9 +201,6 @@ where
 		, smtpServer		= "localhost"
 		}
 		
-	padZero :: !Int -> String
-	padZero number = (if (number < 10) "0" "") +++ toString number
-
 	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
 	ensureDir name path world
 		# (exists, world) = fileExists path world

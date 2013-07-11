@@ -16,15 +16,8 @@ list2mb a = (Just a)
 voidNothing :: Maybe Void
 voidNothing = Nothing
 
-pad :: !Int !Int -> String
-pad len num
-	# nums = toString num
-	| size nums >= len
-		= nums
-		= createArray (len - size nums) '0' +++ nums
-	
 decFormat :: !Int -> String
-decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
+decFormat x = toString (x / 100) +++ "." +++ lpad (toString (x rem 100)) 2 '0'
 
 camelCaseToWords :: !String -> String
 camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
