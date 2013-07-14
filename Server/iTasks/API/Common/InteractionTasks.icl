@@ -13,7 +13,7 @@ import iTasks.API.Common.CommonCombinators, iTasks.API.Core.LayoutCombinators, i
 import iTasks.Framework.Generic.Interaction
 
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
-enterInformation d [EnterWith fromf]
+enterInformation d [EnterWith fromf:_]
 /*
 	= interact d null
 //		(\r -> (defaultValue,defaultValue,Untouched))
@@ -24,7 +24,7 @@ enterInformation d [EnterWith fromf]
 enterInformation d _ = enterInformation d [EnterWith id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
-updateInformation d [UpdateWith tof fromf] m
+updateInformation d [UpdateWith tof fromf:_] m
 	= interact d null
 		(\r -> let v = tof m in (m,(v,Touched)))
 		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
@@ -35,7 +35,7 @@ updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)]
 
 //Same as update information, but with an initial untouched mask (used in enterChoice)
 updateInitialInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
-updateInitialInformation d [UpdateWith tof fromf] m
+updateInitialInformation d [UpdateWith tof fromf:_] m
 	= interact d null
 		(\r -> let v = tof m in (m,(v,Untouched)))
 		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
@@ -44,7 +44,7 @@ updateInitialInformation d _ m = updateInitialInformation d [UpdateWith (\l -> l
 
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
-viewInformation d [ViewWith tof] m
+viewInformation d [ViewWith tof:_] m
 /*
 	= interact d null
 		(\r -> let v = Display (tof m) in (m,v,defaultMask v))
@@ -54,7 +54,7 @@ viewInformation d [ViewWith tof] m
 viewInformation d _ m = viewInformation d [ViewWith id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
-updateSharedInformation d [UpdateWith tof fromf] shared
+updateSharedInformation d [UpdateWith tof fromf:_] shared
 	= interact d (toReadOnly shared)
 				(\r -> let v = tof r in (fromf r v,(v,Touched)))
 				(\l r (v,m) rCh vCh vOk -> if vOk
@@ -85,7 +85,7 @@ mapval (Value w _) _	= Just w
 mapval _ _				= Nothing
 
 viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
-viewSharedInformation d [ViewWith tof] shared
+viewSharedInformation d [ViewWith tof:_] shared
 /*
 	= interact d (toReadOnly shared)
 		(\r -> let v = Display (tof r) in (r,v,defaultMask v))
@@ -95,7 +95,7 @@ viewSharedInformation d [ViewWith tof] shared
 viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
-updateInformationWithShared d [UpdateWith tof fromf] shared m
+updateInformationWithShared d [UpdateWith tof fromf:_] shared m
 	= interact d (toReadOnly shared)
 		(\r -> let v = tof (r,m) in (m,(v,Touched)))
 		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,Touched))))
@@ -145,7 +145,7 @@ updateInformationWithSharedChoiceNoView d shared m
 		= maybe choice (\sel -> selectOptionNoView sel choice) mbSel
 
 updateInformationWithSharedChoice :: !d ![ChoiceOption c] !(ReadWriteShared (b c) a) (Maybe c) -> Task (Maybe c) | descr d & iTask c & iTask (b c) & OptionContainer b
-updateInformationWithSharedChoice d [ChooseWith type view] shared m
+updateInformationWithSharedChoice d [ChooseWith type view:_] shared m
 	= interactSharedChoice d (toReadOnly shared) m (toView type view)
   where
 	toView :: ChoiceType (a -> b) (c a) (Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gEditMeta{|*|} a
@@ -222,7 +222,7 @@ where
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 
 choiceToUpdate :: [ChoiceOption o] -> [UpdateOption (container o, Maybe o) (container o, Maybe o)] | OptionContainer container & iTask o
-choiceToUpdate [ChooseWith type view] = [UpdateWith (toView type view) fromView]
+choiceToUpdate [ChooseWith type view:_] = [UpdateWith (toView type view) fromView]
 where
 	toView :: ChoiceType (a -> b) (c a,Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gEditMeta{|*|} a
 	toView type view (container,mbSel)
@@ -252,7 +252,7 @@ initChoiceNoView ChooseFromGrid			container	= DCGridNoView	(GridChoiceNoView (to
 
 
 multiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption (container o, [o]) (container o,[o])] | OptionContainer container & iTask o
-multiChoiceToUpdate [ChooseMultipleWith type view] = [UpdateWith (toView type) fromView]
+multiChoiceToUpdate [ChooseMultipleWith type view:_] = [UpdateWith (toView type) fromView]
 where
 	toView type (container,sel)	= selectOptions sel (initChoice type container)
 
