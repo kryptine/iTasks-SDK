@@ -49,7 +49,9 @@ where
 	newPlanePosition ((plane,pos,time),route)
 		# (plane,pos) = moveAlongWayPointsDeg plane route pos time
 		= (plane,pos,time + 1)
-		
+
+viewSharedInformation
+
 //Interact with the running simulation
 interactWithSimulation :: (ReadWriteShared ([LatLng],(LatLng,Int)) [LatLng]) -> Task [LatLng]
 interactWithSimulation sim

@@ -12,9 +12,8 @@ maybeStable _        = NoValue
 
 derive class iTask BookingInfo, Booking, MaybeError, Flight
 
-derive gVisualizeEditor Seat
-derive gHeaders Seat
-derive gGridRows Seat
+derive gEditor Seat
+derive gEditMeta Seat
 derive gUpdate Seat
 derive gVerify Seat
 derive gDefault Seat
@@ -100,7 +99,7 @@ where
 		>>= return o fromString
 */
 
-chooseSeat (Just f) = mkInstanceId >>= \iid -> mkTask (iid, seatTasklet) 
+chooseSeat (Just f) = mkTask seatTasklet
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 

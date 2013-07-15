@@ -1,8 +1,6 @@
 module Movin
 
-import iTasks, iTasks.Framework.iTaskClass, Tasklet
-import Text.StringAppender, graph_to_sapl_string
-import sapldebug
+import iTasks, iTasks.Framework.ClientSupport.Tasklet
 
 //-------------------------------------------------------------------------
 
@@ -41,9 +39,8 @@ derive class iTask Cmd
 
 tasklet :: Task Void
 tasklet
-	= mkInstanceId >>= \iid -> 
-		withShared (SetPosX 0) (\pos ->
-	  		  mkTaskWithShared (iid, movinTasklet) pos updateFun
+	= withShared (SetPosX 0) (\pos ->
+	  		  mkTaskWithShared movinTasklet pos updateFun
 			  -||  
 			  forever (wait 10 >>- update (moveForward 40) pos ))
 where

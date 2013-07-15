@@ -308,7 +308,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -322,7 +322,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -406,7 +406,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -434,7 +434,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -462,7 +462,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -518,7 +518,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -546,7 +546,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1132,20 +1132,6 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.Framework.GenRecord
-		Dir:	{Application}\iTasks-SDK\Server
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	iTasks.Framework.GenSpecialize
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
@@ -1160,7 +1146,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.Framework.GenUpdate
+		Name:	iTasks.Framework.Generic
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -1174,7 +1160,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.Framework.GenVerify
+		Name:	iTasks.Framework.Generic.Defaults
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -1188,7 +1174,21 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.Framework.GenVisualize
+		Name:	iTasks.Framework.Generic.Interaction
+		Dir:	{Application}\iTasks-SDK\Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.Framework.Generic.Visualization
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -1385,20 +1385,6 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.WebService
-		Dir:	{Application}\iTasks-SDK\Server
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	iTasks.Framework.iTaskClass
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False

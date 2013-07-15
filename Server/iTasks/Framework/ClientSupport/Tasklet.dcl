@@ -50,8 +50,8 @@ import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.Framework.ClientSu
 
 mkInstanceId :: Task String
 
-mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-//mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res & iTask r
+mkTask :: (Tasklet st res) -> Task res | iTask res
+mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTask res & iTask r
 
 /*
  * Interface task(let): a Tasklet with additional interface functions for communication

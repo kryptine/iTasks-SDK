@@ -59,9 +59,7 @@ newPlanePosition ((pos,time),(route,Just plane))
 
 interactWithSimulation :: (Shared ([(!Real,!Real)],Maybe MovingEntity))  -> Task ([(!Real,!Real)],Maybe MovingEntity)
 interactWithSimulation state 
-= 
- mkInstanceId >>= \iid -> 
-	  		  (mkTaskWithShared (iid, googleMapsTasklet (52.8825984009408,4.74849700927734) 10) state updateFun  @> (mapWp,state)) 
+	= (mkTaskWithShared (googleMapsTasklet (52.8825984009408,4.74849700927734) 10) state updateFun  @> (mapWp,state)) 
 updateFun (wps,plane) st = {st & waypoints = wps, plane = plane}
 mapWp (Value wpp _) _ = Just wpp
 

@@ -32,15 +32,20 @@ where
 		# (c, world) = clock world
 		= (Ok ("i" +++ toString c), {iw & world = world})
 
-mkTask :: (TaskletInstance st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkTask ti = mkInterfaceTask ti []
+mkTask :: (Tasklet st res) -> Task res | iTask res
+mkTask ti 
+	= 						mkInstanceId 
+		>>= \iid ->  		mkTask` (iid, ti) 
 
-//mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res & iTask r
+mkTask` :: (TaskletInstance st res) -> Task res | iTask res
+mkTask` ti = mkInterfaceTask ti []
+
+mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTask res & iTask r
 mkTaskWithShared tasklet shared updateFunc 
 	= 						mkInstanceId 
 		>>= \iid ->  		mkTaskWithShared` (iid, tasklet) shared updateFunc
 
-mkTaskWithShared` :: (TaskletInstance st res) !(Shared r) (r st -> st) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res & iTask r
+mkTaskWithShared` :: (TaskletInstance st res) !(Shared r) (r st -> st) -> Task res | iTask res & iTask r
 mkTaskWithShared` (iid, tasklet) shared updateFunc = Task taskFunc
 where
 	// Init

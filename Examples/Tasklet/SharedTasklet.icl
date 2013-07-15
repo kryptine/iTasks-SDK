@@ -1,8 +1,6 @@
 module SharedTasklet
 
 import iTasks, iTasks.Framework.ClientSupport.Tasklet
-import Text.StringAppender, graph_to_sapl_string
-import sapldebug
 
 //-------------------------------------------------------------------------
 
@@ -40,22 +38,20 @@ fromPrj _ {Scale|cur} = cur
 
 taskletSlider :: Task Position
 taskletSlider
-	= mkInstanceId >>= \iid -> 
-		withShared 0 (\pos ->
+	= withShared 0 (\pos ->
 			  updateSharedInformation "Adapt position" [UpdateWith toPrj fromPrj] pos
 			  -||-
-	  		  mkTaskWithShared (iid, movinTasklet) pos updateFun)
+	  		  mkTaskWithShared movinTasklet pos updateFun)
 where
 	updateFun :: Position Position -> Position
 	updateFun sharedval st = sharedval
 
 tasklet :: Task Position
 tasklet
-	= mkInstanceId >>= \iid -> 
-		withShared 0 (\pos ->
+	= withShared 0 (\pos ->
 			  updateSharedInformation "Adapt position" [] pos
 			  -||-
-	  		  mkTaskWithShared (iid, movinTasklet) pos updateFun)
+	  		  mkTaskWithShared movinTasklet pos updateFun)
 where
 	updateFun :: Position Position -> Position
 	updateFun sharedval st = sharedval

@@ -208,17 +208,15 @@ taskletExamples =
 	,workflow "Google MAP with sharing" "Basic Google Maps functionality" tasklet1]
 
 tasklet1	
-=	 mkInstanceId >>= \iid -> 
-    	withShared ([],Nothing) (\state ->
-	  		  (mkTaskWithShared (iid, googleMapsTasklet 52.8825984009408 4.74849700927734) state updateFun @> (mapWp,state)) 
+	= withShared ([],Nothing) (\state ->
+	  		  (mkTaskWithShared (googleMapsTasklet 52.8825984009408 4.74849700927734) state updateFun @> (mapWp,state)) 
 			  -||-
 			  viewSharedInformation "The waypoints are" [] state)
 
 
 tasklet2	
-=	 mkInstanceId >>= \iid -> 
-    	withShared ([],Nothing) (\state ->
-	  		  (mkTaskWithShared (iid, googleMapsTasklet 52.8825984009408 4.74849700927734) state updateFun @> (mapWp,state)) 
+	= withShared ([],Nothing) (\state ->
+	  		  (mkTaskWithShared (googleMapsTasklet 52.8825984009408 4.74849700927734) state updateFun @> (mapWp,state)) 
 			  -||-
 			  viewSharedInformation "The waypoints are" [] state)
 
@@ -226,8 +224,7 @@ updateFun (wps,plane) st = {st & waypoints = wps, plane = plane}
 mapWp (Value wpp _) _ = Just wpp
 
 tasklet4
-	= 		mkInstanceId >>= \iid ->
-	 		mkTask (iid, googleMapsTasklet 52.8825984009408 4.74849700927734) 
+	= mkTask (googleMapsTasklet 52.8825984009408 4.74849700927734) 
 	 		>>= \v -> viewInformation "The result is" [] v       
 							 
 //Simulate the movement of the airplane

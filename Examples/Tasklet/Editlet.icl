@@ -108,7 +108,7 @@ where
 		# (_,world)			= jsCallObjectMethod "setTime" [hour,min,sec] myclock world
 		= (val,world)
 */
-/*
+
 :: Game        = { board :: !TicTacToe     // the current board
                  , names :: !Players       // the current two players
                  , turn  :: !TicTac        // the player at turn
@@ -132,7 +132,7 @@ tictactoelet t=:(board,turn) =
 	|value		= t
 	,html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
 	,handlers	= [ComponentEvent "editlet" "update" onUpdate]
-				  //:[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]]
+				  ++[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
 				 
 	,genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
 	,appDiff	= \tn to -> tn
@@ -187,7 +187,7 @@ empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
-*/	
+	
 test2 = updateInformation "Test" [] (timelet (fromString "13:00:00"))
 
 test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)) currentTime)
@@ -199,4 +199,4 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
 
 Start :: *World -> *World
-Start world = startEngine test3 world
+Start world = startEngine test4 world
