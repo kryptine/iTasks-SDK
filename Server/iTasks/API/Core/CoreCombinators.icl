@@ -198,7 +198,7 @@ where
 
 // Parallel composition
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
-parallel desc initTasks = Task eval 
+parallel desc initTasks = Task eval
 where
 	//Create initial task list
 	eval event repOpts (TCInit taskId ts) iworld=:{IWorld|localLists}
@@ -215,7 +215,8 @@ where
 		= case evalParTasks taskId event iworld of
 			(Just res=:(ExceptionResult e str),_,iworld)	= (res,iworld)
 			(Just res=:(ValueResult _ _ _ _),_,iworld)		= (exception "parallel evaluation yielded unexpected result",iworld)
-			(Nothing,entries,iworld)
+			(Nothing,results,iworld=:{localLists})
+                # entries = [(e,r) \\ e <- (fromMaybe [] ('Data.Map'.get taskId localLists)) & r <- results]
 				//Filter out removed entries and destroy their state
 				# (removed,entries)	= splitWith (\({TaskListEntry|removed},_) -> removed) entries
 				= case foldl destroyParTask (Nothing,iworld) (map fst removed) of
@@ -241,12 +242,13 @@ where
 				= (DestroyedResult,{iworld & localLists = 'Data.Map'.del taskId localLists})
 			(Just (ExceptionResult e str),iworld=:{localLists}) //An exception occurred
 				= (ExceptionResult e str,{iworld & localLists = 'Data.Map'.del taskId localLists})
-			(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in step"),iworld)
+			(Just result,iworld)
+                = (fixOverloading result initTasks (exception "Destroy failed in step"),iworld)
 	//Fallback
 	eval _ _ _ iworld
 		= (exception "Corrupt task state in parallel", iworld)
 	
-	evalParTasks :: !TaskId !Event !*IWorld -> (!Maybe (TaskResult [(TaskTime,TaskValue a)]),![(!TaskListEntry,!Maybe TaskRep)],!*IWorld) | iTask a
+	evalParTasks :: !TaskId !Event !*IWorld -> (!Maybe (TaskResult [(TaskTime,TaskValue a)]),![Maybe TaskRep],!*IWorld) | iTask a
 	evalParTasks taskId event iworld=:{localLists,eventRoute}
 		= evalFrom 0 [] (fromMaybe [] ('Data.Map'.get taskId localLists)) ('Data.Map'.get taskId eventRoute) iworld
 	where
@@ -260,7 +262,7 @@ where
 			//IMPORTANT: This last rule should never match, but it helps to solve overloading 
 			(Just (ValueResult val info=:{TaskInfo|lastEvent} rep tree),acc,iworld) = (Just (ValueResult (Value [(lastEvent,val)] False) info rep tree),acc,iworld)
 	
-	evalParTask :: !TaskId !Event !(Maybe Int) !(!Maybe (TaskResult a),![(!TaskListEntry,!Maybe TaskRep)],!*IWorld) !(!Int,!TaskListEntry) -> (!Maybe (TaskResult a),![(!TaskListEntry,!Maybe TaskRep)],!*IWorld) | iTask a
+	evalParTask :: !TaskId !Event !(Maybe Int) !(!Maybe (TaskResult a),![Maybe TaskRep],!*IWorld) !(!Int,!TaskListEntry) -> (!Maybe (TaskResult a),![Maybe TaskRep],!*IWorld) | iTask a
 	//Evaluate embedded tasks
 	evalParTask taskId event mbEventIndex (Nothing,acc,iworld=:{localTasks}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree, removed=False})
 		# evalNeeded = case mbEventIndex of
@@ -278,13 +280,12 @@ where
 							= (Just result,acc,iworld)	
 						ValueResult val info rep tree
 							# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId result iworld
-							= (Nothing, acc++[(entry,Just rep)],iworld)
-
+							= (Nothing, acc++[Just rep],iworld)
 				_
 					= (Nothing,acc,iworld)	
 		| otherwise
 			# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId (ValueResult jsonval info rep tree) iworld
-			= (Nothing, acc++[(entry,Just rep)],iworld)
+			= (Nothing, acc++[Just rep],iworld)
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId event mbEventIndex (Nothing,acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
@@ -293,7 +294,7 @@ where
 		= case (mbMeta,mbResult) of
 			(Ok meta,Ok result)
 				# (entry,iworld) = updateListEntryDetachedResult taskId entryId result meta.TIMeta.progress meta.TIMeta.management iworld
-				= (Nothing,acc++[(entry,Nothing)],iworld)
+				= (Nothing,acc++[Nothing],iworld)
 			_	= (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
 
 	//Do nothing if an exeption occurred or marked as removed

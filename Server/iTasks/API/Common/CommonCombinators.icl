@@ -112,21 +112,24 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void [(Embedded, checked pred task)] <<@ SetLayout (partLayout 0) @? res
+	= parallel Void [(Embedded,const task),(Embedded,restarter)] <<@ SetLayout (partLayout 0) @? res
 where
-	checked pred task tlist
-		=	task
-		>>* [WhenStable (\a -> if (pred a) (return (Just a)) (restart (checked pred task) tlist))]
-		
-	res (Value [(_,Value (Just a) _)] s)	= Value a s
-	res _									= NoValue
+    restarter tlist = (watch (taskListState tlist) @ hd) >>* [WhenValid check (\_ -> restart tlist)]
+
+    check (Value x stable)  = stable && not (pred x)
+    check _                 = False
 	
-	restart task tlist
+	restart tlist
 		=	get (taskListMeta tlist)
-		>>= \[{TaskListItem|taskId}:_] ->
-			removeTask taskId tlist
-		>>| appendTask Embedded task tlist
-		@	const Nothing
+		>>- \l=:[{TaskListItem|taskId=t1},{TaskListItem|taskId=t2}:_] ->
+		    removeTask t1 tlist
+		>>|	removeTask t2 tlist
+		>>| appendTask Embedded (const task) tlist
+		>>| appendTask Embedded restarter tlist
+        @?  const NoValue
+
+	res (Value [(_,value):_] _)	= value
+	res _					    = NoValue
 
 forever :: !(Task a) -> Task a | iTask a	
 forever	t = (t <! (const False))
@@ -184,7 +187,8 @@ anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
 	= parallel Void [(Embedded,const t) \\ t <- tasks] @? res
 where
-	res (Value l _) = hd ([v \\ (_,v=:(Value _ True)) <- l] ++ [v \\ (_,v=:(Value _ _)) <- sortBy (\a b -> fst a > fst b) l] ++ [NoValue])
+	res (Value l _) = let sl = sortBy (\a b -> fst a > fst b) l in
+                        hd ([v \\ (_,v=:(Value _ True)) <- sl] ++ [v \\ (_,v=:(Value _ False)) <- sl] ++ [NoValue])
 	res _			= NoValue
 
 allTasks :: ![Task a] -> Task [a] | iTask a
@@ -207,13 +211,19 @@ repeatTask task pred a =
 
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= 	((get share >>= \val -> (wait Void ((=!=) val) share @ const Nothing) -||- (task val @ Just) <<@ SetLayout (partLayout 1)) <! isJust)
-	@	fromJust
+	= 	( (get share >>- \val -> (wait Void ((=!=) val) share @ const Nothing)
+          -||-
+          (task val @ Just) <<@ SetLayout (partLayout 1)
+        ) <! isJust)
+	@?	onlyJust
+
+onlyJust (Value (Just x) s) = Value x s
+onlyJust _                  = NoValue
 
 whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchangedWith eq share task
 	= 	((get share >>= \val -> (wait Void (eq val) share @ const Nothing) -||- (task val @ Just) <<@ SetLayout (partLayout 1)) <! isJust)
-	@	fromJust
+	@?	onlyJust
 
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks
