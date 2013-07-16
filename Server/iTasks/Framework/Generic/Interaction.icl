@@ -33,7 +33,7 @@ gEditor{|RECORD of {grd_arity}|} fx _ _ _ _ _ dp (RECORD x,mask,ver) vst=:{VSt|o
 	= (viz,vst)
 where
 	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)},newMap)
-	
+
 gEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx dp (fromFIELD val,mask,ver) vst
 	= case vizBody of
@@ -72,7 +72,8 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
 			NormalEditor []
-				= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
+                = NormalEditor [(stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),newMap)]
+				//= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
 			NormalEditor items
 				= NormalEditor (layout.editor {UIControlSequence|attributes = newMap, controls = items, direction = Horizontal})
 			OptionalEditor items
@@ -141,11 +142,11 @@ gEditor{|String|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 	| otherwise
         = (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
-gEditor{|Bool|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Bool|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled} //Bools are shown as optional by default, because a mandatory bool makes little sense
 	| disabled		
-		= (NormalEditor [(UIViewCheckbox defaultSizeOpts {UIViewOpts|value =checkMask mask val},newMap)],vst)
+		= (OptionalEditor [(UIViewCheckbox defaultSizeOpts {UIViewOpts|value =checkMask mask val},newMap)],vst)
 	| otherwise	
-		= (NormalEditor [(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (OptionalEditor [(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
 
 gEditor{|[]|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId,disabled,layout}
 	# (items,vst)	= listControl dp val (subMasks (length val) mask) (subVerifications (length val) ver) vst
@@ -469,7 +470,7 @@ where
 	childVisualizations` i [] [] [] acc vst
 		= (reverse acc,vst)
 	childVisualizations` i [child:children] [mask:masks] [ver:vers] acc vst
-		# (childV,vst) = fx [i:dp] (child,mask,ver) vst
+		# (childV,vst) = fx (dp ++ [i]) (child,mask,ver) vst
 		= childVisualizations` (i + 1) children masks vers [childV:acc] vst
 
 verifyValue :: !a -> Verification | gVerify{|*|} a
