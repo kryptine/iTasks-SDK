@@ -26,7 +26,7 @@ sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQL
 /**
 * Perform one or multiple queries on an SQL database
 */
-sqlExecute	:: SQLDatabase (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
+sqlExecute	:: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
 
 //Common helper functions for sqlExecute
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur

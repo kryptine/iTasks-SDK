@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.SQLDatabase
 
-import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error
+import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error, Data.Func
 import iTasks.Framework.IWorld, iTasks.Framework.Shared
 
 derive class iTask SQLValue, SQLDate, SQLTime
@@ -27,8 +27,8 @@ where
 				# world		= closeMySQLDb cur con cxt world
 				= (res,{IWorld|iworld & world = world})
 
-sqlExecute :: SQLDatabase (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
-sqlExecute db queryFun = mkInstantTask exec
+sqlExecute :: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
+sqlExecute db touchIds queryFun = mkInstantTask exec
 where
 	exec _ iworld=:{IWorld|world}
 		# (mbOpen,world)	= openMySQLDb db world
@@ -38,8 +38,11 @@ where
 				# (res,cur)		= queryFun cur
 				# world			= closeMySQLDb cur con cxt world
 				= case res of
-					Error e		= (Error (dynamic e,toString e),  {IWorld|iworld & world = world}) 
-					Ok v		= (Ok v,{IWorld|iworld & world = world})
+					Error e		= (Error (dynamic e,toString e),  {IWorld|iworld & world = world})
+					Ok v		
+                        //Trigger share change for all touched ids
+                        # iworld = seqSt (\s w -> queueWork (TriggerSDSChange s,Nothing) w) touchIds {IWorld|iworld & world = world}
+                        = (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
 execSelect query values cur
@@ -64,7 +67,7 @@ execDelete query values cur
 	= (Ok Void,cur)
 
 sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
-sqlExecuteSelect db query values = sqlExecute db (execSelect query values) 
+sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values) 
 
 sqlSelectShare :: SQLDatabase SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow] 
 sqlSelectShare db query values = createReadOnlySDSError read
