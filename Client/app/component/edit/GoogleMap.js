@@ -64,12 +64,15 @@ Ext.define('itwc.component.edit.GoogleMap',{
 		return options;
 	},
 	setupMap: function() {
-		var me = this;
+		var me = this, i;
 		
 		if(!me.map && me.el) {
 			
 			me.map = new google.maps.Map(me.el.dom, me.getOptions());
-			me.addMarkers();
+
+            for (i = 0; i < me.markers.length; i++) {
+                me.addMarker(i,me.markers[i]);
+            }
 			
 			var updatePerspective = function() {
 				var center = me.map.getCenter(),
@@ -85,70 +88,6 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			google.maps.event.addListener(me.map,'dragend', updatePerspective);
 			google.maps.event.addListener(me.map,'maptypeid_changed', updatePerspective);
 			google.maps.event.addListener(me.map,'zoom_changed', updatePerspective);
-		}
-	},
-	addMarkers: function() {
- 		var	me = this,
-			map = this.map,
-			marker, infoWindow, clickHandler, dragHandler,icon;
-
-		for(var i=0; i<this.displayedMarkers.length; i++) {
-			this.displayedMarkers[i].setMap(null);
-		}
-        
-		this.displayedMarkers = new Array();
-        
-		for(var i=0; i<this.markers.length; i++) {
-          
-			if(this.markers[i].icon && this.markers[i].icon[0] == "GoogleMapSimpleIcon" ) { 
-				icon = "/icons/" + this.markers[i].icon[1];	
-			} else if(this.markers[i].icon && this.markers[i].icon[0] == "GoogleMapComplexIcon" ) { 
-				icon = this.markers[i].icon[1];
-				icon = new google.maps.MarkerImage("/icons/" + icon.image
-						, new google.maps.Size(icon.size[0], icon.size[1])
-						, new google.maps.Point(icon.origin[0], icon.origin[1])
-						, new google.maps.Point(icon.anchor[0], icon.anchor[1])
-						);
-			} else {
-				icon = null;
-			} 
-			marker = new google.maps.Marker({
-				map : map,
-				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1]),
-				title : this.markers[i].title,
-				draggable : this.markers[i].draggable,
-				icon: icon
-			});
-                
-			if(this.markers[i].infoWindow) {
-				var markerText = this.markers[i].infoWindow;
-				
-                infoWindow = new google.maps.InfoWindow({
-					content : this.markers[i].infoWindow
-				}); 
-            
-				clickHandler = function(map,marker,infoWindow) {
-					return function(e) {infoWindow.open(map,marker);};
-				};
-
-				google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
-			} else {
-				clickHandler = function(markerId) { return function(e) {
-					me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, event: "LEFTCLICK"});
-               	};};
-				google.maps.event.addListener(marker,'click',clickHandler(i));
-			}
-            
-			if(this.markers[i].draggable) {
-	
-				dragHandler = function(markerId) { return function(e) {
-								me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
-                		};};
-                
-				google.maps.event.addListener(marker,'dragend', dragHandler(i));
-			}
-            
-			this.displayedMarkers[i] = marker;
 		}
 	},
     afterComponentLayout: function() {
@@ -184,17 +123,63 @@ Ext.define('itwc.component.edit.GoogleMap',{
 		if(me.rendered) {
 			me.map.setOptions(me.getOptions());
 		}
-		console.log("setOptions",options);
 	},
 	addMarker: function(index, def) {
-		console.log("addMarker",index,def);
+     	var	me = this,
+			map = this.map,
+			marker, infoWindow, clickHandler, dragHandler,icon;
+
+        if(def.icon && def.icon[0] == "GoogleMapSimpleIcon" ) { 
+	        icon = "/icons/" + def.icon[1];	
+        } else if(def.icon && def.icon[0] == "GoogleMapComplexIcon" ) { 
+            icon = def.icon[1];
+            icon = new google.maps.MarkerImage("/icons/" + icon.image
+                    , new google.maps.Size(icon.size[0], icon.size[1])
+				    , new google.maps.Point(icon.origin[0], icon.origin[1])
+                    , new google.maps.Point(icon.anchor[0], icon.anchor[1])
+                    );
+        } else {
+            icon = null;
+        }
+
+        marker = new google.maps.Marker({
+            map : map,
+            position : new google.maps.LatLng(def.position[0],def.position[1]),
+            title : def.title,
+            draggable : def.draggable,
+            icon: icon
+        });
+
+        if(def.infoWindow) {
+            infoWindow = new google.maps.InfoWindow({
+                content : def.infoWindow
+            });
+            clickHandler = function(map,marker,infoWindow) {
+                return function(e) {infoWindow.open(map,marker);};
+            };
+            google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
+        } else {
+            clickHandler = function(markerId) { return function(e) {
+                me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, event: "LEFTCLICK"});
+                };};
+		    google.maps.event.addListener(marker,'click',clickHandler(index));
+        }
+
+        if(def.draggable) {
+            dragHandler = function(markerId) { return function(e) {
+                me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
+                };};
+
+            google.maps.event.addListener(marker,'dragend', dragHandler(index));
+        }
+
+        this.markers[index] = marker;
 	},
 	updateMarker: function(index, def) {
 		var me = this,
-			marker = me.displayedMarkers[index],
+			marker = me.markers[index],
 			icon;
 		
-		me.markers[index] = def;	
 		if(me.rendered) {
 			//Update position
 			marker.setPosition(new google.maps.LatLng(def.position[0],def.position[1]));
@@ -210,12 +195,16 @@ Ext.define('itwc.component.edit.GoogleMap',{
 						);
 			} else {
 				icon = null;
-			} 
+			}
 			marker.setIcon(icon);
 		}
 	},
 	removeMarker: function(index) {
-		console.log("removeMarker",index);
+        var me = this;
+        if(me.rendered) {
+            me.markers[index].setMap(null);
+        }
+        delete me.markers[index];
 	},
 	onDestroy: function() {
 		if(this.map) {
