@@ -20,10 +20,11 @@ Ext.define('itwc.component.misc.Icon', {
        	}
 	},
 	onDestroy: function() {
-		if (this.tooltip) {
-			this.tooltip.destroy();
+        var me = this;
+		if(me.tooltip && me.tooltip.destroy) {
+			me.tooltip.destroy();
 		}
-		this.callParent(arguments);
+		me.callParent(arguments);
 	},
 	setType: function(iconCls) {
 		this.removeCls(this.iconCls);
@@ -35,7 +36,7 @@ Ext.define('itwc.component.misc.Icon', {
 	},
 	setTooltip: function(text) {
         var me = this;
-		if(me.tooltip) {
+		if(me.tooltip && me.tooltip.destroy) {
 			me.tooltip.destroy();
 		}
 		if(text){
