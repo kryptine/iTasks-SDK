@@ -1,6 +1,7 @@
 implementation module BasicAPIExamples
 import iTasks, iTasks.API.Extensions.Admin.UserAdmin, iTasks.API.Extensions.Admin.WorkflowAdmin
 import Text
+import ligrettoTOP
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
 */
@@ -28,6 +29,7 @@ basicAPIExamples =
 
 	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
 	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
+	,workflow (costumTypes +++ "View a person")             "View a person"                     viewPerson
 
 	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	viewCurDateTime
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
@@ -56,6 +58,7 @@ basicAPIExamples =
 	,workflow (distrTask +++ "Chat with someone")   		"Chat with someone" 				chat
 	,workflow (distrTask +++ "Plan meeting") 				"Plan meeting" 						testMeeting
 	,workflow (distrTask +++ "Tic-Tac-Toe")                 "Play tic-tac-toe"                  tictactoe
+	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
 
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
@@ -162,11 +165,13 @@ browseGoogleMap = enterInformation ("Browse Map","Move around on the map. Your p
 derive class iTask MyPerson, MyGender
 
 enterPerson :: Task MyPerson 
-enterPerson = enterInformation "Enter your personal information" []
+enterPerson = enterInformation "Enter your personal information" [EnterWith (\(n, g) -> {MyPerson | name=n, gender=g, dateOfBirth=Nothing})]
 
 enterPersons :: Task [MyPerson]
 enterPersons = enterInformation "Enter personal information of multiple people" []
 
+viewPerson :: Task MyPerson
+viewPerson = viewInformation "View a person" [ViewWith (\{MyPerson | name,gender} -> (name,gender))] {name = "Peter Achten", gender = Male,dateOfBirth = Nothing}
 
 
 //* Interaction with shared data
