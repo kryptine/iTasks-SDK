@@ -343,7 +343,7 @@ diffTabs path event differs t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts2)
 	| allDiffsPossible parts
 		= (flatten [d \\ DiffPossible d <- parts],False)
 	| otherwise
-		= ([UIUpdate parentPath [("remove",[toJSON parentIndex]),("add",[toJSON parentIndex,encodeUITab t2])]],True)
+        = ([UIUpdate parentPath [("replace",[toJSON parentIndex,encodeUITab t2])]],True)
 where
 	[ItemStep parentIndex:parentPath] = path
 
