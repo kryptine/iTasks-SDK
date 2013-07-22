@@ -250,17 +250,26 @@ toTable	:: ![a] -> Table | gEditMeta{|*|} a & gVisualizeText{|*|} a
 :: Tree a = Tree !.[.TreeNode a]
 :: TreeNode a = Leaf !a | Node !a !.[TreeNode a]
 
-instance Functor Tree
+//* More elaborate tree type for grouping elements hierarchically from a choice
+:: ChoiceTree a =
+    { label     :: String
+    , icon      :: Maybe String
+    , value     :: Maybe a
+    , children  :: Maybe [ChoiceTree a]
+    }
 
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gEditMeta			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
+instance Functor Tree
+instance Functor ChoiceTree
+
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gEditMeta			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
@@ -270,9 +279,9 @@ derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, Butto
 :: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
 :: RadioChoiceNoView o = RadioChoiceNoView ![o] !(Maybe Int)
 
-//* Represents a tree from with the user can choose one element
-:: TreeChoice v o = TreeChoice !(Tree (!v,!o)) !(Maybe Int)
-:: TreeChoiceNoView o = TreeChoiceNoView !(Tree o) !(Maybe Int)
+//* Bundles a tree with options with a selection
+:: TreeChoice v o = TreeChoice ![ChoiceTree (!v,!o)] !(Maybe Int)
+:: TreeChoiceNoView o = TreeChoiceNoView ![ChoiceTree o] !(Maybe Int)
 
 //* Represents the choice of one element from a list represented as grid
 //* (typically v is a record which's labels are used as headers)

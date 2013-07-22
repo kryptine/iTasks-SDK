@@ -815,12 +815,12 @@ where
 	row x =  [Text cell \\ cell <- gVisualizeText{|*|} AsRow x]
 	
 //* Simple tree type (used primarily for creating trees to choose from)
-derive gDefault			Tree, TreeNode
-derive gVisualizeText	Tree, TreeNode
-derive gEditor	Tree, TreeNode
-derive gEditMeta			Tree, TreeNode
-derive gUpdate			Tree, TreeNode
-derive gVerify			Tree, TreeNode
+derive gDefault			Tree, TreeNode, ChoiceTree
+derive gVisualizeText	Tree, TreeNode, ChoiceTree
+derive gEditor	        Tree, TreeNode, ChoiceTree
+derive gEditMeta		Tree, TreeNode, ChoiceTree
+derive gUpdate			Tree, TreeNode, ChoiceTree
+derive gVerify			Tree, TreeNode, ChoiceTree
 		
 instance Functor Tree
 where
@@ -829,11 +829,15 @@ where
 		fmap` node = case node of
 			Leaf a			= Leaf (f a)
 			Node a nodes	= Node (f a) [fmap` node \\ node <- nodes]
+instance Functor ChoiceTree
+where
+    fmap f t=:{ChoiceTree|value,children}
+        = {ChoiceTree|t & value = fmap f value
+          ,children = maybe Nothing (\c -> Just [fmap f x \\ x <- c]) children}
 
-
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode 
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
 
 //* Choices
 gDefault{|ComboChoice|} _ _ = ComboChoice [] Nothing
@@ -850,7 +854,7 @@ where
 	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
 
 	options (ComboChoice options _)			= [concat (gx AsLabel v) \\ (v,_) <- options]
- 
+
 gUpdate{|ComboChoice|} _ _ _ _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
 
 gVerify{|ComboChoice|} _ _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
@@ -941,7 +945,7 @@ where
 	getSelectionNoView radios									= fromJust (getMbSelectionNoView radios)
 	getMbSelectionNoView (RadioChoiceNoView options mbSel)		= getListOption options mbSel
 
-gDefault{|TreeChoice|} _ _ = TreeChoice (Tree []) Nothing
+gDefault{|TreeChoice|} _ _ = TreeChoice [] Nothing
 
 gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 
@@ -951,21 +955,21 @@ gEditor{|TreeChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt
 where
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
-	options (TreeChoice (Tree nodes) _) msk = fst (mkTree nodes 0 )
-		where
-			expanded = case msk of
-				TouchedWithState s 	= case fromJSON s of Just expanded = expanded; _ = []
-				_					= []
-				
-			mkTree [] idx
-				= ([],idx)
-			mkTree [Leaf (v,_):r] idx
-				# (rtree,idx`) 		= mkTree r (inc idx)
-				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = isMember idx expanded, children = Nothing}:rtree],idx`)
-			mkTree [Node (v,_) nodes:r] idx
-				# (children,idx`)	= mkTree nodes (inc idx)
-				# (rtree,idx`)		= mkTree r idx`
-				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
+	options (TreeChoice nodes _) msk = fst (mkTree nodes 0)
+	where
+	    expanded = case msk of
+	        TouchedWithState s 	= case fromJSON s of Just expanded = expanded; _ = []
+		    _					= []
+
+        mkTree [] idx = ([],idx)
+        mkTree [{ChoiceTree|label,value,icon,children}:r] idx
+            # (children`,idx`)  = case children of
+                Nothing = (Nothing,inc idx)
+                Just nodes = appFst Just (mkTree nodes (inc idx))
+            # (rtree,idx`) = mkTree r idx`
+            = ([{UITreeNode|text=label,iconCls=fmap (\i ->"icon-"+++i) icon,value=idx,leaf=isNothing children
+                ,expanded = isMember idx expanded,children=children`}:rtree],idx`)
+
 	options _ _ = []
 
 gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,mask) = case fromJSON upd of
@@ -974,7 +978,6 @@ gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,mask) = case fr
 	_						= ((TreeChoice options sel), mask)
 
 gUpdate{|TreeChoice|} _ _ _ _ _ _ target upd val = val
-
 
 gVerify{|TreeChoice|} _ _ mv options = simpleVerify mv options
 
@@ -985,34 +988,37 @@ where
 	getMbSelection (TreeChoice options mbSel)					= fmap snd (getTreeOption options mbSel)
 	getMbSelectionView (TreeChoice options mbSel)				= fmap fst (getTreeOption options mbSel)
 
-gDefault{|TreeChoiceNoView|} _ = TreeChoiceNoView (Tree []) Nothing
+gDefault{|TreeChoiceNoView|} _ = TreeChoiceNoView [] Nothing
 
 gVisualizeText{|TreeChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
 gEditor{|TreeChoiceNoView|} _ gx _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId}
-	= (NormalEditor [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val} {UITreeOpts|doubleClickAction=Nothing},newMap)],vst)
+	= (NormalEditor [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val mask} {UITreeOpts|doubleClickAction=Nothing},newMap)],vst)
 where
 	value (TreeChoiceNoView _ mbSel) = maybe [] (\s->[s]) mbSel
 	
-	options (TreeChoiceNoView (Tree nodes) _) = fst (mkTree nodes 0)
+	options (TreeChoiceNoView nodes _) msk = fst (mkTree nodes 0)
 	where
-		mkTree [] idx
-			= ([],idx)
-		mkTree [Leaf v:r] idx
-			# (rtree,idx`) 		= mkTree r (inc idx)
-			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = False, children = Nothing}:rtree],idx`)
-		mkTree [Node v nodes:r] idx
-			# (children,idx`)	= mkTree nodes (inc idx)
-			# (rtree,idx`)		= mkTree r idx`
-			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
-	options _ = []
+    	expanded = case msk of
+            TouchedWithState s 	= case fromJSON s of Just expanded = expanded; _ = []
+            _					= []
+				
+		mkTree [] idx = ([],idx)
+        mkTree [{ChoiceTree|label,value,icon,children}:r] idx
+            # (children`,idx`)  = case children of
+                Nothing = (Nothing,inc idx)
+                Just nodes = appFst Just (mkTree nodes (inc idx))
+            # (rtree,idx`) = mkTree r idx`
+            = ([{UITreeNode|text=label,iconCls=fmap (\i ->"icon-"+++i) icon,value=idx,leaf=isNothing children
+                ,expanded = isMember idx expanded,children=children`}:rtree],idx`)
+
+   	options _ _ = []
 
 gUpdate{|TreeChoiceNoView|} _ _ _ target upd val = updateChoice update target upd val
 where
 	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
 	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
 	update _					treechoice							= treechoice
-
 gVerify{|TreeChoiceNoView|} _ mv options = simpleVerify mv options
 	
 instance ChoiceNoView TreeChoiceNoView
@@ -1224,15 +1230,20 @@ getListOption options mbSel = case getListOptions options (maybeToList mbSel) of
 getListOptions :: ![a] ![Int] -> [a]
 getListOptions options sels = [opt \\ opt <- options & idx <- [0..] | isMember idx sels]
 
-getTreeOption :: !(Tree a) !(Maybe Int) -> Maybe a
-getTreeOption tree mbSel = getListOption (treeToList tree) mbSel
+getTreeOption :: ![ChoiceTree a] !(Maybe Int) -> Maybe a
+getTreeOption tree mbSel = case getListOption (treeToList tree) mbSel of
+    Nothing  = Nothing
+    Just mba = mba
 
-setTreeOption :: !(Tree (v,o)) !o -> (Maybe Int) | gEq{|*|} o
-setTreeOption tree newSel = setListOption (treeToList tree) newSel
+setTreeOption :: ![ChoiceTree (v,o)] !o -> (Maybe Int) | gEq{|*|} o
+setTreeOption tree sel = findTreeOpt sel [(i,fmap snd mb) \\ i<- [0..] & mb <- treeToList tree]
 
-setTreeOptionNoView :: !(Tree o) !o -> (Maybe Int) | gEq{|*|} o
-setTreeOptionNoView tree newSel
-	= setListOptionNoView (treeToList tree) newSel
+setTreeOptionNoView :: ![ChoiceTree o] !o -> (Maybe Int) | gEq{|*|} o
+setTreeOptionNoView tree sel = findTreeOpt sel [(i,mb) \\ i<- [0..] & mb <- treeToList tree]
+
+findTreeOpt sel [] = Nothing
+findTreeOpt sel [(i,Just o):xs] = if (o === sel) (Just i) (findTreeOpt sel xs)
+findTreeOpt sel [_:xs] = findTreeOpt sel xs
 
 setListOptionNoView :: ![o] !o -> (Maybe Int) | gEq{|*|} o
 setListOptionNoView options newSel
@@ -1244,11 +1255,9 @@ setListOptionNoView options newSel
 	setListOptionL options sel
 		= [idx \\ option <- options & idx <- [0..] | option===sel]
 
-treeToList :: (Tree a) -> [a]
-treeToList (Tree nodes) = (foldr addNode [] nodes)
-where
-	addNode (Leaf a) accu		= [a:accu]
-	addNode (Node a nodes) accu	= [a:foldr addNode accu nodes] 
+treeToList :: [ChoiceTree a] -> [Maybe a]
+treeToList [] = []
+treeToList [{ChoiceTree|value,children}:r] = [value] ++ treeToList (fromMaybe [] children) ++ treeToList r
 
 derive JSONEncode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 derive JSONEncode		ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView

@@ -33,8 +33,6 @@ derive gEq				WorkflowTaskContainer
 
 workflows				:: Shared [Workflow]
 allowedWorkflows		:: ReadOnlyShared [Workflow]
-workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
-allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
 workflowByPath			:: !String -> Shared Workflow
 
 /**

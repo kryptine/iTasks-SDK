@@ -268,6 +268,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 
 :: UITreeNode =
 	{ text		:: !String
+    , iconCls   :: !Maybe String
 	, children	:: !Maybe [UITreeNode]
 	, leaf		:: !Bool
 	, expanded	:: !Bool

@@ -41,25 +41,6 @@ allowedWorkflows = mapRead filterAllowed (workflows |+| currentUser)
 where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 	
-workflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
-workflowTree = mapRead mkFlowTree (toReadOnly workflows)
-
-allowedWorkflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
-allowedWorkflowTree = mapRead mkFlowTree allowedWorkflows
-
-mkFlowTree :: ![Workflow] -> Tree (Either WorkflowFolderLabel Workflow)
-mkFlowTree workflows = Tree (seq [insertWorkflow w \\ w <- workflows] [])
-where
-	insertWorkflow wf=:{Workflow|path} nodeList = insertWorkflow` (split "/" path) nodeList
-	where
-		insertWorkflow` [] nodeList = nodeList
-		insertWorkflow` [title] nodeList = nodeList ++ [Leaf (Right wf)]
-		insertWorkflow` path=:[nodeP:pathR] [node=:(Node (Left nodeL) nodes):nodesR]
-			| nodeP == nodeL	= [Node (Left nodeL) (insertWorkflow` pathR nodes):nodesR]
-			| otherwise			= [node:insertWorkflow` path nodesR]
-		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
-		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
-
 // SERVICE TASKS
 viewTaskList :: Task [TaskListItem Void]
 viewTaskList 
@@ -153,14 +134,20 @@ where
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=	enterSharedChoice [Att (Title "Tasks"), Att IconEdit] [ChooseWith ChooseFromTree toView] (allowedWorkflowTree) <<@ AfterLayout (tweakControls (map noAnnotation))
-	@? onlyRight
+	=	enterSharedChoice [Att (Title "Tasks"), Att IconEdit] [ChooseWith (ChooseFromTree group) id] allowedWorkflows <<@ AfterLayout (tweakControls (map noAnnotation))
 where
-	toView (Left label)				= label
-	toView (Right wf)				= workflowTitle wf
-	
-	onlyRight (Value (Right wf) s)	= Value wf s
-	onlyRight _						= NoValue
+    group workflows = (seq (map insertWorkflow workflows) [])
+    where
+	    insertWorkflow wf=:{Workflow|path} nodeList = insertWorkflow` (split "/" path) nodeList
+        where
+    	    insertWorkflow` [] nodeList = nodeList
+		    insertWorkflow` [title] nodeList = nodeList ++ [{ChoiceTree|label=workflowTitle wf,icon=Nothing,value=Just wf,children=Nothing}]
+		    insertWorkflow` path=:[nodeP:pathR] [node=:{ChoiceTree|label=nodeL,children=Just nodes}:nodesR]
+		    	| nodeP == nodeL	= [{ChoiceTree|node & children = Just (insertWorkflow` pathR nodes)}:nodesR]
+		    	| otherwise			= [node:insertWorkflow` path nodesR]
+		    insertWorkflow` path=:[nodeP:pathR] []
+                = [{ChoiceTree|label=nodeP,icon=Nothing,value=Nothing,children=Just (insertWorkflow` pathR [])}]
+		    insertWorkflow` path [node:nodesR] = [node:insertWorkflow` path nodesR]
 
 	noAnnotation (c,_) = (c,'Data.Map'.newMap)
 	
