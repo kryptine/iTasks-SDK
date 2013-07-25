@@ -37,7 +37,7 @@ startEngine publishable world
 	# world					= show (running port) world
 	# iworld				= initIWorld (fromJust mbSDKPath) world
 	// mark all instance as outdated initially
-	# (maxNo,iworld)		= maxInstanceNo iworld
+	# (maxNo,iworld)			= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
 	# iworld				= startHTTPServer port keepalive (engine publishable) timeout background iworld
 	= finalizeIWorld iworld

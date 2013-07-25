@@ -15,7 +15,7 @@ import iTasks.Framework.IWorld
 // TCP level server
 startServer :: !Int 
 				(IPAddress *env -> (loc,*env)) ((Maybe {#Char}) loc *env -> *(Maybe {#Char},!Bool, !loc, !*env)) (loc *env -> *env)
-				(*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) *env -> *env | ChannelEnv env
+				(*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) !*env -> *env | ChannelEnv env
 startServer port handleNewConnection handleActiveConnection handleConnectionLost determineTimeout handleBackground env
 	//Start the listener
     # (listener,env)  = startListener port env
@@ -131,7 +131,7 @@ startHTTPServer :: !Int !Int
 						 ,!(HTTPRequest *env -> (!HTTPResponse,!Maybe loc,!*env))
 						 ,!(HTTPRequest (Maybe {#Char}) loc *env -> (!Maybe {#Char}, !Bool, loc, !*env))
 						 ,!(HTTPRequest loc *env -> *env)
-						 )] (*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) *env -> *env | ChannelEnv env & HttpServerEnv env
+						 )] (*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) !*env -> *env | ChannelEnv env & HttpServerEnv env
 startHTTPServer port keepAliveTime requestProcessHandlers determineTimeout handleBackground env
 	= startServer port handleNewConnection handleActiveConnection handleConnectionLost determineTimeoutHTTP handleBackground env
 where
