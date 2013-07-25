@@ -52,7 +52,10 @@ If in this step or the next you get an error about a _return_code symbol, edit
 Unix/set_return_code.icl and replace all occurences of _return_code with
 return_code
 
-10. Navigate to the root of your Clean IDE checkout and execute the following
+10. At this point, Linux users must follow the instructions at the bottom of
+    this README in order for everything to work.
+
+11. Navigate to the root of your Clean IDE checkout and execute the following
     command to build CPM for your platform:
 
       BatchBuild CpmLinux.prj
@@ -60,7 +63,7 @@ return_code
     Replace CpmLinux.prj with CpmMacOSX.prj if you are building for Mac OS X.
     Copy the resulting "cpm" executable to ~/clean as well.
 
-11. You are now ready to compile your iTasks program. The best way to do so is
+12. You are now ready to compile your iTasks program. The best way to do so is
     by using CPM. To build all project files in the current directory, simply
     type
 
@@ -81,3 +84,38 @@ comment out
   library "wsock_library"
 
 in ~/clean/lib/TCPIP/ostcp.icl
+
+N.B. If you execute "make" in ~/clean after this process, many of the files you
+have manually copied to your Clean installation will be overwritten. To prevent
+this, also copy files to ~/clean/exe, ~/clean/StdEnv and ~/clean/data
+
+
+== Linux specific instructions ==
+
+A.  Get the latest clean-tools from SVN
+    (https://svn.cs.ru.nl/repos/clean-tools/trunk/) and navigate to the
+    elf_tools directory. Modify linker.icl and change the occurence of
+    "set_return_code" to "set_return_code_world". Next, build a new linker with
+    the following command:
+
+      "clm -nt -nr -h 200M -s 100M -I ai64 -IL ArgEnv -IL Dynamics -I ../../clean-ide/Unix linker -o linker"
+
+    Depending on where you checked out your copy of the Clean IDE, you might
+    need to modify the relative path to clean-ide/Unix.
+
+    Copy the resulting linker executable to ~/clean/lib/exe
+
+B.  Get the latest clean-libraries from SVN
+    (https://svn.cs.ru.nl/repos/clean-libraries/trunk) and navigate to the
+    Libraries/StdEnv/StdEnv\ Changed\ Files directory. Copy
+    _SystemStrictList.icl to ~/clean/lib/StdEnv and copy _system.abc to
+    ~/clean/lib/StdEnv/Clean\ System\ Files. Remove _SystemStrictList.o and
+    _SystemStrictList.abc
+
+C.  Get the latest Clean RTS from SVN
+    (https://svn.cs.ru.nl/repos/clean-run-time-system/trunk/) and execute
+    ./make_astartup.csh. Copy the resulting linux64/_startup.o to
+    ~/clean/lib/StdEnv/Clean\ System\ Files
+
+D.  Go to iTasks-SDK/Server/lib/graph_copy and remove all .o files by executing
+    "rm -f *.o" and rebuild graph_copy: make -f Makefile.linux64
