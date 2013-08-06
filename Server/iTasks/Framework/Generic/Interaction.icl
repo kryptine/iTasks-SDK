@@ -8,7 +8,7 @@ import iTasks.Framework.UIDefinition
 import iTasks.Framework.Util
 import iTasks.API.Core.LayoutCombinators
 
-visualizeAsEditor :: !(VerifiedValue a) !TaskId !Layout !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a
+visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a
 visualizeAsEditor (v,mask,ver) taskId layout iworld
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
 	# (res,vst=:{VSt|iworld})	= gEditor{|*|} [] (v,mask,ver) vst
@@ -39,10 +39,10 @@ gEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# controls = layout.Layout.editor {UIControlSequence|attributes = addLabel disabled gfd_name newMap, controls = controls, direction = Vertical}
+			# controls = layout.LayoutRules.layoutSubEditor {UIControlStack|attributes = addLabel disabled gfd_name newMap, controls = controls}
 			= (NormalEditor controls,vst)
 		OptionalEditor controls	
-			# controls = layout.Layout.editor {UIControlSequence|attributes = addLabel True gfd_name newMap, controls = controls, direction = Vertical}
+			# controls = layout.LayoutRules.layoutSubEditor {UIControlStack|attributes = addLabel True gfd_name newMap, controls = controls}
 			= (OptionalEditor controls, vst)
 
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,mask,ver) vst=:{selectedConsIndex = oldSelectedConsIndex,disabled,taskId,layout}
@@ -55,7 +55,7 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
             Untouched   = ([],[])
             Blanked     = ([],[])
             _           = (controlsOf items,[selectedConsIndex])
-		# content	= layout.editor {UIControlSequence|attributes = newMap, controls = controls, direction = Horizontal}
+		# content	= layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = controls}
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = taskId
@@ -75,9 +75,9 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
                 = NormalEditor [(stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),newMap)]
 				//= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
 			NormalEditor items
-				= NormalEditor (layout.editor {UIControlSequence|attributes = newMap, controls = items, direction = Horizontal})
+				= NormalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items})
 			OptionalEditor items
-				= OptionalEditor (layout.editor {UIControlSequence|attributes = newMap, controls = items, direction = Horizontal})
+				= OptionalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items})
 		= (vis,{vst & selectedConsIndex = oldSelectedConsIndex})
 where
 	addSpacing [] = []
@@ -163,7 +163,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item 
-		# controls	= map fst (layout.editor {UIControlSequence| attributes = newMap, controls = controlsOf item, direction = Vertical})
+		# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item})
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
@@ -171,7 +171,7 @@ where
 		= setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons))))
 /*
 	newItemControl item
-		# controls	= map fst (layout.editor (newMap,controlsOf item))
+		# controls	= map fst (layout.layoutSubEditor (newMap,controlsOf item))
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}

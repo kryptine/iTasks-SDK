@@ -172,27 +172,27 @@ updateSharedMultipleChoice d options shared sel
 wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
 wait desc pred shared
 	=	viewSharedInformation desc [ViewWith (const "Waiting for information update")] shared
-	>>* [WhenValid pred return]
+	>>* [OnValue (ifValue pred return)]
 	
 waitForTime :: !Time -> Task Time
 waitForTime time =
-	viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime >>* [WhenValid (\now -> time < now) return]
+	viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime >>* [OnValue (ifValue (\now -> time < now) return)]
 
 waitForDate :: !Date -> Task Date
 waitForDate date =
-	viewSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate >>* [WhenValid (\now -> date < now) return]
+	viewSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate >>* [OnValue (ifValue (\now -> date < now) return)]
 	
 waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
-	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [WhenValid (\now -> datetime < now) return]
+	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
 waitForTimer :: !Time -> Task Time
-waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
+waitForTimer time = get currentTime >>- \now -> waitForTime (now + time)
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	viewInformation Void [] Void
-	>>* [AnyTime action (\_ -> return val) \\ (action,val) <- actions]
+	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]
 
 choiceToUpdate :: [ChoiceOption o] -> [UpdateOption ([o], Maybe o) ([o], Maybe o)] | iTask o
 choiceToUpdate [ChooseWith type view:_] = [UpdateWith (toView type view) fromView]
@@ -249,10 +249,10 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 	[UpdateWith fromf tof]	= [UpdateWith fromf (\m v -> snd (tof m v))]
 	_						= []
 
-viewTitle :: !a -> Task a | iTask a 
+viewTitle :: !a -> Task a | iTask a
 viewTitle a = viewInformation (Title title) [ViewWith view] a <<@ InContainer <<@ AfterLayout (tweakAttr titleFromValue)
 where
-	title	= visualizeAsLabel a
+	title = visualizeAsLabel a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
 
 viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r

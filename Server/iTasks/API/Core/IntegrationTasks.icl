@@ -72,11 +72,11 @@ where
 		= (DestroyedResult,iworld)
 
     makeRep taskId repOpts status iworld
-	    # layout			= repLayout repOpts
+	    # layout			= repLayoutRules repOpts
 		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
-		# editor			= {UIControlSequence| attributes = 'Data.Map'.newMap, controls = controls, direction = Vertical}
-		= (TaskRep (UIControlSequence (layout.Layout.interact prompt editor)) [],iworld)
+		# editor			= {UIControlStack| attributes = 'Data.Map'.newMap, controls = controls}
+		= (TaskRep (UIControlStack (layout.LayoutRules.accuInteract prompt editor)) [],iworld)
 						
 	makeView [ViewWith viewFun] status taskId layout iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

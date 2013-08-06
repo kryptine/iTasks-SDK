@@ -137,7 +137,7 @@ where
 instance registerSDSDependency InstanceNo IWorld
 where
 	registerSDSDependency sdsId instanceNo iworld
-		= addShareRegistration sdsId instanceNo iworld 
+		= addShareRegistration sdsId instanceNo iworld
 
 instance registerSDSChangeDetection IWorld
 where
@@ -148,14 +148,13 @@ where
 		
 instance reportSDSChange InstanceNo IWorld
 where
-	reportSDSChange shareId filterFun iworld
-		= addOutdatedOnShareChange shareId filterFun iworld
+	reportSDSChange sdsId filterFun iworld
+		= addOutdatedOnShareChange sdsId filterFun iworld
 
 instance reportSDSChange Void IWorld
 where
-	reportSDSChange shareId _ iworld
-		= addOutdatedOnShareChange shareId (\_ -> True) iworld
-
+	reportSDSChange sdsId _ iworld
+		= addOutdatedOnShareChange sdsId (\_ -> True) iworld
 
 // serialise Work as dynamic since it contains functions on unique states
 JSONEncode{|Work|} work  = [JSONArray [JSONString "_FUNCTION_", JSONString (base64URLEncode (serialize work))]]

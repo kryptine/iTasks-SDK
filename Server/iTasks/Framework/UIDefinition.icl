@@ -11,76 +11,75 @@ defaultSizeOpts	:: UISizeOpts
 defaultSizeOpts = {width = Nothing, minWidth = Nothing, height = Nothing, minHeight = Nothing, margins = Nothing}
 
 defaultItemsOpts :: [UIControl] -> UIItemsOpts
-defaultItemsOpts items = {items = items,direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing}
+defaultItemsOpts items = {items = items, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls=Nothing,bodyCls=Nothing}
 
 defaultContainer :: ![UIControl] -> UIControl
-defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items) {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
+defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items)
 
 defaultPanel :: ![UIControl] -> UIControl
-defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,hotkeys=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,hotkeys=Nothing,iconCls=Nothing}
 
 defaultWindow :: ![UIControl] -> UIWindow
-defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|title=Nothing,tbar=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,hotkeys=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|title=Nothing,tbar=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,hotkeys=Nothing,iconCls=Nothing}
 
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
 
 uiDefAttributes	:: UIDef -> UIAttributes
-uiDefAttributes (UIControlSequence {UIControlSequence|attributes})		= attributes
-uiDefAttributes (UIActionSet {UIActionSet|attributes})					= attributes
-uiDefAttributes (UIControlGroup {UIControlGroup|attributes})			= attributes
-uiDefAttributes (UIAbstractContainer {UIAbstractContainer|attributes})	= attributes
-uiDefAttributes _														= newMap
+uiDefAttributes (UIControlStack {UIControlStack|attributes})	    = attributes
+uiDefAttributes (UIAttributeSet attributes)					        = attributes
+uiDefAttributes (UISubUI {UISubUI|attributes})	                    = attributes
+uiDefAttributes (UISubUIStack {UISubUIStack|attributes})	        = attributes
+uiDefAttributes _													= newMap
 
 uiDefControls :: UIDef -> [UIControl]
-uiDefControls (UIControlSequence {UIControlSequence|controls})		= map fst controls
-uiDefControls (UIControlGroup {UIControlGroup|controls})			= map fst controls
-uiDefControls (UIAbstractContainer {UIAbstractContainer|controls})	= controls
-uiDefControls (UIFinal (UIViewport iOpts _))						= iOpts.UIItemsOpts.items 
+uiDefControls (UIControlStack {UIControlStack|controls})		    = map fst controls
+uiDefControls (UISubUI {UISubUI|content})	                        = content.UIItemsOpts.items
+uiDefControls (UIFinal (UIViewport content _))						= content.UIItemsOpts.items
 uiDefControls _														= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
-uiDefAnnotatedControls (UIControlSequence {UIControlSequence|controls})		= controls
-uiDefAnnotatedControls (UIControlGroup {UIControlGroup|controls})			= controls
-uiDefAnnotatedControls (UIAbstractContainer {UIAbstractContainer|controls})	= [(c,newMap)\\c <- controls]
-uiDefAnnotatedControls (UIFinal (UIViewport iOpts _))						= [(c,newMap)\\c <- iOpts.UIItemsOpts.items]
-uiDefAnnotatedControls _													= []
+uiDefAnnotatedControls (UIControlStack {UIControlStack|controls})   = controls
+uiDefAnnotatedControls (UISubUI {UISubUI|content})	                = [(c,newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls (UIFinal (UIViewport content _))			    = [(c,newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls _										    = []
 
 uiDefActions :: UIDef -> [UIAction]
-uiDefActions (UIActionSet {UIActionSet|actions})					= actions
-uiDefActions (UIControlGroup {UIControlGroup|actions}) 				= actions
-uiDefActions (UIAbstractContainer {UIAbstractContainer|actions})	= actions
-uiDefActions _														= []
+uiDefActions (UIActionSet actions)	        = actions
+uiDefActions (UISubUI {UISubUI|actions})	= actions
+uiDefActions _								= []
 
 uiDefDirection :: UIDef -> UIDirection
-uiDefDirection (UIControlSequence {UIControlSequence|direction})		= direction
-uiDefDirection (UIControlGroup {UIControlGroup|direction})				= direction
-uiDefDirection (UIAbstractContainer {UIAbstractContainer|direction})	= direction
-uiDefDirection _														= Vertical
+uiDefDirection (UISubUI {UISubUI|content})	                    = content.UIItemsOpts.direction
+uiDefDirection (UIFinal (UIViewport content _))	                = content.UIItemsOpts.direction
+uiDefDirection _											    = Vertical
 
 uiDefWindows :: UIDef -> [UIWindow]
-uiDefWindows (UIAbstractContainer {UIAbstractContainer|windows})		= windows
-uiDefWindows _															= []
+uiDefWindows (UISubUI {UISubUI|windows})		                    = windows
+uiDefWindows _													    = []
 
 uiDefSetAttribute :: String String UIDef -> UIDef
-uiDefSetAttribute key value (UIControlSequence seq=:{UIControlSequence|attributes})
-	= UIControlSequence {UIControlSequence|seq & attributes = put key value attributes}
-uiDefSetAttribute key value (UIActionSet set=:{UIActionSet|attributes})
-	= UIActionSet {UIActionSet|set & attributes = put key value attributes}
-uiDefSetAttribute key value (UIControlGroup group=:{UIControlGroup|attributes})
-	= UIControlGroup {UIControlGroup|group & attributes = put key value attributes}
-uiDefSetAttribute key value (UIAbstractContainer cont=:{UIAbstractContainer|attributes})
-	= UIAbstractContainer {UIAbstractContainer|cont & attributes = put key value attributes}
+uiDefSetAttribute key value (UIAttributeSet attributes)
+	= UIAttributeSet (put key value attributes)
+uiDefSetAttribute key value (UIControlStack stack=:{UIControlStack|attributes})
+	= UIControlStack {UIControlStack|stack & attributes = put key value attributes}
+uiDefSetAttribute key value (UISubUI sub=:{UISubUI|attributes})
+	= UISubUI {UISubUI|sub & attributes = put key value attributes}
+uiDefSetAttribute key value (UISubUIStack stack=:{UISubUIStack|attributes})
+	= UISubUIStack {UISubUIStack|stack & attributes = put key value attributes}
 uiDefSetAttribute key value def = def
 
 uiDefSetDirection :: UIDirection UIDef -> UIDef
-uiDefSetDirection direction (UIControlSequence seq)
-	= UIControlSequence {UIControlSequence|seq & direction = direction}
-uiDefSetDirection direction (UIControlGroup group)
-	= UIControlGroup {UIControlGroup|group & direction = direction}
-uiDefSetDirection direction (UIAbstractContainer cont)
-	= UIAbstractContainer {UIAbstractContainer|cont & direction = direction}
+uiDefSetDirection direction (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & direction = direction}}
 uiDefSetDirection direction def = def
+
+uiDefSetPadding :: Int Int Int Int UIDef -> UIDef
+uiDefSetPadding top right bottom left (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}}
+uiDefSetPadding _ _ _ _ def = def
+
+uiDefSetBaseCls :: String UIDef -> UIDef
+uiDefSetBaseCls baseCls (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & baseCls = Just baseCls}}
+uiDefSetBaseCls _ def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
 encodeUIDefinition (UIFinal (UIViewport iopts opts))	= enc "itwc_viewport" [toJSON iopts, encViewportOpts opts]
@@ -116,10 +115,10 @@ encodeUIControl (UIActionButton sopts aopts opts)		= enc "itwc_actionbutton" [to
 encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sopts, toJSON opts]
 encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts]
 encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts]
-encodeUIControl (UIContainer sopts iopts opts)			= enc "itwc_container" [toJSON sopts, toJSON iopts, toJSON opts] 
-encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts] 
-encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts] 
-encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts] 
+encodeUIControl (UIContainer sopts iopts)			    = enc "itwc_container" [toJSON sopts, toJSON iopts]
+encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts]
+encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts]
+encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts]
 encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
 encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [toJSON sopts, toJSON opts]
 encodeUIControl (UIEditlet sopts opts)					= enc "itwc_edit_editlet" [toJSON sopts, toJSON opts]
@@ -133,7 +132,7 @@ encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UIOryxOpts
-derive JSONEncode UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
+derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
 derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}

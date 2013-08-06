@@ -27,8 +27,10 @@ gDefault{|Dynamic|}		    				= dynamic 42
 gDefault{|Maybe|} fa	    				= Nothing
 
 gDefault{|HtmlTag|}		    				= Html ""
+gDefault{|Map|} fa fb                       = newMap
 
-derive gDefault Either, Void, Map, JSONNode, Timestamp
+//SCARY BUG: When 'Map' is derived programs segfault when used in 'update' task on a shared source
+derive gDefault Either, Void, /*Map,*/ JSONNode, Timestamp
 
 defaultValue :: a | gDefault{|*|} a
 defaultValue = gDefault{|*|}

@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error, Data.Func
 import iTasks.Framework.IWorld, iTasks.Framework.Shared
+from Data.SharedDataSource import class reportSDSChange(..)
 
 derive class iTask SQLValue, SQLDate, SQLTime
 
@@ -33,7 +34,7 @@ where
 	exec _ iworld=:{IWorld|world}
 		# (mbOpen,world)	= openMySQLDb db world
 		= case mbOpen of
-			Error e			= (Error (dynamic e,toString e),  {IWorld|iworld & world = world})
+			Error e			= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 			Ok (cur,con,cxt)
 				# (res,cur)		= queryFun cur
 				# world			= closeMySQLDb cur con cxt world
@@ -41,7 +42,8 @@ where
 					Error e		= (Error (dynamic e,toString e),  {IWorld|iworld & world = world})
 					Ok v		
                         //Trigger share change for all touched ids
-                        # iworld = seqSt (\s w -> queueWork (TriggerSDSChange s,Nothing) w) touchIds {IWorld|iworld & world = world}
+                        //# iworld = seqSt (\s w -> queueWork (TriggerSDSChange s,Nothing) w) touchIds {IWorld|iworld & world = world}
+                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (\Void->True) w) touchIds {IWorld|iworld & world = world}
                         = (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
@@ -69,8 +71,8 @@ execDelete query values cur
 sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values) 
 
-sqlSelectShare :: SQLDatabase SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow] 
-sqlSelectShare db query values = createReadOnlySDSError read
+sqlSelectShare :: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
+sqlSelectShare db name query values = createChangeOnWriteSDS "SQLShares" name read write
 where
 	read iworld=:{IWorld|world}
 		# (mbOpen,world) = openMySQLDb db world
@@ -83,6 +85,8 @@ where
 				| isJust err		= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
 				# world				= closeMySQLDb cur con cxt world
 				= (Ok rows,{IWorld|iworld & world = world})
+
+    write Void iworld = (Ok Void,iworld)
 		
 openMySQLDb :: !SQLDatabase !*World -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*World)
 openMySQLDb db world

@@ -37,7 +37,7 @@ createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!T
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createTopTaskInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createTopTaskInstance :: !(Task a) !ManagementMeta !User !TaskId !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
 * Evaluate a session task instance

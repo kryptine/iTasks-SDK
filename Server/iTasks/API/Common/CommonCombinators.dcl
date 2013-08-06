@@ -73,7 +73,6 @@ from Data.Either				import :: Either
 * @gin False
 */
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a| iTask a & iTask b
-
 /**
 * Infix shorthand for transform combinator
 * 
@@ -109,6 +108,17 @@ from Data.Either				import :: Either
 */
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
+(<@@) infixl 2 :: !(Task a) !(b a) -> Task a | tunev b a & iTask a
+(@@>) infixr 2 :: !(b a) !(Task a) -> Task a | tunev b a & iTask a
+/**
+* 'Sidestep' combinator. This combinator has a similar signature as the core 'step'
+* combinator, but instead of moving forward to a next step, the selected step is executed
+* in parallel with the first task. When the chosen task step becomes stable, it is removed
+* and the actions are enabled again.
+*/
+(>^*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
+sideStep       :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
+
 /**
 * Exception combinator.
 *
@@ -336,20 +346,25 @@ appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
-// Additional tuning shortcuts
-instance tune InWindow		//Indicate that this task is preferred to be placed in a window
-instance tune InContainer	//Indicate that this task is preferred to be placed in a borderless container
-instance tune InPanel		//Indicate that this task is preferred to be placed in a panel with a border
+//Utility functions for defining task steps
+always 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
+never 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
+
+hasValue	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+ifStable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+ifUnstable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+
+ifValue 	:: (a -> Bool) 	(a -> Task b) 	(TaskValue a) -> Maybe (Task b)
+ifCond 		:: Bool (Task b) 				(TaskValue a) -> Maybe (Task b)
 
 //Common derived task steps
-Always			:: Action (Task b)						-> TaskStep a b
-AnyTime 		:: Action ((Maybe a) -> Task b)			-> TaskStep a b
-WithResult 		:: Action (a -> Bool) (a -> Task b)		-> TaskStep a b
-WithValue       :: Action (a -> Task b)                 -> TaskStep a b
-WithoutResult	:: Action (Task b)						-> TaskStep a b
-WhenValid		:: (a -> Bool) (a -> Task b)			-> TaskStep a b
-WhenStable		:: (a -> Task b)						-> TaskStep a b
-Catch			:: (e -> Task b)						-> TaskStep a b | iTask e
-CatchAll		:: (String -> Task b)					-> TaskStep a b
-
+//Always			:: Action (Task b)						-> TaskStep a b
+//AnyTime 		:: Action ((Maybe a) -> Task b)			-> TaskStep a b
+//WithResult 		:: Action (a -> Bool) (a -> Task b)		-> TaskStep a b
+//WithValue       :: Action (a -> Task b)                 -> TaskStep a b
+//WithoutResult	:: Action (Task b)						-> TaskStep a b
+//WhenValid		:: (a -> Bool) (a -> Task b)			-> TaskStep a b
+//WhenStable		:: (a -> Task b)						-> TaskStep a b
+//Catch			:: (e -> Task b)						-> TaskStep a b | iTask e
+//CatchAll		:: (String -> Task b)					-> TaskStep a b
 

@@ -77,25 +77,25 @@ deleteUser userId = update (filter (\acc -> identifyUserAccount acc <> userId)) 
 manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] userAccounts @ identifyUserAccount
-		>>*	[ AnyTime		(Action "New" [])									(\_ -> createUserFlow	@ const False)
-			, WithResult	(ActionEdit) (const True)							(\u -> updateUserFlow u @ const False)
-			, WithResult	(ActionDelete) (const True)							(\u -> deleteUserFlow u @ const False)
-			, AnyTime 		(Action "Import & export/Import CSV file..." [])	(\_ -> importUserFileFlow @ const False)
-			, AnyTime		(Action "Import & export/Export CSV file..." [])	(\_ -> exportUserFileFlow @ const False)
-			, AnyTime		(Action "Import & export/Import demo users" [])		(\_ -> importDemoUsersFlow @ const False)
-			, AnyTime		(ActionQuit)										(\_ -> return True)
+		>>*	[ OnAction		(Action "New" [])									(always (createUserFlow	@ const False))
+			, OnAction 	    (ActionEdit) 						                (hasValue (\u -> updateUserFlow u @ const False))
+			, OnAction      (ActionDelete) 		            					(hasValue (\u -> deleteUserFlow u @ const False))
+			, OnAction      (Action "Import & export/Import CSV file..." [])	(always (importUserFileFlow @ const False))
+			, OnAction      (Action "Import & export/Export CSV file..." [])	(always (exportUserFileFlow @ const False))
+			, OnAction      (Action "Import & export/Import demo users" [])		(always (importDemoUsersFlow @ const False))
+			, OnAction      (ActionQuit)										(always (return True))
 			]
 	) <! id @ const Void
 
 createUserFlow :: Task Void
 createUserFlow =
 		enterInformation ("Create user","Enter user information") []
-	>>*	[ AnyTime		ActionCancel	(\_ -> return Void)
-		, WithResult	ActionOk 		(const True) (\user ->
+	>>*	[ OnAction		ActionCancel	(always (return Void))
+		, OnAction	    ActionOk 		(hasValue (\user ->
 											createUser user
 										>>|	viewInformation "User created" [] "Successfully added new user"
 										>>| return Void
-									)
+									    ))
 		]
 		
 updateUserFlow :: UserId -> Task UserAccount
@@ -104,12 +104,12 @@ updateUserFlow userId
 	>>= \mbAccount -> case mbAccount of 
 		(Just account)
 			=	(updateInformation ("Editing " +++ fromMaybe "Untitled" account.UserAccount.title ,"Please make your changes") [] account
-			>>*	[ AnyTime ActionCancel (\_ -> return account)
-				, WithResult ActionOk (const True)(\newAccount ->
+			>>*	[ OnAction ActionCancel (always (return account))
+				, OnAction ActionOk (hasValue (\newAccount ->
 												set (Just newAccount) (userAccount userId)
 											>>=	viewInformation "User updated" [ViewWith (\(Just {UserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
 											>>| return newAccount
-											)
+											))
 				])
 		Nothing
 			=	(throw "Could not find user details")
@@ -120,11 +120,11 @@ deleteUserFlow userId
 	>>= \mbAccount -> case mbAccount of 
 		(Just account)
 			=	viewInformation "Delete user" [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
-			>>*	[ AnyTime ActionNo	(\_ -> return account)
-				, AnyTime ActionYes	(\_ -> deleteUser userId
+			>>*	[ OnAction ActionNo	(always (return account))
+				, OnAction ActionYes (always (deleteUser userId
 									>>|	viewInformation "User deleted" [ViewWith (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
 									>>| return account
-									)
+									))
 				]
 				
 importUserFileFlow :: Task Void

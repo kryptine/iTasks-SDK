@@ -93,7 +93,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
     afterComponentLayout: function() {
 		var me = this;
 
-    	if(me.map) {
+    	if(me.map && window.google) {
     		google.maps.event.trigger(me.map, 'resize');
     		//Correct center after resize
     		me.setCenter(me.center);	
@@ -106,14 +106,14 @@ Ext.define('itwc.component.edit.GoogleMap',{
 	setCenter: function (center) {
 		var me = this;
 		me.center = center;
-		if(me.rendered) {
+		if(me.rendered && window.google) {
     		me.map.setCenter(new google.maps.LatLng(center[0],center[1]));	
 		}
 	},
 	setMapType: function (mapType) {
 		var me = this;
 		me.mapType = mapType;
-		if(me.rendered) {
+		if(me.rendered && window.google) {
 			me.map.setMapTypeId(me.getMapType(mapType));
 		}
 	},
@@ -129,50 +129,51 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			map = this.map,
 			marker, infoWindow, clickHandler, dragHandler,icon;
 
-        if(def.icon && def.icon[0] == "GoogleMapSimpleIcon" ) { 
-	        icon = "/icons/" + def.icon[1];	
-        } else if(def.icon && def.icon[0] == "GoogleMapComplexIcon" ) { 
-            icon = def.icon[1];
-            icon = new google.maps.MarkerImage("/icons/" + icon.image
-                    , new google.maps.Size(icon.size[0], icon.size[1])
-				    , new google.maps.Point(icon.origin[0], icon.origin[1])
-                    , new google.maps.Point(icon.anchor[0], icon.anchor[1])
-                    );
-        } else {
-            icon = null;
-        }
+        if(me.rendered && window.google) {
+            if(def.icon && def.icon[0] == "GoogleMapSimpleIcon" ) { 
+    	        icon = "/icons/" + def.icon[1];	
+            } else if(def.icon && def.icon[0] == "GoogleMapComplexIcon" ) { 
+                icon = def.icon[1];
+                icon = new google.maps.MarkerImage("/icons/" + icon.image
+                        , new google.maps.Size(icon.size[0], icon.size[1])
+		    		    , new google.maps.Point(icon.origin[0], icon.origin[1])
+                        , new google.maps.Point(icon.anchor[0], icon.anchor[1])
+                        );
+            } else {
+                icon = null;
+            }
 
-        marker = new google.maps.Marker({
-            map : map,
-            position : new google.maps.LatLng(def.position[0],def.position[1]),
-            title : def.title,
-            draggable : def.draggable,
-            icon: icon
-        });
-
-        if(def.infoWindow) {
-            infoWindow = new google.maps.InfoWindow({
-                content : def.infoWindow
+            marker = new google.maps.Marker({
+                map : map,
+                position : new google.maps.LatLng(def.position[0],def.position[1]),
+                title : def.title,
+                draggable : def.draggable,
+                icon: icon
             });
-            clickHandler = function(map,marker,infoWindow) {
-                return function(e) {infoWindow.open(map,marker);};
-            };
-            google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
-        } else {
-            clickHandler = function(markerId) { return function(e) {
-                me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, event: "LEFTCLICK"});
-                };};
-		    google.maps.event.addListener(marker,'click',clickHandler(index));
+
+            if(def.infoWindow) {
+                infoWindow = new google.maps.InfoWindow({
+                    content : def.infoWindow
+                });
+                clickHandler = function(map,marker,infoWindow) {
+                    return function(e) {infoWindow.open(map,marker);};
+                };
+                google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
+            } else {
+                clickHandler = function(markerId) { return function(e) {
+                    me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, event: "LEFTCLICK"});
+                    };};
+		        google.maps.event.addListener(marker,'click',clickHandler(index));
+            }
+
+            if(def.draggable) {
+                dragHandler = function(markerId) { return function(e) {
+                    me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
+                    };};
+
+                google.maps.event.addListener(marker,'dragend', dragHandler(index));
+            }
         }
-
-        if(def.draggable) {
-            dragHandler = function(markerId) { return function(e) {
-                me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
-                };};
-
-            google.maps.event.addListener(marker,'dragend', dragHandler(index));
-        }
-
         this.markers[index] = marker;
 	},
 	updateMarker: function(index, def) {
@@ -180,7 +181,7 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			marker = me.markers[index],
 			icon;
 		
-		if(me.rendered) {
+		if(me.rendered && window.google) {
 			//Update position
 			marker.setPosition(new google.maps.LatLng(def.position[0],def.position[1]));
 			//Update icon
@@ -208,7 +209,9 @@ Ext.define('itwc.component.edit.GoogleMap',{
 	},
 	onDestroy: function() {
 		if(this.map) {
-			google.maps.event.clearInstanceListeners(this.map);
+            if(window.google) {
+			    google.maps.event.clearInstanceListeners(this.map);
+            }
 			delete this.map;
 		}
 	}

@@ -7,7 +7,7 @@ import iTasks.API.Core.SystemTypes
 import iTasks.Framework.Generic
 
 from iTasks.Framework.TaskState			import :: TaskTree
-from iTasks.API.Core.LayoutCombinators	import :: Layout
+from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
 from Data.Map				import :: Map
 
 derive JSONEncode		Task
@@ -40,10 +40,10 @@ derive gEq				Task
 	}
 
 :: TaskRepOpts	=
-	{ useLayout			:: Maybe Layout
-	, afterLayout		:: Maybe (UIDef -> UIDef)
-	, modLayout			:: Maybe (Layout -> Layout)
+	{ useLayout			:: Maybe LayoutRules
+	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
 	, appFinalLayout	:: Bool
+    , noUI              :: Bool
 	}
 	
 :: TaskRep	= NoRep								//For some tasks no external representation is generated
@@ -74,12 +74,8 @@ exception :: !e -> TaskResult a | TC, toString e
 /**
 * Determine the layout function for a rep target
 */
-repLayout :: !TaskRepOpts -> Layout
+repLayoutRules :: !TaskRepOpts -> LayoutRules
 
-/**
-* Determine what function to apply after a layout has been done
-*/
-afterLayout :: !TaskRepOpts -> (UIDef -> UIDef)
 /**
 * Apply the final layout if necessary
 */

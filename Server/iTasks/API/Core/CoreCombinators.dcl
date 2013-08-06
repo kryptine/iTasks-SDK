@@ -4,7 +4,7 @@ definition module iTasks.API.Core.CoreCombinators
 * with which additional combinators can be defined.
 */
 from System.Time    import :: Timestamp
-from iTasks.API.Core.LayoutCombinators import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: Layout
+from iTasks.API.Core.LayoutCombinators import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: SetValueAttribute, :: LayoutRules
 import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.Framework.Generic
 
 derive class iTask ParallelTaskType, WorkOnStatus
@@ -127,10 +127,13 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,
 * or add additional titles, hints and descriptions
 */
-class tune b :: !b !(Task a) -> Task a
+class tune b    :: !b !(Task a) -> Task a
+class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
+
 instance tune	SetLayout				//Set layout algorithm
 instance tune	AfterLayout				//Apply a modification after a layout has been run
 instance tune	ModifyLayout			//Modify the existing layout
+instance tunev  SetValueAttribute a     //Set a meta attribute based on the current task value
 
 /**
 *  Fine tune evaluation behaviour

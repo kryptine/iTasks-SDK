@@ -13,16 +13,16 @@ import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from with
 derive JSONEncode TaskResult, TaskInfo, TaskRep, TaskCompositionType
 derive JSONEncode UIDef, UIAction, UIViewport, UIWindow, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONEncode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer
-derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
+derive JSONEncode UIControlStack, UISubUI, UISubUIStack
+derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, UIOryxOpts
 derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 
 derive JSONDecode TaskResult, TaskInfo, TaskRep, TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIViewport, UIWindow, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONDecode UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer
-derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
+derive JSONDecode UIControlStack, UISubUI, UISubUIStack
+derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, UIOryxOpts
 derive JSONDecode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 
@@ -135,7 +135,7 @@ addOutdatedOnShareChange shareId filterFun iworld
 	# regs				= fromMaybe newMap mbRegs
 	= case get shareId regs of
 		Just outdated=:[_:_]
-			# iworld			= addOutdatedInstances [(outd, Nothing) \\ outd <- (filter filterFun outdated)] iworld
+			# iworld			= addOutdatedInstances [(outd, Nothing) \\ outd <- filter filterFun outdated] iworld
 			# regs				= put shareId (filter (not o filterFun) outdated) regs
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld

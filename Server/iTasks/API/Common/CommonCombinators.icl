@@ -17,16 +17,16 @@ import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Co
 (>>*) task steps = step task steps 
 
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf, WhenStable taskbf]
+(>>=) taska taskbf = step taska [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>!) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf]
+(>>!) taska taskbf = step taska [OnAction ActionContinue (hasValue taskbf)]
 
 (>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskbf = step taska [WhenStable taskbf]
+(>>-) taska taskbf = step taska [OnValue (ifStable taskbf)]
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>|) taska taskb = step taska [WithResult ActionContinue (const True) (const taskb), WhenStable (const taskb)]
+(>>|) taska taskb = step taska [OnAction ActionContinue (hasValue (const taskb)), OnValue (ifStable (const taskb))]
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
@@ -46,11 +46,26 @@ import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Co
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 (@>>) a t = tune a t
 
+(<@@) infixl 2 :: !(Task a) !(b a) -> Task a | tunev b a & iTask a
+(<@@) t a = tunev a t
+
+(@@>) infixr 2 :: !(b a) !(Task a) -> Task a | tunev b a & iTask a
+(@@>) a t = tunev a t
+
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
-try task handler = step task [WhenStable return, Catch handler]
+try task handler = step task [OnValue (ifStable return), OnException handler]
 
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
-catchAll task handler = step task [WhenStable return, CatchAll handler]
+catchAll task handler = step task [OnValue (ifStable return), OnAllExceptions handler]
+
+(>^*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
+(>^*) task steps = sideStep task steps
+
+sideStep :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
+sideStep ta steps = parallel Void [(Embedded,const ta),(Embedded,stepper)] @ (map snd) @? firstRes
+where
+    firstRes (Value [v:_] _) = v
+    stepper l = forever (watch (taskListState l) @? firstRes >>* steps) @? const NoValue
 
 //Helper functions for projections
 projectJust :: (Maybe a) r -> Maybe (Maybe a)
@@ -107,17 +122,17 @@ sequence :: !String ![Task a]  -> Task [a] | iTask a
 sequence _ tasks = seqTasks tasks
 where
 	seqTasks []		= return []
-	seqTasks [t:ts]	= t >>= \a -> seqTasks ts >>= \as -> return [a:as]
+	seqTasks [t:ts]	= t >>- \a -> seqTasks ts >>- \as -> return [a:as]
 
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void [(Embedded,const task),(Embedded,restarter)] <<@ SetLayout (partLayout 0) @? res
+	= parallel Void [(Embedded,const task),(Embedded,restarter)] @? res
 where
-    restarter tlist = (watch (taskListState tlist) @ hd) >>* [WhenValid check (\_ -> restart tlist)]
+    restarter tlist = ((watch (taskListState tlist) @ hd) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
 
-    check (Value x stable)  = stable && not (pred x)
-    check _                 = False
+    check t (Value (Value x stable) _)  = if (stable && not (pred x)) (Just t) Nothing
+    check t _                           = Nothing
 	
 	restart tlist
 		=	get (taskListMeta tlist)
@@ -158,8 +173,8 @@ where
 	= parallel Void
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
-	res (Value [(_,Value (Left a) _),(_,Value (Right b) _)] s)	= Value (a,b) s
-	res _														= NoValue
+	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _)	= Value (a,b) (sa && sb)
+	res _														    = NoValue
 
 feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | descr d & iTask a & iTask b
 feedForward desc taska taskbf = parallel desc
@@ -194,9 +209,12 @@ where
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks
 	= parallel Void
-		[(Embedded,const t) \\ t <- tasks] @ res
+		[(Embedded,const t) \\ t <- tasks] @? res
 where
-	res l	= [v \\ (_,Value v _) <- l]
+	res (Value l _)	= Value [v \\ (_,Value v _) <- l] (foldl allStable True l)
+
+    allStable cur (_,Value _ s) = cur && s
+    allStable cur _             = False
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
@@ -211,9 +229,9 @@ repeatTask task pred a =
 
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= 	( (get share >>- \val -> (wait Void ((=!=) val) share @ const Nothing)
+	= 	( (get share >>- \val -> (wait Void ((=!=) val) share <<@ NoUserInterface @ const Nothing)
           -||-
-          (task val @ Just) <<@ SetLayout (partLayout 1)
+          (task val @ Just)
         ) <! isJust)
 	@?	onlyJust
 
@@ -222,7 +240,7 @@ onlyJust _                  = NoValue
 
 whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchangedWith eq share task
-	= 	((get share >>= \val -> (wait Void (eq val) share @ const Nothing) -||- (task val @ Just) <<@ SetLayout (partLayout 1)) <! isJust)
+	= 	((get share >>= \val -> (wait Void (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
@@ -231,46 +249,33 @@ appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const 
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskFor worker task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} task
 			
-instance tune InWindow
-where tune InWindow task = task <<@ AfterLayout (tweakAttr ('Data.Map'.put CONTAINER_ATTRIBUTE "window"))
-instance tune InContainer
-where tune InContainer task = task <<@ AfterLayout (tweakAttr ('Data.Map'.put CONTAINER_ATTRIBUTE "container"))
-instance tune InPanel
-where tune InPanel task = task <<@ AfterLayout (tweakAttr ('Data.Map'.put CONTAINER_ATTRIBUTE "panel"))
-
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing
 
-Always :: Action (Task b) -> TaskStep a b
-Always a t = OnAction a (\_ -> Just t)
+always :: (Task b) (TaskValue a) -> Maybe (Task b)
+always taskb val = Just taskb
 
-AnyTime :: Action ((Maybe a) -> Task b)	-> TaskStep a b
-AnyTime a f = OnAction a (Just o f o valToMaybe)
-	
-WithResult :: Action (a -> Bool) (a -> Task b) -> TaskStep a b
-WithResult a p f = OnAction a (\tv -> if (maybe False p (valToMaybe tv)) (Just (f (fromJust (valToMaybe tv)))) Nothing)
-//WithResult a p f = OnAction a (\tv -> maybe Nothing (\x -> if (p x) (Just (f x)) Nothing) tv) // TODO: Same as above? Can be eta-reduced...
+never :: (Task b) (TaskValue a) -> Maybe (Task b)
+never taskb val	= Nothing
 
-WithValue :: Action (a -> Task b) -> TaskStep a b
-WithValue a f = OnAction a (maybe Nothing (Just o f) o valToMaybe)
+ifValue :: (a -> Bool) (a -> Task b) (TaskValue a) -> Maybe (Task b)
+ifValue pred ataskb (Value a _) 
+    | pred a 	= Just (ataskb a)
+    | otherwise = Nothing
+ifValue _ _ _ = Nothing
 
-WithoutResult :: Action (Task b) -> TaskStep a b
-WithoutResult a t = OnAction a (\tv -> if (isNothing (valToMaybe tv)) (Just t) Nothing)
-	
-WhenValid :: (a -> Bool) (a -> Task b) -> TaskStep a b
-WhenValid p f = OnValue whenValid
-where
-	whenValid (Value val _)	= if (p val) (Just (f val)) Nothing
-	whenValid _				= Nothing
+hasValue	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+hasValue ataskb (Value a _) = Just (ataskb a)
+hasValue _ _ = Nothing
 
-WhenStable :: (a -> Task b) -> TaskStep a b
-WhenStable f = OnValue whenStable
-where
-	whenStable (Value val True)	= Just (f val)
-	whenStable _				= Nothing
-	
-Catch :: (e -> Task b) -> TaskStep a b | iTask e
-Catch f = OnException f
+ifCond :: Bool (Task b) (TaskValue a) -> Maybe (Task b)
+ifCond True taskb _ = Just taskb
+ifCond False taskb _ = Nothing
 
-CatchAll :: (String -> Task b) -> TaskStep a b
-CatchAll f = OnAllExceptions f
+ifStable :: (a -> Task b) (TaskValue a) -> Maybe (Task b)
+ifStable ataskb (Value a True) = Just (ataskb a)
+ifStable _ _ 				   = Nothing
+
+ifUnstable :: (a -> Task b) (TaskValue a) -> Maybe (Task b)
+ifUnstable ataskb (Value a False) = Just (ataskb a)
+ifUnstable _ _ 				   = Nothing

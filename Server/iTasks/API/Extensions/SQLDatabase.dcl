@@ -36,12 +36,12 @@ execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Void,*cur) | SQ
 /**
 * Run a single query and fetch all results
 */
-sqlExecuteSelect	:: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
+sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 
-/** 
+/**
 * Read only query that is run each time the share is read.
 *
 * Note: Although it is possible to do other queries than just selects,
 * this is a bad idea. You never know how many times the query will be executed
 */
-sqlSelectShare	:: SQLDatabase SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
+sqlSelectShare	:: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]

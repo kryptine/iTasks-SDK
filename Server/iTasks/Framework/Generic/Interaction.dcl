@@ -4,7 +4,7 @@ from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.Framework.UIDiff import :: UIControl, :: UIAttributes
 from iTasks.API.Core.SystemTypes import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue
-from iTasks.API.Core.LayoutCombinators import :: Layout
+from iTasks.API.Core.LayoutCombinators import :: LayoutRules
 
 from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat
 from iTasks.Framework.Generic.Defaults import generic gDefault
@@ -68,7 +68,7 @@ derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 
 //Wrapper functions for generating editors
-visualizeAsEditor :: !(VerifiedValue a) !TaskId !Layout !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a
+visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a
 updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| gUpdate{|*|} a
 
 //Support types for generating editors
@@ -77,7 +77,7 @@ updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| 
 	, optional			:: !Bool												// Create optional form fields
 	, disabled			:: !Bool												// If true the editor is not editable
 	, taskId			:: !String												// The id of the task the visualisation belongs to
-	, layout			:: !Layout												// Layout for composite structures
+	, layout			:: !LayoutRules											// Layout rules for composite structures
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 

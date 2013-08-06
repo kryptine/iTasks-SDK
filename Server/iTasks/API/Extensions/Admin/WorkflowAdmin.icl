@@ -102,21 +102,27 @@ workflowDashboard
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
-		] <<@ SetLayout layout 
-	>>* [WhenValid (\results -> isValue (snd (results !! 1))) (\_ -> return Void)]
+		] <<@ ArrangeCustom layout <<@ FullScreen
+	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return Void))]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
-	
-	layout = customMergeLayout (sideMerge LeftSide 260 (sideMerge TopSide 30 (sideMerge TopSide 200 tabbedMerge)))
+
+    layout {UISubUIStack|attributes,subuis=[startWork,dashBoard,manageWork:activeWork]}
+        = arrangeWithSideBar 0 LeftSide 260 {UISubUIStack|attributes=attributes,subuis=[startWork,mainArea]}
+    where
+        mainArea = arrangeWithSideBar 0 TopSide 30 (toSubUIStack [dashBoard,workArea])
+        workArea = arrangeWithSideBar 0 TopSide 200 (toSubUIStack [manageWork,tabsArea])
+        tabsArea = arrangeWithTabs (toSubUIStack activeWork)
+    layout stack = autoLayoutSubUIStack stack
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
 	=	(viewSharedInformation attr [ViewWith view] currentUser	
-			>>* [AnyTime (Action "Shutdown" [ActionIcon "close"])	(\_ -> shutDown @ (const Nothing))
-				,AnyTime (Action "Log out" [ActionIcon "logout"])	(\_ -> return (Just Logout))
+			>>* [OnAction (Action "Shutdown" [ActionIcon "close"])	(always (shutDown @ (const Nothing)))
+				,OnAction (Action "Log out" [ActionIcon "logout"])	(always (return (Just Logout)))
 				]															
-		) <! isJust	<<@ AfterLayout (uiDefSetDirection Horizontal)
+		) <! isJust	
 	@	fromJust	
 where
 	view user	= "Welcome " +++ toString user		
@@ -124,17 +130,17 @@ where
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list
-	= (chooseWorkflow >&> viewAndStart) <<@ SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 200 sequenceMerge prompt (reverse defs)}
+	= (chooseWorkflow >&> viewAndStart) <<@ (ArrangeWithSideBar 1 BottomSide 200)
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [WithResult (Action "Start Task" [ActionKey (unmodified KEY_ENTER)]) (const True) (startWorkflow list)]
+		>>* [OnAction (Action "Start Task" [ActionKey (unmodified KEY_ENTER)]) (hasValue (startWorkflow list))]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=	enterSharedChoice [Att (Title "Tasks"), Att IconEdit] [ChooseWith (ChooseFromTree group) id] allowedWorkflows <<@ AfterLayout (tweakControls (map noAnnotation))
+	=	enterSharedChoice [Att (Title "Tasks"), Att IconEdit] [ChooseWith (ChooseFromTree group) id] allowedWorkflows //<<@ AfterLayout (tweakControls (map noAnnotation))
 where
     group workflows = (seq (map insertWorkflow workflows) [])
     where
@@ -176,8 +182,8 @@ where
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
 	(	enterSharedChoice Void [ChooseWith ChooseFromGrid snd] processes @ fst
-	>>* [WithResult (Action "Open" [ActionTrigger DoubleClick]) (const True) (\taskId -> openTask taskList taskId @ const OpenProcess)
-		,WithResult (Action "Delete" []) (const True) (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess)]
+	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
+		,OnAction (Action "Delete" []) (hasValue (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)

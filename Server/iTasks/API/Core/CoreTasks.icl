@@ -114,9 +114,9 @@ where
 		= (v,mask,ts,iworld)
 
 	visualizeView taskId repOpts value=:(v,vmask,vver) desc valueAttr iworld
-		# layout	= repLayout repOpts
+		# layout	= repLayoutRules repOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
-		# uidef		= (afterLayout repOpts) (UIControlSequence (layout.Layout.interact (toPrompt desc) {UIControlSequence|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls,direction=Vertical}))
+		# uidef		= UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls})
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
 appWorld :: !(*World -> *World) -> Task Void

@@ -14,8 +14,8 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
-derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIContainerOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
-derive gEq UIDef, UIControlSequence, UIActionSet, UIControlGroup, UIAbstractContainer, UIAction
+derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
+derive gEq UIDef, UIControlStack, UISubUI, UISubUIStack, UIAction
 derive gEq UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 
 derive JSONEncode UITreeNode, UIActionOpts, UISizeOpts, UISideSizes, UIMinSize, UISize, UIGoogleMapOptions, UIGoogleMapMarker
@@ -111,8 +111,8 @@ diffControls path event differs c1 c2
 		// Editlets have custom diff functions which are passed in separately
 		(UIEditlet sOpts1 opts1, UIEditlet sOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2, diffEditletOpts path differs opts1 opts2]
-		(UIContainer sOpts1 iOpts1 opts1, UIContainer sOpts2 iOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffOpts opts1 opts2]
+		(UIContainer sOpts1 iOpts1, UIContainer sOpts2 iOpts2)
+			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2]
 		(UIPanel sOpts1 iOpts1 opts1, UIPanel sOpts2 iOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffPanelOpts path event differs opts1 opts2]
 		(UIFieldSet sOpts1 iOpts1 opts1, UIFieldSet sOpts2 iOpts2 opts2)
@@ -190,6 +190,8 @@ diffItemsOpts path event differs opts1 opts2
 	| opts1.UIItemsOpts.halign =!= opts2.UIItemsOpts.halign			= DiffImpossible
 	| opts1.UIItemsOpts.valign =!= opts2.UIItemsOpts.valign			= DiffImpossible
 	| opts1.UIItemsOpts.padding =!= opts2.UIItemsOpts.padding		= DiffImpossible
+	| opts1.UIItemsOpts.baseCls =!= opts2.UIItemsOpts.baseCls       = DiffImpossible
+	| opts1.UIItemsOpts.bodyCls =!= opts2.UIItemsOpts.bodyCls       = DiffImpossible
 	| otherwise
 		= DiffPossible (diffItems path event differs opts1.UIItemsOpts.items opts2.UIItemsOpts.items)
 
@@ -254,8 +256,6 @@ diffPanelOpts path event differs opts1 opts2
 where
 	impossible	=  opts1.UIPanelOpts.frame <> opts2.UIPanelOpts.frame
 				|| opts1.UIPanelOpts.iconCls <> opts2.UIPanelOpts.iconCls
-				|| opts1.UIPanelOpts.baseCls <> opts2.UIPanelOpts.baseCls
-				|| opts1.UIPanelOpts.bodyCls <> opts2.UIPanelOpts.bodyCls
 				|| (isJust opts1.UIPanelOpts.tbar && isNothing opts2.UIPanelOpts.tbar)	//Can only update menu items, not create a menubar suddenly
 				|| (isNothing opts1.UIPanelOpts.tbar && isJust opts2.UIPanelOpts.tbar)
 				
@@ -273,8 +273,6 @@ where
 	impossible	=  opts1.UIWindowOpts.focusTaskId	=!= opts2.UIWindowOpts.focusTaskId //TODO Make more possible on client
 				|| opts1.UIWindowOpts.closeTaskId	=!= opts2.UIWindowOpts.closeTaskId
 				|| opts1.UIWindowOpts.iconCls		=!= opts2.UIWindowOpts.iconCls
-				|| opts1.UIWindowOpts.baseCls		=!= opts2.UIWindowOpts.baseCls
-				|| opts1.UIWindowOpts.bodyCls		=!= opts2.UIWindowOpts.bodyCls
 
 	titleUpd	= if (opts1.UIWindowOpts.title == opts2.UIWindowOpts.title) [] [("setTitle",[toJSON opts2.UIWindowOpts.title])]
 	hotkeyUpd	= diffHotkeys (fromMaybe [] opts1.UIWindowOpts.hotkeys) (fromMaybe [] opts2.UIWindowOpts.hotkeys)

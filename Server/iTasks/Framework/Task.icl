@@ -7,23 +7,21 @@ import iTasks.API.Core.SystemTypes
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction
 
 from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: SessionInfo(..)
-from iTasks.API.Core.LayoutCombinators	import :: Layout(..), autoLayout
+from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRules
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts rep) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
 		(Error (e,s), iworld)					= (ExceptionResult e s, iworld)
 
 	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts rep) state, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
 		Nothing	= (exception "Corrupt task result", iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
-
-	rep = TaskRep (UIControlGroup {UIControlGroup|attributes=newMap,controls=[],direction=Vertical,actions=[]}) []
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
@@ -62,13 +60,11 @@ toRefresh (RefreshEvent mbNo)	= RefreshEvent mbNo
 exception :: !e -> TaskResult a | TC, toString e
 exception e = ExceptionResult (dynamic e) (toString e)
 
-repLayout :: !TaskRepOpts -> Layout
-repLayout {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayout useLayout)
-
-afterLayout :: !TaskRepOpts -> (UIDef -> UIDef)
-afterLayout {TaskRepOpts|afterLayout} = fromMaybe id afterLayout
+repLayoutRules :: !TaskRepOpts -> LayoutRules
+repLayoutRules {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
 
 finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
-finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep (UIFinal ((repLayout repOpts).Layout.final def)) parts
+finalizeRep repOpts=:{TaskRepOpts|noUI=True} _ = NoRep
+finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep (UIFinal ((repLayoutRules repOpts).LayoutRules.layoutFinal def)) parts
 finalizeRep repOpts rep = rep
 

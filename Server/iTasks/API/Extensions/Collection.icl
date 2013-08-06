@@ -7,9 +7,9 @@ import iTasks
 manageCollection :: !d !String (c -> i) (Shared [c]) -> Task (Maybe i) | descr d & iTask c & iTask i
 manageCollection desc itemname identify collection
 	= manageCollectionWith desc (selectItem Void) (viewItem (Title ("Details of " +++ itemname)))
-		[AnyTime ActionNew (\_ -> addItem (Title ("Add " +++ itemname)) collection identify)
-		,WithResult ActionEdit (const True) (editItem ("Edit " +++ itemname) collection (itemShare identify) identify)
-		,WithResult ActionDelete (const True) (deleteItem ("Delete " +++ itemname,"Are you sure you want to delete the following " +++ itemname +++ "?") collection (itemShare identify) identify)
+		[OnAction ActionNew (always (addItem (Title ("Add " +++ itemname)) collection identify))
+		,OnAction ActionEdit (hasValue (editItem ("Edit " +++ itemname) collection (itemShare identify) identify))
+		,OnAction ActionDelete (hasValue (deleteItem ("Delete " +++ itemname,"Are you sure you want to delete the following " +++ itemname +++ "?") collection (itemShare identify) identify))
 		]
 		identify
 		(itemShare identify)
@@ -60,8 +60,8 @@ viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (ite
 addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | descr d & iTask i & iTask c
 addItem desc collection identify
 	=	enterInformation desc []
-	>>*	[AnyTime ActionCancel (\_ -> return Nothing)
-		,WithResult ActionOk (const True) (\item -> update (\l -> l ++ [item]) collection >>| return (Just (identify item)))
+	>>*	[OnAction ActionCancel (always (return Nothing))
+		,OnAction ActionOk (hasValue (\item -> update (\l -> l ++ [item]) collection >>| return (Just (identify item))))
 		]
 
 editItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | descr d & iTask c & iTask i
@@ -70,18 +70,18 @@ editItem desc collection itemShare identify i
 	>>= \mbItem -> case mbItem of
 			Nothing		= (return Nothing)
 			(Just item)	=	updateInformation desc [] item
-						>>*	[AnyTime ActionCancel (\_ -> return Nothing)
-							,WithResult ActionOk (const True) (\item` -> 
+						>>*	[OnAction ActionCancel (always (return Nothing))
+							,OnAction ActionOk (hasValue (\item` -> 
 													update (\l -> [if (identify c === i) item` c \\ c <- l ]) collection
 													>>| return (Just i)
-												 )
+												 ))
 							]
 
 deleteItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | descr d & iTask c & iTask i
 deleteItem desc collection itemShare identify i
 	=	viewSharedInformation desc [] (itemShare collection i)
-	>>*	[AnyTime ActionNo (\_ -> return Nothing)
-		,AnyTime ActionYes (\_ -> update (\l -> [c \\ c <- l | identify c =!= i]) collection >>| return Nothing)
+	>>*	[OnAction ActionNo (always (return Nothing))
+		,OnAction ActionYes (always (update (\l -> [c \\ c <- l | identify c =!= i]) collection >>| return Nothing))
 		]
 
 

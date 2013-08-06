@@ -16,7 +16,7 @@ import Sapl.Linker.LazyLinker, Sapl.Target.JS.CodeGeneratorJS, iTasks.Framework.
 
 import System.Time, System.File, System.FilePath
 
-from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlSequence, :: UIActionSet, :: UIControlGroup, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UIAbstractContainer, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
+from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlStack, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UISubUI, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from iTasks.API.Core.LayoutCombinators import mergeAttributes, setMargins
 
 //* EmailAddress
@@ -1633,39 +1633,37 @@ where
 	
 instance descr Void
 where
-	toPrompt _ = {UIControlSequence|attributes = newMap, controls =[], direction = Vertical}
+	toPrompt _ = UIAttributeSet newMap
 
 instance descr String
 where
-	toPrompt prompt = {UIControlSequence|attributes = newMap, controls = [(stringDisplay prompt,newMap)], direction = Vertical}
+	toPrompt prompt = UIControlStack {UIControlStack|attributes = newMap, controls = [(stringDisplay prompt,newMap)]}
 	
-instance descr (!String,!String) 
+instance descr (!String,!String)
 where
-	toPrompt (title,prompt) = {UIControlSequence|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)], direction = Vertical}
+	toPrompt (title,prompt) = UIControlStack {UIControlStack|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)]}
 
 instance descr (!Icon,!String,!String)
 where
-	toPrompt (icon,title,prompt) = {UIControlSequence|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
-								   ,controls = [(stringDisplay prompt,newMap)]
-								   ,direction = Vertical}
-//instance descr (!Icon,!Title)
-//where toPrompt (icon,title)	= (fromList [(TITLE_ATTRIBUTE,toString title),(ICON_ATTRIBUTE, toString icon)],[],Vertical)
+	toPrompt (icon,title,prompt) = UIControlStack
+        {UIControlStack|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
+	    ,controls = [(stringDisplay prompt,newMap)]}
 
 instance descr Title
 where
-	toPrompt (Title title) = {UIControlSequence|attributes = put TITLE_ATTRIBUTE title newMap, controls = [], direction = Vertical}
+	toPrompt (Title title) = UIAttributeSet (put TITLE_ATTRIBUTE title newMap)
 	
 instance descr Hint
 where
-	toPrompt (Hint hint) = {UIControlSequence|attributes = put HINT_ATTRIBUTE hint newMap, controls = [], direction = Vertical}
+	toPrompt (Hint hint) = UIAttributeSet (put HINT_ATTRIBUTE hint newMap)
 	
 instance descr Icon
 where
-	toPrompt icon = {UIControlSequence|attributes = put ICON_ATTRIBUTE (toString icon) newMap, controls = [], direction = Vertical}
+	toPrompt icon = UIAttributeSet (put ICON_ATTRIBUTE (toString icon) newMap)
 
 instance descr Attribute
 where
-	toPrompt (Attribute k v) = {UIControlSequence| attributes = put k v newMap, controls = [], direction = Vertical}
+	toPrompt (Attribute k v) = UIAttributeSet (put k v newMap)
 	
 instance descr Att
 where
@@ -1673,13 +1671,19 @@ where
 	
 instance descr [d] | descr d
 where
-	toPrompt list = foldl merge {UIControlSequence| attributes = newMap, controls = [], direction = Vertical} (map toPrompt list)
-	where
-		merge p1 p2  = {UIControlSequence
-					   |attributes = mergeAttributes p1.UIControlSequence.attributes p2.UIControlSequence.attributes
-					   ,controls = p1.UIControlSequence.controls ++ p2.UIControlSequence.controls
-					   ,direction = p1.UIControlSequence.direction
-					   }
+	toPrompt list = UIAttributeSet (foldl mergeAttributes newMap [att \\ (UIAttributeSet att) <- (map toPrompt list)])
+
+
+derive JSONEncode		Icon
+derive JSONDecode		Icon
+derive gDefault			Icon
+derive gEq				Icon
+derive gVisualizeText	Icon
+derive gEditMeta		Icon
+derive gUpdate			Icon
+derive gVerify			Icon
+
+gEditor{|Icon|} _ (Icon icon,msk,ver) vst = (NormalEditor [(UIIcon defaultSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,newMap)], vst)
 
 // Generic instances for common library types
 derive JSONEncode		Map, Either, HtmlTag, HtmlAttr

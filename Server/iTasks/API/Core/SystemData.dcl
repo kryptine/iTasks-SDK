@@ -18,7 +18,7 @@ from System.FilePath						import :: FilePath
 */
 sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
-//PREDEFINED SHARES 
+//PREDEFINED SHARES
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime

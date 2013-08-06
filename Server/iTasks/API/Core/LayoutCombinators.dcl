@@ -1,65 +1,95 @@
 definition module iTasks.API.Core.LayoutCombinators
 
 import iTasks.API.Core.SystemTypes
-import iTasks.Framework.UIDefinition
+from iTasks.API.Core.CoreCombinators import class tune
 
 from iTasks.Framework.Task import :: TaskCompositionType
 from iTasks.Framework.TaskState import :: TIMeta
+import iTasks.Framework.UIDefinition
 
 from Data.Maybe import :: Maybe
 
 // Definition of a layout as collection of combination functions
-:: Layout =
-	{ editor	:: UIControlSequence -> UIAnnotatedControls									//Combine multiple controls in editors
-	, interact	:: UIControlSequence UIControlSequence -> UIControlSequence					//Combine the prompt and editor of an interact
-	, step		:: UIDef [UIAction] -> UIDef												//Combine current definition with the step actions
-	, parallel	:: UIControlSequence [UIDef] -> UIDef										//Combine the promp and parts of a parallel composition
-	, workOn	:: UIDef TIMeta -> UIDef													//When a detached task is worked on 
-	, final		:: UIDef -> UIViewport														//Last touches to the composition
+:: LayoutRules =
+	{ accuInteract	:: UIDef UIControlStack                 -> UIControlStack       //Combine the prompt and editor of an interact
+	, accuStep		:: UIDef [UIAction]                     -> UIDef				//Combine current definition with the step actions
+	, accuParallel	:: UIDef [UIDef]                        -> UIDef		        //Combine the promp and parts of a parallel composition
+	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		        //When a detached task is worked on
+
+    , layoutSubEditor	   :: UIControlStack               -> UIAnnotatedControls	//Combine multiple controls in editors
+    , layoutControlStack   :: UIControlStack               -> UISubUI              //Lay out the controls of a control stack to create a sub-user interface
+    , layoutSubUIStack     :: UISubUIStack                 -> UISubUI              //Combine a stack of sub-user interfaces into one
+	, layoutFinal	       :: UIDef                        -> UIViewport	        //Last touches to the composition
 	}
 
-// When the multiple parts of a parallel combinator need to be merged into a single definition
-// we call it a parallel merger
-:: ParallelLayout :== UIControlSequence [UIDef] -> UIDef
+:: UIControlCombinator  :== UIControlStack -> UISubUI
+:: SubUICombinator      :== UISubUIStack -> UISubUI
 
 // These types are used to specify modifications to layouts
-:: SetLayout	= SetLayout Layout
+:: SetLayout	= SetLayout LayoutRules
 :: AfterLayout	= AfterLayout (UIDef -> UIDef)
-:: ModifyLayout	= ModifyLayout (Layout -> Layout)
+:: ModifyLayout	= ModifyLayout (LayoutRules -> LayoutRules)
+
+:: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
 /**
 * This is a layout that aims to automatically determine a simple, but
 * functional and visually pleasing layout by following some simple layout heuristics.
 */
-autoLayout :: Layout
+autoLayoutRules :: LayoutRules
+
 //Partial layouts of autolayout
-autoEditorLayout		:: UIControlSequence -> UIAnnotatedControls
-autoInteractionLayout	:: UIControlSequence UIControlSequence -> UIControlSequence
-autoStepLayout			:: UIDef [UIAction]-> UIDef
-autoParallelLayout		:: UIControlSequence [UIDef] -> UIDef
-autoWorkOnLayout		:: UIDef TIMeta -> UIDef
-autoFinalLayout			:: UIDef -> UIViewport
+autoAccuInteract        :: UIDef UIControlStack -> UIControlStack
+autoAccuStep            :: UIDef [UIAction]-> UIDef
+autoAccuParallel        :: UIDef [UIDef] -> UIDef
+autoAccuWorkOn          :: UIDef TIMeta -> UIDef
 
-/**
-* This layout hides ui controls, but accumulates actions and attributes.
-*/
-hideLayout :: Layout
-/**
-* Use the gui of a specific part, but keep attributes and actions of all parts
-*/
-partLayout :: Int -> Layout
-/**
-* Use a custom function for merging parallel combinations
-*/
-customMergeLayout :: ParallelLayout -> Layout
+autoLayoutSubEditor    :: UIControlStack -> UIAnnotatedControls
+autoLayoutControlStack :: UIControlStack -> UISubUI
+autoLayoutSubUIStack   :: UISubUIStack -> UISubUI
+autoLayoutFinal        :: UIDef -> UIViewport
 
-sequenceMerge	:: ParallelLayout
-sideMerge		:: UISide Int ParallelLayout -> ParallelLayout
-tabbedMerge		:: ParallelLayout
+//Placement tuning types
+:: InWindow         = InWindow          //Indicate that a task should be put in a window
+:: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
+:: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
+:: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
 
-//Shorthands for layouts with custom parallel mergers
-tabbedLayout				:== customMergeLayout tabbedMerge 
-sideLayout side size rest	:== customMergeLayout (sideMerge side size rest)
+instance tune InWindow
+instance tune InPanel
+instance tune InContainer
+instance tune FullScreen
+
+//Attribute tuning types
+instance tune Title
+instance tune Icon
+
+:: NoUserInterface  = NoUserInterface   //Don't create a user interface for this task
+instance tune NoUserInterface
+
+:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
+instance tune ForceLayout
+
+//Alternative Sub-UI Combinators and their layout tuning types
+:: ArrangeVertical = ArrangeVertical
+instance tune ArrangeVertical
+arrangeVertical         ::                      SubUICombinator
+
+:: ArrangeHorizontal = ArrangeHorizontal
+instance tune ArrangeHorizontal
+arrangeHorizontal       ::                      SubUICombinator
+
+:: ArrangeWithTabs = ArrangeWithTabs
+instance tune ArrangeWithTabs
+arrangeWithTabs         ::                      SubUICombinator
+
+:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int
+instance tune ArrangeWithSideBar
+arrangeWithSideBar      :: !Int !UISide !Int -> SubUICombinator
+
+:: ArrangeCustom = ArrangeCustom SubUICombinator
+instance tune ArrangeCustom
+toSubUIStack :: [UISubUI] -> UISubUIStack
 
 //Modifiers on interface definitions
 setSize			:: !UISize	!UISize			!UIControl -> UIControl
@@ -105,24 +135,12 @@ toContainer		:: !UIControl -> UIControl
 //Predefined panels
 buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
 
+mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
+
 //Predefined action placement
 actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
-
-
-//Partial operations
-layoutControls	:: UIDef -> UIDef
-
-//Util
-defToContainer	:: UIDef -> UIControl
-defToPanel		:: UIDef -> UIControl
-defToControl	:: UIDef -> UIControl
-defToWindow		:: UIDef -> UIWindow
-
-mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
-
-appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
 tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
 tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 

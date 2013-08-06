@@ -13,10 +13,11 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 :: TIMeta =
 	{ instanceNo	:: !InstanceNo			//Unique global identification
 	, session		:: !Maybe SessionInfo	//Set for task instances that are linked to user sessions
-	, parent		:: !InstanceNo		
+	, listId        :: !TaskId              //Reference to parent tasklist
 	, worker		:: !Maybe User			//Identity of the user working on this instance (this determines the value of the currentUser share)
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
+    , attributes    :: !Map String String
 	}
 :: SessionInfo =
 	{ sessionId		:: SessionId

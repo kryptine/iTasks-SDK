@@ -73,8 +73,8 @@ where
 		 	(viewTitle "iTasks Example Collection"
 		||-
 		 	enterInformation ("Login","Enter your credentials and login or press continue to remain anonymous") [])
-		>>* [WithResult (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (const True) (browseAuthenticated examples)
-			,Always (Action "Continue" []) (browseAnonymous examples)
+		>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated examples))
+			,OnAction (Action "Continue" []) (always (browseAnonymous examples))
 			])
 	
 	browseAuthenticated examples {Credentials|username,password}
@@ -91,10 +91,8 @@ where
 
 undef = undef
 
-always t = const (Just t)
-
-hasValue  tf (Value v _) = Just (tf v)
-hasValue _ _ = Nothing
+//hasValue  tf (Value v _) = Just (tf v)
+//hasValue _ _ = Nothing
 
 getValue (Value v _) = v
 
@@ -126,9 +124,6 @@ getUserName :: User -> String
 getUserName u = toString u
 //getUserName (AuthenticatedUser id _ (Just name)) = name +++ id
 //getUserName _ = "Anonymous"
-
-(>||) infixl 1 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
-(>||) ta tb = ta >>* [WhenStable (const tb)]
 
 //* The example tasks are colelcted in categories:
 
@@ -474,7 +469,7 @@ where
 	toV text 			= Note text
 	fromV _ (Note text) = text
 
-showStatistics sharedFile _  = noStat <<@ Window
+showStatistics sharedFile _  = noStat <<@ InWindow
 where
 	noStat :: Task Void
 	noStat	=			viewInformation Void [] Void
@@ -486,7 +481,7 @@ where
  						]
 
 
-replace cmnd sharedFile _ = noReplace cmnd <<@ Window
+replace cmnd sharedFile _ = noReplace cmnd <<@ InWindow
 where
 	noReplace :: Replace -> Task Void
 	noReplace cmnd 
@@ -652,8 +647,8 @@ tictactoe_for_1 my_turn sharedGameSt
 	= (viewSharedInformation "Board:" [ViewWith (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
 where
 	play= (updateSharedInformation "Play:" [UpdateWith Hidden (\gameSt _ -> gameSt)] sharedGameSt)
-	      >>* [ WhenValid game_over declare_winner
-              , WhenValid on_turn   make_a_move
+	      >>* [ OnValue (ifValue game_over declare_winner)
+              , OnValue (ifValue on_turn   make_a_move)
               ]
 
 	game_over {board}

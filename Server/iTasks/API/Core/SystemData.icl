@@ -42,9 +42,12 @@ where
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = mapRead readPrj currentProcesses
+topLevelTasks = mapRead readPrj (currentProcesses|+|currentTopTask)
 where
-	readPrj items = {TaskList|listId = TopLevelTaskList, items = items}
+	readPrj (items,taskId) = {TaskList|listId = TopLevelTaskList, items = items, active = activeIndex 0 taskId items}
+
+    activeIndex _ _ [] = Nothing
+    activeIndex i t=:(TaskId no1 _) [{TaskListItem|taskId=TaskId no2 _}:xs] = if (no1 == no2) (Just i) (activeIndex (i+1) t xs)
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
 currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | isSession m]) (toReadOnly taskInstances)
@@ -67,8 +70,8 @@ isSession {TIMeta|session=Just _}	= True
 isSession _						 	= False
 
 toTaskListItem :: !TIMeta -> TaskListItem a 
-toTaskListItem {TIMeta|instanceNo,progress,management}
-	= {taskId = TaskId instanceNo 0, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
+toTaskListItem {TIMeta|instanceNo,listId,progress,management,attributes}
+	= {taskId = TaskId instanceNo 0, listId = listId, value = NoValue, progressMeta = Just progress, managementMeta = Just management, attributes = attributes}
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\iworld=:{currentUser} -> (currentUser,iworld))

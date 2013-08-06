@@ -29,7 +29,7 @@ from Data.Map 				import qualified get
 from Text.HTML 				import class html
 from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld			import :: IWorld
-from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlSequence, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
+from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlStack, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from iTasks.Framework.Task				import :: Task, :: TaskId
 from iTasks.Framework.Generic				import class iTask
 from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
@@ -37,7 +37,7 @@ from iTasks.Framework.Generic.Visualization	import generic gVisualizeText, :: Vi
 from iTasks.Framework.Generic.Defaults		import generic gDefault
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.Framework.ClientInterface	import :: JSWorld, :: JSPtr
-from iTasks.API.Core.LayoutCombinators	import :: Layout
+from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
 
 //****************************************************************************//
 // Common data types that have specialized user interfaces
@@ -487,7 +487,6 @@ instance <			TaskId
 	, stable			:: !Stability				//* Is a maintask stable
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
-	, latestAttributes	:: !Map String String		//* User interface attributes of latest execution
 	}
 
 //* Tasks can have three levels of priority
@@ -507,19 +506,22 @@ instance toString (TaskListId s)
 :: TaskList a =
 	{ listId	:: !(TaskListId a)
 	, items		:: ![TaskListItem a]
+    , active    :: !Maybe Int
 	}
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
+    , listId            :: !TaskId
 	, value				:: !TaskValue a
 	, managementMeta	:: !Maybe ManagementMeta	//Only for detached tasks
 	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
+	, attributes	    :: !Map String String		//UI Attributes of latest execution
 	}
 
 :: SharedTaskList a	:==	ReadOnlyShared (TaskList a)
 
 :: ParallelTaskType	
-	= Embedded 
+	= Embedded
 	| Detached !ManagementMeta
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
@@ -742,6 +744,7 @@ VALID_ATTRIBUTE			:== "valid"
 ERROR_ATTRIBUTE			:== "error"
 LABEL_ATTRIBUTE			:== "label"
 ICON_ATTRIBUTE			:== "icon"
+SCREEN_ATTRIBUTE        :== "screen"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
 
@@ -752,21 +755,17 @@ CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions
 
 :: Title			= Title !String
 :: Hint				= Hint !String
-:: InWindow			= InWindow
-:: InContainer		= InContainer
-:: InPanel			= InPanel
 
 :: Icon				= Icon !String
 					| IconView
 					| IconEdit
 
 
-Window :== InWindow
 
 //Make the UI definition of the interaction prompt
 class descr d
 where
-	toPrompt		:: !d -> UIControlSequence
+	toPrompt		:: !d -> UIDef
 
 instance descr Void							//No prompt
 instance descr String						//Simple instruction
@@ -780,6 +779,17 @@ instance descr Attribute
 
 instance descr Att
 instance descr [d] | descr d
+
+derive JSONEncode		Icon
+derive JSONDecode		Icon
+derive gDefault			Icon
+derive gEq				Icon
+derive gVisualizeText	Icon
+derive gEditor          Icon	
+derive gEditMeta		Icon
+derive gUpdate			Icon
+derive gVerify			Icon
+
 
 
 //Task evaluation tuning directives, for increasing performance

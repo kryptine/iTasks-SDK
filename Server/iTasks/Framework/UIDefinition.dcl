@@ -14,7 +14,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 //TODO:
 //- Multi select in grids
 //- Multi select in trees
-// 
+
 /**
 * Rendering a user interface for a composition of is a staged process in which
 * the raw UI material provided by basic tasks is grouped by layout policies to reach
@@ -23,35 +23,28 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 * The UIDef type has contstructors for the various types of partial UI definitions.
 */
 :: UIDef
-	= UIControlSequence 	!UIControlSequence										//Components from an interact task
-	| UIActionSet			!UIActionSet											//Actions from a chooseAction task
-	| UIControlGroup		!UIControlGroup											//Components from a single or multiple interacts grouped by a shared step combinator
-	| UIAbstractContainer	!UIAbstractContainer									//A decorated, layed out set of controls that can be put in a container 
-	| UIFinal				!UIViewport												//The final viewport
+    = UIAttributeSet        !UIAttributes           //A set of attributes, for example from tuning a hidden task
+	| UIActionSet			!UIActions              //A set of actions, for example from a chooseAction task
+	| UIControlStack 	    !UIControlStack         //A stack of anotated controls from one or more interact tasks
+	| UISubUI 	            !UISubUI                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
+    | UISubUIStack          !UISubUIStack           //A stack of sub user interfaces, which are not yet arranged
+	| UIFinal				!UIViewport				//The final user interface
 
-:: UIControlSequence = 
+:: UIControlStack =
 	{ attributes	:: UIAttributes
 	, controls		:: UIAnnotatedControls
-	, direction		:: UIDirection
 	}
-:: UIActionSet = 
+:: UISubUI =
 	{ attributes	:: UIAttributes
+	, content       :: UIItemsOpts
 	, actions		:: UIActions
-	}
-:: UIControlGroup =
-	{ attributes	:: UIAttributes
-	, controls		:: UIAnnotatedControls
-	, direction		:: UIDirection
-	, actions		:: UIActions
-	}
-:: UIAbstractContainer	= 
-	{ attributes	:: UIAttributes
-	, controls		:: UIControls
-	, actions		:: UIActions
-	, direction		:: UIDirection
 	, windows		:: [UIWindow]
 	, hotkeys		:: [UIKeyAction]
 	}
+:: UISubUIStack =
+    { attributes    :: UIAttributes
+    , subuis        :: [UISubUI]
+    }
 
 :: UIAttributes 		:== Map String String
 :: UIControls			:== [UIControl]
@@ -84,8 +77,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, closeTaskId	:: !Maybe String
 	, hotkeys		:: !Maybe [UIKeyAction]
 	, iconCls		:: !Maybe String
-	, baseCls		:: !Maybe String
-	, bodyCls		:: !Maybe String
 	}
 
 // A tab that goes into a tab set.
@@ -131,7 +122,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
 	| UIEditlet			!UISizeOpts	!UIEditletOpts								// - Editlet (custom clientside editor)
 	// Container components for composition:
-	| UIContainer		!UISizeOpts !UIItemsOpts !UIContainerOpts				// - Container (lightweight wrapper to compose components)
+	| UIContainer		!UISizeOpts !UIItemsOpts 				                // - Container (lightweight wrapper to compose components)
 	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UIItemsOpts !UIFieldSetOpts				// - Fieldset (wrapper with a simple border and title)
 	| UITabSet			!UISizeOpts !UITabSetOpts
@@ -159,6 +150,8 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, halign	:: !UIHAlign
 	, valign	:: !UIVAlign
 	, padding	:: !Maybe UISideSizes
+	, baseCls	:: !Maybe String
+	, bodyCls	:: !Maybe String
 	}
 
 :: UIHAlign
@@ -187,7 +180,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, bottom	:: !Int
 	, left		:: !Int
 	}	
-
 
 :: UIViewOpts a =
 	{ value			:: !Maybe a
@@ -336,19 +328,12 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, appDiff		:: !Maybe String
 	}
 
-:: UIContainerOpts =
-	{ baseCls		:: !Maybe String
-	, bodyCls		:: !Maybe String
-	}
-
 :: UIPanelOpts =
 	{ title			:: !Maybe String
 	, frame			:: !Bool
 	, tbar			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
 	, iconCls		:: !Maybe String
-	, baseCls		:: !Maybe String
-	, bodyCls		:: !Maybe String
 	}
 
 :: UIFieldSetOpts =
@@ -388,6 +373,8 @@ uiDefWindows			:: UIDef -> [UIWindow]
 
 uiDefSetAttribute		:: String String UIDef -> UIDef
 uiDefSetDirection		:: UIDirection UIDef -> UIDef
+uiDefSetPadding         :: Int Int Int Int UIDef -> UIDef
+uiDefSetBaseCls         :: String UIDef -> UIDef
 //Encode a user interface definition to a format that
 //can be interpreted by the client framework
 encodeUIDefinition		:: !UIDef -> JSONNode
