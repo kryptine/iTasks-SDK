@@ -11,6 +11,9 @@ clean:
 	rm -rf "Clean System Files" $(PROJ).exe $(PROJ).prp
 
 debug:
-	cocl-tonic -P . Auction.icl
+	cocl-tonic -P . $(PROJ).icl
 
-.PHONY: clean debug default force
+rebuild:
+	make clean && make
+
+.PHONY: clean debug default force rebuild
