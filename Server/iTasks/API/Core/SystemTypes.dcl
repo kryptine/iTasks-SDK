@@ -450,6 +450,9 @@ derive gVerify			Editlet
 :: TaskValue a		= NoValue				
 					| Value !a !Stability 
 
+StableValue   a :== Value a True
+UnstableValue a :== Value a False
+
 instance Functor TaskValue
 			
 :: TaskTime			:== Int
