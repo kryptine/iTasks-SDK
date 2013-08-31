@@ -9,14 +9,24 @@ import iTasks.Framework.Generic
 import iTasks.Framework.Shared
 
 from iTasks.Framework.Task	import :: Task
-from iTasks.API.Core.SystemTypes import class descr, class Choice, class ChoiceNoView
+from iTasks.API.Core.SystemTypes import class descr, class Choice
+
+//Interact which yields the view value directly.
+//This way it does not need to be encoded in the local l to access it
+//The local value serves as 'hidden' state from which together with the view value the task value can be derived
+interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+                        -> Task (l,v) | descr d & iTask l & iTask r & iTask v
+
+//This version does not use a share, and hence has a simpler update function and needs to store less state
+interactLocalExposed :: !d (l,(v,InteractionMask)) (l (v,InteractionMask) Bool -> (l,(v,InteractionMask)))
+                        -> Task (l,v) | descr d & iTask l & iTask v
+
+interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,InteractionMask) Bool Bool Bool -> (v,InteractionMask))
+                        -> Task v | descr d & iTask r & iTask v
+interactLocalViewOnly :: !d (v,InteractionMask) ((v,InteractionMask) Bool -> (v,InteractionMask))
+                        -> Task v | descr d & iTask v
 
 interactNullEnter		:: !d !v (v->l) -> Task l | descr d & iTask v & iTask l
 interactNullUpdate		:: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v
 interactNullView		:: !d (l->v) l -> Task l | descr d & iTask l & iTask v
-interactSharedChoice	:: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t v l)
-							-> Task (Maybe l) | descr d & Choice t & iTask r & iTask l & iTask (t v l)
-
-interactSharedChoiceNoView	:: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t l)
-								-> Task (Maybe l) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l)
 interactSharedInformation	:: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v

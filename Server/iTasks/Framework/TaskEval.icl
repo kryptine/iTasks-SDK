@@ -36,19 +36,22 @@ where
 	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
 		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 
-createTopTaskInstance  :: !(Task a) !ManagementMeta !User !TaskId !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createTopTaskInstance  task mmeta issuer listId iworld=:{currentDateTime,taskTime}
-	# (instanceNo,iworld)	= newInstanceNo iworld
+createTopTaskInstance :: !(Task a) !(Maybe InstanceNo)  !ManagementMeta !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createTopTaskInstance task mbInstanceNo mmeta issuer listId evalDirect iworld=:{currentDateTime,taskTime}
+	# (instanceNo,iworld)	= case mbInstanceNo of
+        Nothing         = newInstanceNo iworld
+        Just instanceNo = (instanceNo,iworld)
 	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo Nothing listId Nothing mmeta pmeta
+	# meta					= createMeta instanceNo Nothing listId (if evalDirect (Just issuer) Nothing) mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
+    # iworld                = if evalDirect (queueUrgentEvaluate instanceNo iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
 createMeta :: !InstanceNo (Maybe SessionInfo) TaskId !(Maybe User) !ManagementMeta !ProgressMeta  -> TIMeta
 createMeta instanceNo session listId worker mmeta pmeta
-	= {TIMeta|instanceNo=instanceNo,session=session,listId=listId,worker=worker,management=mmeta,progress=pmeta,attributes='Data.Map'.newMap}
+	= {TIMeta|instanceNo=instanceNo,session=session,listId=listId,worker=worker,management=mmeta,progress=pmeta}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -63,7 +66,58 @@ where
 createResult :: !InstanceNo !TaskTime -> TaskResult JSONNode
 createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep (UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap}) []) (TCInit (TaskId instanceNo 0) 1)
 
+//HACKED EXPERIMENTAL VERSION: All updates are sent by push, nothing via the response, because it may cause synchronization issues
+//probably can be fixed by adding version numbers or something to the messages
+evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
+evalSessionTaskInstance sessionId event iworld
+	//Set session user
+	# iworld					= {iworld & currentUser = AnonymousUser sessionId}
+	//Update current datetime in iworld
+	# iworld					= updateCurrentDateTime iworld
+	//Determine which task instance to evaluate
+	# (sessionNo, iworld)		= determineSessionInstanceNo sessionId iworld
+	| sessionNo == 0			= (Error ("Could not load session " +++ sessionId), iworld)
+	//Evaluate the task instance at which the event is targeted
+	# (mbResultPass1,iworld)	= evalTaskInstance event (eventTarget event sessionNo) iworld
+    # iworld = case mbResultPass1 of
+		(Ok (_,Just ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
+        _                                               = iworld
+	//Evaluate urgent task instances (just started workOn's for example)
+	# iworld					= refreshUrgentTaskInstances iworld
+	//If the session task is outdated compute it a second time
+	# (outdated,iworld)			= isSessionOutdated sessionNo iworld
+	| outdated
+		# (mbResultPass2,iworld)		= evalTaskInstance (toRefresh event) sessionNo iworld
+        # iworld = case mbResultPass2 of
+		    (Ok (_,Just ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
+            _                                               = iworld
+		= case mbResultPass2 of
+			Ok (result,Just (sessionInfo,_))	= (Ok (result,sessionNo,sessionInfo,[]),iworld)
+			Error e					            = (Error e, iworld)
+			_									= (Error "Unknown error (1) in evalSessionTaskInstance", iworld)
+	| otherwise
+		= case mbResultPass1 of
+			Ok (result,Just (sessionInfo,_))	= (Ok (result,sessionNo,sessionInfo,[]),iworld)
+			Error e								= (Error e, iworld)
+			_									= (Error "Unknown error (2) in evalSessionTaskInstance", iworld)
+where
+	determineSessionInstanceNo sessionId iworld=:{IWorld|sessions}
+		= case 'Data.Map'.get sessionId sessions of
+			Just no	= (no,iworld)
+			_		= (0, iworld)
+
+	isSessionOutdated sessionNo iworld //TODO: This function should not really be here
+		# (work,iworld) = dequeueWorkFilter (\w -> case w of (Evaluate no) = (no == sessionNo); _ = False) iworld
+		= (not (isEmpty work),iworld)
+
+	eventTarget (EditEvent _ (TaskId no _) _ _)	_	= no
+	eventTarget (ActionEvent _ (TaskId no _) _) _ 	= no
+	eventTarget (FocusEvent _ (TaskId no _)) _		= no
+	eventTarget (RefreshEvent _) no					= no
+
+
 //Evaluate a session task instance when a new event is received from a client
+/*
 evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
 evalSessionTaskInstance sessionId event iworld 
 	//Set session user
@@ -110,7 +164,7 @@ where
 	eventTarget (ActionEvent _ (TaskId no _) _) _ 	= no
 	eventTarget (FocusEvent _ (TaskId no _)) _		= no
 	eventTarget (RefreshEvent _) no					= no
-
+*/
 
 //Evaluate a task instance, just to refresh its state
 refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
@@ -177,7 +231,7 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			# (oldMeta, iworld) = case 'Data.SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
 				(Ok meta, iworld)		= (meta, iworld)
 				(_, iworld)				= (oldMeta, iworld)
-			# newMeta					= {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, session = updateSession event oldMeta.TIMeta.session, attributes = updateAttributes newResult}
+			# newMeta					= {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, session = updateSession event oldMeta.TIMeta.session}
 			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg newMeta ((<>) instanceNo) (taskInstanceMeta instanceNo) iworld //TODO Check error
 			//Store updated reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
@@ -211,9 +265,6 @@ where
 			(ValueResult (Value _ True) _ _ _)	= {progress & stable = True}
 			(ValueResult _ _ (TaskRep ui _) _)	= {progress & stable = False}
 			_									= {progress & stable = False}
-
-    updateAttributes (ValueResult _ _ (TaskRep ui _) _) = uiDefAttributes ui
-    updateAttributes _                                  = 'Data.Map'.newMap
 
 	updateSession (EditEvent eventNo _ _ _) (Just s=:{SessionInfo|lastEvent})		= Just {SessionInfo|s & lastEvent = eventNo}
 	updateSession (ActionEvent eventNo _ _) (Just s=:{SessionInfo|lastEvent})		= Just {SessionInfo|s & lastEvent = eventNo}
@@ -298,38 +349,44 @@ where
 		
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = createReadOnlySDS read
+topListShare = createChangeOnWriteSDS NS_TASK_INSTANCES "instances" read write //FIXMESHARE
 where
-	read iworld
-		= ({TaskList|listId = TopLevelTaskList, items = [], active = Nothing}, iworld)
+	read iworld=:{IWorld|currentInstance}
+		= (Ok {TaskList|listId = TopLevelTaskList, items = [], selfId = TaskId currentInstance 0}, iworld)
 		
-parListShare :: !TaskId -> SharedTaskList a | iTask a
-parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError read
+    write v iworld
+        = (Ok Void,iworld)
+
+parListShare :: !TaskId !TaskId -> SharedTaskList a | iTask a
+parListShare listId=:(TaskId instanceNo taskNo) entryId = createChangeOnWriteSDS NS_TASK_INSTANCES "instances" read write
 where
-	shareKey = toString taskId
+	shareKey = toString listId
 	read iworld=:{currentInstance,localLists}
 		| instanceNo == currentInstance		
-			= case 'Data.Map'.get taskId localLists of
+			= case 'Data.Map'.get listId localLists of
 				Just entries
-					= (Ok {TaskList|listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed],active = Nothing},iworld)
+					= (Ok {TaskList|listId = ParallelTaskList listId, items = [toItem e\\ e <- entries | hasValueResult e && not e.TaskListEntry.removed],selfId=entryId},iworld)
 				_	= (Error ("Could not read local task list " +++ shareKey), iworld)
 		| otherwise
 			= case 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of
 				(Ok reduct, iworld)
-					= case 'Data.Map'.get taskId reduct.TIReduct.lists of					
+					= case 'Data.Map'.get listId reduct.TIReduct.lists of					
 						Just entries
-							= (Ok {TaskList|listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed],active = Nothing},iworld)
+							= (Ok {TaskList|listId = ParallelTaskList listId, items = [toItem e\\ e <- entries | hasValueResult e && not e.TaskListEntry.removed],selfId = entryId},iworld)
 						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
 				(Error _,iworld)
 					= (Error ("Could not load remote task list " +++ shareKey), iworld)
 					
-	toItem {TaskListEntry|entryId,state,lastEval=ValueResult val _ _ _,attributes}
+    hasValueResult {TaskListEntry|lastEval=ValueResult _ _ _ _} = True
+    hasValueResult _                                            = False //TODO: Figure out what to with exceptions on this level
+
+	toItem {TaskListEntry|entryId,name,state,lastEval=ValueResult val _ _ _}
 		= 	{taskId			= entryId
-            ,listId         = taskId
+            ,listId         = listId
+            ,name           = name
 			,value			= deserialize val
 			,managementMeta = management
 			,progressMeta	= progress
-            ,attributes     = attributes
 			}
 	where
 		(progress,management) = case state of
@@ -338,3 +395,41 @@ where
 	
 	deserialize NoValue	= NoValue
 	deserialize (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
+
+	write updates iworld
+        = case updateInstanceMeta updates iworld of
+            (Error e,iworld) = (Error e,iworld)
+            (Ok Void,iworld) = updateListReduct updates iworld
+
+    //Update the master index of task instance data
+    updateInstanceMeta [] iworld = (Ok Void,iworld)
+    updateInstanceMeta [(TaskId instanceNo 0,management):updates] iworld
+        = case 'Data.SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
+	        (Error _,iworld) = (Error ("Could not read task meta data of task instance " <+++ instanceNo), iworld)
+            (Ok meta,iworld) = case 'Data.SharedDataSource'.write {TIMeta|meta &management=management} (taskInstanceMeta instanceNo) iworld of
+                (Error _,iworld) = (Error ("Could not write task meta data of task instance " <+++ instanceNo), iworld)
+                (Ok _,iworld)   = updateInstanceMeta updates iworld
+
+    //Update the cached management meta in the task list reduct
+    updateListReduct updates iworld=:{currentInstance,localLists}
+       | instanceNo == currentInstance
+			= case 'Data.Map'.get listId localLists of
+				Just entries    = (Ok Void,{iworld & localLists = 'Data.Map'.put listId (applyUpdates updates entries) localLists})
+                _               = (Error ("Could not load local task list " +++ shareKey), iworld)
+        | otherwise
+			= case 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld of //TODO: Check if reading another shared during a write is ok??
+				(Ok reduct, iworld)
+					= case 'Data.Map'.get listId reduct.TIReduct.lists of					
+                        Just entries
+                            = 'Data.SharedDataSource'.write {TIReduct|reduct & lists = 'Data.Map'.put listId (applyUpdates updates entries) reduct.TIReduct.lists} (taskInstanceReduct instanceNo) iworld
+						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
+				(Error _,iworld)
+					= (Error ("Could not load remote task list " +++ shareKey), iworld)
+    where
+        applyUpdates [] entries = entries
+        applyUpdates [(taskId,management):updates] entries = applyUpdates updates (map (updateManagementMeta taskId management) entries)
+
+        updateManagementMeta taskId management e=:{TaskListEntry|entryId,state=DetachedState s p _}
+            | entryId == taskId     = {TaskListEntry|e & state = DetachedState s p management}
+                                    = e
+        updateManagementMeta taskId management e = e

@@ -293,7 +293,7 @@ where
 		# (mbResult,iworld)	= readRegister curInstanceNo (taskInstanceResult instanceNo) iworld
 		= case (mbMeta,mbResult) of
 			(Ok meta,Ok result)
-				# (entry,iworld) = updateListEntryDetachedResult taskId entryId result meta.TIMeta.progress meta.TIMeta.management meta.TIMeta.attributes iworld
+				# (entry,iworld) = updateListEntryDetachedResult taskId entryId result meta.TIMeta.progress meta.TIMeta.management iworld
 				= (Nothing,acc++[Nothing],iworld)
 			_	= (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
 
@@ -347,19 +347,29 @@ where
 //SHARED HELPER FUNCTIONS
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentDateTime,localTasks}
-	# (list,iworld) = loadTaskList taskId iworld 
-	# (taskIda,state,iworld) = case parType of
+	# (list,iworld) = loadTaskList taskId iworld
+	# progress = {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
+	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld)	= getNextTaskId iworld
-			# task		= parTask (parListShare taskId)
-			= (taskIda, EmbeddedState, {iworld & localTasks = 'Data.Map'.put taskIda (dynamic task :: Task a^) localTasks})
-		Detached management
-			# task									= parTask (parListShare taskId)
-			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
-			# (taskIda=:TaskId instanceNo _,iworld)	= createTopTaskInstance task management currentUser taskId iworld
-			= (taskIda,DetachedState instanceNo progress management, iworld)
+			# task		= parTask (parListShare taskId taskIda)
+			= (taskIda, Nothing, EmbeddedState, {iworld & localTasks = 'Data.Map'.put taskIda (dynamic task :: Task a^) localTasks})
+        NamedEmbedded name
+			# (taskIda,iworld)	= getNextTaskId iworld
+			# task		= parTask (parListShare taskId taskIda)
+			= (taskIda, Just name, EmbeddedState, {iworld & localTasks = 'Data.Map'.put taskIda (dynamic task :: Task a^) localTasks})
+		Detached management evalDirect
+            # (instanceNo,iworld)                   = newInstanceNo iworld
+			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
+			# (taskIda,iworld)	                    = createTopTaskInstance task (Just instanceNo) management currentUser taskId evalDirect iworld
+			= (taskIda,Nothing,DetachedState instanceNo progress management, iworld)
+	    NamedDetached name management evalDirect
+            # (instanceNo,iworld)                   = newInstanceNo iworld
+			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
+			# (taskIda,iworld)	                    = createTopTaskInstance task (Just instanceNo) management currentUser taskId evalDirect iworld
+			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} NoRep (TCInit taskIda taskTime)
-	# entry		= {entryId = taskIda, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
+	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)		
 
@@ -379,12 +389,12 @@ where
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
 
-updateListEntryDetachedResult :: !TaskId !TaskId (TaskResult JSONNode) !ProgressMeta !ManagementMeta !UIAttributes !*IWorld -> (!TaskListEntry,!*IWorld)
-updateListEntryDetachedResult listId entryId lastEval progress management attributes iworld
+updateListEntryDetachedResult :: !TaskId !TaskId (TaskResult JSONNode) !ProgressMeta !ManagementMeta !*IWorld -> (!TaskListEntry,!*IWorld)
+updateListEntryDetachedResult listId entryId lastEval progress management iworld
 	= updateListEntry listId entryId update iworld
 where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
-		= {TaskListEntry| e & state = DetachedState no progress management, lastEval = lastEval, attributes = attributes}
+		= {TaskListEntry| e & state = DetachedState no progress management, lastEval = lastEval}
 	update e = e
 
 markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
@@ -426,10 +436,23 @@ readListId slist iworld = case read slist iworld of
 
 //Derived shares
 taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
-taskListState tasklist = mapRead (\{TaskList|items} -> [value \\ {TaskListItem|value} <- items]) tasklist
+taskListState tasklist = mapRead (\{TaskList|items} -> [value \\ {TaskListItem|value} <- items]) (toReadOnly tasklist)
 
-taskListMeta :: !(SharedTaskList a) -> ReadOnlyShared [TaskListItem a]
+taskListMeta :: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,ManagementMeta)]
 taskListMeta tasklist = mapRead (\{TaskList|items} -> items) tasklist
+
+taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
+taskListSelfId tasklist = mapRead (\{TaskList|selfId} -> selfId) (toReadOnly tasklist)
+
+taskListSelfManagement :: !(SharedTaskList a) -> Shared ManagementMeta
+taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) tasklist
+where
+    toPrj {TaskList|selfId,items} = case [meta \\ {TaskListItem|taskId,managementMeta=Just meta} <- items | taskId == selfId] of
+        [meta:_]    = Ok meta
+        _           = Error "Self management share is only available for detached tasks"
+
+    fromPrj meta {TaskList|selfId}
+        = Ok (Just [(selfId,meta)])
 
 appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task TaskId | iTask a
 appendTask parType parTask slist = mkInstantTask eval
@@ -444,9 +467,9 @@ where
 								
 	append :: !(TaskListId a) !ParallelTaskType !(ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 	append TopLevelTaskList parType parTask iworld=:{currentUser}
-		# meta						= case parType of Embedded = defaultValue; Detached meta = meta;
+		# (meta,evalDirect)			= case parType of Embedded = (defaultValue,False); Detached meta evalDirect = (meta,evalDirect);
 		# task						= parTask topListShare
-		= createTopTaskInstance task meta currentUser (TaskId 0 0) iworld
+		= createTopTaskInstance task Nothing meta currentUser (TaskId 0 0) evalDirect iworld
 	append (ParallelTaskList parId) parType parTask iworld
 		= appendTaskToList parId (parType,parTask) iworld
 
@@ -475,11 +498,11 @@ workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{currentInstance,currentUser}
-		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld 
+		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld
 		= case meta of
 			Ok meta
 				# (_,iworld)	= write {TIMeta|meta & worker=Just currentUser} (taskInstanceMeta instanceNo) iworld
-				# iworld		= queueUrgentEvaluate instanceNo iworld 
+				# iworld		= queueUrgentEvaluate instanceNo iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult (dynamic e) e,iworld)

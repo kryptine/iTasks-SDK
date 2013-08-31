@@ -1,7 +1,7 @@
 definition module iTasks.API.Common.InteractionTasks
 
 import iTasks.API.Core.CoreTasks
-from iTasks.API.Core.SystemTypes import :: Tree, :: ChoiceTree, :: Date, :: Time, :: Action
+from iTasks.API.Core.SystemTypes import :: Tree, :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: Action
 from Data.Functor import class Functor
 
 //Option types for customizing interaction
@@ -9,15 +9,14 @@ from Data.Functor import class Functor
 :: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
 :: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
 
-:: ChoiceOption a		= E.v: ChooseWith			(ChoiceType a)	(a -> v) & iTask v
-:: MultiChoiceOption a	= E.v: ChooseMultipleWith	MultiChoiceType	(a -> v) & iTask v
-
-:: ChoiceType a		    = AutoChoice
-						| ChooseFromComboBox
-						| ChooseFromRadioButtons
-						| ChooseFromGrid
-						| ChooseFromTree ([a] -> [ChoiceTree a]) //Grouping function
+:: ChoiceOption o       = E.v: ChooseWith (ChoiceType o v)      & iTask v
+:: ChoiceType o v	    = AutoChoice (o -> v)
+						| ChooseFromComboBox (o -> v)
+						| ChooseFromRadioButtons (o -> v)
+						| ChooseFromGrid (o -> v)
+						| ChooseFromTree ([(Int,o)] [ChoiceTreeValue] -> [ChoiceTree v])
 					
+:: MultiChoiceOption a	= E.v: ChooseMultipleWith	MultiChoiceType	    (a -> v) & iTask v
 :: MultiChoiceType		= AutoMultiChoice
 						| ChooseFromCheckBoxes
 
@@ -109,74 +108,32 @@ updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w)
 /*** Special tasks for choices ***/
 
 /**
-* Ask the user to select one item from a list of options.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default [] @gin-visible False
-* @param Choice options:	A list of options the user can choose from
-*                           @default []
-*
-* @return					The option chosen by the user
-* 
-* @gin-icon choice
+* Select one item from a list of options.
 */
-//ListChoice (a -> [o], o -> v)
-//TreeChoice (a -> Tree o, o -> v)
-//enterChoice :: !d ![ChoiceOption ChoiceType o] !a -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 
-enterChoice :: !d ![ChoiceOption o] ![o] -> Task o | descr d & iTask o
+editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | descr d & iTask a
+editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask a
 
-/**
-* Ask the user to select one item from a list of options with already one option pre-selected.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default [] @gin-visible False
-* @param Choice options:	A list of options the user can choose from
-*                           @default []
-* @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
-*
-* @return 					The option chosen by the user
-*
-* @gin-icon choice
-*/
-updateChoice :: !d ![ChoiceOption o] ![o] o -> Task o | descr d & iTask o
+enterChoice :: !d ![ChoiceOption a] ![a] -> Task a | descr d & iTask a
+enterChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) -> Task a | descr d & iTask o & iTask a
 
-/**
-* Ask the user to select one item from a list of shared options.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default [] @gin-visible False
-* @param Shared:			Reference to the shared state including the options the user can choose from
-*                           @share
-* @return 					The option chosen by the user
-* @throws					SharedException
-*
-* @gin-icon choice
-*/
-enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) -> Task o | descr d & iTask o & iTask w
+updateChoice :: !d ![ChoiceOption a] ![a] a -> Task a | descr d & iTask a
+updateChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) a -> Task a | descr d & iTask o & iTask a
 
-/**
-* Ask the user to select one item from a list of shared options with already one option pre-selected.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default [] @gin-visible False
-* @param Shared:			Reference to the shared state including the options the user can choose from
-* @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
-*
-* @return 					The option chosen by the user
-* @throws					SharedException
-*
-* @gin-icon choice
-*/
-updateSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) o -> Task o | descr d & iTask o & iTask w
+editChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Maybe a) -> Task a | descr d & iTask a & iTask w
+editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask w & iTask a
+
+enterChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task a | descr d & iTask a & iTask w
+enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task a | descr d & iTask o & iTask w & iTask a
+
+updateChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) a -> Task a | descr d & iTask a & iTask w
+updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) a -> Task a | descr d & iTask o & iTask w & iTask a
+
+editSharedChoice :: !d ![ChoiceOption a] ![a] (Shared (Maybe a)) -> Task a | descr d & iTask a
+editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | descr d & iTask o & iTask a
+
+editSharedChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | descr d & iTask a & iTask w
+editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | descr d & iTask o & iTask w & iTask a
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -328,5 +285,3 @@ viewTitle :: !a -> Task a | iTask a
 * View shared data as a title 
 */
 viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
-
-

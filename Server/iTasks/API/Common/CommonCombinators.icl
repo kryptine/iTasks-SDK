@@ -77,7 +77,7 @@ projectJust mba _ = Just mba
 assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task
 	=	parallel Void
-			[(Embedded, \s -> processControl s),(Detached props, \_ -> task)]
+			[(Embedded, \s -> processControl s),(Detached props False, \_ -> task)]
 	@?	result
 where
 	processControl tlist
@@ -191,6 +191,21 @@ where
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 (>&>) taska taskbf = feedForward Void taska taskbf
 				
+feedSideways :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | descr d & iTask a & iTask b
+feedSideways desc taska taskbf = parallel desc
+    [(Embedded, \s -> taska)
+	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @? const NoValue)
+    ] @? res
+where
+	prj [Value a _:_]	= Just a
+	prj _				= Nothing
+
+    res (Value [(_,v):_] _) = v
+    res _                   = NoValue
+
+(>&^) infixl 1 :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+(>&^) taska taskbf = feedSideways Void taska taskbf
+
 :: ProcessOverviewView =	{ index			:: !Hidden Int
 							, subject		:: !Display String
 							, assignedTo	:: !User
@@ -243,11 +258,11 @@ whileUnchangedWith eq share task
 	= 	((get share >>= \val -> (wait Void (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
-appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks
+appendTopLevelTask :: !ManagementMeta !Bool !(Task a) -> Task TaskId | iTask a
+appendTopLevelTask props evalDirect task = appendTask (Detached props evalDirect) (\_ -> task @ const Void) topLevelTasks
 
-appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
-appendTopLevelTaskFor worker task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} task
+appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
+appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} evalDirect task
 			
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

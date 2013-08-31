@@ -251,74 +251,72 @@ toTable	:: ![a] -> Table | gEditMeta{|*|} a & gVisualizeText{|*|} a
 :: TreeNode a = Leaf !a | Node !a !.[TreeNode a]
 
 //* More elaborate tree type for grouping elements hierarchically from a choice
-:: ChoiceTree a =
-    { label     :: String
+:: ChoiceTree v =
+    { label     :: v
     , icon      :: Maybe String
-    , value     :: Maybe a
-    , children  :: Maybe [ChoiceTree a]
+    , value     :: ChoiceTreeValue
+    , type      :: ChoiceTreeType v
     }
+:: ChoiceTreeValue  = ChoiceNode !Int | GroupNode !String
+:: ChoiceTreeType v = LeafNode | CollapsedNode [ChoiceTree v] | ExpandedNode [ChoiceTree v]
+
+choiceTreeChildren :: (ChoiceTree v) -> [ChoiceTree v]
+ifExpandedGroup :: String [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
+ifExpandedChoice :: Int [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
+
+instance == ChoiceTreeValue
 
 instance Functor Tree
 instance Functor ChoiceTree
 
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gEditor	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gEditMeta			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditMeta		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Represents the choice of one element from a list represented as combo box
-:: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
-:: ComboChoiceNoView o = ComboChoiceNoView ![o] !(Maybe Int)
+:: ComboChoice v = ComboChoice ![v] !(Maybe Int)
 
 //* Represents the choice of one element from a list represented as radio buttons
-:: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
-:: RadioChoiceNoView o = RadioChoiceNoView ![o] !(Maybe Int)
+:: RadioChoice v = RadioChoice ![v] !(Maybe Int)
 
 //* Bundles a tree with options with a selection
-:: TreeChoice v o = TreeChoice ![ChoiceTree (!v,!o)] !(Maybe Int)
-:: TreeChoiceNoView o = TreeChoiceNoView ![ChoiceTree o] !(Maybe Int)
+:: TreeChoice v = TreeChoice ![ChoiceTree v] !(Maybe Int)
 
 //* Represents the choice of one element from a list represented as grid
 //* (typically v is a record which's labels are used as headers)
-:: GridChoice v o = GridChoice ![(!v,!o)] !(Maybe Int)
-:: GridChoiceNoView o = GridChoiceNoView ![o] !(Maybe Int)
+:: GridChoice v = GridChoice ![v] !(Maybe Int)
 
 //* Represents the choice of one element from a set with a dynamic representation
-:: DynamicChoice v o
-	= DCCombo (ComboChoice v o)
-	| DCRadio (RadioChoice v o)
-	| DCTree  (TreeChoice v o)
-	| DCGrid  (GridChoice v o)
+:: DynamicChoice v
+	= DCCombo (ComboChoice v)
+	| DCRadio (RadioChoice v)
+	| DCTree  (TreeChoice v)
+	| DCGrid  (GridChoice v)
 
-:: DynamicChoiceNoView o
-	= DCComboNoView (ComboChoiceNoView o)
-	| DCRadioNoView (RadioChoiceNoView o)
-	| DCTreeNoView	(TreeChoiceNoView o)
-	| DCGridNoView	(GridChoiceNoView o)
-
-derive JSONEncode		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive JSONEncode		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive JSONDecode		ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive JSONDecode		DynamicChoice, DynamicChoiceNoView, CheckMultiChoice 
-derive gDefault			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gDefault			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gEq				ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gEq				DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gVisualizeText	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gVisualizeText	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gEditor	ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gEditor	DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gEditMeta			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gEditMeta			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gUpdate			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gUpdate			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
-derive gVerify			ComboChoice, ComboChoiceNoView, RadioChoice, RadioChoiceNoView, TreeChoice, TreeChoiceNoView, GridChoice, GridChoiceNoView
-derive gVerify			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
+derive JSONEncode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive JSONEncode		CheckMultiChoice
+derive JSONDecode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive JSONDecode		CheckMultiChoice
+derive gDefault			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gDefault			CheckMultiChoice
+derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEq				CheckMultiChoice
+derive gVisualizeText	ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gVisualizeText	CheckMultiChoice
+derive gEditor	        ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEditor	        CheckMultiChoice
+derive gEditMeta		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEditMeta		CheckMultiChoice
+derive gUpdate			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gUpdate			CheckMultiChoice
+derive gVerify			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gVerify			CheckMultiChoice
 
 /**
 * Interface for types representing choices of one element out of a set of options.
@@ -327,26 +325,16 @@ derive gVerify			DynamicChoice, DynamicChoiceNoView, CheckMultiChoice
 */
 class Choice t
 where
-	//* Selects the given option, if not present in list of options selection is cleared
-	selectOption			:: !o !(t v o)					-> t v o | gEq{|*|} o
-	//* Gets the current selection assuming it is present (a valid choice always has a selection)
-	getSelection			:: !(t v o)						-> o
-	//* Gets the current selection if present
-	getMbSelection			:: !(t v o)						-> Maybe o
 	//* Gets the current selection's view if present
-	getMbSelectionView		:: !(t v o)						-> Maybe v
-
-class ChoiceNoView t
-where
-	//* Selects the given option, if not present in list of options selection is cleared
-	selectOptionNoView			:: !o !(t o)					-> t o | gEq{|*|} o
-	//* Gets the current selection assuming it is present (a valid choice always has a selection)
-	getSelectionNoView			:: !(t o)						-> o
-	//* Gets the current selection if present
-	getMbSelectionNoView		:: !(t o)						-> Maybe o
+	getSelectionView		:: !(t v)						-> Maybe v
+    //* Sets the selection based on the view value
+    setSelectionView        :: !(Maybe v) !(t v)            -> t v | gEq {|*|} v
+    //* Gets the index of the selection
+    getSelectionIndex       :: !(t v)                       -> Maybe Int
+    //* Sets the index of the selection
+    setSelectionIndex       :: !(Maybe Int) !(t v)          -> t v
 
 instance Choice ComboChoice,RadioChoice,TreeChoice,GridChoice,DynamicChoice
-instance ChoiceNoView DynamicChoiceNoView,RadioChoiceNoView,ComboChoiceNoView,TreeChoiceNoView,GridChoiceNoView
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
@@ -476,12 +464,14 @@ instance <			TaskId
 //* Meta-data of tasks
 :: ManagementMeta =
 	{ title				:: !Maybe String			//* Title to identify the task
-	, worker			:: !UserConstraint			//* Who has to do the task? 
+	, worker			:: !UserConstraint			//* Who has to do the task?
 	, role				:: !Maybe Role				//* What role does a worker need to do the task
 	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
 	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
 	, notifyAt			:: !Maybe DateTime			//* When would you like to be notified about the task
 	, priority			:: !TaskPriority			//* What is the current priority of this task?
+    , tags              :: ![String]                //* Custom labels for categorizing
+    , properties        :: !Map String String       //* Custom untyped properties
 	}
 		
 :: ProgressMeta =
@@ -509,23 +499,25 @@ instance toString (TaskListId s)
 :: TaskList a =
 	{ listId	:: !(TaskListId a)
 	, items		:: ![TaskListItem a]
-    , active    :: !Maybe Int
+    , selfId    :: !TaskId
 	}
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
     , listId            :: !TaskId
+    , name              :: !Maybe String            //Optional identifier, for example for adding tasks just once
 	, value				:: !TaskValue a
 	, managementMeta	:: !Maybe ManagementMeta	//Only for detached tasks
 	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
-	, attributes	    :: !Map String String		//UI Attributes of latest execution
 	}
 
-:: SharedTaskList a	:==	ReadOnlyShared (TaskList a)
+:: SharedTaskList a	:==	ReadWriteShared (TaskList a) [(TaskId,ManagementMeta)]
 
 :: ParallelTaskType	
-	= Embedded
-	| Detached !ManagementMeta
+	= Embedded                                    //Simplest embedded
+    | NamedEmbedded !String                       //Embedded with name
+	| Detached !ManagementMeta !Bool              //Management meta and flag whether the task should be started at once
+    | NamedDetached !String !ManagementMeta !Bool //Detached with name
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 

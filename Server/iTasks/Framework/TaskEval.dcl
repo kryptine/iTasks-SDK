@@ -37,7 +37,7 @@ createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!T
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createTopTaskInstance :: !(Task a) !ManagementMeta !User !TaskId !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createTopTaskInstance :: !(Task a) !(Maybe InstanceNo) !ManagementMeta !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
 * Evaluate a session task instance
@@ -71,6 +71,6 @@ refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshUrgentTaskInstances :: !*IWorld -> *IWorld
 
 //Helper functions that provide access to shares and parallel task lists
-localShare		:: !TaskId ->	Shared a			| iTask a
-topListShare	::				SharedTaskList a
-parListShare	:: !TaskId ->	SharedTaskList a	| iTask a
+localShare		:: !TaskId ->	        Shared a			| iTask a
+topListShare	::				        SharedTaskList a
+parListShare	:: !TaskId !TaskId ->	SharedTaskList a	| iTask a

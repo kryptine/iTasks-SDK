@@ -76,7 +76,7 @@ deleteUser userId = update (filter (\acc -> identifyUserAccount acc <> userId)) 
 
 manageUsers :: Task Void
 manageUsers =
-	(		enterSharedChoice ("Users","The following users are available") [] userAccounts @ identifyUserAccount
+	(		enterChoiceWithSharedAs ("Users","The following users are available") [] userAccounts identifyUserAccount
 		>>*	[ OnAction		(Action "New" [])									(always (createUserFlow	@ const False))
 			, OnAction 	    (ActionEdit) 						                (hasValue (\u -> updateUserFlow u @ const False))
 			, OnAction      (ActionDelete) 		            					(hasValue (\u -> deleteUserFlow u @ const False))

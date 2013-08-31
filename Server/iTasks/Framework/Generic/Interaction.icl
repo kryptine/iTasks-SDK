@@ -190,12 +190,11 @@ where
 	numItemsText n = toString n +++ " items"
 	
 gEditor{|(,)|} fx _ _ _ _ _ fy _ _ _ _ _ dp ((x,y),mask,ver) vst
-	# (vizx, vst)	= fx [0:dp] (x,subMasks 2 mask !! 0,subVerifications 2 ver !! 0) vst
-	# (vizy, vst)	= fy [1:dp] (y,subMasks 2 mask !! 1,subVerifications 2 ver !! 1) vst
+	# (vizx, vst)	= fx (dp ++ [0]) (x,subMasks 2 mask !! 0,subVerifications 2 ver !! 0) vst
+	# (vizy, vst)	= fy (dp ++ [1]) (y,subMasks 2 mask !! 1,subVerifications 2 ver !! 1) vst
 	# viz = case (vizx,vizy) of
 		(HiddenEditor,HiddenEditor) = HiddenEditor
 		_	= NormalEditor (controlsOf vizx ++ controlsOf vizy)
-				 
 	= (viz, vst)
 
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst	= (HiddenEditor,vst)
@@ -422,7 +421,20 @@ where
 			# f = list !! (index-1)
 			# l = list !! (index)
 			= updateAt (index-1) l (updateAt index f list)
-		
+
+/*
+gUpdate{|(,)|} gUpdx gDefx jDecx gUpdy gDefy jDecy [0:target] upd ((x,y), mask)
+    # [xmask,ymask:_] = subMasks 2 mask
+	# (x,xmask) = gUpdx target upd (x,xmask)
+    = ((x,y),CompoundMask [xmask,ymask])
+gUpdate{|(,)|} gUpdx gDefx jDecx gUpdy gDefy jDecy [1:target] upd ((x,y), mask)
+    # [xmask,ymask:_] = subMasks 2 mask
+	# (y,ymask) = gUpdy target upd (y,ymask)
+    = ((x,y),CompoundMask [xmask,ymask])
+gUpdate{|(,)|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd ((x,y), mask)
+    = ((x,y), mask)
+*/
+	
 gUpdate{|Dynamic|}		target upd val = basicUpdate (\Void v -> Just v) target upd val
 gUpdate{|(->)|} _ _ gUpdy _ _ _ target upd val = basicUpdate (\Void v -> Just v) target upd val
 

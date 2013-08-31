@@ -13,9 +13,134 @@ from iTasks.Framework.IWorld		import :: IWorld(..)
 from iTasks.API.Core.SystemData		import topLevelTasks
 from Data.Map						import qualified get
 
-interactSharedChoice :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t v l)
-						-> Task (Maybe l) | descr d & Choice t & iTask r & iTask l & iTask (t v l)
-interactSharedChoice desc shared initial_mask toView = Task eval
+interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+                        -> Task (l,v) | descr d & iTask l & iTask r & iTask v
+interactExposed desc shared initFun refreshFun = Task eval
+where
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		= case mbr of
+			Error e		= (exception e, iworld)
+			Ok r
+				# (l,(v,mask))	= initFun r
+				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				
+	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{taskTime}
+		//Decode stored values
+		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
+		//Determine next v by applying edit event if applicable 	
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		//Load next r from shared value
+		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		| isError mbr			= (exception (fromError mbr),iworld)
+		# nr					= fromOk mbr
+		//Apply refresh function if r or v changed
+		# rChanged				= nr =!= r
+		# vChanged				= nts =!= ts
+		# vValid				= isValid (verifyMaskedValue (nv,nmask))
+		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
+		//Make visualization
+		# nver					= verifyMaskedValue (nv,nmask)
+		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
+		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
+		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=True} (finalizeRep repOpts rep)
+			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+
+	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+
+interactLocalExposed :: !d (l,(v,InteractionMask)) (l (v,InteractionMask) Bool -> (l,(v,InteractionMask)))
+                        -> Task (l,v) | descr d & iTask l & iTask v
+interactLocalExposed desc initVal refreshFun = Task eval
+where
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+		# (l,(v,mask))	= initVal
+		= eval event repOpts (TCInteractLocal taskId ts (toJSON l) (toJSON v) mask) iworld
+				
+	eval event repOpts (TCInteractLocal taskId=:(TaskId instanceNo _) ts encl encv mask) iworld=:{taskTime}
+		//Decode stored values
+		# (l,v)				    = (fromJust (fromJSON encl), fromJust (fromJSON encv))
+		//Determine next v by applying edit event if applicable 	
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		//Apply refresh function if r or v changed
+		# vChanged				= nts =!= ts
+		# vValid				= isValid (verifyMaskedValue (nv,nmask))
+		# (nl,(nv,nmask)) 		= if vChanged (refreshFun l (nv,nmask) vValid) (l,(nv,nmask))
+		//Make visualization
+		# nver					= verifyMaskedValue (nv,nmask)
+		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
+		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
+		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=False} (finalizeRep repOpts rep)
+			(TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nmask), iworld)
+
+	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+
+interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,InteractionMask) Bool Bool Bool -> (v,InteractionMask))
+                        -> Task v | descr d & iTask r & iTask v
+interactViewOnly desc shared initFun refreshFun = Task eval
+where
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		= case mbr of
+			Error e		= (exception e, iworld)
+			Ok r
+				# (v,mask)	= initFun r
+				= eval event repOpts (TCInteractViewOnly taskId ts (toJSON r) (toJSON v) mask) iworld
+				
+	eval event repOpts (TCInteractViewOnly taskId=:(TaskId instanceNo _) ts encr encv mask) iworld=:{taskTime}
+		//Decode stored values
+		# (r,v)				    = (fromJust (fromJSON encr), fromJust (fromJSON encv))
+		//Determine next v by applying edit event if applicable
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		//Load next r from shared value
+		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		| isError mbr			= (exception (fromError mbr),iworld)
+		# nr					= fromOk mbr
+		//Apply refresh function if r or v changed
+		# rChanged				= nr =!= r
+		# vChanged				= nts =!= ts
+		# vValid				= isValid (verifyMaskedValue (nv,nmask))
+		# (nv,nmask) 		    = if (rChanged || vChanged) (refreshFun nr (nv,nmask) rChanged vChanged vValid) (nv,nmask)
+		//Make visualization
+		# nver					= verifyMaskedValue (nv,nmask)
+		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nv) iworld
+		# value 				= if (isValid nver) (Value nv False) NoValue
+		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=True} (finalizeRep repOpts rep)
+			(TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nmask), iworld)
+
+	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+
+
+interactLocalViewOnly :: !d (v,InteractionMask) ((v,InteractionMask) Bool -> (v,InteractionMask))
+                        -> Task v | descr d & iTask v
+interactLocalViewOnly desc initVal refreshFun = Task eval
+where
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+		# (v,mask)	= initVal
+		= eval event repOpts (TCInteractLocalViewOnly taskId ts (toJSON v) mask) iworld
+				
+	eval event repOpts (TCInteractLocalViewOnly taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{taskTime}
+		//Decode stored values
+		# v				        = fromJust (fromJSON encv)
+		//Determine next v by applying edit event if applicable
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		//Apply refresh function if r or v changed
+		# vChanged				= nts =!= ts
+		# vValid				= isValid (verifyMaskedValue (nv,nmask))
+		# (nv,nmask) 		    = if vChanged (refreshFun (nv,nmask) vValid) (nv,nmask)
+		//Make visualization
+		# nver					= verifyMaskedValue (nv,nmask)
+		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nv) iworld
+		# value 				= if (isValid nver) (Value nv False) NoValue
+		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=False} (finalizeRep repOpts rep)
+			(TCInteractLocalViewOnly taskId nts (toJSON nv) nmask), iworld)
+
+	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+
+//John's versions
+/*
+interactSharedChoice	:: !d !(ReadOnlyShared r) (Maybe s) (l -> s) (r (Maybe s) -> t v l)
+							-> Task (Maybe s) | descr d & Choice t & iTask r & iTask l & iTask (t v l) & iTask s
+interactSharedChoice desc shared initial_mask targetFun toView = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
@@ -50,14 +175,15 @@ where
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l nr nv nmask valid
-		# nl = if valid (getMbSelection nv) l
+		# nl = if valid (getMbSelection targetFun nv) l
 		# v = toView nr nl
 		| v === nv	= (nl,nv,nmask)	//If the view value is the same, we can keep the mask info
 					= (nl,v,Touched)
-
-interactSharedChoiceNoView :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t l)
-							  -> Task (Maybe l) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l)
-interactSharedChoiceNoView desc shared initial_mask toViewId = Task eval
+*/
+/*
+interactSharedChoiceNoView	:: !d !(ReadOnlyShared r) (Maybe s) (l -> s) (r (Maybe s) -> t l)
+								-> Task (Maybe s) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l) & iTask s
+interactSharedChoiceNoView desc shared initial_mask targetFun toViewId = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
@@ -92,11 +218,11 @@ where
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l nr nv nmask valid
-		# nl = if valid (getMbSelectionNoView nv) l
+		# nl = if valid (getMbSelectionNoView targetFun nv) l
 		# v = toViewId nr nl
 		| v === nv	= (nl,nv,nmask)	//If the view value is the same, we can keep the mask info
 					= (nl,v,Touched)
-
+*/
 interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v
 interactSharedInformation desc shared toView = Task eval
 where

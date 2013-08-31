@@ -2,7 +2,7 @@ implementation module iTasks.API.Core.SystemTypes
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
-import Data.List, Data.Functor, Text.JSON, Text.HTML, Text, Data.Map, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
+import Data.List, Data.Either, Data.Functor, Text.JSON, Text.HTML, Text, Data.Map, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
 import iTasks.Framework.UIDefinition
 import iTasks.Framework.Generic.Interaction
 import iTasks.Framework.Generic.Visualization
@@ -815,12 +815,12 @@ where
 	row x =  [Text cell \\ cell <- gVisualizeText{|*|} AsRow x]
 	
 //* Simple tree type (used primarily for creating trees to choose from)
-derive gDefault			Tree, TreeNode, ChoiceTree
-derive gVisualizeText	Tree, TreeNode, ChoiceTree
-derive gEditor	        Tree, TreeNode, ChoiceTree
-derive gEditMeta		Tree, TreeNode, ChoiceTree
-derive gUpdate			Tree, TreeNode, ChoiceTree
-derive gVerify			Tree, TreeNode, ChoiceTree
+derive gDefault			Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gVisualizeText	Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditor	        Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditMeta		Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gUpdate			Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gVerify			Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 		
 instance Functor Tree
 where
@@ -831,339 +831,190 @@ where
 			Node a nodes	= Node (f a) [fmap` node \\ node <- nodes]
 instance Functor ChoiceTree
 where
-    fmap f t=:{ChoiceTree|value,children}
-        = {ChoiceTree|t & value = fmap f value
-          ,children = maybe Nothing (\c -> Just [fmap f x \\ x <- c]) children}
+    fmap f t=:{ChoiceTree|label,type}
+        = {ChoiceTree|t & label = f label, type = fmap f type}
 
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree
+instance Functor ChoiceTreeType
+where
+    fmap f LeafNode = LeafNode
+    fmap f (CollapsedNode c) = CollapsedNode [fmap f x \\ x <- c]
+    fmap f (ExpandedNode c) = ExpandedNode [fmap f x \\ x <- c]
+
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Choices
-gDefault{|ComboChoice|} _ _ = ComboChoice [] Nothing
-gVisualizeText{|ComboChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+gDefault{|ComboChoice|} _ = ComboChoice [] Nothing
+gVisualizeText{|ComboChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))
 
-gEditor{|ComboChoice|} fx gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
-	| disabled
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-	| otherwise
-		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
-where
-	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsLabel (fst(options !! sel ))))
-	vvalue _								= Nothing
-	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
-
-	options (ComboChoice options _)			= [concat (gx AsLabel v) \\ (v,_) <- options]
-
-gUpdate{|ComboChoice|} _ _ _ _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
-
-gVerify{|ComboChoice|} _ _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
-
-instance Choice ComboChoice
-where
-	selectOption newSel (ComboChoice options _)					= ComboChoice options (setListOption options newSel)
-	getSelection combo											= fromJust (getMbSelection combo)
-	getMbSelection (ComboChoice options mbSel)					= fmap snd (getListOption options mbSel)
-	getMbSelectionView (ComboChoice options mbSel)				= fmap fst (getListOption options mbSel)
-
-gDefault{|ComboChoiceNoView|} _ = ComboChoiceNoView [] Nothing
-gVisualizeText{|ComboChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
-
-gEditor{|ComboChoiceNoView|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|ComboChoice|} fx gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 	| disabled
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 	| otherwise
 		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*|} hx val))],vst)
-where	
-	vvalue (ComboChoiceNoView options (Just sel))	= Just (hd (gx AsLabel (options !! sel )))
-	vvalue _										= Nothing
-	evalue (ComboChoiceNoView _ mbSel)				= maybe [] (\s->[s]) mbSel
-	
-	options (ComboChoiceNoView options _)		= [concat (gx AsLabel v) \\ v <- options]
-
-gUpdate{|ComboChoiceNoView|} _ _ _ target upd val = updateChoice (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options idx) target upd val
-
-gVerify{|ComboChoiceNoView|} _ mv options = customVerify (\(ComboChoiceNoView _ s) -> isJust s) (const "You must choose one item") mv options
-
-instance ChoiceNoView ComboChoiceNoView
 where
-	selectOptionNoView newSel (ComboChoiceNoView options _)		= ComboChoiceNoView options (setListOptionNoView options newSel)
-	getSelectionNoView combo									= fromJust (getMbSelectionNoView combo)
-	getMbSelectionNoView (ComboChoiceNoView options mbSel)		= getListOption options mbSel
-
-gDefault{|RadioChoice|} _ _ = RadioChoice [] Nothing
-gVisualizeText{|RadioChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
-
-gEditor{|RadioChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
-	| disabled
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
-	| otherwise
-		= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
-where
-	vvalue (RadioChoice options (Just sel))	= Just (hd (gx AsLabel (fst(options !! sel ))))
+	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsLabel (options !! sel)))
 	vvalue _								= Nothing
-	evalue (RadioChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
-	
-	options (RadioChoice options _)			= [concat (gx AsLabel v) \\ (v,_) <- options]
+	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
 
+	options (ComboChoice options _)			= [concat (gx AsLabel v) \\ v <- options]
 
-gUpdate{|RadioChoice|} _ _ _ _ _ _ target upd val
-	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options idx) target upd val
+gUpdate{|ComboChoice|} _ _ _ target upd val = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val
 
-gVerify{|RadioChoice|} _ _		mv options = simpleVerify mv options
+gVerify{|ComboChoice|} _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
 
-instance Choice RadioChoice
+instance Choice ComboChoice
 where
-	selectOption newSel (RadioChoice options _)					= RadioChoice options (setListOption options newSel)
-	getSelection radios											= fromJust (getMbSelection radios)
-	getMbSelection (RadioChoice options mbSel)					= fmap snd (getListOption options mbSel)
-	getMbSelectionView (RadioChoice options mbSel)				= fmap fst (getListOption options mbSel)
+	getSelectionView (ComboChoice options mbSel)				= getListOption options mbSel
+	setSelectionView mbSel (ComboChoice options _)				= ComboChoice options (maybe Nothing (getListIndex options) mbSel)
+    getSelectionIndex (ComboChoice _ mbSel)                     = mbSel
+    setSelectionIndex mbSel (ComboChoice options _)             = ComboChoice options mbSel
 
-gDefault{|RadioChoiceNoView|} _ = RadioChoiceNoView [] Nothing
-gVisualizeText{|RadioChoiceNoView|}	fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
-gEditor{|RadioChoiceNoView|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gDefault{|RadioChoice|} _ = RadioChoice [] Nothing
+gVisualizeText{|RadioChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))
+
+gEditor{|RadioChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 	| disabled
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 	| otherwise
 		= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*|} hx val))],vst)
 where
-	vvalue (RadioChoiceNoView options (Just sel))	= Just (hd (gx AsLabel (options !! sel )))
-	vvalue _										= Nothing
-	evalue (RadioChoiceNoView _ mbSel)				= maybe [] (\s->[s]) mbSel
+	vvalue (RadioChoice options (Just sel))	= Just (hd (gx AsLabel (options !! sel)))
+	vvalue _								= Nothing
+	evalue (RadioChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
+	
+	options (RadioChoice options _)			= [concat (gx AsLabel v) \\ v <- options]
 
-	options (RadioChoiceNoView options _)			= [concat (gx AsLabel v) \\ v <- options]
 
-gUpdate{|RadioChoiceNoView|} _ _ _ target upd val
-	= updateChoice (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options idx) target upd val
+gUpdate{|RadioChoice|} _ _ _ target upd val
+	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options idx) target upd val
 
-gVerify{|RadioChoiceNoView|} _	mv options = simpleVerify mv options
+gVerify{|RadioChoice|} _ mv options = simpleVerify mv options
 
-instance ChoiceNoView RadioChoiceNoView
+instance Choice RadioChoice
 where
-	selectOptionNoView newSel (RadioChoiceNoView options _)		= RadioChoiceNoView options (setListOptionNoView options newSel)
-	getSelectionNoView radios									= fromJust (getMbSelectionNoView radios)
-	getMbSelectionNoView (RadioChoiceNoView options mbSel)		= getListOption options mbSel
+	getSelectionView (RadioChoice options mbSel)				= getListOption options mbSel
+	setSelectionView mbSel (RadioChoice options _)				= RadioChoice options (maybe Nothing (getListIndex options) mbSel)
+    getSelectionIndex (RadioChoice _ mbSel)                     = mbSel
+    setSelectionIndex mbSel (RadioChoice options _)             = RadioChoice options mbSel
 
-gDefault{|TreeChoice|} _ _ = TreeChoice [] Nothing
+gDefault{|TreeChoice|} _ = TreeChoice [] Nothing
 
-gVisualizeText{|TreeChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+gVisualizeText{|TreeChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))
 
-gEditor{|TreeChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
-	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val mask} {UITreeOpts|doubleClickAction=Nothing},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))]
+gEditor{|TreeChoice|} _ gx _ hx _ _  dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options gx val mask} {UITreeOpts|doubleClickAction=Nothing}, newMap/*verifyAttributes vv (gEditMeta{|*->*|} hx val)*/)]
 	= (NormalEditor viz,vst)
 where
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
-	options (TreeChoice nodes _) msk = fst (mkTree nodes 0)
+	options vizLabel (TreeChoice nodes _) msk = fst (mkTree vizLabel nodes 0)
 	where
-	    expanded = case msk of
-	        TouchedWithState s 	= case fromJSON s of Just expanded = expanded; _ = []
-		    _					= []
+        mkTree vizLabel [] idx = ([],idx)
+        mkTree vizLabel [{ChoiceTree|label,icon,type}:r] idx
+            # (children,expanded,idx`)  = case type of
+                LeafNode = (Nothing,False,inc idx)
+                CollapsedNode nodes
+                    # (tree,idx`) = mkTree vizLabel nodes (inc idx)
+                    = (Just tree,False,idx`)
+                ExpandedNode nodes
+                    # (tree,idx`) = mkTree vizLabel nodes (inc idx)
+                    = (Just tree,True,idx`)
+            # (rtree,idx`) = mkTree vizLabel r idx`
+            = ([{UITreeNode|text=concat (vizLabel AsLabel label),iconCls=fmap (\i ->"icon-"+++i) icon,value=idx,leaf=isNothing children
+                ,expanded = expanded, children=children}:rtree],idx`)
 
-        mkTree [] idx = ([],idx)
-        mkTree [{ChoiceTree|label,value,icon,children}:r] idx
-            # (children`,idx`)  = case children of
-                Nothing = (Nothing,inc idx)
-                Just nodes = appFst Just (mkTree nodes (inc idx))
-            # (rtree,idx`) = mkTree r idx`
-            = ([{UITreeNode|text=label,iconCls=fmap (\i ->"icon-"+++i) icon,value=idx,leaf=isNothing children
-                ,expanded = isMember idx expanded,children=children`}:rtree],idx`)
+	options _ _ _ = []
 
-	options _ _ = []
+gUpdate{|TreeChoice|} _ _ _ [] upd (TreeChoice tree sel,mask) = case fromJSON upd of
+	Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask)
+	Just ("exp",idx,val)	= (TreeChoice (setTreeExpanded idx val tree) sel,touch mask)
+	_						= ((TreeChoice tree sel), mask)
 
-gUpdate{|TreeChoice|} _ _ _ _ _ _ [] upd (TreeChoice options sel,mask) = case fromJSON upd of
-	Just ("sel",idx,val)	= (TreeChoice options (if val (Just idx) Nothing), touch mask)
-	Just ("exp",idx,val)	= (TreeChoice options sel, if val (expand idx mask) (collapse idx mask))
-	_						= ((TreeChoice options sel), mask)
+gUpdate{|TreeChoice|} _ _ _ target upd val = val
 
-gUpdate{|TreeChoice|} _ _ _ _ _ _ target upd val = val
-
-gVerify{|TreeChoice|} _ _ mv options = simpleVerify mv options
+gVerify{|TreeChoice|} _ mv options = simpleVerify mv options
 
 instance Choice TreeChoice
 where
-	selectOption newSel (TreeChoice options _)					= TreeChoice options (setTreeOption options newSel)
-	getSelection tree											= fromJust (getMbSelection tree)
-	getMbSelection (TreeChoice options mbSel)					= fmap snd (getTreeOption options mbSel)
-	getMbSelectionView (TreeChoice options mbSel)				= fmap fst (getTreeOption options mbSel)
+	getSelectionView (TreeChoice options mbSel)		= getTreeOption options mbSel
+	setSelectionView mbSel (TreeChoice options _)	= TreeChoice options (findTreeView options mbSel)
+    getSelectionIndex (TreeChoice options mbSel)    = getTreeIndex options mbSel
+    setSelectionIndex mbSel (TreeChoice options _)  = TreeChoice options (findTreeIndex options mbSel)
 
-gDefault{|TreeChoiceNoView|} _ = TreeChoiceNoView [] Nothing
+gDefault{|GridChoice|} _ = GridChoice [] Nothing
 
-gVisualizeText{|TreeChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
+gVisualizeText{|GridChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))	
 
-gEditor{|TreeChoiceNoView|} _ gx _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId}
-	= (NormalEditor [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val mask} {UITreeOpts|doubleClickAction=Nothing},newMap)],vst)
-where
-	value (TreeChoiceNoView _ mbSel) = maybe [] (\s->[s]) mbSel
-	
-	options (TreeChoiceNoView nodes _) msk = fst (mkTree nodes 0)
-	where
-    	expanded = case msk of
-            TouchedWithState s 	= case fromJSON s of Just expanded = expanded; _ = []
-            _					= []
-				
-		mkTree [] idx = ([],idx)
-        mkTree [{ChoiceTree|label,value,icon,children}:r] idx
-            # (children`,idx`)  = case children of
-                Nothing = (Nothing,inc idx)
-                Just nodes = appFst Just (mkTree nodes (inc idx))
-            # (rtree,idx`) = mkTree r idx`
-            = ([{UITreeNode|text=label,iconCls=fmap (\i ->"icon-"+++i) icon,value=idx,leaf=isNothing children
-                ,expanded = isMember idx expanded,children=children`}:rtree],idx`)
-
-   	options _ _ = []
-
-gUpdate{|TreeChoiceNoView|} _ _ _ target upd val = updateChoice update target upd val
-where
-	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
-	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
-	update _					treechoice							= treechoice
-gVerify{|TreeChoiceNoView|} _ mv options = simpleVerify mv options
-	
-instance ChoiceNoView TreeChoiceNoView
-where
-	selectOptionNoView newSel (TreeChoiceNoView options _)		= TreeChoiceNoView options (setTreeOptionNoView options newSel)
-	getSelectionNoView tree										= fromJust (getMbSelectionNoView tree)
-	getMbSelectionNoView (TreeChoiceNoView options mbSel)		= getTreeOption options mbSel
-
-gDefault{|GridChoice|} _ _ = GridChoice [] Nothing
-
-gVisualizeText{|GridChoice|} fv _ mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
-
-gEditor{|GridChoice|} _ gx _ hx _ _ _ _ _ _ _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|GridChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 	= (NormalEditor [(UIGrid defaultSizeOpts
 		{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
 		{UIGridOpts|columns = [fromMaybe "" label\\ {EditMeta|label} <- hx undef], doubleClickAction=Nothing},newMap)],vst)
 where	
 	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
-	options (GridChoice options _)		= [gx AsRow opt \\ (opt,_) <- options]
+	options (GridChoice options _)		= [gx AsRow opt \\ opt <- options]
 
-gUpdate{|GridChoice|} _ _ _ _ _ _ target upd val
+gUpdate{|GridChoice|} _ _ _ target upd val
 	= updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
 
-gVerify{|GridChoice|} _ _ _ mv = alwaysValid mv
+gVerify{|GridChoice|} _ _ mv = alwaysValid mv
 
 instance Choice GridChoice
 where
-	selectOption newSel (GridChoice options _)					= GridChoice options (setListOption options newSel)
-	getSelection grid											= fromJust (getMbSelection grid)
-	getMbSelection (GridChoice options mbSel)					= fmap snd (getListOption options mbSel)
-	getMbSelectionView (GridChoice options mbSel)				= fmap fst (getListOption options mbSel)
+	getSelectionView (GridChoice options mbSel)		= getListOption options mbSel
+	setSelectionView mbSel (GridChoice options _)	= GridChoice options (maybe Nothing (getListIndex options) mbSel)
+    getSelectionIndex (GridChoice _ mbSel)          = mbSel
+    setSelectionIndex mbSel (GridChoice options _)  = GridChoice options mbSel
 
-gDefault{|GridChoiceNoView|} _ = GridChoiceNoView [] Nothing
+gDefault{|DynamicChoice|} fx = DCRadio (gDefault{|*->*|} fx )
 
-gVisualizeText{|GridChoiceNoView|} fo mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))	
+gVisualizeText{|DynamicChoice|}		fv mode (DCRadio val)	= gVisualizeText{|*->*|} fv mode val
+gVisualizeText{|DynamicChoice|}		fv mode (DCCombo val)	= gVisualizeText{|*->*|} fv mode val
+gVisualizeText{|DynamicChoice|}		fv mode (DCGrid val)	= gVisualizeText{|*->*|} fv mode val
+gVisualizeText{|DynamicChoice|}		fv mode (DCTree val)	= gVisualizeText{|*->*|} fv mode val
 
-gEditor{|GridChoiceNoView|} _ gx _ hx jex jdx dp (val,mask,ver) vst=:{VSt|taskId,disabled}
-	= (NormalEditor [(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options =options val}
-			{UIGridOpts|columns = [fromMaybe "" label\\ {EditMeta|label} <-hx undef],doubleClickAction=Nothing},newMap)],vst)
-where
-	value (GridChoiceNoView options mbSel)	= maybe [] (\s->[s]) mbSel
-	options (GridChoiceNoView options _)	= [gx AsRow opt \\ opt <- options]
-	
-gUpdate{|GridChoiceNoView|} _ _ _ target upd val
-	= updateChoice (\idxs (GridChoiceNoView options _) -> GridChoiceNoView options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCCombo val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCRadio val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCTree val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCGrid val,mask,ver) vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
 
-gVerify{|GridChoiceNoView|} _ _ mv= alwaysValid mv
-	
-instance ChoiceNoView GridChoiceNoView
-where
-	selectOptionNoView newSel (GridChoiceNoView options _)		= GridChoiceNoView options (setListOptionNoView options newSel)
-	getSelectionNoView grid										= fromJust (getMbSelectionNoView grid)
-	getMbSelectionNoView (GridChoiceNoView options mbSel)		= getListOption options mbSel
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx target upd	(DCTree val,mask)	= appFst DCTree (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
+gUpdate{|DynamicChoice|} gUpdx gDefx jDecx target upd	(DCGrid val,mask)	= appFst DCGrid (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 
-gDefault{|DynamicChoice|} fx fy = DCRadio (gDefault{|*->*->*|} fx fy)
-
-gVisualizeText{|DynamicChoice|}		fv fo mode (DCRadio val)	= gVisualizeText{|*->*->*|} fv fo mode val
-gVisualizeText{|DynamicChoice|}		fv fo mode (DCCombo val)	= gVisualizeText{|*->*->*|} fv fo mode val
-gVisualizeText{|DynamicChoice|}		fv fo mode (DCGrid val)		= gVisualizeText{|*->*->*|} fv fo mode val
-gVisualizeText{|DynamicChoice|}		fv fo mode (DCTree val)		= gVisualizeText{|*->*->*|} fv fo mode val
-
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCCombo val,mask,ver) vst
-	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCRadio val,mask,ver) vst
-	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCTree val,mask,ver) vst
-	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (DCGrid val,mask,ver) vst
-	= gEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 dp (val,mask,ver) vst
-
-gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
-gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
-gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCTree val,mask)	= appFst DCTree (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
-gUpdate{|DynamicChoice|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd	(DCGrid val,mask)	= appFst DCGrid (gUpdate{|*->*->*|} gUpdx gDefx jDecx gUpdy gDefy jDecy target upd (val,mask))
-
-gVerify{|DynamicChoice|} fx fy options (DCCombo v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
-gVerify{|DynamicChoice|} fx fy options (DCRadio v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
-gVerify{|DynamicChoice|} fx fy options (DCTree v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
-gVerify{|DynamicChoice|} fx fy options (DCGrid v,mask) = gVerify{|*->*->*|} fx fy options (v,mask)
+gVerify{|DynamicChoice|} fx options (DCCombo v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoice|} fx options (DCRadio v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoice|} fx options (DCTree v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoice|} fx options (DCGrid v,mask) = gVerify{|*->*|} fx options (v,mask)
 	
 instance Choice DynamicChoice
 where
-	selectOption newSel (DCCombo choice)	= DCCombo (selectOption newSel choice)
-	selectOption newSel (DCRadio choice)	= DCRadio (selectOption newSel choice)	
-	selectOption newSel (DCTree choice)		= DCTree (selectOption newSel choice)
-	selectOption newSel (DCGrid choice)		= DCGrid (selectOption newSel choice)
-	
-	getSelection (DCCombo choice)			= getSelection choice
-	getSelection (DCRadio choice)			= getSelection choice
-	getSelection (DCTree choice)			= getSelection choice
-	getSelection (DCGrid choice)			= getSelection choice
-	
-	getMbSelection (DCCombo choice)			= getMbSelection choice
-	getMbSelection (DCRadio choice)			= getMbSelection choice
-	getMbSelection (DCTree choice)			= getMbSelection choice
-	getMbSelection (DCGrid choice)			= getMbSelection choice
-	
-	getMbSelectionView (DCCombo choice)		= getMbSelectionView choice
-	getMbSelectionView (DCRadio choice)		= getMbSelectionView choice
-	getMbSelectionView (DCTree choice)		= getMbSelectionView choice
-	getMbSelectionView (DCGrid choice)		= getMbSelectionView choice
+	getSelectionView (DCCombo choice)		    = getSelectionView choice
+	getSelectionView (DCRadio choice)		    = getSelectionView choice
+	getSelectionView (DCTree choice)		    = getSelectionView choice
+	getSelectionView (DCGrid choice)		    = getSelectionView choice
 
-gDefault{|DynamicChoiceNoView|} fx = DCRadioNoView (gDefault{|*->*|} fx)
+	setSelectionView mbSel (DCCombo choice)		= DCCombo (setSelectionView mbSel choice)
+	setSelectionView mbSel (DCRadio choice)		= DCRadio (setSelectionView mbSel choice)
+	setSelectionView mbSel (DCTree choice)		= DCTree (setSelectionView mbSel choice)
+	setSelectionView mbSel (DCGrid choice)		= DCGrid (setSelectionView mbSel choice)
 
-gVisualizeText{|DynamicChoiceNoView|} fo mode (DCRadioNoView val)	= gVisualizeText{|*->*|} fo mode val
-gVisualizeText{|DynamicChoiceNoView|} fo mode (DCComboNoView val)	= gVisualizeText{|*->*|} fo mode val
-gVisualizeText{|DynamicChoiceNoView|} fo mode (DCTreeNoView val)	= gVisualizeText{|*->*|} fo mode val
-gVisualizeText{|DynamicChoiceNoView|} fo mode (DCGridNoView val)	= gVisualizeText{|*->*|} fo mode val
+    getSelectionIndex (DCCombo choice)          = getSelectionIndex choice
+    getSelectionIndex (DCRadio choice)          = getSelectionIndex choice
+    getSelectionIndex (DCTree choice)           = getSelectionIndex choice
+    getSelectionIndex (DCGrid choice)           = getSelectionIndex choice
 
-gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCComboNoView val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCRadioNoView val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCTreeNoView val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-gEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 f5 f6 dp (DCGridNoView val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCComboNoView val,mask)= appFst DCComboNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCRadioNoView val,mask)= appFst DCRadioNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCTreeNoView val,mask)	= appFst DCTreeNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
-gUpdate{|DynamicChoiceNoView|} gUpdx gDefx jDecx target upd (DCGridNoView val,mask)	= appFst DCGridNoView (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
-
-gVerify{|DynamicChoiceNoView|} fx options (DCComboNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoiceNoView|} fx options (DCRadioNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoiceNoView|} fx options (DCTreeNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoiceNoView|} fx options (DCGridNoView v,mask) = gVerify{|*->*|} fx options (v,mask)
-
-instance ChoiceNoView DynamicChoiceNoView
-where
-	selectOptionNoView newSel (DCComboNoView choice)	= DCComboNoView (selectOptionNoView newSel choice)
-	selectOptionNoView newSel (DCRadioNoView choice)	= DCRadioNoView (selectOptionNoView newSel choice)	
-	selectOptionNoView newSel (DCTreeNoView choice)		= DCTreeNoView (selectOptionNoView newSel choice)
-	selectOptionNoView newSel (DCGridNoView choice) 	= DCGridNoView (selectOptionNoView newSel choice)
-	
-	getSelectionNoView (DCComboNoView choice)	= getSelectionNoView choice
-	getSelectionNoView (DCRadioNoView choice)	= getSelectionNoView choice
-	getSelectionNoView (DCTreeNoView choice)	= getSelectionNoView choice
-	getSelectionNoView (DCGridNoView choice)	= getSelectionNoView choice
-
-	getMbSelectionNoView (DCComboNoView choice)	= getMbSelectionNoView choice
-	getMbSelectionNoView (DCRadioNoView choice)	= getMbSelectionNoView choice
-	getMbSelectionNoView (DCTreeNoView choice)	= getMbSelectionNoView choice
-	getMbSelectionNoView (DCGridNoView choice)	= getMbSelectionNoView choice
+    setSelectionIndex mbSel (DCCombo choice)    = DCCombo (setSelectionIndex mbSel choice)
+    setSelectionIndex mbSel (DCRadio choice)    = DCRadio (setSelectionIndex mbSel choice)
+    setSelectionIndex mbSel (DCTree choice)     = DCTree (setSelectionIndex mbSel choice)
+    setSelectionIndex mbSel (DCGrid choice)     = DCGrid (setSelectionIndex mbSel choice)
 
 gDefault{|CheckMultiChoice|} _ _ = CheckMultiChoice [] []
 gVisualizeText{|CheckMultiChoice|} fv _ _ val = gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
@@ -1187,7 +1038,7 @@ gVerify{|CheckMultiChoice|} _ _	vm options = simpleVerify vm options
 	
 instance MultiChoice CheckMultiChoice
 where
-	selectOptions newSels (CheckMultiChoice options _)			= CheckMultiChoice options (setListOptions options newSels)
+	selectOptions newSels (CheckMultiChoice options _)			= CheckMultiChoice options (setListOptions id options newSels)
 	getSelections (CheckMultiChoice options sels)				= fmap snd (getListOptions options sels)
 	getSelectionViews (CheckMultiChoice options sels)			= fmap fst (getListOptions options sels)
 
@@ -1197,27 +1048,42 @@ touch (TouchedWithState s)	= TouchedWithState s
 touch (CompoundMask c)	    = CompoundMask c
 touch _						= Touched
 
-expand idx (TouchedWithState s) = case fromJSON s of
-	Just list	= TouchedWithState (toJSON (removeDup [idx:list]))
-	_			= TouchedWithState (toJSON [idx])
-expand idx _	= TouchedWithState (toJSON [idx])
- 
-collapse idx (TouchedWithState s) = case fromJSON s of
-	Just list	= TouchedWithState (toJSON (removeMember idx list))
-	_			= TouchedWithState s
-collapse idx m = m
+setTreeExpanded :: Int Bool [ChoiceTree a] -> [ChoiceTree a]
+setTreeExpanded idx expanded tree = snd (expand idx tree)
+where
+    expand idx [] = (Just idx,[])
+    expand idx [t=:{ChoiceTree|type=LeafNode}:ts]
+        | idx == 0 = (Nothing,[t:ts])
+        # (mbIdx,ts) = expand (idx - 1) ts
+        = (mbIdx,[t:ts])
+    expand idx [t=:{ChoiceTree|type=CollapsedNode children}:ts]
+        | idx == 0  = (Nothing,[if expanded {ChoiceTree|t&type=ExpandedNode children} {ChoiceTree|t&type=CollapsedNode children}:ts])
+        | otherwise = case expand (idx - 1) children of
+            (Nothing,children) //Found in children
+                = (Nothing,[{ChoiceTree|t & type = CollapsedNode children}:ts])
+            (Just idx,children) //Not found, keep looking
+                # (mbIdx,ts) = expand idx ts
+                = (mbIdx,[t:ts])
+    expand idx [t=:{ChoiceTree|type=ExpandedNode children}:ts] 
+        | idx == 0  = (Nothing,[if expanded {ChoiceTree|t&type=ExpandedNode children} {ChoiceTree|t&type=CollapsedNode children}:ts])
+        | otherwise = case expand (idx - 1) children of
+            (Nothing,children) //Found in children
+                = (Nothing,[{ChoiceTree|t & type = ExpandedNode children}:ts])
+            (Just idx,children) //Not found, keep looking
+                # (mbIdx,ts) = expand idx ts
+                = (mbIdx,[t:ts])
 
 updateChoice select target upd val = basicUpdate (\json choice -> Just (maybe choice (\i -> select i choice) (fromJSON json))) target upd val
 
-setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
-setListOption options newSel
-	= case setListOptions options [newSel] of
+setListOption :: !(o -> s) ![(v,o)] !s -> (Maybe Int) | gEq{|*|} s
+setListOption targetFun options newSel
+	= case setListOptions targetFun options [newSel] of
 		[idx:_]	= Just idx
 		_		= Nothing
 
-setListOptions :: ![(v,o)] ![o] -> [Int] | gEq{|*|} o
-setListOptions options sels
-	= [idx \\ (_,option) <- options & idx <- [0..] | gIsMember option sels]
+setListOptions :: !(o -> s) ![(v,o)] ![s] -> [Int] | gEq{|*|} s
+setListOptions targetFun options sels
+	= [idx \\ (_,option) <- options & idx <- [0..] | gIsMember (targetFun option) sels]
 where
 	gIsMember x [hd:tl]	= hd===x || gIsMember x tl
 	gIsMember x []		= False
@@ -1227,6 +1093,11 @@ getListOption options mbSel = case getListOptions options (maybeToList mbSel) of
 	[a] = Just a
 	_	= Nothing
 
+getListIndex :: ![a] a -> Maybe Int | gEq{|*|} a
+getListIndex options sel = case [idx \\ opt <- options & idx <- [0..] | opt === sel] of
+    [idx:_] = Just idx
+    _       = Nothing
+
 getListOptions :: ![a] ![Int] -> [a]
 getListOptions options sels = [opt \\ opt <- options & idx <- [0..] | isMember idx sels]
 
@@ -1235,38 +1106,76 @@ getTreeOption tree mbSel = case getListOption (treeToList tree) mbSel of
     Nothing  = Nothing
     Just mba = mba
 
-setTreeOption :: ![ChoiceTree (v,o)] !o -> (Maybe Int) | gEq{|*|} o
-setTreeOption tree sel = findTreeOpt sel [(i,fmap snd mb) \\ i<- [0..] & mb <- treeToList tree]
+getTreeIndex :: ![ChoiceTree a] !(Maybe Int) -> Maybe Int
+getTreeIndex tree mbSel = maybe Nothing (\sel -> (indices tree !! sel)) mbSel
+where
+    indices [] = []
+    indices [c=:{ChoiceTree|value,type}:cs] = [toMaybe value] ++ indices (choiceTreeChildren c) ++ indices cs
 
-setTreeOptionNoView :: ![ChoiceTree o] !o -> (Maybe Int) | gEq{|*|} o
-setTreeOptionNoView tree sel = findTreeOpt sel [(i,mb) \\ i<- [0..] & mb <- treeToList tree]
+    toMaybe (ChoiceNode i)  = Just i
+    toMaybe _               = Nothing
 
-findTreeOpt sel [] = Nothing
-findTreeOpt sel [(i,Just o):xs] = if (o === sel) (Just i) (findTreeOpt sel xs)
-findTreeOpt sel [_:xs] = findTreeOpt sel xs
+findTreeIndex :: ![ChoiceTree a] !(Maybe Int) -> Maybe Int
+findTreeIndex tree Nothing = Nothing
+findTreeIndex tree (Just idx) = case find idx 0 tree of
+    Left i  = Just i
+    _       = Nothing
+where
+    find idx i [] = Right i
+    find idx i [c=:{ChoiceTree|value,type}:cs]
+        | isChoice idx value = Left i
+        | otherwise = case find idx (i + 1) (choiceTreeChildren c) of
+            Left i = Left i
+            Right i` = find idx i` cs
 
-setListOptionNoView :: ![o] !o -> (Maybe Int) | gEq{|*|} o
-setListOptionNoView options newSel
-	= case setListOptionL options newSel of
-		[idx:_]	= Just idx
-		_		= Nothing
-  where
-	setListOptionL :: ![o] o -> [Int] | gEq{|*|} o
-	setListOptionL options sel
-		= [idx \\ option <- options & idx <- [0..] | option===sel]
+    isChoice idx (ChoiceNode i) = idx == i
+    isChoice idx _              = False
+
+findTreeView :: ![ChoiceTree a] !(Maybe a) -> Maybe Int | gEq{|*|} a //TODO: Merge with findTreeIndex
+findTreeView tree Nothing = Nothing
+findTreeView tree (Just sel) = case find sel 0 tree of
+    Left i  = Just i
+    _       = Nothing
+where
+    find sel i [] = Right i
+    find sel i [c=:{ChoiceTree|label}:cs]
+        | label === sel = Left i
+        | otherwise = case find sel (i + 1) (choiceTreeChildren c) of
+            Left i = Left i
+            Right i` = find sel i` cs
+
+choiceTreeChildren :: (ChoiceTree v) -> [ChoiceTree v]
+choiceTreeChildren {ChoiceTree|type=LeafNode} = []
+choiceTreeChildren {ChoiceTree|type=CollapsedNode nodes} = nodes
+choiceTreeChildren {ChoiceTree|type=ExpandedNode nodes} = nodes
+
+ifExpanded :: ChoiceTreeValue [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
+ifExpanded value expanded nodes
+    | isMember value expanded   = ExpandedNode nodes
+                                = CollapsedNode nodes
+
+ifExpandedGroup :: String [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
+ifExpandedGroup group expanded nodes = ifExpanded (GroupNode group) expanded nodes
+
+ifExpandedChoice :: Int [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
+ifExpandedChoice idx expanded nodes = ifExpanded (ChoiceNode idx) expanded nodes
+
+instance == ChoiceTreeValue
+where
+    (==) (GroupNode x) (GroupNode y) = x == y
+    (==) (ChoiceNode x) (ChoiceNode y) = x == y
+    (==) _ _ = False
 
 treeToList :: [ChoiceTree a] -> [Maybe a]
 treeToList [] = []
-treeToList [{ChoiceTree|value,children}:r] = [value] ++ treeToList (fromMaybe [] children) ++ treeToList r
+treeToList [{ChoiceTree|label,type=LeafNode}:r] = [Just label:treeToList r]
+treeToList [{ChoiceTree|label,type=CollapsedNode children}:r] = [Just label:treeToList children ++ treeToList r]
+treeToList [{ChoiceTree|label,type=ExpandedNode children}:r] = [Just label:treeToList children ++ treeToList r]
 
 derive JSONEncode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive JSONEncode		ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
 derive JSONDecode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive JSONDecode		ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
 derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gEq				ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
-derive gEditMeta			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gEditMeta			ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,DynamicChoiceNoView,GridChoiceNoView
+derive gEditMeta		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 
 //* Visualization wrappers
 gVisualizeText{|VisualizationHint|} fx mode val = case val of

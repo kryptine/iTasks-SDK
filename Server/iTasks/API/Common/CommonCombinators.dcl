@@ -269,6 +269,12 @@ feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | de
 //Infix version of feedForward
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 
+//Same as feedForward, but with the value of the lefthand side
+feedSideways :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | descr d & iTask a & iTask b
+
+//Infix version of feedSideways
+(>&^) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+
 /**
 * Group a list of tasks in parallel.
 * The group stops as soon as one result is available which is returned.
@@ -342,9 +348,9 @@ whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Tas
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
+appendTopLevelTask :: !ManagementMeta !Bool !(Task a) -> Task TaskId | iTask a
 
-appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
+appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
 //Utility functions for defining task steps
 always 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
@@ -356,15 +362,4 @@ ifUnstable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
 
 ifValue 	:: (a -> Bool) 	(a -> Task b) 	(TaskValue a) -> Maybe (Task b)
 ifCond 		:: Bool (Task b) 				(TaskValue a) -> Maybe (Task b)
-
-//Common derived task steps
-//Always			:: Action (Task b)						-> TaskStep a b
-//AnyTime 		:: Action ((Maybe a) -> Task b)			-> TaskStep a b
-//WithResult 		:: Action (a -> Bool) (a -> Task b)		-> TaskStep a b
-//WithValue       :: Action (a -> Task b)                 -> TaskStep a b
-//WithoutResult	:: Action (Task b)						-> TaskStep a b
-//WhenValid		:: (a -> Bool) (a -> Task b)			-> TaskStep a b
-//WhenStable		:: (a -> Task b)						-> TaskStep a b
-//Catch			:: (e -> Task b)						-> TaskStep a b | iTask e
-//CatchAll		:: (String -> Task b)					-> TaskStep a b
 

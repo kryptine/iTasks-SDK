@@ -49,12 +49,12 @@ autoAccuStep (UISubUIStack stack) stepActions
 
 autoAccuParallel :: UIDef [UIDef] -> UIDef
 autoAccuParallel prompt defs
-    # defs = [prompt:defs]
+    # defs = if (emptyPrompt prompt) defs [prompt:defs]
     # (nAttributeSet,nActionSet,nControlStack,nSubUI,nSubUIStack,nFinal) = foldl count (0,0,0,0,0,0) defs
     //| trace_tn (print nAttributeSet nActionSet nControlStack nSubUI nSubUIStack nFinal) && False = undef
     //If there is just one def, leave it be
     | nAttributeSet+nActionSet+nControlStack+nSubUI+nSubUIStack+nFinal == 1
-        = /*trace_n "Case for one item"*/ (hd defs)
+        = /* trace_n "Case for one item"*/ (hd defs)
     //If there are final defs, pick the first one
     | nFinal > 0
         = /*trace_n "Case for final"*/ (hd [def \\def=:(UIFinal _) <- defs])
@@ -86,6 +86,12 @@ autoAccuParallel prompt defs
         # actions       = flatten [actions \\ UIActionSet actions <- defs]
         = /*trace_n "Otherwise"*/ (UISubUI {UISubUI|ui & actions = ui.UISubUI.actions ++ actions})
 where
+    emptyPrompt (UIAttributeSet attributes)
+        = isEmpty (toList attributes)
+    emptyPrompt (UIControlStack {UIControlStack|attributes,controls})
+        = (isEmpty (toList attributes)) && (isEmpty controls)
+    emptyPrompt _ = False
+
     count (n1,n2,n3,n4,n5,n6) (UIAttributeSet _)    = (inc n1,n2,n3,n4,n5,n6)
     count (n1,n2,n3,n4,n5,n6) (UIActionSet _)       = (n1,inc n2,n3,n4,n5,n6)
     count (n1,n2,n3,n4,n5,n6) (UIControlStack _)    = (n1,n2,inc n3,n4,n5,n6)
@@ -122,6 +128,7 @@ where
             | otherwise                         = mergeAttributes stackAttr subuiAttr
 
     collectSubUIs stack _                                               = stack
+
 
 import StdDebug, StdMisc
 /**
@@ -234,9 +241,11 @@ forceLayout (UISubUIStack stack)       = UISubUI (autoLayoutSubUIStack stack)
 forceLayout def                        = def
 
 arrangeSubUIStack :: (UISubUIStack -> UISubUI) UIDef -> UIDef
+arrangeSubUIStack f (UIControlStack stack)  = UISubUI (f {UISubUIStack|attributes=newMap,subuis=[autoLayoutControlStack stack]})
 arrangeSubUIStack f (UISubUI ui)            = UISubUI (f {UISubUIStack|attributes=newMap,subuis=[ui]})
 arrangeSubUIStack f (UISubUIStack stack)    = UISubUI (f stack)
-arrangeSubUIStack f def                     = def
+arrangeSubUIStack f def                     = trace_n "HMMZZ" def
+arrangeSubUIStack f def                     = trace_n "HMMZZ" def
 
 instance tune ArrangeVertical
 where

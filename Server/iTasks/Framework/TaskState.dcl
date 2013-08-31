@@ -17,7 +17,6 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	, worker		:: !Maybe User			//Identity of the user working on this instance (this determines the value of the currentUser share)
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
-    , attributes    :: !Map String String
 	}
 :: SessionInfo =
 	{ sessionId		:: SessionId
@@ -34,18 +33,21 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	}
 
 :: TaskTree
-	= TCInit		!TaskId !TaskTime													//Initial state for all tasks
-	| TCBasic		!TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
-	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
-	| TCInteract1	!TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract2	!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCProject		!TaskId !JSONNode !TaskTree
-	| TCStep		!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
-	| TCParallel	!TaskId !TaskTime
-	| TCShared		!TaskId !TaskTime !TaskTree
-	| TCStable		!TaskId !TaskTime !DeferredJSON
+	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
+	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
+	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
+	| TCInteractLocal	        !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCInteractViewOnly	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCInteractLocalViewOnly   !TaskId !TaskTime !JSONNode !InteractionMask
+	| TCInteract1	    !TaskId !TaskTime !JSONNode !InteractionMask
+	| TCInteract2	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCProject		    !TaskId !JSONNode !TaskTree
+	| TCStep		    !TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
+	| TCParallel	    !TaskId !TaskTime
+	| TCShared		    !TaskId !TaskTime !TaskTree
+	| TCStable		    !TaskId !TaskTime !DeferredJSON
 	| TCNop			
-	| TCDestroy		!TaskTree															//Marks a task state as garbage that must be destroyed
+	| TCDestroy		    !TaskTree															//Marks a task state as garbage that must be destroyed
 
 :: DeferredJSON
 	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
@@ -56,6 +58,7 @@ derive JSONDecode DeferredJSON
 	
 :: TaskListEntry	=
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
+    , name              :: !Maybe String            //Optional name, for easy referencing
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
 	, lastEval			:: !TaskResult JSONNode		//Result of last evaluation
 	, attributes		:: !Map String String		//Stored attributes of last evaluation

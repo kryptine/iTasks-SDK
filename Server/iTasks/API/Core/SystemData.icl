@@ -42,12 +42,17 @@ where
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = mapRead readPrj (currentProcesses|+|currentTopTask)
+topLevelTasks = mapReadWrite (readPrj,writePrj) (taskInstances >+| currentTopTask)
 where
-	readPrj (items,taskId) = {TaskList|listId = TopLevelTaskList, items = items, active = activeIndex 0 taskId items}
+	readPrj (instances, taskId) = {TaskList|listId = TopLevelTaskList, items = [toTaskListItem m \\ (_,m) <- (toList instances)| not (isSession m)], selfId = taskId}
+    writePrj [] instances = Nothing
+    writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)
 
-    activeIndex _ _ [] = Nothing
-    activeIndex i t=:(TaskId no1 _) [{TaskListItem|taskId=TaskId no2 _}:xs] = if (no1 == no2) (Just i) (activeIndex (i+1) t xs)
+    applyUpdate instances (TaskId instanceNo 0,management)
+        = case get instanceNo instances of
+            Just meta   = put instanceNo {TIMeta|meta&management=management} instances
+            _           = instances
+    applyUpdate instances _ = instances
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
 currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | isSession m]) (toReadOnly taskInstances)
@@ -70,8 +75,8 @@ isSession {TIMeta|session=Just _}	= True
 isSession _						 	= False
 
 toTaskListItem :: !TIMeta -> TaskListItem a 
-toTaskListItem {TIMeta|instanceNo,listId,progress,management,attributes}
-	= {taskId = TaskId instanceNo 0, listId = listId, value = NoValue, progressMeta = Just progress, managementMeta = Just management, attributes = attributes}
+toTaskListItem {TIMeta|instanceNo,listId,progress,management}
+	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\iworld=:{currentUser} -> (currentUser,iworld))

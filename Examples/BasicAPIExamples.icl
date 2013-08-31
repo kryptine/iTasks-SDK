@@ -254,8 +254,8 @@ editPersonList :: Task Void
 editPersonList = editSharedList personStore
 
 editSharedList :: (Shared [a]) -> Task Void | iTask a
-editSharedList store 
-	=			enterSharedChoice "Choose an item to edit" [ChooseWith ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
+editSharedList store
+	=			enterChoiceWithShared "Choose an item to edit" [ChooseWith (ChooseFromGrid snd)] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
 		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
 				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
 				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
@@ -303,7 +303,7 @@ twitterId name  = sharedStore ("Twitter with " +++ name) []
 
 followTweets 
 	= 					get currentUser
-		>>= \me ->		enterSharedChoice "Whoms tweets you want to see?" [] users
+		>>= \me ->		enterChoiceWithShared "Whoms tweets you want to see?" [] users
 		>>= \user ->	let name = getUserName user in joinTweets me user "type in your tweet" (twitterId name)
 where
 	joinTweets  :: User User String (Shared [Tweet]) -> Task Void
@@ -378,7 +378,7 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith ChooseFromRadioButtons id] coins
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith (ChooseFromRadioButtons id)] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
 					, OnAction (Action "Insert" []) (hasValue handleMoney)
 					]
@@ -506,7 +506,7 @@ where
 
 delegate :: (Task a) -> Task a | iTask a
 delegate task
-	=					enterSharedChoice "Select someone to delegate the task to:" [] users
+	=					enterChoiceWithShared "Select someone to delegate the task to:" [] users
 		>>= \user -> 	user @: (task >>= return)
 		>>= \result ->	viewInformation "The result is:" [] result
 
@@ -515,7 +515,7 @@ delegate task
 
 chat :: Task Void
 chat = 					get currentUser
-		>>= \me ->		enterSharedChoice "Select someone to chat with:" [] users
+		>>= \me ->		enterChoiceWithShared "Select someone to chat with:" [] users
 		>>= \you -> 	withShared ("","") (duoChat me you)
 where
 	duoChat me you notes
@@ -555,7 +555,7 @@ ask :: [User] [DateTime] -> Task [(User,[DateTime])]
 ask users options
 	= parallel "Collect possibilities"
 	  [ (Embedded, monitor) 
-	  :[(Detached (worker u),select u options) \\ u <- users]
+	  :[(Detached (worker u) False,select u options) \\ u <- users]
 	  ]
 	  @ \answers -> [a \\ (_,Value a _) <- answers]
 
@@ -628,7 +628,7 @@ where
 tictactoe :: Task String
 tictactoe
 	=             get currentUser
-	  >>= \me  -> enterSharedChoice "Who do you want to play Tic-Tac-Toe with:" [] users
+	  >>= \me  -> enterChoiceWithShared "Who do you want to play Tic-Tac-Toe with:" [] users
 	  >>= \you -> playGame me you {board=emptyBoard,player1=me,player2=you,turn=True}
 where
 	playGame me you board 

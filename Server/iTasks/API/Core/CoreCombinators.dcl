@@ -72,7 +72,15 @@ taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
 /**
 * Get the properties share of a task list
 */
-taskListMeta	:: !(SharedTaskList a) -> ReadOnlyShared [TaskListItem a]
+taskListMeta	:: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,ManagementMeta)]
+/*
+* Get the id of the entry in the list the current task is part of
+*/
+taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
+/**
+* Get the current tasks management meta data share
+*/
+taskListSelfManagement :: !(SharedTaskList a) -> Shared ManagementMeta
 
 //Task list manipulation 
 

@@ -31,12 +31,12 @@ manageCollectionWith desc makeSelection useSelection selectionActions identify i
 		( \mbSel -> 
 			forever (
 				whileUnchanged mbSel (\sel -> useSelection collection itemShare sel @ const sel @? onlyJust >>* selectionActions)
+                <<@ ForceLayout
 			)
 		)
 where
 	onlyJust (Value (Just x) s)	= Value x s
 	onlyJust _					= NoValue
-
 
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
 itemShare identify collection i = mapReadWrite (toItem,fromItem) collection
@@ -50,8 +50,7 @@ where
 
 selectItem :: !d (Shared [c]) (c -> i) -> Task i | descr d & iTask c & iTask i
 selectItem desc collection identify
-	=	enterSharedChoice desc [] collection
-	@	identify
+	=	enterChoiceWithSharedAs desc [] collection identify
 
 viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | descr d & iTask c & iTask i
 viewItem desc collection itemShare Nothing	= viewInformation desc [] "Make a selection first..." @ const Nothing

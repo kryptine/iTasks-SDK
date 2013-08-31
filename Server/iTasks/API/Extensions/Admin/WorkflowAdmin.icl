@@ -140,20 +140,20 @@ where
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=	enterSharedChoice [Att (Title "Tasks"), Att IconEdit] [ChooseWith (ChooseFromTree group) id] allowedWorkflows //<<@ AfterLayout (tweakControls (map noAnnotation))
+	=	enterChoiceWithShared [Att (Title "Tasks"), Att IconEdit] [ChooseWith (ChooseFromTree group)] allowedWorkflows
 where
-    group workflows = (seq (map insertWorkflow workflows) [])
+    group workflows expanded = (seq (map insertWorkflow workflows) [])
     where
-	    insertWorkflow wf=:{Workflow|path} nodeList = insertWorkflow` (split "/" path) nodeList
+	    insertWorkflow (i,wf=:{Workflow|path}) nodeList = insertWorkflow` path (split "/" path) nodeList
         where
-    	    insertWorkflow` [] nodeList = nodeList
-		    insertWorkflow` [title] nodeList = nodeList ++ [{ChoiceTree|label=workflowTitle wf,icon=Nothing,value=Just wf,children=Nothing}]
-		    insertWorkflow` path=:[nodeP:pathR] [node=:{ChoiceTree|label=nodeL,children=Just nodes}:nodesR]
-		    	| nodeP == nodeL	= [{ChoiceTree|node & children = Just (insertWorkflow` pathR nodes)}:nodesR]
-		    	| otherwise			= [node:insertWorkflow` path nodesR]
-		    insertWorkflow` path=:[nodeP:pathR] []
-                = [{ChoiceTree|label=nodeP,icon=Nothing,value=Nothing,children=Just (insertWorkflow` pathR [])}]
-		    insertWorkflow` path [node:nodesR] = [node:insertWorkflow` path nodesR]
+    	    insertWorkflow` wfpath [] nodeList = nodeList
+		    insertWorkflow` wfpath [title] nodeList = nodeList ++ [{ChoiceTree|label=workflowTitle wf,icon=Nothing,value=ChoiceNode i,type=LeafNode}]
+		    insertWorkflow` wfpath path=:[nodeP:pathR] [node=:{ChoiceTree|label=nodeL}:nodesR]
+		    	| nodeP == nodeL	= [{ChoiceTree|node & type = ifExpandedChoice i expanded (insertWorkflow` wfpath pathR (choiceTreeChildren node))}:nodesR]
+		    	| otherwise			= [node:insertWorkflow` wfpath path nodesR]
+		    insertWorkflow` wfpath path=:[nodeP:pathR] []
+                = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode wfpath, type= ifExpandedGroup wfpath expanded (insertWorkflow` wfpath pathR [])}]
+		    insertWorkflow` wfpath path [node:nodesR] = [node:insertWorkflow` wfpath path nodesR]
 
 	noAnnotation (c,_) = (c,'Data.Map'.newMap)
 	
@@ -171,7 +171,7 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser
 	>>=	\user ->
-		appendTopLevelTask {defaultValue & worker = toUserConstraint user, title = Just (workflowTitle wf)} (fromContainer wf.Workflow.task)
+		appendTopLevelTask {defaultValue & worker = toUserConstraint user, title = Just (workflowTitle wf)} False (fromContainer wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -181,7 +181,7 @@ where
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterSharedChoice Void [ChooseWith ChooseFromGrid snd] processes @ fst
+	(	enterChoiceWithSharedAs Void [ChooseWith (ChooseFromGrid snd)] processes fst
 	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
 		,OnAction (Action "Delete" []) (hasValue (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
@@ -206,12 +206,22 @@ openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
 openTask taskList taskId
 	=	appendOnce taskId (workOnTask taskId) taskList @ const OpenProcess
 
-workOnTask :: TaskId -> Task ClientPart
+workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
+	=   (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
 
-appendOnce identity task taskList
-	= 	appendTask Embedded (\_ -> task) taskList @ const Void
+appendOnce identity task slist
+    =   get (taskListMeta slist)
+    >>- \items -> if (isMember name [name \\{TaskListItem|name=Just name} <- items])
+        (return Void)
+	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @ const Void)
+where
+    name = toString identity
+
+removeWhenStable task slist
+    =   task
+    >>* [OnValue (ifStable (\_ -> get (taskListSelfId slist) >>- \selfId -> removeTask selfId slist))]
+    @?  const NoValue
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional
