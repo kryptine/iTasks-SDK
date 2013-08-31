@@ -73,21 +73,24 @@ Ext.define('itwc.component.choice.Tree',{
 		return this.selectedNode;
 	},
 	setValue: function(value) {
-		var node;
+		var me = this,
+            node;
 		
+        me.suspendEvents();
 		if(Ext.isArray(value) && value.length) {
 			value = value[0];
 		}
 		if(Ext.isNumber(value)) {
-			this.selectedNode = value;
-			node = this.getRootNode().findChildBy(function(node) {return (node.raw.value == value);},this,true);
+			me.selectedNode = value;
+			node = me.getRootNode().findChildBy(function(node) {return (node.raw.value == value);},me,true);
 			if(node) {
-				this.getSelectionModel().select(node);
+				me.getSelectionModel().select(node);
 			}
 		} else {
-			this.selectedNode = -1;
-			this.getSelectionModel().deselectAll();
+			me.selectedNode = -1;
+			me.getSelectionModel().deselectAll();
 		}
+        me.resumeEvents();
 	},
 	setOptions: function(options) { //STILL BUGGY
 		var me = this,
@@ -95,11 +98,12 @@ Ext.define('itwc.component.choice.Tree',{
 			numOptions = options.length,
 			i;
 
+        me.suspendEvents();
 		root.removeAll();
 		for(i = 0; i < numOptions; i++) {
 			root.appendChild(options[i]);
 		}
-		//me.setValue(me.value);
+        me.resumeEvents();
 	},
 	onDestroy: function() {
 		this.store.destroy();

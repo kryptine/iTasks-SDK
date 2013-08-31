@@ -11,7 +11,10 @@ Ext.define('itwc.component.view.String',{
 		this.callParent(arguments);
 	},
 	toHtml: function(value) {
-		return (Ext.Array.map(value.split("\n"),Ext.htmlEncode)).join("<br>");
+        if((typeof value) == "string") {
+		    return (Ext.Array.map(value.split("\n"),Ext.htmlEncode)).join("<br>");
+        }
+        return "";
 	},
 	setValue: function(value) {
 		if(this.rendered) {

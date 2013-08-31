@@ -5,6 +5,9 @@ Ext.define('itwc.component.choice.Dropdown',{
 	triggerAction: 'all',
 	forceSelection: true,
 	
+	width: 'flex',
+	minWidth: 150,
+
 	initComponent: function() {
 		var me = this,
 			store = [],

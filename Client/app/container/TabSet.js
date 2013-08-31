@@ -22,6 +22,12 @@ Ext.define('itwc.container.TabSet',{
 			me.callParent([tab]);
 		}	
 	},
+    remove: function () {
+		var me = this;
+		me.suspendEvent('tabchange');
+		me.callParent(arguments)
+		me.resumeEvent('tabchange');
+	},
     getActiveTabIndex: function() {
         var me = this,
             activeId = me.getActiveTab().getId(),
