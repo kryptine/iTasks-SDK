@@ -104,6 +104,8 @@ Ext.define('itwc.layout.container.Box', {
 	targetElCls: Ext.baseCSSPrefix + 'box-target',
     innerCls: Ext.baseCSSPrefix + 'box-inner',
 
+    availableSpaceOffset: 0,
+
 	reserveOffset: true,
     manageMargins: true,
 	createsInnerCt: true,
@@ -298,7 +300,7 @@ Ext.define('itwc.layout.container.Box', {
 				me.reCalculateFlexed(ownerContext, plan);
                 state.flexedDone = true;
             }
-            me.publishInnerCtSize(ownerContext, 0);
+            me.publishInnerCtSize(ownerContext, me.reserveOffset ? me.availableSpaceOffset : 0);
 
 			me.overflowHandler.calculate(ownerContext);
 
@@ -484,7 +486,7 @@ Ext.define('itwc.layout.container.Box', {
 				//Track the minimal wrap size of flexed items with min size set to 'wrap'
 				if(childContext[me.horizontal?'vflex':'hflex'] && childContext.target[me.horizontal ? 'minHeight':'minWidth'] === 'wrap') {
 					childContext.props[me.horizontal ? 'minWrapHeight':'minWrapWidth'] = childSize;
-				} 
+				}
 			}
 		}
 
@@ -499,7 +501,7 @@ Ext.define('itwc.layout.container.Box', {
 			// adds the border widths to the set size of the innerCt.
 			size = shrinkWrap ? maxSize : availSize;
 			size = size - ownerContext.innerCtContext.getBorderInfo()[me.horizontal ? 'height' : 'width'];
-		} 
+		}
 
         for (i = 0; i < childItemsLength; i++) {
             childContext = childItems[i];
@@ -601,17 +603,14 @@ Ext.define('itwc.layout.container.Box', {
        	if (childContext.widthModel.calculated) {
 			childContext.setWidth(options.childWidth);
 		}
-		if (childContext.heightModel.calculated) { 
+		if (childContext.heightModel.calculated) {
 			childContext.setHeight(options.childHeight);
 		}
 	},
-
     completeLayout: function(ownerContext) {
         var me = this;
-
         me.overflowHandler.completeLayout(ownerContext);
     },
-
     finishedLayout: function(ownerContext) {
 		var me = this;
 
@@ -619,19 +618,18 @@ Ext.define('itwc.layout.container.Box', {
         me.callParent(arguments);
 
     },
-
     publishInnerCtSize: function(ownerContext, reservedSpace) {
         var me = this,
 			isCenter = me.horizontal ? ownerContext.valign.middle : ownerContext.halign.center,
 			isEnd = me.horizontal ? ownerContext.valign.bottom : ownerContext.halign.right,
-            dock = me.owner.dock,
             padding = me.padding,
             plan = ownerContext.state.boxPlan,
             targetSize = plan.targetSize,
 			parallelShrinkWrap = ownerContext[me.horizontal ? 'widthModel':'heightModel'].shrinkWrap,
 			perpendicularShrinkWrap = ownerContext[me.horizontal ? 'heightModel':'widthModel'].shrinkWrap,
+            scrollbarWidth = Ext.getScrollbarSize()[me.horizontal ? 'height':'width'],
             innerCtContext = ownerContext.innerCtContext,
-            innerCtParallel = (parallelShrinkWrap 
+            innerCtParallel = (parallelShrinkWrap || (plan.availableSpace < 0)
                     ? ownerContext.state.contentSize
                     : targetSize[me.horizontal ? 'width':'height']) - (reservedSpace || 0),
             innerCtPerpendicular;
@@ -642,8 +640,13 @@ Ext.define('itwc.layout.container.Box', {
             innerCtPerpendicular = plan.maxSize + (
 				me.horizontal ? (padding.top + padding.bottom + innerCtContext.getBorderInfo().height)
 							  : (padding.left + padding.right + innerCtContext.getBorderInfo().width));
+
             if (!perpendicularShrinkWrap && (isCenter || isEnd)) {
                 innerCtPerpendicular = Math.max(targetSize[me.horizontal ? 'height':'width'], innerCtPerpendicular);
+            }
+            //Make room for scrollbar...
+            if(plan.availableSpace < 0) {
+                innerCtPerpendicular -= scrollbarWidth;
             }
         }
 
