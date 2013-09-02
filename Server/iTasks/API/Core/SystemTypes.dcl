@@ -38,6 +38,7 @@ from iTasks.Framework.Generic.Defaults		import generic gDefault
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.Framework.ClientInterface	import :: JSWorld, :: JSPtr
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
+import iTasks.Framework.SerializationGraphCopy
 
 //****************************************************************************//
 // Common data types that have specialized user interfaces
