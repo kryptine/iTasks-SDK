@@ -13,7 +13,7 @@ from Data.Void import :: Void
              , definitions :: [ADefinition]
              , imports     :: [AImport]
              }
-             
+
 :: AImport :== String
 
 :: ADefinition = { name         :: AIdentifier
@@ -24,21 +24,21 @@ from Data.Void import :: Void
                  }
 
 :: Locals :== [ADefinition]
-                 
-:: AExpression ex = 
-    Unparsed String
-    | Lit String
-    | Var AIdentifier
-    | App [AExpression ex]
-    | AppInfix AIdentifier AFix APrecedence (AExpression ex) (AExpression ex) 
-    | Lambda APattern (AExpression ex)
-    | Let 	 [(APattern, (AExpression ex))] (AExpression ex)
-    | Case (AExpression ex) [ACaseAlt ex]
-    | Tuple [AExpression ex]
-    | List [AExpression ex]
-    | ListComprehension (AListComprehension ex)
-    | PathContext GPath (AExpression ex)
-    | Extension ex
+
+:: AExpression ex
+  =  Unparsed String
+  |  Lit String
+  |  Var AIdentifier
+  |  App [AExpression ex]
+  |  AppInfix AIdentifier AFix APrecedence (AExpression ex) (AExpression ex) 
+  |  Lambda APattern (AExpression ex)
+  |  Let [(APattern, (AExpression ex))] (AExpression ex)
+  |  Case (AExpression ex) [ACaseAlt ex]
+  |  Tuple [AExpression ex]
+  |  List [AExpression ex]
+  |  ListComprehension (AListComprehension ex)
+  |  PathContext GPath (AExpression ex)
+  |  Extension ex
 
 :: ACaseAlt ex = CaseAlt APattern (AExpression ex)
 

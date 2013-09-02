@@ -35,7 +35,7 @@ import iTasks.Gin.Printer
             | GRecordTypeRhs [GRecordField]
             | GSynonymTypeRhs GTypeExpression
             | GAbstractTypeRhs
-            
+
 :: GDataConstructor = { name      :: GIdentifier
                       , arguments :: [GTypeExpression]
                       }
