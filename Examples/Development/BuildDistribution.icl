@@ -7,7 +7,6 @@ module BuildDistribution
 */
 import iTasks
 import System.Directory, System.File, System.FilePath, Data.Tuple, Text
-from iTasks.Framework.Util import pad
 
 instance toString (OSErrorCode,String)
 where
@@ -35,7 +34,7 @@ makeDistribution
 editOptions :: Task DistroOptions
 editOptions
 	=		viewTitle "Build an iTasks distribution"
-	||-	    updateChoice ("Target platform","Choose a target platform to make a distribution for") [ChooseWith ChooseFromComboBox id]
+	||-	    updateChoice ("Target platform","Choose a target platform to make a distribution for") [ChooseWith (ChooseFromComboBox id)]
 				[Windows32,Windows64,Linux32,Linux64,Mac] Windows32
 	-&&-	updateInformation ("Svn branch","Choose which svn branch you want to make a distribution from") [] "trunk"	
     -&&-    (get currentDate @ defaultPackageName >>= updateInformation ("Package name","Specify the name of the package") [])
@@ -43,7 +42,7 @@ editOptions
 			{targetPlatform=platform,iTasksBranch=branch,packageName=packageName}
 where
     defaultPackageName date
-        = "CleanWithiTasks-" <+++ pad 4 date.year <+++ pad 2 date.mon <+++ pad 2 date.day
+        = "CleanWithiTasks-" <+++ lpad (toString date.year) 4 '0' <+++ lpad (toString date.mon) 2 '0' <+++ lpad (toString date.day) 2 '0'
 
 buildDistro:: DistroOptions -> Task Document
 buildDistro options = withTemporaryDirectory build
