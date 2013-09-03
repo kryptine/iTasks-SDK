@@ -39,11 +39,9 @@ gEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# controls = layout.LayoutRules.layoutSubEditor {UIControlStack|attributes = addLabel disabled gfd_name newMap, controls = controls}
-			= (NormalEditor controls,vst)
+			= (NormalEditor [(c,addLabel disabled gfd_name a) \\ (c,a) <- controls],vst)
 		OptionalEditor controls	
-			# controls = layout.LayoutRules.layoutSubEditor {UIControlStack|attributes = addLabel True gfd_name newMap, controls = controls}
-			= (OptionalEditor controls, vst)
+			= (OptionalEditor [(c,addLabel True gfd_name a) \\ (c,a) <- controls], vst)
 
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,mask,ver) vst=:{selectedConsIndex = oldSelectedConsIndex,disabled,taskId,layout}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.

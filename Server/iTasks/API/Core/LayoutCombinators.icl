@@ -143,7 +143,8 @@ autoAccuWorkOn def meta=:{TIMeta|management}
 */
 autoLayoutSubEditor :: UIControlStack -> UIAnnotatedControls
 autoLayoutSubEditor {UIControlStack|controls=[]}	= []
-autoLayoutSubEditor seq=:{UIControlStack|attributes,controls}
+autoLayoutSubEditor {UIControlStack|controls=[c]}	= [c]
+autoLayoutSubEditor {UIControlStack|attributes,controls}
     = [(defaultContainer (decorateControls controls),attributes)]
 
 autoLayoutControlStack :: UIControlStack -> UISubUI
