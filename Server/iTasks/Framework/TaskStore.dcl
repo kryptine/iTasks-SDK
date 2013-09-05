@@ -22,9 +22,11 @@ newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
 
 //Task instance state is accessible as shared data sources
-taskInstances			:: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of available instances
+detachedInstances		:: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of detached instances
+sessionInstances        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of session instances
 
-taskInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+detachedInstanceMeta	:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+sessionInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
 taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
 taskInstanceResult		:: !InstanceNo -> RWShared (TaskResult JSONNode) (TaskResult JSONNode) IWorld
 

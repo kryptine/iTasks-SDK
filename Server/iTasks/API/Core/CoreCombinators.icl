@@ -39,7 +39,7 @@ where
 
 	eval event repOpts state iworld
 		# (taskId,prev,statea) = case state of
-			(TCInit taskId _)					= (taskId,NoValue,state) 
+			(TCInit taskId _)					= (taskId,NoValue,state)
 			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
 			
 		# (resa, iworld) 	= evala event repOpts statea iworld
@@ -289,7 +289,7 @@ where
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI (Nothing,acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
-		# (mbMeta,iworld)	= readRegister curInstanceNo (taskInstanceMeta instanceNo) iworld
+		# (mbMeta,iworld)	= readRegister curInstanceNo (detachedInstanceMeta instanceNo) iworld
 		# (mbResult,iworld)	= readRegister curInstanceNo (taskInstanceResult instanceNo) iworld
 		= case (mbMeta,mbResult) of
 			(Ok meta,Ok result)
@@ -498,10 +498,10 @@ workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{currentInstance,currentUser}
-		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld
+		# (meta,iworld)		= read (detachedInstanceMeta instanceNo) iworld
 		= case meta of
 			Ok meta
-				# (_,iworld)	= write {TIMeta|meta & worker=Just currentUser} (taskInstanceMeta instanceNo) iworld
+				# (_,iworld)	= write {TIMeta|meta & worker=Just currentUser} (detachedInstanceMeta instanceNo) iworld
 				# iworld		= queueUrgentEvaluate instanceNo iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
@@ -509,7 +509,7 @@ where
 		
 	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{currentInstance,currentUser}
 		//Load instance
-		# (meta,iworld)		= readRegister currentInstance (taskInstanceMeta instanceNo) iworld
+		# (meta,iworld)		= readRegister currentInstance (detachedInstanceMeta instanceNo) iworld
 		# (result,iworld)	= readRegister currentInstance (taskInstanceResult instanceNo) iworld
 		# layout			= repLayoutRules repOpts
 		= case (meta,result) of

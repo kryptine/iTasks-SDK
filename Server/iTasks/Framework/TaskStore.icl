@@ -63,30 +63,35 @@ newDocumentId iworld=:{world,timestamp}
 
 deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteInstance instanceNo iworld
-	= case read taskInstances iworld of
-		(Ok instances,iworld)
-			# (_,iworld)	= write (del instanceNo instances) taskInstances iworld
-			= iworld
-		(_,iworld)
-			= iworld
-
-taskInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
-taskInstances = storeAccess NS_TASK_INSTANCES "instances" (Just newMap)
-
-taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-taskInstanceMeta instanceNo = mapReadWriteError (readPrj,writePrj) taskInstances
+    = delete instanceNo detachedInstances (delete instanceNo sessionInstances iworld)
 where
-	readPrj instances = case get instanceNo instances of
-		Just i	= Ok i
-		_		= Error ("Task instance " +++ toString instanceNo +++ " could not be found")
+	delete instanceNo instances iworld = case read instances iworld of
+		(Ok list,iworld)    = snd (write (del instanceNo list) instances iworld)
+		(_,iworld)          = iworld
 
-	writePrj i instances = Ok (Just (put instanceNo i instances))
+detachedInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+detachedInstances = storeAccess NS_TASK_INSTANCES "detached" (Just newMap)
+
+sessionInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+sessionInstances = storeAccess NS_TASK_INSTANCES "sessions" (Just newMap)
+
+detachedInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+detachedInstanceMeta instanceNo = mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) detachedInstances
+
+sessionInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+sessionInstanceMeta instanceNo = mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) sessionInstances
+
+readTIMeta instanceNo instances = case get instanceNo instances of
+	Just i	= Ok i
+	_		= Error ("Task instance " +++ toString instanceNo +++ " could not be found")
+
+writeTIMeta instanceNo i instances = Ok (Just (put instanceNo i instances))
 
 taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
-taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing 
+taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
 
 taskInstanceResult	:: !InstanceNo -> RWShared (TaskResult JSONNode) (TaskResult JSONNode) IWorld
-taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) Nothing 
+taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) Nothing
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld

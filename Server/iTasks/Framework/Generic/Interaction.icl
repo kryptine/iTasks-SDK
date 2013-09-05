@@ -60,7 +60,7 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
 								, editorId = editorId dp
 								, value = choice
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
-							, newMap /*verifyAttributes (x,mask,ver) (hx x) */) //TODO
+							, verifyAttributes (x,mask,ver) [{EditMeta|hint=Just "Select an option",label=Nothing}])
 						: content
 						]
 		  			,{vst & selectedConsIndex = oldSelectedConsIndex})
@@ -111,7 +111,7 @@ pairPathSplit [begin,end:dp]
 					= ([begin,middle - 1:dp],[middle,end:dp])
 where
 	range = end - begin + 1
-	middle = range / 2
+	middle = begin + range / 2
 		
 gEditor{|EITHER|} fx _ _ _ _ _ fy _ _ _ _ _ dp (LEFT x,mask,ver) vst = fx dp (x,mask,ver) vst
 gEditor{|EITHER|} fx _ _ _ _ _ fy _ _ _ _ _ dp (RIGHT y,mask,ver) vst =  fy dp (y,mask,ver) vst	
@@ -254,7 +254,9 @@ gVerify{|RECORD of {grd_arity}|} fx options (RECORD x, mask)
 	
 gVerify{|FIELD|} fx options (FIELD x,mask) = fx options (x,mask)
 	
-gVerify{|OBJECT|} fx options (OBJECT x,mask) = fx options (x,mask)
+gVerify{|OBJECT|} fx options=:{VerifyOptions|optional} (OBJECT x,mask) = case mask of
+    Blanked     = if optional MissingValue (CorrectValue Nothing)
+    _           = fx options (x,mask)
 	
 gVerify{|CONS of {gcd_arity}|} fx options (CONS x,mask)
 	= fromPairVerification gcd_arity (fx options (x, toPairMask gcd_arity mask))
@@ -455,6 +457,7 @@ verifyAttributes :: !(VerifiedValue a) [EditMeta] -> UIAttributes
 verifyAttributes (val,mask,ver) meta
 	| isTouched mask	= case ver of
 		(CorrectValue msg)		= put VALID_ATTRIBUTE (fromMaybe "This value is ok" msg) newMap
+		(WarningValue msg)		= put WARNING_ATTRIBUTE msg newMap
 		(IncorrectValue msg)	= put ERROR_ATTRIBUTE msg newMap
 		(UnparsableValue)		= put ERROR_ATTRIBUTE "This value not in the required format" newMap
 		(MissingValue)			= put ERROR_ATTRIBUTE "This value is required" newMap
@@ -491,10 +494,8 @@ verifyMaskedValue mv = gVerify{|*|} {VerifyOptions|optional = False, disabled = 
 
 isValid :: !Verification -> Bool
 isValid (CorrectValue _) = True
-isValid (CompoundVerification vs) = allValid vs
-where
-	allValid [] = True
-	allValid [v:vs] = isValid v && allValid vs
+isValid (WarningValue _) = True
+isValid (CompoundVerification vs) = foldr (\v t -> t && isValid v) True vs 
 isValid _ = False
 
 alwaysValid :: !(MaskedValue a) -> Verification

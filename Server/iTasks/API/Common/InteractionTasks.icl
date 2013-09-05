@@ -257,6 +257,9 @@ updateChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) [a] (DynamicChoice v
 updateChoiceView type container target mbSel targets (view,mask)
     = updateChoiceSelection mbSel (map target container) (updDynChoice type targets view,mask)
 where
+    updDynChoice (AutoChoice view) _ (DCCombo _)    = DCCombo (ComboChoice [view o \\ o <- container] Nothing)
+    updDynChoice (AutoChoice view) _ (DCGrid _)     = DCGrid  (GridChoice [view o \\ o <- container] Nothing)
+
     updDynChoice (ChooseFromComboBox view) _ _      = DCCombo (ComboChoice [view o \\ o <- container] Nothing)
     updDynChoice (ChooseFromRadioButtons view) _ _  = DCRadio (RadioChoice [view o \\ o <- container] Nothing)
     updDynChoice (ChooseFromTree view) targets (DCTree (TreeChoice tree _))

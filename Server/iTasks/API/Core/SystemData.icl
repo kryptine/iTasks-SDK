@@ -42,7 +42,7 @@ where
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = mapReadWrite (readPrj,writePrj) (taskInstances >+| currentTopTask)
+topLevelTasks = mapReadWrite (readPrj,writePrj) (detachedInstances >+| currentTopTask)
 where
 	readPrj (instances, taskId) = {TaskList|listId = TopLevelTaskList, items = [toTaskListItem m \\ (_,m) <- (toList instances)| not (isSession m)], selfId = taskId}
     writePrj [] instances = Nothing
@@ -55,10 +55,10 @@ where
     applyUpdate instances _ = instances
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
-currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | isSession m]) (toReadOnly taskInstances)
+currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances)]) (toReadOnly sessionInstances)
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | not (isSession m)]) (toReadOnly taskInstances)
+currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances)]) (toReadOnly detachedInstances)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)

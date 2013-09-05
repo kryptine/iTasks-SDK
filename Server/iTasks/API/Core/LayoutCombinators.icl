@@ -172,18 +172,19 @@ decorateControl last (control,attributes)
 	# mbLabel 	= get LABEL_ATTRIBUTE attributes
 	# mbHint 	= get HINT_ATTRIBUTE attributes
 	# mbValid	= get VALID_ATTRIBUTE attributes
+	# mbWarning = get WARNING_ATTRIBUTE attributes
 	# mbError	= get ERROR_ATTRIBUTE attributes
 	# hasMargin	= hasMargin control
 	# noMargins	= noMarginControl control
-	= case (mbLabel,mbHint,mbValid,mbError) of
-		(Nothing,Nothing,Nothing,Nothing)	//Just set margins
+	= case (mbLabel,mbHint,mbValid,mbWarning,mbError) of
+		(Nothing,Nothing,Nothing,Nothing,Nothing)	//Just set margins
 			| hasMargin	= control
 						= if noMargins
 							(setMargins 0 0 0 0 control)
 							(if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))
 
 		_									//Add decoration													
-			# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl control mbHint mbValid mbError)
+			# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl control mbHint mbValid mbWarning mbError)
 			= if noMargins
 				(setMargins 0 0 0 0 control)
 				(if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))		
@@ -193,11 +194,12 @@ where
 	labelCtrl (Just label)	= [setWidth (ExactSize 100) (stringDisplay label)]
 	labelCtrl Nothing		= []
 	
-    iconCtrl (UIEditCheckbox _ _) _ _ _ = []
-	iconCtrl _ (Just msg) _ _	= icon "icon-hint" msg
-	iconCtrl _ _ (Just msg) _	= icon "icon-valid" msg
-	iconCtrl _ _ _ (Just msg)	= icon "icon-invalid" msg
-	iconCtrl _ _ _ _			= []
+    iconCtrl (UIEditCheckbox _ _) _ _ _ _ = []
+	iconCtrl _ (Just msg) _ _ _	= icon "icon-hint" msg
+	iconCtrl _ _ (Just msg) _ _	= icon "icon-valid" msg
+	iconCtrl _ _ _ (Just msg) _ = icon "icon-warning" msg
+	iconCtrl _ _ _ _ (Just msg)	= icon "icon-invalid" msg
+	iconCtrl _ _ _ _ _			= []
 	
 	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
@@ -294,7 +296,9 @@ where
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
         = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical},actions=[],windows=windows,hotkeys=[]}
 
-    append parts ui=:{UISubUI|attributes}
+    append parts ui=:{UISubUI|attributes,content={UIItemsOpts|items}}
+        | isEmpty items
+            = parts
         | hasWindowContainerAttr ui.UISubUI.attributes
             # window = subUIToWindow ui
             = parts ++ [Right window]

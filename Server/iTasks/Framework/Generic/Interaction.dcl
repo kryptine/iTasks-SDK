@@ -95,7 +95,7 @@ updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| 
 	{ optional		:: !Bool
 	, disabled		:: !Bool
 	}
-	  
+
 //Utility functions making specializations of gEditor
 checkMask			:: !InteractionMask a -> Maybe a
 checkMaskValue      :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a

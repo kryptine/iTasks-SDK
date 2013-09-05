@@ -23,7 +23,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	, lastEvent		:: EventNo
 	}
 	
-:: TIReduct = 
+:: TIReduct =
 	{ task			:: !Task JSONNode
 	, nextTaskNo	:: !TaskNo
 	, nextTaskTime	:: !TaskTime

@@ -153,8 +153,8 @@ derive class iTask	FileException, ParseException, CallException, SharedException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
 //* Geograpic data and Google Maps
-:: GoogleMap = 
-	{ settings				:: GoogleMapSettings 
+:: GoogleMap =
+	{ settings				:: GoogleMapSettings
 	, perspective			:: GoogleMapPerspective
 	, markers				:: [GoogleMapMarker]		// Markers placed on the map
 	}
@@ -541,6 +541,7 @@ isTouched	:: !InteractionMask -> Bool
 
 :: Verification
     = CorrectValue !(Maybe String)
+    | WarningValue !String
     | IncorrectValue !String
     | UnparsableValue
     | MissingValue
@@ -737,6 +738,7 @@ VALUE_ATTRIBUTE			:== "value"
 TITLE_ATTRIBUTE			:== "title"
 HINT_ATTRIBUTE			:== "hint"
 VALID_ATTRIBUTE			:== "valid"
+WARNING_ATTRIBUTE		:== "warning"
 ERROR_ATTRIBUTE			:== "error"
 LABEL_ATTRIBUTE			:== "label"
 ICON_ATTRIBUTE			:== "icon"
