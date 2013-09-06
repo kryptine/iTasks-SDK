@@ -741,6 +741,8 @@ VALID_ATTRIBUTE			:== "valid"
 WARNING_ATTRIBUTE		:== "warning"
 ERROR_ATTRIBUTE			:== "error"
 LABEL_ATTRIBUTE			:== "label"
+PREFIX_ATTRIBUTE		:== "prefix"
+POSTFIX_ATTRIBUTE		:== "postfix"
 ICON_ATTRIBUTE			:== "icon"
 SCREEN_ATTRIBUTE        :== "screen"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time

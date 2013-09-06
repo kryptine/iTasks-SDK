@@ -11,8 +11,8 @@ customJSONDecode fromPrj inp = let (mbb,rem) = JSONDecode{|*|} inp in (fmap from
 customGVisualizeText :: (a -> b) !VisualizationFormat !a -> [String] | gVisualizeText{|*|} b
 customGVisualizeText toPrj format val = gVisualizeText{|*|} format (toPrj val)
 
-customGEditor :: (a -> b) DataPath (VerifiedValue a) !*VSt -> (!VisualizationResult,!*VSt) | gEditor{|*|} b
-customGEditor toPrj dp (mba,mask,ver) vst = gEditor{|*|} dp (toPrj mba,mask,ver) vst
+customGEditor :: (a -> b) DataPath (VerifiedValue a) [EditMeta] !*VSt -> (!VisualizationResult,!*VSt) | gEditor{|*|} b
+customGEditor toPrj dp (mba,mask,ver) meta vst = gEditor{|*|} dp (toPrj mba,mask,ver) meta vst
 
 customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} b
 customGUpdate toPrj fromPrj path upd (a,amask)

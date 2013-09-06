@@ -10,8 +10,8 @@ from Data.Map import qualified newMap
 derive class iTask Workflow
 
 gVisualizeText{|WorkflowTaskContainer|} _ _			= []
-gEditor{|WorkflowTaskContainer|} _ _ vst			= (HiddenEditor,vst)
-gEditMeta{|WorkflowTaskContainer|} _ 				= [{label=Just "Workflow task container",hint=Nothing}]
+gEditor{|WorkflowTaskContainer|} _ _ _ vst			= (HiddenEditor,vst)
+gEditMeta{|WorkflowTaskContainer|} _ 				= [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gUpdate{|WorkflowTaskContainer|} target upd val		= basicUpdate (\Void x -> Just x) target upd val
 gVerify{|WorkflowTaskContainer|} _ mv 				= alwaysValid mv
 JSONEncode{|WorkflowTaskContainer|} c				= [dynamicJSONEncode c]

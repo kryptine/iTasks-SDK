@@ -33,7 +33,7 @@ customJSONDecode :: (b -> a) [JSONNode] -> (Maybe a,![JSONNode]) | JSONDecode{|*
 customGVisualizeText :: (a -> b) !VisualizationFormat !a -> [String] | gVisualizeText{|*|} b
 
 //generic gEditor a | gVisualizeText a, gEditMeta a, JSONEncode a, JSONDecode a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
-customGEditor :: (a -> b) DataPath (VerifiedValue a) !*VSt -> (!VisualizationResult,!*VSt) | gEditor{|*|} b
+customGEditor :: (a -> b) DataPath (VerifiedValue a) [EditMeta] !*VSt -> (!VisualizationResult,!*VSt) | gEditor{|*|} b
 
 //generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask])
 customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} b

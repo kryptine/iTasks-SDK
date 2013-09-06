@@ -33,19 +33,19 @@ derive gVerify			EmailAddress
 //* URL
 gVisualizeText{|URL|}	_ val	= [toString val]
 
-gEditor{|URL|} dp vv=:(URL url,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|URL|} dp vv=:(URL url,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (ATag [HrefAttr url] [Text url])},newMap)], vst)
 	| otherwise
 		# value = checkMaskValue mask url
 		# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}
-		= (NormalEditor [(ui,verifyAttributes vv (gEditMeta{|*|} (URL url)))],vst)
+		= (NormalEditor [(ui,editorAttributes vv meta)],vst)
 
 gUpdate{|URL|} target upd val = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) target upd val
 
 gVerify{|URL|} mv options = simpleVerify mv options
 
-gEditMeta{|URL|} _ = [{label=Nothing,hint=Just "Enter a uniform resource locator (URL)"}]
+gEditMeta{|URL|} _ = [{label=Nothing,hint=Just "Enter a uniform resource locator (URL)",unit=Nothing}]
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -68,13 +68,13 @@ JSONDecode{|Note|} c = (Nothing,c)
 
 gVisualizeText{|Note|}			_ val	= [toString val]
 
-gEditor{|Note|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Note|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		# val = checkMask mask val
 		= (NormalEditor [(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
 	| otherwise	
 		# value = checkMaskValue mask ((\(Note v)  -> v) val)
-		= (NormalEditor [(UIEditNote sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditNote sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 where	
 	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
 	
@@ -88,7 +88,7 @@ where
 gUpdate{|Note|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|Note|} mv options = simpleVerify mv options
-gEditMeta{|Note|} _ = [{label=Nothing,hint=Just "You may enter multiple lines of text"}]
+gEditMeta{|Note|} _ = [{label=Nothing,hint=Just "You may enter multiple lines of text",unit=Nothing}]
 
 
 derive gDefault			Note
@@ -114,13 +114,13 @@ JSONDecode{|CleanCode|} c = (Nothing,c)
 
 gVisualizeText{|CleanCode|}		_ val		= [toString val]
 
-gEditor{|CleanCode|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|CleanCode|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
 		# val = checkMask mask val
 		= (NormalEditor [(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap codeToHtml val}),newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(CleanCode v) -> v) val)
-		= (NormalEditor [(UIEditCode sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value} {UICodeOpts|lineNumbers=True},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditCode sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value} {UICodeOpts|lineNumbers=True},editorAttributes vv meta)],vst)
 where	
 	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
 	
@@ -135,7 +135,7 @@ where
 	codeUpd _ old				= Just old
 
 gVerify{|CleanCode|} mv options = simpleVerify mv options
-gEditMeta{|CleanCode|} _ = [{label=Nothing,hint=Just "Enter a piece of Clean code"}]
+gEditMeta{|CleanCode|} _ = [{label=Nothing,hint=Just "Enter a piece of Clean code",unit=Nothing}]
 
 derive gDefault		CleanCode
 derive gEq			CleanCode
@@ -148,18 +148,18 @@ where
 
 gVisualizeText{|EUR|} _ val = [toString val]
 
-gEditor{|EUR|}	dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|EUR|}	dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
 		# val = checkMask mask val
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
-		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|EUR|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|EUR|} mv options = simpleVerify mv options
-gEditMeta{|EUR|} _ = [{label=Nothing,hint=Just "Enter an amount in EUR"}]
+gEditMeta{|EUR|} _ = [{label=Nothing,hint=Just "Enter an amount in EUR",unit=Just (Left "&euro;")}]
 
 instance toString EUR
 where
@@ -191,18 +191,18 @@ where
 
 gVisualizeText{|USD|} _ val = [toString val]
 
-gEditor{|USD|}	dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|USD|}	dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
 		# val = checkMask mask val
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
-		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|USD|} target upd val = basicUpdateSimple target upd val
 
 gVerify{|USD|} mv options = simpleVerify mv options
-gEditMeta{|USD|} _ = [{label=Nothing,hint=Just "Enter an amount in USD"}]
+gEditMeta{|USD|} _ = [{label=Nothing,hint=Just "Enter an amount in USD",unit=Just (Left "$")}]
 
 instance toString USD
 where
@@ -247,18 +247,18 @@ isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s
 
 gVisualizeText{|Date|} _ val = [toString val]
 
-gEditor{|Date|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Date|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		# val = checkMask mask val
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 	| otherwise
 		# value	= checkMaskValue mask val
-		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gDefault{|Date|} = {day = 1, mon = 1, year = 1970}
 gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 gVerify{|Date|} mv options = simpleVerify mv options
-gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)"}]
+gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)",unit=Nothing}]
 
 derive gEq			Date
 
@@ -327,18 +327,18 @@ isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.
 
 gVisualizeText{|Time|} _ val = [toString val]
 
-gEditor{|Time|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Time|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		# val = checkMask mask val
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask val
-		= (NormalEditor [(UIEditTime defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditTime defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|Time|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
 gVerify{|Time|} mv options = simpleVerify mv options
-gEditMeta{|Time|} _ = [{label=Nothing,hint=Just "Enter a time (hh:mm:ss)"}]
+gEditMeta{|Time|} _ = [{label=Nothing,hint=Just "Enter a time (hh:mm:ss)",unit=Nothing}]
 
 derive gDefault		Time
 derive gEq			Time
@@ -406,7 +406,7 @@ derive gEditor	DateTime
 gVisualizeText{|DateTime|} _ (DateTime date time)
 	= [visualizeAsLabel date +++" "+++ visualizeAsLabel time]
 gEditMeta{|DateTime|} _
-	= [{label=Nothing,hint=Just "Enter a date and time"}]
+	= [{label=Nothing,hint=Just "Enter a date and time",unit=Nothing}]
 
 derive gUpdate			DateTime
 derive gVerify			DateTime
@@ -450,20 +450,20 @@ gVisualizeText{|Document|} _ val
 	| val.Document.size == 0			= ["No Document"]
 	| otherwise							= [val.Document.name]
 
-gEditor {|Document|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor {|Document|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		# val = checkMask mask val
 		= (NormalEditor [(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask val
-		= (NormalEditor [(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate {|Document|} [] upd (val,mask) = case fromJSON upd of
 	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked)// Reset
 	Just doc	= (doc,Touched) //Update 
 
 gVerify{|Document|} mv options = simpleVerify mv options
-gEditMeta{|Document|} _ = [{label=Nothing,hint=Just "Upload a document"}]
+gEditMeta{|Document|} _ = [{label=Nothing,hint=Just "Upload a document",unit=Nothing}]
 
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -484,17 +484,17 @@ JSONDecode{|Username|} [JSONString u:c] = (Just (Username u),c)
 
 JSONDecode{|Username|} c = (Nothing,c)
 
-gEditor{|Username|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Username|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
 		# val = checkMask mask val
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(Username v) -> v) val)
-		= (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|Username|} target upd val = basicUpdateSimple target upd val
 gVerify{|Username|} mv options = simpleVerify mv options
-gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username"}]
+gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username",unit=Nothing}]
 
 derive gDefault			Username
 derive gEq				Username
@@ -518,15 +518,15 @@ JSONDecode{|Password|} c = (Nothing,c)
 
 gVisualizeText{|Password|} _ val = ["********"]
 
-gEditor{|Password|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Password|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
 	| otherwise	
 		# value = checkMaskValue mask ((\(Password v) -> v) val)
-		= (NormalEditor [(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 gUpdate{|Password|} target upd val = basicUpdateSimple target upd val
 gVerify{|Password|} mv options = simpleVerify mv options
-gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password"}]
+gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
 
 derive gDefault			Password
 derive gEq				Password
@@ -583,10 +583,10 @@ derive class iTask	FileException, ParseException, CallException, SharedException
 derive class iTask	FileError
 
 //* Geograpic data and Google Maps
-gEditor{|GoogleMap|} dp vv=:(val,mask,ver) vst=:{VSt|taskId}
+gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId}
 	# editOpts	= {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Nothing}
 	# opts		= mapOpts val
-	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,/*verifyAttributes vv (gEditMeta{|*|} val*/ newMap)],vst)
+	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,/*editorAttributes vv meta*/ newMap)],vst)
 where	
 	mapOpts map =
 		{ UIGoogleMapOpts
@@ -689,7 +689,7 @@ derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, Goo
 //* A sliding scale
 gVisualizeText{|Scale|}	_ {Scale|cur} = [toString cur]
 
-gEditor{|Scale|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Scale|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	# sliderOpts	= {UISliderOpts|minValue=(\{Scale|min} -> min) val,maxValue=(\{Scale|max} -> max) val}
 	| disabled
 		# val = checkMask mask val							
@@ -698,7 +698,7 @@ gEditor{|Scale|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
 	| otherwise
 		# value = checkMaskValue mask (curVal val)
 		# editOpts = {UIEditOpts|taskId = taskId, editorId = editorId dp, value = value}
-		= (NormalEditor [(UIEditSlider defaultSizeOpts editOpts sliderOpts, verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (NormalEditor [(UIEditSlider defaultSizeOpts editOpts sliderOpts, editorAttributes vv meta)],vst)
 where
 	curVal {Scale|cur} = cur
 
@@ -708,12 +708,12 @@ gUpdate{|Scale|} target upd val
 gVerify{|Scale|} _ mv = alwaysValid mv
 
 gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
-gEditMeta{|Scale|} _	= [{label=Nothing,hint=Just "You can change the value by sliding the scale"}]
+gEditMeta{|Scale|} _	= [{label=Nothing,hint=Just "You can change the value by sliding the scale",unit=Nothing}]
 
 //* Progress bars
 gVisualizeText{|Progress|}	_ {Progress|description} = [description]
 
-gEditor{|Progress|} dp (val,mask,ver) vst=:{VSt|taskId}
+gEditor{|Progress|} dp (val,mask,ver) meta vst=:{VSt|taskId}
 	= (NormalEditor [(UIViewProgress defaultSizeOpts {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val},newMap)],vst)
 where
 	text {Progress|description}	= description
@@ -726,7 +726,7 @@ where
 
 gUpdate{|Progress|}	target upd val = val
 gVerify{|Progress|} _ mv = alwaysValid mv
-gEditMeta{|Progress|} _		= [{label=Nothing,hint=Nothing}]
+gEditMeta{|Progress|} _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 
 derive gDefault			Progress
 
@@ -742,8 +742,8 @@ derive gVerify			ProgressAmount
 //* Inclusion of external html files
 gVisualizeText{|HtmlInclude|}	_ (HtmlInclude location)	= ["<External html: " + location + ">"]
 
-gEditor{|HtmlInclude|} dp vv=:(HtmlInclude path,mask,ver) vst
-	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},verifyAttributes vv (gEditMeta{|*|} (HtmlInclude path)))],vst)
+gEditor{|HtmlInclude|} dp vv=:(HtmlInclude path,mask,ver) meta vst
+	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},editorAttributes vv meta)],vst)
 
 gUpdate{|HtmlInclude|} target upd val = val
 
@@ -755,10 +755,10 @@ derive gEditMeta HtmlInclude
 //* Form buttons
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
 
-gEditor{|FormButton|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|FormButton|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	# text = Just val.FormButton.label
 	# iconCls = Just val.FormButton.icon
-	= (NormalEditor [(UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+	= (NormalEditor [(UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},editorAttributes vv meta)],vst)
 
 gUpdate{|FormButton|} target upd val
 	= basicUpdate (\st b -> Just {FormButton|b & state = st}) target upd val
@@ -789,10 +789,10 @@ derive gVerify		ButtonState
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gVisualizeText{|Table|}	_ _	= ["<Table>"]
 
-gEditor{|Table|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Table|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	= (NormalEditor [(UIGrid defaultSizeOpts
         {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
-        {UIGridOpts|columns = columns val,doubleClickAction=Nothing},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+        {UIGridOpts|columns = columns val,doubleClickAction=Nothing},editorAttributes vv meta)],vst)
 where
 	value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 	columns (Table headers _ _)	= headers
@@ -848,11 +848,11 @@ derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonSt
 gDefault{|ComboChoice|} _ = ComboChoice [] Nothing
 gVisualizeText{|ComboChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))
 
-gEditor{|ComboChoice|} fx gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|ComboChoice|} fx gx _ hx _ _ dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 	| otherwise
-		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*|} hx val))],vst)
+		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes vv (gEditMeta{|*->*|} hx val))],vst)
 where
 	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsLabel (options !! sel)))
 	vvalue _								= Nothing
@@ -875,11 +875,11 @@ where
 gDefault{|RadioChoice|} _ = RadioChoice [] Nothing
 gVisualizeText{|RadioChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))
 
-gEditor{|RadioChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|RadioChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 	| otherwise
-		= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*|} hx val))],vst)
+		= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes vv (gEditMeta{|*->*|} hx val))],vst)
 where
 	vvalue (RadioChoice options (Just sel))	= Just (hd (gx AsLabel (options !! sel)))
 	vvalue _								= Nothing
@@ -904,8 +904,8 @@ gDefault{|TreeChoice|} _ = TreeChoice [] Nothing
 
 gVisualizeText{|TreeChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))
 
-gEditor{|TreeChoice|} _ gx _ hx _ _  dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
-	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options gx val mask} {UITreeOpts|doubleClickAction=Nothing}, newMap/*verifyAttributes vv (gEditMeta{|*->*|} hx val)*/)]
+gEditor{|TreeChoice|} _ gx _ hx _ _  dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options gx val mask} {UITreeOpts|doubleClickAction=Nothing}, newMap/*editorAttributes vv (gEditMeta{|*->*|} hx val)*/)]
 	= (NormalEditor viz,vst)
 where
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
@@ -948,7 +948,7 @@ gDefault{|GridChoice|} _ = GridChoice [] Nothing
 
 gVisualizeText{|GridChoice|} fv mode val = fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getSelectionView val))	
 
-gEditor{|GridChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|GridChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	= (NormalEditor [(UIGrid defaultSizeOpts
 		{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
 		{UIGridOpts|columns = [fromMaybe "" label\\ {EditMeta|label} <- hx undef], doubleClickAction=Nothing},newMap)],vst)
@@ -975,14 +975,14 @@ gVisualizeText{|DynamicChoice|}		fv mode (DCCombo val)	= gVisualizeText{|*->*|} 
 gVisualizeText{|DynamicChoice|}		fv mode (DCGrid val)	= gVisualizeText{|*->*|} fv mode val
 gVisualizeText{|DynamicChoice|}		fv mode (DCTree val)	= gVisualizeText{|*->*|} fv mode val
 
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCCombo val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCRadio val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCTree val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCGrid val,mask,ver) vst
-	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCCombo val,mask,ver) meta vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCRadio val,mask,ver) meta vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCTree val,mask,ver) meta vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCGrid val,mask,ver) meta vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
 
 gUpdate{|DynamicChoice|} gUpdx gDefx jDecx target upd	(DCCombo val,mask)	= appFst DCCombo (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
 gUpdate{|DynamicChoice|} gUpdx gDefx jDecx target upd	(DCRadio val,mask)	= appFst DCRadio (gUpdate{|*->*|} gUpdx gDefx jDecx target upd (val,mask))
@@ -1019,11 +1019,11 @@ where
 gDefault{|CheckMultiChoice|} _ _ = CheckMultiChoice [] []
 gVisualizeText{|CheckMultiChoice|} fv _ _ val = gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 
-gEditor{|CheckMultiChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|CheckMultiChoice|} _ gx _ hx _ _ _ _ _ hy _ _ dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (vvalue val)},newMap)],vst)
 	| otherwise
-		= (NormalEditor [(UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},verifyAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
+		= (NormalEditor [(UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes vv (gEditMeta{|*->*->*|} hx hy val))],vst)
 where
 	vvalue (CheckMultiChoice options sel)	= join "," ([hd (gx AsLabel (fst (options !! i ))) \\ i <- sel])
 	evalue (CheckMultiChoice _ sel)			= sel
@@ -1183,10 +1183,10 @@ gVisualizeText{|VisualizationHint|} fx mode val = case val of
 	VHDisplay x		= gVisualizeText{|* -> *|} fx mode (Display x)
 	VHEditable x	= gVisualizeText{|* -> *|} fx mode (Editable x)
 
-gEditor{|VisualizationHint|} fx gx dx hx jex jdx dp (val,mask,ver) vst = case val of
-	VHHidden x		= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Hidden x,mask,ver) vst
-	VHDisplay x		= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Display x,mask,ver) vst
-	VHEditable x	= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Editable x,mask,ver) vst
+gEditor{|VisualizationHint|} fx gx dx hx jex jdx dp (val,mask,ver) meta vst = case val of
+	VHHidden x		= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Hidden x,mask,ver) meta vst
+	VHDisplay x		= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Display x,mask,ver) meta vst
+	VHEditable x	= gEditor{|* -> *|} fx gx dx hx jex jdx dp (Editable x,mask,ver) meta vst
 
 gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHEditable s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val
 gUpdate{|VisualizationHint|} 	gUpdx gDefx jDecx target upd val=:(VHDisplay s,mask)	= wrapperUpdate gUpdx fromVisualizationHint VHDisplay target upd val
@@ -1207,7 +1207,7 @@ toVisualizationHint a = (VHEditable a)
 
 gVisualizeText{|Hidden|} _ _ _ = []
 
-gEditor{|Hidden|} fx _ _ _ _ _ dp val vst = (HiddenEditor,vst)
+gEditor{|Hidden|} fx _ _ _ _ _ dp val meta vst = (HiddenEditor,vst)
 
 gUpdate{|Hidden|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromHidden Hidden target upd val
 
@@ -1221,8 +1221,8 @@ toHidden x = (Hidden x)
 
 gVisualizeText{|Display|} fx mode (Display val)	= fx mode val
 
-gEditor{|Display|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled}
-	# (def,vst) = fx dp (fromDisplay val,mask,ver) {VSt | vst &  disabled = True}
+gEditor{|Display|} fx _ _ _ _ _ dp (val,mask,ver) meta vst=:{VSt|disabled}
+	# (def,vst) = fx dp (fromDisplay val,mask,ver) meta {VSt | vst &  disabled = True}
 	= (def,{VSt | vst & disabled = disabled})
 
 gUpdate{|Display|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromDisplay Display target upd val
@@ -1237,8 +1237,8 @@ toDisplay a = (Display a)
 
 gVisualizeText{|Editable|} fx mode(Editable val) = fx mode val
 
-gEditor{|Editable|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled}
-	# (def,vst) = fx dp (fromEditable val,mask,ver) {VSt | vst & disabled = False}
+gEditor{|Editable|} fx _ _ _ _ _ dp (val,mask,ver) meta vst=:{VSt|disabled}
+	# (def,vst) = fx dp (fromEditable val,mask,ver) meta {VSt | vst & disabled = False}
 	= (def,{VSt | vst & disabled = disabled})
 
 gUpdate{|Editable|} gUpdx gDefx jDecx target upd val = wrapperUpdate gUpdx fromEditable Editable target upd val
@@ -1279,7 +1279,7 @@ gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare valu
 
 gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,handlers,genDiff,appDiff},mask,ver) vst=:{VSt|taskId,iworld}
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
 	# (jsScript,jsEvents, jsIV, jsGD, jsAD, iworld)	= linkEditletJS [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientGenDiff clientAppDiff iworld
 	# iworld									= addDiffer iworld
 	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
@@ -1592,7 +1592,7 @@ derive gEditMeta		Icon
 derive gUpdate			Icon
 derive gVerify			Icon
 
-gEditor{|Icon|} _ (Icon icon,msk,ver) vst = (NormalEditor [(UIIcon defaultSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,newMap)], vst)
+gEditor{|Icon|} _ (Icon icon,msk,ver) meta vst = (NormalEditor [(UIIcon defaultSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,newMap)], vst)
 
 // Generic instances for common library types
 derive JSONEncode		Map, Either, HtmlTag, HtmlAttr

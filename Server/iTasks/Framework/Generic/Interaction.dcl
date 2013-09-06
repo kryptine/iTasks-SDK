@@ -20,16 +20,16 @@ from System.Time import :: Timestamp
 * Main eneric editor function
 */
 generic gEditor a | gVisualizeText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
-				  :: !DataPath !(VerifiedValue a) !*VSt -> (!VisualizationResult,!*VSt)
+				  :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
 
 derive gEditor
 	UNIT,
-	EITHER with ve1 _ _ _ _ _ ve2 _ _ _ _ _,
-	PAIR with ve1 _ _ _ _ _ ve2 _ _ _ _ _,
-	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ ve4 _ _,
-	CONS of {gcd_index,gcd_arity} with ve1 _ _ _ _ _,
-	RECORD of {grd_arity} with ve1 _ _ _ _ _,
-	FIELD of {gfd_name} with ve1 _ _ _ _ _
+	EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
+	PAIR with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
+	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ em1 _ _,
+	CONS of {gcd_index,gcd_arity} with ve1 _ _ em1 _ _,
+	RECORD of {grd_arity} with ve1 _ _ em1 _ _,
+	FIELD of {gfd_name} with ve1 _ _ em1 _ _
 	
 derive gEditor Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gEditor Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
@@ -58,7 +58,6 @@ derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_a
 derive gVerify Int, Real, Char, Bool, String, [], (,), (,,),(,,,),(->), Dynamic
 derive gVerify Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
-
 //Update an existing value and its interaction mask
 generic gUpdate a | gDefault a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) -> (MaskedValue a)
 
@@ -66,9 +65,8 @@ derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS o
 derive gUpdate Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
-
 //Wrapper functions for generating editors
-visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a
+visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
 updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| gUpdate{|*|} a
 
 //Support types for generating editors
@@ -89,6 +87,7 @@ updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| 
 :: EditMeta
 	= { label	:: Maybe String
 	  , hint	:: Maybe String
+      , unit    :: Maybe (Either String String)
 	  }
 
 :: VerifyOptions =
@@ -100,7 +99,7 @@ updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| 
 checkMask			:: !InteractionMask a -> Maybe a
 checkMaskValue      :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
 
-verifyAttributes	:: !(VerifiedValue a) [EditMeta] -> UIAttributes
+editorAttributes	:: !(VerifiedValue a) [EditMeta] -> UIAttributes
 
 
 /**

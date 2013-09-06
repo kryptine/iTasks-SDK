@@ -170,21 +170,23 @@ where
 decorateControl :: Bool (!UIControl,!UIAttributes) -> UIControl
 decorateControl last (control,attributes)
 	# mbLabel 	= get LABEL_ATTRIBUTE attributes
+	# mbPrefix  = get PREFIX_ATTRIBUTE attributes
+	# mbPostfix = get POSTFIX_ATTRIBUTE attributes
 	# mbHint 	= get HINT_ATTRIBUTE attributes
 	# mbValid	= get VALID_ATTRIBUTE attributes
 	# mbWarning = get WARNING_ATTRIBUTE attributes
 	# mbError	= get ERROR_ATTRIBUTE attributes
 	# hasMargin	= hasMargin control
 	# noMargins	= noMarginControl control
-	= case (mbLabel,mbHint,mbValid,mbWarning,mbError) of
-		(Nothing,Nothing,Nothing,Nothing,Nothing)	//Just set margins
+	= case (mbLabel,mbPrefix,mbPostfix,mbHint,mbValid,mbWarning,mbError) of
+		(Nothing,Nothing,Nothing,Nothing,Nothing,Nothing,Nothing)	//Just set margins
 			| hasMargin	= control
 						= if noMargins
 							(setMargins 0 0 0 0 control)
 							(if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))
 
 		_									//Add decoration													
-			# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl control mbHint mbValid mbWarning mbError)
+			# control = row (labelCtrl mbLabel ++ prefixCtrl mbPrefix ++ [control] ++ postfixCtrl mbPostfix ++ iconCtrl control mbHint mbValid mbWarning mbError)
 			= if noMargins
 				(setMargins 0 0 0 0 control)
 				(if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))		
@@ -193,6 +195,12 @@ where
 	
 	labelCtrl (Just label)	= [setWidth (ExactSize 100) (stringDisplay label)]
 	labelCtrl Nothing		= []
+
+	postfixCtrl (Just postfix)	= [setLeftMargin 5 (setWidth (ExactSize 30) (stringDisplay postfix))]
+	postfixCtrl Nothing		    = []
+
+	prefixCtrl (Just prefix)	= [setRightMargin 5 (setWidth (ExactSize 30) (stringDisplay prefix))]
+	prefixCtrl Nothing		    = []
 	
     iconCtrl (UIEditCheckbox _ _) _ _ _ _ = []
 	iconCtrl _ (Just msg) _ _ _	= icon "icon-hint" msg

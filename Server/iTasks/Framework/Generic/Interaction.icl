@@ -1,17 +1,17 @@
 implementation module iTasks.Framework.Generic.Interaction
 
 import StdList, StdBool, StdTuple, StdFunc, StdMisc
-import Data.Maybe, Data.Map, Data.Generic, Data.Functor, Data.Tuple
+import Data.Maybe, Data.Either, Data.Map, Data.Generic, Data.Functor, Data.Tuple
 import Text, Text.JSON
 import iTasks.Framework.IWorld
 import iTasks.Framework.UIDefinition
 import iTasks.Framework.Util
 import iTasks.API.Core.LayoutCombinators
 
-visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a
+visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a & gEditMeta{|*|} a
 visualizeAsEditor (v,mask,ver) taskId layout iworld
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
-	# (res,vst=:{VSt|iworld})	= gEditor{|*|} [] (v,mask,ver) vst
+	# (res,vst=:{VSt|iworld})	= gEditor{|*|} [] (v,mask,ver) (gEditMeta{|*|} v) vst
 	= (controlsOf res,iworld)
 
 updateValueAndMask :: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | gUpdate{|*|} a
@@ -19,23 +19,26 @@ updateValueAndMask path update (a,mask) = gUpdate{|*|} path update (a,mask)
 
 //Generic visualizer
 generic gEditor a | gVisualizeText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
-				   :: !DataPath !(VerifiedValue a) !*VSt -> (!VisualizationResult,!*VSt)
+				   :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
 
-gEditor{|UNIT|} dp _ vst = (NormalEditor [],vst)
+gEditor{|UNIT|} dp _ _ vst = (NormalEditor [],vst)
 
-gEditor{|RECORD of {grd_arity}|} fx _ _ _ _ _ dp (RECORD x,mask,ver) vst=:{VSt|optional,disabled,taskId}
+gEditor{|EITHER|} fx _ _ mx _ _ fy _ _ my _ _ dp (LEFT x,mask,ver) meta vst = fx dp (x,mask,ver) (mx x) vst
+gEditor{|EITHER|} fx _ _ mx _ _ fy _ _ my _ _ dp (RIGHT y,mask,ver) meta vst =  fy dp (y,mask,ver) (my y) vst	
+
+gEditor{|RECORD of {grd_arity}|} fx _ _ mx _ _ dp (RECORD x,mask,ver) meta vst=:{VSt|optional,disabled,taskId}
 	//When optional and no value yet, just show the checkbox
 	| optional &&  not (isTouched mask)
 		= if disabled (OptionalEditor [],vst) (OptionalEditor [checkbox False], vst)
-	# (fieldsViz,vst) = fx (pairPath grd_arity dp) (x,toPairMask grd_arity mask,toPairVerification grd_arity ver) {VSt|vst & optional = False}
+	# (fieldsViz,vst) = fx (pairPath grd_arity dp) (x,toPairMask grd_arity mask,toPairVerification grd_arity ver) (mx x) {VSt|vst & optional = False}
 	//For optional records we add the checkbox to clear the entire record
 	# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldsViz]) fieldsViz	
 	= (viz,vst)
 where
 	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)},newMap)
 
-gEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled,layout}
-	# (vizBody,vst)		= fx dp (fromFIELD val,mask,ver) vst
+gEditor{|FIELD of {gfd_name}|} fx _ _ mx _ _ dp (FIELD x,mask,ver) _ vst=:{VSt|disabled,layout}
+	# (vizBody,vst)		= fx dp (x,mask,ver) (mx x) vst
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
@@ -43,12 +46,12 @@ gEditor{|FIELD of {gfd_name}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|disabled
 		OptionalEditor controls	
 			= (OptionalEditor [(c,addLabel True gfd_name a) \\ (c,a) <- controls], vst)
 
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,mask,ver) vst=:{selectedConsIndex = oldSelectedConsIndex,disabled,taskId,layout}
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ mx _ _ dp vv=:(OBJECT x,mask,ver) meta vst=:{selectedConsIndex = oldSelectedConsIndex,disabled,taskId,layout}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
-		# (items, vst=:{selectedConsIndex}) = fx dp (x,mask,ver) vst
+		# (items, vst=:{selectedConsIndex}) = fx dp (x,mask,ver) meta vst
         # (controls,choice) = case mask of
             Untouched   = ([],[])
             Blanked     = ([],[])
@@ -60,13 +63,13 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
 								, editorId = editorId dp
 								, value = choice
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
-							, verifyAttributes (x,mask,ver) [{EditMeta|hint=Just "Select an option",label=Nothing}])
+							, editorAttributes (x,case mask of (CompoundMask _) = Touched; _ = mask,ver) [{EditMeta|hint=Just "Select an option",label=Nothing,unit=Nothing}])
 						: content
 						]
 		  			,{vst & selectedConsIndex = oldSelectedConsIndex})
 	//ADT with one constructor or static render: put content into container, if empty show cons name
 	| otherwise
-		# (vis,vst) = fx dp (x,mask,ver) vst
+		# (vis,vst) = fx dp (x,mask,ver) meta vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
 			NormalEditor []
@@ -77,18 +80,15 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ hx _ _ dp vv=:(OBJECT x,
 			OptionalEditor items
 				= OptionalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items})
 		= (vis,{vst & selectedConsIndex = oldSelectedConsIndex})
-where
-	addSpacing [] = []
-	addSpacing [d:ds] = [d:map (setMargins 0 0 0 5) ds]
 
-gEditor{|CONS of {gcd_index,gcd_arity}|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId,optional,disabled}
-	# (viz,vst)	= fx (pairPath gcd_arity dp) (fromCONS val,toPairMask gcd_arity mask,toPairVerification gcd_arity ver) vst
+gEditor{|CONS of {gcd_index,gcd_arity}|} fx _ _ mx _ _ dp (CONS x,mask,ver) meta vst=:{VSt|taskId,optional,disabled}
+	# (viz,vst)	= fx (pairPath gcd_arity dp) (x,toPairMask gcd_arity mask,toPairVerification gcd_arity ver) meta vst
     = (viz,{VSt | vst & selectedConsIndex = gcd_index})
 
-gEditor{|PAIR|} fx _ _ _ _ _ fy _ _ _ _ _ dp (PAIR x y, CompoundMask [xmask,ymask],CompoundVerification [xver,yver]) vst
+gEditor{|PAIR|} fx _ _ mx _ _ fy _ _ my _ _ dp (PAIR x y, CompoundMask [xmask,ymask],CompoundVerification [xver,yver]) meta vst
 	# (dpx,dpy)		= pairPathSplit dp
-	# (vizx, vst)	= fx dpx (x,xmask,xver) vst
-	# (vizy, vst)	= fy dpy (y,ymask,yver) vst
+	# (vizx, vst)	= fx dpx (x,xmask,xver) (mx x) vst
+	# (vizy, vst)	= fy dpy (y,ymask,yver) (my y) vst
 	= case (vizx,vizy) of	//Define combination for all nine combinations of normal/optional/hidden editors
 		(NormalEditor ex,	NormalEditor ey)		= (NormalEditor (ex ++ ey), vst)
 		(NormalEditor ex,	OptionalEditor ey)		= (NormalEditor (ex ++ ey), vst)
@@ -113,45 +113,43 @@ where
 	range = end - begin + 1
 	middle = begin + range / 2
 		
-gEditor{|EITHER|} fx _ _ _ _ _ fy _ _ _ _ _ dp (LEFT x,mask,ver) vst = fx dp (x,mask,ver) vst
-gEditor{|EITHER|} fx _ _ _ _ _ fy _ _ _ _ _ dp (RIGHT y,mask,ver) vst =  fy dp (y,mask,ver) vst	
 		
-gEditor{|Int|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Int|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
 	| otherwise
-        = (NormalEditor [(UIEditInt defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
-	
-gEditor{|Real|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled} 
-	| disabled	
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
-	| otherwise
-        = (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+        = (NormalEditor [(UIEditInt defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
-gEditor{|Char|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|Real|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
+	| disabled	
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+	| otherwise
+        = (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
+
+gEditor{|Char|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
     	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
 	| otherwise
-        = (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+        = (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
-gEditor{|String|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled}
+gEditor{|String|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
     	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value= checkMask mask val},newMap)],vst)
 	| otherwise
-        = (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+        = (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
-gEditor{|Bool|} dp vv=:(val,mask,ver) vst=:{VSt|taskId,disabled} //Bools are shown as optional by default, because a mandatory bool makes little sense
+gEditor{|Bool|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled} //Bools are shown as optional by default, because a mandatory bool makes little sense
 	| disabled		
 		= (OptionalEditor [(UIViewCheckbox defaultSizeOpts {UIViewOpts|value =checkMask mask val},newMap)],vst)
 	| otherwise	
-		= (OptionalEditor [(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},verifyAttributes vv (gEditMeta{|*|} val))],vst)
+		= (OptionalEditor [(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
-gEditor{|[]|} fx _ _ _ _ _ dp (val,mask,ver) vst=:{VSt|taskId,disabled,layout}
+gEditor{|[]|} fx _ _ mx _ _ dp (val,mask,ver) meta vst=:{VSt|taskId,disabled,layout}
 	# (items,vst)	= listControl dp val (subMasks (length val) mask) (subVerifications (length val) ver) vst
 	= (NormalEditor [(listContainer items,newMap)],vst)
 where
 	listControl dp items masks vers vst=:{VSt|optional,disabled}
-		# (itemsVis,vst)	= childVisualizations fx dp items masks vers vst
+		# (itemsVis,vst)	= childVisualizations fx mx dp items masks vers vst
 		# numItems = length items
 		| disabled
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
@@ -187,36 +185,36 @@ where
 	numItemsText 1 = "1 item"
 	numItemsText n = toString n +++ " items"
 	
-gEditor{|(,)|} fx _ _ _ _ _ fy _ _ _ _ _ dp ((x,y),mask,ver) vst
-	# (vizx, vst)	= fx (dp ++ [0]) (x,subMasks 2 mask !! 0,subVerifications 2 ver !! 0) vst
-	# (vizy, vst)	= fy (dp ++ [1]) (y,subMasks 2 mask !! 1,subVerifications 2 ver !! 1) vst
+gEditor{|(,)|} fx _ _ mx _ _ fy _ _ my _ _ dp ((x,y),mask,ver) meta vst
+	# (vizx, vst)	= fx (dp ++ [0]) (x,subMasks 2 mask !! 0,subVerifications 2 ver !! 0) (mx x) vst
+	# (vizy, vst)	= fy (dp ++ [1]) (y,subMasks 2 mask !! 1,subVerifications 2 ver !! 1) (my y) vst
 	# viz = case (vizx,vizy) of
 		(HiddenEditor,HiddenEditor) = HiddenEditor
 		_	= NormalEditor (controlsOf vizx ++ controlsOf vizy)
 	= (viz, vst)
 
-gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst	= (HiddenEditor,vst)
+gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst = (HiddenEditor,vst)
 		
-gEditor{|Dynamic|} _ _ vst	= (HiddenEditor,vst)
+gEditor{|Dynamic|} _ _ _ vst = (HiddenEditor,vst)
 
-gEditor{|Maybe|} fx _ dx _ _ _ dp (val,mask,ver) vst=:{VSt|optional,disabled}
+gEditor{|Maybe|} fx _ dx mx _ _ dp (val,mask,ver) meta vst=:{VSt|optional,disabled}
 	# (viz,vst) = case val of
-		(Just x)	= fx dp (x,mask,ver) {VSt|vst & optional = True}
-		_			= fx dp (dx,Untouched,ver) {VSt|vst & optional = True}
+		(Just x)	= fx dp (x,mask,ver) (mx x) {VSt|vst & optional = True}
+		_			= fx dp (dx,Untouched,ver) (mx dx) {VSt|vst & optional = True}
 	= (toOptional viz, {VSt|vst & optional = optional})
 where
 	toOptional	(NormalEditor ex)	= OptionalEditor ex
 	toOptional	viz					= viz
 	
-gEditor{|Void|} _ _ vst = (HiddenEditor,vst)
-gEditor{|HtmlTag|}	dp (val,mask,ver) vst
+gEditor{|Void|} _ _ _ vst = (HiddenEditor,vst)
+gEditor{|HtmlTag|}	dp (val,mask,ver) meta vst
 	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},newMap)], vst)
 
 derive gEditor JSONNode, Either, (,,), (,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
 
 generic gEditMeta a :: a -> [EditMeta]
 
-gEditMeta{|UNIT|} _			= [{label=Nothing,hint=Nothing}]
+gEditMeta{|UNIT|} _			= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|PAIR|} fx fy _	= fx undef ++ fy undef
 gEditMeta{|EITHER|} fx fy _	= fx undef //Only consider first constructor
 gEditMeta{|OBJECT|} fx _	= fx undef
@@ -224,14 +222,14 @@ gEditMeta{|CONS|} fx _		= fx undef
 gEditMeta{|RECORD|} fx _ 	= fx undef
 gEditMeta{|FIELD of {gfd_name}|} fx _
 							= [{EditMeta|m & label = Just (fromMaybe (camelCaseToWords gfd_name) label)} \\ m=:{EditMeta|label} <- fx undef]
-gEditMeta{|Int|}	_		= [{label=Nothing,hint=Just "You may enter an integer number"}]
-gEditMeta{|Char|} _			= [{label=Nothing,hint=Just "You may enter a single character"}]
-gEditMeta{|String|} _		= [{label=Nothing,hint=Just "You may enter a single line of text"}]
-gEditMeta{|Real|} _			= [{label=Nothing,hint=Just "You may enter a decimal number"}]
-gEditMeta{|Bool|} _ 		= [{label=Nothing,hint=Nothing}]
-gEditMeta{|Dynamic|}	_	= [{label=Nothing,hint=Just ""}]
-gEditMeta{|HtmlTag|}	_	= [{label=Nothing,hint=Nothing}]
-gEditMeta{|(->)|} _ _ _		= [{label=Nothing,hint=Nothing}]
+gEditMeta{|Int|}	_		= [{label=Nothing,hint=Just "You may enter an integer number",unit=Nothing}]
+gEditMeta{|Char|} _			= [{label=Nothing,hint=Just "You may enter a single character",unit=Nothing}]
+gEditMeta{|String|} _		= [{label=Nothing,hint=Just "You may enter a single line of text",unit=Nothing}]
+gEditMeta{|Real|} _			= [{label=Nothing,hint=Just "You may enter a decimal number",unit=Nothing}]
+gEditMeta{|Bool|} _ 		= [{label=Nothing,hint=Nothing,unit=Nothing}]
+gEditMeta{|Dynamic|}	_	= [{label=Nothing,hint=Just "",unit=Nothing}]
+gEditMeta{|HtmlTag|}	_	= [{label=Nothing,hint=Nothing,unit=Nothing}]
+gEditMeta{|(->)|} _ _ _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|Maybe|} fx _		= fx undef
 gEditMeta{|[]|} fx _		= fx undef
 
@@ -453,20 +451,25 @@ checkMaskValue (TouchedWithState s) val  = Just (toJSON val)
 checkMaskValue (TouchedUnparsed r) _  	 = Just r
 checkMaskValue _ _                       = Nothing
 
-verifyAttributes :: !(VerifiedValue a) [EditMeta] -> UIAttributes
-verifyAttributes (val,mask,ver) meta
-	| isTouched mask	= case ver of
-		(CorrectValue msg)		= put VALID_ATTRIBUTE (fromMaybe "This value is ok" msg) newMap
-		(WarningValue msg)		= put WARNING_ATTRIBUTE msg newMap
-		(IncorrectValue msg)	= put ERROR_ATTRIBUTE msg newMap
-		(UnparsableValue)		= put ERROR_ATTRIBUTE "This value not in the required format" newMap
-		(MissingValue)			= put ERROR_ATTRIBUTE "This value is required" newMap
-		_						= newMap
-	| otherwise
-		= case meta of	
-			[{EditMeta|hint=Just hint}:_]	= put HINT_ATTRIBUTE hint newMap
-			_								= newMap
-			
+editorAttributes :: !(VerifiedValue a) [EditMeta] -> UIAttributes
+editorAttributes (val,mask,ver) meta
+    # hint = case meta of
+        [{EditMeta|hint}]   = hint
+        _                   = Nothing
+    # attr = case meta of
+        [{EditMeta|unit=Just (Left unit)}:_]    = put PREFIX_ATTRIBUTE unit newMap
+        [{EditMeta|unit=Just (Right unit)}:_]   = put POSTFIX_ATTRIBUTE unit newMap
+        _                                       = newMap
+    | isTouched mask = case ver of
+        (CorrectValue msg)		= put VALID_ATTRIBUTE (fromMaybe "This value is ok" msg) attr
+        (WarningValue msg)		= put WARNING_ATTRIBUTE msg attr
+        (IncorrectValue msg)	= put ERROR_ATTRIBUTE msg attr
+        (UnparsableValue)		= put ERROR_ATTRIBUTE "This value not in the required format" attr
+        (MissingValue)			= put ERROR_ATTRIBUTE "This value is required" attr
+        _						= attr
+    | otherwise
+        = maybe attr (\h -> put HINT_ATTRIBUTE h attr) hint
+
 controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
 controlsOf (NormalEditor controls)		= controls
 controlsOf (OptionalEditor controls)	= controls
@@ -477,13 +480,13 @@ addLabel optional label attr = put LABEL_ATTRIBUTE (format optional label) attr
 where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
 
-childVisualizations :: !(DataPath (VerifiedValue a) -> .(*VSt -> *(!VisualizationResult,*VSt))) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![VisualizationResult],!*VSt)
-childVisualizations fx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
+childVisualizations :: !(DataPath (VerifiedValue a) [EditMeta] -> .(*VSt -> *(!VisualizationResult,*VSt))) !(a -> [EditMeta]) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![VisualizationResult],!*VSt)
+childVisualizations fx mx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
 where
 	childVisualizations` i [] [] [] acc vst
 		= (reverse acc,vst)
 	childVisualizations` i [child:children] [mask:masks] [ver:vers] acc vst
-		# (childV,vst) = fx (dp ++ [i]) (child,mask,ver) vst
+		# (childV,vst) = fx (dp ++ [i]) (child,mask,ver) (mx child) vst
 		= childVisualizations` (i + 1) children masks vers [childV:acc] vst
 
 verifyValue :: !a -> Verification | gVerify{|*|} a

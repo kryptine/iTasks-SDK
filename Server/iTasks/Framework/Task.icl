@@ -42,9 +42,9 @@ gUpdate{|Task|} _ _ _ target upd val = basicUpdate (\Void t -> Just t) target up
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gVisualizeText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
+gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
 
-gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing}]
+gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gDefault{|Task|} gDefx = Task (\_ -> abort error)
