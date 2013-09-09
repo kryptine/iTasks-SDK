@@ -4,11 +4,11 @@ import iTasks
 import ESMSpec
 import GenPrint
 
-import Graphviz
+import Data.Graphviz
 import GraphvizVisualization
 
 derive bimap (,), Maybe
-derive class iTask	KnownAutomaton, State
+derive class iTask KnownAutomaton, State
 
 finished_state_color :: (!Color,!Color)
 finished_state_color	= (Color "blue", Color "white")
@@ -153,19 +153,19 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 				]
 			[NodeDef (nrOf automaton n) [NStAllEdgesFound (gisMember n   finished)] (nodeAttributes n   init_states (gisMember n   finished) (gisMember n   shared))
 			         [ let (s,i,o,t) = trans in
-			           (nrOf automaton t	, [ EAtt_label (render i+++"/"+++showList ("[","]",",") o)
-			                                , EAtt_fontname "Helvetica"
-			                                , EAtt_fontsize fontsize
-			                                , EAtt_labelfontname "Helvetica"
-			                                , EAtt_labelfontsize fontsize
-			                                , EAtt_color
+			           (nrOf automaton t	, [ EAttLabel (render i+++"/"+++showList ("[","]",",") o)
+			                                , EAttFontName "Helvetica"
+			                                , EAttFontSize fontsize
+			                                , EAttLabelFontName "Helvetica"
+			                                , EAttLabelFontSize fontsize
+			                                , EAttColor
 			                                			 (if (gisMember trans issues)
 			                                						(Color "red")
 			                                			 (if (gisMember trans trace)
 			                                						(Color "blue")
 			                                						(Color "black")))
-			                                , EAtt_arrowsize (if (gisMember trans trace) 2.0 1.2)
-			                             //   , EAtt_style (if (isMember trans trace) EStyle_bold EStyle_solid)
+			                                , EAttArrowSize (if (gisMember trans trace) 2.0 1.2)
+			                             //   , EAttStyle (if (isMember trans trace) EStyle_bold EStyle_solid)
 			                                ])
 			         \\ trans <- edgesFrom n automaton
 			         ]
@@ -173,33 +173,33 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 			]
 		) Nothing
 where
-	graphAttributes				= [ GAtt_rankdir  RD_LR // horizontal
-	//graphAttributes				= [ GAtt_rankdir  RD_TB // RD_LR
-							  	  , GAtt_size     		(Sizef 7.2 3.0 False)
-								 // , GAtt_size			(Sizef 5.0 3.0 True)
-								  , GAtt_fontsize		9.0 // 12.0
-								  , GAtt_bgcolor  		(Color "white")
-								  , GAtt_ordering 		"out"
-//								  , GAtt_outputorder	OM_nodesfirst	// OM_edgesfirst	//  PK
-								  , GAtt_outputorder	OM_nodesfirst	// OM_edgesfirst	//  PK
+	graphAttributes				= [ GAttRankDir  RDLR // horizontal
+	//graphAttributes				= [ GAttRankDir  RDTB // RD_LR
+							  	  , GAttSize     		(Sizef 7.2 3.0 False)
+								 // , GAttSize			(Sizef 5.0 3.0 True)
+								  , GAttFontSize		9.0 // 12.0
+								  , GAttBGColor  		(Color "white")
+								  , GAttOrdering 		"out"
+//								  , GAttOutputOrder	OMNodesFirst	// OMEdgesFirst	//  PK
+								  , GAttOutputOrder	OMNodesFirst	// OMEdgesFirst	//  PK
 								  ]
 	nodeAttributes n init_states finished shared
 								= (if (gisMember n init_states)
-										(if shared	[ NAtt_fillcolor shac_backgr, NAtt_fontcolor shac_txt ]
-													[ NAtt_fillcolor act_backgr, NAtt_fontcolor act_txt ])
-								  (if finished [ NAtt_fillcolor done_backgr,NAtt_fontcolor done_txt]
-								  		(if shared	[ NAtt_fillcolor shar_backgr, NAtt_fontcolor shar_txt ]
-									              	[ NAtt_fillcolor def_backgr, NAtt_fontcolor def_txt ])
+										(if shared	[ NAttFillColor shac_backgr, NAttFontColor shac_txt ]
+													[ NAttFillColor act_backgr, NAttFontColor act_txt ])
+								  (if finished [ NAttFillColor done_backgr,NAttFontColor done_txt]
+								  		(if shared	[ NAttFillColor shar_backgr, NAttFontColor shar_txt ]
+									              	[ NAttFillColor def_backgr, NAttFontColor def_txt ])
 								  )) ++
-						          [ NAtt_label		(render n)
-						          , NAtt_tooltip	(show1 n)
-						          , NAtt_style		NStyle_filled
-						          , NAtt_shape		(if (n === s_0) NShape_doublecircle NShape_ellipse /*NShape_circle*/)
-						          , NAtt_fontname	"Helvetica"
-						          , NAtt_fontsize	fontsize
-						          , NAtt_fixedsize	False // True
-						          , NAtt_width 1.0,	NAtt_height 1.0
-						          , NAtt_margin		(SingleMargin 0.003)
+						          [ NAttLabel		(render n)
+						          , NAttTooltip	(show1 n)
+						          , NAttStyle		NStyleFilled
+						          , NAttShape		(if (n === s_0) NShapeDoubleCircle NShapeEllipse /*NShapeCircle*/)
+						          , NAttFontName	"Helvetica"
+						          , NAttFontSize	fontsize
+						          , NAttFixedSize	False // True
+						          , NAttWidth 1.0,	NAttHeight 1.0
+						          , NAttMargin		(SingleMargin 0.003)
 						          ]
 	where
 		( act_backgr, act_txt)	= active_state_color (length init_states)
@@ -229,12 +229,12 @@ where
 	where
 		all_edges_found							= not (isEmpty [s \\ s=:(NStAllEdgesFound True) <- st])
 		
-		replaceNodeAtt (NAtt_fillcolor _)		= NAtt_fillcolor (fst (active_state_color 1))
-		replaceNodeAtt (NAtt_fontcolor _)		= NAtt_fontcolor (snd (active_state_color 1))
+		replaceNodeAtt (NAttFillColor _)		= NAttFillColor (fst (active_state_color 1))
+		replaceNodeAtt (NAttFontColor _)		= NAttFontColor (snd (active_state_color 1))
 		replaceNodeAtt att						= att
 		
-		defaultNodeAtt (NAtt_fillcolor c)		= NAtt_fillcolor (if all_edges_found (fst finished_state_color) (fst default_state_color))
-		defaultNodeAtt (NAtt_fontcolor c)		= NAtt_fontcolor (if all_edges_found (snd finished_state_color) (snd default_state_color))
+		defaultNodeAtt (NAttFillColor c)		= NAttFillColor (if all_edges_found (fst finished_state_color) (fst default_state_color))
+		defaultNodeAtt (NAttFontColor c)		= NAttFontColor (if all_edges_found (snd finished_state_color) (snd default_state_color))
 		defaultNodeAtt att						= att
 
 //TODO: Turn this into a (Diagraph State -> State function)

@@ -1,7 +1,7 @@
 definition module GraphvizVisualization
 /** This module provides the iTasks class for the Graphviz library
 **/
-import Graphviz, iTasks
+import Data.Graphviz, iTasks
 
 derive gVisualizeText	Digraph
 derive gUpdate			Digraph

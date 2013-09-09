@@ -16,7 +16,7 @@ from System.File		import readFile, writeFile, getFileInfo, :: FileError, :: File
 from System.Directory import createDirectory
 from System.Directory import :: FilePath(..), :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 
-import Graphviz
+import Data.Graphviz
 
 derive bimap (,), Maybe
 derive class iTask	NodeState, Arrow, ArrowShape, ClusterMode, CompassPoint, DotPoint, 
