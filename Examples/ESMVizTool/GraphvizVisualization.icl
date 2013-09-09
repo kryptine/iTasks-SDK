@@ -1,15 +1,20 @@
 implementation module GraphvizVisualization
 
-import GenVisualize, GenUpdate, GenPrint_NG, GenParse_NG
-import Util, Error, HttpUtil, IWorld, Time, Map
-import StdFile, StdTuple, StdList, StdBool, StdArray, StdString, StdFunc
+//import GenVisualize, GenUpdate, GenPrint, GenParse
+import iTasks.Framework.Generic
+//from Data.Error import :: MaybeError (..)
+import Data.Error, Data.Void
+//import Util, Error, HttpUtil, IWorld
+import System.Time
+import qualified Data.Map as DM
+import StdFile, StdTuple, StdList, StdBool, StdArray, StdString
 
 from Text		import qualified class Text(..), instance Text String
-from Process	import callProcess
-from File		import readFile, writeFile, getFileInfo, :: FileError, :: FileInfo(..)
+import qualified System.Process as SP
+from System.File		import readFile, writeFile, getFileInfo, :: FileError, :: FileInfo(..)
 
-from Directory import createDirectory
-from Directory import :: FilePath(..), :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
+from System.Directory import createDirectory
+from System.Directory import :: FilePath(..), :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 
 import Graphviz
 
@@ -20,13 +25,13 @@ derive class iTask	NodeState, Arrow, ArrowShape, ClusterMode, CompassPoint, DotP
 					RankDir, RankType, Ratio, Rect, SelectedItem, Side, Sizef, StartStyle, StartType, ViewPort
 
 derive gVisualizeText	Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gVisualizeEditor	ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gUpdate			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gHeaders			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gGridRows		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gVerify			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONEncode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONDecode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gEditor		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gEditMeta		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gDefault		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gEq				Digraph
 
 config_file_name		:== "Graphviz.config"
@@ -42,41 +47,41 @@ dotext file				= file + ".dot"
 
 instance + String where (+) a b = a +++ b
 
-gVisualizeEditor{|Digraph|} Nothing vst			= noVisualization vst				
-gVisualizeEditor{|Digraph|} (Just digraph) vst	= visualizeCustom mkControl vst
-where
-	mkControl name touched verRes vst=:{VSt|iworld,taskId}
-		# filename			= imgname taskId name
-		# (mbErr, iworld)	= runGraphviz filename (printDigraph (enhanceDigraphWithLinks digraph)) iworld
-		= case mbErr of
-			Ok _
-				= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (RawText("<img src=\"/" + (gifext filename) + "\" usemap=\"#" + filename + "\" />"))},newMap)], {VSt|vst & iworld = iworld})
-			Error msg
-				= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (Text msg)},newMap)], {VSt|vst & iworld = iworld})
+//gVisualizeEditor{|Digraph|} Nothing vst			= noVisualization vst				
+//gVisualizeEditor{|Digraph|} (Just digraph) vst	= visualizeCustom mkControl vst
+//where
+	//mkControl name touched verRes vst=:{VSt|iworld,taskId}
+		//# filename			= imgname taskId name
+		//# (mbErr, iworld)	= runGraphviz filename (printDigraph (enhanceDigraphWithLinks digraph)) iworld
+		//= case mbErr of
+			//Ok _
+				//= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (RawText("<img src=\"/" + (gifext filename) + "\" usemap=\"#" + filename + "\" />"))},newMap)], {VSt|vst & iworld = iworld})
+			//Error msg
+				//= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (Text msg)},newMap)], {VSt|vst & iworld = iworld})
 		
-	runGraphviz :: String [String] *IWorld -> (!MaybeErrorString Void,!*IWorld)
-	runGraphviz name dotcode iworld=:{IWorld|world}
-		# (mbExe,world)		= obtainValueFromConfig dot_exe_path_name world
-		| isNothing mbExe	= (Error ("Could not obtain " +++ dot_exe_path_name +++ " from " +++ config_file_name +++ "."), {iworld & world = world})
-		# exe				= fromJust mbExe
-		# (mbErr,world)		= ensureDirectory public world
-		| isError mbErr		= (Error ("Could not create directory " + (target "")), {iworld & world = world})
-		# (mbErr,world)		= writeFile (target (dotext name)) ('Text'.join "\n" dotcode) world
-		| isError mbErr		= (Error ("Could not write Digraph to " + target (dotext name) + "."), {iworld & world = world})
-		# (mbExit,world)	= callProcess exe (toGIF (target name)) Nothing world
-		| isError mbExit	= (Error ("Creation of " + gifext (target name) + " failed"), {iworld & world = world})
-		# (mbExit,world)	= callProcess exe (toMAP name (target name)) Nothing world
-		| isError mbExit	= (Error ("Creation of " + mapext (target name) + " failed"), {iworld & world = world})
-		# (mbMap,world)		= readFile (mapext (target name)) world	
-		= (Ok Void, {iworld & world = world})
+	//runGraphviz :: String [String] *IWorld -> (!MaybeErrorString Void,!*IWorld)
+	//runGraphviz name dotcode iworld=:{IWorld|world}
+		//# (mbExe,world)		= obtainValueFromConfig dot_exe_path_name world
+		//| isNothing mbExe	= (Error ("Could not obtain " +++ dot_exe_path_name +++ " from " +++ config_file_name +++ "."), {iworld & world = world})
+		//# exe				= fromJust mbExe
+		//# (mbErr,world)		= ensureDirectory public world
+		//| isError mbErr		= (Error ("Could not create directory " + (target "")), {iworld & world = world})
+		//# (mbErr,world)		= writeFile (target (dotext name)) ('Text'.join "\n" dotcode) world
+		//| isError mbErr		= (Error ("Could not write Digraph to " + target (dotext name) + "."), {iworld & world = world})
+		//# (mbExit,world)	= 'SP'.callProcess exe (toGIF (target name)) Nothing world
+		//| isError mbExit	= (Error ("Creation of " + gifext (target name) + " failed"), {iworld & world = world})
+		//# (mbExit,world)	= 'SP'.callProcess exe (toMAP name (target name)) Nothing world
+		//| isError mbExit	= (Error ("Creation of " + mapext (target name) + " failed"), {iworld & world = world})
+		//# (mbMap,world)		= readFile (mapext (target name)) world	
+		//= (Ok Void, {iworld & world = world})
 
-	enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
-		= Digraph name graphAtts 
-			[  NodeDef nr st [ NAtt_URL "#" /*("#")*/ : nodeAtts ] edges 
-			\\ NodeDef nr st nodeAtts edges <- nodeDefs
-			] selected
+	//enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
+		//= Digraph name graphAtts 
+			//[  NodeDef nr st [ NAtt_URL "#" [>("#")<] : nodeAtts ] edges 
+			//\\ NodeDef nr st nodeAtts edges <- nodeDefs
+			//] selected
 
-	imgname taskId name	= (toString taskId) + "-" + name
+	//imgname taskId name	= (toString taskId) + "-" + name
 
 /*
 where

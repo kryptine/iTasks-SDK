@@ -5,7 +5,7 @@ definition module Graphviz
 
 from   StdOverloaded import class toString
 import StdMaybe
-import GenEq_NG
+import GenEq
 
 // A digraph contains a title and a list of node definitions
 :: Digraph 

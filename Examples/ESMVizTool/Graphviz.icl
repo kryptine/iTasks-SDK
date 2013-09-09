@@ -4,12 +4,14 @@
 implementation module Graphviz
 
 import StdArray, StdOverloaded, StdList, StdOrdList, StdTuple, StdString, StdBool, StdMisc
-import StdMaybe, List_NG
-import GenPrint_NG, GenEq_NG
+import StdMaybe, Data.List
+import GenPrint, GenEq
 
-derive gEq    EdgeStyle, NodeStyle, DirType, NodeShape, Side, ArrowShape, Maybe, ArrowType, Arrow, Color
-derive gPrint EdgeStyle, NodeStyle, DirType, NodeShape, Side, ArrowShape, Maybe, CompassPoint, StartStyle,
-              ClusterMode, OutputMode, PageDir, RankDir, RankType
+derive gEq    EdgeStyle, NodeStyle, DirType, NodeShape, Side, ArrowShape,
+              Maybe, ArrowType, Arrow, Color
+derive gPrint EdgeStyle, NodeStyle, DirType, NodeShape, Side, ArrowShape,
+              Maybe, CompassPoint, StartStyle, ClusterMode, OutputMode,
+              PageDir, RankDir, RankType
 derive printNameValuePair GraphAttribute, NodeAttribute, EdgeAttribute
 
 //	Almost regular toString instances:

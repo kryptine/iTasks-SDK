@@ -11,7 +11,7 @@ implementation module genLibTest
 	pieter@cs.ru.nl
 */
 
-import StdEnv, StdGeneric, GenEq_NG
+import StdEnv, StdGeneric, GenEq
 
 instance + String where (+) s t = s +++ t
 

@@ -11,7 +11,7 @@ definition module genLibTest
 	pieter@cs.ru.nl
 */
 
-import StdGeneric, GenEq_NG
+import StdGeneric, GenEq
 
 import StdClass
 instance + String

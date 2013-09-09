@@ -11,7 +11,7 @@ implementation module gen
 	pieter@cs.ru.nl
 */
 
-import StdGeneric, Random
+import StdGeneric, Math.Random
 import StdBool, StdList, StdArray, StdEnum, StdMisc
 from StdFunc import id, seqList, :: St
 // -------

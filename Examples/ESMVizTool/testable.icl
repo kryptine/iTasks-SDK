@@ -11,7 +11,7 @@ implementation module testable
 	pieter@cs.ru.nl
 */
 
-import StdEnv, Random, genLibTest, /* StdTime, */ gen
+import StdEnv, Math.Random, genLibTest, /* StdTime, */ gen
 
 derive gLess Result
 instance == Result where (==) x y = x===y

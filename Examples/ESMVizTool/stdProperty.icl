@@ -12,7 +12,7 @@ implementation module stdProperty
 */
 
 import testable, StdEnv
-from Random import genRandInt
+from Math.Random import genRandInt
 
 class (==>) infixr 1 b :: b p -> Property | Testable p
 

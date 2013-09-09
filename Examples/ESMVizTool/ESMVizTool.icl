@@ -2,7 +2,7 @@ implementation module ESMVizTool
 
 import iTasks
 import ESMSpec
-import GenPrint_NG
+import GenPrint
 
 import Graphviz
 import GraphvizVisualization
@@ -58,29 +58,31 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
 				,("Clear trace", return {st & trace  = []})
 				:[let label = render node in ("go to: " + label, updateDig st node) \\ node <- nodes]
 				] >>! return
-    		, stepN esm st >>! return
-			, viewInformation (Title "Trace & legend") [ViewWith traceHtml] trace <<@ traceTweak >>| return st
+    		, stepStateN esm st >>! return
+			, viewInformation (Title "Trace & legend") [ViewWith traceHtml] trace // <<@ traceTweak
+            >>| return st
     		]
-    >>* [WhenValid (const True) return]
+    >>* [OnValue (ifStable return)]
 where
 	selectInput
 		| isEmpty inputs
 			= viewInformation ("Input","no transition from current state") [] "Use another action" >>| return st
-			= updateChoice ("Input","Choose an input... ")
-					[ChooseWith (if (length inputs > 7) ChooseFromComboBox ChooseFromRadioButtons) fst]
-					trans
-					(trans !! 0)
-				>>* [WithResult (Action "Apply selected input") (const True) (\(l,t) -> t)
-					,AnyTime (Action "I'm feeling lucky") (\_ -> systemInput)
+			= updateChoice ("Input","Choose an input... ") [] trans (trans !! 0)
+				>>* [OnAction (Action "Apply selected input" []) (hasValue snd)
+					,OnAction (Action "I'm feeling lucky" []) (\_ -> Just systemInput)
 					]
-	where trans = sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs]
+
+//-				>>* [WithResult (Action "Apply selected input") (const True) (\(l,t) -> t)
+//-					,AnyTime (Action "I'm feeling lucky") (\_ -> systemInput)
+
+	where trans = sortBy (\(a,_) (b,_) -> a<b) [(render i,stepState esm st i) \\ i<-inputs]
 	
 	systemInput
 		| isEmpty newInputs
 			| isEmpty inputs2
 				= return st
-				= step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))
-			= step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))
+				= stepState esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))
+			= stepState esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))
 
 	inputs		= possibleInputs esm ss
 	inputs2		= [ i \\ i <- inputs, (s,j,_,t) <- ka.trans | i === j && gisMember s ss && ~ (gisMember t ss) ]
@@ -90,11 +92,11 @@ where
 	nodes		= nodesOf ka
 	newState 	= { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = rn}
 
-	traceTweak	=  AfterLayout (tweakUI (\x -> appDeep [0] (fixedWidth 670 o fixedHeight 200) x)) 
+	//traceTweak	=  AfterLayout (tweakUI (\x -> appDeep [0] (fixedWidth 670 o fixedHeight 200) x)) 
 	
-stepN :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
-stepN esm st=:{ka,ss,trace,n,r}
- =		updateInformation ("Steps","Add multiple steps...") [] n
+stepStateN :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
+stepStateN esm st=:{ka,ss,trace,n,r}
+ =		updateInformation ("Steps","Add multiple stepStates...") [] n
 	>>= doStepN esm st
 	
 doStepN :: !(ESM s i o) !(State s i o) Int -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
@@ -109,7 +111,7 @@ chooseTask msg tasks = enterChoice msg [] [(l, Hidden t) \\ (l,t) <- tasks] >>= 
 
 chooseTaskComBo :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
 chooseTaskComBo msg tasks
- =	updateChoice msg [ChooseWith ChooseFromComboBox fst] trans (trans !! 0) >>= \(l, Hidden t). t
+ = updateChoice msg [] trans (trans !! 0) >>= \(l, Hidden t). t
  >>! return
 where
 	trans = [(l, Hidden t) \\ (l,t) <- tasks]
@@ -248,8 +250,8 @@ where
 			= trace++[oneStep]
 			= partTraces trace ns []
 
-step :: !(ESM s i o) (State s i o) i -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
-step esm state=:{ka,ss,trace,n,r} i
+stepState :: !(ESM s i o) (State s i o) i -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
+stepState esm state=:{ka,ss,trace,n,r} i
 		= let next   = nextStates esm i ss
 			  ka`    = addTransitions 1 esm ss [i] ka
 			  trace` = addStep esm ss i trace
@@ -281,8 +283,8 @@ traceHtml trace
    = DivTag []
 		[ H3Tag [] [Text "Trace:"]
 	    , TableTag []
-	       [ TrTag [] [TdTag [] (map Text (flatten [transToStrings t [] \\ t <- step]))]
-	       \\ step <- trace
+	       [ TrTag [] [TdTag [] (map Text (flatten [transToStrings t [] \\ t <- stepState]))]
+	       \\ stepState <- trace
 	       ]
 	    , BrTag []
 	    , H3Tag [] [Text "Legend:"]
@@ -344,7 +346,7 @@ remove_spaces str = toString [ c \\ c <- fromString str | not (isSpace c)]
 
 toHtmlString :: a -> String | gVisualizeText{|*|} a
 toHtmlString x
-	# string = visualizeAsText AsDisplay x
+	# string = visualizeAsText x
 	= toString [checkChar c \\ c <-fromString string]
 where
 	checkChar '"' = '\''

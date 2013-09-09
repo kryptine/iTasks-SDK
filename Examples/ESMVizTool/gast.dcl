@@ -9,4 +9,4 @@ definition module gast
 	pieter@cs.ru.nl
 */
 
-import Random, gen, GenEq_NG, genLibTest, testable, confSM, stdProperty
+import Math.Random, gen, GenEq, genLibTest, testable, confSM, stdProperty

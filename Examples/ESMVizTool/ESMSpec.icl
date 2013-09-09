@@ -1,7 +1,7 @@
 implementation module ESMSpec
 
 import StdBool, StdList, StdMaybe, StdMisc, StdString, StdTuple, StdOrdList
-import GenPrint_NG, GenEq_NG, List_NG
+import GenPrint, GenEq, Data.List
 import gast
 
 tupToSpec :: (state input -> [([output],state)]) -> Spec state input output // conversion for old specificaions
