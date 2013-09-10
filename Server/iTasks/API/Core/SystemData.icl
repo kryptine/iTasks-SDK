@@ -71,8 +71,8 @@ where
 	forWorker _ _																							= False
 
 isSession :: !TIMeta -> Bool
-isSession {TIMeta|session=Just _}	= True
-isSession _						 	= False
+isSession {TIMeta|instanceType=SessionInstance _}	= True
+isSession _						 	                = False
 
 toTaskListItem :: !TIMeta -> TaskListItem a 
 toTaskListItem {TIMeta|instanceNo,listId,progress,management}

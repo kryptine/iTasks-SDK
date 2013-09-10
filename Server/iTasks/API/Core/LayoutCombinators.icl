@@ -8,7 +8,7 @@ import iTasks.API.Core.SystemTypes, iTasks.API.Core.CoreCombinators
 from StdFunc import o, const
 
 from iTasks.Framework.Task import :: TaskCompositionType, :: TaskCompositionType(..), :: EventNo
-from iTasks.Framework.TaskState import :: TIMeta(..), :: SessionInfo(..)
+from iTasks.Framework.TaskState import :: TIMeta(..), :: TIType(..), :: SessionInfo(..)
 
 derive gEq TaskCompositionType, UISide
 

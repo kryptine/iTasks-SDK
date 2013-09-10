@@ -25,6 +25,8 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 					, currentDateTime		:: !DateTime								// The local date & time of the current request
 					, currentUser			:: !User									// The current user
 					, currentInstance		:: !InstanceNo								// The current evaluated task instance
+                    , currentSession        :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
+                    , currentAttachment     :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
 					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
 					, localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists

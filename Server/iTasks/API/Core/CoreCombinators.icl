@@ -346,7 +346,7 @@ where
 						
 //SHARED HELPER FUNCTIONS
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
-appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentDateTime,localTasks}
+appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentAttachment,currentDateTime,localTasks}
 	# (list,iworld) = loadTaskList taskId iworld
 	# progress = {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
@@ -361,12 +361,12 @@ appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentD
 		Detached management evalDirect
             # (instanceNo,iworld)                   = newInstanceNo iworld
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
-			# (taskIda,iworld)	                    = createTopTaskInstance task (Just instanceNo) management currentUser taskId evalDirect iworld
+			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) management currentUser taskId (if evalDirect (Just currentAttachment) Nothing) iworld
 			= (taskIda,Nothing,DetachedState instanceNo progress management, iworld)
 	    NamedDetached name management evalDirect
             # (instanceNo,iworld)                   = newInstanceNo iworld
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
-			# (taskIda,iworld)	                    = createTopTaskInstance task (Just instanceNo) management currentUser taskId evalDirect iworld
+			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) management currentUser taskId (if evalDirect (Just currentAttachment) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
@@ -466,10 +466,10 @@ where
 				= (Error (dynamic e,e), iworld)
 								
 	append :: !(TaskListId a) !ParallelTaskType !(ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
-	append TopLevelTaskList parType parTask iworld=:{currentUser}
+	append TopLevelTaskList parType parTask iworld=:{currentUser,currentAttachment}
 		# (meta,evalDirect)			= case parType of Embedded = (defaultValue,False); Detached meta evalDirect = (meta,evalDirect);
 		# task						= parTask topListShare
-		= createTopTaskInstance task Nothing meta currentUser (TaskId 0 0) evalDirect iworld
+		= createDetachedTaskInstance task Nothing meta currentUser (TaskId 0 0) (if evalDirect (Just currentAttachment) Nothing) iworld
 	append (ParallelTaskList parId) parType parTask iworld
 		= appendTaskToList parId (parType,parTask) iworld
 
@@ -497,11 +497,12 @@ where
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{currentInstance,currentUser}
+	eval event repOpts (TCInit taskId ts) iworld=:{currentInstance,currentAttachment,currentUser}
 		# (meta,iworld)		= read (detachedInstanceMeta instanceNo) iworld
 		= case meta of
 			Ok meta
-				# (_,iworld)	= write {TIMeta|meta & worker=Just currentUser} (detachedInstanceMeta instanceNo) iworld
+                //Just steal the instance, TODO, make stealing optional
+				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:currentAttachment] currentUser} (detachedInstanceMeta instanceNo) iworld
 				# iworld		= queueUrgentEvaluate instanceNo iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
@@ -517,7 +518,7 @@ where
 				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 			(_,Ok (ExceptionResult _ _))
 				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
-			(Ok meta=:{TIMeta|worker=Just worker},Ok (ValueResult _ _ (TaskRep def parts) _))
+			(Ok meta=:{TIMeta|instanceType=AttachedInstance _ worker},Ok (ValueResult _ _ (TaskRep def parts) _))
 				| worker == currentUser
 					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn def meta) parts)
 					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,refreshSensitive=True} rep tree, iworld)
@@ -528,8 +529,25 @@ where
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld=:{currentInstance}
-		= (DestroyedResult,iworld)
-		
+        # (meta,iworld) = read detachedInstances iworld
+        = case meta of
+            Ok instances
+                # (_,iworld) = write ('Data.Map'.fromList [(n,release taskId m) \\ (n,m) <- 'Data.Map'.toList instances]) detachedInstances iworld
+                = (DestroyedResult,iworld)
+		    _   = (DestroyedResult,iworld)
+
+    release taskId meta=:{TIMeta|instanceType=AttachedInstance attachment worker}
+        = case attachmentUpTo taskId  attachment of
+            Just []         = {meta & instanceType = DetachedInstance}
+            Just attachment = {meta & instanceType = AttachedInstance attachment worker}
+            Nothing         = meta
+    release taskId meta = meta
+
+    //Check if the taskId is part of the chain of attached instances, and if so return just the still connected part
+    attachmentUpTo taskId [] = Nothing
+    attachmentUpTo taskId [t:ts]
+        | t == taskId = Just []
+                      = fmap (\ts` -> [t:ts`]) (attachmentUpTo taskId ts)
 	inUseDef worker
 		= UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)]}
 /*

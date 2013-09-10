@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.TaskEval
 
-import StdList, StdBool, StdTuple
+import StdList, StdBool, StdTuple, StdMisc
 import Data.Error, Data.Func, Data.Either, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.Shared, iTasks.Framework.Task, iTasks.Framework.TaskState 
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
@@ -12,7 +12,7 @@ from iTasks.API.Core.CoreCombinators	import :: ParallelTaskType(..), :: Parallel
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from Data.SharedDataSource	import qualified read, write, writeFilterMsg
 
-derive gEq TIMeta, SessionInfo
+derive gEq TIMeta, TIType, SessionInfo
 
 createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld) |  iTask a
 createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
@@ -22,38 +22,38 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
 	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo (Just {SessionInfo|sessionId=sessionId,lastEvent=0}) (TaskId 0 0) (Just worker) mmeta pmeta
+	# meta					= createMeta instanceNo (SessionInstance {SessionInfo|sessionId=sessionId,lastEvent=0}) (TaskId 0 0) mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
 	//Register the sessionId -> instanceNo relation
 	# iworld				= registerSession sessionId instanceNo iworld
 	//Evaluate once
-	# (mbResult,iworld)		= evalTaskInstance event instanceNo iworld 
+	# (mbResult,iworld)		= evalTaskInstance event instanceNo (Just instanceNo) iworld
 	= case mbResult of
-		Ok (result,Just (sessionInfo,updates))	= (Ok (result,instanceNo,sessionInfo,updates),iworld)
+		Ok (result,Left (sessionInfo,updates))	= (Ok (result,instanceNo,sessionInfo,updates),iworld)
 		Error e				= (Error e, iworld)
 		_					= (Error "Unknown error in createSessionTaskInstance", iworld) 
 where
 	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
 		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 
-createTopTaskInstance :: !(Task a) !(Maybe InstanceNo)  !ManagementMeta !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createTopTaskInstance task mbInstanceNo mmeta issuer listId evalDirect iworld=:{currentDateTime,taskTime}
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo)  !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance task mbInstanceNo mmeta issuer listId mbAttachment iworld=:{currentDateTime,taskTime}
 	# (instanceNo,iworld)	= case mbInstanceNo of
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
 	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo Nothing listId (if evalDirect (Just issuer) Nothing) mmeta pmeta
+	# meta					= createMeta instanceNo (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (detachedInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
-    # iworld                = if evalDirect (queueUrgentEvaluate instanceNo iworld) iworld
+    # iworld                = if (isJust mbAttachment) (queueUrgentEvaluate instanceNo iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
-createMeta :: !InstanceNo (Maybe SessionInfo) TaskId !(Maybe User) !ManagementMeta !ProgressMeta  -> TIMeta
-createMeta instanceNo session listId worker mmeta pmeta
-	= {TIMeta|instanceNo=instanceNo,session=session,listId=listId,worker=worker,management=mmeta,progress=pmeta}
+createMeta :: !InstanceNo !TIType !TaskId !ManagementMeta !ProgressMeta  -> TIMeta
+createMeta instanceNo instanceType listId mmeta pmeta
+	= {TIMeta|instanceNo=instanceNo,instanceType=instanceType,listId=listId,management=mmeta,progress=pmeta}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -69,59 +69,32 @@ createResult :: !InstanceNo !TaskTime -> TaskResult JSONNode
 createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep (UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap}) []) (TCInit (TaskId instanceNo 0) 1)
 
 evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
-evalSessionTaskInstance sessionId event iworld
-	//Set session user
-	# iworld					= {iworld & currentUser = AnonymousUser sessionId}
+evalSessionTaskInstance sessionId event iworld=:{IWorld|sessions}
 	//Update current datetime in iworld
 	# iworld					= updateCurrentDateTime iworld
 	//Determine which task instance to evaluate
-	# (sessionNo, iworld)		= determineSessionInstanceNo sessionId iworld
-	| sessionNo == 0			= (Error ("Could not load session " +++ sessionId), iworld)
-	//Evaluate the task instance at which the event is targeted
-    # targetNo                  = eventTarget event sessionNo
-	# (mbResultPass1,iworld)	= evalTaskInstance event targetNo iworld
-    # iworld = case mbResultPass1 of
-		(Ok (_,Just ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
-        _                                               = iworld
-	//Evaluate urgent task instances (just started workOn's for example)
-	# iworld					= refreshUrgentTaskInstances iworld
-	//If the session task is outdated compute it a second time
-	# (outdated,iworld)			= isSessionOutdated sessionNo iworld
-	| outdated || (sessionNo <> targetNo)
-		# (mbResultPass2,iworld)		= evalTaskInstance (toRefresh event) sessionNo iworld
-        # iworld = case mbResultPass2 of
-		    (Ok (_,Just ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
-            _                                               = iworld
-		= case mbResultPass2 of
-			Ok (result,Just (sessionInfo,_))	= (Ok (result,sessionNo,sessionInfo,[]),iworld)
-			Error e					            = (Error e, iworld)
-			_									= (Error "Unknown error (1) in evalSessionTaskInstance", iworld)
-	| otherwise
-		= case mbResultPass1 of
-			Ok (result,Just (sessionInfo,_))	= (Ok (result,sessionNo,sessionInfo,[]),iworld)
-			Error e								= (Error e, iworld)
-			_									= (Error "Unknown error (2) in evalSessionTaskInstance", iworld)
+    = case 'Data.Map'.get sessionId sessions of
+        Nothing         = (Error ("Could not load session " +++ sessionId), iworld)
+        Just sessionNo  = evalUntilSession event sessionNo (eventTarget event sessionNo) iworld
 where
-	determineSessionInstanceNo sessionId iworld=:{IWorld|sessions}
-		= case 'Data.Map'.get sessionId sessions of
-			Just no	= (no,iworld)
-			_		= (0, iworld)
-
-	isSessionOutdated sessionNo iworld //TODO: This function should not really be here
-		# (work,iworld) = dequeueWorkFilter (\w -> case w of (Evaluate no) = (no == sessionNo); _ = False) iworld
-		= (not (isEmpty work),iworld)
-
 	eventTarget (EditEvent _ (TaskId no _) _ _)	_	= no
 	eventTarget (ActionEvent _ (TaskId no _) _) _ 	= no
 	eventTarget (FocusEvent _ (TaskId no _)) _		= no
 	eventTarget (RefreshEvent _) no					= no
 
+    evalUntilSession event sessionNo instanceNo iworld
+        = case evalTaskInstance event instanceNo (Just sessionNo) iworld of
+			(Ok (result,Left (sessionInfo,updates)),iworld) = (Ok (result,sessionNo,sessionInfo,updates),iworld)   //Done! we have evaluated the session instance
+            (Ok (_,Right [next:_]),iworld)                  = evalUntilSession (toRefresh event) next sessionNo iworld //We have not yet reached a session instance
+            (Ok (_,Right []),iworld)                        = (Error "Event did not reach an instance attached to a session",iworld)
+            (Error e, iworld)                               = (Error e,iworld)
+
 //Evaluate a task instance, just to refresh its state
 refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshTaskInstance instanceNo iworld
-	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo iworld
+	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo Nothing iworld
 	= case mbResult of
-		(Ok (_,Just ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
+		(Ok (_,Left ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
 		(Error e)						
             //Check if the instance happened to be a session instance
             = case getSessionId instanceNo iworld of
@@ -142,9 +115,11 @@ where
 	isUrgent (EvaluateUrgent _)	= True
 	isUrgent _					= False
 
+import StdDebug
 //Evaluate a single task instance
-evalTaskInstance :: !Event !InstanceNo !*IWorld -> (!MaybeErrorString (TaskResult JSONNode,Maybe (SessionInfo,[UIUpdate])),!*IWorld)
-evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalTaskInstance :: !Event !InstanceNo !(Maybe InstanceNo) !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (SessionInfo,[UIUpdate]) [InstanceNo]),!*IWorld)
+evalTaskInstance event instanceNo sessionNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+    # iworld = trace_n ("Evaluating "+++toString instanceNo) iworld
 	//Read the task instance data
     //TODO: make sure we know it is a session in advance
 	# (oldMeta, isSession, iworld)	= case 'Data.SharedDataSource'.read (detachedInstanceMeta instanceNo) iworld of
@@ -153,7 +128,7 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
             (Ok meta,iworld)    = (Ok meta, True, iworld)
             (Error e,iworld)    = (Error e,True,iworld)
 	| isError oldMeta			= (liftError oldMeta, iworld)
-	# oldMeta=:{TIMeta|session,listId,worker=Just worker,progress} = fromOk oldMeta
+	# oldMeta=:{TIMeta|instanceType,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'Data.SharedDataSource'.read (taskInstanceReduct instanceNo) iworld
 	| isError oldReduct			= (liftError oldReduct, iworld)
 	# oldReduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
@@ -161,15 +136,22 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 	| isError oldResult			= (liftError oldResult, iworld)
 	# oldResult					= fromOk oldResult
 	= case oldResult of
-		(ExceptionResult e msg)		= (Ok (ExceptionResult e msg,Nothing), iworld)
+		(ExceptionResult e msg)		= (Ok (ExceptionResult e msg, Right []), iworld)
 		(ValueResult val _ _ tree)
 			//Eval instance
-			# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=isJust session,noUI=False}
+            # (currentUser,currentAttachment,appFinalLayout) = case instanceType of
+                SessionInstance {SessionInfo|sessionId} = (AnonymousUser sessionId,[],True)
+                DetachedInstance                        = (SystemUser,[],False)
+                AttachedInstance attachment worker      = (worker,attachment,False)
+                TmpAttachedInstance attachment worker   = (worker,attachment,False)
+			# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=appFinalLayout,noUI=False}
 			//Update current process id & eval stack in iworld
 			# taskId					= TaskId instanceNo 0
 			# eventRoute				= determineEventRoute event lists
 			# iworld					= {iworld & currentInstance = instanceNo
-												  , currentUser = worker
+                                                  , currentSession = sessionNo
+												  , currentUser = currentUser
+												  , currentAttachment = currentAttachment
 												  , nextTaskNo = oldReduct.TIReduct.nextTaskNo
 												  , taskTime = oldReduct.TIReduct.nextTaskTime
 												  , localShares = shares
@@ -186,12 +168,13 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			# (oldMeta, iworld) = case 'Data.SharedDataSource'.read ((if isSession sessionInstanceMeta detachedInstanceMeta) instanceNo) iworld of
 				(Ok meta, iworld)		= (meta, iworld)
 				(_, iworld)				= (oldMeta, iworld)
-			# newMeta					= if isSession
-                {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, session = updateSession event oldMeta.TIMeta.session}
-                {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress}
+			# newMeta					= case instanceType of
+                (SessionInstance session)   = {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, instanceType = SessionInstance (updateSession event session)}
+                (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, instanceType = DetachedInstance}
+                _                           = {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress}
 			# (_,iworld)				= if (newMeta === oldMeta) //Only write if data has actually changed
                 (Ok Void,iworld)
-                ('Data.SharedDataSource'.writeFilterMsg newMeta ((<>) instanceNo) ((if isSession sessionInstanceMeta detachedInstanceMeta) instanceNo) iworld) //TODO Check error
+                ('Data.SharedDataSource'.write newMeta ((if isSession sessionInstanceMeta detachedInstanceMeta) instanceNo) iworld) //TODO Check error
 			//Store updated reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
 			# (shares,iworld)			= getLocalShares iworld
@@ -203,13 +186,15 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			//Store the result
 			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg newResult ((<>) instanceNo) (taskInstanceResult instanceNo) iworld //TODO Check error
 			//Determine user interface updates by comparing the previous UI to the newly calculated one
-			# updates					= case newMeta.TIMeta.session of
-				Just session=:{SessionInfo|sessionId} = case (oldResult,newResult) of
-					(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	= Just (session, diffUIDefinitions oldUI newUI event differs)
-					(_,_)		= Just (session,[])
-				_				= Nothing
+			# out = case newMeta.TIMeta.instanceType of
+				SessionInstance session=:{SessionInfo|sessionId} = case (oldResult,newResult) of
+					(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	= Left (session, diffUIDefinitions oldUI newUI event differs)
+					(_,_)		= Left (session,[])
+                AttachedInstance attachment _
+                                = Right [no \\ (TaskId no _) <- attachment]
+				_				= Right []
 			//Return the result
-			= (Ok (newResult,updates), iworld)
+			= (Ok (newResult,out), iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo}	= (nextTaskNo,iworld)
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
@@ -226,11 +211,11 @@ where
 			(ValueResult _ _ (TaskRep ui _) _)	= {progress & stable = False}
 			_									= {progress & stable = False}
 
-	updateSession (EditEvent eventNo _ _ _) (Just s=:{SessionInfo|lastEvent})		= Just {SessionInfo|s & lastEvent = eventNo}
-	updateSession (ActionEvent eventNo _ _) (Just s=:{SessionInfo|lastEvent})		= Just {SessionInfo|s & lastEvent = eventNo}
-	updateSession (FocusEvent eventNo _) (Just s=:{SessionInfo|lastEvent})			= Just {SessionInfo|s & lastEvent = eventNo}
-	updateSession (RefreshEvent (Just eventNo)) (Just s=:{SessionInfo|lastEvent})	= Just {SessionInfo|s & lastEvent = eventNo}
-	updateSession _ session															= session
+	updateSession (EditEvent eventNo _ _ _)     s=:{SessionInfo|lastEvent} = {SessionInfo|s & lastEvent = eventNo}
+	updateSession (ActionEvent eventNo _ _)     s=:{SessionInfo|lastEvent} = {SessionInfo|s & lastEvent = eventNo}
+	updateSession (FocusEvent eventNo _)        s=:{SessionInfo|lastEvent} = {SessionInfo|s & lastEvent = eventNo}
+	updateSession (RefreshEvent (Just eventNo)) s=:{SessionInfo|lastEvent} = {SessionInfo|s & lastEvent = eventNo}
+	updateSession _ s = s
 
 determineEventRoute :: Event (Map TaskId [TaskListEntry]) -> Map TaskId Int
 determineEventRoute (RefreshEvent _) _			= 'Data.Map'.newMap
