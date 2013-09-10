@@ -55,7 +55,7 @@ where
 	
 	projectOnShare val result iworld=:{currentInstance}
 		# (er, iworld) = read share iworld
-		= case er of
+   		= case er of
 			Ok r = case projection val r of
 				Just w
 					# (ew, iworld) = write w share iworld

@@ -75,3 +75,4 @@ refreshUrgentTaskInstances :: !*IWorld -> *IWorld
 localShare		:: !TaskId ->	        Shared a			| iTask a
 topListShare	::				        SharedTaskList a
 parListShare	:: !TaskId !TaskId ->	SharedTaskList a	| iTask a
+currentInstanceShare ::                 ReadOnlyShared InstanceNo

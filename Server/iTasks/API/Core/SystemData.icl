@@ -8,6 +8,7 @@ import iTasks.API.Core.SystemTypes
 from StdFunc					import o, seq
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.Framework.Util as iFU import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
+from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
 SYSTEM_DATA_NS :== "SystemData"
 
@@ -42,23 +43,17 @@ where
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = mapReadWrite (readPrj,writePrj) (detachedInstances >+| currentTopTask)
-where
-	readPrj (instances, taskId) = {TaskList|listId = TopLevelTaskList, items = [toTaskListItem m \\ (_,m) <- (toList instances)| not (isSession m)], selfId = taskId}
-    writePrj [] instances = Nothing
-    writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)
-
-    applyUpdate instances (TaskId instanceNo 0,management)
-        = case get instanceNo instances of
-            Just meta   = put instanceNo {TIMeta|meta&management=management} instances
-            _           = instances
-    applyUpdate instances _ = instances
+topLevelTasks = topListShare
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
 currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances)]) (toReadOnly sessionInstances)
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
 currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances)]) (toReadOnly detachedInstances)
+
+toTaskListItem :: !TIMeta -> TaskListItem a 
+toTaskListItem {TIMeta|instanceNo,listId,progress,management}
+	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
@@ -74,15 +69,11 @@ isSession :: !TIMeta -> Bool
 isSession {TIMeta|instanceType=SessionInstance _}	= True
 isSession _						 	                = False
 
-toTaskListItem :: !TIMeta -> TaskListItem a 
-toTaskListItem {TIMeta|instanceNo,listId,progress,management}
-	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
-
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\iworld=:{currentUser} -> (currentUser,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
-currentTopTask = createReadOnlySDS (\iworld=:{currentInstance} -> (TaskId currentInstance 0,iworld))
+currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare
 		
 applicationName :: ReadOnlyShared String
 applicationName = createReadOnlySDS appName

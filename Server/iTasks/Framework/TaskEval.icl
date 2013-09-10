@@ -115,11 +115,9 @@ where
 	isUrgent (EvaluateUrgent _)	= True
 	isUrgent _					= False
 
-import StdDebug
 //Evaluate a single task instance
 evalTaskInstance :: !Event !InstanceNo !(Maybe InstanceNo) !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (SessionInfo,[UIUpdate]) [InstanceNo]),!*IWorld)
 evalTaskInstance event instanceNo sessionNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
-    # iworld = trace_n ("Evaluating "+++toString instanceNo) iworld
 	//Read the task instance data
     //TODO: make sure we know it is a session in advance
 	# (oldMeta, isSession, iworld)	= case 'Data.SharedDataSource'.read (detachedInstanceMeta instanceNo) iworld of
@@ -294,13 +292,24 @@ where
 		
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = createChangeOnWriteSDS NS_TASK_INSTANCES "instances" read write //FIXMESHARE
+topListShare = mapReadWrite (readPrj,writePrj) (detachedInstances >+| currentInstanceShare)
 where
-	read iworld=:{IWorld|currentInstance}
-		= (Ok {TaskList|listId = TopLevelTaskList, items = [], selfId = TaskId currentInstance 0}, iworld)
-		
-    write v iworld
-        = (Ok Void,iworld)
+	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = [toTaskListItem m \\ (_,m) <- ('Data.Map'.toList instances)], selfId = TaskId currentInstance 0}
+
+    toTaskListItem {TIMeta|instanceNo,listId,progress,management}
+	    = {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
+
+    writePrj [] instances = Nothing
+    writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)
+
+    applyUpdate instances (TaskId instanceNo 0,management)
+        = case 'Data.Map'.get instanceNo instances of
+            Just meta   = 'Data.Map'.put instanceNo {TIMeta|meta&management=management} instances
+            _           = instances
+    applyUpdate instances _ = instances
+
+currentInstanceShare :: ReadOnlyShared InstanceNo
+currentInstanceShare = createReadOnlySDS (\iworld=:{currentInstance} -> (currentInstance,iworld))
 
 parListShare :: !TaskId !TaskId -> SharedTaskList a | iTask a
 parListShare listId=:(TaskId instanceNo taskNo) entryId = createChangeOnWriteSDS NS_TASK_INSTANCES "detached" read write
