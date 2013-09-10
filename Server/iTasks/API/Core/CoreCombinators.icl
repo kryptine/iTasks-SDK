@@ -175,7 +175,8 @@ where
 	doStepLayout taskId repOpts NoRep val
 		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep (UIActionSet []) (stepActions taskId val)) [])
 	doStepLayout taskId repOpts (TaskRep def parts) val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (stepActions taskId val)) parts)
+        # parts` = [{TaskPart|taskId=toString taskId, tag=Nothing, repKind=ActionRep (action, isJust (taskbf val))} \\ OnAction (Action action _) taskbf <- conts] ++ parts
+		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (stepActions taskId val)) parts`)
 	stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
 
 	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a

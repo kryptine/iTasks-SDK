@@ -168,7 +168,7 @@ where
 	serviceBusyResponse rep actions attributes
 		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
 	where
-		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, value = value, actions = findActions taskId actions} \\ (taskId,value) <- rep]
+		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, value = value, actions = findActions taskId actions} \\ {TaskPart | taskId = taskId, repKind = EditorRep value} <- rep]
 		findActions match actions
 			= [actionName action \\ {taskId,action,enabled} <- actions | enabled && taskId == match]
 	

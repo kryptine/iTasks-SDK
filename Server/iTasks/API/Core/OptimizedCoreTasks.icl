@@ -358,4 +358,5 @@ visualizeView taskId repOpts (v,mask,ver) desc valueAttr iworld
 	# layout	= repLayoutRules repOpts
 	# (controls,iworld) = visualizeAsEditor (v,mask,ver) taskId layout iworld
 	# uidef		= UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls})
-	= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
+    # tp = {TaskPart | taskId = toString taskId, tag = Nothing, repKind = EditorRep (toJSON v)}
+	= (TaskRep uidef [tp], iworld)

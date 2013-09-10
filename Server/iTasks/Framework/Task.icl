@@ -68,3 +68,5 @@ finalizeRep repOpts=:{TaskRepOpts|noUI=True} _ = NoRep
 finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep (UIFinal ((repLayoutRules repOpts).LayoutRules.layoutFinal def)) parts
 finalizeRep repOpts rep = rep
 
+derive JSONEncode TaskPart, TaskRepKind
+derive JSONDecode TaskPart, TaskRepKind

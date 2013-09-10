@@ -117,7 +117,8 @@ where
 		# layout	= repLayoutRules repOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
 		# uidef		= UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls})
-		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
+        # tp = {TaskPart | taskId = toString taskId, tag = Nothing, repKind = EditorRep (toJSON v)}
+		= (TaskRep uidef [tp], iworld)
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval

@@ -49,8 +49,15 @@ derive gEq				Task
 :: TaskRep	= NoRep								//For some tasks no external representation is generated
 			| TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
 					
+:: TaskRepKind
+  = ActionRep	!(String, Bool) // (Name of button/action, enabled)
+  | EditorRep	!JSONNode // Editor value
+
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]
+
+derive JSONEncode TaskPart, TaskRepKind
+derive JSONDecode TaskPart, TaskRepKind
 
 //Summary of the composition structure of tasks (used as input for layouting)
 :: TaskCompositionType
@@ -59,7 +66,11 @@ derive gEq				Task
 	| SequentialComposition
 	| ParallelComposition
 
-:: TaskPart			:== (!String, !JSONNode)		//Task id, value
+:: TaskPart
+  = { taskId  :: !String
+    , tag     :: !Maybe JSONNode
+    , repKind :: !TaskRepKind
+    }
 
 /**
 * 'downgrades' an event to a refresh, but keeps the client given event number

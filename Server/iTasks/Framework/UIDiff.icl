@@ -3,7 +3,7 @@ implementation module iTasks.Framework.UIDiff
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
 import Text, Text.JSON, Data.Map
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
-from iTasks.Framework.Task import :: Event(..), :: EventNo
+from iTasks.Framework.Task import :: Event(..), :: EventNo, :: TaskServiceRep, :: TaskPart
 
 :: DiffResult
 	= DiffImpossible
