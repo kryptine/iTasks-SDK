@@ -1475,11 +1475,13 @@ gVerify{|User|} mv options = simpleVerify mv options
 
 instance toString User
 where
+	toString (SystemUser)					    = "System"
 	toString (AnonymousUser _)					= "Anonymous"
 	toString (AuthenticatedUser uid _ title)	= maybe uid (\t -> t +++ " <" +++ uid +++ ">") title
 
 instance == User
 where
+	(==) (SystemUser) (SystemUser)					            = True
 	(==) (AnonymousUser a) (AnonymousUser b)					= a == b
 	(==) (AuthenticatedUser a _ _) (AuthenticatedUser b _ _)	= a == b
 	(==) _ _													= False
@@ -1496,6 +1498,7 @@ where
 
 instance toUserConstraint User
 where
+	toUserConstraint (SystemUser)				    = AnyUser
 	toUserConstraint (AnonymousUser _)				= AnyUser
 	toUserConstraint (AuthenticatedUser uid _ _)	= UserWithId uid
 

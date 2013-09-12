@@ -12,12 +12,18 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 
 :: TIMeta =
 	{ instanceNo	:: !InstanceNo			//Unique global identification
-	, session		:: !Maybe SessionInfo	//Set for task instances that are linked to user sessions
+    , instanceType  :: !TIType
 	, listId        :: !TaskId              //Reference to parent tasklist
-	, worker		:: !Maybe User			//Identity of the user working on this instance (this determines the value of the currentUser share)
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
 	}
+
+:: TIType
+    = SessionInstance !SessionInfo          //An instance directly linked to a client session
+    | DetachedInstance                      //A detached task that is not in use
+    | AttachedInstance ![TaskId] !User      //A previously detached task that has been attached to another instance
+    | TmpAttachedInstance ![TaskId] !User   //A temporarily attached task that will automatically turn into a detached instance after evaluation
+
 :: SessionInfo =
 	{ sessionId		:: SessionId
 	, lastEvent		:: EventNo

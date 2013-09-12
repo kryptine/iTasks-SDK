@@ -181,6 +181,8 @@ initIWorld sdkPath world
 	  ,currentDateTime		= currentDateTime
 	  ,currentUser			= AnonymousUser ""
 	  ,currentInstance		= 0
+      ,currentSession       = Nothing
+      ,currentAttachment    = []
 	  ,nextTaskNo			= 0
 	  ,localShares			= newMap
 	  ,localLists			= newMap

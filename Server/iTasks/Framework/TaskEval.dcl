@@ -32,12 +32,13 @@ createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!T
 * @param Management meta data
 * @param The user who issued the task
 * @param The parent instance that created the instance
+* @param If the instance needs to be evaluated immediately, the attachment of the task that created the instance
 * @param The IWorld state
 *
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createTopTaskInstance :: !(Task a) !(Maybe InstanceNo) !ManagementMeta !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
 * Evaluate a session task instance
@@ -74,3 +75,4 @@ refreshUrgentTaskInstances :: !*IWorld -> *IWorld
 localShare		:: !TaskId ->	        Shared a			| iTask a
 topListShare	::				        SharedTaskList a
 parListShare	:: !TaskId !TaskId ->	SharedTaskList a	| iTask a
+currentInstanceShare ::                 ReadOnlyShared InstanceNo

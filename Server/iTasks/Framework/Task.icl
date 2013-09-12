@@ -6,7 +6,7 @@ import iTasks.Framework.IWorld, iTasks.Framework.UIDefinition, iTasks.Framework.
 import iTasks.API.Core.SystemTypes
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction
 
-from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: SessionInfo(..)
+from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: TIType(..), :: SessionInfo(..)
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRules
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
