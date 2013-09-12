@@ -57,6 +57,21 @@ newJSArray world
 	# (constructor,world) = jsGetObjectAttr "Array" (jsWindow) world
 	= jsNewObject constructor world
 
+jsArrayPush :: !a (!JSPtr [a]) !*JSWorld -> (!JSPtr [a], !*JSWorld)
+jsArrayPush x arr world = callObjectMethod "push" [x] arr world
+
+jsArrayReverse :: (!JSPtr [a]) !*JSWorld -> (!JSPtr [a], !*JSWorld)
+jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
+
+toJSArray :: ![a] !*JSWorld -> (!JSPtr [a], !*JSWorld)
+toJSArray xs world
+  # (arr, world) = toJSArray` xs world
+  = jsArrayReverse arr world
+  where toJSArray` [] world = newJSArray world
+        toJSArray` [x:xs] world
+          # (arr, world) = toJSArray xs world
+          = jsArrayPush x arr world
+
 jsIsUndefined :: !a !*JSWorld -> (!Bool,!*JSWorld)
 jsIsUndefined obj world
 	# (type,world) = jsTypeof obj world

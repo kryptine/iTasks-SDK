@@ -41,6 +41,15 @@ jsWrapFun			:: !f !*JSWorld -> (!JSPtr JSFunction,!*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 jsDocument			::							!*JSWorld -> (!JSPtr JSDocument,!*JSWorld)
+
+newJSArray :: !*JSWorld -> (!JSPtr a, !*JSWorld)
+
+jsArrayPush :: !a (!JSPtr [a]) !*JSWorld -> (!JSPtr [a], !*JSWorld)
+
+jsArrayReverse :: (!JSPtr [a]) !*JSWorld -> (!JSPtr [a], !*JSWorld)
+
+toJSArray :: ![a] !*JSWorld -> (!JSPtr [a], !*JSWorld)
+
 jsIsUndefined		:: !a						!*JSWorld -> (!Bool,!*JSWorld)
 
 :: DomElementId	:== String
