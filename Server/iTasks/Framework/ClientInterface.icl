@@ -52,7 +52,7 @@ jsDocument :: !*JSWorld -> (!JSPtr JSDocument,!*JSWorld)
 jsDocument world
 	= jsGetObjectAttr "document" jsWindow world
 
-newJSArray :: !*JSWorld -> (!JSPtr a, !*JSWorld)
+newJSArray :: !*JSWorld -> (!JSPtr [a], !*JSWorld)
 newJSArray world
 	# (constructor,world) = jsGetObjectAttr "Array" (jsWindow) world
 	= jsNewObject constructor world
@@ -65,12 +65,10 @@ jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
 
 toJSArray :: ![a] !*JSWorld -> (!JSPtr [a], !*JSWorld)
 toJSArray xs world
-  # (arr, world) = toJSArray` xs world
-  = jsArrayReverse arr world
-  where toJSArray` [] world = newJSArray world
-        toJSArray` [x:xs] world
-          # (arr, world) = toJSArray xs world
-          = jsArrayPush x arr world
+  # (arr, world) = newJSArray world
+  # world = foldl (op arr) world [(i, x) \\ x <- xs & i <- [0..]]
+  = (arr, world)
+  where op arr world (i, arg) = jsSetObjectEl i arg arr world
 
 jsIsUndefined :: !a !*JSWorld -> (!Bool,!*JSWorld)
 jsIsUndefined obj world
@@ -105,12 +103,8 @@ where
 callObjectMethod :: !String ![b] !(JSPtr a) !*JSWorld -> (!c,!*JSWorld)
 callObjectMethod method args obj world
 	# (fun,world) = jsGetObjectAttr method obj world
-	# (arr,world) = newJSArray world
-	# world = foldl (op arr) world [(i,a) \\ a <- args & i <- [0..]]
+	# (arr,world) = toJSArray args world
 	= jsApply fun obj arr world
-where
-	op arr world (i,arg) = jsSetObjectEl i arg arr world 
-	
 
 addJSFromUrl :: !String !(Maybe (JSPtr JSFunction)) *JSWorld -> *JSWorld
 addJSFromUrl url mbCallback world
