@@ -66,7 +66,7 @@ jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
 toJSArray :: ![a] !*JSWorld -> (!JSPtr [a], !*JSWorld)
 toJSArray xs world
   # (arr, world) = newJSArray world
-  # world = foldl (op arr) world [(i, x) \\ x <- xs & i <- [0..]]
+  # world = foldl (op arr) world (zip2 [0..] xs)
   = (arr, world)
   where op arr world (i, arg) = jsSetObjectEl i arg arr world
 
