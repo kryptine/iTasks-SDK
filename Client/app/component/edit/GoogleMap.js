@@ -207,6 +207,8 @@ Ext.define('itwc.component.edit.GoogleMap',{
         }
         delete me.markers[index];
 	},
+    setEditorValue: function(v) {
+    },
 	onDestroy: function() {
 		if(this.map) {
             if(window.google) {
