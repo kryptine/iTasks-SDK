@@ -361,12 +361,12 @@ appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentA
 		Detached management evalDirect
             # (instanceNo,iworld)                   = newInstanceNo iworld
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
-			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) management currentUser taskId (if evalDirect (Just currentAttachment) Nothing) iworld
+			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) Nothing management currentUser taskId (if evalDirect (Just currentAttachment) Nothing) iworld
 			= (taskIda,Nothing,DetachedState instanceNo progress management, iworld)
 	    NamedDetached name management evalDirect
             # (instanceNo,iworld)                   = newInstanceNo iworld
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
-			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) management currentUser taskId (if evalDirect (Just currentAttachment) Nothing) iworld
+			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management currentUser taskId (if evalDirect (Just currentAttachment) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
@@ -467,9 +467,13 @@ where
 								
 	append :: !(TaskListId a) !ParallelTaskType !(ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 	append TopLevelTaskList parType parTask iworld=:{currentUser,currentAttachment}
-		# (meta,evalDirect)			= case parType of Embedded = (defaultValue,False); Detached meta evalDirect = (meta,evalDirect);
+		# (name,meta,evalDirect) = case parType of
+            (Embedded)                              = (Nothing,defaultValue,False)
+            (NamedEmbedded name)                    = (Just name,defaultValue,False)
+            (Detached meta evalDirect)              = (Nothing,meta,evalDirect)
+            (NamedDetached name meta evalDirect)    = (Just name,meta,evalDirect)
 		# task						= parTask topListShare
-		= createDetachedTaskInstance task Nothing meta currentUser (TaskId 0 0) (if evalDirect (Just currentAttachment) Nothing) iworld
+		= createDetachedTaskInstance task Nothing name meta currentUser (TaskId 0 0) (if evalDirect (Just currentAttachment) Nothing) iworld
 	append (ParallelTaskList parId) parType parTask iworld
 		= appendTaskToList parId (parType,parTask) iworld
 
@@ -537,17 +541,10 @@ where
 		    _   = (DestroyedResult,iworld)
 
     release taskId meta=:{TIMeta|instanceType=AttachedInstance attachment worker}
-        = case attachmentUpTo taskId  attachment of
-            Just []         = {meta & instanceType = DetachedInstance}
-            Just attachment = {meta & instanceType = AttachedInstance attachment worker}
-            Nothing         = meta
+        | isMember taskId attachment    = {meta & instanceType = DetachedInstance}
+                                        = meta
     release taskId meta = meta
 
-    //Check if the taskId is part of the chain of attached instances, and if so return just the still connected part
-    attachmentUpTo taskId [] = Nothing
-    attachmentUpTo taskId [t:ts]
-        | t == taskId = Just []
-                      = fmap (\ts` -> [t:ts`]) (attachmentUpTo taskId ts)
 	inUseDef worker
 		= UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)]}
 /*

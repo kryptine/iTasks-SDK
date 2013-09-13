@@ -255,7 +255,7 @@ gEditor{|Date|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		# value	= checkMaskValue mask val
 		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
-gDefault{|Date|} = {day = 1, mon = 1, year = 1970}
+gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
 gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 gVerify{|Date|} mv options = simpleVerify mv options
 gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)",unit=Nothing}]
@@ -281,9 +281,9 @@ where
 
 		normDays date
 			# monthLength = monthLengthOfDate date
-			| date.day <= monthLength
+			| date.Date.day <= monthLength
 				= date
-				= normDays (normMonths {date & mon = date.Date.mon + 1, day = date.Date.day - monthLength})
+				= normDays (normMonths {Date|date & mon = date.Date.mon + 1, day = date.Date.day - monthLength})
 
 		normMonths date
 			| date.Date.mon <= 12
@@ -425,7 +425,7 @@ instance + DateTime
 where
 	(+) (DateTime dx tx) (DateTime dy ty)
 			| tn >= tx	= DateTime dn tn
-			| otherwise	= DateTime (dn + {year = 0, mon = 0, day = 1}) tn	//We've passed midnight
+			| otherwise	= DateTime (dn + {Date|year = 0, mon = 0, day = 1}) tn	//We've passed midnight
 	where
 		dn = dx + dy
 		tn = tx + ty
