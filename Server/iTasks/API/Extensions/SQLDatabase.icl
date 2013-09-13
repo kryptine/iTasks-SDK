@@ -94,7 +94,6 @@ openMySQLDb db iworld=:{IWorld|mysqlConnection=Just con}
     = (Ok con, {IWorld|iworld & mysqlConnection=Nothing})
 openMySQLDb db iworld=:{IWorld|mysqlConnection=Nothing}
             # iworld=:{IWorld|world} = {IWorld|iworld & mysqlConnection = Nothing}
-            # world = trace_n "Opening MySQLDB" world
         	# (err,mbContext,world) 	= openContext world
         	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
         	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
@@ -107,11 +106,8 @@ closeMySQLDb :: !*MySQLCursor !*MySQLConnection !*MySQLContext !*IWorld -> *IWor
 closeMySQLDb cursor connection context iworld=:{IWorld|mysqlConnection=Nothing}
    = {IWorld|iworld & mysqlConnection=Just (cursor,connection,context)}
 closeMySQLDb cursor connection context iworld=:{IWorld|world}
-    # world = trace_n "Closing MySQLDB" world
 	# (err,connection)	= closeCursor cursor connection
 	# (err,context) 	= closeConnection connection context
 	# (err,world)		= closeContext context world
 	= {IWorld|iworld & world = world}
-
-import StdDebug
 
