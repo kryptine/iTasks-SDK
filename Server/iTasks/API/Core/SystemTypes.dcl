@@ -173,12 +173,13 @@ instance toString	FileException, ParseException, CallException, SharedException,
 	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
 	, draggable				:: Bool						// Map can be dragged
 	}
-:: GoogleMapPosition = 
+:: GoogleMapPosition =
 	{ lat		:: !Real	//Lattitude
 	, lng		:: !Real	//Longitude
 	}	
 :: GoogleMapMarker =
-	{ position				:: !GoogleMapPosition			// Position of the marker
+	{ markerId              :: !String                      // Unique identifier of the marker (to identify it a marker is dragged or selected)
+    , position				:: !GoogleMapPosition			// Position of the marker
 	, title					:: !Maybe String				// Title of the marker
 	, icon					:: !Maybe GoogleMapIcon			// Name of an icon to use
 	, infoWindow			:: !Maybe HtmlTag				// Information which is shown on click

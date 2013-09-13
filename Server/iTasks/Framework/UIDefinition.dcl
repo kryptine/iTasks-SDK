@@ -222,7 +222,8 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	}
 
 :: UIGoogleMapMarker =
-	{ position				:: !(!Real,!Real)
+	{ markerId              :: !String
+    , position				:: !(!Real,!Real)
 	, title					:: !Maybe String
 	, icon					:: !Maybe GoogleMapIcon
 	, infoWindow			:: !Maybe String

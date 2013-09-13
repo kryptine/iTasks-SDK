@@ -65,7 +65,17 @@ sideStep :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
 sideStep ta steps = parallel Void [(Embedded,const ta),(Embedded,stepper)] @ (map snd) @? firstRes
 where
     firstRes (Value [v:_] _) = v
-    stepper l = forever (watch (taskListState l) @? firstRes >>* steps) @? const NoValue
+    stepper l = forever (watch (taskListState l) >>* steps`) @? const NoValue
+    where
+        steps` = [OnAction action (taskfun` taskfun) \\ (OnAction action taskfun) <- steps]
+        where
+            //Only enable when there are two tasks in the parallel set, hence no other sideSteps are active
+            taskfun` taskfun (Value [v,_] _) = case taskfun v of
+                Just t  = Just (appendTask Embedded (removeWhenStable t) l)
+                Nothing = Nothing
+            taskfun` _ _ = Nothing
+
+    removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
 
 //Helper functions for projections
 projectJust :: (Maybe a) r -> Maybe (Maybe a)

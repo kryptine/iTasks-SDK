@@ -13,6 +13,7 @@ from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 from iTasks.Framework.TaskServer	import class HttpServerEnv
+import Database.SQL.MySQL
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -41,6 +42,9 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					, world					:: !*World									// The outside world
+
+                    //Experimental database connection cache
+                    , mysqlConnection    :: !*(Maybe *(!*MySQLCursor, !*MySQLConnection, !*MySQLContext))
 					}
 
 updateCurrentDateTime :: !*IWorld -> *IWorld

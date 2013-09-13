@@ -14,6 +14,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	{ instanceNo	:: !InstanceNo			//Unique global identification
     , instanceType  :: !TIType
 	, listId        :: !TaskId              //Reference to parent tasklist
+    , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
 	}

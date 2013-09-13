@@ -592,8 +592,8 @@ where
 		{ UIGoogleMapOpts
 		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
 		, mapType = mapType map.perspective.GoogleMapPerspective.type
-		, markers = [{UIGoogleMapMarker|position=(lat,lng),title=title,icon=icon,infoWindow=fmap toString infoWindow,draggable=draggable,selected=selected}
-					\\ {GoogleMapMarker|position={lat,lng},title,icon,infoWindow,draggable,selected} <- map.GoogleMap.markers]
+		, markers = [{UIGoogleMapMarker|markerId=markerId,position=(lat,lng),title=title,icon=icon,infoWindow=fmap toString infoWindow,draggable=draggable,selected=selected}
+					\\ {GoogleMapMarker|markerId,position={lat,lng},title,icon,infoWindow,draggable,selected} <- map.GoogleMap.markers]
 		, options =
 			{ UIGoogleMapOptions
 			| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl

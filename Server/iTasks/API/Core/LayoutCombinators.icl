@@ -183,13 +183,13 @@ decorateControl last (control,attributes)
 			| hasMargin	= control
 						= if noMargins
 							(setMargins 0 0 0 0 control)
-							(if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))
+							(if last (setMargins 5 5 5 5 control) (setMargins 5 5 0 5 control))
 
 		_									//Add decoration													
 			# control = row (labelCtrl mbLabel ++ prefixCtrl mbPrefix ++ [control] ++ postfixCtrl mbPostfix ++ iconCtrl control mbHint mbValid mbWarning mbError)
 			= if noMargins
 				(setMargins 0 0 0 0 control)
-				(if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))		
+				(if last (setMargins 5 5 5 5 control) (setMargins 5 5 0 5 control))
 where
 	row ctrls				= (setSize FlexSize WrapSize o setDirection Horizontal) (defaultContainer ctrls)
 	

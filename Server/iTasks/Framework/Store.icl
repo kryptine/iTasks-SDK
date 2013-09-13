@@ -13,6 +13,7 @@ from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
+import Database.SQL.MySQL
 
 :: StoreItem =
 	{ format		:: !StoreFormat
