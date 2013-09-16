@@ -130,3 +130,10 @@ function __iTasks_Framework_ClientInterface_jsWrapFun(fun,world) {
 	
 	return ___predefined__Tuple2([jsfun], [world]);
 }
+
+// toJSPtr :: !a !*JSWorld -> (!JSPtr b, !*JSWorld)
+function __iTasks_Framework_ClientInterface_toJSPtr(val, world){
+	world = Sapl.feval(world);
+	val = Sapl.feval(val);
+	return Sapl.toJS(val);
+}
