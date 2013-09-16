@@ -5,8 +5,10 @@ import iTasks.Framework.IWorld, iTasks.Framework.Shared
 from Data.SharedDataSource import class reportSDSChange(..)
 import qualified Data.Map
 
-derive class iTask SQLValue, SQLDate, SQLTime
+//Extend Resource type for mysql resources
+:: *Resource | MySQLResource *(!*MySQLCursor, !*MySQLConnection, !*MySQLContext)
 
+derive class iTask SQLValue, SQLDate, SQLTime
 
 sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
 								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> ReadWriteShared r w 
@@ -90,10 +92,10 @@ where
     write Void iworld = (Ok Void,iworld)
 		
 openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
-openMySQLDb db iworld=:{IWorld|mysqlConnection=Just con}
-    = (Ok con, {IWorld|iworld & mysqlConnection=Nothing})
-openMySQLDb db iworld=:{IWorld|mysqlConnection=Nothing}
-            # iworld=:{IWorld|world} = {IWorld|iworld & mysqlConnection = Nothing}
+openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}
+    = (Ok con, {IWorld|iworld & resources=Nothing})
+openMySQLDb db iworld=:{IWorld|resources=Nothing}
+            # iworld=:{IWorld|world} = {IWorld|iworld & resources = Nothing}
         	# (err,mbContext,world) 	= openContext world
         	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
         	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
@@ -103,8 +105,8 @@ openMySQLDb db iworld=:{IWorld|mysqlConnection=Nothing}
         	= (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
 				
 closeMySQLDb :: !*MySQLCursor !*MySQLConnection !*MySQLContext !*IWorld -> *IWorld
-closeMySQLDb cursor connection context iworld=:{IWorld|mysqlConnection=Nothing}
-   = {IWorld|iworld & mysqlConnection=Just (cursor,connection,context)}
+closeMySQLDb cursor connection context iworld=:{IWorld|resources=Nothing}
+   = {IWorld|iworld & resources=Just (MySQLResource (cursor,connection,context))}
 closeMySQLDb cursor connection context iworld=:{IWorld|world}
 	# (err,connection)	= closeCursor cursor connection
 	# (err,context) 	= closeConnection connection context

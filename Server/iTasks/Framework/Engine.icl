@@ -195,7 +195,7 @@ initIWorld sdkPath world
 	  ,uiMessages           = newMap
 	  ,shutdown				= False
 	  ,world				= world
-      ,mysqlConnection      = Nothing
+      ,resources            = Nothing
 	  }
 where
 	defaultConfig :: Config

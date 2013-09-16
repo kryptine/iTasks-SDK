@@ -6,14 +6,13 @@ import Data.Maybe, Data.Map, Data.Functor
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.JSON
 import Data.SharedDataSource
-from iTasks.Framework.IWorld		import :: IWorld(..), :: Work, :: UIMessage
+from iTasks.Framework.IWorld		import :: IWorld(..), :: Work, :: UIMessage, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIDiffers
 from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-import Database.SQL.MySQL
 
 :: StoreItem =
 	{ format		:: !StoreFormat
