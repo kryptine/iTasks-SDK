@@ -45,6 +45,8 @@ jsTypeof obj world = undef
 jsWrapFun :: !f !*JSWorld -> (!JSPtr JSFunction,!*JSWorld)
 jsWrapFun fun world = undef
 
+toJSPtr :: !a !*JSWorld -> (!JSPtr b, !*JSWorld)
+toJSPtr val world = undef
 
 //UTIL
 
