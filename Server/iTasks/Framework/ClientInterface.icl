@@ -7,7 +7,7 @@ import StdEnv, Data.Void, Data.Maybe, Text
 
 :: JSWindow = JSWindow
 :: JSDocument = JSDocument
-:: JSFunction = JSFunction
+:: JSFunction a = JSFunction
 
 jsNull :: (JSPtr a)
 jsNull = undef
@@ -18,7 +18,7 @@ jsWindow = undef
 jsEmptyObject :: !*JSWorld -> (!JSPtr a, !*JSWorld)
 jsEmptyObject world = undef
 
-jsNewObject	:: !(JSPtr JSFunction) !*JSWorld -> (!JSPtr a, !*JSWorld)
+jsNewObject	:: !(JSPtr (JSFunction f)) !*JSWorld -> (!JSPtr a, !*JSWorld)
 jsNewObject constructor world = undef
 
 jsGetObjectAttr :: !String !(JSPtr a) !*JSWorld -> (!b,!*JSWorld)
@@ -33,7 +33,7 @@ jsSetObjectAttr attr value obj world = undef
 jsSetObjectEl :: !Int !b !(JSPtr a) !*JSWorld -> *JSWorld
 jsSetObjectEl index value obj world = undef
 
-jsApply :: !(JSPtr JSFunction) !(JSPtr a) !(JSPtr b) !*JSWorld -> (!c,!*JSWorld)
+jsApply :: !(JSPtr (JSFunction f)) !(JSPtr a) !(JSPtr b) !*JSWorld -> (!c,!*JSWorld)
 jsApply fun scope args world = undef
 
 jsThis :: !*JSWorld -> (!JSPtr a,!*JSWorld)
@@ -42,7 +42,7 @@ jsThis world = undef
 jsTypeof :: !a !*JSWorld -> (!String,!*JSWorld)
 jsTypeof obj world = undef
 
-jsWrapFun :: !f !*JSWorld -> (!JSPtr JSFunction,!*JSWorld)
+jsWrapFun :: !f !*JSWorld -> (!JSPtr (JSFunction f), !*JSWorld)
 jsWrapFun fun world = undef
 
 toJSPtr :: !a !*JSWorld -> (!JSPtr b, !*JSWorld)
@@ -108,7 +108,7 @@ callObjectMethod method args obj world
 	# (arr,world) = toJSArray args world
 	= jsApply fun obj arr world
 
-addJSFromUrl :: !String !(Maybe (JSPtr JSFunction)) *JSWorld -> *JSWorld
+addJSFromUrl :: !String !(Maybe (JSPtr (JSFunction a))) *JSWorld -> *JSWorld
 addJSFromUrl url mbCallback world
 	# (document,world) = jsDocument world
 	//Create script tag

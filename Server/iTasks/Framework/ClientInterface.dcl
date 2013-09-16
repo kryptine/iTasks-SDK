@@ -10,7 +10,7 @@ import StdString, Data.Void, Data.Maybe
 :: JSPtr a		//Pointer to a javascript object
 
 
-:: JSFunction	//A javascript function object
+:: JSFunction a	//A javascript function object
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
 
@@ -23,21 +23,21 @@ jsWindow			:: (JSPtr JSWindow)	// Singleton 'window' object that serves a global
 
 //Manipulating objects
 jsEmptyObject		:: 							!*JSWorld -> (!JSPtr a, !*JSWorld) // {} 
-jsNewObject			:: !(JSPtr JSFunction)		!*JSWorld -> (!JSPtr a, !*JSWorld) //creates a new object using 'new' keyword
+jsNewObject			:: !(JSPtr (JSFunction f))	!*JSWorld -> (!JSPtr a, !*JSWorld) //creates a new object using 'new' keyword
 jsGetObjectAttr 	:: !String !(JSPtr a)		!*JSWorld -> (!b,!*JSWorld)
 jsGetObjectEl		:: !Int !(JSPtr a) 			!*JSWorld -> (!b,!*JSWorld)
 jsSetObjectAttr		:: !String !b !(JSPtr a) 	!*JSWorld -> *JSWorld
 jsSetObjectEl		:: !Int !b !(JSPtr a) 		!*JSWorld -> *JSWorld
 
 //Calling js functions
-jsApply				:: !(JSPtr JSFunction) !(JSPtr a) !(JSPtr b) !*JSWorld -> (!c,!*JSWorld)
+jsApply				:: !(JSPtr (JSFunction f)) !(JSPtr a) !(JSPtr b) !*JSWorld -> (!c,!*JSWorld)
 
 //Special keywords
 jsThis				:: 							!*JSWorld -> (!JSPtr a,!*JSWorld)
 jsTypeof			:: !a						!*JSWorld -> (!String,!*JSWorld)
 
 //Creating js functions from clean functions
-jsWrapFun			:: !f !*JSWorld -> (!JSPtr JSFunction,!*JSWorld)
+jsWrapFun			:: !f !*JSWorld -> (!JSPtr (JSFunction f),!*JSWorld)
 
 toJSPtr :: !a !*JSWorld -> (!JSPtr b, !*JSWorld)
 
@@ -69,5 +69,5 @@ callObjectMethod	:: !String ![b] !(JSPtr a)	!*JSWorld -> (!c,!*JSWorld)
 
 //Load external JS by its URL. A continuation must be given,
 //which is called when script is actually loaded
-addJSFromUrl		:: !String !(Maybe (JSPtr JSFunction)) *JSWorld -> *JSWorld
+addJSFromUrl		:: !String !(Maybe (JSPtr (JSFunction f))) *JSWorld -> *JSWorld
 
