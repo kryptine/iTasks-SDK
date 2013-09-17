@@ -252,13 +252,20 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
+//We throw an exception when the share changes to make sure that the right hand side of
+//the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= 	( (get share >>- \val -> (wait Void ((=!=) val) share <<@ NoUserInterface @ const Nothing)
-          -||-
-          (task val @ Just)
-        ) <! isJust)
+	= 	( (get share >>- \val ->
+            try ((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))]) -||- (task val @ Just))
+                (\ShareChanged -> (return Nothing) )
+          ) <! isJust
+        )
 	@?	onlyJust
+
+:: ShareChanged = ShareChanged
+derive class iTask ShareChanged
+instance toString ShareChanged where toString ShareChanged = "Share changed exception"
 
 onlyJust (Value (Just x) s) = Value x s
 onlyJust _                  = NoValue
