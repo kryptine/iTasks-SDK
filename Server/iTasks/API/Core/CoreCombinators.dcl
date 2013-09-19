@@ -38,6 +38,7 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task 
 * Once the transition to the continuation has been made it cannot be reversed.
 *
 * @param Task: The first step in the sequence
+* @param Value before step function: Computes the value of the composition before a step is taken
 * @param Continuations: A set of continuation definitions from which one is selected
 *   -OnValue: inspect the value, step if the predicate matches
 *	-OnAction: enable an action if the predicate matches, step if the actions is chosen
@@ -46,7 +47,7 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task 
 *
 *	@return The combined task
 */
-step :: !(Task a) [TaskStep a b] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskStep a b] -> Task b | iTask a & iTask b
 
 :: TaskStep a b
     =       OnValue             ((TaskValue a)  -> Maybe (Task b))

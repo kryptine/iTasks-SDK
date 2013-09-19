@@ -14,19 +14,19 @@ from Data.Map				import qualified put
 import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
 
 (>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
-(>>*) task steps = step task steps 
+(>>*) task steps = step task (const Nothing) steps
 
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskbf = step taska [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
+(>>=) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>!) taska taskbf = step taska [OnAction ActionContinue (hasValue taskbf)]
+(>>!) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf)]
 
 (>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskbf = step taska [OnValue (ifStable taskbf)]
+(>>-) taska taskbf = step taska (const Nothing) [OnValue (ifStable taskbf)]
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>|) taska taskb = step taska [OnAction ActionContinue (hasValue (const taskb)), OnValue (ifStable (const taskb))]
+(>>|) taska taskb = step taska (const Nothing) [OnAction ActionContinue (hasValue (const taskb)), OnValue (ifStable (const taskb))]
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
@@ -53,10 +53,10 @@ import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Co
 (@@>) a t = tunev a t
 
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
-try task handler = step task [OnValue (ifStable return), OnException handler]
+try task handler = step task id [OnValue (ifStable return), OnException handler]
 
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
-catchAll task handler = step task [OnValue (ifStable return), OnAllExceptions handler]
+catchAll task handler = step task id [OnValue (ifStable return), OnAllExceptions handler]
 
 (>^*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
 (>^*) task steps = sideStep task steps

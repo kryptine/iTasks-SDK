@@ -65,8 +65,8 @@ where
 				Nothing = (result, iworld)
 			Error e = (exception e, iworld)
 
-step :: !(Task a) [TaskStep a b] -> Task b | iTask a & iTask b
-step (Task evala) conts = Task eval
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskStep a b] -> Task b | iTask a & iTask b
+step (Task evala) lhsValFun conts = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
@@ -86,7 +86,8 @@ where
 			ValueResult val info rep ntreea = case searchContValue val mbcommit conts of
 				Nothing			
 					# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-					= Left (ValueResult NoValue info (doStepLayout taskId repOpts rep val) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
+                    # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
+					= Left (ValueResult value info (doStepLayout taskId repOpts rep val) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskInfo.lastEvent)
 			ExceptionResult e str = case searchContException e str conts of
 				Nothing			= Left (ExceptionResult e str)
