@@ -2,7 +2,7 @@ implementation module iTasks.Framework.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool
 from StdFunc import o, seqList, ::St
-import Data.Map, Data.Error, Data.Func, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+import Data.Map, Data.Error, Data.Func, Data.Tuple, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.IWorld, iTasks.Framework.WebService
@@ -169,11 +169,12 @@ readFlavour sdkPath world
 	= (fromJust mbFlav, world)
 		
 initIWorld :: !FilePath !*World -> *IWorld
-initIWorld sdkPath world
+initIWorld sdkDir world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
 	# dataDir					= appDir </> appName +++ "-data"
+    # (extensionsWeb,world)     = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
@@ -187,14 +188,17 @@ initIWorld sdkPath world
 	# (exists,world)			= ensureDir "store" storeDir world
 	
 	# ((lst, ftmap, _), world)  = generateLoaderState ["sapl"] [] ["_SystemDynamic","Text.Encodings.Base64"] world
-	# (flavour, world)			= readFlavour sdkPath world
+	# (flavour, world)			= readFlavour sdkDir world
 	
 	= {IWorld
 	  |application			= appName
 	  ,build				= build
-	  ,appDirectory			= appDir
-	  ,sdkDirectory			= sdkPath
-	  ,dataDirectory		= dataDir
+	  ,systemDirectories    =
+            {appDirectory		    = appDir
+	        ,sdkDirectory		    = sdkDir
+	        ,dataDirectory		    = dataDir
+            ,publicWebDirectories   = [sdkDir </> "Client", appDir </> "Static":extensionsWeb]
+            }
 	  ,config				= defaultConfig
 	  ,taskTime				= 0
 	  ,timestamp			= timestamp
@@ -240,31 +244,28 @@ finalizeIWorld iworld=:{IWorld|world} = world
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
 handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-handleStaticResourceRequest req iworld=:{IWorld|sdkDirectory,world}
-	# (appPath,world)		= determineAppPath world
-	# path					= subString (size URL_PREFIX) (size req.req_path) req.req_path
-	# filename				= sdkDirectory </> "Client" +++ filePath path
-	# type					= mimeType filename
-	# (mbContent, world)	= readFile filename world
-	| isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
-											   ("Content-Type", type),
-											   ("Content-Length", toString (size (fromOk mbContent)))]
-							   	,rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
-	# filename				= takeDirectory appPath </> "Static" +++ filePath path
-	# type					= mimeType filename
-	# (mbContent, world)	= readFile filename world
-	| isOk mbContent 		= ({rsp_headers = fromList [("Status","200 OK"),
-											   ("Content-Type", type),
-											   ("Content-Length", toString (size (fromOk mbContent)))											   
-											   ]
-							   	,rsp_data = fromOk mbContent},{IWorld|iworld & world = world})						   								 	 							   
-	= (notFoundResponse req,{IWorld|iworld & world = world})
+handleStaticResourceRequest req iworld=:{IWorld|systemDirectories={publicWebDirectories}}
+    = serveStaticResource req publicWebDirectories iworld
 where
+    serveStaticResource req [] iworld
+	    = (notFoundResponse req,iworld)
+    serveStaticResource req [d:ds] iworld=:{IWorld|world}
+	    # path			= subString (size URL_PREFIX) (size req.req_path) req.req_path
+	    # filename		= d +++ filePath path
+	    # type			= mimeType filename
+	    # (mbContent, world)	= readFile filename world
+	    | isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
+								    ("Content-Type", type),
+								    ("Content-Length", toString (size (fromOk mbContent)))]
+							   	    ,rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
+        | otherwise
+            = serveStaticResource req ds {IWorld|iworld & world = world}
+
 	//Translate a URL path to a filesystem path
 	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 	mimeType path	= extensionToMimeType (takeExtension path)
 
-path2name path = last (split "/" path)
+//path2name path = last (split "/" path)
 
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
@@ -323,4 +324,25 @@ where
 			_							= searchPaths ps world
 	where
 		path = (p </> "iTasks-SDK")
+
+//Do a recursive scan of a directory for subdirectories with the name "WebPublic"
+//Files in these directories are meant to be publicly served by an iTask webserver
+determineWebPublicDirs :: !FilePath !*World -> (![FilePath], !*World)
+determineWebPublicDirs path world
+	# (dir, world)	= readDirectory path world	
+    = case dir of
+        Ok entries
+            = appFst flatten (mapSt (checkEntry path) entries world)
+        _   = ([],world) //TODO pass error up instead of just returning an empty list
+where
+    checkEntry :: !FilePath !String !*World -> (![FilePath], !*World)
+    checkEntry dir name world
+        # path = dir </> name
+        | name == "." || name == ".." = ([],world)
+        | name == "WebPublic"   = ([path],world) //Dont' recurse into a found WebPublic dir
+        | otherwise
+		    # (mbInfo,world) = getFileInfo path world
+		    = case mbInfo of
+			    Ok info	| info.directory	= determineWebPublicDirs path world //Continue search
+                _                           = ([],world)
 	

@@ -88,7 +88,7 @@ where
 applicationDirectory :: ReadOnlyShared FilePath
 applicationDirectory = createReadOnlySDS appDir
 where
-	appDir iworld=:{IWorld|appDirectory} = (appDirectory,iworld)
+	appDir iworld=:{IWorld|systemDirectories={appDirectory}} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
 applicationConfig = createReadOnlySDS config

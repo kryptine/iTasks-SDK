@@ -22,10 +22,8 @@ from Sapl.SaplParser import :: ParserState
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
-					, appDirectory			:: !FilePath								// Location of the application's executable
-					, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
-					, dataDirectory			:: !FilePath								// Location of the applications data files
 					, config				:: !Config									// The server configuration
+                    , systemDirectories     :: !SystemDirectories                       // Filesystem paths that are used by iTasks
 					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 					, timestamp				:: !Timestamp								// The timestamp of the current request	
 					, currentDateTime		:: !DateTime								// The local date & time of the current request
@@ -57,6 +55,13 @@ from Sapl.SaplParser import :: ParserState
                     //Experimental database connection cache
                     , resources             :: !*(Maybe *Resource)
 					}
+
+:: SystemDirectories =
+    { appDirectory			:: !FilePath								// Location of the application's executable
+	, dataDirectory			:: !FilePath								// Location of the applications data files
+	, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
+    , publicWebDirectories  :: ![FilePath]                              // List of directories that contain files that are served publicly by the iTask webserver
+    }
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
