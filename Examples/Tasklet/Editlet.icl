@@ -1,7 +1,9 @@
 module Editlet
 
 import iTasks
-import iTasks.Framework.ClientInterface
+import iTasks.API.Core.Client.Editlet
+import iTasks.API.Core.Client.Interface
+
 import StdDebug
 
 :: TimeDelta = SetSec !Int | SetMin !Int | SetHour !Int
@@ -24,14 +26,14 @@ stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id]
 			,appDiff = \n _ -> hd n
 			}
 where
-	onUpdate :: ComponentId (JSPtr EditletEvent) String *JSWorld -> (!String, !*JSWorld)
+	onUpdate :: ComponentId (JSVal EditletEvent) String *JSWorld -> (!String, !*JSWorld)
 	onUpdate id event val world
-		# world	= setDomAttr id "value" val world
+		# world	= setDomAttr id "value" (toJSVal val) world
 		= (val,world)
 	
-	onChange  :: ComponentId (JSPtr EditletEvent) String *JSWorld -> (!String, !*JSWorld)
+	onChange  :: ComponentId (JSVal EditletEvent) String *JSWorld -> (!String, !*JSWorld)
 	onChange id event val world
-		= getDomAttr id "value" world
+		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
 timelet t =	{Editlet
@@ -42,10 +44,10 @@ timelet t =	{Editlet
 				,appDiff	= appDiff
 				}
 where
-	onUpdate ::  ComponentId (JSPtr EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
+	onUpdate ::  ComponentId (JSVal EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
 	onUpdate id event val world
-		# world = setDomAttr id "innerHTML" (toString val) world
-		# world	= setDomAttr id "style.color" (colors !! (val.Time.sec rem (length colors))) world
+		# world = setDomAttr id "innerHTML" (toJSVal (toString val)) world
+		# world	= setDomAttr id "style.color" (toJSVal (colors !! (val.Time.sec rem (length colors)))) world
 		= (val,world)
 		
 	colors = ["#f0f","#00f","#f00","#30f","#ff0","#66f"]
@@ -72,7 +74,7 @@ clocklet t =	{Editlet
 				,appDiff	= \tn to -> tn
 				}
 where
-	onInit :: ComponentId (JSPtr EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
+	onInit :: ComponentId (JSVal EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
 	onInit id event val world
 		# world				= addJSFromUrl "/coolclock.js" Nothing world
 		# world				= addJSFromUrl "/moreskins.js" Nothing world
@@ -141,16 +143,16 @@ where
 	//onInit :: ComponentId (JSPtr JSObject) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	//onInit editorId _ state world = (state,redraw "tictactoe" state world)
 
-	onUpdate :: ComponentId (JSPtr EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
+	onUpdate :: ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	onUpdate editorId _ state world = (state,world) //(state,redraw "tictactoe" state world)
 
-	onCellClick :: Coordinate ComponentId (JSPtr EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
+	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	onCellClick coord editorId event (board,turn) world
 		# state = (add_cell coord turn board, ~turn)
 		= (state, redraw "tictactoe" state world)
 		
 	redraw	:: !String !(TicTacToe,TicTac) *JSWorld -> *JSWorld
-	redraw editorId state world = setDomAttr editorId "innerHTML" (toString (init_board editorId state)) world
+	redraw editorId state world = setDomAttr editorId "innerHTML" (toJSVal (toString (init_board editorId state))) world
 	
 	init_board :: !String !(TicTacToe,TicTac) -> HtmlTag
 	init_board editorId (board,turn)
