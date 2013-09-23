@@ -14,12 +14,16 @@ from StdFile			import class FileSystem
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 from iTasks.Framework.TaskServer	import class HttpServerEnv
 
+from Data.Set import :: Set
+from Sapl.Linker.LazyLinker import :: LoaderState
+from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
+from Sapl.Target.JS.Flavour import :: Flavour
+from Sapl.SaplParser import :: ParserState
+
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
-					, appDirectory			:: !FilePath								// Location of the application's executable
-					, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
-					, dataDirectory			:: !FilePath								// Location of the applications data files
 					, config				:: !Config									// The server configuration
+                    , systemDirectories     :: !SystemDirectories                       // Filesystem paths that are used by iTasks
 					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 					, timestamp				:: !Timestamp								// The timestamp of the current request	
 					, currentDateTime		:: !DateTime								// The local date & time of the current request
@@ -36,12 +40,30 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 					, uiDiffers				:: !UIDiffers								// The user custom user interface diff functions
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 
+					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
+											   ,!FuncTypeMap							// Function name -> source code mapping
+											   ,!Flavour								// Clean flavour for JS compilation
+											   ,!Maybe ParserState						// Some information collected by the parser for the code generator
+											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
+
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
 					, uiMessages            :: !Map SessionId [UIMessage]				// Messages for communicating with the user interfaces of sessions
 
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					, world					:: !*World									// The outside world
+
+                    //Experimental database connection cache
+                    , resources             :: !*(Maybe *Resource)
 					}
+
+:: SystemDirectories =
+    { appDirectory			:: !FilePath								// Location of the application's executable
+	, dataDirectory			:: !FilePath								// Location of the applications data files
+	, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
+    , publicWebDirectories  :: ![FilePath]                              // List of directories that contain files that are served publicly by the iTask webserver
+    }
+
+:: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
 updateCurrentDateTime :: !*IWorld -> *IWorld
 

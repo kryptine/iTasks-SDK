@@ -2,11 +2,11 @@
 * eventType can be "edit" or "commit" or "init". It is necessary because eventValue can be null
 * even in the case of "edit" event.
 */
-function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventValue){
+function controllerWrapper(controllerFunc,taskId,eventType,eventName,eventValue){
 	
 	console.time('controllerWrapper timer: eval');
 	
-	var tasklet = itwc.global.controller.tasklets[iid];
+	var tasklet = itwc.global.controller.tasklets[taskId];
 	var state = tasklet.st;
 
 	var tmp = [controllerFunc,[]];
@@ -30,7 +30,7 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 	var ys = Sapl.feval(tmp);
 	state = Sapl.heval(ys[3]);
 
-	itwc.global.controller.tasklets[iid].st = state;	// save it
+	itwc.global.controller.tasklets[taskId].st = state;	// save it
 	
 	// toJS to make the result hyperstrict
 	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[state]]));	
@@ -39,7 +39,7 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 		
 	// If mbTUI is Nothing, the task is finished. TODO: is it still true?
 	if(mbTUI[0] == 0){
-		DB.removeTasklet(iid);
+		DB.removeTasklet(taskId);
 		itwc.global.controller.sendEditEvent(tasklet.taskId, "finalize", newres);
 	}else{		
 		var tuistr = Sapl.feval(mbTUI[2]);
@@ -58,8 +58,8 @@ function controllerWrapper(iid,controllerFunc,taskId,eventType,eventName,eventVa
 		console.timeEnd('controllerWrapper timer: apply TUI');
 		
 		// Send result to the client if it is changed only
-		if(!geq(itwc.global.controller.tasklets[iid].lastResult, newres)){
-			itwc.global.controller.tasklets[iid].lastResult = newres;
+		if(!geq(itwc.global.controller.tasklets[taskId].lastResult, newres)){
+			itwc.global.controller.tasklets[taskId].lastResult = newres;
 			itwc.global.controller.sendEditEvent(tasklet.taskId, "result", newres);
 		}		
 	}
@@ -140,20 +140,20 @@ function applytui(widget,tui){
 	}	
 }
 
-function __iTasks_Framework_ClientSupport_SaplHtml_handleJSEvent(expr,iid,event){
+function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
 	
-	var tasklet = itwc.global.controller.tasklets[iid];
+	var tasklet = itwc.global.controller.tasklets[taskId];
 	var state = tasklet.st;
 	
-	// Returns a tuple of the JS document and HtmlEventResult	
-	// Looks like: [0, "Tuple2", document,HtmlEventResult]	
-	var ys = Sapl.feval([expr,[state,iid,event,document]]);
+	// Returns a tuple of the JSWorld and HtmlEventResult	
+	// Looks like: [0, "Tuple2", HtmlEventResult, JSWorld]	
+	var ys = Sapl.feval([expr,[state,taskId,___wrapJS(event),"WORLD"]]);
 	
 	// The result is only in HNF, so both part of the tuple must be forced,
 	// but the document can be dropped after that.
-	Sapl.feval(ys[2]);
+	Sapl.feval(ys[3]);
 	
-	var newstate = Sapl.feval(ys[3]);
+	var newstate = Sapl.feval(ys[2]);
 	tasklet.st = newstate;
 	
 	try{

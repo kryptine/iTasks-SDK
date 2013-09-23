@@ -14,19 +14,19 @@ from Data.Map				import qualified put
 import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
 
 (>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
-(>>*) task steps = step task steps 
+(>>*) task steps = step task (const Nothing) steps
 
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskbf = step taska [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
+(>>=) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>!) taska taskbf = step taska [OnAction ActionContinue (hasValue taskbf)]
+(>>!) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf)]
 
 (>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskbf = step taska [OnValue (ifStable taskbf)]
+(>>-) taska taskbf = step taska (const Nothing) [OnValue (ifStable taskbf)]
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>|) taska taskb = step taska [OnAction ActionContinue (hasValue (const taskb)), OnValue (ifStable (const taskb))]
+(>>|) taska taskb = step taska (const Nothing) [OnAction ActionContinue (hasValue (const taskb)), OnValue (ifStable (const taskb))]
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
@@ -53,10 +53,10 @@ import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Co
 (@@>) a t = tunev a t
 
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
-try task handler = step task [OnValue (ifStable return), OnException handler]
+try task handler = step task id [OnValue (ifStable return), OnException handler]
 
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
-catchAll task handler = step task [OnValue (ifStable return), OnAllExceptions handler]
+catchAll task handler = step task id [OnValue (ifStable return), OnAllExceptions handler]
 
 (>^*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
 (>^*) task steps = sideStep task steps
@@ -65,7 +65,17 @@ sideStep :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
 sideStep ta steps = parallel Void [(Embedded,const ta),(Embedded,stepper)] @ (map snd) @? firstRes
 where
     firstRes (Value [v:_] _) = v
-    stepper l = forever (watch (taskListState l) @? firstRes >>* steps) @? const NoValue
+    stepper l = forever (watch (taskListState l) >>* steps`) @? const NoValue
+    where
+        steps` = [OnAction action (taskfun` taskfun) \\ (OnAction action taskfun) <- steps]
+        where
+            //Only enable when there are two tasks in the parallel set, hence no other sideSteps are active
+            taskfun` taskfun (Value [v,_] _) = case taskfun v of
+                Just t  = Just (appendTask Embedded (removeWhenStable t) l)
+                Nothing = Nothing
+            taskfun` _ _ = Nothing
+
+    removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
 
 //Helper functions for projections
 projectJust :: (Maybe a) r -> Maybe (Maybe a)
@@ -242,13 +252,20 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
+//We throw an exception when the share changes to make sure that the right hand side of
+//the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= 	( (get share >>- \val -> (wait Void ((=!=) val) share <<@ NoUserInterface @ const Nothing)
-          -||-
-          (task val @ Just)
-        ) <! isJust)
+	= 	( (get share >>- \val ->
+            try ((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))]) -||- (task val @ Just))
+                (\ShareChanged -> (return Nothing) )
+          ) <! isJust
+        )
 	@?	onlyJust
+
+:: ShareChanged = ShareChanged
+derive class iTask ShareChanged
+instance toString ShareChanged where toString ShareChanged = "Share changed exception"
 
 onlyJust (Value (Just x) s) = Value x s
 onlyJust _                  = NoValue

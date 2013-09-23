@@ -170,9 +170,15 @@ Sapl = new function () {
 			// It's a constructor! We can just drop the selector number
 			if (isNumber(expr[0])) {
 			
+				var consname = expr[1];			
+			
+				// No feval! It's strict in its argument
+				if(consname == "JSVal"){
+					return expr[2]; 
+				}			
+			
 				// Very important! Do NOT use splice here! 	
 				var args = expr.slice(2, expr.length);
-				var consname = expr[1];
 				var consfunc = eval(this.escapeName(consname));
 				record = isArray(consfunc.fields);
 
@@ -285,6 +291,15 @@ Sapl = new function () {
 				return expr;
 			}
 		}
+	}	
+	
+	this.apply = function(f, args){
+		if(!isArray(f)){
+			f = [f,args];
+		}else{
+			f[1] = f[1].concat(args);
+		}		
+		return Sapl.feval(f);
 	}	
 	
 	// hyper(strict) eval

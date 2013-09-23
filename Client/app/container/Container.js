@@ -15,6 +15,7 @@ Ext.define('itwc.container.Container',{
 	height: 'flex',
 	minWidth: 'wrap',
 	minHeight: 'wrap',
+    autoScroll: true,
 
 	initComponent: function() {
 

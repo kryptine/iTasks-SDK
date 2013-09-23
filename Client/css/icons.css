@@ -7,6 +7,9 @@
 .icon-valid {
 	background-image: url('../img/icons/accept.png') !important;
 }
+.icon-warning {
+	background-image: url('../img/icons/warning.png') !important;
+}
 .icon-invalid {
 	background-image: url('../img/icons/exclamation.png') !important;
 }

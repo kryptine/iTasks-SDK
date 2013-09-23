@@ -10,10 +10,6 @@ import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.Util
 import iTasks.Framework.SerializationGraphCopy
 import iTasks.Framework.IWorld
 
-//For Client-Side evaluation
-import graph_to_sapl_string, sapldebug, StdFile, StdMisc
-import Sapl.Linker.LazyLinker, Sapl.Target.JS.CodeGeneratorJS, iTasks.Framework.ClientInterface
-
 import System.Time, System.File, System.FilePath
 
 from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlStack, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UISubUI, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
@@ -255,7 +251,7 @@ gEditor{|Date|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		# value	= checkMaskValue mask val
 		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
-gDefault{|Date|} = {day = 1, mon = 1, year = 1970}
+gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
 gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 gVerify{|Date|} mv options = simpleVerify mv options
 gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)",unit=Nothing}]
@@ -281,9 +277,9 @@ where
 
 		normDays date
 			# monthLength = monthLengthOfDate date
-			| date.day <= monthLength
+			| date.Date.day <= monthLength
 				= date
-				= normDays (normMonths {date & mon = date.Date.mon + 1, day = date.Date.day - monthLength})
+				= normDays (normMonths {Date|date & mon = date.Date.mon + 1, day = date.Date.day - monthLength})
 
 		normMonths date
 			| date.Date.mon <= 12
@@ -425,7 +421,7 @@ instance + DateTime
 where
 	(+) (DateTime dx tx) (DateTime dy ty)
 			| tn >= tx	= DateTime dn tn
-			| otherwise	= DateTime (dn + {year = 0, mon = 0, day = 1}) tn	//We've passed midnight
+			| otherwise	= DateTime (dn + {Date|year = 0, mon = 0, day = 1}) tn	//We've passed midnight
 	where
 		dn = dx + dy
 		tn = tx + ty
@@ -582,109 +578,6 @@ where
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 derive class iTask	FileError
 
-//* Geograpic data and Google Maps
-gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId}
-	# editOpts	= {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Nothing}
-	# opts		= mapOpts val
-	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,/*editorAttributes vv meta*/ newMap)],vst)
-where	
-	mapOpts map =
-		{ UIGoogleMapOpts
-		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
-		, mapType = mapType map.perspective.GoogleMapPerspective.type
-		, markers = [{UIGoogleMapMarker|position=(lat,lng),title=title,icon=icon,infoWindow=fmap toString infoWindow,draggable=draggable,selected=selected}
-					\\ {GoogleMapMarker|position={lat,lng},title,icon,infoWindow,draggable,selected} <- map.GoogleMap.markers]
-		, options =
-			{ UIGoogleMapOptions
-			| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
-			, panControl = map.settings.GoogleMapSettings.panControl
-			, streetViewControl = map.settings.GoogleMapSettings.streetViewControl
-			, zoomControl = map.settings.GoogleMapSettings.zoomControl
-			, scaleControl = map.settings.GoogleMapSettings.scaleControl
-			, scrollwheel = map.settings.GoogleMapSettings.scrollwheel
-			, draggable = map.settings.GoogleMapSettings.draggable
-			, zoom = map.perspective.GoogleMapPerspective.zoom
-			}
-		}
-	mapType ROADMAP 	= "ROADMAP"
-	mapType SATELLITE 	= "SATELLITE"
-	mapType HYBRID 		= "HYBRID"
-	mapType TERRAIN 	= "TERRAIN"
-
-gVisualizeText{|GoogleMapPosition|} _  {GoogleMapPosition|lat,lng} = [toString lat + " " + toString lng]
-
-//Helper types for GoogleMap gUpdate instance
-:: MVCUpdate = 
-	{ center			:: !(Real,Real)
-	, zoom				:: !Int
-	, type				:: !GoogleMapType
-	}	
-	
-:: MapClickUpdate = 
-	{ event				:: !ClickEvent
-	, point				:: !(Real,Real)
-	}
-
-:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
-
-:: MarkerClickUpdate =
-	{ index				:: !Int
-	, event				:: !ClickEvent
-	}
-:: MarkerDragUpdate = 
-	{ index				:: !Int
-	, point				:: !(Real,Real)
-	}
-
-derive JSONDecode MVCUpdate, MapClickUpdate, ClickEvent, MarkerClickUpdate, MarkerDragUpdate
-
-gUpdate{|GoogleMap|} target upd val = basicUpdate parseUpdate target upd val
-where
-	parseUpdate json orig
-		# mbMVC		= fromJSON json
-		| isJust mbMVC
-			# {MVCUpdate|center=(lat,lng),zoom,type} = fromJust mbMVC
-			= Just {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
-		# mbMarkerDrag = fromJSON json
-		| isJust mbMarkerDrag
-			# {MarkerDragUpdate|index,point=(lat,lng)}	= fromJust mbMarkerDrag
-			= Just {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
-		# mbMarkerClick = fromJSON json
-		| isJust mbMarkerClick
-			# {MarkerClickUpdate|index,event} = fromJust mbMarkerClick
-			= Just {GoogleMap| orig & markers = [{GoogleMapMarker|m & selected = i == index} \\ m <- orig.GoogleMap.markers & i <- [0..]]}
-		| otherwise	
-			= Just orig
-
-gVerify{|GoogleMap|} _ mv = alwaysValid mv
-//derive gVerify GoogleMap
-
-gDefault{|GoogleMapPerspective|} =
-	{ GoogleMapPerspective
-	| type				= ROADMAP
-	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-	, zoom				= 10
-	}
-gDefault{|GoogleMapSettings|} =
-	{ GoogleMapSettings
-	| mapTypeControl	= True
-	, panControl		= True
-	, streetViewControl	= True
-	, zoomControl		= True
-	, scaleControl		= True
-	, scrollwheel		= True
-	, draggable			= True
-	}
-
-derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gDefault			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 
 //* A sliding scale
 gVisualizeText{|Scale|}	_ {Scale|cur} = [toString cur]
@@ -1266,108 +1159,6 @@ derive JSONDecode		Hidden, Display, Editable, VisualizationHint
 derive gDefault			Hidden, Display, Editable, VisualizationHint
 derive gEq				Hidden, Display, Editable, VisualizationHint
 derive gEditMeta			Hidden, Display, Editable, VisualizationHint
-
-//* Client-side types
-JSONEncode{|Editlet|} _ _ tt = [dynamicJSONEncode tt]		
-JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|Editlet|} _ _ c = (Nothing,c)
-
-gDefault{|Editlet|} fa _
-	= {Editlet|value=fa,html = \_ -> RawText "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
-
-gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
-
-gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
-
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
-	# (jsScript,jsEvents, jsIV, jsGD, jsAD, iworld)	= linkEditletJS [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientGenDiff clientAppDiff iworld
-	# iworld									= addDiffer iworld
-	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
-where
-    htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
-
-	ui jsScript jsEvents jsIV jsGD jsAD
-		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=taskId,editorId=editorId dp,value=toJSONA value, html = toString (html htmlId)
-								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, genDiff = Just jsGD, appDiff = Just jsAD}
-	
-	toJSONA a = case jsonEncA a of
-		[json:_]	= json
-		_			= JSONNull
-	toJSOND d = case jsonEncD d of
-		[json:_]	= json
-		_			= JSONNull
-	
-	clientInit json = case jsonDecA [json] of
-		(Just a,_)	= a
-		_			= abort "Editlet cannot initialize its value"
-	
-	serverGenDiff jsonOld jsonNew
-		= case (jsonDecA [jsonOld],jsonDecA [jsonNew]) of
-			((Just old,_),(Just new,_))	= case genDiff old new of
-				Just diff				= Just (toJSOND diff)
-				Nothing					= Nothing
-			_							= Nothing
-	
-	clientAppDiff json old = case jsonDecD [json] of
-		(Just diff,_)	= appDiff diff old
-		_				= old
-	
-	clientGenDiff old new = case (genDiff old new) of
-		Just diff		= toJSOND diff
-		_				= JSONNull
-	
-	addDiffer iworld=:{IWorld|uiDiffers}
-		= {IWorld|iworld & uiDiffers = put (taskId,editorId dp) serverGenDiff uiDiffers}
-
-//Copy/paste from tasklet linker
-linkEditletJS eventHandlers initValueFunc genDiffFunc appDiffFunc iworld=:{IWorld|world,sdkDirectory}
-	/* 0. Load Clean flavour */
-	# flavfile = sdkDirectory </> "Server" </> "lib" </> "SAPL" </>"clean.f"	
-	# (flavres, world) = readFile flavfile world
-	| isError flavres
-		= abort ("Flavour file cannot be found at " +++ flavfile)
-	# mbFlav = toFlavour (fromOk flavres)
-	| isNothing mbFlav
-		= abort "Error in flavour file"
-	/* 1. First, we collect all the necessary function definitions to generate ParserState */
-	# (ls, world) = generateLoaderState ["sapl"] [] world
-	# saplIV = graph_to_sapl_string initValueFunc
-	# (ls, a, saplIV, world) = linkByExpr ls newAppender saplIV world
-	# saplGD = graph_to_sapl_string genDiffFunc
-	# (ls, a, saplGD, world) = linkByExpr ls a saplGD world
-	# saplAD = graph_to_sapl_string appDiffFunc
-	# (ls, a, saplAD, world) = linkByExpr ls a saplAD world
-	// link functions indicated by event handlers
-	# (ls, a, saplEvents, world) = foldl (\(ls, a, hs, world) (e1,e2,f) = 
-				let (ls2, a2, f2, world2) = linkByExpr ls a (graph_to_sapl_string f) world
-				 in (ls2, a2, [(e1,e2,f2):hs], world2)) 
-			(ls, a, [], world) eventHandlers
-	/* 2. Generate function definitions and ParserState */
-	# sapl = toString a	
-	# (jsScript, mbPst) = case sapl of
-		"" = ("", Nothing)
-		   = let (script, pst) = handlerr (generateJS (fromJust mbFlav) False sapl) in (toString script, Just pst)
-	/* 3. Generate expressions by ParserState */							
-	# jsIV = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplIV mbPst))
-	# jsGD = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplGD mbPst))
-	# jsAD = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplAD mbPst))
-	# jsEvents = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
-				(exprGenerateJS (fromJust mbFlav) False saplhandler mbPst)))) saplEvents
-	= (jsScript, jsEvents, jsIV, jsGD, jsAD, {iworld & world=world})
-
-handlerr (Error str) = abort ("Editlet error: " +++ str)
-handlerr (Ok a) = a
-
-gEditMeta{|Editlet|} fa _ {Editlet|value} = fa value
-
-gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},omask)
-	= case jDecd [json] of
-		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},Touched)
-		_				= (ov,omask)
-
-gUpdate{|Editlet|} fa _ _ _ _ _ _ _ mv = mv
-
-gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
 //* Framework types
 

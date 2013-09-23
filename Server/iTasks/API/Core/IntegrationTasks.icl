@@ -122,7 +122,7 @@ where
 		
 	initRPC = mkInstantTask eval
 	
-	eval taskId iworld=:{IWorld|taskTime,build,sdkDirectory,dataDirectory,world}
+	eval taskId iworld=:{IWorld|taskTime,build,systemDirectories={sdkDirectory,dataDirectory},world}
 		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "request")
 		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
@@ -240,17 +240,17 @@ httpDownloadDocumentTo url path
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory}
+	eval event repOpts (TCInit taskId ts) iworld=:{build,systemDirectories={dataDirectory}}
 		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
-		# (mbErr,world)		= createDirectory tmpdir world 
+		# (mbErr,world)		= createDirectory tmpdir world
 		= case mbErr of
 			Ok Void
 				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
 
-	eval event repOpts (TCShared taskId ts treea) iworld=:{build,dataDirectory,taskTime,world}
+	eval event repOpts (TCShared taskId ts treea) iworld=:{build,systemDirectories={dataDirectory},taskTime,world}
 		# tmpdir 					= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (exception (fromError mbCurdir), {IWorld|iworld & world = world})
@@ -269,7 +269,7 @@ where
 				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
 			ExceptionResult e str = (ExceptionResult e str,{IWorld|iworld & world = world})
 	
-	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{build,dataDirectory} //First destroy inner task
+	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{build,systemDirectories={dataDirectory}} //First destroy inner task
 		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
 		# (Task evala)		= taskfun tmpdir 
 		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld

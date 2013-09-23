@@ -1,6 +1,6 @@
 module Square
 
-import iTasks, iTasks.Framework.Generic, iTasks.Framework.ClientSupport.Tasklet
+import iTasks, iTasks.API.Core.Client.Tasklet
 
 //-------------------------------------------------------------------------
 
@@ -28,9 +28,9 @@ where
 	resultFun {finished=Just clicked} = Value clicked True
 	resultFun _ = Value False False
 
-	generateGUI :: !TaskInstanceId !TaskId (Maybe Square) !*IWorld -> *(!TaskletGUI Square, !Square, !*IWorld)
-	generateGUI iid _ _ iworld  
-
+	generateGUI :: !TaskId (Maybe Square) !*IWorld -> *(!TaskletGUI Square, !Square, !*IWorld)
+	generateGUI taskId _ iworld  
+	
 		# gui = { TaskletHTML
 				| width  		= ExactSize 40
 				, height 		= ExactSize 40
@@ -42,21 +42,21 @@ where
 			
 		= (TaskletHTML gui, {highlighted = False, finished = Nothing}, iworld)
 	where
-		oid = "object"+++iid
+		oid = "object"+++toString taskId
 	
   	  	style = "position:absolute; left:0px;top:0px;width:40px;height:40px;rem;background:"+++color+++";"
     
-		onInit st=:{highlighted=True} _ _ d
-			# (d, str) = setDomAttr d oid "style.border" "2px solid black"			
-			= (d, st)
-		onInit st _ _ d
-			# (d, str) = setDomAttr d oid "style.border" ("2px solid "+++color)
-			= (d, st)		
+		onInit st=:{highlighted=True} _ _ world
+			# world = setDomAttr oid "style.border" (toJSVal "2px solid black") world
+			= (st, world)
+		onInit st _ _ world
+			# world = setDomAttr oid "style.border" (toJSVal ("2px solid "+++color)) world
+			= (st, world)
 		
-		onClick st=:{highlighted=True} _ _ d
-			= (d, {st & finished = Just True})
-		onClick st _ _ d
-			= (d, st)	
+		onClick st=:{highlighted=True} _ _ world
+			= ({st & finished = Just True}, world)
+		onClick st _ _ world
+			= (st, world)	
 		
 	updateFun :: Cmd Square -> Square
 	updateFun NoCmd st = st
@@ -66,7 +66,7 @@ where
 
 //UTIL
 (>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskb = step taska [WhenStable (const taskb)]
+(>>-) taska taskb = step taska (const Nothing) [OnValue (ifStable (const taskb))]
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void

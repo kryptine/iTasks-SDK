@@ -1,8 +1,6 @@
 module TaskletExamples
 
-import iTasks, iTasks.Framework.ClientSupport.Tasklet
-import Text.StringAppender, graph_to_sapl_string
-import sapldebug
+import iTasks, iTasks.API.Core.Client.Tasklet, iTasks.API.Core.Client.Interface
 
 //-------------------------------------------------------------------------
 //
@@ -10,12 +8,12 @@ import sapldebug
 //
 // zoom, maptype, markers
 
-:: GoogleMapsOptions = {center    :: HtmlObject
+:: GoogleMapsOptions = {center    :: JSVal (Real,Real)
           			   ,zoom      :: Int
-          			   ,mapTypeId :: HtmlObject
+          			   ,mapTypeId :: JSVal Int
         			   };
 
-:: GoogleMapsState = {map      :: Maybe HtmlObject
+:: GoogleMapsState = {map      :: Maybe (JSVal Void)
 					 ,centerLA :: Real
 					 ,centerLO :: Real}
 
@@ -26,10 +24,10 @@ googleMapsTasklet cla clo =
 	, tweakUI  			= setTitle "Google Maps Tasklet"
 	}
 where
-	googleMapsGUI iid taskId Nothing iworld 
-		= googleMapsGUI iid taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
+	googleMapsGUI taskId Nothing iworld 
+		= googleMapsGUI taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
 
-	googleMapsGUI iid _ (Just st) iworld
+	googleMapsGUI taskId (Just st) iworld
 
 		# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
 
@@ -45,71 +43,68 @@ where
 		= (TaskletHTML gui, st, iworld)
 				
 	where
-		updatePerspective st=:{map = Just map} _ _  d 
-			# (d, map, center) = runObjectMethod d map "getCenter" []
-			# (d, center, la) = runObjectMethod d center "lat" []
-			# (d, center, lo) = runObjectMethod d center "lng" []
-			= (d, {st & centerLA = fromHtmlObject la, centerLO = fromHtmlObject lo})	
+		updatePerspective st=:{map = Just map} _ _  world 
+			# (center, map, world) = callObjectMethod "getCenter" [] map world
+			# (la, center, world)  = callObjectMethod "lat" [] center world
+			# (lo, center, world)  = callObjectMethod "lng" [] center world
+			= ({st & centerLA = jsValToReal la, centerLO = jsValToReal lo}, world)	
 
-	    onScriptLoad st _ _ d
-		    # (d, _) = setDomAttr d "map_place_holder" "innerHTML" "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>"
-		    # (d, mapdiv) = getDomElement d "map_canvas"
+	    onScriptLoad st _ _ world
+		    # world = setDomAttr "map_place_holder" "innerHTML" (toJSVal "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>") world
+		    # (mapdiv, world) = getDomElement "map_canvas" world
 	        
-		    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
-		    # (d, center) = createObject d "google.maps.LatLng" [toHtmlObject st.centerLA, toHtmlObject st.centerLO]
+		    # (typeId, world) = findObject "google.maps.MapTypeId.ROADMAP" world
+		    # (center, world) = jsNewObject "google.maps.LatLng" [toJSArg st.centerLA, toJSArg st.centerLO] world
 
-		    # (d, map) = createObject d "google.maps.Map" 
-		    				[mapdiv
-		    				,toHtmlObject {center = center, zoom = 8, mapTypeId = typeId}]
+		    # (map, world) = jsNewObject "google.maps.Map" 
+		    				[toJSArg mapdiv
+				    		,toJSArg {center = center, zoom = 8, mapTypeId = typeId}] world
 
-		    # (d, mapevent) = findObject d "google.maps.event" 
-			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "dragend", onChange]
-			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "maptypeid_changed", onChange]
-			# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "zoom_changed", onChange]
-			= (d, {st & map = Just map})
+		    # (mapevent, world) = findObject "google.maps.event" world
+			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "dragend", toJSArg onChange] mapevent world
+			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "maptypeid_changed", toJSArg onChange] mapevent world
+			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "zoom_changed", toJSArg onChange] mapevent world
+			= ({st & map = Just map}, world)
 		where
-			onChange = createEventHandler updatePerspective iid
+			onChange = createEventHandler updatePerspective taskId
 
 		// Google maps API doesn't like to be loaded twice	
-		onInit st iid e d
-			# (d, mapsobj) = findObject d "google.maps"
-			| isUndefined mapsobj 
-			= (loadMapsAPI iid e d, st)
-			= onScriptLoad st iid e d
+		onInit st taskId e world
+			# (mapsobj, world) = findObject "google.maps" world
+			| jsIsUndefined mapsobj
+			= (st, loadMapsAPI taskId e world)
+			= onScriptLoad st taskId e world
 		
-		loadMapsAPI iid e d	
-			# (d, window)  = findObject d "window"	
-			# (d, _, _)    = setObjectAttr d window "gmapscallback" (createEventHandler onScriptLoad iid)
-	
-			= loadExternalJS d "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
-					(createEventHandler nullEventHandler iid)
+		loadMapsAPI taskId e world	
+			# (_, world) = jsSetObjectAttr "gmapscallback" (createEventHandler onScriptLoad taskId) jsWindow world
+			= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
+					Nothing world
 
-		nullEventHandler st _ _ d = (d, st)
-
-		onDestroy st=:{map = Just map} _ _ d
-		    # (d, mapevent) = findObject d "google.maps.event" 
-			# (d, mapevent, _) = runObjectMethod d mapevent "clearInstanceListeners" [map]
+		onDestroy st=:{map = Just map} _ _ world
+		    # (mapevent, world) = findObject "google.maps.event" world
+			# (_, mapevent, world) = callObjectMethod "clearInstanceListeners" [toJSArg map] mapevent world
 		
 			// clear generated stuff
-			# (d, _) = setDomAttr d "map_place_holder" "innerHTML" ""
+			# world = setDomAttr "map_place_holder" "innerHTML" (toJSVal "") world
 		
-			= (d, {st & map = Nothing})
+			= ({st & map = Nothing}, world)
 
-		onDestroy st _ _ d
-			= (d, st)
+		onDestroy st _ _ world
+			= (st, world)
 
 		// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
-		onResize st=:{map = Just map} _ _ d
-		    # (d, mapevent) = findObject d "google.maps.event" 
-			# (d, mapevent, _) = runObjectMethod d mapevent "trigger" [map, toHtmlObject "resize"]
+		onResize st=:{map = Just map} _ _ world
+		    # (mapevent, world) = findObject "google.maps.event" world
+			# (_, mapevent, world) = callObjectMethod "trigger" [toJSArg map, toJSArg "resize"] mapevent world
 		
-			# (d, center) = createObject d "google.maps.LatLng" [toHtmlObject st.centerLA, toHtmlObject st.centerLO]		
-			# (d, map, _) = runObjectMethod d map "setCenter" [center]	
+			# (center, world) = jsNewObject "google.maps.LatLng" [toJSArg st.centerLA, toJSArg st.centerLO] world	
+			# (_, map, world) = callObjectMethod "setCenter" [toJSArg center] map world
 		
-			= (d, st)
+			= (st, world)
 
-		onResize st _ _ d
-			= (d, st)
+		onResize st _ _ world
+			= (st, world)
+
 
 //-------------------------------------------------------------------------
 // http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
@@ -129,7 +124,7 @@ geoTasklet =
 	, tweakUI  			= setTitle "GEO Tasklet"
 	}
 
-geoTaskletGUI _ _ _ iworld
+geoTaskletGUI _ _ iworld
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 300
@@ -140,24 +135,25 @@ geoTaskletGUI _ _ _ iworld
 			
 	= (TaskletHTML gui, Nothing, iworld)
 where
-    onSuccess st _ pos d
-		# (d, _, la) = getObjectAttr d pos "coords.latitude"
-		# (d, _, lo) = getObjectAttr d pos "coords.longitude"		    
-		# (d, _) = setDomAttr d "loc" "innerHTML" (fromHtmlObject la +++ ", " +++ fromHtmlObject lo)
-    	= (d, Just (la,lo))
+    onSuccess st _ pos world
+		# (la, world) = jsGetObjectAttr "coords.latitude" pos world
+		# (lo, world) = jsGetObjectAttr "coords.longitude" pos world
+		# world = setDomAttr "loc" "innerHTML" (toJSVal (jsValToString la +++ ", " +++ jsValToString lo)) world
+    	= (Just (la,lo), world)
 
-    onFailure st _ msg d
-		# (d, _) = setDomAttr d "loc" "innerHTML" "FAILURE"
-    	= (d, st)
+    onFailure st _ msg world
+		# world = setDomAttr "loc" "innerHTML" (toJSVal "FAILURE") world
+    	= (st, world)
 
-	onInit st iid _ d
-	    # (d, loc) = findObject d "navigator.geolocation" 
-		# (d, loc, _) = runObjectMethod d loc "getCurrentPosition" 
-							[createEventHandler onSuccess iid
-							,createEventHandler onFailure iid
-				    		,toHtmlObject {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
+	onInit st taskId _ world
+	    # (loc, world) = findObject "navigator.geolocation" world
+		# (_, loc, world)   = callObjectMethod "getCurrentPosition" 
+								[toJSArg (createEventHandler onSuccess taskId)
+								,toJSArg (createEventHandler onFailure taskId)
+							    ,toJSArg {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
+					    		loc world
 				
-		= (d, st)
+		= (st, world)
 
 //-------------------------------------------------------------------------
 
@@ -168,11 +164,11 @@ pushTasklet =
 	, tweakUI  			= setTitle "Push Tasklet"
 	}
 
-pushGenerateGUI :: !TaskInstanceId !TaskId (Maybe Int) !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
+pushGenerateGUI :: !TaskId (Maybe Int) !*IWorld -> *(!TaskletGUI Int, !Int, !*IWorld)
 
-pushGenerateGUI iid taskId Nothing iworld  = pushGenerateGUI iid taskId (Just 1) iworld
+pushGenerateGUI taskId Nothing iworld  = pushGenerateGUI taskId (Just 1) iworld
 
-pushGenerateGUI _ _ (Just st) iworld  
+pushGenerateGUI _ (Just st) iworld  
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 50
@@ -183,9 +179,9 @@ pushGenerateGUI _ _ (Just st) iworld
 			
 	= (TaskletHTML gui, st, iworld)
 where			
-	onClick state _ _ d
-		# (d, str) = setDomAttr d "pushbtn" "value" (toString (state + 1))
-		= (d, state + 1)
+	onClick state _ _ world
+		# world = setDomAttr "pushbtn" "value" (toJSVal (toString (state + 1))) world
+		= (state + 1, world)
  
 //-------------------------------------------------------------------------
 
@@ -219,10 +215,10 @@ canvasHeight :== 300
 
 // TODO: http://jaspervdj.be/blaze/tutorial.html
 
-painterGenerateGUI iid taskId Nothing iworld  
-	= painterGenerateGUI iid taskId (Just {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}) iworld
+painterGenerateGUI taskId Nothing iworld  
+	= painterGenerateGUI taskId (Just {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}) iworld
 
-painterGenerateGUI _ _ (Just defSt) iworld  
+painterGenerateGUI _ (Just defSt) iworld  
 
 	# ws = toString canvasWidth
 	# hs = toString canvasHeight
@@ -285,111 +281,114 @@ painterGenerateGUI _ _ (Just defSt) iworld
 	= (TaskletHTML gui, defSt, iworld)
 
 where
-	onStart state _ e d
-		# (d, context) = getContext d False
-		# (d, context) = foldl (\(d, context) dr = draw d context dr) (d, context) (reverse state.draw)
-		= (d, state)
+	onStart state _ e world
+		# (context, world) = getContext False world
+		# (context, world) = foldl (\(context, world) dr = draw context dr world) (context, world) (reverse state.draw)
+		= (state, world)
 		
-	onChangeTool state _ e d
-		# (d, e, selectedIndex) = getObjectAttr d e "target.selectedIndex"
-		# (d, e, atool) = getObjectAttr d e ("target.options["+++ fromInt (fromHtmlObject selectedIndex) +++"].value")
-		= (d, {state & tool = fromHtmlObject atool})		
+	onChangeTool state _ e world
+		# (selectedIndex, world) = jsGetObjectAttr "target.selectedIndex" e world
+		# (atool, world) = jsGetObjectAttr ("target.options["+++ jsValToString selectedIndex +++"].value") e world
+		= ({state & tool = jsValToString atool}, world)	
 
-	onSelectColor color state _ e d
-		# d = foldl (\d el = fst (setDomAttr d el "style.borderColor" "white")) d
+	onSelectColor color state _ e world
+		# world = foldl (\world el = setDomAttr el "style.borderColor" (toJSVal "white") world) world
 					["selectorYellow","selectorRed","selectorGreen","selectorBlue","selectorBlack"]
+		# (target, world) = jsGetObjectAttr "target" e world
+		# (target, world) = jsSetObjectAttr "style.borderColor" (toJSVal "pink") target world
+		= ({state & color = color}, world)
 
-		# (d, e, target) = getObjectAttr d e "target"
-		# (d, target, _) = setObjectAttr d target "style.borderColor" "pink"
-		= (d, {state & color = color})
+	getCoordinates e world
+	    # (x, world) = jsGetObjectAttr "layerX" e world
+	    # (y, world) = jsGetObjectAttr "layerY" e world
+	    = ((jsValToInt x, jsValToInt y), e, world)
 
-	getCoordinates d e
-	    # (d, e, x) = getObjectAttr d e "layerX"
-	    # (d, e, y) = getObjectAttr d e "layerY"
-	    = (d, e, (fromHtmlObject x, fromHtmlObject y))
+	onMouseDown state _ e world
+	    # (coords, e, world) = getCoordinates e world
+		= ({state & mouseDown = Just coords, lastDraw = Nothing}, world)
 
-	onMouseDown state _ e d
-	    # (d, e, coords) = getCoordinates d e
-		= (d, {state & mouseDown = Just coords, lastDraw = Nothing})
-
-	getCanvas d temp
+	getCanvas temp world
 		= case temp of
-			True = getDomElement d "tempcanvas"
-			_	 = getDomElement d "canvas"
+			True = getDomElement "tempcanvas" world
+			_	 = getDomElement "canvas" world
 
-	getContext d temp
-	 	# (d, canvas) = getCanvas d temp
-		# (d, canvas, context) = runObjectMethod d canvas "getContext" [toHtmlObject "2d"]  // not "2D" !
-		= (d, context)
+	getContext temp world
+	 	# (canvas, world) = getCanvas temp world
+		# (context, canvas, world) = callObjectMethod "getContext" [toJSArg "2d"] canvas world // not "2D" !
+		= (context, world)
 
-	clearContext d context
-		# (d, context, _) = runObjectMethod d context "clearRect" 
-				[toHtmlObject 0, toHtmlObject 0, toHtmlObject canvasWidth, toHtmlObject canvasHeight] 
-		= (d, context)
+	clearContext context world
+		# (_, context, world) = callObjectMethod "clearRect" 
+				[toJSArg 0, toJSArg 0, toJSArg canvasWidth, toJSArg canvasHeight] context world
+		= (context, world)
 
-	onMouseUp state _ e d
-		# (d, tempcanvas) = getCanvas d True
-		# (d, tempcontext) = getContext d True
-		# (d, context) = getContext d False
-		# (d, context, _) = runObjectMethod d context "drawImage" [toHtmlObject tempcanvas, toHtmlObject 0, toHtmlObject 0]
-		# (d, tempcontext) = clearContext d tempcontext
+	onMouseUp state _ e world
+		# (tempcanvas, world)  = getCanvas True world
+		# (tempcontext, world) = getContext True world
+		# (context, world)     = getContext False world
+		# (_, context, world)  = callObjectMethod "drawImage" [toJSArg tempcanvas, toJSArg 0, toJSArg 0] context world
+		# (tempcontext, world) = clearContext tempcontext world
 		| isJust state.lastDraw
-			= (d, {state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing})
-			= (d, {state & mouseDown = Nothing})
+			= ({state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing}, world)
+			= ({state & mouseDown = Nothing}, world)
 
 	// generate onDrawing event
-	onMouseMove state _ e d
+	onMouseMove state _ e world
 		= case state.mouseDown of
-			Just coord = onDrawing state coord e d
-			_          = (d, state)
+			Just coord = onDrawing state coord e world
+			_          = (state, world)
 				
-	drawLine d context color x1 y1 x2 y2
-		# (d, context, _) = runObjectMethod d context "beginPath" []
-		# (d, context, _) = setObjectAttr d context "strokeStyle" color
-		# (d, context, _) = runObjectMethod d context "moveTo" [toHtmlObject x1, toHtmlObject y1]
-		# (d, context, _) = runObjectMethod d context "lineTo" [toHtmlObject x2, toHtmlObject y2]
-		# (d, context, _) = runObjectMethod d context "stroke" []
-		= (d, context)				
+	drawLine context color x1 y1 x2 y2 world
+		# (_, context, world) = callObjectMethod "beginPath" [] context world
+		# (context, world)    = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
+		# (_, context, world) = callObjectMethod "moveTo" [toJSArg x1, toJSArg y1] context world
+		# (_, context, world) = callObjectMethod "lineTo" [toJSArg x2, toJSArg y2] context world
+		# (_, context, world) = callObjectMethod "stroke" [] context world
+		= (context, world)
 
-	drawRect d context color x1 y1 x2 y2
-		# (d, context, _) = setObjectAttr d context "strokeStyle" color
-		# (d, context, _) = runObjectMethod d context "strokeRect" 
-				[toHtmlObject x1, toHtmlObject y1, toHtmlObject (x2 - x1), toHtmlObject (y2 - y1)]
-		= (d, context)
+	drawRect context color x1 y1 x2 y2 world
+		# (context, world) = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
+		# (_, context, world) = callObjectMethod "strokeRect" 
+				[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
+				context world
+		= (context, world)
 
-	drawFilledRect d context color x1 y1 x2 y2
-		# (d, context, _) = setObjectAttr d context "fillStyle" color
-		# (d, context, _) = runObjectMethod d context "fillRect"
-				[toHtmlObject x1, toHtmlObject y1, toHtmlObject (x2 - x1), toHtmlObject (y2 - y1)]
-		= (d, context)
+	drawFilledRect context color x1 y1 x2 y2 world
+		# (context, world)   = jsSetObjectAttr "fillStyle" (toJSVal color) context world
+		# (_, context, world) = callObjectMethod "fillRect"
+				[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
+				context world
+		= (context, world)
 
-	drawCircle d context fill color x1 y1 x2 y2
-		# (d, context, _) = runObjectMethod d context "beginPath" []
-		# (d, context, _) = setObjectAttr d context "strokeStyle" color
-		# (d, context, _) = setObjectAttr d context "fillStyle" color
+	drawCircle context fill color x1 y1 x2 y2 world
+		# (_, context, world) = callObjectMethod "beginPath" [] context world
+		# (context, world) = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
+		# (context, world) = jsSetObjectAttr "fillStyle" (toJSVal color) context world
 	
-		# (d, context, _) = runObjectMethod d context "arc"
-						[toHtmlObject (center x1 x2), toHtmlObject (center y1 y2)
-						,toHtmlObject (toInt ((distance x1 y1 x2 y2)/2.0))
-						,toHtmlObject 0, toHtmlObject (3.14159265*2.0), toHtmlObject True]
+		# (_, context, world) = callObjectMethod "arc"
+						[toJSArg (center x1 x2), toJSArg (center y1 y2)
+						,toJSArg (toInt ((distance x1 y1 x2 y2)/2.0))
+						,toJSArg 0, toJSArg (3.14159265*2.0), toJSArg True]
+						context world
 							
-		# (d, context, _) = case fill of 
-						True = runObjectMethod d context "fill" []
-						_	 = runObjectMethod d context "stroke" []
-		# (d, context, _) = runObjectMethod d context "closePath" []
-		= (d, context)
+		# (_, context, world) = case fill of 
+						True = callObjectMethod "fill" [] context world
+						_	 = callObjectMethod "stroke" [] context world
+
+		# (_, context, world) = callObjectMethod "closePath" [] context world
+		= (context, world)
 	where
 		center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
 		distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
 				
-	onDrawing state (dx,dy) e d
-	    # (d, e, (x, y)) = getCoordinates d e
-		# (d, tempcontext) = getContext d True
+	onDrawing state (dx,dy) e world
+	    # ((x, y), e, world) = getCoordinates e world
+		# (tempcontext, world) = getContext True world
 			
 		// Don't clear for pencil
-		# (d, tempcontext) = case state.tool of 
-				"P" = (d, tempcontext)
-				    = clearContext d tempcontext
+		# (tempcontext, world) = case state.tool of 
+				"P" = (tempcontext, world)
+				    = clearContext tempcontext world
 
 		# drawType = case state.tool of	
 				"P" = DrawLine state.color dx dy x y
@@ -399,29 +398,29 @@ where
 				"C"	= DrawCircle state.color False dx dy x y
 				"c"	= DrawCircle state.color True dx dy x y
 
-		# (d, tempcontext) = draw d tempcontext drawType
+		# (tempcontext, world) = draw tempcontext drawType world
 			
 		// Update start coordinates for pencil
 		= case state.tool of 
-				"P" = (d, {state & mouseDown = Just (x,y), draw=[drawType:state.draw], lastDraw = Nothing})
-				_   = (d, {state & lastDraw = Just drawType})
+				"P" = ({state & mouseDown = Just (x,y), draw=[drawType:state.draw], lastDraw = Nothing}, world)
+				_   = ({state & lastDraw = Just drawType}, world)
 
-	draw d context (DrawLine color x1 y1 x2 y2)
-		= drawLine d context color x1 y1 x2 y2
-	draw d context (DrawRect color False x1 y1 x2 y2)
-		= drawRect d context color x1 y1 x2 y2
-	draw d context (DrawRect color True x1 y1 x2 y2)
-		= drawFilledRect d context color x1 y1 x2 y2
-	draw d context (DrawCircle color fill x1 y1 x2 y2)
-		= drawCircle d context fill color x1 y1 x2 y2
+	draw context (DrawLine color x1 y1 x2 y2) world
+		= drawLine context color x1 y1 x2 y2 world
+	draw context (DrawRect color False x1 y1 x2 y2) world
+		= drawRect context color x1 y1 x2 y2 world
+	draw context (DrawRect color True x1 y1 x2 y2) world
+		= drawFilledRect context color x1 y1 x2 y2 world
+	draw context (DrawCircle color fill x1 y1 x2 y2) world
+		= drawCircle context fill color x1 y1 x2 y2 world
 
-	onClickClear state _ e d
-		# (d, context) = getContext d False
-		# (d, context) = clearContext d context
-		= (d, {state & draw = []})
+	onClickClear state _ e world
+		# (context, world) = getContext False world
+		# (context, world) = clearContext context world
+		= ({state & draw = []}, world)
 			
-	onClickFinish state _ e d
-		= (d, {state & finished = True})
+	onClickFinish state _ e world
+		= ({state & finished = True}, world)
 
 //-------------------------------------------------------------------------
 
@@ -432,18 +431,19 @@ taskletExamples =
 	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3,
 	 workflow "Google MAP" "Basic Google Maps functionality" tasklet4]
 
-tasklet2 :: Task Drawing
-tasklet2
-	= 		mkTask painterTasklet
-		>>* [ OnValue ifStable 
-			] 
-
 tasklet1 :: Task Int
 tasklet1
 	= 		mkTask pushTasklet
 		>>* [ OnAction ActionOk (ifValue (\n -> n >= 3))
             ] 
 
+tasklet2 :: Task Drawing
+tasklet2
+	= 		mkTask painterTasklet
+		>>* [ OnValue ifStable 
+			] 
+
+			
 tasklet3 :: Task (Maybe GPSCoord)
 tasklet3
 	= 		mkTask geoTasklet
@@ -454,10 +454,13 @@ tasklet3
 tasklet4 :: Task (Real, Real)
 tasklet4
 	= 		mkTask (googleMapsTasklet 47.471944 19.050278)
+
+
 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
 	= Nothing
+
 
 ifStable (Value v True) = Just (return v)
 ifStable _				= Nothing

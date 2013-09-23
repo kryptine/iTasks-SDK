@@ -3,47 +3,50 @@ implementation module iTasks.API.Extensions.SQLDatabase
 import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error, Data.Func
 import iTasks.Framework.IWorld, iTasks.Framework.Shared
 from Data.SharedDataSource import class reportSDSChange(..)
+import qualified Data.Map
+
+//Extend Resource type for mysql resources
+:: *Resource | MySQLResource *(!*MySQLCursor, !*MySQLConnection, !*MySQLContext)
 
 derive class iTask SQLValue, SQLDate, SQLTime
-
 
 sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
 								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> ReadWriteShared r w 
 sqlShare db name readFun writeFun = createChangeOnWriteSDS "SQLShares" name read write
 where
-	read iworld=:{IWorld|world}
-		# (mbOpen,world) = openMySQLDb db world
+	read iworld
+		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e,  {IWorld|iworld & world = world})
+			Error e			= (Error e,  iworld)
 			Ok (cur,con,cxt)
 				# (res,cur) = readFun cur
-				# world				= closeMySQLDb cur con cxt world
-				= (res,{IWorld|iworld & world = world})
-	write w iworld=:{IWorld|world}
-		# (mbOpen,world) = openMySQLDb db world
+				# iworld	= closeMySQLDb cur con cxt iworld
+				= (res,iworld)
+	write w iworld
+		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e,  {IWorld|iworld & world = world})
+			Error e			= (Error e, iworld)
 			Ok (cur,con,cxt)
 				# (res,cur) = writeFun w cur
-				# world		= closeMySQLDb cur con cxt world
-				= (res,{IWorld|iworld & world = world})
+				# iworld	= closeMySQLDb cur con cxt iworld
+				= (res,iworld)
 
 sqlExecute :: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
 sqlExecute db touchIds queryFun = mkInstantTask exec
 where
-	exec _ iworld=:{IWorld|world}
-		# (mbOpen,world)	= openMySQLDb db world
+	exec _ iworld
+		# (mbOpen,iworld)	= openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
+			Error e			= (Error (dynamic e,toString e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= queryFun cur
-				# world			= closeMySQLDb cur con cxt world
+				# iworld		= closeMySQLDb cur con cxt iworld
 				= case res of
-					Error e		= (Error (dynamic e,toString e),  {IWorld|iworld & world = world})
+					Error e		= (Error (dynamic e,toString e), iworld)
 					Ok v		
                         //Trigger share change for all touched ids
                         //# iworld = seqSt (\s w -> queueWork (TriggerSDSChange s,Nothing) w) touchIds {IWorld|iworld & world = world}
-                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (\Void->True) w) touchIds {IWorld|iworld & world = world}
+                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (\Void->True) w) touchIds iworld
                         = (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
@@ -74,33 +77,39 @@ sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values)
 sqlSelectShare :: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
 sqlSelectShare db name query values = createChangeOnWriteSDS "SQLShares" name read write
 where
-	read iworld=:{IWorld|world}
-		# (mbOpen,world) = openMySQLDb db world
+	read iworld
+		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e,  {IWorld|iworld & world = world})
+			Error e			= (Error e, iworld)
 			Ok (cur,con,cxt)
 				# (err,cur)			= execute query values cur
-				| isJust err		= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+				| isJust err		= (Error (toString (fromJust err)),iworld)
 				# (err,rows,cur)	= fetchAll cur
-				| isJust err		= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-				# world				= closeMySQLDb cur con cxt world
-				= (Ok rows,{IWorld|iworld & world = world})
+				| isJust err		= (Error (toString (fromJust err)),iworld)
+				# iworld				= closeMySQLDb cur con cxt iworld
+				= (Ok rows,iworld)
 
     write Void iworld = (Ok Void,iworld)
 		
-openMySQLDb :: !SQLDatabase !*World -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*World)
-openMySQLDb db world
-	# (err,mbContext,world) 	= openContext world
-	| isJust err				= (Error (toString (fromJust err)),world)
-	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
-	| isJust err				= (Error (toString (fromJust err)),world)
-	# (err,mbCursor,connection)	= openCursor (fromJust mbConn)
-	| isJust err				= (Error (toString (fromJust err)),world)
-	= (Ok (fromJust mbCursor,connection, context), world)
+openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
+openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}
+    = (Ok con, {IWorld|iworld & resources=Nothing})
+openMySQLDb db iworld=:{IWorld|resources=Nothing}
+            # iworld=:{IWorld|world} = {IWorld|iworld & resources = Nothing}
+        	# (err,mbContext,world) 	= openContext world
+        	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+        	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
+        	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+        	# (err,mbCursor,connection)	= openCursor (fromJust mbConn)
+        	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+        	= (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
 				
-closeMySQLDb :: !*MySQLCursor !*MySQLConnection !*MySQLContext !*World -> *World
-closeMySQLDb cursor connection context world
+closeMySQLDb :: !*MySQLCursor !*MySQLConnection !*MySQLContext !*IWorld -> *IWorld
+closeMySQLDb cursor connection context iworld=:{IWorld|resources=Nothing}
+   = {IWorld|iworld & resources=Just (MySQLResource (cursor,connection,context))}
+closeMySQLDb cursor connection context iworld=:{IWorld|world}
 	# (err,connection)	= closeCursor cursor connection
 	# (err,context) 	= closeConnection connection context
 	# (err,world)		= closeContext context world
-	= world
+	= {IWorld|iworld & world = world}
+

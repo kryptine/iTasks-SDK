@@ -145,12 +145,11 @@ Ext.define('itwc.component.edit.Editlet',{
 					}
 					return [5,"Text.JSON.JSONArray",args];
 				} else {
-					args = [];
-					i = 0;
-					for(k in obj) {
-						args[i++] = [k,me.jsToSaplJSONNode(obj[k])];
-					}
-					return [6,"Text.JSON.JSONObject",Sapl.toList(args)];
+                    args = [1,"_predefined._Nil"];
+                    for(k in obj) {
+                        args = [0,"_predefined._Cons",Sapl.toTuple([k,me.jsToSaplJSONNode(obj[k])]),args];
+                    }
+                    return [6,"Text.JSON.JSONObject",args];
 				}
 		}
 		return [8,'JSONError'];

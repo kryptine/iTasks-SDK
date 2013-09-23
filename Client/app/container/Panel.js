@@ -2,7 +2,6 @@ Ext.define('itwc.container.Panel',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_panel',
 	requires: ['itwc.layout.container.Box'],
-	autoScroll: true,
 	mixins: ['itwc.container.HotkeyArea'], 
 	
 	//Default container config
@@ -17,6 +16,7 @@ Ext.define('itwc.container.Panel',{
 	height: 'flex',
 	minWidth: 'wrap',
 	minHeight: 'wrap',
+	autoScroll: true,
 
 	initComponent: function() {
 		//Set shrinkWrap using width & height values

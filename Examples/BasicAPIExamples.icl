@@ -1,7 +1,9 @@
 implementation module BasicAPIExamples
 import iTasks, iTasks.API.Extensions.Admin.UserAdmin, iTasks.API.Extensions.Admin.WorkflowAdmin
+import iTasks.API.Extensions.GIS.GoogleMap
 import Text
 import ligrettoTOP
+
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
 */
@@ -9,7 +11,7 @@ import ligrettoTOP
 //* Running the tasks in a workflow browser
 
 
-import ligrettoTOP
+//import ligrettoTOP
 
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
@@ -63,7 +65,7 @@ basicAPIExamples =
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
-	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
+//	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
 	]
 
 Start :: *World -> *World

@@ -114,7 +114,7 @@ loadDocumentMeta documentId iworld
 	= loadValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") iworld
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
-documentLocation documentId iworld=:{build,dataDirectory}
+documentLocation documentId iworld=:{build,systemDirectories={dataDirectory}}
 	= (storePath dataDirectory build </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
 
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld

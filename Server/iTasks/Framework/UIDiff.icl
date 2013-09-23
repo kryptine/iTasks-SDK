@@ -90,22 +90,22 @@ diffControls path event differs c1 c2
 		// Tasklet on the right hand side:
 		// check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
-			| opts1.UITaskletOpts.iid == opts2.UITaskletOpts.iid
+			| opts1.UITaskletOpts.taskId == opts2.UITaskletOpts.taskId
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
+					(UITaskletPH sOpts2 {UITaskletPHOpts|taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
 				= [DiffImpossible]
 		(UITaskletPH sOpts1 opts1, UITasklet sOpts2 opts2)
-			| opts1.UITaskletPHOpts.iid == opts2.UITaskletOpts.iid		
+			| opts1.UITaskletPHOpts.taskId == opts2.UITaskletOpts.taskId		
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|iid = opts2.UITaskletOpts.iid, taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
+					(UITaskletPH sOpts2 {UITaskletPHOpts|taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
 				= [DiffImpossible]
 		// Placeholder on the right hand side: update
 		(UITaskletPH sOpts1 opts1, UITaskletPH sOpts2 opts2)
-			| opts1.UITaskletPHOpts.iid == opts2.UITaskletPHOpts.iid		
+			| opts1.UITaskletPHOpts.taskId == opts2.UITaskletPHOpts.taskId		
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl (UITaskletPH sOpts2 opts2)])]]]
 				= [DiffImpossible]
 		(UITasklet sOpts1 opts1, UITaskletPH sOpts2 opts2)
-			| opts1.UITaskletOpts.iid == opts2.UITaskletPHOpts.iid		
+			| opts1.UITaskletOpts.taskId == opts2.UITaskletPHOpts.taskId		
 				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl (UITaskletPH sOpts2 opts2)])]]]
 				= [DiffImpossible]
 		// Editlets have custom diff functions which are passed in separately

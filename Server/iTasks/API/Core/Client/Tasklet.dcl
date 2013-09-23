@@ -1,16 +1,27 @@
-definition module iTasks.Framework.ClientSupport.Tasklet
+definition module iTasks.API.Core.Client.Tasklet
 
 import StdString
-import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.Framework.ClientSupport.SaplHtml
+import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.API.Core.Client.Interface
 
 :: JSONString :== String
-:: TaskInstanceId :== String
+
+// For interface functions
+:: EventQueue
+
+:: HtmlEventName :== String
+
+:: HtmlEvent st = E.e: HtmlEvent !DomElementId !HtmlEventName (HtmlEventHandlerFunc st e)
+:: HtmlEventHandlerFunc st e :== (st TaskId (JSVal e) *JSWorld -> *(!st,!*JSWorld))
+
+createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal (JSFunction b)) 
 
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
                  | TaskletTUI  !(TaskletTUI  st)
                  | NoGUI
 
-:: GeneratorFunc st :== TaskInstanceId TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
+:: GeneratorFunc st :== TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
+
+:: HtmlDef = E.a: HtmlDef a & toString a
 
 :: TaskletHTML st = 
 	{ width 			:: !UISize
@@ -18,8 +29,6 @@ import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.Framework.ClientSu
 	, html				:: !HtmlDef
 	, eventHandlers		:: ![HtmlEvent st] 
 	} 
-
-:: HtmlDef = E.a: HtmlDef a & toString a
 
 /**
 * Client side event handler. Event types:
@@ -46,10 +55,6 @@ import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.Framework.ClientSu
 	, tweakUI 			:: !(UIControl -> UIControl)
 	}
 
-:: TaskletInstance st res :== (TaskInstanceId, Tasklet st res)
-
-mkInstanceId :: Task String
-
 mkTask :: (Tasklet st res) -> Task res | iTask res
 mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTask res & iTask r
 
@@ -61,4 +66,11 @@ mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTas
 
 :: InterfaceFun st = E.a: InterfaceFun !String !(st (Maybe Dynamic) *EventQueue -> *(!*EventQueue, st, a)) 
 
-mkInterfaceTask :: (TaskletInstance st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+mkInterfaceTask :: (Tasklet st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
+
+/*
+* Fire own event
+*/
+// fireEvent :: !*EventQueue !TaskId !String a -> *EventQueue
+
+

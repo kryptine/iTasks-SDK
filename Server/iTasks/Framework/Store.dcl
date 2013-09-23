@@ -28,6 +28,7 @@ from iTasks.Framework.IWorld import :: IWorld
 NS_TASK_INSTANCES		:== "task-instances"
 NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
+NS_JAVASCRIPT_CACHE     :== "js-cache"
 
 /**
 * Create a shared data source for a piece of data in the store

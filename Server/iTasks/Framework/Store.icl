@@ -6,13 +6,19 @@ import Data.Maybe, Data.Map, Data.Functor
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.JSON
 import Data.SharedDataSource
-from iTasks.Framework.IWorld		import :: IWorld(..), :: Work, :: UIMessage
+from iTasks.Framework.IWorld		import :: IWorld(..), :: SystemDirectories(..), :: Work, :: UIMessage, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIDiffers
 from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
+
+from Data.Set import :: Set
+from Sapl.Linker.LazyLinker import :: LoaderState
+from Sapl.Linker.SaplLinkerShared import :: FuncTypeMap, :: LineType
+from Sapl.Target.JS.Flavour import :: Flavour
+from Sapl.SaplParser import :: ParserState
 
 :: StoreItem =
 	{ format		:: !StoreFormat
@@ -48,7 +54,7 @@ storeValue namespace key value iworld
 	= storeValueAs defaultStoreFormat namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory} 
+storeValueAs format namespace key value iworld=:{IWorld|build,systemDirectories={dataDirectory}}
 	= writeToDisk namespace key {StoreItem|format=format,content=content} (storePath dataDirectory build) iworld
 where
 	content = case format of	
@@ -56,7 +62,7 @@ where
 		SFDynamic	= serialize value
 
 storeBlob :: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
-storeBlob namespace key blob iworld=:{IWorld|build,dataDirectory}
+storeBlob namespace key blob iworld=:{IWorld|build,systemDirectories={dataDirectory}}
 	= writeToDisk namespace key {StoreItem|format=SFDynamic,content=blob} (storePath dataDirectory build) iworld
 
 writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
@@ -84,7 +90,7 @@ writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|wo
 	= {IWorld|iworld & world = world}
 	
 loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
-loadValue namespace key iworld=:{IWorld|build,dataDirectory}
+loadValue namespace key iworld=:{IWorld|build,systemDirectories={dataDirectory}}
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue (not old) item of
@@ -107,7 +113,7 @@ unpackValue allowFunctions {StoreItem|format=SFDynamic,content}
 		Error _  = Nothing
 
 loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!Bool,!*IWorld)
-loadStoreItem namespace key iworld=:{build,dataDirectory,world}
+loadStoreItem namespace key iworld=:{build,systemDirectories={dataDirectory},world}
 	= case loadFromDisk namespace key (storePath dataDirectory build) world of
 		(Just item,world)	= (Just item,False,{iworld & world = world})
 		(Nothing,world)	
@@ -118,14 +124,14 @@ loadStoreItem namespace key iworld=:{build,dataDirectory,world}
 				= (Nothing,False,{iworld & world = world})
 
 loadBlob :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe {#Char}, !*IWorld)
-loadBlob namespace key iworld=:{build,dataDirectory,world}
+loadBlob namespace key iworld=:{build,systemDirectories={dataDirectory},world}
 	= case loadFromDisk namespace key (storePath dataDirectory build) world of
 		(Just {StoreItem|content},world)	= (Just content, {IWorld|iworld & world = world})
 		(Nothing,world)						= (Nothing, {IWorld|iworld & world = world})
 	
 //Look in stores of previous builds for a version of the store that can be migrated
 findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
-findOldStoreItem namespace key iworld=:{application,build,appDirectory,dataDirectory,world}
+findOldStoreItem namespace key iworld=:{application,build,systemDirectories={appDirectory,dataDirectory},world}
 	# (builds,world) = readBuilds dataDirectory world
 	  //Also Look in 'old' data directory
 	# (deprBuilds,world) = readBuilds (appDirectory </> application) world
@@ -184,7 +190,7 @@ deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
 
 deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{build,dataDirectory,world}
+deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{build,systemDirectories={dataDirectory},world}
 	//Delete items from disk
 	# world = deleteFromDisk world
 	= {iworld & world = world}

@@ -3,7 +3,6 @@ Ext.define('itwc.container.Tasklet', {
 	alias: 'widget.itwc_tasklet',
 	
 	taskId:  null,
-	iid: null,
 	
 	// script fields
 	script: null,
@@ -60,7 +59,7 @@ Ext.define('itwc.container.Tasklet', {
 
 		eval("var tmp = eval(" + this.st + ");");
 		this.st = tmp;
-		itwc.global.controller.tasklets[this.iid] = this;			
+		itwc.global.controller.tasklets[this.taskId] = this;			
 
 		if(this.resultFunc != null){
 			eval("var tmp = eval(" + this.resultFunc + ");");

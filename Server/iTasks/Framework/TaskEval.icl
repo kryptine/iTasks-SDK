@@ -22,7 +22,7 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
 	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo (SessionInstance {SessionInfo|sessionId=sessionId,lastEvent=0}) (TaskId 0 0) mmeta pmeta
+	# meta					= createMeta instanceNo (SessionInstance {SessionInfo|sessionId=sessionId,lastEvent=0}) (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
@@ -38,22 +38,22 @@ where
 	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
 		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 
-createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo)  !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task mbInstanceNo mmeta issuer listId mbAttachment iworld=:{currentDateTime,taskTime}
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachment iworld=:{currentDateTime,taskTime}
 	# (instanceNo,iworld)	= case mbInstanceNo of
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
 	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId mmeta pmeta
+	# meta					= createMeta instanceNo (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (detachedInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
     # iworld                = if (isJust mbAttachment) (queueUrgentEvaluate instanceNo iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
-createMeta :: !InstanceNo !TIType !TaskId !ManagementMeta !ProgressMeta  -> TIMeta
-createMeta instanceNo instanceType listId mmeta pmeta
-	= {TIMeta|instanceNo=instanceNo,instanceType=instanceType,listId=listId,management=mmeta,progress=pmeta}
+createMeta :: !InstanceNo !TIType !TaskId !(Maybe String) !ManagementMeta !ProgressMeta  -> TIMeta
+createMeta instanceNo instanceType listId name mmeta pmeta
+	= {TIMeta|instanceNo=instanceNo,instanceType=instanceType,listId=listId,name=name,management=mmeta,progress=pmeta}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -296,8 +296,8 @@ topListShare = mapReadWrite (readPrj,writePrj) (detachedInstances >+| currentIns
 where
 	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = [toTaskListItem m \\ (_,m) <- ('Data.Map'.toList instances)], selfId = TaskId currentInstance 0}
 
-    toTaskListItem {TIMeta|instanceNo,listId,progress,management}
-	    = {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
+    toTaskListItem {TIMeta|instanceNo,listId,name,progress,management}
+	    = {taskId = TaskId instanceNo 0, listId = listId, name = name, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
 
     writePrj [] instances = Nothing
     writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)

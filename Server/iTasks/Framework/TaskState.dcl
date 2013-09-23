@@ -14,6 +14,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	{ instanceNo	:: !InstanceNo			//Unique global identification
     , instanceType  :: !TIType
 	, listId        :: !TaskId              //Reference to parent tasklist
+    , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
 	}
@@ -27,6 +28,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 :: SessionInfo =
 	{ sessionId		:: SessionId
 	, lastEvent		:: EventNo
+	
 	}
 	
 :: TIReduct =
@@ -54,6 +56,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	| TCStable		    !TaskId !TaskTime !DeferredJSON
 	| TCNop			
 	| TCDestroy		    !TaskTree															//Marks a task state as garbage that must be destroyed
+	| TCTasklet			
 
 :: DeferredJSON
 	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
