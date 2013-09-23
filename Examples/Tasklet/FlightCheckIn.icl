@@ -1,6 +1,6 @@
 module FlightCheckIn
 
-import iTasks,iTasks.Framework.ClientSupport.Tasklet,FlightSupport
+import iTasks,iTasks.API.Core.Client.Tasklet,FlightSupport
 
 maybeStable :: (Maybe a) -> (TaskValue a)
 maybeStable (Just v) = Value v True
@@ -103,7 +103,7 @@ chooseSeat (Just f) = mkTask seatTasklet
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
-		{ generatorFunc		= (\_ _ _ iworld -> (TaskletHTML gui, Nothing, iworld))
+		{ generatorFunc		= (\_ _ iworld -> (TaskletHTML gui, Nothing, iworld))
 		, resultFunc		= maybeStable
 		, tweakUI  			= setTitle "Seat chooser Tasklet"
 		}
@@ -128,9 +128,9 @@ where
  		 HtmlEvent (genSeatId seat) "mouseover" (setColor "red"),
  		 HtmlEvent (genSeatId seat) "mouseout" (setColor "white")]
  		
- 	setState newst _ _ _ d  = (d, newst)
- 	setColor color st _ e d	=
-		(fst3 (setObjectAttr d e "target.style.backgroundColor" color), st)
+ 	setState newst _ _ _ world  = (newst, world)
+ 	setColor color st _ e world	=
+		(st, snd (jsSetObjectAttr "target.style.backgroundColor" (toJSVal color) e world))
 
 	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]
 								    [map (\s -> genRowUI (Seat r s)) rowLayout \\ r <- [1 .. f.rows]])

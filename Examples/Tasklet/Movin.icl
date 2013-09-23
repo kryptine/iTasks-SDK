@@ -1,6 +1,6 @@
 module Movin
 
-import iTasks, iTasks.Framework.ClientSupport.Tasklet
+import iTasks, iTasks.API.Core.Client.Tasklet
 
 //-------------------------------------------------------------------------
 
@@ -13,9 +13,9 @@ movinTasklet =
 	, tweakUI  			= id
 	}
 
-generateGUI :: !TaskInstanceId !TaskId (Maybe Position) !*IWorld -> *(!TaskletGUI Position, !Position, !*IWorld)
-generateGUI iid taskId Nothing iworld  = generateGUI iid taskId (Just 0) iworld
-generateGUI _ _ (Just x) iworld  
+generateGUI :: !TaskId (Maybe Position) !*IWorld -> *(!TaskletGUI Position, !Position, !*IWorld)
+generateGUI taskId Nothing iworld  = generateGUI taskId (Just 0) iworld
+generateGUI _ (Just x) iworld  
 
 	# gui = { TaskletHTML
 			| width  		= ExactSize 800
@@ -29,9 +29,9 @@ generateGUI _ _ (Just x) iworld
 where
     style = "position:absolute; left:"+++toString x+++"px;top:8em;width:5em;line-height:3em;background:#99ccff;border:1px solid #003366;white-space:nowrap;padding:0.5em;"
     
-	onInit x _ _ d
-		# (d, str) = setDomAttr d "object" "style.left" (toString x+++"px")
-		= (d, x)
+	onInit x _ _ world
+		# world = setDomAttr "object" "style.left" (toJSVal (toString x+++"px")) world
+		= (x, world)
 
 :: Cmd = SetPosX Position
 
@@ -52,7 +52,7 @@ where
 
 //UTIL
 (>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskb = step taska [WhenStable (const taskb)]
+(>>-) taska taskb = step taska (const Nothing) [OnValue (ifStable (const taskb))]
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void
