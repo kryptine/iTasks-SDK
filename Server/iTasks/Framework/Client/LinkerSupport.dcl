@@ -2,7 +2,6 @@ definition module iTasks.Framework.Client.LinkerSupport
 
 import StdString
 import Data.Maybe, Data.Void
-import iTasks.Framework.Client.SaplHtml
 import iTasks.Framework.IWorld
 import iTasks.API.Core.Client.Editlet
 

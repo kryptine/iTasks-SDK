@@ -2,8 +2,6 @@ definition module iTasks.API.Core.Client.Tasklet
 
 import StdString
 import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.API.Core.Client.Interface
-import iTasks.API.Core.Client.Types
-import iTasks.Framework.Client.SaplHtml
 
 :: JSONString :== String
 

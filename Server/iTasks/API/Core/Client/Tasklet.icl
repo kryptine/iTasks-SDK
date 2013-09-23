@@ -1,9 +1,12 @@
 implementation module iTasks.API.Core.Client.Tasklet
 
 import iTasks, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition
-import StdFile
+import StdFile, StdMisc
 import System.Time, System.File, System.FilePath
 import iTasks.Framework.Client.LinkerSupport
+
+import iTasks.Framework.Client.Tasklet
+import iTasks.API.Core.Client.Interface
 
 import Data.Functor, Data.Error
 
@@ -48,8 +51,8 @@ mkTaskWithShared tasklet shared updateFunc = Task taskFunc
 where
 
 	// Init: no session id
-	taskFunc event taskRepOpts context=:(TCInit _ ts) iworld=:{currentSession=Nothing}
-		= (ValueResult NoValue (taskInfo ts) NoRep context, iworld)
+//	taskFunc event taskRepOpts context=:(TCInit _ ts) iworld=:{currentSession=Nothing}
+//		= (ValueResult NoValue (taskInfo ts) NoRep context, iworld)
 
 	// Init
 	taskFunc event taskRepOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -65,8 +68,8 @@ where
 		= (result, printlnI ("mkTaskWithShared ("+++toString taskId+++"): init") iworld)		
 
 	// Refresh: no session id
-	taskFunc (RefreshEvent _) taskRepOpts context=:(TCInteract _ ts _ _ _ _) iworld=:{currentSession=Nothing}
-		= (ValueResult NoValue (taskInfo ts) NoRep context, iworld)
+//	taskFunc (RefreshEvent _) taskRepOpts context=:(TCInteract _ ts _ _ _ _) iworld=:{currentSession=Nothing}
+//		= (ValueResult NoValue (taskInfo ts) NoRep context, iworld)
 
 	// Refresh: server restart, shared changes
 	taskFunc (RefreshEvent _) taskRepOpts context=:(TCInteract taskId=:(TaskId instanceNo _) ts rJsonRes vJsonRes d1 d2) iworld
@@ -158,16 +161,18 @@ where
  
 	// Edit: "result"
 	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
-		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) (TCBasic taskId ts jsonRes False)
-		= (result, printlnI "result" iworld) 
+		| targetTaskId == taskId	
+			# res = fromJust (fromJSON (jsonRes))
+			# result = ValueResult res (taskInfo ts) (placeHolderRep taskId Nothing) (TCBasic taskId ts jsonRes False)
+			= (result, printlnI "result" iworld) 
  
 	// Edit: "finalize"
 	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
-		# res = fromJust (fromJSON (jsonRes))
-		# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
-		# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))
-		= (result, printlnI "finalize" iworld)  
+		| targetTaskId == taskId	
+			# res = fromJust (fromJSON (jsonRes))
+			# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
+			# result = DestroyedResult //ValueResult res (taskInfo ts) rep (TCDestroy (TCBasic taskId ts jsonRes False))
+			= (result, printlnI "finalize" iworld)  
  
 	// Commit
 	taskFunc event taskRepOpts (TCBasic taskId ts jsonRes _) iworld

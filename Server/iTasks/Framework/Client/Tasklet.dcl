@@ -8,7 +8,7 @@ import StdString, Data.Void, iTasks.API.Core.Client.Tasklet
 handleJSEvent :: (HtmlEventHandlerFunc a e) !String *JSWorld -> Void
 
 // ... interface calls
-// handleInterfaceCall :: !f !String !arg -> Void 
+handleInterfaceCall :: !f !String !arg -> Void 
 
 
 
