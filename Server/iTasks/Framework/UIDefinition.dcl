@@ -9,7 +9,8 @@ from Data.Maybe import :: Maybe
 from iTasks.Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map(..)
-from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey, :: GoogleMapIcon
+from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
+from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 
 //TODO:
 //- Multi select in grids

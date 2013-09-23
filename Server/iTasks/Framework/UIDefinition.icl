@@ -1,7 +1,8 @@
 implementation module iTasks.Framework.UIDefinition
 
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
-from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey, :: GoogleMapIcon
+from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
+from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	
 :: UIExtension = ...
 
