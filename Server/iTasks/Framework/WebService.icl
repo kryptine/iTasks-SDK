@@ -205,9 +205,10 @@ where
 
 		scriptfiles = (IF_CLIENT_DEV ["ext/ext-debug.js"] [])
 			++  ["app/taskeval/utils.js","app/taskeval/itask.js" //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
-				,"app/taskeval/builtin.js","app/taskeval/sapl.js"
+				,"app/taskeval/builtin.js","app/taskeval/dynamic.js"
+				,"app/taskeval/sapl.js"
 				,"app/taskeval/db.js", "app/taskeval/debug.js"
-				,"app/taskeval/editlet.js"
+				,"app/taskeval/interface.js"
 				,"lib/codemirror-2.36/codemirror.js"
 				]
 			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"])

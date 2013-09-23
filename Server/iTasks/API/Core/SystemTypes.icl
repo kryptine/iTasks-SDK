@@ -10,10 +10,6 @@ import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.Util
 import iTasks.Framework.SerializationGraphCopy
 import iTasks.Framework.IWorld
 
-//For Client-Side evaluation
-import graph_to_sapl_string, sapldebug, StdFile, StdMisc
-import Sapl.Linker.LazyLinker, Sapl.Target.JS.CodeGeneratorJS, iTasks.Framework.ClientInterface
-
 import System.Time, System.File, System.FilePath
 
 from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlStack, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UISubUI, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
@@ -1266,108 +1262,6 @@ derive JSONDecode		Hidden, Display, Editable, VisualizationHint
 derive gDefault			Hidden, Display, Editable, VisualizationHint
 derive gEq				Hidden, Display, Editable, VisualizationHint
 derive gEditMeta			Hidden, Display, Editable, VisualizationHint
-
-//* Client-side types
-JSONEncode{|Editlet|} _ _ tt = [dynamicJSONEncode tt]		
-JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|Editlet|} _ _ c = (Nothing,c)
-
-gDefault{|Editlet|} fa _
-	= {Editlet|value=fa,html = \_ -> RawText "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
-
-gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
-
-gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
-
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
-	# (jsScript,jsEvents, jsIV, jsGD, jsAD, iworld)	= linkEditletJS [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientGenDiff clientAppDiff iworld
-	# iworld									= addDiffer iworld
-	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
-where
-    htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
-
-	ui jsScript jsEvents jsIV jsGD jsAD
-		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=taskId,editorId=editorId dp,value=toJSONA value, html = toString (html htmlId)
-								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, genDiff = Just jsGD, appDiff = Just jsAD}
-	
-	toJSONA a = case jsonEncA a of
-		[json:_]	= json
-		_			= JSONNull
-	toJSOND d = case jsonEncD d of
-		[json:_]	= json
-		_			= JSONNull
-	
-	clientInit json = case jsonDecA [json] of
-		(Just a,_)	= a
-		_			= abort "Editlet cannot initialize its value"
-	
-	serverGenDiff jsonOld jsonNew
-		= case (jsonDecA [jsonOld],jsonDecA [jsonNew]) of
-			((Just old,_),(Just new,_))	= case genDiff old new of
-				Just diff				= Just (toJSOND diff)
-				Nothing					= Nothing
-			_							= Nothing
-	
-	clientAppDiff json old = case jsonDecD [json] of
-		(Just diff,_)	= appDiff diff old
-		_				= old
-	
-	clientGenDiff old new = case (genDiff old new) of
-		Just diff		= toJSOND diff
-		_				= JSONNull
-	
-	addDiffer iworld=:{IWorld|uiDiffers}
-		= {IWorld|iworld & uiDiffers = put (taskId,editorId dp) serverGenDiff uiDiffers}
-
-//Copy/paste from tasklet linker
-linkEditletJS eventHandlers initValueFunc genDiffFunc appDiffFunc iworld=:{IWorld|world,sdkDirectory}
-	/* 0. Load Clean flavour */
-	# flavfile = sdkDirectory </> "Server" </> "lib" </> "SAPL" </>"clean.f"	
-	# (flavres, world) = readFile flavfile world
-	| isError flavres
-		= abort ("Flavour file cannot be found at " +++ flavfile)
-	# mbFlav = toFlavour (fromOk flavres)
-	| isNothing mbFlav
-		= abort "Error in flavour file"
-	/* 1. First, we collect all the necessary function definitions to generate ParserState */
-	# (ls, world) = generateLoaderState ["sapl"] [] world
-	# saplIV = graph_to_sapl_string initValueFunc
-	# (ls, a, saplIV, world) = linkByExpr ls newAppender saplIV world
-	# saplGD = graph_to_sapl_string genDiffFunc
-	# (ls, a, saplGD, world) = linkByExpr ls a saplGD world
-	# saplAD = graph_to_sapl_string appDiffFunc
-	# (ls, a, saplAD, world) = linkByExpr ls a saplAD world
-	// link functions indicated by event handlers
-	# (ls, a, saplEvents, world) = foldl (\(ls, a, hs, world) (e1,e2,f) = 
-				let (ls2, a2, f2, world2) = linkByExpr ls a (graph_to_sapl_string f) world
-				 in (ls2, a2, [(e1,e2,f2):hs], world2)) 
-			(ls, a, [], world) eventHandlers
-	/* 2. Generate function definitions and ParserState */
-	# sapl = toString a	
-	# (jsScript, mbPst) = case sapl of
-		"" = ("", Nothing)
-		   = let (script, pst) = handlerr (generateJS (fromJust mbFlav) False sapl) in (toString script, Just pst)
-	/* 3. Generate expressions by ParserState */							
-	# jsIV = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplIV mbPst))
-	# jsGD = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplGD mbPst))
-	# jsAD = toString (handlerr (exprGenerateJS (fromJust mbFlav) False saplAD mbPst))
-	# jsEvents = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
-				(exprGenerateJS (fromJust mbFlav) False saplhandler mbPst)))) saplEvents
-	= (jsScript, jsEvents, jsIV, jsGD, jsAD, {iworld & world=world})
-
-handlerr (Error str) = abort ("Editlet error: " +++ str)
-handlerr (Ok a) = a
-
-gEditMeta{|Editlet|} fa _ {Editlet|value} = fa value
-
-gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},omask)
-	= case jDecd [json] of
-		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},Touched)
-		_				= (ov,omask)
-
-gUpdate{|Editlet|} fa _ _ _ _ _ _ _ mv = mv
-
-gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
 //* Framework types
 

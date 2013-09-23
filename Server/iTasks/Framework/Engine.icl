@@ -16,6 +16,11 @@ import iTasks.Framework.Engine, iTasks.Framework.IWorld, iTasks.Framework.TaskEv
 import iTasks.Framework.Util
 import iTasks.Framework.TaskServer
 
+from Data.Set import :: Set, newSet
+from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
+from Sapl.Linker.SaplLinkerShared import :: SkipSet
+from Sapl.Target.JS.Flavour import :: Flavour, toFlavour
+
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world
@@ -152,6 +157,17 @@ where
 	
 	defaultHandlers = [simpleHTTPResponse (startsWith URL_PREFIX, handleStaticResourceRequest)]
 
+readFlavour :: !String !*World -> *(!Flavour, !*World)
+readFlavour sdkPath world
+	# flavfile 			= sdkPath </> "Server" </> "lib" </> "SAPL" </>"clean.f"
+	# (flavres, world) 	= readFile flavfile world
+	| isError flavres
+		= abort ("JavaScript Flavour file cannot be found at " +++ flavfile)
+	# mbFlav 			= toFlavour (fromOk flavres)
+	| isNothing mbFlav
+		= abort "Error in JavaScript flavour file"	
+	= (fromJust mbFlav, world)
+		
 initIWorld :: !FilePath !*World -> *IWorld
 initIWorld sdkPath world
 	# (appName,world) 			= determineAppName world
@@ -169,6 +185,10 @@ initIWorld sdkPath world
 	# (_,world)					= ensureDir "tmp" tmpDir world
 	# storeDir					= dataDir </> "store-"+++ build
 	# (exists,world)			= ensureDir "store" storeDir world
+	
+	# ((lst, ftmap, _), world)  = generateLoaderState ["sapl"] [] ["_SystemDynamic","Text.Encodings.Base64"] world
+	# (flavour, world)			= readFlavour sdkPath world
+	
 	= {IWorld
 	  |application			= appName
 	  ,build				= build
@@ -191,6 +211,7 @@ initIWorld sdkPath world
 	  ,readShares			= []
 	  ,uiDiffers			= newMap
 	  ,sessions				= newMap
+	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
 	  ,shutdown				= False

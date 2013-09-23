@@ -8,7 +8,7 @@ import iTasks.Framework.Util, iTasks.Framework.Shared, iTasks.Framework.Store
 import iTasks.Framework.Generic, iTasks.Framework.UIDefinition
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 
-import iTasks.Framework.ClientSupport.ClientOverride
+import iTasks.Framework.Client.Override
 
 from Data.Map						import qualified get, put, del, newMap, toList, fromList
 from StdFunc					import id, const, o, seq

@@ -1,4 +1,4 @@
-definition module iTasks.Framework.ClientSupport.ClientOverride
+definition module iTasks.API.Core.Client.Override
 
 import StdDynamic, iTasks.API.Core.SystemTypes
 

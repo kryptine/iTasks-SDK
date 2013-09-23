@@ -36,7 +36,7 @@ from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditM
 from iTasks.Framework.Generic.Visualization	import generic gVisualizeText, :: VisualizationFormat(..), visualizeAsText
 from iTasks.Framework.Generic.Defaults		import generic gDefault
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
-from iTasks.Framework.ClientInterface	import :: JSWorld, :: JSPtr
+from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
 import iTasks.Framework.SerializationGraphCopy
 
@@ -396,37 +396,6 @@ derive gEditor			Hidden, Display, Editable, VisualizationHint
 derive gEditMeta			Hidden, Display, Editable, VisualizationHint
 derive gUpdate			Hidden, Display, Editable, VisualizationHint
 derive gVerify			Hidden, Display, Editable, VisualizationHint
-
-//****************************************************************************//
-// Wrapper types for defining custom editor components that can process events
-// that are defined server-side but run client-side
-//****************************************************************************//
-
-:: Editlet a d =
-	{	value		:: a 
-	,	html		:: ComponentId -> HtmlTag
-	,	handlers	:: [ComponentEvent a]
-	//	Functions for efficient bidirectional synchronisation of the editlet value
-	,	genDiff		:: a a -> Maybe d
-	,	appDiff		:: d a -> a
-	}
-
-:: EditletEvent = EditletEvent
-
-:: ComponentId :== String
-:: ComponentEventName :== String
-:: ComponentEvent a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc a)
-:: ComponentEventHandlerFunc a :== ComponentId (JSPtr EditletEvent) a *JSWorld -> *(!a,!*JSWorld)
-
-derive JSONEncode		Editlet
-derive JSONDecode		Editlet
-derive gDefault			Editlet
-derive gEq				Editlet
-derive gVisualizeText	Editlet
-derive gEditor	Editlet
-derive gEditMeta			Editlet
-derive gUpdate			Editlet
-derive gVerify			Editlet
 
 
 //****************************************************************************//

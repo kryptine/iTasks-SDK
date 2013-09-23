@@ -9,11 +9,9 @@ import StdString, Data.Void, Data.Maybe
 :: JSWorld
 :: JSPtr a		//Pointer to a javascript object
 
-
 :: JSFunction a	//A javascript function object
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
-
 
 //CORE JAVASCRIPT ACCESS
 

@@ -1,4 +1,4 @@
-implementation module iTasks.Framework.ClientSupport.ClientOverride
+implementation module iTasks.Framework.Client.Override
 
 import iTasks.API.Core.SystemTypes
 

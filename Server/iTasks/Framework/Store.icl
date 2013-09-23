@@ -14,6 +14,12 @@ from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: Task
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 
+from Data.Set import :: Set
+from Sapl.Linker.LazyLinker import :: LoaderState
+from Sapl.Linker.SaplLinkerShared import :: FuncTypeMap, :: LineType
+from Sapl.Target.JS.Flavour import :: Flavour
+from Sapl.SaplParser import :: ParserState
+
 :: StoreItem =
 	{ format		:: !StoreFormat
 	, content		:: !String

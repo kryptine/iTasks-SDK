@@ -296,7 +296,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 
 :: UITaskletOpts = 
 	{ taskId		 :: !String
-	, iid		     :: !String	// instance id
 	// It contains html _or_ tui
 	, html 			 :: !Maybe String
 	, tui			 :: !Maybe UIDef
@@ -313,7 +312,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 
 :: UITaskletPHOpts =
 	{ taskId		 :: !String
-	, iid		     :: !String	// instance id
 	, updateVal		 :: !Maybe String
 	}
 
