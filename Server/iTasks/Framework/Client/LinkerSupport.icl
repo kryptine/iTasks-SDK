@@ -131,7 +131,7 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 editletLinker :: 
-	![(!String, !String, ComponentEventHandlerFunc a)]	// event handlers
+	![(!String, !String, ComponentEventHandlerFunc a st)]	// event handlers
 	!ivf												// init value function
 	!gdf												// gendiff function
 	!adf												// adddiff function

@@ -12,6 +12,7 @@ import StdEnv, Data.Void, Data.Maybe, Text
 :: JSWindow = JSWindow
 :: JSDocument = JSDocument
 :: JSFunction a = JSFunction
+:: JSObject	= JSObject
 
 jsNull :: (JSVal a)
 jsNull = undef

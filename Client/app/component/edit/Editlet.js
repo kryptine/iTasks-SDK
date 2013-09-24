@@ -13,7 +13,8 @@ Ext.define('itwc.component.edit.Editlet',{
 			tmp;	
 
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
-
+		me.state = [0,"Data.Maybe.Nothing"];
+		
 		if(me.script != null && me.script != ""){
 			evalScript(me.script);
 		}
@@ -84,17 +85,18 @@ Ext.define('itwc.component.edit.Editlet',{
 		var h = function(event){			
 			eval("var fun = eval(" + expr + ");");
 		
-
-			var ys = Sapl.feval([fun,[me.htmlId,event.browserEvent,me.value,"JSWorld"]]);
+			var ys = Sapl.feval([fun,[me.htmlId,event.browserEvent,me.value,me.state,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
+			Sapl.feval(ys[4]);
 			
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
 			
 			me.value = ys[2];
+			me.state = ys[3];			
 			
 			//Synchronize
 			if(diff !== null) {

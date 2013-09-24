@@ -147,7 +147,7 @@ function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
 	
 	// Returns a tuple of the JSWorld and HtmlEventResult	
 	// Looks like: [0, "Tuple2", HtmlEventResult, JSWorld]	
-	var ys = Sapl.feval([expr,[state,taskId,___wrapJS(event),"WORLD"]]);
+	var ys = Sapl.feval([expr,[taskId,___wrapJS(event),state,"WORLD"]]);
 	
 	// The result is only in HNF, so both part of the tuple must be forced,
 	// but the document can be dropped after that.

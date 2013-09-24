@@ -26,14 +26,14 @@ stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id]
 			,appDiff = \n _ -> hd n
 			}
 where
-	onUpdate :: ComponentId (JSVal EditletEvent) String *JSWorld -> (!String, !*JSWorld)
-	onUpdate id event val world
+	onUpdate :: ComponentId (JSVal EditletEvent) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
+	onUpdate id event val st world
 		# world	= setDomAttr id "value" (toJSVal val) world
-		= (val,world)
+		= (val,st,world)
 	
-	onChange  :: ComponentId (JSVal EditletEvent) String *JSWorld -> (!String, !*JSWorld)
-	onChange id event val world
-		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
+	onChange  :: ComponentId (JSVal EditletEvent) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
+	onChange id event val st world
+		= let (val, w) = getDomAttr id "value" world in (jsValToString val, st, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
 timelet t =	{Editlet
@@ -44,11 +44,11 @@ timelet t =	{Editlet
 				,appDiff	= appDiff
 				}
 where
-	onUpdate ::  ComponentId (JSVal EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
-	onUpdate id event val world
+	onUpdate ::  ComponentId (JSVal EditletEvent) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
+	onUpdate id event val st world
 		# world = setDomAttr id "innerHTML" (toJSVal (toString val)) world
 		# world	= setDomAttr id "style.color" (toJSVal (colors !! (val.Time.sec rem (length colors)))) world
-		= (val,world)
+		= (val,st,world)
 		
 	colors = ["#f0f","#00f","#f00","#30f","#ff0","#66f"]
 	
@@ -74,11 +74,11 @@ clocklet t =	{Editlet
 				,appDiff	= \tn to -> tn
 				}
 where
-	onInit :: ComponentId (JSVal EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
-	onInit id event val world
+	onInit :: ComponentId (JSVal EditletEvent) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
+	onInit id event val st world
 		# world				= addJSFromUrl "/coolclock.js" Nothing world
 		# world				= addJSFromUrl "/moreskins.js" Nothing world
-		= trace_n "onInit done" (val,world)
+		= trace_n "onInit done" (val,st,world)
 	
 	onLoad :: *JSWorld -> *JSWorld
 	onLoad world
@@ -143,13 +143,13 @@ where
 	//onInit :: ComponentId (JSPtr JSObject) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	//onInit editorId _ state world = (state,redraw "tictactoe" state world)
 
-	onUpdate :: ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
-	onUpdate editorId _ state world = (state,world) //(state,redraw "tictactoe" state world)
+	onUpdate :: ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
+	onUpdate editorId _ state st world = (state,st,world) //(state,redraw "tictactoe" state world)
 
-	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
-	onCellClick coord editorId event (board,turn) world
+	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
+	onCellClick coord editorId event (board,turn) st world
 		# state = (add_cell coord turn board, ~turn)
-		= (state, redraw "tictactoe" state world)
+		= (state, st, redraw "tictactoe" state world)
 		
 	redraw	:: !String !(TicTacToe,TicTac) *JSWorld -> *JSWorld
 	redraw editorId state world = setDomAttr editorId "innerHTML" (toJSVal (toString (init_board editorId state))) world

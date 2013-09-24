@@ -129,7 +129,7 @@ where
  		 HtmlEvent (genSeatId seat) "mouseout" (setColor "white")]
  		
  	setState newst _ _ _ world  = (newst, world)
- 	setColor color st _ e world	=
+ 	setColor color _ e st world	=
 		(st, snd (jsSetObjectAttr "target.style.backgroundColor" (toJSVal color) e world))
 
 	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]

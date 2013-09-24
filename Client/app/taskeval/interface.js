@@ -170,11 +170,16 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
     var eventHandler = function(expr, taskId){
 		
 		var h = function(event){
-			return __iTasks_Framework_Client_SaplHtml_handleJSEvent(expr, taskId, event);
+			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, event);
 		};
 		
 		return h;
     }
 	
 	return ___wrapJS(eventHandler(expr, taskId));
+}
+
+// createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
+function __iTasks_API_Core_Client_Editlet_createEditletEventHandler(expr, componentId){
+
 }

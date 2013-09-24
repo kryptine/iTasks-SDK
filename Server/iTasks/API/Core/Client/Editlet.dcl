@@ -1,16 +1,16 @@
 definition module iTasks.API.Core.Client.Editlet
 
-import iTasks
+import iTasks, iTasks.API.Core.Client.Interface
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events
 // that are defined server-side but run client-side
 //****************************************************************************//
 
-:: Editlet a d =
+:: Editlet a d = E.st:
 	{	value		:: a 
 	,	html		:: ComponentId -> HtmlTag
-	,	handlers	:: [ComponentEvent a]
+	,	handlers	:: [ComponentEvent a st]
 	//	Functions for efficient bidirectional synchronisation of the editlet value
 	,	genDiff		:: a a -> Maybe d
 	,	appDiff		:: d a -> a
@@ -20,8 +20,10 @@ import iTasks
 
 :: ComponentId :== String
 :: ComponentEventName :== String
-:: ComponentEvent a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc a)
-:: ComponentEventHandlerFunc a :== ComponentId (JSVal EditletEvent) a *JSWorld -> *(!a,!*JSWorld)
+:: ComponentEvent a st = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc a st)
+:: ComponentEventHandlerFunc a st :== ComponentId (JSVal EditletEvent) a (Maybe st) *JSWorld -> *(!a,!Maybe st,!*JSWorld)
+
+//createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
 
 derive JSONEncode		Editlet
 derive JSONDecode		Editlet

@@ -43,13 +43,13 @@ where
 		= (TaskletHTML gui, st, iworld)
 				
 	where
-		updatePerspective st=:{map = Just map} _ _  world 
+		updatePerspective _ _  st=:{map = Just map} world 
 			# (center, map, world) = callObjectMethod "getCenter" [] map world
 			# (la, center, world)  = callObjectMethod "lat" [] center world
 			# (lo, center, world)  = callObjectMethod "lng" [] center world
 			= ({st & centerLA = jsValToReal la, centerLO = jsValToReal lo}, world)	
 
-	    onScriptLoad st _ _ world
+	    onScriptLoad _ _ st world
 		    # world = setDomAttr "map_place_holder" "innerHTML" (toJSVal "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>") world
 		    # (mapdiv, world) = getDomElement "map_canvas" world
 	        
@@ -66,21 +66,21 @@ where
 			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "zoom_changed", toJSArg onChange] mapevent world
 			= ({st & map = Just map}, world)
 		where
-			onChange = createEventHandler updatePerspective taskId
+			onChange = createTaskletEventHandler updatePerspective taskId
 
 		// Google maps API doesn't like to be loaded twice	
-		onInit st taskId e world
+		onInit taskId e st world
 			# (mapsobj, world) = findObject "google.maps" world
 			| jsIsUndefined mapsobj
 			= (st, loadMapsAPI taskId e world)
-			= onScriptLoad st taskId e world
+			= onScriptLoad taskId e st world
 		
 		loadMapsAPI taskId e world	
-			# (_, world) = jsSetObjectAttr "gmapscallback" (createEventHandler onScriptLoad taskId) jsWindow world
+			# (_, world) = jsSetObjectAttr "gmapscallback" (createTaskletEventHandler onScriptLoad taskId) jsWindow world
 			= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
 					Nothing world
 
-		onDestroy st=:{map = Just map} _ _ world
+		onDestroy _ _ st=:{map = Just map} world
 		    # (mapevent, world) = findObject "google.maps.event" world
 			# (_, mapevent, world) = callObjectMethod "clearInstanceListeners" [toJSArg map] mapevent world
 		
@@ -89,11 +89,11 @@ where
 		
 			= ({st & map = Nothing}, world)
 
-		onDestroy st _ _ world
+		onDestroy _ _ st world
 			= (st, world)
 
 		// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
-		onResize st=:{map = Just map} _ _ world
+		onResize _ _ st=:{map = Just map} world
 		    # (mapevent, world) = findObject "google.maps.event" world
 			# (_, mapevent, world) = callObjectMethod "trigger" [toJSArg map, toJSArg "resize"] mapevent world
 		
@@ -102,7 +102,7 @@ where
 		
 			= (st, world)
 
-		onResize st _ _ world
+		onResize _ _ st world
 			= (st, world)
 
 
@@ -135,21 +135,21 @@ geoTaskletGUI _ _ iworld
 			
 	= (TaskletHTML gui, Nothing, iworld)
 where
-    onSuccess st _ pos world
+    onSuccess _ pos st world
 		# (la, world) = jsGetObjectAttr "coords.latitude" pos world
 		# (lo, world) = jsGetObjectAttr "coords.longitude" pos world
 		# world = setDomAttr "loc" "innerHTML" (toJSVal (jsValToString la +++ ", " +++ jsValToString lo)) world
     	= (Just (la,lo), world)
 
-    onFailure st _ msg world
+    onFailure _ msg st world
 		# world = setDomAttr "loc" "innerHTML" (toJSVal "FAILURE") world
     	= (st, world)
 
-	onInit st taskId _ world
+	onInit taskId _ st world
 	    # (loc, world) = findObject "navigator.geolocation" world
 		# (_, loc, world)   = callObjectMethod "getCurrentPosition" 
-								[toJSArg (createEventHandler onSuccess taskId)
-								,toJSArg (createEventHandler onFailure taskId)
+								[toJSArg (createTaskletEventHandler onSuccess taskId)
+								,toJSArg (createTaskletEventHandler onFailure taskId)
 							    ,toJSArg {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
 					    		loc world
 				
@@ -179,7 +179,7 @@ pushGenerateGUI _ (Just st) iworld
 			
 	= (TaskletHTML gui, st, iworld)
 where			
-	onClick state _ _ world
+	onClick _ _  state world
 		# world = setDomAttr "pushbtn" "value" (toJSVal (toString (state + 1))) world
 		= (state + 1, world)
  
@@ -281,17 +281,17 @@ painterGenerateGUI _ (Just defSt) iworld
 	= (TaskletHTML gui, defSt, iworld)
 
 where
-	onStart state _ e world
+	onStart _ e state world
 		# (context, world) = getContext False world
 		# (context, world) = foldl (\(context, world) dr = draw context dr world) (context, world) (reverse state.draw)
 		= (state, world)
 		
-	onChangeTool state _ e world
+	onChangeTool _ e state world
 		# (selectedIndex, world) = jsGetObjectAttr "target.selectedIndex" e world
 		# (atool, world) = jsGetObjectAttr ("target.options["+++ jsValToString selectedIndex +++"].value") e world
 		= ({state & tool = jsValToString atool}, world)	
 
-	onSelectColor color state _ e world
+	onSelectColor color _ e state world
 		# world = foldl (\world el = setDomAttr el "style.borderColor" (toJSVal "white") world) world
 					["selectorYellow","selectorRed","selectorGreen","selectorBlue","selectorBlack"]
 		# (target, world) = jsGetObjectAttr "target" e world
@@ -303,7 +303,7 @@ where
 	    # (y, world) = jsGetObjectAttr "layerY" e world
 	    = ((jsValToInt x, jsValToInt y), e, world)
 
-	onMouseDown state _ e world
+	onMouseDown _ e state world
 	    # (coords, e, world) = getCoordinates e world
 		= ({state & mouseDown = Just coords, lastDraw = Nothing}, world)
 
@@ -322,7 +322,7 @@ where
 				[toJSArg 0, toJSArg 0, toJSArg canvasWidth, toJSArg canvasHeight] context world
 		= (context, world)
 
-	onMouseUp state _ e world
+	onMouseUp _ e state world
 		# (tempcanvas, world)  = getCanvas True world
 		# (tempcontext, world) = getContext True world
 		# (context, world)     = getContext False world
@@ -333,9 +333,9 @@ where
 			= ({state & mouseDown = Nothing}, world)
 
 	// generate onDrawing event
-	onMouseMove state _ e world
+	onMouseMove _ e state world
 		= case state.mouseDown of
-			Just coord = onDrawing state coord e world
+			Just coord = onDrawing coord e state world
 			_          = (state, world)
 				
 	drawLine context color x1 y1 x2 y2 world
@@ -381,7 +381,7 @@ where
 		center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
 		distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
 				
-	onDrawing state (dx,dy) e world
+	onDrawing (dx,dy) e state world
 	    # ((x, y), e, world) = getCoordinates e world
 		# (tempcontext, world) = getContext True world
 			
@@ -414,12 +414,12 @@ where
 	draw context (DrawCircle color fill x1 y1 x2 y2) world
 		= drawCircle context fill color x1 y1 x2 y2 world
 
-	onClickClear state _ e world
+	onClickClear _ e state world
 		# (context, world) = getContext False world
 		# (context, world) = clearContext context world
 		= ({state & draw = []}, world)
 			
-	onClickFinish state _ e world
+	onClickFinish _ e state world
 		= ({state & finished = True}, world)
 
 //-------------------------------------------------------------------------

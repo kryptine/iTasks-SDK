@@ -936,6 +936,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	iTasks.API.Core.Client.Editlet
+		Dir:	{Application}\iTasks-SDK\Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	iTasks.API.Core.Client.Interface
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
@@ -1077,6 +1091,20 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Extensions.GIS.GoogleMap
+		Dir:	{Application}\iTasks-SDK\Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.Framework.Client.LinkerSupport
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -2019,6 +2047,20 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.SaplTokenizer
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Sapl.Target.JS.CodeGeneratorJS
 		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False

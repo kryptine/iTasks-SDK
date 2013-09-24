@@ -11,7 +11,7 @@ import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.API.Core.Client.In
 :: HtmlEventName :== String
 
 :: HtmlEvent st = E.e: HtmlEvent !DomElementId !HtmlEventName (HtmlEventHandlerFunc st e)
-:: HtmlEventHandlerFunc st e :== (st TaskId (JSVal e) *JSWorld -> *(!st,!*JSWorld))
+:: HtmlEventHandlerFunc st e :== TaskId (JSVal e) st *JSWorld -> *(!st,!*JSWorld)
 
 createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal (JSFunction b)) 
 

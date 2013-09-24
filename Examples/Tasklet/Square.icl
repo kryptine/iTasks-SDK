@@ -46,16 +46,16 @@ where
 	
   	  	style = "position:absolute; left:0px;top:0px;width:40px;height:40px;rem;background:"+++color+++";"
     
-		onInit st=:{highlighted=True} _ _ world
+		onInit _ _ st=:{highlighted=True} world
 			# world = setDomAttr oid "style.border" (toJSVal "2px solid black") world
 			= (st, world)
-		onInit st _ _ world
+		onInit _ _ st world
 			# world = setDomAttr oid "style.border" (toJSVal ("2px solid "+++color)) world
 			= (st, world)
 		
-		onClick st=:{highlighted=True} _ _ world
+		onClick _ _ st=:{highlighted=True} world
 			= ({st & finished = Just True}, world)
-		onClick st _ _ world
+		onClick _ _ st world
 			= (st, world)	
 		
 	updateFun :: Cmd Square -> Square
