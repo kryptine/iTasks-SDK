@@ -67,6 +67,6 @@ gUpdate{|Editlet|} fa _ _ _ _ _ _ _ mv = mv
 
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
-
-
+createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
+createEditletEventHandler handler id = undef
 

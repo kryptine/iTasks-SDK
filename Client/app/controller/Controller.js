@@ -60,8 +60,9 @@ Ext.define('itwc.controller.Controller', {
 			  ],
 
 	// for tasklet and client side execution support
-	tasklets: {}, 				// tasklet instance id -> tasklet
-	taskletControllers: {},		// instanceNo          -> tasklet if controllerFunc is avaliable
+	tasklets: {}, 				// taskId      -> tasklet
+	editlets: {}, 				// componentId -> tasklet
+	taskletControllers: {},		// instanceNo  -> tasklet if controllerFunc is avaliable
 
 	// central task event queue
 	taskEvents: [],

@@ -13,6 +13,8 @@ Ext.define('itwc.component.edit.Editlet',{
 			tmp;	
 
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
+		itwc.global.controller[me.htmlId] = me;
+		
 		me.state = [0,"Data.Maybe.Nothing"];
 		
 		if(me.script != null && me.script != ""){
@@ -48,7 +50,7 @@ Ext.define('itwc.component.edit.Editlet',{
 				if(eventName == "init") {
 					(me.eventHandler(expr))(me);
 				} else {
-					el = Ext.get(me.htmlId); //FIXME
+					el = itwc.global.controller[me.htmlId];
                     if(el) {
 					    el.on(eventName, me.eventHandler(expr));
                     }
@@ -85,7 +87,8 @@ Ext.define('itwc.component.edit.Editlet',{
 		var h = function(event){			
 			eval("var fun = eval(" + expr + ");");
 		
-			var ys = Sapl.feval([fun,[me.htmlId,event.browserEvent,me.value,me.state,"JSWorld"]]);
+			if(event) event = event.browserEvent || event;
+			var ys = Sapl.feval([fun,[me.htmlId,event,me.value,me.state,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
