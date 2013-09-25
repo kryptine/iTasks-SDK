@@ -11,7 +11,7 @@ import StdDebug
 derive class iTask TimeDelta
 
 buienLet :: Editlet String Void
-buienLet = {Editlet|value="Buienradar",html=const (RawText html), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
+buienLet = {Editlet|value="Buienradar",html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
 where
 	html = "<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>"
 
@@ -20,15 +20,14 @@ derive class iTask StringDelta
 
 stringlet :: Editlet String [String]
 stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id] []
-			,handlers = [ComponentEvent "editlet" "init" onUpdate
-						,ComponentEvent "editlet" "update" onUpdate
-						,ComponentEvent "editlet" "keyup" onChange]
-			,genDiff = \o n -> if (o == n) Nothing (Just [n,n])
-			,appDiff = \n _ -> hd n
+			,updateUI = onUpdate
+			,handlers = [ComponentEvent "editlet" "keyup" onChange]
+			,genDiff  = \o n -> if (o == n) Nothing (Just [n,n])
+			,appDiff  = \n _ -> hd n
 			}
 where
-	onUpdate :: ComponentId (JSVal EditletEvent) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
-	onUpdate id event val st world
+	onUpdate :: ComponentId (Maybe [String]) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
+	onUpdate id _ val st world
 		# world	= setDomAttr id "value" (toJSVal val) world
 		= (val,st,world)
 	
@@ -40,13 +39,14 @@ timelet :: Time -> Editlet Time [TimeDelta]
 timelet t =	{Editlet
 				|value		= t
 				,html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
-				,handlers	= [ComponentEvent "editlet" "init" onUpdate, ComponentEvent "editlet" "update" onUpdate]
+				,updateUI	= onUpdate				
+				,handlers	= []
 				,genDiff	= genDiff
 				,appDiff	= appDiff
 				}
 where
-	onUpdate ::  ComponentId (JSVal EditletEvent) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
-	onUpdate id event val st world
+	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
+	onUpdate id _ val st world
 		# world = setDomAttr id "innerHTML" (toJSVal (toString val)) world
 		# world	= setDomAttr id "style.color" (toJSVal (colors !! (val.Time.sec rem (length colors)))) world
 		= (val,st,world)
@@ -70,16 +70,20 @@ clocklet :: Time -> Editlet Time Time
 clocklet t =	{Editlet
 				|value		= t
 				,html		= \id -> RawText ("<canvas height=\"100%\" id=\"" +++ id +++ "\" class=\"CoolClock\"></canvas>")
-				,handlers	= [ComponentEvent "editlet" "init" onInit/*, ComponentEvent "editlet" "update" onUpdate*/]
+				,updateUI	= onInit					
+				,handlers	= []
 				,genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
 				,appDiff	= \tn to -> tn
 				}
 where
-	onInit :: ComponentId (JSVal EditletEvent) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
-	onInit id event val st world
+	onInit :: ComponentId (Maybe Time) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
+	onInit id Nothing val st world
 		# world				= addJSFromUrl "/coolclock.js" Nothing world
 		# world				= addJSFromUrl "/moreskins.js" Nothing world
 		= trace_n "onInit done" (val,st,world)
+
+	// Update
+	onInit id mbDiff val st world = (val, st, world)
 	
 	onLoad :: *JSWorld -> *JSWorld
 	onLoad world
@@ -134,7 +138,8 @@ tictactoelet t=:(board,turn) =
 	{Editlet
 	|value		= t
 	,html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
-	,handlers	= [ComponentEvent "editlet" "update" onUpdate]
+	,updateUI   = onUpdate
+	,handlers	= []
 				  ++[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
 				 
 	,genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
@@ -144,7 +149,7 @@ where
 	//onInit :: ComponentId (JSPtr JSObject) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	//onInit editorId _ state world = (state,redraw "tictactoe" state world)
 
-	onUpdate :: ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
+	onUpdate :: ComponentId (Maybe (TicTacToe,TicTac)) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
 	onUpdate editorId _ state st world = (state,st,world) //(state,redraw "tictactoe" state world)
 
 	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
@@ -199,7 +204,7 @@ defsettings =
 	{ GoogleMapSettings
 	| mapTypeControl	= True
 	, panControl		= True
-	, streetViewControl	= True
+	, streetViewControl	= False
 	, zoomControl		= True
 	, scaleControl		= True
 	, scrollwheel		= True

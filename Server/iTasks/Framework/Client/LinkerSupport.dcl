@@ -27,14 +27,16 @@ taskletLinker :: !st 							// state
 
 editletLinker :: 
 	![(!String, !String, ComponentEventHandlerFunc a st)]	// event handlers
-	!ivf												// init value function
-	!gdf												// gendiff function
-	!adf												// adddiff function
+	!ivf													// init value function
+	!uui													// updateUI function
+	!gdf													// gendiff function
+	!adf													// adddiff function
 	!*IWorld
 	->
 	*(!String									// JS code of the support code for all the expressions
 	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
 	 ,!String									// JS code of the init value function
+	 ,!String									// JS code of the updateUI function
 	 ,!String									// JS code of the gendiff function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)

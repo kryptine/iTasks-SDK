@@ -1,86 +1,178 @@
 implementation module iTasks.API.Extensions.GIS.GoogleMap
 
 import iTasks, iTasks.API.Core.Client.Editlet, iTasks.API.Core.Client.Interface
-import Data.Functor, Text
+import Data.Functor, Text, StdMisc
 
 from Data.Map import newMap
 
 //--------------------------------------------------------------------------------------------------
 
-:: GoogleMapState :== Maybe (JSVal JSObject)
+:: GoogleMapState = {mapobj       :: JSVal JSObject
+					,nextmarkerid :: Int
+					}
 
 // Parameter object for creating google.maps.Map
-:: MapOptions = {center    :: JSVal JSObject
-          		,zoom      :: Int
-          		,mapTypeId :: JSVal JSObject
+:: MapOptions = {center    			:: JSVal JSObject
+          		,zoom      			:: Int
+          		,mapTypeId 			:: JSVal JSObject
+				,mapTypeControl		:: Bool
+				,panControl			:: Bool		  				
+				,zoomControl		:: Bool
+				,streetViewControl	:: Bool
+				,scaleControl		:: Bool
+				,scrollwheel		:: Bool
+				,draggable			:: Bool	          		
         		}
+
+// Parameter object for creating google.maps.Marker
+:: MarkerOptions = {map        :: JSVal JSObject
+				   ,position   :: JSVal JSObject
+				   ,title      :: String
+				   ,draggable  :: Bool
+				   ,icon       :: Maybe (JSVal JSObject)
+				   ,id		   :: String
+				   }
 
 googleMapEditlet :: GoogleMap -> Editlet GoogleMap GoogleMapDiff
 googleMapEditlet g = {Editlet
 				|value		= g
 				,html		= \id -> DivTag [IdAttr (mapdomid id), StyleAttr "width:100%; height:100%"] []
-				,handlers	= [ComponentEvent "editlet" "init" onUpdate, ComponentEvent "editlet" "update" onUpdate]
+				,updateUI   = onUpdate
+				,handlers	= []
 				,genDiff	= genDiff
 				,appDiff	= appDiff
 				}
 where
 	mapdomid id = "map_place_holder_" +++ id
-
-	updatePerspective _ _ map (Just mapobj) world 
-		# (center, mapobj, world) = callObjectMethod "getCenter" [] mapobj world
-		# (lat, center, world)  = callObjectMethod "lat" [] center world
-		# (lng, center, world)  = callObjectMethod "lng" [] center world
-		= ({map & perspective={GoogleMapPerspective | map.perspective & center = {lat = jsValToReal lat, lng = jsValToReal lng}}}, Just mapobj, world)
 		
-    onScriptLoad id event map _ world
+    onScriptLoad id _ map _ world
 	    # world = setDomAttr (mapdomid id) "innerHTML" (toJSVal "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>") world
 	    # (mapdiv, world) = getDomElement "map_canvas" world
 	        
-	    # (mapTypeId, world) = findObject (toString (map.perspective.GoogleMapPerspective.type)) world
+	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (map.perspective.GoogleMapPerspective.type)) world
 	    # (center, world) = jsNewObject "google.maps.LatLng" 
 	    				[toJSArg map.perspective.GoogleMapPerspective.center.lat
 	    				,toJSArg map.perspective.GoogleMapPerspective.center.lng] world
 
 	    # (mapobj, world) = jsNewObject "google.maps.Map" 
 	    				[toJSArg mapdiv
-			    		,toJSArg {zoom = map.perspective.GoogleMapPerspective.zoom, center = center, mapTypeId = mapTypeId}] world
+			    		,toJSArg {MapOptions
+			    				 |zoom 				= map.perspective.GoogleMapPerspective.zoom
+			    				 ,center 			= center
+			    				 ,mapTypeId 		= mapTypeId
+			    				 ,mapTypeControl	= map.settings.GoogleMapSettings.mapTypeControl
+			    				 ,panControl		= map.settings.GoogleMapSettings.panControl
+								 ,zoomControl		= map.settings.GoogleMapSettings.zoomControl
+								 ,streetViewControl	= map.settings.GoogleMapSettings.streetViewControl
+								 ,scaleControl		= map.settings.GoogleMapSettings.scaleControl
+								 ,scrollwheel		= map.settings.GoogleMapSettings.scrollwheel
+								 ,draggable			= map.settings.GoogleMapSettings.draggable
+								 }
+						] world
 
 	    # (mapevent, world) = findObject "google.maps.event" world
-		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "dragend", toJSArg onChange] mapevent world
-		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "maptypeid_changed", toJSArg onChange] mapevent world
-		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg onChange] mapevent world
-		= (map, Just mapobj, world)
+		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "dragend", toJSArg (onChange "dragend")] mapevent world
+		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "maptypeid_changed", toJSArg (onChange "maptype")] mapevent world
+		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg (onChange "zoom")] mapevent world
+		# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "click", toJSArg onClick] mapevent world	
+		= (map, Just {mapobj = mapobj, nextmarkerid = 1}, world)
 	where
-		onChange = createEditletEventHandler updatePerspective id
+		onChange t = createEditletEventHandler (updatePerspective t) id
+		onClick = createEditletEventHandler addMarker id
 
-	onUpdate :: !ComponentId !(JSVal EditletEvent) !GoogleMap !GoogleMapState !*JSWorld -> (!GoogleMap, !GoogleMapState, !*JSWorld)
-	onUpdate id event map Nothing world
+	onUpdate id Nothing map Nothing world
 		# (mapsobj, world) = findObject "google.maps" world
 		| jsIsUndefined mapsobj
-		= (map, Nothing, loadMapsAPI id event world)
-		= onScriptLoad id event map Nothing world
-		
-	onUpdate id event map st world = (map, st, world)
-		
-	loadMapsAPI id e world	
+		= (map, Nothing, loadMapsAPI id undef world)
+		= onScriptLoad id undef map Nothing world
+	
+	// TODO
+	onUpdate id (Just newmap) map st world = (map, st, world)	
+	
+	loadMapsAPI id _ world	
 		# (_, world) = jsSetObjectAttr "gmapscallback" (createEditletEventHandler onScriptLoad id) jsWindow world
 		= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
 				Nothing world
+
+	updatePerspective "zoom" _ event map st=:(Just {mapobj}) world 
+		# (zoom, mapobj, world) = callObjectMethod "getZoom" [] mapobj world
+		= ({map & perspective={GoogleMapPerspective | map.perspective & zoom = jsValToInt zoom}}, st, world)
+
+	updatePerspective "maptype" _ event map st=:(Just {mapobj}) world 
+		# (maptypeid, mapobj, world) = callObjectMethod "getMapTypeId" [] mapobj world
+		= ({map & perspective={GoogleMapPerspective | map.perspective & type = fromString (toUpperCase (jsValToString maptypeid))}}, st, world)
+		
+	updatePerspective "dragend" _ event map st=:(Just {mapobj}) world 
+		# (center, mapobj, world) = callObjectMethod "getCenter" [] mapobj world
+		# ((lat, lng), world)     = getPos center world
+		= ({map & perspective={GoogleMapPerspective | map.perspective & center = {lat = lat, lng = lng}}}, st, world)
 			
+	onDragWP markerId id event gmap=:{GoogleMap|markers} mbSt world
+		# (latlng, world)      = jsGetObjectAttr "latLng" event world
+		# ((lat, lng), world)  = getPos latlng world
+		# markers      		   = updateWP lat lng markers
+		= ({GoogleMap|gmap&markers=markers}, mbSt, world)
+	where
+        updateWP nlat nlng markers = map ud markers 
+        where 
+        	ud m | m.GoogleMapMarker.markerId == markerId 
+        			= {GoogleMapMarker|m&position={GoogleMapPosition | lat = nlat, lng = nlng}}
+					= m
+
+	addMarker id event map=:{GoogleMap|markers} (Just st=:{mapobj,nextmarkerid}) world 
+		# (latlng, world)     = jsGetObjectAttr "latLng" event world
+		# ((lat, lng), world) = getPos latlng world
+		# (marker, world)      
+				= jsNewObject "google.maps.Marker" 
+						[toJSArg {MarkerOptions| map = mapobj, position = latlng, title = "", draggable = True, icon = Nothing, id = markerId}]
+						world
+								
+	    # (mapevent, world) = findObject "google.maps.event" world
+		# (_, _, world)     = callObjectMethod "addListener" [toJSArg marker, toJSArg "dragend", toJSArg onDrag] mapevent world
+		
+		# markers = [createMarkerRecord markerId lat lng Nothing: markers]
+		
+		= ({GoogleMap|map&markers=markers}, Just {st&nextmarkerid=nextmarkerid+1}, world)
+	where 
+		onDrag = createEditletEventHandler (onDragWP markerId) id
+		markerId = id +++ "_" +++ toString nextmarkerid
+
+	getPos obj world
+		# (lat, obj, world) = callObjectMethod "lat" [] obj world
+		# (lng, obj, world) = callObjectMethod "lng" [] obj world
+		= ((jsValToReal lat,jsValToReal lng), world)
+
+	createMarkerRecord id lat lng mbTitle =
+		{  GoogleMapMarker 
+		 | markerId		= id
+		 , position     = {GoogleMapPosition | lat = lat, lng = lng}
+		 , title 		= mbTitle
+		 , icon 		= Nothing
+		 , infoWindow 	= Nothing
+		 , draggable	= True
+		 , selected 	= False} 
+	
 	genDiff :: GoogleMap GoogleMap -> Maybe GoogleMapDiff
-	genDiff g1 g2 = Just (g1.perspective, g1.GoogleMap.markers)
+	genDiff g1 g2 = Just g2
 
 	appDiff :: GoogleMapDiff GoogleMap -> GoogleMap
-	appDiff (p, ms) g = {g & perspective = p, markers = ms}
+	appDiff d g = d
 
 //--------------------------------------------------------------------------------------------------
 
 instance toString GoogleMapType
 where
-	toString ROADMAP = "google.maps.MapTypeId.ROADMAP"
-	toString SATELLITE = "google.maps.MapTypeId.SATELLITE"
-	toString HYBRID = "google.maps.MapTypeId.HYBRID"
-	toString TERRAIN = "google.maps.MapTypeId.TERRAIN"
+	toString ROADMAP = "ROADMAP"
+	toString SATELLITE = "SATELLITE"
+	toString HYBRID = "HYBRID"
+	toString TERRAIN = "TERRAIN"
+
+instance fromString GoogleMapType
+where 
+	fromString "ROADMAP" = ROADMAP
+	fromString "SATELLITE" = SATELLITE
+	fromString "HYBRID" = HYBRID
+	fromString "TERRAIN" = TERRAIN			
 
 //* Geograpic data and Google Maps
 gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId}

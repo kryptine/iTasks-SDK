@@ -10,6 +10,7 @@ import iTasks, iTasks.API.Core.Client.Interface
 :: Editlet a d = E.st:
 	{	value		:: a 
 	,	html		:: ComponentId -> HtmlTag
+	,   updateUI    :: ComponentId (Maybe d) a (Maybe st) *JSWorld -> *(!a,!Maybe st,!*JSWorld)
 	,	handlers	:: [ComponentEvent a st]
 	//	Functions for efficient bidirectional synchronisation of the editlet value
 	,	genDiff		:: a a -> Maybe d

@@ -54,8 +54,12 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 
 	var value;
 
-	try{
-		value = eval("obj."+attr+";");
+	try{	
+		if(obj == null){
+			value = eval(attr);			
+		}else{
+			value = eval("obj."+attr+";");
+		}
 	}catch(err){
 		value = undefined;
 	}
@@ -170,7 +174,7 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
     var eventHandler = function(expr, taskId){
 		
 		var h = function(event){
-			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, event);
+			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, ___wrapJS(event));
 		};
 		
 		return h;
@@ -183,5 +187,5 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
 function __iTasks_API_Core_Client_Editlet_createEditletEventHandler(expr, componentId){
 	
 	var comp = itwc.global.controller[componentId];
-	return ___wrapJS(comp.eventHandler(expr));
+	return ___wrapJS(comp.eventHandler(true,expr));
 }

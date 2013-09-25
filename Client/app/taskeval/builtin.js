@@ -6,6 +6,14 @@ function ___predefined__Tuple3(__a1, __a2, __a3) {
 function ___predefined__Tuple2(__a1, __a2) {
 	return [0, '_predefined._Tuple2', __a1, __a2];
 };
+
+function __Data_Maybe_Nothing(){
+	return [0,"Data.Maybe.Nothing"];
+};
+
+function __Data_Maybe_Just(val){
+	return [1,"Data.Maybe.Just",val];
+};
 // TO BE SURE
 
 // --------- Primitive functions -----------------------------

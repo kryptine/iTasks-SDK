@@ -2,7 +2,7 @@ definition module iTasks.API.Extensions.GIS.GoogleMap
 
 import iTasks, iTasks.API.Core.Client.Editlet
 
-:: GoogleMapDiff :== (GoogleMapPerspective, [GoogleMapMarker])
+:: GoogleMapDiff :== GoogleMap
 
 googleMapEditlet :: GoogleMap -> Editlet GoogleMap GoogleMapDiff
 
