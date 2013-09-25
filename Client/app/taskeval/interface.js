@@ -85,7 +85,7 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectAttr(attr,value,obj,world
     value = ___unwrapJS(Sapl.feval(value));
     obj = ___unwrapJS(Sapl.feval(obj));
 
-    eval("obj."+attr+"=value;");
+    eval("obj[attr]=value;");
     
     return ___predefined__Tuple2(___wrapJS(obj), world);
 }
@@ -99,6 +99,18 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectEl(index,value,obj,world)
     obj = ___unwrapJS(Sapl.feval(obj));
     	
     obj[index] = value;
+    
+    return ___predefined__Tuple2(___wrapJS(obj), world);
+}
+
+//jsDeleteObjectAttr :: !String !(JSVal o) !*JSWorld -> *(!JSVal o, !*JSWorld)
+function __iTasks_API_Core_Client_Interface_jsDeleteObjectAttr(attr,obj,world) {
+    
+	world = Sapl.feval(world);
+	attr = Sapl.feval(attr);   
+    obj = ___unwrapJS(Sapl.feval(obj));
+
+    eval("delete obj[attr];");
     
     return ___predefined__Tuple2(___wrapJS(obj), world);
 }

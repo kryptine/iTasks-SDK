@@ -41,6 +41,9 @@ jsSetObjectAttr attr value obj world = undef
 jsSetObjectEl :: !Int !(JSVal v) !(JSVal o) !*JSWorld -> *(!JSVal o, !*JSWorld)
 jsSetObjectEl index value obj world = undef
 
+jsDeleteObjectAttr :: !String !(JSVal o) !*JSWorld -> *(!JSVal o, !*JSWorld)
+jsDeleteObjectAttr value obj world = undef
+
 jsApply	:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
 
