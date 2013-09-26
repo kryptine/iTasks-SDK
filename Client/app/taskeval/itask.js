@@ -142,12 +142,13 @@ function applytui(widget,tui){
 
 function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
 	
-	var tasklet = itwc.global.controller.tasklets[taskId];
+	var sti = taskId[2]+"-"+taskId[3]; // toString
+	var tasklet = itwc.global.controller.tasklets[sti];
 	var state = tasklet.st;
 	
 	// Returns a tuple of the JSWorld and HtmlEventResult	
 	// Looks like: [0, "Tuple2", HtmlEventResult, JSWorld]	
-	var ys = Sapl.feval([expr,[state,taskId,___wrapJS(event),"WORLD"]]);
+	var ys = Sapl.feval([expr,[taskId,___wrapJS(event),state,"WORLD"]]);
 	
 	// The result is only in HNF, so both part of the tuple must be forced,
 	// but the document can be dropped after that.

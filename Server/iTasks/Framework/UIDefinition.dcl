@@ -324,6 +324,7 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	, script		:: !Maybe String
 	, events		:: !Maybe [(!String,!String,!String)]
 	, initValue		:: !Maybe String
+	, updateUI		:: !Maybe String
 	, genDiff		:: !Maybe String
 	, appDiff		:: !Maybe String
 	}

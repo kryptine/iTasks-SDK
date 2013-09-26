@@ -13,7 +13,10 @@ Ext.define('itwc.component.edit.Editlet',{
 			tmp;	
 
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
-
+		itwc.global.controller[me.htmlId] = me;
+		
+		me.state = __Data_Maybe_Nothing();
+		
 		if(me.script != null && me.script != ""){
 			evalScript(me.script);
 		}
@@ -30,6 +33,10 @@ Ext.define('itwc.component.edit.Editlet',{
 			eval("tmp = eval(" + me.genDiff + ");");
 			me.genDiff = tmp;	
 		}
+		if(me.updateUI != null) {
+			eval("tmp = eval(" + me.updateUI + ");");
+			me.updateUI = tmp;	
+		}		
 		me.callParent(arguments);
 	},
 	afterRender: function() {
@@ -37,64 +44,42 @@ Ext.define('itwc.component.edit.Editlet',{
 			numEvents = me.events.length,
 			el, elName, eventName, expr, i;
 		
+		me.fireUpdateEvent(__Data_Maybe_Nothing());
+		
 		for (i = 0; i < numEvents; i++){
 			
 			elName = me.events[i][0];
 			eventName = me.events[i][1];
 			expr = me.events[i][2];
 						
-			if(elName == "editlet"){
-				if(eventName == "init") {
-					(me.eventHandler(expr))(me);
-				} else {
-					el = Ext.get(me.htmlId); //FIXME
-                    if(el) {
-					    el.on(eventName, me.eventHandler(expr));
-                    }
-				}
-			} else {
-				el = Ext.get(elName);
-				el.on(eventName, me.eventHandler(expr));
-			}
+			el = Ext.get(elName);
+			el.on(eventName, me.eventHandler(true,expr));
 		}
 		this.callParent(arguments);
 	},
-	fireEditletEvent: function (name) {
-		var me = this,
-			numEvents = me.events.length,
-			el, elName, eventName, expr, i;
-			
-		for (i = 0; i < numEvents; i++){
-			elName = me.events[i][0];
-				
-			if(elName == "editlet"){
-				eventName = me.events[i][1];
-				if(eventName == name){
-					expr = me.events[i][2];
-					(me.eventHandler(expr))(me);
-					return;
-				}
-			}
-		}	
+	fireUpdateEvent: function (mbDiff) {
+		var me = this;
+		(me.eventHandler(false,me.updateUI))(mbDiff);		
 	},
 	// Creating a closure
-	eventHandler: function(expr){
+	eventHandler: function(dowrap,expr){
 		var me = this;
 		
 		var h = function(event){			
-			eval("var fun = eval(" + expr + ");");
-		
-
-			var ys = Sapl.feval([fun,[me.htmlId,event.browserEvent,me.value,"JSWorld"]]);
+			if(event) event = event.browserEvent || event;
+			if(dowrap) event = ___wrapJS(event);
+			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,me.state,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
+			Sapl.feval(ys[4]);
 			
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
 			
 			me.value = ys[2];
+			me.state = ys[3];			
 			
 			//Synchronize
 			if(diff !== null) {
@@ -112,9 +97,9 @@ Ext.define('itwc.component.edit.Editlet',{
 	},
 	applyDiff: function (diff) {
 		var me = this;
-		
-		me.value = Sapl.feval([me.appDiff,[me.jsToSaplJSONNode(diff),me.value]]);
-		me.fireEditletEvent("update");
+		var json = me.jsToSaplJSONNode(diff);
+		me.value = Sapl.feval([me.appDiff,[json,me.value]]);
+		me.fireUpdateEvent(__Data_Maybe_Just(json));
 	},
 	//Util functions for exchanging between the values of the clean type Text.JSONNode in
 	//the format used in the Sapl interpreter and 'raw' javascript objects

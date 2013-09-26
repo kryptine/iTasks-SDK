@@ -1,6 +1,12 @@
 definition module iTasks.API.Extensions.GIS.GoogleMap
 
-import iTasks
+import iTasks, iTasks.API.Core.Client.Editlet
+
+:: GoogleMapDiff :== GoogleMap
+
+googleMapEditlet :: GoogleMap -> Editlet GoogleMap GoogleMapDiff
+
+//derive class iTask GoogleMapDiff
 
 //* Geograpic data and Google Maps
 :: GoogleMap =

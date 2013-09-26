@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.Client.Editlet
 
-import iTasks.Framework.Client.LinkerSupport
+import iTasks.Framework.Client.LinkerSupport, Data.Maybe
 from Data.Map import :: Map, newMap, put
 import StdMisc
 
@@ -10,22 +10,23 @@ JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ c = (Nothing,c)
 
 gDefault{|Editlet|} fa _
-	= {Editlet|value=fa,html = \_ -> RawText "", handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
+	= {Editlet|value=fa,html = \_ -> RawText "", updateUI = \_ _ a st world -> (a, st, world), handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
 
 gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
 
 gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
-	# (jsScript,jsEvents, jsIV, jsGD, jsAD, iworld)	= editletLinker [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientGenDiff clientAppDiff iworld
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,updateUI,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
+	# (jsScript,jsEvents, jsIV, jsUU, jsGD, jsAD, iworld) 
+			= editletLinker [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientUpdateUI clientGenDiff clientAppDiff iworld
 	# iworld									= addDiffer iworld
-	= (NormalEditor [(ui jsScript jsEvents jsIV jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
+	= (NormalEditor [(ui jsScript jsEvents jsIV jsUU jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
 where
     htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 
-	ui jsScript jsEvents jsIV jsGD jsAD
+	ui jsScript jsEvents jsIV jsUU jsGD jsAD
 		= UIEditlet defaultSizeOpts {UIEditletOpts|taskId=taskId,editorId=editorId dp,value=toJSONA value, html = toString (html htmlId)
-								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, genDiff = Just jsGD, appDiff = Just jsAD}
+								    ,script = Just jsScript, events = Just jsEvents, initValue = Just jsIV, updateUI = Just jsUU, genDiff = Just jsGD, appDiff = Just jsAD}
 	
 	toJSONA a = case jsonEncA a of
 		[json:_]	= json
@@ -53,6 +54,12 @@ where
 		Just diff		= toJSOND diff
 		_				= JSONNull
 	
+	clientUpdateUI id Nothing val mbSt world = updateUI id Nothing val mbSt world
+	clientUpdateUI id (Just json) val mbSt world 
+			= case jsonDecD [json] of
+				(Just diff,_) = updateUI id (Just diff) val mbSt world
+				_		      = abort "Error in JSON argument"
+
 	addDiffer iworld=:{IWorld|uiDiffers}
 		= {IWorld|iworld & uiDiffers = put (taskId,editorId dp) serverGenDiff uiDiffers}
 
@@ -67,6 +74,6 @@ gUpdate{|Editlet|} fa _ _ _ _ _ _ _ mv = mv
 
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
-
-
+createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
+createEditletEventHandler handler id = undef
 

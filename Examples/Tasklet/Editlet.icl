@@ -3,6 +3,7 @@ module Editlet
 import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
+import iTasks.API.Extensions.GIS.GoogleMap
 
 import StdDebug
 
@@ -10,7 +11,7 @@ import StdDebug
 derive class iTask TimeDelta
 
 buienLet :: Editlet String Void
-buienLet = {Editlet|value="Buienradar",html=const (RawText html), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
+buienLet = {Editlet|value="Buienradar",html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
 where
 	html = "<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>"
 
@@ -19,36 +20,36 @@ derive class iTask StringDelta
 
 stringlet :: Editlet String [String]
 stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id] []
-			,handlers = [ComponentEvent "editlet" "init" onUpdate
-						,ComponentEvent "editlet" "update" onUpdate
-						,ComponentEvent "editlet" "keyup" onChange]
-			,genDiff = \o n -> if (o == n) Nothing (Just [n,n])
-			,appDiff = \n _ -> hd n
+			,updateUI = onUpdate
+			,handlers = [ComponentEvent "editlet" "keyup" onChange]
+			,genDiff  = \o n -> if (o == n) Nothing (Just [n,n])
+			,appDiff  = \n _ -> hd n
 			}
 where
-	onUpdate :: ComponentId (JSVal EditletEvent) String *JSWorld -> (!String, !*JSWorld)
-	onUpdate id event val world
+	onUpdate :: ComponentId (Maybe [String]) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
+	onUpdate id _ val st world
 		# world	= setDomAttr id "value" (toJSVal val) world
-		= (val,world)
+		= (val,st,world)
 	
-	onChange  :: ComponentId (JSVal EditletEvent) String *JSWorld -> (!String, !*JSWorld)
-	onChange id event val world
-		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
+	onChange  :: ComponentId (JSVal EditletEvent) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
+	onChange id event val st world
+		= let (val, w) = getDomAttr id "value" world in (jsValToString val, st, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
 timelet t =	{Editlet
 				|value		= t
 				,html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
-				,handlers	= [ComponentEvent "editlet" "init" onUpdate, ComponentEvent "editlet" "update" onUpdate]
+				,updateUI	= onUpdate				
+				,handlers	= []
 				,genDiff	= genDiff
 				,appDiff	= appDiff
 				}
 where
-	onUpdate ::  ComponentId (JSVal EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
-	onUpdate id event val world
+	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
+	onUpdate id _ val st world
 		# world = setDomAttr id "innerHTML" (toJSVal (toString val)) world
 		# world	= setDomAttr id "style.color" (toJSVal (colors !! (val.Time.sec rem (length colors)))) world
-		= (val,world)
+		= (val,st,world)
 		
 	colors = ["#f0f","#00f","#f00","#30f","#ff0","#66f"]
 	
@@ -69,16 +70,20 @@ clocklet :: Time -> Editlet Time Time
 clocklet t =	{Editlet
 				|value		= t
 				,html		= \id -> RawText ("<canvas height=\"100%\" id=\"" +++ id +++ "\" class=\"CoolClock\"></canvas>")
-				,handlers	= [ComponentEvent "editlet" "init" onInit/*, ComponentEvent "editlet" "update" onUpdate*/]
+				,updateUI	= onInit					
+				,handlers	= []
 				,genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
 				,appDiff	= \tn to -> tn
 				}
 where
-	onInit :: ComponentId (JSVal EditletEvent) Time *JSWorld -> (!Time, !*JSWorld)
-	onInit id event val world
+	onInit :: ComponentId (Maybe Time) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
+	onInit id Nothing val st world
 		# world				= addJSFromUrl "/coolclock.js" Nothing world
 		# world				= addJSFromUrl "/moreskins.js" Nothing world
-		= trace_n "onInit done" (val,world)
+		= trace_n "onInit done" (val,st,world)
+
+	// Update
+	onInit id mbDiff val st world = (val, st, world)
 	
 	onLoad :: *JSWorld -> *JSWorld
 	onLoad world
@@ -133,7 +138,8 @@ tictactoelet t=:(board,turn) =
 	{Editlet
 	|value		= t
 	,html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
-	,handlers	= [ComponentEvent "editlet" "update" onUpdate]
+	,updateUI   = onUpdate
+	,handlers	= []
 				  ++[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
 				 
 	,genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
@@ -143,13 +149,13 @@ where
 	//onInit :: ComponentId (JSPtr JSObject) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	//onInit editorId _ state world = (state,redraw "tictactoe" state world)
 
-	onUpdate :: ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
-	onUpdate editorId _ state world = (state,world) //(state,redraw "tictactoe" state world)
+	onUpdate :: ComponentId (Maybe (TicTacToe,TicTac)) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
+	onUpdate editorId _ state st world = (state,st,world) //(state,redraw "tictactoe" state world)
 
-	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
-	onCellClick coord editorId event (board,turn) world
+	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
+	onCellClick coord editorId event (board,turn) st world
 		# state = (add_cell coord turn board, ~turn)
-		= (state, redraw "tictactoe" state world)
+		= (state, st, redraw "tictactoe" state world)
 		
 	redraw	:: !String !(TicTacToe,TicTac) *JSWorld -> *JSWorld
 	redraw editorId state world = setDomAttr editorId "innerHTML" (toJSVal (toString (init_board editorId state))) world
@@ -188,6 +194,31 @@ where
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
+defperspective =
+	{ GoogleMapPerspective
+	| type				= ROADMAP
+	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
+	, zoom				= 10
+	}
+defsettings =
+	{ GoogleMapSettings
+	| mapTypeControl	= True
+	, panControl		= True
+	, streetViewControl	= False
+	, zoomControl		= True
+	, scaleControl		= True
+	, scrollwheel		= True
+	, draggable			= True
+	}
+defmap =
+	{ GoogleMap 
+	| settings	  = defsettings
+	, perspective = defperspective
+	, markers	  = []
+	}
+
+test5 = updateInformation "Google MAP" [] (googleMapEditlet defmap)
+
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
 test2 = updateInformation "Test" [] (timelet (fromString "13:00:00"))
@@ -201,4 +232,4 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
 
 Start :: *World -> *World
-Start world = startEngine test4 world
+Start world = startEngine test5 world

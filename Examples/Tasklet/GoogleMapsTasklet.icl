@@ -1,6 +1,6 @@
 module GoogleMapsTasklet
 
-import iTasks, iTasks.Framework.ClientSupport.Tasklet
+import iTasks, iTasks.API.Core.Client.Tasklet
 import Text.StringAppender, graph_to_sapl_string, MovingEntity
 import sapldebug
 from StdEnv import undef
@@ -268,7 +268,7 @@ where
 
 //UTIL
 (>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskb = step taska [WhenStable (const taskb)]
+(>>-) taska taskb = step taska (const Nothing) [OnValue (ifStable (const taskb))]
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void

@@ -29,7 +29,7 @@ generateGUI _ (Just x) iworld
 where
     style = "position:absolute; left:"+++toString x+++"px;top:8em;width:5em;line-height:3em;background:#99ccff;border:1px solid #003366;white-space:nowrap;padding:0.5em;"
     
-	onInit x _ _ world
+	onInit _ _ x world
 		# world = setDomAttr "object" "style.left" (toJSVal (toString x+++"px")) world
 		= (x, world)
 
