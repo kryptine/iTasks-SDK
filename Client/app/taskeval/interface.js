@@ -85,9 +85,9 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectAttr(attr,value,obj,world
     value = ___unwrapJS(Sapl.feval(value));
     obj = ___unwrapJS(Sapl.feval(obj));
 
-    eval("obj[attr]=value;");
+    eval("obj."+attr+"=value;");
     
-    return ___predefined__Tuple2(___wrapJS(obj), world);
+    return world;
 }
 
 //jsSetObjectEl :: !Int !(JSVal v) !(JSVal o) !*JSWorld -> *JSWorld
@@ -100,19 +100,19 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectEl(index,value,obj,world)
     	
     obj[index] = value;
     
-    return ___predefined__Tuple2(___wrapJS(obj), world);
+    return world;
 }
 
-//jsDeleteObjectAttr :: !String !(JSVal o) !*JSWorld -> *(!JSVal o, !*JSWorld)
+//jsDeleteObjectAttr :: !String !(JSVal o) !*JSWorld -> !*JSWorld
 function __iTasks_API_Core_Client_Interface_jsDeleteObjectAttr(attr,obj,world) {
     
 	world = Sapl.feval(world);
 	attr = Sapl.feval(attr);   
     obj = ___unwrapJS(Sapl.feval(obj));
 
-    eval("delete obj[attr];");
+    eval("delete obj."+attr+";");
     
-    return ___predefined__Tuple2(___wrapJS(obj), world);
+    return world;
 }
 
 //jsApply :: !(JSVal (JSFunction f)) !(JSVal scope) [JSVal args] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -172,11 +172,17 @@ function __iTasks_API_Core_Client_Interface_toJSArg(val){
 	}
 }		
 	
-// fromJSVal :: !(JSVal a) -> Dynamic
-function __iTasks_API_Core_Client_Interface_fromJSVal(ptr){
+// fromJSValUnsafe :: !(JSVal a) -> Dynamic
+function __iTasks_API_Core_Client_Interface_fromJSValUnsafe(ptr){
 	return toDynamic(___unwrapJS(Sapl.feval(ptr)));
 }
 
+// fromJSVal :: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
+function __iTasks_API_Core_Client_Interface_fromJSVal(ptr, world){
+	world = Sapl.feval(world);
+	return (toDynamic(___unwrapJS(Sapl.feval(ptr))), world);
+}
+	
 // createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal b) 
 function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId){
 	expr = Sapl.feval(expr);
@@ -186,7 +192,7 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
     var eventHandler = function(expr, taskId){
 		
 		var h = function(event){
-			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, ___wrapJS(event));
+			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, event);
 		};
 		
 		return h;

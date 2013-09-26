@@ -61,6 +61,48 @@ String.prototype.rpad = function(padString, length) {
     return str;
 }
 
+// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
+if (!Object.keys) {
+  Object.keys = (function () {
+    'use strict';
+    var hasOwnProperty = Object.prototype.hasOwnProperty,
+        hasDontEnumBug = !({toString: null}).propertyIsEnumerable('toString'),
+        dontEnums = [
+          'toString',
+          'toLocaleString',
+          'valueOf',
+          'hasOwnProperty',
+          'isPrototypeOf',
+          'propertyIsEnumerable',
+          'constructor'
+        ],
+        dontEnumsLength = dontEnums.length;
+
+    return function (obj) {
+      if (typeof obj !== 'object' && (typeof obj !== 'function' || obj === null)) {
+        throw new TypeError('Object.keys called on non-object');
+      }
+
+      var result = [], prop, i;
+
+      for (prop in obj) {
+        if (hasOwnProperty.call(obj, prop)) {
+          result.push(prop);
+        }
+      }
+
+      if (hasDontEnumBug) {
+        for (i = 0; i < dontEnumsLength; i++) {
+          if (hasOwnProperty.call(obj, dontEnums[i])) {
+            result.push(dontEnums[i]);
+          }
+        }
+      }
+      return result;
+    };
+  }());
+}
+
 if (!Function.prototype.bind) {
   Function.prototype.bind = function (oThis) {
     if (typeof this !== "function") {
@@ -234,42 +276,5 @@ function _geq(a, b, aStack, bStack) {
     return result;
 }
 
-function isIE(){
-    return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
-}
-    
- /* Only this way works for built in javascript objects */
-function streval(obj, method){
-	if(method!=null){
-		var str = "obj."+method+"(";
-	}else{
-		var str = "new "+obj+"(";
-	}
-		
-    // Creating a closure
-    var eventHandler = function(expr){
-		
-		var h = function(param){
-			expr[1].push(param);
-			Sapl.feval(expr);
-		};
-		
-		return h;
-    }
-	    
-    for(var i=2; i<arguments.length; i++){
-	// if an argument is a function, we handle it as an event handler
-        if(isArray(arguments[i]) && isFunction(arguments[i][0])){
-	      arguments[i] = eventHandler(arguments[i]);
-	}
-	    
-        if(i>2) str += ",";
-        str += "arguments["+i+"]";
-    }
-    
-    str = str + ")";
-    var value = eval(str);
-    
-    return value;
-}
+
 

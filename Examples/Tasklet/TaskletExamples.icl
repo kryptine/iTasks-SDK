@@ -44,9 +44,9 @@ where
 				
 	where
 		updatePerspective _ _  st=:{map = Just map} world 
-			# (center, map, world) = callObjectMethod "getCenter" [] map world
-			# (la, center, world)  = callObjectMethod "lat" [] center world
-			# (lo, center, world)  = callObjectMethod "lng" [] center world
+			# (center, world) 	= callObjectMethod "getCenter" [] map world
+			# (la, world)  		= callObjectMethod "lat" [] center world
+			# (lo, world)  		= callObjectMethod "lng" [] center world
 			= ({st & centerLA = jsValToReal la, centerLO = jsValToReal lo}, world)	
 
 	    onScriptLoad _ _ st world
@@ -61,9 +61,9 @@ where
 				    		,toJSArg {center = center, zoom = 8, mapTypeId = typeId}] world
 
 		    # (mapevent, world) = findObject "google.maps.event" world
-			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "dragend", toJSArg onChange] mapevent world
-			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "maptypeid_changed", toJSArg onChange] mapevent world
-			# (_, mapevent, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "zoom_changed", toJSArg onChange] mapevent world
+			# (_, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "dragend", toJSArg onChange] mapevent world
+			# (_, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "maptypeid_changed", toJSArg onChange] mapevent world
+			# (_, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "zoom_changed", toJSArg onChange] mapevent world
 			= ({st & map = Just map}, world)
 		where
 			onChange = createTaskletEventHandler updatePerspective taskId
@@ -76,13 +76,13 @@ where
 			= onScriptLoad taskId e st world
 		
 		loadMapsAPI taskId e world	
-			# (_, world) = jsSetObjectAttr "gmapscallback" (createTaskletEventHandler onScriptLoad taskId) jsWindow world
+			# world = jsSetObjectAttr "gmapscallback" (createTaskletEventHandler onScriptLoad taskId) jsWindow world
 			= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
 					Nothing world
 
 		onDestroy _ _ st=:{map = Just map} world
 		    # (mapevent, world) = findObject "google.maps.event" world
-			# (_, mapevent, world) = callObjectMethod "clearInstanceListeners" [toJSArg map] mapevent world
+			# (_, world) 		= callObjectMethod "clearInstanceListeners" [toJSArg map] mapevent world
 		
 			// clear generated stuff
 			# world = setDomAttr "map_place_holder" "innerHTML" (toJSVal "") world
@@ -95,10 +95,10 @@ where
 		// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
 		onResize _ _ st=:{map = Just map} world
 		    # (mapevent, world) = findObject "google.maps.event" world
-			# (_, mapevent, world) = callObjectMethod "trigger" [toJSArg map, toJSArg "resize"] mapevent world
+			# (_, world) 		= callObjectMethod "trigger" [toJSArg map, toJSArg "resize"] mapevent world
 		
-			# (center, world) = jsNewObject "google.maps.LatLng" [toJSArg st.centerLA, toJSArg st.centerLO] world	
-			# (_, map, world) = callObjectMethod "setCenter" [toJSArg center] map world
+			# (center, world) 	= jsNewObject "google.maps.LatLng" [toJSArg st.centerLA, toJSArg st.centerLO] world	
+			# (_, world) 		= callObjectMethod "setCenter" [toJSArg center] map world
 		
 			= (st, world)
 
@@ -147,7 +147,7 @@ where
 
 	onInit taskId _ st world
 	    # (loc, world) = findObject "navigator.geolocation" world
-		# (_, loc, world)   = callObjectMethod "getCurrentPosition" 
+		# (_, world)   = callObjectMethod "getCurrentPosition" 
 								[toJSArg (createTaskletEventHandler onSuccess taskId)
 								,toJSArg (createTaskletEventHandler onFailure taskId)
 							    ,toJSArg {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
@@ -283,7 +283,7 @@ painterGenerateGUI _ (Just defSt) iworld
 where
 	onStart _ e state world
 		# (context, world) = getContext False world
-		# (context, world) = foldl (\(context, world) dr = draw context dr world) (context, world) (reverse state.draw)
+		# world = foldl (\world dr = draw context dr world) world (reverse state.draw)
 		= (state, world)
 		
 	onChangeTool _ e state world
@@ -295,7 +295,7 @@ where
 		# world = foldl (\world el = setDomAttr el "style.borderColor" (toJSVal "white") world) world
 					["selectorYellow","selectorRed","selectorGreen","selectorBlue","selectorBlack"]
 		# (target, world) = jsGetObjectAttr "target" e world
-		# (target, world) = jsSetObjectAttr "style.borderColor" (toJSVal "pink") target world
+		# world = jsSetObjectAttr "style.borderColor" (toJSVal "pink") target world
 		= ({state & color = color}, world)
 
 	getCoordinates e world
@@ -314,20 +314,20 @@ where
 
 	getContext temp world
 	 	# (canvas, world) = getCanvas temp world
-		# (context, canvas, world) = callObjectMethod "getContext" [toJSArg "2d"] canvas world // not "2D" !
+		# (context, world) = callObjectMethod "getContext" [toJSArg "2d"] canvas world // not "2D" !
 		= (context, world)
 
 	clearContext context world
-		# (_, context, world) = callObjectMethod "clearRect" 
-				[toJSArg 0, toJSArg 0, toJSArg canvasWidth, toJSArg canvasHeight] context world
-		= (context, world)
+		# (_, world) = callObjectMethod "clearRect" 
+							[toJSArg 0, toJSArg 0, toJSArg canvasWidth, toJSArg canvasHeight] context world
+		= world
 
 	onMouseUp _ e state world
-		# (tempcanvas, world)  = getCanvas True world
-		# (tempcontext, world) = getContext True world
-		# (context, world)     = getContext False world
-		# (_, context, world)  = callObjectMethod "drawImage" [toJSArg tempcanvas, toJSArg 0, toJSArg 0] context world
-		# (tempcontext, world) = clearContext tempcontext world
+		# (tempcanvas, world)  	= getCanvas True world
+		# (tempcontext, world) 	= getContext True world
+		# (context, world)     	= getContext False world
+		# (_, world)  		  	= callObjectMethod "drawImage" [toJSArg tempcanvas, toJSArg 0, toJSArg 0] context world
+		# world 			   	= clearContext tempcontext world
 		| isJust state.lastDraw
 			= ({state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing}, world)
 			= ({state & mouseDown = Nothing}, world)
@@ -339,44 +339,44 @@ where
 			_          = (state, world)
 				
 	drawLine context color x1 y1 x2 y2 world
-		# (_, context, world) = callObjectMethod "beginPath" [] context world
-		# (context, world)    = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
-		# (_, context, world) = callObjectMethod "moveTo" [toJSArg x1, toJSArg y1] context world
-		# (_, context, world) = callObjectMethod "lineTo" [toJSArg x2, toJSArg y2] context world
-		# (_, context, world) = callObjectMethod "stroke" [] context world
-		= (context, world)
+		# (_, world) = callObjectMethod "beginPath" [] context world
+		# world	     = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
+		# (_, world) = callObjectMethod "moveTo" [toJSArg x1, toJSArg y1] context world
+		# (_, world) = callObjectMethod "lineTo" [toJSArg x2, toJSArg y2] context world
+		# (_, world) = callObjectMethod "stroke" [] context world
+		= world
 
 	drawRect context color x1 y1 x2 y2 world
-		# (context, world) = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
-		# (_, context, world) = callObjectMethod "strokeRect" 
-				[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
-				context world
-		= (context, world)
+		# world		 = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
+		# (_, world) = callObjectMethod "strokeRect" 
+						[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
+						context world
+		= world
 
 	drawFilledRect context color x1 y1 x2 y2 world
-		# (context, world)   = jsSetObjectAttr "fillStyle" (toJSVal color) context world
-		# (_, context, world) = callObjectMethod "fillRect"
-				[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
-				context world
-		= (context, world)
+		# world   	 = jsSetObjectAttr "fillStyle" (toJSVal color) context world
+		# (_, world) = callObjectMethod "fillRect"
+							[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
+							context world
+		= world
 
 	drawCircle context fill color x1 y1 x2 y2 world
-		# (_, context, world) = callObjectMethod "beginPath" [] context world
-		# (context, world) = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
-		# (context, world) = jsSetObjectAttr "fillStyle" (toJSVal color) context world
+		# (_, world) = callObjectMethod "beginPath" [] context world
+		# world		 = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
+		# world		 = jsSetObjectAttr "fillStyle" (toJSVal color) context world
 	
-		# (_, context, world) = callObjectMethod "arc"
-						[toJSArg (center x1 x2), toJSArg (center y1 y2)
-						,toJSArg (toInt ((distance x1 y1 x2 y2)/2.0))
-						,toJSArg 0, toJSArg (3.14159265*2.0), toJSArg True]
-						context world
+		# (_, world) = callObjectMethod "arc"
+							[toJSArg (center x1 x2), toJSArg (center y1 y2)
+							,toJSArg (toInt ((distance x1 y1 x2 y2)/2.0))
+							,toJSArg 0, toJSArg (3.14159265*2.0), toJSArg True]
+							context world
 							
-		# (_, context, world) = case fill of 
+		# (_, world) = case fill of 
 						True = callObjectMethod "fill" [] context world
 						_	 = callObjectMethod "stroke" [] context world
 
-		# (_, context, world) = callObjectMethod "closePath" [] context world
-		= (context, world)
+		# (_, world) = callObjectMethod "closePath" [] context world
+		= world
 	where
 		center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
 		distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
@@ -386,8 +386,8 @@ where
 		# (tempcontext, world) = getContext True world
 			
 		// Don't clear for pencil
-		# (tempcontext, world) = case state.tool of 
-				"P" = (tempcontext, world)
+		# world = case state.tool of 
+				"P" = world
 				    = clearContext tempcontext world
 
 		# drawType = case state.tool of	
@@ -398,7 +398,7 @@ where
 				"C"	= DrawCircle state.color False dx dy x y
 				"c"	= DrawCircle state.color True dx dy x y
 
-		# (tempcontext, world) = draw tempcontext drawType world
+		# world = draw tempcontext drawType world
 			
 		// Update start coordinates for pencil
 		= case state.tool of 
@@ -416,7 +416,7 @@ where
 
 	onClickClear _ e state world
 		# (context, world) = getContext False world
-		# (context, world) = clearContext context world
+		# world = clearContext context world
 		= ({state & draw = []}, world)
 			
 	onClickFinish _ e state world

@@ -30,9 +30,9 @@ jsEmptyObject		:: 									!*JSWorld -> *(!JSVal a, !*JSWorld) // {}
 jsNewObject			:: !String ![JSArg]					!*JSWorld -> *(!JSVal b, !*JSWorld)
 jsGetObjectAttr 	:: !String !(JSVal o)				!*JSWorld -> *(!JSVal b, !*JSWorld)
 jsGetObjectEl		:: !Int !(JSVal o) 					!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsSetObjectAttr		:: !String !(JSVal v) !(JSVal o) 	!*JSWorld -> *(!JSVal o, !*JSWorld)
-jsSetObjectEl		:: !Int !(JSVal v) !(JSVal o) 		!*JSWorld -> *(!JSVal o, !*JSWorld)
-jsDeleteObjectAttr	:: !String !(JSVal o) 				!*JSWorld -> *(!JSVal o, !*JSWorld)
+jsSetObjectAttr		:: !String !(JSVal v) !(JSVal o) 	!*JSWorld -> *JSWorld
+jsSetObjectEl		:: !Int !(JSVal v) !(JSVal o) 		!*JSWorld -> *JSWorld
+jsDeleteObjectAttr	:: !String !(JSVal o) 				!*JSWorld -> *JSWorld
 
 //Calling js functions
 jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -43,7 +43,8 @@ jsTypeof			:: !(JSVal a) -> String
 
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg
-fromJSVal 			:: !(JSVal a) -> Dynamic
+fromJSValUnsafe		:: !(JSVal a) -> Dynamic
+fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
 newJSArray 			:: !*JSWorld -> *(!JSVal [a], !*JSWorld)
 
@@ -60,7 +61,7 @@ getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
 setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
 
 //Call a method on a javascript object. Object can be (JSVal null)
-callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !JSVal o, !*JSWorld)
+callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
 //Get a value from the global scope.
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching

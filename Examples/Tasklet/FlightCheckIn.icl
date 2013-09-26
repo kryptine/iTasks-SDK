@@ -130,7 +130,7 @@ where
  		
  	setState newst _ _ _ world  = (newst, world)
  	setColor color _ e st world	=
-		(st, snd (jsSetObjectAttr "target.style.backgroundColor" (toJSVal color) e world))
+		(st, jsSetObjectAttr "target.style.backgroundColor" (toJSVal color) e world)
 
 	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]
 								    [map (\s -> genRowUI (Seat r s)) rowLayout \\ r <- [1 .. f.rows]])

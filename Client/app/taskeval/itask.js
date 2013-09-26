@@ -142,7 +142,8 @@ function applytui(widget,tui){
 
 function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
 	
-	var tasklet = itwc.global.controller.tasklets[taskId];
+	var sti = taskId[2]+"-"+taskId[3]; // toString
+	var tasklet = itwc.global.controller.tasklets[sti];
 	var state = tasklet.st;
 	
 	// Returns a tuple of the JSWorld and HtmlEventResult	

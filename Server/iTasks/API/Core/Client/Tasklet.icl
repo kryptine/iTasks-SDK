@@ -309,7 +309,7 @@ controllerWrapper cf strTaskID st mbEventName mbEventHandler
 
 // it uses the 2. layer (handleJSEvent), because it's created on the server
 eventHandlerWrapper taskId (HtmlEvent id event f) 
-	= (id, event, handleJSEvent f (toString taskId))
+	= (id, event, handleJSEvent f taskId)
 
 interfaceWrapper taskId (InterfaceFun fn f) = (fn, handleInterfaceCall f (toString taskId))
 
