@@ -43,7 +43,7 @@ googleMapEditlet g = {Editlet
 				|value		= g
 				,html		= \id -> DivTag [IdAttr (mapdomid id), StyleAttr "width:100%; height:100%"] []
 				,updateUI   = onUpdate
-				,handlers	= []
+				,handlers	= \_ -> []
 				,genDiff	= genDiff
 				,appDiff	= appDiff
 				}

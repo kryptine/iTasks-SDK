@@ -10,7 +10,7 @@ JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ c = (Nothing,c)
 
 gDefault{|Editlet|} fa _
-	= {Editlet|value=fa,html = \_ -> RawText "", updateUI = \_ _ a st world -> (a, st, world), handlers=[], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
+	= {Editlet|value=fa,html = \_ -> RawText "", updateUI = \_ _ a st world -> (a, st, world), handlers= \_ -> [], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
 
 gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
 
@@ -18,7 +18,7 @@ gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
 
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,updateUI,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
 	# (jsScript,jsEvents, jsIV, jsUU, jsGD, jsAD, iworld) 
-			= editletLinker [(id, event, f) \\(ComponentEvent id event f) <- handlers] clientInit clientUpdateUI clientGenDiff clientAppDiff iworld
+			= editletLinker [(id, event, f) \\(ComponentEvent id event f) <- handlers htmlId] clientInit clientUpdateUI clientGenDiff clientAppDiff iworld
 	# iworld									= addDiffer iworld
 	= (NormalEditor [(ui jsScript jsEvents jsIV jsUU jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})
 where

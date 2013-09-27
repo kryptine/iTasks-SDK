@@ -11,7 +11,7 @@ import StdDebug
 derive class iTask TimeDelta
 
 buienLet :: Editlet String Void
-buienLet = {Editlet|value="Buienradar",html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
+buienLet = {Editlet|value="Buienradar",html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = \_ -> [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
 where
 	html = "<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>"
 
@@ -19,9 +19,9 @@ where
 derive class iTask StringDelta
 
 stringlet :: Editlet String [String]
-stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id] []
+stringlet = {Editlet|value = "Hello world",html = \cid -> TextareaTag [IdAttr cid] []
 			,updateUI = onUpdate
-			,handlers = [ComponentEvent "editlet" "keyup" onChange]
+			,handlers = \cid -> [ComponentEvent cid "keyup" onChange]
 			,genDiff  = \o n -> if (o == n) Nothing (Just [n,n])
 			,appDiff  = \n _ -> hd n
 			}
@@ -40,7 +40,7 @@ timelet t =	{Editlet
 				|value		= t
 				,html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
 				,updateUI	= onUpdate				
-				,handlers	= []
+				,handlers	= \_ -> []
 				,genDiff	= genDiff
 				,appDiff	= appDiff
 				}
@@ -71,7 +71,7 @@ clocklet t =	{Editlet
 				|value		= t
 				,html		= \id -> RawText ("<canvas height=\"100%\" id=\"" +++ id +++ "\" class=\"CoolClock\"></canvas>")
 				,updateUI	= onInit					
-				,handlers	= []
+				,handlers	= \_ -> []
 				,genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
 				,appDiff	= \tn to -> tn
 				}
@@ -139,7 +139,7 @@ tictactoelet t=:(board,turn) =
 	|value		= t
 	,html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
 	,updateUI   = onUpdate
-	,handlers	= []
+	,handlers	= \_ -> []
 				  ++[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
 				 
 	,genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
@@ -195,7 +195,7 @@ empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
 defperspective =
-	{ GoogleMapPerspective
+	{ GoogleMapPerspective	
 	| type				= ROADMAP
 	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
 	, zoom				= 10
@@ -232,4 +232,4 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
 
 Start :: *World -> *World
-Start world = startEngine test5 world
+Start world = startEngine test world
