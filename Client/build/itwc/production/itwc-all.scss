@@ -1,4 +1,4 @@
-$image-search-path: '/Users/bas/Clean/iTasks-SDK/Client/build/itwc/production/resources';
+$image-search-path: '/Users/norm2782/clean/iTasks-SDK/Client/build/itwc/production/resources';
 $theme-name:  'ext-theme-gray' !default;
 $include-ext-abstractcomponent: true;
 $include-ext-abstractmanager: true;
@@ -573,7 +573,6 @@ $include-itwc-patch-grid-gridviewlayout: true;
 $include-itwc-patch-grid-view: true;
 $include-itwc-patch-layout-context: true;
 $include-itwc-view-viewport: true;
-$include-itwc-view-viewport2: false;
 $relative-image-path-for-uis: 'images';
 @import '../../../packages/ext-theme-base/sass/etc/all';
 $relative-image-path-for-uis: 'images';

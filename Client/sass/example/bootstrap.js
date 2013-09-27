@@ -784,7 +784,6 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.data.proxy.SessionStorage": [
     "Ext.data.SessionStorageProxy"
   ],
-  "itwc.view.Viewport2": [],
   "Ext.app.EventBus": [],
   "Ext.menu.Separator": [],
   "Ext.util.History": [
@@ -1871,7 +1870,6 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.data.proxy.SessionStorage": [
     "proxy.sessionstorage"
   ],
-  "itwc.view.Viewport2": [],
   "Ext.app.EventBus": [],
   "Ext.menu.Separator": [
     "widget.menuseparator"
