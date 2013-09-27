@@ -41,7 +41,7 @@ function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
 	args = Sapl.toJS(Sapl.feval(args)); 
 	
 	var args = [null].concat(args);
-    var factoryFunction = constructor.bind.apply(eval(cons_name), args);
+    var factoryFunction = Object.prototype.constructor.bind.apply(eval(cons_name), args);
     return ___predefined__Tuple2(___wrapJS(new factoryFunction()), world);
 }
 
