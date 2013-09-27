@@ -50,7 +50,7 @@ Ext.define('itwc.component.edit.Editlet',{
 			
 			elName = me.events[i][0];
 			eventName = me.events[i][1];
-			expr = me.events[i][2];
+			expr = eval(me.events[i][2]);
 						
 			el = Ext.get(elName);
 			el.on(eventName, me.eventHandler(true,expr));
