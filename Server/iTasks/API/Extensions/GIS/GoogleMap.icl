@@ -9,6 +9,11 @@ import Data.Functor, Text, StdMisc
 
 from Data.Map import newMap
 
+:: GoogleMapDiff
+    = SetSettings GoogleMapSettings
+    | SetPerspective GoogleMapPerspective
+    | SetMarkers [GoogleMapMarker]
+
 //--------------------------------------------------------------------------------------------------
 
 :: GoogleMapState = {mapobj       :: JSVal JSObject
@@ -38,7 +43,7 @@ from Data.Map import newMap
 				   ,id		   :: String
 				   }
 
-googleMapEditlet :: GoogleMap -> Editlet GoogleMap GoogleMapDiff
+googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff]
 googleMapEditlet g = {Editlet
 				|value		= g
 				,html		= \id -> DivTag [IdAttr (mapdomid id), StyleAttr "width:100%; height:100%"] []
@@ -221,12 +226,22 @@ afterComponentLayout: function() {
     	    			= {GoogleMapMarker|m&position={GoogleMapPosition | lat = nlat, lng = nlng}}
 						= m	
 	
-    //TODO
-	genDiff :: GoogleMap GoogleMap -> Maybe GoogleMapDiff
-	genDiff g1 g2 = Just g2
+	genDiff :: GoogleMap GoogleMap -> Maybe [GoogleMapDiff]
+	genDiff g1 g2 = case settingsDiff g1 g2 ++ perspectiveDiff g1 g2 ++ markersDiff g1 g2 of
+        []      = Nothing
+        diffs   = Just diffs
+    where
+        settingsDiff g1 g2      = if (g1.GoogleMap.settings === g2.GoogleMap.settings) [] [SetSettings g2.GoogleMap.settings]
+        perspectiveDiff g1 g2   = if (g1.GoogleMap.perspective === g2.GoogleMap.perspective) [] [SetPerspective g2.GoogleMap.perspective]
+        markersDiff g1 g2       = if (g1.GoogleMap.markers === g2.GoogleMap.markers) [] [SetMarkers g2.GoogleMap.markers]
 
-	appDiff :: GoogleMapDiff GoogleMap -> GoogleMap
-	appDiff d g = d
+	appDiff :: [GoogleMapDiff] GoogleMap -> GoogleMap
+	appDiff d g = foldl app g d
+    where
+        app g (SetSettings settings) = {GoogleMap|g & settings = settings}
+        app g (SetPerspective perspective) = {GoogleMap|g & perspective = perspective}
+        app g (SetMarkers markers) = {GoogleMap|g & markers = markers}
+
 
 //--------------------------------------------------------------------------------------------------
 
@@ -273,13 +288,13 @@ gDefault{|GoogleMapSettings|} =
 	, draggable			= True
 	}
 
-derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gDefault			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditor                     GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gDefault			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gEditor                     GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
+derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 

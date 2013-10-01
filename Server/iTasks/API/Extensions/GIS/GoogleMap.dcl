@@ -1,14 +1,6 @@
 definition module iTasks.API.Extensions.GIS.GoogleMap
+import iTasks
 
-import iTasks, iTasks.API.Core.Client.Editlet
-
-:: GoogleMapDiff :== GoogleMap
-
-googleMapEditlet :: GoogleMap -> Editlet GoogleMap GoogleMapDiff
-
-//derive class iTask GoogleMapDiff
-
-//* Geograpic data and Google Maps
 :: GoogleMap =
 	{ settings				:: GoogleMapSettings
 	, perspective			:: GoogleMapPerspective
@@ -59,7 +51,7 @@ derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMap
 derive gDefault			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditMeta			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditor	        GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gUpdate			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVerify			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
