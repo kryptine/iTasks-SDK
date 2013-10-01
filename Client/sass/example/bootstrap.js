@@ -200,7 +200,6 @@ Ext.ClassManager.addNameAlternateMappings({
     "Ext.Container"
   ],
   "Ext.rtl.form.field.Spinner": [],
-  "itwc.component.edit.GoogleMap": [],
   "Ext.util.KeyMap": [
     "Ext.KeyMap"
   ],
@@ -1081,9 +1080,6 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.container"
   ],
   "Ext.rtl.form.field.Spinner": [],
-  "itwc.component.edit.GoogleMap": [
-    "widget.itwc_edit_googlemap"
-  ],
   "Ext.util.KeyMap": [],
   "Ext.ux.ToolbarDroppable": [],
   "Ext.data.Batch": [],

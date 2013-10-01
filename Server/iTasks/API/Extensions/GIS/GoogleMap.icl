@@ -21,12 +21,12 @@ from Data.Map import newMap
           		,zoom      			:: Int
           		,mapTypeId 			:: JSVal JSObject
 				,mapTypeControl		:: Bool
-				,panControl			:: Bool		  				
+				,panControl			:: Bool
 				,zoomControl		:: Bool
 				,streetViewControl	:: Bool
 				,scaleControl		:: Bool
 				,scrollwheel		:: Bool
-				,draggable			:: Bool	          		
+				,draggable			:: Bool
         		}
 
 // Parameter object for creating google.maps.Marker
@@ -53,13 +53,12 @@ where
     onScriptLoad cid _ map _ world
 	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>") world
 	    # (mapdiv, world) = getDomElement "map_canvas" world
-	        
 	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (map.perspective.GoogleMapPerspective.type)) world
-	    # (center, world) = jsNewObject "google.maps.LatLng" 
+	    # (center, world) = jsNewObject "google.maps.LatLng"
 	    				[toJSArg map.perspective.GoogleMapPerspective.center.lat
 	    				,toJSArg map.perspective.GoogleMapPerspective.center.lng] world
 
-	    # (mapobj, world) = jsNewObject "google.maps.Map" 
+	    # (mapobj, world) = jsNewObject "google.maps.Map"
 	    				[toJSArg mapdiv
 			    		,toJSArg {MapOptions
 			    				 |zoom 				= map.perspective.GoogleMapPerspective.zoom
@@ -126,7 +125,7 @@ where
 		# world 	= createMarker cid mapobj markerMap markrec world
 						
 		= ({GoogleMap|map&markers=markers}, Just {st&nextMarkerId=nextMarkerId+1}, world)
-	where 
+	where
 		markerId = cid +++ "_" +++ toString nextMarkerId
 
 	getPos obj world
@@ -142,10 +141,10 @@ where
 		 , icon 		= Nothing
 		 , infoWindow 	= Nothing
 		 , draggable	= True
-		 , selected 	= False} 
+		 , selected 	= False}
 	
 	createMarker cid mapobj markerMap {GoogleMapMarker|markerId,position,title,draggable,icon} world
-	    # (latlng, world) = jsNewObject "google.maps.LatLng" 
+	    # (latlng, world) = jsNewObject "google.maps.LatLng"
 	    				[toJSArg position.lat
 	    				,toJSArg position.lng] world	
 	
@@ -153,13 +152,13 @@ where
 					Nothing = (Nothing, world)
 					(Just (GoogleMapSimpleIcon name)) = (Just (toJSVal ("/icons/"+++name)), world)
 					(Just (GoogleMapComplexIcon prop))
-						# (size, world) = jsNewObject "google.maps.Size" 
+						# (size, world) = jsNewObject "google.maps.Size"
 								[toJSArg (fst prop.GoogleMapComplexIcon.size), toJSArg (snd prop.GoogleMapComplexIcon.size)] world
 
-						# (origin, world) = jsNewObject "google.maps.Point" 
+						# (origin, world) = jsNewObject "google.maps.Point"
 								[toJSArg (fst prop.origin), toJSArg (snd prop.origin)] world
 
-						# (anchor, world) = jsNewObject "google.maps.Point" 
+						# (anchor, world) = jsNewObject "google.maps.Point"
 								[toJSArg (fst prop.anchor), toJSArg (snd prop.anchor)] world						
 
 						# (iconObj, world) = jsNewObject "google.maps.MarkerImage"
@@ -170,8 +169,8 @@ where
 								
 						= (Just iconObj, world)
 		
-		# (marker, world)      
-				= jsNewObject "google.maps.Marker" 
+		# (marker, world)
+				= jsNewObject "google.maps.Marker"
 						[toJSArg {MarkerOptions
 								 | map = mapobj
 								 , position = latlng
@@ -200,6 +199,7 @@ where
     	    			= {GoogleMapMarker|m&position={GoogleMapPosition | lat = nlat, lng = nlng}}
 						= m	
 	
+    //TODO
 	genDiff :: GoogleMap GoogleMap -> Maybe GoogleMapDiff
 	genDiff g1 g2 = Just g2
 
@@ -222,82 +222,17 @@ where
 	fromString "HYBRID" = HYBRID
 	fromString "TERRAIN" = TERRAIN			
 
-//* Geograpic data and Google Maps
-gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId}
-	# editOpts	= {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Nothing}
-	# opts		= mapOpts val
-	= (NormalEditor [(UIEditGoogleMap defaultSizeOpts editOpts opts,/*editorAttributes vv meta*/ newMap)],vst)
-where	
-	mapOpts map =
-		{ UIGoogleMapOpts
-		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
-		, mapType = mapType map.perspective.GoogleMapPerspective.type
-		, markers = [{UIGoogleMapMarker|markerId=markerId,position=(lat,lng),title=title,icon=icon,infoWindow=fmap toString infoWindow,draggable=draggable,selected=selected}
-					\\ {GoogleMapMarker|markerId,position={lat,lng},title,icon,infoWindow,draggable,selected} <- map.GoogleMap.markers]
-		, options =
-			{ UIGoogleMapOptions
-			| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
-			, panControl = map.settings.GoogleMapSettings.panControl
-			, streetViewControl = map.settings.GoogleMapSettings.streetViewControl
-			, zoomControl = map.settings.GoogleMapSettings.zoomControl
-			, scaleControl = map.settings.GoogleMapSettings.scaleControl
-			, scrollwheel = map.settings.GoogleMapSettings.scrollwheel
-			, draggable = map.settings.GoogleMapSettings.draggable
-			, zoom = map.perspective.GoogleMapPerspective.zoom
-			}
-		}
-	mapType ROADMAP 	= "ROADMAP"
-	mapType SATELLITE 	= "SATELLITE"
-	mapType HYBRID 		= "HYBRID"
-	mapType TERRAIN 	= "TERRAIN"
-
 gVisualizeText{|GoogleMapPosition|} _  {GoogleMapPosition|lat,lng} = [toString lat + " " + toString lng]
 
-//Helper types for GoogleMap gUpdate instance
-:: MVCUpdate = 
-	{ center			:: !(Real,Real)
-	, zoom				:: !Int
-	, type				:: !GoogleMapType
-	}	
-	
-:: MapClickUpdate = 
-	{ event				:: !ClickEvent
-	, point				:: !(Real,Real)
-	}
+gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst
+    = gEditor{|*|} dp (googleMapEditlet val,mask,ver) meta vst
 
-:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
+gUpdate{|GoogleMap|} dp upd (val,mask)
+    # ({Editlet|value},mask) = gUpdate{|*|} dp upd (googleMapEditlet val,mask)
+    = (value,mask)
 
-:: MarkerClickUpdate =
-	{ index				:: !Int
-	, event				:: !ClickEvent
-	}
-:: MarkerDragUpdate = 
-	{ index				:: !Int
-	, point				:: !(Real,Real)
-	}
-
-derive JSONDecode MVCUpdate, MapClickUpdate, ClickEvent, MarkerClickUpdate, MarkerDragUpdate
-
-gUpdate{|GoogleMap|} target upd val = basicUpdate parseUpdate target upd val
-where
-	parseUpdate json orig
-		# mbMVC		= fromJSON json
-		| isJust mbMVC
-			# {MVCUpdate|center=(lat,lng),zoom,type} = fromJust mbMVC
-			= Just {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
-		# mbMarkerDrag = fromJSON json
-		| isJust mbMarkerDrag
-			# {MarkerDragUpdate|index,point=(lat,lng)}	= fromJust mbMarkerDrag
-			= Just {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
-		# mbMarkerClick = fromJSON json
-		| isJust mbMarkerClick
-			# {MarkerClickUpdate|index,event} = fromJust mbMarkerClick
-			= Just {GoogleMap| orig & markers = [{GoogleMapMarker|m & selected = i == index} \\ m <- orig.GoogleMap.markers & i <- [0..]]}
-		| otherwise	
-			= Just orig
-
+//derive gUpdate GoogleMap 
 gVerify{|GoogleMap|} _ mv = alwaysValid mv
-//derive gVerify GoogleMap
 
 gDefault{|GoogleMapPerspective|} =
 	{ GoogleMapPerspective
@@ -321,10 +256,8 @@ derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMap
 derive gDefault			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-derive gEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
+derive gEditor                     GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
 derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon
-
-
 

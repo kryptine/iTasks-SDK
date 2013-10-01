@@ -146,6 +146,8 @@ editletLinker ::
 	 ,!*IWorld)
 
 editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
+						iworld=:{world,currentSession=Nothing} = ("",[],"","","","",iworld) //REALLY????
+editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 						iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
 
 	// unpack "compiler state"
@@ -188,7 +190,7 @@ editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 	# js_GD = toString (handlerr (exprGenerateJS flavour False sapl_GD mbparserstate))
 	# js_AD = toString (handlerr (exprGenerateJS flavour False sapl_AD mbparserstate))
 
-	# js_eventHandlers = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
+	# js_eventHandlers = map (\(id,event,saplhandler) = (id,event,toString (handlerr
 							(exprGenerateJS flavour False saplhandler mbparserstate)))) sapl_eventHandlers
 
 /* For debugging:

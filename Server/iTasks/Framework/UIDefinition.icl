@@ -2,12 +2,7 @@ implementation module iTasks.Framework.UIDefinition
 
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
 from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
-from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	
-:: UIExtension = ...
-
-derive JSONEncode UIExtension
-
 defaultSizeOpts	:: UISizeOpts
 defaultSizeOpts = {width = Nothing, minWidth = Nothing, height = Nothing, minHeight = Nothing, margins = Nothing}
 
@@ -103,7 +98,6 @@ encodeUIControl (UIEditSlider sopts eopts opts)			= enc "itwc_edit_slider" [toJS
 encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, encEditOpts eopts]
 encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, encEditOpts eopts]
 encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditGoogleMap sopts eopts opts)		= enc "itwc_edit_googlemap" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIEditOryx sopts eopts opts)		    = enc "itwc_edit_oryx" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIEditCode sopts eopts opts)			= enc "itwc_edit_code" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, encEditOpts eopts, toJSON opts]
@@ -131,7 +125,7 @@ encodeUITab :: !UITab -> JSONNode
 encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON opts]
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
-derive JSONEncode UISliderOpts, UIProgressOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
+derive JSONEncode UISliderOpts, UIProgressOpts, UICodeOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts, UIOryxOpts
 derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
 derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts

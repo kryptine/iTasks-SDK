@@ -12,13 +12,13 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo
 :: UIDiffers	:== Map (String,String) (JSONNode JSONNode -> Maybe JSONNode)
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
+derive gEq UICodeOpts, UIOryxOpts, UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlStack, UISubUI, UISubUIStack, UIAction
 derive gEq UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 
-derive JSONEncode UITreeNode, UIActionOpts, UISizeOpts, UISideSizes, UIMinSize, UISize, UIGoogleMapOptions, UIGoogleMapMarker
+derive JSONEncode UITreeNode, UIActionOpts, UISizeOpts, UISideSizes, UIMinSize, UISize
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIDiffers -> [UIUpdate]	
@@ -69,8 +69,6 @@ diffControls path event differs c1 c2
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditButton sOpts1 eOpts1 opts1, UIEditButton sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
-		(m1=:UIEditGoogleMap sOpts1 eOpts1 opts1,m2=:UIEditGoogleMap sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffGoogleMapOpts path opts1 opts2]
 		(UIEditCode sOpts1 eOpts1 opts1, UIEditCode sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIDropdown sOpts1 cOpts1, UIDropdown sOpts2 cOpts2)
@@ -204,30 +202,6 @@ where
 	| opts1.UITabSetOpts.activeTab =!= opts2.UITabSetOpts.activeTab || maybe False (\i -> isMember i replacedTabs) opts2.UITabSetOpts.activeTab
 		= [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab,JSONBool True])]]
 		= []
-
-diffGoogleMapOpts :: UIPath UIGoogleMapOpts UIGoogleMapOpts -> DiffResult
-diffGoogleMapOpts path opts1 opts2
-	= DiffPossible (diffMultiProperties path [centerUpd,mapTypeUpd,optionsUpd,markersUpd])
-where
-	centerUpd = if (opts1.UIGoogleMapOpts.center === opts2.UIGoogleMapOpts.center || //Compare on string representation of the coordinates if binary is different
-					(toString (fst opts1.UIGoogleMapOpts.center) == toString (fst opts2.UIGoogleMapOpts.center)
-						&& toString (snd opts1.UIGoogleMapOpts.center) == toString (snd opts2.UIGoogleMapOpts.center))
-					) [] [("setCenter",[toJSON opts2.UIGoogleMapOpts.center])]
-	mapTypeUpd = if (opts1.UIGoogleMapOpts.mapType === opts2.UIGoogleMapOpts.mapType) [] [("setMapType",[toJSON opts2.UIGoogleMapOpts.mapType])]
-	optionsUpd = if (opts1.UIGoogleMapOpts.options === opts2.UIGoogleMapOpts.options) [] [("setOptions",[toJSON opts2.UIGoogleMapOpts.options])]
-	markersUpd = diffGoogleMapMarkers opts1.UIGoogleMapOpts.markers opts2.UIGoogleMapOpts.markers
-
-diffGoogleMapMarkers :: [UIGoogleMapMarker] [UIGoogleMapMarker] -> [UIUpdateOperation]
-diffGoogleMapMarkers markers1 markers2 = diff 0 markers1 markers2
-where
-	diff i [] [] = []
-	diff i markers1 []
-		= [("removeMarker",[JSONInt n]) \\ n <- reverse [i.. i + length markers1 - 1]]
-	diff i [] markers2 
-		= [("addMarker",[JSONInt n,toJSON m]) \\ n <- [i..] & m <- markers2]
-	diff i [m1:m1s] [m2:m2s]
-		| m1 === m2	= diff (i + 1) m1s m2s
-					= [("updateMarker",[JSONInt i,toJSON m2]) : diff (i + 1) m1s m2s]
 
 diffOpts :: a a -> DiffResult | gEq{|*|} a	//Very crude, but always working fallback diff
 diffOpts opts1 opts2

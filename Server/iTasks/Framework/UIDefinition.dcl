@@ -10,7 +10,6 @@ from iTasks.Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map(..)
 from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
-from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 
 //TODO:
 //- Multi select in grids
@@ -103,7 +102,6 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	| UIEditTime		!UISizeOpts	!UIEditOpts 							        // - Time (time picker)
 	| UIEditDocument	!UISizeOpts	!UIEditOpts 						            // - Document (info + upload possibility)
 	| UIEditButton		!UISizeOpts !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
-	| UIEditGoogleMap	!UISizeOpts !UIEditOpts  !UIGoogleMapOpts		            // - Google Map panel
 	| UIEditCode		!UISizeOpts !UIEditOpts  !UICodeOpts			            // - Source code editor component
 	| UIEditOryx		!UISizeOpts !UIEditOpts  !UIOryxOpts			            // - Oryx editor component
 	// Components for indicating choices:
@@ -213,34 +211,6 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	
 :: UIProgressOpts = 
 	{ text			:: !String
-	}
-	
-:: UIGoogleMapOpts = 
-	{ center 			:: !(!Real,!Real)
-	, mapType			:: !String
-	, markers			:: ![UIGoogleMapMarker]	
-	, options			:: !UIGoogleMapOptions
-	}
-
-:: UIGoogleMapMarker =
-	{ markerId              :: !String
-    , position				:: !(!Real,!Real)
-	, title					:: !Maybe String
-	, icon					:: !Maybe GoogleMapIcon
-	, infoWindow			:: !Maybe String
-	, draggable				:: !Bool
-	, selected				:: !Bool
-	}
-
-:: UIGoogleMapOptions =
-	{ mapTypeControl 	:: !Bool
-	, panControl		:: !Bool
-	, streetViewControl	:: !Bool
-	, zoomControl		:: !Bool
-	, scaleControl		:: !Bool
-	, scrollwheel		:: !Bool
-	, draggable			:: !Bool
-	, zoom				:: !Int
 	}
 
 :: UICodeOpts =

@@ -153,8 +153,6 @@ autoLayoutControlStack {UIControlStack|attributes,controls=[(c=:UITree _ _ _ ,_)
     = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],windows=[],hotkeys=[]}
 autoLayoutControlStack {UIControlStack|attributes,controls=[(c=:UIGrid _ _ _ ,_)]}
     = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],windows=[],hotkeys=[]}
-autoLayoutControlStack {UIControlStack|attributes,controls=[(c=:UIEditGoogleMap _ _ _ ,_)]}
-    = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],windows=[],hotkeys=[]}
 //General case
 autoLayoutControlStack {UIControlStack|attributes,controls}
 	= {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],windows=[],hotkeys=[]}
@@ -216,7 +214,6 @@ where
 	noMarginControl	(UIPanel _ _ _)			= True
 	noMarginControl	(UIGrid _ _ _)			= True
 	noMarginControl	(UITree _ _ _)			= True
-	noMarginControl	(UIEditGoogleMap _ _ _)	= True
 	noMarginControl _						= False
 
 autoLayoutSubUIStack :: UISubUIStack -> UISubUI
@@ -524,7 +521,6 @@ updSizeOpts f (UIEditDate sOpts eOpts)				= (UIEditDate (f sOpts) eOpts)
 updSizeOpts f (UIEditTime sOpts eOpts)				= (UIEditTime (f sOpts) eOpts)
 updSizeOpts f (UIEditDocument sOpts eOpts)			= (UIEditDocument (f sOpts) eOpts)
 updSizeOpts f (UIEditButton	sOpts eOpts opts)		= (UIEditButton	(f sOpts) eOpts opts)
-updSizeOpts f (UIEditGoogleMap sOpts eOpts opts)	= (UIEditGoogleMap (f sOpts) eOpts opts)
 updSizeOpts f (UIEditOryx sOpts eOpts opts)		    = (UIEditOryx (f sOpts) eOpts opts)
 updSizeOpts f (UIEditCode sOpts eOpts opts)			= (UIEditCode (f sOpts) eOpts opts)
 updSizeOpts f (UIDropdown sOpts cOpts)				= (UIDropdown (f sOpts) cOpts)
@@ -562,7 +558,6 @@ getSizeOpts (UIEditDate sOpts eOpts)				= sOpts
 getSizeOpts (UIEditTime sOpts eOpts)				= sOpts
 getSizeOpts (UIEditDocument sOpts eOpts)			= sOpts
 getSizeOpts (UIEditButton sOpts eOpts opts)			= sOpts
-getSizeOpts (UIEditGoogleMap sOpts eOpts opts)		= sOpts
 getSizeOpts (UIEditOryx sOpts eOpts opts)		    = sOpts
 getSizeOpts (UIEditCode sOpts eOpts opts)			= sOpts
 getSizeOpts (UIDropdown sOpts cOpts)				= sOpts
