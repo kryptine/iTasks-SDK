@@ -126,7 +126,6 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 	# (_, world) = writeFile "debug.sapl" sapl_lib world
 	# (_, world) = writeFile "debug.js" js_lib world
 */
-
 	= (js_ST, js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, mb_js_UF, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
