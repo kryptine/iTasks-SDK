@@ -80,24 +80,28 @@ where
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg (onChange "zoom")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "click", toJSArg onClick] mapevent world	
 
+        # (editlets,world)  = findObject "itwc.global.controller.editlets" world
+        # (cmp,world)       = jsGetObjectAttr cid editlets world
+        # (_,world)         = callObjectMethod "addManagedListener" [toJSArg cmp,toJSArg "afterlayout",toJSArg onAfterComponentLayout,toJSArg cmp] cmp world
+
 		# (markerMap, world) = jsNewMap world
 		# world = foldl (putOnMarker mapobj markerMap) world map.GoogleMap.markers
-
 		= (map, Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}, world)
 	where
 		onChange t = createEditletEventHandler (updatePerspective t) cid
 		onClick = createEditletEventHandler addMarker cid
+        onAfterComponentLayout = createEditletEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
 
 	onUpdate id Nothing map Nothing world
 		# (mapsobj, world) = findObject "google.maps" world
 		| jsIsUndefined mapsobj
-		= (map, Nothing, loadMapsAPI id undef world)
+		    = (map, Nothing, loadMapsAPI id undef world)
 		= onScriptLoad id undef map Nothing world
 	
 	// TODO
 	onUpdate id (Just newmap) map st world = (map, st, world)	
-	
+
 	loadMapsAPI id _ world	
 		# world = jsSetObjectAttr "gmapscallback" (createEditletEventHandler onScriptLoad id) jsWindow world
 		= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
@@ -127,6 +131,24 @@ where
 		= ({GoogleMap|map&markers=markers}, Just {st&nextMarkerId=nextMarkerId+1}, world)
 	where
 		markerId = cid +++ "_" +++ toString nextMarkerId
+
+    resizeMap cid event map (Just st=:{mapobj}) world
+    	# (mapevent, world) = findObject "google.maps.event" world
+		# (_, world)     	= callObjectMethod "trigger" [toJSArg mapobj, toJSArg "resize"] mapevent world
+        //TODO: correct center after resize
+        = (map,Just st, world)
+/*
+afterComponentLayout: function() {
+            var me = this;
+
+                    if(me.map && window.google) {
+                                    google.maps.event.trigger(me.map, 'resize');
+                                                //Correct center after resize
+                                                            me.setCenter(me.center);    
+                                                                    }
+                                                                            me.callParent(arguments);
+                                                                                },
+*/
 
 	getPos obj world
 		# (lat, world) = callObjectMethod "lat" [] obj world

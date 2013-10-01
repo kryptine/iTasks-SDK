@@ -13,7 +13,7 @@ Ext.define('itwc.component.edit.Editlet',{
 			tmp;	
 
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
-		itwc.global.controller[me.htmlId] = me;
+		itwc.global.controller.editlets[me.htmlId] = me;
 		
 		me.state = __Data_Maybe_Nothing();
 		

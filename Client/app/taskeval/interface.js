@@ -216,6 +216,6 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
 // createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
 function __iTasks_API_Core_Client_Editlet_createEditletEventHandler(expr, componentId){
 	
-	var comp = itwc.global.controller[componentId];
+	var comp = itwc.global.controller.editlets[componentId];
 	return ___wrapJS(comp.eventHandler(true,expr));
 }
