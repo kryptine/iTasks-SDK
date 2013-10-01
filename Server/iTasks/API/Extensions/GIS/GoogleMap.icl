@@ -49,10 +49,10 @@ googleMapEditlet g = {Editlet
 				}
 where
 	mapdomid cid = "map_place_holder_" +++ cid
-		
+    mapcanvasid cid = "map_canvas_" +++ cid
     onScriptLoad cid _ map _ world
-	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>") world
-	    # (mapdiv, world) = getDomElement "map_canvas" world
+	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal ("<div id=\""+++mapcanvasid cid +++"\" style=\"width:100%; height:100%\"/>")) world
+	    # (mapdiv, world) = getDomElement (mapcanvasid cid) world
 	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (map.perspective.GoogleMapPerspective.type)) world
 	    # (center, world) = jsNewObject "google.maps.LatLng"
 	    				[toJSArg map.perspective.GoogleMapPerspective.center.lat
@@ -194,7 +194,7 @@ where
 			= ({GoogleMap|gmap&markers=markers}, mbSt, world)
 		where
 	        updateWP nlat nlng markers = map ud markers 
-	        where 
+	        where
 	        	ud m | m.GoogleMapMarker.markerId == markerId 
     	    			= {GoogleMapMarker|m&position={GoogleMapPosition | lat = nlat, lng = nlng}}
 						= m	

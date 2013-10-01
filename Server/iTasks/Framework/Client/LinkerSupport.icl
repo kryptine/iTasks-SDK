@@ -163,9 +163,9 @@ editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 
 	// link functions indicated by event handlers
 	# (linkerstate, lib, sapl_eventHandlers, world) 
-			= foldl (\(linkerstate, lib, os, world) (id, event, f) = 
+			= foldl (\(linkerstate, lib, os, world) (id, event, f) =
 				let (linkerstate`, lib`, f`, world`) = linkByExpr linkerstate lib (graph_to_sapl_string f) world
-				 in (linkerstate`, lib`, [(id,event,f`):os], world`)) 
+				 in (linkerstate`, lib`, [(id,event,f`):os], world`))
 			(linkerstate, lib, [], world) eventHandlers
 
 	// unwrap linker state

@@ -92,9 +92,6 @@ Ext.define('itwc.component.edit.Editlet',{
     getValue: function () {
         return this.value;
     },
-	applyValue: function (val) {
-		this.value = val;
-	},
 	applyDiff: function (diff) {
 		var me = this;
 		var json = me.jsToSaplJSONNode(diff);

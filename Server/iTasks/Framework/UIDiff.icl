@@ -125,7 +125,7 @@ diffControls path event differs c1 c2
 diffSizeOpts :: UIPath UISizeOpts UISizeOpts -> DiffResult
 diffSizeOpts path opts1 opts2
 	| opts1 === opts2	= DiffPossible []
-						= DiffImpossible 
+						= DiffImpossible
 
 diffViewOpts :: UIPath (UIViewOpts a) (UIViewOpts a) -> DiffResult | gEq{|*|} a & encodeUIValue a
 diffViewOpts path opts1 opts2
@@ -144,7 +144,7 @@ where
 	valueUpd
 		| eventMatch opts2 event
 			= if (eventValue event === opts2.UIEditOpts.value)  [] [UIUpdate path [("setEditorValue",[toJSON opts2.UIEditOpts.value])]]
-		| otherwise 
+		| otherwise
 			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setEditorValue",[toJSON opts2.UIEditOpts.value])]]
 
 	eventMatch {UIEditOpts|taskId,editorId} (EditEvent _ matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
@@ -162,9 +162,7 @@ diffEditletOpts path differs opts1 opts2
 				Just diff	= DiffPossible [UIUpdate path [("applyDiff",[diff])]]
 				_			= DiffPossible []
 			_
-	
-				= DiffPossible [UIUpdate path [("applyValue",[opts2.UIEditletOpts.value])]]
-
+				= DiffImpossible
 
 diffChoiceOpts :: UIPath (UIChoiceOpts a) (UIChoiceOpts a) -> DiffResult | gEq{|*|} a & JSONEncode{|*|} a
 diffChoiceOpts path opts1 opts2

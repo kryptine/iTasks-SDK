@@ -130,7 +130,6 @@ where
     collectSubUIs stack _                                               = stack
 
 
-import StdDebug, StdMisc
 /**
 * Overrule the title attribute with the title in the task meta data
 */
@@ -252,8 +251,7 @@ arrangeSubUIStack :: (UISubUIStack -> UISubUI) UIDef -> UIDef
 arrangeSubUIStack f (UIControlStack stack)  = UISubUI (f {UISubUIStack|attributes=newMap,subuis=[autoLayoutControlStack stack]})
 arrangeSubUIStack f (UISubUI ui)            = UISubUI (f {UISubUIStack|attributes=newMap,subuis=[ui]})
 arrangeSubUIStack f (UISubUIStack stack)    = UISubUI (f stack)
-arrangeSubUIStack f def                     = trace_n "HMMZZ" def
-arrangeSubUIStack f def                     = trace_n "HMMZZ" def
+arrangeSubUIStack f def                     = def
 
 instance tune ArrangeVertical
 where
