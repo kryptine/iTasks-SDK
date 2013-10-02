@@ -230,7 +230,7 @@ where
         onClick = createEditletEventHandler onMarkerClick cid
         onMarkerClick cid event gmap=:{GoogleMap|markers} mbSt world
             //Toggle selection
-            # markers = [if (m.GoogleMapMarker.markerId == markerId) {GoogleMapMarker|m & selected = not m.selected} m \\ m <- markers]
+            # markers = [{GoogleMapMarker|m & selected = (m.GoogleMapMarker.markerId == markerId)} \\ m <- markers]
             = ({GoogleMap|gmap&markers=markers}, mbSt, world)
 
 		onDrag = createEditletEventHandler onMarkerDrag cid	
