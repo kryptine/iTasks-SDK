@@ -106,7 +106,6 @@ where
 		| jsIsUndefined mapsobj
 		    = (map, Nothing, loadMapsAPI id undef world)
 		= onScriptLoad id undef map Nothing world
-	
 	onUpdate id (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) map st=:(Just {mapobj}) world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
@@ -212,7 +211,6 @@ where
 								,toJSArg anchor] world
 								
 						= (Just iconObj, world)
-		
 		# (marker, world)
 				= jsNewObject "google.maps.Marker"
 						[toJSArg {MarkerOptions
@@ -225,24 +223,24 @@ where
 						world
 	
     	# (mapevent, world) = findObject "google.maps.event" world
+		# (_, world)     	= callObjectMethod "addListener" [toJSArg marker, toJSArg "click", toJSArg onClick] mapevent world
 		# (_, world)     	= callObjectMethod "addListener" [toJSArg marker, toJSArg "dragend", toJSArg onDrag] mapevent world
 		= jsPut markerId marker markerMap world
 	where
-		onDrag = createEditletEventHandler onDragWP cid	
-	
-		onDragWP cid event gmap=:{GoogleMap|markers} mbSt world
+        onClick = createEditletEventHandler onMarkerClick cid
+        onMarkerClick cid event gmap=:{GoogleMap|markers} mbSt world
+            //Toggle selection
+            # markers = [if (m.GoogleMapMarker.markerId == markerId) {GoogleMapMarker|m & selected = not m.selected} m \\ m <- markers]
+            = ({GoogleMap|gmap&markers=markers}, mbSt, world)
+
+		onDrag = createEditletEventHandler onMarkerDrag cid	
+		onMarkerDrag cid event gmap=:{GoogleMap|markers} mbSt world
 			# (latlng, world)      = jsGetObjectAttr "latLng" event world
 			# ((lat, lng), world)  = getPos latlng world
-			# markers      		   = updateWP lat lng markers
+            # markers = [if (m.GoogleMapMarker.markerId == markerId) {GoogleMapMarker|m & position= {GoogleMapPosition | lat = lat, lng = lng}} m \\ m <- markers]
 			= ({GoogleMap|gmap&markers=markers}, mbSt, world)
-		where
-	        updateWP nlat nlng markers = map ud markers
-	        where
-	        	ud m | m.GoogleMapMarker.markerId == markerId
-    	    			= {GoogleMapMarker|m&position={GoogleMapPosition | lat = nlat, lng = nlng}}
-						= m	
 
-	removeMarker markerMap markerId world
+    removeMarker markerMap markerId world
         # (mbMarker,world) = jsGet markerId markerMap world
         = case mbMarker of
             Just marker
