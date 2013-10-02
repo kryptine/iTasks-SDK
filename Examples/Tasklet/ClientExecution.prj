@@ -1,7 +1,8 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	iTasks + Sapl
+	Built:	True
+	Target:	iTasks
 	Exec:	{Project}\ClientExecution.exe
 	CodeGen
 		CheckStacks:	False

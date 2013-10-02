@@ -38,6 +38,7 @@ basicAPIExamples =
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
 	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						notes
 	,workflow (sharedData +++ "Edit note or List of strings") "Edit note or List of strings" 	linesPar
+	,workflow (sharedData +++ "Edit and view Google map")   "Edit and view Google map" 			browseAndViewGoogleMap
 
 	,workflow (seqTasks +++ "Hello User") 	 			 	"Enter your name:" 					hello
 	,workflow (seqTasks +++ "Positive Number") 	 			"Enter a positive number:" 			positiveNumber
@@ -215,6 +216,11 @@ where
 
 	noteEditor = UpdateWith (\txt -> Note txt) (\_ (Note txt) -> txt)
 	listEditor = UpdateWith (split "\n") (\_ l -> join "\n" l)
+
+browseAndViewGoogleMap :: Task GoogleMap
+browseAndViewGoogleMap = withShared defaultValue (\smap -> updateSharedInformation "Browse Map" [] smap 
+																-|| 
+														   viewSharedInformation "View Browsing Map" [] smap )
 
 //* Sequential task composition
 
