@@ -218,7 +218,7 @@ gEditMeta{|UNIT|} _			= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|PAIR|} fx fy _	= fx undef ++ fy undef
 gEditMeta{|EITHER|} fx fy _	= fx undef //Only consider first constructor
 gEditMeta{|OBJECT|} fx _	= fx undef
-gEditMeta{|CONS|} fx _		= fx undef
+gEditMeta{|CONS|} fx _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|RECORD|} fx _ 	= fx undef
 gEditMeta{|FIELD of {gfd_name}|} fx _
 							= [{EditMeta|m & label = Just (fromMaybe (camelCaseToWords gfd_name) label)} \\ m=:{EditMeta|label} <- fx undef]
@@ -233,7 +233,11 @@ gEditMeta{|(->)|} _ _ _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|Maybe|} fx _		= fx undef
 gEditMeta{|[]|} fx _		= fx undef
 
-derive gEditMeta (,), (,,), (,,,), Either, Void, Map, JSONNode, Timestamp
+gEditMeta{|(,)|} fa fb _            = fa undef ++ fb undef
+gEditMeta{|(,,)|} fa fb fc _        = fa undef ++ fb undef ++ fc undef
+gEditMeta{|(,,,)|} fa fb fc fd _    = fa undef ++ fb undef ++ fc undef ++ fd undef
+
+derive gEditMeta Either, Void, Map, JSONNode, Timestamp
 
 //Generic Verify
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
