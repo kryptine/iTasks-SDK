@@ -98,8 +98,6 @@ encodeUIControl (UIEditSlider sopts eopts opts)			= enc "itwc_edit_slider" [toJS
 encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, encEditOpts eopts]
 encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, encEditOpts eopts]
 encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditOryx sopts eopts opts)		    = enc "itwc_edit_oryx" [toJSON sopts, encEditOpts eopts, toJSON opts]
-encodeUIControl (UIEditCode sopts eopts opts)			= enc "itwc_edit_code" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, encEditOpts eopts, toJSON opts]
 encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts]
 encodeUIControl (UIRadioGroup sopts copts)				= enc "itwc_choice_radiogroup" [toJSON sopts, toJSON copts]
@@ -125,8 +123,8 @@ encodeUITab :: !UITab -> JSONNode
 encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON opts]
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
-derive JSONEncode UISliderOpts, UIProgressOpts, UICodeOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
-derive JSONEncode UIIconOpts, UIOryxOpts
+derive JSONEncode UISliderOpts, UIProgressOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
+derive JSONEncode UIIconOpts
 derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
 derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 

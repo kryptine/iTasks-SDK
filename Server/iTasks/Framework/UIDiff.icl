@@ -12,7 +12,7 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo
 :: UIDiffers	:== Map (String,String) (JSONNode JSONNode -> Maybe JSONNode)
 
 derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UICodeOpts, UIOryxOpts, UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
+derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlStack, UISubUI, UISubUIStack, UIAction
@@ -68,8 +68,6 @@ diffControls path event differs c1 c2
 		(UIEditDocument sOpts1 eOpts1, UIEditDocument sOpts2 eOpts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditButton sOpts1 eOpts1 opts1, UIEditButton sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
-		(UIEditCode sOpts1 eOpts1 opts1, UIEditCode sOpts2 eOpts2 opts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIDropdown sOpts1 cOpts1, UIDropdown sOpts2 cOpts2)
 			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]

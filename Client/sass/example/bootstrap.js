@@ -565,7 +565,6 @@ Ext.ClassManager.addNameAlternateMappings({
   "itwc.component.misc.Splitter": [],
   "itwc.component.edit.Time": [],
   "Ext.grid.feature.GroupStore": [],
-  "itwc.component.edit.Code": [],
   "Ext.data.SequentialIdGenerator": [],
   "Ext.grid.header.Container": [],
   "Ext.container.ButtonGroup": [
@@ -812,7 +811,6 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.grid.column.Number": [
     "Ext.grid.NumberColumn"
   ],
-  "itwc.component.edit.Oryx": [],
   "Ext.draw.engine.Svg": [],
   "Ext.grid.property.Grid": [
     "Ext.grid.PropertyGrid"
@@ -1568,9 +1566,6 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.itwc_edit_time"
   ],
   "Ext.grid.feature.GroupStore": [],
-  "itwc.component.edit.Code": [
-    "widget.itwc_edit_code"
-  ],
   "Ext.data.SequentialIdGenerator": [
     "idgen.sequential"
   ],
@@ -1915,9 +1910,6 @@ Ext.ClassManager.addNameAliasMappings({
   ],
   "Ext.grid.column.Number": [
     "widget.numbercolumn"
-  ],
-  "itwc.component.edit.Oryx": [
-    "widget.itwc_edit_oryx"
   ],
   "Ext.draw.engine.Svg": [],
   "Ext.grid.property.Grid": [

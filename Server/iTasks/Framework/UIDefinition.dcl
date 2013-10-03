@@ -102,8 +102,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	| UIEditTime		!UISizeOpts	!UIEditOpts 							        // - Time (time picker)
 	| UIEditDocument	!UISizeOpts	!UIEditOpts 						            // - Document (info + upload possibility)
 	| UIEditButton		!UISizeOpts !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
-	| UIEditCode		!UISizeOpts !UIEditOpts  !UICodeOpts			            // - Source code editor component
-	| UIEditOryx		!UISizeOpts !UIEditOpts  !UIOryxOpts			            // - Oryx editor component
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
@@ -212,14 +210,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 :: UIProgressOpts = 
 	{ text			:: !String
 	}
-
-:: UICodeOpts =
-	{ lineNumbers		:: !Bool
-	}
-
-:: UIOryxOpts =
-  { stencilsetUrl :: !String
-  }
 
 :: UIGridOpts =
 	{ columns			:: ![String]

@@ -35,8 +35,6 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.Slider'		//A slider for bounded values
 			  ,'itwc.component.edit.Document'	//An editor for uploading documents
 			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
-			  ,'itwc.component.edit.Oryx'		//A diagram editor
-			  ,'itwc.component.edit.Code'		//A source code text editor
 			  ,'itwc.component.edit.Editlet'	//A custom component
 			  
 			  ,'itwc.component.choice.Dropdown'	     //A simple dropdown box for choosing from a fixed set

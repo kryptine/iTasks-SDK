@@ -110,31 +110,13 @@ JSONDecode{|CleanCode|} c = (Nothing,c)
 
 gVisualizeText{|CleanCode|}		_ val		= [toString val]
 
-gEditor{|CleanCode|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		# val = checkMask mask val
-		= (NormalEditor [(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap codeToHtml val}),newMap)],vst)
-	| otherwise
-		# value = checkMaskValue mask ((\(CleanCode v) -> v) val)
-		= (NormalEditor [(UIEditCode sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value} {UICodeOpts|lineNumbers=True},editorAttributes vv meta)],vst)
-where	
-	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
-	
-	codeToHtml (CleanCode s)
-		= case split "\n" s of
-			[line]	= Text line
-			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
-
-gUpdate{|CleanCode|} target upd val = basicUpdate codeUpd target upd val
-where
-	codeUpd (JSONString s) _	= Just (CleanCode s)
-	codeUpd _ old				= Just old
-
 gVerify{|CleanCode|} mv options = simpleVerify mv options
 gEditMeta{|CleanCode|} _ = [{label=Nothing,hint=Just "Enter a piece of Clean code",unit=Nothing}]
 
-derive gDefault		CleanCode
-derive gEq			CleanCode
+derive gEditor  CleanCode
+derive gUpdate  CleanCode
+derive gDefault	CleanCode
+derive gEq		CleanCode
 
 instance toString CleanCode
 where
