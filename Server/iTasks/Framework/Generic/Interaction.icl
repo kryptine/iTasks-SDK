@@ -476,9 +476,10 @@ controlsOf (OptionalEditor controls)	= controls
 controlsOf HiddenEditor					= []
 
 addLabel :: !Bool !String !UIAttributes -> UIAttributes
-addLabel optional label attr = put LABEL_ATTRIBUTE (format optional label) attr
+addLabel optional label attr = putCond LABEL_ATTRIBUTE (format optional label) attr
 where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
+    putCond k v m = maybe (put k v m) (const m) (get k m)
 
 childVisualizations :: !(DataPath (VerifiedValue a) [EditMeta] -> .(*VSt -> *(!VisualizationResult,*VSt))) !(a -> [EditMeta]) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![VisualizationResult],!*VSt)
 childVisualizations fx mx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
