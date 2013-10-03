@@ -3,7 +3,7 @@ module Editlet
 import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
-import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.API.Extensions.CodeMirror
 
 import StdDebug
 
@@ -194,30 +194,7 @@ where
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
-defperspective =
-	{ GoogleMapPerspective	
-	| type				= ROADMAP
-	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-	, zoom				= 10
-	}
-defsettings =
-	{ GoogleMapSettings
-	| mapTypeControl	= True
-	, panControl		= True
-	, streetViewControl	= False
-	, zoomControl		= True
-	, scaleControl		= True
-	, scrollwheel		= True
-	, draggable			= True
-	}
-defmap =
-	{ GoogleMap 
-	| settings	  = defsettings
-	, perspective = defperspective
-	, markers	  = []
-	}
-
-test5 = updateInformation "Google MAP" [] (googleMapEditlet defmap)
+test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
 
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
@@ -232,4 +209,5 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
 
 Start :: *World -> *World
-Start world = startEngine test world
+Start world = startEngine test5 world
+
