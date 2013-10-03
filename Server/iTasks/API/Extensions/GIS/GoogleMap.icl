@@ -58,6 +58,7 @@ googleMapEditlet g = {Editlet
 where
 	mapdomid cid = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
+
     onScriptLoad cid _ map _ world
 	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal ("<div id=\""+++mapcanvasid cid +++"\" style=\"width:100%; height:100%\"/>")) world
 	    # (mapdiv, world) = getDomElement (mapcanvasid cid) world
@@ -105,7 +106,7 @@ where
 		# (mapsobj, world) = findObject "google.maps" world
 		| jsIsUndefined mapsobj
 		    = (map, Nothing, loadMapsAPI id undef world)
-		= onScriptLoad id undef map Nothing world
+		    = onScriptLoad id undef map Nothing world
 	onUpdate id (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) map st=:(Just {mapobj}) world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
