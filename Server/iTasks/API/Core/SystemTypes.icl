@@ -1151,8 +1151,7 @@ wrapperUpdate fx get set target upd (val,mask)
 		
 //Utility for gVerify	
 verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
-verifyDisplay fx options mv = fx {VerifyOptions|options & disabled = True} mv
-
+verifyDisplay fx options mv = alwaysValid mv
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
