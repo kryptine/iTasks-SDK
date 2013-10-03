@@ -67,9 +67,11 @@ callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !*JSWor
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching
 findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 
-//Load external JS by its URL. A continuation must be given,
+//Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
 addJSFromUrl		:: !String !(Maybe (JSVal (JSFunction f))) !*JSWorld -> *JSWorld
+//Loaf external CSS stylesheet by its URL
+addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 
 jsTrace :: a *JSWorld -> *JSWorld
 

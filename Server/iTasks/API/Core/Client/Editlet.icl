@@ -17,7 +17,7 @@ gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare valu
 gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
 
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,updateUI,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
-	# (jsScript,jsEvents, jsIV, jsUU, jsGD, jsAD, iworld) 
+	# (jsScript, jsEvents, jsIV, jsUU, jsGD, jsAD, iworld)
 			= editletLinker [(id, event, f) \\(ComponentEvent id event f) <- handlers htmlId] clientInit clientUpdateUI clientGenDiff clientAppDiff iworld
 	# iworld									= addDiffer iworld
 	= (NormalEditor [(ui jsScript jsEvents jsIV jsUU jsGD jsAD, newMap)],{VSt|vst & iworld = iworld})

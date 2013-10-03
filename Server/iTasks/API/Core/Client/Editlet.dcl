@@ -24,17 +24,15 @@ import iTasks, iTasks.API.Core.Client.Interface
 :: ComponentEvent a st = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc a st)
 :: ComponentEventHandlerFunc a st :== ComponentId (JSVal EditletEvent) a (Maybe st) *JSWorld -> *(!a,!Maybe st,!*JSWorld)
 
-createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
+createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b))
 
 derive JSONEncode		Editlet
 derive JSONDecode		Editlet
 derive gDefault			Editlet
 derive gEq				Editlet
 derive gVisualizeText	Editlet
-derive gEditor	Editlet
-derive gEditMeta			Editlet
+derive gEditor	        Editlet
+derive gEditMeta		Editlet
 derive gUpdate			Editlet
 derive gVerify			Editlet
-
-
 
