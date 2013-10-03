@@ -123,7 +123,7 @@ addJSFromUrl url mbCallback world
 	# (script,world)	= callObjectMethod "createElement" [toJSArg "script"] jsDocument world
 	# world				= jsSetObjectAttr "src" (toJSVal url) script world
 	# world				= jsSetObjectAttr "type" (toJSVal "text/javascript") script world
-	# world				= jsSetObjectAttr "async" (toJSVal True) script world
+	# world				= jsSetObjectAttr "async" (toJSVal False) script world
 	# world				= case mbCallback of
 		Nothing			= world
 		Just callback	= jsSetObjectAttr "onload" callback script world
