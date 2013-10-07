@@ -194,7 +194,21 @@ where
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
-test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
+defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
+		, position = 0
+		, selection = Nothing
+        , source = "Buu"}
+
+test5 :: Task CodeMirror
+test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings" [] defcm
+																-|| 
+								   updateSharedInformation "CodeMirror Editor" 
+								   				[UpdateWith (\cm -> codeMirrorEditlet cm []) 
+								   							(\cm _ -> cm)] defcm )        
+
+
+        
+//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
 
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
