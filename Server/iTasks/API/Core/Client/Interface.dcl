@@ -43,6 +43,7 @@ jsTypeof			:: !(JSVal a) -> String
 
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg
+toJSArgs 			:: ![a] -> [JSArg]
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 

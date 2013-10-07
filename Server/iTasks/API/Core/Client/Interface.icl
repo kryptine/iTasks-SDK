@@ -62,6 +62,9 @@ toJSVal val = undef
 toJSArg :: !a -> JSArg
 toJSArg val = undef
 
+toJSArgs :: ![a] -> [JSArg]
+toJSArgs xs = map toJSArg xs
+
 fromJSValUnsafe :: !(JSVal a) -> Dynamic
 fromJSValUnsafe ptr = undef
 
