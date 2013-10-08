@@ -28,7 +28,8 @@ jointJSEditlet jjs =
                     
     onLibLoaded pid evt val mst world
 		# (graph, world) = jsNewObject "joint.dia.Graph" [] world
-		# (div, world)   = callFunction "$" [toJSArg (mkPaperId pid)] world
+		# (div, world)   = getDomElement (mkPaperId pid) world
+		//# (div, world)   = callFunction "$" [toJSArg (mkPaperId pid)] world
 		# (paper, world) = jsNewObject "joint.dia.Paper"
 								[toJSArg {PaperArgs
 										 | el       = div
