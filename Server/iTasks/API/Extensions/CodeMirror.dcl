@@ -3,7 +3,8 @@ definition module iTasks.API.Extensions.CodeMirror
 import iTasks.API.Core.Client.Editlet
 
 :: CodeMirrorState = { 
-		codeMirror :: JSVal JSObject
+		  codeMirror 			:: !JSVal JSObject
+		, systemEventHandlers	:: ![(!String, !JSVal (JSFunction JSObject))]
 		}
  
 :: CodeMirrorConfiguration 

@@ -45,9 +45,31 @@ where
 
 setOptions :: [CodeMirrorConfiguration] (JSVal JSObject) !*JSWorld -> *JSWorld
 setOptions cs cm world
-	= foldl upd world (map toAttrValue cs)
+	# world = foldl upd world (map toAttrValue cs)
+	= loadModulesIfNeeded cs cm world
 where
 	upd world (attr, val) = snd (callObjectMethod "setOption" [toJSArg attr, toJSArg val] cm world)
+
+loadModulesIfNeeded :: [CodeMirrorConfiguration] (JSVal JSObject) !*JSWorld -> *JSWorld
+loadModulesIfNeeded cs cm world
+	# (cmobj, world) = findObject "CodeMirror" world
+
+	// Load mode
+	# world = case find isSetMode cs of
+			Nothing 				= world
+			(Just (CMMode mode)) 	= snd (callObjectMethod "autoLoadMode" [toJSArg cm, toJSArg mode] cmobj world)
+
+	// Load theme
+	= case find isSetTheme cs of
+			Nothing 				= world
+			(Just (CMTheme theme)) 	= addCSSFromUrl ("theme/"+++theme+++".css") world
+
+where
+	isSetMode (CMMode _) = True
+	isSetMode _ = False
+
+	isSetTheme (CMTheme _) = True
+	isSetTheme _ = False
 
 codeMirrorEditlet :: !CodeMirror
 					 [(String, ComponentEventHandlerFunc CodeMirror CodeMirrorState)] 
@@ -71,7 +93,7 @@ where
 		= onLoad cid undef val Nothing world
 	
 		# world = addJSFromUrl "codemirror.js" Nothing world
-		# world = addJSFromUrl "mode/javascript/javascript.js" (Just handler) world
+		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
 		# world = addCSSFromUrl "codemirror.css" world
 		
 		= (val, Nothing, world)
@@ -79,10 +101,13 @@ where
 		handler = createEditletEventHandler onLoad cid
 	
 	// update
-	onUpdate cid (Just diffs) val st=:(Just {codeMirror}) world	
-		# world = setOptions 
-			(map (\(SetOption opt) -> opt) opts) codeMirror world
-			
+	onUpdate cid (Just diffs) val (Just st=:{codeMirror}) world	
+		// disable system event handlers
+		# world = manageSystemEvents "off" st world		
+	
+		# world = setOptions opts codeMirror world
+		# world = loadModulesIfNeeded opts codeMirror world
+		
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 
 		# world = case find isSetPos nopts of
@@ -106,10 +131,14 @@ where
 			Nothing    	= world
 			(Just (SetValue str)) 	
 						= snd (callObjectMethod "setValue" [toJSArg str] cmdoc world)
-			
-		= (val, st, world)		
+
+		// enable system event handlers
+		# world = manageSystemEvents "on" st world
+					
+		= (val, Just st, world)
 	where
-		(opts, nopts) = splitWith isSetOpt diffs
+		(opts`, nopts) = splitWith isSetOpt diffs
+		opts = map (\(SetOption opt) -> opt) opts`
 	
 		isSetPos (SetPosition _) = True
 		isSetPos _ = False
@@ -129,17 +158,32 @@ where
 		# (ta, world) = getDomElement (sourcearea cid) world
 		# world = jsSetObjectAttr "value" (toJSVal source) ta world
 		
-		# (cm, world) = findObject "CodeMirror" world
+		# (cmobj, world) = findObject "CodeMirror" world
 		# (co, world) = createConfigurationObject configuration world 
-		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cm world
+		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cmobj world
 		
-		# world = foldl (putOnEventHandler cm) world [("cursorActivity",onCursorActivity),
-													  ("change",onChange) : eventhandlers]
+		# world = loadModulesIfNeeded configuration cm world
+					
+		# st = {codeMirror = cm, systemEventHandlers = systemEvents}
 		
-		= (val, Just {codeMirror = cm}, world)
+		# world = manageSystemEvents "on" st world	
+		# world = foldl (putOnEventHandler cm) world eventhandlers
+		
+		= (val, Just st, world)
 	where
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
+
+		systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
+						("change",			createEditletEventHandler onChange cid)]
+
+		isSetMode (CMMode _) = True
+		isSetMode _ = False
+
+	manageSystemEvents direction {codeMirror, systemEventHandlers} world
+			= foldl sw world systemEventHandlers
+	where
+		sw world (event, handler) = snd (callObjectMethod direction [toJSArg event, toJSArg handler] codeMirror world)
 
 	unPackPosition pos world
 		# (line, world) = jsGetObjectAttr "line" pos world
@@ -171,7 +215,6 @@ where
 		= (val, st, world)
 	where
 		indexFromPos pos cmdoc world = callObjectMethod "indexFromPos" [toJSArg pos] cmdoc world
-	
 	
 	genDiff val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 							   ++

@@ -204,7 +204,7 @@ test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings
 																-|| 
 								   updateSharedInformation "CodeMirror Editor" 
 								   				[UpdateWith (\cm -> codeMirrorEditlet cm []) 
-								   							(\cm _ -> cm)] defcm )        
+								   							(\_ editlet -> editlet.Editlet.value)] defcm )        
 
 
         
