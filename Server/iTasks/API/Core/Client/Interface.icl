@@ -177,38 +177,5 @@ withDef f def ptr | jsIsUndefined ptr
 	= def 
 	= f ptr
 
-fromRecord :: a *JSWorld -> *(JSVal o, *JSWorld) | gFromRecord{|*|} a
-fromRecord rec world
-	# (obj, world) = jsEmptyObject world
-	# world        = gFromRecord{|*|} obj Nothing rec world
-	= (obj, world)
-
-generic gFromRecord a :: (JSVal o) (Maybe String) a *JSWorld -> *JSWorld
-gFromRecord{|RECORD|} fx obj mstr (RECORD x) world = fx obj mstr x world
-gFromRecord{|FIELD of {gfd_name}|} fx obj mstr (FIELD x) world
-	= fx obj (Just gfd_name) x world
-gFromRecord{|UNIT|} _ _ _ world = world
-gFromRecord{|EITHER|} _ _ _ _ _ world = world
-gFromRecord{|PAIR|} fx fy obj mstr (PAIR l r) world
-	# world = fx obj mstr l world
-	= fy obj mstr r world
-gFromRecord{|OBJECT|} _ _ _ _ world = world
-gFromRecord{|CONS|} _ _ _ _ world = world
-gFromRecord{|Int|} _ Nothing _ world = world
-gFromRecord{|Int|} obj (Just label) x world 
-	= jsSetObjectAttr label (toJSVal x) obj world
-gFromRecord{|Real|} _ Nothing _ world = world
-gFromRecord{|Real|} obj (Just label) x world 
-	= jsSetObjectAttr label (toJSVal x) obj world
-gFromRecord{|Char|} _ Nothing _ world = world
-gFromRecord{|Char|} obj (Just label) x world 
-	= jsSetObjectAttr label (toJSVal x) obj world
-gFromRecord{|Bool|} _ Nothing _ world = world
-gFromRecord{|Bool|} obj (Just label) x world 
-	= jsSetObjectAttr label (toJSVal x) obj world
-gFromRecord{|String|} _ Nothing _ world = world
-gFromRecord{|String|} obj (Just label) x world 
-	= jsSetObjectAttr label (toJSVal x) obj world
-gFromRecord{|JSVal|} _ _ Nothing _ world = world
-gFromRecord{|JSVal|} _ obj (Just label) x world 
-	= jsSetObjectAttr label x obj world
+callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
+callFunction fn args world = callObjectMethod fn args jsWindow world

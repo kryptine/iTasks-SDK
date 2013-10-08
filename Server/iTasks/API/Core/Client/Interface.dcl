@@ -82,10 +82,4 @@ jsValToInt    :: !(JSVal a) -> Int
 
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
-fromRecord :: a *JSWorld -> *(JSVal o, *JSWorld) | gFromRecord{|*|} a
-
-generic gFromRecord a :: (JSVal o) (Maybe String) a *JSWorld -> *JSWorld
-derive gFromRecord RECORD, PAIR, FIELD of {gfd_name}, OBJECT, CONS, UNIT, EITHER, Int, Real, Char, Bool, String, JSVal
-
-
-
+callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
