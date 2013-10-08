@@ -237,12 +237,23 @@ joint.shapes.tonic.StopState = joint.shapes.basic.Rect.extend({
     }, joint.shapes.basic.Rect.prototype.defaults)
 });
 
-joint.shapes.tonic.Transition = joint.dia.Link.extend({
-    defaults: {
-        type: 'tonic.Transition',
+joint.shapes.tonic.Return = joint.shapes.basic.Circle.extend({
+    defaults: joint.util.deepSupplement({
+        type: 'tonic.Return',
         attrs: {
-            '.marker-target': { d: 'M 10 0 L 0 5 L 10 10 z', fill: '#34495e', stroke: '#2c3e50' },
-            '.connection': { stroke: '#2c3e50' }
+            circle: { 'stroke-width': 3 },
+            text: { 'font-weight': 'bold' }
+        }
+    }, joint.shapes.basic.Circle.prototype.defaults)
+});
+
+joint.shapes.tonic.Bind = joint.dia.Link.extend({
+    defaults: {
+        type: 'tonic.Bind',
+        attrs: {
+            '.marker-target': { d: 'M 10 0 L 0 5 L 10 10 z', fill: '#000000', stroke: '#000000' },
+            '.connection': { stroke: '#000000' }
         }
     }
 });
+
