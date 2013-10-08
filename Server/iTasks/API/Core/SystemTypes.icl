@@ -34,7 +34,7 @@ gEditor{|URL|} dp vv=:(URL url,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (ATag [HrefAttr url] [Text url])},newMap)], vst)
 	| otherwise
 		# value = checkMaskValue mask url
-		# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}
+		# ui = UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}
 		= (NormalEditor [(ui,editorAttributes vv meta)],vst)
 
 gUpdate{|URL|} target upd val = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) target upd val
@@ -72,7 +72,7 @@ gEditor{|Note|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		# value = checkMaskValue mask ((\(Note v)  -> v) val)
 		= (NormalEditor [(UIEditNote sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 where	
-	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapMin}
+	sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapBound}
 	
 	// THIS IS A HACK!
 	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
@@ -132,7 +132,7 @@ gEditor{|EUR|}	dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
-		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|EUR|} target upd val = basicUpdateSimple target upd val
 
@@ -175,7 +175,7 @@ gEditor{|USD|}	dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
-		= (NormalEditor [(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|USD|} target upd val = basicUpdateSimple target upd val
 
@@ -231,7 +231,7 @@ gEditor{|Date|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 	| otherwise
 		# value	= checkMaskValue mask val
-		= (NormalEditor [(UIEditDate defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditDate defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
 gUpdate{|Date|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
@@ -311,7 +311,7 @@ gEditor{|Time|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask val
-		= (NormalEditor [(UIEditTime defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|Time|} target upd val = basicUpdate (\json old -> fromJSON json) target upd val
 
@@ -431,10 +431,10 @@ gVisualizeText{|Document|} _ val
 gEditor {|Document|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		# val = checkMask mask val
-		= (NormalEditor [(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
+		= (NormalEditor [(UIViewDocument defaultHSizeOpts {UIViewOpts|value = val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask val
-		= (NormalEditor [(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditDocument defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate {|Document|} [] upd (val,mask) = case fromJSON upd of
 	Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked)// Reset
@@ -468,7 +468,7 @@ gEditor{|Username|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask ((\(Username v) -> v) val)
-		= (NormalEditor [(UIEditString defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 
 gUpdate{|Username|} target upd val = basicUpdateSimple target upd val
 gVerify{|Username|} mv options = simpleVerify mv options
@@ -501,7 +501,7 @@ gEditor{|Password|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
 	| otherwise	
 		# value = checkMaskValue mask ((\(Password v) -> v) val)
-		= (NormalEditor [(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
 gUpdate{|Password|} target upd val = basicUpdateSimple target upd val
 gVerify{|Password|} mv options = simpleVerify mv options
 gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
@@ -569,11 +569,11 @@ gEditor{|Scale|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
 		# val = checkMask mask val							
 		# viewOpts = {UIViewOpts|value = fmap curVal val}  
-		= (NormalEditor [(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
+		= (NormalEditor [(UIViewSlider defaultHSizeOpts viewOpts sliderOpts, newMap)],vst)
 	| otherwise
 		# value = checkMaskValue mask (curVal val)
 		# editOpts = {UIEditOpts|taskId = taskId, editorId = editorId dp, value = value}
-		= (NormalEditor [(UIEditSlider defaultSizeOpts editOpts sliderOpts, editorAttributes vv meta)],vst)
+		= (NormalEditor [(UIEditSlider defaultHSizeOpts editOpts sliderOpts, editorAttributes vv meta)],vst)
 where
 	curVal {Scale|cur} = cur
 
@@ -589,7 +589,7 @@ gEditMeta{|Scale|} _	= [{label=Nothing,hint=Just "You can change the value by sl
 gVisualizeText{|Progress|}	_ {Progress|description} = [description]
 
 gEditor{|Progress|} dp (val,mask,ver) meta vst=:{VSt|taskId}
-	= (NormalEditor [(UIViewProgress defaultSizeOpts {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val},newMap)],vst)
+	= (NormalEditor [(UIViewProgress defaultHSizeOpts {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val},newMap)],vst)
 where
 	text {Progress|description}	= description
 		
@@ -727,7 +727,7 @@ gEditor{|ComboChoice|} fx gx _ hx _ _ dp vv=:(val,mask,ver) meta vst=:{VSt|taskI
 	| disabled
 		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 	| otherwise
-		= (NormalEditor [(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes vv (gEditMeta{|*->*|} hx val))],vst)
+		= (NormalEditor [(UIDropdown defaultHSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes vv (gEditMeta{|*->*|} hx val))],vst)
 where
 	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsLabel (options !! sel)))
 	vvalue _								= Nothing
@@ -1367,7 +1367,7 @@ derive gEditMeta		Icon
 derive gUpdate			Icon
 derive gVerify			Icon
 
-gEditor{|Icon|} _ (Icon icon,msk,ver) meta vst = (NormalEditor [(UIIcon defaultSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,newMap)], vst)
+gEditor{|Icon|} _ (Icon icon,msk,ver) meta vst = (NormalEditor [(UIIcon defaultFSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,newMap)], vst)
 
 // Generic instances for common library types
 derive JSONEncode		Map, Either, HtmlTag, HtmlAttr

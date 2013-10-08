@@ -206,9 +206,9 @@ where
 	iconCtrl _ _ _ _ (Just msg)	= icon "icon-invalid" msg
 	iconCtrl _ _ _ _ _			= []
 	
-	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
+	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
-	hasMargin control = isJust (getSizeOpts control).UISizeOpts.margins
+	hasMargin control = isJust (getMargins control)
 
 	noMarginControl	(UIPanel _ _ _)			= True
 	noMarginControl	(UIGrid _ _ _)			= True
@@ -468,7 +468,7 @@ decoratePrompt []		= []
 decoratePrompt controls	= [UIContainer sizeOpts itemsOpts]
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
-			   , width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
+			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
     itemsOpts = {UIItemsOpts|defaultItemsOpts (map fst controls) & baseCls=Just "itwc-prompt"}
 
 //Adds a button panel to a set of controls
@@ -501,193 +501,6 @@ where
     //TODO move down into tabs and fieldsets??
     addTriggerToItem t c = c
 
-updSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
-updSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
-updSizeOpts f (UIViewHtml sOpts vOpts)				= (UIViewHtml (f sOpts) vOpts)
-updSizeOpts f (UIViewDocument sOpts vOpts)			= (UIViewDocument (f sOpts) vOpts)
-updSizeOpts f (UIViewCheckbox sOpts vOpts)			= (UIViewCheckbox (f sOpts) vOpts)
-updSizeOpts f (UIViewSlider sOpts vOpts opts)		= (UIViewSlider (f sOpts) vOpts opts)
-updSizeOpts f (UIViewProgress sOpts vOpts opts)		= (UIViewProgress (f sOpts) vOpts opts)
-updSizeOpts f (UIEditString	sOpts eOpts)			= (UIEditString	(f sOpts) eOpts)
-updSizeOpts f (UIEditNote sOpts eOpts)				= (UIEditNote (f sOpts) eOpts)
-updSizeOpts f (UIEditPassword sOpts eOpts)			= (UIEditPassword (f sOpts) eOpts)
-updSizeOpts f (UIEditInt sOpts eOpts)				= (UIEditInt (f sOpts) eOpts)
-updSizeOpts f (UIEditDecimal sOpts eOpts)			= (UIEditDecimal (f sOpts) eOpts)
-updSizeOpts f (UIEditCheckbox sOpts eOpts)			= (UIEditCheckbox (f sOpts) eOpts)
-updSizeOpts f (UIEditSlider sOpts eOpts opts)		= (UIEditSlider (f sOpts) eOpts opts)
-updSizeOpts f (UIEditDate sOpts eOpts)				= (UIEditDate (f sOpts) eOpts)
-updSizeOpts f (UIEditTime sOpts eOpts)				= (UIEditTime (f sOpts) eOpts)
-updSizeOpts f (UIEditDocument sOpts eOpts)			= (UIEditDocument (f sOpts) eOpts)
-updSizeOpts f (UIEditButton	sOpts eOpts opts)		= (UIEditButton	(f sOpts) eOpts opts)
-updSizeOpts f (UIDropdown sOpts cOpts)				= (UIDropdown (f sOpts) cOpts)
-updSizeOpts f (UIRadioGroup sOpts cOpts)			= (UIRadioGroup (f sOpts) cOpts)
-updSizeOpts f (UICheckboxGroup sOpts cOpts)			= (UICheckboxGroup (f sOpts) cOpts)
-updSizeOpts f (UIGrid sOpts cOpts opts)				= (UIGrid (f sOpts) cOpts opts)
-updSizeOpts f (UITree sOpts cOpts opts)				= (UITree (f sOpts) cOpts opts)
-updSizeOpts f (UIActionButton sOpts aOpts opts)		= (UIActionButton (f sOpts) aOpts opts)	
-updSizeOpts f (UIMenuButton	sOpts opts)				= (UIMenuButton	(f sOpts) opts)	
-updSizeOpts f (UILabel sOpts opts)					= (UILabel (f sOpts) opts)
-updSizeOpts f (UIIcon sOpts opts)					= (UIIcon (f sOpts) opts)
-updSizeOpts f (UITasklet sOpts opts)				= (UITasklet (f sOpts) opts)
-updSizeOpts f (UITaskletPH sOpts opts)				= (UITaskletPH (f sOpts) opts)
-updSizeOpts f (UIContainer sOpts iOpts)	        	= (UIContainer (f sOpts) iOpts)
-updSizeOpts f (UIPanel sOpts iOpts opts)			= (UIPanel (f sOpts) iOpts opts)
-updSizeOpts f (UIFieldSet sOpts iOpts opts)			= (UIFieldSet (f sOpts) iOpts opts)
-updSizeOpts f (UITabSet sOpts opts)					= (UITabSet (f sOpts) opts)
-updSizeOpts f (UIEditlet sOpts opts)				= (UIEditlet (f sOpts) opts)
-
-getSizeOpts :: UIControl -> UISizeOpts
-getSizeOpts (UIViewString	sOpts vOpts)			= sOpts
-getSizeOpts (UIViewHtml sOpts vOpts)				= sOpts
-getSizeOpts (UIViewDocument sOpts vOpts)			= sOpts
-getSizeOpts (UIViewCheckbox sOpts vOpts)			= sOpts
-getSizeOpts (UIViewSlider sOpts vOpts opts)			= sOpts
-getSizeOpts (UIViewProgress sOpts vOpts opts)		= sOpts
-getSizeOpts (UIEditString	sOpts eOpts)			= sOpts
-getSizeOpts (UIEditNote sOpts eOpts)				= sOpts
-getSizeOpts (UIEditPassword sOpts eOpts)			= sOpts
-getSizeOpts (UIEditInt sOpts eOpts)					= sOpts
-getSizeOpts (UIEditDecimal sOpts eOpts)				= sOpts
-getSizeOpts (UIEditCheckbox sOpts eOpts)			= sOpts
-getSizeOpts (UIEditSlider sOpts eOpts opts)			= sOpts
-getSizeOpts (UIEditDate sOpts eOpts)				= sOpts
-getSizeOpts (UIEditTime sOpts eOpts)				= sOpts
-getSizeOpts (UIEditDocument sOpts eOpts)			= sOpts
-getSizeOpts (UIEditButton sOpts eOpts opts)			= sOpts
-getSizeOpts (UIDropdown sOpts cOpts)				= sOpts
-getSizeOpts (UIRadioGroup sOpts cOpts)				= sOpts
-getSizeOpts (UICheckboxGroup sOpts cOpts)			= sOpts
-getSizeOpts (UIGrid sOpts cOpts opts)				= sOpts
-getSizeOpts (UITree sOpts cOpts opts)				= sOpts
-getSizeOpts (UIActionButton sOpts aOpts opts)		= sOpts	
-getSizeOpts (UIMenuButton	sOpts opts)				= sOpts	
-getSizeOpts (UILabel sOpts opts)					= sOpts
-getSizeOpts (UIIcon sOpts opts)						= sOpts
-getSizeOpts (UITasklet sOpts opts)					= sOpts
-getSizeOpts (UITaskletPH sOpts opts)				= sOpts
-getSizeOpts (UIContainer sOpts iOpts)			    = sOpts
-getSizeOpts (UIPanel sOpts iOpts opts)				= sOpts
-getSizeOpts (UIFieldSet sOpts iOpts opts)			= sOpts
-getSizeOpts (UITabSet sOpts opts)					= sOpts
-getSizeOpts (UIEditlet sOpts opts)					= sOpts
-
-setSize :: !UISize !UISize !UIControl -> UIControl
-setSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) ctrl
-
-setWidth :: !UISize !UIControl -> UIControl
-setWidth width ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width}) ctrl
-
-setHeight :: !UISize !UIControl -> UIControl
-setHeight height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & height = Just height}) ctrl
-
-setMinSize :: !UIMinSize !UIMinSize !UIControl -> UIControl
-setMinSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & minWidth = Just width, minHeight = Just height}) ctrl
-
-setMinWidth :: !UIMinSize !UIControl -> UIControl
-setMinWidth width ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & minWidth = Just width}) ctrl
-
-setMinHeight :: !UIMinSize !UIControl -> UIControl
-setMinHeight height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & minHeight = Just height}) ctrl
-
-fill :: !UIControl -> UIControl
-fill ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just FlexSize, height = Just FlexSize}) ctrl
-
-fillHeight :: !UIControl -> UIControl
-fillHeight ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & height = Just FlexSize}) ctrl
-
-fillWidth :: !UIControl -> UIControl
-fillWidth ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just FlexSize}) ctrl
-
-fixedHeight	:: !Int !UIControl -> UIControl
-fixedHeight size ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & height = Just (ExactSize size)}) ctrl
-
-fixedWidth :: !Int !UIControl -> UIControl
-fixedWidth size ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just (ExactSize size)}) ctrl
-
-wrapHeight :: !UIControl -> UIControl
-wrapHeight ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & height = Just WrapSize}) ctrl
- 
-wrapWidth :: !UIControl -> UIControl
-wrapWidth ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just WrapSize}) ctrl
-
-setMargins :: !Int !Int !Int !Int !UIControl -> UIControl
-setMargins top right bottom left ctrl
-	= updSizeOpts (\opts -> {UISizeOpts|opts & margins = Just {top = top, right = right, bottom = bottom, left = left}}) ctrl
-
-setTopMargin :: !Int !UIControl -> UIControl
-setTopMargin top ctrl = updSizeOpts f ctrl
-where
-	f opts = case opts.margins of
-		Nothing = {UISizeOpts|opts & margins = Just {top = top, right = 0, bottom = 0, left = 0}}
-		Just m	= {UISizeOpts|opts & margins = Just {m & top = top}}
-
-setRightMargin	:: !Int !UIControl -> UIControl
-setRightMargin right ctrl = updSizeOpts f ctrl
-where
-	f opts = case opts.margins of
-		Nothing = {UISizeOpts|opts & margins = Just {top = 0, right = right, bottom = 0, left = 0}}
-		Just m	= {UISizeOpts|opts & margins = Just {m & right = right}}
-	
-setBottomMargin	:: !Int !UIControl -> UIControl
-setBottomMargin bottom ctrl = updSizeOpts f ctrl
-where
-	f opts = case opts.margins of
-		Nothing = {UISizeOpts|opts & margins = Just {top = 0, right = 0, bottom = bottom, left = 0}}
-		Just m	= {UISizeOpts|opts & margins = Just {m & bottom = bottom}}
-	
-setLeftMargin :: !Int !UIControl -> UIControl
-setLeftMargin left ctrl = updSizeOpts f ctrl
-where
-	f opts = case opts.margins of
-		Nothing = {UISizeOpts|opts & margins = Just {top = 0, right = 0, bottom = 0, left = left}}
-		Just m	= {UISizeOpts|opts & margins = Just {m & left = left}}
-
-setPadding :: !Int !Int !Int !Int !UIControl -> UIControl
-setPadding top right bottom left (UIContainer sOpts iOpts)
-	= UIContainer sOpts {UIItemsOpts|iOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}}
-setPadding top right bottom left (UIPanel sOpts iOpts opts)
-	= UIPanel sOpts {UIItemsOpts|iOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} opts
-setPadding top right bottom left ctrl = ctrl
-
-setTitle :: !String !UIControl -> UIControl
-setTitle title (UIPanel sOpts iOpts opts)		= UIPanel sOpts iOpts {UIPanelOpts|opts & title = Just title}
-setTitle title (UIFieldSet sOpts iOpts opts)	= UIFieldSet sOpts iOpts {UIFieldSetOpts|opts & title = title}
-setTitle title ctrl								= ctrl
-
-setFramed :: !Bool !UIControl -> UIControl
-setFramed frame (UIPanel sOpts iOpts opts)	= UIPanel sOpts iOpts {UIPanelOpts|opts & frame = frame}
-setFramed frame ctrl						= ctrl
-
-setIconCls :: !String !UIControl -> UIControl
-setIconCls iconCls (UIActionButton sOpts aOpts opts)	= UIActionButton sOpts aOpts {UIButtonOpts|opts & iconCls = Just iconCls}
-setIconCls iconCls (UIMenuButton sOpts opts)			= UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls}
-setIconCls iconCls (UIIcon sOpts opts)					= UIIcon sOpts {UIIconOpts|opts & iconCls = iconCls}
-setIconCls iconCls (UIPanel sOpts iOpts opts) 			= UIPanel sOpts iOpts {UIPanelOpts|opts & iconCls = Just iconCls}
-setIconCls iconCls ctrl									= ctrl
-
-setBaseCls :: !String !UIControl -> UIControl
-setBaseCls baseCls (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & baseCls = Just baseCls}
-setBaseCls baseCls (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & baseCls = Just baseCls} opts
-setBaseCls baseCls ctrl								= ctrl
-
-setDirection :: !UIDirection !UIControl -> UIControl
-setDirection dir (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & direction = dir}
-setDirection dir (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & direction = dir} opts
-setDirection dir ctrl							= ctrl
-
-setHalign :: !UIHAlign !UIControl -> UIControl
-setHalign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {iOpts & halign = align}
-setHalign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & halign = align} opts
-setHalign align ctrl							= ctrl
-
-setValign :: !UIVAlign !UIControl -> UIControl
-setValign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {iOpts & valign = align}
-setValign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & valign = align} opts
-setValign align ctrl							= ctrl
-
-setTBar :: ![UIControl] !UIControl -> UIControl
-setTBar tbar (UIPanel sOpts iOpts opts)			= UIPanel sOpts iOpts {UIPanelOpts|opts & tbar = Just tbar}
-setTBar tbar ctrl								= ctrl
 
 //Container coercion
 toPanel	:: !UIControl -> UIControl

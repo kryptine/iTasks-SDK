@@ -29,7 +29,7 @@ from Data.Map 				import qualified get
 from Text.HTML 				import class html
 from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld			import :: IWorld
-from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlStack, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIMinSize, :: UIAttributes
+from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlStack, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks.Framework.Task				import :: Task, :: TaskId
 from iTasks.Framework.Generic				import class iTask
 from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
