@@ -4,6 +4,7 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.CodeMirror
+import iTasks.API.Extensions.JointJS.JointJS
 
 import StdDebug
 
@@ -198,6 +199,7 @@ defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
 		, position = 0
 		, selection = Nothing
         , source = "Buu"}
+//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
 
 test5 :: Task CodeMirror
 test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings" [] defcm
@@ -222,6 +224,8 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 
 test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
 
+test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
+
 Start :: *World -> *World
-Start world = startEngine test5 world
+Start world = startEngine test6 world
 
