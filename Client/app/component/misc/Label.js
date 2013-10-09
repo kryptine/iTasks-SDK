@@ -1,6 +1,7 @@
 Ext.define('itwc.component.misc.Label', {
 	extend: 'Ext.form.Label',
 	alias: 'widget.itwc_label',
+    mixins: ['itwc.Sizeable'],
 	
 	previous: false,
 	
@@ -8,6 +9,7 @@ Ext.define('itwc.component.misc.Label', {
 		var me = this;
 		
 		me.text = me.value;
+        me.initSize();
 		me.callParent(arguments);
 	},
 	afterRender: function() {

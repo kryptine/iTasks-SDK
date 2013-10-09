@@ -1,13 +1,14 @@
 Ext.define('itwc.component.edit.Document',{
 	extend: 'Ext.form.field.Trigger',
 	alias: 'widget.itwc_edit_document',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 
 	fieldBodyCls: Ext.baseCSSPrefix + 'form-file-wrap',
 
 	childEls: ['formEl','fileInputEl'],
 
 	initComponent: function() {
+        this.initSize();
 		this.callParent(arguments);
 		this.initEditable();
 	

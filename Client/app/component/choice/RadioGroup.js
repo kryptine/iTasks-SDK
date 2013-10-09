@@ -1,6 +1,6 @@
 Ext.define('itwc.component.choice.RadioGroup',{
 	extend: 'itwc.container.Container',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 	alias: 'widget.itwc_choice_radiogroup',
 	
 	initComponent: function() {
@@ -10,7 +10,9 @@ Ext.define('itwc.component.choice.RadioGroup',{
 			options = me.options,
 			numOptions = options.length,
 			choice, i;
-	
+
+        me.initSize();
+
 		if(Ext.isArray(me.value)) {
 			me.value = me.value.length ? me.value[0] : -1;
 		}

@@ -23,6 +23,7 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.rtl.resizer.BorderSplitterTracker": [],
   "Ext.direct.JsonProvider": [],
   "itwc.component.edit.Editlet": [],
+  "itwc.Sizeable": [],
   "Ext.tree.Panel": [
     "Ext.tree.TreePanel",
     "Ext.TreePanel"
@@ -562,7 +563,6 @@ Ext.ClassManager.addNameAlternateMappings({
     "Ext.form.Field",
     "Ext.form.BaseField"
   ],
-  "itwc.component.misc.Splitter": [],
   "itwc.component.edit.Time": [],
   "Ext.grid.feature.GroupStore": [],
   "Ext.data.SequentialIdGenerator": [],
@@ -782,7 +782,6 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.data.proxy.SessionStorage": [
     "Ext.data.SessionStorageProxy"
   ],
-  "itwc.view.Viewport2": [],
   "Ext.app.EventBus": [],
   "Ext.menu.Separator": [],
   "Ext.util.History": [
@@ -879,6 +878,7 @@ Ext.ClassManager.addNameAliasMappings({
   "itwc.component.edit.Editlet": [
     "widget.itwc_edit_editlet"
   ],
+  "itwc.Sizeable": [],
   "Ext.tree.Panel": [
     "widget.treepanel"
   ],
@@ -1559,9 +1559,6 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.form.field.Base": [
     "widget.field"
   ],
-  "itwc.component.misc.Splitter": [
-    "widget.itwc_splitter"
-  ],
   "itwc.component.edit.Time": [
     "widget.itwc_edit_time"
   ],
@@ -1862,7 +1859,6 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.data.proxy.SessionStorage": [
     "proxy.sessionstorage"
   ],
-  "itwc.view.Viewport2": [],
   "Ext.app.EventBus": [],
   "Ext.menu.Separator": [
     "widget.menuseparator"

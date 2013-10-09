@@ -403,11 +403,31 @@ encodeUIWindow (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts,
 encodeUITab :: !UITab -> JSONNode
 encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON opts]
 
-derive JSONEncode UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
+derive JSONEncode UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts
 derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
 derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
+
+JSONEncode{|UISizeOpts|} {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
+    = [JSONObject [field \\ field <- [("itwcWidth",toJSON width)
+                                     ,("itwcMinWidth",toJSON minWidth)
+                                     ,("itwcMaxWidth",toJSON maxWidth)
+                                     ,("itwcHeight",toJSON height)
+                                     ,("itwcMinHeight",toJSON minHeight)
+                                     ,("itwcMaxHeight",toJSON maxHeight)
+                                     ,("margins",toJSON margins)
+                                     ] | snd field =!= JSONNull]
+      ]
+JSONEncode{|UIHSizeOpts|} {UIHSizeOpts|width,minWidth,maxWidth,margins}
+    = [JSONObject [field \\ field <- [("itwcWidth",toJSON width)
+                                     ,("itwcMinWidth",toJSON minWidth)
+                                     ,("itwcMaxWidth",toJSON maxWidth)
+                                     ,("margins",toJSON margins)
+                                     ] | snd field =!= JSONNull]
+      ]
+JSONEncode{|UIFSizeOpts|} {UIFSizeOpts|margins}
+    = [JSONObject [field \\ field <- [("margins",toJSON margins)] | snd field =!= JSONNull]]
 
 JSONEncode{|UISideSizes|} {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]

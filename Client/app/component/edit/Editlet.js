@@ -1,16 +1,21 @@
 Ext.define('itwc.component.edit.Editlet',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_edit_editlet',
-	mixins: ['itwc.component.edit.Editable'],
-	
-	width: 600,//'flex',
-	minWidth: 400,
-	height: 'flex',
-	minHeight: 300,
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
+
+    itwcWrapWidth: 600,
+    itwcWrapHeight: 300,
+
+	itwcWidth: 'flex',
+	itwcMinWidth: 600,
+	itwcHeight: 'flex',
+	itwcMinHeight: 300,
 	
 	initComponent: function() {
 		var me = this,
 			tmp;	
+
+        me.initSize();
 
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
 		itwc.global.controller.editlets[me.htmlId] = me;

@@ -37,23 +37,20 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
 			  ,'itwc.component.edit.Editlet'	//A custom component
 			  
-			  ,'itwc.component.choice.Dropdown'	     //A simple dropdown box for choosing from a fixed set
-			  ,'itwc.component.choice.RadioGroup'    //A set of radio buttons with labels
-			  ,'itwc.component.choice.CheckboxGroup' //A set of checkboxes with labels
-			  ,'itwc.component.choice.Grid'		     //A grid from which you can select rows
-			  ,'itwc.component.choice.Tree'		     //A tree from which you can select nodes 
+			  ,'itwc.component.choice.Dropdown'	        //A simple dropdown box for choosing from a fixed set
+			  ,'itwc.component.choice.RadioGroup'       //A set of radio buttons with labels
+			  ,'itwc.component.choice.CheckboxGroup'    //A set of checkboxes with labels
+			  ,'itwc.component.choice.Grid'		        //A grid from which you can select rows
+			  ,'itwc.component.choice.Tree'		        //A tree from which you can select nodes 
 	
 			  ,'itwc.component.action.ActionButton'		//A button that triggers an action event
 			  ,'itwc.component.action.MenuButton'		//A button that opens a menu
-			  ,'itwc.component.action.Menu'			//A menu wrapper
+			  ,'itwc.component.action.Menu'			    //A menu wrapper
 			  ,'itwc.component.action.ActionMenuItem'	//A menu item that triggers an action event
 			  ,'itwc.component.action.SubMenuItem'		//A menu item that leads to a sub menu 
 
-			  ,'itwc.component.misc.Splitter'	//Resize of adjacent components
 			  ,'itwc.component.misc.Label'		//Label for standard forms
 			  ,'itwc.component.misc.Icon'		//Icons with help text
-
-			  //,'itwc.component.misc.Tab'		//A tab that can trigger focus events and close action events
 			  ],
 
 	// for tasklet and client side execution support
