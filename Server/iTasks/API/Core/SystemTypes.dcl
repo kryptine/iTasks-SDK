@@ -714,6 +714,6 @@ derive gVerify			Icon
 // Generic instances for common library types
 //****************************************************************************//
 
-derive JSONEncode		HtmlTag, Map, Void, Either, Timestamp
-derive JSONDecode		HtmlTag, Map, Void, Either, Timestamp
-derive gEq				HtmlTag, Map, Void, Either, Timestamp, Maybe, JSONNode, (->), Dynamic
+derive JSONEncode		HtmlTag, Void, Either, Timestamp
+derive JSONDecode		HtmlTag, Void, Either, Timestamp
+derive gEq				HtmlTag, Void, Either, Timestamp, Maybe, JSONNode, (->), Dynamic
