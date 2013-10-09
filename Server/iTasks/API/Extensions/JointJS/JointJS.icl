@@ -45,26 +45,32 @@ jointJSEditlet jjs =
 										 , gridSize = 1
 										 , model    = graph
 										 }] world
-		# (app, world)   = mkTaskApp { TaskAppArgs
-									 | position = {Point | x = 100, y = 100}
-									 , size = {Size | width = 100, height = 100}
-									 , name = "myTask"
-									 } world
-		# world          = addCell app graph world
-		# (start, world) = mkStartState { StartStateArgs
-										| position = {Point | x = 300, y = 200}
-										} world
+		# (start, world) = mkStartState world
 		# world          = addCell start graph world
-		# (stop, world)  = mkStopState  { StopStateArgs
-										| position = {Point | x = 300, y = 100}
-										} world
-		# world          = addCell stop graph world
+		# (task1, world) = mkTaskApp { TaskAppArgs
+									 | size = {Size | width = 100, height = 100}
+									 , name = "task1"
+									 } world
+		# world          = addCell task1 graph world
+		# (task2, world) = mkTaskApp { TaskAppArgs
+									 | size = {Size | width = 100, height = 100}
+									 , name = "task2"
+									 } world
+		# world          = addCell task2 graph world
 		# (ret, world)   = mkReturnState { ReturnStateArgs
-										 | position = {Point | x = 400, y = 100}
+										 | size = {Size | width = 50, height = 50}
+										 , attrs =  { Attrs
+													| text = { TextAttrs
+												 			 | text = "x + y" } }
 										 } world
 		# world          = addCell ret graph world
-		# world          = mkBind start stop Nothing graph world
-		# world          = mkBind start ret (Just "Naar return!") graph world
+		# (stop, world)  = mkStopState world
+		# world          = addCell stop graph world
+		# world          = mkBind start task1 Nothing graph world
+		# world          = mkBind task1 task2 (Just "x") graph world
+		# world          = mkBind task2 ret (Just "y") graph world
+		# world          = mkBind ret stop Nothing graph world
+		# world          = layoutGraph graph world
 		= (val, mst, world)
 		
 	onUpdate pid Nothing val mst world
@@ -85,13 +91,13 @@ mkTaskApp :: TaskAppArgs *JSWorld -> *(JSVal o, *JSWorld)
 mkTaskApp args world
 	= jsNewObject "joint.shapes.tonic.TaskApp" [toJSArg args] world
 
-mkStartState :: StartStateArgs *JSWorld -> *(JSVal o, *JSWorld)
-mkStartState args world
-	= jsNewObject "joint.shapes.tonic.StartState" [toJSArg args] world
+mkStartState :: *JSWorld -> *(JSVal o, *JSWorld)
+mkStartState world
+	= jsNewObject "joint.shapes.tonic.StartState" [] world
 
-mkStopState :: StopStateArgs *JSWorld -> *(JSVal o, *JSWorld)
-mkStopState args world
-	= jsNewObject "joint.shapes.tonic.StopState" [toJSArg args] world
+mkStopState :: *JSWorld -> *(JSVal o, *JSWorld)
+mkStopState world
+	= jsNewObject "joint.shapes.tonic.StopState" [] world
 
 mkReturnState :: ReturnStateArgs *JSWorld -> *(JSVal o, *JSWorld)
 mkReturnState args world
@@ -115,24 +121,18 @@ mkBind source target mtxt graph world
 	mkLabels Nothing    = []
 	mkLabels (Just lbl) = [ {LabelArgs
 							| position = 0.5
-							, attrs =   { LabelAttrs
+							, attrs =   { Attrs
 										| text = { TextAttrs
 												 | text = lbl } } }
 							]
 
-/*
-function link(source, target, label, vertices) {
-    
-    var cell = new joint.shapes.tonic.Bind({
-        source: { id: source.id },
-        target: { id: target.id },
-        labels: [{ position: .5, attrs: { text: { text: label || '', 'font-weight': 'bold' } } }],
-        vertices: vertices || []
-    });
-    graph.addCell(cell);
-    return cell;
-}
-*/
+layoutGraph :: (JSVal g) *JSWorld -> *JSWorld
+layoutGraph g world
+	# (obj, world) = jsEmptyObject world
+	# world        = jsSetObjectAttr "setLinkVertices" (toJSVal False) obj world
+	# world        = jsSetObjectAttr "rankDir" (toJSVal "LR") obj world
+	# (_, world)   = callFunction "joint.layout.DirectedGraph.layout" [toJSArg g, toJSArg obj] world
+	= world
 
 :: El = El
 :: Graph = Graph
@@ -145,10 +145,10 @@ function link(source, target, label, vertices) {
 	
 :: LabelArgs =
 	{ position :: Real
-	, attrs    :: LabelAttrs
+	, attrs    :: Attrs
 	}
 	
-:: LabelAttrs =
+:: Attrs =
 	{ text :: TextAttrs
 	}
 	
@@ -179,11 +179,11 @@ function link(source, target, label, vertices) {
 	}
 
 :: TaskAppArgs =
-	{ position :: Point
-	, size     :: Size
+	{ //position :: Point
+	  size     :: Size
 	, name     :: String
 	}
-
+/*
 :: StartStateArgs =
 	{ position :: Point
 	}
@@ -191,7 +191,9 @@ function link(source, target, label, vertices) {
 :: StopStateArgs =
 	{ position :: Point
 	}
-	
+	*/
 :: ReturnStateArgs =
-	{ position :: Point
+	{ //position :: Point
+	  size     :: Size
+	, attrs    :: Attrs
 	}
