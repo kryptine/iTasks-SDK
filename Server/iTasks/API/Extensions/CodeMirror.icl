@@ -75,9 +75,8 @@ codeMirrorEditlet :: !CodeMirror
 					 [(String, ComponentEventHandlerFunc CodeMirror CodeMirrorState)] 
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 			  
-codeMirrorEditlet g eventhandlers = {Editlet
-				|value		= g
-				,html		= \id -> TextareaTag [IdAttr (sourcearea id), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
+codeMirrorEditlet g eventhandlers = Editlet g
+				{html		= \id -> TextareaTag [IdAttr (sourcearea id), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
 				,updateUI   = onUpdate
 				,handlers	= \_ -> []
 				,genDiff	= genDiff

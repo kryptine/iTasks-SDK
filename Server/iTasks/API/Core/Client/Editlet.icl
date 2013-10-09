@@ -10,13 +10,13 @@ JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ c = (Nothing,c)
 
 gDefault{|Editlet|} fa _
-	= {Editlet|value=fa,html = \_ -> RawText "", updateUI = \_ _ a st world -> (a, st, world), handlers= \_ -> [], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
+    = Editlet fa {html = \_ -> RawText "", updateUI = \_ _ a st world -> (a, st, world), handlers= \_ -> [], genDiff = \_ _ -> Nothing, appDiff = \_ x -> x}
 
-gEq{|Editlet|} fa _ x y = fa x.Editlet.value y.Editlet.value //Only compare values
+gEq{|Editlet|} fa _ (Editlet x _) (Editlet y _) = fa x y //Only compare values
 
-gVisualizeText{|Editlet|} fa _ mode {Editlet|value} = fa mode value
+gVisualizeText{|Editlet|} fa _ mode (Editlet value _) = fa mode value
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp ({Editlet|value,html,updateUI,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp (Editlet value {html,updateUI,handlers,genDiff,appDiff},mask,ver) meta vst=:{VSt|taskId,iworld}
 	# (jsScript, jsEvents, jsIV, jsUU, jsGD, jsAD, iworld)
 			= editletLinker [(id, event, f) \\(ComponentEvent id event f) <- handlers htmlId] clientInit clientUpdateUI clientGenDiff clientAppDiff iworld
 	# iworld									= addDiffer iworld
@@ -63,11 +63,11 @@ where
 	addDiffer iworld=:{IWorld|uiDiffers}
 		= {IWorld|iworld & uiDiffers = put (taskId,editorId dp) serverGenDiff uiDiffers}
 
-gEditMeta{|Editlet|} fa _ {Editlet|value} = fa value
+gEditMeta{|Editlet|} fa _ (Editlet value _) = fa value
 
-gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:{Editlet|value,appDiff},omask)
+gUpdate{|Editlet|} fa _ jDeca _ _ jDecd [] json (ov=:(Editlet value def=:{EditletDef|appDiff}),omask)
 	= case jDecd [json] of
-		(Just diff,_)	= ({Editlet|ov & value = appDiff diff value},Touched)
+		(Just diff,_)	= (Editlet (appDiff diff value) def,Touched)
 		_				= (ov,omask)
 
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ mv = mv

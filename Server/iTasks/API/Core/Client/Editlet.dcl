@@ -7,9 +7,9 @@ import iTasks, iTasks.API.Core.Client.Interface
 // that are defined server-side but run client-side
 //****************************************************************************//
 
-:: Editlet a d = E.st:
-	{	value		:: a 
-	,	html		:: ComponentId -> HtmlTag
+:: Editlet a d = Editlet a (EditletDef a d)
+:: EditletDef a d = E.st:
+	{	html		:: ComponentId -> HtmlTag
 	,   updateUI    :: ComponentId (Maybe d) a (Maybe st) *JSWorld -> *(!a,!Maybe st,!*JSWorld)
 	,	handlers	:: ComponentId -> [ComponentEvent a st]
 	//	Functions for efficient bidirectional synchronisation of the editlet value

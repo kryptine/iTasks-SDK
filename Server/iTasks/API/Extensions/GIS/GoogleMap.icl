@@ -47,14 +47,14 @@ from Data.Map import newMap
 				   }
 
 googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff]
-googleMapEditlet g = {Editlet
-				|value		= g
-				,html		= \id -> DivTag [IdAttr (mapdomid id), StyleAttr "width:100%; height:100%"] []
-				,updateUI   = onUpdate
-				,handlers	= \_ -> []
-				,genDiff	= genDiff
-				,appDiff	= appDiff
-				}
+googleMapEditlet g = Editlet g
+    {EditletDef
+	|html		= \id -> DivTag [IdAttr (mapdomid id), StyleAttr "width:100%; height:100%"] []
+	,updateUI   = onUpdate
+	,handlers	= \_ -> []
+	,genDiff	= genDiff
+	,appDiff	= appDiff
+	}
 where
 	mapdomid cid = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
@@ -308,10 +308,10 @@ gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (googleMapEditlet val,mask,ver) meta vst
 
 gUpdate{|GoogleMap|} dp upd (val,mask)
-    # ({Editlet|value},mask) = gUpdate{|*|} dp upd (googleMapEditlet val,mask)
+    # (Editlet value _, mask) = gUpdate{|*|} dp upd (googleMapEditlet val,mask)
     = (value,mask)
 
-//derive gUpdate GoogleMap 
+//derive gUpdate GoogleMap
 gVerify{|GoogleMap|} _ mv = alwaysValid mv
 
 gDefault{|GoogleMapPerspective|} =

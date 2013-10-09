@@ -12,7 +12,7 @@ import StdDebug
 derive class iTask TimeDelta
 
 buienLet :: Editlet String Void
-buienLet = {Editlet|value="Buienradar",html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = \_ -> [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
+buienLet = Editlet "Buienradar" {html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = \_ -> [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
 where
 	html = "<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>"
 
@@ -20,12 +20,13 @@ where
 derive class iTask StringDelta
 
 stringlet :: Editlet String [String]
-stringlet = {Editlet|value = "Hello world",html = \cid -> TextareaTag [IdAttr cid] []
-			,updateUI = onUpdate
-			,handlers = \cid -> [ComponentEvent cid "keyup" onChange]
-			,genDiff  = \o n -> if (o == n) Nothing (Just [n,n])
-			,appDiff  = \n _ -> hd n
-			}
+stringlet = Editlet "Hello world"
+    {html = \cid -> TextareaTag [IdAttr cid] []
+	,updateUI = onUpdate
+	,handlers = \cid -> [ComponentEvent cid "keyup" onChange]
+	,genDiff  = \o n -> if (o == n) Nothing (Just [n,n])
+	,appDiff  = \n _ -> hd n
+	}
 where
 	onUpdate :: ComponentId (Maybe [String]) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
 	onUpdate id _ val st world
@@ -37,14 +38,13 @@ where
 		= let (val, w) = getDomAttr id "value" world in (jsValToString val, st, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
-timelet t =	{Editlet
-				|value		= t
-				,html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
-				,updateUI	= onUpdate				
-				,handlers	= \_ -> []
-				,genDiff	= genDiff
-				,appDiff	= appDiff
-				}
+timelet t =	Editlet t
+    {html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
+	,updateUI	= onUpdate				
+	,handlers	= \_ -> []
+	,genDiff	= genDiff
+	,appDiff	= appDiff
+	}
 where
 	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
 	onUpdate id _ val st world
@@ -68,14 +68,13 @@ where
 
 
 clocklet :: Time -> Editlet Time Time
-clocklet t =	{Editlet
-				|value		= t
-				,html		= \id -> RawText ("<canvas height=\"100%\" id=\"" +++ id +++ "\" class=\"CoolClock\"></canvas>")
-				,updateUI	= onInit					
-				,handlers	= \_ -> []
-				,genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
-				,appDiff	= \tn to -> tn
-				}
+clocklet t = Editlet t
+	{html		= \id -> RawText ("<canvas height=\"100%\" id=\"" +++ id +++ "\" class=\"CoolClock\"></canvas>")
+	,updateUI	= onInit					
+	,handlers	= \_ -> []
+	,genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
+	,appDiff	= \tn to -> tn
+	}
 where
 	onInit :: ComponentId (Maybe Time) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
 	onInit id Nothing val st world
@@ -135,14 +134,11 @@ instance ~   TicTac     where ~  Tic     = Tac
 derive class iTask Tile, TicTac, Coordinate
 
 tictactoelet :: (TicTacToe,TicTac) -> Editlet (TicTacToe,TicTac) (TicTacToe,TicTac)
-tictactoelet t=:(board,turn) =
-	{Editlet
-	|value		= t
-	,html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
+tictactoelet t=:(board,turn) = Editlet t
+	{html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
 	,updateUI   = onUpdate
 	,handlers	= \_ -> []
 				  ++[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
-				 
 	,genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
 	,appDiff	= \tn to -> tn
 	}
@@ -206,7 +202,7 @@ test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings
 																-|| 
 								   updateSharedInformation "CodeMirror Editor" 
 								   				[UpdateWith (\cm -> codeMirrorEditlet cm []) 
-								   							(\_ editlet -> editlet.Editlet.value)] defcm )        
+								   							(\_ (Editlet value _) -> value)] defcm )
 
 
         
@@ -222,7 +218,7 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 		
 //test = viewSharedInformation "Clock" [ViewWith timeEditlet] currentTime
 
-test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
+test = updateInformation "String" [] stringlet @ (\(Editlet value _) -> value) >&> viewSharedInformation "DEBUG" []
 
 test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 

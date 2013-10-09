@@ -15,10 +15,8 @@ mkPaperId :: String -> String
 mkPaperId x = "paper" +++ x
 
 jointJSEditlet :: JointJS -> Editlet JointJS [JointJSDiff]
-jointJSEditlet jjs =
-	{ Editlet
-	| value    = jjs
-	, html     = \pid -> DivTag [IdAttr (mkPaperId pid), ClassAttr (mkPaperId pid)] []
+jointJSEditlet jjs = Editlet jjs
+	{ html     = \pid -> DivTag [IdAttr (mkPaperId pid), ClassAttr (mkPaperId pid)] []
 	, updateUI = onUpdate
 	, handlers = \_ -> []
 	, genDiff  = genDiff
