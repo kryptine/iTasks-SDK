@@ -28,18 +28,17 @@ import iTasks
 :: GIdentifier :== String
 
 :: GNodeType
-  =  GInit
-  |  GStop
+  =  GAssign GCleanExpression
   |  GDecision DecisionType !GCleanExpression
-  |  GMerge
+  |  GInit
   |  GLet GLet
+  |  GListComprehension GListComprehension
   |  GParallelSplit
   |  GParallelJoin GJoinType
-  |  GTaskApp GIdentifier ![GExpression]
   |  GReturn !GExpression
-  |  GAssign GCleanExpression
   |  GStep
-  |  GListComprehension GListComprehension
+  |  GStop
+  |  GTaskApp GIdentifier ![GExpression]
 
 :: GJoinType
   =  DisFirstBin
