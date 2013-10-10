@@ -29,8 +29,6 @@ tonicTune :: String String Int (Task a) -> Task a
 
 instance tune TonicTune
 
-getTaskGraphUrl :: String -> Task String
-
 tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask

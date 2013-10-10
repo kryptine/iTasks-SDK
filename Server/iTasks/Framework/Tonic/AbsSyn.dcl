@@ -1,9 +1,10 @@
 definition module iTasks.Framework.Tonic.AbsSyn
 
-from Data.Graph import :: Graph
+from Data.Graph import :: Graph, :: Node
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
-from Text.JSON import generic JSONEncode, :: JSONNode
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+import iTasks
 
 :: TonicModule =
   { tm_name  :: String
@@ -66,6 +67,10 @@ from Text.JSON import generic JSONEncode, :: JSONNode
   ,  input     :: GExpression
   }
 
-derive JSONEncode
+derive class iTask
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, Graph, Node
+
+//derive class iTask
+  //TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
+  //GListComprehension, GExpression
