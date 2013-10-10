@@ -238,8 +238,11 @@ Ext.define('itwc.controller.Controller', {
 		var me = this,
 			numUpdates = updates.length,
 			update, 
-			cmp, operations, numOperations, operation, i, j;
-			
+			cmp, operations, numOperations, operation, i, j, scroll;
+
+        //Save viewport scroll position... (bit of a hack)
+		scroll = me.viewport.el.getScrollTop();	
+
 		for(i = 0; i < numUpdates; i++) {
 			update = updates[i];
 			//try {
@@ -272,6 +275,8 @@ Ext.define('itwc.controller.Controller', {
 			//	me.error("Failed to update user interface " + e);
 			//}
 		}
+        //Restore viewport scroll position
+        me.viewport.el.setScrollTop(scroll);
 	},
     resetApplication: function(message) {
 		var me = this,
