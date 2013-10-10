@@ -447,6 +447,9 @@ autoLayoutFinal (UIAttributeSet attributes)
 autoLayoutFinal (UIControlStack stack)
     = autoLayoutFinal (UISubUI (autoLayoutControlStack stack))
 autoLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotkeys})
+    | hasWindowContainerAttr attributes
+        # window = subUIToWindow subui
+        = UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, hotkeys=Nothing, windows =[window]++ windows}
     # (panel,attributes,actions,panelkeys)   = case get SCREEN_ATTRIBUTE attributes of
         Just "full"     = subUIToPanel {UISubUI|subui & attributes = del TITLE_ATTRIBUTE attributes}
         _
