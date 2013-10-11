@@ -1,4 +1,4 @@
-implementation module iTasks.API.Extension.Tonic.Toniclet
+implementation module iTasks.API.Extensions.Tonic.Toniclet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet

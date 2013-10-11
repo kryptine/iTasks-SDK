@@ -5,7 +5,6 @@ import iTasks.Framework.Engine
 import iTasks.Framework.Shared
 import iTasks.Framework.IWorld
 import iTasks.Framework.Tonic.AbsSyn
-import iTasks.Framework.Tonic.Editlet
 import iTasks.API.Core.CoreCombinators
 import iTasks.API.Core.CoreTasks
 import iTasks.API.Core.SystemTypes
@@ -14,6 +13,7 @@ import iTasks.API.Common.CommonCombinators
 import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
+import iTasks.API.Extensions.Tonic.Toniclet
 import System.File
 from StdFunc import o
 from System.FilePath import </>
