@@ -244,7 +244,7 @@ joint.shapes.tonic.DecisionState = joint.shapes.basic.Rect.extend({
         size: { width: 100, height: 100 },
         attrs: {
           rect: { 'width': 200, 'height': 200, 'fill': '#ffffff', 'stroke': '#000000',
-                  'stroke-width': 2, 'rx': 10, 'ry': 10, 'transform': 'rotate(-45 100 100)' }
+                  'stroke-width': 2, 'rx': 10, 'ry': 10, 'transform': 'rotate(-45 50 50)' }
         }
 
     }, joint.shapes.basic.Rect.prototype.defaults)
@@ -282,4 +282,25 @@ joint.shapes.tonic.Bind = joint.dia.Link.extend({
         }
     }
 });
+
+joint.shapes.tonic.AssignFigure = joint.shapes.basic.Generic.extend({
+    markup: '<g class="rotatable"><g class="scalable">' +
+            '<g>' +
+              '<path d="M18,23.5 C11.373,23.5 6,18.127 6,11.5 C6,4.873 11.373,-0.5 18,-0.5 C24.627,-0.5 30,4.873 30,11.5 C30,18.127 24.627,23.5 18,23.5 z" fill="#FFFFFF"/>' +
+              '<path d="M18,23.5 C11.373,23.5 6,18.127 6,11.5 C6,4.873 11.373,-0.5 18,-0.5 C24.627,-0.5 30,4.873 30,11.5 C30,18.127 24.627,23.5 18,23.5 z" fill-opacity="0" stroke="#000000" stroke-width="1"/>' +
+            '</g>' +
+            '<path d="M18,23.5 L18,47.5" fill-opacity="0" stroke="#000000" stroke-width="1"/>' +
+            '<path d="M18,47.5 L6,71.5" fill-opacity="0" stroke="#000000" stroke-width="1"/>' +
+            '<path d="M30,71.5 L18,47.5" fill-opacity="0" stroke="#000000" stroke-width="1"/>' +
+            '<path d="M36,35.5 L-0,35.5" fill-opacity="0" stroke="#000000" stroke-width="1"/>' +
+            '</g></g>',
+
+    defaults: joint.util.deepSupplement({
+
+        type: 'tonic.AssignFigure',
+        size: { width: 35, height: 70 }
+
+    }, joint.shapes.basic.Generic.prototype.defaults)
+});
+
 
