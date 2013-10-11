@@ -4,7 +4,11 @@ from Data.Graph import :: Graph, :: Node
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-import iTasks
+from iTasks import class iTask, generic gEditor, generic gEditMeta,
+  generic gUpdate, generic gVerify, generic gVisualizeText, generic gDefault,
+  generic gEq, :: VSt, :: EditMeta, :: VisualizationResult, :: VerifiedValue,
+  :: InteractionMask, :: DataPath, :: MaskedValue, :: Verification,
+  :: VerifyOptions, :: VisualizationFormat
 
 :: TonicModule =
   { tm_name  :: String
