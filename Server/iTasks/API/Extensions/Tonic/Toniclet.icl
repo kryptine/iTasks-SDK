@@ -1,4 +1,4 @@
-implementation module iTasks.Framework.Tonic.Editlet
+implementation module iTasks.API.Extension.Tonic.Toniclet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
@@ -71,13 +71,17 @@ drawTonicGraph g jgrph world
           = (jgrph, world)
 
         GDecision dt expr
+          # (dec, world) = jsNewObject "joint.shapes.tonic.DecisionState" [] world // TODO: Fill let state
+          # world        = addCell (Just ni) dec jgrph world
           = (jgrph, world)
 
         GLet lt
+          # (ltst, world) = jsNewObject "joint.shapes.tonic.LetState" [] world // TODO: Fill let state
+          # world          = addCell (Just ni) ltst jgrph world
           = (jgrph, world)
 
         GInit
-          # (start, world) = mkStartState world
+          # (start, world) = jsNewObject "joint.shapes.tonic.StartState" [] world
           # world          = addCell (Just ni) start jgrph world
           = (jgrph, world)
 
@@ -91,13 +95,13 @@ drawTonicGraph g jgrph world
           = (jgrph, world)
 
         GReturn expr
-          # (ret, world) = mkReturnState
-                             { ReturnStateArgs
-                             | size = {Size | width = 50, height = 50}
-                             , attrs =  { Attrs
-                                  | text = { TextAttrs
-                                        | text = "TODO: expr :: GExpression" } }
-                             } world
+          # args = { ReturnStateArgs
+                   | size  = {Size | width = 50, height = 50}
+                   , attrs = { Attrs
+                             | text = { TextAttrs
+                             | text = "TODO: expr :: GExpression" } }
+                   }
+          # (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
           # world        = addCell (Just ni) ret jgrph world
           = (jgrph, world)
 
@@ -105,38 +109,23 @@ drawTonicGraph g jgrph world
           = (jgrph, world)
 
         GStop
-          # (stop, world)  = mkStopState world
-          # world          = addCell (Just ni) stop jgrph world
+          # (stop, world) = jsNewObject "joint.shapes.tonic.StopState" [] world
+          # world         = addCell (Just ni) stop jgrph world
           = (jgrph, world)
 
         GTaskApp ident exprs
-          # (app, world) = mkTaskApp { TaskAppArgs
-                                     | size = {Size | width = 100, height = 100}
-                                     , name = ident
-                                     } world
-                                     // TODO: Add exprs
+          # args         = { TaskAppArgs
+                           | size = {Size | width = 100, height = 100}
+                           , name = ident
+                           }
+                           // TODO: Add exprs
+          # (app, world) = jsNewObject "joint.shapes.tonic.TaskApp" [toJSArg args] world
           # world        = addCell (Just ni) app jgrph world
           = (jgrph, world)
         _ = (jgrph, world)
   addEdge (fromNode, toNode) {edge_pattern} (jgrph, world)
     # world = mkBind fromNode toNode edge_pattern jgrph world
     = (jgrph, world)
-
-mkTaskApp :: TaskAppArgs *JSWorld -> *(JSVal o, *JSWorld)
-mkTaskApp args world
-  = jsNewObject "joint.shapes.tonic.TaskApp" [toJSArg args] world
-
-mkStartState :: *JSWorld -> *(JSVal o, *JSWorld)
-mkStartState world
-  = jsNewObject "joint.shapes.tonic.StartState" [] world
-
-mkStopState :: *JSWorld -> *(JSVal o, *JSWorld)
-mkStopState world
-  = jsNewObject "joint.shapes.tonic.StopState" [] world
-
-mkReturnState :: ReturnStateArgs *JSWorld -> *(JSVal o, *JSWorld)
-mkReturnState args world
-  = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
 
 addCell :: (Maybe Int) (JSVal o) (JSVal g) *JSWorld -> *JSWorld
 addCell mnIdx cell jgrph world
