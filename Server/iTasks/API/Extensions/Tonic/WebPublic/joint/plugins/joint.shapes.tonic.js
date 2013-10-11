@@ -154,7 +154,7 @@ joint.shapes.tonic.TaskApp = joint.shapes.basic.Generic.extend({
 
     defaults: joint.util.deepSupplement({
 
-        type: 'tonic.State',
+        type: 'tonic.TaskApp',
 
         attrs: {
             rect: { 'width': 200, 'height': 200, 'fill': '#ffffff', 'stroke': '#000000', 'stroke-width': 3, 'rx': 10, 'ry': 10 },
@@ -197,7 +197,6 @@ joint.shapes.tonic.TaskApp = joint.shapes.basic.Generic.extend({
     updatePath: function() {
         this.get('attrs').path.d = 'M 0 20 L ' + this.get('size').width + ' 20';
     }
-
 });
 
 joint.shapes.tonic.StartState = joint.shapes.basic.Generic.extend({
