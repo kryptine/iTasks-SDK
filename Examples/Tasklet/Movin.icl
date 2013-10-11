@@ -8,21 +8,20 @@ import iTasks, iTasks.API.Core.Client.Tasklet
 
 movinTasklet :: Tasklet Position Void 
 movinTasklet = 
-	{ generatorFunc		= generateGUI
-	, resultFunc		= const (Value Void False)
-	, tweakUI  			= id
+	{ genUI			= generateGUI
+	, resultFunc	= const (Value Void False)
+	, tweakUI  		= id
 	}
 
 generateGUI :: !TaskId (Maybe Position) !*IWorld -> *(!TaskletGUI Position, !Position, !*IWorld)
 generateGUI taskId Nothing iworld  = generateGUI taskId (Just 0) iworld
 generateGUI _ (Just x) iworld  
 
-	# gui = { TaskletHTML
-			| width  		= ExactSize 800
+	# gui = { width  		= ExactSize 800
 			, height 		= ExactSize 600
-			, html   		= HtmlDef ("<div id=\"object\" style=\""+++style+++"\">Airplane</div>")
-			, eventHandlers = [ HtmlEvent "tasklet" "init" onInit
-							  , HtmlEvent "tasklet" "update" onInit]			
+			, html   		= RawText ("<div id=\"object\" style=\""+++style+++"\">Airplane</div>")
+			, eventHandlers = [ ComponentEvent "tasklet" "init" onInit
+							  , ComponentEvent "tasklet" "update" onInit]			
 			}
 			
 	= (TaskletHTML gui, x, iworld)

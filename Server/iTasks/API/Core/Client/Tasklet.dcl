@@ -1,34 +1,21 @@
 definition module iTasks.API.Core.Client.Tasklet
 
 import StdString
-import iTasks.Framework.Task, iTasks.Framework.Shared, iTasks.API.Core.Client.Interface
+import iTasks.Framework.Task, iTasks.Framework.Shared
+import iTasks.API.Core.Client.Interface
+import iTasks.API.Core.Client.Component
 
 :: JSONString :== String
 
-// For interface functions
-:: EventQueue
+:: TaskletEventHandlerFunc a 	:== ComponentEventHandlerFunc TaskId a
+:: TaskletEvent a 				:== ComponentEvent TaskId a
+:: TaskletHTML a 				:== ComponentHTML TaskId a
 
-:: HtmlEventName :== String
-
-:: HtmlEvent st = E.e: HtmlEvent !DomElementId !HtmlEventName (HtmlEventHandlerFunc st e)
-:: HtmlEventHandlerFunc st e :== TaskId (JSVal e) st *JSWorld -> *(!st,!*JSWorld)
-
-createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal (JSFunction b)) 
+createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFunction b)) 
 
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
                  | TaskletTUI  !(TaskletTUI  st)
                  | NoGUI
-
-:: GeneratorFunc st :== TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
-
-:: HtmlDef = E.a: HtmlDef a & toString a
-
-:: TaskletHTML st = 
-	{ width 			:: !UISize
-	, height			:: !UISize
-	, html				:: !HtmlDef
-	, eventHandlers		:: ![HtmlEvent st] 
-	} 
 
 /**
 * Client side event handler. Event types:
@@ -50,7 +37,7 @@ createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal (JSFun
 	}
 
 :: Tasklet st val =
-	{ generatorFunc		:: !(GeneratorFunc st)
+	{ genUI				:: !(TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld))
 	, resultFunc		:: !(st -> TaskValue val)
 	, tweakUI 			:: !(UIControl -> UIControl)
 	}
@@ -68,9 +55,12 @@ mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTas
 
 mkInterfaceTask :: (Tasklet st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 
+// For interface functions
+:: EventQueue
+
 /*
 * Fire own event
 */
-// fireEvent :: !*EventQueue !TaskId !String a -> *EventQueue
+fireEvent :: !*EventQueue !TaskId !String a -> *EventQueue
 
 

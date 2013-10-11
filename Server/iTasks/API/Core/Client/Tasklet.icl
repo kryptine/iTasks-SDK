@@ -35,7 +35,7 @@ println msg world
 
 //---------------------------------------------------------------------------------------
 
-createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal (JSFunction b)) 
+createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFunction b)) 
 createTaskletEventHandler origHandler taskId = undef
 
 fireEvent :: !*EventQueue !TaskId !String a -> *EventQueue
@@ -191,7 +191,7 @@ placeHolderRep taskId mbUpdateVal
 	= TaskRep (toDef (UITaskletPH defaultSizeOpts {UITaskletPHOpts|taskId = toString taskId, updateVal = mbUpdateVal})) []
 
 genRep tasklet taskId taskRepOpts mbState mbUpdateFunc mbUpdateVal iworld
-	# (gui, state, iworld) = tasklet.generatorFunc taskId mbState iworld
+	# (gui, state, iworld) = tasklet.Tasklet.genUI taskId mbState iworld
 	= case gui of
 		
 			TaskletHTML gui 
@@ -274,7 +274,7 @@ where
 					, instanceNo	 = mb_ino
 					, controllerFunc = mb_cf_js})
 
-	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js mb_uf_js
+	tHTMLToTasklet {ComponentHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js mb_uf_js
 		= toDef (setSize width height 
 				(UITasklet defaultSizeOpts 
 					 {UITaskletOpts 
@@ -308,15 +308,9 @@ controllerWrapper cf strTaskID st mbEventName mbEventHandler
 	= (fmap (toString o encodeUIDefinition) mbTUI, st)
 
 // it uses the 2. layer (handleJSEvent), because it's created on the server
-eventHandlerWrapper taskId (HtmlEvent id event f) 
+eventHandlerWrapper taskId (ComponentEvent id event f) 
 	= (id, event, handleJSEvent f taskId)
 
 interfaceWrapper taskId (InterfaceFun fn f) = (fn, handleInterfaceCall f (toString taskId))
-
-//---------------------------------------------------------------------------------------
-
-instance toString HtmlDef
-where
-	toString (HtmlDef a) = toString a
 
 

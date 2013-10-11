@@ -2,14 +2,6 @@ Ext.define('itwc.component.edit.Editlet',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_edit_editlet',
 	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
-
-    itwcWrapWidth: 600,
-    itwcWrapHeight: 300,
-
-	itwcWidth: 'flex',
-	itwcMinWidth: 600,
-	itwcHeight: 'flex',
-	itwcMinHeight: 300,
 	
 	initComponent: function() {
 		var me = this,
@@ -20,15 +12,13 @@ Ext.define('itwc.component.edit.Editlet',{
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
 		itwc.global.controller.editlets[me.htmlId] = me;
 		
-		me.state = __Data_Maybe_Nothing();
-		
-		if(me.script != null && me.script != ""){
+		if(me.script != null && me.script != "" && !sapldebug){
 			evalScript(me.script);
 		}
-		if(me.initValue != null) {
-			eval("tmp = eval(" + me.initValue + ");");
-			me.initValue = tmp;
-			me.value = Sapl.feval([me.initValue,[me.jsToSaplJSONNode(me.value)]]);
+		if(me.defVal != null) {
+			eval("tmp = eval(" + me.defVal + ");");
+			me.value = Sapl.feval([tmp,[0]]); // the actual argument doesnt matter
+			delete this.defVal;
 		}
 		if(me.appDiff != null) {
 			eval("tmp = eval(" + me.appDiff + ");");
@@ -42,6 +32,11 @@ Ext.define('itwc.component.edit.Editlet',{
 			eval("tmp = eval(" + me.updateUI + ");");
 			me.updateUI = tmp;	
 		}		
+		if(me.initDiff != null) {
+			var json = me.jsToSaplJSONNode(me.initDiff);
+			me.value = Sapl.feval([me.appDiff,[json,me.value]]);			
+			delete this.initDiff;
+		}
 		me.callParent(arguments);
 	},
 	afterRender: function() {
@@ -73,18 +68,16 @@ Ext.define('itwc.component.edit.Editlet',{
 		var h = function(event){			
 			if(event) event = event.browserEvent || event;
 			if(dowrap) event = ___wrapJS(event);
-			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,me.state,"JSWorld"]]);
+			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
-			Sapl.feval(ys[4]);
 			
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
 			
 			me.value = ys[2];
-			me.state = ys[3];			
 			
 			//Synchronize
 			if(diff !== null) {

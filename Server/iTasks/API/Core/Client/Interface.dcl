@@ -16,6 +16,7 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 :: JSFunction a	//A javascript function object
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
+:: JSEvent		//Represents an event object
 :: JSObject		//Just for fun
 
 //CORE JAVASCRIPT ACCESS

@@ -16,23 +16,32 @@ mkPaperId x = "paper" +++ x
 
 toniclet :: GinGraph -> Editlet GinGraph GinGraph
 toniclet g
-  = Editlet g
-  { html     = \pid -> DivTag [IdAttr (mkPaperId pid), ClassAttr (mkPaperId pid)] []
-  , updateUI = onUpdate
-  , handlers = \_ -> []
-  , genDiff  = genDiff
-  , appDiff  = appDiff
-  }
+  = toEditlet simpl
   where
+  simpl = EditletSimpl g
+			{ EditletSimplDef
+			| genUI    = \cid world -> (uiDef cid, world)
+			, updateUI = onUpdate
+			, genDiff  = genDiff
+			, appDiff  = appDiff
+			}
+  
+  uiDef cid 
+  	= { html 			= DivTag [IdAttr (mkPaperId cid), ClassAttr (mkPaperId cid)] []
+  	  , eventHandlers 	= []
+  	  , width 			= FlexSize
+  	  , height			= FlexSize
+  	  }
+  
   loadJointJSLib pid world
     # world = addJSFromUrl jointDotJS (Just (createEditletEventHandler loadPlugins pid)) world
     = addCSSFromUrl jointDotCSS world
 
-  loadPlugins pid evt val mst world
+  loadPlugins pid evt val world
     # world = addJSFromUrl tonicShapes (Just (createEditletEventHandler onLibLoaded pid)) world
-    = (val, mst, world)
+    = (val, world)
 
-  onLibLoaded pid evt val mst world
+  onLibLoaded pid evt val world
     # (jgrph, world) = jsNewObject "joint.dia.Graph" [] world
     # (div, world)   = callFunction "$" [toJSArg ("#" +++ mkPaperId pid)] world
     # (paper, world) = jsNewObject "joint.dia.Paper"
@@ -44,18 +53,18 @@ toniclet g
                                   , model    = jgrph
                                   }] world
     # world          = drawTonicGraph val jgrph world
-    = (val, mst, world)
+    = (val, world)
 
-  onUpdate pid Nothing val mst world
+  onUpdate pid Nothing val world
     # (joint, world) = findObject "joint" world
     | jsIsUndefined joint
         # world = loadJointJSLib pid world
-        = (val, Nothing, world)
+        = (val, world)
     | otherwise
-        = onLibLoaded pid Nothing val mst world
+        = onLibLoaded pid Nothing val world
 
-  onUpdate pid (Just diff) val mst world
-    = (val, mst, world)
+  onUpdate pid (Just diff) val world
+    = (val, world)
 
   genDiff _ _ = Nothing
   appDiff _ val = val

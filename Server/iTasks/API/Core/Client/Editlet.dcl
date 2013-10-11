@@ -1,30 +1,46 @@
 definition module iTasks.API.Core.Client.Editlet
 
-import iTasks, iTasks.API.Core.Client.Interface
+import iTasks
+import iTasks.API.Core.Client.Interface
+import iTasks.API.Core.Client.Component
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events
 // that are defined server-side but run client-side
 //****************************************************************************//
 
-:: Editlet a d = Editlet a (EditletDef a d)
-:: EditletDef a d = E.st:
-	{	html		:: ComponentId -> HtmlTag
-	,   updateUI    :: ComponentId (Maybe d) a (Maybe st) *JSWorld -> *(!a,!Maybe st,!*JSWorld)
-	,	handlers	:: ComponentId -> [ComponentEvent a st]
-	//	Functions for efficient bidirectional synchronisation of the editlet value
+:: EditletEventHandlerFunc a 	:== ComponentEventHandlerFunc ComponentId a
+:: EditletEvent a 				:== ComponentEvent ComponentId a
+:: EditletHTML a 				:== ComponentHTML ComponentId a
+
+:: Editlet sv d = E.cl: Editlet sv (EditletServerDef sv cl d) (EditletClientDef cl d)
+
+:: EditletServerDef sv cl d =
+	{	genUI		:: ComponentId *World -> *(!EditletHTML cl, !*World)
+	,	defVal		:: sv
+	,	genDiff		:: sv sv -> Maybe d
+	,	appDiff		:: d  sv -> sv
+	}
+
+:: EditletClientDef cl d =
+	{	updateUI    :: ComponentId (Maybe d) cl *JSWorld -> *(!cl, !*JSWorld)
+	,	defVal		:: cl
+	,	genDiff		:: cl cl -> Maybe d
+	,	appDiff		:: d  cl -> cl
+	}
+
+:: EditletSimpl a d = EditletSimpl a (EditletSimplDef a d)
+
+:: EditletSimplDef a d =
+	{	genUI		:: ComponentId *World -> *(!EditletHTML a, !*World)
+	,	updateUI    :: ComponentId (Maybe d) a *JSWorld -> *(!a, !*JSWorld)
 	,	genDiff		:: a a -> Maybe d
 	,	appDiff		:: d a -> a
 	}
 
-:: EditletEvent = EditletEvent
+toEditlet :: (EditletSimpl a d) -> (Editlet a d) | iTask a
 
-:: ComponentId :== String
-:: ComponentEventName :== String
-:: ComponentEvent a st = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc a st)
-:: ComponentEventHandlerFunc a st :== ComponentId (JSVal EditletEvent) a (Maybe st) *JSWorld -> *(!a,!Maybe st,!*JSWorld)
-
-createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b))
+createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> (JSVal (JSFunction b))
 
 derive JSONEncode		Editlet
 derive JSONDecode		Editlet

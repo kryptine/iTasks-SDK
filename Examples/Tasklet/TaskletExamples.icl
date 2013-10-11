@@ -3,110 +3,6 @@ module TaskletExamples
 import iTasks, iTasks.API.Core.Client.Tasklet, iTasks.API.Core.Client.Interface
 
 //-------------------------------------------------------------------------
-//
-// TODO:
-//
-// zoom, maptype, markers
-
-:: GoogleMapsOptions = {center    :: JSVal (Real,Real)
-          			   ,zoom      :: Int
-          			   ,mapTypeId :: JSVal Int
-        			   };
-
-:: GoogleMapsState = {map      :: Maybe (JSVal Void)
-					 ,centerLA :: Real
-					 ,centerLO :: Real}
-
-googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real)
-googleMapsTasklet cla clo = 
-	{ generatorFunc		= googleMapsGUI
-	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) False
-	, tweakUI  			= setTitle "Google Maps Tasklet"
-	}
-where
-	googleMapsGUI taskId Nothing iworld 
-		= googleMapsGUI taskId (Just {map = Nothing, centerLA = cla, centerLO = clo}) iworld
-
-	googleMapsGUI taskId (Just st) iworld
-
-		# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
-
-		# gui = { TaskletHTML
-				| width  		= ExactSize 300
-				, height 		= ExactSize 300
-				, html   		= HtmlDef (html canvas)
-				, eventHandlers = [HtmlEvent "tasklet" "init" onInit
-				                  ,HtmlEvent "tasklet" "destroy" onDestroy
-				                  ,HtmlEvent "tasklet" "afterlayout" onResize]
-				}
-			
-		= (TaskletHTML gui, st, iworld)
-				
-	where
-		updatePerspective _ _  st=:{map = Just map} world 
-			# (center, world) 	= callObjectMethod "getCenter" [] map world
-			# (la, world)  		= callObjectMethod "lat" [] center world
-			# (lo, world)  		= callObjectMethod "lng" [] center world
-			= ({st & centerLA = jsValToReal la, centerLO = jsValToReal lo}, world)	
-
-	    onScriptLoad _ _ st world
-		    # world = setDomAttr "map_place_holder" "innerHTML" (toJSVal "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>") world
-		    # (mapdiv, world) = getDomElement "map_canvas" world
-	        
-		    # (typeId, world) = findObject "google.maps.MapTypeId.ROADMAP" world
-		    # (center, world) = jsNewObject "google.maps.LatLng" [toJSArg st.centerLA, toJSArg st.centerLO] world
-
-		    # (map, world) = jsNewObject "google.maps.Map" 
-		    				[toJSArg mapdiv
-				    		,toJSArg {center = center, zoom = 8, mapTypeId = typeId}] world
-
-		    # (mapevent, world) = findObject "google.maps.event" world
-			# (_, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "dragend", toJSArg onChange] mapevent world
-			# (_, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "maptypeid_changed", toJSArg onChange] mapevent world
-			# (_, world) = callObjectMethod "addListener" [toJSArg map, toJSArg "zoom_changed", toJSArg onChange] mapevent world
-			= ({st & map = Just map}, world)
-		where
-			onChange = createTaskletEventHandler updatePerspective taskId
-
-		// Google maps API doesn't like to be loaded twice	
-		onInit taskId e st world
-			# (mapsobj, world) = findObject "google.maps" world
-			| jsIsUndefined mapsobj
-			= (st, loadMapsAPI taskId e world)
-			= onScriptLoad taskId e st world
-		
-		loadMapsAPI taskId e world	
-			# world = jsSetObjectAttr "gmapscallback" (createTaskletEventHandler onScriptLoad taskId) jsWindow world
-			= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
-					Nothing world
-
-		onDestroy _ _ st=:{map = Just map} world
-		    # (mapevent, world) = findObject "google.maps.event" world
-			# (_, world) 		= callObjectMethod "clearInstanceListeners" [toJSArg map] mapevent world
-		
-			// clear generated stuff
-			# world = setDomAttr "map_place_holder" "innerHTML" (toJSVal "") world
-		
-			= ({st & map = Nothing}, world)
-
-		onDestroy _ _ st world
-			= (st, world)
-
-		// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
-		onResize _ _ st=:{map = Just map} world
-		    # (mapevent, world) = findObject "google.maps.event" world
-			# (_, world) 		= callObjectMethod "trigger" [toJSArg map, toJSArg "resize"] mapevent world
-		
-			# (center, world) 	= jsNewObject "google.maps.LatLng" [toJSArg st.centerLA, toJSArg st.centerLO] world	
-			# (_, world) 		= callObjectMethod "setCenter" [toJSArg center] map world
-		
-			= (st, world)
-
-		onResize _ _ st world
-			= (st, world)
-
-
-//-------------------------------------------------------------------------
 // http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
 // http://html5doctor.com/finding-your-position-with-geolocation/
 
@@ -119,18 +15,17 @@ where
 
 geoTasklet :: Tasklet (Maybe GPSCoord) (Maybe GPSCoord)
 geoTasklet = 
-	{ generatorFunc		= geoTaskletGUI
+	{ genUI				= geoTaskletGUI
 	, resultFunc		= \pos = Value pos False
 	, tweakUI  			= setTitle "GEO Tasklet"
 	}
 
 geoTaskletGUI _ _ iworld
 
-	# gui = { TaskletHTML
-			| width  		= ExactSize 300
+	# gui = { width  		= ExactSize 300
 			, height 		= ExactSize 30
-			, html   		= HtmlDef "Current position: <span id='loc'/>"
-			, eventHandlers = [HtmlEvent "tasklet" "init" onInit]
+			, html   		= RawText "Current position: <span id='loc'/>"
+			, eventHandlers = [ComponentEvent "tasklet" "init" onInit]
 			}
 			
 	= (TaskletHTML gui, Nothing, iworld)
@@ -159,7 +54,7 @@ where
 
 pushTasklet :: Tasklet Int Int 
 pushTasklet = 
-	{ generatorFunc		= pushGenerateGUI
+	{ genUI				= pushGenerateGUI
 	, resultFunc		= \i = Value i False
 	, tweakUI  			= setTitle "Push Tasklet"
 	}
@@ -170,11 +65,10 @@ pushGenerateGUI taskId Nothing iworld  = pushGenerateGUI taskId (Just 1) iworld
 
 pushGenerateGUI _ (Just st) iworld  
 
-	# gui = { TaskletHTML
-			| width  		= ExactSize 50
+	# gui = { width  		= ExactSize 50
 			, height 		= ExactSize 27
-			, html   		= HtmlDef ("<input type=\"button\" id=\"pushbtn\" name=\"push\" value=\""+++ toString st +++"\">")
-			, eventHandlers = [HtmlEvent "pushbtn" "click" onClick]
+			, html   		= RawText ("<input type=\"button\" id=\"pushbtn\" name=\"push\" value=\""+++ toString st +++"\">")
+			, eventHandlers = [ComponentEvent "pushbtn" "click" onClick]
 			}
 			
 	= (TaskletHTML gui, st, iworld)
@@ -205,7 +99,7 @@ info = "Draw something, but use the pencil _slowly_ in Chrome!"
 
 painterTasklet :: Tasklet PainterState Drawing
 painterTasklet = 
-	{ generatorFunc		= painterGenerateGUI
+	{ genUI				= painterGenerateGUI
 	, resultFunc		= \{draw,finished} = Value (Drawing draw) finished
 	, tweakUI  			= setTitle "Drawing Tasklet"
 	}
@@ -255,26 +149,25 @@ painterGenerateGUI _ (Just defSt) iworld
 	# html = DivTag [StyleAttr "width: 360px; margin-right: auto;"] [canvas:editor]		
 
 	# eventHandlers = [
-			HtmlEvent "tasklet" "init" onStart,
-			HtmlEvent "selectorYellow" "click" (onSelectColor "yellow"),
-			HtmlEvent "selectorRed" "click" (onSelectColor "red"),
-			HtmlEvent "selectorGreen" "click" (onSelectColor "green"),
-			HtmlEvent "selectorBlue" "click" (onSelectColor "blue"),
-			HtmlEvent "selectorBlack" "click" (onSelectColor "black"),
-			HtmlEvent "canvas" "mousedown" onMouseDown,
-			HtmlEvent "tempcanvas" "mousedown" onMouseDown,			
-			HtmlEvent "canvas" "mouseup" onMouseUp,
-			HtmlEvent "tempcanvas" "mouseup" onMouseUp,			
-			HtmlEvent "canvas" "mousemove" onMouseMove,
-			HtmlEvent "tempcanvas" "mousemove" onMouseMove,
-			HtmlEvent "selecttool" "change" onChangeTool,
-			HtmlEvent "clearbtn" "click" onClickClear,
-			HtmlEvent "finishbtn" "click" onClickFinish]
+			ComponentEvent "tasklet" "init" onStart,
+			ComponentEvent "selectorYellow" "click" (onSelectColor "yellow"),
+			ComponentEvent "selectorRed" "click" (onSelectColor "red"),
+			ComponentEvent "selectorGreen" "click" (onSelectColor "green"),
+			ComponentEvent "selectorBlue" "click" (onSelectColor "blue"),
+			ComponentEvent "selectorBlack" "click" (onSelectColor "black"),
+			ComponentEvent "canvas" "mousedown" onMouseDown,
+			ComponentEvent "tempcanvas" "mousedown" onMouseDown,			
+			ComponentEvent "canvas" "mouseup" onMouseUp,
+			ComponentEvent "tempcanvas" "mouseup" onMouseUp,			
+			ComponentEvent "canvas" "mousemove" onMouseMove,
+			ComponentEvent "tempcanvas" "mousemove" onMouseMove,
+			ComponentEvent "selecttool" "change" onChangeTool,
+			ComponentEvent "clearbtn" "click" onClickClear,
+			ComponentEvent "finishbtn" "click" onClickFinish]
 
-	# gui = { TaskletHTML |
-			  width  		= ExactSize (canvasWidth + 70)
+	# gui = { width  		= ExactSize (canvasWidth + 70)
 			, height 		= ExactSize (canvasHeight + 50)
-			, html   		= HtmlDef html
+			, html   		= html
 			, eventHandlers = eventHandlers
 			}
 			
@@ -430,8 +323,7 @@ taskletExamples :: [Workflow]
 taskletExamples =
 	[workflow "Simple push button tasklet" "Push the button 3(three) times" tasklet1,
 	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2,
-	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3,
-	 workflow "Google MAP" "Basic Google Maps functionality" tasklet4]
+	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3]
 
 tasklet1 :: Task Int
 tasklet1
@@ -452,12 +344,6 @@ tasklet3
 		>>* [ OnAction ActionOk (ifValue isJust),
 		  	  OnAction ActionCancel (\_ = Nothing)
             ] 
-
-tasklet4 :: Task (Real, Real)
-tasklet4
-	= 		mkTask (googleMapsTasklet 47.471944 19.050278)
-
-
 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)

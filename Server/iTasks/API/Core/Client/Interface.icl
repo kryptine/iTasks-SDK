@@ -13,6 +13,7 @@ import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 :: JSDocument = JSDocument
 :: JSFunction a = JSFunction
 :: JSObject	= JSObject
+:: JSEvent	= JSEvent
 
 jsNull :: (JSVal a)
 jsNull = undef

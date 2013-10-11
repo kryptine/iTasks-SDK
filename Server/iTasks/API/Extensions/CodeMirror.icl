@@ -72,35 +72,49 @@ where
 	isSetTheme _ = False
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, ComponentEventHandlerFunc CodeMirror CodeMirrorState)] 
+					 [(String, EditletEventHandlerFunc CodeMirrorClient)] 
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 			  
 codeMirrorEditlet g eventhandlers = Editlet g
-				{html		= \id -> TextareaTag [IdAttr (sourcearea id), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
-				,updateUI   = onUpdate
-				,handlers	= \_ -> []
-				,genDiff	= genDiff
-				,appDiff	= appDiff
+				{ EditletServerDef
+				| genUI		= \cid world -> (uiDef cid, world)
+				, defVal	= {source = "", configuration = [], position = 0, selection = Nothing}
+				, genDiff	= genDiffServer
+				, appDiff	= appDiffServer
 				}
+				{ EditletClientDef
+				| updateUI	= onUpdate
+				, defVal 	= {val = {source = "", configuration = [], position = 0, selection = Nothing}, mbSt = Nothing}
+				, genDiff	= genDiffClient
+				, appDiff	= appDiffClient
+				}
+				
 where
+	uiDef cid 
+		= { html 			= TextareaTag [IdAttr (sourcearea cid), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
+		  , eventHandlers 	= []
+		  , width 			= ExactSize 300
+		  , height			= ExactSize 300
+		  }
+		  
 	sourcearea id = "cm_source_" +++ id
 	
 	// init
-	onUpdate cid Nothing val Nothing world
+	onUpdate cid Nothing clval world
 		# (obj, world) = findObject "CodeMirror.defaults" world
 		| not (jsIsUndefined obj)
-		= onLoad cid undef val Nothing world
+		= onLoad cid undef clval world
 	
 		# world = addJSFromUrl "codemirror.js" Nothing world
 		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
 		# world = addCSSFromUrl "codemirror.css" world
 		
-		= (val, Nothing, world)
+		= (clval, world)
 	where
 		handler = createEditletEventHandler onLoad cid
 	
 	// update
-	onUpdate cid (Just diffs) val (Just st=:{codeMirror}) world	
+	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror}} world	
 		// disable system event handlers
 		# world = manageSystemEvents "off" st world		
 	
@@ -134,7 +148,7 @@ where
 		// enable system event handlers
 		# world = manageSystemEvents "on" st world
 					
-		= (val, Just st, world)
+		= (clval, world)
 	where
 		(opts`, nopts) = splitWith isSetOpt diffs
 		opts = map (\(SetOption opt) -> opt) opts`
@@ -153,7 +167,7 @@ where
 
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
 	
-	onLoad cid _ val=:{source,configuration} Nothing world
+	onLoad cid _ clval=:{val={source,configuration}} world
 		# (ta, world) = getDomElement (sourcearea cid) world
 		# world = jsSetObjectAttr "value" (toJSVal source) ta world
 		
@@ -168,7 +182,7 @@ where
 		# world = manageSystemEvents "on" st world	
 		# world = foldl (putOnEventHandler cm) world eventhandlers
 		
-		= (val, Just st, world)
+		= ({clval & mbSt = Just st}, world)
 	where
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
@@ -190,12 +204,12 @@ where
 		= ((line, ch), world)
 
 	// TODO
-	onChange cid event val st=:(Just {codeMirror}) world 
+	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
-		= ({val & source = jsValToString newsource}, st, world)
+		= ({clval & val={clval.val & source = jsValToString newsource}}, world)
 
-	onCursorActivity cid event val st=:(Just {codeMirror}) world 
+	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 
 		# (pos, world) = callObjectMethod "getCursor" [toJSArg "start"] cmdoc world
@@ -211,11 +225,13 @@ where
 				   {val & selection = Nothing}
 				   {val & selection = Just (idx1,idx2)}
 		
-		= (val, st, world)
+		= ({clval & val = val}, world)
 	where
 		indexFromPos pos cmdoc world = callObjectMethod "indexFromPos" [toJSArg pos] cmdoc world
+
+	genDiffClient clval1 clval2 = genDiffServer clval1.val clval2.val
 	
-	genDiff val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
+	genDiffServer val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 							   ++
 							   if (val1.position == val2.position) [] [SetPosition val2.position] 
 							   ++
@@ -223,7 +239,9 @@ where
 							   ++
 							   if (val1.source == val2.source) [] [SetValue val2.source])
 
-	appDiff diffs val = foldl upd val diffs
+	appDiffClient diffs clval = {clval & val = appDiffServer diffs clval.val}
+
+	appDiffServer diffs val = foldl upd val diffs
 	where
 		upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
 		upd val=:{position} (SetPosition pos) = {val & position = pos}

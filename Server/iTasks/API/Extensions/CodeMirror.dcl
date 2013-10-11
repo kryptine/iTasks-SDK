@@ -2,9 +2,14 @@ definition module iTasks.API.Extensions.CodeMirror
 
 import iTasks.API.Core.Client.Editlet
 
-:: CodeMirrorState = { 
+:: CodeMirrorClientSt = { 
 		  codeMirror 			:: !JSVal JSObject
 		, systemEventHandlers	:: ![(!String, !JSVal (JSFunction JSObject))]
+		}
+ 
+:: CodeMirrorClient = {
+		  val	:: CodeMirror
+		, mbSt	:: Maybe CodeMirrorClientSt
 		}
  
 :: CodeMirrorConfiguration 
@@ -43,7 +48,7 @@ import iTasks.API.Core.Client.Editlet
 		  configuration 	:: ![CodeMirrorConfiguration]
 		, position			:: !Int // cursor position
 		, selection 		:: !Maybe (Int,Int)
-		, source			:: !String
+		, source			:: String // TODO: strictness kills graph_to_sapl_string here
 		}
 
 :: CodeMirrorDiff
@@ -63,6 +68,6 @@ derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gVerify	        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, ComponentEventHandlerFunc CodeMirror CodeMirrorState)] 
+					 [(String, EditletEventHandlerFunc CodeMirrorClient)] 
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 
