@@ -4,7 +4,8 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.CodeMirror
-import iTasks.API.Extensions.JointJS.JointJS
+import iTasks.API.Extensions.Tonic.Toniclet
+import iTasks.Framework.Tonic.AbsSyn, Data.Graph
 
 import StdDebug
 
@@ -208,6 +209,8 @@ test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings
         
 //test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
 
+test6 = viewInformation "Tonic" [] (toniclet emptyGraph)
+
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
 test2 = updateInformation "Test" [] (timelet (fromString "13:00:00"))
@@ -219,8 +222,6 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 //test = viewSharedInformation "Clock" [ViewWith timeEditlet] currentTime
 
 test = updateInformation "String" [] stringlet @ (\(Editlet value _) -> value) >&> viewSharedInformation "DEBUG" []
-
-test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 
 Start :: *World -> *World
 Start world = startEngine test6 world
