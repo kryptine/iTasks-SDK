@@ -7,6 +7,32 @@ import iTasks.Framework.Tonic.AbsSyn
 import StdMisc
 import Data.Graph
 
+derive gEditor
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension, Graph, Node
+
+derive gEditMeta
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension, Graph, Node
+
+derive gVisualizeText
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension, Graph, Node
+
+derive gDefault
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension, Graph, Node
+
+derive gUpdate
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension, Graph, Node
+
+derive gVerify
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension, Graph, Node
+
+
+
 jointDotJS :== "/joint/dist/joint.all.js"
 jointDotCSS :== "/joint/dist/joint.all.css"
 tonicShapes :== "/joint/plugins/joint.shapes.tonic.js"
@@ -86,7 +112,7 @@ drawTonicGraph g jgrph world
 
         GLet lt
           # (ltst, world) = jsNewObject "joint.shapes.tonic.LetState" [] world // TODO: Fill let state
-          # world          = addCell (Just ni) ltst jgrph world
+          # world         = addCell (Just ni) ltst jgrph world
           = (jgrph, world)
 
         GInit
@@ -211,21 +237,11 @@ layoutGraph g world
   }
 
 :: TaskAppArgs =
-  { //position :: Point
-    size     :: Size
-  , name     :: String
-  }
-/*
-:: StartStateArgs =
-  { position :: Point
+  { size :: Size
+  , name :: String
   }
 
-:: StopStateArgs =
-  { position :: Point
-  }
-  */
 :: ReturnStateArgs =
-  { //position :: Point
-    size     :: Size
-  , attrs    :: Attrs
+  { size  :: Size
+  , attrs :: Attrs
   }
