@@ -1372,7 +1372,7 @@ gEditor{|Icon|} _ (Icon icon,msk,ver) meta vst = (NormalEditor [(UIIcon defaultF
 // Generic instances for common library types
 derive JSONEncode		Either, HtmlTag, HtmlAttr
 derive JSONDecode		Either, HtmlTag, HtmlAttr
-derive gEq				Either, HtmlTag, HtmlAttr, Void, Timestamp, Maybe, JSONNode
+derive gEq				Either, HtmlTag, HtmlAttr, Void, Timestamp, JSONNode
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)

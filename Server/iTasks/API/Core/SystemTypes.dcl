@@ -716,4 +716,4 @@ derive gVerify			Icon
 
 derive JSONEncode		HtmlTag, Void, Either, Timestamp
 derive JSONDecode		HtmlTag, Void, Either, Timestamp
-derive gEq				HtmlTag, Void, Either, Timestamp, Maybe, JSONNode, (->), Dynamic
+derive gEq				HtmlTag, Void, Either, Timestamp, JSONNode, (->), Dynamic
