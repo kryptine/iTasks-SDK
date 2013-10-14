@@ -4,11 +4,19 @@ from Data.Graph import :: Graph, :: Node
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from iTasks import class iTask, generic gEditor, generic gEditMeta,
-  generic gUpdate, generic gVerify, generic gVisualizeText, generic gDefault,
-  generic gEq, :: VSt, :: EditMeta, :: VisualizationResult, :: VerifiedValue,
-  :: InteractionMask, :: DataPath, :: MaskedValue, :: Verification,
-  :: VerifyOptions, :: VisualizationFormat
+from GenEq import generic gEq
+
+derive JSONEncode
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive JSONDecode
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gEq
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
 
 :: TonicModule =
   { tm_name  :: String
@@ -69,11 +77,3 @@ from iTasks import class iTask, generic gEditor, generic gEditMeta,
   ,  selector  :: GPattern
   ,  input     :: GExpression
   }
-
-derive class iTask
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
-
-//derive class iTask
-  //TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  //GListComprehension, GExpression

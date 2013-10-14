@@ -1,8 +1,17 @@
 implementation module iTasks.Framework.Tonic.AbsSyn
 
 import Data.Graph
-import iTasks
+import Text.JSON
+from GenEq import generic gEq
 
-derive class iTask
+derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension
+
+derive JSONDecode
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gEq
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
