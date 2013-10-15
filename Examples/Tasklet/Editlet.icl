@@ -23,8 +23,8 @@ where
 
 	uiDef = { html 			= RawText ("<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>")
 			, eventHandlers = []
-			, width 		= FlexSize
-			, height 		= FlexSize
+			, width 		= ExactSize 300
+			, height 		= ExactSize 300
 			}
 
 :: StringDelta = {newString :: String}
@@ -43,8 +43,8 @@ where
 	uiDef cid 
 		  = { html 			= TextareaTag [IdAttr cid] []
 		  	, eventHandlers = [ComponentEvent cid "keyup" onChange]
-		  	, width 		= FlexSize
-		  	, height 		= FlexSize
+		  	, width 		= ExactSize 640
+		  	, height 		= ExactSize 480
 		  	}
 
 	onUpdate :: ComponentId (Maybe [String]) String *JSWorld -> (!String, !*JSWorld)
@@ -69,8 +69,8 @@ where
 	uiDef cid 
 		  = { html 			= RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ cid +++ "\"></div>")
 		  	, eventHandlers = []
-		  	, width 		= FlexSize
-		  	, height 		= FlexSize
+		  	, width 		= ExactSize 320
+		  	, height 		= ExactSize 240
 		  	}
 
 	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time *JSWorld -> (!Time,!*JSWorld)
@@ -107,8 +107,8 @@ where
 	uiDef cid 
 		  = { html 			= RawText ("<canvas height=\"100%\" id=\"" +++ cid +++ "\" class=\"CoolClock\"></canvas>")
 		  	, eventHandlers = []
-		  	, width 		= FlexSize
-		  	, height 		= FlexSize
+		  	, width 		= ExactSize 320
+		  	, height 		= ExactSize 240
 		  	}
 
 	onInit :: ComponentId (Maybe Time) Time *JSWorld -> (!Time, !*JSWorld)
@@ -177,11 +177,11 @@ where
 				, genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
 				, appDiff	= \tn to -> tn
 				}
-	uiDef cid 
+	uiDef cid
 		  = { html 			= DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
 		  	, eventHandlers = [ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
-		  	, width 		= FlexSize
-		  	, height 		= FlexSize
+		  	, width 		= ExactSize 640
+		  	, height 		= ExactSize 480
 		  	}
 
 	//onInit :: ComponentId (JSPtr JSObject) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
@@ -265,6 +265,6 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 //test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 
 Start :: *World -> *World
-Start world = startEngine test5 world
+Start world = startEngine test4 world
 
 
