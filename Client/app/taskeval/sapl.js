@@ -294,13 +294,8 @@ Sapl = new function () {
 	}	
 	
 	this.apply = function(f, args){
-		if(!isArray(f)){
-			f = [f,args];
-		}else{
-			f[1] = f[1].concat(args);
-		}		
-		return Sapl.feval(f);
-	}	
+		return Sapl.feval([f,args]);
+	}
 	
 	// hyper(strict) eval
 	this.heval = function (expr) {
