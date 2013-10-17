@@ -3,6 +3,8 @@ PROJ=Auction
 
 default:
 	$(CPM) project $(PROJ).prj build
+	cp "Clean System Files/tonic-Auction.dot" .
+	cp "Clean System Files/tonic-Auction.json" .
 
 force:
 	$(CPM) project $(PROJ).prj build --force
