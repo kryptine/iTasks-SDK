@@ -20,7 +20,8 @@ from System.FilePath import </>
 from StdMisc import undef, abort
 from StdFile import instance FileSystem World
 import StdDebug
-import Data.Either, System.Directory, System.FilePath
+import Data.Either, System.Directory, System.FilePath, Data.Func
+import qualified Data.Map as DM
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
@@ -54,12 +55,16 @@ getTonicModules
   =         getTonicDir >>=
     \dir -> accWorld (rd dir) >>=
     \mfs -> case mfs of
-              Ok fs   -> return (map dropExtension fs)
+              Ok fs   -> return (map dropExtension (filter notDots fs))
               Error _ -> throw "Failed to read Tonic dir"
-  where rd dir world = readDirectory dir world
+  where
+  rd dir world = readDirectory dir world
+  notDots "."  = False
+  notDots ".." = False
+  notDots _    = True
 
-getModuleGinGraph :: String -> Task (Either String GinGraph)
-getModuleGinGraph moduleName
+getModule :: String -> Task (Either String TonicModule)
+getModule moduleName
   =           getTonicDir >>=
     \dir ->   let moduleTonicFile = dir </> (moduleName +++ ".tonic") in
               accWorld (rf moduleTonicFile) >>=
@@ -86,25 +91,32 @@ tonicLogin appName = forever (
       ])
   where
   authenticatedTonic {Credentials|username, password}
-    = authenticateUser username password
-    >>= \mbUser -> case mbUser of
-      Just user  = workAs user (tonicUI appName) >>| return Void
-      Nothing    = viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+    =            authenticateUser username password >>=
+      \mbUser -> case mbUser of
+                   Just user -> workAs user (tonicUI appName) >>| return Void
+                   Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 
 // How do we get a list of available tasks so that we can select one to inspect?
 tonicUI appName =
-  get currentUser >>= \currUser -> return Void
-  //(moduleList ||- selectedModule currUser) -|| liveData currUser
+               get currentUser >>=
+  \currUser -> selectModule >>=
+  \mmod     -> case mmod of
+                 Left err -> viewInformation "Something went wrong" [] err >>| return Void
+                 Right m  -> selectTask m >>= viewTask currUser >>| return Void
 
-moduleList
-  =         getTonicModules >>=
-            enterChoice "Select a module" [] >>=
-    \mn  -> getModuleGinGraph mn >>=
-    \egg -> case egg of
-              Left err -> viewInformation "Something went wrong" [] err >>| return Void
-              Right g  -> viewInformation ("Graphical representaiton for " +++ mn) [] (toniclet g) >>| return Void
+selectModule :: Task (Either String TonicModule)
+selectModule = getTonicModules >>= enterChoice "Select a module" [] >>= getModule
 
-selectedModule currUser = viewInformation "Selected module" []
+selectTask :: TonicModule -> Task GinGraph
+selectTask tm
+  =        enterChoice "Select task" [] ('DM'.keys tm.tm_tasks) >>=
+    \tn -> case 'DM'.get tn tm.tm_tasks of
+             Just g -> return g
+             _      -> abort "Should not happen"
+
+viewTask :: User GinGraph -> Task Void
+viewTask u g = viewInformation "Current graph" [] (toniclet g) >>| return Void
+
 liveData currUser = viewSharedInformation "Current task name" [] (userActiveTask currUser)
 
 tonicPubTask :: String -> PublishedTask

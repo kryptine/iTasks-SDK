@@ -45,20 +45,20 @@ toniclet g
   = toEditlet simpl
   where
   simpl = EditletSimpl g
-			{ EditletSimplDef
-			| genUI    = \cid world -> (uiDef cid, world)
-			, updateUI = onUpdate
-			, genDiff  = genDiff
-			, appDiff  = appDiff
-			}
-  
-  uiDef cid 
-  	= { html 			= DivTag [IdAttr (mkPaperId cid), ClassAttr (mkPaperId cid)] []
-  	  , eventHandlers 	= []
-  	  , width 			= FlexSize
-  	  , height			= FlexSize
-  	  }
-  
+            { EditletSimplDef
+            | genUI    = \cid world -> (uiDef cid, world)
+            , updateUI = onUpdate
+            , genDiff  = genDiff
+            , appDiff  = appDiff
+            }
+
+  uiDef cid
+    = { html          = DivTag [IdAttr (mkPaperId cid), ClassAttr (mkPaperId cid)] []
+      , eventHandlers = []
+      , width         = ExactSize 640
+      , height        = ExactSize 480
+      }
+
   loadJointJSLib pid world
     # world = addJSFromUrl jointDotJS (Just (createEditletEventHandler loadPlugins pid)) world
     = addCSSFromUrl jointDotCSS world
