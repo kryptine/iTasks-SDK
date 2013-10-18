@@ -115,6 +115,7 @@ selectTask tm
              _      -> abort "Should not happen"
 
 viewTask :: User GinGraph -> Task Void
+//viewTask u g = viewInformation "Current graph" [] g >>| return Void
 viewTask u g = viewInformation "Current graph" [] (toniclet g) >>| return Void
 
 liveData currUser = viewSharedInformation "Current task name" [] (userActiveTask currUser)

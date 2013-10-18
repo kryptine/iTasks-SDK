@@ -40,6 +40,8 @@ tonicShapes :== "/joint/plugins/joint.shapes.tonic.js"
 mkPaperId :: String -> String
 mkPaperId x = "paper" +++ x
 
+import StdDebug
+
 toniclet :: GinGraph -> Editlet GinGraph GinGraph
 toniclet g
   = toEditlet simpl
@@ -81,7 +83,7 @@ toniclet g
     # world          = drawTonicGraph val jgrph world
     = (val, world)
 
-  onUpdate pid Nothing val world
+  onUpdate pid _ val world
     # (joint, world) = findObject "joint" world
     | jsIsUndefined joint
         # world = loadJointJSLib pid world
@@ -89,18 +91,18 @@ toniclet g
     | otherwise
         = onLibLoaded pid Nothing val world
 
-  onUpdate pid (Just diff) val world
-    = (val, world)
-
-  genDiff _ _ = Nothing
-  appDiff _ val = val
+  genDiff _ _ = Just g
+  appDiff g _ = g
 
 drawTonicGraph g jgrph world
-  # (_, world)     = foldrNodes addNode (jgrph, world) g
-  # (_, world)     = foldrEdges addEdge (jgrph, world) g
+  # world      = jsTrace (toJSVal "drawTonicGraph") world
+  # world      = jsTrace (toJSVal g) world
+  # (_, world) = foldrNodes addNode (jgrph, world) g
+  # (_, world) = foldrEdges addEdge (jgrph, world) g
   = layoutGraph jgrph world
   where
   addNode ni node (jgrph, world)
+    # world = jsTrace (toJSVal "adding node") world
     = case node.data.nodeType of
         GAssign expr // TODO: Create assign node
           = (jgrph, world)
@@ -127,6 +129,17 @@ drawTonicGraph g jgrph world
           = (jgrph, world)
 
         GParallelJoin jt
+          = (jgrph, world)
+
+        GReturn (GCleanExpression expr)
+          # args = { ReturnStateArgs
+                   | size  = {Size | width = 50, height = 50}
+                   , attrs = { Attrs
+                             | text = { TextAttrs
+                             | text = expr } }
+                   }
+          # (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
+          # world        = addCell (Just ni) ret jgrph world
           = (jgrph, world)
 
         GReturn expr
