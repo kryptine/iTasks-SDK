@@ -36,6 +36,8 @@ Ext.define('itwc.component.edit.Editlet',{
 			var json = me.jsToSaplJSONNode(me.initDiff);
 			me.value = Sapl.feval([me.appDiff,[json,me.value]]);			
 			delete this.initDiff;
+		}else{
+			me.fireUpdateEvent(__Data_Maybe_Nothing());
 		}
 		me.callParent(arguments);
 	},
