@@ -15,14 +15,46 @@ import StdDebug
                  FunctionS String String Int [DynamicSapl] | ArrayS Int [DynamicSapl] | ListS [DynamicSapl] |
                  TupleS Int [DynamicSapl] | RecS String String Int [DynamicSapl]
 
+cb :: Int
+cb =: fromChar '\b'
+cv :: Int
+cv =: fromChar '\v' 
+
+escapeString :: Char String -> String
+escapeString qc str = toString [qc: flatten (escapeString` (fromString str))]
+where
+	escapeString` :: [Char] -> [[Char]]
+	escapeString` [] = [[qc]]
+	escapeString` ['\'':chars] = [['\\\'']: escapeString` chars]
+	escapeString` ['\"':chars] = [['\\\"']: escapeString` chars]	
+	escapeString` [c   :chars] 
+		| isPrint c
+			= [[c] : escapeString` chars] 
+			= [toHex (fromChar c):  escapeString` chars]
+	
+	toHex i
+		| i == 0  = ['\\0']
+		| i == 7  = ['\\a']		
+		| i == cb = ['\\b']
+		| i == cv = ['\\v']	
+
+	toHex i = ['\\x'] ++ ['0' \\ a <- [1..2-length letters]] ++ reverse (toHex` i)
+	where
+		letters = reverse (toHex` i)
+		
+		toHex` 0 = []
+		toHex` i = [hex.[i bitand 15]:toHex` (i >> 4)]  
+		where
+			hex = "0123456789ABCDEF" 
+
 makeSaplExpression :: !DynamicSapl -> String
 makeSaplExpression e = mkse e
 where
  mkse (IntS i)              = toString i
  mkse (BoolS b)             = toString b
- mkse (CharS c)         	= toString c
+ mkse (CharS c)         	= escapeString '\'' (toString c)
  mkse (RealS r)         	= toString r
- mkse (StringS s)       	= "\"" +++  s  +++ "\""
+ mkse (StringS s)       	= escapeString '"' s
  mkse (CstrS mod name _ []) = makePrintableName (mod +++ "." +++ makeSaplName name)
  mkse (CstrS mod name _ as) = "(" +++ makePrintableName (mod +++ "."  +++ makeSaplName name) +++ args as +++ ")"
  mkse (FunctionS mod name _ []) = makePrintableName (mod +++ "."  +++ makeSaplName name)
