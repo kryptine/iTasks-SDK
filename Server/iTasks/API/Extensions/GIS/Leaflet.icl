@@ -11,10 +11,8 @@ openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
 leafletEditlet :: LeafletMap -> Editlet LeafletMap LeafletMap
-leafletEditlet map
-    = {Editlet
-      |value    = map
-      ,html     = \cid -> DivTag [IdAttr (mapdivid cid), StyleAttr "width:100%; height:100%"] []
+leafletEditlet map = Editlet map 
+      {html     = \cid -> DivTag [IdAttr (mapdivid cid), StyleAttr "width:100%; height:100%"] []
       ,updateUI = updateUI
       ,handlers	= \cid -> []
       ,genDiff	= genDiff
@@ -61,7 +59,7 @@ gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
 
 gUpdate{|LeafletMap|} dp upd (val,mask)
-    # ({Editlet|value},mask) = gUpdate{|*|} dp upd (leafletEditlet val,mask)
+    # (Editlet value _,mask) = gUpdate{|*|} dp upd (leafletEditlet val,mask)
     = (value,mask)
 
 gVerify{|LeafletMap|} _ vst = alwaysValid vst

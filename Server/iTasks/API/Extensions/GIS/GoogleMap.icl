@@ -69,10 +69,10 @@ where
 	uiDef cid
 		= { html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
 		  , eventHandlers	= []
-		  , width 			= ExactSize 600 
+		  , width 			= ExactSize 600
 		  , height			= ExactSize 300
 		  }
-		  
+		
 	mapdomid cid = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
@@ -119,7 +119,7 @@ where
         onAfterComponentLayout = createEditletEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
 
-	onUpdate cid Nothing clval world
+	onUpdate cid mbUpdates clval=:{mbSt=Nothing} world
 		# (mapsobj, world) = findObject "google.maps" world
 		| jsIsUndefined mapsobj
 		    = (clval, loadMapsAPI cid undef world)
