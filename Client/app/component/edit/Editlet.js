@@ -32,22 +32,22 @@ Ext.define('itwc.component.edit.Editlet',{
 			eval("tmp = eval(" + me.updateUI + ");");
 			me.updateUI = tmp;	
 		}		
-		if(me.initDiff != null) {
-			var json = me.jsToSaplJSONNode(me.initDiff);
-			me.value = Sapl.feval([me.appDiff,[json,me.value]]);			
-			delete this.initDiff;
-		}else{
-			me.fireUpdateEvent(__Data_Maybe_Nothing());
-		}
-		me.callParent(arguments);
+
+      	me.callParent(arguments);
 	},
 	afterRender: function() {
 		var me = this,
 			numEvents = me.events.length,
 			el, elName, eventName, expr, i;
 		
-		me.fireUpdateEvent(__Data_Maybe_Nothing());
-		
+	    if(me.initDiff != null) {
+			var json = me.jsToSaplJSONNode(me.initDiff);
+			me.value = Sapl.feval([me.appDiff,[json,me.value]]);			
+			delete this.initDiff;
+		}else{
+			me.fireUpdateEvent(__Data_Maybe_Nothing());
+		}
+	
 		for (i = 0; i < numEvents; i++){
 			
 			elName = me.events[i][0];
