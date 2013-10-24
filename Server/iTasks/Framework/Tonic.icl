@@ -19,8 +19,10 @@ from StdFunc import o
 from System.FilePath import </>
 from StdMisc import undef, abort
 from StdFile import instance FileSystem World
+import qualified StdArray as SA
+from StdArray import class Array, instance Array {#} Char
 import StdDebug
-import Data.Either, System.Directory, System.FilePath, Data.Func
+import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor
 import qualified Data.Map as DM
 
 derive class iTask TonicTrace, TraceType, TonicTune
@@ -52,30 +54,14 @@ instance tune TonicTune where
 
 getTonicModules :: Task [String]
 getTonicModules
-  =         getTonicDir >>=
-    \dir -> accWorld (rd dir) >>=
+  =         getTonicDir >>-
+    \dir -> accWorld (rd dir) >>-
     \mfs -> case mfs of
-              Ok fs   -> return (map dropExtension (filter notDots fs))
+              Ok fs   -> return (map dropExtension (filter noDots fs))
               Error _ -> throw "Failed to read Tonic dir"
   where
   rd dir world = readDirectory dir world
-  notDots "."  = False
-  notDots ".." = False
-  notDots _    = True
-
-getModule :: String -> Task (Either String TonicModule)
-getModule moduleName
-  =           getTonicDir >>=
-    \dir ->   let moduleTonicFile = dir </> (moduleName +++ ".tonic") in
-              accWorld (rf moduleTonicFile) >>=
-    \mjson -> case mjson of
-                Ok json   -> case fromJSON (fromString json) of
-                               Just gg  -> return (Right gg)
-                               _        -> return (Left "Failed to deserialise JSON")
-                Error err -> return (Left ("Failed to read Tonic file '" +++ moduleTonicFile +++ "' for module " +++ moduleName))
-  where rf moduleTonicFile world = readFile moduleTonicFile world
-
-derive class iTask MaybeError, FileError
+  noDots str   = not ('SA'.select str 0 == '.')
 
 getTonicDir :: Task String
 getTonicDir = mkInstantTask f
@@ -93,32 +79,91 @@ tonicLogin appName = forever (
   authenticatedTonic {Credentials|username, password}
     =            authenticateUser username password >>=
       \mbUser -> case mbUser of
-                   Just user -> workAs user (tonicUI appName) >>| return Void
+                   Just user -> workAs user (tonicUI appName)
                    Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 
-// How do we get a list of available tasks so that we can select one to inspect?
-tonicUI appName =
-               get currentUser >>=
-  \currUser -> selectModule >>=
-  \mmod     -> case mmod of
-                 Left err -> viewInformation "Something went wrong" [] err >>| return Void
-                 Right m  -> selectTask m >>= viewTask currUser >>| return Void
 
-selectModule :: Task (Either String TonicModule)
-selectModule = getTonicModules >>= enterChoice "Select a module" [] >>= getModule
+getModule :: String -> Task TonicModule
+getModule moduleName
+  =           getTonicDir >>-
+    \dir ->   let moduleTonicFile = dir </> (moduleName +++ ".tonic") in
+              accWorld (rf moduleTonicFile) >>-
+    \mjson -> case mjson of
+                Ok json   -> case fromJSON (fromString json) of
+                               Just gg  -> return gg
+                               _        -> err "Failed to deserialize JSON"
+                Error msg -> err (toString msg)
+  where
+  err msg                  = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
+  rf moduleTonicFile world = readFile moduleTonicFile world
+
+derive class iTask MaybeError, FileError
+
+getTasks :: TonicModule -> [String]
+getTasks tm = 'DM'.keys tm.tm_tasks
+
+getTask :: String TonicModule -> Maybe GinGraph
+getTask tn tm = 'DM'.get tn tm.tm_tasks
+
+tonicUI :: String -> Task Void
+tonicUI appName
+  =            get currentUser >>-
+  \currUser -> selectModule >>=
+  \tm       -> selectTask tm >>=
+  \g        -> viewTask currUser g >>|
+               return Void
+
+selectModule :: Task TonicModule
+selectModule
+  = getTonicModules >>-
+    enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)] >>=
+    getModule
 
 selectTask :: TonicModule -> Task GinGraph
 selectTask tm
-  =        enterChoice "Select task" [] ('DM'.keys tm.tm_tasks) >>=
-    \tn -> case 'DM'.get tn tm.tm_tasks of
-             Just g -> return g
-             _      -> abort "Should not happen"
+  =      enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm) >>=
+  \tn -> case getTask tn tm of
+           Just g -> return g
+           _      -> throw "Should not happen"
 
-viewTask :: User GinGraph -> Task Void
-//viewTask u g = viewInformation "Current graph" [] g >>| return Void
-viewTask u g = viewInformation "Current graph" [] (toniclet g) >>| return Void
+viewTask :: User GinGraph -> Task (Editlet GinGraph GinGraph)
+viewTask u g = viewInformation "Selected graph" [] (toniclet g)
 
-liveData currUser = viewSharedInformation "Current task name" [] (userActiveTask currUser)
+//tonicUI :: String -> Task Void
+//tonicUI appName =
+               //get currentUser >>-
+  //\currUser -> (selectModuleName
+                //>&>
+  //\shmmn    -> selectTaskName shmmn
+                //>&>
+  //\shmtn    -> viewTask currUser shmmn shmtn)
+               //>>| return Void
+
+//loadModule :: (ReadOnlyShared (Maybe String)) -> Task TonicModule
+//loadModule shmn
+  //=   get shmn
+  //>>* [OnValue f] >>- getModule
+  //where f (Value (Just str) _) = Just (return str)
+        //f _                    = Nothing
+
+
+//selectModuleName :: Task String
+//selectModuleName
+  //=   getTonicModules
+  //>>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
+
+//selectTaskName :: (ReadOnlyShared (Maybe String)) -> Task String
+//selectTaskName shmmn
+  //=      loadModule shmmn >>-
+  //\tm -> enterChoiceWithShared "Select task" [ChooseWith (ChooseFromGrid id)] (mapRead (const $ 'DM'.keys tm.tm_tasks) shmmn)
+
+////viewTask :: User (ReadOnlyShared (Maybe String)) (ReadOnlyShared (Maybe String)) -> Task Void
+//viewTask u shmmn shmtn
+  //=      loadModule shmmn >>-
+  //\tm -> viewSharedInformation "Current graph" [] (mapRead (maybe Nothing (\tn -> fmap toniclet ('DM'.get tn tm.tm_tasks))) shmtn) // >>| return Void
+
+//liveData currUser = viewSharedInformation "Current task name" [] (userActiveTask currUser)
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" WebApp (\_ -> tonicLogin appName)
+
