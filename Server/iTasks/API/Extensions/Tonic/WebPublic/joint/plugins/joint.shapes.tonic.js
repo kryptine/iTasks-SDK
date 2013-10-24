@@ -164,7 +164,7 @@ joint.shapes.tonic.TaskApp = joint.shapes.basic.Generic.extend({
             '.tonic-taskApp-events': { 'ref': 'path', 'ref-x': 5, 'ref-y': 5 }
         },
 
-        name: 'State',
+        name: 'TaskApp',
         events: []
 
     }, joint.shapes.basic.Generic.prototype.defaults),
@@ -192,6 +192,64 @@ joint.shapes.tonic.TaskApp = joint.shapes.basic.Generic.extend({
 
     updateEvents: function() {
         this.get('attrs')['.tonic-taskApp-events'].text = this.get('events').join('\n');
+    },
+
+    updatePath: function() {
+        this.get('attrs').path.d = 'M 0 20 L ' + this.get('size').width + ' 20';
+    }
+});
+
+joint.shapes.tonic.ListComprehension = joint.shapes.basic.Generic.extend({
+
+    markup: [
+        '<g class="rotatable">',
+          '<g class="scalable">',
+            '<rect/>',
+          '</g>',
+          '<path/><text class="tonic-listComprehesion-name"/><text class="tonic-listComprehension-events"/>',
+        '</g>'
+    ].join(''),
+
+    defaults: joint.util.deepSupplement({
+
+        type: 'tonic.ListComprehension',
+
+        attrs: {
+            rect: { 'width': 200, 'height': 200, 'fill': '#ffffff', 'stroke': '#000000', 'stroke-width': 3, 'rx': 10, 'ry': 10 },
+            path: { 'd': 'M 0 20 L 200 20', 'stroke': '#000000', 'stroke-width': 2 },
+            text: { 'font-family': 'Tahoma', 'font-size': 14, fill: 'black' },
+            '.tonic-listComprehension-name': { 'ref': 'rect', 'ref-x': 0.5, 'ref-y': 5, 'text-anchor': 'middle', 'font-weight': 'bold'},
+            '.tonic-listComprehension-events': { 'ref': 'path', 'ref-x': 5, 'ref-y': 5 }
+        },
+
+        name: 'ListComprehension',
+        events: []
+
+    }, joint.shapes.basic.Generic.prototype.defaults),
+
+    initialize: function() {
+
+        _.bindAll(this, 'updateEvents', 'updatePath');
+
+        this.on({
+            'change:name': function() { this.updateName(); this.trigger('change:attrs'); },
+            'change:events': function() { this.updateEvents(); this.trigger('change:attrs'); },
+            'change:size': this.updatePath
+        });
+
+        this.updateName();
+        this.updateEvents();
+        this.updatePath();
+
+        joint.shapes.basic.Generic.prototype.initialize.apply(this, arguments);
+    },
+
+    updateName: function() {
+        this.get('attrs')['.tonic-listComprehension-name'].text = this.get('name');
+    },
+
+    updateEvents: function() {
+        this.get('attrs')['.tonic-listComprehension-events'].text = this.get('events').join('\n');
     },
 
     updatePath: function() {
@@ -272,6 +330,16 @@ joint.shapes.tonic.Return = joint.shapes.basic.Circle.extend({
     }, joint.shapes.basic.Circle.prototype.defaults)
 });
 
+joint.shapes.tonic.Step = joint.shapes.basic.Circle.extend({
+    defaults: joint.util.deepSupplement({
+        type: 'tonic.Step',
+        attrs: {
+            circle: { 'stroke-width': 3 },
+            text: { 'font-weight': 'bold' }
+        }
+    }, joint.shapes.basic.Circle.prototype.defaults)
+});
+
 joint.shapes.tonic.Bind = joint.dia.Link.extend({
     defaults: {
         type: 'tonic.Bind',
@@ -302,4 +370,33 @@ joint.shapes.tonic.AssignFigure = joint.shapes.basic.Generic.extend({
     }, joint.shapes.basic.Generic.prototype.defaults)
 });
 
+joint.shapes.tonic.ParallelSplit = joint.shapes.basic.Circle.extend({
+    defaults: joint.util.deepSupplement({
+        type: 'tonic.ParallelSplit',
+        attrs: {
+            circle: { 'stroke-width': 3 },
+            text: { 'font-weight': 'bold' }
+        }
+    }, joint.shapes.basic.Circle.prototype.defaults)
+});
+
+joint.shapes.tonic.ParallelJoin = joint.shapes.basic.Circle.extend({
+    defaults: joint.util.deepSupplement({
+        type: 'tonic.ParallelJoin',
+        attrs: {
+            circle: { 'stroke-width': 3 },
+            text: { 'font-weight': 'bold' }
+        }
+    }, joint.shapes.basic.Circle.prototype.defaults)
+});
+
+joint.shapes.tonic.Step = joint.shapes.basic.Circle.extend({
+    defaults: joint.util.deepSupplement({
+        type: 'tonic.Step',
+        attrs: {
+            circle: { 'stroke-width': 3 },
+            text: { 'font-weight': 'bold' }
+        }
+    }, joint.shapes.basic.Circle.prototype.defaults)
+});
 

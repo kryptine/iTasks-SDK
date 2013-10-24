@@ -57,8 +57,8 @@ toniclet g
   uiDef cid
     = { html          = DivTag [IdAttr (mkPaperId cid), ClassAttr (mkPaperId cid)] []
       , eventHandlers = []
-      , width         = ExactSize 640
-      , height        = ExactSize 480
+      , width         = ExactSize 1024
+      , height        = ExactSize 768
       }
 
   loadJointJSLib pid world
@@ -75,8 +75,8 @@ toniclet g
     # (paper, world) = jsNewObject "joint.dia.Paper"
                          [toJSArg {PaperArgs
                                   | el       = div
-                                  , width    = 600
-                                  , height   = 300
+                                  , width    = 1024
+                                  , height   = 768
                                   , gridSize = 1
                                   , model    = jgrph
                                   }] world
@@ -95,102 +95,159 @@ toniclet g
   appDiff g _ = g
 
 drawTonicGraph g jgrph world
-  # world      = jsTrace (toJSVal "drawTonicGraph") world
-  # world      = jsTrace (toJSVal g) world
   # (_, world) = foldrNodes addNode (jgrph, world) g
   # (_, world) = foldrEdges addEdge (jgrph, world) g
   = layoutGraph jgrph world
   where
   addNode ni node (jgrph, world)
-    # world = jsTrace (toJSVal "adding node") world
     = case node.data.nodeType of
-        GAssign expr // TODO: Create assign node
+        GAssign expr
+          # (anon, world) = jsEmptyObject world
+          # world         = jsSetObjectAttr "id" (toJSVal ni) anon world
+          # (dec, world)  = jsNewObject "joint.shapes.tonic.AssignFigure" [toJSArg anon] world
+          # world         = addCell dec jgrph world
           = (jgrph, world)
 
         GDecision dt expr
-          # (dec, world) = jsNewObject "joint.shapes.tonic.DecisionState" [] world // TODO: Fill let state
-          # world        = addCell (Just ni) dec jgrph world
+          # args = { ReturnStateArgs
+                   | id = ni
+                   , size  = {Size | width = 100, height = 100}
+                   , attrs = { Attrs
+                             | text = { TextAttrs
+                                      | text = expr} }
+                   }
+          # (dec, world)  = jsNewObject "joint.shapes.tonic.DecisionState" [toJSArg args] world
+          # world         = addCell dec jgrph world
           = (jgrph, world)
 
         GLet lt
-          # (ltst, world) = jsNewObject "joint.shapes.tonic.LetState" [] world // TODO: Fill let state
-          # world         = addCell (Just ni) ltst jgrph world
+          # binds = foldr (\(l, r) xs -> l +++ " = " +++ r +++ xs) "" lt.glet_binds
+          # args = { LetArgs
+                   | id = ni
+                   , size  = {Size | width = 100, height = 100}
+                   , attrs = { Attrs
+                             | text = { TextAttrs
+                                      | text = binds} }
+                   }
+          # (ltst, world) = jsNewObject "joint.shapes.tonic.LetState" [toJSArg args] world
+          # world         = addCell ltst jgrph world
           = (jgrph, world)
 
         GInit
-          # (start, world) = jsNewObject "joint.shapes.tonic.StartState" [] world
-          # world          = addCell (Just ni) start jgrph world
+          # (anon, world)  = jsEmptyObject world
+          # world          = jsSetObjectAttr "id" (toJSVal ni) anon world
+          # (start, world) = jsNewObject "joint.shapes.tonic.StartState" [toJSArg anon] world
+          # world          = addCell start jgrph world
           = (jgrph, world)
 
         GListComprehension lc
+          # ident        = case lc.input of
+                             GCleanExpression ce -> ce
+                             _                   -> "a list"
+          # args         = { ListComprehensionArgs
+                           | id   = ni
+                           , size = {Size | width = 100, height = 100}
+                           , name = ident
+                           }
+          # (dec, world)   = jsNewObject "joint.shapes.tonic.ListComprehension" [toJSArg args] world
+          # world          = addCell dec jgrph world
           = (jgrph, world)
 
         GParallelSplit
+          # args = { ParSplitArgs
+                   | id = ni
+                   , size  = {Size | width = 100, height = 100}
+                   , attrs = { Attrs
+                             | text = { TextAttrs
+                                      | text = "Start parallel tasks"} }
+                   }
+          # (dec, world)   = jsNewObject "joint.shapes.tonic.ParallelSplit" [toJSArg args] world
+          # world          = addCell dec jgrph world
           = (jgrph, world)
 
         GParallelJoin jt
+          # args = { ParJoinArgs
+                   | id = ni
+                   , size  = {Size | width = 100, height = 100}
+                   , attrs = { Attrs
+                             | text = { TextAttrs
+                                      | text = ppJT jt} }
+                   }
+          # (dec, world)  = jsNewObject "joint.shapes.tonic.ParallelJoin" [toJSArg args] world
+          # world         = addCell dec jgrph world
           = (jgrph, world)
+          where ppJT DisFirstBin  = "First finished task"
+                ppJT DisFirstList = "First finished task"
+                ppJT DisLeft      = "Left task result"
+                ppJT DisRight     = "Right task result"
+                ppJT ConAll       = "All task results"
+                ppJT ConPair      = "Pair of task results"
 
         GReturn (GCleanExpression expr)
           # args = { ReturnStateArgs
-                   | size  = {Size | width = 50, height = 50}
+                   | id    = ni
+                   , size  = {Size | width = 50, height = 50}
                    , attrs = { Attrs
                              | text = { TextAttrs
-                             | text = expr } }
+                                      | text = expr } }
                    }
           # (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
-          # world        = addCell (Just ni) ret jgrph world
+          # world        = addCell ret jgrph world
           = (jgrph, world)
 
         GReturn expr
           # args = { ReturnStateArgs
-                   | size  = {Size | width = 50, height = 50}
+                   | id = ni
+                   , size  = {Size | width = 50, height = 50}
                    , attrs = { Attrs
                              | text = { TextAttrs
-                             | text = "TODO: expr :: GExpression" } }
+                                      | text = "TODO: expr :: GExpression" } }
                    }
           # (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
-          # world        = addCell (Just ni) ret jgrph world
+          # world        = addCell ret jgrph world
           = (jgrph, world)
 
         GStep
+          # (anon, world) = jsEmptyObject world
+          # world         = jsSetObjectAttr "id" (toJSVal ni) anon world
+          # (dec, world)  = jsNewObject "joint.shapes.tonic.Step" [toJSArg anon] world
+          # world         = addCell dec jgrph world
           = (jgrph, world)
 
         GStop
-          # (stop, world) = jsNewObject "joint.shapes.tonic.StopState" [] world
-          # world         = addCell (Just ni) stop jgrph world
+          # (anon, world) = jsEmptyObject world
+          # world         = jsSetObjectAttr "id" (toJSVal ni) anon world
+          # (stop, world) = jsNewObject "joint.shapes.tonic.StopState" [toJSArg anon] world
+          # world         = addCell stop jgrph world
           = (jgrph, world)
 
         GTaskApp ident exprs
           # args         = { TaskAppArgs
-                           | size = {Size | width = 100, height = 100}
+                           | id   = ni
+                           , size = {Size | width = 100, height = 100}
                            , name = ident
                            }
                            // TODO: Add exprs
           # (app, world) = jsNewObject "joint.shapes.tonic.TaskApp" [toJSArg args] world
-          # world        = addCell (Just ni) app jgrph world
+          # world        = addCell app jgrph world
           = (jgrph, world)
         _ = (jgrph, world)
   addEdge (fromNode, toNode) {edge_pattern} (jgrph, world)
+    # world = jsTrace (toJSVal ("Adding edge from " +++ toString fromNode +++ " to " +++ toString toNode)) world
     # world = mkBind fromNode toNode edge_pattern jgrph world
     = (jgrph, world)
 
-addCell :: (Maybe Int) (JSVal o) (JSVal g) *JSWorld -> *JSWorld
-addCell mnIdx cell jgrph world
-  # world      = case mnIdx of
-                   Just idx
-                     = jsSetObjectAttr "id" (toJSVal idx) cell world
-                   _ = world
-  # (_, world) = callObjectMethod "addCell" [toJSArg cell] jgrph world
-  = world
+addCell :: (JSVal o) (JSVal g) *JSWorld -> *JSWorld
+addCell cell jgrph world = snd (callObjectMethod "addCell" [toJSArg cell] jgrph world)
 
 mkBind :: Int Int (Maybe String) (JSVal g) *JSWorld -> *JSWorld
 mkBind sid tid mtxt jgrph world
   # args          = {ArrowArgs | source = {Identifier | id = toString sid}
                                , target = {Identifier | id = toString tid}
                                , labels = mkLabels mtxt}
+  # world = jsTrace (toJSVal args) world
   # (bind, world) = jsNewObject "joint.shapes.tonic.Bind" [toJSArg args] world
-  = addCell Nothing bind jgrph world
+  = addCell bind jgrph world
   where
   mkLabels Nothing    = []
   mkLabels (Just lbl) = [ {LabelArgs
@@ -249,12 +306,44 @@ layoutGraph g world
   , height :: Int
   }
 
+:: DecisionArgs =
+  { id   :: Int
+  , size :: Size
+  , name :: String
+  }
+
 :: TaskAppArgs =
-  { size :: Size
+  { id   :: Int
+  , size :: Size
   , name :: String
   }
 
 :: ReturnStateArgs =
-  { size  :: Size
+  { id    :: Int
+  , size  :: Size
+  , attrs :: Attrs
+  }
+
+:: ListComprehensionArgs =
+  { id   :: Int
+  , size :: Size
+  , name :: String
+  }
+
+:: LetArgs =
+  { id   :: Int
+  , size :: Size
+  , attrs :: Attrs
+  }
+
+:: ParSplitArgs =
+  { id   :: Int
+  , size :: Size
+  , attrs :: Attrs
+  }
+
+:: ParJoinArgs =
+  { id   :: Int
+  , size :: Size
   , attrs :: Attrs
   }

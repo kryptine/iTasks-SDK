@@ -15268,7 +15268,9 @@ joint.dia.LinkView = joint.dia.CellView.extend({
         
         if (!this._isPoint(target)) {
 
-            var magnetEl = this.paper.$(this._makeSelector(target))[0];
+            var sel = this._makeSelector(target);
+            var els = this.paper.$(sel);
+            var magnetEl = els[0];
             var cellView = this.paper.findView(magnetEl);
             this._targetBbox = cellView.getStrokeBBox(target.selector ? magnetEl : undefined);
             
