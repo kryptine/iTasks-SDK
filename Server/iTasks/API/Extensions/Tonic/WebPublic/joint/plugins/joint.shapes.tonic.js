@@ -288,7 +288,7 @@ joint.shapes.tonic.StopState = joint.shapes.basic.Rect.extend({
         type: 'tonic.StopState',
         size: { width: 20, height: 20 },
         attrs: {
-          rect: { 'width': 200, 'height': 200, 'fill': '#000000', 'stroke': '#000000', 'stroke-width': 0, 'rx': 10, 'ry': 10 }
+          rect: { 'width': 20, 'height': 20, 'fill': '#000000', 'stroke': '#000000', 'stroke-width': 0 }
         }
 
     }, joint.shapes.basic.Rect.prototype.defaults)
@@ -300,7 +300,7 @@ joint.shapes.tonic.DecisionState = joint.shapes.basic.Rect.extend({
         type: 'tonic.DecisionState',
         size: { width: 100, height: 100 },
         attrs: {
-          rect: { 'width': 200, 'height': 200, 'fill': '#ffffff', 'stroke': '#000000',
+          rect: { 'width': 100, 'height': 100, 'fill': '#ffffff', 'stroke': '#000000',
                   'stroke-width': 2, 'rx': 10, 'ry': 10, 'transform': 'rotate(-45 50 50)' }
         }
 
