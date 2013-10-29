@@ -27,30 +27,38 @@ import qualified Data.Map as DM
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
-tonicTune :: String String Int (Task a) -> Task a
-tonicTune mn tn uid ta = tune {TonicTune | moduleName = mn, taskName = tn, uniqId = uid} ta
+tonicTune :: String String Int Int (Task a) -> Task a
+tonicTune mn tn euid xuid ta = tune {TonicTune | moduleName = mn, taskName = tn, entryUniqId = euid, exitUniqId = xuid} ta
 
 mkTrace :: TraceType TonicTune -> TonicTrace
 mkTrace ttype tinf = {TonicTrace|traceType = ttype, tuneInfo = tinf}
 
-userActiveTask :: !User -> Shared (Maybe TonicTrace)
-userActiveTask currentUser = sharedStore ("userActiveTask" +++ username currentUser) Nothing
+userActiveTask :: !User -> Shared [TonicTrace]
+userActiveTask currentUser = sharedStore ("userActiveTask" +++ username currentUser) []
   where username (AnonymousUser _)           = "Anon"
         username (AuthenticatedUser uid _ _) = uid
 
-programTasks :: !String -> [String]
-programTasks appName = undef
-
 mkUniqLbl :: TonicTune -> String
-mkUniqLbl tt = tt.moduleName +++ tt.taskName +++ toString tt.uniqId
+mkUniqLbl tt = tt.moduleName +++ "." +++ tt.taskName +++ "." +++ toString tt.entryUniqId +++ "." +++ toString tt.exitUniqId
 
 instance tune TonicTune where
   tune ttn (Task eval) = Task eval`
-  where eval` event repOpts state iworld=:{IWorld|currentUser}
-          # (_ , iworld)  = trace_n ("starting trace in Tonic share: " +++ mkUniqLbl ttn) ('DSDS'.write (Just (mkTrace EnterTrace ttn)) (userActiveTask currentUser) iworld)
-          # (tr, iworld)  = eval event repOpts state iworld
-          # (_,  iworld)  = trace_n ("stopping trace in Tonic share: " +++ mkUniqLbl ttn) ('DSDS'.write (Just (mkTrace ExitTrace ttn)) (userActiveTask currentUser) iworld)
-          = (tr, iworld)
+  where
+    eval` event repOpts state iworld=:{IWorld|currentUser}
+      # share         = userActiveTask currentUser
+      # iworld        = trace_n ("starting trace in Tonic share: " +++ mkUniqLbl ttn)
+                        (pushTrace (mkTrace EnterTrace ttn) share iworld)
+      # (tr, iworld)  = eval event repOpts state iworld
+      # iworld        = trace_n ("stopping trace in Tonic share: " +++ mkUniqLbl ttn)
+                        (pushTrace (mkTrace ExitTrace ttn) share iworld)
+      = (tr, iworld)
+    pushTrace t shts world
+      //# (mets , world)  = 'DSDS'.read shts world
+      //# ts              = case mets of
+                            //Ok xs  = xs
+                            //_      = []
+      //# (_, world)      = 'DSDS'.write [t:ts] shts world
+      = world
 
 getTonicModules :: Task [String]
 getTonicModules
@@ -81,7 +89,6 @@ tonicLogin appName = forever (
       \mbUser -> case mbUser of
                    Just user -> workAs user (tonicUI appName)
                    Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
-
 
 getModule :: String -> Task TonicModule
 getModule moduleName
@@ -127,7 +134,7 @@ selectTask tm
            _      -> throw "Should not happen"
 
 viewTask :: User GinGraph -> Task (Editlet GinGraph GinGraph)
-viewTask u g = viewInformation "Selected graph" [] (toniclet g)
+viewTask u g = viewInformation "Selected graph" [] (toniclet g) -|| viewSharedInformation "Current traces" [] (userActiveTask u)
 
 //tonicUI :: String -> Task Void
 //tonicUI appName =
