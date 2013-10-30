@@ -115,14 +115,13 @@ where
 	onInit id Nothing val world
 		# world				= addJSFromUrl "/coolclock.js" Nothing world
 		# world				= addJSFromUrl "/moreskins.js" Nothing world
-		= trace_n "onInit done" (val,world)
+		= (val,world)
 
 	// Update
 	onInit id mbDiff val world = (val, world)
 	
 	onLoad :: *JSWorld -> *JSWorld
 	onLoad world
-		# world	= trace_n "onLoad" world
 		# (window,world)	= jsWindow world
 		# (coolclock,world)	= jsGetObjectAttr "CoolClock" window world
 		//# (coolclock,world)	= findObject "CoolClock" world
@@ -265,6 +264,6 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 //test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 
 Start :: *World -> *World
-Start world = startEngine test4 world
+Start world = startEngine test5 world
 
 

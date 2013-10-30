@@ -13,7 +13,6 @@ StdReal.one_6 :== 1.0
 <{StdReal.==_11}> :== eq
 <{StdReal.<_12}> :== lt
 StdReal.toReal_13 :== toReal
-
 StdReal.sqrt_22 :== sqrt
 StdReal.sin_23 :== sin
 StdReal.cos_24 :== cos
