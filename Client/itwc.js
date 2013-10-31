@@ -11,8 +11,8 @@ itwc.util.urlEncode = function (obj) {
     }
     return parts.join('&');
 }
-//Define a new prototype object, inheriting the prototype of an existing one
-itwc.util.define = function(inheritFrom,definition) {
+//Define a new prototype object by extending the prototype of an existing one
+itwc.util.extend = function(inheritFrom,definition) {
     var c = function() {};
     c.prototype = new inheritFrom();
     for(k in definition) {
@@ -131,6 +131,14 @@ itwc.Component.prototype = {
             });
         }
     },
+    beforeDOMRemove: function() {
+       var me = this;
+        if(me.items && me.items.length) {
+            me.items.forEach(function(cmp) {
+               cmp.beforeDOMRemove();
+            });
+        }
+    },
     applyUpdate: function(operation,args) {
         var me = this;
         if(me[operation] && typeof me[operation] == 'function') {
@@ -152,14 +160,15 @@ itwc.Component.prototype = {
        return -1;
     }
 }
-itwc.Container = itwc.util.define(itwc.Component,{
+itwc.Container = itwc.util.extend(itwc.Component,{
     isContainer: true,
     defaultDirection: 'vertical',
     itemsOffset: 0,                  //The number of DOM elements before the child items are positioned (for example 1 if a panel has a header)
     afterItemAdded: null,
     afterItemRemoved: null
 });
-itwc.ExtComponent = itwc.util.define(itwc.Component,{
+/*
+itwc.ExtComponent = itwc.util.extend(itwc.Component,{
     afterAdd: function() {
         var me = this,
             cfg = {}, k, divEl;
@@ -168,9 +177,9 @@ itwc.ExtComponent = itwc.util.define(itwc.Component,{
             cfg[k] = me.definition[k];
         }
         cfg.itwcCmp = me;
-        cfg.renderTo = me.domEl;
+        cfg.renderTo = me.domId;
 
-        divEl = Ext.get(me.domEl);
+        divEl = Ext.get(me.domId);
 
         me.extCmp = Ext.create(me.extClass,cfg);
         me.extCmp.setSize(divEl.getSize());
@@ -185,6 +194,10 @@ itwc.ExtComponent = itwc.util.define(itwc.Component,{
             me.extCmp.setSize(divEl.getSize());
         }
     },
+    beforeDOMRemove: function() {
+        var me = this;
+        me.extCmp.destroy(true);
+    },
     setValue: function(value) {
         this.extCmp.setValue(value);
     },
@@ -192,9 +205,10 @@ itwc.ExtComponent = itwc.util.define(itwc.Component,{
         this.extCmp.taskId = taskId;
     }
 });
+*/
 //#### CORE UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
-itwc.component.itwc_viewport = itwc.util.define(itwc.Container,{
+itwc.component.itwc_viewport = itwc.util.extend(itwc.Container,{
     render: function() {
         var me = this, i;
         me.domEl = document.body;
@@ -205,7 +219,7 @@ itwc.component.itwc_viewport = itwc.util.define(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_view_string = itwc.util.define(itwc.Component,{
+itwc.component.itwc_view_string = itwc.util.extend(itwc.Component,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
@@ -214,7 +228,7 @@ itwc.component.itwc_view_string = itwc.util.define(itwc.Component,{
         this.domEl.innerHTML = value;
     }
 });
-itwc.component.itwc_view_html = itwc.util.define(itwc.Component,{
+itwc.component.itwc_view_html = itwc.util.extend(itwc.Component,{
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
     },
@@ -222,29 +236,109 @@ itwc.component.itwc_view_html = itwc.util.define(itwc.Component,{
         this.domEl.innerHTML = value;
     }
 });
-itwc.component.itwc_edit_string = itwc.util.define(itwc.Component,{
+itwc.component.itwc_edit_string = itwc.util.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
         el.type = 'text';
+        el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
     }
 });
-itwc.component.itwc_edit_password = itwc.util.define(itwc.Component,{
+itwc.component.itwc_edit_password = itwc.util.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
         el.type = 'password';
+        el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
     }
 });
-itwc.ButtonComponent = itwc.util.define(itwc.Component,{
+itwc.component.itwc_edit_number = itwc.util.extend(itwc.Component,{
+    allowDecimal: false,
+    domTag: 'input',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'text';
+        el.value = me.definition.value ? me.definition.value : '';
+        el.addEventListener('keypress',function(e) {
+            if(me.invalidKey(e.which)) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+        el.addEventListener('keyup',function(e) {
+            var value;
+            if(me.invalidKey(e.which)) {
+                return;
+            }
+            if(e.target.value === "") {
+                value = null;
+            } else if(me.invalidValue(e.target.value)) {
+                value = e.target.value;
+            } else {
+                value = me.allowDecimal ? parseFloat(e.target.value) : parseInt(e.target.value);
+            }
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value);
+        });
+    },
+    invalidKey: function(charCode) {
+        return !(charCode < 32 || (charCode > 47 && charCode < 58) || charCode == 45 || (this.allowDecimal && charCode == 46));
+    },
+    invalidValue: function(value) {
+        var me = this, i;
+        for(i = 0; i < value.length; i++) {
+            if(me.invalidKey(value.charCodeAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    },
+    setEditorValue: function(value) {
+        var me = this;
+        me.domEl.value = value;
+    }
+});
+itwc.component.itwc_edit_int = itwc.util.extend(itwc.component.itwc_edit_number,{
+    allowDecimal: false
+});
+itwc.component.itwc_edit_decimal = itwc.util.extend(itwc.component.itwc_edit_number,{
+    allowDecimal: true
+});
+itwc.component.itwc_edit_date = itwc.util.extend(itwc.Component,{
+    domTag: 'input',
+    defaultWidth: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'text';
+        el.value = me.definition.value ? me.definition.value : '';
+        el.addEventListener('keyup',function(e) {
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+        });
+    }
+});
+itwc.component.itwc_edit_time = itwc.util.extend(itwc.Component,{
+    domTag: 'input',
+    defaultWidth: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'text';
+        el.value = me.definition.value ? me.definition.value : '';
+        el.addEventListener('keyup',function(e) {
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+        });
+    }
+});
+itwc.ButtonComponent = itwc.util.extend(itwc.Component,{
     domTag: 'a',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -287,20 +381,19 @@ itwc.ButtonComponent = itwc.util.define(itwc.Component,{
         this.definition.taskId = taskId;
     }
 });
-
-itwc.component.itwc_actionbutton = itwc.util.define(itwc.ButtonComponent,{
+itwc.component.itwc_actionbutton = itwc.util.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
         itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
     }
 });
-itwc.component.itwc_editbutton = itwc.util.define(itwc.ButtonComponent,{
+itwc.component.itwc_editbutton = itwc.util.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
         itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value);
     }
 });
-itwc.component.itwc_icon= itwc.util.define(itwc.Component,{
+itwc.component.itwc_icon= itwc.util.extend(itwc.Component,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
@@ -328,7 +421,7 @@ itwc.component.itwc_icon= itwc.util.define(itwc.Component,{
         el.classList.add('hint--left');
     }
 });
-itwc.component.itwc_container = itwc.util.define(itwc.Container,{
+itwc.component.itwc_container = itwc.util.extend(itwc.Container,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
@@ -338,7 +431,7 @@ itwc.component.itwc_container = itwc.util.define(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_panel = itwc.util.define(itwc.Container,{
+itwc.component.itwc_panel = itwc.util.extend(itwc.Container,{
     defaultHeight: 'flex',
     initDOMEl: function() {
         var me = this,
@@ -365,7 +458,7 @@ itwc.component.itwc_panel = itwc.util.define(itwc.Container,{
         this.domEl.childNodes[0].innerHTML = title;
     }
 });
-itwc.component.itwc_tabset = itwc.util.define(itwc.Container,{
+itwc.component.itwc_tabset = itwc.util.extend(itwc.Container,{
     isContainer: false, //Don't size as container
     itemsOffset: 1,
     defaultWidth: 'flex',
@@ -441,7 +534,7 @@ itwc.component.itwc_tabset = itwc.util.define(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_tabitem = itwc.util.define(itwc.Container,{
+itwc.component.itwc_tabitem = itwc.util.extend(itwc.Container,{
 
     initDOMEl: function(itemIdx) {
         var me = this,
@@ -474,12 +567,174 @@ itwc.component.itwc_tabitem = itwc.util.define(itwc.Container,{
         me.definition.closeTaskId = closeTaskId;
     }
 });
-itwc.component.itwc_choice_tree = itwc.util.define(itwc.ExtComponent,{
-    extClass: 'itwc.component.choice.Tree'
+itwc.component.itwc_choice_dropdown = itwc.util.extend(itwc.Component,{
+    defaultWidth: 'wrap',
+    domTag: 'select',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            value = me.definition.value[0],
+            option;
+
+        option = document.createElement('option');
+        option.innerHTML = "Select...";
+        option.value = -1;
+        el.appendChild(option);
+
+        me.definition.options.forEach(function(label,index) {
+            option = document.createElement('option');
+            option.value = index;
+            option.innerHTML = label;
+            if(index === value) {
+                option.selected = true;
+            }
+            el.appendChild(option);
+        },me);
+
+        el.addEventListener('change',function(e) {
+            var value = parseInt(e.target.value);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value);
+        });
+    },
+    setValue: function(selection) {
+        var me = this,
+            value;
+        if(selection.length == 0) {
+            value = -1;
+        } else {
+            value = selection[0];
+        }
+        me.domEl.value = value;
+    }
 });
-itwc.component.itwc_choice_grid = itwc.util.define(itwc.ExtComponent,{
-    extClass: 'itwc.component.choice.Grid'
+itwc.component.itwc_choice_tree = itwc.util.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            rootNodeId = me.definition.taskId+ "-" + me.definition.editorId + "-node",
+            rootNode,node;
+
+        el.classList.add('choicetree');
+
+        rootNode = document.createElement('ol');
+
+        //Create a table for quick access
+        me.selection = [];
+        me.nodes = [];
+
+        me.definition.options.forEach(function(option,idx) {
+            me.addNode(option,rootNode,rootNodeId,idx);
+        },me);
+        el.appendChild(rootNode);
+    },
+    addNode: function(option,parentNode,rootNodeId,idx) {
+        var me = this,
+            node,nodeId,label,childExpand,childOl;
+
+        nodeId = rootNodeId + "-"+ idx;
+        node = document.createElement('li');
+        node.id = nodeId;
+        if(option.leaf) {
+            node.classList.add('leaf');
+        }
+        label = document.createElement('label');
+        label.id = nodeId + "-l";
+        label.setAttribute('for',nodeId + "-e");
+
+        label.innerHTML = option.text;
+        label.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
+        },me);
+        node.appendChild(label);
+
+        if(option.children && option.children.length) {
+            childExpand = document.createElement('input');
+            childExpand.type = "checkbox"
+            childExpand.id = nodeId + "-e";
+
+            if(option.expanded) {
+                childExpand.checked = true;
+            }
+            node.appendChild(childExpand);
+            childOl = document.createElement('ol');
+            option.children.forEach(function(option,childIdx) {
+                me.addNode(option,childOl,nodeId,childIdx);
+            },me);
+            node.appendChild(childOl);
+        }
+        parentNode.appendChild(node);
+        //Keep reference
+        me.nodes[option.value] = node;
+    },
+    setValue: function(value) {
+        var me = this;
+        me.selection.forEach(function(idx) {
+            me.nodes[idx].classList.remove('selected');
+        });
+        me.selection = value;
+        me.selection.forEach(function(idx) {
+            me.nodes[idx].classList.add('selected');
+        });
+    }
 });
+
+itwc.component.itwc_choice_grid = itwc.util.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            headerEl,bodyEl,rowEl,cellEl;
+
+        el.classList.add('choicegrid');
+
+        //Create header
+        headerEl = me.headerEl = document.createElement('div');
+        headerEl.classList.add('choicegrid-header');
+        me.definition.columns.forEach(function(column) {
+            cellEl = document.createElement('div');
+            cellEl.innerHTML = column;
+            headerEl.appendChild(cellEl);
+        });
+        el.appendChild(headerEl);
+
+        //Create body
+        bodyEl = me.bodyEl = document.createElement('div');
+        bodyEl.classList.add('choicegrid-body');
+        me.definition.options.forEach(function(option,rowIdx) {
+            rowEl = document.createElement('div');
+            rowEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
+            },me);
+            option.forEach(function(cell) {
+                cellEl = document.createElement('div');
+                cellEl.innerHTML = cell;
+                rowEl.appendChild(cellEl);
+            });
+            bodyEl.appendChild(rowEl);
+        });
+        //Indicate selection
+        if(me.definition.value.length) {
+            me.definition.value.forEach(function(selectedIdx) {
+                bodyEl.childNodes[selectedIdx].classList.add('selected');
+            });
+        }
+        el.appendChild(bodyEl);
+    },
+    setValue: function(value) {
+        var me = this,
+            bodyEl = me.bodyEl;
+
+        //Remove old selection
+        me.definition.value.forEach(function(selectedIdx) {
+                bodyEl.childNodes[selectedIdx].classList.remove('selected');
+        });
+        //Indicate new selection
+        me.definition.value = value;
+        me.definition.value.forEach(function(selectedIdx) {
+                bodyEl.childNodes[selectedIdx].classList.add('selected');
+        });
+    }
+});
+
 //#### CENTRAL CONTROLLER ####//
 itwc.controller = function() {
     var me = this;
@@ -508,7 +763,7 @@ itwc.controller.prototype = {
         itwc.UI.render(0);
 
         //Listen for changes in the viewport size
-        window.addEventListener('resize',this.onWindowResize,this);
+        //window.addEventListener('resize',this.onWindowResize,this);
     },
     onWindowResize: function(e) {
         itwc.UI.afterResize();
@@ -607,7 +862,6 @@ itwc.controller.prototype = {
                 console.log("Could not find component at path",update.path);
                 return;
             }
-
             //Apply operations
             //'add' and 'remove' are handled directly by the controller
             //other operations are passed to the component to deal handle
@@ -650,6 +904,7 @@ itwc.controller.prototype = {
         if(itwc.component[insertDef.xtype]) {
             newCmp = new itwc.component[insertDef.xtype]();
         } else {
+            console.log("Unknown component type ",insertDef.xtype,insertDef);
             newCmp = new itwc.Component();
         }
         newCmp.init(insertDef,parentCmp);
@@ -669,7 +924,6 @@ itwc.controller.prototype = {
         if(parentCmp.afterItemAdded) {
             parentCmp.afterItemAdded(insertIdx,newCmp);
         }
-
         //Inject the component's DOM element in its parent component's
         domIdx = insertIdx + (parentCmp.itemsOffset || 0);
         if(parentCmp.targetEl.childNodes.length === domIdx) {
@@ -679,7 +933,9 @@ itwc.controller.prototype = {
         }
     },
     removeComponent: function(parentCmp,removeIdx) {
-        //Remove from DOM
+        //Call pre-removal function
+        parentCmp.items[removeIdx].beforeDOMRemove();
+
         //We need to take the number of non-child component nodes (like a header) of the parent into account
         parentCmp.targetEl.removeChild(parentCmp.targetEl.childNodes[removeIdx + (parentCmp.itemsOffset || 0)]);
         //Remove from component tree
@@ -700,9 +956,7 @@ itwc.controller.prototype = {
 
 //Set up a singleton controller object
 itwc.controller = new itwc.controller();
-
 //Start the controller when the bootstrap page has loaded
 window.onload = function() {
     itwc.controller.start();
 };
-

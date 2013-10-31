@@ -154,7 +154,7 @@ body {
     box-shadow: -2px 2px 0 #fff;
 }
 .tabitem {
-    display: none;
+   display: none;
 }
 .tabitem.selected {
    display: flex;
@@ -175,10 +175,106 @@ body {
     line-height: 8px;
     background: #eee;
     border: 1px solid #ccc;
-    height: 11px;
-    width: 11px;
     border-radius: 2px;
-    padding: 0 0 0 2px;
-    /* box-shadow: 0px 0px 1px 1px #ccc; */
+    padding: 0 2px;
 }
-
+.choicegrid {
+    display: flex;
+    flex-direction: column;
+}
+.choicegrid-header {
+    background: #eee;
+    background: -moz-linear-gradient(center top , #F9F9F9, #E3E4E6);
+    background: -webkit-linear-gradient(center top , #F9F9F9, #E3E4E6);
+    display: flex;
+    flex-direction: row;
+}
+.choicegrid-header > div {
+    border: 1px solid;
+    border-color:  #fff #fff #ccc #ccc;
+    flex: 1;
+    padding: 3px 5px;
+    font-size: 11px;
+}
+.choicegrid-body {
+    flex: 1;
+    background: #fff;
+    overflow: auto;
+}
+.choicegrid-body > div {
+    display: flex;
+    flex-direction: row;
+    cursor: default;
+    border: solid #ddd;
+    border-width: 0 0 1px 0;
+}
+.choicegrid-body > div:nth-child(even) {
+    background-color: #fafafa;
+}
+.choicegrid-body > div:hover {
+    background-color: #eee;
+}
+.choicegrid-body > div.selected {
+    background-color: #ddd;
+    border: 1px dotted #333;
+}
+.choicegrid-body > div > div {
+    flex: 1;
+    padding: 3px 5px;
+}
+.choicetree {
+    overflow: auto;
+    background: #fff;
+}
+.choicetree ol {
+    margin: 0 0 0 20px;
+    padding: 0;
+}
+.choicetree li {
+    position: relative;
+    margin-left: -15px;
+    margin-bottom: 2px;
+    list-style: none;
+}
+.choicetree li.leaf {
+    margin-left: -1px !important;
+}
+.choicetree li input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 0;
+    opacity: 0;
+    z-index: 2;
+    cursor: pointer;
+    height: 1em;
+    width: 1em;
+}
+.choicetree li label {
+    cursor: pointer;
+    display: block;
+    white-space: nowrap;
+    font-size: 12px;
+    padding-left: 37px;
+    background-color: #fff;
+}
+.choicetree li input + ol {
+    margin: -0.938em 0 0 -44px; /* 15px */
+    display: block;
+    height: 1em;
+}
+.choicetree li input + ol > li {
+    display: none;
+    margin-left: -14px !important;
+    padding-left: 1px;
+}
+.choicetree li.selected > label {
+    font-weight: bold;
+}
+.choicetree li input:checked + ol {
+    margin: -1.25em 0 0 -44px; /* 20px */
+    padding: 1.563em 0 0 80px;
+    height: auto;
+}
+.choicetree li input:checked + ol > li { display: block; margin: 0 0 0.125em;  /* 2px */}
+.choicetree li input:checked + ol > li:last-child { margin: 0 0 0.063em; /* 1px */ }
