@@ -1,6 +1,6 @@
 <{StdString.+++_11}> :== string_append
-<{StdString.%_10}> str_0 _x_1 = select _x_1 (_predefined._Tuple2 a b -> string_slice str_0 a b)
-<{StdString.:=}> s_0 _x_1 = select _x_1 (_predefined._Tuple2 i_10 c_11 -> string_update s_0 i_10 c_11)
+<{StdString.%_10}> !str_0 !_x_1 = select _x_1 (_predefined._Tuple2 a b -> string_slice str_0 a b)
+<{StdString.:=}> !s_0 !_x_1 = select _x_1 (_predefined._Tuple2 i_10 c_11 -> string_update s_0 i_10 c_11)
 <{StdString.==_2}> :== eq
 <{StdString.<_3}> :== lt
 StdString.fromString_4 a_0 = a_0

@@ -1,6 +1,6 @@
 StdBool.not :== not
-<{StdBool.||}> !a_0 !b_1 = if a_0 true b_1
-<{StdBool.&&}> !a_0 !b_1 = if a_0 b_1 false
+<{StdBool.||}> :== or
+<{StdBool.&&}> :== and
 <{StdBool.==_3}> :== eq
 StdBool.toBool_4 !a_0 = a_0
 StdBool.fromBool_5 !a_0 = a_0

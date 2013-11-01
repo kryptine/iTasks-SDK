@@ -1,87 +1,85 @@
 || Implementation for _SystemArray.icl
 
-_SystemArray.ar_update_80 !_x_0 !_x_1 !val_2 = select _x_0 (_predefined._Tuple2 a_10 as_11 -> if (eq 0 _x_1) (_predefined._Cons val_2 as_11) (_predefined._Cons a_10 (_SystemArray.ar_update_80 as_11 (<{StdInt.-_7}> _x_1 1) val_2))) (_ -> StdMisc.abort "index out of range")
-
-_SystemArray._createArray_0 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_1 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_2 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_3 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_4 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_5 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_6 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_7 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_8 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_9 !size_0 el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_10 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_11 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_12 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_13 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_14 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_15 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_16 !size_0 = string_create1 size_0 
-_SystemArray.createArray_17 !size_0 !el_1 = string_create2 size_0 el_1 
-_SystemArray.replace_18 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (string_select arr_0 index_1) (string_update arr_0 index_1 el_2) 
+_SystemArray._createArray_0 :== array_create1
+_SystemArray.createArray_1 :== array_create2
+_SystemArray.replace_2 :== array_replace
+_SystemArray.select_3 :== array_select
+_SystemArray.size_4 :== array_size
+_SystemArray.update_5 :== array_update
+_SystemArray.uselect_6 :== array_uselect
+_SystemArray.usize_7 :== array_usize
+_SystemArray._createArray_8 :== array_create1
+_SystemArray.createArray_9 :== array_create2
+_SystemArray.replace_10 :== array_replace
+_SystemArray.select_11 :== array_select
+_SystemArray.size_12 :== array_size
+_SystemArray.update_13 :== array_update
+_SystemArray.uselect_14 :== array_uselect
+_SystemArray.usize_15 :== array_uize
+_SystemArray._createArray_16 :== string_create1
+_SystemArray.createArray_17 :== string_create1
+_SystemArray.replace_18 :== string_replace
 _SystemArray.select_19 :== string_select 
-_SystemArray.size_20 :== strlen
-_SystemArray.update_21 !arr_0 !index_1 !el_2 = string_update arr_0 index_1 el_2
-_SystemArray.uselect_22 !arr_0 !index_1 = _predefined._Tuple2 (string_select arr_0 index_1) arr_0
-_SystemArray.usize_23 !arr_0 = _predefined._Tuple2 (strlen arr_0) arr_0
-_SystemArray._createArray_24 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_25 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_26 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_27 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_28 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_29 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_30 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_31 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_32 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_33 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_34 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_35 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_36 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_37 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_38 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_39 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_40 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_41 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_42 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_43 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_44 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_45 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_46 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_47 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_48 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_49 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_50 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_51 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_52 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_53 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_54 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_55 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_56 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_57 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_58 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_59 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_60 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_61 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_62 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_63 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_64 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_65 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_66 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_67 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_68 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_69 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_70 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_71 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
-_SystemArray._createArray_72 !size_0 = StdList.repeatn size_0 0
-_SystemArray.createArray_73 !size_0 !el_1 = StdList.repeatn size_0 el_1
-_SystemArray.replace_74 !arr_0 !index_1 !el_2 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) (_SystemArray.ar_update_80 arr_0 index_1 el_2)
-_SystemArray.select_75 !arr_0 !index_1 = <{StdList.!!}> arr_0 index_1
-_SystemArray.size_76 !arr_0 = StdList.length_47 arr_0
-_SystemArray.update_77 !arr_0 !index_1 !el_2 = _SystemArray.ar_update_80 arr_0 index_1 el_2
-_SystemArray.uselect_78 !arr_0 !index_1 = _predefined._Tuple2 (<{StdList.!!}> arr_0 index_1) arr_0
-_SystemArray.usize_79 !arr_0 = _predefined._Tuple2 (StdList.length_47 arr_0) arr_0
+_SystemArray.size_20 :== string_size
+_SystemArray.update_21 :== string_update
+_SystemArray.uselect_22 :== string_uselect
+_SystemArray.usize_23 :== string_size
+_SystemArray._createArray_24 :== array_create1
+_SystemArray.createArray_25 :== array_create2
+_SystemArray.replace_26 :== array_replace
+_SystemArray.select_27 :== array_select
+_SystemArray.size_28 :== array_size
+_SystemArray.update_29 :== array_update
+_SystemArray.uselect_30 :== array_uselect
+_SystemArray.usize_31 :== array_usize
+_SystemArray._createArray_32 :== array_create1
+_SystemArray.createArray_33 :== array_create2
+_SystemArray.replace_34 :== array_replace
+_SystemArray.select_35 :== array_select
+_SystemArray.size_36 :== array_size
+_SystemArray.update_37 :== array_update
+_SystemArray.uselect_38 :== array_uselect
+_SystemArray.usize_39 :== array_usize
+_SystemArray._createArray_40 :== array_create1
+_SystemArray.createArray_41 :== array_create2
+_SystemArray.replace_42 :== array_replace
+_SystemArray.select_43 :== array_select
+_SystemArray.size_44 :== array_size
+_SystemArray.update_45 :== array_update
+_SystemArray.uselect_46 :== array_uselect
+_SystemArray.usize_47 :== array_usize
+_SystemArray._createArray_48 :== array_create1
+_SystemArray.createArray_49 :== array_create2
+_SystemArray.replace_50 :== array_replace
+_SystemArray.select_51 :== array_select
+_SystemArray.size_52 :== array_size
+_SystemArray.update_53 :== array_update
+_SystemArray.uselect_54 :== array_uselect
+_SystemArray.usize_55 :== array_usize
+_SystemArray._createArray_56 :== array_create1
+_SystemArray.createArray_57 :== array_create2
+_SystemArray.replace_58 :== array_replace
+_SystemArray.select_59 :== array_select
+_SystemArray.size_60 :== array_size
+_SystemArray.update_61 :== array_update
+_SystemArray.uselect_62 :== array_uselect
+_SystemArray.usize_63 :== array_usize
+_SystemArray._createArray_64 :== array_create1
+_SystemArray.createArray_65 :== array_create2
+_SystemArray.replace_66 :== array_replace
+_SystemArray.select_67 :== array_select
+_SystemArray.size_68 :== array_size
+_SystemArray.update_69 :== array_update
+_SystemArray.uselect_70 :== array_uselect
+_SystemArray.usize_71 :== array_usize
+_SystemArray._createArray_72 :== array_create1
+_SystemArray.createArray_73 :== array_create2_lazy
+_SystemArray.replace_74 :== array_replace_lazy
+_SystemArray.select_75 :== array_select_lazy
+_SystemArray.size_76 :== array_size
+_SystemArray.update_77 :== array_update_lazy
+_SystemArray.uselect_78 :== array_uselect
+_SystemArray.usize_79 :== array_usize
 
 || Converted Records
 :: <{_SystemArray.Array;}> = {!_SystemArray._createArray, !_SystemArray.createArray, !_SystemArray.replace, !_SystemArray.select, !_SystemArray.size, !_SystemArray.update, !_SystemArray.uselect, !_SystemArray.usize}

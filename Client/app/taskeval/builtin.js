@@ -136,69 +136,6 @@ function _neg(a){
     return Sapl.feval(a) * -1;
 }
 
-function _error(str){
-    throw "ERROR: "+str;
-}
-
-function _abort(str){
-    throw "ABORT: "+str;
-}
-
-function __dynamic_handler(){
-	return "DYNVAL";
-}
-
-function __sapldebug(str, f){
-    if(confirm(str)){
-        return f;
-    }else{
-        _error();
-    }
-}
-
-function _strlen(str){
-    return Sapl.feval(str).length;
-}
-
-function _string_select(str, pos){
-	var str = Sapl.feval(str);
-	return str.charAt(Sapl.feval(pos));
-}  
-
-function _string_create1(length){
-    var nl = Sapl.feval(length);
-    var r=""; for (var a=0;a<nl;a++) r+="\0"; 
-    return r;
-}
-
-function _string_create2(length, c){
-    var nl = Sapl.feval(length);
-    var nc = Sapl.feval(c);
-    var r=""; for (var a=0;a<nl;a++) r+=nc; 
-    return r;
-}
-
-function _string_update(str, index, c){
-    var nstr = Sapl.feval(str);
-    var nc = Sapl.feval(c);
-    var nindex = Sapl.feval(index);
-    return nstr.substr(0, nindex) + nc + nstr.substr(nindex+nc.length);
-}
-
-function _string_slice(str, ind1, ind2){
-    var nstr = Sapl.feval(str);
-    var nind1 = Sapl.feval(ind1);
-    var nind2 = Sapl.feval(ind2);
-    
-    return nstr.substr(nind1, nind2-nind1+1);
-}
-
-function _string_append(str1, str2){
-    var nstr1 = Sapl.feval(str1);
-    var nstr2 = Sapl.feval(str2);
-    return nstr1+nstr2;
-}
-
 function _toInt_char(chr){
     var nchr = Sapl.feval(chr);
     return nchr.charCodeAt(0);
@@ -245,7 +182,207 @@ function _shiftright(a,b){
     return Sapl.feval(a) >>> Sapl.feval(b);
 }
 
-// --------- Function overrides -----------------------------
+// ----------------------------------------------------------------
+// Arrays
+
+function _array_create1$eval(size){
+	return _array_create1(Sapl.feval(size), null);
+}
+
+function _array_create1(size){
+	return new Array(size);
+}
+
+function _array_create2_lazy$eval(size, e){
+	return _createArray2(Sapl.feval(size), e);
+}
+
+function _array_create2$eval(size, e){
+	return _createArray2(Sapl.feval(size), Sapl.feval(e));
+}
+
+function _array_create2(size, e){
+	var data = [];
+
+	for(var i = 0; i < size; i++) {
+		data.push(e);
+	}	
+	
+	return data;
+}
+
+function _array_update_lazy$eval(arr, idx, e){
+	return _array_update(Sapl.feval(arr), Sapl.feval(idx), e);
+}
+
+function _array_update$eval(arr, idx, e){
+	return _array_update(Sapl.feval(arr), Sapl.feval(idx), Sapl.feval(e));
+}
+
+function _array_update(arr, idx, e){
+	arr[idx] = e;
+	return arr;
+}
+
+function _array_replace_lazy$eval(arr, idx, e){
+	return _array_replace(Sapl.feval(arr), Sapl.feval(idx), e);
+}
+
+function _array_replace$eval(arr, idx, e){
+	return _array_replace(Sapl.feval(arr), Sapl.feval(idx), Sapl.feval(e));
+}
+
+function _array_replace(arr, idx, e){
+	var o = arr[idx];
+	arr[idx] = e;
+	return ___predefined__Tuple2(o, arr);
+}
+
+function _array_select_lazy(arr, idx){
+	return Sapl.feval(Sapl.feval(arr)[Sapl.feval(idx)]);
+}
+
+function _array_select(arr, idx){
+	return Sapl.feval(arr)[Sapl.feval(idx)];
+}
+
+function _array_uselect(arr, idx){
+	return ___predefined__Tuple2(_Sapl.feval(arr)[Sapl.feval(idx)],arr);
+}
+
+function _array_size(arr){
+	return Sapl.feval(arr).length;
+}
+
+function _array_usize(arr){
+	return ___predefined__Tuple2(_Sapl.feval(arr).length,arr);
+}
+
+// ----------------------------------------------------------------
+// Strings
+
+function _string_size(str){
+    return Sapl.feval(str).length;
+}
+
+function _string_usize(str){
+    return ___predefined__Tuple2(Sapl.feval(str).length,str);
+}
+
+function _string_select(str, pos){
+	return Sapl.feval(str).charAt(Sapl.feval(pos));
+}  
+
+function _string_uselect(str, pos){
+	return ___predefined__Tuple2(Sapl.feval(str).charAt(Sapl.feval(pos)),str);
+} 
+
+function _string_create1$eval(len){
+	return _string_create1(Sapl.feval(len));
+}
+
+function _string_create1(len){
+    return new Array(len + 1).join('\0');
+}
+
+function _string_create2$eval(len, c){
+    return _string_create2(Sapl.feval(len), Sapl.feval(c));
+}
+
+function _string_create2(len, c){
+    return new Array(len + 1).join(c);
+}
+
+function _string_update(str, idx, c){
+    return Sapl.feval(str).replaceAt(Sapl.feval(idx),Sapl.feval(c));
+}
+
+function _string_replace$eval(str, idx, c){	
+	return _string_replace(Sapl.feval(str), Sapl.feval(idx), Sapl.feval(c));
+}
+	
+function _string_replace(str, idx, c){
+    return ___predefined__Tuple2(str.charAt(idx), str.replaceAt(idx,c));
+}
+
+function _string_slice(str, ind1, ind2){
+    var nind1 = Sapl.feval(ind1);
+    var nind2 = Sapl.feval(ind2);
+    return Sapl.feval(str).substr(nind1, nind2 - nind1 + 1);
+}
+
+function _string_append(str1, str2){
+    return Sapl.feval(str1)+Sapl.feval(str2);
+}
+
+// ----------------------------------------------------------------
+// Tuple selectors
+
+function _tupsels1v0(a){
+	return Sapl.feval(Sapl.feval(a)[2]);
+}
+
+function _tupsels2v0(a){
+	return Sapl.feval(Sapl.feval(a)[2]);
+}
+
+function _tupsels2v1(a){
+	return Sapl.feval(Sapl.feval(a)[3]);
+}
+
+function _tupsels3v0(a){
+	return Sapl.feval(Sapl.feval(a)[2]);
+}
+
+function _tupsels3v1(a){
+	return Sapl.feval(Sapl.feval(a)[3]);
+}
+
+function _tupsels3v2(a){
+	return Sapl.feval(Sapl.feval(a)[4]);
+}
+
+function _tupsels4v0(a){
+	return Sapl.feval(Sapl.feval(a)[2]);
+}
+
+function _tupsels4v1(a){
+	return Sapl.feval(Sapl.feval(a)[3]);
+}
+
+function _tupsels4v2(a){
+	return Sapl.feval(Sapl.feval(a)[4]);
+}
+
+function _tupsels4v3(a){
+	return Sapl.feval(Sapl.feval(a)[5]);
+}
+
+// ----------------------------------------------------------------
+// Other stuff
+
+function _error(str){
+    throw "ERROR: "+str;
+}
+
+function _abort(str){
+    throw "ABORT: "+str;
+}
+
+function __dynamic_handler(){
+	return "DYNVAL";
+}
+
+function __sapldebug(str, f){
+    if(confirm(str)){
+        return f;
+    }else{
+        _error();
+    }
+}
+
+// ----------------------------------------------------------------
+// Function overrides
 
 function __sapldebug_sapldebug(a,b){
 	console.log("DEBUG: "+Sapl.toString(a));
