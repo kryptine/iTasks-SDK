@@ -167,47 +167,67 @@ itwc.Container = itwc.util.extend(itwc.Component,{
     afterItemAdded: null,
     afterItemRemoved: null
 });
-/*
-itwc.ExtComponent = itwc.util.extend(itwc.Component,{
-    afterAdd: function() {
-        var me = this,
-            cfg = {}, k, divEl;
-
-        for(k in me.definition) {
-            cfg[k] = me.definition[k];
-        }
-        cfg.itwcCmp = me;
-        cfg.renderTo = me.domId;
-
-        divEl = Ext.get(me.domId);
-
-        me.extCmp = Ext.create(me.extClass,cfg);
-        me.extCmp.setSize(divEl.getSize());
-        me.extCmp.show();
-    },
-    afterResize: function() {
-        var me = this,
-            divEl;
-
-        if(me.extCmp) {
-            divEl = Ext.get(me.domEl);
-            me.extCmp.setSize(divEl.getSize());
-        }
-    },
-    beforeDOMRemove: function() {
-        var me = this;
-        me.extCmp.destroy(true);
-    },
-    setValue: function(value) {
-        this.extCmp.setValue(value);
-    },
-    setTaskId: function(taskId) {
-        this.extCmp.taskId = taskId;
-    }
-});
-*/
 //#### CORE UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
+
+itwc.component.itwc_menubar = itwc.util.extend(itwc.Container, {
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl;
+
+        me.targetEl = document.createElement('ul');
+
+        el.classList.add('menubar');
+        el.appendChild(me.targetEl);
+    }
+});
+itwc.component.itwc_menubutton = itwc.util.extend(itwc.Component, {
+    domTag: 'li',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            linkEl, menuEl;
+        //Menu button
+        linkEl = document.createElement('a');
+        linkEl.href = '#';
+        linkEl.innerHTML = me.definition.text;
+        el.appendChild(linkEl)
+        //Menu items
+        me.menu = new itwc.component.itwc_menu();
+        me.menu.init(me.definition.menu,me);
+        me.menu.render(0);
+        el.appendChild(me.menu.domEl);
+    },
+    initSize: function() {} //Don't size
+});
+itwc.component.itwc_menu = itwc.util.extend(itwc.Container,{
+    xtype: 'itwc_menu',
+    domTag: 'ul',
+    initSize: function() {} //Don't size
+});
+itwc.component.itwc_actionmenuitem = itwc.util.extend(itwc.Component,{
+    domTag: 'li',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            iconEl, linkEl;
+
+        me.disabled = me.definition.disabled;
+
+        linkEl = document.createElement('a');
+        linkEl.href = '#';
+        linkEl.innerHTML = me.definition.text;
+        linkEl.addEventListener('click',function(e) {
+            if(!me.disabled) {
+                itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
+            }
+            return false;
+        });
+        el.appendChild(linkEl)
+    },
+    initSize: function() {} //Don't size
+});
+
 itwc.component.itwc_viewport = itwc.util.extend(itwc.Container,{
     render: function() {
         var me = this, i;
@@ -246,6 +266,9 @@ itwc.component.itwc_edit_string = itwc.util.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
+    },
+    setEditorValue: function(value) {
+        this.domEl.value = value;
     }
 });
 itwc.component.itwc_edit_password = itwc.util.extend(itwc.Component,{
@@ -258,6 +281,23 @@ itwc.component.itwc_edit_password = itwc.util.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
+    },
+    setEditorValue: function(value) {
+        this.domEl.value = value;
+    }
+});
+itwc.component.itwc_edit_note= itwc.util.extend(itwc.Component,{
+    domTag: 'textarea',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.innerHTML = me.definition.value ? me.definition.value : '';
+        el.addEventListener('keyup',function(e) {
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+        });
+    },
+    setEditorValue: function(value) {
+        this.domEl.value = value;
     }
 });
 itwc.component.itwc_edit_number = itwc.util.extend(itwc.Component,{
@@ -543,6 +583,13 @@ itwc.component.itwc_tabitem = itwc.util.extend(itwc.Container,{
         el.classList.add('tabitem');
         if(itemIdx === me.parentCmp.activeTab) {
             el.classList.add('selected');
+        }
+        if(me.definition.tbar) {
+            me.menu = new itwc.component.itwc_menubar();
+            me.menu.init({xtype: "itwc_menu_bar", items: me.definition.tbar}, me);
+            me.menu.render(0);
+            me.itemsOffset++;
+            el.appendChild(me.menu.domEl);
         }
     },
     initSize: function() {
@@ -892,7 +939,7 @@ itwc.controller.prototype = {
     findComponent: function(path) {
         var cmp = itwc.UI;
         path.forEach(function(step) {
-            cmp = cmp.items[step];
+            cmp = (step === 'm') ? cmp.menu : cmp.items[step];
         });
         return cmp;
     },
@@ -919,6 +966,13 @@ itwc.controller.prototype = {
         if(insertDef.items) {
             insertDef.items.forEach(function(childCmp,childIdx) {
                 me.addComponent(newCmp,childIdx,childCmp);
+            });
+        }
+
+        //Add menubar items the parent support that
+        if(newCmp.menu) {
+            newCmp.menu.definition.items.forEach(function(menuCmp,menuIdx) {
+                me.addComponent(newCmp.menu,menuIdx,menuCmp);
             });
         }
         if(parentCmp.afterItemAdded) {
