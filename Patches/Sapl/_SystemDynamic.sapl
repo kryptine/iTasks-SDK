@@ -1,0 +1,7 @@
+|| ?module? _SystemDynamic
+
+:: _SystemDynamic._DynamicTemp = {_SystemDynamic._value, _SystemDynamic._type}
+_SystemDynamic.get__value_0 rec = select rec (_SystemDynamic._DynamicTemp a1 a2 -> a1)
+_SystemDynamic.get__type_1 rec = select rec (_SystemDynamic._DynamicTemp a1 a2 -> a2)
+_SystemDynamic.set__value_0 rec val = select rec (_SystemDynamic._DynamicTemp  a1 a2 -> _SystemDynamic._DynamicTemp val a2)
+_SystemDynamic.set__type_1 rec val = select rec (_SystemDynamic._DynamicTemp  a1 a2 -> _SystemDynamic._DynamicTemp a1 val)
