@@ -315,5 +315,5 @@ Sapl = new function () {
 	}
 
 	this.feval = _feval;
-	
+	this.fapp = _fapp;	
 }();
