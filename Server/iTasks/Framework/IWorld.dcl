@@ -17,7 +17,7 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
-from Sapl.Target.JS.Flavour import :: Flavour
+from Sapl.Target.Flavour import :: Flavour
 from Sapl.SaplParser import :: ParserState
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	

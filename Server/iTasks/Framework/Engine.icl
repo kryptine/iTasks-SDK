@@ -20,7 +20,7 @@ import iTasks.Framework.TaskServer
 from Data.Set import :: Set, newSet
 from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
-from Sapl.Target.JS.Flavour import :: Flavour, toFlavour
+from Sapl.Target.Flavour import :: Flavour, toFlavour
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
