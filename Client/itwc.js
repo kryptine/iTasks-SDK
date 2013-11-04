@@ -13,7 +13,7 @@ itwc.util.urlEncode = function (obj) {
     return parts.join('&');
 }
 //Define a new prototype object by extending the prototype of an existing one
-itwc.util.extend = function(inheritFrom,definition) {
+itwc.extend = function(inheritFrom,definition) {
     var c = function() {};
     c.prototype = new inheritFrom();
     for(k in definition) {
@@ -160,7 +160,7 @@ itwc.Component.prototype = {
        return -1;
     }
 }
-itwc.Container = itwc.util.extend(itwc.Component,{
+itwc.Container = itwc.extend(itwc.Component,{
     isContainer: true,
     defaultDirection: 'vertical',
     itemsOffset: 0,                  //The number of DOM elements before the child items are positioned (for example 1 if a panel has a header)
@@ -170,7 +170,7 @@ itwc.Container = itwc.util.extend(itwc.Component,{
 //#### CORE UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
 
-itwc.component.itwc_menubar = itwc.util.extend(itwc.Container, {
+itwc.component.itwc_menubar = itwc.extend(itwc.Container, {
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
@@ -181,7 +181,7 @@ itwc.component.itwc_menubar = itwc.util.extend(itwc.Container, {
         el.appendChild(me.targetEl);
     }
 });
-itwc.component.itwc_menubutton = itwc.util.extend(itwc.Component, {
+itwc.component.itwc_menubutton = itwc.extend(itwc.Component, {
     domTag: 'li',
     initDOMEl: function() {
         var me = this,
@@ -200,12 +200,12 @@ itwc.component.itwc_menubutton = itwc.util.extend(itwc.Component, {
     },
     initSize: function() {} //Don't size
 });
-itwc.component.itwc_menu = itwc.util.extend(itwc.Container,{
+itwc.component.itwc_menu = itwc.extend(itwc.Container,{
     xtype: 'itwc_menu',
     domTag: 'ul',
     initSize: function() {} //Don't size
 });
-itwc.component.itwc_actionmenuitem = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
     domTag: 'li',
     initDOMEl: function() {
         var me = this,
@@ -227,7 +227,7 @@ itwc.component.itwc_actionmenuitem = itwc.util.extend(itwc.Component,{
     },
     initSize: function() {} //Don't size
 });
-itwc.component.itwc_viewport = itwc.util.extend(itwc.Container,{
+itwc.component.itwc_viewport = itwc.extend(itwc.Container,{
     render: function() {
         var me = this, i;
         me.domEl = document.body;
@@ -238,7 +238,7 @@ itwc.component.itwc_viewport = itwc.util.extend(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_view_string = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_view_string = itwc.extend(itwc.Component,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
@@ -247,7 +247,7 @@ itwc.component.itwc_view_string = itwc.util.extend(itwc.Component,{
         this.domEl.innerHTML = value;
     }
 });
-itwc.component.itwc_view_html = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_view_html = itwc.extend(itwc.Component,{
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
     },
@@ -255,7 +255,7 @@ itwc.component.itwc_view_html = itwc.util.extend(itwc.Component,{
         this.domEl.innerHTML = value;
     }
 });
-itwc.component.itwc_view_checkbox = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_view_checkbox = itwc.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
         var me = this,
@@ -269,7 +269,7 @@ itwc.component.itwc_view_checkbox = itwc.util.extend(itwc.Component,{
         this.domEl.checked = value;
     }
 });
-itwc.component.itwc_edit_string = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
         var me = this,
@@ -284,7 +284,7 @@ itwc.component.itwc_edit_string = itwc.util.extend(itwc.Component,{
         this.domEl.value = value;
     }
 });
-itwc.component.itwc_edit_password = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
         var me = this,
@@ -299,7 +299,7 @@ itwc.component.itwc_edit_password = itwc.util.extend(itwc.Component,{
         this.domEl.value = value;
     }
 });
-itwc.component.itwc_edit_note= itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
     domTag: 'textarea',
     initDOMEl: function() {
         var me = this,
@@ -313,7 +313,7 @@ itwc.component.itwc_edit_note= itwc.util.extend(itwc.Component,{
         this.domEl.value = value;
     }
 });
-itwc.component.itwc_edit_checkbox = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
     domTag: 'input',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -330,7 +330,7 @@ itwc.component.itwc_edit_checkbox = itwc.util.extend(itwc.Component,{
         this.domEl.checked = value;
     }
 });
-itwc.component.itwc_edit_number = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
     allowDecimal: false,
     domTag: 'input',
     initDOMEl: function() {
@@ -376,13 +376,13 @@ itwc.component.itwc_edit_number = itwc.util.extend(itwc.Component,{
         me.domEl.value = value;
     }
 });
-itwc.component.itwc_edit_int = itwc.util.extend(itwc.component.itwc_edit_number,{
+itwc.component.itwc_edit_int = itwc.extend(itwc.component.itwc_edit_number,{
     allowDecimal: false
 });
-itwc.component.itwc_edit_decimal = itwc.util.extend(itwc.component.itwc_edit_number,{
+itwc.component.itwc_edit_decimal = itwc.extend(itwc.component.itwc_edit_number,{
     allowDecimal: true
 });
-itwc.component.itwc_edit_date = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
     domTag: 'input',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -395,7 +395,7 @@ itwc.component.itwc_edit_date = itwc.util.extend(itwc.Component,{
         });
     }
 });
-itwc.component.itwc_edit_time = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
     domTag: 'input',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -408,7 +408,7 @@ itwc.component.itwc_edit_time = itwc.util.extend(itwc.Component,{
         });
     }
 });
-itwc.component.itwc_edit_editlet = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl, tmp;
@@ -563,7 +563,7 @@ itwc.component.itwc_edit_editlet = itwc.util.extend(itwc.Component,{
 		return fields;
 	}
 });
-itwc.ButtonComponent = itwc.util.extend(itwc.Component,{
+itwc.ButtonComponent = itwc.extend(itwc.Component,{
     domTag: 'a',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -606,19 +606,19 @@ itwc.ButtonComponent = itwc.util.extend(itwc.Component,{
         this.definition.taskId = taskId;
     }
 });
-itwc.component.itwc_actionbutton = itwc.util.extend(itwc.ButtonComponent,{
+itwc.component.itwc_actionbutton = itwc.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
         itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
     }
 });
-itwc.component.itwc_editbutton = itwc.util.extend(itwc.ButtonComponent,{
+itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
         itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value);
     }
 });
-itwc.component.itwc_icon= itwc.util.extend(itwc.Component,{
+itwc.component.itwc_icon= itwc.extend(itwc.Component,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
@@ -646,7 +646,7 @@ itwc.component.itwc_icon= itwc.util.extend(itwc.Component,{
         el.classList.add('hint--left');
     }
 });
-itwc.component.itwc_container = itwc.util.extend(itwc.Container,{
+itwc.component.itwc_container = itwc.extend(itwc.Container,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
@@ -656,7 +656,7 @@ itwc.component.itwc_container = itwc.util.extend(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_panel = itwc.util.extend(itwc.Container,{
+itwc.component.itwc_panel = itwc.extend(itwc.Container,{
     defaultHeight: 'flex',
     initDOMEl: function() {
         var me = this,
@@ -683,7 +683,7 @@ itwc.component.itwc_panel = itwc.util.extend(itwc.Container,{
         this.domEl.childNodes[0].innerHTML = title;
     }
 });
-itwc.component.itwc_tabset = itwc.util.extend(itwc.Container,{
+itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
     isContainer: false, //Don't size as container
     itemsOffset: 1,
     defaultWidth: 'flex',
@@ -759,7 +759,7 @@ itwc.component.itwc_tabset = itwc.util.extend(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_tabitem = itwc.util.extend(itwc.Container,{
+itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
 
     initDOMEl: function(itemIdx) {
         var me = this,
@@ -799,7 +799,24 @@ itwc.component.itwc_tabitem = itwc.util.extend(itwc.Container,{
         me.definition.closeTaskId = closeTaskId;
     }
 });
-itwc.component.itwc_choice_dropdown = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_window = itwc.extend(itwc.Container,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl;
+
+        el.classList.add('window');
+
+        if(me.definition.title) {
+            header = document.createElement('div');
+            header.innerHTML = me.definition.title;
+            header.classList.add('panel-header');
+
+            el.appendChild(header);
+            me.itemsOffset = 1;
+        }
+    }
+});
+itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
     defaultWidth: 'wrap',
     domTag: 'select',
     initDOMEl: function() {
@@ -839,7 +856,7 @@ itwc.component.itwc_choice_dropdown = itwc.util.extend(itwc.Component,{
         me.domEl.value = value;
     }
 });
-itwc.component.itwc_choice_radiogroup = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_choice_radiogroup = itwc.extend(itwc.Component,{
     domTag: 'ul',
     initDOMEl: function() {
         var me = this,
@@ -874,7 +891,7 @@ itwc.component.itwc_choice_radiogroup = itwc.util.extend(itwc.Component,{
         });
     }
 });
-itwc.component.itwc_choice_checkboxgroup = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
     domTag: 'ul',
     initDOMEl: function() {
         var me = this,
@@ -907,7 +924,7 @@ itwc.component.itwc_choice_checkboxgroup = itwc.util.extend(itwc.Component,{
         });
     }
 });
-itwc.component.itwc_choice_tree = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
@@ -977,8 +994,7 @@ itwc.component.itwc_choice_tree = itwc.util.extend(itwc.Component,{
         });
     }
 });
-
-itwc.component.itwc_choice_grid = itwc.util.extend(itwc.Component,{
+itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
@@ -1061,6 +1077,9 @@ itwc.controller.prototype = {
 
         itwc.UI.init();
         itwc.UI.render(0);
+
+        //Empty list of windows
+        itwc.WINDOWS = [];
 
         //Listen for changes in the viewport size
         //window.addEventListener('resize',this.onWindowResize,this);
@@ -1181,6 +1200,12 @@ itwc.controller.prototype = {
                         me.addComponent(cmp,op.arguments[0],op.arguments[1]);
                         cmp.afterAdd();
                         break;
+                    case 'addWindow':
+                        me.addWindow(cmp,op.arguments[0],op.arguments[1]);
+                        break;
+                    case 'removeWindow':
+                        me.removeWindow(op.arguments[0]);
+                        break;
                     default:
                         cmp.applyUpdate(op.method,op.arguments);
                         break;
@@ -1190,7 +1215,13 @@ itwc.controller.prototype = {
     },
     //Apply update instructions to global ui tree.
     findComponent: function(path) {
-        var cmp = itwc.UI;
+        var cmp;
+        if(path.length && path[0] === 'w') {
+            cmp = itwc.WINDOWS[path[1]];
+            path.splice(0,2);
+        } else {
+            cmp = itwc.UI;
+        }
         path.forEach(function(step) {
             cmp = (step === 'm') ? cmp.menu : cmp.items[step];
         });
@@ -1251,6 +1282,32 @@ itwc.controller.prototype = {
         if(parentCmp.afterItemRemoved) {
             parentCmp.afterItemRemoved(removeIdx);
         }
+    },
+    addWindow: function(viewport,winIdx,winDef) {
+        var me = this,
+            win;
+
+        win = new itwc.component.itwc_window();
+        win.init(winDef,viewport);
+        win.render(winIdx);
+
+        //Add window's children
+        if(winDef.items) {
+            winDef.items.forEach(function(childCmp,childIdx) {
+                me.addComponent(win,childIdx,childCmp);
+            });
+        }
+        itwc.WINDOWS[winIdx] = win;
+
+        //Inject in DOM
+        document.body.appendChild(win.domEl);
+        //Position window
+        win.domEl.style.left = ((document.body.offsetWidth / 2) - (win.domEl.offsetWidth / 2)) + 'px';
+        win.domEl.style.top = ((document.body.offsetHeight / 2) - (win.domEl.offsetHeight / 2)) + 'px';
+    },
+    removeWindow: function(winIdx) {
+        document.body.removeChild(itwc.WINDOWS[winIdx].domEl);
+        itwc.WINDOWS.splice(winIdx,1);
     },
     start: function () {
         var me = this;

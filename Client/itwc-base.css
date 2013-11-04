@@ -341,3 +341,16 @@ body {
 .menubar ul ul li a {
     border: none;
 }
+.window {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 100;
+    display: flex;
+
+    background-color: #eee;
+    border: 1px solid #ccc;
+    overflow: auto;
+    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
+    border-radius: 5px;
+}
