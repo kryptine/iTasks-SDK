@@ -1,6 +1,7 @@
 //#### iTasks Web Client ####//
 //This javascript program defines the web-based run-time environment of iTasks programs
 itwc = {};
+itwc.global = {};
 
 //#### UTILITY FUNCTIONS ####//
 itwc.util = {};
@@ -20,7 +21,6 @@ itwc.util.extend = function(inheritFrom,definition) {
     }
     return c;
 }
-
 //#### GENERIC UI COMPONENT BASE DEFINITIONS ####//
 itwc.Component = function() {};
 itwc.Component.prototype = {
@@ -227,7 +227,6 @@ itwc.component.itwc_actionmenuitem = itwc.util.extend(itwc.Component,{
     },
     initSize: function() {} //Don't size
 });
-
 itwc.component.itwc_viewport = itwc.util.extend(itwc.Container,{
     render: function() {
         var me = this, i;
@@ -254,6 +253,20 @@ itwc.component.itwc_view_html = itwc.util.extend(itwc.Component,{
     },
     setValue: function(value) {
         this.domEl.innerHTML = value;
+    }
+});
+itwc.component.itwc_view_checkbox = itwc.util.extend(itwc.Component,{
+    domTag: 'input',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+
+        el.type = 'checkbox';
+        el.checked = me.definition.value;
+        el.disabled = true;
+    },
+    setValue: function(value) {
+        this.domEl.checked = value;
     }
 });
 itwc.component.itwc_edit_string = itwc.util.extend(itwc.Component,{
@@ -298,6 +311,23 @@ itwc.component.itwc_edit_note= itwc.util.extend(itwc.Component,{
     },
     setEditorValue: function(value) {
         this.domEl.value = value;
+    }
+});
+itwc.component.itwc_edit_checkbox = itwc.util.extend(itwc.Component,{
+    domTag: 'input',
+    defaultWidth: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'checkbox';
+        el.checked = me.definition.value;
+
+        el.addEventListener('click',function(e) {
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.checked);
+        });
+    },
+    setValue: function(value) {
+        this.domEl.checked = value;
     }
 });
 itwc.component.itwc_edit_number = itwc.util.extend(itwc.Component,{
@@ -377,6 +407,161 @@ itwc.component.itwc_edit_time = itwc.util.extend(itwc.Component,{
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
     }
+});
+itwc.component.itwc_edit_editlet = itwc.util.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl, tmp;
+
+        me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
+		itwc.global.controller.editlets[me.htmlId] = me;
+
+        el.innerHTML = me.definition.html;
+
+        //Prepare javascript
+        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
+            evalScript(me.definition.script);
+        }
+        if(me.definition.defVal != null) {
+            eval("tmp = eval(" + me.definition.defVal + ");");
+            me.value = Sapl.feval([tmp,[0]]); // the actual argument doesnt matter
+            delete me.definition.defVal;
+        }
+        if(me.definition.appDiff != null) {
+            eval("tmp = eval(" + me.definition.appDiff + ");");
+            me.appDiff = tmp;
+            delete me.definition.appDiff;
+        }
+        if(me.definition.genDiff != null) {
+            eval("tmp = eval(" + me.definition.genDiff + ");");
+            me.genDiff = tmp;
+            delete me.definition.genDiff;
+        }
+        if(me.definition.updateUI != null) {
+            eval("tmp = eval(" + me.definition.updateUI + ");");
+            me.updateUI = tmp;
+            delete me.definition.updateUI;
+        }
+	},
+    addManagedListener: function(obj,eventname,handler,thisObj) {
+        var me = this;
+        //TEMPORARY FOR EXTJS STUFF IN EXTJS STYLE
+        if(eventname == "afterlayout") {
+            me.eventAfterLayout = handler;
+        }
+    },
+    afterAdd: function() {
+        var me = this;
+        if(me.definition.initDiff != null) {
+			tmp = me.jsToSaplJSONNode(me.definition.initDiff);
+			me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);			
+            console.log("A");
+		    me.fireUpdateEvent(__Data_Maybe_Nothing());
+		} else {
+            console.log("B");
+			me.fireUpdateEvent(__Data_Maybe_Nothing());
+		}
+
+        //TEMPORARY FOR EXTJS STUFF
+        if(me.eventAfterLayout) {
+            me.eventAfterLayout.apply(me,["dummy event"]);
+        }
+    },
+    fireUpdateEvent: function (mbDiff) {
+		var me = this;
+		(me.eventHandler(false,me.updateUI))(mbDiff);		
+	},
+	// Creating a closure
+	eventHandler: function(dowrap,expr){
+		var me = this;
+		
+		var h = function(event){			
+			if(dowrap) event = ___wrapJS(event);
+			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
+
+			//Strict evaluation of all the fields in the result tuple
+			Sapl.feval(ys[2]);
+			Sapl.feval(ys[3]);
+			//Determine diff before overwriting me.value (using superstrict evaluation)
+			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
+			
+			me.value = ys[2];
+			//Synchronize
+			if(diff !== null) {
+				itwc.controller.sendEditEvent(me.taskId,me.editorId,diff);
+			}
+		};
+		return h;
+	},
+	//Util functions for exchanging between the values of the clean type Text.JSONNode in
+	//the format used in the Sapl interpreter and 'raw' javascript objects
+	jsToSaplJSONNode: function (obj) {
+		var me = this,
+			args, i, k;
+		
+		if(obj === null) {
+			return [0,"Text.JSON.JSONNull"];
+		}
+		switch(typeof(obj)) {
+			case "boolean":
+				return [1,"Text.JSON.JSONBool",obj];
+			case "number":
+				if(isInteger(obj)) {
+					return [2,"Text.JSON.JSONInt",obj];
+				} else {
+					return [3,"Text.JSON.JSONReal",obj];
+				}
+			case "string":
+				return [4,"Text.JSON.JSONString",obj]
+			case "object": //Null, array or object
+				if(isArray(obj)) {
+					//Don't use Sapl.toList to prevent going through the array twice
+					args = [1,"_predefined._Nil"];
+					for(i = obj.length - 1; i >= 0; i--) {
+						args = [0,"_predefined._Cons",me.jsToSaplJSONNode(obj[i]),args];
+					}
+					return [5,"Text.JSON.JSONArray",args];
+				} else {
+                    args = [1,"_predefined._Nil"];
+                    for(k in obj) {
+                        args = [0,"_predefined._Cons",Sapl.toTuple([k,me.jsToSaplJSONNode(obj[k])]),args];
+                    }
+                    return [6,"Text.JSON.JSONObject",args];
+				}
+		}
+		return [8,'JSONError'];
+	},	
+	jsFromSaplJSONNode: function (sapl) {
+		switch(sapl[0]) {
+			case 0:	return null;
+			case 1: return sapl[2];
+			case 2: return sapl[2];
+			case 3: return sapl[2];
+			case 4: return sapl[2];
+			case 5: return this.jsFromList(sapl[2]);
+			case 6:
+				return this.jsFromFieldList({},sapl[2]);			
+		}
+	},
+	jsFromList: function(sapl) {
+		if(sapl[0] == 0) {
+			return ([this.jsFromSaplJSONNode(sapl[2])]).concat(this.jsFromList(sapl[3]));
+		} else {
+			return [];
+		}
+	},
+	jsFromFieldList: function (fields,sapl) {
+		
+		if(sapl[0] == 0) {
+			fields = this.jsFromField(fields,sapl[2]);
+			fields = this.jsFromFieldList(fields,sapl[3]);
+		}
+		return fields;
+	},
+	jsFromField: function (fields,sapl) {
+		fields[sapl[2]] = this.jsFromSaplJSONNode(sapl[3]);
+		return fields;
+	}
 });
 itwc.ButtonComponent = itwc.util.extend(itwc.Component,{
     domTag: 'a',
@@ -654,6 +839,74 @@ itwc.component.itwc_choice_dropdown = itwc.util.extend(itwc.Component,{
         me.domEl.value = value;
     }
 });
+itwc.component.itwc_choice_radiogroup = itwc.util.extend(itwc.Component,{
+    domTag: 'ul',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            inputName = "choice-" + me.definition.taskId + "-" + me.definition.editorId,
+            value = me.definition.value.length ? me.definition.value[0] : null;
+
+        el.classList.add('choice-radiogroup');
+
+        me.definition.options.forEach(function(option,idx) {
+            var liEl,inputEl,labelEl;
+            liEl = document.createElement('li');
+            inputEl = document.createElement('input');
+            inputEl.type = 'radio';
+            inputEl.value = idx;
+            inputEl.name = inputName;
+            inputEl.id = inputName + "-option-" + idx;
+            if(idx === value) {
+                inputEl.checked = true;
+            }
+            inputEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx);
+            });
+            liEl.appendChild(inputEl);
+
+            labelEl = document.createElement('label');
+            labelEl.setAttribute('for',inputName + "-option-" + idx);
+            labelEl.innerHTML = option;
+            liEl.appendChild(labelEl);
+
+            el.appendChild(liEl);
+        });
+    }
+});
+itwc.component.itwc_choice_checkboxgroup = itwc.util.extend(itwc.Component,{
+    domTag: 'ul',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            inputName = "choice-" + me.definition.taskId + "-" + me.definition.editorId,
+            value = me.definition.value || [];
+
+        el.classList.add('choice-checkboxgroup');
+        me.definition.options.forEach(function(option,idx) {
+            var liEl,inputEl,labelEl;
+            liEl = document.createElement('li');
+            inputEl = document.createElement('input');
+            inputEl.type = 'checkbox';
+            inputEl.value = idx;
+            inputEl.id = inputName + "-option-" + idx;
+            if(value.indexOf(idx) !== -1) {
+                inputEl.checked = true;
+            }
+            inputEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked]);
+            });
+            liEl.appendChild(inputEl);
+
+            labelEl = document.createElement('label');
+            labelEl.setAttribute('for',inputName + "-option-" + idx);
+            labelEl.innerHTML = option;
+            liEl.appendChild(labelEl);
+
+            el.appendChild(liEl);
+        });
+    }
+});
 itwc.component.itwc_choice_tree = itwc.util.extend(itwc.Component,{
     initDOMEl: function() {
         var me = this,
@@ -798,11 +1051,11 @@ itwc.controller = function() {
 };
 itwc.controller.prototype = {
 
+    editlets: {},
+
     initUI: function () {
         //Initialize the client component tree and DOM
         itwc.DOMID = 1000;
-        itwc.TASKLETS = {};
-        itwc.EDITLETS = {};
 
         itwc.UI = new itwc.component.itwc_viewport();
 
@@ -1010,6 +1263,8 @@ itwc.controller.prototype = {
 
 //Set up a singleton controller object
 itwc.controller = new itwc.controller();
+itwc.global.controller = itwc.controller; //Backwards compatibility
+
 //Start the controller when the bootstrap page has loaded
 window.onload = function() {
     itwc.controller.start();

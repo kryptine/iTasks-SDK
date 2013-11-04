@@ -223,6 +223,13 @@ body {
     flex: 1;
     padding: 3px 5px;
 }
+.choice-radiogroup, .choice-checkboxgroup {
+    margin: 0;
+    padding: 0;
+}
+.choice-radiogroup li, .choice-checkboxgroup li {
+    list-style: none;
+}
 .choicetree {
     overflow: auto;
     background: #fff;
