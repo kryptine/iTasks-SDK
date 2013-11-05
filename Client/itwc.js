@@ -65,8 +65,10 @@ itwc.Component.prototype = {
         if(width === 'flex') {
             if(direction == 'horizontal') {
                 el.style.flex = 1;
+                el.style.webkitFlex = 1;
             } else {
                 el.style.alignSelf = 'stretch';
+                el.style.webkitAlignSelf = 'stretch';
             }
         } else if (width === 'wrap') {
         } else {
@@ -76,8 +78,10 @@ itwc.Component.prototype = {
         if(height === 'flex') {
             if(direction == 'vertical') {
                 el.style.flex = 1;
+                el.style.webkitFlex = 1;
             } else {
                 el.style.alignSelf = 'stretch';
+                el.style.webkitAlignSelf = 'stretch';
             }
         } else if (height === 'wrap') {
         } else {
@@ -104,9 +108,9 @@ itwc.Component.prototype = {
         if(me.definition.halign) {
             if(me.definition.direction == 'horizontal') {
                 switch(me.definition.halign) {
-                    case 'left':    el.style.justifyContent = 'flex-start'; break;
-                    case 'center':  el.style.justifyContent = 'center'; break;
-                    case 'right':   el.style.justifyContent = 'flex-end'; break;
+                    case 'left':    el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
+                    case 'center':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
+                    case 'right':   el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
                 }
             } else {
                 //TODO

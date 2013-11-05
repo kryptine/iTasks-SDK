@@ -6,9 +6,13 @@ body {
     font-size: 9pt;
 
     display: flex;
+    display: -webkit-flex;
     flex-direction: column;
+    -webkit-flex-direction: column;
     align-items: center;
+    -webkit-align-items: center;
     justify-content: center;
+    -webkit-justify-content: center;
 }
 .button {
     font-size: 8pt;
@@ -19,8 +23,11 @@ body {
     border-radius: 3px;
 
     display: flex;
+    display: -webkit-flex;
     flex-direction: row;
+    -webkit-flex-direction: row;
     align-items: center;
+    -webkit-align-items: center;
     padding: 3px;
     text-decoration: none;
     color: #000;
@@ -48,11 +55,15 @@ body {
 }
 .vcontainer {
     display: flex;
+    display: -webkit-flex;
     flex-direction: column;
+    -webkit-flex-direction: column;
 }
 .hcontainer {
     display: flex;
+    display: -webkit-flex;
     flex-direction: row;
+    -webkit-flex-direction: row;
 }
 .icon {
     width: 16px;
@@ -77,8 +88,11 @@ body {
 /* Tabs */
 .tabset {
     display: flex;
+    display: -webkit-flex;
     align-items: stretch;
+    -webkit-align-items: stretch;
     flex-direction: column;
+    -webkit-flex-direction: column;
 }
 .tabbar {
     text-align: left;
@@ -158,7 +172,9 @@ body {
 }
 .tabitem.selected {
    display: flex;
+   display: -webkit-flex;
    flex: 1;
+   -webkit-flex: 1;
    background: #fff;
    z-index: 2;
    border: 1px solid #aaa;
@@ -180,30 +196,38 @@ body {
 }
 .choicegrid {
     display: flex;
+    display: -webkit-flex;
     flex-direction: column;
+    -webkit-flex-direction: column;
 }
 .choicegrid-header {
     background: #eee;
     background: -moz-linear-gradient(center top , #F9F9F9, #E3E4E6);
     background: -webkit-linear-gradient(center top , #F9F9F9, #E3E4E6);
     display: flex;
+    display: -webkit-flex;
     flex-direction: row;
+    -webkit-flex-direction: row;
 }
 .choicegrid-header > div {
     border: 1px solid;
     border-color:  #fff #fff #ccc #ccc;
     flex: 1;
+    -webkit-flex: 1;
     padding: 3px 5px;
     font-size: 11px;
 }
 .choicegrid-body {
     flex: 1;
+    -webkit-flex: 1;
     background: #fff;
     overflow: auto;
 }
 .choicegrid-body > div {
     display: flex;
+    display: -webkit-flex;
     flex-direction: row;
+    -webkit-flex-direction: row;
     cursor: default;
     border: solid transparent;
     border-width: 1px 0;
@@ -221,6 +245,7 @@ body {
 }
 .choicegrid-body > div > div {
     flex: 1;
+    -webkit-flex: 1;
     padding: 3px 5px;
 }
 .choice-radiogroup, .choice-checkboxgroup {
@@ -347,6 +372,7 @@ body {
     left: 0px;
     z-index: 100;
     display: flex;
+    display: -webkit-flex;
 
     background-color: #eee;
     border: 1px solid #ccc;
