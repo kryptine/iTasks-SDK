@@ -161,8 +161,8 @@ jsTrace val world
 
 jsValToString :: !(JSVal a) -> String
 jsValToString ptr = case fromJSValUnsafe ptr of
-					(val :: Real)   = toString val
 					(val :: String) = val
+					(val :: Real)   = toString val
 					(val :: Int)    = toString val
 					val				= jsAbort val
 									//= jsAbort "JSVal cannot be converted to String"
