@@ -2,7 +2,7 @@ definition module iTasks.API.Extensions.CodeMirror
 
 import iTasks.API.Core.Client.Editlet
 
-:: CodeMirrorClientSt = { 
+:: CodeMirrorClientSt = {
 		  codeMirror 			:: !JSVal JSObject
 		, systemEventHandlers	:: ![(!String, !JSVal (JSFunction JSObject))]
 		}
@@ -68,6 +68,6 @@ derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gVerify	        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc CodeMirrorClient)] 
+					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 

@@ -106,6 +106,7 @@ where
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg (onChange "zoom")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "click", toJSArg onClick] mapevent world	
 
+        # world = jsTrace mapobj world
         # (editlets,world)  = findObject "itwc.global.controller.editlets" world
         # (cmp,world)       = jsGetObjectAttr cid editlets world
         # (_,world)         = callObjectMethod "addManagedListener" [toJSArg cmp,toJSArg "afterlayout",toJSArg onAfterComponentLayout,toJSArg cmp] cmp world

@@ -298,7 +298,7 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, script		:: !String
 	, events		:: ![(!String,!String,!String)]
 	, defVal		:: !String	
-	, initDiff		:: !JSONNode	
+	, initDiff		:: !String
 	, updateUI		:: !String
 	, genDiff		:: !String
 	, appDiff		:: !String

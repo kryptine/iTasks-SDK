@@ -142,6 +142,11 @@ function __iTasks_API_Core_Client_Interface_jsTypeof(obj) {
 	obj = ___unwrapJS(Sapl.feval(obj));
 	return (typeof obj);
 }
+function __iTasks_API_Core_Client_Interface_jsAbort(obj) {
+    console.log(obj);
+	//obj = ___unwrapJS(Sapl.feval(obj));
+    throw obj;
+}
 
 // newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
 function __iTasks_API_Core_Client_Interface_newJSArray(world){

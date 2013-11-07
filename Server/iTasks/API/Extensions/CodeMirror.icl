@@ -72,7 +72,7 @@ where
 	isSetTheme _ = False
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc CodeMirrorClient)] 
+					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 			  
 codeMirrorEditlet g eventhandlers = Editlet g
@@ -100,19 +100,17 @@ where
 	sourcearea id = "cm_source_" +++ id
 	
 	// init
-	onUpdate cid Nothing clval world
+	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
 		# (obj, world) = findObject "CodeMirror.defaults" world
 		| not (jsIsUndefined obj)
-		= onLoad cid undef clval world
-	
+		    = onLoad mbDiffs cid undef clval world
 		# world = addJSFromUrl "codemirror.js" Nothing world
 		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
 		# world = addCSSFromUrl "codemirror.css" world
-		
-		= (clval, world)
-	where
-		handler = createEditletEventHandler onLoad cid
-	
+        = (clval,world)
+    where
+		handler = createEditletEventHandler (onLoad mbDiffs) cid
+
 	// update
 	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror}} world	
 		// disable system event handlers
@@ -125,7 +123,7 @@ where
 
 		# world = case find isSetPos nopts of
 			Nothing    	= world
-			(Just (SetPosition idx)) 	
+			(Just (SetPosition idx))	
 						# (pos, world) = posFromIndex idx cmdoc world 
 						= snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)
 
@@ -167,12 +165,12 @@ where
 
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
 	
-	onLoad cid _ clval=:{val={source,configuration}} world
+	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
 		# (ta, world) = getDomElement (sourcearea cid) world
 		# world = jsSetObjectAttr "value" (toJSVal source) ta world
 		
 		# (cmobj, world) = findObject "CodeMirror" world
-		# (co, world) = createConfigurationObject configuration world 
+		# (co, world) = createConfigurationObject configuration world
 		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cmobj world
 		
 		# world = loadModulesIfNeeded configuration cm world
@@ -181,13 +179,14 @@ where
 		
 		# world = manageSystemEvents "on" st world	
 		# world = foldl (putOnEventHandler cm) world eventhandlers
-		
-		= ({clval & mbSt = Just st}, world)
+	
+        //Call onUpdate to initialize the editor	
+        = onUpdate cid mbDiff {clval & mbSt = Just st} world
 	where
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
 
-		systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
+		systemEvents = [/*("cursorActivity",	createEditletEventHandler onCursorActivity cid),*/
 						("change",			createEditletEventHandler onChange cid)]
 
 		isSetMode (CMMode _) = True
@@ -207,7 +206,14 @@ where
 	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
-		= ({clval & val={clval.val & source = jsValToString newsource}}, world)
+        //| jsTypeof newsource == "string"
+            //# world = jsTrace (jsTypeof newsource,newsource) world
+        = ({clval & val={clval.val & source = jsValToString newsource}}, world)
+        /*
+        | otherwise
+            # world = jsTrace "source undefined" world
+            = (clval,world)
+            */
 
 	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world

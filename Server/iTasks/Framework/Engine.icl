@@ -214,9 +214,9 @@ initIWorld sdkDir world
 	  ,localTasks			= newMap
       ,eventRoute			= newMap
 	  ,readShares			= []
-	  ,uiDiffers			= newMap
 	  ,sessions				= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
+      ,editletDiffs         = newMap
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
 	  ,shutdown				= False

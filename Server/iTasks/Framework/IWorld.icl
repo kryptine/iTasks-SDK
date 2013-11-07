@@ -7,7 +7,7 @@ from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from iTasks.Framework.TaskState		import :: TaskListEntry
-from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIDiffers
+from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World

@@ -427,22 +427,27 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             evalScript(me.definition.script);
         }
         if(me.definition.defVal != null) {
-            eval("tmp = eval(" + me.definition.defVal + ");");
+            eval("tmp = " + me.definition.defVal + ";");
             me.value = Sapl.feval([tmp,[0]]); // the actual argument doesnt matter
             delete me.definition.defVal;
         }
         if(me.definition.appDiff != null) {
-            eval("tmp = eval(" + me.definition.appDiff + ");");
+            eval("tmp = " + me.definition.appDiff + ";");
             me.appDiff = tmp;
             delete me.definition.appDiff;
         }
         if(me.definition.genDiff != null) {
-            eval("tmp = eval(" + me.definition.genDiff + ");");
+            eval("tmp = " + me.definition.genDiff + ";");
             me.genDiff = tmp;
             delete me.definition.genDiff;
         }
+        if(me.definition.initDiff != null) {
+            eval("tmp = " + me.definition.initDiff + ";");
+            me.initDiff = tmp;
+            delete me.definition.initDiff;
+        }
         if(me.definition.updateUI != null) {
-            eval("tmp = eval(" + me.definition.updateUI + ");");
+            eval("tmp = " + me.definition.updateUI + ";");
             me.updateUI = tmp;
             delete me.definition.updateUI;
         }
@@ -456,13 +461,11 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
     },
     afterAdd: function() {
         var me = this;
-        if(me.definition.initDiff != null) {
-			tmp = me.jsToSaplJSONNode(me.definition.initDiff);
-			me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);			
-            console.log("A");
-		    me.fireUpdateEvent(__Data_Maybe_Nothing());
+
+        if(me.initDiff != null) {
+			me.value = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);			
+		    me.fireUpdateEvent(me.initDiff);
 		} else {
-            console.log("B");
 			me.fireUpdateEvent(__Data_Maybe_Nothing());
 		}
 
@@ -488,53 +491,24 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			Sapl.feval(ys[3]);
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
-			
+
 			me.value = ys[2];
 			//Synchronize
 			if(diff !== null) {
-				itwc.controller.sendEditEvent(me.taskId,me.editorId,diff);
+                console.log("DIFF",diff);
+				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,diff);
 			}
 		};
 		return h;
 	},
-	//Util functions for exchanging between the values of the clean type Text.JSONNode in
-	//the format used in the Sapl interpreter and 'raw' javascript objects
-	jsToSaplJSONNode: function (obj) {
-		var me = this,
-			args, i, k;
-		
-		if(obj === null) {
-			return [0,"Text.JSON.JSONNull"];
-		}
-		switch(typeof(obj)) {
-			case "boolean":
-				return [1,"Text.JSON.JSONBool",obj];
-			case "number":
-				if(isInteger(obj)) {
-					return [2,"Text.JSON.JSONInt",obj];
-				} else {
-					return [3,"Text.JSON.JSONReal",obj];
-				}
-			case "string":
-				return [4,"Text.JSON.JSONString",obj]
-			case "object": //Null, array or object
-				if(isArray(obj)) {
-					//Don't use Sapl.toList to prevent going through the array twice
-					args = [1,"_predefined._Nil"];
-					for(i = obj.length - 1; i >= 0; i--) {
-						args = [0,"_predefined._Cons",me.jsToSaplJSONNode(obj[i]),args];
-					}
-					return [5,"Text.JSON.JSONArray",args];
-				} else {
-                    args = [1,"_predefined._Nil"];
-                    for(k in obj) {
-                        args = [0,"_predefined._Cons",Sapl.toTuple([k,me.jsToSaplJSONNode(obj[k])]),args];
-                    }
-                    return [6,"Text.JSON.JSONObject",args];
-				}
-		}
-		return [8,'JSONError'];
-	},	
+    applyDiff: function(saplDiff) {
+        var me = this,
+            tmp;
+        eval("tmp = " + saplDiff + ";");
+
+		me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);			
+        me.fireUpdateEvent(tmp);
+    },
 	jsFromSaplJSONNode: function (sapl) {
 		switch(sapl[0]) {
 			case 0:	return null;
@@ -1073,21 +1047,6 @@ itwc.controller.prototype = {
 
     editlets: {},
 
-    initUI: function () {
-        //Initialize the client component tree and DOM
-        itwc.DOMID = 1000;
-
-        itwc.UI = new itwc.component.itwc_viewport();
-
-        itwc.UI.init();
-        itwc.UI.render(0);
-
-        //Empty list of windows
-        itwc.WINDOWS = [];
-
-        //Listen for changes in the viewport size
-        //window.addEventListener('resize',this.onWindowResize,this);
-    },
     onWindowResize: function(e) {
         itwc.UI.afterResize();
     },
@@ -1151,7 +1110,13 @@ itwc.controller.prototype = {
         //Update event no
         me.lastReceivedEventNo = msg.lastEvent;
         //Update user interface
-        me.updateUI(msg.updates);
+        if(msg.updates) {
+            me.updateUI(msg.updates);
+        }
+        if(msg.done) {
+            me.reset();
+            return;
+        }
         //Schedule automatic refresh when an expiration time is set
         //and we do not have a push event source
         if(!me.updateSource && !!window.EventSource) {
@@ -1169,6 +1134,8 @@ itwc.controller.prototype = {
         me.updateSource.addEventListener('message', me.onUpdatePushEvent.bind(me), false);
     },
     onResetPushEvent: function(e) {
+        var me = this;
+        me.reset();
     },
     onUpdatePushEvent: function (e) {
         var me = this;
@@ -1313,10 +1280,38 @@ itwc.controller.prototype = {
         document.body.removeChild(itwc.WINDOWS[winIdx].domEl);
         itwc.WINDOWS.splice(winIdx,1);
     },
+    reset: function() {
+        var me = this;
+
+        //Close push source
+        if(me.updateSource) {
+            me.updateSource.close();
+            me.updateSource = null;
+        }
+
+        ///Reset session
+        me.session = null;
+        //Empty event queue
+        me.taskEvents = [];
+        me.nextSendEventNo = 0;
+        me.flushingTaskEvents = false;
+        me.refresher = null;
+
+        //Initialize the client component tree and DOM
+        itwc.DOMID = 1000;
+
+        itwc.UI = new itwc.component.itwc_viewport();
+
+        itwc.UI.init();
+        itwc.UI.render(0);
+
+        //Empty list of windows
+        itwc.WINDOWS = [];
+    },
     start: function () {
         var me = this;
         //Initialize user interface data structures and DOM
-        me.initUI();
+        me.reset();
         //Start a session by sending a blank event
         me.queueTaskEvent({});
     }

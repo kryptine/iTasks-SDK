@@ -9,7 +9,7 @@ import iTasks.API.Core.SystemTypes
 //Flag for disabling use of the compiled version of the client javascript
 //only useful when doing work on the client framework
 IF_CLIENT_DEV yes no	:== yes
-IF_USE_EXTJS yes no     :== yes
+IF_USE_EXTJS yes no     :== no
 ITWC_THEME              :== "gray"
 
 //The representation of the JSON service
