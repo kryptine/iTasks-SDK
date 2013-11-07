@@ -1,12 +1,13 @@
 Ext.define('itwc.component.edit.String',{
 	extend: 'Ext.form.field.Text',
 	alias: 'widget.itwc_edit_string',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 
-	width: 'flex',
-	minWidth: 200,
+	itwcWidth: 'flex',
+	itwcMinWidth: 200,
 
 	initComponent: function() {
+        this.initSize();
 		this.callParent(arguments);
 		this.initEditable();
 	}

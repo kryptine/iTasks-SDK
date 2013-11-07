@@ -1,10 +1,33 @@
 module Auction
 
+import iTasks
+import iTasks.API.Extensions.Admin.UserAdmin
+import iTasks.Framework.Tonic
+
 //:%s/<I\d*, E\d*>\|<\d*>//g 
 
-Start = 0
+Start :: *World -> *World
+Start world = startEngine [ publish "/" WebApp (\_ -> runAuction)
+                          , tonicPubTask "Auction"] world
 
-import iTasks
+
+runAuction :: Task Void
+runAuction = forever (
+      (viewTitle "English Auction"
+  ||- enterInformation ("Login", "Enter your credentials and login") [])
+  >>* [ OnAction (Action "Login" [ActionIcon "login", ActionKey (unmodified KEY_ENTER)]) (hasValue authenticatedTonic)
+      ])
+  where
+  authenticatedTonic {Credentials|username, password}
+    =            authenticateUser username password >>=
+      \mbUser -> case mbUser of
+                   Just user -> workAs user (prepAuction user) >>| return Void
+                   Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+
+wares :: Shared [String]
+wares = sharedStore "Wares" []
+
+prepAuction cu = get users >>- \users -> auction (updateInformation "Enter a new bid" []) cu users {Bid | user = cu, ware = "Awesome", price = 1337}
 
 :: Bid =
   {  user   :: User
@@ -33,50 +56,3 @@ auction bidf auctioneer bidders current =
       False -> case newBid.user == auctioneer of
                  True  -> return current
                  False -> auction bidf auctioneer bidders current
-
-//auction :: (Bid -> Task Bid) User [User] Bid -> Task Bid
-//auction bidf auctioneer bidders current =
-  //anyTask  [  return { Bid | user = auctioneer, ware = "food", price = 42 }
-           //,  return { Bid | user = auctioneer, ware = "food", price = 42 }] >>= \newBid ->
-  ////anyTask [auctioneer @: bidf current, auctioneer @: bidf current] >>= \newBid ->
-    //case newBid.price > current.price of
-      //True  -> (\current -> auction bidf auctioneer bidders current) newBid
-      //False -> case newBid.user == auctioneer of
-                 //True  -> return current
-                 //False -> auction bidf auctioneer bidders current
-
-//auction :: (Bid -> Task Bid) User [User] Bid -> Task Bid
-//auction bidf auctioneer bidders current =
-  //return { Bid | user = auctioneer, ware = "food", price = 42 } >>= \newBid ->
-    //case newBid.price > current.price of
-      //True  -> (\current -> auction bidf auctioneer bidders current) newBid
-      //False -> case newBid.user == auctioneer of
-                 //True  -> return current
-                 //False -> auction bidf auctioneer bidders current
-
-//auction :: (Bid -> Task Bid) User [User] Bid -> Task Bid
-//auction bidf auctioneer bidders current =
-  //return { Bid | user = auctioneer, ware = "food", price = 42 } >>= \newBid ->
-    //case newBid.price > current.price of
-      //True  -> auction bidf auctioneer bidders newBid
-      //False -> case newBid.user == auctioneer of
-                 //True  -> return current
-                 //False -> auction bidf auctioneer bidders current
-
-//auction :: (Bid -> Task Bid) User [User] Bid -> Task Bid
-//auction bidf auctioneer bidders current =
-  //return { Bid | user = auctioneer, ware = "food", price = 42 } >>= \newBid ->
-    //if (newBid.price > current.price)
-      //(auction bidf auctioneer bidders newBid)
-      //(if (newBid.user == auctioneer)
-         //(return current)
-         //(auction bidf auctioneer bidders current))
-
-//auction :: Task Int
-//auction = let x = 1
-          //in let y = 2
-             //in return (x + y)
-//auction = case True of
-            //True  -> return 1
-            //False -> return 0
-

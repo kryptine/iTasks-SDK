@@ -15,14 +15,46 @@ import StdDebug
                  FunctionS String String Int [DynamicSapl] | ArrayS Int [DynamicSapl] | ListS [DynamicSapl] |
                  TupleS Int [DynamicSapl] | RecS String String Int [DynamicSapl]
 
+cb :: Int
+cb =: fromChar '\b'
+cv :: Int
+cv =: fromChar '\v' 
+
+escapeString :: Char String -> String
+escapeString qc str = toString [qc: flatten (escapeString` (fromString str))]
+where
+	escapeString` :: [Char] -> [[Char]]
+	escapeString` [] = [[qc]]
+	escapeString` ['\'':chars] = [['\\\'']: escapeString` chars]
+	escapeString` ['\"':chars] = [['\\\"']: escapeString` chars]	
+	escapeString` [c   :chars] 
+		| isPrint c
+			= [[c] : escapeString` chars] 
+			= [toHex (fromChar c):  escapeString` chars]
+	
+	toHex i
+		| i == 0  = ['\\0']
+		| i == 7  = ['\\a']		
+		| i == cb = ['\\b']
+		| i == cv = ['\\v']	
+
+	toHex i = ['\\x'] ++ ['0' \\ a <- [1..2-length letters]] ++ reverse (toHex` i)
+	where
+		letters = reverse (toHex` i)
+		
+		toHex` 0 = []
+		toHex` i = [hex.[i bitand 15]:toHex` (i >> 4)]  
+		where
+			hex = "0123456789ABCDEF" 
+
 makeSaplExpression :: !DynamicSapl -> String
 makeSaplExpression e = mkse e
 where
  mkse (IntS i)              = toString i
  mkse (BoolS b)             = toString b
- mkse (CharS c)         	= toString c
+ mkse (CharS c)         	= escapeString '\'' (toString c)
  mkse (RealS r)         	= toString r
- mkse (StringS s)       	= "\"" +++  s  +++ "\""
+ mkse (StringS s)       	= escapeString '"' s
  mkse (CstrS mod name _ []) = makePrintableName (mod +++ "." +++ makeSaplName name)
  mkse (CstrS mod name _ as) = "(" +++ makePrintableName (mod +++ "."  +++ makeSaplName name) +++ args as +++ ")"
  mkse (FunctionS mod name _ []) = makePrintableName (mod +++ "."  +++ makeSaplName name)
@@ -57,7 +89,7 @@ string_to_graph thread = abort "Cannot create Sapl graph while you are in Clean.
 
 graph_to_sapl_dynamic :: !a -> DynamicSapl
 graph_to_sapl_dynamic graph
-      # (g,d,m) = graph_to_string_with_descriptor_and_module_table graph
+      # (g,d,m) = graph_to_string_with_descriptor_and_module_table graph      
       # (v,_) = convertfromdyn g d m
       = v
 
@@ -114,11 +146,12 @@ getName i s = s % (i,poszero-1)
 where poszero = hd [n\\ n <- [i+1..(size s)]| s.[n] == '\0']
     
 convertfromdyn str ds md = decodeDyn 0
-where                               
+where
 	decodeDyn pos
 	# dnr               = sifs pos str
 	| dnr < 0           = getEarlierElem (pos + dnr - 1) (pos+IF_INT_64_OR_32 8 4) // shared node
-	# desc_type         = ds.[dnr-1].[0]
+	# desc				= ds.[dnr-1]
+	# desc_type         = desc.[0]
 	# next_pos = pos+IF_INT_64_OR_32 8 4
 	| desc_type == 'i'  = (IntS (sifs next_pos str),pos+IF_INT_64_OR_32 16 8) // Int
 	| desc_type == 'c'  = (CharS (scfs next_pos str),pos+IF_INT_64_OR_32 16 8) // Char
@@ -128,12 +161,14 @@ where
 	//| desc_type == 'C' && size str > pos + 4 && sifs (pos+4) str < 0         // shared node in array
 	                    //= getEarlierElem (pos + 4 + sifs (pos+4) str + 3) (pos+8)       
 	| desc_type == 'C'
+		| desc.[1]=='0' // arity==0
+			= makeBoxedConstr desc pos
 		| size str > next_pos && sifs next_pos str < 0 // shared node in constructor
-	                    = makeBoxedConstr  pos
+	                    = makeBoxedConstr desc pos
 		| size str > next_pos && ds.[sifs next_pos str - 1].[0] == 's' // String
 	                    = readString next_pos
 		| size str > next_pos && ds.[sifs next_pos str - 1].[0] == 'a'
-			| sifs (pos+IF_INT_64_OR_32 24 12) str <> 0 // unboxed array 
+			| sifs (pos+IF_INT_64_OR_32 24 12) str <> 0 // unboxed array
 	                    # typedes = ds.[sifs (pos+IF_INT_64_OR_32 24 12) str-1]
 	                    # ssize = sifs (pos+IF_INT_64_OR_32 16 8) str
 	                    = makeUnboxedArray  typedes ssize (pos+IF_INT_64_OR_32 32 16)
@@ -141,7 +176,7 @@ where
 	                    # ssize = sifs (pos+IF_INT_64_OR_32 16 8) str
 	                    = makeBoxedArray ssize (pos+IF_INT_64_OR_32 32 16)
 		// boxed constructor or partial application
-		= makeBoxedConstr pos
+		= makeBoxedConstr desc pos
 	| desc_type == ':' // boxed list
 	                    = makeBoxedList pos 
 	| desc_type == 'R'
@@ -222,15 +257,12 @@ where
 	merge_elems [_:types]    ubels bels = [hd ubels : merge_elems types (tl ubels) bels]
 	
 	readMany  0 pos res = (res,pos)
-	readMany  n pos res 
+	readMany  n pos res
 	                 # (elem,newpos) = decodeDyn pos
 	                 = readMany (n-1) newpos (res ++ [elem])
 
-	makeBoxedConstr pos 
-	# dnr               = sifs pos str 
-	# desc              = ds.[dnr-1]
-	# desc_type         = desc.[0]
-	# nrargs            = arity (ds.[dnr-1].[1])
+	makeBoxedConstr desc pos
+	# nrargs            = arity desc.[1]
 	# modnr             = selectmodnr 3 desc
 	# name              = getName 5 desc
 	# modname           = md.[modnr-1]

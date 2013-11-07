@@ -9,11 +9,32 @@ from StdClass import class Ord, class Eq
 from Data.Map import :: Map, newMap, get, put
 from Data.Set import :: Set, newSet
 
-from iTasks.API.Core.Client.Interface import :: JSWorld
-from iTasks.API.Core.Client.Editlet import :: ComponentEventHandlerFunc, :: EditletEvent, :: ComponentId
+from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSEvent
+from iTasks.API.Core.Client.Component import :: ComponentEventHandlerFunc, :: ComponentEvent
+from iTasks.API.Core.Client.Editlet import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
 
 import iTasks.API.Core.SystemTypes, iTasks.Framework.IWorld
 import Sapl.Target.JS.CodeGeneratorJS, Sapl.Linker.LazyLinker, Sapl.SaplParser
+
+//---------------------------------------------------------------------------------------
+
+printlnI :: !String !*IWorld -> *IWorld
+printlnI msg iw=:{world} 
+	# (console,world)	= stdio world
+	# console			= fwrites msg console
+	# console			= fwrites "\n" console
+	# (_,world)			= fclose console world
+	= {iw & world = world} 
+
+println :: !String !*World -> *World
+println msg world 
+	# (console,world)	= stdio world
+	# console			= fwrites msg console
+	# console			= fwrites "\n" console
+	# (_,world)			= fclose console world
+	= world
+
+//---------------------------------------------------------------------------------------
 
 handlerr (Error str) = abort ("LinkerSupport.icl: " +++ str)
 handlerr (Ok a) = a
@@ -126,45 +147,49 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 	# (_, world) = writeFile "debug.sapl" sapl_lib world
 	# (_, world) = writeFile "debug.js" js_lib world
 */
-
 	= (js_ST, js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, mb_js_UF, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 editletLinker :: 
-	![(!String, !String, ComponentEventHandlerFunc a st)]	// event handlers
-	!ivf													// init value function
-	!uui													// updateUI function
-	!gdf													// gendiff function
-	!adf													// adddiff function
+	![(!String, !String, EditletEventHandlerFunc a)]	// event handlers
+	!idf												// initDiff function
+	!dvf												// defVal function
+	!uui												// updateUI function
+	!gdf												// gendiff function
+	!adf												// adddiff function
 	!*IWorld
 	->
 	*(!String									// JS code of the support code for all the expressions
 	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
-	 ,!String									// JS code of the init value function
+	 ,!String									// JS code of the initDiff	 
+	 ,!String									// JS code of the defVal function
 	 ,!String									// JS code of the updateUI function
 	 ,!String									// JS code of the gendiff function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)
 
-editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
+editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
+						iworld=:{world,currentSession=Nothing} = ("",[],"","","","","",iworld) //REALLY????
+editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
 						iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
 
 	// unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
+	# linkerstate = (loaderstate, ftmap, newSet/*maybe newSet id (get currentInstance skipmap)*/)
 
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
-	# (linkerstate, lib, sapl_IV, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initValueFunc) world
-	# (linkerstate, lib, sapl_UU, world) = linkByExpr linkerstate lib (graph_to_sapl_string updateUIFunc) world	
+	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
+	# (linkerstate, lib, sapl_DV, world) = linkByExpr linkerstate lib (graph_to_sapl_string defValFunc) world
+	# (linkerstate, lib, sapl_UU, world) = linkByExpr linkerstate lib (graph_to_sapl_string updateUIFunc) world
 	# (linkerstate, lib, sapl_GD, world) = linkByExpr linkerstate lib (graph_to_sapl_string genDiffFunc) world
 	# (linkerstate, lib, sapl_AD, world) = linkByExpr linkerstate lib (graph_to_sapl_string appDiffFunc) world
 
 	// link functions indicated by event handlers
 	# (linkerstate, lib, sapl_eventHandlers, world) 
-			= foldl (\(linkerstate, lib, os, world) (id, event, f) = 
+			= foldl (\(linkerstate, lib, os, world) (id, event, f) =
 				let (linkerstate`, lib`, f`, world`) = linkByExpr linkerstate lib (graph_to_sapl_string f) world
-				 in (linkerstate`, lib`, [(id,event,f`):os], world`)) 
+				 in (linkerstate`, lib`, [(id,event,f`):os], world`))
 			(linkerstate, lib, [], world) eventHandlers
 
 	// unwrap linker state
@@ -184,12 +209,13 @@ editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 	
 	/* 4. Generate expressions by ParserState */
 
-	# js_IV = toString (handlerr (exprGenerateJS flavour False sapl_IV mbparserstate))
+	# js_ID = toString (handlerr (exprGenerateJS flavour False sapl_ID mbparserstate))
+	# js_DV = toString (handlerr (exprGenerateJS flavour False sapl_DV mbparserstate))	
 	# js_UU = toString (handlerr (exprGenerateJS flavour False sapl_UU mbparserstate))	
 	# js_GD = toString (handlerr (exprGenerateJS flavour False sapl_GD mbparserstate))
 	# js_AD = toString (handlerr (exprGenerateJS flavour False sapl_AD mbparserstate))
 
-	# js_eventHandlers = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
+	# js_eventHandlers = map (\(id,event,saplhandler) = (id,event,toString (handlerr
 							(exprGenerateJS flavour False saplhandler mbparserstate)))) sapl_eventHandlers
 
 /* For debugging:
@@ -197,7 +223,7 @@ editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 	# (_, world) = withFile "debug.js" FAppendData (\file -> (Ok Void, fwrites js_lib file)) world
 */
 
-	= (js_lib, js_eventHandlers, js_IV, js_UU, js_GD, js_AD, 
+	= (js_lib, js_eventHandlers, js_ID, js_DV, js_UU, js_GD, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 

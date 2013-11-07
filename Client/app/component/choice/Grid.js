@@ -1,6 +1,6 @@
 Ext.define('itwc.component.choice.Grid',{
 	extend: 'Ext.grid.Panel',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 	alias: 'widget.itwc_choice_grid',
 	forceFit: true,
 	sortableColumns: false,
@@ -8,10 +8,13 @@ Ext.define('itwc.component.choice.Grid',{
 	enableColumnMove: false,
 	viewConfig: {loadMask: false},
 
-	width: 'flex',
-	height: 'flex',
-	minWidth: 400, //'wrap',	
-	minHeight: 100, //'wrap',
+    itwcWrapWidth: 400,
+    itwcWrapHeight: 100,
+
+	itwcWidth: 'flex',
+	itwcHeight: 'flex',
+	itwcMinWidth: 400,//'wrap',	
+	itwcMinHeight: 100,//'wrap',
 
 	editBufferTime: 0,
 
@@ -26,6 +29,7 @@ Ext.define('itwc.component.choice.Grid',{
 			fields = [], 
 			columns = [], i;
 
+        me.initSize();
 		//Setup columns			
 		for(i = 0; i < me.columns.length; i++) {
 			columns[i] = {text: me.columns[i], dataIndex: i};

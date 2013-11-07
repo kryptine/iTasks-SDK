@@ -1,0 +1,12 @@
+.choicetree li label {
+    background: url(img/folder-horizontal.png) 15px 1px no-repeat;
+}
+.choicetree li.leaf > label {
+    background: url(img/document.png) 16px 0px no-repeat;
+}
+.choicetree li input + ol {
+    background: url(img/toggle-small-expand.png) 42px -3px no-repeat;
+}
+.choicetree li input:checked + ol {
+    background: url(img/toggle-small.png) 42px 0 no-repeat;
+}

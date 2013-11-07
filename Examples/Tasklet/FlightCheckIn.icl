@@ -103,9 +103,9 @@ chooseSeat (Just f) = mkTask seatTasklet
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
-		{ generatorFunc		= (\_ _ iworld -> (TaskletHTML gui, Nothing, iworld))
-		, resultFunc		= maybeStable
-		, tweakUI  			= setTitle "Seat chooser Tasklet"
+		{ genUI			= (\_ _ iworld -> (TaskletHTML gui, Nothing, iworld))
+		, resultFunc	= maybeStable
+		, tweakUI  		= setTitle "Seat chooser Tasklet"
 		}
 
 	occupiedStyle = StyleAttr "float: left; border-style:solid; background-color:blue; border-color:black; width: 15px; height: 15px; margin: 1px;"
@@ -124,9 +124,9 @@ where
 			= DivTag [TitleAttr (toString seat), occupiedStyle] []
 
 	attachHandlers seat = 
- 		[HtmlEvent (genSeatId seat) "click" (setState (Just seat)),
- 		 HtmlEvent (genSeatId seat) "mouseover" (setColor "red"),
- 		 HtmlEvent (genSeatId seat) "mouseout" (setColor "white")]
+ 		[ComponentEvent (genSeatId seat) "click" (setState (Just seat)),
+ 		 ComponentEvent (genSeatId seat) "mouseover" (setColor "red"),
+ 		 ComponentEvent (genSeatId seat) "mouseout" (setColor "white")]
  		
  	setState newst _ _ _ world  = (newst, world)
  	setColor color _ e st world	=
@@ -135,12 +135,11 @@ where
 	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]
 								    [map (\s -> genRowUI (Seat r s)) rowLayout \\ r <- [1 .. f.rows]])
 			
-	gui = { TaskletHTML |
-				  width  		= ExactSize 300
-				, height 		= ExactSize 300
-				, html   		= HtmlDef htmlui
-				, eventHandlers = concatMap attachHandlers f.freeSeats
-				}
+	gui = {   width  		= ExactSize 300
+			, height 		= ExactSize 300
+			, html   		= htmlui
+			, eventHandlers = concatMap attachHandlers f.freeSeats
+			}
 	
 								 
 taskletExamples :: [Workflow]

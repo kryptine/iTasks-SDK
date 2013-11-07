@@ -10,7 +10,6 @@ from iTasks.Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map(..)
 from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
-from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 
 //TODO:
 //- Multi select in grids
@@ -85,65 +84,76 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 
 :: UIControl
 	// Components for viewing data:
-	= UIViewString		!UISizeOpts	!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml		!UISizeOpts	!(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
-	| UIViewDocument	!UISizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
-	| UIViewCheckbox	!UISizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
-	| UIViewSlider		!UISizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
-	| UIViewProgress	!UISizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
+	= UIViewString		!UISizeOpts	    !(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
+	| UIViewHtml		!UISizeOpts	    !(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
+	| UIViewDocument	!UIHSizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
+	| UIViewCheckbox	!UIFSizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
+	| UIViewSlider		!UIHSizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
+	| UIViewProgress	!UIHSizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
 	// Components for editing data:
-	| UIEditString		!UISizeOpts	!UIEditOpts 					                // - String (single line text field)
-	| UIEditNote		!UISizeOpts	!UIEditOpts 						            // - Note (multi-line text field)
-	| UIEditPassword	!UISizeOpts	!UIEditOpts 						            // - Password (single line text field that hides the text)
-	| UIEditInt			!UISizeOpts	!UIEditOpts 							        // - Int (integer number field)
-	| UIEditDecimal		!UISizeOpts	!UIEditOpts 							        // - Decimal (decimal number field)
-	| UIEditCheckbox	!UISizeOpts	!UIEditOpts 							        // - Checkbox (editable checkbox)
-	| UIEditSlider		!UISizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
-	| UIEditDate		!UISizeOpts	!UIEditOpts 							        // - Date (date picker)
-	| UIEditTime		!UISizeOpts	!UIEditOpts 							        // - Time (time picker)
-	| UIEditDocument	!UISizeOpts	!UIEditOpts 						            // - Document (info + upload possibility)
-	| UIEditButton		!UISizeOpts !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
-	| UIEditGoogleMap	!UISizeOpts !UIEditOpts  !UIGoogleMapOpts		            // - Google Map panel
-	| UIEditCode		!UISizeOpts !UIEditOpts  !UICodeOpts			            // - Source code editor component
-	| UIEditOryx		!UISizeOpts !UIEditOpts  !UIOryxOpts			            // - Oryx editor component
+	| UIEditString		!UIHSizeOpts	!UIEditOpts                                     // - String (single line text field)
+	| UIEditNote		!UISizeOpts	    !UIEditOpts                                     // - Note (multi-line text field)
+	| UIEditPassword	!UIHSizeOpts	!UIEditOpts                                     // - Password (single line text field that hides the text)
+	| UIEditInt			!UIHSizeOpts	!UIEditOpts                                     // - Int (integer number field)
+	| UIEditDecimal		!UIHSizeOpts	!UIEditOpts                                     // - Decimal (decimal number field)
+	| UIEditCheckbox	!UIFSizeOpts    !UIEditOpts                                     // - Checkbox (editable checkbox)
+	| UIEditSlider		!UIHSizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
+	| UIEditDate		!UIHSizeOpts	!UIEditOpts 							        // - Date (date picker)
+	| UIEditTime		!UIHSizeOpts	!UIEditOpts 							        // - Time (time picker)
+	| UIEditDocument	!UIHSizeOpts    !UIEditOpts 						            // - Document (info + upload possibility)
+	| UIEditButton		!UISizeOpts     !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
 	// Components for indicating choices:
-	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
-	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
-	| UITree			!UISizeOpts	!(UIChoiceOpts UITreeNode) !UITreeOpts		// - Tree (selecting a node in a tree structure)
-	| UIRadioGroup		!UISizeOpts !(UIChoiceOpts String)						// - A mutually exclusive set of radio buttons 
-	| UICheckboxGroup	!UISizeOpts !(UIChoiceOpts String)						// - A group of checkboxes that indicate a multiple selection
+	| UIDropdown		!UIHSizeOpts	!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
+	| UIGrid			!UISizeOpts	    !(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
+	| UITree			!UISizeOpts	    !(UIChoiceOpts UITreeNode) !UITreeOpts		    // - Tree (selecting a node in a tree structure)
+	| UIRadioGroup		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
+	| UICheckboxGroup	!UISizeOpts     !(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
-	| UIActionButton	!UISizeOpts	!UIActionOpts !UIButtonOpts					// - Action Button (clicks trigger action events)
-	| UIMenuButton		!UISizeOpts	!UIMenuButtonOpts							// - Menu Button (clicks open a menu)
+	| UIActionButton	!UISizeOpts	    !UIActionOpts !UIButtonOpts					    // - Action Button (clicks trigger action events)
+	| UIMenuButton		!UISizeOpts	    !UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
 	// Misc auxiliary components:
-	| UILabel			!UISizeOpts	!UILabelOpts								// - Label (non-wrapping text label, clicks focus next component)
-	| UIIcon			!UISizeOpts	!UIIconOpts									// - Icon (information icon with tooltip text)
+	| UILabel			!UIHSizeOpts	!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
+	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
 	// Tasklet stuff
-	| UITasklet			!UISizeOpts !UITaskletOpts								// - Tasklet (custom clientside interaction)
-	| UITaskletPH 		!UISizeOpts !UITaskletPHOpts							// - Tasklet placeholder
-	| UIEditlet			!UISizeOpts	!UIEditletOpts								// - Editlet (custom clientside editor)
+	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
+	| UITaskletPH 		!UISizeOpts     !UITaskletPHOpts							    // - Tasklet placeholder
+	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
 	// Container components for composition:
-	| UIContainer		!UISizeOpts !UIItemsOpts 				                // - Container (lightweight wrapper to compose components)
-	| UIPanel			!UISizeOpts !UIItemsOpts !UIPanelOpts					// - Panel (container with decoration like a title header, icon and frame)
-	| UIFieldSet		!UISizeOpts !UIItemsOpts !UIFieldSetOpts				// - Fieldset (wrapper with a simple border and title)
-	| UITabSet			!UISizeOpts !UITabSetOpts
-	
+	| UIContainer		!UISizeOpts     !UIItemsOpts 				                    // - Container (lightweight wrapper to compose components)
+	| UIPanel			!UISizeOpts     !UIItemsOpts !UIPanelOpts					    // - Panel (container with decoration like a title header, icon and frame)
+	| UIFieldSet		!UISizeOpts     !UIItemsOpts !UIFieldSetOpts				    // - Fieldset (wrapper with a simple border and title)
+	| UITabSet			!UISizeOpts     !UITabSetOpts
+
+//Most components can be resized in two dimensions
 :: UISizeOpts =
 	{ width		:: !Maybe UISize
-	, minWidth	:: !Maybe UIMinSize
+	, minWidth	:: !Maybe UIBound
+    , maxWidth  :: !Maybe UIBound
 	, height	:: !Maybe UISize
-	, minHeight	:: !Maybe UIMinSize
+	, minHeight	:: !Maybe UIBound
+	, maxHeight	:: !Maybe UIBound
 	, margins	:: !Maybe UISideSizes
 	}
+//Some components can only be resized in the horizontal dimension
+:: UIHSizeOpts =
+	{ width		:: !Maybe UISize
+	, minWidth	:: !Maybe UIBound
+    , maxWidth  :: !Maybe UIBound
+	, margins	:: !Maybe UISideSizes
+	}
+//Some components can not be sized. You can only set margins
+:: UIFSizeOpts = //F stands for Fixed)
+    { margins   :: !Maybe UISideSizes
+    }
 
 :: UISize
 	= ExactSize !Int
 	| WrapSize
 	| FlexSize
 
-:: UIMinSize
-	= ExactMin !Int
-	| WrapMin
+:: UIBound
+	= ExactBound !Int
+	| WrapBound
 	
 :: UIItemsOpts =
 	{ items		:: ![UIControl]
@@ -214,42 +224,6 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 :: UIProgressOpts = 
 	{ text			:: !String
 	}
-	
-:: UIGoogleMapOpts = 
-	{ center 			:: !(!Real,!Real)
-	, mapType			:: !String
-	, markers			:: ![UIGoogleMapMarker]	
-	, options			:: !UIGoogleMapOptions
-	}
-
-:: UIGoogleMapMarker =
-	{ markerId              :: !String
-    , position				:: !(!Real,!Real)
-	, title					:: !Maybe String
-	, icon					:: !Maybe GoogleMapIcon
-	, infoWindow			:: !Maybe String
-	, draggable				:: !Bool
-	, selected				:: !Bool
-	}
-
-:: UIGoogleMapOptions =
-	{ mapTypeControl 	:: !Bool
-	, panControl		:: !Bool
-	, streetViewControl	:: !Bool
-	, zoomControl		:: !Bool
-	, scaleControl		:: !Bool
-	, scrollwheel		:: !Bool
-	, draggable			:: !Bool
-	, zoom				:: !Int
-	}
-
-:: UICodeOpts =
-	{ lineNumbers		:: !Bool
-	}
-
-:: UIOryxOpts =
-  { stencilsetUrl :: !String
-  }
 
 :: UIGridOpts =
 	{ columns			:: ![String]
@@ -290,14 +264,14 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	{ text			:: !String
 	}
 	
-:: UIIconOpts = 
+:: UIIconOpts =
 	{ iconCls		:: !String
 	, tooltip		:: !Maybe String
 	}
 
-:: UITaskletOpts = 
+:: UITaskletOpts =
 	{ taskId		 :: !String
-	// It contains html _or_ tui
+	// It contains html _or_ ui
 	, html 			 :: !Maybe String
 	, tui			 :: !Maybe UIDef
 	, st			 :: !Maybe String
@@ -321,12 +295,13 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	, editorId		:: !String
 	, value			:: !JSONNode
 	, html			:: !String
-	, script		:: !Maybe String
-	, events		:: !Maybe [(!String,!String,!String)]
-	, initValue		:: !Maybe String
-	, updateUI		:: !Maybe String
-	, genDiff		:: !Maybe String
-	, appDiff		:: !Maybe String
+	, script		:: !String
+	, events		:: ![(!String,!String,!String)]
+	, defVal		:: !String	
+	, initDiff		:: !JSONNode	
+	, updateUI		:: !String
+	, genDiff		:: !String
+	, appDiff		:: !String
 	}
 
 :: UIPanelOpts =
@@ -355,8 +330,46 @@ from iTasks.API.Extensions.GIS.GoogleMap import :: GoogleMapIcon
 	, iconCls		:: !Maybe String
 	}
 
+//Modifier functions
+setSize         :: !UISize !UISize          !UIControl -> UIControl
+setWidth		:: !UISize					!UIControl -> UIControl
+setHeight		:: !UISize					!UIControl -> UIControl
+setMinSize		:: !UIBound !UIBound	    !UIControl -> UIControl
+setMinWidth		:: !UIBound				    !UIControl -> UIControl
+setMinHeight	:: !UIBound                 !UIControl -> UIControl
+setMaxSize		:: !UIBound !UIBound	    !UIControl -> UIControl
+setMaxWidth		:: !UIBound				    !UIControl -> UIControl
+setMaxHeight	:: !UIBound                 !UIControl -> UIControl
+fill			:: 							!UIControl -> UIControl
+fillHeight		:: 							!UIControl -> UIControl
+fillWidth		:: 							!UIControl -> UIControl
+fixedHeight		:: !Int 					!UIControl -> UIControl
+fixedWidth		:: !Int 					!UIControl -> UIControl
+wrapHeight		::							!UIControl -> UIControl
+wrapWidth		:: 							!UIControl -> UIControl
+setMargins		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTopMargin	:: !Int 					!UIControl -> UIControl
+setRightMargin	:: !Int 					!UIControl -> UIControl
+setBottomMargin	:: !Int 					!UIControl -> UIControl
+setLeftMargin	:: !Int 					!UIControl -> UIControl
+setPadding		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTitle 		:: !String 					!UIControl -> UIControl
+setFramed		:: !Bool					!UIControl -> UIControl
+setIconCls		:: !String					!UIControl -> UIControl
+setBaseCls		:: !String					!UIControl -> UIControl
+setDirection	:: !UIDirection				!UIControl -> UIControl
+setHalign		:: !UIHAlign				!UIControl -> UIControl
+setValign		:: !UIVAlign				!UIControl -> UIControl
+setTBar         :: ![UIControl]             !UIControl -> UIControl
+
+//Access functions
+getMargins      ::                          !UIControl -> (Maybe UISideSizes)
+
 //Utility functions
-defaultSizeOpts			:: UISizeOpts
+defaultSizeOpts		    :: UISizeOpts
+defaultHSizeOpts        :: UIHSizeOpts
+defaultFSizeOpts	    :: UIFSizeOpts
+
 defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
 
 defaultContainer		:: ![UIControl]	-> UIControl

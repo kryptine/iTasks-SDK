@@ -3,7 +3,8 @@ module Editlet
 import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
-import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.API.Extensions.CodeMirror
+import iTasks.API.Extensions.Tonic.Toniclet
 
 import StdDebug
 
@@ -11,45 +12,72 @@ import StdDebug
 derive class iTask TimeDelta
 
 buienLet :: Editlet String Void
-buienLet = {Editlet|value="Buienradar",html=const (RawText html), updateUI = \_ _ a st w = (a,st,w), handlers = [], genDiff = \_ _ -> Nothing, appDiff = \_ v -> v}
+buienLet = toEditlet simpl
 where
-	html = "<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>"
+	simpl =	EditletSimpl "Buienradar" {EditletSimplDef
+				| genUI 	= \_ world = (uiDef, world)
+				, updateUI 	= \_ _ a w = (a,w)
+				, genDiff 	= \_ _ -> Nothing
+				, appDiff 	= \_ v -> v
+				}
+
+	uiDef = { html 			= RawText ("<a href=\"http://www.buienradar.nl\" target=\"_blank\"><img border=\"0\" src=\"http://m.buienradar.nl/\"></a>")
+			, eventHandlers = []
+			, width 		= ExactSize 300
+			, height 		= ExactSize 300
+			}
 
 :: StringDelta = {newString :: String}
 derive class iTask StringDelta
 
 stringlet :: Editlet String [String]
-stringlet = {Editlet|value = "Hello world",html = \id -> TextareaTag [IdAttr id] []
-			,updateUI = onUpdate
-			,handlers = [ComponentEvent "editlet" "keyup" onChange]
-			,genDiff  = \o n -> if (o == n) Nothing (Just [n,n])
-			,appDiff  = \n _ -> hd n
-			}
+stringlet = toEditlet simpl
 where
-	onUpdate :: ComponentId (Maybe [String]) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
-	onUpdate id _ val st world
+	simpl = EditletSimpl "Hello world" {EditletSimplDef
+		    	| genUI		= \cid world -> (uiDef cid, world)
+				, updateUI 	= onUpdate
+				, genDiff  	= \o n -> if (o == n) Nothing (Just [n,n])
+				, appDiff  	= \n _ -> hd n
+				}
+
+	uiDef cid 
+		  = { html 			= TextareaTag [IdAttr cid] []
+		  	, eventHandlers = [ComponentEvent cid "keyup" onChange]
+		  	, width 		= ExactSize 640
+		  	, height 		= ExactSize 480
+		  	}
+
+	onUpdate :: ComponentId (Maybe [String]) String *JSWorld -> (!String, !*JSWorld)
+	onUpdate id _ val world
 		# world	= setDomAttr id "value" (toJSVal val) world
-		= (val,st,world)
+		= (val,world)
 	
-	onChange  :: ComponentId (JSVal EditletEvent) String (Maybe Void) *JSWorld -> (!String, Maybe Void, !*JSWorld)
-	onChange id event val st world
-		= let (val, w) = getDomAttr id "value" world in (jsValToString val, st, w)
+	onChange  :: ComponentId (JSVal JSEvent) String *JSWorld -> (!String, !*JSWorld)
+	onChange id event val world
+		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
-timelet t =	{Editlet
-				|value		= t
-				,html		= \id -> RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ id +++ "\"></div>")
-				,updateUI	= onUpdate				
-				,handlers	= []
-				,genDiff	= genDiff
-				,appDiff	= appDiff
-				}
+timelet t =	toEditlet simpl
 where
-	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
-	onUpdate id _ val st world
+	simpl = EditletSimpl t {EditletSimplDef
+				| genUI		= \cid world -> (uiDef cid, world)
+				, updateUI	= onUpdate				
+				, genDiff	= genDiff
+				, appDiff	= appDiff
+				}
+
+	uiDef cid 
+		  = { html 			= RawText ("<div style=\"font-size: 24pt;\" id=\"" +++ cid +++ "\"></div>")
+		  	, eventHandlers = []
+		  	, width 		= ExactSize 320
+		  	, height 		= ExactSize 240
+		  	}
+
+	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time *JSWorld -> (!Time,!*JSWorld)
+	onUpdate id _ val world
 		# world = setDomAttr id "innerHTML" (toJSVal (toString val)) world
 		# world	= setDomAttr id "style.color" (toJSVal (colors !! (val.Time.sec rem (length colors)))) world
-		= (val,st,world)
+		= (val,world)
 		
 	colors = ["#f0f","#00f","#f00","#30f","#ff0","#66f"]
 	
@@ -67,27 +95,33 @@ where
 
 
 clocklet :: Time -> Editlet Time Time
-clocklet t =	{Editlet
-				|value		= t
-				,html		= \id -> RawText ("<canvas height=\"100%\" id=\"" +++ id +++ "\" class=\"CoolClock\"></canvas>")
-				,updateUI	= onInit					
-				,handlers	= []
-				,genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
-				,appDiff	= \tn to -> tn
-				}
+clocklet t = toEditlet simpl
 where
-	onInit :: ComponentId (Maybe Time) Time (Maybe Void) *JSWorld -> (!Time, Maybe Void, !*JSWorld)
-	onInit id Nothing val st world
+	simpl = EditletSimpl t {EditletSimplDef 
+				| genUI		= \cid world -> (uiDef cid, world)
+				, updateUI	= onInit					
+				, genDiff	= \t1 t2 -> if (t1 == t2) Nothing (Just t2)
+				, appDiff	= \tn to -> tn
+				}
+
+	uiDef cid 
+		  = { html 			= RawText ("<canvas height=\"100%\" id=\"" +++ cid +++ "\" class=\"CoolClock\"></canvas>")
+		  	, eventHandlers = []
+		  	, width 		= ExactSize 320
+		  	, height 		= ExactSize 240
+		  	}
+
+	onInit :: ComponentId (Maybe Time) Time *JSWorld -> (!Time, !*JSWorld)
+	onInit id Nothing val world
 		# world				= addJSFromUrl "/coolclock.js" Nothing world
 		# world				= addJSFromUrl "/moreskins.js" Nothing world
-		= trace_n "onInit done" (val,st,world)
+		= (val,world)
 
 	// Update
-	onInit id mbDiff val st world = (val, st, world)
+	onInit id mbDiff val world = (val, world)
 	
 	onLoad :: *JSWorld -> *JSWorld
 	onLoad world
-		# world	= trace_n "onLoad" world
 		# (window,world)	= jsWindow world
 		# (coolclock,world)	= jsGetObjectAttr "CoolClock" window world
 		//# (coolclock,world)	= findObject "CoolClock" world
@@ -134,28 +168,31 @@ instance ~   TicTac     where ~  Tic     = Tac
 derive class iTask Tile, TicTac, Coordinate
 
 tictactoelet :: (TicTacToe,TicTac) -> Editlet (TicTacToe,TicTac) (TicTacToe,TicTac)
-tictactoelet t=:(board,turn) =
-	{Editlet
-	|value		= t
-	,html		= \id -> DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
-	,updateUI   = onUpdate
-	,handlers	= []
-				  ++[ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
-				 
-	,genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
-	,appDiff	= \tn to -> tn
-	}
+tictactoelet t=:(board,turn) = toEditlet simpl
 where
+	simpl = EditletSimpl t {EditletSimplDef
+				| genUI		= \cid world -> (uiDef cid, world)
+				, updateUI  = onUpdate
+				, genDiff	= \t1 t2 -> if (t1 === t2) Nothing (Just t2)
+				, appDiff	= \tn to -> tn
+				}
+	uiDef cid
+		  = { html 			= DivTag [IdAttr "tictactoe"] [init_board "tictactoe" t]
+		  	, eventHandlers = [ComponentEvent (cellId "tictactoe" c) "click" (onCellClick c) \\ c <- [{col=x,row=y} \\ x <- [0..2] & y <- [0..2] ]]
+		  	, width 		= ExactSize 640
+		  	, height 		= ExactSize 480
+		  	}
+
 	//onInit :: ComponentId (JSPtr JSObject) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	//onInit editorId _ state world = (state,redraw "tictactoe" state world)
 
-	onUpdate :: ComponentId (Maybe (TicTacToe,TicTac)) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
-	onUpdate editorId _ state st world = (state,st,world) //(state,redraw "tictactoe" state world)
+	onUpdate :: ComponentId (Maybe (TicTacToe,TicTac)) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
+	onUpdate editorId _ state world = (state,world) //(state,redraw "tictactoe" state world)
 
-	onCellClick :: Coordinate ComponentId (JSVal EditletEvent) (TicTacToe,TicTac) (Maybe Void) *JSWorld -> (!(TicTacToe,TicTac), Maybe Void, !*JSWorld)
-	onCellClick coord editorId event (board,turn) st world
+	onCellClick :: Coordinate ComponentId (JSVal JSEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
+	onCellClick coord editorId event (board,turn) world
 		# state = (add_cell coord turn board, ~turn)
-		= (state, st, redraw "tictactoe" state world)
+		= (state, redraw "tictactoe" state world)
 		
 	redraw	:: !String !(TicTacToe,TicTac) *JSWorld -> *JSWorld
 	redraw editorId state world = setDomAttr editorId "innerHTML" (toJSVal (toString (init_board editorId state))) world
@@ -194,30 +231,23 @@ where
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
-defperspective =
-	{ GoogleMapPerspective
-	| type				= ROADMAP
-	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-	, zoom				= 10
-	}
-defsettings =
-	{ GoogleMapSettings
-	| mapTypeControl	= True
-	, panControl		= True
-	, streetViewControl	= False
-	, zoomControl		= True
-	, scaleControl		= True
-	, scrollwheel		= True
-	, draggable			= True
-	}
-defmap =
-	{ GoogleMap 
-	| settings	  = defsettings
-	, perspective = defperspective
-	, markers	  = []
-	}
+defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
+		, position = 0
+		, selection = Nothing
+        , source = "Buu"}
 
-test5 = updateInformation "Google MAP" [] (googleMapEditlet defmap)
+//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
+
+test5 :: Task CodeMirror
+test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings" [] defcm
+																-|| 
+								   updateSharedInformation "CodeMirror Editor" 
+								   				[UpdateWith (\cm -> codeMirrorEditlet cm []) 
+								   							(\_ (Editlet value _ _) -> value)] defcm )
+
+
+        
+//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
 
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
@@ -229,7 +259,11 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 		
 //test = viewSharedInformation "Clock" [ViewWith timeEditlet] currentTime
 
-test = updateInformation "String" [] stringlet @ (\e -> e.Editlet.value) >&> viewSharedInformation "DEBUG" []
+test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value) >&> viewSharedInformation "DEBUG" []
+
+//test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 
 Start :: *World -> *World
 Start world = startEngine test5 world
+
+

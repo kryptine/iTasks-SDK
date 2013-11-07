@@ -1,6 +1,6 @@
 Ext.define('itwc.component.choice.CheckboxGroup',{
 	extend: 'itwc.container.Container',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 	alias: 'widget.itwc_choice_checkboxgroup',
 	
 	initComponent: function() {
@@ -10,7 +10,8 @@ Ext.define('itwc.component.choice.CheckboxGroup',{
 			options = me.options,
 			numOptions = options.length,
 			choices, i;
-			
+		
+        me.initSize();
 		me.value = choices = Ext.isArray(me.value) ? me.value : [];
 		
 		for(i = 0; i < numOptions; i++) {

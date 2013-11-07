@@ -10,7 +10,8 @@ import iTasks.Framework.IWorld, iTasks.Framework.WebService
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString, StdFunc
-import TCPIP, tcp, Internet.HTTP, System.Time, System.CommandLine, Data.Func
+import tcp
+import Internet.HTTP, System.Time, System.CommandLine, Data.Func
 
 import iTasks.Framework.Engine, iTasks.Framework.IWorld, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.Util
@@ -19,7 +20,7 @@ import iTasks.Framework.TaskServer
 from Data.Set import :: Set, newSet
 from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
-from Sapl.Target.JS.Flavour import :: Flavour, toFlavour
+from Sapl.Target.Flavour import :: Flavour, toFlavour
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world

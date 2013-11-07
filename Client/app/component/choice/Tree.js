@@ -1,19 +1,24 @@
 Ext.define('itwc.component.choice.Tree',{
 	extend: 'Ext.tree.Panel',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 	alias: 'widget.itwc_choice_tree',
 	rootVisible: false,
 
-	width: 'flex',
-	height: 'flex',
-	minWidth: 150, //'wrap',
-	minHeight: 100, //'wrap',
+    itwcWrapWidth: 150,
+    itwcWrapHeight: 100,
+
+	itwcWidth: 'flex',
+	itwcHeight: 'flex',
+	itwcMinWidth: 150,//'wrap',
+	itwcMinHeight: 100,//'wrap',
+
 	editBufferTime: 0,
 
 	initComponent: function() {	
 		var me = this,
 			store;	
 		
+        me.initSize();
 		store = Ext.create('Ext.data.TreeStore',{
 			root : {xtype: 'treenode', text: 'tree', children: me.options}
 		});

@@ -20,9 +20,9 @@ createSquare color number shared
 where
 	squareTasklet :: Tasklet Square Bool 
 	squareTasklet = 
-		{ generatorFunc		= generateGUI
-		, resultFunc		= resultFun
-		, tweakUI  			= id
+		{ genUI			= generateGUI
+		, resultFunc	= resultFun
+		, tweakUI  		= id
 		}
 
 	resultFun {finished=Just clicked} = Value clicked True
@@ -31,13 +31,12 @@ where
 	generateGUI :: !TaskId (Maybe Square) !*IWorld -> *(!TaskletGUI Square, !Square, !*IWorld)
 	generateGUI taskId _ iworld  
 	
-		# gui = { TaskletHTML
-				| width  		= ExactSize 40
+		# gui = { width  		= ExactSize 40
 				, height 		= ExactSize 40
-				, html   		= HtmlDef ("<div id=\""+++oid+++"\" style=\""+++style+++"\">"+++toString number+++"</div>")
-				, eventHandlers = [ HtmlEvent "tasklet" "init" onInit
-								  , HtmlEvent "tasklet" "update" onInit
-								  , HtmlEvent oid "click" onClick]			
+				, html   		= RawText ("<div id=\""+++oid+++"\" style=\""+++style+++"\">"+++toString number+++"</div>")
+				, eventHandlers = [ ComponentEvent "tasklet" "init" onInit
+								  , ComponentEvent "tasklet" "update" onInit
+								  , ComponentEvent oid "click" onClick]			
 				}
 			
 		= (TaskletHTML gui, {highlighted = False, finished = Nothing}, iworld)

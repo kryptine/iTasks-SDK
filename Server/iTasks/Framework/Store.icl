@@ -17,7 +17,7 @@ from System.Time 					import :: Timestamp(..), instance < Timestamp, instance to
 from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: FuncTypeMap, :: LineType
-from Sapl.Target.JS.Flavour import :: Flavour
+from Sapl.Target.Flavour import :: Flavour
 from Sapl.SaplParser import :: ParserState
 
 :: StoreItem =
