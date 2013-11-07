@@ -90,13 +90,12 @@ codeMirrorEditlet g eventhandlers = Editlet g
 				}
 				
 where
-	uiDef cid 
-		= { html 			= TextareaTag [IdAttr (sourcearea cid), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
+	uiDef cid
+		= { html 			= TextareaTag [IdAttr (sourcearea cid), StyleAttr "display:none"] []
 		  , eventHandlers 	= []
-		  , width 			= ExactSize 300
+		  , width 			= FlexSize
 		  , height			= ExactSize 300
 		  }
-		  
 	sourcearea id = "cm_source_" +++ id
 	
 	// init
@@ -104,9 +103,9 @@ where
 		# (obj, world) = findObject "CodeMirror.defaults" world
 		| not (jsIsUndefined obj)
 		    = onLoad mbDiffs cid undef clval world
+		# world = addCSSFromUrl "codemirror.css" world
 		# world = addJSFromUrl "codemirror.js" Nothing world
 		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
-		# world = addCSSFromUrl "codemirror.css" world
         = (clval,world)
     where
 		handler = createEditletEventHandler (onLoad mbDiffs) cid
@@ -168,7 +167,6 @@ where
 	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
 		# (ta, world) = getDomElement (sourcearea cid) world
 		# world = jsSetObjectAttr "value" (toJSVal source) ta world
-		
 		# (cmobj, world) = findObject "CodeMirror" world
 		# (co, world) = createConfigurationObject configuration world
 		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cmobj world
@@ -186,7 +184,7 @@ where
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
 
-		systemEvents = [/*("cursorActivity",	createEditletEventHandler onCursorActivity cid),*/
+		systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
 						("change",			createEditletEventHandler onChange cid)]
 
 		isSetMode (CMMode _) = True
