@@ -101,7 +101,7 @@ itwc.Component.prototype = {
     },
     initItemLayout: function() {
         var me = this,
-            el = me.domEl;
+            el = me.targetEl;
 
         el.classList.add(me.definition.direction == 'horizontal' ? 'hcontainer' : 'vcontainer');
         //Horizontal alignment
@@ -179,18 +179,18 @@ itwc.component.itwc_menubar = itwc.extend(itwc.Container, {
         var me = this,
             el = me.domEl;
 
-        me.targetEl = document.createElement('ul');
-
-        el.classList.add('menubar');
-        el.appendChild(me.targetEl);
-    }
+        el.classList.add('toolbar');
+    },
+    initSize: function() {},
+    initItemLayout: function() {}
 });
 itwc.component.itwc_menubutton = itwc.extend(itwc.Component, {
-    domTag: 'li',
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
             linkEl, menuEl;
+
+        el.classList.add('menu-item');
         //Menu button
         linkEl = document.createElement('a');
         linkEl.href = '#';
@@ -206,16 +206,20 @@ itwc.component.itwc_menubutton = itwc.extend(itwc.Component, {
 });
 itwc.component.itwc_menu = itwc.extend(itwc.Container,{
     xtype: 'itwc_menu',
-    domTag: 'ul',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl;
+        el.classList.add('menu');
+    },
     initSize: function() {} //Don't size
 });
 itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
-    domTag: 'li',
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
             iconEl, linkEl;
 
+        el.classList.add('submenu-item');
         me.disabled = me.definition.disabled;
 
         linkEl = document.createElement('a');
@@ -466,7 +470,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			me.value = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);			
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
-			me.fireUpdateEvent(__Data_Maybe_Nothing());
+			me.fireUpdateEvent(__Data_Maybe_Nothing);
 		}
 
         //TEMPORARY FOR EXTJS STUFF
@@ -494,8 +498,8 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 
 			me.value = ys[2];
 			//Synchronize
+            console.log("DIFF",diff);
 			if(diff !== null) {
-                console.log("DIFF",diff);
 				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,diff);
 			}
 		};
@@ -594,6 +598,10 @@ itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
         itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value);
+    },
+    setEditorValue: function(value) {
+        var me = this;
+        me.definition.value = value;
     }
 });
 itwc.component.itwc_icon= itwc.extend(itwc.Component,{
@@ -748,11 +756,15 @@ itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
             el.classList.add('selected');
         }
         if(me.definition.tbar) {
+            el.classList.add('vcontainer');
             me.menu = new itwc.component.itwc_menubar();
             me.menu.init({xtype: "itwc_menu_bar", items: me.definition.tbar}, me);
             me.menu.render(0);
-            me.itemsOffset++;
             el.appendChild(me.menu.domEl);
+
+            me.targetEl = document.createElement('div');
+            me.targetEl.style.flex = 1;
+            el.appendChild(me.targetEl);
         }
     },
     initSize: function() {
@@ -903,6 +915,7 @@ itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
     }
 });
 itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
+    defaultHeight: 'flex',
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
