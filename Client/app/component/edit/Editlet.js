@@ -16,29 +16,28 @@ Ext.define('itwc.component.edit.Editlet',{
 			evalScript(me.script);
 		}
 		if(me.defVal != null) {
-			eval("tmp = eval(" + me.defVal + ");");
+			eval("tmp = " + me.defVal + ";");
 			me.value = Sapl.feval([tmp,[0]]); // the actual argument doesnt matter
 			delete this.defVal;
 		}
 		if(me.appDiff != null) {
-			eval("tmp = eval(" + me.appDiff + ");");
+			eval("tmp = " + me.appDiff + ";");
 			me.appDiff = tmp;	
 		}
 		if(me.genDiff != null) {
-			eval("tmp = eval(" + me.genDiff + ");");
+			eval("tmp = " + me.genDiff + ";");
 			me.genDiff = tmp;	
 		}
 		if(me.updateUI != null) {
-			eval("tmp = eval(" + me.updateUI + ");");
+			eval("tmp = " + me.updateUI + ";");
 			me.updateUI = tmp;	
 		}		
-
+		if(me.initDiff != null) {
+			eval("tmp = " + me.initDiff+ ";");
+			me.initDiff = tmp;	
+		}		
         if(me.initDiff != null) {
-			var json = me.jsToSaplJSONNode(me.initDiff);
-			me.value = Sapl.feval([me.appDiff,[json,me.value]]);			
-			delete this.initDiff;
-		}else{
-			me.fireUpdateEvent(__Data_Maybe_Nothing());
+			me.value = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);			
 		}
 
       	me.callParent(arguments);
@@ -47,9 +46,13 @@ Ext.define('itwc.component.edit.Editlet',{
 		var me = this,
 			numEvents = me.events.length,
 			el, elName, eventName, expr, i;
-		
-		me.fireUpdateEvent(__Data_Maybe_Nothing());
-
+	
+        if(me.initDiff != null) {
+		    me.fireUpdateEvent(me.initDiff);
+        } else {
+		    me.fireUpdateEvent(__Data_Maybe_Nothing);
+        }
+	
 		for (i = 0; i < numEvents; i++){
 			
 			elName = me.events[i][0];
@@ -68,16 +71,17 @@ Ext.define('itwc.component.edit.Editlet',{
 	// Creating a closure
 	eventHandler: function(dowrap,expr){
 		var me = this;
-		
+
 		var h = function(event){			
-			if(event) event = event.browserEvent || event;
+
+           	if(event) event = event.browserEvent || event;
 			if(dowrap) event = ___wrapJS(event);
 			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
-			
+		
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
 			
@@ -95,50 +99,15 @@ Ext.define('itwc.component.edit.Editlet',{
         return this.value;
     },
 	applyDiff: function (diff) {
-		var me = this;
-		var json = me.jsToSaplJSONNode(diff);
-		me.value = Sapl.feval([me.appDiff,[json,me.value]]);
-		me.fireUpdateEvent(__Data_Maybe_Just(json));
-	},
+		var me = this, tmp;
+
+        eval("tmp = "+diff+";");
+		me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);
+        me.fireUpdateEvent(tmp);
+    },
 	//Util functions for exchanging between the values of the clean type Text.JSONNode in
 	//the format used in the Sapl interpreter and 'raw' javascript objects
-	jsToSaplJSONNode: function (obj) {
-		var me = this,
-			args, i, k;
-		
-		if(obj === null) {
-			return [0,"Text.JSON.JSONNull"];
-		}
-		switch(typeof(obj)) {
-			case "boolean":
-				return [1,"Text.JSON.JSONBool",obj];
-			case "number":
-				if(isInteger(obj)) {
-					return [2,"Text.JSON.JSONInt",obj];
-				} else {
-					return [3,"Text.JSON.JSONReal",obj];
-				}
-			case "string":
-				return [4,"Text.JSON.JSONString",obj]
-			case "object": //Null, array or object
-				if(isArray(obj)) {
-					//Don't use Sapl.toList to prevent going through the array twice
-					args = [1,"_predefined._Nil"];
-					for(i = obj.length - 1; i >= 0; i--) {
-						args = [0,"_predefined._Cons",me.jsToSaplJSONNode(obj[i]),args];
-					}
-					return [5,"Text.JSON.JSONArray",args];
-				} else {
-                    args = [1,"_predefined._Nil"];
-                    for(k in obj) {
-                        args = [0,"_predefined._Cons",Sapl.toTuple([k,me.jsToSaplJSONNode(obj[k])]),args];
-                    }
-                    return [6,"Text.JSON.JSONObject",args];
-				}
-		}
-		return [8,'JSONError'];
-	},	
-	jsFromSaplJSONNode: function (sapl) {
+    jsFromSaplJSONNode: function (sapl) {
 		switch(sapl[0]) {
 			case 0:	return null;
 			case 1: return sapl[2];

@@ -201,15 +201,10 @@ where
 		= ((line, ch), world)
 
 	// TODO
-	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world 
+	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
         = ({clval & val={clval.val & source = jsValToString newsource}}, world)
-        /*
-        | otherwise
-            # world = jsTrace "source undefined" world
-            = (clval,world)
-            */
 
 	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
@@ -222,7 +217,6 @@ where
 		# (pos, world) = callObjectMethod "getCursor" [toJSArg "end"] cmdoc world
 		# (idx2, world) = indexFromPos pos cmdoc world		
 		# idx2 = jsValToInt idx2
-        # world = jsTrace ("Selection",idx1,idx2) world
 		# val = if (idx1 == idx2)
 				   {val & selection = Nothing}
 				   {val & selection = Just (idx1,idx2)}
@@ -231,7 +225,7 @@ where
 	where
 		indexFromPos pos cmdoc world = callObjectMethod "indexFromPos" [toJSArg pos] cmdoc world
 
-	genDiffClient clval1 clval2 = trace_n (toJSON "TEST") (genDiffServer clval1.val clval2.val)
+	genDiffClient clval1 clval2 = genDiffServer clval1.val clval2.val
 	
 	genDiffServer val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 							   ++
@@ -249,8 +243,6 @@ where
 		upd val=:{position} (SetPosition pos) = {val & position = pos}
 		upd val=:{selection} (SetSelection sel) = {val & selection = sel}	
 		upd val=:{source} (SetValue str) = {val & source = str}				
-
-import StdDebug
 
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
