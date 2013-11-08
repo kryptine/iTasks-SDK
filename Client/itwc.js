@@ -467,7 +467,10 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         var me = this;
 
         if(me.initDiff != null) {
-			me.value = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);			
+			var mbDiff = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);
+			if(mbDiff[0]==1) 
+				me.value = mbDiff[2];
+				
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
 			me.fireUpdateEvent(__Data_Maybe_Nothing);
