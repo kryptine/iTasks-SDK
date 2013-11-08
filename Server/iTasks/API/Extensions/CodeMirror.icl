@@ -72,7 +72,7 @@ where
 	isSetTheme _ = False
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc CodeMirrorClient)] 
+					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 			  
 codeMirrorEditlet g eventhandlers = Editlet g
@@ -90,29 +90,26 @@ codeMirrorEditlet g eventhandlers = Editlet g
 				}
 				
 where
-	uiDef cid 
-		= { html 			= TextareaTag [IdAttr (sourcearea cid), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
+	uiDef cid
+		= { html 			= TextareaTag [IdAttr (sourcearea cid), StyleAttr "display:none"] []
 		  , eventHandlers 	= []
-		  , width 			= ExactSize 300
+		  , width 			= FlexSize
 		  , height			= ExactSize 300
 		  }
-		  
 	sourcearea id = "cm_source_" +++ id
 	
 	// init
-	onUpdate cid Nothing clval world
+	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
 		# (obj, world) = findObject "CodeMirror.defaults" world
 		| not (jsIsUndefined obj)
-		= onLoad cid undef clval world
-	
+		    = onLoad mbDiffs cid undef clval world
+		# world = addCSSFromUrl "codemirror.css" world
 		# world = addJSFromUrl "codemirror.js" Nothing world
 		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
-		# world = addCSSFromUrl "codemirror.css" world
-		
-		= (clval, world)
-	where
-		handler = createEditletEventHandler onLoad cid
-	
+        = (clval,world)
+    where
+		handler = createEditletEventHandler (onLoad mbDiffs) cid
+
 	// update
 	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror}} world	
 		// disable system event handlers
@@ -125,7 +122,7 @@ where
 
 		# world = case find isSetPos nopts of
 			Nothing    	= world
-			(Just (SetPosition idx)) 	
+			(Just (SetPosition idx))	
 						# (pos, world) = posFromIndex idx cmdoc world 
 						= snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)
 
@@ -167,12 +164,11 @@ where
 
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
 	
-	onLoad cid _ clval=:{val={source,configuration}} world
+	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
 		# (ta, world) = getDomElement (sourcearea cid) world
 		# world = jsSetObjectAttr "value" (toJSVal source) ta world
-		
 		# (cmobj, world) = findObject "CodeMirror" world
-		# (co, world) = createConfigurationObject configuration world 
+		# (co, world) = createConfigurationObject configuration world
 		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cmobj world
 		
 		# world = loadModulesIfNeeded configuration cm world
@@ -181,8 +177,9 @@ where
 		
 		# world = manageSystemEvents "on" st world	
 		# world = foldl (putOnEventHandler cm) world eventhandlers
-		
-		= ({clval & mbSt = Just st}, world)
+	
+        //Call onUpdate to initialize the editor	
+        = onUpdate cid mbDiff {clval & mbSt = Just st} world
 	where
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
@@ -204,10 +201,10 @@ where
 		= ((line, ch), world)
 
 	// TODO
-	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world 
+	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
-		= ({clval & val={clval.val & source = jsValToString newsource}}, world)
+        = ({clval & val={clval.val & source = jsValToString newsource}}, world)
 
 	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
@@ -220,7 +217,6 @@ where
 		# (pos, world) = callObjectMethod "getCursor" [toJSArg "end"] cmdoc world
 		# (idx2, world) = indexFromPos pos cmdoc world		
 		# idx2 = jsValToInt idx2
-
 		# val = if (idx1 == idx2)
 				   {val & selection = Nothing}
 				   {val & selection = Just (idx1,idx2)}
@@ -233,7 +229,7 @@ where
 	
 	genDiffServer val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 							   ++
-							   if (val1.position == val2.position) [] [SetPosition val2.position] 
+							   if (val1.position == val2.position) [] [SetPosition val2.position]
 							   ++
 							   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
 							   ++

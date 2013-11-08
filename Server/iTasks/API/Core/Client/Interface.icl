@@ -54,6 +54,9 @@ jsThis world = undef
 jsTypeof :: !(JSVal a) -> String
 jsTypeof obj = undef
 
+jsAbort :: a -> b
+jsAbort _ = undef
+
 newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
 newJSArray world  = undef
 
@@ -161,7 +164,8 @@ jsValToString ptr = case fromJSValUnsafe ptr of
 					(val :: String) = val
 					(val :: Real)   = toString val
 					(val :: Int)    = toString val
-									= abort "JSVal cannot be converted to String"
+					val				= jsAbort val
+									//= jsAbort "JSVal cannot be converted to String"
 
 jsValToReal :: !(JSVal a) -> Real
 jsValToReal ptr = case fromJSValUnsafe ptr of

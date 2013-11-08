@@ -41,6 +41,7 @@ jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JS
 //Special keywords
 jsThis				:: !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsTypeof			:: !(JSVal a) -> String
+jsAbort             :: a -> b
 
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg

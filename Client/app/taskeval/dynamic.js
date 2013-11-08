@@ -1,48 +1,20 @@
 // TO BE SURE
-function __Maybe_Nothing() {
-    return [0, 'Maybe.Nothing'];
-};
+var __Maybe_Nothing = [0, 'Maybe.Nothing'];
 
 function __Maybe_Just(__a1) {
     return [1, 'Maybe.Just', __a1];
 };
 // TO BE SURE
 
-function ___SystemDynamic_TC_Char() {
-    return [0, '_SystemDynamic.TC_Char'];
-};
-
-function ___SystemDynamic_TC_Real() {
-    return [0, '_SystemDynamic.TC_Real'];
-};
-
-function ___SystemDynamic_TC_Int() {
-    return [0, '_SystemDynamic.TC_Real'];
-};
-
-function ___SystemDynamic_TC_Bool() {
-    return [0, '_SystemDynamic.TC_Bool'];
-};
-
-function ___SystemDynamic_TC__List() {
-    return [0, '_SystemDynamic.TC__List'];
-};
-
-function ___SystemDynamic_TC__UnboxedArray() {
-    return [0, '_SystemDynamic.TC__UnboxedArray'];
-};
-	
-function ___SystemDynamic_TC__Tuple2() {
-    return [0, '_SystemDynamic.TC__Tuple2'];
-};
-
-function ___SystemDynamic_TC__Tuple3() {
-    return [0, '_SystemDynamic.TC__Tuple3'];
-};
-
-function ___SystemDynamic_TC__Tuple4() {
-    return [0, '_SystemDynamic.TC__Tuple4'];
-};
+var ___SystemDynamic_TC_Char = [0, '_SystemDynamic.TC_Char'];
+var ___SystemDynamic_TC_Real = [0, '_SystemDynamic.TC_Real'];
+var ___SystemDynamic_TC_Int  = [0, '_SystemDynamic.TC_Real'];
+var ___SystemDynamic_TC_Bool = [0, '_SystemDynamic.TC_Bool'];
+var ___SystemDynamic_TC__List = [0, '_SystemDynamic.TC__List'];
+var ___SystemDynamic_TC__UnboxedArray = [0, '_SystemDynamic.TC__UnboxedArray'];
+var ___SystemDynamic_TC__Tuple2 = [0, '_SystemDynamic.TC__Tuple2'];
+var ___SystemDynamic_TC__Tuple3 = [0, '_SystemDynamic.TC__Tuple3'];
+var ___SystemDynamic_TC__Tuple4 = [0, '_SystemDynamic.TC__Tuple4'];
 
 function ___SystemDynamic_TypeCons(__a1) {
     return [2, '_SystemDynamic.TypeCons', __a1];
@@ -143,19 +115,19 @@ function getType(val){
 }
 
 function floatType(){
-	return singleType(___SystemDynamic_TC_Real());
+	return singleType(___SystemDynamic_TC_Real);
 }
 
 function intType(){
-	return singleType(___SystemDynamic_TC_Int());
+	return singleType(___SystemDynamic_TC_Int);
 }
 
 function boolType(){
-	return singleType(___SystemDynamic_TC_Bool());
+	return singleType(___SystemDynamic_TC_Bool);
 }
 
 function charType(){
-	return singleType(___SystemDynamic_TC_Char());
+	return singleType(___SystemDynamic_TC_Char);
 }
 
 function tupleType(nr){
@@ -173,7 +145,7 @@ function singleType(type){
 
 function stringType(){
 	return ___SystemDynamic_TypeApp(
-					singleType(___SystemDynamic_TC__UnboxedArray()), // Array of
+					singleType(___SystemDynamic_TC__UnboxedArray), // Array of
 					charType());         							 // characters
 }
 

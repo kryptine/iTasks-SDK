@@ -71,6 +71,7 @@ body {
 }
 .panel {
     background-color: #eee;
+    border: 1px solid #ccc;
 }
 .panel-header {
     background-color: #ccc;
@@ -312,60 +313,82 @@ body {
 .choicetree li input:checked + ol > li { display: block; margin: 0 0 0.125em;  /* 2px */}
 .choicetree li input:checked + ol > li:last-child { margin: 0 0 0.063em; /* 1px */ }
 
-.menubar {
+.toolbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
     margin: 0;
-    padding: 0 5px;
+    padding: 2px 5px;
     background: #eee;
     background: -moz-linear-gradient(center top , #F9F9F9, #E3E4E6);
     background: -webkit-linear-gradient(center top , #F9F9F9, #E3E4E6);
 }
-.menubar ul {
-    padding: 0;
-    margin: 0;
-    list-style: none;
+.menu-item {
+    display: block;
     position: relative;
-    display: inline-table;
-}
-.menubar ul:after {
-    content: ""; clear: both; display: block;
-}
-.menubar ul li {
-    float: left;
-}
-.menubar ul li a {
-    display: block; padding: 5px 10px 5px 5px;
-    color: #000; text-decoration: none;
-}
-.menubar > ul > li {
     border: 1px solid transparent;
     margin: 1px 0;
 }
-.menubar > ul > li:hover {
+.menu-item:hover {
     border: 1px solid;
     border-color: #ddd #ddd #fff #fff;
 }
-.menubar ul ul {
-    display: none;
-    background: #eee;
-    padding: 0;
-    position: absolute; top: 100%;
+.menu-item a {
+    color: #000;
+    text-decoration: none;
+    float: left;
+    height: 20px;
+    padding: 5px;
 }
-.menubar ul li:hover ul {
+.menu-item:hover > .menu {
     display: block;
 }
-.menubar ul ul li {
-    float: none;
+.submenu-item {
+    float: left;
     position: relative;
-    border-top: 1px solid #efefef;
-    border-bottom: 1px solid #ddd;
-    min-width: 150px;
 }
-.menubar ul ul li:hover {
+.submenu-item:hover > a{
     background: #ddd;
 }
-.menubar ul ul li a {
-    border: none;
+.submenu-item:hover > .menu {
+    display: block;
 }
+.menu {
+    top: 30px;
+    margin: 0;
+    padding: 0;
+    display: none;
+    position: absolute;
+    background: #eee;
+    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
+}
+.menu a {
+    min-width: 100px;
+    padding: 10px;
+    height: 10px;
+    height: auto;
+    line-height: 1;
+    display: block;
+    float: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.menu .menu {
+    top: 0;
+    left: 99%;
+    margin: 2px 0 0 -2px;
+}
+.menu .submenu-item {
+    float: none;
+    margin: 0;
+    padding: 0;
+    display: block;
+    border-top: 1px solid #efefef;
+    border-bottom: 1px solid #ddd;
+}
+
 .window {
     position: absolute;
     top: 0px;

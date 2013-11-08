@@ -17,7 +17,7 @@ _SystemArray.update_13 :== array_update
 _SystemArray.uselect_14 :== array_uselect
 _SystemArray.usize_15 :== array_uize
 _SystemArray._createArray_16 :== string_create1
-_SystemArray.createArray_17 :== string_create1
+_SystemArray.createArray_17 :== string_create2
 _SystemArray.replace_18 :== string_replace
 _SystemArray.select_19 :== string_select 
 _SystemArray.size_20 :== string_size
