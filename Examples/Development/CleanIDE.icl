@@ -10,7 +10,6 @@ import projectManager
 import StdGeneric, Data.Either, System.FilePath
 import SmallUtil, IDE_State, CleanEditor
 from StdFunc import seq
-import iTasks.Framework.iTaskClass
 derive class iTask FileError
 
 // It Starts here..
@@ -33,9 +32,9 @@ start_ide
 						[ (Embedded, workPane)									
 						, (Embedded, projectPane)
 						, (Embedded, errorMessages)
-						] <<@ SetLayout layout @ const Void
+						] /* <<@ SetLayout layout */ @ const Void
 where
-	layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 250 (sideMerge BottomSide 100 tabbedMerge))) //TROUBLE
+	//layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 250 (sideMerge BottomSide 100 tabbedMerge))) //TROUBLE
 
 	init_ide 
 		=				get_IDE_State																// read state as left from previous session, if any
@@ -54,7 +53,7 @@ where
 
 // work Pane
 
-workPane :: !(ReadOnlyShared (TaskList Void)) -> Task Void
+workPane :: !(SharedTaskList Void) -> Task Void
 workPane ts 
 	= 				get_IDE_State												// new session, first recover previous screen
 	>>= \state -> 	openLastProject state.projectName 							// re-open last project
@@ -73,6 +72,8 @@ where
 
 	handleMenu :: IDE_State -> [TaskStep Void Void]
 	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
+        = []
+    /*
 	=	[ OnAction (Action "File/Open..." []) 						(always (launch (openFileSelectorAndEdit ts) ts))
 		, OnAction (Action "File/Save All" []) 						(if (openedFiles <> []) always never (saveAll openedFiles))
 		] 
@@ -94,11 +95,11 @@ where
 		[ OnAction (Action "Project/New Project..." [])  			(always (launch (newProject ts) ts))
 		, OnAction (Action "Project/Open Project..." []) 			(never  openProject)							// temp to avoid selection
 		, OnAction (Action ("Project/Bring Up To Date " +++ projectName +++ " (.prj)") [ActionKey (ctrl KEY_U)]) 
-																	(isProject (launch (compile projectName <<@ Window) ts))	
+																	(isProject (launch (compile projectName <<@ InWindow) ts))	
 		, OnAction (Action ("Project/Run " +++ projectName +++ " (.exe)") [ActionKey (ctrl KEY_R)]) 
-																	(isProject (launch (run projectName ts <<@ Window) ts))	
+																	(isProject (launch (run projectName ts <<@ InWindow) ts))	
 		, OnAction (Action ("Project/Show Compiler Log..") []) 
-																	(isProject (launch (showLog projectName ts <<@ Window) ts))	
+																	(isProject (launch (showLog projectName ts <<@ InWindow) ts))	
 		, OnAction (Action "Project/Project Options..." [])    		(isProject (launch changeProjectOptions ts))
 		, OnAction (Action "Project/Show/All Modules" []) 			(always    (setProjectPaneOption InEnvironment))
 		, OnAction (Action "Project/Show/Modules In Project" [])	(isProject (setProjectPaneOption InProject))
@@ -122,10 +123,10 @@ where
 
 		currentEnvName			= currEnvName state
 		selectedEnvironment 	= "_" +++ currentEnvName 
-
+    */
 // project & environment file selector pane
 
-projectPane :: (ReadOnlyShared (TaskList Void)) -> Task Void
+projectPane :: (SharedTaskList Void) -> Task Void
 projectPane ts
 	=				get_IDE_State
 	>>= \state -> 	( (showAndSelect state @ const Void)														// show search path directories 
@@ -133,13 +134,13 @@ projectPane ts
 					  (watchIf_IDE_State (\curstate -> curstate.idx <> state.idx || 								// environment changed
 												     curstate.projectName <> state.projectName ||				// project changed
 												     not (curstate.moduleOptions === state.moduleOptions) ) 	// show options changed 
-									 (return Void)) <<@ SetLayout (partLayout 0)
+									 (return Void)) /*<<@ SetLayout (partLayout 0) */
 					)
 	>>*				[ OnValue  (ifStable (const recalculate))													// recompute on indicated change
 					, OnAction (Action "Project/Show/Refresh" []) (always recalculate)								// recompute on action end user
 					]
 where
-	layout = SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)} //???
+	//layout = SetLayout {autoLayout & parallel = \prompt defs -> sideMerge BottomSide 100 sequenceMerge prompt (reverse defs)} //???
 
 	recalculate
 		=				get_IDE_State
@@ -148,19 +149,19 @@ where
 		>>= \all ->		setAllFilesInEnv all																			// and store in global state
 		>>|				projectPane ts
 
-	showAndSelect state  
+	showAndSelect state
 		=	( showFiles <<@ AfterLayout (tweakControls (map noAnnotation)) 
 			  >&>
 			  handleSelected 
-			) <<@ layout
+			) //<<@ layout
 	where
 		showFiles 
 			=	enterChoice (Title ( promptName state.projectName +++ " + " +++
 								    (state.envTargets!!state.idx).target_name +++
 								    promptOptions state.moduleOptions
 									)) 
-						[ChooseWith ChooseFromTree toView ] (mkTree state.moduleOptions state.allFilesInEnv)
-				@ fromEither
+						[/*ChooseWith (ChooseFromTree toView)*/] (map Right state.allFilesInEnv)/* (mkTree state.moduleOptions state.allFilesInEnv)*/
+				@ fromEither 
 		where
 			promptName "" 	= "No project"
 			promptName name = "Project: " +++ name 
@@ -169,6 +170,7 @@ where
 			promptOptions InProject 	= " + Show Project Modules"
 			promptOptions NotUsed 		= " + Show Unused Modules"
 
+            
 			toView (Left dir) 			= dir
 			toView (Right (name,mark))	= name +++ mark
 
@@ -210,7 +212,7 @@ where
 								]
 						)
 		where							
-			openSelected :: !ModuleName !String !(ReadOnlyShared (TaskList Void)) -> Task Void
+			openSelected :: !ModuleName !String !(SharedTaskList Void) -> Task Void
 			openSelected chosen extension ts
 				=				get_IDE_State
 				>>= \state ->	launchEditorAndAdministrate (selectFrom state.cleanPath state.allFilesInEnv) ts   
@@ -226,7 +228,7 @@ where
 
 // errorMessages pane, shows error message produced by compiler in error file
 
-errorMessages :: (ReadOnlyShared (TaskList Void)) -> Task Void
+errorMessages :: (SharedTaskList Void) -> Task Void
 errorMessages _ 
 	= 				get_IDE_State
 	>>= \state ->	let sharedError = externalFile (state.cleanPath +++ errorFile) in
@@ -247,7 +249,7 @@ derive class iTask FoundTable
 
 search searchOption ts  
 	= 				get_IDE_State
-	>>= \state ->	searching state "" searchOption state.moduleOptions []  <<@ Window
+	>>= \state ->	searching state "" searchOption state.moduleOptions []  <<@ InWindow
 where
 	searching state identifier searchOption moduleOptions found
 		=			(findDialoque -|| handleFound 0 (toTable found))
@@ -260,14 +262,14 @@ where
 			=	updateInformation (Title "Find") [] identifier -&&- selectSearchOptions
 		where
 			selectSearchOptions
-				=	updateChoice Void [ChooseWith ChooseFromRadioButtons searchOptionView]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
+				=	updateChoice Void [ChooseWith (ChooseFromRadioButtons searchOptionView)]  [SearchDefinition,SearchImplementation,SearchIdentifier] searchOption
 					-&&-
-					updateChoice Void [ChooseWith ChooseFromRadioButtons moduleOptionsView] [InEnvironment,InProject,NotUsed] moduleOptions
+					updateChoice Void [ChooseWith (ChooseFromRadioButtons moduleOptionsView)] [InEnvironment,InProject,NotUsed] moduleOptions
 
 		handleFound i []
 			= viewInformation "" [] (if (identifier == "") "" (identifier +++ " has not been found...")) @ const Void
 		handleFound i table
-			=	   updateChoice (identifier +++ " found in:") [ChooseWith ChooseFromGrid id] table (table!!i)  				
+			=	   updateChoice (identifier +++ " found in:") [ChooseWith (ChooseFromGrid id)] table (table!!i)
 			>>*    [ OnAction (Action "Open..." []) (hasValue (\v -> openFileSelected v >>| handleNext))
 				   , OnAction ActionNext 		 (always  handleNext)
 				   ]	
@@ -339,9 +341,9 @@ where
 
 // opening and storing projects... 
 
-newProject :: (ReadOnlyShared (TaskList Void)) -> Task Void
+newProject :: (SharedTaskList Void) -> Task Void
 newProject ts
-	=				updateInformation "Set name of project..." [] "" <<@ Window
+	=				updateInformation "Set name of project..." [] "" <<@ InWindow
 	>>*				[ OnAction ActionCancel			(always (return Void))
 					, OnAction (Action "Set" [])	(hasValue (\v -> storeNewProject v))
 					]
@@ -367,7 +369,7 @@ openLastProject name	= reopenProject name
 openProject :: Task Void
 openProject  
 	= 				get_IDE_State
-	>>= \state ->	selectFileInPath state.projectPath (\name -> takeExtension name == "prj" || takeExtension name == "") <<@ Window
+	>>= \state ->	selectFileInPath state.projectPath (\name -> takeExtension name == "prj" || takeExtension name == "") <<@ InWindow
 	>>= \(path,r)-> if (isNothing r) (return Void) (reopenProject (fromJust r))
 
 reopenProject :: !ModuleName -> Task Void
@@ -382,7 +384,7 @@ where
 
 changeProjectOptions :: Task Void
 changeProjectOptions 
-	= changeProjectOptions` <<@ Window
+	= changeProjectOptions` <<@ InWindow
 where
 	changeProjectOptions`
 		=				get_IDE_State
@@ -406,13 +408,13 @@ where
 		
 		profilingOptions :: String ProfilingOptions -> Task ProfilingOptions
 		profilingOptions title prof 
-			= 	updateChoice (title,"Time Profiling Options:") [ChooseWith ChooseFromRadioButtons id] [NoTimeProfiling, TimeProfileAndStackTrace,StackTraceOny] prof.timeProfile	
+			= 	updateChoice (title,"Time Profiling Options:") [ChooseWith (ChooseFromRadioButtons id)] [NoTimeProfiling, TimeProfileAndStackTrace,StackTraceOny] prof.timeProfile	
 				-&&- 	
-				updateChoice "Heap Profiling Options:" [ChooseWith ChooseFromRadioButtons id] [NoHeapProfiling, HeapProfile {minimumHeapProfile = 0}] prof.heapProfile	
+				updateChoice "Heap Profiling Options:" [ChooseWith (ChooseFromRadioButtons id)] [NoHeapProfiling, HeapProfile {minimumHeapProfile = 0}] prof.heapProfile	
 			>>= \(t,h) -> return {timeProfile = t, heapProfile = h}
 			
 		consoleOptions :: String ConsoleOptions -> Task ConsoleOptions
-		consoleOptions title co = updateChoice (title,"Console Options:") [ChooseWith ChooseFromRadioButtons id] [BasicValuesOnly, ShowConstructors, NoReturnType, NoConsole] co	
+		consoleOptions title co = updateChoice (title,"Console Options:") [ChooseWith (ChooseFromRadioButtons id)] [BasicValuesOnly, ShowConstructors, NoReturnType, NoConsole] co	
 
 // editing the evironment
 
@@ -421,7 +423,7 @@ getCurrEnv  state   			= 	state.envTargets!!state.idx
 
 editEnvironment :: Task Void
 editEnvironment 
-	= editEnvironment` <<@ Window
+	= editEnvironment` <<@ InWindow
 where
 	editEnvironment`
 		=				get_IDE_State
@@ -433,7 +435,7 @@ where
 addEnvironment :: Task Void					
 addEnvironment 						
 	=					get_IDE_State
-	>>= \state ->		selectFileInPath state.projectPath (\name -> takeExtension name == "env" || takeExtension name == "") <<@ Window
+	>>= \state ->		selectFileInPath state.projectPath (\name -> takeExtension name == "env" || takeExtension name == "") <<@ InWindow
 	>>= \(path,mbEnv)-> if (isNothing mbEnv)
 						(showError "Could not read environment file" path  @ const Void)
 						(					readEnvironmentFile (path </> (fromJust mbEnv)) 
@@ -464,9 +466,9 @@ where
 		=	let compilerMessages = state.projectPath +++ projectName +++ ".log"  in
 						closeEditorAndAdministrate compilerMessages
 			>>|			exportTextFile compilerMessages ""						//Empty the log file...
-			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"]
+			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"] Nothing
 						-&&-
-						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ Window
+						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ InWindow
 			>>*			[ OnAction ActionClose (always (return Void))
 						, OnAction ActionOk    (always (return Void))
 						]
@@ -486,7 +488,7 @@ where
 						
 	showOutput state
 		= 				let outputFile = externalFile (state.projectPath +++ projectName +++ ".out") in
-						viewSharedInformation (Title ("Executing " +++ projectName)) [ViewWith (\txt -> Note txt)] outputFile <<@ Window
+						viewSharedInformation (Title ("Executing " +++ projectName)) [ViewWith (\txt -> Note txt)] outputFile <<@ InWindow
 		>>|				return Void
 
 showLog projectName ts

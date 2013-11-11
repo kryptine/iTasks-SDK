@@ -51,7 +51,7 @@ derive gEditMeta
 derive gEditMeta Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gEditMeta Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
-//Check a value to see if it is 
+//Check a value to see if it is ok
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
@@ -59,15 +59,15 @@ derive gVerify Int, Real, Char, Bool, String, [], (,), (,,),(,,,),(->), Dynamic
 derive gVerify Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 //Update an existing value and its interaction mask
-generic gUpdate a | gDefault a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) -> (MaskedValue a)
+generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
 
 derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 //Wrapper functions for generating editors
-visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
-updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| gUpdate{|*|} a
+visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
+updateValueAndMask  :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gUpdate{|*|} a
 
 //Support types for generating editors
 :: *VSt =
@@ -78,6 +78,11 @@ updateValueAndMask  	:: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a	| 
 	, layout			:: !LayoutRules											// Layout rules for composite structures
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
+:: *USt =
+    { taskId            :: !String
+    , editorId          :: !String
+    , iworld            :: !*IWorld
+    }
 
 :: VisualizationResult
 		= NormalEditor [(!UIControl,!UIAttributes)]
@@ -145,7 +150,7 @@ customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Ve
 *
 * @return The modified value
 */
-basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} upd
 /**
 * Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.
@@ -154,4 +159,4 @@ basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) -> Maske
 *
 * @return The modified value
 */
-basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) -> MaskedValue a | JSONDecode{|*|} a
+basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} a

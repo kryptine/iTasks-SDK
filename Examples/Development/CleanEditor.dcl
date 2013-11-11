@@ -4,11 +4,11 @@ import iTasks
 
 import IDE_State
 
-openFileSelectorAndEdit 	:: (ReadOnlyShared (TaskList Void)) -> Task Void
+openFileSelectorAndEdit 	:: (SharedTaskList Void) -> Task Void
 
-openEditorOnFiles 			:: [FileName] (ReadOnlyShared (TaskList Void)) -> Task Void
+openEditorOnFiles 			:: [FileName] (SharedTaskList Void) -> Task Void
 
-launchEditorAndAdministrate :: FileName (ReadOnlyShared (TaskList Void)) -> Task Void
+launchEditorAndAdministrate :: FileName (SharedTaskList Void) -> Task Void
 
 closeEditorAndAdministrate 	:: FileName -> Task Void
 

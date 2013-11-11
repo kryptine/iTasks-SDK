@@ -18,10 +18,9 @@ from Data.Maybe import :: Maybe
 from StdGeneric import :: ConsPos
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
-from iTasks.Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gUpdate, :: VSt, :: VisualizationResult, :: EditMeta
+from iTasks.Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gUpdate, :: VSt, :: USt, :: VisualizationResult, :: EditMeta
 from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat
 from iTasks.Framework.Generic.Defaults import generic gDefault
-
 from iTasks.API.Core.SystemTypes import :: DataPath, :: InteractionMask, :: Verification, :: MaskedValue, :: VerifiedValue
 
 //generic JSONEncode t :: !t -> [JSONNode]
@@ -35,8 +34,7 @@ customGVisualizeText :: (a -> b) !VisualizationFormat !a -> [String] | gVisualiz
 //generic gEditor a | gVisualizeText a, gEditMeta a, JSONEncode a, JSONDecode a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
 customGEditor :: (a -> b) DataPath (VerifiedValue a) [EditMeta] !*VSt -> (!VisualizationResult,!*VSt) | gEditor{|*|} b
 
-//generic gUpdate a | gDefault a, JSONDecode a :: ![Int] !JSONNode !(!a,![InteractionMask]) -> (!a,![InteractionMask])
-customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} b
+customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) !*USt -> (!(!a,!InteractionMask),!*USt) | gUpdate{|*|} b
 
 //generic gVerify a :: !(Maybe a) ![InteractionMask] !VerifyOptions -> ([VerifyMask],[InteractionMask])
 //customGVerify :: ((b,[InteractionMask]) -> (a,[InteractionMask])) !(Maybe a) ![InteractionMask] !VerifyOptions -> ([VerifyMask],[InteractionMask]) | gVerify{|*|} b

@@ -155,6 +155,7 @@ diffEditletOpts path editletDiffs opts1 opts2
 	//Check if we have a local diff function for this editor...
 	| otherwise
         = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
+            Just (_,[])     = DiffPossible []
             Just (_,diffs)  = DiffPossible [UIUpdate path [("applyDiff",[JSONString diff]) \\ diff <- diffs]]
             _               = DiffImpossible
 

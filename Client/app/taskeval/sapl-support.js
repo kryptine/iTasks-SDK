@@ -64,11 +64,11 @@ Sapl = new function () {
 				var args = expr.slice(2, expr.length);
 				var consname = expr[1];
 				var consfunc = eval(this.escapeName(consname));				
-				record = isArray(consfunc.fields);
+				record = isArray(consfunc.$f);
 
 				if (record) {
 					var res = "{";					
-					var fieldnames = consfunc.fields;
+					var fieldnames = consfunc.$f;
 					
 					for (var i = 0; i < args.length; i++) {
 						var aarg = this.toString(this.feval(args[i]));
@@ -180,7 +180,7 @@ Sapl = new function () {
 				// Very important! Do NOT use splice here! 	
 				var args = expr.slice(2, expr.length);
 				var consfunc = eval(this.escapeName(consname));
-				record = isArray(consfunc.fields);
+				record = isArray(consfunc.$f);
 
 				// SPECIALIZED OVERRIDES!!!
 				if(consname == "iTasks.API.Core.SystemTypes.Username" || consname == "iTasks.API.Core.SystemTypes.Password"){
@@ -206,7 +206,7 @@ Sapl = new function () {
 				
 				if (record) {
 					var res = {};
-					var fieldnames = consfunc.fields;
+					var fieldnames = consfunc.$f;
 
 					for (var i = 0; i < args.length; i++) {
 						var aarg = this.toJS(this.feval(args[i]));

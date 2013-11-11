@@ -76,17 +76,14 @@ where
 	mapdomid cid = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
-    onScriptLoad cid _ clval=:{val} world
-	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal ("<div id=\""+++mapcanvasid cid +++"\" style=\"width:100%; height:100%\"/>")) world
+    onScriptLoad mbDiffs cid _ clval=:{val} world
+	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
 	    # (mapdiv, world) = getDomElement (mapcanvasid cid) world
 	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (val.perspective.GoogleMapPerspective.type)) world
 	    # (center, world) = jsNewObject "google.maps.LatLng"
 	    				[toJSArg val.perspective.GoogleMapPerspective.center.lat
 	    				,toJSArg val.perspective.GoogleMapPerspective.center.lng] world
-
-	    # (mapobj, world) = jsNewObject "google.maps.Map"
-	    				[toJSArg mapdiv
-			    		,toJSArg {MapOptions
+        # options = toJSArg {MapOptions
 			    				 |zoom 				= val.perspective.GoogleMapPerspective.zoom
 			    				 ,center 			= center
 			    				 ,mapTypeId 		= mapTypeId
@@ -98,33 +95,31 @@ where
 								 ,scrollwheel		= val.settings.GoogleMapSettings.scrollwheel
 								 ,draggable			= val.settings.GoogleMapSettings.draggable
 								 }
-						] world
-
+	    # (mapobj, world) = jsNewObject "google.maps.Map" [toJSArg mapdiv,options] world
 	    # (mapevent, world) = findObject "google.maps.event" world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "dragend", toJSArg (onChange "dragend")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "maptypeid_changed", toJSArg (onChange "maptype")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg (onChange "zoom")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "click", toJSArg onClick] mapevent world	
 
-        # world = jsTrace mapobj world
         # (editlets,world)  = findObject "itwc.global.controller.editlets" world
         # (cmp,world)       = jsGetObjectAttr cid editlets world
         # (_,world)         = callObjectMethod "addManagedListener" [toJSArg cmp,toJSArg "afterlayout",toJSArg onAfterComponentLayout,toJSArg cmp] cmp world
         //Place initial markers
 		# (markerMap, world) = jsNewMap world
 		# world             = foldl (putOnMarker mapobj markerMap) world val.GoogleMap.markers
-		= ({clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}}, world)
+		= onUpdate cid mbDiffs {clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}} world
 	where
 		onChange t = createEditletEventHandler (updatePerspective t) cid
 		onClick = createEditletEventHandler addMarker cid
         onAfterComponentLayout = createEditletEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
 
-	onUpdate cid mbUpdates clval=:{mbSt=Nothing} world
+	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
 		# (mapsobj, world) = findObject "google.maps" world
 		| jsIsUndefined mapsobj
-		    = (clval, loadMapsAPI cid undef world)
-		    = onScriptLoad cid undef clval world
+		    = (clval, loadMapsAPI mbDiffs cid undef world)
+		    = onScriptLoad mbDiffs cid undef clval world
 	onUpdate id (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
@@ -151,8 +146,8 @@ where
 	onUpdate id diff clval world //Catchall
         = (clval, world)
 
-	loadMapsAPI id _ world	
-		# world = jsSetObjectAttr "gmapscallback" (createEditletEventHandler onScriptLoad id) jsWindow world
+	loadMapsAPI mbDiffs id _ world	
+		# world = jsSetObjectAttr "gmapscallback" (createEditletEventHandler (onScriptLoad mbDiffs) id) jsWindow world
 		= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
 				Nothing world
 
@@ -310,6 +305,7 @@ where
         where
             upd markers updated = [if (m.GoogleMapMarker.markerId == updated.GoogleMapMarker.markerId) updated m \\ m <- markers]
         app g (RemoveMarkers m)             = {GoogleMap|g & markers = [marker \\ marker <- g.GoogleMap.markers | not (isMember marker.GoogleMapMarker.markerId m)]}
+        app g _ = g
 
 //--------------------------------------------------------------------------------------------------
 instance toString GoogleMapType
@@ -331,9 +327,9 @@ gVisualizeText{|GoogleMapPosition|} _  {GoogleMapPosition|lat,lng} = [toString l
 gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (googleMapEditlet val,mask,ver) meta vst
 
-gUpdate{|GoogleMap|} dp upd (val,mask)
-    # (Editlet value _ _, mask) = gUpdate{|*|} dp upd (googleMapEditlet val,mask)
-    = (value,mask)
+gUpdate{|GoogleMap|} dp upd (val,mask) iworld
+    # ((Editlet value _ _, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld
+    = ((value,mask),iworld)
 
 //derive gUpdate GoogleMap
 gVerify{|GoogleMap|} _ mv = alwaysValid mv

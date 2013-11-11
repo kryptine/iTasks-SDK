@@ -219,12 +219,12 @@ where
 				]
 			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"]))
             //New HTML5 Client runtime
-                ["itwc.js"
-                ,"app/taskeval/utils.js","app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess
+                ["app/taskeval/utils.js","app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess
 				,"app/taskeval/builtin.js","app/taskeval/dynamic.js"
 				,"app/taskeval/sapl-rt.js", "app/taskeval/sapl-support.js"
 				,"app/taskeval/db.js", "app/taskeval/debug.js"
 				,"app/taskeval/interface.js"
+                ,"itwc.js"
                 ]
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld

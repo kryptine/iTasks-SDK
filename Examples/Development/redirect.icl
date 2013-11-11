@@ -3,6 +3,8 @@ implementation module redirect;
 import StdEnv;
 
 call_process_with_redirected_std_out_and_error :: !{#Char} !{#Char} !{#Char} !{#Char} !*World -> (!(!Bool, !Int), !*World);
+call_process_with_redirected_std_out_and_error command directory out_file_name errors_file_name world = ((False,0),world)
+/*
 call_process_with_redirected_std_out_and_error command directory out_file_name errors_file_name world
 	# (b,i,os) = create_process_with_redirected_std_out_and_error command directory out_file_name errors_file_name 0;
 	= ((b,i),world);
@@ -164,3 +166,4 @@ CloseHandle object os
 	= code {
 		ccall CloseHandle@4 "PI:I:I"
 	}
+    */
