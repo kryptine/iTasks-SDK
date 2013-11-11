@@ -21,7 +21,7 @@ selectFileInPath path pred
 						_ 			-> return (path,Nothing)
 where
 	select names
-		=				enterChoice ("File Selector",path) [] (filter pred names) <<@ Window
+		=				enterChoice ("File Selector",path) [] (filter pred names) <<@ InWindow
 		>>*				[ OnAction ActionCancel (always (return (path,Nothing)))
 						, OnAction ActionOk		(hasValue continue)
 						, OnAction ActionNew	(always newFile)
@@ -81,7 +81,7 @@ where
 							_		-> storeFileInPath path name string
 
 showError :: String a -> Task a | iTask a
-showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return val) <<@ Window
+showError prompt val = (viewInformation ("Error",prompt) [] val >>= \_ -> return val) <<@ InWindow
 
 currentDirectory :: Task DirPathName
 currentDirectory 

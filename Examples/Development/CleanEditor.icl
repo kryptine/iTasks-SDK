@@ -9,15 +9,15 @@ import SmallUtil, IDE_State
 
 derive class iTask FileError
 
-openFileSelectorAndEdit :: (ReadOnlyShared (TaskList Void)) -> Task Void
+openFileSelectorAndEdit :: (SharedTaskList Void) -> Task Void
 openFileSelectorAndEdit ts
 	=				get_IDE_State
-	>>= \state ->	selectFileInPath state.projectPath (\_ -> True) <<@ Window
+	>>= \state ->	selectFileInPath state.projectPath (\_ -> True) <<@ InWindow
 	>>= \(path,r)-> if (isNothing r)
 						(return Void)
 						(launchEditorAndAdministrate (fromJust r) ts)
 
-openEditorOnFiles :: [FileName] (ReadOnlyShared (TaskList Void)) -> Task Void
+openEditorOnFiles :: [FileName] (SharedTaskList Void) -> Task Void
 openEditorOnFiles [] 		ts =	return Void
 openEditorOnFiles [f:fs]	ts =	launch (editor f ts) ts >>| openEditorOnFiles fs ts 
 
@@ -31,7 +31,7 @@ saveAll [name:names]
 	>>|				saveAll names 						
 
 
-launchEditorAndAdministrate :: FileName (ReadOnlyShared (TaskList Void)) -> Task Void
+launchEditorAndAdministrate :: FileName (SharedTaskList Void) -> Task Void
 launchEditorAndAdministrate fileName ts
 	=				get_IDE_State
 	>>= \state ->	if (isMember fileName state.openedFiles)
@@ -54,7 +54,7 @@ derive class iTask Replace
 initReplace =	{ search = ""
 				, replaceBy = "" 
 				}
-editor :: FileName (ReadOnlyShared (TaskList Void)) -> Task Void
+editor :: FileName (SharedTaskList Void) -> Task Void
 editor fileName ts = editor` (externalFile fileName)
 where
 	editor` file	
@@ -89,7 +89,7 @@ where
 		saveAs copy
 			=				get copy
 			>>= \content -> get_IDE_State
-			>>= \state ->	storeFileInPath state.projectPath fileName content <<@ Window
+			>>= \state ->	storeFileInPath state.projectPath fileName content <<@ InWindow
 
 		other fileName
 		| equal_suffix ".icl" fileName = (RemoveSuffix fileName) +++ ".dcl"
@@ -116,7 +116,7 @@ where
 
 	showReplace :: Replace -> Task Void 
 	showReplace cmnd
-		=		updateInformation "Replace:" [] cmnd // <<@ Window
+		=		updateInformation "Replace:" [] cmnd // <<@ InWindow
  			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
  				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
  				]

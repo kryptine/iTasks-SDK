@@ -7,4 +7,4 @@ definition module SmallUtil
 import iTasks
 
 actionTask :: Task Void
-launch :: (Task a) (ReadWriteShared (TaskList a) Void) -> Task Void | iTask a
+launch :: (Task a) (SharedTaskList a) -> Task Void | iTask a
