@@ -23,6 +23,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.view.Slider'		//Slider for bounded values
 			  ,'itwc.component.view.Progress'	//Progress bar
 			  ,'itwc.component.view.Document'	//Viewing of downloadable documents
+			  ,'itwc.component.view.Chart'	//A chart
 
 			  ,'itwc.component.edit.String'		//An editor for strings 
 			  ,'itwc.component.edit.Int'		//An editor for integer values 
