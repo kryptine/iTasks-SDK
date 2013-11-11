@@ -1,12 +1,12 @@
 _feval = function (expr) { // check on length split for == and <=
 		var y, f, xs;
 		while (1) {
-			if (typeof (expr) == "object") {
+			if (typeof (expr) === "object") {
 				if (expr.length == 1) return expr[0]; // boxed primitive
-				else if (typeof (expr[0]) == "function") { // closure
+				else if (typeof (expr[0]) === "function") { // closure
 					f = expr[0];
 					xs = expr[1];
-					if (f.length == xs.length) { // most often occuring case
+					if (f.length === xs.length) { // most often occuring case
 						y = f.apply(this, xs);
 						expr[0] = y;
 						expr.length = 1;
@@ -16,7 +16,7 @@ _feval = function (expr) { // check on length split for == and <=
 						expr[0] = y;
 					} else // not enough args
 					return expr;
-		 		} else if (typeof (expr[0]) == "object") { // curried application -> uncurry
+		 		} else if (typeof (expr[0]) === "object") { // curried application -> uncurry
 					y = expr[0];
 					expr[0] = y[0];
 					expr[1] = y[1].concat(expr[1]);
@@ -35,8 +35,8 @@ _fapp = function (f,xs){
 	//xs = Array.prototype.slice.call(arguments, 1);
 	
 	while(1){
-		if (typeof f == "function"){
-			if (f.length == xs.length) { // most often occuring case
+		if (typeof f === "function"){
+			if (f.length === xs.length) { // most often occuring case
 				return f.apply(this, xs);
 			} else if (f.length < xs.length) { // less likely case
 				f = f.apply(this, xs.splice(0, f.length));
