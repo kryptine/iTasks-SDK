@@ -36,6 +36,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.Document'	//An editor for uploading documents
 			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
 			  ,'itwc.component.edit.Editlet'	//A custom component
+			  ,'itwc.component.edit.Image'	//An image
 			  
 			  ,'itwc.component.choice.Dropdown'	        //A simple dropdown box for choosing from a fixed set
 			  ,'itwc.component.choice.RadioGroup'       //A set of radio buttons with labels
