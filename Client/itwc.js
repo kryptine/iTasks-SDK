@@ -38,6 +38,7 @@ itwc.Component.prototype = {
         me.parentCmp = parentCmp || null;
         me.items = [];
         me.definition = definition || {};
+        me.hotkeyListener = null;
     },
     render: function(itemIdx) {
         var me = this;
@@ -148,7 +149,7 @@ itwc.Component.prototype = {
         if(me[operation] && typeof me[operation] == 'function') {
             me[operation].apply(me,args);
         } else {
-            console.log("Unsupported operation on component",operation,args);
+            console.log("Unsupported operation on component",me, operation,args);
         }
     },
     getChildIndex: function() {
@@ -162,7 +163,26 @@ itwc.Component.prototype = {
             }
        }
        return -1;
+    },
+    setHotkeys: function(hotkeys) {
+        var me = this;
+
+        me.hotkeys = hotkeys;
+
+        if(me.hotkeys.length === 0 && me.hotkeyListener) {
+            me.domEl.removeEventListener('keyup',me.hotkeyListener);
+            me.hotkeyListener = null;
+        } else {
+            me.hotkeyListener = me.domEl.addEventListener('keyup',function(e) {
+                me.hotkeys.forEach(function(hotkey) {
+                    if(e.keyCode === hotkey[0].key) {
+                        itwc.controller.sendActionEvent(hotkey[1].taskId,hotkey[1].actionId);
+                    }
+                });
+            });
+        }
     }
+
 }
 itwc.Container = itwc.extend(itwc.Component,{
     isContainer: true,
@@ -244,6 +264,9 @@ itwc.component.itwc_viewport = itwc.extend(itwc.Container,{
         for(i = me.domEl.childNodes.length - 1; i >= 0; i--) {
             me.domEl.removeChild(me.domEl.childNodes[i]);
         }
+    },
+    setTitle: function(title) {
+        document.title = title;
     }
 });
 itwc.component.itwc_view_string = itwc.extend(itwc.Component,{
@@ -501,7 +524,6 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 
 			me.value = ys[2];
 			//Synchronize
-            console.log("DIFF",diff);
 			if(diff !== null) {
 				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,diff);
 			}
@@ -692,7 +714,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
     },
     afterItemAdded: function(itemIdx,itemCmp) {
         var me = this,
-            tab,label,closeLink;
+            tab,icon,label,closeLink;
 
         //Add a tab
         tab = document.createElement('li');
@@ -705,6 +727,12 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
                 itwc.controller.sendFocusEvent(itemCmp.definition.focusTaskId);
                 return false;
             },me);
+        }
+        if(itemCmp.definition.iconCls) {
+            icon = document.createElement('div');
+            icon.classList.add('tabicon');
+            icon.classList.add(itemCmp.definition.iconCls);
+            label.insertBefore(icon,label.childNodes[0]);
         }
         tab.appendChild(label);
 

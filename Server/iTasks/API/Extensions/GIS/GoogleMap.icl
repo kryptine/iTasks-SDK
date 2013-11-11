@@ -120,7 +120,6 @@ where
 		| jsIsUndefined mapsobj
 		    = (clval, loadMapsAPI mbDiffs cid undef world)
 		    = onScriptLoad mbDiffs cid undef clval world
-
 	onUpdate id (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
@@ -306,6 +305,7 @@ where
         where
             upd markers updated = [if (m.GoogleMapMarker.markerId == updated.GoogleMapMarker.markerId) updated m \\ m <- markers]
         app g (RemoveMarkers m)             = {GoogleMap|g & markers = [marker \\ marker <- g.GoogleMap.markers | not (isMember marker.GoogleMapMarker.markerId m)]}
+        app g _ = g
 
 //--------------------------------------------------------------------------------------------------
 instance toString GoogleMapType
@@ -327,9 +327,9 @@ gVisualizeText{|GoogleMapPosition|} _  {GoogleMapPosition|lat,lng} = [toString l
 gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (googleMapEditlet val,mask,ver) meta vst
 
-gUpdate{|GoogleMap|} dp upd (val,mask)
-    # (Editlet value _ _, mask) = gUpdate{|*|} dp upd (googleMapEditlet val,mask)
-    = (value,mask)
+gUpdate{|GoogleMap|} dp upd (val,mask) iworld
+    # ((Editlet value _ _, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld
+    = ((value,mask),iworld)
 
 //derive gUpdate GoogleMap
 gVerify{|GoogleMap|} _ mv = alwaysValid mv

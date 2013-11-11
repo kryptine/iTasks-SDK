@@ -60,9 +60,9 @@ where
 gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
 
-gUpdate{|LeafletMap|} dp upd (val,mask)
-    # (Editlet value _ _,mask) = gUpdate{|*|} dp upd (leafletEditlet val,mask)
-    = (value,mask)
+gUpdate{|LeafletMap|} dp upd (val,mask) iworld
+    # ((Editlet value _ _,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld
+    = ((value,mask),iworld)
 
 gVerify{|LeafletMap|} _ vst = alwaysValid vst
 
