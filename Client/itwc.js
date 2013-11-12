@@ -249,7 +249,7 @@ itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
             if(!me.disabled) {
                 itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
             }
-            return false;
+            e.preventDefault();
         });
         el.appendChild(linkEl)
     },
@@ -516,6 +516,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			if(dowrap) event = ___wrapJS(event);
 			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
 
+            if(typeof ys == 'undefined') {
+                console.warn('eventHandler: evaluating expression yielded undefined',expr);
+            }
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
@@ -600,6 +603,7 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
             if(!me.disabled) {
                 me.onClick(e);
             }
+            e.preventDefault();
             return false;
         });
     },
@@ -725,7 +729,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         if(itemCmp.definition.focusTaskId) {
             label.addEventListener('click',function(e) {
                 itwc.controller.sendFocusEvent(itemCmp.definition.focusTaskId);
-                return false;
+                e.preventDefault();
             },me);
         }
         if(itemCmp.definition.iconCls) {
@@ -743,7 +747,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
             closeLink.classList.add('tabclose');
             closeLink.addEventListener('click',function(e) {
                 itwc.controller.sendActionEvent(itemCmp.definition.closeTaskId,'Close');
-                return false;
+                e.preventDefault();
             },me);
 
             tab.appendChild(closeLink);
@@ -1119,7 +1123,7 @@ itwc.controller.prototype = {
         var me = this,
             params = {},
             xhr, event;
-        if(!me.flushingTaskEvents & me.taskEvents.length) {
+        if(!me.flushingTaskEvents && me.taskEvents.length) {
             event = me.taskEvents.shift();
             //Set event number
             params['eventNo'] = event[0];
@@ -1184,6 +1188,8 @@ itwc.controller.prototype = {
     onUpdatePushEvent: function (e) {
         var me = this;
         me.updateUI(JSON.parse(e.data));
+        me.flushingTaskEvents = false;
+        me.flushTaskEvents();
     },
     updateUI: function(updates) {
         var me = this,
