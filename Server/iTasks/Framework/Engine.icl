@@ -317,7 +317,7 @@ determineSDKPath paths world
 	# (mbCleanHome,world) = getEnvironmentVariable CLEAN_HOME_VAR world
 	= case mbCleanHome of
 		Nothing			= searchPaths paths world
-		Just cleanHome	= searchPaths [cleanHome] world
+		Just cleanHome	= searchPaths [cleanHome, cleanHome </> "lib", cleanHome </> "Libraries"] world
 where	
 	searchPaths [] world = (Nothing, world)
 	searchPaths [p:ps] world
