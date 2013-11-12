@@ -32,6 +32,7 @@ startEngine publishable world
 	//Check options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
+    # theme                 = fromMaybe DEFAULT_THEME (stringOpt "-theme" opts)
 	# help					= boolOpt "-help" opts
 	# sdkOpt				= stringOpt "-sdk" opts
 	//If -help option is given show help and stop
@@ -41,7 +42,7 @@ startEngine publishable world
 	| isNothing mbSDKPath	= show sdkpatherror world
 	//Normal execution
 	# world					= show (running port) world
-	# iworld				= initIWorld (fromJust mbSDKPath) world
+	# iworld				= initIWorld (fromJust mbSDKPath) theme world
 	// mark all instance as outdated initially
 	# (maxNo,iworld)			= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
@@ -169,8 +170,8 @@ readFlavour sdkPath world
 		= abort "Error in JavaScript flavour file"	
 	= (fromJust mbFlav, world)
 		
-initIWorld :: !FilePath !*World -> *IWorld
-initIWorld sdkDir world
+initIWorld :: !FilePath !String !*World -> *IWorld
+initIWorld sdkDir theme world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
@@ -200,7 +201,7 @@ initIWorld sdkDir world
 	        ,dataDirectory		    = dataDir
             ,publicWebDirectories   = [sdkDir </> "Client", appDir </> "Static":extensionsWeb]
             }
-	  ,config				= defaultConfig
+	  ,config				= initialConfig theme
 	  ,taskTime				= 0
 	  ,timestamp			= timestamp
 	  ,currentDateTime		= currentDateTime
@@ -224,10 +225,11 @@ initIWorld sdkDir world
       ,resources            = Nothing
 	  }
 where
-	defaultConfig :: Config
-	defaultConfig =
+	initialConfig :: String -> Config
+	initialConfig theme =
 		{ sessionTime		= 3600
 		, smtpServer		= "localhost"
+        , theme             = theme
 		}
 		
 	ensureDir :: !String !FilePath *World -> (!Bool,!*World)

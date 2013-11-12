@@ -10,7 +10,6 @@ import iTasks.API.Core.SystemTypes
 //only useful when doing work on the client framework
 IF_CLIENT_DEV yes no	:== yes
 IF_USE_EXTJS yes no     :== no
-ITWC_THEME              :== "gray"
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
@@ -34,7 +33,7 @@ webService :: !(HTTPRequest -> Task a) !ServiceFormat ->
 webService task defaultFormat = (reqFun task defaultFormat,dataFun,disconnectFun)
 where
 	reqFun ::!(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld) | iTask a
-	reqFun task defaultFormat req iworld=:{IWorld|application}
+	reqFun task defaultFormat req iworld=:{IWorld|application,config}
 		//Check for uploads
 		| hasParam "upload" req
 			# uploads = toList req.arg_uploads
@@ -57,7 +56,7 @@ where
 		= case format req of
 			//Serve start page
 			WebApp	
-				= (appStartResponse application, Nothing, iworld)
+				= (appStartResponse config.theme application, Nothing, iworld)
 			//Serve the user interface representation once, or if possible the diff between the current task GUI and a previous version
 			JSONGui
 				//Load or create session context and edit / evaluate
@@ -188,9 +187,9 @@ where
         format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
         format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 
-	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
+	appStartResponse theme appName = {newHTTPResponse & rsp_data = toString (appStartPage theme appName)}
 	where
-		appStartPage appName = HtmlTag [] [head,body]
+		appStartPage theme appName = HtmlTag [] [head,body]
 
 		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] [], TitleTag [] [Text appName]: styles ++ scripts]
 		body = BodyTag [] []
@@ -203,7 +202,7 @@ where
 			 ,"css/icons.css"
 			 ,"css/app.css"
 			 ,appName +++ ".css"])
-            (["itwc-base.css","itwc-theme-"+++ITWC_THEME+++"/itwc-theme.css"
+            (["itwc-theme-"+++theme+++"/itwc-theme.css"
 			 ,"css/icons.css"
 			 ,"css/app.css"
 			 ,appName +++ ".css"])
