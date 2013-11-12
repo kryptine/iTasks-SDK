@@ -17,7 +17,10 @@ import iTasks
 
 :: LeafletLayer
     = TileLayer String
-    | MarkerLayer
+    | ObjectLayer [LeafletObject]
+
+:: LeafletObject
+    = Marker LeafletLatLng
 
 openStreetMapTiles :: LeafletLayer
 

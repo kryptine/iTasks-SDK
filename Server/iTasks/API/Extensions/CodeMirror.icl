@@ -91,7 +91,7 @@ codeMirrorEditlet g eventhandlers = Editlet g
 				
 where
 	uiDef cid
-		= { html 			= TextareaTag [IdAttr (sourcearea cid), StyleAttr "display:none"] []
+		= { html 			= DivTag [IdAttr (sourcearea cid), StyleAttr "display: block; position: absolute;"] []
 		  , eventHandlers 	= []
 		  , width 			= FlexSize
 		  , height			= ExactSize 300
@@ -165,22 +165,33 @@ where
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
 	
 	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
-		# (ta, world) = getDomElement (sourcearea cid) world
-		# world = jsSetObjectAttr "value" (toJSVal source) ta world
-		# (cmobj, world) = findObject "CodeMirror" world
-		# (co, world) = createConfigurationObject configuration world
-		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cmobj world
-		
+        # world             = syncInnerDivSize cid world
+		# (ta, world)       = getDomElement (sourcearea cid) world
+		# (co, world)       = createConfigurationObject configuration world
+        # (cmobj, world)    = findObject "CodeMirror" world
+        # (this, world)     = jsThis world
+        # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
 		# world = loadModulesIfNeeded configuration cm world
-					
 		# st = {codeMirror = cm, systemEventHandlers = systemEvents}
-		
 		# world = manageSystemEvents "on" st world	
 		# world = foldl (putOnEventHandler cm) world eventhandlers
 	
         //Call onUpdate to initialize the editor	
         = onUpdate cid mbDiff {clval & mbSt = Just st} world
 	where
+        //Workaround because codemirror doesn't like to be in CSS3 flexbox divs
+        syncInnerDivSize cid world
+            # (editlets, world) = findObject "itwc.controller.editlets" world
+            # (editlet,world)   = jsGetObjectAttr cid editlets world
+            # (domEl,world)     = jsGetObjectAttr "domEl" editlet world
+            # (style,world)     = callObjectMethod "getComputedStyle" [toJSArg domEl] jsWindow world
+            # (width,world)     = jsGetObjectAttr "width" style world
+            # (height,world)    = jsGetObjectAttr "height" style world
+		    # (div, world)      = getDomElement (sourcearea cid) world
+            # world = jsSetObjectAttr "style.width" width div world
+            # world = jsSetObjectAttr "style.height" height div world
+            = world
+
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
 
