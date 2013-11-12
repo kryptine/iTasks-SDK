@@ -227,13 +227,15 @@ where
 
 	genDiffClient clval1 clval2 = genDiffServer clval1.val clval2.val
 	
-	genDiffServer val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
+	genDiffServer val1 val2 = case ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 							   ++
 							   if (val1.position == val2.position) [] [SetPosition val2.position]
 							   ++
 							   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
 							   ++
-							   if (val1.source == val2.source) [] [SetValue val2.source])
+							   if (val1.source == val2.source) [] [SetValue val2.source]) of
+        []      = Nothing
+        diffs   = Just diffs
 
 	appDiffClient diffs clval = {clval & val = appDiffServer diffs clval.val}
 

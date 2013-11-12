@@ -36,10 +36,6 @@ Ext.define('itwc.component.edit.Editlet',{
 			eval("tmp = " + me.initDiff+ ";");
 			me.initDiff = tmp;	
 		}		
-        if(me.initDiff != null) {
-			me.value = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);			
-		}
-
       	me.callParent(arguments);
 	},
 	afterRender: function() {
@@ -47,12 +43,16 @@ Ext.define('itwc.component.edit.Editlet',{
 			numEvents = me.events.length,
 			el, elName, eventName, expr, i;
 	
+
         if(me.initDiff != null) {
+			var mbDiff = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);
+			if(mbDiff[0]==1)
+				me.value = mbDiff[2];
+				
 		    me.fireUpdateEvent(me.initDiff);
-        } else {
-		    me.fireUpdateEvent(__Data_Maybe_Nothing);
-        }
-	
+		} else {
+			me.fireUpdateEvent(__Data_Maybe_Nothing);
+		}
 		for (i = 0; i < numEvents; i++){
 			
 			elName = me.events[i][0];
