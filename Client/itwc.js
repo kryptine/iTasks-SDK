@@ -128,6 +128,14 @@ itwc.Component.prototype = {
             });
         }
     },
+    afterShow: function() {
+        var me = this;
+        if(me.items && me.items.length) {
+            me.items.forEach(function(cmp) {
+               cmp.afterShow();
+            });
+        }
+    },
     afterResize: function() {
         var me = this;
         if(me.items && me.items.length) {
@@ -504,6 +512,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             me.eventAfterLayout.apply(me,["dummy event"]);
         }
     },
+    afterShow: function() {
+        console.log("TEST");
+    },
     fireUpdateEvent: function (mbDiff) {
 		var me = this;
 		(me.eventHandler(false,me.updateUI))(mbDiff);		
@@ -765,6 +776,13 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         var me = this;
         me.tabBar.removeChild(me.tabBar.childNodes[itemIdx]);
     },
+    afterShow: function() {
+        var me = this;
+        //Only propagate to active tab
+        if(me.items[me.activeTab]) {
+            me.items[me.activeTab].afterShow();
+        }
+    },
     setActiveTab: function(activeTab) {
         var me = this;
 
@@ -777,6 +795,8 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         if(me.items[me.activeTab]) {
             me.items[me.activeTab].domEl.classList.add('selected');
             me.tabBar.childNodes[me.activeTab].classList.add('selected');
+            //Let the tab know it is being shown again
+            me.items[me.activeTab].afterShow();
         }
     }
 });
@@ -1137,7 +1157,7 @@ itwc.controller.prototype = {
             me.flushingTaskEvents = true;
             //Send request
             xhr = new XMLHttpRequest();
-            xhr.open('POST','/?format=json-gui', true);
+            xhr.open('POST','?format=json-gui', true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onload = me.receiveTaskUpdates.bind(me);
             xhr.send(itwc.util.urlEncode(params));
