@@ -23,6 +23,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.view.Slider'		//Slider for bounded values
 			  ,'itwc.component.view.Progress'	//Progress bar
 			  ,'itwc.component.view.Document'	//Viewing of downloadable documents
+			  ,'itwc.component.view.Chart'	//A chart
 
 			  ,'itwc.component.edit.String'		//An editor for strings 
 			  ,'itwc.component.edit.Int'		//An editor for integer values 
@@ -39,6 +40,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.Oryx'		//A diagram editor
 			  ,'itwc.component.edit.Code'		//A source code text editor
 			  ,'itwc.component.edit.Editlet'	//A custom component
+			  ,'itwc.component.edit.Image'	//An image
 			  
 			  ,'itwc.component.choice.Dropdown'	     //A simple dropdown box for choosing from a fixed set
 			  ,'itwc.component.choice.RadioGroup'    //A set of radio buttons with labels

@@ -54,6 +54,7 @@ Ext.define('itwc.component.edit.Editlet',{
 						
 			el = Ext.get(elName);
 			el.on(eventName, me.eventHandler(true,expr));
+			me.on(eventName, me.eventHandler(true,expr));
 		}
 		this.callParent(arguments);
 	},
