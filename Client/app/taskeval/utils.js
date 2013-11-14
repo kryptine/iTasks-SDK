@@ -30,10 +30,6 @@ isObject = function(o){
 	return (typeof (o) == "object");
 }
 
-String.prototype.replaceAt=function(index, character) {
-      return this.substr(0, index) + character + this.substr(index+character.length);
-}
-
 String.prototype.repeat= function(n){
     n= n || 1;
     return Array(n+1).join(this);

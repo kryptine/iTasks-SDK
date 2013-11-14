@@ -12,15 +12,18 @@ Ext.define('itwc.component.edit.Image',{
 	animationTimer: 0,
 	enableKeyEvents: true,
 	selected : [],
-	initComponent: function() {
-		var i = 0;
-		this.items = [];
-
-		for ( i=0;i<this.imageItems.length;i++ )
+	
+	initItems : function() {
+		
+		var sprites = this.imageItems;
+		//alert(window.JSON.stringify(sprites));
+		for ( i=0;i<sprites.length;i++ )
 		{
-			var shp = this.imageItems[i];
+			var shp = sprites[i];
 			if ( shp.type != "line" ){
 				this.items.push(shp);
+				
+				//	this.items[i].scale = {x: 0.5, y:0.5};
 				this.items[i].identifier = shp.identifier;
 				this.items[i]["stroke-width"] = shp.strokeWidth;
 				
@@ -34,6 +37,23 @@ Ext.define('itwc.component.edit.Image',{
 			
 		}
 		
+		
+	},
+	
+	test2: function(a, b) {
+		alert (b);
+	},
+	
+	test: function(obj) {
+		Ext.create(obj.className, obj.props);
+	},
+	
+	initComponent: function() {
+		var i = 0;
+		this.items = [];
+		
+		this.initItems();
+	
 		Ext.EventManager.on(window, 'keydown', function(e) {
 		
 			if (e.getKey() == 16) {
@@ -94,15 +114,19 @@ Ext.define('itwc.component.edit.Image',{
 		var me = this;
 		var animationTimer = me.animationTimer;
 		
+		
+		
 		me.callParent(arguments);
 		
 		if ( animationTimer != 0 )
 			clearInterval(animationTimer);
 		
+		
+		
 		me.surface.items.each(function (shp, i)
 			{
 				
-				if ( shp.selectable )
+				//if ( shp.selectable )
 					shp.addListener("click", function(shp)
 					{
 						this.viewport = this.viewport || this.up('viewport');
@@ -124,10 +148,22 @@ Ext.define('itwc.component.edit.Image',{
 								fill : "yellow"
 							}, true);
 						
-						this.viewport.fireEvent('edit',this.taskId, this.editorId, this.selected );
+						var editlet = itwc.global.controller.editlets[me.renderTo];
+						
+						var img = {items: [], selected:this.selected, width: 0, height:0};
+						var value = 
+							Sapl.feval([editlet.initValue,[editlet.jsToSaplJSONNode(img)]]);
+						editlet.value = value;
+						
+						editlet.fireEvent('selectPath' );
 					}, me);
 			}
+			
+			
 		);
+		
+		var bbox = me.surface.items.getBBox();
+		me.surface.setViewBox(bbox.x, bbox.y, me.getSize().width / 40, me.getSize().height / 40);
 		
 		me.animationTimer = setInterval(function()
 		{

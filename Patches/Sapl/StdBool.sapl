@@ -1,9 +1,9 @@
 StdBool.not :== not
-<{StdBool.||}> :== or
-<{StdBool.&&}> :== and
+<{StdBool.||}> !a_0 !b_1 = if a_0 true b_1
+<{StdBool.&&}> !a_0 !b_1 = if a_0 b_1 false
 <{StdBool.==_3}> :== eq
-StdBool.toBool_4 !a_0 = a_0
-StdBool.fromBool_5 !a_0 = a_0
+StdBool.toBool_4 = a_0
+StdBool.fromBool_5 = a_0
 StdBool.fromBool_6 !a_0 = if a_0 "True" "False"
 StdBool.toString_7 !a_0 = if a_0 "True" "False"
 

@@ -37,7 +37,7 @@ JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
 
-gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\Void t -> Just t) target upd val iworld
+gUpdate{|Task|} _ _ _ target upd val = basicUpdate (\Void t -> Just t) target upd val
 
 gVerify{|Task|} _ _ mv = alwaysValid mv
 

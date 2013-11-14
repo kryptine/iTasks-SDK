@@ -9,10 +9,9 @@ from iTasks.API.Core.SystemTypes import :: User
 from iTasks.API.Core.CoreTasks import :: Task
 
 :: TonicTune =
-	{ moduleName  :: String
-	, taskName    :: String
-	, entryUniqId :: Int
-	, exitUniqId  :: Int
+	{ moduleName :: String
+	, taskName   :: String
+	, uniqId     :: Int
 	}
 
 :: TraceType = EnterTrace | ExitTrace
@@ -24,11 +23,13 @@ from iTasks.API.Core.CoreTasks import :: Task
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
-userActiveTask :: !User -> Shared [TonicTrace]
+userActiveTask :: !User -> Shared (Maybe TonicTrace)
 
-tonicTune :: String String Int Int (Task a) -> Task a
+tonicTune :: String String Int (Task a) -> Task a
 
 instance tune TonicTune
+
+getTaskGraphUrl :: String -> Task String
 
 tonicLogin :: String -> Task Void
 

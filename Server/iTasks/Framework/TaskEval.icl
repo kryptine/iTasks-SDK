@@ -117,7 +117,7 @@ where
 
 //Evaluate a single task instance
 evalTaskInstance :: !Event !InstanceNo !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (SessionInfo,[UIUpdate]) [InstanceNo]),!*IWorld)
-evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists,uiDiffers}
 	//Read the task instance data
     //TODO: make sure we know it is a session in advance
 	# (oldMeta, isSession, iworld)	= case 'Data.SharedDataSource'.read (detachedInstanceMeta instanceNo) iworld of
@@ -185,11 +185,8 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			# (out,iworld) = case newMeta.TIMeta.instanceType of
 				SessionInstance session=:{SessionInfo|sessionId} = case (oldResult,newResult) of
 				    	(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	
-                            //Editlets compute their own diffs
-			                # (editletDiffs,iworld)		= getEditletDiffs iworld
-                            # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
-                            # iworld                    = setEditletDiffs editletDiffs iworld
-                            = (Left (session, updates),iworld)
+			                # (differs,iworld)			= getAndResetUIDiffers iworld
+                            = (Left (session, diffUIDefinitions oldUI newUI event differs),iworld)
 				    	(_,_)		= (Left (session,[]),iworld)
                 AttachedInstance attachment _
                                 = (Right [no \\ (TaskId no _) <- attachment],iworld)
@@ -197,12 +194,11 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			//Return the result
 			= (Ok (newResult,out), iworld)
 where
-	getNextTaskNo iworld=:{IWorld|nextTaskNo}	    = (nextTaskNo,iworld)
-	getLocalShares iworld=:{IWorld|localShares}	    = (localShares,iworld)
-	getLocalLists iworld=:{IWorld|localLists}	    = (localLists,iworld)
-	getLocalTasks iworld=:{IWorld|localTasks}	    = (localTasks,iworld)
-	getEditletDiffs iworld=:{IWorld|editletDiffs}	= (editletDiffs,iworld)
-    setEditletDiffs editletDiffs iworld = {IWorld|iworld & editletDiffs = editletDiffs}
+	getNextTaskNo iworld=:{IWorld|nextTaskNo}	= (nextTaskNo,iworld)
+	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
+	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
+	getLocalTasks iworld=:{IWorld|localTasks}	= (localTasks,iworld)
+	getAndResetUIDiffers iworld=:{IWorld|uiDiffers}     = (uiDiffers,{IWorld|iworld & uiDiffers='Data.Map'.newMap})
 
 	updateProgress now result progress
 		//# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Just now}

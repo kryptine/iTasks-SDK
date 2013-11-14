@@ -23,7 +23,6 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.view.Slider'		//Slider for bounded values
 			  ,'itwc.component.view.Progress'	//Progress bar
 			  ,'itwc.component.view.Document'	//Viewing of downloadable documents
-			  ,'itwc.component.view.Chart'	//A chart
 
 			  ,'itwc.component.edit.String'		//An editor for strings 
 			  ,'itwc.component.edit.Int'		//An editor for integer values 
@@ -37,7 +36,6 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.Document'	//An editor for uploading documents
 			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
 			  ,'itwc.component.edit.Editlet'	//A custom component
-			  ,'itwc.component.edit.Image'	//An image
 			  
 			  ,'itwc.component.choice.Dropdown'	        //A simple dropdown box for choosing from a fixed set
 			  ,'itwc.component.choice.RadioGroup'       //A set of radio buttons with labels
@@ -240,11 +238,8 @@ Ext.define('itwc.controller.Controller', {
 		var me = this,
 			numUpdates = updates.length,
 			update, 
-			cmp, operations, numOperations, operation, i, j, scroll;
-
-        //Save viewport scroll position... (bit of a hack)
-		scroll = me.viewport.el.getScrollTop();	
-
+			cmp, operations, numOperations, operation, i, j;
+			
 		for(i = 0; i < numUpdates; i++) {
 			update = updates[i];
 			//try {
@@ -277,8 +272,6 @@ Ext.define('itwc.controller.Controller', {
 			//	me.error("Failed to update user interface " + e);
 			//}
 		}
-        //Restore viewport scroll position
-        me.viewport.el.setScrollTop(scroll);
 	},
     resetApplication: function(message) {
 		var me = this,

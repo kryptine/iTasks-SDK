@@ -72,46 +72,35 @@ where
 	isSetTheme _ = False
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
+					 [(String, ComponentEventHandlerFunc CodeMirror CodeMirrorState)] 
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 			  
 codeMirrorEditlet g eventhandlers = Editlet g
-				{ EditletServerDef
-				| genUI		= \cid world -> (uiDef cid, world)
-				, defVal	= {source = "", configuration = [], position = 0, selection = Nothing}
-				, genDiff	= genDiffServer
-				, appDiff	= appDiffServer
+				{html		= \id -> TextareaTag [IdAttr (sourcearea id), ColsAttr "20", RowsAttr "20", StyleAttr "display:none;"] []
+				,updateUI   = onUpdate
+				,handlers	= \_ -> []
+				,genDiff	= genDiff
+				,appDiff	= appDiff
 				}
-				{ EditletClientDef
-				| updateUI	= onUpdate
-				, defVal 	= {val = {source = "", configuration = [], position = 0, selection = Nothing}, mbSt = Nothing}
-				, genDiff	= genDiffClient
-				, appDiff	= appDiffClient
-				}
-				
 where
-	uiDef cid
-		= { html 			= DivTag [IdAttr (sourcearea cid), StyleAttr "display: block; position: absolute;"] []
-		  , eventHandlers 	= []
-		  , width 			= FlexSize
-		  , height			= ExactSize 300
-		  }
 	sourcearea id = "cm_source_" +++ id
 	
 	// init
-	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
+	onUpdate cid Nothing val Nothing world
 		# (obj, world) = findObject "CodeMirror.defaults" world
 		| not (jsIsUndefined obj)
-		    = onLoad mbDiffs cid undef clval world
-		# world = addCSSFromUrl "codemirror.css" world
+		= onLoad cid undef val Nothing world
+	
 		# world = addJSFromUrl "codemirror.js" Nothing world
 		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
-        = (clval,world)
-    where
-		handler = createEditletEventHandler (onLoad mbDiffs) cid
-
+		# world = addCSSFromUrl "codemirror.css" world
+		
+		= (val, Nothing, world)
+	where
+		handler = createEditletEventHandler onLoad cid
+	
 	// update
-	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror}} world	
+	onUpdate cid (Just diffs) val (Just st=:{codeMirror}) world	
 		// disable system event handlers
 		# world = manageSystemEvents "off" st world		
 	
@@ -122,7 +111,7 @@ where
 
 		# world = case find isSetPos nopts of
 			Nothing    	= world
-			(Just (SetPosition idx))	
+			(Just (SetPosition idx)) 	
 						# (pos, world) = posFromIndex idx cmdoc world 
 						= snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)
 
@@ -145,7 +134,7 @@ where
 		// enable system event handlers
 		# world = manageSystemEvents "on" st world
 					
-		= (clval, world)
+		= (val, Just st, world)
 	where
 		(opts`, nopts) = splitWith isSetOpt diffs
 		opts = map (\(SetOption opt) -> opt) opts`
@@ -164,34 +153,23 @@ where
 
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
 	
-	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
-        # world             = syncInnerDivSize cid world
-		# (ta, world)       = getDomElement (sourcearea cid) world
-		# (co, world)       = createConfigurationObject configuration world
-        # (cmobj, world)    = findObject "CodeMirror" world
-        # (this, world)     = jsThis world
-        # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
+	onLoad cid _ val=:{source,configuration} Nothing world
+		# (ta, world) = getDomElement (sourcearea cid) world
+		# world = jsSetObjectAttr "value" (toJSVal source) ta world
+		
+		# (cmobj, world) = findObject "CodeMirror" world
+		# (co, world) = createConfigurationObject configuration world 
+		# (cm, world) = callObjectMethod "fromTextArea" [toJSArg ta, toJSArg co] cmobj world
+		
 		# world = loadModulesIfNeeded configuration cm world
+					
 		# st = {codeMirror = cm, systemEventHandlers = systemEvents}
+		
 		# world = manageSystemEvents "on" st world	
 		# world = foldl (putOnEventHandler cm) world eventhandlers
-	
-        //Call onUpdate to initialize the editor	
-        = onUpdate cid mbDiff {clval & mbSt = Just st} world
+		
+		= (val, Just st, world)
 	where
-        //Workaround because codemirror doesn't like to be in CSS3 flexbox divs
-        syncInnerDivSize cid world
-            # (editlets, world) = findObject "itwc.controller.editlets" world
-            # (editlet,world)   = jsGetObjectAttr cid editlets world
-            # (domEl,world)     = jsGetObjectAttr "domEl" editlet world
-            # (style,world)     = callObjectMethod "getComputedStyle" [toJSArg domEl] jsWindow world
-            # (width,world)     = jsGetObjectAttr "width" style world
-            # (height,world)    = jsGetObjectAttr "height" style world
-		    # (div, world)      = getDomElement (sourcearea cid) world
-            # world = jsSetObjectAttr "style.width" width div world
-            # world = jsSetObjectAttr "style.height" height div world
-            = world
-
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
 
@@ -212,12 +190,12 @@ where
 		= ((line, ch), world)
 
 	// TODO
-	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world
+	onChange cid event val st=:(Just {codeMirror}) world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
-        = ({clval & val={clval.val & source = jsValToString newsource}}, world)
+		= ({val & source = jsValToString newsource}, st, world)
 
-	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
+	onCursorActivity cid event val st=:(Just {codeMirror}) world 
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 
 		# (pos, world) = callObjectMethod "getCursor" [toJSArg "start"] cmdoc world
@@ -228,29 +206,24 @@ where
 		# (pos, world) = callObjectMethod "getCursor" [toJSArg "end"] cmdoc world
 		# (idx2, world) = indexFromPos pos cmdoc world		
 		# idx2 = jsValToInt idx2
+
 		# val = if (idx1 == idx2)
 				   {val & selection = Nothing}
 				   {val & selection = Just (idx1,idx2)}
 		
-		= ({clval & val = val}, world)
+		= (val, st, world)
 	where
 		indexFromPos pos cmdoc world = callObjectMethod "indexFromPos" [toJSArg pos] cmdoc world
-
-	genDiffClient clval1 clval2 = genDiffServer clval1.val clval2.val
 	
-	genDiffServer val1 val2 = case ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
+	genDiff val1 val2 = Just ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 							   ++
-							   if (val1.position == val2.position) [] [SetPosition val2.position]
+							   if (val1.position == val2.position) [] [SetPosition val2.position] 
 							   ++
 							   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
 							   ++
-							   if (val1.source == val2.source) [] [SetValue val2.source]) of
-        []      = Nothing
-        diffs   = Just diffs
+							   if (val1.source == val2.source) [] [SetValue val2.source])
 
-	appDiffClient diffs clval = {clval & val = appDiffServer diffs clval.val}
-
-	appDiffServer diffs val = foldl upd val diffs
+	appDiff diffs val = foldl upd val diffs
 	where
 		upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
 		upd val=:{position} (SetPosition pos) = {val & position = pos}

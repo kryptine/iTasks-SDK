@@ -3,12 +3,16 @@ Ext.define('itwc.component.view.Chart',{
 	alias: 'widget.itwc_view_chart',
 	width: 400,
 	height: 220,
-	autoSize: true,
+	autoSize: false,
 	
 	
 	initComponent: function() {
 		var newData = [];
 		var i = 0;
+		this.theme = this.props.theme;
+		this.axes = this.props.axes;
+		this.data = this.props.data;
+		this.series = this.props.series;
 	
 		for ( i=0; i<this.data.length;i++ )
 		{
@@ -16,37 +20,19 @@ Ext.define('itwc.component.view.Chart',{
 				if ( this.axes[j].type == "Numeric" )
 					this.data[i][j] = parseInt(this.data[i][j]);
 				
-			newData.push({ x: this.data[i][0], y: this.data[i][1] });
+			newData.push({ x: this.data[i].x, y: this.data[i].y });
 		}
 		this.model = Ext.define('Simple', {
 			extend: 'Ext.data.Model',
 			fields: ['x', 'y']
 		});
+	
 		this.dataStore = Ext.create('Ext.data.Store', {
 			model: 'Simple',
 			data: newData
 		});
 		this.store = this.dataStore;
 		this.callParent(arguments);
-	},
-	afterRender: function() {
-		var me = this;
-		
-		me.callParent(arguments);
-	},
-	apiLoaded: function() {
-	},
-	apiLoaded: function() {
-	},
-    afterComponentLayout: function() {
-    	this.callParent(arguments);
-    },
-	setValue: function(value) {
-	},
-	selfUpdate: function(def) {
-		var me = this;
-	},
-	onDestroy: function() {
 		
 	}
 });

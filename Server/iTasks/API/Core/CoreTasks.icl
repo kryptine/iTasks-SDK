@@ -105,7 +105,7 @@ where
 	matchAndApplyEvent (EditEvent eventNo taskId name value) matchId taskTime v mask ts iworld
 		| taskId == matchId
 			| otherwise
-				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) value (v,mask) iworld
+				# (nv,nmask)	= updateValueAndMask (s2dp name) value (v,mask)
 				= (nv,nmask,taskTime,iworld)
 		| otherwise	= (v,mask,ts,iworld)
 	matchAndApplyEvent (FocusEvent eventNo taskId) matchId taskTime v mask ts iworld

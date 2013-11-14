@@ -7,7 +7,7 @@ from Data.Maybe				import :: Maybe
 from System.Time				import :: Timestamp
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
-from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
+from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIDiffers
 from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
@@ -17,7 +17,7 @@ from iTasks.Framework.TaskServer	import class HttpServerEnv
 from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
-from Sapl.Target.Flavour import :: Flavour
+from Sapl.Target.JS.Flavour import :: Flavour
 from Sapl.SaplParser import :: ParserState
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
@@ -37,6 +37,7 @@ from Sapl.SaplParser import :: ParserState
 					, localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
 					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
+					, uiDiffers				:: !UIDiffers								// The user custom user interface diff functions
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
@@ -44,7 +45,6 @@ from Sapl.SaplParser import :: ParserState
 											   ,!Flavour								// Clean flavour for JS compilation
 											   ,!Maybe ParserState						// Some information collected by the parser for the code generator
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
-                    , editletDiffs          :: !UIEditletDiffs
 
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
 					, uiMessages            :: !Map SessionId [UIMessage]				// Messages for communicating with the user interfaces of sessions

@@ -9,7 +9,6 @@ import iTasks.API.Core.SystemTypes
 //Flag for disabling use of the compiled version of the client javascript
 //only useful when doing work on the client framework
 IF_CLIENT_DEV yes no	:== yes
-IF_USE_EXTJS yes no     :== yes
 
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
@@ -33,7 +32,7 @@ webService :: !(HTTPRequest -> Task a) !ServiceFormat ->
 webService task defaultFormat = (reqFun task defaultFormat,dataFun,disconnectFun)
 where
 	reqFun ::!(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld) | iTask a
-	reqFun task defaultFormat req iworld=:{IWorld|application,config}
+	reqFun task defaultFormat req iworld=:{IWorld|application}
 		//Check for uploads
 		| hasParam "upload" req
 			# uploads = toList req.arg_uploads
@@ -56,7 +55,7 @@ where
 		= case format req of
 			//Serve start page
 			WebApp	
-				= (appStartResponse config.theme application, Nothing, iworld)
+				= (appStartResponse application, Nothing, iworld)
 			//Serve the user interface representation once, or if possible the diff between the current task GUI and a previous version
 			JSONGui
 				//Load or create session context and edit / evaluate
@@ -187,44 +186,31 @@ where
         format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
         format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 
-	appStartResponse theme appName = {newHTTPResponse & rsp_data = toString (appStartPage theme appName)}
+	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
 	where
-		appStartPage theme appName = HtmlTag [] [head,body]
+		appStartPage appName = HtmlTag [] [head,body]
 
-		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] [], TitleTag [] [Text appName]: styles ++ scripts]
+		head = HeadTag [] [TitleTag [] [Text appName]: styles ++ scripts]
 		body = BodyTag [] []
 	
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = IF_USE_EXTJS
-			([(IF_CLIENT_DEV "bootstrap.css" "build/itwc/production/resources/itwc-all.css")
+		stylefiles =
+			[IF_CLIENT_DEV "bootstrap.css" "build/itwc/production/resources/itwc-all.css"
 			 ,"css/icons.css"
 			 ,"css/app.css"
-			 ,appName +++ ".css"])
-            (["itwc-theme-"+++theme+++"/itwc-theme.css"
-			 ,"css/icons.css"
-			 ,"css/app.css"
-			 ,appName +++ ".css"])
+			 ,appName +++ ".css"]
 
-        scriptfiles = IF_USE_EXTJS
-            //ExtJS based runtime
-            ((IF_CLIENT_DEV ["ext/ext-debug.js"] [])
+		scriptfiles = (IF_CLIENT_DEV ["ext/ext-debug.js"] [])
 			++  ["app/taskeval/utils.js","app/taskeval/itask.js" //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
 				,"app/taskeval/builtin.js","app/taskeval/dynamic.js"
-				,"app/taskeval/sapl-rt.js", "app/taskeval/sapl-support.js"
+				,"app/taskeval/sapl.js"
 				,"app/taskeval/db.js", "app/taskeval/debug.js"
 				,"app/taskeval/interface.js"
 				]
-			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"]))
-            //New HTML5 Client runtime
-                ["app/taskeval/utils.js","app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess
-				,"app/taskeval/builtin.js","app/taskeval/dynamic.js"
-				,"app/taskeval/sapl-rt.js", "app/taskeval/sapl-support.js"
-				,"app/taskeval/db.js", "app/taskeval/debug.js"
-				,"app/taskeval/interface.js"
-                ,"itwc.js"
-                ]
+			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"])
+
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
 		# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld

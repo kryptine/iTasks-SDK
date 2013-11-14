@@ -2,6 +2,14 @@ Ext.define('itwc.component.edit.Editlet',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_edit_editlet',
 	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
+
+    itwcWrapWidth: 400,
+    itwcWrapHeight: 300,
+
+	itwcWidth: '400',
+	itwcMinWidth: 'flex',
+	itwcHeight: 'flex',
+	itwcMinHeight: 'flex',
 	
 	initComponent: function() {
 		var me = this,
@@ -12,46 +20,44 @@ Ext.define('itwc.component.edit.Editlet',{
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
 		itwc.global.controller.editlets[me.htmlId] = me;
 		
-		if(me.script != null && me.script != "" && !sapldebug){
+		me.state = __Data_Maybe_Nothing();
+		
+		if(me.script != null && me.script != ""){
 			evalScript(me.script);
 		}
-		if(me.defVal != null) {
-			eval("tmp = " + me.defVal + ";");
-			me.value = Sapl.feval([tmp,[0]]); // the actual argument doesnt matter
-			delete this.defVal;
+		if(me.initValue != null) {
+			eval("tmp = eval(" + me.initValue + ");");
+			me.initValue = tmp;
+			me.value = Sapl.feval([me.initValue,[me.jsToSaplJSONNode(me.value)]]);
 		}
 		if(me.appDiff != null) {
-			eval("tmp = " + me.appDiff + ";");
+			eval("tmp = eval(" + me.appDiff + ");");
 			me.appDiff = tmp;	
 		}
 		if(me.genDiff != null) {
-			eval("tmp = " + me.genDiff + ";");
+			eval("tmp = eval(" + me.genDiff + ");");
 			me.genDiff = tmp;	
 		}
 		if(me.updateUI != null) {
-			eval("tmp = " + me.updateUI + ";");
+			eval("tmp = eval(" + me.updateUI + ");");
 			me.updateUI = tmp;	
 		}		
-		if(me.initDiff != null) {
-			eval("tmp = " + me.initDiff+ ";");
-			me.initDiff = tmp;	
-		}		
-      	me.callParent(arguments);
+		me.callParent(arguments);
 	},
 	afterRender: function() {
 		var me = this,
 			numEvents = me.events.length,
 			el, elName, eventName, expr, i;
-	
-
-        if(me.initDiff != null) {
-            if(me.initDiff[0] == 1) {
-                me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
-            }
-		    me.fireUpdateEvent(me.initDiff);
-		} else {
-			me.fireUpdateEvent(__Data_Maybe_Nothing);
+		
+		me.fireUpdateEvent(__Data_Maybe_Nothing());
+		
+		var htmlEl = Ext.get(me.htmlId);
+		
+		if ( htmlEl ){
+			me.setWidth(htmlEl.getWidth());
+			me.setHeight(htmlEl.getHeight());
 		}
+		
 		for (i = 0; i < numEvents; i++){
 			
 			elName = me.events[i][0];
@@ -71,23 +77,25 @@ Ext.define('itwc.component.edit.Editlet',{
 	// Creating a closure
 	eventHandler: function(dowrap,expr){
 		var me = this;
-
+		
 		var h = function(event){			
-
-           	if(event) event = event.browserEvent || event;
+			if(event) event = event.browserEvent || event;
 			if(dowrap) event = ___wrapJS(event);
-			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
+			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,me.state,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
-		
+			Sapl.feval(ys[4]);
+			
 			//Determine diff before overwriting me.value (using superstrict evaluation)
 			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
 			
 			me.value = ys[2];
+			me.state = ys[3];			
 			
 			//Synchronize
+			
 			if(diff !== null) {
 				var val = me.getEditorValue();
 				me.lastEditNo = itwc.global.controller.sendEditEvent(me.taskId,me.editorId,diff);
@@ -99,17 +107,51 @@ Ext.define('itwc.component.edit.Editlet',{
         return this.value;
     },
 	applyDiff: function (diff) {
-		var me = this, tmp;
-
-        eval("tmp = "+diff+";");
-        if(tmp[0] == 1) {
-		    me.value = Sapl.feval([me.appDiff,[tmp[2],me.value]]);
-        }
-        me.fireUpdateEvent(tmp);
-    },
+		var me = this;
+		var json = me.jsToSaplJSONNode(diff);
+		me.value = Sapl.feval([me.appDiff,[json,me.value]]);
+		
+		me.fireUpdateEvent(__Data_Maybe_Just(json));
+	},
 	//Util functions for exchanging between the values of the clean type Text.JSONNode in
 	//the format used in the Sapl interpreter and 'raw' javascript objects
-    jsFromSaplJSONNode: function (sapl) {
+	jsToSaplJSONNode: function (obj) {
+		var me = this,
+			args, i, k;
+		
+		if(obj === null) {
+			return [0,"Text.JSON.JSONNull"];
+		}
+		switch(typeof(obj)) {
+			case "boolean":
+				return [1,"Text.JSON.JSONBool",obj];
+			case "number":
+				if(isInteger(obj)) {
+					return [2,"Text.JSON.JSONInt",obj];
+				} else {
+					return [3,"Text.JSON.JSONReal",obj];
+				}
+			case "string":
+				return [4,"Text.JSON.JSONString",obj]
+			case "object": //Null, array or object
+				if(isArray(obj)) {
+					//Don't use Sapl.toList to prevent going through the array twice
+					args = [1,"_predefined._Nil"];
+					for(i = obj.length - 1; i >= 0; i--) {
+						args = [0,"_predefined._Cons",me.jsToSaplJSONNode(obj[i]),args];
+					}
+					return [5,"Text.JSON.JSONArray",args];
+				} else {
+                    args = [1,"_predefined._Nil"];
+                    for(k in obj) {
+                        args = [0,"_predefined._Cons",Sapl.toTuple([k,me.jsToSaplJSONNode(obj[k])]),args];
+                    }
+                    return [6,"Text.JSON.JSONObject",args];
+				}
+		}
+		return [8,'JSONError'];
+	},	
+	jsFromSaplJSONNode: function (sapl) {
 		switch(sapl[0]) {
 			case 0:	return null;
 			case 1: return sapl[2];

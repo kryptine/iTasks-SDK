@@ -20,7 +20,7 @@ import iTasks.Framework.TaskServer
 from Data.Set import :: Set, newSet
 from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
-from Sapl.Target.Flavour import :: Flavour, toFlavour
+from Sapl.Target.JS.Flavour import :: Flavour, toFlavour
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
@@ -32,7 +32,6 @@ startEngine publishable world
 	//Check options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
-    # theme                 = fromMaybe DEFAULT_THEME (stringOpt "-theme" opts)
 	# help					= boolOpt "-help" opts
 	# sdkOpt				= stringOpt "-sdk" opts
 	//If -help option is given show help and stop
@@ -42,7 +41,7 @@ startEngine publishable world
 	| isNothing mbSDKPath	= show sdkpatherror world
 	//Normal execution
 	# world					= show (running port) world
-	# iworld				= initIWorld (fromJust mbSDKPath) theme world
+	# iworld				= initIWorld (fromJust mbSDKPath) world
 	// mark all instance as outdated initially
 	# (maxNo,iworld)			= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
@@ -170,8 +169,8 @@ readFlavour sdkPath world
 		= abort "Error in JavaScript flavour file"	
 	= (fromJust mbFlav, world)
 		
-initIWorld :: !FilePath !String !*World -> *IWorld
-initIWorld sdkDir theme world
+initIWorld :: !FilePath !*World -> *IWorld
+initIWorld sdkDir world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
@@ -201,7 +200,7 @@ initIWorld sdkDir theme world
 	        ,dataDirectory		    = dataDir
             ,publicWebDirectories   = [sdkDir </> "Client", appDir </> "Static":extensionsWeb]
             }
-	  ,config				= initialConfig theme
+	  ,config				= defaultConfig
 	  ,taskTime				= 0
 	  ,timestamp			= timestamp
 	  ,currentDateTime		= currentDateTime
@@ -215,9 +214,9 @@ initIWorld sdkDir theme world
 	  ,localTasks			= newMap
       ,eventRoute			= newMap
 	  ,readShares			= []
+	  ,uiDiffers			= newMap
 	  ,sessions				= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
-      ,editletDiffs         = newMap
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
 	  ,shutdown				= False
@@ -225,11 +224,10 @@ initIWorld sdkDir theme world
       ,resources            = Nothing
 	  }
 where
-	initialConfig :: String -> Config
-	initialConfig theme =
+	defaultConfig :: Config
+	defaultConfig =
 		{ sessionTime		= 3600
 		, smtpServer		= "localhost"
-        , theme             = theme
 		}
 		
 	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
@@ -317,7 +315,7 @@ determineSDKPath paths world
 	# (mbCleanHome,world) = getEnvironmentVariable CLEAN_HOME_VAR world
 	= case mbCleanHome of
 		Nothing			= searchPaths paths world
-		Just cleanHome	= searchPaths [cleanHome, cleanHome </> "lib", cleanHome </> "Libraries"] world
+		Just cleanHome	= searchPaths [cleanHome] world
 where	
 	searchPaths [] world = (Nothing, world)
 	searchPaths [p:ps] world

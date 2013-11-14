@@ -1,13 +1,12 @@
-|| module _predefined
-
+|| Function dependencies
 _predefined._dummyForStrictAlias x = x
 
 :: _predefined._List = _predefined._Cons a1 a2 | _predefined._Nil 
-:: _predefined._List = <{_predefined._!Cons}> !a1 a2 | <{_predefined._!Nil}>
+:: _predefined._List = <{_predefined._!Cons}> a1 a2 | <{_predefined._!Nil}>
 :: _predefined._List = <{_predefined._#Cons}> a1 a2 | <{_predefined._#Nil}>
-:: _predefined._List = <{_predefined._Cons!}> a1 !a2 | <{_predefined._Nil!}>
-:: _predefined._List = <{_predefined._!Cons!}> !a1 !a2 | <{_predefined._!Nil!}>
-:: _predefined._List = <{_predefined._#Cons!}> a1 !a2 | <{_predefined._#Nil!}>
+:: _predefined._List = <{_predefined._Cons!}> a1 a2 | <{_predefined._Nil!}>
+:: _predefined._List = <{_predefined._!Cons!}> a1 a2 | <{_predefined._!Nil!}>
+:: _predefined._List = <{_predefined._#Cons!}> a1 a2 | <{_predefined._#Nil!}>
 :: _predefined._List = <{_predefined._|Cons}> a1 a2 | <{_predefined._|Nil}>
 
 :: _predefined._Tuple = _predefined._Tuple1 a1 
@@ -43,58 +42,66 @@ _predefined._dummyForStrictAlias x = x
 :: _predefined._Tuple = _predefined._Tuple31 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 a25 a26 a27 a28 a29 a30 a31
 :: _predefined._Tuple = _predefined._Tuple32 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 a25 a26 a27 a28 a29 a30 a31 a32
 
-_predefined.tupsels1v0 :== tupsels1v0
-_predefined.tupsels2v0 :== tupsels2v0
-_predefined.tupsels2v1 :== tupsels2v1
-_predefined.tupsels3v0 :== tupsels3v0
-_predefined.tupsels3v1 :== tupsels3v1
-_predefined.tupsels3v2 :== tupsels3v2
-_predefined.tupsels4v0 :== tupsels4v0
-_predefined.tupsels4v1 :== tupsels4v1
-_predefined.tupsels4v2 :== tupsels4v2
-_predefined.tupsels4v3 :== tupsels4v3
-_predefined.tupsels5v0 !t = select t (_predefined._Tuple5 a0 a1 a2 a3 a4 -> a0)
-_predefined.tupsels5v1 !t = select t (_predefined._Tuple5 a0 a1 a2 a3 a4 -> a1)
-_predefined.tupsels5v2 !t = select t (_predefined._Tuple5 a0 a1 a2 a3 a4 -> a2)
-_predefined.tupsels5v3 !t = select t (_predefined._Tuple5 a0 a1 a2 a3 a4 -> a3)
-_predefined.tupsels5v4 !t = select t (_predefined._Tuple5 a0 a1 a2 a3 a4 -> a4)
-_predefined.tupsels6v0 !t = select t (_predefined._Tuple6 a0 a1 a2 a3 a4 a5 -> a0)
-_predefined.tupsels6v1 !t = select t (_predefined._Tuple6 a0 a1 a2 a3 a4 a5 -> a1)
-_predefined.tupsels6v2 !t = select t (_predefined._Tuple6 a0 a1 a2 a3 a4 a5 -> a2)
-_predefined.tupsels6v3 !t = select t (_predefined._Tuple6 a0 a1 a2 a3 a4 a5 -> a3)
-_predefined.tupsels6v4 !t = select t (_predefined._Tuple6 a0 a1 a2 a3 a4 a5 -> a4)
-_predefined.tupsels6v5 !t = select t (_predefined._Tuple6 a0 a1 a2 a3 a4 a5 -> a5)
-_predefined.tupsels7v0 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a0)
-_predefined.tupsels7v1 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a1)
-_predefined.tupsels7v2 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a2)
-_predefined.tupsels7v3 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a3)
-_predefined.tupsels7v4 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a4)
-_predefined.tupsels7v5 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a5)
-_predefined.tupsels7v6 !t = select t (_predefined._Tuple7 a0 a1 a2 a3 a4 a5 a6 -> a6)
-_predefined.tupsels8v0 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a0)
-_predefined.tupsels8v1 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a1)
-_predefined.tupsels8v2 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a2)
-_predefined.tupsels8v3 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a3)
-_predefined.tupsels8v4 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a4)
-_predefined.tupsels8v5 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a5)
-_predefined.tupsels8v6 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a6)
-_predefined.tupsels8v7 !t = select t (_predefined._Tuple8 a0 a1 a2 a3 a4 a5 a6 a7 -> a7)
-_predefined.tupsels9v0 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a0)
-_predefined.tupsels9v1 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a1)
-_predefined.tupsels9v2 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a2)
-_predefined.tupsels9v3 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a3)
-_predefined.tupsels9v4 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a4)
-_predefined.tupsels9v5 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a5)
-_predefined.tupsels9v6 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a6)
-_predefined.tupsels9v7 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a7)
-_predefined.tupsels9v8 !t = select t (_predefined._Tuple9 a0 a1 a2 a3 a4 a5 a6 a7 a8 -> a8)
-_predefined.tupsels10v0 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a0)
-_predefined.tupsels10v1 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a1)
-_predefined.tupsels10v2 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a2)
-_predefined.tupsels10v3 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a3)
-_predefined.tupsels10v4 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a4)
-_predefined.tupsels10v5 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a5)
-_predefined.tupsels10v6 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a6)
-_predefined.tupsels10v7 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a7)
-_predefined.tupsels10v8 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a8)
-_predefined.tupsels10v9 !t = select t (_predefined._Tuple10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 -> a9)
+_predefined.tupsels1v0  t = select t (\a0 = a0) 
+_predefined.tupsels2v0  t = select t (\a0 a1 = a0)
+_predefined.tupsels2v1  t = select t (\a0 a1 = a1)
+_predefined.tupsels3v0  t = select t (\a0 a1 a2 = a0)
+_predefined.tupsels3v1  t = select t (\a0 a1 a2 = a1)
+_predefined.tupsels3v2  t = select t (\a0 a1 a2 = a2)
+_predefined.tupsels4v0  t = select t (\a0 a1 a2 a3 = a0)
+_predefined.tupsels4v1  t = select t (\a0 a1 a2 a3 = a1)
+_predefined.tupsels4v2  t = select t (\a0 a1 a2 a3 = a2)
+_predefined.tupsels4v3  t = select t (\a0 a1 a2 a3 = a3)
+_predefined.tupsels5v0  t = select t (\a0 a1 a2 a3 a4 = a0)
+_predefined.tupsels5v1  t = select t (\a0 a1 a2 a3 a4 = a1)
+_predefined.tupsels5v2  t = select t (\a0 a1 a2 a3 a4 = a2)
+_predefined.tupsels5v3  t = select t (\a0 a1 a2 a3 a4 = a3)
+_predefined.tupsels5v4  t = select t (\a0 a1 a2 a3 a4 = a4)
+_predefined.tupsels6v0  t = select t (\a0 a1 a2 a3 a4 a5 = a0)
+_predefined.tupsels6v1  t = select t (\a0 a1 a2 a3 a4 a5 = a1)
+_predefined.tupsels6v2  t = select t (\a0 a1 a2 a3 a4 a5 = a2)
+_predefined.tupsels6v3  t = select t (\a0 a1 a2 a3 a4 a5 = a3)
+_predefined.tupsels6v4  t = select t (\a0 a1 a2 a3 a4 a5 = a4)
+_predefined.tupsels6v5  t = select t (\a0 a1 a2 a3 a4 a5 = a5)
+_predefined.tupsels7v0  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a0)
+_predefined.tupsels7v1  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a1)
+_predefined.tupsels7v2  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a2)
+_predefined.tupsels7v3  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a3)
+_predefined.tupsels7v4  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a4)
+_predefined.tupsels7v5  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a5)
+_predefined.tupsels7v6  t = select t (\a0 a1 a2 a3 a4 a5 a6 = a6)
+_predefined.tupsels8v0  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a0)
+_predefined.tupsels8v1  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a1)
+_predefined.tupsels8v2  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a2)
+_predefined.tupsels8v3  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a3)
+_predefined.tupsels8v4  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a4)
+_predefined.tupsels8v5  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a5)
+_predefined.tupsels8v6  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a6)
+_predefined.tupsels8v7  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 = a7)
+_predefined.tupsels9v0  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a0)
+_predefined.tupsels9v1  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a1)
+_predefined.tupsels9v2  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a2)
+_predefined.tupsels9v3  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a3)
+_predefined.tupsels9v4  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a4)
+_predefined.tupsels9v5  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a5)
+_predefined.tupsels9v6  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a6)
+_predefined.tupsels9v7  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a7)
+_predefined.tupsels9v8  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 = a8)
+_predefined.tupsels10v0  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a0)
+_predefined.tupsels10v1  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a1)
+_predefined.tupsels10v2  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a2)
+_predefined.tupsels10v3  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a3)
+_predefined.tupsels10v4  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a4)
+_predefined.tupsels10v5  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a5)
+_predefined.tupsels10v6  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a6)
+_predefined.tupsels10v7  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a7)
+_predefined.tupsels10v8  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a8)
+_predefined.tupsels10v9  t = select t (\a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 = a9)
+
+_predefined.not_defined    = error "Implementation not defined"
+_predefined.abort a b c d e f g = a
+_predefined.fst t = select t (\a b = a)
+_predefined.snd t = select t (\a b = b)
+_predefined.elem :== <{StdList.!!_0}>
+_predefined.update_13 as k val = select as (\x xs = if (eq k 0) (_predefined._Cons val xs) (_predefined._Cons x (_predefined.update_13 xs (sub k 1) val))) error
+_predefined.integers = _predefined._Cons "0" (_predefined._Cons "1" (_predefined._Cons "2" (_predefined._Cons "3" (_predefined._Cons "4" (_predefined._Cons "5" (_predefined._Cons "6" (_predefined._Cons "7" (_predefined._Cons "8" (_predefined._Cons "9")))))))))

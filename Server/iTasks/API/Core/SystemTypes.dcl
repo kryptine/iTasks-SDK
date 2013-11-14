@@ -32,7 +32,7 @@ from iTasks.Framework.IWorld			import :: IWorld
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlStack, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks.Framework.Task				import :: Task, :: TaskId
 from iTasks.Framework.Generic				import class iTask
-from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
+from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
 from iTasks.Framework.Generic.Visualization	import generic gVisualizeText, :: VisualizationFormat(..), visualizeAsText
 from iTasks.Framework.Generic.Defaults		import generic gDefault
 from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
@@ -126,10 +126,10 @@ instance toString		Username, Password
 instance ==				Username, Password
 instance <				Username, Password
 
-derive JSONEncode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
-derive JSONDecode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive JSONEncode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password , Map
+derive JSONDecode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password, Map
 derive gDefault			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password, Map
 
 derive gVisualizeText	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gEditor 			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
@@ -509,7 +509,6 @@ instance toUserConstraint UserId
 :: Config =
 	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
-    , theme             :: !String  //* User interface theme name
 	}
 
 //* External (operating system) process status
@@ -717,4 +716,4 @@ derive gVerify			Icon
 
 derive JSONEncode		HtmlTag, Void, Either, Timestamp
 derive JSONDecode		HtmlTag, Void, Either, Timestamp
-derive gEq				HtmlTag, Void, Either, Timestamp, JSONNode, (->), Dynamic
+derive gEq				HtmlTag, Void, Either, Timestamp, Maybe, JSONNode, (->), Dynamic

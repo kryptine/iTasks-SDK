@@ -395,9 +395,7 @@ encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON so
 encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts]
 encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
 encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [toJSON sopts, toJSON opts]
-encodeUIControl (UIEditlet sopts opts)					= enc "itwc_edit_editlet" [toJSON sopts, removeEditletValue (toJSON opts)]
-
-removeEditletValue (JSONObject fields) = JSONObject [field \\ field=:(name,_) <- fields | name <> "value"]
+encodeUIControl (UIEditlet sopts opts)					= enc "itwc_edit_editlet" [toJSON sopts, toJSON opts]
 
 encodeUIWindow :: !UIWindow -> JSONNode
 encodeUIWindow (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts, toJSON iopts, toJSON opts]

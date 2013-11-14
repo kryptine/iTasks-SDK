@@ -9,7 +9,7 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo, :: TaskServiceRep, :
 	= DiffImpossible
 	| DiffPossible [UIUpdate]
 
-:: UIEditletID :== (String,String)
+:: UIDiffers	:== Map (String,String) (JSONNode JSONNode -> Maybe JSONNode)
 
 derive gEq UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISide, UISize, UIBound, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
@@ -21,23 +21,19 @@ derive gEq UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
-diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
-diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal vp2=:(UIViewport iOpts2 opts2)) event editletDiffs
-	= (
-        diffItems [] event editletDiffs iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
-	++	diffAllWindows event editletDiffs opts1.UIViewportOpts.windows opts2.UIViewportOpts.windows
+diffUIDefinitions :: !UIDef !UIDef !Event !UIDiffers -> [UIUpdate]	
+diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal (UIViewport iOpts2 opts2)) event differs
+	=	diffItems [] event differs iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
+	++	diffAllWindows event differs opts1.UIViewportOpts.windows opts2.UIViewportOpts.windows
 	++	(case (diffHotkeys (fromMaybe [] opts1.UIViewportOpts.hotkeys) (fromMaybe [] opts2.UIViewportOpts.hotkeys)) of [] = []; ops = [UIUpdate [] ops])
 	++	if (opts1.UIViewportOpts.title === opts2.UIViewportOpts.title) [] [UIUpdate [] [("setTitle",[toJSON opts2.UIViewportOpts.title])]]
-    , removeEditletDiffs (findEditletsInViewport vp2) editletDiffs)
 
-diffUIDefinitions d1 d2 event editletDiffs //Unclear when this case occurs :(
-	= (diffItems [] event editletDiffs (uiDefControls d1) (uiDefControls d2), editletDiffs)
-
-removeEditletDiffs removeIds editletDiffs = fromList [(editletId,(value,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(value,diffs)) <- toList editletDiffs]
+diffUIDefinitions d1 d2 event differs
+	= diffItems [] event differs (uiDefControls d1) (uiDefControls d2) 
 
 //Compare controls
-diffControls :: !UIPath !Event !UIEditletDiffs !UIControl !UIControl -> DiffResult
-diffControls path event editletDiffs c1 c2
+diffControls :: !UIPath !Event !UIDiffers !UIControl !UIControl -> DiffResult
+diffControls path event differs c1 c2
 	# parts = case (c1,c2) of
 		(UIViewString sOpts1 vOpts1, UIViewString sOpts2 vOpts2)
 			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
@@ -110,20 +106,21 @@ diffControls path event editletDiffs c1 c2
 				= [DiffImpossible]
 		// Editlets have custom diff functions which are passed in separately
 		(UIEditlet sOpts1 opts1, UIEditlet sOpts2 opts2)
-			= [diffOpts sOpts1 sOpts2, diffEditletOpts path editletDiffs opts1 opts2]
+			= [diffOpts sOpts1 sOpts2, diffEditletOpts path differs opts1 opts2]
 		(UIContainer sOpts1 iOpts1, UIContainer sOpts2 iOpts2)
-			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event editletDiffs iOpts1 iOpts2]
+			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2]
 		(UIPanel sOpts1 iOpts1 opts1, UIPanel sOpts2 iOpts2 opts2)
-			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event editletDiffs iOpts1 iOpts2, diffPanelOpts path event editletDiffs opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffPanelOpts path event differs opts1 opts2]
 		(UIFieldSet sOpts1 iOpts1 opts1, UIFieldSet sOpts2 iOpts2 opts2)
-			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event editletDiffs iOpts1 iOpts2, diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffOpts opts1 opts2]
 		(UITabSet sOpts1 opts1, UITabSet sOpts2 opts2)
-			= [diffOpts sOpts1 sOpts2, diffTabSetOpts path event editletDiffs opts1 opts2]
+			= [diffOpts sOpts1 sOpts2, diffTabSetOpts path event differs opts1 opts2]
 		(_,_)
 			= [DiffImpossible]		
 	= DiffPossible (replaceControlIfImpossible path c2 parts)
 
 //As a first step, only do diffs for value changes, all other diffs trigger replacements...
+
 diffViewOpts :: UIPath (UIViewOpts a) (UIViewOpts a) -> DiffResult | gEq{|*|} a & encodeUIValue a
 diffViewOpts path opts1 opts2
 	| opts1 === opts2	= DiffPossible []
@@ -149,20 +146,22 @@ where
 	
 	eventValue (EditEvent _ _ _ value) = Just value
 	
-diffEditletOpts :: UIPath UIEditletDiffs UIEditletOpts UIEditletOpts -> DiffResult
-diffEditletOpts path editletDiffs opts1 opts2
+diffEditletOpts :: UIPath UIDiffers UIEditletOpts UIEditletOpts -> DiffResult
+diffEditletOpts path differs opts1 opts2
 	| opts1.UIEditletOpts.value === opts2.UIEditletOpts.value	= DiffPossible []
 	//Check if we have a local diff function for this editor...
 	| otherwise
-        = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
-            Just (_,[])     = DiffPossible []
-            Just (_,diffs)  = DiffPossible [UIUpdate path [("applyDiff",[JSONString diff]) \\ diff <- diffs]]
-            _               = DiffImpossible
+		= case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) differs of
+			Just differ = case differ opts1.UIEditletOpts.value opts2.UIEditletOpts.value of
+				Just diff	= DiffPossible [UIUpdate path [("applyDiff",[diff])]]
+				_			= DiffPossible []
+			_
+				= DiffImpossible
 
 diffChoiceOpts :: UIPath (UIChoiceOpts a) (UIChoiceOpts a) -> DiffResult | gEq{|*|} a & JSONEncode{|*|} a
 diffChoiceOpts path opts1 opts2
 	| opts1.UIChoiceOpts.taskId <> opts2.UIChoiceOpts.taskId		= DiffImpossible
-	| opts1.UIChoiceOpts.editorId <> opts2.UIChoiceOpts.editorId	= DiffImpossible
+	| opts1.UIChoiceOpts.editorId <> opts2.UIChoiceOpts.editorId	= DiffImpossible 
 	| opts1.UIChoiceOpts.options =!= opts2.UIChoiceOpts.options		= DiffImpossible
 	= DiffPossible valueDiff //(valueDiff ++ optionDiff)
 where
@@ -175,8 +174,8 @@ where
 	taskIdUpd	= if (opts1.UIActionOpts.taskId == opts2.UIActionOpts.taskId) [] [UIUpdate path [("setTaskId",[toJSON opts2.UIActionOpts.taskId])]]
 	actionIdUpd	= if (opts1.UIActionOpts.actionId == opts2.UIActionOpts.actionId) [] [UIUpdate path [("setActionId",[toJSON opts2.UIActionOpts.actionId])]]
 
-diffItemsOpts :: UIPath !Event UIEditletDiffs UIItemsOpts UIItemsOpts -> DiffResult
-diffItemsOpts path event editletDiffs opts1 opts2
+diffItemsOpts :: UIPath !Event UIDiffers UIItemsOpts UIItemsOpts -> DiffResult
+diffItemsOpts path event differs opts1 opts2
 	| opts1.UIItemsOpts.direction =!= opts2.UIItemsOpts.direction	= DiffImpossible
 	| opts1.UIItemsOpts.halign =!= opts2.UIItemsOpts.halign			= DiffImpossible
 	| opts1.UIItemsOpts.valign =!= opts2.UIItemsOpts.valign			= DiffImpossible
@@ -184,11 +183,11 @@ diffItemsOpts path event editletDiffs opts1 opts2
 	| opts1.UIItemsOpts.baseCls =!= opts2.UIItemsOpts.baseCls       = DiffImpossible
 	| opts1.UIItemsOpts.bodyCls =!= opts2.UIItemsOpts.bodyCls       = DiffImpossible
 	| otherwise
-		= DiffPossible (diffItems path event editletDiffs opts1.UIItemsOpts.items opts2.UIItemsOpts.items)
+		= DiffPossible (diffItems path event differs opts1.UIItemsOpts.items opts2.UIItemsOpts.items)
 
-diffTabSetOpts :: UIPath !Event UIEditletDiffs UITabSetOpts UITabSetOpts -> DiffResult
-diffTabSetOpts path event editletDiffs opts1 opts2
-	# (tabUpdates,replacedTabs) = diffTabItemsSet path event editletDiffs opts1.UITabSetOpts.items opts2.UITabSetOpts.items
+diffTabSetOpts :: UIPath !Event UIDiffers UITabSetOpts UITabSetOpts -> DiffResult
+diffTabSetOpts path event differs opts1 opts2
+	# (tabUpdates,replacedTabs) = diffTabItemsSet path event differs opts1.UITabSetOpts.items opts2.UITabSetOpts.items 
 	= DiffPossible (tabUpdates ++ activeTabUpd replacedTabs)
 where
 	activeTabUpd replacedTabs
@@ -214,8 +213,8 @@ diffMultiProperties path ops = case flatten ops of
 	ops	= [UIUpdate path ops]
 
 //Specialized diffs for the control specific options
-diffPanelOpts :: UIPath Event UIEditletDiffs UIPanelOpts UIPanelOpts -> DiffResult
-diffPanelOpts path event editletDiffs opts1 opts2
+diffPanelOpts :: UIPath Event UIDiffers UIPanelOpts UIPanelOpts -> DiffResult
+diffPanelOpts path event differs opts1 opts2
 	| impossible	= DiffImpossible
 					= case flatten [titleUpd,hotkeyUpd] of
 						[]	= DiffPossible menusUpd
@@ -228,10 +227,10 @@ where
 				
 	titleUpd	= if (opts1.UIPanelOpts.title == opts2.UIPanelOpts.title) [] [("setTitle",[toJSON opts2.UIPanelOpts.title])]
 	hotkeyUpd	= diffHotkeys (fromMaybe [] opts1.UIPanelOpts.hotkeys) (fromMaybe [] opts2.UIPanelOpts.hotkeys)
-	menusUpd	= diffItems [MenuStep:path] event editletDiffs (fromMaybe [] opts1.UIPanelOpts.tbar) (fromMaybe [] opts2.UIPanelOpts.tbar)
+	menusUpd	= diffItems [MenuStep:path] event differs (fromMaybe [] opts1.UIPanelOpts.tbar) (fromMaybe [] opts2.UIPanelOpts.tbar)
 
-diffWindowOpts :: UIPath Event UIEditletDiffs UIWindowOpts UIWindowOpts -> DiffResult
-diffWindowOpts path event editletDiffs opts1 opts2
+diffWindowOpts :: UIPath Event UIDiffers UIWindowOpts UIWindowOpts -> DiffResult
+diffWindowOpts path event differs opts1 opts2 
 	| impossible	= DiffImpossible
 					= case flatten [titleUpd,hotkeyUpd] of
 						[]	= DiffPossible menusUpd
@@ -243,7 +242,7 @@ where
 
 	titleUpd	= if (opts1.UIWindowOpts.title == opts2.UIWindowOpts.title) [] [("setTitle",[toJSON opts2.UIWindowOpts.title])]
 	hotkeyUpd	= diffHotkeys (fromMaybe [] opts1.UIWindowOpts.hotkeys) (fromMaybe [] opts2.UIWindowOpts.hotkeys)
-	menusUpd	= diffItems [MenuStep:path] event editletDiffs (fromMaybe [] opts1.UIWindowOpts.tbar) (fromMaybe [] opts2.UIWindowOpts.tbar)
+	menusUpd	= diffItems [MenuStep:path] event differs (fromMaybe [] opts1.UIWindowOpts.tbar) (fromMaybe [] opts2.UIWindowOpts.tbar)
 
 diffButtonOpts :: UIPath UIButtonOpts UIButtonOpts -> DiffResult
 diffButtonOpts path b1 b2 = DiffPossible (diffMultiProperties path [textUpd,iconUpd,enabledUpd])
@@ -258,8 +257,8 @@ where
 	iconUpd = if (i1.UIIconOpts.iconCls === i2.UIIconOpts.iconCls) [] [("setIconCls",[toJSON i2.UIIconOpts.iconCls])]
 	tooltipUpd = if (i1.UIIconOpts.tooltip === i2.UIIconOpts.tooltip) [] [("setTooltip",[toJSON i2.UIIconOpts.tooltip])]
 
-diffTabOpts :: UIPath Event UIEditletDiffs UITabOpts UITabOpts -> DiffResult
-diffTabOpts path event editletDiffs t1 t2
+diffTabOpts :: UIPath Event UIDiffers UITabOpts UITabOpts -> DiffResult
+diffTabOpts path event differs t1 t2
 	| (isJust t1.UITabOpts.tbar && isNothing t1.UITabOpts.tbar)	//Can only update menu items, not create a menubar suddenly
 		|| (isNothing t1.UITabOpts.tbar && isJust t2.UITabOpts.tbar)	
 		|| (isJust t1.UITabOpts.closeTaskId && isNothing t2.UITabOpts.closeTaskId) //We cannot make a non-closable tab closable or vice-versa
@@ -272,11 +271,11 @@ where
 	focusUpd = if (t1.UITabOpts.focusTaskId === t2.UITabOpts.focusTaskId) [] [("setFocusTaskId",[toJSON t2.UITabOpts.focusTaskId])]
 	closeUpd = if (t1.UITabOpts.closeTaskId === t2.UITabOpts.closeTaskId) [] [("setCloseTaskId",[toJSON t2.UITabOpts.closeTaskId])]
 	iconUpd = if (t1.UITabOpts.iconCls === t2.UITabOpts.iconCls) [] [("setIconCls",[toJSON t2.UITabOpts.iconCls])]
-	menusUpd = diffItems [MenuStep:path] event editletDiffs (fromMaybe [] t1.UITabOpts.tbar) (fromMaybe [] t2.UITabOpts.tbar)
+	menusUpd = diffItems [MenuStep:path] event differs (fromMaybe [] t1.UITabOpts.tbar) (fromMaybe [] t2.UITabOpts.tbar)
 	hotkeyUpd = diffHotkeys (fromMaybe [] t1.UITabOpts.hotkeys) (fromMaybe [] t2.UITabOpts.hotkeys)
 
-diffItems :: UIPath Event UIEditletDiffs [UIControl] [UIControl] -> [UIUpdate]
-diffItems path event editletDiffs items1 items2 = diff path event 0 items1 items2
+diffItems :: UIPath Event UIDiffers [UIControl] [UIControl] -> [UIUpdate]
+diffItems path event differs items1 items2 = diff path event 0 items1 items2
 where
 	diff path event i [] []
 		= []
@@ -285,26 +284,26 @@ where
 	diff path event i [] items2 //More items in new than old
 		= [UIUpdate path [("add",[toJSON n,encodeUIControl def])] \\ n <- [i..] & def <- items2]	
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
-		=	replaceControlIfImpossible [ItemStep i:path] c2 [diffControls [ItemStep i:path] event editletDiffs c1 c2]
+		=	replaceControlIfImpossible [ItemStep i:path] c2 [diffControls [ItemStep i:path] event differs c1 c2]
 		++  diff path event (i + 1) c1s c2s
 
-diffTabItemsSet :: UIPath Event UIEditletDiffs [UITab] [UITab] -> ([UIUpdate],[Int])
-diffTabItemsSet path event editletDiffs items1 items2 = diff path event 0 items1 items2
+diffTabItemsSet :: UIPath Event UIDiffers [UITab] [UITab] -> ([UIUpdate],[Int])
+diffTabItemsSet path event differs items1 items2 = diff path event 0 items1 items2
 where
 	diff path event i [] []
 		= ([],[])
-	diff path event i items1 []
+	diff path event i items1 [] 
 		= ([UIUpdate path [("remove",[toJSON n])] \\ n <- reverse [i.. i + length items1 - 1 ]], [])
 	diff path event i [] items2 //More items in new than old
 		= ([UIUpdate path [("add",[toJSON n,encodeUITab def])] \\ n <- [i..] & def <- items2], [])	
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
-		# (tabUpdates,replaced) = diffTabs [ItemStep i:path] event editletDiffs c1 c2
+		# (tabUpdates,replaced) = diffTabs [ItemStep i:path] event differs c1 c2
 		# (restUpdates,replacedTabs) = diff path event (i + 1) c1s c2s
 		= (tabUpdates ++ restUpdates,replacedTabs ++ if replaced [i] [])
 
-diffTabs :: UIPath Event UIEditletDiffs UITab UITab -> ([UIUpdate],Bool)
-diffTabs path event editletDiffs t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts2)
-	# parts = [diffItemsOpts path event editletDiffs iOpts1 iOpts2, diffTabOpts path event editletDiffs opts1 opts2]
+diffTabs :: UIPath Event UIDiffers UITab UITab -> ([UIUpdate],Bool)
+diffTabs path event differs t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts2)
+	# parts = [diffItemsOpts path event differs iOpts1 iOpts2, diffTabOpts path event differs opts1 opts2]
 	| allDiffsPossible parts
 		= (flatten [d \\ DiffPossible d <- parts],False)
 	| otherwise
@@ -312,8 +311,8 @@ diffTabs path event editletDiffs t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts
 where
 	[ItemStep parentIndex:parentPath] = path
 
-diffAllWindows :: Event UIEditletDiffs [UIWindow] [UIWindow] -> [UIUpdate]
-diffAllWindows event editletDiffs windows1 windows2 = diff event 0 windows1 windows2
+diffAllWindows :: Event UIDiffers [UIWindow] [UIWindow] -> [UIUpdate]
+diffAllWindows event differs windows1 windows2 = diff event 0 windows1 windows2
 where
 	diff event i [] []
 		= []
@@ -322,14 +321,14 @@ where
 	diff event i [] items2 //More windows
 		= [UIUpdate [] [("addWindow",[toJSON n,encodeUIWindow def])] \\ n <- [i..] & def <- windows2]	
 	diff event i [w1:w1s] [w2:w2s] //Compare side by side (TODO: Make more granular)
-		= diffWindows [WindowStep i] event editletDiffs w1 w2 ++ diff event (i + 1) w1s w2s
+		= diffWindows [WindowStep i] event differs w1 w2 ++ diff event (i + 1) w1s w2s
 		++  diff event (i + 1) w1s w2s
 
-diffWindows :: UIPath Event UIEditletDiffs UIWindow UIWindow -> [UIUpdate]
-diffWindows path event editletDiffs w1=:(UIWindow sOpts1 iOpts1 opts1) w2=:(UIWindow sOpts2 iOpts2 opts2)
+diffWindows :: UIPath Event UIDiffers UIWindow UIWindow -> [UIUpdate]
+diffWindows path event differs w1=:(UIWindow sOpts1 iOpts1 opts1) w2=:(UIWindow sOpts2 iOpts2 opts2)
 	= replaceWindowIfImpossible path w2 [diffOpts sOpts1 sOpts2
-										,diffItemsOpts path event editletDiffs iOpts1 iOpts2
-										,diffWindowOpts path event editletDiffs opts1 opts2]
+										,diffItemsOpts path event differs iOpts1 iOpts2
+										,diffWindowOpts path event differs opts1 opts2]
 
 diffHotkeys :: [UIKeyAction] [UIKeyAction] -> [UIUpdateOperation]
 diffHotkeys keys1 keys2 = if (keys1 === keys2) [] [("setHotkeys",[toJSON keys2])]
@@ -356,31 +355,6 @@ allDiffsPossible [] 					= True
 allDiffsPossible [DiffImpossible:_]		= False
 allDiffsPossible [(DiffPossible _):ps]	= allDiffsPossible ps
 
-//Collect all editlet definitions
-findEditletsInViewport :: UIViewport -> [UIEditletID]
-findEditletsInViewport (UIViewport {UIItemsOpts|items} {UIViewportOpts|windows})
-    = findEditletsInWindows windows (findEditletsInItems items [])
-
-findEditletsInWindows :: [UIWindow] [UIEditletID] -> [UIEditletID]
-findEditletsInWindows windows acc = foldr findEditletsInWindow acc windows
-
-findEditletsInWindow :: UIWindow [UIEditletID] -> [UIEditletID]
-findEditletsInWindow (UIWindow _ {UIItemsOpts|items} _) acc = findEditletsInItems items acc
-
-findEditletsInItems :: [UIControl] [UIEditletID] -> [UIEditletID]
-findEditletsInItems controls acc = foldr findEditletsInControl acc controls
-
-findEditletsInControl :: UIControl [UIEditletID] -> [UIEditletID]
-findEditletsInControl (UIEditlet _ {UIEditletOpts|taskId,editorId}) acc = [(taskId,editorId):acc]
-findEditletsInControl (UIContainer _ {UIItemsOpts|items}) acc           = findEditletsInItems items acc
-findEditletsInControl (UIPanel _ {UIItemsOpts|items} _) acc             = findEditletsInItems items acc
-findEditletsInControl (UIFieldSet _ {UIItemsOpts|items} _) acc          = findEditletsInItems items acc
-findEditletsInControl (UITabSet _ {UITabSetOpts|items}) acc             = foldr findEditletsInTab acc items
-findEditletsInControl _ acc = acc
-
-findEditletsInTab :: UITab [UIEditletID] -> [UIEditletID]
-findEditletsInTab (UITab {UIItemsOpts|items} _) acc = findEditletsInItems items acc
-	
 encodeUIUpdates :: ![UIUpdate] -> JSONNode
 encodeUIUpdates updates = JSONArray (map encodeUIUpdate updates)
 

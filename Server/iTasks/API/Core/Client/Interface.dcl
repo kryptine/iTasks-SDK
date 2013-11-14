@@ -16,7 +16,6 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 :: JSFunction a	//A javascript function object
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
-:: JSEvent		//Represents an event object
 :: JSObject		//Just for fun
 
 //CORE JAVASCRIPT ACCESS
@@ -41,7 +40,6 @@ jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JS
 //Special keywords
 jsThis				:: !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsTypeof			:: !(JSVal a) -> String
-jsAbort             :: a -> b
 
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg

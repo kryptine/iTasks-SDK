@@ -295,13 +295,12 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	, editorId		:: !String
 	, value			:: !JSONNode
 	, html			:: !String
-	, script		:: !String
-	, events		:: ![(!String,!String,!String)]
-	, defVal		:: !String	
-	, initDiff		:: !String
-	, updateUI		:: !String
-	, genDiff		:: !String
-	, appDiff		:: !String
+	, script		:: !Maybe String
+	, events		:: !Maybe [(!String,!String,!String)]
+	, initValue		:: !Maybe String
+	, updateUI		:: !Maybe String
+	, genDiff		:: !Maybe String
+	, appDiff		:: !Maybe String
 	}
 
 :: UIPanelOpts =

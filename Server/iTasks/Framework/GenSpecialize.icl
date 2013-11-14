@@ -14,7 +14,7 @@ customGVisualizeText toPrj format val = gVisualizeText{|*|} format (toPrj val)
 customGEditor :: (a -> b) DataPath (VerifiedValue a) [EditMeta] !*VSt -> (!VisualizationResult,!*VSt) | gEditor{|*|} b
 customGEditor toPrj dp (mba,mask,ver) meta vst = gEditor{|*|} dp (toPrj mba,mask,ver) meta vst
 
-customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) !*USt -> (!(!a,!InteractionMask),!*USt) | gUpdate{|*|} b
-customGUpdate toPrj fromPrj path upd (a,amask) ust
-    # ((b,bmask),ust) = gUpdate{|*|} path upd (toPrj a,amask) ust
-    = ((fromPrj b, bmask),ust)
+customGUpdate :: (a -> b) (b -> a) ![Int] !JSONNode !(!a,!InteractionMask) -> (!a,!InteractionMask) | gUpdate{|*|} b
+customGUpdate toPrj fromPrj path upd (a,amask)
+    # (b,bmask) = gUpdate{|*|} path upd (toPrj a,amask)
+    = (fromPrj b, bmask)

@@ -68,6 +68,7 @@ where
     stepper l = forever (watch (taskListState l) >>* steps`) @? const NoValue
     where
         steps` = [OnAction action (taskfun` taskfun) \\ (OnAction action taskfun) <- steps]
+        		++ [OnValue (taskfun` taskfun) \\ OnValue taskfun <- steps ]
         where
             //Only enable when there are two tasks in the parallel set, hence no other sideSteps are active
             taskfun` taskfun (Value [v,_] _) = case taskfun v of
