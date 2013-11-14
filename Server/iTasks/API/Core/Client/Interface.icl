@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.Client.Interface
 
-import StdEnv, Data.Void, Data.Maybe, Text
+import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 
 :: JSWorld = JSWorld
 :: JSVal a = JSVal !a
@@ -61,6 +61,9 @@ toJSVal val = undef
 
 toJSArg :: !a -> JSArg
 toJSArg val = undef
+
+toJSArgs :: ![a] -> [JSArg]
+toJSArgs xs = map toJSArg xs
 
 fromJSValUnsafe :: !(JSVal a) -> Dynamic
 fromJSValUnsafe ptr = undef
@@ -123,6 +126,7 @@ addJSFromUrl url mbCallback world
 	# (script,world)	= callObjectMethod "createElement" [toJSArg "script"] jsDocument world
 	# world				= jsSetObjectAttr "src" (toJSVal url) script world
 	# world				= jsSetObjectAttr "type" (toJSVal "text/javascript") script world
+	# world				= jsSetObjectAttr "async" (toJSVal False) script world
 	# world				= case mbCallback of
 		Nothing			= world
 		Just callback	= jsSetObjectAttr "onload" callback script world
@@ -130,6 +134,19 @@ addJSFromUrl url mbCallback world
 	# (head,world)		= callObjectMethod "getElementsByTagName" [toJSArg "head"] jsDocument world
 	# (head,world)		= jsGetObjectEl 0 head world
 	# (_,world)			= callObjectMethod "appendChild" [toJSArg script] head world
+	= world
+
+addCSSFromUrl :: !String !*JSWorld -> *JSWorld
+addCSSFromUrl url world
+    # (link,world)      = callObjectMethod "createElement" [toJSArg "link"] jsDocument world
+	# world				= jsSetObjectAttr "rel" (toJSVal "stylesheet") link world
+	# world				= jsSetObjectAttr "type" (toJSVal "text/css") link world
+	# world				= jsSetObjectAttr "href" (toJSVal url) link world
+	# world				= jsSetObjectAttr "async" (toJSVal True) link world
+	//Inject into the document head
+	# (head,world)		= callObjectMethod "getElementsByTagName" [toJSArg "head"] jsDocument world
+	# (head,world)		= jsGetObjectEl 0 head world
+	# (_,world)			= callObjectMethod "appendChild" [toJSArg link] head world
 	= world
 
 jsTrace :: a *JSWorld -> *JSWorld
@@ -159,7 +176,6 @@ withDef :: !((JSVal a) -> b) !b !(JSVal a) -> b
 withDef f def ptr | jsIsUndefined ptr
 	= def 
 	= f ptr
-									
-									
 
-
+callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
+callFunction fn args world = callObjectMethod fn args jsWindow world

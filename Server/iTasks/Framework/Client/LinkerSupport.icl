@@ -126,7 +126,6 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 	# (_, world) = writeFile "debug.sapl" sapl_lib world
 	# (_, world) = writeFile "debug.js" js_lib world
 */
-
 	= (js_ST, js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, mb_js_UF, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
@@ -147,6 +146,8 @@ editletLinker ::
 	 ,!*IWorld)
 
 editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
+						iworld=:{world,currentSession=Nothing} = ("",[],"","","","",iworld) //REALLY????
+editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 						iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
 
 	// unpack "compiler state"
@@ -162,9 +163,9 @@ editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 
 	// link functions indicated by event handlers
 	# (linkerstate, lib, sapl_eventHandlers, world) 
-			= foldl (\(linkerstate, lib, os, world) (id, event, f) = 
+			= foldl (\(linkerstate, lib, os, world) (id, event, f) =
 				let (linkerstate`, lib`, f`, world`) = linkByExpr linkerstate lib (graph_to_sapl_string f) world
-				 in (linkerstate`, lib`, [(id,event,f`):os], world`)) 
+				 in (linkerstate`, lib`, [(id,event,f`):os], world`))
 			(linkerstate, lib, [], world) eventHandlers
 
 	// unwrap linker state
@@ -189,7 +190,7 @@ editletLinker eventHandlers initValueFunc updateUIFunc genDiffFunc appDiffFunc
 	# js_GD = toString (handlerr (exprGenerateJS flavour False sapl_GD mbparserstate))
 	# js_AD = toString (handlerr (exprGenerateJS flavour False sapl_AD mbparserstate))
 
-	# js_eventHandlers = map (\(id,event,saplhandler) = (id,event,toString (handlerr 
+	# js_eventHandlers = map (\(id,event,saplhandler) = (id,event,toString (handlerr
 							(exprGenerateJS flavour False saplhandler mbparserstate)))) sapl_eventHandlers
 
 /* For debugging:

@@ -1,19 +1,24 @@
 Ext.define('itwc.component.edit.Editlet',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itwc_edit_editlet',
-	mixins: ['itwc.component.edit.Editable'],
-	
-	width: 600,//'flex',
-	minWidth: 400,
-	height: 'flex',
-	minHeight: 300,
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
+
+    itwcWrapWidth: 600,
+    itwcWrapHeight: 300,
+
+	itwcWidth: 'flex',
+	itwcMinWidth: 600,
+	itwcHeight: 'flex',
+	itwcMinHeight: 300,
 	
 	initComponent: function() {
 		var me = this,
 			tmp;	
 
+        me.initSize();
+
         me.htmlId = "editlet-" + me.taskId + "-" + me.editorId;
-		itwc.global.controller[me.htmlId] = me;
+		itwc.global.controller.editlets[me.htmlId] = me;
 		
 		me.state = __Data_Maybe_Nothing();
 		
@@ -50,7 +55,7 @@ Ext.define('itwc.component.edit.Editlet',{
 			
 			elName = me.events[i][0];
 			eventName = me.events[i][1];
-			expr = me.events[i][2];
+			expr = eval(me.events[i][2]);
 						
 			el = Ext.get(elName);
 			el.on(eventName, me.eventHandler(true,expr));
@@ -93,9 +98,6 @@ Ext.define('itwc.component.edit.Editlet',{
     getValue: function () {
         return this.value;
     },
-	applyValue: function (val) {
-		this.value = val;
-	},
 	applyDiff: function (diff) {
 		var me = this;
 		var json = me.jsToSaplJSONNode(diff);

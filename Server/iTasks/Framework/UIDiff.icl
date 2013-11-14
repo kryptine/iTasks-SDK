@@ -11,14 +11,14 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo
 
 :: UIDiffers	:== Map (String,String) (JSONNode JSONNode -> Maybe JSONNode)
 
-derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UICodeOpts, UIOryxOpts, UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
+derive gEq UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISide, UISize, UIBound, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
+derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlStack, UISubUI, UISubUIStack, UIAction
 derive gEq UITaskletOpts, UITaskletPHOpts, UIEditletOpts
 
-derive JSONEncode UITreeNode, UIActionOpts, UISizeOpts, UISideSizes, UIMinSize, UISize, UIGoogleMapOptions, UIGoogleMapMarker
+derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIDiffers -> [UIUpdate]	
@@ -36,57 +36,53 @@ diffControls :: !UIPath !Event !UIDiffers !UIControl !UIControl -> DiffResult
 diffControls path event differs c1 c2
 	# parts = case (c1,c2) of
 		(UIViewString sOpts1 vOpts1, UIViewString sOpts2 vOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
+			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
 		(UIViewHtml sOpts1 vOpts1, UIViewHtml sOpts2 vOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
+			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
 		(UIViewDocument sOpts1 vOpts1, UIViewDocument sOpts2 vOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
+			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
 		(UIViewCheckbox sOpts1 vOpts1, UIViewCheckbox sOpts2 vOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
+			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2]
 		(UIViewSlider sOpts1 vOpts1 opts1, UIViewSlider sOpts2 vOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2,diffOpts opts1 opts2]
 		(UIViewProgress sOpts1 vOpts1 opts1, UIViewProgress sOpts2 vOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffViewOpts path vOpts1 vOpts2,diffOpts opts1 opts2]
 		(UIEditString sOpts1 eOpts1, UIEditString sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditNote sOpts1 eOpts1, UIEditNote sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditPassword sOpts1 eOpts1, UIEditPassword sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditInt sOpts1 eOpts1, UIEditInt sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditDecimal sOpts1 eOpts1, UIEditDecimal sOpts2 eOpts2)	
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditCheckbox sOpts1 eOpts1, UIEditCheckbox sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditSlider sOpts1 eOpts1 opts1, UIEditSlider sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIEditDate sOpts1 eOpts1, UIEditDate sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditTime sOpts1 eOpts1, UIEditTime sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditDocument sOpts1 eOpts1, UIEditDocument sOpts2 eOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditButton sOpts1 eOpts1 opts1, UIEditButton sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
-		(m1=:UIEditGoogleMap sOpts1 eOpts1 opts1,m2=:UIEditGoogleMap sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffGoogleMapOpts path opts1 opts2]
-		(UIEditCode sOpts1 eOpts1 opts1, UIEditCode sOpts2 eOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2,diffOpts opts1 opts2]
 		(UIDropdown sOpts1 cOpts1, UIDropdown sOpts2 cOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]
+			= [diffOpts sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2]
 		(UIGrid sOpts1 cOpts1 opts1, UIGrid sOpts2 cOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2,diffOpts opts1 opts2]
 		(UITree sOpts1 cOpts1 opts1, UITree sOpts2 cOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffChoiceOpts path cOpts1 cOpts2,diffOpts opts1 opts2]
 		(UIActionButton sOpts1 aOpts1 opts1, UIActionButton sOpts2 aOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffActionOpts path aOpts1 aOpts2,diffButtonOpts path opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffActionOpts path aOpts1 aOpts2,diffButtonOpts path opts1 opts2]
 		(UIMenuButton sOpts1 opts1, UIMenuButton sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UILabel sOpts1 opts1, UILabel sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UIIcon sOpts1 opts1, UIIcon sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffIconOpts path opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffIconOpts path opts1 opts2]
 		// Tasklet on the right hand side:
 		// check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
@@ -110,24 +106,20 @@ diffControls path event differs c1 c2
 				= [DiffImpossible]
 		// Editlets have custom diff functions which are passed in separately
 		(UIEditlet sOpts1 opts1, UIEditlet sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2, diffEditletOpts path differs opts1 opts2]
+			= [diffOpts sOpts1 sOpts2, diffEditletOpts path differs opts1 opts2]
 		(UIContainer sOpts1 iOpts1, UIContainer sOpts2 iOpts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2]
+			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2]
 		(UIPanel sOpts1 iOpts1 opts1, UIPanel sOpts2 iOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffPanelOpts path event differs opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffPanelOpts path event differs opts1 opts2]
 		(UIFieldSet sOpts1 iOpts1 opts1, UIFieldSet sOpts2 iOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffOpts opts1 opts2]
+			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event differs iOpts1 iOpts2, diffOpts opts1 opts2]
 		(UITabSet sOpts1 opts1, UITabSet sOpts2 opts2)
-			= [diffSizeOpts path sOpts1 sOpts2, diffTabSetOpts path event differs opts1 opts2]
+			= [diffOpts sOpts1 sOpts2, diffTabSetOpts path event differs opts1 opts2]
 		(_,_)
 			= [DiffImpossible]		
 	= DiffPossible (replaceControlIfImpossible path c2 parts)
 
 //As a first step, only do diffs for value changes, all other diffs trigger replacements...
-diffSizeOpts :: UIPath UISizeOpts UISizeOpts -> DiffResult
-diffSizeOpts path opts1 opts2
-	| opts1 === opts2	= DiffPossible []
-						= DiffImpossible 
 
 diffViewOpts :: UIPath (UIViewOpts a) (UIViewOpts a) -> DiffResult | gEq{|*|} a & encodeUIValue a
 diffViewOpts path opts1 opts2
@@ -146,7 +138,7 @@ where
 	valueUpd
 		| eventMatch opts2 event
 			= if (eventValue event === opts2.UIEditOpts.value)  [] [UIUpdate path [("setEditorValue",[toJSON opts2.UIEditOpts.value])]]
-		| otherwise 
+		| otherwise
 			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setEditorValue",[toJSON opts2.UIEditOpts.value])]]
 
 	eventMatch {UIEditOpts|taskId,editorId} (EditEvent _ matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
@@ -164,9 +156,7 @@ diffEditletOpts path differs opts1 opts2
 				Just diff	= DiffPossible [UIUpdate path [("applyDiff",[diff])]]
 				_			= DiffPossible []
 			_
-	
-				= DiffPossible [UIUpdate path [("applyValue",[opts2.UIEditletOpts.value])]]
-
+				= DiffImpossible
 
 diffChoiceOpts :: UIPath (UIChoiceOpts a) (UIChoiceOpts a) -> DiffResult | gEq{|*|} a & JSONEncode{|*|} a
 diffChoiceOpts path opts1 opts2
@@ -204,30 +194,6 @@ where
 	| opts1.UITabSetOpts.activeTab =!= opts2.UITabSetOpts.activeTab || maybe False (\i -> isMember i replacedTabs) opts2.UITabSetOpts.activeTab
 		= [UIUpdate path [("setActiveTab",[toJSON opts2.UITabSetOpts.activeTab,JSONBool True])]]
 		= []
-
-diffGoogleMapOpts :: UIPath UIGoogleMapOpts UIGoogleMapOpts -> DiffResult
-diffGoogleMapOpts path opts1 opts2
-	= DiffPossible (diffMultiProperties path [centerUpd,mapTypeUpd,optionsUpd,markersUpd])
-where
-	centerUpd = if (opts1.UIGoogleMapOpts.center === opts2.UIGoogleMapOpts.center || //Compare on string representation of the coordinates if binary is different
-					(toString (fst opts1.UIGoogleMapOpts.center) == toString (fst opts2.UIGoogleMapOpts.center)
-						&& toString (snd opts1.UIGoogleMapOpts.center) == toString (snd opts2.UIGoogleMapOpts.center))
-					) [] [("setCenter",[toJSON opts2.UIGoogleMapOpts.center])]
-	mapTypeUpd = if (opts1.UIGoogleMapOpts.mapType === opts2.UIGoogleMapOpts.mapType) [] [("setMapType",[toJSON opts2.UIGoogleMapOpts.mapType])]
-	optionsUpd = if (opts1.UIGoogleMapOpts.options === opts2.UIGoogleMapOpts.options) [] [("setOptions",[toJSON opts2.UIGoogleMapOpts.options])]
-	markersUpd = diffGoogleMapMarkers opts1.UIGoogleMapOpts.markers opts2.UIGoogleMapOpts.markers
-
-diffGoogleMapMarkers :: [UIGoogleMapMarker] [UIGoogleMapMarker] -> [UIUpdateOperation]
-diffGoogleMapMarkers markers1 markers2 = diff 0 markers1 markers2
-where
-	diff i [] [] = []
-	diff i markers1 []
-		= [("removeMarker",[JSONInt n]) \\ n <- reverse [i.. i + length markers1 - 1]]
-	diff i [] markers2 
-		= [("addMarker",[JSONInt n,toJSON m]) \\ n <- [i..] & m <- markers2]
-	diff i [m1:m1s] [m2:m2s]
-		| m1 === m2	= diff (i + 1) m1s m2s
-					= [("updateMarker",[JSONInt i,toJSON m2]) : diff (i + 1) m1s m2s]
 
 diffOpts :: a a -> DiffResult | gEq{|*|} a	//Very crude, but always working fallback diff
 diffOpts opts1 opts2
@@ -360,7 +326,7 @@ where
 
 diffWindows :: UIPath Event UIDiffers UIWindow UIWindow -> [UIUpdate]
 diffWindows path event differs w1=:(UIWindow sOpts1 iOpts1 opts1) w2=:(UIWindow sOpts2 iOpts2 opts2)
-	= replaceWindowIfImpossible path w2 [diffSizeOpts path sOpts1 sOpts2
+	= replaceWindowIfImpossible path w2 [diffOpts sOpts1 sOpts2
 										,diffItemsOpts path event differs iOpts1 iOpts2
 										,diffWindowOpts path event differs opts1 opts2]
 
