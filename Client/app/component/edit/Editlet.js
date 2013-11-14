@@ -45,10 +45,9 @@ Ext.define('itwc.component.edit.Editlet',{
 	
 
         if(me.initDiff != null) {
-			var mbDiff = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);
-			if(mbDiff[0]==1)
-				me.value = mbDiff[2];
-				
+            if(me.initDiff[0] == 1) {
+                me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
+            }
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
 			me.fireUpdateEvent(__Data_Maybe_Nothing);
@@ -102,7 +101,9 @@ Ext.define('itwc.component.edit.Editlet',{
 		var me = this, tmp;
 
         eval("tmp = "+diff+";");
-		me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);
+        if(tmp[0] == 1) {
+		    me.value = Sapl.feval([me.appDiff,[tmp[2],me.value]]);
+        }
         me.fireUpdateEvent(tmp);
     },
 	//Util functions for exchanging between the values of the clean type Text.JSONNode in
