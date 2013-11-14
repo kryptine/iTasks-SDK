@@ -118,13 +118,31 @@ itwc.Component.prototype = {
             }
         }
         //Vertical alignment
-        //TODO
+        if(me.definition.valign) {
+            if(me.definition.direction == 'vertical') {
+                switch(me.definition.valign)  {
+                    case 'top':     el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
+                    case 'middle':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
+                    case 'bottom':   el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
+                }
+            } else {
+                //TODO
+            }
+        }
     },
     afterAdd: function() {
         var me = this;
         if(me.items && me.items.length) {
             me.items.forEach(function(cmp) {
                cmp.afterAdd();
+            });
+        }
+    },
+    afterShow: function() {
+        var me = this;
+        if(me.items && me.items.length) {
+            me.items.forEach(function(cmp) {
+               cmp.afterShow();
             });
         }
     },
@@ -249,7 +267,7 @@ itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
             if(!me.disabled) {
                 itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
             }
-            return false;
+            e.preventDefault();
         });
         el.appendChild(linkEl)
     },
@@ -490,10 +508,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         var me = this;
 
         if(me.initDiff != null) {
-			var mbDiff = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);
-			if(mbDiff[0]==1) 
-				me.value = mbDiff[2];
-				
+			if(me.initDiff[0]==1) {
+				me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
+            }	
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
 			me.fireUpdateEvent(__Data_Maybe_Nothing);
@@ -504,6 +521,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             me.eventAfterLayout.apply(me,["dummy event"]);
         }
     },
+    afterShow: function() {},
     fireUpdateEvent: function (mbDiff) {
 		var me = this;
 		(me.eventHandler(false,me.updateUI))(mbDiff);		
@@ -516,6 +534,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			if(dowrap) event = ___wrapJS(event);
 			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
 
+            if(typeof ys == 'undefined') {
+                console.warn('eventHandler: evaluating expression yielded undefined',expr);
+            }
 			//Strict evaluation of all the fields in the result tuple
 			Sapl.feval(ys[2]);
 			Sapl.feval(ys[3]);
@@ -535,7 +556,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             tmp;
         eval("tmp = " + saplDiff + ";");
 
-		me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);			
+		if(tmp[0]==1) {
+		    me.value = Sapl.feval([me.appDiff,[tmp[2],me.value]]);
+        }	
         me.fireUpdateEvent(tmp);
     },
 	jsFromSaplJSONNode: function (sapl) {
@@ -600,6 +623,7 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
             if(!me.disabled) {
                 me.onClick(e);
             }
+            e.preventDefault();
             return false;
         });
     },
@@ -725,7 +749,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         if(itemCmp.definition.focusTaskId) {
             label.addEventListener('click',function(e) {
                 itwc.controller.sendFocusEvent(itemCmp.definition.focusTaskId);
-                return false;
+                e.preventDefault();
             },me);
         }
         if(itemCmp.definition.iconCls) {
@@ -743,7 +767,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
             closeLink.classList.add('tabclose');
             closeLink.addEventListener('click',function(e) {
                 itwc.controller.sendActionEvent(itemCmp.definition.closeTaskId,'Close');
-                return false;
+                e.preventDefault();
             },me);
 
             tab.appendChild(closeLink);
@@ -761,6 +785,13 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         var me = this;
         me.tabBar.removeChild(me.tabBar.childNodes[itemIdx]);
     },
+    afterShow: function() {
+        var me = this;
+        //Only propagate to active tab
+        if(me.items[me.activeTab]) {
+            me.items[me.activeTab].afterShow();
+        }
+    },
     setActiveTab: function(activeTab) {
         var me = this;
 
@@ -773,6 +804,8 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         if(me.items[me.activeTab]) {
             me.items[me.activeTab].domEl.classList.add('selected');
             me.tabBar.childNodes[me.activeTab].classList.add('selected');
+            //Let the tab know it is being shown again
+            me.items[me.activeTab].afterShow();
         }
     }
 });
@@ -1119,7 +1152,7 @@ itwc.controller.prototype = {
         var me = this,
             params = {},
             xhr, event;
-        if(!me.flushingTaskEvents & me.taskEvents.length) {
+        if(!me.flushingTaskEvents && me.taskEvents.length) {
             event = me.taskEvents.shift();
             //Set event number
             params['eventNo'] = event[0];
@@ -1133,7 +1166,7 @@ itwc.controller.prototype = {
             me.flushingTaskEvents = true;
             //Send request
             xhr = new XMLHttpRequest();
-            xhr.open('POST','/?format=json-gui', true);
+            xhr.open('POST','?format=json-gui', true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onload = me.receiveTaskUpdates.bind(me);
             xhr.send(itwc.util.urlEncode(params));
@@ -1184,6 +1217,8 @@ itwc.controller.prototype = {
     onUpdatePushEvent: function (e) {
         var me = this;
         me.updateUI(JSON.parse(e.data));
+        me.flushingTaskEvents = false;
+        me.flushTaskEvents();
     },
     updateUI: function(updates) {
         var me = this,
