@@ -1,10 +1,9 @@
 Ext.define('itwc.component.edit.EditButton',{
 	extend: 'Ext.Button',
 	alias: 'widget.itwc_editbutton',
-	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
+	mixins: ['itwc.component.edit.Editable'],
 	
 	initComponent: function() {
-        this.initSize();
 		this.addEvents('edit');
 		this.callParent(arguments);
 	},

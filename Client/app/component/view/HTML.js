@@ -1,12 +1,10 @@
 Ext.define('itwc.component.view.HTML',{
 	extend: 'Ext.Component',
 	alias: 'widget.itwc_view_html',
-    mixins: ['itwc.Sizeable'],
 	autoScroll: true,
-
 	initComponent: function() {
+	
 		this.html = this.value;	
-        this.initSize();
 		this.callParent(arguments);
 	},
 	setValue: function(value) {

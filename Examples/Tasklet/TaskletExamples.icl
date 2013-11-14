@@ -288,9 +288,7 @@ where
 		
 	onChangeTool _ e state world
 		# (selectedIndex, world) = jsGetObjectAttr "target.selectedIndex" e world
-		# (options, world) 		 = jsGetObjectAttr "target.options" e world		
-		# (option, world) 		 = jsGetObjectEl (jsValToInt selectedIndex) options world
-		# (atool, world) 		 = jsGetObjectAttr "value" option world
+		# (atool, world) = jsGetObjectAttr ("target.options["+++ jsValToString selectedIndex +++"].value") e world
 		= ({state & tool = jsValToString atool}, world)	
 
 	onSelectColor color _ e state world

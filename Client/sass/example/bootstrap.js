@@ -23,7 +23,6 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.rtl.resizer.BorderSplitterTracker": [],
   "Ext.direct.JsonProvider": [],
   "itwc.component.edit.Editlet": [],
-  "itwc.Sizeable": [],
   "Ext.tree.Panel": [
     "Ext.tree.TreePanel",
     "Ext.TreePanel"
@@ -201,6 +200,7 @@ Ext.ClassManager.addNameAlternateMappings({
     "Ext.Container"
   ],
   "Ext.rtl.form.field.Spinner": [],
+  "itwc.component.edit.GoogleMap": [],
   "Ext.util.KeyMap": [
     "Ext.KeyMap"
   ],
@@ -563,8 +563,10 @@ Ext.ClassManager.addNameAlternateMappings({
     "Ext.form.Field",
     "Ext.form.BaseField"
   ],
+  "itwc.component.misc.Splitter": [],
   "itwc.component.edit.Time": [],
   "Ext.grid.feature.GroupStore": [],
+  "itwc.component.edit.Code": [],
   "Ext.data.SequentialIdGenerator": [],
   "Ext.grid.header.Container": [],
   "Ext.container.ButtonGroup": [
@@ -782,6 +784,7 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.data.proxy.SessionStorage": [
     "Ext.data.SessionStorageProxy"
   ],
+  "itwc.view.Viewport2": [],
   "Ext.app.EventBus": [],
   "Ext.menu.Separator": [],
   "Ext.util.History": [
@@ -810,6 +813,7 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.grid.column.Number": [
     "Ext.grid.NumberColumn"
   ],
+  "itwc.component.edit.Oryx": [],
   "Ext.draw.engine.Svg": [],
   "Ext.grid.property.Grid": [
     "Ext.grid.PropertyGrid"
@@ -878,7 +882,6 @@ Ext.ClassManager.addNameAliasMappings({
   "itwc.component.edit.Editlet": [
     "widget.itwc_edit_editlet"
   ],
-  "itwc.Sizeable": [],
   "Ext.tree.Panel": [
     "widget.treepanel"
   ],
@@ -1078,6 +1081,9 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.container"
   ],
   "Ext.rtl.form.field.Spinner": [],
+  "itwc.component.edit.GoogleMap": [
+    "widget.itwc_edit_googlemap"
+  ],
   "Ext.util.KeyMap": [],
   "Ext.ux.ToolbarDroppable": [],
   "Ext.data.Batch": [],
@@ -1559,10 +1565,16 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.form.field.Base": [
     "widget.field"
   ],
+  "itwc.component.misc.Splitter": [
+    "widget.itwc_splitter"
+  ],
   "itwc.component.edit.Time": [
     "widget.itwc_edit_time"
   ],
   "Ext.grid.feature.GroupStore": [],
+  "itwc.component.edit.Code": [
+    "widget.itwc_edit_code"
+  ],
   "Ext.data.SequentialIdGenerator": [
     "idgen.sequential"
   ],
@@ -1859,6 +1871,7 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.data.proxy.SessionStorage": [
     "proxy.sessionstorage"
   ],
+  "itwc.view.Viewport2": [],
   "Ext.app.EventBus": [],
   "Ext.menu.Separator": [
     "widget.menuseparator"
@@ -1906,6 +1919,9 @@ Ext.ClassManager.addNameAliasMappings({
   ],
   "Ext.grid.column.Number": [
     "widget.numbercolumn"
+  ],
+  "itwc.component.edit.Oryx": [
+    "widget.itwc_edit_oryx"
   ],
   "Ext.draw.engine.Svg": [],
   "Ext.grid.property.Grid": [

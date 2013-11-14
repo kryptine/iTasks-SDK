@@ -1,16 +1,14 @@
 Ext.define('itwc.container.TabSet',{
 	extend: 'Ext.tab.Panel',
 	alias: 'widget.itwc_tabset',
-	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
+	mixins: ['itwc.component.edit.Editable'],
 
-	itwcWidth: 'flex',
-	itwcHeight: 'flex',
-
+	width: 'flex',
+	height: 'flex',
 	border: false,
 	
 	initComponent: function() {
 		var me = this;
-        me.initSize();
 		me.callParent(arguments);	
 		me.addManagedListener(me,'tabchange',me.onTabChange, me);
 	},

@@ -1,15 +1,13 @@
 Ext.define('itwc.component.view.Progress',{
 	extend: 'Ext.ProgressBar',
 	alias: 'widget.itwc_view_progress',
-    mixins: ['itwc.Sizeable'],
 	
-	itwcWidth: 'flex',
+	width: 'flex',
 	waiting: false,
 	
 	initComponent: function() {		
 		var me = this;
-		
-        me.initSize();
+			
 		if(me.value == 'undetermined') {
 			me.value = 0.0;
 			me.waiting = true;

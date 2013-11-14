@@ -20,12 +20,20 @@ generic gVisualizeText a :: !VisualizationFormat !a -> [String]
 
 gVisualizeText{|UNIT|} _ _ = []
 
-gVisualizeText{|RECORD|} fx AsLabel (RECORD x) = [join "," (fx AsLabel x)]
-gVisualizeText{|RECORD|} fx mode (RECORD x) = fx mode x
+gVisualizeText{|RECORD|} fx mode (RECORD x)
+	# viz = fx mode x
+	= case mode of
+		AsLabel		= take 1 viz
+		AsText		= viz
+		AsRow		= viz
 		
-gVisualizeText{|FIELD of {gfd_name}|} fx AsText (FIELD x)   = [camelCaseToWords gfd_name, ": ": fx AsText x] ++ [" "]
-gVisualizeText{|FIELD of {gfd_name}|} fx mode (FIELD x)     = fx mode x
-	
+gVisualizeText{|FIELD of {gfd_name}|} fx mode (FIELD x)
+	# viz = fx mode x
+	= case mode of
+		AsText		= [camelCaseToWords gfd_name, ": ": viz] ++ [" "]
+		AsLabel		= viz
+		AsRow		= viz
+		
 gVisualizeText{|OBJECT|} fx mode (OBJECT x) = fx mode x
 
 gVisualizeText{|CONS of {gcd_name,gcd_type_def}|} fx mode (CONS x)
@@ -44,8 +52,9 @@ where
 
 gVisualizeText{|PAIR|} fx fy mode (PAIR x y) = fx mode x ++ fy mode y
 
-gVisualizeText{|EITHER|} fx fy mode (LEFT x) = fx mode x
-gVisualizeText{|EITHER|} fx fy mode (RIGHT y) = fy mode y
+gVisualizeText{|EITHER|} fx fy mode either = case either of
+	LEFT x	= fx mode x
+	RIGHT y	= fy mode y
 
 gVisualizeText{|Int|}			_ val				= [toString val]
 gVisualizeText{|Real|}			_ val				= [toString val]
@@ -62,16 +71,7 @@ gVisualizeText{|(->)|} _ _ _ _				= []
 gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
-gVisualizeText{|(,)|} fa fb AsLabel (a,b)  = [join "," (fa AsLabel a ++ fb AsLabel b)]
-gVisualizeText{|(,)|} fa fb mode   (a,b)   = fa mode a ++ fb mode b
-
-gVisualizeText{|(,,)|} fa fb fc AsLabel (a,b,c)  = [join "," (fa AsLabel a ++ fb AsLabel b ++ fc AsLabel c)]
-gVisualizeText{|(,,)|} fa fb fc mode   (a,b,c)   = fa mode a ++ fb mode b ++ fc mode c
-
-gVisualizeText{|(,,,)|} fa fb fc fd AsLabel (a,b,c,d)  = [join "," (fa AsLabel a ++ fb AsLabel b ++ fc AsLabel c ++ fd AsLabel d)]
-gVisualizeText{|(,,,)|} fa fb fc fd mode   (a,b,c,d)   = fa mode a ++ fb mode b ++ fc mode c ++ fd mode d
-
-derive gVisualizeText Either, Timestamp, Map
+derive gVisualizeText Either, (,), (,,), (,,,), Timestamp, Map
 
 (+++>) infixr 5	:: !a !String -> String | gVisualizeText{|*|} a
 (+++>) a s = visualizeAsLabel a +++ s

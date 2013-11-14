@@ -198,6 +198,7 @@ where
 		
 		stylefiles =
 			[IF_CLIENT_DEV "bootstrap.css" "build/itwc/production/resources/itwc-all.css"
+			 ,"lib/codemirror-2.36/codemirror.css"
 			 ,"css/icons.css"
 			 ,"css/app.css"
 			 ,appName +++ ".css"]
@@ -208,6 +209,7 @@ where
 				,"app/taskeval/sapl.js"
 				,"app/taskeval/db.js", "app/taskeval/debug.js"
 				,"app/taskeval/interface.js"
+				,"lib/codemirror-2.36/codemirror.js"
 				]
 			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"])
 

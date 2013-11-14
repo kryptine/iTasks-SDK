@@ -28,6 +28,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 :: SessionInfo =
 	{ sessionId		:: SessionId
 	, lastEvent		:: EventNo
+	
 	}
 	
 :: TIReduct =

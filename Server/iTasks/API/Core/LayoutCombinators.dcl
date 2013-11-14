@@ -91,6 +91,34 @@ arrangeWithSideBar      :: !Int !UISide !Int -> SubUICombinator
 instance tune ArrangeCustom
 toSubUIStack :: [UISubUI] -> UISubUIStack
 
+//Modifiers on interface definitions
+setSize			:: !UISize	!UISize			!UIControl -> UIControl
+setWidth		:: !UISize					!UIControl -> UIControl
+setHeight		:: !UISize					!UIControl -> UIControl
+setMinSize		:: !UIMinSize !UIMinSize	!UIControl -> UIControl
+setMinWidth		:: !UIMinSize				!UIControl -> UIControl
+setMinHeight	:: !UIMinSize				!UIControl -> UIControl
+fill			:: 							!UIControl -> UIControl
+fillHeight		:: 							!UIControl -> UIControl
+fillWidth		:: 							!UIControl -> UIControl
+fixedHeight		:: !Int 					!UIControl -> UIControl
+fixedWidth		:: !Int 					!UIControl -> UIControl
+wrapHeight		::							!UIControl -> UIControl
+wrapWidth		:: 							!UIControl -> UIControl
+setMargins		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTopMargin	:: !Int 					!UIControl -> UIControl
+setRightMargin	:: !Int 					!UIControl -> UIControl
+setBottomMargin	:: !Int 					!UIControl -> UIControl
+setLeftMargin	:: !Int 					!UIControl -> UIControl
+setPadding		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTitle 		:: !String 					!UIControl -> UIControl
+setFramed		:: !Bool					!UIControl -> UIControl
+setIconCls		:: !String					!UIControl -> UIControl
+setBaseCls		:: !String					!UIControl -> UIControl
+setDirection	:: !UIDirection				!UIControl -> UIControl
+setHalign		:: !UIHAlign				!UIControl -> UIControl
+setValign		:: !UIVAlign				!UIControl -> UIControl
+
 //Combinators on interface definitions
 hjoin :: ![UIControl] -> UIControl
 vjoin :: ![UIControl] -> UIControl
