@@ -30,6 +30,11 @@ isObject = function(o){
 	return (typeof (o) == "object");
 }
 
+String.prototype.repeat= function(n){
+    n= n || 1;
+    return Array(n+1).join(this);
+}
+
 String.prototype.trim = function () {
     return this.replace(/^\s*/, "").replace(/\s*$/, "");
 }

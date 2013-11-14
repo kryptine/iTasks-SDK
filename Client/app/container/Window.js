@@ -2,7 +2,7 @@ Ext.define('itwc.container.Window',{
 	extend: 'Ext.window.Window',
 	alias: 'widget.itwc_window',
 	requires: ['itwc.layout.container.Box'],
-	mixins: ['itwc.component.edit.Editable','itwc.container.HotkeyArea'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable','itwc.container.HotkeyArea'],
 
 	autoShow: true,
 	autoScroll: true,
@@ -15,16 +15,17 @@ Ext.define('itwc.container.Window',{
 	padding: 0,
 
 	//Default dimensions
-	
-	width: 'flex',
-	height: 'flex',
-	minWidth: 'wrap',
-	minHeight: 'wrap',
+	itwcWidth: 'flex',
+	itwcHeight: 'flex',
+	itwcMinWidth: 'wrap',
+	itwcMinHeight: 'wrap',
 
 	viewport: null,
 	
 	initComponent: function() {
-		
+	
+        this.initSize();
+
 		//Set closable only if an action and task id are supplied
 		if(this.closeTaskId) {
 			this.closable = true;

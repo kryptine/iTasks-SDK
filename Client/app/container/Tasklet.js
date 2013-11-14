@@ -1,6 +1,7 @@
 Ext.define('itwc.container.Tasklet', {
 	extend: 'Ext.container.Container',
 	alias: 'widget.itwc_tasklet',
+    mixins: ['itwc.Sizeable'],
 	
 	taskId:  null,
 	
@@ -52,6 +53,8 @@ Ext.define('itwc.container.Tasklet', {
 	},	
 	
 	initComponent: function() {
+
+        this.initSize();
 
 		if(this.script != null && this.script != "" && !sapldebug){
 			evalScript(this.script);

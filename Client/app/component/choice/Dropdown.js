@@ -1,18 +1,20 @@
 Ext.define('itwc.component.choice.Dropdown',{
 	extend: 'Ext.form.field.ComboBox',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 	alias: 'widget.itwc_choice_dropdown',
 	triggerAction: 'all',
 	forceSelection: true,
 	
-	width: 'flex',
-	minWidth: 150,
+	itwcWidth: 'flex',
+	itwcMinWidth: 150,
 
 	initComponent: function() {
 		var me = this,
 			store = [],
 			numOptions = me.options.length, i;
 		
+        me.initSize();
+
 		for(i=0; i < numOptions; i++) {
 			store[store.length] = [i, me.options[i]];
 		}

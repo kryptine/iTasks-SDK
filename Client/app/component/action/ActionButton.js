@@ -1,10 +1,11 @@
 Ext.define('itwc.component.action.ActionButton',{
 	extend: 'Ext.Button',
-	mixins: ['itwc.component.edit.Editable'], //Add editable mixin for the findViewport function
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'], //Add editable mixin for the findViewport function
 	alias: 'widget.itwc_actionbutton',
 	
 	initComponent: function() {
-		this.addEvents('action');
+        this.initSize();
+        this.addEvents('action');
 		this.callParent(arguments);
 	},
 	onClick: function() {

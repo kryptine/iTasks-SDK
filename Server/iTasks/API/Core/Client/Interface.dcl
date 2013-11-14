@@ -1,6 +1,6 @@
 definition module iTasks.API.Core.Client.Interface
 
-import StdString, Data.Void, Data.Maybe
+import StdString, StdGeneric, Data.Void, Data.Maybe
 
 :: DomElementId	:== String
 
@@ -43,6 +43,7 @@ jsTypeof			:: !(JSVal a) -> String
 
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg
+toJSArgs 			:: ![a] -> [JSArg]
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
@@ -67,9 +68,11 @@ callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !*JSWor
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching
 findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 
-//Load external JS by its URL. A continuation must be given,
+//Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
 addJSFromUrl		:: !String !(Maybe (JSVal (JSFunction f))) !*JSWorld -> *JSWorld
+//Loaf external CSS stylesheet by its URL
+addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 
 jsTrace :: a *JSWorld -> *JSWorld
 
@@ -79,9 +82,4 @@ jsValToInt    :: !(JSVal a) -> Int
 
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
-
-	
-	
-
-
-
+callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)

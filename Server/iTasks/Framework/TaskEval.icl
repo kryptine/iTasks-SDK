@@ -29,7 +29,7 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 	//Register the sessionId -> instanceNo relation
 	# iworld				= registerSession sessionId instanceNo iworld
 	//Evaluate once
-	# (mbResult,iworld)		= evalTaskInstance event instanceNo (Just instanceNo) iworld
+	# (mbResult,iworld)		= evalTaskInstance event instanceNo iworld
 	= case mbResult of
 		Ok (result,Left (sessionInfo,updates))	= (Ok (result,instanceNo,sessionInfo,updates),iworld)
 		Error e				= (Error e, iworld)
@@ -83,7 +83,7 @@ where
 	eventTarget (RefreshEvent _) no					= no
 
     evalUntilSession event sessionNo instanceNo iworld
-        = case evalTaskInstance event instanceNo (Just sessionNo) iworld of
+        = case evalTaskInstance event instanceNo iworld of
 			(Ok (result,Left (sessionInfo,updates)),iworld) = (Ok (result,sessionNo,sessionInfo,updates),iworld)   //Done! we have evaluated the session instance
             (Ok (_,Right [next:_]),iworld)                  = evalUntilSession (toRefresh event) next sessionNo iworld //We have not yet reached a session instance
             (Ok (_,Right []),iworld)                        = (Error "Event did not reach an instance attached to a session",iworld)
@@ -92,7 +92,7 @@ where
 //Evaluate a task instance, just to refresh its state
 refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshTaskInstance instanceNo iworld
-	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo Nothing iworld
+	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo iworld
 	= case mbResult of
 		(Ok (_,Left ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
 		(Error e)						
@@ -116,8 +116,8 @@ where
 	isUrgent _					= False
 
 //Evaluate a single task instance
-evalTaskInstance :: !Event !InstanceNo !(Maybe InstanceNo) !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (SessionInfo,[UIUpdate]) [InstanceNo]),!*IWorld)
-evalTaskInstance event instanceNo sessionNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalTaskInstance :: !Event !InstanceNo !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (SessionInfo,[UIUpdate]) [InstanceNo]),!*IWorld)
+evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists,uiDiffers}
 	//Read the task instance data
     //TODO: make sure we know it is a session in advance
 	# (oldMeta, isSession, iworld)	= case 'Data.SharedDataSource'.read (detachedInstanceMeta instanceNo) iworld of
@@ -137,17 +137,17 @@ evalTaskInstance event instanceNo sessionNo iworld=:{currentDateTime,currentUser
 		(ExceptionResult e msg)		= (Ok (ExceptionResult e msg, Right []), iworld)
 		(ValueResult val _ _ tree)
 			//Eval instance
-            # (currentUser,currentAttachment,appFinalLayout) = case instanceType of
-                SessionInstance {SessionInfo|sessionId} = (AnonymousUser sessionId,[],True)
-                DetachedInstance                        = (SystemUser,[],False)
-                AttachedInstance attachment worker      = (worker,attachment,False)
-                TmpAttachedInstance attachment worker   = (worker,attachment,False)
+            # (currentUser,currentSession,currentAttachment,appFinalLayout) = case instanceType of
+                SessionInstance {SessionInfo|sessionId} = (AnonymousUser sessionId,Just instanceNo,[],True)
+                DetachedInstance                        = (SystemUser,Nothing,[],False)
+                AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker    = (worker,Just sessionNo,attachment,False)
+                TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker = (worker,Just sessionNo,attachment,False)
 			# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=appFinalLayout,noUI=False}
 			//Update current process id & eval stack in iworld
 			# taskId					= TaskId instanceNo 0
 			# eventRoute				= determineEventRoute event lists
 			# iworld					= {iworld & currentInstance = instanceNo
-                                                  , currentSession = sessionNo
+                                                  , currentSession = currentSession
 												  , currentUser = currentUser
 												  , currentAttachment = currentAttachment
 												  , nextTaskNo = oldReduct.TIReduct.nextTaskNo
@@ -156,7 +156,6 @@ evalTaskInstance event instanceNo sessionNo iworld=:{currentDateTime,currentUser
 												  , localLists = lists
 												  , localTasks = tasks
 												  , eventRoute = eventRoute
-												  , uiDiffers = 'Data.Map'.newMap
 												  }
 			//Clear the instance's registrations for share changes
 			# iworld					= clearShareRegistrations instanceNo iworld
@@ -178,19 +177,20 @@ evalTaskInstance event instanceNo sessionNo iworld=:{currentDateTime,currentUser
 			# (shares,iworld)			= getLocalShares iworld
 			# (lists,iworld)			= getLocalLists iworld
 			# (tasks,iworld)			= getLocalTasks iworld
-			# (differs,iworld)			= getUIDiffers iworld
 			# newReduct					= {TIReduct|oldReduct & nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, shares = shares, lists = lists, tasks = tasks}
 			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld //TODO Check error
 			//Store the result
 			# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg newResult ((<>) instanceNo) (taskInstanceResult instanceNo) iworld //TODO Check error
 			//Determine user interface updates by comparing the previous UI to the newly calculated one
-			# out = case newMeta.TIMeta.instanceType of
+			# (out,iworld) = case newMeta.TIMeta.instanceType of
 				SessionInstance session=:{SessionInfo|sessionId} = case (oldResult,newResult) of
-					(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	= Left (session, diffUIDefinitions oldUI newUI event differs)
-					(_,_)		= Left (session,[])
+				    	(ValueResult _ _ (TaskRep oldUI _) _,ValueResult _ _ (TaskRep newUI _) _)	
+			                # (differs,iworld)			= getAndResetUIDiffers iworld
+                            = (Left (session, diffUIDefinitions oldUI newUI event differs),iworld)
+				    	(_,_)		= (Left (session,[]),iworld)
                 AttachedInstance attachment _
-                                = Right [no \\ (TaskId no _) <- attachment]
-				_				= Right []
+                                = (Right [no \\ (TaskId no _) <- attachment],iworld)
+				_				= (Right [],iworld)
 			//Return the result
 			= (Ok (newResult,out), iworld)
 where
@@ -198,7 +198,7 @@ where
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
 	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
 	getLocalTasks iworld=:{IWorld|localTasks}	= (localTasks,iworld)
-	getUIDiffers iworld=:{IWorld|uiDiffers}		= (uiDiffers,iworld)
+	getAndResetUIDiffers iworld=:{IWorld|uiDiffers}     = (uiDiffers,{IWorld|iworld & uiDiffers='Data.Map'.newMap})
 
 	updateProgress now result progress
 		//# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Just now}

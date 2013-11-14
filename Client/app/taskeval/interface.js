@@ -40,8 +40,8 @@ function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
 	cons_name = Sapl.feval(cons_name);
 	args = Sapl.toJS(Sapl.feval(args)); 
 	
-	var args = [null].concat(args);
-    var factoryFunction = constructor.bind.apply(eval(cons_name), args);
+	args = [null].concat(args);
+    var factoryFunction = Object.prototype.constructor.bind.apply(eval(cons_name), args);
     return ___predefined__Tuple2(___wrapJS(new factoryFunction()), world);
 }
 
@@ -52,14 +52,18 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 	attr = Sapl.feval(attr);
 	obj = ___unwrapJS(Sapl.feval(obj));
 
-	var value;
+	var value,
+		path = attr.split('.'), step;
 
 	try{	
+		
 		if(obj == null){
-			value = eval(attr);			
-		}else{
-			value = eval("obj."+attr+";");
+			obj = window;	
 		}
+		while(step =path.shift()) {
+			obj = obj[step];
+		}
+		value = obj;
 	}catch(err){
 		value = undefined;
 	}
@@ -85,7 +89,11 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectAttr(attr,value,obj,world
     value = ___unwrapJS(Sapl.feval(value));
     obj = ___unwrapJS(Sapl.feval(obj));
 
-    eval("obj."+attr+"=value;");
+    var path = attr.split('.');
+    while(path.length > 1) {
+	obj = obj[path.shift()];
+    }
+    obj[path[0]] = value;
     
     return world;
 }
@@ -110,7 +118,11 @@ function __iTasks_API_Core_Client_Interface_jsDeleteObjectAttr(attr,obj,world) {
 	attr = Sapl.feval(attr);   
     obj = ___unwrapJS(Sapl.feval(obj));
 
-    eval("delete obj."+attr+";");
+    var path = attr.split('.');
+    while(path.length > 1) {
+       obj = obj[path.shift()];
+    }
+    delete obj[path[0]];
     
     return world;
 }
@@ -204,6 +216,6 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
 // createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
 function __iTasks_API_Core_Client_Editlet_createEditletEventHandler(expr, componentId){
 	
-	var comp = itwc.global.controller[componentId];
+	var comp = itwc.global.controller.editlets[componentId];
 	return ___wrapJS(comp.eventHandler(true,expr));
 }

@@ -1,0 +1,74 @@
+|| Generated Sapl file for StdFile.icl
+
+
+StdFile.freopen f_0 m_1 = error "no ABCCodeExpr"
+StdFile.freadc f_0 = error "no ABCCodeExpr"
+StdFile.freadi f_0 = error "no ABCCodeExpr"
+StdFile.freadr f_0 = error "no ABCCodeExpr"
+StdFile.freads f_0 l_1 = error "no ABCCodeExpr"
+StdFile.freadsubstring i_0 n_1 s_2 f_3 = error "no ABCCodeExpr"
+StdFile.freadline f_0 = _predefined__Tuple2 (fread f_0) f_0
+StdFile.fwritec c_0 f_1 = error "no ABCCodeExpr"
+StdFile.fwritei i_0 f_1 = error "no ABCCodeExpr"
+StdFile.fwriter r_0 f_1 = error "no ABCCodeExpr"
+StdFile.fwrites s_0 f_1 = fwrite 0 s_0
+StdFile.fwritesubstring i_0 n_1 s_2 f_3 = error "no ABCCodeExpr"
+StdFile.fend f_0 = error "no ABCCodeExpr"
+StdFile.ferror f_0 = error "no ABCCodeExpr"
+StdFile.fposition f_0 = error "no ABCCodeExpr"
+StdFile.fseek f_0 p_1 m_2 = error "no ABCCodeExpr"
+StdFile.stderr = error "no ABCCodeExpr"
+StdFile.sfreadc f_0 = error "no ABCCodeExpr"
+StdFile.sfreadi f_0 = error "no ABCCodeExpr"
+StdFile.sfreadr f_0 = error "no ABCCodeExpr"
+StdFile.sfreads f_0 i_1 = error "no ABCCodeExpr"
+StdFile.sfreadline f_0 = error "no ABCCodeExpr"
+StdFile.sfseek f_0 i1_1 i2_2 = error "no ABCCodeExpr"
+StdFile.sfend f_0 = error "no ABCCodeExpr"
+StdFile.sfposition f_0 = error "no ABCCodeExpr"
+StdFile.fshare f_0 = error "no ABCCodeExpr"
+StdFile.fopen_ s_0 i_1 = error "no ABCCodeExpr"
+StdFile.fclose_ f_0 = 0
+StdFile.stdio_ = 0
+StdFile.sfopen_ s_0 i_1 = error "no ABCCodeExpr"
+StdFile.fclose_26 f_0 w_1 = _predefined__Tuple2 (StdFile.fclose_ f_0) w_1
+StdFile.fopen_27 s_0 i_1 w_2 = let _x_10 = StdFile.fopen_ s_0 i_1 in _predefined__Tuple3 (_predefined_tupsels2v0 _x_10) (_predefined_tupsels2v1 _x_10) w_2
+StdFile.sfopen_28 s_0 i_1 w_2 = let _x_10 = StdFile.sfopen_ s_0 i_1 in _predefined__Tuple3 (_predefined_tupsels2v0 _x_10) (_predefined_tupsels2v1 _x_10) w_2
+StdFile.stdio_29 w_0 = _predefined__Tuple2 StdFile.stdio_ w_0
+StdFile.fclose_30 f_0 w_1 = _predefined__Tuple2 True (add f_0 w_1)
+StdFile.fopen_31 s_0 i_1 w_2 = let _x_10 = StdFile.fopen_ s_0 i_1 in _predefined__Tuple3 (_predefined_tupsels2v0 _x_10) (_predefined_tupsels2v1 _x_10) w_2
+StdFile.sfopen_32 s_0 i_1 w_2 = let _x_10 = StdFile.sfopen_ s_0 i_1 in _predefined__Tuple3 (_predefined_tupsels2v0 _x_10) (_predefined_tupsels2v1 _x_10) w_2
+StdFile.stdio_33 w_0 = _predefined__Tuple2 StdFile.stdio_ w_0
+StdFile.do_files2_55 filesRWS_0 r_1 world_2 = _predefined__Tuple2 r_1 world_2
+StdFile.accFiles_34 accfun_0 world_1 = let files_10 = StdFile.Files, _x_11 = accfun_0 files_10 in StdFile.do_files2_55 (_predefined_tupsels2v1 _x_11) (_predefined_tupsels2v0 _x_11) world_1
+StdFile.do_files_56 filesRWS_0 world_1 = error "no ABCCodeExpr"
+StdFile.appFiles_35 appfun_0 world_1 = let files1_10 = StdFile.Files, files_11 = appfun_0 files1_10 in StdFile.do_files_56 files_11 world_1
+<{StdFile.<<<_36}> file_0 i_1 = error "no ABCCodeExpr"
+<{StdFile.<<<_37}> file_0 c_1 = error "no ABCCodeExpr"
+<{StdFile.<<<_38}> file_0 s_1 = error "no ABCCodeExpr"
+<{StdFile.<<<_39}> file_0 r_1 = error "no ABCCodeExpr"
+<{StdFile.TD;Files_40}> _x_0 = StdCleanTypes__CTTypeDef "Files" 0 True (StdCleanTypes_CTAlgType (_predefined._Cons (StdCleanTypes__CTConsDef (StdCleanTypes_CTToCons StdFile.Files) _predefined._Nil 0) _predefined._Nil))
+
+StdFile.Files f1 = f1
+
+|| Converted Records
+:: StdFile.FileSystem = <{StdFile.FileSystem;}> a1 a2 a3 a4
+StdFile.get_fclose_0 rec = select rec (\ a1 a2 a3 a4 = a1)
+StdFile.get_fopen_1 rec = select rec (\ a1 a2 a3 a4 = a2)
+StdFile.get_sfopen_2 rec = select rec (\ a1 a2 a3 a4 = a3)
+StdFile.get_stdio_3 rec = select rec (\ a1 a2 a3 a4 = a4)
+StdFile.set_fclose_0 rec val = select rec (\ a1 a2 a3 a4 = <{StdFile.FileSystem;}>  val a2 a3 a4)
+StdFile.set_fopen_1 rec val = select rec (\ a1 a2 a3 a4 = <{StdFile.FileSystem;}>  a1 val a3 a4)
+StdFile.set_sfopen_2 rec val = select rec (\ a1 a2 a3 a4 = <{StdFile.FileSystem;}>  a1 a2 val a4)
+StdFile.set_stdio_3 rec val = select rec (\ a1 a2 a3 a4 = <{StdFile.FileSystem;}>  a1 a2 a3 val)
+
+:: StdFile.FileEnv = <{StdFile.FileEnv;}> a1 a2
+StdFile.get_accFiles_4 rec = select rec (\ a1 a2 = a1)
+StdFile.get_appFiles_5 rec = select rec (\ a1 a2 = a2)
+StdFile.set_accFiles_4 rec val = select rec (\ a1 a2 = <{StdFile.FileEnv;}>  val a2)
+StdFile.set_appFiles_5 rec val = select rec (\ a1 a2 = <{StdFile.FileEnv;}>  a1 val)
+
+:: StdFile.append =<{StdFile.<<<;}> a1
+<{StdFile.get_<<<_6}> rec = select rec (\ a1 = a1)
+<{StdFile.set_<<<_6}> rec val = select rec (\ a1 = <{StdFile.<<<;}>  val)
+

@@ -4,9 +4,9 @@
 Ext.define('itwc.component.edit.Time',{
 	alias: 'widget.itwc_edit_time',
 	extend: 'Ext.form.field.ComboBox',
-	mixins: ['itwc.component.edit.Editable'],
+	mixins: ['itwc.Sizeable','itwc.component.edit.Editable'],
 
-	width: 80, //Default width
+	itwcWidth: 80,
 
 	format: 'H:i:s',
 
@@ -21,6 +21,7 @@ Ext.define('itwc.component.edit.Time',{
 	initComponent: function() {
 		var me = this;
 
+        this.initSize();
 		me.displayTpl = new Ext.XTemplate(
 			'<tpl for=".">' +
 				'{[typeof values === "string" ? values : this.formatDate(values["' + me.displayField + '"])]}' +
