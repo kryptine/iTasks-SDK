@@ -39,7 +39,7 @@ function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
     world = Sapl.feval(world);
 	cons_name = Sapl.feval(cons_name);
 	args = Sapl.toJS(Sapl.feval(args)); 
-	
+
 	args = [null].concat(args);
     var factoryFunction = Object.prototype.constructor.bind.apply(eval(cons_name), args);
     return ___predefined__Tuple2(___wrapJS(new factoryFunction()), world);
@@ -67,7 +67,9 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 	}catch(err){
 		value = undefined;
 	}
-	
+    if(typeof value	== 'undefined') {
+        console.warn("jsGetObjectAttr: accessed undefined attribute: "+attr);
+    }
 	return ___predefined__Tuple2(___wrapJS(value), world);
 }
 
@@ -133,6 +135,13 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
 	fun = ___unwrapJS(Sapl.feval(fun));
 	scope = ___unwrapJS(Sapl.feval(scope));
 	args = Sapl.toJS(Sapl.feval(args)); 
+
+    if(typeof fun == 'undefined') {
+        console.warn("jsApply: Evaluating undefined function");
+    }
+    if(typeof scope == 'undefined') {
+        console.warn("jsApply: Evaluating function with undefined scope");
+    }
 	
 	return ___predefined__Tuple2(___wrapJS(fun.apply(scope,args)), world);
 }
@@ -181,7 +190,11 @@ function __iTasks_API_Core_Client_Interface_toJSVal(val){
 function __iTasks_API_Core_Client_Interface_toJSArg(val){
 
 	val = Sapl.feval(val);
-	
+
+    if(typeof val == 'undefined') {
+        console.warn('toJSArg: toJSArg of undefined value',val);
+    }	
+
 	if(isArray(val) && val[1]=="JSVal"){
 		return val;
 	}else{

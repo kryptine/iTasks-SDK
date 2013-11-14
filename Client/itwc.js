@@ -118,7 +118,17 @@ itwc.Component.prototype = {
             }
         }
         //Vertical alignment
-        //TODO
+        if(me.definition.valign) {
+            if(me.definition.direction == 'vertical') {
+                switch(me.definition.valign)  {
+                    case 'top':     el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
+                    case 'middle':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
+                    case 'bottom':   el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
+                }
+            } else {
+                //TODO
+            }
+        }
     },
     afterAdd: function() {
         var me = this;
@@ -498,10 +508,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         var me = this;
 
         if(me.initDiff != null) {
-			var mbDiff = Sapl.feval([me.appDiff,[me.initDiff,me.value]]);
-			if(mbDiff[0]==1) 
-				me.value = mbDiff[2];
-				
+			if(me.initDiff[0]==1) {
+				me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
+            }	
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
 			me.fireUpdateEvent(__Data_Maybe_Nothing);
@@ -512,9 +521,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             me.eventAfterLayout.apply(me,["dummy event"]);
         }
     },
-    afterShow: function() {
-        console.log("TEST");
-    },
+    afterShow: function() {},
     fireUpdateEvent: function (mbDiff) {
 		var me = this;
 		(me.eventHandler(false,me.updateUI))(mbDiff);		
@@ -549,7 +556,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             tmp;
         eval("tmp = " + saplDiff + ";");
 
-		me.value = Sapl.feval([me.appDiff,[tmp,me.value]]);			
+		if(tmp[0]==1) {
+		    me.value = Sapl.feval([me.appDiff,[tmp[2],me.value]]);
+        }	
         me.fireUpdateEvent(tmp);
     },
 	jsFromSaplJSONNode: function (sapl) {
