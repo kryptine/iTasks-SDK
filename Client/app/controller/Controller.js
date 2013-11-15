@@ -36,7 +36,8 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.component.edit.Document'	//An editor for uploading documents
 			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
 			  ,'itwc.component.edit.Editlet'	//A custom component
-			  
+			  ,'itwc.component.edit.Image'
+			  ,'itwc.component.view.Chart'
 			  ,'itwc.component.choice.Dropdown'	        //A simple dropdown box for choosing from a fixed set
 			  ,'itwc.component.choice.RadioGroup'       //A set of radio buttons with labels
 			  ,'itwc.component.choice.CheckboxGroup'    //A set of checkboxes with labels
@@ -167,6 +168,13 @@ Ext.define('itwc.controller.Controller', {
 		var me = this,
 			params = {},
 			event;
+		
+		var getParams = document.URL.split("?");
+		var paramDict = {};
+		
+		if ( getParams.length > 1 )
+			params = Ext.urlDecode(getParams[1]);
+
 		if(!me.flushingTaskEvents && me.taskEvents.length) {
 			//Send events one at a time for now...
 			event = me.taskEvents.shift();
