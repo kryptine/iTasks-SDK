@@ -299,6 +299,7 @@ itwc.component.itwc_view_string = itwc.extend(itwc.Component,{
 itwc.component.itwc_view_html = itwc.extend(itwc.Component,{
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
+        this.domEl.classList.add('view-html');
     },
     setValue: function(value) {
         this.domEl.innerHTML = value;
@@ -316,6 +317,37 @@ itwc.component.itwc_view_checkbox = itwc.extend(itwc.Component,{
     },
     setValue: function(value) {
         this.domEl.checked = value;
+    }
+});
+itwc.component.itwc_view_progress = itwc.extend(itwc.Component,{
+    domTag: 'progress',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+
+        el.innerHTML = me.definition.text;
+        el.max = 100;
+        if(typeof me.definition.value == 'number') {
+            el.value = me.definition.value * 100;
+        }
+    },
+    setValue: function(value) {
+        this.domEl.value = value * 100;
+    }
+});
+itwc.component.itwc_view_slider = itwc.extend(itwc.Component,{
+    domTag: 'input',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'range';
+        el.min = me.definition.minValue;
+        el.max = me.definition.maxValue;
+        el.value = me.definition.cur;
+        el.disabled = true;
+    },
+    setValue: function(value) {
+        this.domEl.value = value;
     }
 });
 itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
@@ -376,6 +408,9 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
         });
     },
     setValue: function(value) {
+        this.domEl.checked = value;
+    },
+    setEditorValue: function(value) {
         this.domEl.checked = value;
     }
 });
@@ -455,6 +490,27 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
+    }
+});
+itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
+    domTag: 'input',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'range';
+        el.min = me.definition.minValue;
+        el.max = me.definition.maxValue;
+        el.value = me.definition.cur;
+
+        el.addEventListener('change',function(e) {
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,parseInt(e.target.value));
+        });
+    },
+    setValue: function(value) {
+        this.domEl.value = value;
+    },
+    setEditorValue: function(value) {
+        this.domEl.value = value;
     }
 });
 itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
