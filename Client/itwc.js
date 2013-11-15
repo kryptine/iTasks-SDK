@@ -350,6 +350,20 @@ itwc.component.itwc_view_slider = itwc.extend(itwc.Component,{
         this.domEl.value = value;
     }
 });
+itwc.component.itwc_view_document = itwc.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this;
+        if(me.definition.value) {
+            me.setValue(value);
+        }
+    },
+    setValue: function(value) {
+        var me = this;
+        if(value) {
+            me.domEl.innerHTML = '<a href="'+value.contentUrl+'" target="_blank">'+value.name+'</a>';
+        }
+    }
+});
 itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
@@ -511,6 +525,103 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
     },
     setEditorValue: function(value) {
         this.domEl.value = value;
+    }
+});
+itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+
+        el.classList.add('edit-document');
+
+        //Create a hidden file selector
+        me.fileEl = document.createElement('input');
+        me.fileEl.type = "file";
+        me.fileEl.style.display = "none";
+        me.fileEl.addEventListener('change',me.onFileSelect.bind(me));
+        el.appendChild(me.fileEl);
+
+        me.labelEl = document.createElement('span');
+        el.appendChild(me.labelEl);
+
+        me.actionEl = document.createElement('a');
+        me.actionEl.href = "#";
+        me.actionEl.addEventListener('click',me.onAction.bind(me));
+        el.appendChild(me.actionEl);
+
+        me.xhr = null;
+        me.value = me.definition.value || null;
+        me.showValue();
+    },
+    showUploading: function(progress) {
+        this.labelEl.innerHTML = "Uploading... " + progress + "%";
+        this.actionEl.innerHTML = "Cancel";
+    },
+    showValue: function() {
+        var me = this;
+        if(me.value !== null) {
+            me.labelEl.innerHTML = '<a href="'+me.value.contentUrl+'" target="_blank">'+me.value.name+'</a>';
+            me.actionEl.innerHTML = 'Clear';
+        } else {
+            me.labelEl.innerHTML = 'No file selected';
+            me.actionEl.innerHTML = 'Select';
+        }
+    },
+    onAction: function(e) {
+        var me = this;
+        e.preventDefault();
+
+        if(me.xhr != null) { //Cancel
+            me.xhr.abort();
+            me.xhr = null;
+            me.showValue();
+            return;
+        }
+        if(me.value != null) { //Clear;
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,null);
+            me.value = null;
+            me.showValue();
+        } else { //Select
+            me.fileEl.click();
+        }
+    },
+    onFileSelect: function() {
+        var me = this,
+            fd;
+
+        //Create uploader
+        me.xhr = new XMLHttpRequest();
+        me.xhr.upload.addEventListener('progress',function(e) {
+            me.showUploading(Math.round((e.loaded * 100) / e.total));
+        });
+        me.xhr.onreadystatechange = me.onUploadStateChange.bind(me);
+        me.xhr.open('POST','?upload',true);
+        //Add file to upload data
+        fd = new FormData();
+        fd.append('upload',me.fileEl.files[0]);
+        me.xhr.send(fd);
+    },
+    onUploadStateChange: function(e) {
+        var me = this, rsp;
+
+        if (me.xhr.readyState == 4 && me.xhr.status == 200) {
+            //Upload ready
+            rsp = JSON.parse(me.xhr.responseText);
+
+            //Switch to value state
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,rsp[0]);
+            me.xhr = null;
+            me.value = rsp[0];
+            me.showValue();
+        }
+    },
+    setEditorValue: function(value) {
+        if(me.xhr != null) {
+            me.xhr.abort();
+            me.xhr = null;
+        }
+        me.value = value;
+        me.showValue();
     }
 });
 itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
@@ -735,6 +846,14 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
             el = me.domEl;
         el.setAttribute('data-hint',tooltip);
         el.classList.add('hint--left');
+    }
+});
+itwc.component.itwc_label = itwc.extend(itwc.Container,{
+    domTag: 'label',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl;
+        el.innerHTML = me.definition.text;
     }
 });
 itwc.component.itwc_container = itwc.extend(itwc.Container,{
