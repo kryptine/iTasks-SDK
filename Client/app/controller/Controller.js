@@ -169,11 +169,13 @@ Ext.define('itwc.controller.Controller', {
 			params = {},
 			event;
 		
-		var getParams = document.URL.split("?");
-		var paramDict = {};
+		var url = '?format=json-gui';
 		
+		var getParams = document.URL.split("?");
+		
+		//append URL parameters to ajax POST url
 		if ( getParams.length > 1 )
-			params = Ext.urlDecode(getParams[1]);
+			url = url + '&' + getParams[1];
 
 		if(!me.flushingTaskEvents && me.taskEvents.length) {
 			//Send events one at a time for now...
@@ -187,7 +189,7 @@ Ext.define('itwc.controller.Controller', {
 
 			me.flushingTaskEvents = true;
 			Ext.Ajax.request({
-				url: '?format=json-gui',
+				url: url,
 				params: params,
 				scripts: false,
 				callback: me.receiveTaskUpdates,
