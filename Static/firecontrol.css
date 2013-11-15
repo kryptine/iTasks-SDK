@@ -1,0 +1,70 @@
+.dl_state {
+	border-style: solid;
+	border-width: 1px;
+	border-color: black;
+	width: 100%;
+	border-radius: 18px;
+	height: 50px;
+	box-shadow: black 0.5em 0.5em 0.3em;
+	background-color:white;
+	margin-bottom: 10px;
+}
+
+.itwc-prompt{
+	font-weight: bold;
+}
+
+.dl_state_disabled {
+	border-style: solid;
+	border-width: 1px;
+	border-color: silver;
+	width: 100%;
+	border-radius: 18px;
+	height: 50px;
+	box-shadow: black 0.5em 0.5em 0.3em;
+	background-color:white;
+	margin-bottom: 10px;
+	color: silver;
+}
+
+.ibmoverview {
+	position: fixed;
+	top: 100px;
+	width: 700px;
+	height: 400px;
+	visibility: visible;
+	background-color: white;
+	border-style:solid;
+	border-width: 1px;
+	overflow-y: scroll;
+}
+
+.aibmoverview {
+	width: 700px;
+	height: 400px;
+}
+
+.dl_text {
+	padding-top: 16px;
+	padding-left: 3px;
+	font-family: Verdana;
+	font-size: 1em;
+	float: left;
+	
+}
+
+.dl_statetext {
+	padding-top: 16px;
+	padding-left: 3px;
+	font-family: Verdana;
+	font-size: 0.9em;
+	float: left;
+	width: 250px;
+}
+
+.dl_img {
+	float: left;
+	margin-top: 11px;
+	margin-left:10px;
+	width:50;
+}
