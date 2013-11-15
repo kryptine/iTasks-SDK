@@ -90,6 +90,18 @@ toJSArray xs world
   = (arr, world)
   where op arr world (i, arg) = jsSetObjectEl i (toJSVal arg) arr world
 
+fromJSArray         :: (JSVal a) ((JSVal b) -> c)       !*JSWorld -> *([c], !*JSWorld)
+fromJSArray arr f world
+  # (l, world) = jsGetObjectAttr "length" arr world
+  = fromJSArray` 0 (jsValToInt l) arr world
+  where
+  fromJSArray` n l arr world
+    | n == l         = ([], world)
+    | otherwise
+      # (x, world)   = jsGetObjectEl n arr world
+      # (xs`, world) = fromJSArray` (n + 1) l arr world
+      = ([f x : xs`], world)
+
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined obj = jsTypeof obj == "undefined"
 	

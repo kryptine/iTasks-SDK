@@ -49,13 +49,14 @@ toJSArgs 			:: ![a] -> [JSArg]
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
-newJSArray 			:: !*JSWorld -> *(!JSVal [a], !*JSWorld)
+newJSArray          :: !*JSWorld                          -> *(!JSVal [a], !*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 
-jsArrayPush 		:: !(JSVal a) !(JSVal [a]) 	!*JSWorld -> *(!JSVal [a], !*JSWorld)
-jsArrayReverse 		:: !(JSVal [a]) 			!*JSWorld -> *(!JSVal [a], !*JSWorld)
-toJSArray 			:: ![a] 					!*JSWorld -> *(!JSVal [a], !*JSWorld)
+jsArrayPush         :: !(JSVal a) !(JSVal [a])    !*JSWorld -> *(!JSVal [a], !*JSWorld)
+jsArrayReverse      :: !(JSVal [a])               !*JSWorld -> *(!JSVal [a], !*JSWorld)
+toJSArray           :: ![a]                       !*JSWorld -> *(!JSVal [a], !*JSWorld)
+fromJSArray         :: (JSVal a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 
 jsIsUndefined :: !(JSVal a) -> Bool
 
