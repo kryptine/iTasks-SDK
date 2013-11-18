@@ -19,13 +19,13 @@ leafletEditlet :: LeafletMap -> Editlet LeafletMap LeafletMap
 leafletEditlet map = Editlet map
     { EditletServerDef
     | genUI		= \cid world -> (uiDef cid, world)
-    , defVal 	= map
+    , defVal 	= gDefault{|*|}
     , genDiff	= genDiff
     , appDiff	= appDiff
     }
     { EditletClientDef
     | updateUI	= onUpdate
-    , defVal 	= (map,{mapObj = Nothing,libsInserted = False})
+    , defVal 	= (gDefault{|*|},{mapObj = Nothing,libsInserted = False})
     , genDiff	= \(v1,_) (v2,_) -> genDiff v1 v2
     , appDiff	= \diff (map,st) -> (appDiff diff map,st)
     }
@@ -48,6 +48,14 @@ where
         | otherwise
             = onLibLoaded cid Nothing (map,{mapObj=Nothing,libsInserted=True}) world
 
+    onUpdate cid (Just {LeafletMap|perspective}) (map,st=:{mapObj=Just mapobj}) world
+        //Set perspective
+        # (center,world) = toJSArray [perspective.center.lat,perspective.center.lng] world
+        # world     = jsTrace "Map update" world
+        # world     = jsTrace center world
+        # (_,world) = callObjectMethod "setView" [toJSArg center, toJSArg perspective.LeafletPerspective.zoom] mapobj world
+        = ((map,st),world)
+
     onUpdate cid mbDiff (map,st) world
         = ((map,st),world)
 
@@ -62,11 +70,14 @@ where
         # world = foldl (\w layer -> createLayer layer l mapobj w) world layers
         //Add event handlers
         # (_, world) = callObjectMethod "addEventListener" [toJSArg "dragend",toJSArg (createEditletEventHandler onMapMove cid)] mapobj world
+        # (_, world) = callObjectMethod "addEventListener" [toJSArg "zoomend",toJSArg (createEditletEventHandler onZoomChange cid)] mapobj world
         = ((map,{mapObj=Just mapobj,libsInserted=True}),world)
 
     createLayer (TileLayer url) l mapobj world
         # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
         # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
+        = world
+    createLayer (ObjectLayer objects) l mapobj world
         = world
 
     onMapMove cid event (map=:{LeafletMap|perspective},mbSt) world
@@ -74,15 +85,17 @@ where
         # (latlng,world) = callObjectMethod "getCenter" [] mapobj world
         # ((lat,lng),world) = getPos latlng world
         = (({LeafletMap|map & perspective = {perspective & center = {LeafletLatLng|lat=lat,lng=lng}}},mbSt),world)
+    onZoomChange cid event (map=:{LeafletMap|perspective},mbSt) world
+        # (mapobj,world)    = jsGetObjectAttr "target" event world
+        # (zoom,world)      = callObjectMethod "getZoom" [] mapobj world
+        = (({LeafletMap|map & perspective = {perspective & zoom = jsValToInt zoom}},mbSt),world)
 
 	getPos obj world
 		# (lat, world) = jsGetObjectAttr "lat" obj world
 		# (lng, world) = jsGetObjectAttr "lng" obj world
 		= ((jsValToReal lat,jsValToReal lng), world)
 
-    genDiff old new
-        | old === new   = Nothing
-                        = Just new
+    genDiff old new = if(old === new) Nothing (Just new)
     appDiff new old = new
 
 gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
@@ -97,12 +110,17 @@ gVerify{|LeafletMap|} _ vst = alwaysValid vst
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center={LeafletLatLng|lat = 51.82, lng = 5.86},zoom = 7}
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive gDefault         LeafletMap,                     LeafletLatLng, LeafletLayer, LeafletObject
-derive gEq              LeafletMap, LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive gEditor                      LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive gEditMeta        LeafletMap, LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive gUpdate                      LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
-derive gVerify	                    LeafletPerspective, LeafletLatLng, LeafletLayer, LeafletObject
+//Comparing reals may have unexpected results!!!
+//Especially when comparing constants to previously stored ones
+gEq{|LeafletLatLng|} x y
+    = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
+
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletLayer, LeafletObject, LeafletMarker
+derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive gUpdate                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker

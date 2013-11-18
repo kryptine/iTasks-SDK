@@ -24,8 +24,9 @@ from Data.Map import newMap
 					,markerMap	  :: JSVal (JSMap String GoogleMapMarker)
 					}
 
-:: GoogleMapClient = {val	:: GoogleMap
-					 ,mbSt  :: Maybe GoogleMapState
+:: GoogleMapClient = {val	        :: GoogleMap
+					 ,mbSt          :: Maybe GoogleMapState
+                     ,libsAdded     :: Bool
 					 }
 
 // Parameter object for creating google.maps.Map
@@ -59,8 +60,8 @@ googleMapEditlet g = Editlet g
 	, appDiff	= appDiff
 	}
     { EditletClientDef
-	| updateUI	= onUpdate
-	, defVal 	= {val = gDefault{|*|}, mbSt = Nothing}
+	| updateUI	= updateUI
+	, defVal 	= {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
 	, genDiff	= genDiffClient
 	, appDiff	= appDiffClient
 	}
@@ -101,26 +102,31 @@ where
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "maptypeid_changed", toJSArg (onChange "maptype")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg (onChange "zoom")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "click", toJSArg onClick] mapevent world	
-
         # (editlets,world)  = findObject "itwc.global.controller.editlets" world
         # (cmp,world)       = jsGetObjectAttr cid editlets world
         # (_,world)         = callObjectMethod "addManagedListener" [toJSArg cmp,toJSArg "afterlayout",toJSArg onAfterComponentLayout,toJSArg cmp] cmp world
+        # world             = jsSetObjectAttr "afterShow" (toJSVal afterShow) cmp world
         //Place initial markers
 		# (markerMap, world) = jsNewMap world
 		# world             = foldl (putOnMarker mapobj markerMap) world val.GoogleMap.markers
-		= onUpdate cid mbDiffs {clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}} world
+		= updateUI cid mbDiffs {clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}} world
 	where
-		onChange t = createEditletEventHandler (updatePerspective t) cid
-		onClick = createEditletEventHandler addMarker cid
-        onAfterComponentLayout = createEditletEventHandler resizeMap cid
+		onChange t              = createEditletEventHandler (onUpdatePerspective t) cid
+		onClick                 = createEditletEventHandler addMarker cid
+        onAfterComponentLayout  = createEditletEventHandler resizeMap cid
+        afterShow               = createEditletEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
 
-	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
+    //Initial setup of UI
+	updateUI cid mbDiffs clval=:{mbSt=Nothing} world
 		# (mapsobj, world) = findObject "google.maps" world
 		| jsIsUndefined mapsobj
-		    = (clval, loadMapsAPI mbDiffs cid undef world)
+		    # world = jsSetObjectAttr "gmapscallback" (createEditletEventHandler (onScriptLoad mbDiffs) cid) jsWindow world
+            # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback" Nothing world
+		    = (clval, world)
+        | otherwise
 		    = onScriptLoad mbDiffs cid undef clval world
-	onUpdate id (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) clval=:{mbSt=Just {mapobj}} world //Update the map perspective
+	updateUI cid (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
         # (_, world)        = callObjectMethod "setMapTypeId" [toJSArg mapTypeId] mapobj world
@@ -129,40 +135,34 @@ where
         # (_, world)        = callObjectMethod "setCenter" [toJSArg latlng] mapobj world
         //Update zoom
         # (_, world)        = callObjectMethod "setZoom" [toJSArg zoom] mapobj world
-        = onUpdate id (Just updates) clval world
-    onUpdate cid (Just [AddMarkers markers:updates]) clval=:{mbSt=Just {mapobj,markerMap}} world
-        //TODO: don't update instead of create existing markers but raise exception, this should not happen (but currently does)
-        # world = foldl (\w m -> updateMarker cid mapobj markerMap m w) world markers
-        = onUpdate cid (Just updates) clval world
-    onUpdate cid (Just [RemoveMarkers markers:updates]) clval=:{mbSt=Just {markerMap}} world
+        = updateUI cid (Just updates) clval world
+
+    updateUI cid (Just [AddMarkers markers:updates]) clval=:{val,mbSt=Just {mapobj,markerMap}} world
+        # world = foldl (\w m -> createMarker cid mapobj markerMap m w) world markers
+        = updateUI cid (Just updates) clval world
+    updateUI cid (Just [RemoveMarkers markers:updates]) clval=:{mbSt=Just {markerMap}} world
 	    # world = foldl (\w m -> removeMarker markerMap m w) world markers
-        = onUpdate cid (Just updates) clval world
-    onUpdate cid (Just [UpdateMarkers markers:updates]) clval=:{mbSt=Just {mapobj,markerMap}} world
-        //Simply remove and a marker
+        = updateUI cid (Just updates) clval world
+    updateUI cid (Just [UpdateMarkers markers:updates]) clval=:{mbSt=Just {mapobj,markerMap}} world
+        //Simply remove and add a marker
         # world = foldl (\w m -> updateMarker cid mapobj markerMap m w) world markers
-        = onUpdate cid (Just updates) clval world
-    onUpdate id (Just []) clval world
+        = updateUI cid (Just updates) clval world
+    updateUI id (Just []) clval world
         = (clval, world)	
-	onUpdate id diff clval world //Catchall
+	updateUI id diff clval world //Catchall
         = (clval, world)
-
-	loadMapsAPI mbDiffs id _ world	
-		# world = jsSetObjectAttr "gmapscallback" (createEditletEventHandler (onScriptLoad mbDiffs) id) jsWindow world
-		= addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
-				Nothing world
-
-	updatePerspective "zoom" _ event clval=:{val,mbSt=Just st=:{mapobj}} world
+	onUpdatePerspective "zoom" _ event clval=:{val,mbSt=Just st=:{mapobj}} world
 		# (zoom, world) = callObjectMethod "getZoom" [] mapobj world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & zoom = jsValToInt zoom}}}, world)
-
-	updatePerspective "maptype" _ event clval=:{val,mbSt=Just {mapobj}} world 
+	onUpdatePerspective "maptype" _ event clval=:{val,mbSt=Just {mapobj}} world
 		# (maptypeid, world) = callObjectMethod "getMapTypeId" [] mapobj world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & type = fromString (toUpperCase (jsValToString maptypeid))}}}, world)
-		
-	updatePerspective "dragend" _ event clval=:{val,mbSt=Just {mapobj}} world 
+	onUpdatePerspective "dragend" _ event clval=:{val,mbSt=Just {mapobj}} world 
 		# (center, world) 	  	= callObjectMethod "getCenter" [] mapobj world
 		# ((lat, lng), world) 	= getPos center world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & center = {lat = lat, lng = lng}}}}, world)
+    onUpdatePerspective _ _ event clval world
+        = (clval,world) //Catchall
 			
 	addMarker cid event clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
 		# (latlng, world)     = jsGetObjectAttr "latLng" event world
@@ -283,7 +283,7 @@ where
         addMarkersDiff = case [marker \\ marker=:{GoogleMapMarker|markerId} <- g2.GoogleMap.markers | not (isMember markerId oldMarkerIds)] of
             []          = []
             markers     = [AddMarkers markers]
-        updMarkersDiff = case [marker \\ marker=:{GoogleMapMarker|markerId} <- g2.GoogleMap.markers | isUpdated marker] of
+        updMarkersDiff = case [marker \\ marker <- g2.GoogleMap.markers | isUpdated marker] of
             []          = []
             markers     = [UpdateMarkers markers]
         where
@@ -296,7 +296,7 @@ where
 	appDiffClient d clval = {clval & val = appDiff d clval.val}
 
 	appDiff :: [GoogleMapDiff] GoogleMap -> GoogleMap
-	appDiff d g = foldl app g d
+	appDiff d g =  foldl app g d
     where
         app g (SetSettings settings)        = {GoogleMap|g & settings = settings}
         app g (SetPerspective perspective)  = {GoogleMap|g & perspective = perspective}
