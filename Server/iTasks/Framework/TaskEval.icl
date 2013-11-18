@@ -94,6 +94,7 @@ refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshTaskInstance instanceNo iworld
 	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo iworld
 	= case mbResult of
+		(Ok (_,Left ({SessionInfo|sessionId},[])))	    = iworld
 		(Ok (_,Left ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
 		(Error e)						
             //Check if the instance happened to be a session instance

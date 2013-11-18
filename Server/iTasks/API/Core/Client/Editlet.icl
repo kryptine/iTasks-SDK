@@ -36,7 +36,6 @@ gVisualizeText{|Editlet|} fa _ mode (Editlet value _ _) = fa mode value
 
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp
 						(Editlet value serverDef clientDef, mask, ver) meta vst=:{VSt|taskId,iworld}
-	
 	# (uiDef, world)        = serverDef.EditletServerDef.genUI htmlId iworld.world
 	# iworld                = {iworld & world = world}
     # (mbPrevValue,iworld)  = getPreviousEditletValue iworld
@@ -99,7 +98,6 @@ where
     updEditletDiffs value iDiff tDiff jsDiff iworld=:{IWorld|editletDiffs}
         # diffs = maybe [] snd ('Data.Map'.get (taskId,editorId dp) editletDiffs)
         # diffs = if (tDiff=:Nothing) diffs (diffs ++ [jsDiff])
-        # value = maybe value (\diff -> serverDef.EditletServerDef.appDiff diff value) iDiff
         = {IWorld|iworld & editletDiffs = put (taskId,editorId dp) (toJSONA value,diffs) editletDiffs}
 
 gEditMeta{|Editlet|} fa _ (Editlet value _ _) = fa value
@@ -119,8 +117,6 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov=:(Editlet va
 		_				= ((ov,omask),ust)
 
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
-import StdDebug
-
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
 createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> (JSVal (JSFunction b)) 

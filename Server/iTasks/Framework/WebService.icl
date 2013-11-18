@@ -87,12 +87,19 @@ where
 			JSONGuiEventStream
                 = case sessionParam of
                     ""  = (errorResponse "Event stream is only possible for existing sessions", Nothing, iworld)
+                    sessionId
+                        # (messages,iworld)	= getUIMessages sessionId iworld	
+                        = (eventsResponse messages, Just sessionId, iworld)
+                /*
+                = case sessionParam of
+                    ""  = (errorResponse "Event stream is only possible for existing sessions", Nothing, iworld)
                     sessionId	
 				        = case evalSessionTaskInstance sessionId event iworld of
 					        (Ok (ValueResult _ _ _ _,instanceNo,{SessionInfo|sessionId},updates),iworld)
 						        = (eventsResponse updates, Just sessionId, iworld)	
 					        (_,iworld)
 						        = (errorResponse "Failed to initialize event stream", Nothing, iworld)
+                */
 			//Serve the task in easily accessable JSON representation
 			JSONService
 				# (mbResult,iworld)	= case sessionParam of
@@ -178,9 +185,9 @@ where
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	eventsResponse updates
+	eventsResponse messages
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
-                        , rsp_data = formatMessageEvents [UIUpdates updates]}
+                        , rsp_data = formatMessageEvents messages}
 	
 	formatMessageEvents messages = join "" (map format messages)
     where
