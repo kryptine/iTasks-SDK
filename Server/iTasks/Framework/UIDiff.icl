@@ -153,11 +153,13 @@ diffEditletOpts :: UIPath UIEditletDiffs UIEditletOpts UIEditletOpts -> DiffResu
 diffEditletOpts path editletDiffs opts1 opts2
 	| opts1.UIEditletOpts.value === opts2.UIEditletOpts.value	= DiffPossible []
 	//Check if we have a local diff function for this editor...
-	| otherwise
+    | opts1.UIEditletOpts.taskId == opts2.UIEditletOpts.taskId && opts1.UIEditletOpts.editorId == opts2.UIEditletOpts.editorId
         = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
             Just (_,[])     = DiffPossible []
             Just (_,diffs)  = DiffPossible [UIUpdate path [("applyDiff",[JSONString diff]) \\ diff <- diffs]]
             _               = DiffImpossible
+	| otherwise
+        = DiffImpossible
 
 diffChoiceOpts :: UIPath (UIChoiceOpts a) (UIChoiceOpts a) -> DiffResult | gEq{|*|} a & JSONEncode{|*|} a
 diffChoiceOpts path opts1 opts2
