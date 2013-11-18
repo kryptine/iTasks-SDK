@@ -868,6 +868,7 @@ itwc.component.itwc_container = itwc.extend(itwc.Container,{
 });
 itwc.component.itwc_panel = itwc.extend(itwc.Container,{
     defaultHeight: 'flex',
+    hasTitle: false,
     initDOMEl: function() {
         var me = this,
             el = me.domEl, header;
@@ -880,17 +881,31 @@ itwc.component.itwc_panel = itwc.extend(itwc.Container,{
             el.classList.add('framed');
         }
         if(me.definition.title) {
-            header = document.createElement('div');
-            header.innerHTML = me.definition.title;
-            header.classList.add('panel-header');
-
-            el.appendChild(header);
-            me.itemsOffset = 1;
+            me.createTitle(me.definition.title);
         }
     },
+    createTitle: function(title) {
+        var me = this, header;
+
+        header = document.createElement('div');
+        header.innerHTML = title;
+        header.classList.add('panel-header');
+
+        if(me.domEl.childNodes.length) {
+            me.domEl.insertBefore(header,me.domEl.childNodes[0]);
+        } else {
+            me.domEl.appendChild(header);
+        }
+        me.hasTitle = true;
+        me.itemsOffset = 1;
+    },
     setTitle: function(title) {
-        //TODO: Handle case in which we don't have a title div yet
-        this.domEl.childNodes[0].innerHTML = title;
+        var me = this;
+        if(me.hasTitle) {
+            me.domEl.childNodes[0].innerHTML = title;
+        } else {
+            me.createTitle(title);
+        }
     }
 });
 itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
@@ -1188,6 +1203,11 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
         label.id = nodeId + "-l";
         label.setAttribute('for',nodeId + "-e");
 
+        if(option.iconCls) {
+            label.classList.add(option.iconCls);
+        } else {
+            label.classList.add('default-' + (option.leaf ? 'leaf' : 'folder'));
+        }
         label.innerHTML = option.text;
         label.addEventListener('click',function(e) {
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
@@ -1291,6 +1311,7 @@ itwc.controller = function() {
     me.flushingTaskEvents = false;
     me.refresher = null;
     me.updateSource = null;
+    me.urlParameters = '';
 
     //Tasklets & editlets
     me.taskletControllers = {};
@@ -1341,7 +1362,7 @@ itwc.controller.prototype = {
             me.flushingTaskEvents = true;
             //Send request
             xhr = new XMLHttpRequest();
-            xhr.open('POST','?format=json-gui', true);
+            xhr.open('POST','?format=json-gui'+me.urlParameters, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onload = me.receiveTaskUpdates.bind(me);
             xhr.send(itwc.util.urlEncode(params));
@@ -1535,7 +1556,13 @@ itwc.controller.prototype = {
         itwc.WINDOWS.splice(winIdx,1);
     },
     reset: function() {
-        var me = this;
+        var me = this,
+            urlSplit;
+
+        //Check url parameters
+        if((urlSplit = window.location.toString().split('?')).length == 2) {
+            me.urlParameters = '&'+urlSplit[1]
+        }
 
         //Close push source
         if(me.updateSource) {
