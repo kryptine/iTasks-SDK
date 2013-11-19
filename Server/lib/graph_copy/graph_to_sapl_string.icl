@@ -63,7 +63,7 @@ where
  mkse (RecS mod name _ as) 	= "(" +++ makePrintableName (makeRecName mod name) +++ args as +++ ")"
  mkse (ArrayS  _ as)        = mkl as
  mkse (ListS    as)         = mkl as
- mkse (TupleS n as)         = "(_predefined._Tuple" +++ toString n +++ args as +++ ")"
+ mkse (TupleS n as)         = "(_Tuple" +++ toString n +++ args as +++ ")"
 
 
  args []                = ""
