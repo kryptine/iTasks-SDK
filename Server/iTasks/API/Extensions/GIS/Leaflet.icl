@@ -9,7 +9,12 @@ LEAFLET_CSS :== "leaflet-0.6.3/leaflet.css"
 
 :: LeafletClientState =
     {mapObj         :: Maybe (JSVal JSObject)
+    ,mapIcons       :: Maybe (JSVal [JSObject])
     ,libsInserted   :: Bool
+    }
+:: IconOptions =
+    { iconUrl :: String
+    , iconSize :: [Int]
     }
 
 openStreetMapTiles :: LeafletLayer
@@ -25,7 +30,7 @@ leafletEditlet map = Editlet map
     }
     { EditletClientDef
     | updateUI	= onUpdate
-    , defVal 	= (gDefault{|*|},{mapObj = Nothing,libsInserted = False})
+    , defVal 	= (gDefault{|*|},{mapObj = Nothing, mapIcons = Nothing, libsInserted = False})
     , genDiff	= \(v1,_) (v2,_) -> genDiff v1 v2
     , appDiff	= \diff (map,st) -> (appDiff diff map,st)
     }
@@ -44,9 +49,9 @@ where
         | jsIsUndefined l
             # world = addCSSFromUrl LEAFLET_CSS world
             # world = addJSFromUrl LEAFLET_JS (Just (createEditletEventHandler onLibLoaded cid)) world
-            = ((map,{mapObj=Nothing,libsInserted=True}), world)
+            = ((map,{mapObj=Nothing,mapIcons=Nothing,libsInserted=True}), world)
         | otherwise
-            = onLibLoaded cid Nothing (map,{mapObj=Nothing,libsInserted=True}) world
+            = onLibLoaded cid Nothing (map,{mapObj=Nothing,mapIcons=Nothing,libsInserted=True}) world
 
     onUpdate cid (Just {LeafletMap|perspective}) (map,st=:{mapObj=Just mapobj}) world
         //Set perspective
@@ -59,27 +64,50 @@ where
     onUpdate cid mbDiff (map,st) world
         = ((map,st),world)
 
-    onLibLoaded cid _ (map=:{LeafletMap|perspective,layers},_) world
+    onLibLoaded cid _ (map=:{LeafletMap|perspective,icons,layers},_) world
         # (l, world) = findObject "L" world
         //Create map
         # (mapobj, world) = callObjectMethod "map" [toJSArg (mapdivid cid)] l world
         //Set perspective
         # (center,world) = toJSArray [perspective.center.lat,perspective.center.lng] world
         # (_,world) = callObjectMethod "setView" [toJSArg center, toJSArg perspective.LeafletPerspective.zoom] mapobj world
+        //Add icons
+        # (mapicons,world) = newJSArray world
+        # world = foldl (\w icon -> createIcon icon l mapicons w) world icons
         //Add initial layers
-        # world = foldl (\w layer -> createLayer layer l mapobj w) world layers
+        # world = foldl (\w layer -> createLayer layer l mapobj mapicons w) world layers
         //Add event handlers
         # (_, world) = callObjectMethod "addEventListener" [toJSArg "dragend",toJSArg (createEditletEventHandler onMapMove cid)] mapobj world
         # (_, world) = callObjectMethod "addEventListener" [toJSArg "zoomend",toJSArg (createEditletEventHandler onZoomChange cid)] mapobj world
-        = ((map,{mapObj=Just mapobj,libsInserted=True}),world)
+        = ((map,{mapObj=Just mapobj,mapIcons=Just mapicons,libsInserted=True}),world)
 
-    createLayer (TileLayer url) l mapobj world
+    createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapicons world
+        # (icon,world)  = callObjectMethod "icon" [toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]}] l world
+        # (_, world)    = jsArrayPush icon mapicons world
+        = world
+
+    createLayer (TileLayer url) l mapobj mapicons world
         # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
         # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
         = world
-    createLayer (ObjectLayer objects) l mapobj world
+    createLayer (ObjectLayer objects) l mapobj mapicons world
+        # (layer,world) = callObjectMethod "layerGroup" [] l world
+        # world         = foldl (\w object -> createObject object l layer mapicons w) world objects
+        # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
         = world
 
+    createObject (Marker {LeafletMarker|markerId,position,title,icon}) l layer mapicons world
+        # (markerPos,world) = toJSArray [position.lat,position.lng] world
+        # (args,world)      = case icon of
+            Nothing         = ([toJSArg markerPos],world)
+            Just iconIdx
+                # (options,world) = jsEmptyObject world
+                # (iconRef,world) = jsGetObjectEl iconIdx mapicons world
+                # world = jsSetObjectAttr "icon" iconRef options world
+                = ([toJSArg markerPos,toJSArg options],world)
+        # (marker,world) = callObjectMethod "marker" args l world
+        # (_,world)      = callObjectMethod "addTo" [toJSArg layer] marker world
+        = world
     onMapMove cid event (map=:{LeafletMap|perspective},mbSt) world
         # (mapobj,world) = jsGetObjectAttr "target" event world
         # (latlng,world) = callObjectMethod "getCenter" [] mapobj world
