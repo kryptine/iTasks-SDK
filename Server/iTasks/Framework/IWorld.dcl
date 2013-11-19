@@ -44,6 +44,7 @@ from Sapl.SaplParser import :: ParserState
 											   ,!Flavour								// Clean flavour for JS compilation
 											   ,!Maybe ParserState						// Some information collected by the parser for the code generator
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
+
                     , editletDiffs          :: !UIEditletDiffs
 
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
@@ -54,6 +55,7 @@ from Sapl.SaplParser import :: ParserState
 
                     //Experimental database connection cache
                     , resources             :: !*(Maybe *Resource)
+                    , onClient				:: !Bool									// "False" on the server, "True" on the client
 					}
 
 :: SystemDirectories =

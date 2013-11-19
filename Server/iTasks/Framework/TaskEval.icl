@@ -14,6 +14,23 @@ from Data.SharedDataSource	import qualified read, write, writeFilterMsg
 
 derive gEq TIMeta, TIType, SessionInfo
 
+createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
+createClientTaskInstance task sessionId instanceNo iworld=:{currentDateTime,taskTime}
+	# worker				= AnonymousUser sessionId
+	//Create the initial instance data in the store
+	# mmeta					= defaultValue
+	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# meta					= createMeta instanceNo (SessionInstance {SessionInfo|sessionId=sessionId,lastEvent=0}) (TaskId 0 0) Nothing mmeta pmeta
+	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
+	//Register the sessionId -> instanceNo relation
+	# iworld				= registerSession sessionId instanceNo iworld
+	= (TaskId instanceNo 0, iworld)	
+where
+	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
+		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
+		
 createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld) |  iTask a
 createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 	# (sessionId,iworld)	= newSessionId iworld

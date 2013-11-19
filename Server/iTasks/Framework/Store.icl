@@ -6,6 +6,9 @@ import Data.Maybe, Data.Map, Data.Functor
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.JSON
 import Data.SharedDataSource
+
+import iTasks.Framework.Client.JSStore
+
 from iTasks.Framework.IWorld		import :: IWorld(..), :: SystemDirectories(..), :: Work, :: UIMessage, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
@@ -54,6 +57,9 @@ storeValue namespace key value iworld
 	= storeValueAs defaultStoreFormat namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+storeValueAs format namespace key value iworld=:{IWorld|onClient=True}
+	= jsStoreValue namespace key value iworld
+
 storeValueAs format namespace key value iworld=:{IWorld|build,systemDirectories={dataDirectory}}
 	= writeToDisk namespace key {StoreItem|format=format,content=content} (storePath dataDirectory build) iworld
 where
@@ -62,6 +68,9 @@ where
 		SFDynamic	= serialize value
 
 storeBlob :: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
+storeBlob namespace key blob iworld=:{IWorld|onClient=True}
+	= jsStoreValue namespace key blob iworld
+	
 storeBlob namespace key blob iworld=:{IWorld|build,systemDirectories={dataDirectory}}
 	= writeToDisk namespace key {StoreItem|format=SFDynamic,content=blob} (storePath dataDirectory build) iworld
 
@@ -90,6 +99,9 @@ writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|wo
 	= {IWorld|iworld & world = world}
 	
 loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
+loadValue namespace key iworld=:{IWorld|onClient=True}
+	= jsLoadValue namespace key iworld
+	
 loadValue namespace key iworld=:{IWorld|build,systemDirectories={dataDirectory}}
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
@@ -124,6 +136,9 @@ loadStoreItem namespace key iworld=:{build,systemDirectories={dataDirectory},wor
 				= (Nothing,False,{iworld & world = world})
 
 loadBlob :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe {#Char}, !*IWorld)
+loadBlob namespace key iworld=:{onClient=True}
+	= jsLoadValue namespace key iworld
+
 loadBlob namespace key iworld=:{build,systemDirectories={dataDirectory},world}
 	= case loadFromDisk namespace key (storePath dataDirectory build) world of
 		(Just {StoreItem|content},world)	= (Just content, {IWorld|iworld & world = world})
@@ -181,6 +196,9 @@ where
 			| otherwise    = rec file (acc +++ string)
 
 deleteValue :: !StoreNamespace !StoreKey !*IWorld -> *IWorld
+deleteValue namespace delKey iworld=:{onClient=True}
+	= jsDeleteValue namespace delKey iworld
+
 deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension

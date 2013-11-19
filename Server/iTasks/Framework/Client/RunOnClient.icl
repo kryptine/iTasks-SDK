@@ -1,142 +1,147 @@
-implementation module iTasks.Framework.ClientSupport.RunOnClient
+implementation module iTasks.Framework.Client.RunOnClient
 
 import StdMisc
-import iTasks, Task, Tasklet, TaskState, TaskStore, TaskEval, UIDefinition
+import iTasks//, Task, Tasklet, TaskState, TaskStore, TaskEval, UIDefinition
+import iTasks.Framework.TaskStore
+import iTasks.Framework.TaskEval
+import iTasks.API.Core.Client.Tasklet
 
-:: TaskState :== Maybe (TIMeta,TIReduct,TIResult)
+from Data.Map import newMap, toList
+from Data.List import find
+
+import System.Time
+import Text.JSON
+
+:: TaskState a = 
+			{ instanceNo :: !InstanceNo
+			, sessionId  :: !SessionId
+			, taskId     :: !Maybe TaskId
+			, task		 :: !Task a			
+			, value		 :: !Maybe (TaskValue JSONNode)
+			}
 
 runOnClient :: !(Task m) -> Task m | iTask m
 runOnClient task
 
 	# roc_tasklet =
 		{ Tasklet 
-		| generatorFunc		= roc_generator task
-		, resultFunc		= toResult
+		| genUI				= roc_generator task
+		, resultFunc		= gen_res
 		, tweakUI			= id
 		}
+ 
+	= mkTask roc_tasklet
 
-	= mkInstanceId >>= \iid -> mkTask (iid, roc_tasklet)
-				
-toResult Nothing
-	= NoValue	
+gen_res {TaskState|value=Nothing} = NoValue
+gen_res {TaskState|value=Just NoValue} = NoValue
+gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
 
-toResult (Just (_,_,TIValue NoValue _))
-	= NoValue
-	
-toResult (Just (_,_,TIValue (Value json stab) _))
-	= Value (fromJust (fromJSON json)) stab
+roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
+roc_generator task (TaskId instanceNo _) _ iworld=:{currentSession,sessions}
 
-roc_generator :: !(Task m) !TaskInstanceId !TaskId (Maybe TaskState) !*IWorld -> *(!TaskletGUI TaskState, !TaskState, !*IWorld) | iTask m
-roc_generator task _ (TaskId instanceNo _) _ iworld
+	# currentInstance = fromJust currentSession
+	# currentSession = fst (fromJust (find (\(sessionId,instanceId) -> instanceId == currentInstance) (toList sessions)))
 
-	# (Ok ameta, iworld) = loadTaskMeta instanceNo iworld
+	# gui = TaskletTUI {tui = Nothing, eventHandler = Just (instanceNo, controllerFunc)}
 	
-	# (newInstanceNo, iworld) = newInstanceId iworld
-	# ((meta, reduct, taskres, rep), iworld) = 
-		createTaskInstance newInstanceNo ameta.sessionId instanceNo ameta.TIMeta.worker task ameta.management ameta.TIMeta.progress iworld
+	# state = 	{ TaskState
+				| instanceNo = instanceNo
+				, sessionId  = currentSession
+				, taskId 	 = Nothing
+				, task		 = task
+				, value 	 = Nothing}
 	
-	// Initialize embedded task
-	# (meta, reduct, taskres, result, iworld) = evalInstance RefreshEvent (meta, reduct, taskres) iworld
-	
-	# mbUI = case result of
-		(ValueResult _ _ (TaskRep uidef _) _) = Just uidef
-											  = Nothing
-	
-	# gui = TaskletTUI { TaskletTUI
-	  			 	   | tui  			= mbUI
-	  			  	   , eventHandler	= Just (newInstanceNo, controllerFunc)
-	  			       } 	
-	
-	= (gui, Just (meta, reduct, taskres), iworld)
+	= (gui, state, iworld)
 
 // Init
-controllerFunc taskId st Nothing Nothing
-	= (Nothing, st)
+controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing} eventNo Nothing Nothing iworld
+	# (taskId, iworld)  = createClientTaskInstance task sessionId instanceNo iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (RefreshEvent Nothing) iworld
+	= case mbResult of
+		Ok (ValueResult _ _ (TaskRep def _) _, _, _, _) 
+					= (Just def, {TaskState | st & taskId = Just taskId}, iworld)
+		_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
 
-// Commit
-controllerFunc taskId st (Just eventName) Nothing
-	= controllerFunc` taskId st (ActionEvent taskId eventName)
+// Refresh
+controllerFunc _ st=:{TaskState | sessionId, instanceNo, task} eventNo Nothing Nothing iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (RefreshEvent Nothing) iworld
+	= case mbResult of
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _) 
+					= (Just def, {TaskState | st & value = Just val}, iworld)
+		Ok (ValueResult val _ NoRep _, _, _, _)
+					= abort "NoRep"
+		Ok (DestroyedResult, _, _, _)
+					= abort "Destroy"
+		Ok (ExceptionResult _ msg, _, _, _)
+					= abort msg
+		Error msg	= abort msg
+		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
 
 // Edit
-controllerFunc taskId st (Just eventName) (Just eventValue)
-	= controllerFunc` taskId st (EditEvent taskId eventName (fromString eventValue))
+controllerFunc taskId st=:{TaskState | sessionId, instanceNo} eventNo (Just name) (Just jsonval) iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (EditEvent eventNo taskId name (fromString jsonval)) iworld
+	= case mbResult of
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _) 
+					= (Just def, {TaskState | st & value = Just val}, iworld)
+		Ok (ValueResult val _ NoRep _, _, _, _)
+					= abort "NoRep"
+		Ok (DestroyedResult, _, _, _)
+					= abort "Destroy"
+		Ok (ExceptionResult _ msg, _, _, _) 
+					= abort msg
+		Error msg	= abort msg
+		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
 
-controllerFunc` taskId st event
-	# iworld = createClientIWorld
+// Action
+controllerFunc taskId st=:{TaskState | sessionId, instanceNo} eventNo (Just name) Nothing iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (ActionEvent eventNo taskId name) iworld
+	= case mbResult of
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _) 
+					= (Just def, {TaskState | st & value = Just val}, iworld)
+		Ok (ValueResult val _ NoRep _, _, _, _)
+					= abort "NoRep"
+		Ok (DestroyedResult, _, _, _)
+					= abort "Destroy"
+		Ok (ExceptionResult _ msg, _, _, _) 
+					= abort msg
+		Error msg	= abort msg
+		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
 
-	# (meta, reduct, taskres, result, iworld) = 
-		evalInstance event (fromJust st) iworld
-		
-	# mbTUI = case result of
-		(ValueResult _ _ (TaskRep uidef _) _) = Just uidef
-											  = Nothing
-											  
-	= (mbTUI, Just (meta, reduct, taskres))
+newWorld :: *World
+newWorld = undef
 
-createClientIWorld :: *IWorld
-createClientIWorld
+createClientIWorld :: !InstanceNo -> *IWorld
+createClientIWorld currentInstance
 		= {IWorld
-		  |application			= locundef "application"
-		  ,build				= locundef "build"
-		  ,appDirectory			= locundef "appDirectory"
-		  ,sdkDirectory			= locundef "sdkDirectory"
-		  ,dataDirectory		= locundef "dataDirectory"
-		  ,config				= locundef "config"
-		  ,taskTime				= locundef "taskTime"
-		  ,timestamp			= locundef "timestamp"
-		  ,currentDateTime		= locundef "currentDateTime"
-		  ,currentUser			= locundef "currentUser"
-		  ,currentInstance		= locundef "currentInstance"
-		  ,nextTaskNo			= locundef "nextTaskNo"
-		  ,localShares			= locundef "localShares"
-		  ,localLists			= locundef "localLists"
-		  ,readShares			= locundef "readShares"
-		  ,sessions				= locundef "sessions"
-		  ,uis					= locundef "uis"
-		  ,workQueue			= locundef "workQueue" 		  
-		  ,world				= locundef "world"
+		  |application			= "application"
+		  ,build				= "build"
+		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer", theme = locundef "config"}
+		  ,systemDirectories	= {appDirectory  = locundef "appDirectory"
+		  						  ,dataDirectory = locundef "dataDirectory"
+		  						  ,sdkDirectory  = locundef "sdkDirectory"
+    							  ,publicWebDirectories = locundef "publicWebDirectories"}
+		  ,taskTime				= 0
+		  ,timestamp			= Timestamp 1
+		  ,currentDateTime		= DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
+		  ,currentUser			= SystemUser
+		  ,currentInstance		= currentInstance
+		  ,currentSession		= Just currentInstance
+		  ,currentAttachment	= []	  
+		  ,nextTaskNo			= 6666
+		  ,localShares			= newMap
+		  ,localLists			= newMap
+		  ,localTasks			= newMap
+		  ,eventRoute			= newMap
+		  ,readShares			= []
+		  ,editletDiffs			= newMap
+		  ,sessions				= newMap
+		  ,jsCompilerState		= locundef "jsCompilerState"
+		  ,workQueue			= []
+		  ,uiMessages			= newMap	  
+		  ,shutdown				= False
+		  ,world				= newWorld
+		  ,resources			= Nothing
+		  ,onClient				= True
 		  }
 where
 	locundef var = abort ("IWorld structure is not avalaible at client side. Reference: "+++var)
-
-/**
-* Evaluate a single task instance by TaskEval.evalAndStoreInstance
-*/
-evalInstance :: !Event !(TIMeta,TIReduct,TIResult) !*IWorld -> (!TIMeta,!TIReduct,!TIResult,!TaskResult JSONNode,!*IWorld)
-evalInstance event (meta=:{TIMeta|instanceNo,parent,worker=Just worker,progress},reduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,tree,shares,lists},result=:TIValue val _) iworld=:{currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
-	//Eval instance
-	# repAs						= {TaskRepOpts|useLayout=Nothing,afterLayout=Nothing,modLayout=Nothing,appFinalLayout=True}
-	//Update current process id & eval stack in iworld
-	# taskId					= TaskId instanceNo 0
-	# iworld					= {iworld & currentInstance = instanceNo, currentUser = worker, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 
-	//Apply task's eval function and take updated nextTaskId from iworld
-	# (result,iworld)			= eval event repAs tree iworld
-	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
-	# (shares,iworld)			= getLocalShares iworld
-	# (lists,iworld)			= getLocalLists iworld
-	//Restore current process id, nextTask id and local shares in iworld
-	# iworld					= {iworld & currentInstance = currentInstance, currentUser = currentUser, nextTaskNo = nextTaskNo, taskTime = taskTime, localShares = localShares, localLists = localLists}
-	# reduct					= {TIReduct|reduct & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, tree = tasktree result, shares = shares, lists = lists}
-	# meta						= {TIMeta|meta & progress = setStatus result progress}
-	= (meta, reduct, taskres result, result, iworld)
-where
-	getNextTaskNo iworld=:{IWorld|nextTaskNo}	= (nextTaskNo,iworld)
-	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
-	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
-
-	setStatus (ExceptionResult _ _) meta				= {meta & status = True}
-	setStatus (ValueResult (Value _ True) _ _ _) meta	= {meta & status = True}
-	setStatus _	meta									= {meta & status = False}
-
-	tasktree (ValueResult _ _ _ tree)	= tree
-	tasktree (ExceptionResult _ _)		= TCNop
-	
-	taskres (ValueResult val {TaskInfo|lastEvent} _ _)	= TIValue val lastEvent
-	taskres (ExceptionResult e str)						= TIException e str
-
-evalInstance _ (meta,reduct,TIException e msg) iworld
-	= (meta, reduct, TIException e msg, ExceptionResult e msg, iworld)
-
-evalInstance _ _ iworld
-	= abort "Could not unpack instance state"
-	

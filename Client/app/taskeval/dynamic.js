@@ -33,11 +33,15 @@ function ___SystemDynamic__DynamicTemp(__a1, __a2) {
 };
 
 function ___SystemDynamic__initial_unification_environment(n_type_pattern_vars, n_type_vars){
-	return; // undefined will do it
+	return undefined; // undefined will do it
 };
 
+// Don't do anything
+function ___SystemDynamic__normalise(subst, t) { return t; };
+function ___SystemDynamic__bind_global_type_pattern_var(t1, t2, subst) { return subst; };
+
 function ___SystemDynamic__unify(subst, t1, t2){
-	return ___predefined__Tuple2(unify(t1, Sapl.heval(t2), true), subst);
+	return ___Tuple2(unify(t1, Sapl.heval(t2), true), subst);
 };
 
 // Very simple unification algorithm
@@ -102,7 +106,7 @@ function getType(val){
 	
 	}else if(isArray(val)){
 	
-		if(val[0] == 0 && val[1].startsWith("_predefined._Tuple")){
+		if(val[0] == 0 && val[1].startsWith("_Tuple")){
 			return applyTypes(val.slice(2,val.length), tupleType(val.length-2));
 		}
 	

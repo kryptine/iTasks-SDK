@@ -2,6 +2,7 @@ definition module iTasks.API.Core.Client.Tasklet
 
 import StdString
 import iTasks.Framework.Task, iTasks.Framework.Shared
+import iTasks.Framework.TaskState
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Core.Client.Component
 
@@ -29,7 +30,7 @@ createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFu
 * @param eventName
 * @param eventValue
 */
-:: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe UIDef, st)
+:: ControllerFunc st :== TaskId st Int (Maybe String) (Maybe JSONString) *IWorld -> *(Maybe UIDef, st, *IWorld)
 
 :: TaskletTUI st = 
 	{ tui				:: !Maybe UIDef
@@ -43,7 +44,6 @@ createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFu
 	}
 
 mkTask :: (Tasklet st res) -> Task res | iTask res
-mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTask res & iTask r
 
 /*
  * Interface task(let): a Tasklet with additional interface functions for communication

@@ -70,6 +70,16 @@ String.prototype.rpad = function(padString, length) {
     return str;
 }
 
+Date.prototype.stdTimezoneOffset = function() {
+	var jan = new Date(this.getFullYear(), 0, 1);
+	var jul = new Date(this.getFullYear(), 6, 1);
+	return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+}
+
+Date.prototype.dst = function() {
+	return this.getTimezoneOffset() < this.stdTimezoneOffset();
+}
+
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
 if (!Object.keys) {
   Object.keys = (function () {

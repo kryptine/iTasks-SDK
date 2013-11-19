@@ -16,6 +16,8 @@ Ext.define('itwc.container.Tasklet', {
 	controllerFunc: null,
 	instanceNo: null,
 	
+	updater: null,
+	
 	// indicates whether the defualt TUI is already included or not
 	tuiIncluded: false,
 	// for detecting whether the result is changed
@@ -61,9 +63,13 @@ Ext.define('itwc.container.Tasklet', {
 		}		
 
 		eval("var tmp = eval(" + this.st + ");");
-		this.st = tmp;
-		itwc.global.controller.tasklets[this.taskId] = this;			
+		this.st = Sapl.feval(tmp);
+		itwc.global.controller.tasklets[this.taskId] = this;
 
+		if(!_iworld){
+			_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [this.instanceNo]);
+		}
+				
 		if(this.resultFunc != null){
 			eval("var tmp = eval(" + this.resultFunc + ");");
 			this.resultFunc = tmp;
@@ -71,12 +77,26 @@ Ext.define('itwc.container.Tasklet', {
 		}
 		
 		if(this.controllerFunc != null){
+			var start = new Date().getTime();
+		
 			eval("var tmp = eval(" + this.controllerFunc + ");");
 			this.controllerFunc = tmp;
 			itwc.global.controller.taskletControllers[this.instanceNo] = this;
+			
+			var ret = Sapl.fapp(this.controllerFunc, [this.taskId, this.st, 0, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
+			this.st = Sapl.feval(ret[3]);
+			_iworld = Sapl.feval(ret[4]);
+			
+			var ui = Sapl.toJS(Sapl.feval(ret[2]));
+			
+			this.tui = JSON.parse(ui);
+			if (this.tui.xtype=="itwc_viewport") this.tui = this.tui.items[0];
+						
+			var end = new Date().getTime();			
+			console.log(end-start);
 		}			
 		
-		DB.saveTasklet(this);
+		//DB.saveTasklet(this);
 		
 		this.callParent(arguments);
 	},	
@@ -87,6 +107,23 @@ Ext.define('itwc.container.Tasklet', {
 			this.tuiIncluded = true;
 			this.tui = this.lookupComponent(this.tui);
 			this.add(this.tui);
+			
+			var me = this;
+			
+			me.updater = window.setInterval(function(){
+				
+				var ret = Sapl.fapp(me.controllerFunc, [me.taskId, me.st, 0, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
+				me.st = Sapl.feval(ret[3]);
+				_iworld = Sapl.feval(ret[4]);			
+			
+				var tui = Sapl.toJS(Sapl.feval(ret[2]));
+				tui = JSON.parse(tui);
+				if (tui.xtype=="itwc_viewport") tui = tui.items[0];			
+			
+				applytui(me.tui, tui);
+			
+			},500);
+			
 		}		
 				
 		this.callParent(arguments);
@@ -129,6 +166,10 @@ Ext.define('itwc.container.Tasklet', {
 	
 	onDestroy: function() {
 
+		if(this.updater){
+			window.clearInterval(this.updater);
+		}
+	
 		this.fireTaskletEvent("destroy");
 		this.callParent(arguments);
 	},

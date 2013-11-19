@@ -46,6 +46,7 @@ fireEvent eventqueue taskId eventName eventValue = undef
 mkTask :: (Tasklet st res) -> Task res | iTask res
 mkTask ti = mkInterfaceTask ti []
 
+/*
 mkTaskWithShared :: (Tasklet st res) !(Shared r) (r st -> st) -> Task res | iTask res & iTask r
 mkTaskWithShared tasklet shared updateFunc = Task taskFunc
 where
@@ -119,6 +120,7 @@ where
 	// Destroy
 	taskFunc event taskRepOpts (TCDestroy _) iworld
 		= (DestroyedResult, printlnI "mkTaskWithShared: destroy" iworld)
+*/
 
 mkInterfaceTask :: (Tasklet st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 mkInterfaceTask tasklet fs = Task taskFunc
@@ -303,9 +305,9 @@ toDef c = UIControlStack {UIControlStack
  * 1. taskId is parsed
  * 2. TUI result is stringified 
  */
-controllerWrapper cf strTaskID st mbEventName mbEventHandler
-	# (mbTUI, st) = cf (fromString strTaskID) st mbEventName mbEventHandler
-	= (fmap (toString o encodeUIDefinition) mbTUI, st)
+controllerWrapper cf strTaskID st eventNo mbEventName mbEventHandler iworld
+	# (mbTUI, st, iworld) = cf (fromString strTaskID) st eventNo mbEventName mbEventHandler iworld
+	= (fmap (toString o encodeUIDefinition) mbTUI, st, iworld)
 
 // it uses the 2. layer (handleJSEvent), because it's created on the server
 eventHandlerWrapper taskId (ComponentEvent id event f) 

@@ -142,7 +142,7 @@ Sapl = new function () {
 	}
 	
 	this.toTuple = function (arr){
-		var prefix = [0, '_predefined._Tuple'+arr.length];
+		var prefix = [0, '_Tuple'+arr.length];
 		// Concat doesn't work here if "arr" is "argument" because "argument" is not an array
 		for(var i=0; i<arr.length; i++) prefix.push(arr[i]);
 		return prefix;
@@ -223,7 +223,7 @@ Sapl = new function () {
 
 					var arraycons = this.isCons(consname);
 
-					if (!arraycons && !consname.startsWith("_predefined._Tuple")) {
+					if (!arraycons && !consname.startsWith("_Tuple")) {
 
 						res.push(this.print_consname(consname));
 					}

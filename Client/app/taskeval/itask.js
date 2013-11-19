@@ -1,17 +1,21 @@
+var _iworld;
+
 /**
 * eventType can be "edit" or "commit" or "init". It is necessary because eventValue can be null
 * even in the case of "edit" event.
 */
-function controllerWrapper(controllerFunc,taskId,eventType,eventName,eventValue){
+function controllerWrapper(controllerFunc,taskId,eventNo,eventType,eventName,eventValue){
 	
 	console.time('controllerWrapper timer: eval');
 	
-	var tasklet = itwc.global.controller.tasklets[taskId];
+	var taskletId = taskId.split("-")[0] + "-0";
+	var tasklet = itwc.global.controller.tasklets[taskletId];
 	var state = tasklet.st;
 
 	var tmp = [controllerFunc,[]];
 	tmp[1].push(taskId);
 	tmp[1].push(state);
+	tmp[1].push(eventNo);
 	
 	if(eventType == "edit" || eventType == "commit"){
 		tmp[1].push([1, 'Just', eventName])
@@ -26,11 +30,14 @@ function controllerWrapper(controllerFunc,taskId,eventType,eventName,eventValue)
 		tmp[1].push([0, 'Nothing']);
 	}	
 
+	tmp[1].push(_iworld);
+	
 	// result is a tuple of mbTUI and state
 	var ys = Sapl.feval(tmp);
 	state = Sapl.heval(ys[3]);
-
-	itwc.global.controller.tasklets[taskId].st = state;	// save it
+	_iworld = Sapl.feval(ys[4]);
+	
+	itwc.global.controller.tasklets[taskletId].st = state;	// save it
 	
 	// toJS to make the result hyperstrict
 	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[state]]));	
@@ -39,28 +46,32 @@ function controllerWrapper(controllerFunc,taskId,eventType,eventName,eventValue)
 		
 	// If mbTUI is Nothing, the task is finished. TODO: is it still true?
 	if(mbTUI[0] == 0){
-		DB.removeTasklet(taskId);
+		//DB.removeTasklet(taskId);
 		itwc.global.controller.sendEditEvent(tasklet.taskId, "finalize", newres);
 	}else{		
 		var tuistr = Sapl.feval(mbTUI[2]);
 
 		console.timeEnd('controllerWrapper timer: eval');
 		
+/*
 		console.time('controllerWrapper timer: serialization');
 		DB.updateTasklet(tasklet, 
 						 null,
 						 tuistr);				
 		console.timeEnd('controllerWrapper timer: serialization');
+*/
 		
 		console.time('controllerWrapper timer: apply TUI');
-		eval("var tui = " + tuistr + ";");		
+		//eval("var tui = " + tuistr + ";");
+		var tui = JSON.parse(tuistr);
+		if (tui.xtype=="itwc_viewport") tui = tui.items[0];
 		applytui(tasklet.tui, tui);
 		console.timeEnd('controllerWrapper timer: apply TUI');
 		
 		// Send result to the client if it is changed only
-		if(!geq(itwc.global.controller.tasklets[taskId].lastResult, newres)){
-			itwc.global.controller.tasklets[taskId].lastResult = newres;
-			itwc.global.controller.sendEditEvent(tasklet.taskId, "result", newres);
+		if(!geq(tasklet.lastResult, newres)){
+			tasklet.lastResult = newres;
+			itwc.global.controller.sendEditEvent(taskletId, "result", newres);
 		}		
 	}
 	
@@ -174,3 +185,102 @@ function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
 		itwc.global.controller.sendEditEvent(tasklet.taskId, "result", newres);
 	}
 }
+
+// ----------------------------------------------------------------
+// JSStore
+
+var _store = {}
+
+function __iTasks_Framework_Client_JSStore_jsStoreValue(namespace,key,value,iworld){
+	var iworld = Sapl.feval(iworld);
+	var namespace = Sapl.feval(namespace);
+	var key = Sapl.feval(key);
+	var value = Sapl.feval(value);
+	
+	if(!_store[namespace]) _store[namespace]={};
+	_store[namespace][key] = value;
+	
+	return iworld;
+}
+
+function __iTasks_Framework_Client_JSStore_jsLoadValue(namespace,key,iworld){
+	var iworld = Sapl.feval(iworld);
+	var namespace = Sapl.feval(namespace);
+	var key = Sapl.feval(key);
+	
+	var ret = __Data_Maybe_Nothing;
+	
+	if(_store[namespace]){
+		var val = _store[namespace][key];
+		if(val){
+			ret = __Data_Maybe_Just(val);
+		}
+	}
+	
+	return ___Tuple2(ret, iworld);
+}
+
+// ----------------------------------------------------------------
+// Time
+
+function ___time(world){
+	world = Sapl.feval(world);
+	var d = new Date();	
+	
+	var t = __System_Time_Timestamp(d.getTime());
+	return ___Tuple2(t, world);	
+}
+
+function ___localTime(world){
+	world = Sapl.feval(world);
+
+	var d = new Date();
+	
+	var start = new Date(d.getFullYear(), 0, 0);
+	var diff = d - start;
+	var oneDay = 1000 * 60 * 60 * 24;
+	var dayofyear = Math.floor(diff / oneDay);	
+	
+	var tm = __System_Time__Tm(
+				d.getSeconds(), 
+				d.getMinutes(), 
+				d.getHours(), 
+				d.getDate(), // day of the month
+				d.getMonth(), 
+				d.getYear(), 
+				d.getDay(), // day of the week
+				dayofyear,
+				d.dst());
+
+	return ___Tuple2(tm, world);
+}
+
+// ----------------------------------------------------------------
+// General function overrides
+
+function __sapldebug_sapldebug(a,b){
+	console.log("DEBUG: "+Sapl.toString(a));
+	return b;
+}
+
+function __dynamic_string_copy_to_string(a){
+	return Sapl.dynamicToString(Sapl.feval(a));
+}
+
+function __dynamic_string_copy_from_string(a){
+	eval("var tmp="+Sapl.feval(a)+";");
+	return ___Tuple2(tmp, a); // TODO: second?
+}
+
+function __iTasks_Framework_Client_RunOnClient_newWorld(){
+	return "WORLD";
+}
+
+function __iTasks_Framework_Client_Override_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
+    return Sapl.feval(__a_2);
+};
+
+function __iTasks_Framework_Client_Override_cast(___vTC_0, ___vTC_1, __a_2) {
+    return Sapl.feval(__a_2);
+};
+

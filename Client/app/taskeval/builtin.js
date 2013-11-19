@@ -1,10 +1,10 @@
 // TO BE SURE
-function ___predefined__Tuple3(__a1, __a2, __a3) {
-	return [0, '_predefined._Tuple3', __a1, __a2, __a3];
+function ___Tuple3(_1, _2, _3) {
+	return [0, '_Tuple3', _1, _2, _3];
 };
 
-function ___predefined__Tuple2(__a1, __a2) {
-	return [0, '_predefined._Tuple2', __a1, __a2];
+function ___Tuple2(_1, _2) {
+	return [0, '_Tuple2', _1, _2];
 };
 
 var __Data_Maybe_Nothing = [0,"Data.Maybe.Nothing"];
@@ -233,7 +233,7 @@ function _array_replace$eval(arr, idx, e){
 function _array_replace(arr, idx, e){
 	var o = arr[idx];
 	arr[idx] = e;
-	return ___predefined__Tuple2(o, arr);
+	return ___Tuple2(o, arr);
 }
 
 function _array_select_lazy(arr, idx){
@@ -245,7 +245,7 @@ function _array_select(arr, idx){
 }
 
 function _array_uselect(arr, idx){
-	return ___predefined__Tuple2(_Sapl.feval(arr)[Sapl.feval(idx)],arr);
+	return ___Tuple2(_Sapl.feval(arr)[Sapl.feval(idx)],arr);
 }
 
 function _array_size(arr){
@@ -253,7 +253,7 @@ function _array_size(arr){
 }
 
 function _array_usize(arr){
-	return ___predefined__Tuple2(_Sapl.feval(arr).length,arr);
+	return ___Tuple2(_Sapl.feval(arr).length,arr);
 }
 
 // ----------------------------------------------------------------
@@ -264,7 +264,7 @@ function _string_size(str){
 }
 
 function _string_usize(str){
-    return ___predefined__Tuple2(Sapl.feval(str).length,str);
+    return ___Tuple2(Sapl.feval(str).length,str);
 }
 
 function _string_select(str, pos){
@@ -272,7 +272,7 @@ function _string_select(str, pos){
 }  
 
 function _string_uselect(str, pos){
-	return ___predefined__Tuple2(Sapl.feval(str).charAt(Sapl.feval(pos)),str);
+	return ___Tuple2(Sapl.feval(str).charAt(Sapl.feval(pos)),str);
 } 
 
 function _string_create1$eval(len){
@@ -300,7 +300,7 @@ function _string_replace$eval(str, idx, c){
 }
 	
 function _string_replace(str, idx, c){
-    return ___predefined__Tuple2(str.charAt(idx), str.replaceAt(idx,c));
+    return ___Tuple2(str.charAt(idx), str.replaceAt(idx,c));
 }
 
 function _string_slice(str, ind1, ind2){
@@ -360,15 +360,11 @@ function _tupsels4v3(a){
 // Other stuff
 
 function _error(str){
-    throw "ERROR: "+str;
+    throw "ERROR: "+Sapl.feval(str);
 }
 
 function _abort(str){
-    throw "ABORT: "+str;
-}
-
-function __dynamic_handler(){
-	return "DYNVAL";
+    throw "ABORT: "+Sapl.feval(str);
 }
 
 function __sapldebug(str, f){
@@ -379,39 +375,3 @@ function __sapldebug(str, f){
     }
 }
 
-// ----------------------------------------------------------------
-// Function overrides
-
-function __sapldebug_sapldebug(a,b){
-	console.log("DEBUG: "+Sapl.toString(a));
-	return b;
-}
-
-function __iTasks_Framework_ClientSupport_ClientOverride_onClient(){
-	return true;
-}
-
-function __iTasks_Framework_ClientSupport_ClientOverride_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
-    return Sapl.feval(__a_2);
-};
-
-function __iTasks_Framework_ClientSupport_ClientOverride_cast(___vTC_0, ___vTC_1, __a_2) {
-    return Sapl.feval(__a_2);
-};
-
-function __dynamic_string_copy_to_string(a){
-	return Sapl.dynamicToString(Sapl.feval(a));
-}
-
-function __dynamic_string_copy_from_string(a){
-	eval("var tmp="+Sapl.feval(a)+";");
-	return ___predefined__Tuple2(tmp, a); // TODO: second?
-}
-
-function __Text_Encodings_Base64_base64Encode(a){
-	return window.btoa(Sapl.feval(a));
-}
-
-function __Text_Encodings_Base64_base64Decode(a){
-	return window.atob(Sapl.feval(a));
-}

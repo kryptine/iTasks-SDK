@@ -25,13 +25,13 @@ function __iTasks_API_Core_Client_Interface_jsDocument() {
 //jsThis :: !*JSWorld -> (!JSVal a,!*JSWorld)
 function __iTasks_API_Core_Client_Interface_jsThis(world) {
 	world = Sapl.feval(world);
-	return ___predefined__Tuple2(___wrapJS(this), world);
+	return ___Tuple2(___wrapJS(this), world);
 }
 
 //jsEmptyObject :: !*JSWorld -> (!JSVal a, !*JSWorld)
 function __iTasks_API_Core_Client_Interface_jsEmptyObject(world) {
 	world = Sapl.feval(world);
-	return ___predefined__Tuple2(___wrapJS({}), world);
+	return ___Tuple2(___wrapJS({}), world);
 }
 
 //jsNewObject :: !String ![JSPtr a] !*JSWorld -> *(!JSPtr b, !*JSWorld)
@@ -42,7 +42,7 @@ function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
 
 	args = [null].concat(args);
     var factoryFunction = Object.prototype.constructor.bind.apply(eval(cons_name), args);
-    return ___predefined__Tuple2(___wrapJS(new factoryFunction()), world);
+    return ___Tuple2(___wrapJS(new factoryFunction()), world);
 }
 
 //jsGetObjectAttr :: !String !(JSVal a) !*JSWorld -> *(!JSVal b, !*JSWorld)
@@ -70,7 +70,7 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
     if(typeof value	== 'undefined') {
         console.warn("jsGetObjectAttr: accessed undefined attribute: "+attr);
     }
-	return ___predefined__Tuple2(___wrapJS(value), world);
+	return ___Tuple2(___wrapJS(value), world);
 }
 
 //jsGetObjectEl :: !Int !(JSVal o) !*JSWorld -> *(!JSVal b, !*JSWorld)
@@ -80,7 +80,7 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectEl(index,obj,world) {
 	index = Sapl.feval(index);
 	obj = ___unwrapJS(Sapl.feval(obj));
 
-	return ___predefined__Tuple2(___wrapJS(obj[index]), world);
+	return ___Tuple2(___wrapJS(obj[index]), world);
 }
 
 //jsSetObjectAttr :: !String !(JSVal v) !(JSVal o) !*JSWorld -> *JSWorld
@@ -143,7 +143,7 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
         console.warn("jsApply: Evaluating function with undefined scope");
     }
 	
-	return ___predefined__Tuple2(___wrapJS(fun.apply(scope,args)), world);
+	return ___Tuple2(___wrapJS(fun.apply(scope,args)), world);
 }
 
 //jsTypeof :: !(JSVal a) -> !String
@@ -160,7 +160,7 @@ function __iTasks_API_Core_Client_Interface_jsAbort(obj) {
 // newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
 function __iTasks_API_Core_Client_Interface_newJSArray(world){
 	world = Sapl.feval(world);
-	return ___predefined__Tuple2(___wrapJS([]), world);
+	return ___Tuple2(___wrapJS([]), world);
 }
 
 // toJSVal :: !a -> JSVal b

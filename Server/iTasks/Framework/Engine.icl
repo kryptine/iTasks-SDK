@@ -189,7 +189,20 @@ initIWorld sdkDir theme world
 	# storeDir					= dataDir </> "store-"+++ build
 	# (exists,world)			= ensureDir "store" storeDir world
 	
-	# ((lst, ftmap, _), world)  = generateLoaderState ["sapl"] [] ["_SystemDynamic","Text.Encodings.Base64"] world
+	# ((lst, ftmap, _), world)  = generateLoaderState ["sapl","sapl-override"] [] 
+										["iTasks.Framework.Client.Override"
+										,"_SystemDynamic"
+										,"dynamic_string"
+										,"graph_to_string_with_descriptors"
+										,"graph_to_sapl_string"
+										,"Text.Encodings.Base64"
+										,"Sapl.LazyLinker"
+										,"Sapl.Target.JS.CodeGeneratorJS"
+										,"System.Time"
+										,"System.Pointer"
+										,"System.File"
+										,"System.Directory"] world
+										
 	# (flavour, world)			= readFlavour sdkDir world
 	
 	= {IWorld
@@ -223,6 +236,7 @@ initIWorld sdkDir theme world
 	  ,shutdown				= False
 	  ,world				= world
       ,resources            = Nothing
+      ,onClient				= False
 	  }
 where
 	initialConfig :: String -> Config

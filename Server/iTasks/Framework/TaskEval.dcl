@@ -14,6 +14,8 @@ import iTasks.Framework.TaskState, iTasks.Framework.Generic
 from Text.JSON import :: JSONNode
 from Data.Error import :: MaybeErrorString, :: MaybeError
 
+createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
+
 /**
 * Create a new session task instance and evaluate its immediately
 *

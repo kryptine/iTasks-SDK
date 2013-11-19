@@ -5,7 +5,7 @@ import Data.Maybe, Data.Void
 import iTasks.Framework.IWorld
 import iTasks.API.Core.Client.Editlet
 
-taskletUpdateLinker :: !val !*IWorld -> *(!String, !*IWorld)
+//taskletUpdateLinker :: !val !*IWorld -> *(!String, !*IWorld)
 
 taskletLinker :: !st 							// state
 	![(!String, !iarg -> Void)] 				// interface functions
