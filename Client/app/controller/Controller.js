@@ -107,9 +107,8 @@ Ext.define('itwc.controller.Controller', {
 		if(this.taskletControllers[instanceNo] != null){
 		
 			controllerWrapper(
-					this.taskletControllers[instanceNo].iid,
 					this.taskletControllers[instanceNo].controllerFunc, 
-					taskId, "edit", editorId, value);
+					taskId, this.nextSendEventNo++, "edit", editorId, value);
 		
 		} else {// Normal case (not a tasklet)
 			var me = this,
@@ -125,9 +124,8 @@ Ext.define('itwc.controller.Controller', {
 		if(this.taskletControllers[instanceNo] != null){
 			
 			controllerWrapper(
-					this.taskletControllers[instanceNo].iid,
 					this.taskletControllers[instanceNo].controllerFunc, 
-					taskId, "commit", actionId);
+					taskId, this.nextSendEventNo++, "commit", actionId);
 					
 		} else { // Normal case (not a tasklet)
 	
@@ -152,6 +150,7 @@ Ext.define('itwc.controller.Controller', {
 	},
 	//Queue a task event for processing
 	queueTaskEvent: function(eventData) {
+		console.log("To the server: " + eventData, eventData);
 		var me = this,
 			eventNo;
 		eventNo = me.nextSendEventNo;
@@ -245,6 +244,9 @@ Ext.define('itwc.controller.Controller', {
 		me.flushTaskEvents();
 	},
 	partialUpdate: function(updates) {
+	
+		console.log("From the server: " + updates, updates);	
+	
 		var me = this,
 			numUpdates = updates.length,
 			update, 

@@ -10,8 +10,6 @@ _predefined._dummyForStrictAlias x = x
 :: _predefined._List = <{_predefined._#Cons!}> a1 !a2 | <{_predefined._#Nil!}>
 :: _predefined._List = <{_predefined._|Cons}> a1 a2 | <{_predefined._|Nil}>
 
-:: _predefined._Tuple1 = _predefined._Tuple1 a1
-
 _predefined.tupsels1v0 :== tupsels1v0
 _predefined.tupsels2v0 :== tupsels2v0
 _predefined.tupsels2v1 :== tupsels2v1

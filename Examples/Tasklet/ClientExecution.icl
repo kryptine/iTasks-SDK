@@ -1,11 +1,15 @@
 module ClientExecution
 
-import iTasks.Framework.ClientSupport.RunOnClient, FastString
+import iTasks.Framework.Client.RunOnClient
+import Text
+import StdMisc
 
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
 costumTypes :== bae +++ "/Interaction with custom types/"
+sharedData	:== bae +++ "/Interaction with shared data/"
 seqTasks	:== bae +++ "/Sequential task composition/"
+parTasks	:== bae +++ "/Parallel task composition/"
 
 basicAPIExamples :: [Workflow]
 basicAPIExamples =
@@ -16,20 +20,35 @@ basicAPIExamples =
 
 	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				(runOnClient enterPerson)
 	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		(runOnClient enterPersons)
+	,workflow (costumTypes +++ "View a person")             "View a person"                     (runOnClient viewPerson)
+	
+	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	(runOnClient viewCurDateTime)
+	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	(runOnClient editStoredPersons)
+	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	(runOnClient viewStoredPersons)
+	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						(runOnClient notes)
+	,workflow (sharedData +++ "Edit note or List of strings") "Edit note or List of strings" 	(runOnClient linesPar)
 	
 	,workflow (seqTasks +++ "Hello User") 	 			 	"Enter your name:" 					(runOnClient hello)
-	,workflow (seqTasks +++ "Positive Number") 	 			"Enter a positive number:" 			(runOnClient positiveNumber)
+	,workflow (seqTasks +++ "Positive Number") 	 			"Enter a positive number:"			(runOnClient positiveNumber)
 	,workflow (seqTasks +++ "Palindrome") 	 			 	"Enter a Palindrome" 				(runOnClient palindrome)
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				(runOnClient calculateSum)
 	,workflow (seqTasks +++ "Sum, with backstep") 	 		"Sum, with backstep" 				(runOnClient calculateSumSteps)
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers 2" 				(runOnClient calculateSum2)
+	,workflow (seqTasks +++ "Add persons 1 by 1") 	 		"Add persons 1 by 1" 				(runOnClient (person1by1 []))
+	
 	,workflow (seqTasks +++ "Coffee Machine") 	 			"Coffee Machine" 					(runOnClient coffeemachine)
-	,workflow (seqTasks +++ "Calculator") 	 				"Calculator" 						(runOnClient calculator)		
+	,workflow (seqTasks +++ "Calculator") 	 				"Calculator" 						(runOnClient calculator)
+	,workflow (seqTasks +++ "Edit shared list of persons") 	"Edit shared list of persons" 		(runOnClient editPersonList)
+	,workflow (seqTasks +++ "Edit shared todo list") 		"Edit shared todo list" 			(runOnClient editToDoList)
+	,workflow (seqTasks +++ "Follow tweets of a user") 		"Follow tweets of a user" 			(runOnClient followTweets)
+
+	,workflow (parTasks +++ "Test")"Test"														(runOnClient test)
+	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						(runOnClient editWithStatistics)
 	]
 
-//* utility functions
+test = viewInformation "hello1" [] "hello world" -||- viewInformation "hello1" [] "hello world"
 
-undef = undef
+//* utility functions
 
 always t = const (Just t)
 
@@ -57,6 +76,9 @@ returnP pred (Value v _)
 	| pred v	= Just (return v)
 				= Nothing
 returnP _ _		= Nothing
+
+getUserName :: User -> String
+getUserName u = toString u
 
 toMaybe :: (TaskValue a) -> Maybe a
 toMaybe (Value v _) =  (Just v)
@@ -92,10 +114,58 @@ viewIntList = viewInformation "View the numbers from 1 to 10" [] [1..10]
 derive class iTask MyPerson, MyGender
 
 enterPerson :: Task MyPerson 
-enterPerson = enterInformation "Enter your personal information" []
+enterPerson = enterInformation "Enter your personal information" [EnterWith (\(n, g) -> {MyPerson | name=n, gender=g, dateOfBirth=Nothing})]
 
 enterPersons :: Task [MyPerson]
 enterPersons = enterInformation "Enter personal information of multiple people" []
+
+viewPerson :: Task MyPerson
+viewPerson = viewInformation "View a person" [ViewWith (\{MyPerson | name,gender} -> (name,gender))] {name = "Peter Achten", gender = Male,dateOfBirth = Nothing}
+
+//* Interaction with shared data
+
+viewCurDateTime :: Task DateTime
+viewCurDateTime = viewSharedInformation "The current date and time is:" [] currentDateTime
+
+personStore :: Shared [MyPerson]
+personStore = sharedStore "Persons" []
+
+editStoredPersons :: Task [MyPerson]
+editStoredPersons = updateSharedInformation "Update the stored list of persons" [] personStore
+
+viewStoredPersons :: Task [MyPerson] 
+viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
+
+notes :: Task Note
+notes 
+	= withShared (Note "")
+		(\note -> 	viewSharedInformation "view on note" [] note
+					-||-
+					updateSharedInformation "edit shared note 1" [] note
+					-||-
+					updateSharedInformation "edit shared note 2" [] note
+		)
+
+linesPar :: Task (Maybe String)
+linesPar
+	=	withShared "" doEditor
+where
+	doEditor state
+		= 			noteE state 
+					-||- 
+					lineE state
+			>>* 	[OnAction ActionQuit (Just o return o toMaybe)]
+
+	noteE state 
+		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
+			>>*		[ OnAction (Action "Trim" []) (\txt -> Just (update trim state >>| noteE state))	
+					]
+
+	lineE state
+		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
+
+	noteEditor = UpdateWith (\txt -> Note txt) (\_ (Note txt) -> txt)
+	listEditor = UpdateWith (split "\n") (\_ l -> join "\n" l)
 
 //* Sequential task composition
 
@@ -120,6 +190,96 @@ where
 	palindrome s = lc == reverse lc
 	where lc :: [Char]
 		  lc = fromString s
+
+person1by1 :: [MyPerson] -> Task [MyPerson]
+person1by1 persons
+	=       enterInformation "Add a person" [] 	//-|| viewInformation "List so far.." [] persons
+		>>*	[ OnAction  (Action "Add" []) 		(hasValue (\v -> person1by1  [v : persons]))
+		    , OnAction  (Action "Finish" [])    (always (return persons))
+		    , OnAction  ActionCancel 			(always (return []))
+	        ]
+
+// BUG? not always all record fields are shown in a choice...
+// sometimes I get several continues... does not looks nice
+
+editPersonList :: Task Void
+editPersonList = editSharedList personStore
+
+editSharedList :: (Shared [a]) -> Task Void | iTask a
+editSharedList store
+	=			enterChoiceWithShared "Choose an item to edit" [ChooseWith (ChooseFromGrid snd)] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
+		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
+				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
+				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
+				, OnAction (Action "Clear" [])    (always (showAndDo append (-1,undef)))
+				, OnAction (Action "Quit" [])     (always (return Void))
+				]
+where
+	showAndDo fun ip
+		=		viewSharedInformation "In store" [] store
+ 		 		||- 
+ 		 		fun ip
+ 		 	>>* [ OnValue 					    (hasValue	(\_ -> editSharedList store))
+ 		 		, OnAction (Action "Cancel" []) (always	(editSharedList store))
+ 		 		]
+
+	append (i,_)
+		=			enterInformation "Add new item" []
+		>>=	\n ->	update (\ps -> let (begin,end) = splitAt (i+1) ps in (begin ++ [n] ++ end)) store
+	delete (i,_)
+		=			update (\ps -> removeAt i ps) store
+	edit (i,p)
+		=			updateInformation "Edit item" [] p 
+		 >>= \p -> 	update (\ps ->  updateAt i p ps) store
+
+//
+
+:: ToDo =	{ name     :: String
+			, deadline :: Maybe Date
+			, remark   :: Maybe Note
+			, done     :: Bool
+			}
+derive class iTask ToDo
+
+toDoList :: Shared [ToDo]
+toDoList = sharedStore "My To Do List" []
+
+editToDoList = editSharedList toDoList
+
+//* tweets
+
+:: Tweet  :== (String,String)
+
+twitterId :: String -> Shared [Tweet]
+twitterId name  = sharedStore ("Twitter with " +++ name) []
+
+followTweets 
+	= 					get currentUser
+		>>= \me ->		enterChoiceWithShared "Whoms tweets you want to see?" [] users
+		>>= \user ->	let name = getUserName user in joinTweets me user "type in your tweet" (twitterId name)
+where
+	joinTweets  :: User User String (Shared [Tweet]) -> Task Void
+	joinTweets me you message tweetsStore
+		=			(viewSharedInformation ("You are following " +++ tweeter) [] tweetsStore)
+					||-
+					(you @: tweeting)
+	where
+		tweeter = getUserName you
+
+		tweeting 
+			=			updateInformation "Add a tweet" [] message
+						-||
+						viewSharedInformation ("Tweets of " +++ tweeter) [] tweetsStore
+				>>*		[ OnAction (Action "Quit" [])    (always (return Void))
+						, OnAction (Action "Commit" [])  (hasValue commit )
+						]
+
+		commit :: String -> Task Void
+		commit message
+			=				update (\tweets -> [(tweeter,message)] ++ tweets) tweetsStore 
+				>>| 		tweeting 
+
+//
 
 calculateSum :: Task Int
 calculateSum
@@ -169,9 +329,9 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith ChooseFromRadioButtons id] coins
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith (ChooseFromRadioButtons id)] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
-					, OnAction (Action "Insert") 	(hasValue handleMoney)
+					, OnAction (Action "Insert" []) (hasValue handleMoney)
 					]
 where				
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
@@ -196,20 +356,20 @@ calculator = calc initSt
 where
 	calc st
 	= 		viewInformation "Calculator" [ViewWith Display] st
-		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
-			, OnAction (Action "8") (always (updateDigit 8 st))
-			, OnAction (Action "9") (always (updateDigit 9 st))
-			, OnAction (Action "4") (always (updateDigit 4 st)) 
-			, OnAction (Action "5") (always (updateDigit 5 st))
-			, OnAction (Action "6") (always (updateDigit 6 st))
-			, OnAction (Action "1") (always (updateDigit 1 st)) 
-			, OnAction (Action "2") (always (updateDigit 2 st))
-			, OnAction (Action "3") (always (updateDigit 3 st)) 
-			, OnAction (Action "0") (always (updateDigit 0 st))
-			, OnAction (Action "+") (always (apply (+) st))
-			, OnAction (Action "-") (always (apply (-) st))
-			, OnAction (Action "*") (always (apply (*) st))
-			, OnAction (Action "/") (always (apply (/) st))
+		>>* [ OnAction (Action "7" []) (always (updateDigit 7 st)) 
+			, OnAction (Action "8" []) (always (updateDigit 8 st))
+			, OnAction (Action "9" []) (always (updateDigit 9 st))
+			, OnAction (Action "4" []) (always (updateDigit 4 st)) 
+			, OnAction (Action "5" []) (always (updateDigit 5 st))
+			, OnAction (Action "6" []) (always (updateDigit 6 st))
+			, OnAction (Action "1" []) (always (updateDigit 1 st)) 
+			, OnAction (Action "2" []) (always (updateDigit 2 st))
+			, OnAction (Action "3" []) (always (updateDigit 3 st)) 
+			, OnAction (Action "0" []) (always (updateDigit 0 st))
+			, OnAction (Action "+" []) (always (apply (+) st))
+			, OnAction (Action "-" []) (always (apply (-) st))
+			, OnAction (Action "*" []) (always (apply (*) st))
+			, OnAction (Action "/" []) (always (apply (/) st))
 			]
 	where
 		updateDigit n st = calc {st & n = st.n*10 + n}
@@ -217,6 +377,77 @@ where
 		apply op st = calc {display = op st.display st.n, n = 0}
 
 	initSt = { display = 0, n = 0}
+
+//* Parallel task composition
+
+derive class iTask Statistics, Replace
+
+:: Statistics = {lineCount :: Int
+				,wordCount :: Int
+				}
+:: Replace	 =	{ search  :: String
+				, replaceBy :: String
+				}
+
+initReplace =	{ search = ""
+				, replaceBy = "" 
+				}
+stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
+where
+	lengthLines ""   = 0
+	lengthLines text = length (split "\n" text)
+
+	lengthWords "" 	 = 0
+	lengthWords text = length (split " " (replaceSubString "\n" " " text))
+
+editWithStatistics :: Task Void
+editWithStatistics 
+ =						enterInformation "Give name of text file you want to edit..." []
+	>>= \fileName -> 	let file = sharedStore fileName ""
+						in	parallel Void 	[ (Embedded, showStatistics file )
+									  		, (Embedded, editFile fileName file)
+									  		, (Embedded, replace initReplace file)
+									  		]
+							>>*	 			[ OnAction (ActionQuit) (always (return Void))
+											]
+											
+editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
+editFile fileName sharedFile _
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile
+ 	@ 					const Void
+where
+	toV text 			= Note text
+	fromV _ (Note text) = text
+
+showStatistics sharedFile _  = noStat <<@ InWindow
+where
+	noStat :: Task Void
+	noStat	=			viewInformation Void [] Void
+ 				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
+ 						]
+	showStat :: Task Void 
+	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
+ 				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
+ 						]
+
+
+replace cmnd sharedFile _ = noReplace cmnd <<@ InWindow
+where
+	noReplace :: Replace -> Task Void
+	noReplace cmnd 
+		=		viewInformation Void [] Void
+ 			>>*	[ OnAction (Action "/File/Replace" []) (always (showReplace cmnd))
+				]
+
+	showReplace :: Replace -> Task Void 
+	showReplace cmnd
+		=		updateInformation "Replace:" [] cmnd 
+ 			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
+ 				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
+ 				]
+ 			
+ 	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
+ 						>>| showReplace cmnd
 
 Start :: *World -> *World
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist basicAPIExamples)) world

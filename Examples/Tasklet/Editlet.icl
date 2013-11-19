@@ -5,6 +5,7 @@ import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.CodeMirror
 import iTasks.API.Extensions.Tonic.Toniclet
+import iTasks.API.Extensions.GIS.Leaflet
 
 import StdDebug
 
@@ -263,7 +264,10 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 
 //test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 
+test7 :: Task LeafletMap
+test7 = enterInformation "Test" [] 
+
 Start :: *World -> *World
-Start world = startEngine test5 world
+Start world = startEngine test7 world
 
 
