@@ -509,7 +509,6 @@ instance toUserConstraint UserId
 :: Config =
 	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
-    , theme             :: !String  //* User interface theme name
 	}
 
 //* External (operating system) process status

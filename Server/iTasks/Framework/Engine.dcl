@@ -31,11 +31,14 @@ URL_PREFIX				:== ""
 	
 //* The format in which a task is presented.
 :: ServiceFormat
-	= WebApp			
+	= WebApp [WebAppOption]
 	| JSONGui
 	| JSONGuiEventStream
 	| JSONService
 	| JSONPlain
+
+:: WebAppOption
+    = Theme String
 
 /**
 * Starts the task engine with a list of published task definitions.

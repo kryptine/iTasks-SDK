@@ -55,8 +55,8 @@ viewTask
 		
 externalTaskInterface :: [PublishedTask]
 externalTaskInterface
-	= [publish "/external/tasklist" WebApp (\_ -> viewTaskList)
-	  ,publish "/external/task" WebApp (\_ -> viewTask)
+	= [publish "/external/tasklist" (WebApp []) (\_ -> viewTaskList)
+	  ,publish "/external/task" (WebApp []) (\_ -> viewTask)
 	  ]
 
 // MANAGEMENT TASKS

@@ -115,7 +115,7 @@ createClientIWorld currentInstance
 		= {IWorld
 		  |application			= "application"
 		  ,build				= "build"
-		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer", theme = locundef "config"}
+		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
 		  ,systemDirectories	= {appDirectory  = locundef "appDirectory"
 		  						  ,dataDirectory = locundef "dataDirectory"
 		  						  ,sdkDirectory  = locundef "sdkDirectory"

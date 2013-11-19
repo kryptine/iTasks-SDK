@@ -11,6 +11,8 @@ import iTasks.API.Core.SystemTypes
 IF_CLIENT_DEV yes no	:== yes
 IF_USE_EXTJS yes no     :== no
 
+DEFAULT_THEME :== "gray"
+
 //The representation of the JSON service
 :: ServiceResponse :== [ServiceResponsePart]
 :: ServiceResponsePart =
@@ -55,8 +57,11 @@ where
 					= (notFoundResponse req,Nothing,iworld)
 		= case format req of
 			//Serve start page
-			WebApp	
-				= (appStartResponse config.theme application, Nothing, iworld)
+			(WebApp	opts)
+                # theme = case opts of
+                    [Theme theme:_] = theme
+                    _               = DEFAULT_THEME
+				= (appStartResponse theme application, Nothing, iworld)
 			//Serve the user interface representation once, or if possible the diff between the current task GUI and a previous version
 			JSONGui
 				//Load or create session context and edit / evaluate
@@ -161,7 +166,7 @@ where
 
 	//Util functions
 	format req = case paramValue "format" req of
-		"webapp"			= WebApp
+		"webapp"			= WebApp []
 		"json-gui"			= JSONGui
 		"json-gui-events"	= JSONGuiEventStream
 		"json-service"		= JSONService

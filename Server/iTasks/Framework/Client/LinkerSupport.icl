@@ -185,8 +185,6 @@ editletLinker eventHandlers initDiff prevDiff defValFunc updateUIFunc genDiffFun
 	// create per sesssion "linker state"
 	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
 
-	# world = trace_n (toString (maybe 0 (\s -> length (toList (s.ps_constructors))) mbparserstate)) world
-
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
 	# (linkerstate, lib, sapl_PD, world) = linkByExpr linkerstate lib (graph_to_sapl_string prevDiff) world
