@@ -198,6 +198,7 @@ where
 			Nothing -> Nothing
 
 // Parallel composition
+import StdDebug
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
 parallel desc initTasks = Task eval
 where
@@ -274,7 +275,9 @@ where
 		| evalNeeded
 			//Evaluate the branch
 			= case 'Data.Map'.get entryId localTasks of
-				Just (Task evala :: Task a^)
+                Just dtask
+                    # (Task evala) = unwrapTask dtask
+				//Just (Task evala :: Task a^)
 					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=False,noUI=repOpts.noUI} tree iworld
 					= case result of
 						ExceptionResult _ _

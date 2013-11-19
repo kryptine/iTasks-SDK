@@ -283,4 +283,7 @@ function __iTasks_Framework_Client_Override_cast_to_TaskValue(___vTC_0, ___vTC_1
 function __iTasks_Framework_Client_Override_cast(___vTC_0, ___vTC_1, __a_2) {
     return Sapl.feval(__a_2);
 };
-
+function __iTasks_Framework_Client_Override_unwrapTask(__vTC_0, __a) {
+    var d = Sapl.feval(__a);
+    return Sapl.feval(d[2]);
+};
