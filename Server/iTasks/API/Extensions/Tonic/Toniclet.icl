@@ -31,16 +31,14 @@ derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
   GListComprehension, Graph, Node
 
+//jointDotJS :== "/joint/dist/joint.all.js"
+//jointDotCSS :== "/joint/dist/joint.all.css"
+//tonicShapes :== "/joint/plugins/joint.shapes.tonic.js"
 
+mkSVGId :: String -> String
+mkSVGId x = "svg" +++ x
 
-jointDotJS :== "/joint/dist/joint.all.js"
-jointDotCSS :== "/joint/dist/joint.all.css"
-tonicShapes :== "/joint/plugins/joint.shapes.tonic.js"
-
-mkPaperId :: String -> String
-mkPaperId x = "paper" +++ x
-
-import StdDebug
+import StdDebug, StdMisc
 
 toniclet :: GinGraph -> Editlet GinGraph GinGraph
 toniclet g
@@ -55,43 +53,51 @@ toniclet g
             }
 
   uiDef cid
-    = { html          = DivTag [IdAttr (mkPaperId cid), ClassAttr (mkPaperId cid)] []
+    = { html          = DivTag [IdAttr (mkSVGId cid), ClassAttr (mkSVGId cid)] []
       , eventHandlers = []
       , width         = ExactSize 1024
       , height        = ExactSize 768
       }
 
-  loadJointJSLib pid world
-    # world = addJSFromUrl jointDotJS (Just (createEditletEventHandler loadPlugins pid)) world
-    = addCSSFromUrl jointDotCSS world
-
-  loadPlugins pid evt val world
-    # world = addJSFromUrl tonicShapes (Just (createEditletEventHandler onLibLoaded pid)) world
-    = (val, world)
+  loadLibs pid world
+    # world = addCSSFromUrl "/Toniclet.css" world
+    # world = addJSFromUrl "/d3.v3.min.js" Nothing world
+    # world = addJSFromUrl "/dagre.js" Nothing world
+    # world = addJSFromUrl "/dagre-d3.js" (Just (createEditletEventHandler onLibLoaded pid)) world
+    = world
 
   onLibLoaded pid evt val world
-    # (jgrph, world) = jsNewObject "joint.dia.Graph" [] world
-    # (div, world)   = callFunction "$" [toJSArg ("#" +++ mkPaperId pid)] world
-    # (paper, world) = jsNewObject "joint.dia.Paper"
-                         [toJSArg {PaperArgs
-                                  | el       = div
-                                  , width    = 1024
-                                  , height   = 768
-                                  , gridSize = 1
-                                  , model    = jgrph
-                                  }] world
-    # world          = drawTonicGraph val jgrph world
+    # (graph, world)    = jsNewObject "dagreD3.Digraph" [] world
+    # (renderer, world) = jsNewObject "dagreD3.Renderer" [] world
+    # renderNodeFun     = createEditletEventHandler drawNodeCb pid
+    # renderEdgeLblFun  = createEditletEventHandler drawEdgeLabelCb pid
+    # (_, world)        = callObjectMethod "drawNode" [toJSArg renderNodeFun] renderer world
+    # (_, world)        = callObjectMethod "drawEdgeLabel" [toJSArg renderEdgeLblFun] renderer world
+    # (d3, world)       = findObject "d3" world
+    # (g, world)        = callObjectMethod "select" [toJSArg ("svg g#" +++ mkSVGId pid)] d3 world
+    # (_, world)        = callObjectMethod "run" [toJSArg graph, toJSArg g] renderer world
+    //# world          = drawTonicGraph val jgrph world
     = (val, world)
 
+  drawNodeCb pid args gg world
+    # world = jsTrace (toJSArg "drawNodeCb") world
+    # world = jsTrace (toJSArg args) world
+    = (gg, world)
+
+  drawEdgeLabelCb pid args gg world
+    # world = jsTrace (toJSArg "drawEdgeLabelCb") world
+    # world = jsTrace (toJSArg args) world
+    = (gg, world)
+
   onUpdate pid _ val world
-    # (joint, world) = findObject "joint" world
+    # (joint, world) = findObject "dagreD3" world
     | jsIsUndefined joint
-        # world = loadJointJSLib pid world
+        # world = loadLibs pid world
         = (val, world)
     | otherwise
         = onLibLoaded pid Nothing val world
 
-  genDiff _ _ = Just g
+  genDiff _ _ = Nothing
   appDiff g _ = g
 
 drawTonicGraph g jgrph world
@@ -236,6 +242,38 @@ drawTonicGraph g jgrph world
     # world = jsTrace (toJSVal ("Adding edge from " +++ toString fromNode +++ " to " +++ toString toNode)) world
     # world = mkBind fromNode toNode edge_pattern jgrph world
     = (jgrph, world)
+
+
+addNode :: (JSVal DGraph) Int GraphMeta *JSWorld -> *JSWorld
+addNode graph ident attrs world = snd (callObjectMethod "addNode" [toJSArg ident, toJSArg attrs] graph world)
+
+addEdge :: (JSVal DGraph) (JSVal f) (JSVal t) GraphMeta *JSWorld -> *JSWorld
+addEdge graph fromNode toNode attrs world = snd (callObjectMethod "addEdge" [toJSArg jsNull, toJSArg fromNode, toJSArg toNode, toJSArg attrs] graph world)
+
+:: DGraph = DGraph
+:: DNode = DNode
+
+:: GraphMeta =
+  { label :: String
+  }
+
+drawNode :: (JSVal DGraph) (JSVal Int) (JSVal DNode) *JSWorld -> *JSWorld
+drawNode graph u root world
+  # (g, world)       = callObjectMethod "append" [toJSArg "g"] root world
+  # (lbl, world)     = callObjectMethod "attr" [toJSArg "class", toJSArg "label"] g world
+  # (node, world)    = callObjectMethod "node" [toJSArg u] graph world
+  # (nodeLbl, world) = jsGetObjectAttr "label" node world
+  # (_, world)       = callFunction "addLabel" [toJSArg nodeLbl, toJSArg lbl, toJSArg 0, toJSArg 0] world
+  = world
+
+drawEdgeLabel :: (JSVal DGraph) (JSVal Int) (JSVal DNode) *JSWorld -> *JSWorld
+drawEdgeLabel graph e root world
+  # (g, world)       = callObjectMethod "append" [toJSArg "g"] root world
+  # (lbl, world)     = callObjectMethod "attr" [toJSArg "class", toJSArg "edge-label"] g world
+  # (node, world)    = callObjectMethod "edge" [toJSArg e] graph world
+  # (nodeLbl, world) = jsGetObjectAttr "label" node world
+  # (_, world)       = callFunction "addLabel" [toJSArg nodeLbl, toJSArg lbl, toJSArg 0, toJSArg 0] world
+  = world
 
 addCell :: (JSVal o) (JSVal g) *JSWorld -> *JSWorld
 addCell cell jgrph world = snd (callObjectMethod "addCell" [toJSArg cell] jgrph world)
