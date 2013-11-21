@@ -1436,7 +1436,7 @@ itwc.controller.prototype = {
                         me.addComponent(cmp,op.arguments[0],op.arguments[1]);
                         //Call initializion function that needs to be applied after the full component and
                         //its children are available in the DOM
-                        cmp.afterAdd();
+                        cmp.items[op.arguments[0]].afterAdd();
                         break;
                     case 'remove':
                         me.removeComponent(cmp,op.arguments[0]);
@@ -1444,10 +1444,11 @@ itwc.controller.prototype = {
                     case 'replace':
                         me.removeComponent(cmp,op.arguments[0]);
                         me.addComponent(cmp,op.arguments[0],op.arguments[1]);
-                        cmp.afterAdd();
+                        cmp.items[op.arguments[0]].afterAdd();
                         break;
                     case 'addWindow':
                         me.addWindow(cmp,op.arguments[0],op.arguments[1]);
+                        itwc.WINDOWS[op.arguments[0]].afterAdd();
                         break;
                     case 'removeWindow':
                         me.removeWindow(op.arguments[0]);
