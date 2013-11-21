@@ -30,11 +30,11 @@ createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFu
 * @param eventName
 * @param eventValue
 */
-:: ControllerFunc st :== TaskId st Int (Maybe String) (Maybe JSONString) *IWorld -> *(Maybe UIDef, st, *IWorld)
+:: ControllerFunc st :== TaskId st (Maybe Int) (Maybe String) (Maybe JSONString) *IWorld -> *(Maybe [UIUpdate], st, *IWorld)
 
 :: TaskletTUI st = 
-	{ tui				:: !Maybe UIDef
-	, eventHandler		:: !Maybe (InstanceNo, ControllerFunc st)
+	{ instanceNo 		:: !InstanceNo, 
+	  controllerFunc 	:: !ControllerFunc st
 	}
 
 :: Tasklet st val =

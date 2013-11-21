@@ -70,7 +70,7 @@ basicAPIExamples =
 	]
 
 Start :: *World -> *World
-Start world = startEngine [publish "/" WebApp (\_-> browseExamples basicAPIExamples),publish "/persons" WebApp (const enterPersons)] world
+Start world = startEngine [publish "/" (WebApp []) (\_-> browseExamples basicAPIExamples),publish "/persons" (WebApp []) (const enterPersons)] world
 where
 	browseExamples examples = forever (
 		 	(viewTitle "iTasks Example Collection"

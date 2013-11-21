@@ -12,12 +12,12 @@ from Data.Set import :: Set, newSet
 from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSEvent
 from iTasks.API.Core.Client.Component import :: ComponentEventHandlerFunc, :: ComponentEvent
 from iTasks.API.Core.Client.Editlet import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
-from iTasks.Framework.Client.RunOnClient import createClientIWorld
+
+from iTasks.Framework.Client.RunOnClient import createClientIWorld, getUIUpdates
+from iTasks.Framework.Engine import background
 
 import iTasks.API.Core.SystemTypes, iTasks.Framework.IWorld
 import Sapl.Target.JS.CodeGeneratorJS, Sapl.Linker.LazyLinker, Sapl.SaplParser
-
-import StdDebug
 
 //---------------------------------------------------------------------------------------
 
@@ -61,8 +61,6 @@ taskletLinker :: !st 							// state
 	![(!String, !String, *JSWorld -> Void)]		// event handlers
 	!rs											// result function
 	!(Maybe cf)									// controller function
-	!(Maybe uf)									// update function
-	!(Maybe uv)									// update value
 	!*IWorld
 	->
 	*(!String									// JS code of the state
@@ -71,10 +69,9 @@ taskletLinker :: !st 							// state
 	 ,![(!String,!String)]						// JS code of the interface functions
 	 ,!String									// JS code of the result function
 	 ,!Maybe String								// JS code of the controller function
-	 ,!Maybe String								// JS code of the update function
 	 ,!*IWorld)
 
-taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUpdateFunc mbUpdateVal 
+taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 						iworld=:{world,currentInstance,jsCompilerState}
 						
 	// unpack "compiler state"
@@ -88,18 +85,14 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 	# (linkerstate, lib, sapl_ST, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string state) world
 	// link functions indicated by result func
 	# (linkerstate, lib, sapl_RF, world) = linkByExpr linkerstate lib (graph_to_sapl_string resultFunc) world
-	// link functions indicated by update func (if given)
-	# (linkerstate, lib, mb_sapl_UF, world) = mbLinkByExpr linkerstate lib mbUpdateFunc world
-	// only link (the source code of the expression is not needed) by update value (if given)
-	// this is only a temporary solution. for some types it won't work e.g. when the argument
-	// of the data constructor can be arbitrary function
-	# (linkerstate, lib, _, world) = mbLinkByExpr linkerstate lib mbUpdateVal world
 	// link functions indicated by controller func (if given)
 	# (linkerstate, lib, mb_sapl_CF, world) = mbLinkByExpr linkerstate lib mbControllerFunc world
 	// if the controller function is given, link for the client side IWorld creation function
 	# (linkerstate, lib, world) 
 			= case mbControllerFunc of
 					Just _  # (linkerstate, lib, _, world) = linkByExpr linkerstate lib (graph_to_sapl_string createClientIWorld) world
+							# (linkerstate, lib, _, world) = linkByExpr linkerstate lib (graph_to_sapl_string getUIUpdates) world
+							# (linkerstate, lib, _, world) = linkByExpr linkerstate lib (graph_to_sapl_string background) world
 							= (linkerstate, lib, world)
 							= (linkerstate, lib, world)
 	
@@ -142,7 +135,6 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 							let (ijs,js_lib`,parserstate`) = handlerr (exprGenerateJS flavour False saplfun (Just parserstate) js_lib)
 							 in ([(fn,ijs):os],js_lib`,parserstate`)) ([],js_lib,parserstate) sapl_interfaceFuns
 		
-	# (mb_js_UF, js_lib, mbparserstate) = mbExprGenerateJS flavour False (Just parserstate) js_lib mb_sapl_UF
 	# (mb_js_CF, js_lib, mbparserstate) = mbExprGenerateJS flavour False (Just parserstate) js_lib mb_sapl_CF
 	
 /* For debugging:
@@ -152,7 +144,7 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc mbUp
 	# (_, world) = writeFile "debug.js" (toString js_lib) world
 */
 
-	= (js_ST, toString js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, mb_js_UF, 
+	= (js_ST, toString js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 editletLinker :: 

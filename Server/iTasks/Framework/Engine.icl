@@ -106,34 +106,6 @@ where
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = (Just 100, iworld)					//Run at least 10 times a second
 
-	background :: !*IWorld -> (!Bool,!*IWorld)
-	background iworld=:{IWorld|shutdown=True}
-		= (True,iworld)
-	background iworld
-		# iworld			= updateCurrentDateTime iworld
-		# (mbWork, iworld)	= dequeueWork iworld
-		# iworld = case mbWork of
-			Empty
-				= iworld
-			Work work
-				# iworld = case work of
-					(Evaluate instanceNo)		= refreshTaskInstance instanceNo iworld
-					(EvaluateUrgent instanceNo)	= refreshTaskInstance instanceNo iworld
-					(TriggerSDSChange sdsId)	= addOutdatedOnShareChange sdsId (const True) iworld
-					(CheckSDS sdsId hash checkF)
-						# (checkRes,iworld)		= checkF iworld
-						= case checkRes of
-							Changed				= addOutdatedOnShareChange sdsId (const True) iworld
-							(CheckAgain time)	= queueWork (CheckSDS sdsId hash checkF, Just time) iworld
-				= iworld // give http server the chance to handle request
-			WorkAt time
-				= iworld
-				/*
-				# (curTime, iworld) = currentTimestamp iworld
-				= (Just (toTimeout curTime time), iworld)
-				*/
-		= (False,iworld)
-
 	toTimeout (Timestamp curTime) (Timestamp nextRefresh)
 		# delta = nextRefresh - curTime
 		| delta < 0					= 0
@@ -141,6 +113,34 @@ where
 		| otherwise					= delta*1000
 	
 MAX_TIMEOUT :== 86400000 // one day
+
+background :: !*IWorld -> (!Bool,!*IWorld)
+background iworld=:{IWorld|shutdown=True}
+	= (True,iworld)
+background iworld
+	# iworld			= updateCurrentDateTime iworld
+	# (mbWork, iworld)	= dequeueWork iworld
+	# iworld = case mbWork of
+		Empty
+			= iworld
+		Work work
+			# iworld = case work of
+				(Evaluate instanceNo)		= refreshTaskInstance instanceNo iworld
+				(EvaluateUrgent instanceNo)	= refreshTaskInstance instanceNo iworld
+				(TriggerSDSChange sdsId)	= addOutdatedOnShareChange sdsId (const True) iworld
+				(CheckSDS sdsId hash checkF)
+					# (checkRes,iworld)		= checkF iworld
+					= case checkRes of
+						Changed				= addOutdatedOnShareChange sdsId (const True) iworld
+						(CheckAgain time)	= queueWork (CheckSDS sdsId hash checkF, Just time) iworld
+			= iworld // give http server the chance to handle request
+		WorkAt time
+			= iworld
+			/*
+			# (curTime, iworld) = currentTimestamp iworld
+			= (Just (toTimeout curTime time), iworld)
+			*/
+	= (False,iworld)
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool

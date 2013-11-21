@@ -105,12 +105,15 @@ where
 
 
 addUIMessage :: !SessionId !UIMessage !*IWorld -> *IWorld
-addUIMessage sessionId message iworld=:{uiMessages}
-	= {iworld & uiMessages = put sessionId (maybe [message] (\m -> m ++ [message]) (get sessionId uiMessages)) uiMessages}
+addUIMessage sessionId message iworld=:{uiMessages, sessions}
+	# instanceId = fromJust (get sessionId sessions)
+	= {iworld & uiMessages = put instanceId (maybe [message] (\m -> m ++ [message]) (get instanceId uiMessages)) uiMessages}
 
 getUIMessages :: !SessionId !*IWorld -> (![UIMessage],!*IWorld)
-getUIMessages sessionId iworld=:{uiMessages}
-	= (fromMaybe [] (get sessionId uiMessages),{iworld & uiMessages = del sessionId uiMessages})
+getUIMessages sessionId iworld=:{uiMessages, sessions}
+	= case get sessionId sessions of
+		Just instanceId = (fromMaybe [] (get instanceId uiMessages),{iworld & uiMessages = del instanceId uiMessages})
+		Nothing			= ([], iworld)
 
 //Wrapper instance for file access
 instance FileSystem IWorld

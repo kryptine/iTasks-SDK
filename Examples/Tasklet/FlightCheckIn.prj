@@ -1103,6 +1103,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	iTasks.Framework.Client.JSStore
+		Dir:	{Application}\iTasks-SDK\Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	iTasks.Framework.Client.LinkerSupport
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
@@ -1118,6 +1132,20 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Client.Override
+		Dir:	{Application}\iTasks-SDK\Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.Framework.Client.RunOnClient
 		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -2104,7 +2132,35 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	Sapl.SaplStruct
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	Sapl.SaplTokenizer
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Sapl.Target.Flavour
 		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
@@ -2132,7 +2188,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Sapl.Target.JS.Flavour
+		Name:	Sapl.Transform.Let
 		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False

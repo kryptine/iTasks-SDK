@@ -48,7 +48,7 @@ from Sapl.SaplParser import :: ParserState
                     , editletDiffs          :: !UIEditletDiffs
 
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
-					, uiMessages            :: !Map SessionId [UIMessage]				// Messages for communicating with the user interfaces of sessions
+					, uiMessages            :: !Map InstanceNo [UIMessage]				// Messages for communicating with the user interfaces of sessions
 
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					, world					:: !*World									// The outside world

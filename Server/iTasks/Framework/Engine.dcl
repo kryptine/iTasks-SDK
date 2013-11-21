@@ -49,6 +49,9 @@ URL_PREFIX				:== ""
 */
 startEngine :: a !*World -> *World | Publishable a
 
+// Backround process. TODO
+background :: !*IWorld -> (!Bool,!*IWorld)
+
 /**
 * Wraps a task together with a url to make it publishable by the engine
 */

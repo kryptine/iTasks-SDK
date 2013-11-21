@@ -135,8 +135,8 @@ where
 	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]
 								    [map (\s -> genRowUI (Seat r s)) rowLayout \\ r <- [1 .. f.rows]])
 			
-	gui = {   width  		= ExactSize 300
-			, height 		= ExactSize 300
+	gui = {   width  		= ExactSize 200
+			, height 		= ExactSize 200
 			, html   		= htmlui
 			, eventHandlers = concatMap attachHandlers f.freeSeats
 			}

@@ -12,8 +12,6 @@ taskletLinker :: !st 							// state
 	![(!String, !String, *JSWorld -> Void)]		// event handlers
 	!rs											// result function
 	!(Maybe cf)									// controller function
-	!(Maybe uf)									// update function
-	!(Maybe uv)									// update value
 	!*IWorld
 	->
 	*(!String									// JS code of the state
@@ -22,7 +20,6 @@ taskletLinker :: !st 							// state
 	 ,![(!String,!String)]						// JS code of the interface functions
 	 ,!String									// JS code of the result function
 	 ,!Maybe String								// JS code of the controller function
-	 ,!Maybe String								// JS code of the update function
 	 ,!*IWorld)
 
 editletLinker :: 

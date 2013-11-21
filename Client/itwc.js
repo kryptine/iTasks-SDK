@@ -630,13 +630,14 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             el = me.domEl, tmp;
 
         me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
-		itwc.global.controller.editlets[me.htmlId] = me;
+		itwc.controller.editlets[me.htmlId] = me;
 
         el.innerHTML = me.definition.html;
 
         //Prepare javascript
         if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
             evalScript(me.definition.script);
+			delete me.definition.script;
         }
         if(me.definition.defVal != null) {
             eval("tmp = " + me.definition.defVal + ";");
@@ -758,6 +759,95 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 	jsFromField: function (fields,sapl) {
 		fields[sapl[2]] = this.jsFromSaplJSONNode(sapl[3]);
 		return fields;
+	}
+});
+itwc.component.itwc_tasklet = itwc.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl, tmp;
+
+		if(me.definition.html)
+			el.innerHTML = me.definition.html;
+			
+        // Prepare javascript
+        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
+            evalScript(me.definition.script);
+			delete me.definition.script;
+		}
+		
+		// Prepare state
+		eval("var tmp = eval(" + me.definition.st + ");");
+		me.definition.st = Sapl.feval(tmp);
+		itwc.controller.tasklets[me.definition.taskId] = me;
+		
+		if(me.definition.resultFunc != null){
+			eval("tmp = " + me.definition.resultFunc + ";");
+			me.definition.resultFunc = tmp;
+			me.definition.lastResult = Sapl.toJS(Sapl.feval([me.definition.resultFunc,[me.definition.st]]));
+		}
+		
+		if(me.definition.controllerFunc != null){
+		
+			// Prepare IWorld
+			if(!_iworld){
+				_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [me.definition.instanceNo]);
+			}				
+		
+			console.time('controllerWrapper timer: eval');
+				
+			eval("tmp = " + me.definition.controllerFunc + ";");
+			me.definition.controllerFunc = tmp;
+			itwc.controller.taskletControllers[me.definition.instanceNo] = me;
+						
+			var ret = Sapl.fapp(me.definition.controllerFunc, [me.definition.taskId, me.definition.st, __Data_Maybe_Nothing, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
+			me.definition.st = Sapl.feval(ret[3]);
+			_iworld = Sapl.feval(ret[4]);
+			
+			var ui = Sapl.toJS(Sapl.feval(ret[2]));
+			
+			console.timeEnd('controllerWrapper timer: eval');
+			
+			console.time('controllerWrapper timer: apply UI');
+			itwc.controller.updateUI(JSON.parse(ui), me);
+			console.timeEnd('controllerWrapper timer: apply UI');
+
+			// Start background process on _iworld
+			if(!_itask_background_interval){
+				window.setInterval(__itask_background_process,200);
+			}
+		}
+
+	},
+    afterAdd: function() {
+		var me = this;
+		
+		// Attach event handlers
+		if(me.definition.events){
+			for (var i=0; i<me.definition.events.length; ++i){
+				var elname = me.definition.events[i][0];
+				var eventName = me.definition.events[i][1];
+				var expr = me.definition.events[i][2];
+							
+				if(elname == "tasklet"){
+					if(eventName == "init"){
+						(me.eventHandler(expr))(me);
+					}
+				}else{
+					var el = document.getElementById(elname);
+					el.addEventListener(eventName, me.eventHandler(expr));
+				}
+			}
+		}
+	},
+	// Creating a closure
+	eventHandler: function(expr){
+		
+		var h = function(event){
+			eval("var tmp = " + expr + ";");
+			Sapl.fapp(tmp,[event]);
+		};
+
+		return h;
 	}
 });
 itwc.ButtonComponent = itwc.extend(itwc.Component,{
@@ -1312,14 +1402,14 @@ itwc.controller = function() {
     me.refresher = null;
     me.updateSource = null;
     me.urlParameters = '';
-
-    //Tasklets & editlets
-    me.taskletControllers = {};
 };
 itwc.controller.prototype = {
 
+	//Tasklets & editlets
     editlets: {},
-
+	tasklets: {},
+	taskletControllers: {},
+	
     onWindowResize: function(e) {
         itwc.UI.afterResize();
     },
@@ -1334,16 +1424,61 @@ itwc.controller.prototype = {
     },
     sendEditEvent: function(taskId, editorId, value) {
         var me = this;
-        me.queueTaskEvent({editEvent: JSON.stringify([taskId,editorId,value])});
+		
+		// Client side execution hook!
+		var instanceNo = taskId.split("-")[0];
+		if(me.taskletControllers[instanceNo] != null){
+		
+			controllerWrapper(
+					me.taskletControllers[instanceNo].definition.controllerFunc, 
+					taskId, "edit", me.nextSendEventNo++, editorId, value);
+		
+		} else {// Normal case (not a tasklet)		
+			me.sendEditEventDirect(taskId,editorId,value);
+		}
     },
+	sendEditEventDirect: function(taskId, editorId, value) {
+		var me = this;
+		me.queueTaskEvent({editEvent: JSON.stringify([taskId,editorId,value])});
+	},
     sendActionEvent: function(taskId, actionId) {
         var me = this;
-        me.queueTaskEvent({actionEvent: JSON.stringify([taskId,actionId])});
+
+		// Client side execution hook!
+		var instanceNo = taskId.split("-")[0];
+		if(me.taskletControllers[instanceNo] != null){
+			
+			controllerWrapper(
+					me.taskletControllers[instanceNo].definition.controllerFunc, 
+					taskId, "commit", me.nextSendEventNo++, actionId);
+					
+		} else { // Normal case (not a tasklet)		
+			me.sendActionEventDirect(taskId,actionId);
+		}
     },
+	sendActionEventDirect: function(taskId, actionId) {
+		var me = this;
+		me.queueTaskEvent({actionEvent: JSON.stringify([taskId,actionId])});
+	},
     sendFocusEvent: function(taskId) {
         var me = this;
+		
+		// Client side execution hook!
+		var instanceNo = taskId.split("-")[0];
+		if(me.taskletControllers[instanceNo] != null){
+			
+			controllerWrapper(
+					me.taskletControllers[instanceNo].definition.controllerFunc, 
+					taskId, "focus", me.nextSendEventNo++);
+					
+		} else { // Normal case (not a tasklet)		
+			me.sendFocusEventDirect(taskId);
+		}
+    },	
+    sendFocusEventDirect: function(taskId) {
+        var me = this;
         me.queueTaskEvent({focusEvent: JSON.stringify(taskId)});
-    },
+    },	
     flushTaskEvents: function() {
         var me = this,
             params = {},
@@ -1416,12 +1551,12 @@ itwc.controller.prototype = {
         me.flushingTaskEvents = false;
         me.flushTaskEvents();
     },
-    updateUI: function(updates) {
+    updateUI: function(updates,root) {
         var me = this,
             cmp;
 
         updates.forEach(function(update) {
-            cmp = me.findComponent(update.path);
+            cmp = me.findComponent(update.path,root);
 
             if(!cmp) {
                 console.log("Could not find component at path",update.path);
@@ -1461,13 +1596,13 @@ itwc.controller.prototype = {
         });
     },
     //Apply update instructions to global ui tree.
-    findComponent: function(path) {
+    findComponent: function(path,root) {
         var cmp;
         if(path.length && path[0] === 'w') {
             cmp = itwc.WINDOWS[path[1]];
             path.splice(0,2);
         } else {
-            cmp = itwc.UI;
+            cmp = root?root:itwc.UI;
         }
         path.forEach(function(step) {
             cmp = (step === 'm') ? cmp.menu : cmp.items[step];

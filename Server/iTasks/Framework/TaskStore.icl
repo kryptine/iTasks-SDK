@@ -16,7 +16,7 @@ derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOp
 derive JSONEncode UIControlStack, UISubUI, UISubUIStack
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
+derive JSONEncode UITaskletOpts, UIEditletOpts
 
 derive JSONDecode TaskResult, TaskInfo, TaskRep, TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
@@ -24,7 +24,7 @@ derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOp
 derive JSONDecode UIControlStack, UISubUI, UISubUIStack
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONDecode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
+derive JSONDecode UITaskletOpts, UIEditletOpts
 
 INCREMENT				:== "increment"
 SHARE_REGISTRATIONS		:== "share-registrations"

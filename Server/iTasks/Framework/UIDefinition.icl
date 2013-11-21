@@ -56,8 +56,6 @@ hasSizeOpts (UITree sOpts cOpts opts)			= True
 hasSizeOpts (UIActionButton sOpts aOpts opts)	= True
 hasSizeOpts (UIMenuButton	sOpts opts)			= True
 hasSizeOpts (UITasklet sOpts opts)				= True
-hasSizeOpts (UITaskletPH sOpts opts)			= True
-hasSizeOpts (UIEditlet sOpts opts)				= True
 hasSizeOpts (UIContainer sOpts iOpts)	        = True
 hasSizeOpts (UIPanel sOpts iOpts opts)			= True
 hasSizeOpts (UIFieldSet sOpts iOpts opts)		= True
@@ -76,7 +74,6 @@ getSizeOpts f (UITree sOpts cOpts opts)				= f sOpts
 getSizeOpts f (UIActionButton sOpts aOpts opts)		= f sOpts
 getSizeOpts f (UIMenuButton	sOpts opts)				= f sOpts
 getSizeOpts f (UITasklet sOpts opts)				= f sOpts
-getSizeOpts f (UITaskletPH sOpts opts)				= f sOpts
 getSizeOpts f (UIEditlet sOpts opts)				= f sOpts
 getSizeOpts f (UIContainer sOpts iOpts)	        	= f sOpts
 getSizeOpts f (UIPanel sOpts iOpts opts)			= f sOpts
@@ -95,7 +92,6 @@ setSizeOpts f (UITree sOpts cOpts opts)				= (UITree (f sOpts) cOpts opts)
 setSizeOpts f (UIActionButton sOpts aOpts opts)		= (UIActionButton (f sOpts) aOpts opts)	
 setSizeOpts f (UIMenuButton	sOpts opts)				= (UIMenuButton	(f sOpts) opts)	
 setSizeOpts f (UITasklet sOpts opts)				= (UITasklet (f sOpts) opts)
-setSizeOpts f (UITaskletPH sOpts opts)				= (UITaskletPH (f sOpts) opts)
 setSizeOpts f (UIEditlet sOpts opts)				= (UIEditlet (f sOpts) opts)
 setSizeOpts f (UIContainer sOpts iOpts)	        	= (UIContainer (f sOpts) iOpts)
 setSizeOpts f (UIPanel sOpts iOpts opts)			= (UIPanel (f sOpts) iOpts opts)
@@ -394,7 +390,6 @@ encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, 
 encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts]
 encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts]
 encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
-encodeUIControl (UITaskletPH sopts opts)				= enc "itwc_tasklet_placeholder" [toJSON sopts, toJSON opts]
 encodeUIControl (UIEditlet sopts opts)					= enc "itwc_edit_editlet" [toJSON sopts, removeEditletValue (toJSON opts)]
 
 removeEditletValue (JSONObject fields) = JSONObject [field \\ field=:(name,_) <- fields | name <> "value"]
@@ -409,7 +404,7 @@ derive JSONEncode UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts
 derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
-derive JSONEncode UITaskletOpts, UITaskletPHOpts, UIEditletOpts
+derive JSONEncode UITaskletOpts, UIEditletOpts
 
 JSONEncode{|UISizeOpts|} {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
     = [JSONObject [field \\ field <- [("itwcWidth",toJSON width)

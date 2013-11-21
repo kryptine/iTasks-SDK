@@ -1,22 +1,28 @@
 var _iworld;
+var _itask_background_interval;
 
 /**
-* eventType can be "edit" or "commit" or "init". It is necessary because eventValue can be null
+* eventType can be "edit" or "commit" or "init" or "focus" or "refresh". It is necessary because eventValue can be null
 * even in the case of "edit" event.
 */
-function controllerWrapper(controllerFunc,taskId,eventNo,eventType,eventName,eventValue){
+function controllerWrapper(controllerFunc,taskId,eventType,eventNo,eventName,eventValue){
 	
-	console.time('controllerWrapper timer: eval');
+	console.time('controllerWrapper: eval');
 	
 	var taskletId = taskId.split("-")[0] + "-0";
-	var tasklet = itwc.global.controller.tasklets[taskletId];
-	var state = tasklet.st;
+	var tasklet = itwc.controller.tasklets[taskletId];
+	var state = tasklet.definition.st;
 
 	var tmp = [controllerFunc,[]];
 	tmp[1].push(taskId);
 	tmp[1].push(state);
-	tmp[1].push(eventNo);
 	
+	if(eventType == "focus" || eventType == "edit" || eventType == "commit"){
+		tmp[1].push([1, 'Just', eventNo])
+	}else{
+		tmp[1].push([0, 'Nothing']);
+	}
+		
 	if(eventType == "edit" || eventType == "commit"){
 		tmp[1].push([1, 'Just', eventName])
 	}else{
@@ -34,155 +40,90 @@ function controllerWrapper(controllerFunc,taskId,eventNo,eventType,eventName,eve
 	
 	// result is a tuple of mbTUI and state
 	var ys = Sapl.feval(tmp);
+	_iworld = Sapl.feval(ys[4]);	
 	state = Sapl.heval(ys[3]);
-	_iworld = Sapl.feval(ys[4]);
 	
-	itwc.global.controller.tasklets[taskletId].st = state;	// save it
+	tasklet.definition.st = state;	// save it
 	
 	// toJS to make the result hyperstrict
-	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[state]]));	
+	var newres = Sapl.toJS(Sapl.fapp(tasklet.definition.resultFunc,[state]));	
 	
 	var mbTUI = Sapl.feval(ys[2]);
 		
-	// If mbTUI is Nothing, the task is finished. TODO: is it still true?
+	// If mbTUI is Nothing, the task is finished
 	if(mbTUI[0] == 0){
-		//DB.removeTasklet(taskId);
-		itwc.global.controller.sendEditEvent(tasklet.taskId, "finalize", newres);
+		itwc.controller.sendEditEventDirect(tasklet.definition.taskId, "finalize", newres);
 	}else{		
-		var tuistr = Sapl.feval(mbTUI[2]);
+		var upd = Sapl.feval(mbTUI[2]);
 
-		console.timeEnd('controllerWrapper timer: eval');
+		console.timeEnd('controllerWrapper: eval');
+				
+		console.time('controllerWrapper: apply UI update');
+		itwc.controller.updateUI(JSON.parse(upd), tasklet);
+		console.timeEnd('controllerWrapper: apply UI update');
 		
-/*
-		console.time('controllerWrapper timer: serialization');
-		DB.updateTasklet(tasklet, 
-						 null,
-						 tuistr);				
-		console.timeEnd('controllerWrapper timer: serialization');
-*/
-		
-		console.time('controllerWrapper timer: apply TUI');
-		//eval("var tui = " + tuistr + ";");
-		var tui = JSON.parse(tuistr);
-		if (tui.xtype=="itwc_viewport") tui = tui.items[0];
-		applytui(tasklet.tui, tui);
-		console.timeEnd('controllerWrapper timer: apply TUI');
+		__itask_background_process();
 		
 		// Send result to the client if it is changed only
-		if(!geq(tasklet.lastResult, newres)){
-			tasklet.lastResult = newres;
-			itwc.global.controller.sendEditEvent(taskletId, "result", newres);
+		if(!geq(tasklet.definition.lastResult, newres)){
+			tasklet.definition.lastResult = newres;
+//			itwc.controller.sendEditEventDirect(taskletId, "result", newres);
 		}		
 	}
 	
 }
 
-function applytui(widget,tui){
-
-	if(tui.xtype !== widget.xtype){
-		throw "ERROR: TUI/Object structure doesn't match!";
-		return;
-	}
+function __itask_background_process(){
+	console.time('background process');
 	
-	// TODO: general solution for delete on missing properties
-	if(widget.items && !tui.items){
-		tui.items.items = [];
-	}
+	var ret = __iTasks_Framework_Engine_background(_iworld);
+	_iworld = Sapl.feval(ret[3]);
 	
-	for(var prop in tui) {
-		if(tui.hasOwnProperty(prop)){
-
-			var val = tui[prop];
-			if(prop === "xtype") continue;
-				
-			if(isString(val) || isBoolean(val) || isNumber(val)){
-				
-				if(widget[prop] !== val){
-					console.log("set "+widget.xtype+" property \""+prop+"\" to \""+val+"\"");
-					
-					var setter = "widget.set"+prop.capitalize();
-					
-					if (eval("typeof " + setter + " == 'function'")) {
-					
-						console.log("...done");
-						
-						// instead of widget[prop] = val; to fire change event
-						if(isString(val)){
-							eval(setter+"(\""+val+"\");");
-						}else{
-							eval(setter+"("+val+");");
-						}
-					}else{
-						console.log("...setter is not found");
-					}
-				}
-				
-			}else if(isArray(val)){
-				
-				try{				
-				
-					if(prop === "items"){
-						var children = widget.items ? widget.items.items : [];
-					}else{
-						var children = widget[prop];
-					}
-					if(children.length != val.length) throw "fallback";
-				
-					for(var i=0;i<val.length;i++){					
-						applytui(children[i],val[i]);
-					}
-				
-				}catch(e){
-					console.error("Exception: \""+e+"\"");
-				
-					// Fallback to replace. TODO: works for "items" only
-					widget.removeAll();
-					for(var i=0;i<val.length;i++){
-						var a = widget.lookupComponent(val[i]);
-						widget.add(a);
-					}
-				}				
+	ret = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_getUIUpdates,[_iworld]);
+	_iworld = Sapl.feval(ret[3]);
+	var uiupdates = Sapl.toJS(Sapl.feval(ret[2]));
+	
+	if(uiupdates){
+		uiupdates.forEach(function(upd){
+			var instanceId = upd[0];
+			var diff = upd[1];
+			var tasklet = itwc.controller.taskletControllers[instanceId];
+			if(tasklet){
+				itwc.controller.updateUI(JSON.parse(diff), tasklet);
 			}else{
-				
-				console.error("Unhandled type for property \""+prop+"\"");
+				console.log("Instance id cannot be found:", instanceId);
 			}
-			
-		}			
-	}	
+		});
+	}
+	
+	console.timeEnd('background process');
 }
 
 function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
+	var taskId = Sapl.feval(taskId);
 	
 	var sti = taskId[2]+"-"+taskId[3]; // toString
-	var tasklet = itwc.global.controller.tasklets[sti];
-	var state = tasklet.st;
+	var tasklet = itwc.controller.tasklets[sti];
+	var state = tasklet.definition.st;
 	
 	// Returns a tuple of the JSWorld and HtmlEventResult	
 	// Looks like: [0, "Tuple2", HtmlEventResult, JSWorld]	
-	var ys = Sapl.feval([expr,[taskId,___wrapJS(event),state,"WORLD"]]);
+	var ys = Sapl.fapp(expr,[taskId,___wrapJS(event),state,"WORLD"]);
 	
 	// The result is only in HNF, so both part of the tuple must be forced,
 	// but the document can be dropped after that.
 	Sapl.feval(ys[3]);
 	
 	var newstate = Sapl.feval(ys[2]);
-	tasklet.st = newstate;
-	
-	try{
-		DB.updateTasklet(tasklet, 
-						 tasklet.getEl().dom.innerHTML,
-						 null);
-	}catch(e){
-		// can happen that "dom" is null, but why? 
-	}
-						 
+	tasklet.definition.st = newstate;
+							 
 	// toJS to make the result hyperstrict
-	var newres = Sapl.toJS(Sapl.feval([tasklet.resultFunc,[newstate]]));
+	var newres = Sapl.toJS(Sapl.fapp(tasklet.definition.resultFunc,[newstate]));
 	
 	// Send result to the client if it is changed only
-	if(!geq(tasklet.lastResult, newres)){
-		tasklet.lastResult = newres;
-		itwc.global.controller.sendEditEvent(tasklet.taskId, "result", newres);
+	if(!geq(tasklet.definition.lastResult, newres)){
+		tasklet.definition.lastResult = newres;
+		itwc.controller.sendEditEventDirect(tasklet.definition.taskId, "result", newres);
 	}
 }
 
@@ -283,6 +224,7 @@ function __iTasks_Framework_Client_Override_cast_to_TaskValue(___vTC_0, ___vTC_1
 function __iTasks_Framework_Client_Override_cast(___vTC_0, ___vTC_1, __a_2) {
     return Sapl.feval(__a_2);
 };
+
 function __iTasks_Framework_Client_Override_unwrapTask(__vTC_0, __a) {
     var d = Sapl.feval(__a);
     return Sapl.feval(d[2]);

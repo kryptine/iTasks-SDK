@@ -116,7 +116,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
 	// Tasklet stuff
 	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
-	| UITaskletPH 		!UISizeOpts     !UITaskletPHOpts							    // - Tasklet placeholder
 	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
 	// Container components for composition:
 	| UIContainer		!UISizeOpts     !UIItemsOpts 				                    // - Container (lightweight wrapper to compose components)
@@ -271,23 +270,15 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 
 :: UITaskletOpts =
 	{ taskId		 :: !String
-	// It contains html _or_ ui
 	, html 			 :: !Maybe String
-	, tui			 :: !Maybe UIDef
 	, st			 :: !Maybe String
 	, script		 :: !Maybe String
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
 	, interfaceFuncs :: !Maybe [(!String,!String)] 			// function name, function
 	, resultFunc     :: !Maybe String
-	, updateFunc     :: !Maybe String
 	// They are a pair: the controller hijacks all the events sent to the given instance
 	, instanceNo	 :: !Maybe String
 	, controllerFunc :: !Maybe String
-	}
-
-:: UITaskletPHOpts =
-	{ taskId		 :: !String
-	, updateVal		 :: !Maybe String
 	}
 
 :: UIEditletOpts =

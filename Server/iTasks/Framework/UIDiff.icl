@@ -16,7 +16,7 @@ derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIA
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIControlStack, UISubUI, UISubUIStack, UIAction
-derive gEq UITaskletOpts, UITaskletPHOpts, UIEditletOpts
+derive gEq UITaskletOpts, UIEditletOpts
 
 derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize
 
@@ -87,26 +87,10 @@ diffControls path event editletDiffs c1 c2
 			= [diffOpts sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UIIcon sOpts1 opts1, UIIcon sOpts2 opts2)
 			= [diffOpts sOpts1 sOpts2,diffIconOpts path opts1 opts2]
-		// Tasklet on the right hand side:
-		// check their instance id. Different: replace, Equals: update (mostly taskId)
+		// Check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
 			| opts1.UITaskletOpts.taskId == opts2.UITaskletOpts.taskId
-				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
-				= [DiffImpossible]
-		(UITaskletPH sOpts1 opts1, UITasklet sOpts2 opts2)
-			| opts1.UITaskletPHOpts.taskId == opts2.UITaskletOpts.taskId		
-				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl
-					(UITaskletPH sOpts2 {UITaskletPHOpts|taskId = opts2.UITaskletOpts.taskId, updateVal = Nothing})])]]]
-				= [DiffImpossible]
-		// Placeholder on the right hand side: update
-		(UITaskletPH sOpts1 opts1, UITaskletPH sOpts2 opts2)
-			| opts1.UITaskletPHOpts.taskId == opts2.UITaskletPHOpts.taskId		
-				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl (UITaskletPH sOpts2 opts2)])]]]
-				= [DiffImpossible]
-		(UITasklet sOpts1 opts1, UITaskletPH sOpts2 opts2)
-			| opts1.UITaskletOpts.taskId == opts2.UITaskletPHOpts.taskId		
-				= [DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl (UITaskletPH sOpts2 opts2)])]]]
+				= []
 				= [DiffImpossible]
 		// Editlets have custom diff functions which are passed in separately
 		(UIEditlet sOpts1 opts1, UIEditlet sOpts2 opts2)
