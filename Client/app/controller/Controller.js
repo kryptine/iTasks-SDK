@@ -13,9 +13,6 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.container.TabItem'			//Container that is one tab in a set.
 			  ,'itwc.container.FieldSet'		//Logical grouping of components
 			  ,'itwc.container.Window'			//Floating window
-
-			  ,'itwc.container.Tasklet'			//Tasklet
-			  ,'itwc.container.TaskletPlaceholder'
   
 			  ,'itwc.component.view.String'		//Strings with html escaping
 			  ,'itwc.component.view.HTML'		//Raw HTML
