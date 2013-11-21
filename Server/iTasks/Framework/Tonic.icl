@@ -172,5 +172,5 @@ viewTask u g = viewInformation "Selected graph" [] (toniclet g) -|| viewSharedIn
 //liveData currUser = viewSharedInformation "Current task name" [] (userActiveTask currUser)
 
 tonicPubTask :: String -> PublishedTask
-tonicPubTask appName = publish "/tonic" WebApp (\_ -> tonicLogin appName)
+tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 
