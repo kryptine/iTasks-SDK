@@ -97,8 +97,12 @@ Ext.define('itwc.component.edit.Editlet',{
     getValue: function () {
         return this.value;
     },
-	applyDiff: function (diff) {
+	applyDiff: function (diff,extraJS) {
 		var me = this, tmp;
+
+        if(extraJS != "") {
+            evalScript(extraJS);
+        }
 
         eval("tmp = "+diff+";");
         if(tmp[0] == 1) {
