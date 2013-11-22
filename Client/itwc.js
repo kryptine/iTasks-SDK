@@ -1271,12 +1271,16 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
         rootNode = document.createElement('ol');
 
         //Create a table for quick access
-        me.selection = [];
+        me.selection = me.definition.value || [];
         me.nodes = [];
 
         me.definition.options.forEach(function(option,idx) {
             me.addNode(option,rootNode,rootNodeId,idx);
         },me);
+
+        me.selection.forEach(function(idx) {
+            me.nodes[idx].classList.add('selected');
+        });
         el.appendChild(rootNode);
     },
     addNode: function(option,parentNode,rootNodeId,idx) {
