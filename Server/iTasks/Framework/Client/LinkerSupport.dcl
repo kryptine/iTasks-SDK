@@ -22,10 +22,9 @@ taskletLinker :: !st 							// state
 	 ,!Maybe String								// JS code of the controller function
 	 ,!*IWorld)
 
-editletLinker :: 
+editletLinker ::
 	![(!String, !String, EditletEventHandlerFunc a)]	// event handlers
 	!idf												// initDiff function
-	!prf												// previousDiff value
 	!dvf												// defVal function
 	!uui												// updateUI function
 	!gdf												// gendiff function
@@ -35,11 +34,10 @@ editletLinker ::
 	*(!String									// JS code of the support code for all the expressions
 	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
 	 ,!String									// JS code of the initDiff function
-	 ,!String									// JS code of the prevDiff value
 	 ,!String									// JS code of the defVal function
 	 ,!String									// JS code of the updateUI function
 	 ,!String									// JS code of the gendiff function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)
-	
 
+diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)

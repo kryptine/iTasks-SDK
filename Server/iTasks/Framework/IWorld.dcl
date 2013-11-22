@@ -6,7 +6,7 @@ from Data.Map				import :: Map
 from Data.Maybe				import :: Maybe
 from System.Time				import :: Timestamp
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
-from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl
+from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode

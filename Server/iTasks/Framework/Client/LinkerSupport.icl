@@ -150,7 +150,6 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 editletLinker :: 
 	![(!String, !String, EditletEventHandlerFunc a)]	// event handlers
 	!idf												// initDiff function
-    !prf                                                // prevDiff value
 	!dvf												// defVal function
 	!uui												// updateUI function
 	!gdf												// gendiff function
@@ -160,33 +159,31 @@ editletLinker ::
 	*(!String									// JS code of the support code for all the expressions
 	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
 	 ,!String									// JS code of the initDiff
-	 ,!String									// JS code of the prevDiff
 	 ,!String									// JS code of the defVal function
 	 ,!String									// JS code of the updateUI function
 	 ,!String									// JS code of the gendiff function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)
 
-editletLinker eventHandlers initDiff prevDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
-						iworld=:{world,currentSession=Nothing} = ("",[],"","","","","","",iworld) //REALLY????
-editletLinker eventHandlers initDiff prevDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
+editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
+						iworld=:{world,currentSession=Nothing} = ("",[],"","","","","",iworld)
+editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
 						iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
 
 	// unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
+	# linkerstate = (loaderstate, ftmap, newSet id (get currentInstance skipmap))
 
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
-	# (linkerstate, lib, sapl_PD, world) = linkByExpr linkerstate lib (graph_to_sapl_string prevDiff) world
 	# (linkerstate, lib, sapl_DV, world) = linkByExpr linkerstate lib (graph_to_sapl_string defValFunc) world
 	# (linkerstate, lib, sapl_UU, world) = linkByExpr linkerstate lib (graph_to_sapl_string updateUIFunc) world
 	# (linkerstate, lib, sapl_GD, world) = linkByExpr linkerstate lib (graph_to_sapl_string genDiffFunc) world
 	# (linkerstate, lib, sapl_AD, world) = linkByExpr linkerstate lib (graph_to_sapl_string appDiffFunc) world
 
 	// link functions indicated by event handlers
-	# (linkerstate, lib, sapl_eventHandlers, world) 
+	# (linkerstate, lib, sapl_eventHandlers, world)
 			= foldl (\(linkerstate, lib, os, world) (id, event, f) =
 				let (linkerstate`, lib`, f`, world`) = linkByExpr linkerstate lib (graph_to_sapl_string f) world
 				 in (linkerstate`, lib`, [(id,event,f`):os], world`))
@@ -205,7 +202,6 @@ editletLinker eventHandlers initDiff prevDiff defValFunc updateUIFunc genDiffFun
 	/* 3. Generate expressions by ParserState */
 
 	# (js_ID, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ID mbparserstate js_lib)
-	# (js_PD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_PD (Just parserstate) js_lib)
 	# (js_DV, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_DV (Just parserstate) js_lib)
 	# (js_UU, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_UU (Just parserstate) js_lib)
 	# (js_GD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_GD (Just parserstate) js_lib)
@@ -218,10 +214,31 @@ editletLinker eventHandlers initDiff prevDiff defValFunc updateUIFunc genDiffFun
 
 /* For debugging:
 	# (_, world) = withFile "debug.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_lib file)) world
-	# (_, world) = withFile "debug.js" FAppendData (\file -> (Ok Void, fwrites js_lib file)) world
+	# (_, world) = withFile "debug.js" FAppendData (\file -> (Ok Void, fwrites (toString js_lib) file)) world
 */
-
-	= (toString js_lib, js_eventHandlers, js_ID, js_PD, js_DV, js_UU, js_GD, js_AD, 
+	= (toString js_lib, js_eventHandlers, js_ID, js_DV, js_UU, js_GD, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
+
+diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
+diffLinker cdf idf iworld=:{world,currentSession=Nothing} = ("","","",iworld)
+diffLinker cdf idf iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
+    // unpack "compiler state"
+	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
+	// create per sesssion "linker state"
+	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
+	/* 1. First, we collect all the necessary function definitions to generate ParserState */
+	# (linkerstate, lib, sapl_cdf, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string cdf) world
+	# (linkerstate, lib, sapl_idf, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string idf) world
+	// unwrap linker state
+	# (loaderstate, ftmap, skipset) = linkerstate
+
+    # sapl_lib = toString lib
+	# (js_lib, mbparserstate) = case sapl_lib of
+		"" = (newAppender, mbparserstate)
+		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib mbparserstate) in (script, Just pst)
+	# (js_cdf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_cdf mbparserstate js_lib)
+	# (js_idf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_idf (Just parserstate) js_lib)
+    = (toString js_lib,	js_cdf, js_idf, {iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
+
 
 

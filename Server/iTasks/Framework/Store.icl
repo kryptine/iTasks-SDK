@@ -10,7 +10,7 @@ import Data.SharedDataSource
 import iTasks.Framework.Client.JSStore
 
 from iTasks.Framework.IWorld		import :: IWorld(..), :: SystemDirectories(..), :: Work, :: UIMessage, :: Resource
-from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl
+from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId

@@ -719,9 +719,13 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		};
 		return h;
 	},
-    applyDiff: function(saplDiff) {
+    applyDiff: function(saplDiff,extraJS) {
+
         var me = this,
             tmp;
+        if(extraJS != "") {
+            evalScript(extraJS);
+        }
         eval("tmp = " + saplDiff + ";");
 
 		if(tmp[0]==1) {
