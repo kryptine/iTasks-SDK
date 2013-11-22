@@ -91,6 +91,10 @@ arrangeWithSideBar      :: !Int !UISide !Int -> SubUICombinator
 instance tune ArrangeCustom
 toSubUIStack :: [UISubUI] -> UISubUIStack
 
+subUIToControl      :: UISubUI -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+subUIToContainer    :: UISubUI -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+subUIToPanel        :: UISubUI -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+
 //Combinators on interface definitions
 hjoin :: ![UIControl] -> UIControl
 vjoin :: ![UIControl] -> UIControl
