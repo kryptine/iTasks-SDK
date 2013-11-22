@@ -56,6 +56,7 @@ hasSizeOpts (UITree sOpts cOpts opts)			= True
 hasSizeOpts (UIActionButton sOpts aOpts opts)	= True
 hasSizeOpts (UIMenuButton	sOpts opts)			= True
 hasSizeOpts (UITasklet sOpts opts)				= True
+hasSizeOpts (UIEditlet sOpts opts)              = True
 hasSizeOpts (UIContainer sOpts iOpts)	        = True
 hasSizeOpts (UIPanel sOpts iOpts opts)			= True
 hasSizeOpts (UIFieldSet sOpts iOpts opts)		= True
