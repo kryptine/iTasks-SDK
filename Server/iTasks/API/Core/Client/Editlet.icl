@@ -53,7 +53,7 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
 			    = editletLinker [(cid, event, f) \\ ComponentEvent cid event f <- uiDef.eventHandlers]
 							initDiff defValueFun clientUpdateUI clientGenDiff clientAppDiff iworld
             # opts = editletOpts jsScript jsEvents jsID jsDV jsUU jsGD jsAD uiDef
-            # iworld = setEditletDiffs value {UIEditletOpts|opts & value = JSONNull, script = ""} [] iworld
+            # iworld = setEditletDiffs value {UIEditletOpts|opts & value = JSONNull} [] iworld
 	        = (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})
 where
     htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
