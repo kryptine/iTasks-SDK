@@ -10,6 +10,8 @@ import iTasks
 :: LeafletPerspective =
     { center        :: LeafletLatLng
     , zoom          :: Int
+    , cursor        :: Maybe LeafletLatLng
+    , bounds        :: Maybe LeafletLatLngBounds
     }
 :: LeafletIcon =
     { iconUrl       :: String
@@ -20,6 +22,7 @@ import iTasks
     { lat :: Real
     , lng :: Real
     }
+:: LeafletLatLngBounds :== (!LeafletLatLng,!LeafletLatLng)
 
 :: LeafletLayer
     = TileLayer String
@@ -33,6 +36,7 @@ import iTasks
     , position      :: LeafletLatLng
     , title         :: Maybe String
     , icon          :: Maybe Int        //Index in the list of icons defined for the map
+    , selected      :: Bool
     }
 
 openStreetMapTiles :: LeafletLayer
