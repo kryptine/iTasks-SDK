@@ -7,7 +7,7 @@ import iTasks.Framework.Tonic
 //:%s/<I\d*, E\d*>\|<\d*>//g 
 
 Start :: *World -> *World
-Start world = startEngine [ publish "/" WebApp (\_ -> runAuction)
+Start world = startEngine [ publish "/" (WebApp []) (\_ -> runAuction)
                           , tonicPubTask "Auction"] world
 
 
