@@ -54,6 +54,7 @@ newJSArray          :: !*JSWorld                          -> *(!JSVal [a], !*JSW
 //USEFUL DERIVED UTIL FUNCTIONS
 
 jsArrayPush         :: !(JSVal a) !(JSVal [a])    !*JSWorld -> *(!JSVal [a], !*JSWorld)
+jsArrayPop          :: !(JSVal [a])               !*JSWorld -> *(!JSVal a,   !*JSWorld)
 jsArrayReverse      :: !(JSVal [a])               !*JSWorld -> *(!JSVal [a], !*JSWorld)
 toJSArray           :: ![a]                       !*JSWorld -> *(!JSVal [a], !*JSWorld)
 fromJSArray         :: (JSVal a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)

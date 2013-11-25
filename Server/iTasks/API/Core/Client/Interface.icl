@@ -80,6 +80,9 @@ fromJSVal ptr world = undef
 jsArrayPush :: !(JSVal a) !(JSVal [a]) !*JSWorld -> *(!JSVal [a], !*JSWorld)
 jsArrayPush x arr world = callObjectMethod "push" [toJSArg x] arr world
 
+jsArrayPop :: !(JSVal [a]) !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsArrayPop arr world = callObjectMethod "pop" [] arr world
+
 jsArrayReverse :: !(JSVal [a]) !*JSWorld -> *(!JSVal [a], !*JSWorld)
 jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
 
