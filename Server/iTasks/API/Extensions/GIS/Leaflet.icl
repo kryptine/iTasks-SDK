@@ -2,17 +2,18 @@ implementation module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
-import StdMisc
+import iTasks.API.Core.Client.Map
+import StdMisc, Data.Tuple
 
 LEAFLET_JS :== "leaflet-0.6.3/leaflet.js"
 LEAFLET_CSS :== "leaflet-0.6.3/leaflet.css"
 
 :: LeafletClientState =
-    {mapObj         :: !Maybe (JSVal JSObject)
-    ,mapLayers      :: !Maybe (JSVal [JSObject])
-    ,mapIcons       :: !Maybe (JSVal [JSObject])
+    {mapObj         :: !JSVal JSObject
+    ,mapLayers      :: !JSVal [JSObject]
+    ,mapIcons       :: !JSVal [JSObject]
     ,mapCursor      :: !Maybe (JSVal JSObject)
-    ,libsInserted   :: !Bool
+    ,mapObjects     :: !JSVal (JSMap Int [JSObject])
     }
 :: IconOptions =
     { iconUrl   :: !String
@@ -23,8 +24,6 @@ LEAFLET_CSS :== "leaflet-0.6.3/leaflet.css"
     , opacity   :: !Real
     , radius    :: !Int
     }
-
-:: TESTTYPE     = TESTTYPE
 
 CURSOR_OPTIONS :== {color = "#00f", opacity = 1.0, radius = 3}
 
@@ -44,7 +43,7 @@ CURSOR_OPTIONS :== {color = "#00f", opacity = 1.0, radius = 3}
     //Individual objects
     | LDAddObjects      !Int ![LeafletObject]
     | LDUpdateObject    !Int !Int !LeafletObject
-    | LDRemoveObjects   !Int
+    | LDRemoveObjects   !Int !Int
 
 genDiff :: LeafletMap LeafletMap -> Maybe [LeafletDiff]
 genDiff m1 m2 = case diffs of [] = Nothing ; _ = Just diffs
@@ -69,9 +68,20 @@ where
     diffLayers i [] [] = []
     diffLayers i [] l2 = [LDAddLayers l2]
     diffLayers i l1 [] = [LDRemoveIcons i]
+    diffLayers i [TileLayer url1:ls1] [TileLayer url2:ls2]
+        | url1 == url2  = diffLayers (inc i) ls1 ls2
+                        = [LDUpdateLayer i (TileLayer url2):diffLayers (inc i) ls1 ls2]
+    diffLayers i [ObjectLayer obj1:ls1] [ObjectLayer obj2:ls2]
+                        = diffObjects i 0 obj1 obj2 ++ diffLayers (inc i) ls1 ls2
     diffLayers i [l1:ls1] [l2:ls2]
-        | l1 === l2     = diffLayers (inc i) ls1 ls2
                         = [LDUpdateLayer i l2:diffLayers (inc i) ls1 ls2]
+
+    diffObjects l i [] [] = []
+    diffObjects l i [] o2 = [LDAddObjects l o2]
+    diffObjects l i o1 [] = [LDRemoveObjects l i]
+    diffObjects l i [o1:os1] [o2:os2]
+        | o1 === o2     = diffObjects l (inc i) os1 os2
+                        = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
 
 appDiff :: [LeafletDiff] LeafletMap -> LeafletMap
 appDiff [] m                            = m
@@ -84,6 +94,12 @@ appDiff [LDUpdateIcon i icon:ds] m      = appDiff ds {m & icons = updateAt i ico
 appDiff [LDAddLayers layers:ds] m       = appDiff ds {m & layers = m.layers ++ layers}
 appDiff [LDRemoveLayers n:ds] m         = appDiff ds {m & layers = take n m.layers}
 appDiff [LDUpdateLayer i layer:ds] m    = appDiff ds {m & layers = updateAt i layer m.layers}
+appDiff [LDAddObjects l objects:ds] m   = let (ObjectLayer o) = m.layers !! l in
+    appDiff ds {m & layers = updateAt l (ObjectLayer (o++objects)) m.layers}
+appDiff [LDRemoveObjects l n:ds] m      = let (ObjectLayer o) = m.layers !! l in
+    appDiff ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
+appDiff [LDUpdateObject l i object:ds] m     = let (ObjectLayer o) = m.layers !! l in
+    appDiff ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
 appDiff _ m                             = m
 
 openStreetMapTiles :: LeafletLayer
@@ -99,7 +115,7 @@ leafletEditlet map = Editlet map
     }
     { EditletClientDef
     | updateUI	= onUpdate
-    , defVal 	= (gDefault{|*|},{mapObj = Nothing, mapIcons = Nothing, mapLayers = Nothing, mapCursor = Nothing, libsInserted = False})
+    , defVal 	= (gDefault{|*|},Nothing)
     , genDiff	= \(v1,_) (v2,_) -> genDiff v1 v2
     , appDiff	= \diff (map,st) -> (appDiff diff map,st)
     }
@@ -113,117 +129,150 @@ where
 
 	mapdivid cid = "map_div_" +++ cid
 
-	onUpdate cid mbDiff (map,st=:{mapObj=Nothing,libsInserted=False}) world
+	onUpdate cid mbDiff (map,Nothing) world
         # (l, world) = findObject "L" world
         | jsIsUndefined l
             # world = addCSSFromUrl LEAFLET_CSS world
             # world = addJSFromUrl LEAFLET_JS (Just (createEditletEventHandler onLibLoaded cid)) world
-            = ((map,{st & libsInserted=True}), world)
+            = ((map,Nothing), world)
         | otherwise
-            = onLibLoaded cid Nothing (map,{st & libsInserted=True}) world
+            = onLibLoaded cid Nothing (map,Nothing) world
 
-    onUpdate cid (Just [LDSetZoom zoom:diffs]) (map,st=:{mapObj=Just mapobj}) world
-        # (_,world) = callObjectMethod "setZoom" [toJSArg zoom] mapobj world
-        = onUpdate cid (Just diffs) (map,st) world
-    onUpdate cid (Just [LDSetCenter {LeafletLatLng|lat,lng}:diffs]) (map,st=:{mapObj=Just mapobj}) world
-        # (_,world) = callObjectMethod "panTo" [toJSArg [lat,lng]] mapobj world
-        = onUpdate cid (Just diffs) (map,st) world
-    onUpdate cid (Just [LDSetCursor (Just {LeafletLatLng|lat,lng}):diffs]) (map,st=:{mapObj=Just mapobj,mapCursor=Nothing}) world
+    onUpdate cid (Just [LDSetZoom zoom:diffs]) (map,Just st=:{mapObj}) world
+        # (_,world) = callObjectMethod "setZoom" [toJSArg zoom] mapObj world
+        = onUpdate cid (Just diffs) (map,Just st) world
+    onUpdate cid (Just [LDSetCenter {LeafletLatLng|lat,lng}:diffs]) (map,Just st=:{mapObj}) world
+        # (_,world) = callObjectMethod "panTo" [toJSArg [lat,lng]] mapObj world
+        = onUpdate cid (Just diffs) (map,Just st) world
+    onUpdate cid (Just [LDSetCursor (Just {LeafletLatLng|lat,lng}):diffs]) (map,Just st=:{mapObj,mapCursor=Nothing}) world
         # (l, world)        = findObject "L" world
         # (mapCursor,world) = callObjectMethod "circleMarker" [toJSArg [lat,lng],toJSArg CURSOR_OPTIONS] l world
-        # (_,world)         = callObjectMethod "addTo" [toJSArg mapobj] mapCursor world
-        = onUpdate cid (Just diffs) (map,{st & mapCursor = Just mapCursor}) world
-    onUpdate cid (Just [LDSetCursor (Just {LeafletLatLng|lat,lng}):diffs]) (map,st=:{mapObj=Just mapobj,mapCursor=Just cursorobj}) world
-        # (_,world)         = callObjectMethod "setLatLng" [toJSArg [lat,lng]] cursorobj world
-        = onUpdate cid (Just diffs) (map,st) world
-    onUpdate cid (Just [LDSetCursor Nothing:diffs]) (map,st=:{mapObj=Just mapobj,mapCursor=Just cursorobj}) world
-        # (_,world)     = callObjectMethod "removeLayer" [toJSArg cursorobj] mapobj world
-        = onUpdate cid (Just diffs) (map ,{st & mapCursor = Nothing}) world
-    onUpdate cid (Just [LDUpdateLayer idx (ObjectLayer objects):diffs]) (map,st=:{mapObj=Just mapobj,mapIcons=Just mapicons, mapLayers=Just maplayers}) world
+        # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] mapCursor world
+        = onUpdate cid (Just diffs) (map,Just {st & mapCursor = Just mapCursor}) world
+    onUpdate cid (Just [LDSetCursor (Just {LeafletLatLng|lat,lng}):diffs]) (map,Just st=:{mapObj,mapCursor=Just mapCursor}) world
+        # (_,world)         = callObjectMethod "setLatLng" [toJSArg [lat,lng]] mapCursor world
+        = onUpdate cid (Just diffs) (map,Just st) world
+    onUpdate cid (Just [LDSetCursor Nothing:diffs]) (map,Just st=:{mapObj,mapCursor=Just mapCursor}) world
+        # (_,world)     = callObjectMethod "removeLayer" [toJSArg mapCursor] mapObj world
+        = onUpdate cid (Just diffs) (map ,Just {st & mapCursor = Nothing}) world
+    onUpdate cid (Just [LDUpdateLayer idx (ObjectLayer objects):diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) world
         # (l, world)    = findObject "L" world
-        # (layer,world) = jsGetObjectEl idx maplayers world
-        # (_,world)     = callObjectMethod "removeLayer" [toJSArg layer] mapobj world
+        # (layer,world) = jsGetObjectEl idx mapLayers world
+        # (_,world)     = callObjectMethod "removeLayer" [toJSArg layer] mapObj world
         # (layer,world) = callObjectMethod "layerGroup" [] l world
-        # world         = foldl (\w object -> createObject object l layer mapicons cid w) world objects
-        # world         = jsSetObjectEl idx layer maplayers world
-        # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
-        = onUpdate cid (Just diffs) (map,st) world
-    onUpdate cid (Just [LDAddLayers [TileLayer url:layers]:diffs]) (map,st=:{mapObj=Just mapobj,mapIcons=Just mapicons, mapLayers=Just maplayers}) world
+        # (objRefs,world)   = newJSArray world
+        # (_,world)     = foldl (\w object -> createObject object l layer objRefs mapIcons cid w) (0,world) objects
+        # world         = jsSetObjectEl idx layer mapLayers world
+		# world         = jsPut idx objRefs mapObjects world
+        # (_,world)     = callObjectMethod "addTo" [toJSArg mapObj] layer world
+        = onUpdate cid (Just diffs) (map,Just st) world
+    onUpdate cid (Just [LDAddLayers [TileLayer url:layers]:diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers}) world
         # (l, world)    = findObject "L" world
         # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
-        # (_,world)     = jsArrayPush layer maplayers world
-        # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
-        = onUpdate cid (Just [LDAddLayers layers:diffs]) (map,st) world
-    onUpdate cid (Just [LDAddLayers [ObjectLayer objects:layers]:diffs]) (map,st=:{mapObj=Just mapobj,mapIcons=Just mapicons, mapLayers=Just maplayers}) world
-        # (l, world)    = findObject "L" world
-        # (layer,world) = callObjectMethod "layerGroup" [] l world
-        # world         = foldl (\w object -> createObject object l layer mapicons cid w) world objects
-        # (_,world)     = jsArrayPush layer maplayers world
-        = onUpdate cid (Just [LDAddLayers layers:diffs]) (map,st) world
+        # (_,world)     = jsArrayPush layer mapLayers world
+        # (_,world)     = callObjectMethod "addTo" [toJSArg mapObj] layer world
+        = onUpdate cid (Just [LDAddLayers layers:diffs]) (map,Just st) world
+    onUpdate cid (Just [LDAddLayers [ObjectLayer objects:layers]:diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) world
+        # (l, world)        = findObject "L" world
+        # (layer,world)     = callObjectMethod "layerGroup" [] l world
+        # (objRefs,world)   = newJSArray world
+        # (lidx,world)      = appFst jsValToInt (jsGetObjectAttr "length" mapLayers world)
+        # (_,world)         = foldl (\w object -> createObject object l layer objRefs mapIcons cid w) (0,world) objects
+		# world             = jsPut lidx objRefs mapObjects world
+        # (_,world)         = jsArrayPush layer mapLayers world
+        = onUpdate cid (Just [LDAddLayers layers:diffs]) (map,Just st) world
     onUpdate cid (Just [LDAddLayers []:diffs]) (map,st) world
         = onUpdate cid (Just diffs) (map,st) world
+    onUpdate cid (Just [LDUpdateObject lidx oidx object:diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) world
+        # (l, world)        = findObject "L" world
+        # (layer,world)     = jsGetObjectEl lidx mapLayers world
+        # (objRefs,world)   = appFst fromJust (jsGet lidx mapObjects world)
+        # (objRef,world)    = jsGetObjectEl oidx objRefs world
+        # (_,world)         = callObjectMethod "removeLayer" [toJSArg objRef] layer world
+        # (_,world)         = createObject object l layer objRefs mapIcons cid (oidx,world)
+        = onUpdate cid (Just diffs) (map,Just st) world
+    onUpdate cid (Just [LDAddObjects lidx objects:diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) world
+        # (l, world)        = findObject "L" world
+        # (layer,world)     = jsGetObjectEl lidx mapLayers world
+        # (objRefs,world)   = appFst fromJust (jsGet lidx mapObjects world)
+        # (oidx,world)      = appFst jsValToInt (jsGetObjectAttr "length" objRefs world)
+        # (_,world)         = foldl (\w object -> createObject object l layer objRefs mapIcons cid w) (oidx,world) objects
+        = onUpdate cid (Just diffs) (map,Just st) world
+    onUpdate cid (Just [LDRemoveObjects lidx oidx:diffs]) (map,Just st=:{mapLayers,mapObjects}) world
+        # (layer,world)     = jsGetObjectEl lidx mapLayers world
+        # (objRefs,world)   = appFst fromJust (jsGet lidx mapObjects world)
+        # (removeRefs,world)= callObjectMethod "splice" [toJSArg oidx] objRefs world
+        # world             = removeObjects removeRefs layer world
+        = onUpdate cid (Just diffs) (map,Just st) world
     onUpdate cid _ (map,st) world
         = ((map,st),world)
 
     onLibLoaded cid _ (map=:{LeafletMap|perspective,icons,layers},_) world
         # (l, world) = findObject "L" world
         //Create map
-        # (mapobj, world) = callObjectMethod "map" [toJSArg (mapdivid cid)] l world
+        # (mapObj, world) = callObjectMethod "map" [toJSArg (mapdivid cid)] l world
         //Set perspective
         # (center,world) = toJSArray [perspective.center.lat,perspective.center.lng] world
-        # (_,world) = callObjectMethod "setView" [toJSArg center, toJSArg perspective.LeafletPerspective.zoom] mapobj world
+        # (_,world) = callObjectMethod "setView" [toJSArg center, toJSArg perspective.LeafletPerspective.zoom] mapObj world
         //Create cursor
         # (mapCursor,world) = case perspective.cursor of
             Nothing     = (Nothing,world)
             Just {LeafletLatLng|lat,lng}
-                # (cursorobj,world) = callObjectMethod "circleMarker" [toJSArg [lat,lng],toJSArg CURSOR_OPTIONS] l world
-                # (_,world)         = callObjectMethod "addTo" [toJSArg mapobj] cursorobj world
-                = (Just cursorobj,world)
+                # (mapCursor,world) = callObjectMethod "circleMarker" [toJSArg [lat,lng],toJSArg CURSOR_OPTIONS] l world
+                # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] mapCursor world
+                = (Just mapCursor,world)
         //Add icons
-        # (mapicons,world) = newJSArray world
-        # world = foldl (\w icon -> createIcon icon l mapicons w) world icons
+        # (mapIcons,world) = newJSArray world
+        # world = foldl (\w icon -> createIcon icon l mapIcons w) world icons
         //Add initial layers
-        # (maplayers,world) = newJSArray world
-        # world = foldl (\w layer -> createLayer layer l mapobj maplayers mapicons cid w) world layers
+        # (mapLayers,world) = newJSArray world
+        # (mapObjects,world) = jsNewMap world
+        # (_,world) = foldl (\w layer -> createLayer layer l mapObj mapLayers mapObjects mapIcons cid w) (0,world) layers
         //Add map event handlers
-        # (_, world) = callObjectMethod "addEventListener" [toJSArg "dragend",toJSArg (createEditletEventHandler onMapMove cid)] mapobj world
-        # (_, world) = callObjectMethod "addEventListener" [toJSArg "zoomend",toJSArg (createEditletEventHandler onZoomChange cid)] mapobj world
-        # (_, world) = callObjectMethod "addEventListener" [toJSArg "click",toJSArg (createEditletEventHandler onMapClick cid)] mapobj world
+        # (_, world) = callObjectMethod "addEventListener" [toJSArg "dragend",toJSArg (createEditletEventHandler onMapMove cid)] mapObj world
+        # (_, world) = callObjectMethod "addEventListener" [toJSArg "zoomend",toJSArg (createEditletEventHandler onZoomChange cid)] mapObj world
+        # (_, world) = callObjectMethod "addEventListener" [toJSArg "click",toJSArg (createEditletEventHandler onMapClick cid)] mapObj world
         //Add editlet event handler
         # (editlets,world)  = findObject "itwc.controller.editlets" world
         # (cmp,world)       = jsGetObjectAttr cid editlets world
         # world             = jsSetObjectAttr "afterShow" (toJSVal (createEditletEventHandler onAfterShow cid)) cmp world
-        = ((map,{mapObj=Just mapobj,mapIcons=Just mapicons,mapLayers=Just maplayers,mapCursor=mapCursor,libsInserted=True}),world)
-    createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapicons world
+        = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),world)
+
+    createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapIcons world
         # (icon,world)  = callObjectMethod "icon" [toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]}] l world
-        # (_, world)    = jsArrayPush icon mapicons world
-        = world
-    createLayer (TileLayer url) l mapobj maplayers mapicons cid world
-        # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
-        # (_,world)     = jsArrayPush layer maplayers world
-        # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
-        = world
-    createLayer (ObjectLayer objects) l mapobj maplayers mapicons cid world
-        # (layer,world) = callObjectMethod "layerGroup" [] l world
-        # world         = foldl (\w object -> createObject object l layer mapicons cid w) world objects
-        # (_,world)     = jsArrayPush layer maplayers world
-        # (_,world)     = callObjectMethod "addTo" [toJSArg mapobj] layer world
+        # (_, world)    = jsArrayPush icon mapIcons world
         = world
 
-    createObject :: !LeafletObject !(JSVal a) !(JSVal b) !(JSVal c) !String !*JSWorld -> *JSWorld
-    createObject (Marker {LeafletMarker|markerId,position,title,icon}) l layer mapicons cid world
-        # (markerPos,world) = toJSArray [position.lat,position.lng] world
+    createLayer :: !LeafletLayer !(JSVal JSObject) a !(JSVal [b]) !(JSVal (JSMap Int [c])) !(JSVal d) !String !*(!Int,!*JSWorld) -> *(!Int,!*JSWorld)
+    createLayer (TileLayer url) l mapObj mapLayers mapObjects mapIcons cid (i,world)
+        # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
+        # (_,world)     = jsArrayPush layer mapLayers world
+        # (_,world)     = callObjectMethod "addTo" [toJSArg mapObj] layer world
+        = (i + 1,world)
+    createLayer (ObjectLayer objects) l mapObj mapLayers mapObjects mapIcons cid (i,world)
+        # (layer,world)     = callObjectMethod "layerGroup" [] l world
+        # (objRefs,world)   = newJSArray world
+        # (_,world)         = foldl (\w object -> createObject object l layer objRefs mapIcons cid w) (0,world) objects
+        # (_,world)         = jsArrayPush layer mapLayers world
+		# world             = jsPut i objRefs mapObjects world
+        # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] layer world
+        = (i + 1,world)
+
+    createObject :: !LeafletObject !(JSVal JSObject) !a !(JSVal b) !(JSVal c) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
+    createObject (Marker {LeafletMarker|markerId,position,title,icon}) l layer objRefs mapIcons cid (i,world)
         # (args,world)      = case icon of
-            Nothing         = ([toJSArg markerPos],world)
+            Nothing         = ([toJSArg [position.lat,position.lng]],world)
             Just iconIdx
                 # (options,world) = jsEmptyObject world
-                # (iconRef,world) = jsGetObjectEl iconIdx mapicons world
+                # (iconRef,world) = jsGetObjectEl iconIdx mapIcons world
                 # world = jsSetObjectAttr "icon" iconRef options world
-                = ([toJSArg markerPos,toJSArg options],world)
+                = ([toJSArg [position.lat,position.lng],toJSArg options],world)
         # (marker,world) = callObjectMethod "marker" args l world
+        # world          = jsSetObjectEl i marker objRefs world
         # (_,world)      = callObjectMethod "addEventListener" [toJSArg "click",toJSArg (createEditletEventHandler (onMarkerClick markerId) cid)] marker world
         # (_,world)      = callObjectMethod "addTo" [toJSArg layer] marker world
-        = world
+        = (i + 1,world)
+
     onMapMove cid event (map=:{LeafletMap|perspective},mbSt) world
         # (mapobj,world) = jsGetObjectAttr "target" event world
         # (latlng,world) = callObjectMethod "getCenter" [] mapobj world
@@ -233,18 +282,18 @@ where
         # (mapobj,world)    = jsGetObjectAttr "target" event world
         # (zoom,world)      = callObjectMethod "getZoom" [] mapobj world
         = (({LeafletMap|map & perspective = {perspective & zoom = jsValToInt zoom}},mbSt),world)
-    onMapClick cid event (map=:{LeafletMap|perspective},st=:{mapObj=Just mapobj,mapCursor=Nothing}) world
+    onMapClick cid event (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Nothing}) world
         # (l, world)        = findObject "L" world
         # (latlng,world)    = jsGetObjectAttr "latlng" event world
         # (cursor,world)    = getPos latlng world
         # (mapCursor,world) = callObjectMethod "circleMarker" [toJSArg latlng,toJSArg CURSOR_OPTIONS] l world
-        # (_,world)         = callObjectMethod "addTo" [toJSArg mapobj] mapCursor world
-        = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},{st & mapCursor = Just mapCursor}),world)
-    onMapClick cid event (map=:{LeafletMap|perspective},st=:{mapObj=Just mapobj,mapCursor=Just mapCursor}) world
+        # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] mapCursor world
+        = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},Just {st & mapCursor = Just mapCursor}),world)
+    onMapClick cid event (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Just mapCursor}) world
         # (latlng,world)    = jsGetObjectAttr "latlng" event world
         # (cursor,world)    = getPos latlng world
         # (_,world)         = callObjectMethod "setLatLng" [toJSArg latlng] mapCursor world
-        = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},st),world)
+        = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},Just st),world)
 
     onMarkerClick markerId cid event (map=:{LeafletMap|layers},st) world
         # layers = [selectMarker l \\ l <- layers]
@@ -254,9 +303,9 @@ where
             = ObjectLayer [Marker {m & selected = m.markerId == markerId} \\ Marker m <- objects]
         selectMarker l = l
 
-    onAfterShow cid event (map,st=:{mapObj=Just mapobj}) world
-        # (_,world) = callObjectMethod "invalidateSize" [] mapobj world
-        = ((map,st),world)
+    onAfterShow cid event (map,Just st=:{mapObj}) world
+        # (_,world) = callObjectMethod "invalidateSize" [] mapObj world
+        = ((map,Just st),world)
     onAfterShow cid event st world
         = (st,world)
 
@@ -264,6 +313,13 @@ where
 		# (lat, world) = jsGetObjectAttr "lat" obj world
 		# (lng, world) = jsGetObjectAttr "lng" obj world
 		= ({LeafletLatLng|lat=jsValToReal lat,lng=jsValToReal lng}, world)
+
+    removeObjects :: !(JSVal [a]) !(JSVal b) !*JSWorld -> *JSWorld
+    removeObjects removeRefs layer world
+        # (ref,world) = jsArrayPop removeRefs world
+        | jsIsUndefined ref = world
+        # (_,world)   = callObjectMethod "removeLayer" [toJSArg ref] layer world
+        = removeObjects removeRefs layer world
 
 gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
