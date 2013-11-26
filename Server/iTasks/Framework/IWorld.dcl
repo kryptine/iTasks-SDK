@@ -76,7 +76,8 @@ dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
-addUIMessage		:: !SessionId !UIMessage 		!*IWorld -> *IWorld
+
+addUIMessage        :: !InstanceNo !UIMessage       !*IWorld -> *IWorld
 getUIMessages		:: !SessionId					!*IWorld -> (![UIMessage],!*IWorld)
 
 

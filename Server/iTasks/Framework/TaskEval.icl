@@ -112,13 +112,13 @@ refreshTaskInstance instanceNo iworld
 	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo iworld
 	= case mbResult of
 		(Ok (_,Left ({SessionInfo|sessionId},[])))	    = iworld
-		(Ok (_,Left ({SessionInfo|sessionId},updates)))	= addUIMessage sessionId (UIUpdates updates) iworld
+		(Ok (_,Left ({SessionInfo|sessionId},updates)))	= addUIMessage instanceNo (UIUpdates updates) iworld
 		(Error e)						
             //Check if the instance happened to be a session instance
             = case getSessionId instanceNo iworld of
-                (Just sessionId,iworld) = addUIMessage sessionId (UIReset e) iworld
-                (_,iworld)              = iworld
-		_	                            = iworld
+                (Just _,iworld)     = addUIMessage instanceNo (UIReset e) iworld
+                (_,iworld)          = iworld
+		_	                        = iworld
 where
     getSessionId instanceNo iworld=:{IWorld|sessions}
         = case [sessionId \\ (sessionId,no) <- 'Data.Map'.toList sessions | no == instanceNo] of
