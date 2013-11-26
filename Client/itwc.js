@@ -372,11 +372,15 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
     },
     setEditorValue: function(value) {
-        this.domEl.value = value;
+		var receivedNo = itwc.controller.lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value;
+        }
     }
 });
 itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
@@ -387,11 +391,15 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
         el.type = 'password';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
     },
     setEditorValue: function(value) {
-        this.domEl.value = value;
+        var receivedNo = itwc.controller.lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value;
+        }
     }
 });
 itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
@@ -401,11 +409,15 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
             el = this.domEl;
         el.innerHTML = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
         });
     },
     setEditorValue: function(value) {
-        this.domEl.value = value;
+        var receivedNo = itwc.controller.lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value;
+        }
     }
 });
 itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
@@ -454,7 +466,7 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
             } else {
                 value = me.allowDecimal ? parseFloat(e.target.value) : parseInt(e.target.value);
             }
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value);
         });
     },
     invalidKey: function(charCode) {
@@ -470,8 +482,12 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
         return false;
     },
     setEditorValue: function(value) {
-        var me = this;
-        me.domEl.value = value;
+        var receivedNo = itwc.controller.lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value;
+        }
+
     }
 });
 itwc.component.itwc_edit_int = itwc.extend(itwc.component.itwc_edit_number,{
@@ -1508,6 +1524,7 @@ itwc.controller.prototype = {
         eventNo = me.nextSendEventNo++;
         me.taskEvents.push([eventNo,eventData]);
         me.flushTaskEvents();
+        return eventNo;
     },
     sendEditEvent: function(taskId, editorId, value) {
         var me = this;
@@ -1521,12 +1538,12 @@ itwc.controller.prototype = {
 					taskId, "edit", me.nextSendEventNo++, editorId, value);
 		
 		} else {// Normal case (not a tasklet)		
-			me.sendEditEventDirect(taskId,editorId,value);
+			return me.sendEditEventDirect(taskId,editorId,value);
 		}
     },
 	sendEditEventDirect: function(taskId, editorId, value) {
 		var me = this;
-		me.queueTaskEvent({editEvent: JSON.stringify([taskId,editorId,value])});
+		return me.queueTaskEvent({editEvent: JSON.stringify([taskId,editorId,value])});
 	},
     sendActionEvent: function(taskId, actionId) {
         var me = this;
@@ -1540,12 +1557,12 @@ itwc.controller.prototype = {
 					taskId, "commit", me.nextSendEventNo++, actionId);
 					
 		} else { // Normal case (not a tasklet)		
-			me.sendActionEventDirect(taskId,actionId);
+			return me.sendActionEventDirect(taskId,actionId);
 		}
     },
 	sendActionEventDirect: function(taskId, actionId) {
 		var me = this;
-		me.queueTaskEvent({actionEvent: JSON.stringify([taskId,actionId])});
+		return me.queueTaskEvent({actionEvent: JSON.stringify([taskId,actionId])});
 	},
     sendFocusEvent: function(taskId) {
         var me = this;
@@ -1559,12 +1576,12 @@ itwc.controller.prototype = {
 					taskId, "focus", me.nextSendEventNo++);
 					
 		} else { // Normal case (not a tasklet)		
-			me.sendFocusEventDirect(taskId);
+			return me.sendFocusEventDirect(taskId);
 		}
     },	
     sendFocusEventDirect: function(taskId) {
         var me = this;
-        me.queueTaskEvent({focusEvent: JSON.stringify(taskId)});
+        return me.queueTaskEvent({focusEvent: JSON.stringify(taskId)});
     },	
     flushTaskEvents: function() {
         var me = this,
@@ -1624,7 +1641,7 @@ itwc.controller.prototype = {
     },
     startUIEventSource: function() {
         var me = this;
-        me.updateSource = new EventSource('/?format=json-gui-events&session='+me.session);
+        me.updateSource = new EventSource('?format=json-gui-events&session='+me.session);
         me.updateSource.addEventListener('reset', me.onResetPushEvent.bind(me), false);
         me.updateSource.addEventListener('message', me.onUpdatePushEvent.bind(me), false);
     },
