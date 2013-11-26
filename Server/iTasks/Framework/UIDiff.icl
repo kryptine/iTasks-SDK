@@ -305,11 +305,10 @@ where
 		= []
 	diff event i windows1 [] //Less windows
 		= [UIUpdate [] [("removeWindow",[toJSON n])] \\ n <- reverse [i.. i + length windows1 - 1 ]] 
-	diff event i [] items2 //More windows
+	diff event i [] windows2 //More windows
 		= [UIUpdate [] [("addWindow",[toJSON n,encodeUIWindow def])] \\ n <- [i..] & def <- windows2]	
 	diff event i [w1:w1s] [w2:w2s] //Compare side by side (TODO: Make more granular)
 		= diffWindows [WindowStep i] event editletDiffs w1 w2 ++ diff event (i + 1) w1s w2s
-		++  diff event (i + 1) w1s w2s
 
 diffWindows :: UIPath Event UIEditletDiffs UIWindow UIWindow -> [UIUpdate]
 diffWindows path event editletDiffs w1=:(UIWindow sOpts1 iOpts1 opts1) w2=:(UIWindow sOpts2 iOpts2 opts2)
