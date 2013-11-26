@@ -870,26 +870,26 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
-            el = me.domEl,icon,label;
+            el = me.domEl;
 
         el.classList.add('button');
         el.href = '#';
 
         if(me.definition.iconCls) {
-            icon = document.createElement('div');
-            icon.classList.add('button-icon');
-            icon.classList.add(me.definition.iconCls);
-            el.appendChild(icon);
+            me.icon = document.createElement('div');
+            me.icon.classList.add('button-icon');
+            me.icon.classList.add(me.definition.iconCls);
+            el.appendChild(me.icon);
         }
         me.disabled = me.definition.disabled || false;
         if(me.disabled) {
             el.classList.add('button-disabled');
         }
         if(me.definition.text) {
-            label = document.createElement('div');
-            label.innerHTML = me.definition.text;
-            label.classList.add('button-label');
-            el.appendChild(label);
+            me.label = document.createElement('div');
+            me.label.innerHTML = me.definition.text;
+            me.label.classList.add('button-label');
+            el.appendChild(me.label);
         }
         el.addEventListener('click',function(e) {
             if(!me.disabled) {
@@ -907,6 +907,34 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
     },
     setTaskId: function(taskId) {
         this.definition.taskId = taskId;
+    },
+    setActionId: function(actionId) {
+        this.definition.actionId = actionId;
+    },
+    setText: function(text) {
+        this.label.innerHTML = text;
+    },
+    setIconCls: function (iconCls) {
+        var me = this;
+
+        if(iconCls === null) {
+            if(me.definition.iconCls) {
+                me.domEl.removeChild(me.icon);
+            }
+            me.definition.iconCls = null;
+        } else { //Set icon
+            if(me.definition.iconCls) {
+                me.icon.classList.remove(me.definition.iconCls);
+                me.definition.iconCls = iconCls;
+                me.icon.classList.add(me.definition.iconCls);
+            } else {
+                me.definition.iconCls = iconCls;
+                me.icon = document.createElement('div');
+                me.icon.classList.add('button-icon');
+                me.icon.classList.add(me.definition.iconCls);
+                me.domEl.insertBefore(me.icon,me.label);
+            }
+        }
     }
 });
 itwc.component.itwc_actionbutton = itwc.extend(itwc.ButtonComponent,{
