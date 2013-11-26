@@ -19,13 +19,18 @@ LEAFLET_CSS :== "leaflet-0.6.3/leaflet.css"
     { iconUrl   :: !String
     , iconSize  :: ![Int]
     }
+:: MapOptions =
+    { attributionControl    :: !Bool
+    , zoomControl           :: !Bool
+    }
 :: CursorOptions =
     { color     :: !String
     , opacity   :: !Real
     , radius    :: !Int
     }
 
-CURSOR_OPTIONS :== {color = "#00f", opacity = 1.0, radius = 3}
+CURSOR_OPTIONS  :== {color = "#00f", opacity = 1.0, radius = 3}
+MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
 
 :: LeafletDiff
     //Perspective
@@ -210,7 +215,7 @@ where
     onLibLoaded cid _ (map=:{LeafletMap|perspective,icons,layers},_) world
         # (l, world) = findObject "L" world
         //Create map
-        # (mapObj, world) = callObjectMethod "map" [toJSArg (mapdivid cid)] l world
+        # (mapObj, world) = callObjectMethod "map" [toJSArg (mapdivid cid),toJSArg MAP_OPTIONS] l world
         //Set perspective
         # (center,world) = toJSArray [perspective.center.lat,perspective.center.lng] world
         # (_,world) = callObjectMethod "setView" [toJSArg center, toJSArg perspective.LeafletPerspective.zoom] mapObj world
