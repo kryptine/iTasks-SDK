@@ -1,7 +1,7 @@
 /*
  SASS-Themable stylesheet for iTasks Web Client
  You can use this to easily create branded iTask applications.
- Compile to CSS using 'sass itwc-themed.scss itwc-theme.css'
+ Compile to CSS using 'sass itwc-theme.scss itwc-theme.css'
 */
 body {
   height: 100%;
@@ -426,3 +426,19 @@ body {
   overflow: auto;
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
   border-radius: 5px; }
+
+.window-header a.windowclose {
+  float: right;
+  color: black;
+  display: inline-block;
+  position: relative;
+  margin: 0;
+  top: 0px;
+  font-weight: bold;
+  font-size: 8px;
+  line-height: 8px;
+  background: #eeeeee;
+  border: 1px solid black;
+  border-radius: 2px;
+  padding: 0 4px 2px 4px;
+  text-decoration: none; }

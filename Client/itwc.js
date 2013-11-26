@@ -1190,18 +1190,47 @@ itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
 itwc.component.itwc_window = itwc.extend(itwc.Container,{
     initDOMEl: function() {
         var me = this,
-            el = me.domEl;
+            el = me.domEl, header, label, closeLink;
 
         el.classList.add('window');
 
-        if(me.definition.title) {
+        if(me.definition.title || me.definition.closeTaskId) {
             header = document.createElement('div');
-            header.innerHTML = me.definition.title;
-            header.classList.add('panel-header');
+            header.classList.add('window-header');
+
+            label = document.createElement('span');
+            label.innerHTML = me.definition.title || '';
+            header.appendChild(label);
+
+            if(me.definition.closeTaskId) {
+                closeLink = document.createElement('a');
+                closeLink.innerHTML = 'x';
+                closeLink.href = '#';
+                closeLink.classList.add('windowclose');
+                closeLink.addEventListener('click',function(e) {
+                    itwc.controller.sendActionEvent(me.definition.closeTaskId,'Close');
+                    e.preventDefault();
+                },me);
+
+                header.appendChild(closeLink);
+            }
 
             el.appendChild(header);
+
             me.itemsOffset = 1;
         }
+        if(me.definition.tbar) {
+            el.classList.add('vcontainer');
+            me.menu = new itwc.component.itwc_menubar();
+            me.menu.init({xtype: "itwc_menu_bar", items: me.definition.tbar}, me);
+            me.menu.render(0);
+            el.appendChild(me.menu.domEl);
+
+            me.targetEl = document.createElement('div');
+            me.targetEl.style.flex = 1;
+            el.appendChild(me.targetEl);
+        }
+
     }
 });
 itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
@@ -1735,6 +1764,12 @@ itwc.controller.prototype = {
         if(winDef.items) {
             winDef.items.forEach(function(childCmp,childIdx) {
                 me.addComponent(win,childIdx,childCmp);
+            });
+        }
+        //Add menu items if the window has a menu
+        if(win.menu) {
+            win.menu.definition.items.forEach(function(menuCmp,menuIdx) {
+                me.addComponent(win.menu,menuIdx,menuCmp);
             });
         }
         itwc.WINDOWS[winIdx] = win;

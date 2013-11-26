@@ -88,7 +88,7 @@ body {
     background-color: $canvas-base-color;
     border: 1px solid $borders-color;
 }
-.panel-header {
+.panel-header, .window-header {
     background-color: $header-base-color;
 
     background: -moz-linear-gradient(top, ($header-base-color + #222) 0%, $header-base-color 100%);
@@ -438,4 +438,20 @@ body {
     overflow: auto;
     box-shadow: 0 5px 5px rgba(0,0,0,0.5);
     border-radius: 5px;
+}
+.window-header a.windowclose {
+    float: right;
+    color: $header-text-color;
+    display: inline-block;
+    position: relative;
+    margin: 0;
+    top: 0px;
+    font-weight: bold;
+    font-size: 8px;
+    line-height: 8px;
+    background: $header-base-color + #222;
+    border: 1px solid $header-text-color;
+    border-radius: 2px;
+    padding: 0 4px 2px 4px;
+    text-decoration: none;
 }
