@@ -765,14 +765,25 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		return fields;
 	}
 });
-itwc.component.itwc_tasklet = itwc.extend(itwc.Component,{
+itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl, tmp;
 
-		if(me.definition.html)
+		if(me.definition.html) {
 			el.innerHTML = me.definition.html;
-			
+        } else if(me.definition.tbar) {
+            el.classList.add('vcontainer');
+            me.menu = new itwc.component.itwc_menubar();
+            me.menu.init({xtype: "itwc_menu_bar", items: me.definition.tbar}, me);
+            me.menu.render(0);
+            el.appendChild(me.menu.domEl);
+
+            me.targetEl = document.createElement('div');
+            me.targetEl.style.flex = 1;
+            el.appendChild(me.targetEl);
+        }
+
         // Prepare javascript
         if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
             evalScript(me.definition.script);
@@ -977,6 +988,17 @@ itwc.component.itwc_panel = itwc.extend(itwc.Container,{
         if(me.definition.title) {
             me.createTitle(me.definition.title);
         }
+        if(me.definition.tbar) {
+            el.classList.add('vcontainer');
+            me.menu = new itwc.component.itwc_menubar();
+            me.menu.init({xtype: "itwc_menu_bar", items: me.definition.tbar}, me);
+            me.menu.render(0);
+            el.appendChild(me.menu.domEl);
+
+            me.targetEl = document.createElement('div');
+            me.targetEl.style.flex = 1;
+            el.appendChild(me.targetEl);
+        }
     },
     createTitle: function(title) {
         var me = this, header;
@@ -985,10 +1007,10 @@ itwc.component.itwc_panel = itwc.extend(itwc.Container,{
         header.innerHTML = title;
         header.classList.add('panel-header');
 
-        if(me.domEl.childNodes.length) {
-            me.domEl.insertBefore(header,me.domEl.childNodes[0]);
+        if(me.targetEl.childNodes.length) {
+            me.targetEl.insertBefore(header,me.targetEl.childNodes[0]);
         } else {
-            me.domEl.appendChild(header);
+            me.targetEl.appendChild(header);
         }
         me.hasTitle = true;
         me.itemsOffset = 1;
@@ -1610,7 +1632,7 @@ itwc.controller.prototype = {
             cmp = itwc.WINDOWS[path[1]];
             path.splice(0,2);
         } else {
-            cmp = root?root:itwc.UI;
+            cmp = root ? root : itwc.UI;
         }
         path.forEach(function(step) {
             cmp = (step === 'm') ? cmp.menu : cmp.items[step];
