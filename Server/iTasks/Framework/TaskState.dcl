@@ -12,6 +12,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 
 :: TIMeta =
 	{ instanceNo	:: !InstanceNo			//Unique global identification
+    , instanceKey   :: !InstanceKey         //Random string that a client needs to provide to access the task instance
     , instanceType  :: !TIType
 	, listId        :: !TaskId              //Reference to parent tasklist
     , name          :: !Maybe String        //Identifier
@@ -26,8 +27,7 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
     | TmpAttachedInstance ![TaskId] !User   //A temporarily attached task that will automatically turn into a detached instance after evaluation
 
 :: SessionInfo =
-	{ sessionId		:: SessionId
-	, lastEvent		:: EventNo
+	{ lastEvent		:: EventNo
 	}
 	
 :: TIReduct =

@@ -33,11 +33,6 @@ reduct_store t	= toString t +++ "-reduct"
 result_store t	= toString t +++ "-result"
 rep_store t		= toString t +++ "-rep"
 
-newSessionId :: !*IWorld -> (!SessionId,!*IWorld)
-newSessionId iworld=:{IWorld|world,timestamp}
-	# (Clock c, world)		= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) , {IWorld|iworld & world = world})
-	
 newInstanceNo :: !*IWorld -> (!InstanceNo,!*IWorld)
 newInstanceNo iworld
 	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
@@ -55,6 +50,11 @@ maxInstanceNo iworld
 	= case mbNewTid of
 		Just tid	= (tid-1,iworld)
 		Nothing		= (0,iworld)
+
+newInstanceKey :: !*IWorld -> (!InstanceKey, !*IWorld)
+newInstanceKey iworld=:{IWorld|world,timestamp}
+	# (Clock c, world)		= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) , {IWorld|iworld & world = world})
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 newDocumentId iworld=:{world,timestamp}

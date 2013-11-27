@@ -368,6 +368,7 @@ instance Functor TaskValue
 :: TaskId		= TaskId !InstanceNo !TaskNo
 :: InstanceNo	:== Int
 :: TaskNo		:== Int
+:: InstanceKey  :== String
 
 :: SessionId	:== String
 

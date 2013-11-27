@@ -13,9 +13,9 @@ from Data.Error import :: MaybeError
 from System.Time			import :: Timestamp
 from Data.SharedDataSource	import :: BasicShareId, :: RWShared
 
-newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
 newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
+newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
 //Create and delete task instances

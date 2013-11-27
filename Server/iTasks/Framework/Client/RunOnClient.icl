@@ -60,7 +60,7 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing}
 	# (taskId, iworld)  = createClientTaskInstance task sessionId instanceNo iworld
 	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (RefreshEvent Nothing) iworld
 	= case mbResult of
-		Ok (ValueResult _ _ (TaskRep def _) _, _, _, update) 
+		Ok (ValueResult _ _ (TaskRep def _) _, _, _, _, update)
 					= (Just update, {TaskState | st & taskId = Just taskId}, iworld)
 		_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
 
@@ -68,13 +68,13 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing}
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
 	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (RefreshEvent Nothing) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update) 
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
+		Ok (DestroyedResult, _, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _)
+		Ok (ExceptionResult _ msg, _, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
@@ -84,13 +84,13 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} 
 	# iworld = trace_n "c_focus" iworld
 	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (FocusEvent eventNo t) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update) 
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
+		Ok (DestroyedResult, _, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _)
+		Ok (ExceptionResult _ msg, _, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
@@ -99,13 +99,13 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} 
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) (Just jsonval) iworld
 	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (EditEvent eventNo taskId name (fromString jsonval)) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update) 
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
+		Ok (DestroyedResult, _, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _) 
+		Ok (ExceptionResult _ msg, _, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
@@ -114,13 +114,13 @@ controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Ju
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) Nothing iworld
 	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (ActionEvent eventNo taskId name) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update) 
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update) 
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
+		Ok (DestroyedResult, _, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _) 
+		Ok (ExceptionResult _ msg, _, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	

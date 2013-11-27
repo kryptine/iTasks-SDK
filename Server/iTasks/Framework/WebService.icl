@@ -71,15 +71,15 @@ where
 				# (json, iworld) 		= case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-					Ok (ExceptionResult _ err,_,_,_)
+					Ok (ExceptionResult _ err,_,_,_,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (ValueResult (Value _ True) _ _ _,_,_,_)
+					Ok (ValueResult (Value _ True) _ _ _,_,_,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ info curRep context,instanceNo,{SessionInfo|sessionId,lastEvent},updates)
+					Ok (ValueResult _ info curRep context,instanceNo,instanceKey,{SessionInfo|lastEvent},updates)
 						//Determine expiry date	
 						# (expiresIn,iworld)	= getResponseExpiry instanceNo iworld
 						# json	= JSONObject [("success",JSONBool True)
-											 ,("session",JSONString sessionId)
+											 ,("session",JSONString instanceKey)
 											 ,("expiresIn",toJSON expiresIn)
 											 ,("lastEvent",JSONInt lastEvent)
 											 ,("updates", encodeUIUpdates updates)
@@ -95,35 +95,25 @@ where
                     sessionId
                         # (messages,iworld)	= getUIMessages sessionId iworld	
                         = (eventsResponse messages, Just sessionId, iworld)
-                /*
-                = case sessionParam of
-                    ""  = (errorResponse "Event stream is only possible for existing sessions", Nothing, iworld)
-                    sessionId	
-				        = case evalSessionTaskInstance sessionId event iworld of
-					        (Ok (ValueResult _ _ _ _,instanceNo,{SessionInfo|sessionId},updates),iworld)
-						        = (eventsResponse updates, Just sessionId, iworld)	
-					        (_,iworld)
-						        = (errorResponse "Failed to initialize event stream", Nothing, iworld)
-                */
 			//Serve the task in easily accessable JSON representation
 			JSONService
 				# (mbResult,iworld)	= case sessionParam of
 					""			= createSessionTaskInstance (task req) event iworld
 					sessionId	= evalSessionTaskInstance sessionId event iworld
 				= case mbResult of
-					Ok (ExceptionResult _ err,_,_,_)
+					Ok (ExceptionResult _ err,_,_,_,_)
 						= (errorResponse err, Nothing, iworld)
-					Ok (ValueResult (Value val True) _ _ _,_,_,_)
+					Ok (ValueResult (Value val True) _ _ _,_,_,_,_)
 						= (jsonResponse (serviceDoneResponse val), Nothing, iworld)
-					Ok (ValueResult _ _ (TaskRep def rep) _,_,_,_)
+					Ok (ValueResult _ _ (TaskRep def rep) _,_,_,_,_)
 						= (jsonResponse (serviceBusyResponse rep (uiDefActions def) (toList (uiDefAttributes def))), Nothing, iworld)
 			//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 			JSONPlain
 				# (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
 				= case mbResult of
-					Ok (ExceptionResult _ err,_,_,_)
+					Ok (ExceptionResult _ err,_,_,_,_)
 						= (errorResponse err, Nothing, iworld)
-					Ok (ValueResult (Value val _) _ _ _,_,_,_)
+					Ok (ValueResult (Value val _) _ _ _,_,_,_,_)
 						= (jsonResponse val, Nothing, iworld)
 					_
 						= (errorResponse "Requested service format not available for this task", Nothing, iworld)
@@ -243,3 +233,4 @@ where
 		| isError mbD	= createDocumentsFromUploads us iworld
 		# (ds,iworld)	= createDocumentsFromUploads us iworld
 		= ([fromOk mbD:ds],iworld)
+
