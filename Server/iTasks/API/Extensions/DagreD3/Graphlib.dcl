@@ -18,6 +18,8 @@ addNode :: GLGraph (JSVal i) (JSVal m) *JSWorld -> *JSWorld
 
 addEdge :: GLGraph (JSVal i) (JSVal l) (JSVal r) (JSVal a) *JSWorld -> *JSWorld
 
+addEdgeSimple :: GLGraph (JSVal l) (JSVal r) *JSWorld -> *JSWorld
+
 isDirected :: GLGraph *JSWorld -> *(Bool, *JSWorld)
 
 hasNode :: GLGraph (JSVal i) *JSWorld -> *(Bool, *JSWorld)

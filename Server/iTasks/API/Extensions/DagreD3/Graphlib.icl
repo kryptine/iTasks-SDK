@@ -25,6 +25,9 @@ addNode graph nid meta world = snd (callObjectMethod "addNode" [toJSArg nid, toJ
 addEdge :: GLGraph (JSVal i) (JSVal l) (JSVal r) (JSVal a) *JSWorld -> *JSWorld
 addEdge graph eid lid rid attrs world = snd (callObjectMethod "addEdge" [toJSArg eid, toJSArg lid, toJSArg rid, toJSArg attrs] graph world)
 
+addEdgeSimple :: GLGraph (JSVal l) (JSVal r) *JSWorld -> *JSWorld
+addEdgeSimple graph lid rid world = addEdge graph jsNull lid rid jsNull world
+
 isDirected :: GLGraph *JSWorld -> *(Bool, *JSWorld)
 isDirected graph world
   # (jb, world) = callObjectMethod "isDirected" [] graph world
