@@ -28,6 +28,18 @@ addEdge graph eid lid rid attrs world = snd (callObjectMethod "addEdge" [toJSArg
 addEdgeSimple :: GLGraph (JSVal l) (JSVal r) *JSWorld -> *JSWorld
 addEdgeSimple graph lid rid world = addEdge graph jsNull lid rid jsNull world
 
+setEdgeValue :: GLGraph (JSVal e) (JSVal v) *JSWorld -> *JSWorld
+setEdgeValue graph edge value world = snd (callObjectMethod "edge" [toJSArg edge, toJSArg value] edge world)
+
+getEdgeValue :: GLGraph (JSVal e) *JSWorld -> *(JSVal v, *JSWorld)
+getEdgeValue graph edge world = callObjectMethod "edge" [toJSArg edge] edge world
+
+setNodeValue :: GLGraph (JSVal e) (JSVal v) *JSWorld -> *JSWorld
+setNodeValue graph edge value world = snd (callObjectMethod "node" [toJSArg edge, toJSArg value] edge world)
+
+getNodeValue :: GLGraph (JSVal e) *JSWorld -> *(JSVal v, *JSWorld)
+getNodeValue graph edge world = callObjectMethod "node" [toJSArg edge] edge world
+
 isDirected :: GLGraph *JSWorld -> *(Bool, *JSWorld)
 isDirected graph world
   # (jb, world) = callObjectMethod "isDirected" [] graph world
