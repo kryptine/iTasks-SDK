@@ -83,6 +83,7 @@ jsTrace :: a *JSWorld -> *JSWorld
 jsValToString :: !(JSVal a) -> String
 jsValToReal   :: !(JSVal a) -> Real
 jsValToInt    :: !(JSVal a) -> Int
+jsValToBool   :: !(JSVal a) -> Bool
 
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 

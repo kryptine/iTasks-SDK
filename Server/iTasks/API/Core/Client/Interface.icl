@@ -185,12 +185,21 @@ jsValToString ptr = case fromJSValUnsafe ptr of
 jsValToReal :: !(JSVal a) -> Real
 jsValToReal ptr = case fromJSValUnsafe ptr of
 					(val :: Real)   = val
+					(val :: String)	= toReal val
+					(val :: Int)    = toReal val
 									= abort "Real was expected but something else came"
 
 jsValToInt :: !(JSVal a) -> Int
 jsValToInt ptr = case fromJSValUnsafe ptr of
 					(val :: Int)	= val
-								   	= abort "Integer was expected but something else came"
+					(val :: String)	= toInt val
+					(val :: Real)	= toInt val
+								   	= abort "Int was expected but something else came"
+
+jsValToBool :: !(JSVal a) -> Bool
+jsValToBool ptr = case fromJSValUnsafe ptr of
+					(val :: Bool)	= val
+								   	= abort "Bool was expected but something else came"
 
 withDef :: !((JSVal a) -> b) !b !(JSVal a) -> b
 withDef f def ptr | jsIsUndefined ptr
