@@ -188,16 +188,14 @@ initIWorld sdkDir world
 	# storeDir					= dataDir </> "store-"+++ build
 	# (exists,world)			= ensureDir "store" storeDir world
 	
-	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] []
+	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] [] 
 										["iTasks.Framework.Client.Override"
-										,"_SystemDynamic"
 										,"dynamic_string"
 										,"graph_to_string_with_descriptors"
 										,"graph_to_sapl_string"
 										,"Text.Encodings.Base64"
 										,"Sapl.LazyLinker"
 										,"Sapl.Target.JS.CodeGeneratorJS"
-										,"System.Time"
 										,"System.Pointer"
 										,"System.File"
 										,"System.Directory"] world

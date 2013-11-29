@@ -53,8 +53,8 @@ where
 		# world	= setDomAttr id "value" (toJSVal val) world
 		= (val,world)
 	
-	onChange  :: ComponentId (JSVal JSEvent) String *JSWorld -> (!String, !*JSWorld)
-	onChange id event val world
+	onChange  :: ComponentId {JSVal JSEvent} String *JSWorld -> (!String, !*JSWorld)
+	onChange id _ val world
 		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
@@ -190,7 +190,7 @@ where
 	onUpdate :: ComponentId (Maybe (TicTacToe,TicTac)) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	onUpdate editorId _ state world = (state,world) //(state,redraw "tictactoe" state world)
 
-	onCellClick :: Coordinate ComponentId (JSVal JSEvent) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
+	onCellClick :: Coordinate ComponentId {JSVal JSEvent} (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	onCellClick coord editorId event (board,turn) world
 		# state = (add_cell coord turn board, ~turn)
 		= (state, redraw "tictactoe" state world)
@@ -264,10 +264,10 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 
 //test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 
-test7 :: Task LeafletMap
-test7 = enterInformation "Test" [] 
+//test7 :: Task LeafletMap
+//test7 = enterInformation "Test" [] 
 
 Start :: *World -> *World
-Start world = startEngine test7 world
+Start world = startEngine test5 world
 
 

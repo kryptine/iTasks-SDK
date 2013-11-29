@@ -8,6 +8,7 @@ import iTasks.API.Core.Client.Map
 import Data.Functor, Text, StdMisc
 
 from Data.Map import newMap
+from StdArray import class Array(uselect), instance Array {} a
 
 :: GoogleMapDiff
     = SetSettings GoogleMapSettings
@@ -151,20 +152,20 @@ where
         = (clval, world)	
 	updateUI id diff clval world //Catchall
         = (clval, world)
-	onUpdatePerspective "zoom" _ event clval=:{val,mbSt=Just st=:{mapobj}} world
+	onUpdatePerspective "zoom" _ _ clval=:{val,mbSt=Just st=:{mapobj}} world
 		# (zoom, world) = callObjectMethod "getZoom" [] mapobj world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & zoom = jsValToInt zoom}}}, world)
-	onUpdatePerspective "maptype" _ event clval=:{val,mbSt=Just {mapobj}} world
+	onUpdatePerspective "maptype" _ _ clval=:{val,mbSt=Just {mapobj}} world
 		# (maptypeid, world) = callObjectMethod "getMapTypeId" [] mapobj world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & type = fromString (toUpperCase (jsValToString maptypeid))}}}, world)
-	onUpdatePerspective "dragend" _ event clval=:{val,mbSt=Just {mapobj}} world 
+	onUpdatePerspective "dragend" _ _ clval=:{val,mbSt=Just {mapobj}} world 
 		# (center, world) 	  	= callObjectMethod "getCenter" [] mapobj world
 		# ((lat, lng), world) 	= getPos center world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & center = {lat = lat, lng = lng}}}}, world)
-    onUpdatePerspective _ _ event clval world
+    onUpdatePerspective _ _ _ clval world
         = (clval,world) //Catchall
 			
-	addMarker cid event clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
+	addMarker cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
 		# (latlng, world)     = jsGetObjectAttr "latLng" event world
 		# ((lat, lng), world) = getPos latlng world
 		
@@ -242,13 +243,13 @@ where
 		= jsPut markerId marker markerMap world
 	where
         onClick = createEditletEventHandler onMarkerClick cid
-        onMarkerClick cid event clval=:{val={markers}} world
+        onMarkerClick cid _ clval=:{val={markers}} world
             //Toggle selection
             # markers = [{GoogleMapMarker|m & selected = (m.GoogleMapMarker.markerId == markerId)} \\ m <- markers]
 			= ({clval&val={clval.val&markers=markers}}, world)
 
 		onDrag = createEditletEventHandler onMarkerDrag cid	
-		onMarkerDrag cid event clval=:{val={markers}} world
+		onMarkerDrag cid {[0]=event} clval=:{val={markers}} world
 			# (latlng, world)      = jsGetObjectAttr "latLng" event world
 			# ((lat, lng), world)  = getPos latlng world
             # markers = [if (m.GoogleMapMarker.markerId == markerId) {GoogleMapMarker|m & position= {GoogleMapPosition | lat = lat, lng = lng}} m \\ m <- markers]

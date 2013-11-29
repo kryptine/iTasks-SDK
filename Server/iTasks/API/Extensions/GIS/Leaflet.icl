@@ -5,6 +5,8 @@ import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Map
 import StdMisc, Data.Tuple
 
+from StdArray import class Array(uselect), instance Array {} a
+
 LEAFLET_JS :== "leaflet-0.6.3/leaflet.js"
 LEAFLET_CSS :== "leaflet-0.6.3/leaflet.css"
 
@@ -278,23 +280,23 @@ where
         # (_,world)      = callObjectMethod "addTo" [toJSArg layer] marker world
         = (i + 1,world)
 
-    onMapMove cid event (map=:{LeafletMap|perspective},mbSt) world
+    onMapMove cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) world
         # (mapobj,world) = jsGetObjectAttr "target" event world
         # (latlng,world) = callObjectMethod "getCenter" [] mapobj world
         # (center,world) = getPos latlng world
         = (({LeafletMap|map & perspective = {perspective & center = center}},mbSt),world)
-    onZoomChange cid event (map=:{LeafletMap|perspective},mbSt) world
+    onZoomChange cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) world
         # (mapobj,world)    = jsGetObjectAttr "target" event world
         # (zoom,world)      = callObjectMethod "getZoom" [] mapobj world
         = (({LeafletMap|map & perspective = {perspective & zoom = jsValToInt zoom}},mbSt),world)
-    onMapClick cid event (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Nothing}) world
+    onMapClick cid {[0]=event} (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Nothing}) world
         # (l, world)        = findObject "L" world
         # (latlng,world)    = jsGetObjectAttr "latlng" event world
         # (cursor,world)    = getPos latlng world
         # (mapCursor,world) = callObjectMethod "circleMarker" [toJSArg latlng,toJSArg CURSOR_OPTIONS] l world
         # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] mapCursor world
         = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},Just {st & mapCursor = Just mapCursor}),world)
-    onMapClick cid event (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Just mapCursor}) world
+    onMapClick cid {[0]=event} (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Just mapCursor}) world
         # (latlng,world)    = jsGetObjectAttr "latlng" event world
         # (cursor,world)    = getPos latlng world
         # (_,world)         = callObjectMethod "setLatLng" [toJSArg latlng] mapCursor world

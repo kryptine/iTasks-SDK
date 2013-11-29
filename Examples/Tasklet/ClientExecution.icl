@@ -42,11 +42,8 @@ basicAPIExamples =
 	,workflow (seqTasks +++ "Edit shared todo list") 		"Edit shared todo list" 			(runOnClient editToDoList)
 	,workflow (seqTasks +++ "Follow tweets of a user") 		"Follow tweets of a user" 			(runOnClient followTweets)
 
-	,workflow (parTasks +++ "Test")"Test"														(runOnClient test)
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						(runOnClient editWithStatistics)
 	]
-
-test = viewInformation "hello1" [] "hello world" -||- viewInformation "hello1" [] "hello world"
 
 //* utility functions
 

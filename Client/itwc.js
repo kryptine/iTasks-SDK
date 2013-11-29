@@ -654,6 +654,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
             evalScript(me.definition.script);
 			delete me.definition.script;
+			_dynamic_hijack();					
         }
         if(me.definition.defVal != null) {
             eval("tmp = " + me.definition.defVal + ";");
@@ -711,11 +712,18 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		(me.eventHandler(false,me.updateUI))(mbDiff);		
 	},
 	// Creating a closure
-	eventHandler: function(dowrap,expr){
+	eventHandler: function(jsevent,expr){
 		var me = this;
 		
-		var h = function(event){			
-			if(dowrap) event = ___wrapJS(event);
+		var h = function(dummy){
+
+			var event = dummy;
+		
+			if(jsevent){
+				event = [0,"ARRAY"];
+				for(var i=0; i<arguments.length; i++) event.push(___wrapJS(arguments[i]));
+			}
+			
 			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
 
             if(typeof ys == 'undefined') {
@@ -804,6 +812,7 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
         if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
             evalScript(me.definition.script);
 			delete me.definition.script;
+			_dynamic_hijack();			
 		}
 		
 		// Prepare state
@@ -875,7 +884,7 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 		
 		var h = function(event){
 			eval("var tmp = " + expr + ";");
-			Sapl.fapp(tmp,[event]);
+			Sapl.fapp(tmp,[arguments]);
 		};
 
 		return h;
@@ -1659,6 +1668,8 @@ itwc.controller.prototype = {
         var me = this,
             cmp;
 
+		console.log("updateUI",updates);
+			
         updates.forEach(function(update) {
             cmp = me.findComponent(update.path,root);
 

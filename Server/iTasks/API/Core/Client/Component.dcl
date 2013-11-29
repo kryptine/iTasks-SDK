@@ -6,7 +6,7 @@ import iTasks.Framework.UIDefinition
 :: ComponentId :== String
 :: ComponentEventName :== String
 :: ComponentEvent idtype a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc idtype a)
-:: ComponentEventHandlerFunc idtype a :== idtype (JSVal JSEvent) a *JSWorld -> *(!a, !*JSWorld)
+:: ComponentEventHandlerFunc idtype a :== idtype {JSVal JSEvent} a *JSWorld -> *(!a, !*JSWorld)
 
 :: ComponentHTML idtype st = 
 	{ width 			:: !UISize

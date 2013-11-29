@@ -99,16 +99,19 @@ function __itask_background_process(){
 	console.timeEnd('background process');
 }
 
-function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,event){
+function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,eventvals){
 	var taskId = Sapl.feval(taskId);
 	
 	var sti = taskId[2]+"-"+taskId[3]; // toString
 	var tasklet = itwc.controller.tasklets[sti];
 	var state = tasklet.definition.st;
 	
+	var eventarray = [0,"ARRAY"];
+	for(var i=0; i<eventvals.length; i++) eventarray.push(___wrapJS(eventvals[i]));	
+	
 	// Returns a tuple of the JSWorld and HtmlEventResult	
 	// Looks like: [0, "Tuple2", HtmlEventResult, JSWorld]	
-	var ys = Sapl.fapp(expr,[taskId,___wrapJS(event),state,"WORLD"]);
+	var ys = Sapl.fapp(expr,[taskId,eventarray,state,"WORLD"]);
 	
 	// The result is only in HNF, so both part of the tuple must be forced,
 	// but the document can be dropped after that.

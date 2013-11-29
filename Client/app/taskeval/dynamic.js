@@ -1,14 +1,7 @@
-// TO BE SURE
-var __Maybe_Nothing = [0, 'Maybe.Nothing'];
-
-function __Maybe_Just(__a1) {
-    return [1, 'Maybe.Just', __a1];
-};
-// TO BE SURE
-
+// TO BE SURE	
 var ___SystemDynamic_TC_Char = [0, '_SystemDynamic.TC_Char'];
 var ___SystemDynamic_TC_Real = [0, '_SystemDynamic.TC_Real'];
-var ___SystemDynamic_TC_Int  = [0, '_SystemDynamic.TC_Real'];
+var ___SystemDynamic_TC_Int  = [0, '_SystemDynamic.TC_Int'];
 var ___SystemDynamic_TC_Bool = [0, '_SystemDynamic.TC_Bool'];
 var ___SystemDynamic_TC__List = [0, '_SystemDynamic.TC__List'];
 var ___SystemDynamic_TC__UnboxedArray = [0, '_SystemDynamic.TC__UnboxedArray'];
@@ -31,26 +24,35 @@ function ___SystemDynamic__TypeCodeConstructor(__a1) {
 function ___SystemDynamic__DynamicTemp(__a1, __a2) {
     return [0, '_SystemDynamic._DynamicTemp', __a1, __a2];
 };
+// TO BE SURE
 
-function ___SystemDynamic__initial_unification_environment(n_type_pattern_vars, n_type_vars){
-	return undefined; // undefined will do it
+var _orig_unify_fun;
+
+function _dynamic_hijack(){
+	if(typeof ___SystemDynamic__unify === "function" && ___SystemDynamic__unify != _gen_unify){
+		_orig_unify_fun = ___SystemDynamic__unify;
+		___SystemDynamic__unify = _gen_unify;
+	}
+}
+
+// Wrapper for unification function:
+// if the current type is wrapped into a "JSTYPE" data constructor, use the handwritten unification
+// otherwise the original, generated one
+function _gen_unify(subst, t1, t2){
+	if(isArray(t1) && t1[0] == 0 && t1[1] == "JSTYPE"){
+		return ___Tuple2(unify(t1[2], Sapl.heval(t2), true), subst);
+	}else{
+		return _orig_unify_fun(subst, t1, t2);
+	}
 };
 
-// Don't do anything
-function ___SystemDynamic__normalise(subst, t) { return t; };
-function ___SystemDynamic__bind_global_type_pattern_var(t1, t2, subst) { return subst; };
-
-function ___SystemDynamic__unify(subst, t1, t2){
-	return ___Tuple2(unify(t1, Sapl.heval(t2), true), subst);
-};
-
-// Very simple unification algorithm
+// Very simple unification algorithm for JS values
 function unify(t1, t2, enable_cast){
 	// Check constructor name
 	if(t1[1] != t2[1]){
 	
 		// Int can be unified with Real
-		if(t1[1] == '_SystemDynamic.TC_Int' && t1[1] == '_SystemDynamic.TC_Real'){
+		if(t1[1] == '_SystemDynamic.TC_Int' && t2[1] == '_SystemDynamic.TC_Real'){
 			return true;
 		// A Char is also a String in JS
 		}else if(enable_cast && unify(t1, charType(), false) && unify(t2, stringType(), false)){
@@ -83,7 +85,7 @@ function applyTypes(arr, containerType){
 }
 
 function toDynamic(val){
-	return ___SystemDynamic__DynamicTemp(val, getType(val));
+	return ___SystemDynamic__DynamicTemp(val, [0, "JSTYPE", getType(val)]);
 }
 
 function getType(val){

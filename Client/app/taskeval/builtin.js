@@ -12,6 +12,12 @@ var __Data_Maybe_Nothing = [0,"Data.Maybe.Nothing"];
 function __Data_Maybe_Just(val){
 	return [1,"Data.Maybe.Just",val];
 };
+
+var __Maybe_Nothing = [0, 'Maybe.Nothing'];
+
+function __Maybe_Just(__a1) {
+    return [1, 'Maybe.Just', __a1];
+};
 // TO BE SURE
 
 // --------- Primitive functions -----------------------------
@@ -188,19 +194,22 @@ function _array_create1$eval(size){
 }
 
 function _array_create1(size){
-	return new Array(size);
+	var arr = new Array(size+2);
+	arr[0]=0;
+	arr[1]="ARRAY";
+	return arr;
 }
 
 function _array_create2_lazy$eval(size, e){
-	return _createArray2(Sapl.feval(size), e);
+	return _array_create2(Sapl.feval(size), e);
 }
 
 function _array_create2$eval(size, e){
-	return _createArray2(Sapl.feval(size), Sapl.feval(e));
+	return _array_create2(Sapl.feval(size), Sapl.feval(e));
 }
 
 function _array_create2(size, e){
-	var data = [];
+	var data = [0,"ARRAY"];
 
 	for(var i = 0; i < size; i++) {
 		data.push(e);
@@ -218,7 +227,7 @@ function _array_update$eval(arr, idx, e){
 }
 
 function _array_update(arr, idx, e){
-	arr[idx] = e;
+	arr[idx+2] = e;
 	return arr;
 }
 
@@ -231,29 +240,29 @@ function _array_replace$eval(arr, idx, e){
 }
 
 function _array_replace(arr, idx, e){
-	var o = arr[idx];
-	arr[idx] = e;
+	var o = arr[idx+2];
+	arr[idx+2] = e;
 	return ___Tuple2(o, arr);
 }
 
 function _array_select_lazy(arr, idx){
-	return Sapl.feval(Sapl.feval(arr)[Sapl.feval(idx)]);
+	return Sapl.feval(Sapl.feval(arr)[Sapl.feval(idx)+2]);
 }
 
 function _array_select(arr, idx){
-	return Sapl.feval(arr)[Sapl.feval(idx)];
+	return Sapl.feval(arr)[Sapl.feval(idx)+2];
 }
 
 function _array_uselect(arr, idx){
-	return ___Tuple2(_Sapl.feval(arr)[Sapl.feval(idx)],arr);
+	return ___Tuple2(Sapl.feval(arr)[Sapl.feval(idx)+2],arr);
 }
 
 function _array_size(arr){
-	return Sapl.feval(arr).length;
+	return Sapl.feval(arr).length-2;
 }
 
 function _array_usize(arr){
-	return ___Tuple2(_Sapl.feval(arr).length,arr);
+	return ___Tuple2(Sapl.feval(arr).length-2,arr);
 }
 
 // ----------------------------------------------------------------
@@ -373,5 +382,18 @@ function __sapldebug(str, f){
     }else{
         _error();
     }
+}
+
+// Something unique that can be compared for equality
+function __getRunTimeDynamicDescriptor(a){
+	if(isArray(a) && isFunction(a[0])){
+		// Wrapped function
+		return a[0];
+	}else if(isArray(a) && isNumber(a[0])){
+		// Data constructor
+		return a[1];
+	}else{
+		return a;
+	}
 }
 

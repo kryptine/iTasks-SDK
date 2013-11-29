@@ -1,6 +1,7 @@
 module FlightCheckIn
 
 import iTasks,iTasks.API.Core.Client.Tasklet,FlightSupport
+from StdArray import class Array(uselect), instance Array {} a
 
 maybeStable :: (Maybe a) -> (TaskValue a)
 maybeStable (Just v) = Value v True
@@ -129,7 +130,7 @@ where
  		 ComponentEvent (genSeatId seat) "mouseout" (setColor "white")]
  		
  	setState newst _ _ _ world  = (newst, world)
- 	setColor color _ e st world	=
+ 	setColor color _ {[0]=e} st world	=
 		(st, jsSetObjectAttr "target.style.backgroundColor" (toJSVal color) e world)
 
 	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]

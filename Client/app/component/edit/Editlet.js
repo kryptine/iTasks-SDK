@@ -68,13 +68,22 @@ Ext.define('itwc.component.edit.Editlet',{
 		(me.eventHandler(false,me.updateUI))(mbDiff);		
 	},
 	// Creating a closure
-	eventHandler: function(dowrap,expr){
+	eventHandler: function(jsevent,expr){
 		var me = this;
 
-		var h = function(event){			
+		var h = function(dummy){			
 
-           	if(event) event = event.browserEvent || event;
-			if(dowrap) event = ___wrapJS(event);
+			var event = dummy;		
+		
+			if(jsevent){
+				event = [0,"ARRAY"];
+				for(var i=0; i<arguments.length; i++){
+					var e = arguments[i];
+					e = e.browserEvent || e;
+					event.push(___wrapJS(e));
+				}
+			}		
+		
 			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
 	
 			//Strict evaluation of all the fields in the result tuple
