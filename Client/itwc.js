@@ -1,6 +1,6 @@
 //#### iTasks Web Client ####//
 //This javascript program defines the web-based run-time environment of iTasks programs
-itwc = {};
+itwc = itwc || {};
 itwc.global = {};
 
 //#### UTILITY FUNCTIONS ####//
@@ -1668,8 +1668,6 @@ itwc.controller.prototype = {
         var me = this,
             cmp;
 
-		console.log("updateUI",updates);
-			
         updates.forEach(function(update) {
             cmp = me.findComponent(update.path,root);
 
@@ -1812,7 +1810,7 @@ itwc.controller.prototype = {
         document.body.removeChild(itwc.WINDOWS[winIdx].domEl);
         itwc.WINDOWS.splice(winIdx,1);
     },
-    reset: function() {
+    reset: function(startInstanceNo,startInstanceUrl) {
         var me = this,
             urlSplit;
 
@@ -1828,7 +1826,8 @@ itwc.controller.prototype = {
         }
 
         ///Reset session
-        me.session = null;
+        me.session = itwc.START_INSTANCE_KEY || null;
+
         //Empty event queue
         me.taskEvents = [];
         me.nextSendEventNo = 0;
@@ -1848,8 +1847,9 @@ itwc.controller.prototype = {
     },
     start: function () {
         var me = this;
+
         //Initialize user interface data structures and DOM
-        me.reset();
+        me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_URL);
         //Start a session by sending a blank event
         me.queueTaskEvent({});
     }

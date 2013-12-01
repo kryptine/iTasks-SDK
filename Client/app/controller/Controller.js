@@ -13,7 +13,7 @@ Ext.define('itwc.controller.Controller', {
 			  ,'itwc.container.TabItem'			//Container that is one tab in a set.
 			  ,'itwc.container.FieldSet'		//Logical grouping of components
 			  ,'itwc.container.Window'			//Floating window
-  
+
 			  ,'itwc.component.view.String'		//Strings with html escaping
 			  ,'itwc.component.view.HTML'		//Raw HTML
 			  ,'itwc.component.view.Checkbox'	//Checkbox for booleans
@@ -74,6 +74,8 @@ Ext.define('itwc.controller.Controller', {
 				render: this.onViewportReady
 			}
 		});
+
+        this.session = itwc.START_INSTANCE_KEY;
 
 		//Set global reference
 		Ext.ns("itwc.global");

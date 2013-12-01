@@ -43,7 +43,7 @@ startEngine publishable world
 	# world					= show (running port) world
 	# iworld				= initIWorld (fromJust mbSDKPath) world
 	// mark all instance as outdated initially
-	# (maxNo,iworld)			= maxInstanceNo iworld
+	# (maxNo,iworld)		= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
 	# iworld				= startHTTPServer port keepalive (engine publishable) timeout background iworld
 	= finalizeIWorld iworld
@@ -153,22 +153,11 @@ engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
 where
 	taskHandlers published
-		= [let (reqF,dataF,disconnectF) = webService task defaultFormat in ((==) (URL_PREFIX +++ url),True,reqF,dataF,disconnectF)
+		= [let (matchF,reqF,dataF,disconnectF) = webService url task defaultFormat in (matchF,True,reqF,dataF,disconnectF)
 		  \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
-	defaultHandlers = [simpleHTTPResponse (startsWith URL_PREFIX, handleStaticResourceRequest)]
+	defaultHandlers = [simpleHTTPResponse (const True, handleStaticResourceRequest)]
 
-readFlavour :: !String !*World -> *(!Flavour, !*World)
-readFlavour sdkPath world
-	# flavfile 			= sdkPath </> "Server" </> "lib" </> "SAPL" </>"clean.f"
-	# (flavres, world) 	= readFile flavfile world
-	| isError flavres
-		= abort ("JavaScript Flavour file cannot be found at " +++ flavfile)
-	# mbFlav 			= toFlavour (fromOk flavres)
-	| isNothing mbFlav
-		= abort "Error in JavaScript flavour file"	
-	= (fromJust mbFlav, world)
-		
 initIWorld :: !FilePath !*World -> *IWorld
 initIWorld sdkDir world
 	# (appName,world) 			= determineAppName world
@@ -250,6 +239,17 @@ where
 		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
 		= (False,world)
 
+    readFlavour :: !String !*World -> *(!Flavour, !*World)
+    readFlavour sdkPath world
+	    # flavfile 			= sdkPath </> "Server" </> "lib" </> "SAPL" </>"clean.f"
+	    # (flavres, world) 	= readFile flavfile world
+	    | isError flavres
+		    = abort ("JavaScript Flavour file cannot be found at " +++ flavfile)
+	    # mbFlav 			= toFlavour (fromOk flavres)
+	    | isNothing mbFlav
+		    = abort "Error in JavaScript flavour file"	
+	    = (fromJust mbFlav, world)
+
 finalizeIWorld :: !*IWorld -> *World
 finalizeIWorld iworld=:{IWorld|world} = world
 
@@ -263,8 +263,7 @@ where
     serveStaticResource req [] iworld
 	    = (notFoundResponse req,iworld)
     serveStaticResource req [d:ds] iworld=:{IWorld|world}
-	    # path			= subString (size URL_PREFIX) (size req.req_path) req.req_path
-	    # filename		= d +++ filePath path
+	    # filename		= d +++ filePath req.req_path
 	    # type			= mimeType filename
 	    # (mbContent, world)	= readFile filename world
 	    | isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
@@ -277,8 +276,6 @@ where
 	//Translate a URL path to a filesystem path
 	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 	mimeType path	= extensionToMimeType (takeExtension path)
-
-//path2name path = last (split "/" path)
 
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}

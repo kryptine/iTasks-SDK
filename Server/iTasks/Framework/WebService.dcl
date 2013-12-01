@@ -11,8 +11,9 @@ from iTasks.API.Core.SystemTypes	import :: SessionId
 
 import iTasks.Framework.Generic
 
-webService :: !(HTTPRequest -> Task a) !ServiceFormat ->
-				 (!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld))
+webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
+				 (!(String -> Bool)
+                 ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld))
 				 ,!(HTTPRequest (Maybe {#Char}) SessionId *IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld))
 				 ,!(HTTPRequest SessionId *IWorld -> *IWorld)
 				 ) | iTask a

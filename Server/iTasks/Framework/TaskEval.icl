@@ -51,9 +51,23 @@ createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
 		Ok (result,Left (sessionInfo,updates))	= (Ok (result,instanceNo,instanceKey,sessionInfo,updates),iworld)
 		Error e				= (Error e, iworld)
 		_					= (Error "Unknown error in createSessionTaskInstance", iworld)
-where
-	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
-		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
+
+registerSession sessionId instanceNo iworld=:{IWorld|sessions}
+    = {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
+
+createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createUnevaluatedTaskInstance task iworld=:{currentDateTime,taskTime}
+	# (instanceNo,iworld)	= newInstanceNo iworld
+    # (instanceKey,iworld)  = newInstanceKey iworld
+	# worker				= AnonymousUser instanceKey
+	# mmeta					= defaultValue
+	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# meta					= createMeta instanceNo instanceKey (SessionInstance {SessionInfo|lastEvent=0}) (TaskId 0 0) Nothing mmeta pmeta
+	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
+	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
+	# iworld				= registerSession instanceKey instanceNo iworld
+    = (Ok (instanceNo,instanceKey),iworld)
 
 createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachment iworld=:{currentDateTime,taskTime}

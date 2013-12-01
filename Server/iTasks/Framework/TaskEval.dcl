@@ -28,6 +28,9 @@ createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!Task
 */
 createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !SessionInfo, ![UIUpdate]), !*IWorld) |  iTask a
 
+//Create a session instance without evaluating it
+createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+
 /**
 * Create a stored task instance in the task pool (lazily without evaluating it)
 * @param The task to store

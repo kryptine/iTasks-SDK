@@ -19,7 +19,6 @@ DEFAULT_THEME           :== "gray"
 SEARCH_PATHS			:== RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
 DEFAULT_LOCATIONS		:== IF_POSIX_OR_WINDOWS ["/usr/lib/itasks"] ["C:\\Clean 2.4","C:\\Program Files"]
 RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
-URL_PREFIX				:== ""
 
 :: PublishedTask =
 	{ url			:: String
