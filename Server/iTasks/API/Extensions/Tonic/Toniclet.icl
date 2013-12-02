@@ -1,11 +1,17 @@
 implementation module iTasks.API.Extensions.Tonic.Toniclet
 
 import iTasks
+import iTasks.API.Extensions.DagreD3.D3
+import iTasks.API.Extensions.DagreD3.DagreD3
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.Framework.Tonic.AbsSyn
 import StdMisc
-import Data.Graph
+import StdDebug
+from StdArray import class Array (select, uselect), instance Array {} a
+from Data.Graph import :: Graph
+import qualified Data.Graph as DG
+import dynamic_string
 
 derive gEditor
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
@@ -31,14 +37,8 @@ derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
   GListComprehension, Graph, Node
 
-//jointDotJS :== "/joint/dist/joint.all.js"
-//jointDotCSS :== "/joint/dist/joint.all.css"
-//tonicShapes :== "/joint/plugins/joint.shapes.tonic.js"
-
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
-
-import StdDebug, StdMisc
 
 toniclet :: GinGraph -> Editlet GinGraph GinGraph
 toniclet g
@@ -53,10 +53,11 @@ toniclet g
             }
 
   uiDef cid
-    = { html          = DivTag [IdAttr (mkSVGId cid), ClassAttr (mkSVGId cid)] []
+    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "tonicletGraph", WidthAttr "800px", HeightAttr "600px"]
+                               [GTag [TransformAttr "translate(20, 20)"] []]
       , eventHandlers = []
-      , width         = ExactSize 1024
-      , height        = ExactSize 768
+      , width         = ExactSize 800
+      , height        = ExactSize 600
       }
 
   loadLibs pid world
@@ -67,27 +68,55 @@ toniclet g
     = world
 
   onLibLoaded pid evt val world
-    # (graph, world)    = jsNewObject "dagreD3.Digraph" [] world
-    # (renderer, world) = jsNewObject "dagreD3.Renderer" [] world
+    # (graph, world)    = mkDigraph world
+    # world             = addNodesEdges val graph world
+    # (renderer, world) = mkRenderer world
     # renderNodeFun     = createEditletEventHandler drawNodeCb pid
     # renderEdgeLblFun  = createEditletEventHandler drawEdgeLabelCb pid
-    # (_, world)        = callObjectMethod "drawNode" [toJSArg renderNodeFun] renderer world
-    # (_, world)        = callObjectMethod "drawEdgeLabel" [toJSArg renderEdgeLblFun] renderer world
-    # (d3, world)       = findObject "d3" world
-    # (g, world)        = callObjectMethod "select" [toJSArg ("svg g#" +++ mkSVGId pid)] d3 world
-    # (_, world)        = callObjectMethod "run" [toJSArg graph, toJSArg g] renderer world
-    //# world          = drawTonicGraph val jgrph world
+    # world             = setDrawNode renderer renderNodeFun world
+    # world             = setDrawEdgeLabel renderer renderEdgeLblFun world
+    # (svgg, world)     = selectElem ("#" +++ mkSVGId pid) world
+    # world             = runRenderer renderer graph svgg world
     = (val, world)
 
-  drawNodeCb pid args gg world
-    # world = jsTrace (toJSArg "drawNodeCb") world
-    # world = jsTrace (toJSArg args) world
+  drawNodeCb pid {[0] = graph, [1] = u, [2] = root} gg world
+    # (d3, world)  = append "g" (jsUnsafeCoerce root) world
+    # (d3, world)  = setAttr "class" (toJSVal "label") d3 world
+    # (nv, world)  = getNodeValue (jsUnsafeCoerce graph) (jsUnsafeCoerce u) world
+    # (lbl, world) = jsGetObjectAttr "label" nv world
+    # world        = addLabel lbl d3 10 10 world
     = (gg, world)
 
-  drawEdgeLabelCb pid args gg world
-    # world = jsTrace (toJSArg "drawEdgeLabelCb") world
-    # world = jsTrace (toJSArg args) world
+  drawEdgeLabelCb pid {[0] = graph, [1] = e, [2] = root} gg world
+    # (d3, world)  = append "g" (jsUnsafeCoerce root) world
+    # (d3, world)  = setAttr "class" (toJSVal "label") d3 world
+    # (ev, world)  = getEdgeValue (jsUnsafeCoerce graph) (jsUnsafeCoerce e) world
+    # (lbl, world) = jsGetObjectAttr "label" ev world
+    # world        = addLabel lbl d3 0 0 world
     = (gg, world)
+
+  addLabel label root mx my world
+    # (rect, world)   = append "rect" root world
+    # (lblSvg, world) = append "g" root world
+    # (d3, world)     = append "text" root world
+    # (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
+    # (d3, world)     = append "tspan" d3 world
+    # (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
+    # (d3, world)     = setText (jsValToString label) d3 world
+    # (rnd, world)    = firstNode root world
+    # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
+    # (bbh, world)    = jsGetObjectAttr "height" bbox world
+    # (bbw, world)    = jsGetObjectAttr "width" bbox world
+    # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
+    # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
+    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
+                                 , ("ry", toJSVal 5)
+                                 , ("x", toJSVal (0 - (bbw / 2 + mx)))
+                                 , ("y", toJSVal (0 - (bbh / 2 + my)))
+                                 , ("width", toJSVal (bbw + 2 * mx))
+                                 , ("height", toJSVal (bbh + 2 * my))
+                                 ] rect world
+    = world
 
   onUpdate pid _ val world
     # (joint, world) = findObject "dagreD3" world
@@ -97,203 +126,201 @@ toniclet g
     | otherwise
         = onLibLoaded pid Nothing val world
 
-  genDiff _ _ = Nothing
+  genDiff _ _ = Just g
   appDiff g _ = g
 
-drawTonicGraph g jgrph world
-  # (_, world) = foldrNodes addNode (jgrph, world) g
-  # (_, world) = foldrEdges addEdge (jgrph, world) g
-  = layoutGraph jgrph world
+addNodesEdges g jgrph world
+  # (_, world) = 'DG'.foldrNodes addNode` (jgrph, world) g
+  # (_, world) = 'DG'.foldrEdges addEdge` (jgrph, world) g
+  = world
   where
-  addNode ni node (jgrph, world)
-    = case node.data.nodeType of
-        GAssign expr
-          # (anon, world) = jsEmptyObject world
-          # world         = jsSetObjectAttr "id" (toJSVal ni) anon world
-          # (dec, world)  = jsNewObject "joint.shapes.tonic.AssignFigure" [toJSArg anon] world
-          # world         = addCell dec jgrph world
-          = (jgrph, world)
-
-        GDecision dt expr
-          # args = { ReturnStateArgs
-                   | id = ni
-                   , size  = {Size | width = 100, height = 100}
-                   , attrs = { Attrs
-                             | text = { TextAttrs
-                                      | text = expr} }
-                   }
-          # (dec, world)  = jsNewObject "joint.shapes.tonic.DecisionState" [toJSArg args] world
-          # world         = addCell dec jgrph world
-          = (jgrph, world)
-
-        GLet lt
-          # binds = foldr (\(l, r) xs -> l +++ " = " +++ r +++ xs) "" lt.glet_binds
-          # args = { LetArgs
-                   | id = ni
-                   , size  = {Size | width = 100, height = 100}
-                   , attrs = { Attrs
-                             | text = { TextAttrs
-                                      | text = binds} }
-                   }
-          # (ltst, world) = jsNewObject "joint.shapes.tonic.LetState" [toJSArg args] world
-          # world         = addCell ltst jgrph world
-          = (jgrph, world)
-
-        GInit
-          # (anon, world)  = jsEmptyObject world
-          # world          = jsSetObjectAttr "id" (toJSVal ni) anon world
-          # (start, world) = jsNewObject "joint.shapes.tonic.StartState" [toJSArg anon] world
-          # world          = addCell start jgrph world
-          = (jgrph, world)
-
-        GListComprehension lc
-          # ident        = case lc.input of
-                             GCleanExpression ce -> ce
-                             _                   -> "a list"
-          # args         = { ListComprehensionArgs
-                           | id   = ni
-                           , size = {Size | width = 100, height = 100}
-                           , name = ident
-                           }
-          # (dec, world)   = jsNewObject "joint.shapes.tonic.ListComprehension" [toJSArg args] world
-          # world          = addCell dec jgrph world
-          = (jgrph, world)
-
-        GParallelSplit
-          # args = { ParSplitArgs
-                   | id = ni
-                   , size  = {Size | width = 100, height = 100}
-                   , attrs = { Attrs
-                             | text = { TextAttrs
-                                      | text = "Start parallel tasks"} }
-                   }
-          # (dec, world)   = jsNewObject "joint.shapes.tonic.ParallelSplit" [toJSArg args] world
-          # world          = addCell dec jgrph world
-          = (jgrph, world)
-
-        GParallelJoin jt
-          # args = { ParJoinArgs
-                   | id = ni
-                   , size  = {Size | width = 100, height = 100}
-                   , attrs = { Attrs
-                             | text = { TextAttrs
-                                      | text = ppJT jt} }
-                   }
-          # (dec, world)  = jsNewObject "joint.shapes.tonic.ParallelJoin" [toJSArg args] world
-          # world         = addCell dec jgrph world
-          = (jgrph, world)
-          where ppJT DisFirstBin  = "First finished task"
-                ppJT DisFirstList = "First finished task"
-                ppJT DisLeft      = "Left task result"
-                ppJT DisRight     = "Right task result"
-                ppJT ConAll       = "All task results"
-                ppJT ConPair      = "Pair of task results"
-
-        GReturn (GCleanExpression expr)
-          # args = { ReturnStateArgs
-                   | id    = ni
-                   , size  = {Size | width = 50, height = 50}
-                   , attrs = { Attrs
-                             | text = { TextAttrs
-                                      | text = expr } }
-                   }
-          # (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
-          # world        = addCell ret jgrph world
-          = (jgrph, world)
-
-        GReturn expr
-          # args = { ReturnStateArgs
-                   | id = ni
-                   , size  = {Size | width = 50, height = 50}
-                   , attrs = { Attrs
-                             | text = { TextAttrs
-                                      | text = "TODO: expr :: GExpression" } }
-                   }
-          # (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
-          # world        = addCell ret jgrph world
-          = (jgrph, world)
-
-        GStep
-          # (anon, world) = jsEmptyObject world
-          # world         = jsSetObjectAttr "id" (toJSVal ni) anon world
-          # (dec, world)  = jsNewObject "joint.shapes.tonic.Step" [toJSArg anon] world
-          # world         = addCell dec jgrph world
-          = (jgrph, world)
-
-        GStop
-          # (anon, world) = jsEmptyObject world
-          # world         = jsSetObjectAttr "id" (toJSVal ni) anon world
-          # (stop, world) = jsNewObject "joint.shapes.tonic.StopState" [toJSArg anon] world
-          # world         = addCell stop jgrph world
-          = (jgrph, world)
-
-        GTaskApp ident exprs
-          # args         = { TaskAppArgs
-                           | id   = ni
-                           , size = {Size | width = 100, height = 100}
-                           , name = ident
-                           }
-                           // TODO: Add exprs
-          # (app, world) = jsNewObject "joint.shapes.tonic.TaskApp" [toJSArg args] world
-          # world        = addCell app jgrph world
-          = (jgrph, world)
-        _ = (jgrph, world)
-  addEdge (fromNode, toNode) {edge_pattern} (jgrph, world)
+  addNode` ni node (jgrph, world)
+    # (obj, world) = jsEmptyObject world
+    # world        = jsSetObjectAttr "label" (toJSVal ("NodeWithId-" +++ toString ni)) obj world
+    # world        = jsSetObjectAttr "node" (toJSVal (copy_to_string node)) obj world
+    # world        = addNode jgrph (toJSVal ni) (toJSVal obj) world
+    = (jgrph, world)
+  addEdge` (fromNode, toNode) {edge_pattern} (jgrph, world)
     # world = jsTrace (toJSVal ("Adding edge from " +++ toString fromNode +++ " to " +++ toString toNode)) world
-    # world = mkBind fromNode toNode edge_pattern jgrph world
+    //# world = addEdgeSimple jgrph (toJSVal fromNode) (toJSVal toNode) world
     = (jgrph, world)
 
+    //= case node.data.nodeType of
+        //GAssign expr
+          //# (anon, world) = jsEmptyObject world
+          //# world         = jsSetObjectAttr "id" (toJSVal ni) anon world
+          //# (dec, world)  = jsNewObject "joint.shapes.tonic.AssignFigure" [toJSArg anon] world
+          //# world         = addCell dec jgrph world
+          //= (jgrph, world)
 
-addNode :: (JSVal DGraph) Int GraphMeta *JSWorld -> *JSWorld
-addNode graph ident attrs world = snd (callObjectMethod "addNode" [toJSArg ident, toJSArg attrs] graph world)
+        //GDecision dt expr
+          //# args = { ReturnStateArgs
+                   //| id = ni
+                   //, size  = {Size | width = 100, height = 100}
+                   //, attrs = { Attrs
+                             //| text = { TextAttrs
+                                      //| text = expr} }
+                   //}
+          //# (dec, world)  = jsNewObject "joint.shapes.tonic.DecisionState" [toJSArg args] world
+          //# world         = addCell dec jgrph world
+          //= (jgrph, world)
 
-addEdge :: (JSVal DGraph) (JSVal f) (JSVal t) GraphMeta *JSWorld -> *JSWorld
-addEdge graph fromNode toNode attrs world = snd (callObjectMethod "addEdge" [toJSArg jsNull, toJSArg fromNode, toJSArg toNode, toJSArg attrs] graph world)
+        //GLet lt
+          //# binds = foldr (\(l, r) xs -> l +++ " = " +++ r +++ xs) "" lt.glet_binds
+          //# args = { LetArgs
+                   //| id = ni
+                   //, size  = {Size | width = 100, height = 100}
+                   //, attrs = { Attrs
+                             //| text = { TextAttrs
+                                      //| text = binds} }
+                   //}
+          //# (ltst, world) = jsNewObject "joint.shapes.tonic.LetState" [toJSArg args] world
+          //# world         = addCell ltst jgrph world
+          //= (jgrph, world)
 
-:: DGraph = DGraph
-:: DNode = DNode
+        //GInit
+          //# (anon, world)  = jsEmptyObject world
+          //# world          = jsSetObjectAttr "id" (toJSVal ni) anon world
+          //# (start, world) = jsNewObject "joint.shapes.tonic.StartState" [toJSArg anon] world
+          //# world          = addCell start jgrph world
+          //= (jgrph, world)
+
+        //GListComprehension lc
+          //# ident        = case lc.input of
+                             //GCleanExpression ce -> ce
+                             //_                   -> "a list"
+          //# args         = { ListComprehensionArgs
+                           //| id   = ni
+                           //, size = {Size | width = 100, height = 100}
+                           //, name = ident
+                           //}
+          //# (dec, world)   = jsNewObject "joint.shapes.tonic.ListComprehension" [toJSArg args] world
+          //# world          = addCell dec jgrph world
+          //= (jgrph, world)
+
+        //GParallelSplit
+          //# args = { ParSplitArgs
+                   //| id = ni
+                   //, size  = {Size | width = 100, height = 100}
+                   //, attrs = { Attrs
+                             //| text = { TextAttrs
+                                      //| text = "Start parallel tasks"} }
+                   //}
+          //# (dec, world)   = jsNewObject "joint.shapes.tonic.ParallelSplit" [toJSArg args] world
+          //# world          = addCell dec jgrph world
+          //= (jgrph, world)
+
+        //GParallelJoin jt
+          //# args = { ParJoinArgs
+                   //| id = ni
+                   //, size  = {Size | width = 100, height = 100}
+                   //, attrs = { Attrs
+                             //| text = { TextAttrs
+                                      //| text = ppJT jt} }
+                   //}
+          //# (dec, world)  = jsNewObject "joint.shapes.tonic.ParallelJoin" [toJSArg args] world
+          //# world         = addCell dec jgrph world
+          //= (jgrph, world)
+          //where ppJT DisFirstBin  = "First finished task"
+                //ppJT DisFirstList = "First finished task"
+                //ppJT DisLeft      = "Left task result"
+                //ppJT DisRight     = "Right task result"
+                //ppJT ConAll       = "All task results"
+                //ppJT ConPair      = "Pair of task results"
+
+        //GReturn (GCleanExpression expr)
+          //# args = { ReturnStateArgs
+                   //| id    = ni
+                   //, size  = {Size | width = 50, height = 50}
+                   //, attrs = { Attrs
+                             //| text = { TextAttrs
+                                      //| text = expr } }
+                   //}
+          //# (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
+          //# world        = addCell ret jgrph world
+          //= (jgrph, world)
+
+        //GReturn expr
+          //# args = { ReturnStateArgs
+                   //| id = ni
+                   //, size  = {Size | width = 50, height = 50}
+                   //, attrs = { Attrs
+                             //| text = { TextAttrs
+                                      //| text = "TODO: expr :: GExpression" } }
+                   //}
+          //# (ret, world) = jsNewObject "joint.shapes.tonic.Return" [toJSArg args] world
+          //# world        = addCell ret jgrph world
+          //= (jgrph, world)
+
+        //GStep
+          //# (anon, world) = jsEmptyObject world
+          //# world         = jsSetObjectAttr "id" (toJSVal ni) anon world
+          //# (dec, world)  = jsNewObject "joint.shapes.tonic.Step" [toJSArg anon] world
+          //# world         = addCell dec jgrph world
+          //= (jgrph, world)
+
+        //GStop
+          //# (anon, world) = jsEmptyObject world
+          //# world         = jsSetObjectAttr "id" (toJSVal ni) anon world
+          //# (stop, world) = jsNewObject "joint.shapes.tonic.StopState" [toJSArg anon] world
+          //# world         = addCell stop jgrph world
+          //= (jgrph, world)
+
+        //GTaskApp ident exprs
+          //# args         = { TaskAppArgs
+                           //| id   = ni
+                           //, size = {Size | width = 100, height = 100}
+                           //, name = ident
+                           //}
+                           //// TODO: Add exprs
+          //# (app, world) = jsNewObject "joint.shapes.tonic.TaskApp" [toJSArg args] world
+          //# world        = addCell app jgrph world
+          //= (jgrph, world)
+        //_ = (jgrph, world)
 
 :: GraphMeta =
   { label :: String
   }
 
-drawNode :: (JSVal DGraph) (JSVal Int) (JSVal DNode) *JSWorld -> *JSWorld
+drawNode :: GLGraph (JSVal Int) D3 *JSWorld -> *JSWorld
 drawNode graph u root world
-  # (g, world)       = callObjectMethod "append" [toJSArg "g"] root world
-  # (lbl, world)     = callObjectMethod "attr" [toJSArg "class", toJSArg "label"] g world
-  # (node, world)    = callObjectMethod "node" [toJSArg u] graph world
+  # (g, world)       = append "g" root world
+  # (lbl, world)     = setAttr "class" (toJSVal "label") g world
+  # (node, world)    = getNodeValue graph u world
   # (nodeLbl, world) = jsGetObjectAttr "label" node world
+  // TODO: reimplement addLabel here
   # (_, world)       = callFunction "addLabel" [toJSArg nodeLbl, toJSArg lbl, toJSArg 0, toJSArg 0] world
   = world
 
-drawEdgeLabel :: (JSVal DGraph) (JSVal Int) (JSVal DNode) *JSWorld -> *JSWorld
+drawEdgeLabel :: GLGraph (JSVal Int) D3 *JSWorld -> *JSWorld
 drawEdgeLabel graph e root world
-  # (g, world)       = callObjectMethod "append" [toJSArg "g"] root world
-  # (lbl, world)     = callObjectMethod "attr" [toJSArg "class", toJSArg "edge-label"] g world
-  # (node, world)    = callObjectMethod "edge" [toJSArg e] graph world
+  # (g, world)       = append "g" root world
+  # (lbl, world)     = setAttr "class" (toJSVal "edge-label") g world
+  # (node, world)    = getEdgeValue graph e world
   # (nodeLbl, world) = jsGetObjectAttr "label" node world
+  // TODO: reimplement addLabel here
   # (_, world)       = callFunction "addLabel" [toJSArg nodeLbl, toJSArg lbl, toJSArg 0, toJSArg 0] world
   = world
 
 addCell :: (JSVal o) (JSVal g) *JSWorld -> *JSWorld
 addCell cell jgrph world = snd (callObjectMethod "addCell" [toJSArg cell] jgrph world)
 
-mkBind :: Int Int (Maybe String) (JSVal g) *JSWorld -> *JSWorld
-mkBind sid tid mtxt jgrph world
-  # args          = {ArrowArgs | source = {Identifier | id = toString sid}
-                               , target = {Identifier | id = toString tid}
-                               , labels = mkLabels mtxt}
-  # world = jsTrace (toJSVal args) world
-  # (bind, world) = jsNewObject "joint.shapes.tonic.Bind" [toJSArg args] world
-  = addCell bind jgrph world
-  where
-  mkLabels Nothing    = []
-  mkLabels (Just lbl) = [ {LabelArgs
-                        | position = 0.5
-                        , attrs    = { Attrs
-                                     | text = { TextAttrs
-                                     | text = lbl } } }
-                        ]
+//mkBind :: Int Int (Maybe String) (JSVal g) *JSWorld -> *JSWorld
+//mkBind sid tid mtxt jgrph world
+  //# args          = {ArrowArgs | source = {Identifier | id = toString sid}
+                               //, target = {Identifier | id = toString tid}
+                               //, labels = mkLabels mtxt}
+  //# world = jsTrace (toJSVal args) world
+  //# (bind, world) = jsNewObject "joint.shapes.tonic.Bind" [toJSArg args] world
+  //= addCell bind jgrph world
+  //where
+  //mkLabels Nothing    = []
+  //mkLabels (Just lbl) = [ {LabelArgs
+                        //| position = 0.5
+                        //, attrs    = { Attrs
+                                     //| text = { TextAttrs
+                                     //| text = lbl } } }
+                        //]
 
 layoutGraph :: (JSVal g) *JSWorld -> *JSWorld
 layoutGraph g world

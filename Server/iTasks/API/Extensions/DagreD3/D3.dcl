@@ -6,11 +6,13 @@ from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSVal, :: JSFunction
 
 :: D3 :== JSVal D3W
 
-select :: String *JSWorld -> *(D3, *JSWorld)
+selectElem :: String *JSWorld -> *(D3, *JSWorld)
 
-selectAll :: String *JSWorld -> *(D3, *JSWorld)
+selectAllElems :: String *JSWorld -> *(D3, *JSWorld)
 
-setAttr :: String a D3 *JSWorld -> *(D3, *JSWorld)
+setAttr :: String (JSVal a) D3 *JSWorld -> *(D3, *JSWorld)
+
+setAttrs :: [(String, (JSVal a))] D3 *JSWorld -> *(D3, *JSWorld)
 
 getAttr :: String D3 *JSWorld -> *(JSVal a, *JSWorld)
 
@@ -23,3 +25,6 @@ setHtmlWith :: (JSVal (JSFunction c)) D3 *JSWorld -> *(D3, *JSWorld)
 setText :: String D3 *JSWorld -> *(D3, *JSWorld)
 
 setTextWith :: (JSVal (JSFunction c)) D3 *JSWorld -> *(D3, *JSWorld)
+
+firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)
+

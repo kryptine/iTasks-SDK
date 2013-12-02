@@ -10,6 +10,9 @@ import iTasks.API.Extensions.DagreD3.D3
 
 :: DagreRender :== JSVal DagreRenderW
 
+mkDigraph :: *JSWorld -> *(GLGraph, *JSWorld)
+mkDigraph world = jsNewObject "dagreD3.Digraph" [] world
+
 mkRenderer :: *JSWorld -> *(DagreRender, *JSWorld)
 mkRenderer world = jsNewObject "dagreD3.Renderer" [] world
 

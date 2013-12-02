@@ -29,16 +29,16 @@ addEdgeSimple :: GLGraph (JSVal l) (JSVal r) *JSWorld -> *JSWorld
 addEdgeSimple graph lid rid world = addEdge graph jsNull lid rid jsNull world
 
 setEdgeValue :: GLGraph (JSVal e) (JSVal v) *JSWorld -> *JSWorld
-setEdgeValue graph edge value world = snd (callObjectMethod "edge" [toJSArg edge, toJSArg value] edge world)
+setEdgeValue graph edge value world = snd (callObjectMethod "edge" [toJSArg edge, toJSArg value] graph world)
 
 getEdgeValue :: GLGraph (JSVal e) *JSWorld -> *(JSVal v, *JSWorld)
-getEdgeValue graph edge world = callObjectMethod "edge" [toJSArg edge] edge world
+getEdgeValue graph edge world = callObjectMethod "edge" [toJSArg edge] graph world
 
 setNodeValue :: GLGraph (JSVal e) (JSVal v) *JSWorld -> *JSWorld
-setNodeValue graph edge value world = snd (callObjectMethod "node" [toJSArg edge, toJSArg value] edge world)
+setNodeValue graph edge value world = snd (callObjectMethod "node" [toJSArg edge, toJSArg value] graph world)
 
 getNodeValue :: GLGraph (JSVal e) *JSWorld -> *(JSVal v, *JSWorld)
-getNodeValue graph edge world = callObjectMethod "node" [toJSArg edge] edge world
+getNodeValue graph node world = callObjectMethod "node" [toJSArg node] graph world
 
 isDirected :: GLGraph *JSWorld -> *(Bool, *JSWorld)
 isDirected graph world

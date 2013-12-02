@@ -1,19 +1,23 @@
 implementation module iTasks.API.Extensions.DagreD3.D3
 
 import iTasks.API.Core.Client.Interface
+import Data.List
 
 :: D3W = D3W
 
 :: D3 :== JSVal D3W
 
-select :: String *JSWorld -> *(D3, *JSWorld)
-select sel world = callFunction "d3.select" [toJSArg sel] world
+selectElem :: String *JSWorld -> *(D3, *JSWorld)
+selectElem sel world = callFunction "d3.select" [toJSArg sel] world
 
-selectAll :: String *JSWorld -> *(D3, *JSWorld)
-selectAll sel world = callFunction "d3.selectAll" [toJSArg sel] world
+selectAllElems :: String *JSWorld -> *(D3, *JSWorld)
+selectAllElems sel world = callFunction "d3.selectAll" [toJSArg sel] world
 
-setAttr :: String a D3 *JSWorld -> *(D3, *JSWorld)
+setAttr :: String (JSVal a) D3 *JSWorld -> *(D3, *JSWorld)
 setAttr attr val d3 world = callObjectMethod "attr" [toJSArg attr, toJSArg val] d3 world
+
+setAttrs :: [(String, (JSVal a))] D3 *JSWorld -> *(D3, *JSWorld)
+setAttrs xs d3 world = foldr (\(attr, val) (d3, world) -> setAttr attr val d3 world) (d3, world) xs
 
 getAttr :: String D3 *JSWorld -> *(JSVal a, *JSWorld)
 getAttr attr d3 world = callObjectMethod "attr" [toJSArg attr] d3 world
@@ -32,3 +36,7 @@ setText str d3 world = callObjectMethod "text" [toJSArg str] d3 world
 
 setTextWith :: (JSVal (JSFunction c)) D3 *JSWorld -> *(D3, *JSWorld)
 setTextWith f d3 world = callObjectMethod "text" [toJSArg f] d3 world
+
+firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)
+firstNode d3 world = callObjectMethod "node" [] d3 world
+
