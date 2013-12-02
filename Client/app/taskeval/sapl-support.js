@@ -176,11 +176,6 @@ Sapl = new function () {
 				if(consname == "JSVal"){
 					return expr[2]; 
 				}
-			
-				// Very important! Do NOT use splice here! 	
-				var args = expr.slice(2, expr.length);
-				var consfunc = eval(this.escapeName(consname));
-				record = isArray(consfunc.$f);
 
 				// SPECIALIZED OVERRIDES!!!
 				if(consname == "iTasks.API.Core.SystemTypes.Username" || consname == "iTasks.API.Core.SystemTypes.Password"){
@@ -203,6 +198,11 @@ Sapl = new function () {
 					// Do not do anything
 					return expr;
 				}
+			
+				// Very important! Do NOT use splice here! 	
+				var args = expr.slice(2, expr.length);
+				var consfunc = eval(this.escapeName(consname));
+				record = isArray(consfunc.$f);
 				
 				if (record) {
 					var res = {};
