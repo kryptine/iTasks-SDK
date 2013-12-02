@@ -141,8 +141,9 @@ addNodesEdges g jgrph world
     # world        = addNode jgrph (toJSVal ni) (toJSVal obj) world
     = (jgrph, world)
   addEdge` (fromNode, toNode) {edge_pattern} (jgrph, world)
-    # world = jsTrace (toJSVal ("Adding edge from " +++ toString fromNode +++ " to " +++ toString toNode)) world
-    //# world = addEdgeSimple jgrph (toJSVal fromNode) (toJSVal toNode) world
+    # (obj, world) = jsEmptyObject world
+    # world        = jsSetObjectAttr "label" (toJSVal ("Edge" +++ toString fromNode +++ "-" +++ toString toNode)) obj world
+    # world = addEdge jgrph jsNull (toJSVal fromNode) (toJSVal toNode) obj world
     = (jgrph, world)
 
     //= case node.data.nodeType of
