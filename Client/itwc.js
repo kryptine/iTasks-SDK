@@ -1852,6 +1852,9 @@ itwc.controller.prototype = {
         me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_URL);
         //Start a session by sending a blank event
         me.queueTaskEvent({});
+
+        //Listen for changes in the viewport size
+        window.addEventListener('resize',me.onWindowResize,me);
     }
 };
 

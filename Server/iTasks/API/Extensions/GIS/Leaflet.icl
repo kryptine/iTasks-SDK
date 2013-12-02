@@ -128,7 +128,7 @@ leafletEditlet map = Editlet map
     }
 where
     uiDef cid
-          = { html          = DivTag [IdAttr (mapdivid cid), StyleAttr "width:100%; height:100%"] []
+          = { html          = DivTag [IdAttr (mapdivid cid)] []
             , eventHandlers = []
             , width         = ExactSize 600
             , height        = ExactSize 300
@@ -217,6 +217,7 @@ where
     onLibLoaded cid _ (map=:{LeafletMap|perspective,icons,layers},_) world
         # (l, world) = findObject "L" world
         //Create map
+        # world             = syncMapDivSize cid world
         # (mapObj, world) = callObjectMethod "map" [toJSArg (mapdivid cid),toJSArg MAP_OPTIONS] l world
         //Set perspective
         # (center,world) = toJSArray [perspective.center.lat,perspective.center.lng] world
@@ -243,6 +244,7 @@ where
         # (editlets,world)  = findObject "itwc.controller.editlets" world
         # (cmp,world)       = jsGetObjectAttr cid editlets world
         # world             = jsSetObjectAttr "afterShow" (toJSVal (createEditletEventHandler onAfterShow cid)) cmp world
+        # world             = jsSetObjectAttr "afterResize" (toJSVal (createEditletEventHandler onAfterShow cid)) cmp world
         = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),world)
 
     createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapIcons world
@@ -311,6 +313,7 @@ where
         selectMarker l = l
 
     onAfterShow cid event (map,Just st=:{mapObj}) world
+        # world     = syncMapDivSize cid world
         # (_,world) = callObjectMethod "invalidateSize" [] mapObj world
         = ((map,Just st),world)
     onAfterShow cid event st world
@@ -327,6 +330,27 @@ where
         | jsIsUndefined ref = world
         # (_,world)   = callObjectMethod "removeLayer" [toJSArg ref] layer world
         = removeObjects removeRefs layer world
+
+    syncMapDivSize :: !String !*JSWorld -> *JSWorld
+    syncMapDivSize cid world
+        # (editlets,world)  = findObject "itwc.controller.editlets" world
+        # (cmp,world)       = jsGetObjectAttr cid editlets world
+        # (cmpDiv,world)    = jsGetObjectAttr "domEl" cmp world
+        # (mapDiv,world)    = getDomElement (mapdivid cid) world
+        # (divSize,world)   = measureDomEl cmpDiv world
+        = sizeDomEl divSize mapDiv world
+
+    measureDomEl :: !(JSVal a) !*JSWorld -> (!(!Int,!Int),!*JSWorld)
+    measureDomEl el world
+        # (w,world) = jsGetObjectAttr "clientWidth" el world
+        # (h,world) = jsGetObjectAttr "clientHeight" el world
+        = ((jsValToInt w,jsValToInt h),world)
+
+    sizeDomEl :: !(!Int,!Int) !(JSVal a) !*JSWorld -> *JSWorld
+    sizeDomEl (w,h) el world
+        # world = jsSetObjectAttr "style.width" (toJSVal (toString w +++"px")) el world
+        # world = jsSetObjectAttr "style.height" (toJSVal (toString h +++"px")) el world
+        = world
 
 gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
