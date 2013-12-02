@@ -17,12 +17,12 @@ instance toString (Maybe a) | toString a
 decFormat			:: !Int -> String
 
 // Functions for accessing dates and times
-currentTime 			:: !*IWorld -> (!Time,!*IWorld)
-currentDate 			:: !*IWorld -> (!Date,!*IWorld)
-currentDateTime 		:: !*IWorld -> (!DateTime,!*IWorld)
 currentTimestamp		:: !*IWorld -> (!Timestamp,!*IWorld)
 currentTimestampError	:: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
-currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
+
+currentLocalDateTimeWorld	:: !*World	-> (!DateTime,!*World)
+currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)
+
 timestampToGmDateTime	:: !Timestamp -> DateTime
 dateToTimestamp			:: !Date -> Timestamp
 

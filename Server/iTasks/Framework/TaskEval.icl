@@ -15,11 +15,11 @@ from Data.SharedDataSource	import qualified read, write, writeFilterMsg
 derive gEq TIMeta, TIType, SessionInfo
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
-createClientTaskInstance task sessionId instanceNo iworld=:{currentDateTime,taskTime}
+createClientTaskInstance task sessionId instanceNo iworld=:{currentLocalDateTime,taskTime}
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {issuedAt=currentLocalDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo "client" (SessionInstance {SessionInfo|lastEvent=0}) (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -32,13 +32,13 @@ where
 		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 		
 createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !SessionInfo, ![UIUpdate]), !*IWorld) |  iTask a
-createSessionTaskInstance task event iworld=:{currentDateTime,taskTime}
+createSessionTaskInstance task event iworld=:{currentLocalDateTime,taskTime}
 	# (instanceNo,iworld)	= newInstanceNo iworld
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {issuedAt=currentLocalDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey (SessionInstance {SessionInfo|lastEvent=0}) (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -56,12 +56,12 @@ registerSession sessionId instanceNo iworld=:{IWorld|sessions}
     = {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 
 createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createUnevaluatedTaskInstance task iworld=:{currentDateTime,taskTime}
+createUnevaluatedTaskInstance task iworld=:{currentLocalDateTime,taskTime}
 	# (instanceNo,iworld)	= newInstanceNo iworld
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {issuedAt=currentLocalDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey (SessionInstance {SessionInfo|lastEvent=0}) (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -70,12 +70,12 @@ createUnevaluatedTaskInstance task iworld=:{currentDateTime,taskTime}
     = (Ok (instanceNo,instanceKey),iworld)
 
 createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachment iworld=:{currentDateTime,taskTime}
+createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachment iworld=:{currentLocalDateTime,taskTime}
 	# (instanceNo,iworld)	= case mbInstanceNo of
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
-	# pmeta					= {issuedAt=currentDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {issuedAt=currentLocalDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (detachedInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -150,7 +150,7 @@ where
 
 //Evaluate a single task instance
 evalTaskInstance :: !Event !InstanceNo !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (SessionInfo,[UIUpdate]) [InstanceNo]),!*IWorld)
-evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalTaskInstance event instanceNo iworld=:{currentLocalDateTime,currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
 	//Read the task instance data
     //TODO: make sure we know it is a session in advance
 	# (oldMeta, isSession, iworld)	= case 'Data.SharedDataSource'.read (detachedInstanceMeta instanceNo) iworld of
@@ -170,12 +170,12 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 		(ExceptionResult e msg)		= (Ok (ExceptionResult e msg, Right []), iworld)
 		(ValueResult val _ _ tree)
 			//Eval instance
-            # (currentUser,currentSession,currentAttachment,appFinalLayout) = case instanceType of
-                SessionInstance _                       = (AnonymousUser instanceKey,Just instanceNo,[],True)
-                DetachedInstance                        = (SystemUser,Nothing,[],False)
-                AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker    = (worker,Just sessionNo,attachment,False)
-                TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker = (worker,Just sessionNo,attachment,False)
-			# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=appFinalLayout,noUI=False}
+            # (currentUser,currentSession,currentAttachment) = case instanceType of
+                SessionInstance _                       = (AnonymousUser instanceKey,Just instanceNo,[])
+                DetachedInstance                        = (SystemUser,Nothing,[])
+                AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker    = (worker,Just sessionNo,attachment)
+                TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker = (worker,Just sessionNo,attachment)
+			# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=False}
 			//Update current process id & eval stack in iworld
 			# taskId					= TaskId instanceNo 0
 			# eventRoute				= determineEventRoute event lists
@@ -194,14 +194,16 @@ evalTaskInstance event instanceNo iworld=:{currentDateTime,currentUser,currentIn
 			# iworld					= clearShareRegistrations instanceNo iworld
 			//Apply task's eval function and take updated nextTaskId from iworld
 			# (newResult,iworld)		= eval event repAs tree iworld
+            //Finalize task UI for session instances
+            # newResult                 = if isSession (finalizeSessionUI newResult) newResult
 			//Update meta data
 			# (oldMeta, iworld) = case 'Data.SharedDataSource'.read ((if isSession sessionInstanceMeta detachedInstanceMeta) instanceNo) iworld of
 				(Ok meta, iworld)		= (meta, iworld)
 				(_, iworld)				= (oldMeta, iworld)
 			# newMeta					= case instanceType of
-                (SessionInstance session)   = {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, instanceType = SessionInstance (updateSession event session)}
-                (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress, instanceType = DetachedInstance}
-                _                           = {TIMeta|oldMeta & progress = updateProgress currentDateTime newResult progress}
+                (SessionInstance session)   = {TIMeta|oldMeta & progress = updateProgress currentLocalDateTime newResult progress, instanceType = SessionInstance (updateSession event session)}
+                (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress currentLocalDateTime newResult progress, instanceType = DetachedInstance}
+                _                           = {TIMeta|oldMeta & progress = updateProgress currentLocalDateTime newResult progress}
 			# (_,iworld)				= if (newMeta === oldMeta) //Only write if data has actually changed
                 (Ok Void,iworld)
                 ('Data.SharedDataSource'.write newMeta ((if isSession sessionInstanceMeta detachedInstanceMeta) instanceNo) iworld) //TODO Check error
@@ -237,8 +239,11 @@ where
 	getEditletDiffs iworld=:{IWorld|editletDiffs}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld = {IWorld|iworld & editletDiffs = editletDiffs}
 
+    finalizeSessionUI (ValueResult value info (TaskRep ui parts) tree)
+        = (ValueResult value info (TaskRep (autoLayoutFinal ui) parts) tree)
+    finalizeSessionUI res = res
+
 	updateProgress now result progress
-		//# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Just now}
 		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _ _)				= {progress & stable = True}

@@ -20,10 +20,15 @@ sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC 
 
 //PREDEFINED SHARES
 
-// Date & time
+// Date & time (in task server's local timezone)
 currentDateTime			:: ReadOnlyShared DateTime
 currentTime				:: ReadOnlyShared Time
 currentDate				:: ReadOnlyShared Date
+
+// Date & time (in UTC)
+currentUTCDateTime      :: ReadOnlyShared DateTime
+currentUTCTime          :: ReadOnlyShared Time
+currentUTCDate          :: ReadOnlyShared Date
 
 // Processes
 topLevelTasks 			:: SharedTaskList Void

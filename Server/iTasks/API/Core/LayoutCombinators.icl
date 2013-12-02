@@ -16,7 +16,7 @@ autoLayoutRules :: LayoutRules
 autoLayoutRules
     = {accuInteract = autoAccuInteract, accuStep = autoAccuStep, accuParallel = autoAccuParallel, accuWorkOn = autoAccuWorkOn
       ,layoutSubEditor = autoLayoutSubEditor, layoutControlStack = autoLayoutControlStack, layoutSubUIStack = autoLayoutSubUIStack
-      ,layoutFinal = autoLayoutFinal}
+      }
 
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
@@ -439,17 +439,17 @@ where
 	title       = fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
     iconCls     = fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 
-autoLayoutFinal :: UIDef -> UIViewport
+autoLayoutFinal :: UIDef -> UIDef
 autoLayoutFinal (UIActionSet actions)
-	= UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing,windows = []}
+	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing,windows = []})
 autoLayoutFinal (UIAttributeSet attributes)
-	= UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes,hotkeys = Nothing,windows = []}
+	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes,hotkeys = Nothing,windows = []})
 autoLayoutFinal (UIControlStack stack)
     = autoLayoutFinal (UISubUI (autoLayoutControlStack stack))
 autoLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotkeys})
     | hasWindowContainerAttr attributes
         # window = subUIToWindow subui
-        = UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, hotkeys=Nothing, windows =[window]++ windows}
+        = UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, hotkeys=Nothing, windows =[window]++ windows})
     # (panel,attributes,actions,panelkeys)   = case get SCREEN_ATTRIBUTE attributes of
         Just "full"     = subUIToPanel {UISubUI|subui & attributes = del TITLE_ATTRIBUTE attributes}
         _
@@ -459,11 +459,25 @@ autoLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotk
 	# items				        = if (isEmpty menu) [panel] [setTBar menu panel]
 	# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
-	= UIViewport itemsOpts {UIViewportOpts|title = get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys, windows = windows}
+	= UIFinal (UIViewport itemsOpts {UIViewportOpts|title = get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys, windows = windows})
 autoLayoutFinal (UISubUIStack stack)
     = autoLayoutFinal (UISubUI (autoLayoutSubUIStack stack))
-autoLayoutFinal (UIFinal final)
-	= final
+autoLayoutFinal (UIFinal viewport) = UIFinal viewport
+
+plainLayoutFinal :: UIDef -> UIDef
+plainLayoutFinal (UIActionSet actions)
+	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing,windows = []})
+plainLayoutFinal (UIAttributeSet attributes)
+	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes,hotkeys = Nothing,windows = []})
+plainLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotkeys})
+    | hasWindowContainerAttr attributes
+        # window = subUIToWindow subui
+        = UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=get TITLE_ATTRIBUTE attributes, hotkeys=Nothing, windows =[window]++ windows})
+    # (UIContainer sOpts iOpts,attributes,_,_) = subUIToContainer subui
+    = UIFinal (UIViewport iOpts {UIViewportOpts|title = get TITLE_ATTRIBUTE attributes, hotkeys = Just hotkeys, windows = windows})
+plainLayoutFinal (UISubUIStack stack)
+    = plainLayoutFinal (UISubUI (autoLayoutSubUIStack stack))
+plainLayoutFinal (UIFinal viewport) = UIFinal viewport
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: [(UIControl,UIAttributes)] -> [UIControl]

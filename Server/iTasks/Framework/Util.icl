@@ -1,8 +1,8 @@
 implementation module iTasks.Framework.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Data.Maybe, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
-from iTasks.Framework.IWorld 		import :: IWorld{currentDateTime,timestamp}
+import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
+from iTasks.Framework.IWorld 		import :: IWorld{currentLocalDateTime,timestamp}
 from iTasks.API.Core.SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
 
 mb2list	:: !(Maybe [a]) -> [a]
@@ -29,26 +29,18 @@ where
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
-currentTime :: !*IWorld -> (!Time,!*IWorld)
-currentTime iworld=:{currentDateTime=l=:(DateTime _ time)} = (time,iworld)
-
-currentDate :: !*IWorld -> (!Date,!*IWorld)
-currentDate iworld=:{currentDateTime=l=:(DateTime date _)} = (date,iworld)
-	
-currentDateTime :: !*IWorld -> (!DateTime,!*IWorld)
-currentDateTime iworld=:{currentDateTime} = (currentDateTime,iworld)
-
 currentTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
 currentTimestamp iworld=:{timestamp} = (timestamp,iworld)
 
 currentTimestampError :: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
 currentTimestampError iworld=:{timestamp} = (Ok timestamp,iworld)
 
-currentDateTimeWorld :: !*World -> (!DateTime,!*World)
-currentDateTimeWorld world
-	# (tm,world) = localTime world
-	= (tmToDateTime tm,world)
+currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
+currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)
 	
+currentUTCDateTimeWorld :: !*World -> (!DateTime,!*World)
+currentUTCDateTimeWorld world = appFst tmToDateTime (gmTime world)
+
 timestampToGmDateTime :: !Timestamp -> DateTime
 timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
 

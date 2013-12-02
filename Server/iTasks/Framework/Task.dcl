@@ -42,7 +42,6 @@ derive gEq				Task
 :: TaskRepOpts	=
 	{ useLayout			:: Maybe LayoutRules
 	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
-	, appFinalLayout	:: Bool
     , noUI              :: Bool
 	}
 	

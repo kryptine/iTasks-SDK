@@ -26,7 +26,8 @@ from Sapl.SaplParser import :: ParserState
                     , systemDirectories     :: !SystemDirectories                       // Filesystem paths that are used by iTasks
 					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 					, timestamp				:: !Timestamp								// The timestamp of the current request	
-					, currentDateTime		:: !DateTime								// The local date & time of the current request
+					, currentLocalDateTime	:: !DateTime								// The local date & time of the current request
+					, currentUTCDateTime	:: !DateTime								// The local date & time of the current request
 					, currentUser			:: !User									// The current user
 					, currentInstance		:: !InstanceNo								// The current evaluated task instance
                     , currentSession        :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session

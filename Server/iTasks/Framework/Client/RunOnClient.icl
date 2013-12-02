@@ -152,7 +152,8 @@ createClientIWorld currentInstance
     							  ,publicWebDirectories = locundef "publicWebDirectories"}
 		  ,taskTime				= 0
 		  ,timestamp			= Timestamp 1
-		  ,currentDateTime		= DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
+		  ,currentLocalDateTime	= DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
+		  ,currentUTCDateTime	= DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
 		  ,currentUser			= SystemUser
 		  ,currentInstance		= currentInstance
 		  ,currentSession		= Just currentInstance

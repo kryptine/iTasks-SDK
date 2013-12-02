@@ -19,7 +19,6 @@ from Data.Maybe import :: Maybe
     , layoutSubEditor	   :: UIControlStack               -> UIAnnotatedControls	//Combine multiple controls in editors
     , layoutControlStack   :: UIControlStack               -> UISubUI              //Lay out the controls of a control stack to create a sub-user interface
     , layoutSubUIStack     :: UISubUIStack                 -> UISubUI              //Combine a stack of sub-user interfaces into one
-	, layoutFinal	       :: UIDef                        -> UIViewport	        //Last touches to the composition
 	}
 
 :: UIControlCombinator  :== UIControlStack -> UISubUI
@@ -47,7 +46,12 @@ autoAccuWorkOn          :: UIDef TIMeta -> UIDef
 autoLayoutSubEditor    :: UIControlStack -> UIAnnotatedControls
 autoLayoutControlStack :: UIControlStack -> UISubUI
 autoLayoutSubUIStack   :: UISubUIStack -> UISubUI
-autoLayoutFinal        :: UIDef -> UIViewport
+
+//Applied automatically when a published has a UI other than UIFinal
+autoLayoutFinal        :: UIDef -> UIDef
+
+//Alternative plain final layout
+plainLayoutFinal       :: UIDef -> UIDef
 
 //Placement tuning types
 :: InWindow         = InWindow          //Indicate that a task should be put in a window

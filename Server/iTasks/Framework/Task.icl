@@ -65,6 +65,5 @@ repLayoutRules {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fro
 
 finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
 finalizeRep repOpts=:{TaskRepOpts|noUI=True} _ = NoRep
-finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep (UIFinal ((repLayoutRules repOpts).LayoutRules.layoutFinal def)) parts
 finalizeRep repOpts rep = rep
 

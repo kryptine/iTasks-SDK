@@ -22,9 +22,10 @@ import iTasks.Framework.SerializationGraphCopy
 
 updateCurrentDateTime :: !*IWorld -> *IWorld
 updateCurrentDateTime iworld=:{IWorld|world}
-	# (dt,world)			= currentDateTimeWorld world
+	# (localDt,world)		= currentLocalDateTimeWorld world
+	# (utcDt,world)			= currentUTCDateTimeWorld world
 	# (timestamp,world)		= time world
-	= {IWorld|iworld  & currentDateTime = dt, timestamp = timestamp, world = world}
+	= {IWorld|iworld  & currentLocalDateTime = localDt, currentUTCDateTime = utcDt, timestamp = timestamp, world = world}
 
 queueWork :: !(!Work, !Maybe Timestamp) !*IWorld -> *IWorld
 queueWork newWork iworld=:{workQueue}

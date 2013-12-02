@@ -74,7 +74,7 @@ where
 
 	//Eval left-hand side
 	eval event repOpts (TCStep taskId ts (Left treea)) iworld=:{taskTime}
-		# (resa, iworld) 	= evala event {repOpts & appFinalLayout = False} treea iworld
+		# (resa, iworld) 	= evala event repOpts treea iworld
 		# ts				= case event of
 							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
@@ -98,9 +98,9 @@ where
 				//Cleanup state of left-hand side
 				# iworld	= case mbTreeA of
 					Nothing		= iworld
-					Just treea	= snd (evala (toRefresh event) {repOpts & appFinalLayout = False} (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
+					Just treea	= snd (evala (toRefresh event) repOpts (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= evalb (toRefresh event) {repOpts & appFinalLayout = False} (TCInit taskIdb lastEvent) iworld 
+				# (resb,iworld)		= evalb (toRefresh event) repOpts (TCInit taskIdb lastEvent) iworld 
 				= case resb of
 					ValueResult val info rep nstateb	
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
@@ -113,14 +113,14 @@ where
 							_						= ts
 		= case restoreTaskB sel enca of
 			Just (Task evalb)
-				# (resb, iworld)	= evalb event {repOpts & appFinalLayout = False} treeb iworld 
+				# (resb, iworld)	= evalb event repOpts treeb iworld
 				= case resb of
 					ValueResult val info rep ntreeb
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
 						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
 					ExceptionResult e str			= (ExceptionResult e str, iworld)
 			Nothing
-				= (exception "Corrupt task value in step", iworld) 	
+				= (exception "Corrupt task value in step", iworld)	
 	
 	//Cleanup
 	eval event repOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
@@ -278,7 +278,7 @@ where
                 Just dtask
                     # (Task evala) = unwrapTask dtask
 				//Just (Task evala :: Task a^)
-					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=False,noUI=repOpts.noUI} tree iworld
+					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=repOpts.noUI} tree iworld
 					= case result of
 						ExceptionResult _ _
 							= (Just result,acc,iworld)	
@@ -309,7 +309,7 @@ where
 	destroyParTask (_,iworld=:{localTasks}) {TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult _ _ _ tree}
 		= case 'Data.Map'.get entryId localTasks of
 			Just (Task evala :: Task a^)
-				# (result,iworld=:{localTasks}) = evala (RefreshEvent Nothing) {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=False,noUI=True} (TCDestroy tree) iworld
+				# (result,iworld=:{localTasks}) = evala (RefreshEvent Nothing) {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=True} (TCDestroy tree) iworld
 				# iworld = {iworld & localTasks = 'Data.Map'.del entryId localTasks}
 				= case result of
 					DestroyedResult		= (Nothing,iworld)
@@ -350,9 +350,9 @@ where
 						
 //SHARED HELPER FUNCTIONS
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
-appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentAttachment,currentDateTime,localTasks}
+appendTaskToList taskId (parType,parTask) iworld=:{taskTime,currentUser,currentAttachment,currentLocalDateTime,localTasks}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {issuedAt=currentDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
+	# progress = {issuedAt=currentLocalDateTime,issuedBy=currentUser,stable=True,firstEvent=Nothing,latestEvent=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld)	= getNextTaskId iworld

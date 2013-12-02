@@ -7,7 +7,7 @@ import iTasks.Framework.Task
 import iTasks.API.Core.SystemTypes
 from StdFunc					import o, seq
 from iTasks.Framework.IWorld	import :: IWorld(..)
-from iTasks.Framework.Util as iFU import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
+from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
 SYSTEM_DATA_NS :== "SystemData"
@@ -18,25 +18,39 @@ sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just d
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where
-	read iworld
-		# (dateTime, iworld)		= 'iFU'.currentDateTime iworld
-		# (Timestamp ts, iworld)	= 'iFU'.currentTimestamp iworld
-		= ((dateTime, Timestamp (ts + 1)), iworld)
+	read iworld=:{currentLocalDateTime,timestamp=Timestamp ts}
+		= ((currentLocalDateTime, Timestamp (ts + 1)), iworld)
 		
 currentTime :: ReadOnlyShared Time
 currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
 where
-	read iworld
-		# (time, iworld)			= 'iFU'.currentTime iworld
-		# (Timestamp ts, iworld)	= 'iFU'.currentTimestamp iworld
+	read iworld=:{currentLocalDateTime=DateTime _ time,timestamp=Timestamp ts}
 		= ((time, Timestamp (ts + 1)), iworld)
 		
 currentDate :: ReadOnlyShared Date
 currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
 where
-	read iworld
-		# (DateTime date time, iworld)	= 'iFU'.currentDateTime iworld
-		# (Timestamp ts, iworld)		= 'iFU'.currentTimestamp iworld
+	read iworld=:{currentLocalDateTime=DateTime date time,timestamp=Timestamp ts}
+		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
+
+	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
+
+currentUTCDateTime :: ReadOnlyShared DateTime
+currentUTCDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDateTime" read
+where
+	read iworld=:{currentUTCDateTime,timestamp=Timestamp ts}
+		= ((currentUTCDateTime, Timestamp (ts + 1)), iworld)
+
+currentUTCTime :: ReadOnlyShared Time
+currentUTCTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCTime" read
+where
+	read iworld=:{currentUTCDateTime=DateTime _ time,timestamp=Timestamp ts}
+		= ((time, Timestamp (ts + 1)), iworld)
+
+currentUTCDate :: ReadOnlyShared Date
+currentUTCDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDate" read
+where
+	read iworld=:{currentUTCDateTime=DateTime date time,timestamp=Timestamp ts}
 		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
 
 	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)

@@ -170,7 +170,8 @@ initIWorld sdkDir world
 	# tm						= (fromOk res).lastModifiedTime
 	# build						= strfTime "%Y%m%d-%H%M%S" tm
 	# (timestamp,world)			= time world
-	# (currentDateTime,world)	= currentDateTimeWorld world
+	# (localDateTime,world)	    = currentLocalDateTimeWorld world
+	# (utcDateTime,world)	    = currentUTCDateTimeWorld world
 	# (_,world)					= ensureDir "data" dataDir world
 	# tmpDir					= dataDir </> "tmp-" +++ build
 	# (_,world)					= ensureDir "tmp" tmpDir world
@@ -203,7 +204,8 @@ initIWorld sdkDir world
 	  ,config				= initialConfig
 	  ,taskTime				= 0
 	  ,timestamp			= timestamp
-	  ,currentDateTime		= currentDateTime
+	  ,currentLocalDateTime	= localDateTime
+	  ,currentUTCDateTime	= utcDateTime
 	  ,currentUser			= AnonymousUser ""
 	  ,currentInstance		= 0
       ,currentSession       = Nothing
