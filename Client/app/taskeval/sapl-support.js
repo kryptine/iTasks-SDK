@@ -175,6 +175,12 @@ Sapl = new function () {
 				// No feval! It's strict in its argument
 				if(consname == "JSVal"){
 					return expr[2]; 
+				}else if(consname  == "ARRAY"){
+					var ret = [];
+					for(var i=2; i<expr.length; i++){
+						ret.push(this.toJS(expr[i]));
+					}
+					return ret;
 				}
 
 				// SPECIALIZED OVERRIDES!!!
