@@ -88,3 +88,5 @@ jsValToBool   :: !(JSVal a) -> Bool
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
 callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
+
+jsUnsafeCoerce :: (JSVal a) -> JSVal b

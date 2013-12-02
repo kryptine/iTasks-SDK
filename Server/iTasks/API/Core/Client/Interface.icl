@@ -208,3 +208,6 @@ withDef f def ptr | jsIsUndefined ptr
 
 callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
 callFunction fn args world = callObjectMethod fn args jsWindow world
+
+jsUnsafeCoerce :: (JSVal a) -> JSVal b
+jsUnsafeCoerce x = undef

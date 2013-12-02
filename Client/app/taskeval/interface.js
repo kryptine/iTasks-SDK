@@ -212,7 +212,12 @@ function __iTasks_API_Core_Client_Interface_fromJSVal(ptr, world){
 	world = Sapl.feval(world);
 	return (toDynamic(___unwrapJS(Sapl.feval(ptr))), world);
 }
-	
+
+// jsUnsafeCoerce :: (JSVal a) -> JSVal b
+function __iTasks_API_Core_Client_Interface_jsUnsafeCoerce(expr){
+  return expr;
+}
+
 // createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal b) 
 function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId){
 	expr = Sapl.feval(expr);
