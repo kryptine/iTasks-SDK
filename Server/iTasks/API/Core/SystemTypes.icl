@@ -410,7 +410,12 @@ where
 		
 instance - DateTime
 where
-	(-) (DateTime dx tx) (DateTime dy ty) = DateTime (dx - dy) (tx - ty)
+	(-) (DateTime dx tx) (DateTime dy ty)
+        | tn <= tx   = DateTime dn tn
+        | otherwise  = DateTime (dn - {Date|year=0,mon=0,day=1}) tn //We've passed midnight
+    where
+        dn = dx - dy
+        tn = tx - ty
 
 instance == DateTime
 where
