@@ -1,5 +1,6 @@
 implementation module ligrettoTOP
 
+import StdArray
 import ligretto
 import iTasks
 
@@ -183,7 +184,7 @@ play_card nr_of_players player cardnr (Value (me,middle) _)
 | cardnr > length me.row= Nothing
 | isEmpty matching_piles= Nothing
 | otherwise				= let (pilenr,pile) = hd matching_piles in
-						  Just (update (updateAt pilenr [card : pile]) middle_state 
+						  Just (upd (updateAt pilenr [card : pile]) middle_state 
 						    >>| set (move_ligretto_card_to_row cardnr me) (player_state player.color)
 						    >>| play_cards nr_of_players player
 						  )
@@ -197,7 +198,7 @@ play_hand nr_of_players player (Value (me,middle) _)
 | isNothing maybe_card	= Nothing
 | isEmpty matching_piles= Nothing
 | otherwise				= let (pilenr,pile) = hd matching_piles in
-						  Just (update (updateAt pilenr [card : pile]) middle_state
+						  Just (upd (updateAt pilenr [card : pile]) middle_state
 						    >>| set (remove_top_of_discard me) (player_state player.color)
 						    >>| play_cards nr_of_players player
 						  )

@@ -4,7 +4,6 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.CodeMirror
-import iTasks.API.Extensions.Tonic.Toniclet
 import iTasks.API.Extensions.GIS.Leaflet
 
 import StdDebug
@@ -239,6 +238,22 @@ defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
 
 //test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
 
+import iTasks.API.Extensions.Graphlet.Graphlet
+import iTasks.API.Extensions.Graphlet.GraphvizRenderer
+import Data.Graph
+
+testGraphlet = viewInformation "Graphlet with Graphviz rendering" [] (graphlet mkTestGraph graphvizRenderer)
+  where
+  mkTestGraph
+    # g        = emptyGraph
+    # (ni1, g) = addNode (GSBoxShape (Just "This is a box!")) g
+    # (ni2, g) = addNode (GSPlainText "Just words") g
+    # (ni3, g) = addNode (GSDiamond Nothing) g
+    # g        = addEdge (Just "From box") (ni1, ni2) g
+    # g        = addEdge (Just "To words") (ni2, ni3) g
+    # g        = addEdge Nothing (ni3, ni1) g
+    = g
+
 test5 :: Task CodeMirror
 test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings" [] defcm
 																-|| 
@@ -268,6 +283,6 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 //test7 = enterInformation "Test" [] 
 
 Start :: *World -> *World
-Start world = startEngine test5 world
+Start world = startEngine testGraphlet world
 
 
