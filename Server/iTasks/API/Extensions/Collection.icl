@@ -60,7 +60,7 @@ addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | descr d & iTask i & iTas
 addItem desc collection identify
 	=	enterInformation desc []
 	>>*	[OnAction ActionCancel (always (return Nothing))
-		,OnAction ActionOk (hasValue (\item -> update (\l -> l ++ [item]) collection >>| return (Just (identify item))))
+		,OnAction ActionOk (hasValue (\item -> upd (\l -> l ++ [item]) collection >>| return (Just (identify item))))
 		]
 
 editItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | descr d & iTask c & iTask i
@@ -71,7 +71,7 @@ editItem desc collection itemShare identify i
 			(Just item)	=	updateInformation desc [] item
 						>>*	[OnAction ActionCancel (always (return Nothing))
 							,OnAction ActionOk (hasValue (\item` -> 
-													update (\l -> [if (identify c === i) item` c \\ c <- l ]) collection
+													upd (\l -> [if (identify c === i) item` c \\ c <- l ]) collection
 													>>| return (Just i)
 												 ))
 							]
@@ -80,7 +80,7 @@ deleteItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i ->
 deleteItem desc collection itemShare identify i
 	=	viewSharedInformation desc [] (itemShare collection i)
 	>>*	[OnAction ActionNo (always (return Nothing))
-		,OnAction ActionYes (always (update (\l -> [c \\ c <- l | identify c =!= i]) collection >>| return Nothing))
+		,OnAction ActionYes (always (upd (\l -> [c \\ c <- l | identify c =!= i]) collection >>| return Nothing))
 		]
 
 

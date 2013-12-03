@@ -39,8 +39,8 @@ where
 			Ok _	= (Ok val,iworld)
 			Error e	= (Error (dynamic (SharedException e), e), iworld)
 
-update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
-update fun shared = mkInstantTask eval
+upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+upd fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,currentInstance}
 		# (er, iworld)	= 'Data.SharedDataSource'.read shared iworld

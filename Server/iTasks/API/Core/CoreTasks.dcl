@@ -71,7 +71,7 @@ set :: !a !(ReadWriteShared r a) -> Task a | iTask a
 * @gin-title Update shared
 * @gin-icon shared_update
 */
-update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 
 /**
 * Reads shared data continously

@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.Admin.UserAdmin
 
-import iTasks, Text, Data.Tuple
+import iTasks, Text, Data.Tuple, StdArray
 
 derive class iTask UserAccount
 
@@ -66,12 +66,12 @@ createUser account
 	=	get (userAccount (identifyUserAccount account))
 	>>= \mbExisting -> case mbExisting of
 		Nothing
-			= update (\accounts -> accounts ++ [account]) userAccounts @ const account
+			= upd (\accounts -> accounts ++ [account]) userAccounts @ const account
 		_	
 			= throw ("A user with username '" +++ toString account.UserAccount.credentials.Credentials.username +++ "' already exists.")
 
 deleteUser :: !UserId -> Task Void
-deleteUser userId = update (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @ const Void
+deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @ const Void
 
 
 manageUsers :: Task Void

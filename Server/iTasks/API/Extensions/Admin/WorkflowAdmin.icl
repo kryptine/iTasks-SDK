@@ -225,7 +225,7 @@ removeWhenStable task slist
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional
-	=	update (\flows -> flows ++ additional) workflows
+	=	upd (\flows -> flows ++ additional) workflows
 
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w
