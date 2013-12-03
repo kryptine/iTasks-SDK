@@ -1,4 +1,4 @@
-implementation module iTasks.API.Extensions.DagreD3.D3
+implementation module iTasks.API.Extensions.Graphlet.D3
 
 import iTasks.API.Core.Client.Interface
 import Data.List
