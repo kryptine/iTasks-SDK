@@ -37,10 +37,9 @@ drawEdgeLabel (Just str)  graph e root world
   # (d3, world)     = append "g" root world
   # (d3, world)     = setAttr "class" (toJSVal "edge-label") d3 world
   # (ev, world)     = getEdgeValue graph (toJSVal e) world
-  # (lbl, world)    = jsGetObjectAttr "label" ev world
-  # (rect, world)   = append "rect" root world
-  # (lblSvg, world) = append "g" root world
-  # (d3, world)     = append "text" root world
+  # (rect, world)   = append "rect" d3 world
+  # (lblSvg, world) = append "g" d3 world
+  # (d3, world)     = append "text" lblSvg world
   # (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
   # (d3, world)     = append "tspan" d3 world
   # (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
@@ -60,17 +59,3 @@ drawEdgeLabel (Just str)  graph e root world
                                ] rect world
   = world
 
-
-
-  //drawNodeCb pid {[0] = graph, [1] = u, [2] = root} gg world
-    //# (d3, world)  = append "g" (jsUnsafeCoerce root) world
-    //# (d3, world)  = setAttr "class" (toJSVal "label") d3 world
-    //# (nv, world)  = getNodeValue (jsUnsafeCoerce graph) (jsUnsafeCoerce u) world
-    //# (str, world) = jsGetObjectAttr "node" nv world
-    //# (node, _)    = copy_from_string (jsValToString str)
-    //# world        = addLabel (toJSVal "Node label") d3 10 10 world
-    //= (gg, world)
-
-  //drawEdgeLabelCb pid {[0] = graph, [1] = e, [2] = root} gg world
-
-  //addLabel label root mx my world
