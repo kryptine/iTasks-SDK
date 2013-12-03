@@ -378,6 +378,8 @@ uiDefWindows			:: UIDef -> [UIWindow]
 
 uiDefSetAttribute		:: String String UIDef -> UIDef
 uiDefSetDirection		:: UIDirection UIDef -> UIDef
+uiDefSetHalign		    :: UIHAlign	UIDef -> UIDef
+uiDefSetValign		    :: UIVAlign	UIDef -> UIDef
 uiDefSetPadding         :: Int Int Int Int UIDef -> UIDef
 uiDefSetBaseCls         :: String UIDef -> UIDef
 //Encode a user interface definition to a format that

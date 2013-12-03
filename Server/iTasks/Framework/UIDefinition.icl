@@ -347,6 +347,14 @@ uiDefSetDirection :: UIDirection UIDef -> UIDef
 uiDefSetDirection direction (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & direction = direction}}
 uiDefSetDirection direction def = def
 
+uiDefSetHalign :: UIHAlign UIDef -> UIDef
+uiDefSetHalign align (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & halign = align}}
+uiDefSetHalign align def = def
+
+uiDefSetValign :: UIVAlign UIDef -> UIDef
+uiDefSetValign align (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & valign = align}}
+uiDefSetValign align def = def
+
 uiDefSetPadding :: Int Int Int Int UIDef -> UIDef
 uiDefSetPadding top right bottom left (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}}
 uiDefSetPadding _ _ _ _ def = def
