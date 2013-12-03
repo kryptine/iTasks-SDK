@@ -15,9 +15,9 @@ derive gUpdate Graph, Node
 derive gVerify Graph, Node
 
 :: GraphletRenderer n e =
-  { drawNodeCallback :: n GLGraph Int D3 *JSWorld -> *JSWorld
-  , drawEdgeCallback :: e GLGraph Int D3 *JSWorld -> *JSWorld
-  , styleSheets      :: [String]
+  { drawNodeCallback      :: n GLGraph String D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: e GLGraph String D3 *JSWorld -> *JSWorld
+  , styleSheets           :: [String]
   }
 
 graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (Graph n e) (Graph n e) | iTask n & iTask e

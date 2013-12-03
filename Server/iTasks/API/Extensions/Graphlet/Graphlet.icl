@@ -64,7 +64,7 @@ graphlet gg renderer
 
   drawNodeCb pid {[0] = graph, [1] = u, [2] = root} gg world
     # graphValue    = jsUnsafeCoerce graph
-    # nodeId        = jsValToInt (jsUnsafeCoerce u)
+    # nodeId        = jsValToString (jsUnsafeCoerce u)
     # rootElem      = jsUnsafeCoerce root
     # (node, world) = getNodeValue graphValue (toJSVal nodeId) world
     # (str, world)  = jsGetObjectAttr "node" node world
@@ -74,12 +74,12 @@ graphlet gg renderer
 
   drawEdgeLabelCb pid {[0] = graph, [1] = e, [2] = root} gg world
     # graphValue    = jsUnsafeCoerce graph
-    # edgeId        = jsValToInt (jsUnsafeCoerce e)
+    # edgeId        = jsValToString (jsUnsafeCoerce e)
     # rootElem      = jsUnsafeCoerce root
     # (edge, world) = getEdgeValue graphValue (toJSVal edgeId) world
     # (str, world)  = jsGetObjectAttr "edge" edge world
     # (edgeVal, _)  = copy_from_string {c \\ c <-: jsValToString str}
-    # world         = renderer.drawEdgeCallback edgeVal graphValue edgeId rootElem world
+    # world         = renderer.drawEdgeLabelCallback edgeVal graphValue edgeId rootElem world
     = (gg, world)
 
   onUpdate pid _ val world

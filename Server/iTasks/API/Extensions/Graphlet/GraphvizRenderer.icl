@@ -9,17 +9,17 @@ derive class iTask GraphvizShape
 graphvizRenderer :: GraphletRenderer GraphvizShape GraphvizEdge
 graphvizRenderer =
   { GraphletRenderer
-  | drawNodeCallback = drawNode
-  , drawEdgeCallback = drawEdge
-  , styleSheets      = []
+  | drawNodeCallback      = drawNode
+  , drawEdgeLabelCallback = drawEdgeLabel
+  , styleSheets           = ["/graphviz.css"]
   }
 
-drawNode :: GraphvizShape GLGraph Int D3 *JSWorld -> *JSWorld
+drawNode :: GraphvizShape GLGraph String D3 *JSWorld -> *JSWorld
 drawNode shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
 
-drawNode` :: GraphvizShape GLGraph Int D3 *JSWorld -> *JSWorld
+drawNode` :: GraphvizShape GLGraph String D3 *JSWorld -> *JSWorld
 drawNode` (GSBoxShape mstr) graph u root world = world
 drawNode` (GSEllipse mstr)  graph u root world = world
 drawNode` (GSOval mstr)     graph u root world = world
@@ -31,9 +31,9 @@ drawNode` (GSDiamond mstr)  graph u root world = world
 drawNode` (GSSquare mstr)   graph u root world = world
 drawNode` _                 _     _ _    world = world
 
-drawEdge :: GraphvizEdge GLGraph Int D3 *JSWorld -> *JSWorld
-drawEdge Nothing     _     _ _    world = world
-drawEdge (Just str)  graph e root world
+drawEdgeLabel :: GraphvizEdge GLGraph String D3 *JSWorld -> *JSWorld
+drawEdgeLabel Nothing     _     _ _    world = world
+drawEdgeLabel (Just str)  graph e root world
   # (d3, world)     = append "g" root world
   # (d3, world)     = setAttr "class" (toJSVal "edge-label") d3 world
   # (ev, world)     = getEdgeValue graph (toJSVal e) world
