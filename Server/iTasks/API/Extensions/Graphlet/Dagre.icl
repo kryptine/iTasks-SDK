@@ -1,8 +1,8 @@
-implementation module iTasks.API.Extensions.DagreD3.Dagre
+implementation module iTasks.API.Extensions.Graphlet.Dagre
 
 import StdTuple
 import iTasks.API.Core.Client.Interface
-import iTasks.API.Extensions.DagreD3.Graphlib
+import iTasks.API.Extensions.Graphlet.Graphlib
 
 :: DagreLW = DagreLW
 

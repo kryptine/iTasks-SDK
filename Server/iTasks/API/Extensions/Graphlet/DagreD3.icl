@@ -1,10 +1,10 @@
-implementation module iTasks.API.Extensions.DagreD3.DagreD3
+implementation module iTasks.API.Extensions.Graphlet.DagreD3
 
 import StdTuple
 import iTasks.API.Core.Client.Interface
-import iTasks.API.Extensions.DagreD3.Graphlib
-import iTasks.API.Extensions.DagreD3.Dagre
-import iTasks.API.Extensions.DagreD3.D3
+import iTasks.API.Extensions.Graphlet.Graphlib
+import iTasks.API.Extensions.Graphlet.Dagre
+import iTasks.API.Extensions.Graphlet.D3
 
 :: DagreRenderW = DagreRenderW
 

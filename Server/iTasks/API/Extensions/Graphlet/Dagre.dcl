@@ -1,7 +1,7 @@
-definition module iTasks.API.Extensions.DagreD3.Dagre
+definition module iTasks.API.Extensions.Graphlet.Dagre
 
 from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSVal
-from iTasks.API.Extensions.DagreD3.Graphlib import :: GLGraph, :: GLGraphW
+from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
 
 :: DagreLW
 

@@ -1,4 +1,4 @@
-definition module iTasks.API.Extensions.DagreD3.D3
+definition module iTasks.API.Extensions.Graphlet.D3
 
 from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSVal, :: JSFunction
 

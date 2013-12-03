@@ -1,4 +1,4 @@
-definition module iTasks.API.Extensions.DagreD3.Graphlib
+definition module iTasks.API.Extensions.Graphlet.Graphlib
 
 import iTasks.API.Core.Client.Interface
 

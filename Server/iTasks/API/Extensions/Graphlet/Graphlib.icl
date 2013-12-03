@@ -1,4 +1,4 @@
-implementation module iTasks.API.Extensions.DagreD3.Graphlib
+implementation module iTasks.API.Extensions.Graphlet.Graphlib
 
 import StdTuple
 import iTasks.API.Core.Client.Interface

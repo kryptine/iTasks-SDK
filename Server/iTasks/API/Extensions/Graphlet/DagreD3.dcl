@@ -1,9 +1,9 @@
-definition module iTasks.API.Extensions.DagreD3.DagreD3
+definition module iTasks.API.Extensions.Graphlet.DagreD3
 
 from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSVal, :: JSFunction
-from iTasks.API.Extensions.DagreD3.Graphlib import :: GLGraph, :: GLGraphW, addNode, addEdge, addEdgeSimple, getNodeValue, setNodeValue, getEdgeValue, setNodeValue, isDirected, hasNode, hasEdge
-from iTasks.API.Extensions.DagreD3.Dagre import :: DagreLayout, :: DagreLW
-from iTasks.API.Extensions.DagreD3.D3 import :: D3, :: D3W
+from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW, addNode, addEdge, addEdgeSimple, getNodeValue, setNodeValue, getEdgeValue, setNodeValue, isDirected, hasNode, hasEdge
+from iTasks.API.Extensions.Graphlet.Dagre import :: DagreLayout, :: DagreLW
+from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 
 :: DagreRenderW
 
