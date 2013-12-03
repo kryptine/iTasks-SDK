@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.SystemData
 
 import StdList, StdBool, StdFile
-import System.Time, Text, Data.Tuple, Data.Map, Math.Random, Data.Functor, Data.Error, System.File
+import System.Time, Text, Data.Tuple, Data.Map, Data.Functor, Data.Error, System.File
 import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Shared, iTasks.Framework.Util
 import iTasks.Framework.Task
 import iTasks.API.Core.SystemTypes
@@ -113,9 +113,8 @@ where
 randomInt	:: ReadOnlyShared Int
 randomInt = createReadOnlySDS randomInt
 where
-	randomInt iworld=:{IWorld|world}
-		# (Clock seed, world)	= clock world
-		= (hd (genRandInt seed), {IWorld|iworld & world = world})
+	randomInt iworld=:{IWorld|random=[i:is]}
+		= (i, {IWorld|iworld & random = is})
 
 EXTERNAL_FILE_POLLING_RATE :== 10
 

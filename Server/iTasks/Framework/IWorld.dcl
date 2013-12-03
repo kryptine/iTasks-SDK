@@ -52,6 +52,7 @@ from Sapl.SaplParser import :: ParserState
 					, uiMessages            :: !Map InstanceNo [UIMessage]				// Messages for communicating with the user interfaces of sessions
 
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
+                    , random                :: [Int]                                    // Infinite random stream
 					, world					:: !*World									// The outside world
 
                     //Experimental database connection cache

@@ -2,7 +2,7 @@ implementation module iTasks.Framework.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool
 from StdFunc import o, seqList, ::St
-import Data.Map, Data.Error, Data.Func, Data.Tuple, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+import Data.Map, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.IWorld, iTasks.Framework.WebService
@@ -190,8 +190,8 @@ initIWorld sdkDir world
 										,"System.File"
 										,"System.Directory"] world
 										
-	# (flavour, world)			= readFlavour sdkDir world
-	
+	# (flavour, world)		= readFlavour sdkDir world
+	# (Clock seed, world)	= clock world
 	= {IWorld
 	  |application			= appName
 	  ,build				= build
@@ -224,6 +224,7 @@ initIWorld sdkDir world
 	  ,shutdown				= False
 	  ,world				= world
       ,resources            = Nothing
+      ,random               = genRandInt seed
       ,onClient				= False
 	  }
 where

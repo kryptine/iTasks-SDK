@@ -170,6 +170,7 @@ createClientIWorld currentInstance
 		  ,workQueue			= []
 		  ,uiMessages			= 'Data.Map'.newMap	  
 		  ,shutdown				= False
+          ,random               = []
 		  ,world				= newWorld
 		  ,resources			= Nothing
 		  ,onClient				= True
