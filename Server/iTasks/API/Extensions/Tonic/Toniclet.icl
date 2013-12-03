@@ -83,13 +83,14 @@ toniclet g
     # (d3, world)  = append "g" (jsUnsafeCoerce root) world
     # (d3, world)  = setAttr "class" (toJSVal "label") d3 world
     # (nv, world)  = getNodeValue (jsUnsafeCoerce graph) (jsUnsafeCoerce u) world
-    # (lbl, world) = jsGetObjectAttr "label" nv world
-    # world        = addLabel lbl d3 10 10 world
+    # (str, world) = jsGetObjectAttr "node" nv world
+    # (node, _)    = copy_from_string (jsValToString str)
+    # world        = addLabel (toJSVal "Node label") d3 10 10 world
     = (gg, world)
 
   drawEdgeLabelCb pid {[0] = graph, [1] = e, [2] = root} gg world
     # (d3, world)  = append "g" (jsUnsafeCoerce root) world
-    # (d3, world)  = setAttr "class" (toJSVal "label") d3 world
+    # (d3, world)  = setAttr "class" (toJSVal "edge-label") d3 world
     # (ev, world)  = getEdgeValue (jsUnsafeCoerce graph) (jsUnsafeCoerce e) world
     # (lbl, world) = jsGetObjectAttr "label" ev world
     # world        = addLabel lbl d3 0 0 world
@@ -111,10 +112,10 @@ toniclet g
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
     # (_, world)      = setAttrs [ ("rx", toJSVal 5)
                                  , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2 + mx)))
-                                 , ("y", toJSVal (0 - (bbh / 2 + my)))
-                                 , ("width", toJSVal (bbw + 2 * mx))
-                                 , ("height", toJSVal (bbh + 2 * my))
+                                 , ("x", toJSVal (0 - ((bbw / 2) + mx)))
+                                 , ("y", toJSVal (0 - ((bbh / 2) + my)))
+                                 , ("width", toJSVal (bbw + (2 * mx)))
+                                 , ("height", toJSVal (bbh + (2 * my)))
                                  ] rect world
     = world
 
@@ -136,14 +137,13 @@ addNodesEdges g jgrph world
   where
   addNode` ni node (jgrph, world)
     # (obj, world) = jsEmptyObject world
-    # world        = jsSetObjectAttr "label" (toJSVal ("NodeWithId-" +++ toString ni)) obj world
     # world        = jsSetObjectAttr "node" (toJSVal (copy_to_string node)) obj world
     # world        = addNode jgrph (toJSVal ni) (toJSVal obj) world
     = (jgrph, world)
   addEdge` (fromNode, toNode) {edge_pattern} (jgrph, world)
     # (obj, world) = jsEmptyObject world
     # world        = jsSetObjectAttr "label" (toJSVal ("Edge" +++ toString fromNode +++ "-" +++ toString toNode)) obj world
-    # world = addEdge jgrph jsNull (toJSVal fromNode) (toJSVal toNode) obj world
+    # world        = addEdge jgrph jsNull (toJSVal fromNode) (toJSVal toNode) obj world
     = (jgrph, world)
 
     //= case node.data.nodeType of
