@@ -278,6 +278,7 @@ itwc.component.itwc_viewport = itwc.extend(itwc.Container,{
         var me = this, i;
         me.domEl = document.body;
         me.targetEl = document.body;
+        me.windows = [];
         //Make sure the body is really empty
         for(i = me.domEl.childNodes.length - 1; i >= 0; i--) {
             me.domEl.removeChild(me.domEl.childNodes[i]);
@@ -792,7 +793,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
     initDOMEl: function() {
         var me = this,
-            el = me.domEl, tmp;
+            el = me.domEl, tmp, proxy;
+
+        me.windows = [];
 
 		if(me.definition.html) {
 			el.innerHTML = me.definition.html;
@@ -837,7 +840,12 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 				
 			eval("tmp = " + me.definition.controllerFunc + ";");
 			me.definition.controllerFunc = tmp;
-			itwc.controller.taskletControllers[me.definition.instanceNo] = me;
+
+            //Create task instance proxy
+            proxy = new itwc.browserInstanceProxy();
+            proxy.init(itwc.controller,me);
+
+            itwc.controller.instanceProxies[me.definition.instanceNo] = proxy;
 						
 			var ret = Sapl.fapp(me.definition.controllerFunc, [me.definition.taskId, me.definition.st, __Data_Maybe_Nothing, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
 			me.definition.st = Sapl.feval(ret[3]);
@@ -856,7 +864,6 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 				window.setInterval(__itask_background_process,200);
 			}
 		}
-
 	},
     afterAdd: function() {
 		var me = this;
@@ -1503,29 +1510,43 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
     }
 });
 
+
 //#### CENTRAL CONTROLLER ####//
-itwc.controller = function() {
+
+//Proxy that relays events to a local object or
+//web service that processes events for a task intstance
+itwc.taskInstanceProxy = function() {
     var me = this;
 
-    //Event queue and administration
-    me.taskEvents = [];
-    me.nextSendEventNo = 0;
-    me.flushingTaskEvents = false;
-    me.refresher = null;
-    me.updateSource = null;
-    me.urlParameters = '';
+    me.rootNode = null;
 };
-itwc.controller.prototype = {
+itwc.taskInstanceProxy.prototype = {
+    init: function(controller,rootNode) {},
+    sendEditEvent: function(taskId, editorId, value) {},
+    sendActionEvent: function(taskId, actionId) {},
+    sendFocusEvent: function(taskId) {}
+}
+itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
-	//Tasklets & editlets
-    editlets: {},
-	tasklets: {},
-	taskletControllers: {},
-	
-    onWindowResize: function(e) {
-        itwc.UI.afterResize();
+    init: function(controller,rootNode) {
+        var me = this,
+            urlSplit;
+        me.controller = controller;
+        me.rootNode = rootNode;
+        me.eventNo = 0;
+        me.taskEvents = [];
+        me.updateSource = null;
+        me.flushingTaskEvents = false;
+
+        //Check url parameters
+        if((urlSplit = window.location.toString().split('?')).length == 2) {
+            me.urlParameters = '&'+urlSplit[1]
+        } else {
+            me.urlParameters = '';
+        }
+
+        me.session = itwc.START_INSTANCE_KEY || null;
     },
-    //Queue a task event for processing
     queueTaskEvent: function (eventData) {
         var me = this,
             eventNo;
@@ -1535,63 +1556,6 @@ itwc.controller.prototype = {
         me.flushTaskEvents();
         return eventNo;
     },
-    sendEditEvent: function(taskId, editorId, value) {
-        var me = this;
-		
-		// Client side execution hook!
-		var instanceNo = taskId.split("-")[0];
-		if(me.taskletControllers[instanceNo] != null){
-		
-			controllerWrapper(
-					me.taskletControllers[instanceNo].definition.controllerFunc, 
-					taskId, "edit", me.nextSendEventNo++, editorId, value);
-		
-		} else {// Normal case (not a tasklet)		
-			return me.sendEditEventDirect(taskId,editorId,value);
-		}
-    },
-	sendEditEventDirect: function(taskId, editorId, value) {
-		var me = this;
-		return me.queueTaskEvent({editEvent: JSON.stringify([taskId,editorId,value])});
-	},
-    sendActionEvent: function(taskId, actionId) {
-        var me = this;
-
-		// Client side execution hook!
-		var instanceNo = taskId.split("-")[0];
-		if(me.taskletControllers[instanceNo] != null){
-			
-			controllerWrapper(
-					me.taskletControllers[instanceNo].definition.controllerFunc, 
-					taskId, "commit", me.nextSendEventNo++, actionId);
-					
-		} else { // Normal case (not a tasklet)		
-			return me.sendActionEventDirect(taskId,actionId);
-		}
-    },
-	sendActionEventDirect: function(taskId, actionId) {
-		var me = this;
-		return me.queueTaskEvent({actionEvent: JSON.stringify([taskId,actionId])});
-	},
-    sendFocusEvent: function(taskId) {
-        var me = this;
-		
-		// Client side execution hook!
-		var instanceNo = taskId.split("-")[0];
-		if(me.taskletControllers[instanceNo] != null){
-			
-			controllerWrapper(
-					me.taskletControllers[instanceNo].definition.controllerFunc, 
-					taskId, "focus", me.nextSendEventNo++);
-					
-		} else { // Normal case (not a tasklet)		
-			return me.sendFocusEventDirect(taskId);
-		}
-    },	
-    sendFocusEventDirect: function(taskId) {
-        var me = this;
-        return me.queueTaskEvent({focusEvent: JSON.stringify(taskId)});
-    },	
     flushTaskEvents: function() {
         var me = this,
             params = {},
@@ -1612,11 +1576,11 @@ itwc.controller.prototype = {
             xhr = new XMLHttpRequest();
             xhr.open('POST','?format=json-gui'+me.urlParameters, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.onload = me.receiveTaskUpdates.bind(me);
+            xhr.onload = me.onTaskEventResponse.bind(me);
             xhr.send(itwc.util.urlEncode(params));
         }
     },
-    receiveTaskUpdates: function(e) {
+    onTaskEventResponse: function(e) {
         var me = this,
             msg;
 
@@ -1632,10 +1596,9 @@ itwc.controller.prototype = {
         me.lastReceivedEventNo = msg.lastEvent;
         //Update user interface
         if(msg.updates) {
-            me.updateUI(msg.updates);
+            me.controller.updateUI(msg.updates,me.rootNode);
         }
         if(msg.done) {
-            me.reset();
             return;
         }
         //Schedule automatic refresh when an expiration time is set
@@ -1656,14 +1619,111 @@ itwc.controller.prototype = {
     },
     onResetPushEvent: function(e) {
         var me = this;
-        me.reset();
+        console.log("Task done!");
     },
     onUpdatePushEvent: function (e) {
         var me = this;
-        me.updateUI(JSON.parse(e.data));
+        me.controller.updateUI(JSON.parse(e.data),me.rootNode);
         me.flushingTaskEvents = false;
         me.flushTaskEvents();
     },
+	sendEditEvent: function(taskId, editorId, value) {
+		var me = this;
+		return me.queueTaskEvent({editEvent: JSON.stringify([taskId,editorId,value])});
+	},
+	sendActionEvent: function(taskId, actionId) {
+		var me = this;
+		return me.queueTaskEvent({actionEvent: JSON.stringify([taskId,actionId])});
+    },
+    sendFocusEvent: function(taskId) {
+        var me = this;
+        return me.queueTaskEvent({focusEvent: JSON.stringify(taskId)});
+    }
+});
+itwc.browserInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
+
+    init: function(controller,rootNode) {
+        var me = this;
+        me.controller = controller;
+        me.rootNode = rootNode;
+        me.nextSendEventNo = 0;
+    },
+	sendEditEvent: function(taskId, editorId, value) {
+		var me = this;
+
+        controllerWrapper(
+            me.rootNode.definition.controllerFunc,
+            taskId, "edit", me.nextSendEventNo++, editorId, value);
+    },
+	sendActionEvent: function(taskId, actionId) {
+		var me = this;
+
+        controllerWrapper(
+		    me.rootNode.definition.controllerFunc,
+			taskId, "commit", me.nextSendEventNo++, actionId);
+    },
+    sendFocusEvent: function(taskId) {
+		var me = this;
+
+        controllerWrapper(
+            me.definition.controllerFunc,
+            taskId, "focus", me.nextSendEventNo++);
+    }
+});
+itwc.controller = function() {
+    var me = this;
+
+    //Event queue and administration
+    me.taskEvents = [];
+    me.nextSendEventNo = 0;
+    me.flushingTaskEvents = false;
+    me.refresher = null;
+    me.updateSource = null;
+    me.urlParameters = '';
+};
+itwc.controller.prototype = {
+
+	//Global registration of tasklets & editlets
+    editlets: {},
+	tasklets: {},
+
+    //The set of task instance proxies which handle events & UI updates
+    instanceProxies: {},
+	
+    onWindowResize: function(e) {
+        itwc.UI.afterResize();
+    },
+
+    sendEditEvent: function(taskId, editorId, value) {
+        var me = this,
+            instanceNo = taskId.split("-")[0];
+		
+        if(me.instanceProxies[instanceNo]) {
+            return me.instanceProxies[instanceNo].sendEditEvent(taskId,editorId,value);
+        } else {
+            return me.instanceProxies[itwc.START_INSTANCE_NO].sendEditEvent(taskId,editorId,value);
+        }
+    },
+    sendActionEvent: function(taskId, actionId) {
+        var me = this,
+            instanceNo = taskId.split("-")[0];
+
+        if(me.instanceProxies[instanceNo]) {
+            return me.instanceProxies[instanceNo].sendActionEvent(taskId,actionId);
+        } else {
+            return me.instanceProxies[itwc.START_INSTANCE_NO].sendActionEvent(taskId,actionId);
+        }
+    },
+    sendFocusEvent: function(taskId) {
+        var me = this,
+	        instanceNo = taskId.split("-")[0];	
+
+        if(me.instanceProxies[instanceNo]) {
+            return me.instanceProxies[instanceNo].sendFocusEvent(taskId);
+        } else { //Temporary fallback
+            return me.instanceProxies[itwc.START_INSTANCE_NO].sendFocusEvent(taskId);
+        }
+    },	
     updateUI: function(updates,root) {
         var me = this,
             cmp;
@@ -1696,10 +1756,10 @@ itwc.controller.prototype = {
                         break;
                     case 'addWindow':
                         me.addWindow(cmp,op.arguments[0],op.arguments[1]);
-                        itwc.WINDOWS[op.arguments[0]].afterAdd();
+                        cmp.windows[op.arguments[0]].afterAdd();
                         break;
                     case 'removeWindow':
-                        me.removeWindow(op.arguments[0]);
+                        me.removeWindow(cmp,op.arguments[0]);
                         break;
                     default:
                         cmp.applyUpdate(op.method,op.arguments);
@@ -1712,7 +1772,7 @@ itwc.controller.prototype = {
     findComponent: function(path,root) {
         var cmp;
         if(path.length && path[0] === 'w') {
-            cmp = itwc.WINDOWS[path[1]];
+            cmp = root.windows[path[1]];
             path.splice(0,2);
         } else {
             cmp = root ? root : itwc.UI;
@@ -1778,12 +1838,12 @@ itwc.controller.prototype = {
             parentCmp.afterItemRemoved(removeIdx);
         }
     },
-    addWindow: function(viewport,winIdx,winDef) {
+    addWindow: function(cmp,winIdx,winDef) {
         var me = this,
             win;
 
         win = new itwc.component.itwc_window();
-        win.init(winDef,viewport);
+        win.init(winDef,cmp);
         win.render(winIdx);
 
         //Add window's children
@@ -1798,7 +1858,7 @@ itwc.controller.prototype = {
                 me.addComponent(win.menu,menuIdx,menuCmp);
             });
         }
-        itwc.WINDOWS[winIdx] = win;
+        cmp.windows[winIdx] = win;
 
         //Inject in DOM
         document.body.appendChild(win.domEl);
@@ -1806,33 +1866,12 @@ itwc.controller.prototype = {
         win.domEl.style.left = ((document.body.offsetWidth / 2) - (win.domEl.offsetWidth / 2)) + 'px';
         win.domEl.style.top = ((document.body.offsetHeight / 2) - (win.domEl.offsetHeight / 2)) + 'px';
     },
-    removeWindow: function(winIdx) {
-        document.body.removeChild(itwc.WINDOWS[winIdx].domEl);
-        itwc.WINDOWS.splice(winIdx,1);
+    removeWindow: function(cmp,winIdx) {
+        document.body.removeChild(cmp.windows[winIdx].domEl);
+        cmp.windows.splice(winIdx,1);
     },
     reset: function(startInstanceNo,startInstanceUrl) {
-        var me = this,
-            urlSplit;
-
-        //Check url parameters
-        if((urlSplit = window.location.toString().split('?')).length == 2) {
-            me.urlParameters = '&'+urlSplit[1]
-        }
-
-        //Close push source
-        if(me.updateSource) {
-            me.updateSource.close();
-            me.updateSource = null;
-        }
-
-        ///Reset session
-        me.session = itwc.START_INSTANCE_KEY || null;
-
-        //Empty event queue
-        me.taskEvents = [];
-        me.nextSendEventNo = 0;
-        me.flushingTaskEvents = false;
-        me.refresher = null;
+        var me = this, proxy;
 
         //Initialize the client component tree and DOM
         itwc.DOMID = 1000;
@@ -1842,22 +1881,23 @@ itwc.controller.prototype = {
         itwc.UI.init();
         itwc.UI.render(0);
 
-        //Empty list of windows
-        itwc.WINDOWS = [];
+        //Create an initial server proxy
+        proxy = new itwc.serverInstanceProxy();
+        proxy.init(me,itwc.UI);
+        proxy.queueTaskEvent({});
+
+        me.instanceProxies[itwc.START_INSTANCE_NO] = proxy;
     },
     start: function () {
         var me = this;
 
         //Initialize user interface data structures and DOM
         me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_URL);
-        //Start a session by sending a blank event
-        me.queueTaskEvent({});
 
         //Listen for changes in the viewport size
         window.addEventListener('resize',me.onWindowResize,me);
     }
 };
-
 //Set up a singleton controller object
 itwc.controller = new itwc.controller();
 itwc.global.controller = itwc.controller; //Backwards compatibility
