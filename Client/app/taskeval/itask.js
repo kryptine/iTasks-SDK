@@ -1,78 +1,6 @@
 var _iworld;
 var _itask_background_interval;
 
-/**
-* eventType can be "edit" or "commit" or "init" or "focus" or "refresh". It is necessary because eventValue can be null
-* even in the case of "edit" event.
-*/
-function controllerWrapper(controllerFunc,taskId,eventType,eventNo,eventName,eventValue){
-	
-	console.time('controllerWrapper: eval');
-	
-	var taskletId = taskId.split("-")[0] + "-0";
-	var tasklet = itwc.controller.tasklets[taskletId];
-	var state = tasklet.definition.st;
-
-	var tmp = [controllerFunc,[]];
-	tmp[1].push(taskId);
-	tmp[1].push(state);
-	
-	if(eventType == "focus" || eventType == "edit" || eventType == "commit"){
-		tmp[1].push([1, 'Just', eventNo])
-	}else{
-		tmp[1].push([0, 'Nothing']);
-	}
-		
-	if(eventType == "edit" || eventType == "commit"){
-		tmp[1].push([1, 'Just', eventName])
-	}else{
-		tmp[1].push([0, 'Nothing']);
-	}
-
-	if(eventType == "edit"){
-		// convert eventValue to JSON to mediate type information to the controller (e.g. Int?)
-		tmp[1].push([1, 'Just', JSON.stringify(eventValue)])
-	}else{
-		tmp[1].push([0, 'Nothing']);
-	}	
-
-	tmp[1].push(_iworld);
-	
-	// result is a tuple of mbTUI and state
-	var ys = Sapl.feval(tmp);
-	_iworld = Sapl.feval(ys[4]);	
-	state = Sapl.heval(ys[3]);
-	
-	tasklet.definition.st = state;	// save it
-	
-	// toJS to make the result hyperstrict
-	var newres = Sapl.toJS(Sapl.fapp(tasklet.definition.resultFunc,[state]));	
-	
-	var mbTUI = Sapl.feval(ys[2]);
-		
-	// If mbTUI is Nothing, the task is finished
-	if(mbTUI[0] == 0){
-		itwc.controller.sendEditEventDirect(tasklet.definition.taskId, "finalize", newres);
-	}else{		
-		var upd = Sapl.feval(mbTUI[2]);
-
-		console.timeEnd('controllerWrapper: eval');
-				
-		console.time('controllerWrapper: apply UI update');
-		itwc.controller.updateUI(JSON.parse(upd), tasklet);
-		console.timeEnd('controllerWrapper: apply UI update');
-		
-		__itask_background_process();
-		
-		// Send result to the client if it is changed only
-		if(!geq(tasklet.definition.lastResult, newres)){
-			tasklet.definition.lastResult = newres;
-//			itwc.controller.sendEditEventDirect(taskletId, "result", newres);
-		}		
-	}
-	
-}
-
 function __itask_background_process(){
 	console.time('background process');
 	
@@ -87,7 +15,7 @@ function __itask_background_process(){
 		uiupdates.forEach(function(upd){
 			var instanceId = upd[0];
 			var diff = upd[1];
-			var tasklet = itwc.controller.taskletControllers[instanceId];
+			var tasklet = itwc.controller.instanceProxies[instanceId].rootNode;
 			if(tasklet){
 				itwc.controller.updateUI(JSON.parse(diff), tasklet);
 			}else{
@@ -95,7 +23,6 @@ function __itask_background_process(){
 			}
 		});
 	}
-	
 	console.timeEnd('background process');
 }
 

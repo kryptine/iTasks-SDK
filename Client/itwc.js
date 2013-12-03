@@ -842,7 +842,7 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 			me.definition.controllerFunc = tmp;
 
             //Create task instance proxy
-            proxy = new itwc.browserInstanceProxy();
+            proxy = new itwc.taskletInstanceProxy();
             proxy.init(itwc.controller,me);
 
             itwc.controller.instanceProxies[me.definition.instanceNo] = proxy;
@@ -1640,7 +1640,7 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         return me.queueTaskEvent({focusEvent: JSON.stringify(taskId)});
     }
 });
-itwc.browserInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
+itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
     init: function(controller,rootNode) {
         var me = this;
@@ -1649,25 +1649,76 @@ itwc.browserInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.nextSendEventNo = 0;
     },
 	sendEditEvent: function(taskId, editorId, value) {
-		var me = this;
-
-        controllerWrapper(
-            me.rootNode.definition.controllerFunc,
-            taskId, "edit", me.nextSendEventNo++, editorId, value);
+        this.processEvent(taskId, "edit", this.nextSendEventNo++, editorId, value);
     },
 	sendActionEvent: function(taskId, actionId) {
-		var me = this;
-
-        controllerWrapper(
-		    me.rootNode.definition.controllerFunc,
-			taskId, "commit", me.nextSendEventNo++, actionId);
+        this.processEvent(taskId, "commit", this.nextSendEventNo++, actionId);
     },
     sendFocusEvent: function(taskId) {
-		var me = this;
+        this.processEvent(taskId, "focus", this.nextSendEventNo++);
+    },
+    processEvent: function(taskId,eventType,eventNo,eventName,eventValue) {
+	
+	    console.time('controllerWrapper: eval');
+        var me = this,
+    	    taskletId = taskId.split("-")[0] + "-0",
+    	    state = me.rootNode.definition.st;
+            controllerFunc = me.rootNode.definition.controllerFunc
 
-        controllerWrapper(
-            me.definition.controllerFunc,
-            taskId, "focus", me.nextSendEventNo++);
+	    var tmp = [controllerFunc,[]];
+	    tmp[1].push(taskId);
+	    tmp[1].push(state);
+	
+	    if(eventType == "focus" || eventType == "edit" || eventType == "commit") {
+		    tmp[1].push([1, 'Just', eventNo])
+	    } else {
+		    tmp[1].push([0, 'Nothing']);
+	    }
+	    if(eventType == "edit" || eventType == "commit"){
+		    tmp[1].push([1, 'Just', eventName])
+	    }else{
+		    tmp[1].push([0, 'Nothing']);
+	    }
+	    if(eventType == "edit"){
+		    // convert eventValue to JSON to mediate type information to the controller (e.g. Int?)
+		    tmp[1].push([1, 'Just', JSON.stringify(eventValue)])
+	    } else {
+		    tmp[1].push([0, 'Nothing']);
+	    }	
+	    tmp[1].push(_iworld);
+	
+    	// result is a tuple of mbUI and state
+    	var ys = Sapl.feval(tmp);
+	    _iworld = Sapl.feval(ys[4]);	
+	    state = Sapl.heval(ys[3]);
+	
+	    me.rootNode.definition.st = state;	// save it
+	
+	    // toJS to make the result hyperstrict
+        var newres = Sapl.toJS(Sapl.fapp(me.rootNode.definition.resultFunc,[state]));	
+	
+        var mbUI = Sapl.feval(ys[2]);
+		
+	    // If mbUI is Nothing, the task is finished
+	    if(mbUI[0] == 0) {
+		    itwc.controller.sendEditEvent(me.rootNode.definition.taskId, "finalize", newres);
+	    } else {		
+		    var upd = Sapl.feval(mbUI[2]);
+		
+            console.timeEnd('controllerWrapper: eval');
+				
+            console.time('controllerWrapper: apply UI update');
+            itwc.controller.updateUI(JSON.parse(upd), me.rootNode);
+            console.timeEnd('controllerWrapper: apply UI update');
+		
+            __itask_background_process();
+		
+            // Send result to the client if it is changed only
+            if(!geq(me.rootNode.definition.lastResult, newres)){
+    			me.rootNode.definition.lastResult = newres;
+    			//itwc.controller.sendEditEvent(taskletId, "result", newres);
+    		}		
+	    }
     }
 });
 itwc.controller = function() {
