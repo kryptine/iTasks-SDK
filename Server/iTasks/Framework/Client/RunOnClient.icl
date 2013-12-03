@@ -10,7 +10,7 @@ import iTasks.Framework.UIDiff
 from Data.Map import qualified newMap, toList, get
 from Data.List import find
 
-import System.Time
+import System.Time, Math.Random
 import Text.JSON
 import StdDebug
 
@@ -142,6 +142,8 @@ where
 
 createClientIWorld :: !InstanceNo -> *IWorld
 createClientIWorld currentInstance
+        # world = newWorld
+        # (Timestamp seed,world) = time world
 		= {IWorld
 		  |application			= "application"
 		  ,build				= "build"
@@ -157,7 +159,7 @@ createClientIWorld currentInstance
 		  ,currentUser			= SystemUser
 		  ,currentInstance		= currentInstance
 		  ,currentSession		= Just currentInstance
-		  ,currentAttachment	= []	  
+		  ,currentAttachment	= []
 		  ,nextTaskNo			= 6666
 		  ,localShares			= 'Data.Map'.newMap
 		  ,localLists			= 'Data.Map'.newMap
@@ -168,10 +170,10 @@ createClientIWorld currentInstance
 		  ,sessions				= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,workQueue			= []
-		  ,uiMessages			= 'Data.Map'.newMap	  
+		  ,uiMessages			= 'Data.Map'.newMap
 		  ,shutdown				= False
-          ,random               = []
-		  ,world				= newWorld
+          ,random               = genRandInt seed
+		  ,world				= world
 		  ,resources			= Nothing
 		  ,onClient				= True
 		  }
