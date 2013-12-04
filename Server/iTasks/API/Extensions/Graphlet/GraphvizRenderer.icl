@@ -19,34 +19,6 @@ drawNode :: GraphvizShape GLGraph Int D3 *JSWorld -> *JSWorld
 drawNode shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
-  //where
-  //drawNode` :: GraphvizShape GLGraph Int D3 *JSWorld -> *JSWorld
-  //drawNode` _ graph u root world
-    //# (d3, world)     = append "g" root world
-    //# (d3, world)     = setAttr "class" (toJSVal "label") d3 world
-    //# (ev, world)     = getNodeValue graph (toJSVal u) world
-    //# (rect, world)   = append "rect" d3 world
-    //# (lblSvg, world) = append "g" d3 world
-    //# (d3, world)     = append "text" lblSvg world
-    //# (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "<box>" Nothing) d3 world
-    //# (rnd, world)    = firstNode root world
-    //# (bbox, world)   = callObjectMethod "getBBox" [] rnd world
-    //# (bbh, world)    = jsGetObjectAttr "height" bbox world
-    //# (bbw, world)    = jsGetObjectAttr "width" bbox world
-    //# (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
-    //# (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    //# (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 //, ("ry", toJSVal 5)
-                                 //, ("x", toJSVal (0 - (bbw / 2)))
-                                 //, ("y", toJSVal (0 - (bbh / 2)))
-                                 //, ("width", toJSVal bbw)
-                                 //, ("height", toJSVal bbh)
-                                 //] rect world
-    //= world
-
   where
   drawNode` :: GraphvizShape GLGraph Int D3 *JSWorld -> *JSWorld
   drawNode` (GSBoxShape mstr) graph u root world

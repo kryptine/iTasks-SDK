@@ -72,33 +72,22 @@ graphlet graph renderer
 
   drawNodeCb :: ComponentId {JSVal JSEvent} (Graph n e) *JSWorld -> *(Graph n e, *JSWorld) // | iTask n & iTask e
   drawNodeCb cid {[0] = jsgraph, [1] = u, [2] = root} cgraph world
-    #! graphValue    = jsUnsafeCoerce jsgraph
-    #! nodeId        = jsValToInt (jsUnsafeCoerce u)
-    #! rootElem      = jsUnsafeCoerce root
-    //# (node, world) = getNodeValue graphValue (toJSVal nodeId) world
-    //# (str, world)  = jsGetObjectAttr "node" node world
-    //# (nodeVal, _)  = copy_from_string {c \\ c <-: jsValToString str}
-    //# world         = renderer.drawNodeCallback nodeVal graphValue nodeId rootElem world
-    # world         = case 'DG'.getNodeData nodeId graph of
-                        Just nodeVal -> renderer.drawNodeCallback nodeVal graphValue nodeId rootElem world
-                        _            -> world
+    #! graphValue = jsUnsafeCoerce jsgraph
+    #! nodeId     = jsValToInt (jsUnsafeCoerce u)
+    #! rootElem   = jsUnsafeCoerce root
+    # world       = case 'DG'.getNodeData nodeId graph of
+                      Just nodeVal -> renderer.drawNodeCallback nodeVal graphValue nodeId rootElem world
+                      _            -> world
     = (cgraph, world)
 
   drawEdgeLabelCb :: ComponentId {JSVal JSEvent} (Graph n e) *JSWorld -> *(Graph n e, *JSWorld) // | iTask n & iTask e
   drawEdgeLabelCb cid {[0] = jsgraph, [1] = e, [2] = root} cgraph world
-    #! graphValue    = jsUnsafeCoerce jsgraph
-    //# edgeId        = jsValToString (jsUnsafeCoerce e)
-    #! edgeIdLst     = jsUnsafeCoerce e
-    //# world = jsTrace edgeIdLst world
-    //# world = jsTrace (edgeIdLst) world
+    #! graphValue   = jsUnsafeCoerce jsgraph
+    #! edgeIdLst    = jsUnsafeCoerce e // We really need the #! here, because jsGetObjectEl will try to get elements from a thunk otherwise
     # (fEId, world) = jsGetObjectEl 0 edgeIdLst world
     # (tEId, world) = jsGetObjectEl 1 edgeIdLst world
     # edgeId        = (jsValToInt fEId, jsValToInt tEId)
-    #! rootElem      = jsUnsafeCoerce root
-    ////# (edge, world) = getEdgeValue graphValue (toJSVal edgeId) world
-    ////# (str, world)  = jsGetObjectAttr "edge" edge world
-    ////# (edgeVal, _)  = copy_from_string {c \\ c <-: jsValToString str}
-    ////# edgeVal       = getEdgeData edgeId jsgraph
+    #! rootElem     = jsUnsafeCoerce root
     # world         = case 'DG'.getEdgeData edgeId graph of
                         Just edgeVal -> renderer.drawEdgeLabelCallback edgeVal graphValue edgeId rootElem world
                         _            -> world
@@ -123,7 +112,6 @@ addNodesEdges g jsgraph world
   addEdge` :: (Int, Int) e *(GLGraph, *JSWorld) -> *(GLGraph, *JSWorld) // | iTask e
   addEdge` (fromNode, toNode) edge (jsgraph, world)
     # (obj, world) = jsEmptyObject world
-    //# world        = jsSetObjectAttr "edge" (toJSVal (copy_to_string edge)) obj world
     # world        = addEdge jsgraph (toJSVal [fromNode, toNode]) (toJSVal fromNode) (toJSVal toNode) obj world
     = (jsgraph, world)
 
