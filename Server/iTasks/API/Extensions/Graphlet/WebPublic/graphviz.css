@@ -13,8 +13,6 @@ rect {
 }
 
 .node rect {
-  stroke-width: 2px;
-  stroke: #333;
   fill: none;
 }
 
@@ -27,9 +25,7 @@ rect {
   stroke: #333;
   stroke-width: 1.5px;
 }
-</style>
 
-<style>
 h1, h2 {
   color: #333;
 }
@@ -41,6 +37,45 @@ textarea {
 label {
   margin-top: 1em;
   display: block;
+}
+
+.box rect {
+  stroke-width: 2px;
+  stroke: #333;
+}
+
+.ellipse rect {
+  stroke-width: 2px;
+  stroke: #333;
+}
+
+.circle rect {
+  stroke-width: 2px;
+  stroke: #333;
+}
+
+.point rect {
+  stroke-width: 2px;
+  stroke: #333;
+  fill: #000;
+}
+
+.triangle rect {
+  stroke-width: 2px;
+  stroke: #333;
+}
+
+.plaintext {
+}
+
+.diamond rect {
+  stroke-width: 2px;
+  stroke: #333;
+}
+
+.square rect {
+  stroke-width: 2px;
+  stroke: #333;
 }
 
 .error {

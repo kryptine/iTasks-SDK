@@ -7,7 +7,6 @@ from iTasks.API.Extensions.Graphlet.Graphlet import :: GraphletRenderer
 :: GraphvizShape
   = GSBoxShape (Maybe String)
   | GSEllipse (Maybe String)
-  | GSOval (Maybe String)
   | GSCircle (Maybe String)
   | GSPoint
   | GSTriangle (Maybe String)
