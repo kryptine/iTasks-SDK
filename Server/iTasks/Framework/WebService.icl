@@ -118,8 +118,8 @@ where
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, iworld)
             | otherwise
                 = case split "/" urlSpec of
-                    //[instanceNo,instanceKey]
-				    //    = (itwcStartResponse req.req_path (theme []) application, Nothing, iworld)
+                    [instanceNo,instanceKey]
+				        = (itwcStartResponse req.req_path instanceNo instanceKey (theme []) application, Nothing, iworld)
                     [instanceNo,instanceKey,"gui"]
                         //Load or create session context and edit / evaluate
 				        # (mbResult, iworld)    = evalSessionTaskInstance instanceKey event iworld
@@ -224,7 +224,10 @@ where
 	itwcStartResponse path instanceNo instanceKey theme appName = {newHTTPResponse & rsp_data = toString itwcStartPage}
 	where
 		itwcStartPage = HtmlTag [] [head,body]
-		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] [], TitleTag [] [Text appName], startUrlScript : styles ++ scripts]
+		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
+                          ,MetaTag [NameAttr "viewport",ContentAttr "width=device-width"] []
+                          ,MetaTag [NameAttr "mobile-web-app-capable",ContentAttr "yes"] []
+                          ,TitleTag [] [Text appName], startUrlScript : styles ++ scripts]
 		body = BodyTag [] []
 
         startUrlScript = ScriptTag [TypeAttr "text/javascript"]
