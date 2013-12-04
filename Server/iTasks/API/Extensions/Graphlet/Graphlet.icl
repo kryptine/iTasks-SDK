@@ -38,11 +38,11 @@ graphlet graph renderer
             }
 
   uiDef cid
-    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph", WidthAttr "800px", HeightAttr "600px"] // TODO Dynamic resizing
+    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph", WidthAttr "1024px", HeightAttr "768px"] // TODO Dynamic resizing
                                [GTag [TransformAttr "translate(20, 20)"] []]
       , eventHandlers = []
-      , width         = ExactSize 800 // TODO Dynamic resizing
-      , height        = ExactSize 600
+      , width         = ExactSize 1024 // TODO Dynamic resizing
+      , height        = ExactSize 768
       }
 
   onUpdate :: ComponentId (Maybe (GraphletDiff (Graph n e))) (Graph n e) *JSWorld -> *(Graph n e, *JSWorld) | iTask n & iTask e

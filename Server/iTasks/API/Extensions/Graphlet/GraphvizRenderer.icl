@@ -38,9 +38,7 @@ drawNode shape graph u root world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2)))
+    # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
                                  , ("y", toJSVal (0 - (bbh / 2)))
                                  , ("width", toJSVal bbw)
                                  , ("height", toJSVal bbh)
@@ -63,9 +61,7 @@ drawNode shape graph u root world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2)))
+    # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
                                  , ("y", toJSVal (0 - (bbh / 2)))
                                  , ("width", toJSVal bbw)
                                  , ("height", toJSVal bbh)
@@ -88,9 +84,7 @@ drawNode shape graph u root world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2)))
+    # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
                                  , ("y", toJSVal (0 - (bbh / 2)))
                                  , ("width", toJSVal bbw)
                                  , ("height", toJSVal bbh)
@@ -113,9 +107,7 @@ drawNode shape graph u root world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2)))
+    # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
                                  , ("y", toJSVal (0 - (bbh / 2)))
                                  , ("width", toJSVal bbw)
                                  , ("height", toJSVal bbh)
@@ -138,9 +130,7 @@ drawNode shape graph u root world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2)))
+    # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
                                  , ("y", toJSVal (0 - (bbh / 2)))
                                  , ("width", toJSVal bbw)
                                  , ("height", toJSVal bbh)
@@ -205,20 +195,21 @@ drawNode shape graph u root world
     # (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
     # (d3, world)     = append "tspan" d3 world
     # (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    # (d3, world)     = setText (fromMaybe "<square>" mstr) d3 world
+    # (d3, world)     = setText (fromMaybe "" mstr) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
-    # (_, world)      = setAttrs [ ("rx", toJSVal 5)
-                                 , ("ry", toJSVal 5)
-                                 , ("x", toJSVal (0 - (bbw / 2)))
-                                 , ("y", toJSVal (0 - (bbh / 2)))
+    # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
+                                 , ("y", toJSVal (0 - (bbw / 2)))
                                  , ("width", toJSVal bbw)
-                                 , ("height", toJSVal bbh)
+                                 , ("height", toJSVal bbw)
                                  ] rect world
+    = world
+  drawNode` GSNone graph u root world
+    # (_, world)     = append "g" root world
     = world
   drawNode` _                 _     _ _    world = world
 
