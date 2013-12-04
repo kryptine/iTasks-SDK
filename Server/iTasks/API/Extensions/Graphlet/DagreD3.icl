@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.Graphlet.DagreD3
 
 import StdTuple
 import iTasks.API.Core.Client.Interface
+import iTasks.API.Core.Client.Editlet
 import iTasks.API.Extensions.Graphlet.Graphlib
 import iTasks.API.Extensions.Graphlet.Dagre
 import iTasks.API.Extensions.Graphlet.D3

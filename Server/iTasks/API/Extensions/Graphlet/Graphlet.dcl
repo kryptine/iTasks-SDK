@@ -14,12 +14,16 @@ derive gDefault Graph, Node
 derive gUpdate Graph, Node
 derive gVerify Graph, Node
 
+:: GraphletDiff a = GraphletDiff a
+
+derive class iTask GraphletDiff
+
 :: GraphletRenderer n e =
-  { drawNodeCallback      :: n GLGraph String D3 *JSWorld -> *JSWorld
-  , drawEdgeLabelCallback :: e GLGraph String D3 *JSWorld -> *JSWorld
+  { drawNodeCallback      :: n GLGraph Int D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: e GLGraph (Int, Int) D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
 
-graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (Graph n e) (Graph n e) | iTask n & iTask e
+graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (Graph n e) (GraphletDiff (Graph n e)) | iTask n & iTask e
 
 appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)
