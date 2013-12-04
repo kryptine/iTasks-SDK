@@ -377,7 +377,8 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-		var receivedNo = itwc.controller.lastReceivedEventNo,	
+		var instanceNo = itwc.START_INSTANCE_NO,
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
             this.domEl.value = value;
@@ -396,7 +397,8 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-        var receivedNo = itwc.controller.lastReceivedEventNo,	
+		var instanceNo = itwc.START_INSTANCE_NO,
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
             this.domEl.value = value;
@@ -414,8 +416,10 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-        var receivedNo = itwc.controller.lastReceivedEventNo,	
+        var instanceNo = itwc.START_INSTANCE_NO,//this.definition.taskId.split("-")[0],
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
+
 		if(receivedNo > sentNo) {
             this.domEl.value = value;
         }
@@ -483,12 +487,12 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
         return false;
     },
     setEditorValue: function(value) {
-        var receivedNo = itwc.controller.lastReceivedEventNo,	
+		var instanceNo = itwc.START_INSTANCE_NO,
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
             this.domEl.value = value;
         }
-
     }
 });
 itwc.component.itwc_edit_int = itwc.extend(itwc.component.itwc_edit_number,{
@@ -1533,7 +1537,8 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             urlSplit;
         me.controller = controller;
         me.rootNode = rootNode;
-        me.eventNo = 0;
+        me.nextSendEventNo = 0;
+        me.lastReceivedEventNo = 0;
         me.taskEvents = [];
         me.updateSource = null;
         me.flushingTaskEvents = false;
