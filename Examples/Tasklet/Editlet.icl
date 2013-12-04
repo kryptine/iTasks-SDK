@@ -231,13 +231,6 @@ where
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
-defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
-		, position = 0
-		, selection = Nothing
-        , source = "Buu"}
-
-//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
-
 import iTasks.API.Extensions.Graphlet.Graphlet
 import iTasks.API.Extensions.Graphlet.GraphvizRenderer
 import Data.Graph
@@ -245,21 +238,64 @@ import Data.Graph
 testGraphlet = viewInformation "Graphlet with Graphviz rendering" [] (graphlet mkTestGraph graphvizRenderer)
   where
   mkTestGraph
-    # g        = emptyGraph
-    # (ni1, g) = addNode (GSBoxShape (Just "This is a box!")) g
-    # (ni2, g) = addNode (GSPlainText "Just words") g
-    # (ni3, g) = addNode (GSDiamond Nothing) g
-    # g        = addEdge (Just "From box") (ni1, ni2) g
-    # g        = addEdge (Just "To words") (ni2, ni3) g
-    # g        = addEdge Nothing (ni3, ni1) g
+    # g         = emptyGraph
+    # (ni1, g)  = addNode (GSBoxShape (Just "Motor Learning")) g
+    # (ni2, g)  = addNode (GSBoxShape (Just "Effort")) g
+    # (ni3, g)  = addNode (GSBoxShape (Just "Intention & Motivation")) g
+    # (ni4, g)  = addNode (GSBoxShape (Just "Set Formation (Practice Instructions)")) g
+    # (ni5, g)  = addNode GSNone g
+    # (ni6, g)  = addNode (GSBoxShape (Just "Focused Attention")) g
+    # (ni7, g)  = addNode (GSBoxShape (Just "Working Memory")) g
+    # (ni8, g)  = addNode (GSPlainText "Orienting") g
+    # (ni9, g)  = addNode (GSPlainText "Engagement") g
+    # (ni10, g) = addNode (GSEllipse (Just "Intended Object (Breath)")) g
+    # (ni11, g) = addNode (GSEllipse (Just "Unintended Object (Sensory or Mental Event)")) g
+    # (ni12, g) = addNode (GSBoxShape (Just "Affective Response + - 0")) g
+    # (ni13, g) = addNode (GSBoxShape (Just "Episodic & Procedural Memory")) g
+    # (ni14, g) = addNode (GSBoxShape (Just "Executive Monitoring (meta-awareness)")) g
+    # (ni15, g) = addNode (GSBoxShape (Just "Decentering")) g
+    # (ni16, g) = addNode (GSBoxShape (Just "Response Inhibition")) g
+    # (ni17, g) = addNode (GSBoxShape (Just "Emotion Regulation")) g
+    # (ni18, g) = addNode (GSPlainText "Disengagement") g
+    # g         = addEdge (Just "+") (ni1, ni2) g
+    # g         = addEdge (Just "-") (ni2, ni1) g
+    # g         = addEdge Nothing (ni2, ni3) g
+    # g         = addEdge Nothing (ni3, ni4) g
+    # g         = addEdge Nothing (ni4, ni5) g
+    # g         = addEdge Nothing (ni5, ni6) g
+    # g         = addEdge Nothing (ni5, ni7) g
+    # g         = addEdge Nothing (ni5, ni8) g
+    # g         = addEdge Nothing (ni8, ni9) g
+    # g         = addEdge Nothing (ni9, ni10) g
+    # g         = addEdge Nothing (ni10, ni5) g
+    # g         = addEdge (Just "Distraction") (ni10, ni11) g
+    # g         = addEdge Nothing (ni11, ni12) g
+    # g         = addEdge Nothing (ni12, ni13) g
+    # g         = addEdge Nothing (ni13, ni11) g
+    # g         = addEdge Nothing (ni13, ni15) g
+    # g         = addEdge (Just "+ Clarity") (ni14, ni10) g
+    # g         = addEdge Nothing (ni14, ni18) g
+    # g         = addEdge Nothing (ni14, ni15) g
+    # g         = addEdge Nothing (ni15, ni17) g
+    # g         = addEdge Nothing (ni17, ni18) g
+    # g         = addEdge Nothing (ni17, ni16) g
+    # g         = addEdge Nothing (ni18, ni15) g
     = g
+
+
+defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
+        , position = 0
+        , selection = Nothing
+        , source = "Buu"}
+
+//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
 
 test5 :: Task CodeMirror
 test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings" [] defcm
-																-|| 
-								   updateSharedInformation "CodeMirror Editor" 
-								   				[UpdateWith (\cm -> codeMirrorEditlet cm []) 
-								   							(\_ (Editlet value _ _) -> value)] defcm )
+                                                                -|| 
+                                   updateSharedInformation "CodeMirror Editor" 
+                                                   [UpdateWith (\cm -> codeMirrorEditlet cm []) 
+                                                               (\_ (Editlet value _ _) -> value)] defcm )
 
 
         
