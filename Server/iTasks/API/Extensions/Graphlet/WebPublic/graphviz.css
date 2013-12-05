@@ -4,12 +4,16 @@ text {
   font-size: 14px;
 }
 
-rect {
+.node rect {
   fill: #fff;
 }
 
-.node rect {
-  fill: none;
+.node ellipse {
+  fill: #fff;
+}
+
+.node circle {
+  fill: #fff;
 }
 
 .edge rect {
@@ -22,42 +26,28 @@ rect {
   stroke-width: 1.5px;
 }
 
-h1, h2 {
-  color: #333;
-}
-
-textarea {
-  width: 800px;
-}
-
-label {
-  margin-top: 1em;
-  display: block;
-}
-
 .box rect {
-  stroke-width: 2px;
+  stroke-width: 1.5px;
   stroke: #333;
 }
 
-.ellipse rect {
-  stroke-width: 2px;
+.ellipse ellipse {
+  stroke-width: 1.5px;
   stroke: #333;
 }
 
-.circle rect {
-  stroke-width: 2px;
+.circle circle {
+  stroke-width: 1.5px;
   stroke: #333;
 }
 
-.point rect {
-  stroke-width: 2px;
+.point circle {
+  stroke-width: 1.5px;
   stroke: #333;
-  fill: #000;
 }
 
 .triangle rect {
-  stroke-width: 2px;
+  stroke-width: 1.5px;
   stroke: #333;
 }
 
@@ -65,12 +55,12 @@ label {
 }
 
 .diamond rect {
-  stroke-width: 2px;
+  stroke-width: 1.5px;
   stroke: #333;
 }
 
 .square rect {
-  stroke-width: 2px;
+  stroke-width: 1.5px;
   stroke: #333;
 }
 

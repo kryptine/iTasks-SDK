@@ -5,18 +5,18 @@ import iTasks
 from iTasks.API.Extensions.Graphlet.Graphlet import :: GraphletRenderer
 
 :: GraphvizShape
-  = GSBoxShape (Maybe String)
-  | GSEllipse (Maybe String)
-  | GSCircle (Maybe String)
+  = GSBox (Maybe [String])
+  | GSEllipse (Maybe [String])
+  | GSCircle (Maybe [String])
   | GSPoint
-  | GSTriangle (Maybe String)
-  | GSPlainText String
-  | GSDiamond (Maybe String)
-  | GSSquare (Maybe String)
+  | GSTriangle (Maybe [String])
+  | GSPlainText [String]
+  | GSDiamond (Maybe [String])
+  | GSSquare (Maybe [String])
   | GSNone
 
 derive class iTask GraphvizShape
 
-:: GraphvizEdge :== Maybe String
+:: GraphvizEdge :== Maybe [String]
 
 graphvizRenderer :: GraphletRenderer GraphvizShape GraphvizEdge
