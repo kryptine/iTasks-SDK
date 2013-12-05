@@ -39,7 +39,8 @@ testGraphlet = viewInformation "Graphlet with Graphviz-like rendering" [] (graph
     // An edge is a tuple of node identifiers.
     // Text is handled the same way as with nodes.
     # g         = addEdge (Just ["+"]) (ni1, ni2) g
-    # g         = addEdge (Just ["-"]) (ni2, ni1) g
+    # g         = addEdge (Just ["-"]) (ni2, ni3) g
+    # g         = addEdge Nothing (ni3, ni1) g
     # g         = addEdge Nothing (ni2, ni3) g
     # g         = addEdge Nothing (ni3, ni4) g
     # g         = addEdge Nothing (ni4, ni5) g
@@ -59,6 +60,7 @@ testGraphlet = viewInformation "Graphlet with Graphviz-like rendering" [] (graph
     # g         = addEdge Nothing (ni14, ni15) g
     # g         = addEdge Nothing (ni15, ni11) g
     # g         = addEdge Nothing (ni15, ni17) g
+    # g         = addEdge Nothing (ni16, ni15) g
     # g         = addEdge Nothing (ni16, ni17) g
     # g         = addEdge Nothing (ni17, ni18) g
     # g         = addEdge (Just ["+ Equanimity"]) (ni17, ni16) g
