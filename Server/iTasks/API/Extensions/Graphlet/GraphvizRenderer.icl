@@ -42,19 +42,16 @@ drawNode shape graph u root world
     # world           = case mstrs of
                           Just strs -> breakText strs d3 world
                           _         -> world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "<box>" mstrs) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
     # (bbw, world)    = jsGetObjectAttr "width" bbox world
     # (bbh, bbw)      = (jsValToInt bbh, jsValToInt bbw)
-    # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
+    # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString (((0 - bbw) / 2) + 3) +++ "," +++ toString (((0 - bbh) / 2) + 3) +++ ")")) lblSvg world // TODO Try to get rid of the fixed +3 and +6
     # (_, world)      = setAttrs [ ("x", toJSVal (0 - (bbw / 2)))
                                  , ("y", toJSVal (0 - (bbh / 2)))
-                                 , ("width", toJSVal bbw)
-                                 , ("height", toJSVal bbh)
+                                 , ("width", toJSVal (bbw + 6))
+                                 , ("height", toJSVal (bbh + 6))
                                  ] rect world
     = world
   drawNode` (GSEllipse mstrs)  graph u root world
@@ -68,9 +65,6 @@ drawNode shape graph u root world
     # world           = case mstrs of
                           Just strs -> breakText strs d3 world
                           _         -> world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "<ellipse>" mstrs) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -79,8 +73,8 @@ drawNode shape graph u root world
     # (lblSvg, world) = setAttr "transform" (toJSVal ("translate(" +++ toString ((0 - bbw) / 2) +++ "," +++ toString ((0 - bbh) / 2) +++ ")")) lblSvg world
     # (_, world)      = setAttrs [ ("cx", toJSVal 0)
                                  , ("cy", toJSVal 0)
-                                 , ("rx", toJSVal bbw)
-                                 , ("ry", toJSVal bbh)
+                                 , ("rx", toJSVal (toReal bbw / 1.25))
+                                 , ("ry", toJSVal (toReal bbh / 1.25))
                                  , ("width", toJSVal bbw)
                                  , ("height", toJSVal bbh)
                                  ] rect world
@@ -96,9 +90,6 @@ drawNode shape graph u root world
     # world           = case mstrs of
                           Just strs -> breakText strs d3 world
                           _         -> world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "<circle>" mstrs) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -117,12 +108,6 @@ drawNode shape graph u root world
     # (ev, world)     = getNodeValue graph (toJSVal u) world
     # (rect, world)   = append "circle" d3 world
     # (lblSvg, world) = append "g" d3 world
-    //# (d3, world)     = append "text" lblSvg world
-    //# (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
-    //# world           = maybe world (\strs -> breakText strs d3 world) mstrs
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText "<point>" d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -146,9 +131,6 @@ drawNode shape graph u root world
     # world           = case mstrs of
                           Just strs -> breakText strs d3 world
                           _         -> world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "<triangle>" mstrs) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -170,9 +152,6 @@ drawNode shape graph u root world
     # (d3, world)     = append "text" lblSvg world
     # (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
     # world           = breakText strs d3 world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText str d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -197,9 +176,6 @@ drawNode shape graph u root world
     # world           = case mstrs of
                           Just strs -> breakText strs d3 world
                           _         -> world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "" mstrs) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -225,9 +201,6 @@ drawNode shape graph u root world
     # world           = case mstrs of
                           Just strs -> breakText strs d3 world
                           _         -> world
-    //# (d3, world)     = append "tspan" d3 world
-    //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-    //# (d3, world)     = setText (fromMaybe "" mstrs) d3 world
     # (rnd, world)    = firstNode root world
     # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
     # (bbh, world)    = jsGetObjectAttr "height" bbox world
@@ -256,9 +229,6 @@ drawEdgeLabel (Just strs)  graph e root world
   # (d3, world)     = append "text" lblSvg world
   # (d3, world)     = setAttr "text-anchor" (toJSVal "left") d3 world
   # world           = breakText strs d3 world
-  //# (d3, world)     = append "tspan" d3 world
-  //# (d3, world)     = setAttr "dy" (toJSVal "1em") d3 world
-  //# (d3, world)     = setText str d3 world
   # (rnd, world)    = firstNode root world
   # (bbox, world)   = callObjectMethod "getBBox" [] rnd world
   # (bbh, world)    = jsGetObjectAttr "height" bbox world
