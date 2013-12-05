@@ -215,7 +215,7 @@ function __iTasks_API_Core_Client_Interface_fromJSVal(ptr, world){
 
 // jsUnsafeCoerce :: (JSVal a) -> JSVal b
 function __iTasks_API_Core_Client_Interface_jsUnsafeCoerce(expr){
-  return expr;
+  return Sapl.feval(expr);
 }
 
 // createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal b) 
