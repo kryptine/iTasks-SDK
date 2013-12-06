@@ -191,7 +191,7 @@ initIWorld sdkDir world
 										,"System.Directory"] world
 										
 	# (flavour, world)		= readFlavour sdkDir world
-	# (Clock seed, world)	= clock world
+	# (Timestamp seed, world)	= time world
 	= {IWorld
 	  |application			= appName
 	  ,build				= build
