@@ -4,6 +4,7 @@ module Airplane
 */
 
 import iTasks, StdInt, StdOverloaded, MovingEntity
+import iTasks.API.Extensions.GIS.GoogleMap
 
 //:: LatLng :== (!Real,!Real)
 
@@ -29,7 +30,7 @@ derive class iTask MovingEntity, EntityProperties
 simulateInteractive :: Task [LatLng]
 simulateInteractive
 	= withShared ROUTE2
-		\route -> simulateAirplanePosition route <<@ SetLayout (partLayout 0)
+		\route -> simulateAirplanePosition route //<<@ SetLayout (partLayout 0)
 	>&>
 		\mbPos -> interactWithSimulation (route >+| (mapRead fromJust mbPos))
 
@@ -42,15 +43,13 @@ simulateAirplanePosition route
 			watch (mapRead (\(plane,pos,time) -> ( plane.MovingEntity.position, toInt ( plane.MovingEntity.direction))) state)
 			-||
 			//Step the position
-			forever (wait SIMULATE_INTERVAL >>- update newPlanePosition (state >+| route))
+			forever (wait SIMULATE_INTERVAL >>- \_ -> upd newPlanePosition (state >+| route))
 		)
 where
 	newPlanePosition :: ((MovingEntity,Int,Int),[LatLng]) -> (MovingEntity,Int,Int)
 	newPlanePosition ((plane,pos,time),route)
 		# (plane,pos) = moveAlongWayPointsDeg plane route pos time
 		= (plane,pos,time + 1)
-
-viewSharedInformation
 
 //Interact with the running simulation
 interactWithSimulation :: (ReadWriteShared ([LatLng],(LatLng,Int)) [LatLng]) -> Task [LatLng]
@@ -70,8 +69,8 @@ where
 	fromPrj (route,_) map = route
 
 //UTIL
-(>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>-) taska taskb = step taska [WhenStable (const taskb)]
+//(>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
+//(>>-) taska taskb = step taska [ifStable (const taskb)]
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void
