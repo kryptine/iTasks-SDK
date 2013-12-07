@@ -34,17 +34,20 @@ simulateInteractive
 	>&>
 		\mbPos -> interactWithSimulation (route >+| (mapRead fromJust mbPos))
 
+planepos :: Shared (MovingEntity,Int,Int)
+planepos = sharedStore "planepos" (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
+
 //Simulate the movement of the airplane
 //First very simple simulation. Just round robin version of clock
 simulateAirplanePosition :: (Shared [LatLng]) -> Task (LatLng,Int) //Position and heading
 simulateAirplanePosition route
-	= withShared (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
+	= //withShared (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
 		(\state ->
 			watch (mapRead (\(plane,pos,time) -> ( plane.MovingEntity.position, toInt ( plane.MovingEntity.direction))) state)
 			-||
 			//Step the position
 			forever (wait SIMULATE_INTERVAL >>- \_ -> upd newPlanePosition (state >+| route))
-		)
+		) planepos
 where
 	newPlanePosition :: ((MovingEntity,Int,Int),[LatLng]) -> (MovingEntity,Int,Int)
 	newPlanePosition ((plane,pos,time),route)
