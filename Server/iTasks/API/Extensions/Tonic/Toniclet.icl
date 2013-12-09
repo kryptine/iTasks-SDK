@@ -1,8 +1,8 @@
 implementation module iTasks.API.Extensions.Tonic.Toniclet
 
 import iTasks
-import iTasks.API.Extensions.DagreD3.D3
-import iTasks.API.Extensions.DagreD3.DagreD3
+import iTasks.API.Extensions.Graphlet.D3
+import iTasks.API.Extensions.Graphlet.DagreD3
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.Framework.Tonic.AbsSyn
