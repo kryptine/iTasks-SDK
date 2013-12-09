@@ -16,7 +16,11 @@ mkCDGraph :: *JSWorld -> *(GLGraph, *JSWorld)
 
 addNode :: GLGraph (JSVal i) (JSVal m) *JSWorld -> *JSWorld
 
+delNode :: GLGraph (JSVal i) *JSWorld -> *JSWorld
+
 addEdge :: GLGraph (JSVal i) (JSVal l) (JSVal r) (JSVal a) *JSWorld -> *JSWorld
+
+delEdge :: GLGraph (JSVal i) *JSWorld -> *JSWorld
 
 addEdgeSimple :: GLGraph (JSVal l) (JSVal r) *JSWorld -> *JSWorld
 

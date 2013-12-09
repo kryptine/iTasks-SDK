@@ -22,8 +22,14 @@ mkCDGraph world = jsNewObject "CDGraph" [] world
 addNode :: GLGraph (JSVal i) (JSVal m) *JSWorld -> *JSWorld
 addNode graph nid meta world = snd (callObjectMethod "addNode" [toJSArg nid, toJSArg meta] graph world)
 
+delNode :: GLGraph (JSVal i) *JSWorld -> *JSWorld
+delNode graph nid world = snd (callObjectMethod "delNode" [toJSArg nid] graph world)
+
 addEdge :: GLGraph (JSVal i) (JSVal l) (JSVal r) (JSVal a) *JSWorld -> *JSWorld
 addEdge graph eid lid rid attrs world = snd (callObjectMethod "addEdge" [toJSArg eid, toJSArg lid, toJSArg rid, toJSArg attrs] graph world)
+
+delEdge :: GLGraph (JSVal i) *JSWorld -> *JSWorld
+delEdge graph eid world = snd (callObjectMethod "delEdge" [toJSArg eid] graph world)
 
 addEdgeSimple :: GLGraph (JSVal l) (JSVal r) *JSWorld -> *JSWorld
 addEdgeSimple graph lid rid world = addEdge graph jsNull lid rid jsNull world
