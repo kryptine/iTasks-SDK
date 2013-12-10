@@ -2,6 +2,7 @@
 
 System.Time.localTime !world_0 = _localTime world_0
 System.Time.time !world_0 = _time world_0
+System.Time.gmTime !world_0 = _localTime world_0
 
 :: System.Time.Timestamp = System.Time.Timestamp !a1
 :: System.Time.Clock = System.Time.Clock !a1
