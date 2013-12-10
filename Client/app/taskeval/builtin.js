@@ -178,6 +178,14 @@ function _bitand(a,b){
     return Sapl.feval(a) & Sapl.feval(b);
 }
 
+function _bitor(a,b){
+    return Sapl.feval(a) | Sapl.feval(b);
+}
+
+function _bitxor(a,b){
+    return Sapl.feval(a) ^ Sapl.feval(b);
+}
+
 function _shiftleft(a,b){
     return Sapl.feval(a) << Sapl.feval(b);
 }

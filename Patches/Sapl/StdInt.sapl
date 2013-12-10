@@ -1,4 +1,6 @@
 StdInt.bitand :== bitand
+StdInt.bitor :== bitor
+StdInt.bitxor :== bitxor
 <{StdInt.<<}> :== shiftleft
 <{StdInt.>>}> :== shiftright
 <{StdInt.+_6}> :== add
