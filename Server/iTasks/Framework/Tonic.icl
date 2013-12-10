@@ -13,7 +13,9 @@ import iTasks.API.Common.CommonCombinators
 import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.API.Extensions.Tonic.Toniclet
+//import iTasks.API.Extensions.Tonic.Toniclet
+import iTasks.API.Extensions.Graphlet.Graphlet
+import iTasks.API.Extensions.Tonic.TonicRenderer
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -24,6 +26,30 @@ from StdArray import class Array, instance Array {#} Char
 import StdDebug
 import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor
 import qualified Data.Map as DM
+
+derive gEditor
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gEditMeta
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gVisualizeText
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gDefault
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gUpdate
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
+
+derive gVerify
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
+  GListComprehension
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
@@ -133,8 +159,8 @@ selectTask tm
            Just g -> return g
            _      -> throw "Should not happen"
 
-viewTask :: User GinGraph -> Task (Editlet GinGraph GinGraph)
-viewTask u g = viewInformation "Selected graph" [] (toniclet g) -|| viewSharedInformation "Current traces" [] (userActiveTask u)
+//viewTask :: User GinGraph -> Task (Editlet GinGraph GinGraph)
+viewTask u g = viewInformation "Selected graph" [] (graphlet g tonicRenderer) -|| viewSharedInformation "Current traces" [] (userActiveTask u)
 
 //tonicUI :: String -> Task Void
 //tonicUI appName =

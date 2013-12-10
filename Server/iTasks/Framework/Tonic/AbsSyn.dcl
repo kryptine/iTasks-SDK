@@ -7,16 +7,16 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
+  GExpression, GListComprehension
 
 derive JSONDecode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
+  GExpression, GListComprehension
 
 derive gEq
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
+  GExpression, GListComprehension
 
 :: TonicModule =
   { tm_name  :: String

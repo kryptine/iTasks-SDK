@@ -6,26 +6,26 @@ import iTasks.API.Core.Client.Editlet
 
 derive gEditor
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension, Graph
 
 derive gEditMeta
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension, Graph
 
 derive gVisualizeText
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension, Graph
 
 derive gDefault
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension, Graph
 
 derive gUpdate
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension, Graph
 
 derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, Graph, Node
+  GListComprehension, Graph
 
 toniclet :: GinGraph -> Editlet GinGraph GinGraph
