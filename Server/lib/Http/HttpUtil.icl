@@ -26,8 +26,8 @@ where
 //Add new data to a request
 http_addRequestData :: !HTTPRequest !Bool !Bool !Bool !String -> (HTTPRequest, Bool, Bool, Bool, Bool)
 http_addRequestData req requestline_done headers_done data_done data
-	# req	= {req & req_data = req.req_data +++ data}	//Add the new data
-	//Parsing of the request line
+	# req = {req & req_data = req.req_data +++ data}	//Add the new data
+	//Parsing of the request line)
 	| not requestline_done
 		# index = indexOf "\r\n" req.req_data
 		| index == -1	= (req,False,False,False,False)	//The first line is not complete yet
@@ -47,6 +47,7 @@ http_addRequestData req requestline_done headers_done data_done data
 			# (header,error) = http_parseHeader (req.req_data % (0, index - 1))
 			| error = (req,True,False,False,True)			//We failed to parse the header
 			# req = {req & req_headers = put (fst header) (snd header) req.req_headers, req_data = req.req_data % (index + 2, size req.req_data)}
+			# req = if (fst header == "Host") (http_addServerInfo req (snd header)) req
 			= http_addRequestData req True False False ""	//We continue to look for more headers
 	//Addition of data
 	| not data_done
@@ -56,6 +57,11 @@ http_addRequestData req requestline_done headers_done data_done data
 	//Data is added while we were already done
 	= (req,True,True,True,False) 
 
+http_addServerInfo :: !HTTPRequest !String -> HTTPRequest
+http_addServerInfo req host 
+	= case split ":" host of
+		[h]   = {req & server_name = h, server_port = 80}
+		[h,p] = {req & server_name = h, server_port = toInt p}
 
 http_getValue :: !String !(Map String String) !String -> String
 http_getValue key valuemap defaultval
