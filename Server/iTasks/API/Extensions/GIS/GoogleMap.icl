@@ -110,7 +110,7 @@ where
         //Place initial markers
 		# (markerMap, world) = jsNewMap world
 		# world             = foldl (putOnMarker mapobj markerMap) world val.GoogleMap.markers
-		= updateUI cid mbDiffs {clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}} world
+        = ({clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}},world)
 	where
 		onChange t              = createEditletEventHandler (onUpdatePerspective t) cid
 		onClick                 = createEditletEventHandler addMarker cid
