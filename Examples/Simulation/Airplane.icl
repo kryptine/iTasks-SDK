@@ -3,7 +3,7 @@ module Airplane
 * This module provides a simple simulation of an airplane flying a route over the Netherlands
 */
 
-import iTasks, StdInt, StdOverloaded, MovingEntity
+import iTasks, StdInt, StdOverloaded, MovingEntity, Data.Tuple
 import iTasks.API.Extensions.GIS.GoogleMap
 
 //:: LatLng :== (!Real,!Real)
@@ -28,26 +28,23 @@ SIMULATE_INTERVAL :== 1 //In seconds
 derive class iTask MovingEntity, EntityProperties
 
 simulateInteractive :: Task [LatLng]
-simulateInteractive
-	= withShared ROUTE2
-		\route -> simulateAirplanePosition route //<<@ SetLayout (partLayout 0)
-	>&>
-		\mbPos -> interactWithSimulation (route >+| (mapRead fromJust mbPos))
-
-planepos :: Shared (MovingEntity,Int,Int)
-planepos = sharedStore "planepos" (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
+simulateInteractive = withShared ROUTE2
+    \route ->
+    (   simulateAirplanePosition route
+        >&>
+		\mbPos -> interactWithSimulation (route >+| (mapRead fromJust mbPos)) <<@ AfterLayout (tweakControls (\[x:xs] -> [x:map (appFst fill) xs]))
+    ) <<@ FullScreen
 
 //Simulate the movement of the airplane
 //First very simple simulation. Just round robin version of clock
 simulateAirplanePosition :: (Shared [LatLng]) -> Task (LatLng,Int) //Position and heading
 simulateAirplanePosition route
-	= //withShared (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
-		(\state ->
-			watch (mapRead (\(plane,pos,time) -> ( plane.MovingEntity.position, toInt ( plane.MovingEntity.direction))) state)
+	= withShared (newMovingEntity 0 (ROUTE2!! 0) 300.0 0, 1, 0)
+		\state ->
+			watch (mapRead (\(plane,pos,time) -> ( plane.MovingEntity.position, toInt (plane.MovingEntity.direction))) state)
 			-||
 			//Step the position
 			forever (wait SIMULATE_INTERVAL >>- \_ -> upd newPlanePosition (state >+| route))
-		) planepos
 where
 	newPlanePosition :: ((MovingEntity,Int,Int),[LatLng]) -> (MovingEntity,Int,Int)
 	newPlanePosition ((plane,pos,time),route)
@@ -62,22 +59,17 @@ where
 	toPrj (route,(pos,heading)) = {GoogleMap|defaultValue & perspective = perspective, markers = markers}
 	where
 		markers			= waypointMarkers ++ [planeMarker]
-		planeMarker		= {GoogleMapMarker|defaultValue & title = Just "Airforce one", position = {GoogleMapPosition|lat=fst pos,lng=snd pos}, icon = Just planeIcon }
+		planeMarker		= {GoogleMapMarker|defaultValue & markerId = "plane", title = Just "Airforce one", position = {GoogleMapPosition|lat=fst pos,lng=snd pos}, icon = Just planeIcon }
 		planeIcon		= GoogleMapComplexIcon {image="jsf-sprite.png",size=(24,24),origin=(0, 24 * headingIndex),anchor=(12,12)}
 		headingIndex	= ((heading + 360) rem 360) / 15
-		waypointMarkers = [{GoogleMapMarker|defaultValue & title = Just ("Waypoint " <+++ i), position = {GoogleMapPosition|lat=lat,lng=lng}} \\ (lat,lng) <- route & i <- [1..]]
-		perspective		= {GoogleMapPerspective|defaultValue.perspective & center = {lat = 52.948300, lng = 4.776007}, zoom = 11}
+		waypointMarkers = [{GoogleMapMarker|defaultValue & markerId = ("wp-"<+++i), draggable = True, title = Just ("Waypoint " <+++ i), position = {GoogleMapPosition|lat=lat,lng=lng}} \\ (lat,lng) <- route & i <- [1..]]
+		perspective		= {GoogleMapPerspective|defaultValue.perspective & center = {lat = 52.948300, lng = 4.776007}, zoom = 10}
 		
-
 	fromPrj (route,_) map = route
-
-//UTIL
-//(>>-) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-//(>>-) taska taskb = step taska [ifStable (const taskb)]
 
 //Wait for (at least) n seconds
 wait :: Int -> Task Void
-wait n = get currentTime >>= \start -> watch currentTime >>* [OnValue (\(Value now _) -> if (now > addSeconds n start) (Just (return Void)) Nothing)]
+wait n = get currentTime >>- \start -> watch currentTime >>* [OnValue (\(Value now _) -> if (now >= addSeconds n start) (Just (return Void)) Nothing)]
 where
 	//ONLY CORRECT FOR n < 60
 	addSeconds n t = t + {Time|hour=0,min=0,sec=n}
