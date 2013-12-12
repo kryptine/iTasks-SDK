@@ -23,9 +23,9 @@ derive JSONEncode ServiceResponsePart
 // unauthorized downloading of documents and DDOS uploading.
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
-                         ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld))
-						 ,!(HTTPRequest (Maybe {#Char}) SessionId *IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld))
-						 ,!(HTTPRequest SessionId *IWorld -> *IWorld)
+                         ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld))
+						 ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
+						 ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun url task defaultFormat,dataFun,disconnectFun)
 where
@@ -38,7 +38,7 @@ where
             [instanceNo,_,_]    = toInt instanceNo > 0 // {instanceNo}/{instanceKey}/{view}
             _                   = False
 
-	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld) | iTask a
+	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld) | iTask a
 	reqFun url task defaultFormat req iworld=:{IWorld|application,config}
 		//Check for uploads
 		| hasParam "upload" req
@@ -60,47 +60,15 @@ where
 				_
 					= (notFoundResponse req,Nothing,iworld)
         | urlSpec == ""
-		    = case format req of
-			    //Serve start page
+            = case defaultFormat of
 			    (WebApp	opts)
-					= case createUnevaluatedTaskInstance (task req) iworld of
+                    = case createUnevaluatedTaskInstance (task req) iworld of
                         (Error err, iworld)
-						    = (errorResponse err, Nothing, iworld)
+				            = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
 				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) application, Nothing, iworld)
-			    //Serve the user interface representation once, or if possible the diff between the current task GUI and a previous version
-			    JSONGui
-                    | keyParam == ""    = (errorResponse "No session key given",Nothing, iworld)
-				    //Load or create session context and edit / evaluate
-				    # (mbResult, iworld)	= evalSessionTaskInstance keyParam event iworld
-				    # (json, iworld) 		= case mbResult of
-					    Error err
-						    = (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-					    Ok (ExceptionResult _ err,_,_,_,_)
-						    = (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					    Ok (ValueResult (Value _ True) _ _ _,_,_,_,_)
-						    = (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					    Ok (ValueResult _ info curRep context,instanceNo,instanceKey,{SessionInfo|lastEvent},updates)
-						    //Determine expiry date	
-						    # (expiresIn,iworld)	= getResponseExpiry instanceNo iworld
-						    # json	= JSONObject [("success",JSONBool True)
-											    ,("session",JSONString instanceKey)
-											    ,("expiresIn",toJSON expiresIn)
-											    ,("lastEvent",JSONInt lastEvent)
-											    ,("updates", encodeUIUpdates updates)
-											    ]
-						    = (json,iworld)
-					    _
-						    = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
-				    = (jsonResponse json, Nothing, iworld)
-			    //Serve the task representation as a continuous stream of GUI update events.
-			    JSONGuiEventStream
-                    | keyParam == ""    = (errorResponse "No session key given", Nothing, iworld)
-                    # (messages,iworld)	= getUIMessages keyParam iworld	
-                    = (eventsResponse messages, Just keyParam, iworld)
-			    //Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
-			    JSONPlain
-				    # (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
+                JSONPlain
+                    # (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
 				    = case mbResult of
 					    Ok (ExceptionResult _ err,_,_,_,_)
 						    = (errorResponse err, Nothing, iworld)
@@ -108,57 +76,52 @@ where
 						    = (jsonResponse val, Nothing, iworld)
 					    _
 						    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
-			    //Error unimplemented type
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, iworld)
-            | otherwise
-                = case dropWhile ((==)"") (split "/" urlSpec) of
-                    [instanceNo,instanceKey]
-				        = (itwcStartResponse url instanceNo instanceKey (theme []) application, Nothing, iworld)
-                    [instanceNo,instanceKey,"gui"]
-                        //Load or create session context and edit / evaluate
-				        # (mbResult, iworld)    = evalSessionTaskInstance instanceKey event iworld
-				        # (json, iworld) = case mbResult of
-					        Error err
-						        = (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-					        Ok (ExceptionResult _ err,_,_,_,_)
-						        = (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					        Ok (ValueResult (Value _ True) _ _ _,_,_,_,_)
-						        = (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					        Ok (ValueResult _ info curRep context,instanceNo,instanceKey,{SessionInfo|lastEvent},updates)
-						        //Determine expiry date	
-						        # (expiresIn,iworld)	= getResponseExpiry instanceNo iworld
-						        # json	= JSONObject [("success",JSONBool True)
-							    				    ,("session",JSONString instanceKey)
-							    				    ,("expiresIn",toJSON expiresIn)
-							    				    ,("lastEvent",JSONInt lastEvent)
-							    				    ,("updates", encodeUIUpdates updates)
-							    				    ]
-						        = (json,iworld)
-					        _
-						        = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
-				        = (jsonResponse json, Nothing, iworld)
-                    [instanceNo,instanceKey,"gui-stream"]
-                        # (messages,iworld)	= getUIMessages instanceKey iworld	
-                        = (eventsResponse messages, Just instanceKey, iworld)
-                    [instanceNo,instanceKey,"value"]
-				        # (mbResult, iworld)    = evalSessionTaskInstance instanceKey event iworld
-                        = case mbResult of
-					        Ok (ExceptionResult _ err,_,_,_,_)
-						        = (errorResponse err, Nothing, iworld)
-					        Ok (ValueResult (Value val _) _ _ _,_,_,_,_)
-						        = (jsonResponse val, Nothing, iworld)
-					        _
-					            = (errorResponse "No value available", Nothing, iworld)
-                    _
-					    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
+        | otherwise
+            = case dropWhile ((==)"") (split "/" urlSpec) of
+                [instanceNo,instanceKey]
+                    = (itwcStartResponse url instanceNo instanceKey (theme []) application, Nothing, iworld)
+                [instanceNo,instanceKey,"gui"]
+                    //Load task instance and edit / evaluate
+                    # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
+                    # (json, iworld) = case mbResult of
+                        Error err
+					        = (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
+                        Ok (ExceptionResult _ err,_,_,_)
+                            = (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
+                        Ok (ValueResult (Value _ True) _ _ _,_,_,_)
+                            = (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
+                        Ok (ValueResult _ info curRep context,instanceNo,{SessionInfo|lastEvent},updates)
+                            //Determine expiry date	
+                            # (expiresIn,iworld) = getResponseExpiry instanceNo iworld
+                            # json	= JSONObject [("success",JSONBool True)
+                                                 ,("expiresIn",toJSON expiresIn)
+                                                 ,("lastEvent",JSONInt lastEvent)
+                                                 ,("updates", encodeUIUpdates updates)
+                                                 ]
+                            = (json,iworld)
+                        _
+					        = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
+                    = (jsonResponse json, Nothing, iworld)
+                //Stream messages
+                [instanceNo,instanceKey,"gui-stream"]
+                    # (messages,iworld)	= getUIMessages (toInt instanceNo) iworld	
+                    = (eventsResponse messages, Just (toInt instanceNo), iworld)
+                //Just send the value encoded as JSON
+                [instanceNo,instanceKey,"value"]
+                    # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
+                    = case mbResult of
+                        Ok (ExceptionResult _ err,_,_,_)
+                            = (errorResponse err, Nothing, iworld)
+                        Ok (ValueResult (Value val _) _ _ _,_,_,_)
+                            = (jsonResponse val, Nothing, iworld)
+                        _
+                            = (errorResponse "No value available", Nothing, iworld)
+                _
+				    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
 	    where
-
             urlSpec             = req.req_path % (size url,size req.req_path)
-
-            keyParam            = case paramValue "key" req of
-                ""              = paramValue "session" req //Fallback for older clients
-                key             = key
 
 		    downloadParam		= paramValue "download" req
 		    uploadParam			= paramValue "upload" req
@@ -181,23 +144,15 @@ where
 					    Just taskId			= FocusEvent eventNo (fromString taskId)
 					    _					= RefreshEvent (Just eventNo)
 
-	dataFun :: HTTPRequest (Maybe {#Char}) !SessionId !*IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld)
-	dataFun req _ sessionId iworld
-        # (messages,iworld)	= getUIMessages sessionId iworld	
+	dataFun :: HTTPRequest (Maybe {#Char}) !InstanceNo !*IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld)
+	dataFun req _ instanceNo iworld
+        # (messages,iworld)	= getUIMessages instanceNo iworld	
 		= case messages of
-			[]	= (Nothing,False,sessionId,iworld)
-			_	= (Just (formatMessageEvents messages),False,sessionId,iworld)
+			[]	= (Nothing,False,instanceNo,iworld)
+			_	= (Just (formatMessageEvents messages),False,instanceNo,iworld)
 
-    disconnectFun :: HTTPRequest SessionId !*IWorld -> *IWorld
+    disconnectFun :: HTTPRequest InstanceNo !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld
-
-	//Util functions
-	format req = case paramValue "format" req of
-		"webapp"			= WebApp []
-		"json-gui"			= JSONGui
-		"json-gui-events"	= JSONGuiEventStream
-		"json-plain"		= JSONPlain
-		_					= defaultFormat
 
 	jsonResponse json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
@@ -264,6 +219,7 @@ where
 			,"/app/taskeval/interface.js"
             ,"/itwc.js"
             ]
+
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
 		# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld

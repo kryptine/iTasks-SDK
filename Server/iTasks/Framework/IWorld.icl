@@ -92,6 +92,7 @@ where
 REGULAR_EXPIRY		:== 10000
 FAST_EXPIRY			:== 100
 IMMEDIATE_EXPIRY	:== 0
+
 getResponseExpiry :: !InstanceNo !*IWorld -> (!Maybe Int, !*IWorld) 
 getResponseExpiry instanceNo iworld=:{workQueue}
 	= (Just (expiry instanceNo workQueue), iworld)
@@ -106,14 +107,12 @@ where
 
 
 addUIMessage :: !InstanceNo !UIMessage !*IWorld -> *IWorld
-addUIMessage instanceNo message iworld=:{uiMessages, sessions}
+addUIMessage instanceNo message iworld=:{uiMessages}
 	= {iworld & uiMessages = put instanceNo (maybe [message] (\m -> m ++ [message]) (get instanceNo uiMessages)) uiMessages}
 
-getUIMessages :: !SessionId !*IWorld -> (![UIMessage],!*IWorld)
-getUIMessages sessionId iworld=:{uiMessages, sessions}
-	= case get sessionId sessions of
-		Just instanceNo = (fromMaybe [] (get instanceNo uiMessages),{iworld & uiMessages = del instanceNo uiMessages})
-		Nothing			= ([], iworld)
+getUIMessages :: !InstanceNo !*IWorld -> (![UIMessage],!*IWorld)
+getUIMessages instanceNo iworld=:{uiMessages}
+	= (fromMaybe [] (get instanceNo uiMessages),{iworld & uiMessages = del instanceNo uiMessages})
 
 //Wrapper instance for file access
 instance FileSystem IWorld

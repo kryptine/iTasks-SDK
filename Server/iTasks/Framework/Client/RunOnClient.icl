@@ -39,10 +39,10 @@ gen_res {TaskState|value=Just NoValue} = NoValue
 gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
 
 roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
-roc_generator task (TaskId instanceNo _) _ iworld=:{currentSession,sessions}
+roc_generator task (TaskId instanceNo _) _ iworld=:{currentSession}
 
 	# currentInstance = fromJust currentSession
-	# currentSession = fst (fromJust (find (\(sessionId,instanceId) -> instanceId == currentInstance) ('Data.Map'.toList sessions)))
+    # currentSession = "SESSIONID-" +++ toString currentInstance
 
 	# gui = TaskletTUI {TaskletTUI|instanceNo = instanceNo, controllerFunc = controllerFunc}
 	
@@ -58,23 +58,23 @@ roc_generator task (TaskId instanceNo _) _ iworld=:{currentSession,sessions}
 // Init
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing} Nothing Nothing Nothing iworld
 	# (taskId, iworld)  = createClientTaskInstance task sessionId instanceNo iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (RefreshEvent Nothing) iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (RefreshEvent Nothing) iworld
 	= case mbResult of
-		Ok (ValueResult _ _ (TaskRep def _) _, _, _, _, update)
+		Ok (ValueResult _ _ (TaskRep def _) _, _, _, update)
 					= (Just update, {TaskState | st & taskId = Just taskId}, iworld)
 		_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
 
 // Refresh
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (RefreshEvent Nothing) iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (RefreshEvent Nothing) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update)
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _, _)
+		Ok (DestroyedResult, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _, _)
+		Ok (ExceptionResult _ msg, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
@@ -82,45 +82,45 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} 
 // Focus
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} (Just eventNo) Nothing Nothing iworld
 	# iworld = trace_n "c_focus" iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (FocusEvent eventNo t) iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (FocusEvent eventNo t) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update)
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _, _)
+		Ok (DestroyedResult, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _, _)
+		Ok (ExceptionResult _ msg, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
 
 // Edit
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) (Just jsonval) iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (EditEvent eventNo taskId name (fromString jsonval)) iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (EditEvent eventNo taskId name (fromString jsonval)) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update)
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _, _)
+		Ok (DestroyedResult, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _, _)
+		Ok (ExceptionResult _ msg, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
 
 // Action
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) Nothing iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance sessionId (ActionEvent eventNo taskId name) iworld
+	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (ActionEvent eventNo taskId name) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, _, update) 
+		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
 					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _, _)
+		Ok (ValueResult val _ NoRep _, _, _, _)
 					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _, _)
+		Ok (DestroyedResult, _, _, _)
 					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _, _)
+		Ok (ExceptionResult _ msg, _, _, _)
 					= abort msg
 		Error msg	= abort msg
 		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
@@ -129,15 +129,15 @@ newWorld :: *World
 newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
-getUIUpdates iworld=:{uiMessages} 
+getUIUpdates iworld=:{uiMessages}
 		= case 'Data.Map'.toList uiMessages of
 			[]   = (Nothing, iworld)		
 			msgs = (Just (map getUpdates msgs), {iworld & uiMessages = 'Data.Map'.newMap}) 
-where 
+where
 	isUIUpdates (UIUpdates _) = True
 	isUIUpdates _ = False
 
-	getUpdates (instanceNo,msgs) 
+	getUpdates (instanceNo,msgs)
 		= (instanceNo, map (\(UIUpdates upds) -> toString (encodeUIUpdates upds)) (filter isUIUpdates msgs))
 
 createClientIWorld :: !InstanceNo -> *IWorld
@@ -167,7 +167,6 @@ createClientIWorld currentInstance
 		  ,eventRoute			= 'Data.Map'.newMap
 		  ,readShares			= []
 		  ,editletDiffs			= 'Data.Map'.newMap
-		  ,sessions				= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,workQueue			= []
 		  ,uiMessages			= 'Data.Map'.newMap

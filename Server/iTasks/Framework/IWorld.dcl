@@ -38,7 +38,6 @@ from Sapl.SaplParser import :: ParserState
 					, localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
 					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
-					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
 											   ,!FuncTypeMap							// Function name -> source code mapping
@@ -78,10 +77,8 @@ dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
-
 addUIMessage        :: !InstanceNo !UIMessage       !*IWorld -> *IWorld
-getUIMessages		:: !SessionId					!*IWorld -> (![UIMessage],!*IWorld)
-
+getUIMessages		:: !InstanceNo                  !*IWorld -> (![UIMessage],!*IWorld)
 
 :: UIMessage = UIUpdates ![UIUpdate] | UIReset !String
 

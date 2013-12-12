@@ -1550,8 +1550,6 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         } else {
             me.urlParameters = '';
         }
-
-        me.session = itwc.START_INSTANCE_KEY || null;
     },
     queueTaskEvent: function (eventData) {
         var me = this,
@@ -1574,9 +1572,7 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             for(k in event[1]) {
                 params[k] = event[1][k];
             }
-            if(me.session) {
-                params['session'] = me.session;
-            }
+
             me.flushingTaskEvents = true;
             //Send request
             xhr = new XMLHttpRequest();
@@ -1596,8 +1592,6 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             console.log("Server error",msg.error);
             return;
         }
-        //Update session id
-        me.session = msg.session;
         //Update event no
         me.lastReceivedEventNo = msg.lastEvent;
         //Update user interface

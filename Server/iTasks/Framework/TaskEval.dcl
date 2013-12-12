@@ -55,7 +55,7 @@ createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !Man
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !SessionInfo, ![UIUpdate]), !*IWorld)
+evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
 
 /**
 * Evaluate a task instance without any events

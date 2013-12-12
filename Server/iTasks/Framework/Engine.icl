@@ -145,9 +145,9 @@ background iworld
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe SessionId, !*IWorld))
-					  ,!(HTTPRequest (Maybe {#Char}) SessionId *IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld))
-					  ,!(HTTPRequest SessionId *IWorld -> *IWorld)
+					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld))
+					  ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
+					  ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
 					  )] | Publishable publish
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
@@ -216,7 +216,6 @@ initIWorld sdkDir world
 	  ,localTasks			= newMap
       ,eventRoute			= newMap
 	  ,readShares			= []
-	  ,sessions				= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
       ,editletDiffs         = newMap
 	  ,workQueue			= []

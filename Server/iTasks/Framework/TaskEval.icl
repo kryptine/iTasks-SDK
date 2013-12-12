@@ -24,12 +24,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{currentLocalDateTime
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
-	//Register the sessionId -> instanceNo relation
-	# iworld				= registerSession sessionId instanceNo iworld
 	= (TaskId instanceNo 0, iworld)	
-where
-	registerSession sessionId instanceNo iworld=:{IWorld|sessions}
-		= {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 		
 createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !SessionInfo, ![UIUpdate]), !*IWorld) |  iTask a
 createSessionTaskInstance task event iworld=:{currentLocalDateTime,taskTime}
@@ -43,17 +38,12 @@ createSessionTaskInstance task event iworld=:{currentLocalDateTime,taskTime}
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
-	//Register the sessionId -> instanceNo relation
-	# iworld				= registerSession instanceKey instanceNo iworld
 	//Evaluate once
 	# (mbResult,iworld)		= evalTaskInstance event instanceNo iworld
 	= case mbResult of
 		Ok (result,Left (sessionInfo,updates))	= (Ok (result,instanceNo,instanceKey,sessionInfo,updates),iworld)
 		Error e				= (Error e, iworld)
 		_					= (Error "Unknown error in createSessionTaskInstance", iworld)
-
-registerSession sessionId instanceNo iworld=:{IWorld|sessions}
-    = {IWorld|iworld & sessions = 'Data.Map'.put sessionId instanceNo sessions}
 
 createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 createUnevaluatedTaskInstance task iworld=:{currentLocalDateTime,taskTime}
@@ -66,7 +56,6 @@ createUnevaluatedTaskInstance task iworld=:{currentLocalDateTime,taskTime}
 	# (_,iworld)			= 'Data.SharedDataSource'.write meta (sessionInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'Data.SharedDataSource'.write (createResult instanceNo taskTime) (taskInstanceResult instanceNo) iworld
-	# iworld				= registerSession instanceKey instanceNo iworld
     = (Ok (instanceNo,instanceKey),iworld)
 
 createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
@@ -100,14 +89,11 @@ where
 createResult :: !InstanceNo !TaskTime -> TaskResult JSONNode
 createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep (UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap}) []) (TCInit (TaskId instanceNo 0) 1)
 
-evalSessionTaskInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !SessionInfo, ![UIUpdate]), !*IWorld)
-evalSessionTaskInstance sessionId event iworld=:{IWorld|sessions}
+evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
+evalSessionTaskInstance instanceNo event iworld
 	//Update current datetime in iworld
 	# iworld					= updateCurrentDateTime iworld
-	//Determine which task instance to evaluate
-    = case 'Data.Map'.get sessionId sessions of
-        Nothing         = (Error ("Could not load session " +++ sessionId), iworld)
-        Just sessionNo  = evalUntilSession event sessionNo (eventTarget event sessionNo) iworld
+    = evalUntilSession event instanceNo (eventTarget event instanceNo) iworld
 where
 	eventTarget (EditEvent _ (TaskId no _) _ _)	_	= no
 	eventTarget (ActionEvent _ (TaskId no _) _) _ 	= no
@@ -116,7 +102,7 @@ where
 
     evalUntilSession event sessionNo instanceNo iworld
         = case evalTaskInstance event instanceNo iworld of
-			(Ok (result,Left (sessionInfo,updates)),iworld) = (Ok (result,sessionNo,sessionId,sessionInfo,updates),iworld)   //Done! we have evaluated the session instance
+			(Ok (result,Left (sessionInfo,updates)),iworld) = (Ok (result,sessionNo,sessionInfo,updates),iworld)   //Done! we have evaluated the session instance
             (Ok (_,Right [next:_]),iworld)                  = evalUntilSession (toRefresh event) next sessionNo iworld //We have not yet reached a session instance
             (Ok (_,Right []),iworld)                        = (Error "Event did not reach an instance attached to a session",iworld)
             (Error e, iworld)                               = (Error e,iworld)
@@ -128,17 +114,8 @@ refreshTaskInstance instanceNo iworld
 	= case mbResult of
 		(Ok (_,Left (_,[])))	    = iworld
 		(Ok (_,Left (_,updates)))	= addUIMessage instanceNo (UIUpdates updates) iworld
-		(Error e)						
-            //Check if the instance happened to be a session instance
-            = case getSessionId instanceNo iworld of
-                (Just _,iworld)     = addUIMessage instanceNo (UIReset e) iworld
-                (_,iworld)          = iworld
+		(Error e)					= addUIMessage instanceNo (UIReset e) iworld	
 		_	                        = iworld
-where
-    getSessionId instanceNo iworld=:{IWorld|sessions}
-        = case [sessionId \\ (sessionId,no) <- 'Data.Map'.toList sessions | no == instanceNo] of
-            [sessionId:_]   = (Just sessionId,iworld)
-            _               = (Nothing,iworld)
 
 refreshUrgentTaskInstances :: !*IWorld -> *IWorld
 refreshUrgentTaskInstances iworld
