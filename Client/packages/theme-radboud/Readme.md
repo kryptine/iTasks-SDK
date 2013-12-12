@@ -1,2 +1,0 @@
-# theme-radboud - Read Me
-

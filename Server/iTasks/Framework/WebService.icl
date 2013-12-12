@@ -6,11 +6,6 @@ import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskE
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
 import iTasks.API.Core.SystemTypes
 
-//Flag for disabling use of the compiled version of the client javascript
-//only useful when doing work on the client framework
-IF_CLIENT_DEV yes no	:== yes
-IF_USE_EXTJS yes no     :== no
-
 DEFAULT_THEME :== "gray"
 
 //The representation of the JSON service
@@ -254,40 +249,24 @@ where
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = IF_USE_EXTJS
-			([(IF_CLIENT_DEV "bootstrap.css" "build/itwc/production/resources/itwc-all.css")
-			 ,"css/icons.css"
-			 ,"css/app.css"
-			 ,appName +++ ".css"])
-            (["itwc-theme-"+++theme+++"/itwc-theme.css"
-			 ,"css/icons.css"
-			 ,"css/app.css"
-			 ,appName +++ ".css"])
+		stylefiles =
+            ["itwc-theme-"+++theme+++"/itwc-theme.css"
+			,"css/icons.css"
+			,"css/app.css"
+			,appName +++ ".css"]
 
-        scriptfiles = IF_USE_EXTJS
-            //ExtJS based runtime
-            ((IF_CLIENT_DEV ["ext/ext-debug.js"] [])
-			++  ["/app/taskeval/utils.js","/app/taskeval/itask.js" //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
-				,"/app/taskeval/builtin.js"
-				,"/app/taskeval/dynamic.js"
-				,"/app/taskeval/sapl-rt.js", "/app/taskeval/sapl-support.js"
-				,"/app/taskeval/db.js", "/app/taskeval/debug.js"
-				,"/app/taskeval/interface.js"
-				]
-			++ (IF_CLIENT_DEV ["app/app.js"] ["build/itwc/production/all-classes.js"]))
-            //New HTML5 Client runtime
-                ["/app/taskeval/utils.js","/app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess
-				,"/app/taskeval/builtin.js"
-				,"/app/taskeval/dynamic.js"
-				,"/app/taskeval/sapl-rt.js", "/app/taskeval/sapl-support.js"
-				,"/app/taskeval/db.js", "/app/taskeval/debug.js"
-				,"/app/taskeval/interface.js"
-                ,"/itwc.js"
-                ]
+        scriptfiles =
+            ["/app/taskeval/utils.js","/app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess
+			,"/app/taskeval/builtin.js"
+			,"/app/taskeval/dynamic.js"
+			,"/app/taskeval/sapl-rt.js", "/app/taskeval/sapl-support.js"
+			,"/app/taskeval/db.js", "/app/taskeval/debug.js"
+			,"/app/taskeval/interface.js"
+            ,"/itwc.js"
+            ]
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
 		# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
 		| isError mbD	= createDocumentsFromUploads us iworld
 		# (ds,iworld)	= createDocumentsFromUploads us iworld
 		= ([fromOk mbD:ds],iworld)
-
