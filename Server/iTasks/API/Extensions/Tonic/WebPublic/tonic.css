@@ -1,0 +1,49 @@
+rect {
+    fill: #fff;
+}
+
+.node rect {
+    stroke-width: 0.1em;
+    stroke: #333;
+    fill: none;
+}
+
+.edge rect {
+    fill: #fff;
+}
+
+.edge path {
+    fill: none;
+    stroke: #333;
+    stroke-width: 0.1em;
+}
+
+.tonic-parallelsplit circle {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.17em;
+}
+
+.tonic-paralleljoin circle {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.17em;
+}
+
+.tonic-init polygon {
+  fill: #000;
+}
+
+.tonic-stop rect {
+  fill: #000;
+}
+
+.tonic-assign circle {
+  fill: #fff;
+}
+
+.tonic-decision path {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.17em;
+}
