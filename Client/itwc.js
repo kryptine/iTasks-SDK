@@ -1532,7 +1532,7 @@ itwc.taskInstanceProxy.prototype = {
 }
 itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
-    init: function(controller,rootNode) {
+    init: function(controller,rootNode,baseUrl) {
         var me = this,
             urlSplit;
         me.controller = controller;
@@ -1542,10 +1542,11 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.taskEvents = [];
         me.updateSource = null;
         me.flushingTaskEvents = false;
+        me.baseUrl = baseUrl;
 
         //Check url parameters
         if((urlSplit = window.location.toString().split('?')).length == 2) {
-            me.urlParameters = '&'+urlSplit[1]
+            me.urlParameters = '?'+urlSplit[1]
         } else {
             me.urlParameters = '';
         }
@@ -1579,7 +1580,7 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             me.flushingTaskEvents = true;
             //Send request
             xhr = new XMLHttpRequest();
-            xhr.open('POST','?format=json-gui'+me.urlParameters, true);
+            xhr.open('POST',me.baseUrl+'/gui'+me.urlParameters,true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onload = me.onTaskEventResponse.bind(me);
             xhr.send(itwc.util.urlEncode(params));
@@ -1618,7 +1619,7 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     },
     startUIEventSource: function() {
         var me = this;
-        me.updateSource = new EventSource('?format=json-gui-events&session='+me.session);
+        me.updateSource = new EventSource(me.baseUrl+'/gui-stream');
         me.updateSource.addEventListener('reset', me.onResetPushEvent.bind(me), false);
         me.updateSource.addEventListener('message', me.onUpdatePushEvent.bind(me), false);
     },
@@ -1939,7 +1940,7 @@ itwc.controller.prototype = {
 
         //Create an initial server proxy
         proxy = new itwc.serverInstanceProxy();
-        proxy.init(me,itwc.UI);
+        proxy.init(me,itwc.UI,itwc.START_INSTANCE_URL);
         proxy.queueTaskEvent({});
 
         me.instanceProxies[itwc.START_INSTANCE_NO] = proxy;
