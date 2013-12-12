@@ -78,6 +78,7 @@ refreshUrgentTaskInstances :: !*IWorld -> *IWorld
 
 //Helper functions that provide access to shares and parallel task lists
 localShare		:: !TaskId ->	        Shared a			| iTask a
+exposedShare 	:: !String -> 			ReadWriteShared r w	| iTask r & iTask w & TC r & TC w
 topListShare	::				        SharedTaskList a
 parListShare	:: !TaskId !TaskId ->	SharedTaskList a	| iTask a
 currentInstanceShare ::                 ReadOnlyShared InstanceNo

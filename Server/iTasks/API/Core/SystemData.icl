@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.SystemData
 
 import StdList, StdBool, StdFile
-import System.Time, Text, Data.Tuple, Data.Map, Data.Functor, Data.Error, System.File
+import System.Time, Text, Data.Tuple, Data.Functor, Data.Error, System.File
 import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Shared, iTasks.Framework.Util
 import iTasks.Framework.Task
 import iTasks.API.Core.SystemTypes
@@ -9,6 +9,8 @@ from StdFunc					import o, seq
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
+
+from Data.Map import toList
 
 SYSTEM_DATA_NS :== "SystemData"
 

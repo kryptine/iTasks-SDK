@@ -592,7 +592,39 @@ where
 		= (resa,{iworld & localShares = 'Data.Map'.del taskId localShares})
 	
 	eval _ _ _ iworld
-		= (exception "Corrupt task state in withShared", iworld)	
+		= (exception "Corrupt task state in withShared", iworld)
+
+exposeShared :: !(ReadWriteShared r w) !((ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
+exposeShared shared stask = Task eval
+where	
+	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
+		# (url, iworld)		= genURLforShared iworld
+		// Trick to make it work until John fixes the compiler
+		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^ *IWorld) exposedShares
+		# (taskIda,iworld)	= getNextTaskId iworld
+		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
+		
+	eval event repOpts (TCExposedShared taskId ts url treea) iworld=:{taskTime}
+		# ts						= case event of
+			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
+			_						= ts
+		# (Task evala)				= stask (exposedShare url)
+		# (resa,iworld)				= evala event repOpts treea iworld
+		= case resa of
+			ValueResult value info rep ntreea
+				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+				= (ValueResult value info rep (TCExposedShared taskId info.TaskInfo.lastEvent url ntreea),iworld)
+			ExceptionResult e str					
+				= (ExceptionResult e str,iworld)
+	
+	eval event repOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
+		# (Task evala)					= stask (exposedShare url)
+		# (resa,iworld)					= evala event repOpts (TCDestroy treea) iworld
+		= (resa,{iworld & exposedShares = 'Data.Map'.del url iworld.exposedShares})
+	
+	eval _ _ _ iworld
+		= (exception "Corrupt task state in exposeShared", iworld)
+		
 /*
 * Tuning of tasks
 */

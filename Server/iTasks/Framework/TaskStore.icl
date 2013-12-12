@@ -52,15 +52,13 @@ maxInstanceNo iworld
 		Nothing		= (0,iworld)
 
 newInstanceKey :: !*IWorld -> (!InstanceKey, !*IWorld)
-newInstanceKey iworld=:{IWorld|world,timestamp}
-	# (Clock c, world)		= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) , {IWorld|iworld & world = world})
+newInstanceKey iworld=:{IWorld|random}
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
-newDocumentId iworld=:{world,timestamp}
-	# (Clock c,world)	= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
-
+newDocumentId iworld=:{IWorld|random}
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
+	
 deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteInstance instanceNo iworld
     = delete instanceNo detachedInstances (delete instanceNo sessionInstances iworld)

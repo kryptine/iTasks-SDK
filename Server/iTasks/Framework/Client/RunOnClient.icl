@@ -140,13 +140,14 @@ where
 	getUpdates (instanceNo,msgs)
 		= (instanceNo, map (\(UIUpdates upds) -> toString (encodeUIUpdates upds)) (filter isUIUpdates msgs))
 
-createClientIWorld :: !InstanceNo -> *IWorld
-createClientIWorld currentInstance
+createClientIWorld :: !String !InstanceNo -> *IWorld
+createClientIWorld serverURL currentInstance
         # world = newWorld
         # (Timestamp seed,world) = time world
 		= {IWorld
 		  |application			= "application"
 		  ,build				= "build"
+		  ,serverURL			= serverURL
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
 		  ,systemDirectories	= {appDirectory  = locundef "appDirectory"
 		  						  ,dataDirectory = locundef "dataDirectory"
@@ -167,6 +168,7 @@ createClientIWorld currentInstance
 		  ,eventRoute			= 'Data.Map'.newMap
 		  ,readShares			= []
 		  ,editletDiffs			= 'Data.Map'.newMap
+		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,workQueue			= []
 		  ,uiMessages			= 'Data.Map'.newMap

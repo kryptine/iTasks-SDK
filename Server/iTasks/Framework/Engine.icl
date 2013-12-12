@@ -195,6 +195,7 @@ initIWorld sdkDir world
 	= {IWorld
 	  |application			= appName
 	  ,build				= build
+	  ,serverURL			= "//127.0.0.1:80"
 	  ,systemDirectories    =
             {appDirectory		    = appDir
 	        ,sdkDirectory		    = sdkDir
@@ -216,6 +217,7 @@ initIWorld sdkDir world
 	  ,localTasks			= newMap
       ,eventRoute			= newMap
 	  ,readShares			= []
+	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
       ,editletDiffs         = newMap
 	  ,workQueue			= []

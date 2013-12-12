@@ -308,7 +308,35 @@ where
 					= (Ok Void, iworld)
 				(Error _,iworld)
 					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
-		
+
+exposedShare :: !String -> ReadWriteShared r w | iTask r & iTask w & TC r & TC w
+exposedShare url = createChangeOnWriteSDS "exposedShare" url read write
+where
+	read :: !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r
+	read iworld=:{exposedShares}
+		= case 'Data.Map'.get url exposedShares of
+			Nothing
+				= abort ("TODO: reading remote share, not implemented " +++ url)
+			Just (shared :: ReadWriteShared r^ w)	
+				# (val,iworld) = 'Data.SharedDataSource'.read shared iworld
+				= case val of
+					Ok val		= (Ok val,iworld)
+					Error e		= (Error e, iworld)
+			Just dyn
+				= (Error ("Exposed share type mismatch: " +++ url), iworld)
+				
+	write val iworld=:{exposedShares}
+		= case 'Data.Map'.get url exposedShares of
+			Nothing
+				= abort ("TODO: writing remote share, not implemented " +++ url)
+			Just (shared :: ReadWriteShared r w^)	
+				# (res,iworld) = 'Data.SharedDataSource'.write val shared iworld
+				= case res of
+					Ok _	= (Ok Void, iworld)
+					Error e	= (Error e, iworld)			
+			Just _
+				= (Error ("Exposed share type mismatch: " +++ url), iworld)
+				
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
 topListShare = mapReadWrite (readPrj,writePrj) (detachedInstances >+| currentInstanceShare)

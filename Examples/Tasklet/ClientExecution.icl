@@ -155,7 +155,7 @@ where
 
 	noteE state 
 		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
-			>>*		[ OnAction (Action "Trim" []) (\txt -> Just (update trim state >>| noteE state))	
+			>>*		[ OnAction (Action "Trim" []) (\txt -> Just (upd trim state >>| noteE state))	
 					]
 
 	lineE state
@@ -222,12 +222,12 @@ where
 
 	append (i,_)
 		=			enterInformation "Add new item" []
-		>>=	\n ->	update (\ps -> let (begin,end) = splitAt (i+1) ps in (begin ++ [n] ++ end)) store
+		>>=	\n ->	upd (\ps -> let (begin,end) = splitAt (i+1) ps in (begin ++ [n] ++ end)) store
 	delete (i,_)
-		=			update (\ps -> removeAt i ps) store
+		=			upd (\ps -> removeAt i ps) store
 	edit (i,p)
 		=			updateInformation "Edit item" [] p 
-		 >>= \p -> 	update (\ps ->  updateAt i p ps) store
+		 >>= \p -> 	upd (\ps ->  updateAt i p ps) store
 
 //
 
@@ -273,7 +273,7 @@ where
 
 		commit :: String -> Task Void
 		commit message
-			=				update (\tweets -> [(tweeter,message)] ++ tweets) tweetsStore 
+			=				upd (\tweets -> [(tweeter,message)] ++ tweets) tweetsStore 
 				>>| 		tweeting 
 
 //
@@ -443,7 +443,7 @@ where
  				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
  				]
  			
- 	substitute cmnd =	update (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
+ 	substitute cmnd =	upd (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
  						>>| showReplace cmnd
 
 Start :: *World -> *World

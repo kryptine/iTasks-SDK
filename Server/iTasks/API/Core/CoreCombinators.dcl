@@ -133,6 +133,14 @@ workAs :: !User !(Task a)						-> Task a | iTask a
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 
 /**
+* Expose a share to be accessable via an URL.
+*
+* @param The share to be exposed
+* @param The task which uses the shared variable
+*/
+exposeShared :: !(ReadWriteShared r w) !((ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
+
+/**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,
 * or add additional titles, hints and descriptions
 */

@@ -22,6 +22,7 @@ from Sapl.SaplParser import :: ParserState
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
+					, serverURL				:: !String									// URL of the server like "//any.com:80"
 					, config				:: !Config									// The server configuration
                     , systemDirectories     :: !SystemDirectories                       // Filesystem paths that are used by iTasks
 					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
@@ -38,6 +39,8 @@ from Sapl.SaplParser import :: ParserState
 					, localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
 					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
+
+					, exposedShares			:: !Map String Dynamic
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
 											   ,!FuncTypeMap							// Function name -> source code mapping

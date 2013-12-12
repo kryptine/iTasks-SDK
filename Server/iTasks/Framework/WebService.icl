@@ -29,7 +29,7 @@ webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
 						 ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
 						 ) | iTask a
-webService url task defaultFormat = (matchFun url,reqFun url task defaultFormat,dataFun,disconnectFun)
+webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
 where
     matchFun :: String String -> Bool
     matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
@@ -39,6 +39,11 @@ where
             [instanceNo,_]      = toInt instanceNo > 0 // {instanceNo}/{instanceKey}
             [instanceNo,_,_]    = toInt instanceNo > 0 // {instanceNo}/{instanceKey}/{view}
             _                   = False
+
+	reqFun` :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld) | iTask a
+	reqFun` url task defaultFormat req iworld 
+		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
+		= reqFun url task defaultFormat req {IWorld|iworld & serverURL = server_url}
 
 	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld) | iTask a
 	reqFun url task defaultFormat req iworld=:{IWorld|application,config}

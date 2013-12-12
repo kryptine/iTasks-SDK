@@ -46,15 +46,16 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	| TCInteractLocal	        !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
 	| TCInteractViewOnly	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
 	| TCInteractLocalViewOnly   !TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract1	    !TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract2	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCProject		    !TaskId !JSONNode !TaskTree
-	| TCStep		    !TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
-	| TCParallel	    !TaskId !TaskTime
-	| TCShared		    !TaskId !TaskTime !TaskTree
-	| TCStable		    !TaskId !TaskTime !DeferredJSON
+	| TCInteract1				!TaskId !TaskTime !JSONNode !InteractionMask
+	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCProject					!TaskId !JSONNode !TaskTree
+	| TCStep					!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
+	| TCParallel				!TaskId !TaskTime
+	| TCShared					!TaskId !TaskTime !TaskTree
+	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL
+	| TCStable					!TaskId !TaskTime !DeferredJSON
 	| TCNop			
-	| TCDestroy		    !TaskTree															//Marks a task state as garbage that must be destroyed
+	| TCDestroy					!TaskTree															//Marks a task state as garbage that must be destroyed
 	| TCTasklet			
 
 :: DeferredJSON

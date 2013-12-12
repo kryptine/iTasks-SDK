@@ -173,7 +173,7 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
 	// unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, newSet) // maybe newSet id (get currentInstance skipmap))
+	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
 
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
@@ -225,7 +225,7 @@ diffLinker cdf idf iworld=:{world,currentSession=Just currentInstance,jsCompiler
     // unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, newSet) // maybe newSet id (get currentInstance skipmap))
+	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_cdf, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string cdf) world
 	# (linkerstate, lib, sapl_idf, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string idf) world

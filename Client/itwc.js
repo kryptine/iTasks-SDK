@@ -837,7 +837,8 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 		
 			// Prepare IWorld
 			if(!_iworld){
-				_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [me.definition.instanceNo]);
+				var url = "//" + document.location.host;
+				_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [url, me.definition.instanceNo]);
 			}				
 		
 			console.time('controllerWrapper timer: eval');

@@ -14,4 +14,5 @@ cast_to_TaskValue a = case make_dynamic a of (a::TaskValue b^) -> a
 make_dynamic tva = dynamic tva
 
 unwrapTask :: Dynamic -> Task a | TC a
-unwrapTask (task :: Task a^)    = task
+unwrapTask (task :: Task a^) = task
+

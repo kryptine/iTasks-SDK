@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc
-import System.Time, Data.Error, System.OSError, Data.Map, Data.Tuple, Text.JSON
+import System.Time, Data.Error, System.OSError, Data.Tuple, Text.JSON
 import qualified StdList
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
@@ -13,6 +13,8 @@ from StdFunc					import o, id
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.API.Core.SystemData	import topLevelTasks
 from Data.Map						import qualified get
+from Data.Map						import newMap, put
+
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
