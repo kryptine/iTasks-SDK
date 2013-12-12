@@ -66,9 +66,51 @@ defaultShapeTransform = \bbh bbw d3 world -> setAttrs [ ("x", toJSVal (0 - (bbw 
                                                       , ("height", toJSVal bbh)
                                                       ] d3 world
 
-toCenteredTspan strs = map f strs
+mkCenteredTspan strs root world = foldl f world strs
   where
-  f str = TspanTag [XAttr "2.5em", DYAttr "1em"] [Text str]
+  f world str
+    # (tsp, world) = append "tspan" root world
+    # (tsp, world) = setAttrs [ ("x", toJSVal "0")
+                              , ("dy", toJSVal "1em")
+                              ] tsp world
+    # (_, world)   = setText str tsp world
+    = world
+
+mkLines xs root world = foldr f world xs
+  where
+  f (x1, y1, x2, y2) world
+    # (line, world) = append "line" root world
+    # (line, world) = setAttrs [ ("x1", toJSVal x1)
+                               , ("y1", toJSVal y1)
+                               , ("x2", toJSVal x2)
+                               , ("y2", toJSVal y2)
+                               ] line world
+    = world
+
+addPath xs path world
+  # pts           = foldl (\x xs -> x +++ xs) "" xs
+  # (path, world) = setAttr "d" (toJSVal pts) path world
+  = (path, world)
+
+getBBox eid world
+  # (elem, world) = callFunction "document.getElementById" [toJSArg eid] world
+  # (box, world)  = callObjectMethod "getBBox" [] elem world
+  # (jsh, world)  = jsGetObjectAttr "height" box world
+  # (jsw, world)  = jsGetObjectAttr "width" box world
+  = ((jsValToInt jsh, jsValToInt jsw), world)
+
+getWidestWidth xs world = foldr f (0, world) xs
+  where
+  f elem (n, world)
+    # ((_, w), world) = getBBox elem world
+    # n               = if (w > n) w n
+    = (n, world)
+
+setAttribute attr val obj world = callObjectMethod "setAttribute" [toJSArg attr, val] obj world
+
+setAttributes attrs obj world = foldr f world attrs
+  where
+  f (attr, val) world = snd (setAttribute attr val obj world)
 
 drawNode :: GNode GLGraph Int D3 *JSWorld -> *JSWorld
 drawNode shape graph u root world
@@ -76,54 +118,127 @@ drawNode shape graph u root world
   = drawNode` shape.nodeType graph u root` world
   where
   drawNode` :: GNodeType GLGraph Int D3 *JSWorld -> *JSWorld
-  drawNode` (GAssign expr)          _ _ root world = world
-  drawNode` (GDecision _ expr)      _ _ root world = world
-  drawNode` GInit                   _ _ root world
-    # tag = SvgTag [ ViewBoxAttr "0 0 2 2"
-                   , HeightAttr "1.25em"
-                   , WidthAttr "1.25em"]
-                   [ PolygonTag [ WidthAttr "1em"
-                                , HeightAttr "1em"
-                                , StyleAttr "fill: #000"
-                                , PointsAttr "0,0 2,1 0,2 0,0"
-                                ]]
-    = snd (appendHtml tag root world)
+  drawNode` (GAssign expr) _ _ root world
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-assign") g world
+    # (head, world) = append "circle" g world
+    # (head, world) = setAttrs [ ("cx", toJSVal "1em")
+                               , ("cy", toJSVal "1em")
+                               , ("r", toJSVal "1em")
+                               ] g world
+    # world         = mkLines [ ("0em", "2.5em", "2em", "2.5em")
+                              , ("1em", "2em",   "1em", "3.5em")
+                              , ("1em", "3.5em", "0em", "5em")
+                              , ("1em", "3.5em", "2em", "5em")
+                              ] g world
+    # (text, world) = append "text" g world
+    # (text, world) = setAttrs [ ("text-anchor", toJSVal "middle")
+                               , ("x", toJSVal "1em")
+                               , ("y", toJSVal "6em")
+                               ] text world
+    # (_, world)    = setText expr text world
+    = world
+  drawNode` (GDecision _ expr) _ nid root world
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-decision") g world
+    # (path, world) = append "path" g world
+    # (g``, world)  = append "g" g world
+    # (text, world) = append "text" g`` world
+    # (_, world)    = setText expr text world
+    # (tnd, world)  = firstNode root world
+    # (bbox, world) = callObjectMethod "getBBox" [] tnd world
+    # (jbbh, world) = jsGetObjectAttr "height" bbox world
+    # (jbbw, world) = jsGetObjectAttr "width" bbox world
+    # (bbh, bbw)    = (jsValToInt jbbh, jsValToInt jbbw)
+    # (text, world) = setAttr "y" (toJSVal (bbh / 4)) text world
+    # (path, world) = addPath [ "M" +++ "-" +++ toString bbh +++ " 0"
+                              , "L" +++ toString (bbw / 2) +++ " " +++ toString (bbh * 2)
+                              , "L" +++ toString (bbw + bbh) +++ " 0"
+                              , "L" +++ toString (bbw / 2) +++ " " +++ " -" +++ toString (bbh * 2)
+                              , "Z"] path world
+    # (g, world)    = setAttr "transform" (toJSVal ("translate(" +++ toString (0 - (bbw / 2)) +++ ",0)")) g world
+    = world
+  drawNode` GInit _ _ root world
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-init") g world
+    # (svg, world)  = append "svg" g world
+    # (svg, world)  = setAttrs [ ("viewBox", toJSVal "0 0 2 2")
+                               , ("height", toJSVal "1.25em")
+                               , ("width", toJSVal "1.25em")
+                               , ("x", toJSVal "-0.6125em")
+                               , ("y", toJSVal "-0.6125em")
+                               ] svg world
+    # (poly, world) = append "polygon" svg world
+    # (poly, world) = setAttrs [ ("width", toJSVal "1em")
+                               , ("height", toJSVal "1em")
+                               , ("class", toJSVal "init-poly")
+                               , ("points", toJSVal "0,0 2,1 0,2 0,0")
+                               ] poly world
+    = world
   drawNode` (GLet gl)               _ _ root world = world
   drawNode` (GListComprehension gl) _ _ root world = world
   drawNode` GParallelSplit          _ _ root world
-    # tag = GTag [] [ CircleTag [ CXAttr "2.5em"
-                                , CYAttr "2.5em"
-                                , RAttr "2.5em"
-                                , ClassAttr "parallelsplit"
-                                , StrokeDashArrayAttr "5,5"
-                                ]
-                    , TextTag [ TextAnchorAttr "middle", YAttr "1em"]
-                              (toCenteredTspan ["Start", "parallel", "tasks"])
-                    ]
-    = snd (appendHtml tag root world)
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-parallelsplit") g world
+    # (poly, world) = append "circle" g world
+    # (poly, world) = setAttrs [ ("r", toJSVal "2.5em")
+                               , ("stroke-dasharray", toJSVal "5,5")
+                               ] poly world
+    # (text, world) = append "text" g world
+    # (text, world) = setAttrs [ ("text-anchor", toJSVal "middle")
+                               , ("y", toJSVal "-1.75em")
+                               ] text world
+    = mkCenteredTspan ["Start", "parallel", "tasks"] text world
   drawNode` (GParallelJoin jt)      _ _ root world
-    # tag = GTag [] [ CircleTag [ CXAttr "2.5em"
-                                , CYAttr "2.5em"
-                                , RAttr "2.5em"
-                                , ClassAttr "paralleljoin"
-                                , StrokeDashArrayAttr "5,5"
-                                ]
-                    , TextTag [ TextAnchorAttr "middle", YAttr "1em"]
-                              (case jt of
-                                 DisFirstBin  -> toCenteredTspan ["First", "finished", "tasks"]
-                                 DisFirstList -> toCenteredTspan ["First", "finished", "tasks"]
-                                 DisLeft      -> toCenteredTspan ["Left", "task", "result"]
-                                 DisRight     -> toCenteredTspan ["Right", "task", "result"]
-                                 ConAll       -> toCenteredTspan ["All", "task", "results"]
-                                 ConPair      -> toCenteredTspan ["Paired", "task", "results"]
-                              )
-                    ]
-    = snd (appendHtml tag root world)
-  drawNode` (GReturn expr)          _ _ root world = world
-  drawNode` GStep                   _ _ root world = world
-  drawNode` GStop                   _ _ root world
-    # tag = RectTag [WidthAttr "1em", HeightAttr "1em", StyleAttr "fill: #000"]
-    = snd (appendHtml tag root world)
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-paralleljoin") g world
+    # (poly, world) = append "circle" g world
+    # (poly, world) = setAttrs [ ("r", toJSVal "2.5em")
+                               , ("stroke-dasharray", toJSVal "5,5")
+                               ] poly world
+    # (text, world) = append "text" g world
+    # (text, world) = setAttrs [ ("text-anchor", toJSVal "middle")
+                               , ("y", toJSVal "-1.75em")
+                               ] text world
+    = mkCenteredTspan (case jt of
+                         DisFirstBin  -> ["First", "finished", "tasks"]
+                         DisFirstList -> ["First", "finished", "tasks"]
+                         DisLeft      -> ["Left", "task", "result"]
+                         DisRight     -> ["Right", "task", "result"]
+                         ConAll       -> ["All", "task", "results"]
+                         ConPair      -> ["Paired", "task", "results"]
+                      ) text world
+  //drawNode` (GReturn expr) _ nid root world
+    //# circleId              = "tonic-return" +++ toString nid
+    //# textId                = "tonic-return-expr" +++ toString nid
+    //# tag                   = GTag [] [ CircleTag [IdAttr circleId]
+                                      //, TextTag [ IdAttr textId
+                                                //, TextAnchorAttr "middle"]
+                                                //[Text "<return goes here>"]
+                                      //]
+    //# world                 = snd (appendHtml tag root world)
+    //# (circ, world)         = callFunction "document.getElementById" [toJSArg circleId] world
+    //# (txt, world)          = callFunction "document.getElementById" [toJSArg textId] world
+    //# ((hTxt, wTxt), world) = getBBox txt world
+    //# r                     = wTxt / 2
+    //# world                 = setAttributes [ ("cx", toJSArg r)
+                                            //, ("cy", toJSArg r)
+                                            //, ("r", toJSArg r)
+                                            //] circ world
+    //# world                 = setAttributes [ ("x", toJSArg r)
+                                            //, ("y", toJSArg (r + hTxt))
+                                            //] txt world
+    //= world
+  //drawNode` GStep                   _ _ root world = world
+  drawNode` GStop _ _ root world
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-stop") g world
+    # (stop, world) = append "rect" g world
+    # (_, world)    = setAttrs [ ("x", toJSVal "-0.5em")
+                               , ("y", toJSVal "-0.5em")
+                               , ("width", toJSVal "1em")
+                               , ("height", toJSVal "1em") ] stop world
+    = world
   drawNode` (GTaskApp tid exprs)    _ _ root world = world
   drawNode` _                       _ _ _    world = world
 
