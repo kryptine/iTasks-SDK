@@ -38,7 +38,7 @@ where
     matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
     where
         isTaskUrl "" = True
-        isTaskUrl s  = case split "/" s of
+        isTaskUrl s = case dropWhile ((==)"") (split "/" s) of //Ignore slashes at the beginning of the path
             [instanceNo,_]      = toInt instanceNo > 0 // {instanceNo}/{instanceKey}
             [instanceNo,_,_]    = toInt instanceNo > 0 // {instanceNo}/{instanceKey}/{view}
             _                   = False
@@ -72,7 +72,7 @@ where
                         (Error err, iworld)
 						    = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-				            = (itwcStartResponse req.req_path instanceNo instanceKey  (theme opts) application, Nothing, iworld)
+				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) application, Nothing, iworld)
 			    //Serve the user interface representation once, or if possible the diff between the current task GUI and a previous version
 			    JSONGui
                     | keyParam == ""    = (errorResponse "No session key given",Nothing, iworld)
@@ -117,9 +117,9 @@ where
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, iworld)
             | otherwise
-                = case split "/" urlSpec of
+                = case dropWhile ((==)"") (split "/" urlSpec) of
                     [instanceNo,instanceKey]
-				        = (itwcStartResponse req.req_path instanceNo instanceKey (theme []) application, Nothing, iworld)
+				        = (itwcStartResponse url instanceNo instanceKey (theme []) application, Nothing, iworld)
                     [instanceNo,instanceKey,"gui"]
                         //Load or create session context and edit / evaluate
 				        # (mbResult, iworld)    = evalSessionTaskInstance instanceKey event iworld
@@ -143,9 +143,22 @@ where
 					        _
 						        = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
 				        = (jsonResponse json, Nothing, iworld)
+                    [instanceNo,instanceKey,"gui-stream"]
+                        # (messages,iworld)	= getUIMessages instanceKey iworld	
+                        = (eventsResponse messages, Just instanceKey, iworld)
+                    [instanceNo,instanceKey,"value"]
+				        # (mbResult, iworld)    = evalSessionTaskInstance instanceKey event iworld
+                        = case mbResult of
+					        Ok (ExceptionResult _ err,_,_,_,_)
+						        = (errorResponse err, Nothing, iworld)
+					        Ok (ValueResult (Value val _) _ _ _,_,_,_,_)
+						        = (jsonResponse val, Nothing, iworld)
+					        _
+					            = (errorResponse "No value available", Nothing, iworld)
                     _
 					    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
 	    where
+
             urlSpec             = req.req_path % (size url,size req.req_path)
 
             keyParam            = case paramValue "key" req of
@@ -175,16 +188,12 @@ where
 
 	dataFun :: HTTPRequest (Maybe {#Char}) !SessionId !*IWorld -> (!Maybe {#Char}, !Bool, !SessionId, !*IWorld)
 	dataFun req _ sessionId iworld
-		= case format req of
-			JSONGuiEventStream
-				# (messages,iworld)	= getUIMessages sessionId iworld	
-				= case messages of
-					[]	= (Nothing,False,sessionId,iworld)
-					_	= (Just (formatMessageEvents messages),False,sessionId,iworld)
-			_
-				= (Nothing,True,sessionId,iworld)	
+        # (messages,iworld)	= getUIMessages sessionId iworld	
+		= case messages of
+			[]	= (Nothing,False,sessionId,iworld)
+			_	= (Just (formatMessageEvents messages),False,sessionId,iworld)
 
-	disconnectFun :: HTTPRequest SessionId !*IWorld -> *IWorld
+    disconnectFun :: HTTPRequest SessionId !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld
 
 	//Util functions
