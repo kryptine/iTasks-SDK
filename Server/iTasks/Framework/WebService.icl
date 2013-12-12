@@ -5,6 +5,7 @@ import System.Time, Text, Text.JSON, Data.Map, Internet.HTTP, Data.Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
 import iTasks.API.Core.SystemTypes
+import Crypto.Hash.SHA1, Text.Encodings.Base64
 
 DEFAULT_THEME :== "gray"
 
@@ -18,6 +19,7 @@ DEFAULT_THEME :== "gray"
 	
 derive JSONEncode ServiceResponsePart
 
+import StdDebug
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
@@ -59,6 +61,14 @@ where
 					= ({HTTPResponse|rsp_headers = fromList headers, rsp_data = content},Nothing,iworld)
 				_
 					= (notFoundResponse req,Nothing,iworld)
+        //Check for WebSocket upgrade headers
+        | (get "Upgrade" req.req_headers) =:(Just "websocket") && isJust (get "Sec-WebSocket-Key" req.req_headers)
+            # secWebSocketKey       = fromJust (get "Sec-WebSocket-Key" req.req_headers)
+            # secWebSocketAccept    = webSocketHandShake secWebSocketKey
+            //Create handshake response
+            # headers = [("Status","101 Switching Protocols"),("Upgrade","websocket"), ("Connection","Upgrade")
+                        ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
+            = ({HTTPResponse|rsp_headers = fromList headers, rsp_data = ""}, Just 0,iworld)
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
@@ -126,6 +136,7 @@ where
 		    downloadParam		= paramValue "download" req
 		    uploadParam			= paramValue "upload" req
 
+
 		    eventNoParam		= paramValue "eventNo" req
 		    eventNo				= toInt eventNoParam
 
@@ -144,7 +155,13 @@ where
 					    Just taskId			= FocusEvent eventNo (fromString taskId)
 					    _					= RefreshEvent (Just eventNo)
 
+        webSocketHandShake key = base64Encode digest
+        where
+            (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
+
 	dataFun :: HTTPRequest (Maybe {#Char}) !InstanceNo !*IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld)
+    dataFun req mbData 0 iworld
+        = (mbData,False,0,iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req _ instanceNo iworld
         # (messages,iworld)	= getUIMessages instanceNo iworld	
 		= case messages of
