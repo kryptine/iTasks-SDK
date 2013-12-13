@@ -145,6 +145,24 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
 	
 	return ___Tuple2(___wrapJS(fun.apply(scope,args)), world);
 }
+//jsWrapFun :: !(*JSWorld -> (!*JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f)), !*JSWorld)
+function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
+    var wrapped;
+
+    fun = Sapl.feval(fun);
+    world = Sapl.feval(world);
+
+    wrapped = function() {
+        var ys = Sapl.feval([fun,["JSWorld"]]), ret;
+
+        if(typeof ys == 'undefined') {
+            console.warn('jsWrapFun: evaluation of wrapped function returned undefined',fun);
+        }
+        Sapl.feval(ys[3]);
+        return ___unwrapJS(Sapl.feval(ys[2]));
+    }
+    return ___Tuple2(___wrapJS(wrapped), world);
+}
 
 //jsTypeof :: !(JSVal a) -> !String
 function __iTasks_API_Core_Client_Interface_jsTypeof(obj) {
@@ -227,6 +245,7 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
     var eventHandler = function(expr, taskId){
 		
 		var h = function(event){
+
 			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, arguments);
 		};
 		
