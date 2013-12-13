@@ -5,7 +5,7 @@ from StdFunc import o, seqList, ::St
 import Data.Map, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
-import iTasks.Framework.IWorld, iTasks.Framework.WebService
+import iTasks.Framework.IWorld, iTasks.Framework.WebService, iTasks.Framework.SDSService
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
@@ -156,7 +156,7 @@ where
 		= [let (matchF,reqF,dataF,disconnectF) = webService url task defaultFormat in (matchF,True,reqF,dataF,disconnectF)
 		  \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
-	defaultHandlers = [simpleHTTPResponse (const True, handleStaticResourceRequest)]
+	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
 
 initIWorld :: !FilePath !*World -> *IWorld
 initIWorld sdkDir world

@@ -9,19 +9,13 @@ import Data.SharedDataSource
 
 import iTasks.Framework.Client.JSStore
 
-from iTasks.Framework.IWorld		import :: IWorld(..), :: SystemDirectories(..), :: Work, :: UIMessage, :: Resource
+from iTasks.Framework.IWorld		import :: IWorld {onClient,build,world,systemDirectories,application}, :: SystemDirectories(..), :: Work, :: UIMessage, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-
-from Data.Set import :: Set
-from Sapl.Linker.LazyLinker import :: LoaderState
-from Sapl.Linker.SaplLinkerShared import :: FuncTypeMap, :: LineType
-from Sapl.Target.Flavour import :: Flavour
-from Sapl.SaplParser import :: ParserState
 
 :: StoreItem =
 	{ format		:: !StoreFormat

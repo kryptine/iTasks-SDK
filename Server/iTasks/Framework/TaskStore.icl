@@ -1,12 +1,12 @@
 implementation module iTasks.Framework.TaskStore
 
 import StdEnv
-import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Func, Data.Tuple
+import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Func, Data.Tuple, Data.Error, System.FilePath
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
 
-import Data.SharedDataSource
+from Data.SharedDataSource import qualified read, write, mapReadWriteError
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of UI definitions
@@ -63,8 +63,8 @@ deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteInstance instanceNo iworld
     = delete instanceNo detachedInstances (delete instanceNo sessionInstances iworld)
 where
-	delete instanceNo instances iworld = case read instances iworld of
-		(Ok list,iworld)    = snd (write (del instanceNo list) instances iworld)
+	delete instanceNo instances iworld = case 'Data.SharedDataSource'.read instances iworld of
+		(Ok list,iworld)    = snd ('Data.SharedDataSource'.write (del instanceNo list) instances iworld)
 		(_,iworld)          = iworld
 
 detachedInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
@@ -74,10 +74,10 @@ sessionInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWo
 sessionInstances = storeAccess NS_TASK_INSTANCES "sessions" (Just newMap)
 
 detachedInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-detachedInstanceMeta instanceNo = mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) detachedInstances
+detachedInstanceMeta instanceNo = 'Data.SharedDataSource'.mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) detachedInstances
 
 sessionInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-sessionInstanceMeta instanceNo = mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) sessionInstances
+sessionInstanceMeta instanceNo = 'Data.SharedDataSource'.mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) sessionInstances
 
 readTIMeta instanceNo instances = case get instanceNo instances of
 	Just i	= Ok i

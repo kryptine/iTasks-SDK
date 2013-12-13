@@ -17,5 +17,7 @@ from Data.SharedDataSource import createChangeOnWriteSDS, createPollingSDS, crea
 // Use the value of one share as parameter for another
 (>+>) infixl 6 :: !(ReadWriteShared r0 w0) !(r0 -> (ReadWriteShared r1 w1)) -> ReadWriteShared r1 w1
 
-genURLforShared :: !*IWorld -> (!String, !*IWorld)
+toJSONShared :: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w
 
+newURL 		:: !*IWorld -> (!String, !*IWorld)
+getURLbyId 	:: !String !*IWorld -> (!String, !*IWorld)

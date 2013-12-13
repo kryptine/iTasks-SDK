@@ -13,6 +13,8 @@ from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 from iTasks.Framework.TaskServer	import class HttpServerEnv
+from Data.SharedDataSource import :: RWShared
+from iTasks.Framework.Shared import :: ReadWriteShared, :: Shared
 
 from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -40,7 +42,7 @@ from Sapl.SaplParser import :: ParserState
 					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
 					, readShares			:: ![String]								// The IDs of shares from which was read
 
-					, exposedShares			:: !Map String Dynamic
+					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
 											   ,!FuncTypeMap							// Function name -> source code mapping

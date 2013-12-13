@@ -317,7 +317,7 @@ where
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
 				= abort ("TODO: reading remote share, not implemented " +++ url)
-			Just (shared :: ReadWriteShared r^ w)	
+			Just (shared :: ReadWriteShared r^ w, _)	
 				# (val,iworld) = 'Data.SharedDataSource'.read shared iworld
 				= case val of
 					Ok val		= (Ok val,iworld)
@@ -329,7 +329,7 @@ where
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
 				= abort ("TODO: writing remote share, not implemented " +++ url)
-			Just (shared :: ReadWriteShared r w^)	
+			Just (shared :: ReadWriteShared r w^, z)		
 				# (res,iworld) = 'Data.SharedDataSource'.write val shared iworld
 				= case res of
 					Ok _	= (Ok Void, iworld)

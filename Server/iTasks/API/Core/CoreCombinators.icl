@@ -594,14 +594,16 @@ where
 	eval _ _ _ iworld
 		= (exception "Corrupt task state in withShared", iworld)
 
+import StdDebug
+
 exposeShared :: !(ReadWriteShared r w) !((ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
 exposeShared shared stask = Task eval
 where	
 	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
-		# (url, iworld)		= genURLforShared iworld
+		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
-		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^ *IWorld) exposedShares
-		# (taskIda,iworld)	= getNextTaskId iworld
+		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^ *IWorld, toJSONShared shared) exposedShares
+		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
 		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		
 	eval event repOpts (TCExposedShared taskId ts url treea) iworld=:{taskTime}
@@ -623,7 +625,7 @@ where
 		= (resa,{iworld & exposedShares = 'Data.Map'.del url iworld.exposedShares})
 	
 	eval _ _ _ iworld
-		= (exception "Corrupt task state in exposeShared", iworld)
+		= (exception "Corrupt task state in exposeShared", iworld) 
 		
 /*
 * Tuning of tasks
