@@ -48,6 +48,9 @@ jsDeleteObjectAttr value obj world = undef
 jsApply	:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
 
+jsWrapFun :: !(*JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+jsWrapFun fun world = undef
+
 jsThis :: !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsThis world = undef
 

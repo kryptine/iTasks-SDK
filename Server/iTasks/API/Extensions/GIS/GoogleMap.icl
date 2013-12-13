@@ -78,7 +78,7 @@ where
 	mapdomid cid = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
-    onScriptLoad mbDiffs cid _ clval=:{val} world
+    initEditlet cid _ clval=:{val} world
 	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
 	    # (mapdiv, world) = getDomElement (mapcanvasid cid) world
 	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (val.perspective.GoogleMapPerspective.type)) world
@@ -103,9 +103,8 @@ where
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "maptypeid_changed", toJSArg (onChange "maptype")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "zoom_changed", toJSArg (onChange "zoom")] mapevent world
 		# (_, world) = callObjectMethod "addListener" [toJSArg mapobj, toJSArg "click", toJSArg onClick] mapevent world	
-        # (editlets,world)  = findObject "itwc.global.controller.editlets" world
+        # (editlets,world)  = findObject "itwc.controller.editlets" world
         # (cmp,world)       = jsGetObjectAttr cid editlets world
-        # (_,world)         = callObjectMethod "addManagedListener" [toJSArg cmp,toJSArg "afterlayout",toJSArg onAfterComponentLayout,toJSArg cmp] cmp world
         # world             = jsSetObjectAttr "afterShow" (toJSVal afterShow) cmp world
         //Place initial markers
 		# (markerMap, world) = jsNewMap world
@@ -120,13 +119,27 @@ where
 
     //Initial setup of UI
 	updateUI cid mbDiffs clval=:{mbSt=Nothing} world
-		# (mapsobj, world) = findObject "google.maps" world
-		| jsIsUndefined mapsobj
-		    # world = jsSetObjectAttr "gmapscallback" (createEditletEventHandler (onScriptLoad mbDiffs) cid) jsWindow world
-            # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback" Nothing world
-		    = (clval, world)
+        # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
+        | jsIsUndefined gmaps_loaded
+            //Check if another editlet has already loaded the javascript
+            # (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
+            | jsIsUndefined gmaps_callbacks
+                //Setup first callback and load google maps
+                # (gmaps_callbacks,world) = jsEmptyObject world
+                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
+                # world = jsSetObjectAttr "googlemaps_callbacks" gmaps_callbacks jsWindow world
+                # (cb,world)
+                        = jsWrapFun onScriptLoad world
+                # world = jsSetObjectAttr "googlemaps_callback" cb jsWindow world
+                # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=googlemaps_callback" Nothing world
+		        = (clval, world)
+            | otherwise
+                //Just add a callback to the existing set of callbacks
+                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
+		        = (clval, world)
         | otherwise
-		    = onScriptLoad mbDiffs cid undef clval world
+		    = initEditlet cid undef clval world
+
 	updateUI cid (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
@@ -152,17 +165,23 @@ where
         = (clval, world)	
 	updateUI id diff clval world //Catchall
         = (clval, world)
+
 	onUpdatePerspective "zoom" _ _ clval=:{val,mbSt=Just st=:{mapobj}} world
 		# (zoom, world) = callObjectMethod "getZoom" [] mapobj world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & zoom = jsValToInt zoom}}}, world)
 	onUpdatePerspective "maptype" _ _ clval=:{val,mbSt=Just {mapobj}} world
 		# (maptypeid, world) = callObjectMethod "getMapTypeId" [] mapobj world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & type = fromString (toUpperCase (jsValToString maptypeid))}}}, world)
+	onUpdatePerspective "dragend" _ _ clval=:{val,mbSt=Nothing} world
+        # world = jsTrace "WRONG DRAGEND..." world
+        = (clval,world)
 	onUpdatePerspective "dragend" _ _ clval=:{val,mbSt=Just {mapobj}} world 
 		# (center, world) 	  	= callObjectMethod "getCenter" [] mapobj world
 		# ((lat, lng), world) 	= getPos center world
 		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & center = {lat = lat, lng = lng}}}}, world)
-    onUpdatePerspective _ _ _ clval world
+    onUpdatePerspective e _ _ clval world
+        # world = jsTrace "CATCHALL" world
+        # world = jsTrace e world
         = (clval,world) //Catchall
 			
 	addMarker cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
@@ -267,6 +286,20 @@ where
 	updateMarker cid mapobj markerMap marker=:{GoogleMapMarker|markerId,position,title,draggable,icon} world
         # world = removeMarker markerMap markerId world
         = createMarker cid mapobj markerMap marker world
+
+    onScriptLoad world
+        # world                   = jsSetObjectAttr "googlemaps_loaded" (toJSVal True) jsWindow world
+        # (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
+        # (object,world)          = findObject "Object" world
+        # (cids,world)            = callObjectMethod "keys" [toJSArg gmaps_callbacks] object world
+        # (cids,world)            = fromJSArray cids jsValToString world
+        # world                   = foldl (call gmaps_callbacks) world cids
+        = (jsNull,world)
+    where
+        call callbacks world cid
+            # (cb,world) = jsGetObjectAttr cid callbacks world
+            # (_,world) = jsApply cb jsWindow [] world
+            = world
 
 	genDiffClient :: GoogleMapClient GoogleMapClient -> Maybe [GoogleMapDiff]
 	genDiffClient clval1 clval2 = genDiff clval1.val clval2.val

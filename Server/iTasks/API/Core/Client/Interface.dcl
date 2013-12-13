@@ -38,6 +38,9 @@ jsDeleteObjectAttr	:: !String !(JSVal o) 				!*JSWorld -> *JSWorld
 //Calling js functions
 jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
+//Wrapping clean functions
+jsWrapFun           :: !(*JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+
 //Special keywords
 jsThis				:: !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsTypeof			:: !(JSVal a) -> String
