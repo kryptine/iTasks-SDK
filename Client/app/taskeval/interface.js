@@ -145,7 +145,7 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
 	
 	return ___Tuple2(___wrapJS(fun.apply(scope,args)), world);
 }
-//jsWrapFun :: !(*JSWorld -> (!*JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f)), !*JSWorld)
+//jsWrapFun :: !([JSArg] *JSWorld -> (!*JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f)), !*JSWorld)
 function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
     var wrapped;
 
@@ -153,7 +153,12 @@ function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
     world = Sapl.feval(world);
 
     wrapped = function() {
-        var ys = Sapl.feval([fun,["JSWorld"]]), ret;
+		var args = Array.prototype.slice.call(arguments, 0);
+		args = args.map(___wrapJS);
+		args.push("JSWorld");		
+		args = Sapl.toList(args); 
+	
+		var ys = Sapl.fapp(fun,[args]), ret;
 
         if(typeof ys == 'undefined') {
             console.warn('jsWrapFun: evaluation of wrapped function returned undefined',fun);

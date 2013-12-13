@@ -39,7 +39,7 @@ jsDeleteObjectAttr	:: !String !(JSVal o) 				!*JSWorld -> *JSWorld
 jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 //Wrapping clean functions
-jsWrapFun           :: !(*JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
 
 //Special keywords
 jsThis				:: !*JSWorld -> *(!JSVal a, !*JSWorld)
