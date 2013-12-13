@@ -318,10 +318,7 @@ where
 			Nothing
 				= abort ("TODO: reading remote share, not implemented " +++ url)
 			Just (shared :: ReadWriteShared r^ w, _)	
-				# (val,iworld) = 'Data.SharedDataSource'.read shared iworld
-				= case val of
-					Ok val		= (Ok val,iworld)
-					Error e		= (Error e, iworld)
+				= 'Data.SharedDataSource'.read shared iworld
 			Just dyn
 				= (Error ("Exposed share type mismatch: " +++ url), iworld)
 				
@@ -330,10 +327,7 @@ where
 			Nothing
 				= abort ("TODO: writing remote share, not implemented " +++ url)
 			Just (shared :: ReadWriteShared r w^, z)		
-				# (res,iworld) = 'Data.SharedDataSource'.write val shared iworld
-				= case res of
-					Ok _	= (Ok Void, iworld)
-					Error e	= (Error e, iworld)			
+				= 'Data.SharedDataSource'.write val shared iworld
 			Just _
 				= (Error ("Exposed share type mismatch: " +++ url), iworld)
 				

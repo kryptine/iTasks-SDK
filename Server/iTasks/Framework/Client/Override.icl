@@ -2,9 +2,6 @@ implementation module iTasks.Framework.Client.Override
 
 import iTasks.API.Core.SystemTypes
 
-onClient :: Bool
-onClient = False
-
 cast :: a -> b | TC a & TC b
 cast a = case make_dynamic a of (a::b^) -> a
 

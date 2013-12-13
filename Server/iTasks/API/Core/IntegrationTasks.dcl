@@ -7,13 +7,12 @@ from Data.Maybe  import :: Maybe
 from Data.Void   import :: Void
 from Data.Error  import :: MaybeError, :: MaybeErrorString
 from System.FilePath import :: FilePath
+from Internet.HTTP import :: HTTPMethod
 
 import iTasks.Framework.Generic
 from iTasks.Framework.Task               import :: Task
 from iTasks.API.Core.SystemTypes         import class descr, :: Note, :: EmailAddress, :: ProcessStatus, :: Document
 from iTasks.API.Common.InteractionTasks  import :: ViewOption //TODO: We shouldn't import from Common in Core
-
-:: HTTPMethod = GET | POST
 
 /**
 * Call a function that interacts with the world

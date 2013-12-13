@@ -34,7 +34,7 @@ http_addRequestData req requestline_done headers_done data_done data
 		| otherwise
 			# (method,path,query,version,error) = http_parseRequestLine (req.req_data % (0, index - 1))
 			| error	= (req,False,False,False,True)			//We failed to parse the request line
-			# req = {req & req_method = method, req_path = path, req_query = query, req_version = version, req_data = req.req_data % (index + 2, size req.req_data) }
+			# req = {req & req_method = fromString method, req_path = path, req_query = query, req_version = version, req_data = req.req_data % (index + 2, size req.req_data) }
 			= http_addRequestData req True False False ""	//We are done with the request line but still need to inspect the rest of the data
 	//Parsing of headers
 	| not headers_done

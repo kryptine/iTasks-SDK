@@ -5,7 +5,7 @@ import Data.Maybe, System.Time, Data.List, Data.Map, Text
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
 
-from Internet.HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol
+from Internet.HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol, :: HTTPMethod
 from Internet.HTTP import newHTTPRequest, newHTTPResponse
 from Internet.HTTP import instance toString HTTPRequest, instance toString HTTPResponse
 

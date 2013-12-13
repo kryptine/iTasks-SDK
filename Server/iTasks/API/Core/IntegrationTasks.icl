@@ -13,6 +13,7 @@ import iTasks.API.Common.InteractionTasks, iTasks.API.Common.CommonCombinators /
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
+from Internet.HTTP import :: HTTPMethod(..)
 from System.File				import qualified fileExists, readFile
 from Data.Map				import qualified newMap, put
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
@@ -117,8 +118,8 @@ callHTTP method url request parseResult =
 		)
 where
 	options	= case method of
-		GET	 = "--get"
-		POST = ""
+		HTTP_GET	= "--get"
+		HTTP_POST 	= ""
 		
 	initRPC = mkInstantTask eval
 	
@@ -227,13 +228,13 @@ from iTasks.API.Common.ImportTasks import importDocument
 httpDownloadDocument :: String -> Task Document
 httpDownloadDocument url = withTemporaryDirectory
     \tmpdir ->
-        callHTTP GET url "" Ok
+        callHTTP HTTP_GET url "" Ok
     >>-         exportTextFile (tmpdir </> "download")
     >>- \_ ->   importDocument (tmpdir </> "download")
 
 httpDownloadDocumentTo  :: String FilePath -> Task FilePath
 httpDownloadDocumentTo url path
-    =   callHTTP GET url "" Ok
+    =   callHTTP HTTP_GET url "" Ok
     >>-         exportTextFile path 
     @  \_ -> path
 
