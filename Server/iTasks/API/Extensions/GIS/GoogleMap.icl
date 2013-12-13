@@ -287,7 +287,7 @@ where
         # world = removeMarker markerMap markerId world
         = createMarker cid mapobj markerMap marker world
 
-    onScriptLoad world
+    onScriptLoad args world
         # world                   = jsSetObjectAttr "googlemaps_loaded" (toJSVal True) jsWindow world
         # (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
         # (object,world)          = findObject "Object" world

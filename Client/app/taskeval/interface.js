@@ -155,10 +155,9 @@ function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
     wrapped = function() {
 		var args = Array.prototype.slice.call(arguments, 0);
 		args = args.map(___wrapJS);
-		args.push("JSWorld");		
-		args = Sapl.toList(args); 
+		args = Sapl.toList(args);
 	
-		var ys = Sapl.fapp(fun,[args]), ret;
+		var ys = Sapl.fapp(fun,[args,"JSWorld"]), ret;
 
         if(typeof ys == 'undefined') {
             console.warn('jsWrapFun: evaluation of wrapped function returned undefined',fun);
