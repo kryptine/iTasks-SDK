@@ -398,7 +398,7 @@ function isComposite(g, u) {
 }
 
 },{"d3":9,"dagre":10}],4:[function(require,module,exports){
-module.exports = '0.0.9';
+module.exports = '0.0.11';
 
 },{}],5:[function(require,module,exports){
 exports.Set = require('./lib/Set');
@@ -822,7 +822,8 @@ module.exports = function() {
     // Initial graph attributes
     var graphValue = inputGraph.graph() || {};
     g.graph({
-      rankDir: graphValue.rankDir || config.rankDir
+      rankDir: graphValue.rankDir || config.rankDir,
+      orderRestarts: graphValue.orderRestarts
     });
 
     return g;
@@ -1015,28 +1016,53 @@ function order(g, maxSweeps) {
     maxSweeps = DEFAULT_MAX_SWEEPS;
   }
 
+  var restarts = g.graph().orderRestarts || 0;
+
   var layerGraphs = initLayerGraphs(g);
   // TODO: remove this when we add back support for ordering clusters
   layerGraphs.forEach(function(lg) {
     lg = lg.filterNodes(function(u) { return !g.children(u).length; });
   });
 
-  initOrder(g);
+  var iters = 0,
+      currentBestCC,
+      allTimeBestCC = Number.MAX_VALUE,
+      allTimeBest = {};
 
-  util.log(2, 'Order phase start cross count: ' + g.graph().orderInitCC);
-
-  var i, lastBest;
-  for (i = 0, lastBest = 0; lastBest < 4 && i < maxSweeps; ++i, ++lastBest) {
-    sweep(g, layerGraphs, i);
-    if (saveBest(g)) {
-      lastBest = 0;
-    }
-    util.log(3, 'Order phase iter ' + i + ' cross count: ' + g.graph().orderCC);
+  function saveAllTimeBest() {
+    g.eachNode(function(u, value) { allTimeBest[u] = value.order; });
   }
 
-  restoreBest(g);
+  for (var j = 0; j < Number(restarts) + 1 && allTimeBestCC !== 0; ++j) {
+    currentBestCC = Number.MAX_VALUE;
+    initOrder(g, restarts > 0);
 
-  util.log(2, 'Order iterations: ' + i);
+    util.log(2, 'Order phase start cross count: ' + g.graph().orderInitCC);
+
+    var i, lastBest, cc;
+    for (i = 0, lastBest = 0; lastBest < 4 && i < maxSweeps && currentBestCC > 0; ++i, ++lastBest, ++iters) {
+      sweep(g, layerGraphs, i);
+      cc = crossCount(g);
+      if (cc < currentBestCC) {
+        lastBest = 0;
+        currentBestCC = cc;
+        if (cc < allTimeBestCC) {
+          saveAllTimeBest();
+          allTimeBestCC = cc;
+        }
+      }
+      util.log(3, 'Order phase start ' + j + ' iter ' + i + ' cross count: ' + cc);
+    }
+  }
+
+  Object.keys(allTimeBest).forEach(function(u) {
+    if (!g.children || !g.children(u).length) {
+      g.node(u).order = allTimeBest[u];
+    }
+  });
+  g.graph().orderCC = allTimeBestCC;
+
+  util.log(2, 'Order iterations: ' + iters);
   util.log(2, 'Order phase best cross count: ' + g.graph().orderCC);
 }
 
@@ -1080,42 +1106,6 @@ function sweepUp(g, layerGraphs) {
   for (i = layerGraphs.length - 2; i >= 0; --i) {
     sortLayer(layerGraphs[i], cg, successorWeights(g, layerGraphs[i].nodes()));
   }
-}
-
-/*
- * Checks if the current ordering of the graph has a lower cross count than the
- * current best. If so, saves the ordering of the current nodes and the new
- * best cross count. This can be used with restoreBest to restore the last best
- * ordering.
- *
- * If this is the first time running the function the current ordering will be
- * assumed as the best.
- *
- * Returns `true` if this layout represents a new best.
- */
-function saveBest(g) {
-  var graph = g.graph();
-  var cc = crossCount(g);
-  if (!('orderCC' in graph) || graph.orderCC > cc) {
-    graph.orderCC = cc;
-    graph.order = {};
-    g.eachNode(function(u, value) {
-      if ('order' in value) {
-        graph.order[u] = value.order;
-      }
-    });
-    return true;
-  }
-  return false;
-}
-
-function restoreBest(g) {
-  var order = g.graph().order;
-  g.eachNode(function(u, value) {
-    if ('order' in value) {
-      value.order = order[u];
-    }
-  });
 }
 
 },{"./order/crossCount":13,"./order/initLayerGraphs":14,"./order/initOrder":15,"./order/sortLayer":16,"./util":25}],13:[function(require,module,exports){
@@ -1227,7 +1217,8 @@ function initLayerGraphs(g) {
 }
 
 },{"cp-data":5,"graphlib":27}],15:[function(require,module,exports){
-var crossCount = require('./crossCount');
+var crossCount = require('./crossCount'),
+    util = require('../util');
 
 module.exports = initOrder;
 
@@ -1237,25 +1228,33 @@ module.exports = initOrder;
  * arranges each node of each rank. If no constraint graph is provided the
  * order of the nodes in each rank is entirely arbitrary.
  */
-function initOrder(g) {
-  var orderCount = [];
+function initOrder(g, random) {
+  var layers = [];
 
-  function addNode(u, value) {
-    if ('order' in value) return;
+  g.eachNode(function(u, value) {
+    var layer = layers[value.rank];
     if (g.children && g.children(u).length > 0) return;
-    if (!(value.rank in orderCount)) {
-      orderCount[value.rank] = 0;
+    if (!layer) {
+      layer = layers[value.rank] = [];
     }
-    value.order = orderCount[value.rank]++;
-  }
+    layer.push(u);
+  });
 
-  g.eachNode(function(u, value) { addNode(u, value); });
+  layers.forEach(function(layer) {
+    if (random) {
+      util.shuffle(layer);
+    }
+    layer.forEach(function(u, i) {
+      g.node(u).order = i;
+    });
+  });
+
   var cc = crossCount(g);
   g.graph().orderInitCC = cc;
   g.graph().orderCC = Number.MAX_VALUE;
 }
 
-},{"./crossCount":13}],16:[function(require,module,exports){
+},{"../util":25,"./crossCount":13}],16:[function(require,module,exports){
 var util = require('../util');
 /*
     Digraph = require('graphlib').Digraph,
@@ -2204,7 +2203,7 @@ exports.relax = function(g) {
 var Set = require('cp-data').Set,
 /* jshint +W079 */
     Digraph = require('graphlib').Digraph,
-    rankUtil = require('./rankUtil');
+    util = require('../util');
 
 module.exports = feasibleTree;
 
@@ -2229,92 +2228,102 @@ module.exports = feasibleTree;
  * Nodes have the same id and value as that in the input graph.
  *
  * Edges in the tree have arbitrarily assigned ids. The attributes for edges
- * include `reversed` and `weight`. `reversed` indicates that the edge is a
- * back edge in the input graph. `weight` is used to indicate how many multi-
- * edges are represented by the tree edge.
+ * include `reversed`. `reversed` indicates that the edge is a
+ * back edge in the input graph.
  */
 function feasibleTree(g) {
   var remaining = new Set(g.nodes()),
-      minLen = [], // Array of {u, v, len}
       tree = new Digraph();
 
-  // Collapse multi-edges and precompute the minLen, which will be the
-  // max value of minLen for any edge in the multi-edge.
-  var minLenMap = {};
-  g.eachEdge(function(e, u, v, edge) {
-    var id = incidenceId(u, v);
-    if (!(id in minLenMap)) {
-      minLen.push(minLenMap[id] = { u: u, v: v, len: 0, weight: 0 });
-    }
-    var mle = minLenMap[id];
-    mle.len = Math.max(mle.len, edge.minLen);
-    mle.weight++;
-  });
+  if (remaining.size() === 1) {
+    var root = g.nodes()[0];
+    tree.addNode(root, {});
+    tree.graph({ root: root });
+    return tree;
+  }
 
-  // Remove arbitrary node - it is effectively the root of the spanning tree.
-  var root = g.nodes()[0];
-  remaining.remove(root);
-  var nodeVal = g.node(root);
-  tree.addNode(root, nodeVal);
-  tree.graph({root: root});
-
-  // Finds the next edge with the minimum slack.
-  function findMinSlack() {
-    var result,
-        eSlack = Number.POSITIVE_INFINITY;
-    minLen.forEach(function(mle /* minLen entry */) {
-      if (remaining.has(mle.u) !== remaining.has(mle.v)) {
-        var mleSlack = rankUtil.slack(g, mle.u, mle.v, mle.len);
-        if (mleSlack < eSlack) {
-          if (!remaining.has(mle.u)) {
-            result = {
-              treeNode: mle.u,
-              graphNode: mle.v,
-              len: mle.len,
-              reversed: false,
-              weight: mle.weight
-            };
-          } else {
-            result = {
-              treeNode: mle.v,
-              graphNode: mle.u,
-              len: -mle.len,
-              reversed: true,
-              weight: mle.weight
-            };
-          }
-          eSlack = mleSlack;
+  function addTightEdges(v) {
+    var continueToScan = true;
+    g.predecessors(v).forEach(function(u) {
+      if (remaining.has(u) && !slack(g, u, v)) {
+        if (remaining.has(v)) {
+          tree.addNode(v, {});
+          remaining.remove(v);
+          tree.graph({ root: v });
         }
+
+        tree.addNode(u, {});
+        tree.addEdge(null, u, v, { reversed: true });
+        remaining.remove(u);
+        addTightEdges(u);
+        continueToScan = false;
       }
     });
 
-    return result;
+    g.successors(v).forEach(function(w)  {
+      if (remaining.has(w) && !slack(g, v, w)) {
+        if (remaining.has(v)) {
+          tree.addNode(v, {});
+          remaining.remove(v);
+          tree.graph({ root: v });
+        }
+
+        tree.addNode(w, {});
+        tree.addEdge(null, v, w, {});
+        remaining.remove(w);
+        addTightEdges(w);
+        continueToScan = false;
+      }
+    });
+    return continueToScan;
   }
 
-  while (remaining.size() > 0) {
-    var result = findMinSlack();
-    nodeVal = g.node(result.graphNode);
-    remaining.remove(result.graphNode);
-    tree.addNode(result.graphNode, nodeVal);
-    tree.addEdge(null, result.treeNode, result.graphNode, {
-      reversed: result.reversed,
-      weight: result.weight
+  function createTightEdge() {
+    var minSlack = Number.MAX_VALUE;
+    remaining.keys().forEach(function(v) {
+      g.predecessors(v).forEach(function(u) {
+        if (!remaining.has(u)) {
+          var edgeSlack = slack(g, u, v);
+          if (Math.abs(edgeSlack) < Math.abs(minSlack)) {
+            minSlack = -edgeSlack;
+          }
+        }
+      });
+
+      g.successors(v).forEach(function(w) {
+        if (!remaining.has(w)) {
+          var edgeSlack = slack(g, v, w);
+          if (Math.abs(edgeSlack) < Math.abs(minSlack)) {
+            minSlack = edgeSlack;
+          }
+        }
+      });
     });
-    nodeVal.rank = g.node(result.treeNode).rank + result.len;
+
+    tree.eachNode(function(u) { g.node(u).rank -= minSlack; });
+  }
+
+  while (remaining.size()) {
+    var nodesToSearch = !tree.order() ? remaining.keys() : tree.nodes();
+    for (var i = 0, il = nodesToSearch.length;
+         i < il && addTightEdges(nodesToSearch[i]);
+         ++i);
+    if (remaining.size()) {
+      createTightEdge();
+    }
   }
 
   return tree;
 }
 
-/*
- * This id can be used to group (in an undirected manner) multi-edges
- * incident on the same two nodes.
- */
-function incidenceId(u, v) {
-  return u < v ?  u.length + ':' + u + '-' + v : v.length + ':' + v + '-' + u;
+function slack(g, u, v) {
+  var rankDiff = g.node(v).rank - g.node(u).rank;
+  var maxMinLen = util.max(g.outEdges(u, v)
+                            .map(function(e) { return g.edge(e).minLen; }));
+  return rankDiff - maxMinLen;
 }
 
-},{"./rankUtil":23,"cp-data":5,"graphlib":27}],22:[function(require,module,exports){
+},{"../util":25,"cp-data":5,"graphlib":27}],22:[function(require,module,exports){
 var util = require('../util'),
     topsort = require('graphlib').alg.topsort;
 
@@ -2717,6 +2726,15 @@ exports.values = function(obj) {
   return Object.keys(obj).map(function(k) { return obj[k]; });
 };
 
+exports.shuffle = function(array) {
+  for (i = array.length - 1; i > 0; --i) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var aj = array[j];
+    array[j] = array[i];
+    array[i] = aj;
+  }
+};
+
 exports.propertyAccessor = function(self, config, field, setHook) {
   return function(x) {
     if (!arguments.length) return config[field];
@@ -2785,7 +2803,7 @@ log.level = 0;
 exports.log = log;
 
 },{}],26:[function(require,module,exports){
-module.exports = '0.4.0';
+module.exports = '0.4.2';
 
 },{}],27:[function(require,module,exports){
 exports.Graph = require("./lib/Graph");
