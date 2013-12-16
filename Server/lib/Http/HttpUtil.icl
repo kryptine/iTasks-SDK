@@ -149,7 +149,7 @@ http_makeResponse :: !HTTPRequest ![((String -> Bool),(HTTPRequest *st -> (HTTPR
 http_makeResponse request [] fallback world 										//None of the request handlers matched
 	= if fallback
 		(http_staticResponse request world)											//Use the static response handler
-		(http_notfoundResponse request world)										//Raise an error
+		(notfoundResponse, world)										//Raise an error
 http_makeResponse request [(pred,handler):rest] fallback world
 	| (pred request.req_path)		= handler request world							//Apply handler function
 									= http_makeResponse request rest fallback world	//Search the rest of the list
@@ -186,39 +186,15 @@ where
 	month   9					= "Oct"
 	month  10					= "Nov"
 	month  11					= "Dec"
-			
-http_encodeResponse :: !HTTPResponse !Bool -> String
-http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply //When used directly the 'Status' header should be converted to 
-	# reply = if withreply
-			("HTTP/1.0 " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
-			("Status: " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")				
-	# reply = reply +++ ("Server: " +++ (http_getValue "Server" headers "Clean HTTP 1.0 Server") +++ "\r\n")					//Server identifier	
-	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
-	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header	
-	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- toList headers | not (skipHeader n)])		//Additional headers
-	# reply = reply +++	"\r\n"																									//Separator
-	# reply = reply +++	data																									//data
-	= reply
-where
-	//Do not add these headers two times
-	skipHeader s = isMember s ["Status","Server","Content-Type","Content-Length"]
-
 	
-//Error responses
-http_notfoundResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st)
-http_notfoundResponse req world = ({rsp_headers = put "Status" "404 Not Found" newMap, rsp_data = "404 - Not found"}, world)
-
-http_forbiddenResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st)
-http_forbiddenResponse req world = ({rsp_headers = put "Status" "403 Forbidden" newMap, rsp_data = "403 - Forbidden"}, world)
-
 //Static content
 http_staticResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st) | FileSystem st
 http_staticResponse req world
 	# filename				= req.req_path % (1, size req.req_path)		//Remove first slash
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
-	| not ok 				= http_notfoundResponse req world
-							= ({rsp_headers = fromList [("Status","200 OK"),
+	| not ok 				= (notfoundResponse, world)
+							= ({okResponse & rsp_headers = fromList [
 											   			("Content-Type", type),
 											   			("Content-Length", toString (size content))]
 							   ,rsp_data = content}, world)						

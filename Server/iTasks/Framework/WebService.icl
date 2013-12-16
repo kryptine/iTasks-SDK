@@ -62,8 +62,8 @@ where
 			# (mbMeta, iworld)		= loadDocumentMeta downloadParam iworld
 			= case (mbContent,mbMeta) of
 				(Just content,Just {Document|name,mime,size})
-					# headers	= [("Status","200 OK"),("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
-					= ({HTTPResponse|rsp_headers = fromList headers, rsp_data = content},Nothing,iworld)
+					# headers	= [("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
+					= ({okResponse & rsp_headers = fromList headers, rsp_data = content},Nothing,iworld)
 				_
 					= (notFoundResponse req,Nothing,iworld)
         //Check for WebSocket upgrade headers
@@ -71,9 +71,9 @@ where
             # secWebSocketKey       = fromJust (get "Sec-WebSocket-Key" req.req_headers)
             # secWebSocketAccept    = webSocketHandShake secWebSocketKey
             //Create handshake response
-            # headers = [("Status","101 Switching Protocols"),("Upgrade","websocket"), ("Connection","Upgrade")
+            # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({HTTPResponse|rsp_headers = fromList headers, rsp_data = ""}, Just 0,iworld)
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = fromList headers, rsp_data = ""}, Just 0,iworld)
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
@@ -177,9 +177,7 @@ where
 	disconnectFun _ _ iworld = iworld
 
 	jsonResponse json
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
-	errorResponse msg
-		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
+		= {okResponse & rsp_headers = fromList [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
 			
 	serviceBusyResponse rep actions attributes
 		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
@@ -194,7 +192,7 @@ where
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
 	eventsResponse messages
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
+		= {okResponse &   rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
                         , rsp_data = formatMessageEvents messages}
 	
 	formatMessageEvents messages = join "" (map format messages)
@@ -202,7 +200,7 @@ where
         format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
         format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 
-	itwcStartResponse path instanceNo instanceKey theme appName = {newHTTPResponse & rsp_data = toString itwcStartPage}
+	itwcStartResponse path instanceNo instanceKey theme appName = {okResponse & rsp_data = toString itwcStartPage}
 	where
 		itwcStartPage = HtmlTag [] [head,body]
 		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []

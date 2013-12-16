@@ -6,6 +6,7 @@ import iTasks.Framework.IWorld, iTasks.Framework.Shared, iTasks.Framework.Task, 
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 import iTasks.Framework.UIDiff
+import iTasks.Framework.SDSService
 
 from iTasks.Framework.IWorld			import dequeueWorkFilter
 from iTasks.API.Core.CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
@@ -312,11 +313,15 @@ where
 exposedShare :: !String -> ReadWriteShared r w | iTask r & iTask w & TC r & TC w
 exposedShare url = createChangeOnWriteSDS "exposedShare" url read write
 where
-	read :: !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r
+	read :: !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r & JSONDecode{|*|} r
 	read iworld=:{exposedShares}
-		= case 'Data.Map'.get url exposedShares of
+		= case 'Data.Map'.get url exposedShares of // //abort ("TODO: reading remote share, not implemented " +++ url)
 			Nothing
-				= abort ("TODO: reading remote share, not implemented " +++ url)
+				= case readRemoteSDS url iworld of
+					(Ok json, iworld) = case fromJSON json of
+											Nothing = (Error ("Exposed share type mismatch: " +++ url), iworld)
+											(Just val) = (Ok val, iworld)
+					(Error e, iworld) = (Error e, iworld)
 			Just (shared :: ReadWriteShared r^ w, _)	
 				= 'Data.SharedDataSource'.read shared iworld
 			Just dyn

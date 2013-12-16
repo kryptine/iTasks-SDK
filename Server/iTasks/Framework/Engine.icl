@@ -270,9 +270,9 @@ where
 	    # filename		= d +++ filePath req.req_path
 	    # type			= mimeType filename
 	    # (mbContent, world)	= readFile filename world
-	    | isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
-								    ("Content-Type", type),
-								    ("Content-Length", toString (size (fromOk mbContent)))]
+	    | isOk mbContent		= ({okResponse & 
+	    							rsp_headers = fromList [("Content-Type", type),
+														    ("Content-Length", toString (size (fromOk mbContent)))]
 							   	    ,rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
         | otherwise
             = serveStaticResource req ds {IWorld|iworld & world = world}

@@ -137,12 +137,11 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 		
 	# (mb_js_CF, js_lib, mbparserstate) = mbExprGenerateJS flavour False (Just parserstate) js_lib mb_sapl_CF
 	
-/* For debugging:
+/* For debugging:*/
 	# (_, world) = writeFile "debug_state.sapl" sapl_ST world
 	# (_, world) = writeFile "debug_state.js" js_ST world	
 	# (_, world) = writeFile "debug.sapl" sapl_lib world
 	# (_, world) = writeFile "debug.js" (toString js_lib) world
-*/
 
 	= (js_ST, toString js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})

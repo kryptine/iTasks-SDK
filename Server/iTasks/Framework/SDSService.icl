@@ -4,7 +4,7 @@ from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :
 from iTasks.Framework.IWorld		import :: IWorld {exposedShares}
 from iTasks.API.Core.SystemTypes	import :: InstanceNo
 
-import iTasks.Framework.HtmlUtil, iTasks.Framework.Shared
+import iTasks.Framework.HtmlUtil, iTasks.Framework.Shared, iTasks.Framework.RemoteAccess
 from Data.SharedDataSource import qualified read, write
 
 from StdFunc import o
@@ -54,16 +54,36 @@ where
 				(Error e) = (errorResponse e, Nothing, iworld)			
 			
 	jsonResponse json
-		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}			
-			
-	errorResponse msg
-		= {HTTPResponse | rsp_headers = fromList [("Status","500 Internal Server Error")], rsp_data = msg}	
-	
-	badRequestResponse msg
-		= {HTTPResponse | rsp_headers = fromList [("Status","400 Bad Request")], rsp_data = msg}	
-	
+		= {okResponse & rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}			
+				
 	dataFun :: !HTTPRequest !(Maybe {#Char}) !InstanceNo !*IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld)
     dataFun req mbData instanceNo iworld = (mbData, True, instanceNo, iworld)
 
     disconnectFun :: !HTTPRequest !InstanceNo !*IWorld -> *IWorld
-	disconnectFun _ _ iworld = iworld	
+	disconnectFun _ _ iworld = iworld
+	
+readRemoteSDS  :: !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
+readRemoteSDS url iworld 
+	= case parseURI url of
+		Nothing 	= (Error ("Malformed URL: "+++url), iworld)
+		(Just uri) 	= if (maybe False ((<>) "sds") uri.uriScheme) 
+							(Error ("Invalid URL: "+++url), iworld)
+							(Ok JSONNull, trace_n (toString (convert uri)) iworld)
+where
+//	load url iworld
+//		# (response, iworld) = httpRequest HTTP_GET url Nothing iworld
+
+	convert u = {nullURI & uriScheme	= Just "http", 
+						   uriRegName	= u.uriRegName, 
+						   uriPort		= u.uriPort,
+						   uriPath		= "/sds" +++ u.uriPath}
+							
+writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
+writeRemoteSDS val url iworld = undef
+
+
+
+
+	
+	
+	

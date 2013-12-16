@@ -4,7 +4,6 @@ import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray
 import Data.Maybe, System.Time, Data.List, Data.Map, Text
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
-
 from Internet.HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol, :: HTTPMethod
 from Internet.HTTP import newHTTPRequest, newHTTPResponse
 from Internet.HTTP import instance toString HTTPRequest, instance toString HTTPResponse
@@ -229,19 +228,21 @@ where
 
 	isKeepAlive request = maybe (request.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) (get "Connection" request.req_headers)
 
+import StdDebug
+
 encodeResponse :: !Bool !HTTPResponse -> String
-encodeResponse autoContentLength {rsp_headers, rsp_data}
-	= join "\r\n" (
-		["HTTP/1.0 " +++ fromMaybe "200 OK" (get "Status" rsp_headers)
-		,"Server: " +++ fromMaybe "iTasks HTTP Server" (get "Server" rsp_headers)					//Server identifier
-    	,"Content-Type: " +++ fromMaybe "text/html" (get "Content-Type" rsp_headers)				//Content type header
-		] ++ (if autoContentLength																	//Content length header
-				["Content-Length: " +++ fromMaybe (toString (size rsp_data)) (get "Content-Length" rsp_headers)]
-				[] ) ++
-			[(n +++ ": " +++ v) \\ (n,v) <- toList rsp_headers | not (skipHeader n)] ++				//Additional headers
-			["",rsp_data])
-where
-    skipHeader s = isMember s ["Status","Server","Content-Type","Content-Length"]					//Do not add these headers two times
+encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
+	# rsp_headers = addDefault rsp_headers "Server" "iTasks HTTP Server"
+	# rsp_headers = addDefault rsp_headers "Content-Type" "text/html"
+	# rsp_headers = if autoContentLength 
+						(addDefault rsp_headers "Content-Length" (toString (size rsp_data)))
+						rsp_headers
+	= toString {response & rsp_headers = rsp_headers}
+where		
+	addDefault hmap header val 
+		= case get header hmap of
+			Nothing = put header val hmap
+					= hmap
 
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *env -> (!HTTPResponse,*env))

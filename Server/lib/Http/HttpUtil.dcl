@@ -21,11 +21,6 @@ http_parseMultiPartPostArguments :: !HTTPRequest -> (Map String String, Map Stri
 //Construction of HTTP Response messages
 http_makeResponse :: !HTTPRequest ![((String -> Bool),(HTTPRequest *st -> (HTTPResponse, *st)))] !Bool !*st -> (!HTTPResponse,!*st) | FileSystem st
 http_addDateHeaders	:: !HTTPResponse !*World -> (!HTTPResponse,!*World)
-http_encodeResponse :: !HTTPResponse !Bool -> String
-
-//Error responses
-http_notfoundResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st)
-http_forbiddenResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st)
 
 //Static content
 http_staticResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st) | FileSystem st

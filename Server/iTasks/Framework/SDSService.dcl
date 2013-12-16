@@ -4,7 +4,7 @@ from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.API.Core.SystemTypes	import :: InstanceNo
 
-import Data.Maybe, Data.Void
+import Data.Maybe, Data.Void, Data.Error, Text.JSON
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
@@ -13,5 +13,5 @@ sdsService ::   (!(String -> Bool)
 				 ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
 				 )
 
-//readRemoteSDS  :: 			!String !*IWorld -> (!MaybeError JSONNode, !*IWorld)
-//writeRemoteSDS :: !JSONNode !String !*IWorld -> (!MaybeError Void,     !*IWorld)
+readRemoteSDS  :: 			!String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
+writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString Void,     !*IWorld)
