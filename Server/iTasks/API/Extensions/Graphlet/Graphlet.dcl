@@ -5,7 +5,6 @@ import iTasks.API.Core.Client.Editlet
 from Data.Graph import :: Graph, :: Node
 from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
-from Text.HTML import :: HtmlTag
 
 derive gEditor Graph, Node
 derive gEditMeta Graph, Node
@@ -24,6 +23,9 @@ derive class iTask GraphletDiff
   , styleSheets           :: [String]
   }
 
-graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (Graph n e) (GraphletDiff (Graph n e)) | iTask n & iTask e
+:: GraphletState n e =
+  { graph         :: Graph n e
+  , activeNodeIdx :: Int
+  }
 
-appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)
+graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (Graph n e) (GraphletDiff (Graph n e)) | iTask n & iTask e

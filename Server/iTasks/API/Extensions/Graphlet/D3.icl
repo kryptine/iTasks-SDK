@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.Graphlet.D3
 
 import iTasks.API.Core.Client.Interface
-import Data.List
+import Data.List, Text.HTML
 
 :: D3W = D3W
 
@@ -12,6 +12,12 @@ selectElem sel world = callFunction "d3.select" [toJSArg sel] world
 
 selectAllElems :: String *JSWorld -> *(D3, *JSWorld)
 selectAllElems sel world = callFunction "d3.selectAll" [toJSArg sel] world
+
+selectChildElem :: D3 String *JSWorld -> *(D3, *JSWorld)
+selectChildElem d3 sel world = callObjectMethod "select" [toJSArg sel] d3 world
+
+selectAllChildElems :: D3 String *JSWorld -> *(D3, *JSWorld)
+selectAllChildElems d3 sel world = callObjectMethod "selectAll" [toJSArg sel] d3 world
 
 setAttr :: String (JSVal a) D3 *JSWorld -> *(D3, *JSWorld)
 setAttr attr val d3 world = callObjectMethod "attr" [toJSArg attr, toJSArg val] d3 world
@@ -40,3 +46,8 @@ setTextWith f d3 world = callObjectMethod "text" [toJSArg f] d3 world
 firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)
 firstNode d3 world = callObjectMethod "node" [] d3 world
 
+appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)
+appendHtml html root world
+  # world = jsTrace (toString html) world
+  # (g, world) = append "g" root world
+  = setHtml (toString html) g world

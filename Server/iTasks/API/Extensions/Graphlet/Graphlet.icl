@@ -10,7 +10,6 @@ import StdDebug
 import StdArray
 from Data.Graph import :: Graph, :: Node
 import qualified Data.Graph as DG
-import Text.HTML
 import dynamic_string
 
 derive gEditor Graph, Node
@@ -114,8 +113,3 @@ addNodesEdges g jsgraph world
     # (obj, world) = jsEmptyObject world
     # world        = addEdge jsgraph (toJSVal [fromNode, toNode]) (toJSVal fromNode) (toJSVal toNode) obj world
     = (jsgraph, world)
-
-appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)
-appendHtml html root world
-  # (g, world) = append "g" root world
-  = setHtml (toString html) g world
