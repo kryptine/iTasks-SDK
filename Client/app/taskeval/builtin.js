@@ -18,6 +18,8 @@ var __Maybe_Nothing = [0, 'Maybe.Nothing'];
 function __Maybe_Just(__a1) {
     return [1, 'Maybe.Just', __a1];
 };
+
+var ___predefined__Nil = [1,"_predefined._Nil"];
 // TO BE SURE
 
 // --------- Primitive functions -----------------------------

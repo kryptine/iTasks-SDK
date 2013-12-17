@@ -127,6 +127,28 @@ function ___localTime(world){
 }
 
 // ----------------------------------------------------------------
+
+function __iTasks_Framework_RemoteAccess_httpRequest_client(method, url, mbBody, iworld){
+
+	method = Sapl.feval(method);
+	url = Sapl.feval(url);
+	var body = Sapl.toJS(Sapl.feval(mbBody));
+		
+	var request = new XMLHttpRequest();
+	request.open(method, url, false);  // `false` makes the request synchronous
+	request.send(body);
+
+	var response = __Internet_HTTP__HTTPResponse(
+		request.status, request.statusText, ___predefined__Nil, request.responseText);
+
+	// TODO: getAllResponseHeaders
+		
+	console.log("Request",method,url,body,request.responseText);		
+		
+	return ___Tuple2(response, iworld);
+}
+
+// ----------------------------------------------------------------
 // General function overrides
 
 function __sapldebug_sapldebug(a,b){

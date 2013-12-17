@@ -3,6 +3,7 @@ implementation module HttpUtil
 import Internet.HTTP
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList, StdFunc, StdTuple
 import System.Time, Text, Text.Encodings.UrlEncoding, Data.Map
+from Data.List import lookup
 
 http_splitMultiPart :: !String !String -> [([(String,String)], String)]
 http_splitMultiPart boundary body
@@ -158,8 +159,8 @@ http_addDateHeaders	:: !HTTPResponse !*World -> (!HTTPResponse,!*World)
 http_addDateHeaders rsp=:{rsp_headers} world
 	# (tm,world) = gmTime world
 	# now = format tm
-	# rsp_headers = put "Date" now rsp_headers
-	# rsp_headers = put "Last-Modified" now rsp_headers
+	# rsp_headers = [("Date",now):rsp_headers]
+	# rsp_headers = [("Last-Modified",now):rsp_headers]
 	= ({rsp & rsp_headers = rsp_headers},world)
 where
 	//Format the current date/time
@@ -194,9 +195,9 @@ http_staticResponse req world
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
 	| not ok 				= (notfoundResponse, world)
-							= ({okResponse & rsp_headers = fromList [
-											   			("Content-Type", type),
-											   			("Content-Length", toString (size content))]
+							= ({okResponse & 
+								rsp_headers = [("Content-Type", type),
+											   ("Content-Length", toString (size content))]
 							   ,rsp_data = content}, world)						
 							
 http_staticFileContent :: !String !*st -> (!Bool, !String, !*st) | FileSystem st
@@ -228,6 +229,6 @@ http_staticFileMimeType name world = http_staticFileMimeType (name % (1, size na
 
 http_serverControl :: !HTTPResponse -> String
 http_serverControl response
-	= case (get "X-Server-Control" response.rsp_headers) of
+	= case (lookup "X-Server-Control" response.rsp_headers) of
 		Just control	= control
 		_				= ""

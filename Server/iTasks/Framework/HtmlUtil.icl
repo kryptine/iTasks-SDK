@@ -36,7 +36,7 @@ where
 
 notFoundResponse :: !HTTPRequest -> HTTPResponse
 notFoundResponse req
-	= {notfoundResponse & rsp_headers = fromList [("Status","404 - Not Found")], rsp_data = toString (notFoundPage req)}
+	= {notfoundResponse & rsp_data = toString (notFoundPage req)}
 
 paramValue :: !String !HTTPRequest -> String
 paramValue name req

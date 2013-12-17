@@ -25,7 +25,7 @@ basicAPIExamples =
 	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	(runOnClient viewCurDateTime)
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	(runOnClient editStoredPersons)
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	(runOnClient viewStoredPersons)
-	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						(runOnClient notes)
+	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						notes
 	,workflow (sharedData +++ "Edit note or List of strings") "Edit note or List of strings" 	(runOnClient linesPar)
 	
 	,workflow (seqTasks +++ "Hello User") 	 			 	"Enter your name:" 					(runOnClient hello)
@@ -135,14 +135,17 @@ viewStoredPersons = viewSharedInformation "These are the currently stored person
 
 notes :: Task Note
 notes 
-	= withShared (Note "")
-		(\note -> 	viewSharedInformation "view on note" [] note
-					-||-
-					updateSharedInformation "edit shared note 1" [] note
-					-||-
-					updateSharedInformation "edit shared note 2" [] note
+	= withShared (Note "") (\note -> exposeShared note body)
+where
+	body note 
+		= runOnClient (
+		 	viewSharedInformation "view on note" [] note
+			-||-
+			updateSharedInformation "edit shared note 1" [] note
+			-||-
+			updateSharedInformation "edit shared note 2" [] note
 		)
-
+		
 linesPar :: Task (Maybe String)
 linesPar
 	=	withShared "" doEditor

@@ -61,9 +61,7 @@ where
 			| length uploads == 0
 				= (jsonResponse (JSONArray []),Nothing,iworld)
 			# (documents, iworld) = createDocumentsFromUploads uploads iworld
-			// response of uploads must use content-type "text/html" or else iframe upload of extjs does not work
-			# rsp = jsonResponse (toJSON documents)
-			= ({rsp & rsp_headers = put "Content-Type" "text/html" rsp.rsp_headers},Nothing,iworld)
+			= (jsonResponse (toJSON documents),Nothing,iworld)
 		//Check for downloads
 		| hasParam "download" req
 			# (mbContent, iworld)	= loadDocumentContent downloadParam iworld
@@ -71,7 +69,7 @@ where
 			= case (mbContent,mbMeta) of
 				(Just content,Just {Document|name,mime,size})
 					# headers	= [("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
-					= ({okResponse & rsp_headers = fromList headers, rsp_data = content},Nothing,iworld)
+					= ({okResponse & rsp_headers = headers, rsp_data = content},Nothing,iworld)
 				_
 					= (notFoundResponse req,Nothing,iworld)
         //Check for WebSocket upgrade headers
@@ -81,7 +79,7 @@ where
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = fromList headers, rsp_data = ""}, Just (WebSocketConnection 0),iworld)
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection 0),iworld)
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
@@ -185,7 +183,7 @@ where
 	disconnectFun _ _ iworld = iworld
 
 	jsonResponse json
-		= {okResponse & rsp_headers = fromList [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
+		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
 			
 	serviceBusyResponse rep actions attributes
 		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
@@ -200,7 +198,7 @@ where
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
 	eventsResponse messages
-		= {okResponse &   rsp_headers = fromList [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
+		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
                         , rsp_data = formatMessageEvents messages}
 	
 	formatMessageEvents messages = join "" (map format messages)

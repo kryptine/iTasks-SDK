@@ -330,7 +330,7 @@ where
 	write val iworld=:{exposedShares}
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
-				= abort ("TODO: writing remote share, not implemented " +++ url)
+				= writeRemoteSDS (toJSON val) url iworld
 			Just (shared :: ReadWriteShared r w^, z)		
 				= 'Data.SharedDataSource'.write val shared iworld
 			Just _

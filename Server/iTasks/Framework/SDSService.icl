@@ -2,7 +2,7 @@ implementation module iTasks.Framework.SDSService
 
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
 from iTasks.Framework.IWorld		import :: IWorld {exposedShares}
-from iTasks.API.Core.SystemTypes	import :: InstanceNo
+from iTasks.Framework.Engine	    import :: ConnectionType
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.Shared, iTasks.Framework.RemoteAccess
 from Data.SharedDataSource import qualified read, write
@@ -14,6 +14,21 @@ from Data.Map import fromList
 import Data.Maybe, Data.Void
 import Text.URI
 import StdMisc, StdDebug, graph_to_sapl_string
+
+//derive JSONEncode TypeCode, TypeCodeConstructor
+
+:: MyDynamic = E.a:
+	{	mydynamic_value :: a
+	,	mydynamic_type	:: TypeCode
+	}
+	
+unpackType :: Dynamic -> TypeCode
+unpackType dyn = (toMyDynamic dyn).mydynamic_type
+where
+	toMyDynamic :: !Dynamic -> MyDynamic
+	toMyDynamic _ = code {
+		pop_a 0
+	}
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
@@ -32,6 +47,11 @@ where
 	reqFun :: !HTTPRequest !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld)
 	reqFun req iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
+	reqFun req iworld=:{exposedShares} | hasParam "type" req
+		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
+		= case 'Data.Map'.get sdsurl exposedShares of
+			Nothing = (notFoundResponse req,Nothing,iworld) 
+			(Just (dyn, _)) = (jsonResponse (toString (unpackType dyn)), Nothing, iworld)
 	reqFun req iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
@@ -54,29 +74,51 @@ where
 				(Error e) = (errorResponse e, Nothing, iworld)			
 			
 	jsonResponse json
-		= {okResponse & rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}			
+		= {okResponse & rsp_headers = [("Content-Type","text/json")], rsp_data = toString json}			
 				
 	dataFun :: !HTTPRequest !(Maybe {#Char}) !ConnectionType !*IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld)
     dataFun req mbData instanceNo iworld = (mbData, True, instanceNo, iworld)
 
     disconnectFun :: !HTTPRequest !ConnectionType !*IWorld -> *IWorld
-	disconnectFun _ _ iworld = iworld	
+	disconnectFun _ _ iworld = iworld
 	
 readRemoteSDS  :: !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
 readRemoteSDS url iworld 
-	= case parseURI url of
-		Nothing 	= (Error ("Malformed URL: "+++url), iworld)
-		(Just uri) 	= if (maybe False ((<>) "sds") uri.uriScheme) 
-							(Error ("Invalid URL: "+++url), iworld)
-							(Ok JSONNull, trace_n (toString (convert uri)) iworld)
+	= case convertURL url of
+		(Ok url) 	= load url iworld
+		(Error e) 	= (Error e, iworld)
 where
-//	load url iworld
-//		# (response, iworld) = httpRequest HTTP_GET url Nothing iworld
+	load url iworld
+		# (response, iworld) = httpRequest HTTP_GET url Nothing iworld
+		= if (isOkResponse response)
+				(Ok (fromString response.rsp_data), iworld)
+				(Error ("Request failed: "+++response.rsp_reason), iworld)
 
-	convert u = {nullURI & uriScheme	= Just "http",
-						   uriRegName	= u.uriRegName,
+convertURL url
+	= case parseURI url of
+		Nothing 	= Error ("Malformed URL: "+++url)
+		(Just uri) 	= if (maybe False ((<>) "sds") uri.uriScheme) 
+							(Error ("Invalid URL: "+++url))
+							(Ok (toString (convert uri)))
+where
+	convert u = {nullURI & uriScheme	= Just "http", 
+						   uriRegName	= u.uriRegName, 
 						   uriPort		= u.uriPort,
 						   uriPath		= "/sds" +++ u.uriPath}
 							
 writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
-writeRemoteSDS val url iworld = undef
+writeRemoteSDS val url iworld 
+	= case convertURL url of
+		(Ok url) 	= load url val iworld
+		(Error e) 	= (Error e, iworld)
+where
+	load url val iworld
+		# (response, iworld) = httpRequest HTTP_PUT url (Just (toString (toJSON val))) iworld
+		= if (isOkResponse response)
+				(Ok Void, iworld)
+				(Error ("Request failed: "+++response.rsp_reason), iworld)
+
+
+	
+	
+	

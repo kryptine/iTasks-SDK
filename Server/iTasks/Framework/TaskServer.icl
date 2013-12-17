@@ -189,7 +189,7 @@ where
 					// Create a response
 					# (response,mbLocalState,env)	= newReqHandler request env
 					//Add keep alive header if necessary
-					# response	= if keepalive {response & rsp_headers = put "Connection" "Keep-Alive" response.rsp_headers} response
+					# response	= if keepalive {response & rsp_headers = [("Connection","Keep-Alive"):response.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
 					= case mbLocalState of
 						Nothing	
@@ -239,10 +239,10 @@ encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
 						rsp_headers
 	= toString {response & rsp_headers = rsp_headers}
 where		
-	addDefault hmap header val 
-		= case get header hmap of
-			Nothing = put header val hmap
-					= hmap
+	addDefault headers hdr val 
+		= case lookup hdr headers of
+			Nothing = [(hdr,val):headers]
+					= headers
 
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *env -> (!HTTPResponse,*env))
