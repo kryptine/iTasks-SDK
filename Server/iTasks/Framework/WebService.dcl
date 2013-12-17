@@ -4,7 +4,7 @@ definition module iTasks.Framework.WebService
 * It also provides access to upload/download of blob content.
 */
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
-from iTasks.Framework.Engine		import :: ServiceFormat
+from iTasks.Framework.Engine		import :: ServiceFormat, :: ConnectionType
 from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Task 			import :: Task
 from iTasks.API.Core.SystemTypes	import :: InstanceNo
@@ -13,7 +13,7 @@ import iTasks.Framework.Generic
 
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 				 (!(String -> Bool)
-                 ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
-				 ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
+                 ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				 ) | iTask a

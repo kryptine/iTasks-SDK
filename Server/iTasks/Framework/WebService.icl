@@ -19,15 +19,23 @@ DEFAULT_THEME :== "gray"
 	
 derive JSONEncode ServiceResponsePart
 
-import StdDebug
+// Websocket task access messages
+:: WSCReq
+    = ReqStartSession !InstanceNo
+    | TaskEvent !Event
+
+:: WSCRsp
+    = AckStartSession !InstanceNo
+    | TaskUpdates !InstanceNo ![UIUpdate]
+
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
-                         ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld))
-						 ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
-						 ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
+                         ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+						 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+						 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
 where
@@ -40,12 +48,12 @@ where
             [instanceNo,_,_]    = toInt instanceNo > 0 // {instanceNo}/{instanceKey}/{view}
             _                   = False
 
-	reqFun` :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld) | iTask a
+	reqFun` :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld) | iTask a
 	reqFun` url task defaultFormat req iworld 
 		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
 		= reqFun url task defaultFormat req {IWorld|iworld & serverURL = server_url}
 
-	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld) | iTask a
+	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld) | iTask a
 	reqFun url task defaultFormat req iworld=:{IWorld|application,config}
 		//Check for uploads
 		| hasParam "upload" req
@@ -73,7 +81,7 @@ where
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = fromList headers, rsp_data = ""}, Just 0,iworld)
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = fromList headers, rsp_data = ""}, Just (WebSocketConnection 0),iworld)
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
@@ -122,7 +130,7 @@ where
                 //Stream messages
                 [instanceNo,instanceKey,"gui-stream"]
                     # (messages,iworld)	= getUIMessages (toInt instanceNo) iworld	
-                    = (eventsResponse messages, Just (toInt instanceNo), iworld)
+                    = (eventsResponse messages, Just (EventSourceConnection (toInt instanceNo)), iworld)
                 //Just send the value encoded as JSON
                 [instanceNo,instanceKey,"value"]
                     # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
@@ -164,16 +172,16 @@ where
         where
             (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
-	dataFun :: HTTPRequest (Maybe {#Char}) !InstanceNo !*IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld)
-    dataFun req mbData 0 iworld
-        = (mbData,False,0,iworld) //TEMPORARY ECHO WEBSOCKET
-	dataFun req _ instanceNo iworld
+	dataFun :: HTTPRequest (Maybe {#Char}) !ConnectionType !*IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld)
+    dataFun req mbData (WebSocketConnection i) iworld
+        = (mbData,False,(WebSocketConnection i),iworld) //TEMPORARY ECHO WEBSOCKET
+	dataFun req _ (EventSourceConnection instanceNo) iworld
         # (messages,iworld)	= getUIMessages instanceNo iworld	
 		= case messages of
-			[]	= (Nothing,False,instanceNo,iworld)
-			_	= (Just (formatMessageEvents messages),False,instanceNo,iworld)
+			[]	= (Nothing,False,(EventSourceConnection instanceNo),iworld)
+			_	= (Just (formatMessageEvents messages),False,(EventSourceConnection instanceNo),iworld)
 
-    disconnectFun :: HTTPRequest InstanceNo !*IWorld -> *IWorld
+    disconnectFun :: HTTPRequest !ConnectionType !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld
 
 	jsonResponse json

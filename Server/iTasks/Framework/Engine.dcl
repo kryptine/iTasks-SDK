@@ -39,6 +39,11 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 :: WebAppOption
     = Theme String
 
+//Connection types used by the engine
+:: ConnectionType
+    = EventSourceConnection InstanceNo
+    | WebSocketConnection InstanceNo
+
 /**
 * Starts the task engine with a list of published task definitions.
 *

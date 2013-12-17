@@ -145,9 +145,9 @@ background iworld
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe InstanceNo, !*IWorld))
-					  ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
-					  ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
+					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+					  ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+					  ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 					  )] | Publishable publish
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers

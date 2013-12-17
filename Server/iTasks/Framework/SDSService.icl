@@ -17,9 +17,9 @@ import StdMisc, StdDebug, graph_to_sapl_string
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest *IWorld -> *(!HTTPResponse, !Maybe InstanceNo, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) InstanceNo *IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld))
-				 ,!(HTTPRequest InstanceNo *IWorld -> *IWorld)
+                 ,!(HTTPRequest *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				 )
 
 sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
@@ -29,7 +29,7 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest !*IWorld -> *(!HTTPResponse, !Maybe InstanceNo, !*IWorld)
+	reqFun :: !HTTPRequest !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld)
 	reqFun req iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req iworld=:{exposedShares}
@@ -56,11 +56,11 @@ where
 	jsonResponse json
 		= {okResponse & rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}			
 				
-	dataFun :: !HTTPRequest !(Maybe {#Char}) !InstanceNo !*IWorld -> (!Maybe {#Char}, !Bool, !InstanceNo, !*IWorld)
+	dataFun :: !HTTPRequest !(Maybe {#Char}) !ConnectionType !*IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld)
     dataFun req mbData instanceNo iworld = (mbData, True, instanceNo, iworld)
 
-    disconnectFun :: !HTTPRequest !InstanceNo !*IWorld -> *IWorld
-	disconnectFun _ _ iworld = iworld
+    disconnectFun :: !HTTPRequest !ConnectionType !*IWorld -> *IWorld
+	disconnectFun _ _ iworld = iworld	
 	
 readRemoteSDS  :: !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
 readRemoteSDS url iworld 
@@ -73,17 +73,10 @@ where
 //	load url iworld
 //		# (response, iworld) = httpRequest HTTP_GET url Nothing iworld
 
-	convert u = {nullURI & uriScheme	= Just "http", 
-						   uriRegName	= u.uriRegName, 
+	convert u = {nullURI & uriScheme	= Just "http",
+						   uriRegName	= u.uriRegName,
 						   uriPort		= u.uriPort,
 						   uriPath		= "/sds" +++ u.uriPath}
 							
 writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
 writeRemoteSDS val url iworld = undef
-
-
-
-
-	
-	
-	
