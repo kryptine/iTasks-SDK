@@ -315,7 +315,7 @@ exposedShare url = createChangeOnWriteSDS "exposedShare" url read write
 where
 	read :: !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r & JSONDecode{|*|} r
 	read iworld=:{exposedShares}
-		= case 'Data.Map'.get url exposedShares of // //abort ("TODO: reading remote share, not implemented " +++ url)
+		= case 'Data.Map'.get url exposedShares of
 			Nothing
 				= case readRemoteSDS url iworld of
 					(Ok json, iworld) = case fromJSON json of

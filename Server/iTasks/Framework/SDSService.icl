@@ -4,7 +4,8 @@ from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :
 from iTasks.Framework.IWorld		import :: IWorld {exposedShares}
 from iTasks.Framework.Engine	    import :: ConnectionType
 
-import iTasks.Framework.HtmlUtil, iTasks.Framework.Shared, iTasks.Framework.RemoteAccess
+import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
+import iTasks.Framework.Shared, iTasks.Framework.RemoteAccess
 from Data.SharedDataSource import qualified read, write
 
 from StdFunc import o
@@ -14,21 +15,6 @@ from Data.Map import fromList
 import Data.Maybe, Data.Void
 import Text.URI
 import StdMisc, StdDebug, graph_to_sapl_string
-
-//derive JSONEncode TypeCode, TypeCodeConstructor
-
-:: MyDynamic = E.a:
-	{	mydynamic_value :: a
-	,	mydynamic_type	:: TypeCode
-	}
-	
-unpackType :: Dynamic -> TypeCode
-unpackType dyn = (toMyDynamic dyn).mydynamic_type
-where
-	toMyDynamic :: !Dynamic -> MyDynamic
-	toMyDynamic _ = code {
-		pop_a 0
-	}
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool

@@ -35,6 +35,20 @@ where
 			Just val
 				= 'Data.SharedDataSource'.write val shared iworld
 
+fromJSONShared :: (Shared JSONNode) -> ReadWriteShared r w | JSONDecode{|*|} r & JSONEncode{|*|} w
+fromJSONShared shared = createChangeOnWriteSDS "exposedShare" "?" read write
+where
+	read iworld
+		# (ret,iworld) = 'Data.SharedDataSource'.read shared iworld
+		= case ret of
+			(Ok json)  = case (fromJSON json) of
+							(Just val)  = (Ok val, iworld)
+							Nothing     = (Error "Shared type mismatch in fromJSONShared", iworld)
+			(Error e) = (Error e, iworld)
+
+	write val iworld
+		= 'Data.SharedDataSource'.write (toJSON val) shared iworld 
+
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld&random = drop 32 random})

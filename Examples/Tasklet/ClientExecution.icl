@@ -137,7 +137,7 @@ notes :: Task Note
 notes 
 	= withShared (Note "") (\note -> exposeShared note body)
 where
-	body note 
+	body _ note 
 		= runOnClient (
 		 	viewSharedInformation "view on note" [] note
 			-||-

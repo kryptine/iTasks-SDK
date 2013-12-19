@@ -138,7 +138,7 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 * @param The share to be exposed
 * @param The task which uses the shared variable
 */
-exposeShared :: !(ReadWriteShared r w) !((ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
+exposeShared :: !(ReadWriteShared r w) !(String (ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
 
 /**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,

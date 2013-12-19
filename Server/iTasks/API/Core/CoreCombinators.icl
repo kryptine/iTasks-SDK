@@ -596,7 +596,7 @@ where
 
 import StdDebug
 
-exposeShared :: !(ReadWriteShared r w) !((ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
+exposeShared :: !(ReadWriteShared r w) !(String (ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
 exposeShared shared stask = Task eval
 where	
 	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
@@ -610,7 +610,7 @@ where
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
-		# (Task evala)				= stask (exposedShare url)
+		# (Task evala)				= stask url (exposedShare url)
 		# (resa,iworld)				= evala event repOpts treea iworld
 		= case resa of
 			ValueResult value info rep ntreea
@@ -620,7 +620,7 @@ where
 				= (ExceptionResult e str,iworld)
 	
 	eval event repOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
-		# (Task evala)					= stask (exposedShare url)
+		# (Task evala)					= stask url (exposedShare url)
 		# (resa,iworld)					= evala event repOpts (TCDestroy treea) iworld
 		= (resa,{iworld & exposedShares = 'Data.Map'.del url iworld.exposedShares})
 	
