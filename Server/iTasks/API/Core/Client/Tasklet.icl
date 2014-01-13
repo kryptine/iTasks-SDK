@@ -97,7 +97,6 @@ where
 	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		| targetTaskId == taskId	
 			# res = fromJust (fromJSON (jsonRes))
-			# rep = TaskRep (appTweak (ViewPart, Nothing, [], [])) []
 			# result = DestroyedResult
 			= (result, printlnI "finalize" iworld)  
  

@@ -174,6 +174,7 @@ createClientIWorld serverURL currentInstance
 		  ,uiMessages			= 'Data.Map'.newMap
 		  ,shutdown				= False
           ,random               = genRandInt seed
+          ,loop                 = {done=[],todo=[]}
 		  ,world				= world
 		  ,resources			= Nothing
 		  ,onClient				= True

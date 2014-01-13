@@ -53,8 +53,8 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 */
 startEngine :: a !*World -> *World | Publishable a
 
-// Backround process. TODO
-background :: !*IWorld -> (!Bool,!*IWorld)
+// Background process. TODO
+background :: !*IWorld -> *IWorld
 
 /**
 * Wraps a task together with a url to make it publishable by the engine

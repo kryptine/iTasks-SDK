@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.TaskServer
 
-import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray
-import Data.Maybe, System.Time, Data.List, Data.Map, Text
+import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
+import Data.Maybe, Data.Functor, System.Time, Data.List, Data.Map, Text
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
 from Internet.HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol, :: HTTPMethod
@@ -10,182 +10,200 @@ from Internet.HTTP import instance toString HTTPRequest, instance toString HTTPR
 
 from HttpUtil import http_addRequestData, http_parseArguments
 import iTasks.Framework.IWorld
+import iTasks.Framework.Task
 
-// TCP level server
-startServer :: !Int 
-				(IPAddress *env -> (loc,*env)) ((Maybe {#Char}) loc *env -> *(Maybe {#Char},!Bool, !loc, !*env)) (loc *env -> *env)
-				(*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) !*env -> *env | ChannelEnv env
-startServer port handleNewConnection handleActiveConnection handleConnectionLost determineTimeout handleBackground env
-	//Start the listener
-    # (listener,env)  = startListener port env
-	= serve listener [] [] [] env
+//Helper type that holds the mainloop instances during a select call
+//in these mainloop instances the unique listeners and read channels
+//have been temporarily removed.
+:: *MainLoopInstanceDuringSelect
+    = ListenerInstanceDS !Int !NetTask
+    | ConnectionInstanceDS !IPAddress !*TCP_SChannel !NetTask !NetTaskState
+    | BackgroundInstanceDS !BackgroundTask
+
+serve :: !Int !NetTask !BackgroundTask (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve port nt bt determineTimeout iworld
+    = loop determineTimeout (init port nt bt iworld)
+
+init :: !Int !NetTask !BackgroundTask !*IWorld -> *IWorld
+init port nt bt iworld=:{IWorld|loop,world}
+    # (success, mbListener, world) = openTCP_Listener port world
+    | not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
+    = {iworld & loop = {done=[],todo=[ListenerInstance port (fromJust mbListener) nt,BackgroundInstance bt]}, world = world}
+
+loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
+loop determineTimeout iworld
+    # (mbTimeout,iworld=:{IWorld|loop={todo},world}) = determineTimeout iworld
+    //Check which mainloop tasks have data available
+    # (todo,chList,world) = select mbTimeout todo world
+    //Process the select result
+    # iworld =:{shutdown,loop={done}} = process 0 chList {iworld & loop = {done=[],todo=todo}, world = world}
+    //Move everything from the done list  back to the todo list
+    # iworld = {iworld & loop={todo = reverse done,done=[]}}
+    //Everything needs to be re-evaluated
+    | shutdown  = halt iworld
+    | otherwise = loop determineTimeout iworld
+
+select :: (Maybe Timeout) *[MainLoopInstance] *World -> (!*[MainLoopInstance],![(Int,SelectResult)],!*World)
+select mbTimeout mlInstances world
+    # (listeners,rChannels,mlInstances)
+        = toSelectSet mlInstances
+    # (chList,(TCP_Pair (TCP_Listeners listeners) (TCP_RChannels rChannels)),_,world)	
+        = selectChannel_MT mbTimeout (TCP_Pair (TCP_Listeners listeners) (TCP_RChannels rChannels)) TCP_Void world
+    # (mlInstances, chList)
+        = fromSelectSet listeners rChannels mlInstances chList
+    = (mlInstances, chList, world)
+
+toSelectSet :: !*[MainLoopInstance] -> *(!*[*TCP_Listener],!*[*TCP_RChannel],!*[*MainLoopInstanceDuringSelect])
+toSelectSet [] = ([],[],[])
+toSelectSet [i:is]
+    # (ls,rs,is) = toSelectSet is
+    = case i of
+        ListenerInstance port l nt = ([l:ls],rs,[ListenerInstanceDS port nt:is])
+        ConnectionInstance ip {rChannel,sChannel} nt state = (ls,[rChannel:rs],[ConnectionInstanceDS ip sChannel nt state:is])
+        BackgroundInstance bt = (ls,rs,[BackgroundInstanceDS bt:is])
+
+/* Restore the list of main loop instances.
+    In the same pass also update the indices in the select result to match the
+    correct indices of the main loop instance list.
+*/
+fromSelectSet :: !*[*TCP_Listener] !*[*TCP_RChannel] !*[*MainLoopInstanceDuringSelect] ![(!Int,!SelectResult)] -> *(![*MainLoopInstance],![(!Int,!SelectResult)])
+fromSelectSet ls rs is chList = fromSS 0 0 ls rs is (sortBy (\(x,_) (y,_) -> (x < y)) chList)
 where
-	startListener port env
-    	# (success, mbListener, env) = openTCP_Listener port env
-    	| success   = (fromJust mbListener,env)
-    	| otherwise = abort ("Error: The server port " +++ (toString port) +++ " is currently occupied!\n" +++
-							 "Probably a previous application is still running and you have forgotten to close it.\n" +++
-							 "It is also possible that another server running on your machine is using this port.\n\n\n")
+    fromSS offset i ls rs [] [] = ([],[])
+    fromSS offset i [l:ls] rs [ListenerInstanceDS port nt:is] []
+        # (is,_) = fromSS offset (i+1) ls rs is []
+        = ([ListenerInstance port l nt:is],[])
+    fromSS offset i [l:ls] rs [ListenerInstanceDS port nt:is] chList=:[(who,what):ws]
+        | who + offset == i
+            # (is,ws) = fromSS offset (i+1) ls rs is ws
+            = ([ListenerInstance port l nt:is],[(who + offset,what):ws])
+        | otherwise
+            # (is,chList) = fromSS offset (i+1) ls rs is chList
+            = ([ListenerInstance port l nt:is],chList)
+    fromSS offset i ls [rChannel:rs] [ConnectionInstanceDS ip sChannel nt state:is] []
+        # (is,_) = fromSS offset (i+1) ls rs is []
+        = ([ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} nt state:is],[])
+    fromSS offset i ls [rChannel:rs] [ConnectionInstanceDS ip sChannel nt state:is] chList=:[(who,what):ws]
+        | who + offset == i
+            # (is,ws) = fromSS offset (i+1) ls rs is ws
+            = ([ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} nt state:is],[(who + offset,what):ws])
+        | otherwise
+            # (is,chList) = fromSS offset (i+1) ls rs is chList
+            = ([ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} nt state:is],chList)
+    fromSS offset i ls rs [BackgroundInstanceDS bt:is] chList
+        # (is,chList) = fromSS (offset+1) (i+1) ls rs is chList
+        = ([BackgroundInstance bt:is],chList)
 
-	serve listener rChannels sChannels connStates env
-		//Join the listener with the open channels
-    	#! selectSet				= TCP_Pair (TCP_Listeners [listener]) (TCP_RChannels rChannels)
-    	//Select the channel which has data available
-		#! (mbTimeout,env)			= determineTimeout env
-    	#! (chList,selectSet,_,env)	= selectChannel_MT mbTimeout selectSet TCP_Void env 
-		// (this needs to be strict, else we start executing the background handler too early)
-    	//Split the listener from the open channels
-    	# (TCP_Pair (TCP_Listeners [listener:_]) (TCP_RChannels rChannels)) = selectSet
-		//Check if the connection listener is in the change list
-		//if so, accept the connection and append it to the lists
-		# (listener,rChannels,sChannels,connStates,env) = case [who \\ (who,what) <- chList] of
-			[0]	
- 				# (tReport, mbNewConn, listener, env)   = receive_MT (Just 0) listener env
-               	| tReport <> TR_Success	= (listener, rChannels,sChannels,connStates,env)
-				# (ip,{sChannel,rChannel})				= fromJust mbNewConn
-				# (connState,env)						= handleNewConnection ip env
-				= (listener, rChannels ++ [rChannel], sChannels ++ [sChannel], connStates ++ [connState], env)
-		
-			_	= (listener,rChannels,sChannels,connStates,env)
-		//Call the handler for all active connections
-		//(we start handleActiveConnections with 1, because when the chList was created the listener is index 0 during the select)
-		# (rChannels,sChannels,connStates,env)	= handleActiveConnections 1 rChannels sChannels connStates chList env
-		//Call the background handler last
-		# (done,env) = handleBackground env
-		| done
-			= closeAllConnections listener rChannels sChannels env
-		| otherwise
-			= serve listener rChannels sChannels connStates env
+process :: !Int [(!Int,!SelectResult)] !*IWorld -> *IWorld
+process i chList iworld=:{loop={done,todo=[]}} = iworld
+process i chList iworld=:{loop={done,todo=[ListenerInstance port listener nt:todo]},world}
+    # (mbSelect,chList) = checkSelect i chList
+    | mbSelect =:(Just _)
+ 	    # (tReport, mbNewConn, listener, world)   = receive_MT (Just 0) listener world
+        | tReport == TR_Success
+            # (ts,world)    = time world
+            # (ip,conn)     = fromJust mbNewConn
+            # todo          = todo ++ [ConnectionInstance ip conn nt (NTIdle (toString ip) ts)]
+            = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
+        = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
+    = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
+process i chList iworld=:{loop={done,todo=[ConnectionInstance ip {rChannel,sChannel} nt=:(NetTask eval) state:todo]},world}
+    # (mbSelect,chList) = checkSelect i chList
+    //Check if disconnected
+    | mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
+ 	    # world = closeRChannel rChannel world
+        # world = closeChannel sChannel world
+        = process (i+1) chList {iworld & loop={done=done,todo=todo},world=world}
+    //Read data
+    # (data,rChannel,world) = case mbSelect of
+        Just SR_Available
+		    # (data,rChannel,world) = receive rChannel world
+            = (Just (toString data),rChannel,world)
+        _
+            = (Nothing,rChannel,world)
+    //Eval main loop task
+    # (out,close,state,iworld=:{loop={todo,done},world})
+        = eval data state {iworld & loop={done=done,todo=todo},world=world}
+    //Send data if produced
+    # (sChannel,world) = case out of
+        Just data   = send (toByteSeq data) sChannel world
+        _           = (sChannel,world)
+    | close
+        //Close connection
+ 		# world = closeRChannel rChannel world
+        # world = closeChannel sChannel world
+        = process (i+1) chList {iworld & loop={done=done,todo=todo},world=world}
+    = process (i+1) chList {iworld & loop={done=[ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} nt state:done],todo=todo},world=world}
+process i chList iworld=:{loop={done,todo=[BackgroundInstance bt=:(BackgroundTask eval):todo]}}
+    # iworld=:{loop={done,todo}} = eval {iworld & loop = {done=done,todo=todo}}
+    = process (i+1) chList {iworld & loop={done=[BackgroundInstance bt:done],todo=todo}}
 
-	handleActiveConnections i [] [] [] chList env
-		= ([],[],[],env)
-	handleActiveConnections i [rChannel:rChannels] [sChannel:sChannels] [connState:connStates] chList env
-		//Check if the connection is in the select list. Read data if available and check if the connection was lost
-		# (mbData,lost,rChannel,env) = case [what \\ (who,what) <- chList | who == i] of
-			[SR_Available:_]	//Data available
-				# (data,rChannel,env)	= receive rChannel env
-				= (Just (toString data),False,rChannel,env)
-			[_:_]				//Connection lost
-				= (Nothing,True,rChannel,env)
-			_					//No data
-				= (Nothing,False,rChannel,env)
-		| lost
-			# env = handleConnectionLost connState env
- 			# env = closeRChannel rChannel env
-            # env = closeChannel sChannel env
-			= handleActiveConnections (i + 1) rChannels sChannels connStates chList env
-		//Call handler callback function
-		# (mbData,closeConn,connState,env)	= handleActiveConnection mbData connState env
-		//Send data if produced
-		# (sChannel,env) = case mbData of
-			(Just data)	= send (toByteSeq data) sChannel env
-			_			= (sChannel,env)
-		//Close the connection
-		| closeConn
- 			# env = closeRChannel rChannel env
-            # env = closeChannel sChannel env
-			= handleActiveConnections (i + 1) rChannels sChannels connStates chList env
-		//Process the remaining connections
-		# (rChannels,sChannels,connStates,env)	= handleActiveConnections (i + 1) rChannels sChannels connStates chList env
-		= ([rChannel:rChannels],[sChannel:sChannels],[connState:connStates],env)
-	
-	closeAllConnections listener [] [] env
-		= closeRChannel listener env //Close the listener last
-	closeAllConnections listener [rChannel:rChannels] [sChannel:sChannels] env
-		# env = closeRChannel rChannel env
-		# env = closeChannel sChannel env
-		= closeAllConnections listener rChannels sChannels env
+checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!SelectResult)])
+checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
+checkSelect i chList = (Nothing,chList)
 
-// (Streaming) HTTP level server
-// The server at this level expects that connections use the HTTP protocol and thus can
-// aggregate HTTP request headers or full http requests and use the requested path to select
-// an appropriate handler function
+halt :: !*IWorld -> !*IWorld
+halt iworld=:{loop={todo=[],done}} = iworld
+halt iworld=:{loop={todo=[ListenerInstance _ listener _:todo],done},world}
+ 	# world = closeRChannel listener world
+    = halt {iworld & loop = {todo=todo,done=done}}
+halt iworld=:{loop={todo=[ConnectionInstance _ {rChannel,sChannel} _ _:todo],done},world}
+ 	# world = closeRChannel rChannel world
+    # world = closeChannel sChannel world
+    = halt {iworld & loop = {todo=todo,done=done}}
+halt iworld=:{loop={todo=[BackgroundInstance _ :todo],done},world}
+    = halt {iworld & loop = {todo=todo,done=done}}
 
-:: HttpConnState loc
-    = Idle String Timestamp
-    | ReadingRequest HttpReqState
-	| ProcessingRequest HTTPRequest loc
-
-:: HttpReqState =
-    { request       :: HTTPRequest
-    , method_done   :: Bool
-    , headers_done  :: Bool
-    , data_done     :: Bool
-    , error         :: Bool
-    }
-
-//For keep-alive connections we need to keep track of when a connection
-class HttpServerEnv env
+httpService :: !Int !Int ![(!String -> Bool
+				,!Bool
+				,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
+				)] -> NetTask
+httpService port keepAliveTime requestProcessHandlers = NetTask eval
 where
-    serverTime :: *env -> (!Timestamp,!*env)
-
-instance HttpServerEnv World
-where
-    serverTime :: *World -> (!Timestamp,!*World)
-    serverTime world = time world
-
-startHTTPServer :: !Int !Int
-						[(!(String -> Bool)
-						 ,!Bool
-						 ,!(HTTPRequest *env -> (!HTTPResponse,!Maybe loc,!*env))
-						 ,!(HTTPRequest (Maybe {#Char}) loc *env -> (!Maybe {#Char}, !Bool, loc, !*env))
-						 ,!(HTTPRequest loc *env -> *env)
-						 )] (*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) !*env -> *env | ChannelEnv env & HttpServerEnv env
-startHTTPServer port keepAliveTime requestProcessHandlers determineTimeout handleBackground env
-	= startServer port handleNewConnection handleActiveConnection handleConnectionLost determineTimeoutHTTP handleBackground env
-where
-	determineTimeoutHTTP env
-		# (mbTimeout,env)	= determineTimeout env
-		# keepAliveTimeout	= keepAliveTime * 1000
-		= case mbTimeout of
-			Nothing			= (Just keepAliveTimeout, env)
-			Just t			= (Just (if (t < keepAliveTimeout) t keepAliveTimeout), env)
-
-	handleNewConnection ip env
-		# (now,env) = serverTime env
-		= (Idle (toString ip) now, env)
-
-	handleActiveConnection mbData connState=:(ProcessingRequest request localState) env
+	eval mbData connState=:(NTProcessingRequest request localState) env
 		//Select handler based on request path
 		= case selectHandler request requestProcessHandlers of
-			Just (_,_,_,handler,_) 
-				# (mbData,done,localState,env) = handler request mbData localState env
+			Just (_,_,_,handler,_)
+				# (mbData,done,localState,env=:{IWorld|world}) = handler request mbData localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
-					# (now,env)       = serverTime env
-					= (mbData, False, Idle request.client_name now,env)
+					# (now,world)       = time world
+					= (mbData, False, NTIdle request.client_name now,{IWorld|env & world = world})
 				| otherwise
-					= (mbData,done,ProcessingRequest request localState,env)
+					= (mbData,done,NTProcessingRequest request localState,{IWorld|env & world = world})
 			Nothing
-				= (Just "HTTP/1.0 400 Bad Request\r\n\r\n", True, connState, env)
-	handleActiveConnection (Just data) connState env  //(connState is either Idle or ReadingRequest)
+				= (Just "HTTP/1.1 400 Bad Request\r\n\r\n", True, connState, env)
+
+	eval (Just data) connState env  //(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
-			(Idle client_name _)
+			(NTIdle client_name _)
 				//Add new data to the request
 				# request   = {newHTTPRequest & client_name = client_name, server_port = port}
 				# (request, method_done, headers_done, data_done, error) = http_addRequestData request False False False data
-				= {request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
-			(ReadingRequest {request, method_done, headers_done, data_done})
+				= {NTHttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
+			(NTReadingRequest {NTHttpReqState|request, method_done, headers_done, data_done})
 				//Add new data to the request
 				# (request, method_done, headers_done, data_done, error) = http_addRequestData request method_done headers_done data_done (toString data)
-				= {request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
+				= {NTHttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
 			_
-				= {request=newHTTPRequest,method_done=False,headers_done=False,data_done=False,error=True}
-		| rstate.HttpReqState.error
+				= {NTHttpReqState|request=newHTTPRequest,method_done=False,headers_done=False,data_done=False,error=True}
+		| rstate.NTHttpReqState.error
 			//Sent bad request response and disconnect
-			= (Just "HTTP/1.0 400 Bad Request\r\n\r\n", True, connState, env)
-		| not rstate.headers_done
+			= (Just "HTTP/1.1 400 Bad Request\r\n\r\n", True, connState, env)
+		| not rstate.NTHttpReqState.headers_done
 			//Without headers we can't select our handler functions yet
-			= (Nothing, False, ReadingRequest rstate, env)
+			= (Nothing, False, NTReadingRequest rstate, env)
 		//Determine the handler
-		= case selectHandler rstate.HttpReqState.request requestProcessHandlers of
+		= case selectHandler rstate.NTHttpReqState.request requestProcessHandlers of
 			Nothing
-				= (Just "HTTP/1.0 404 Not Found\r\n\r\n", True, connState, env)
+				= (Just "HTTP/1.1 404 Not Found\r\n\r\n", True, connState, env)
 			Just (_,completeRequest,newReqHandler,procReqHandler,_)
 				//Process a completed request, or as soon as the headers are done if the handler indicates so
-				| rstate.data_done || (not completeRequest)
-					# request	= if completeRequest (http_parseArguments rstate.request) rstate.request
+				| rstate.NTHttpReqState.data_done || (not completeRequest)
+					# request	= if completeRequest (http_parseArguments rstate.NTHttpReqState.request) rstate.NTHttpReqState.request
 					//Determine if a  persistent connection was requested
-					# keepalive	= isKeepAlive request 
+					# keepalive	= isKeepAlive request
 					// Create a response
 					# (response,mbLocalState,env)	= newReqHandler request env
 					//Add keep alive header if necessary
@@ -195,26 +213,27 @@ where
 						Nothing	
 							# reply		= encodeResponse True response
 							| keepalive
-								# (now,env)       = serverTime env
-								= (Just reply, False, Idle rstate.request.client_name now,env)
+                                # env=:{IWorld|world} = env
+								# (now,world)       = time world
+								= (Just reply, False, NTIdle rstate.NTHttpReqState.request.client_name now, {IWorld|env & world=world})
 							| otherwise
 								= (Just reply, True, connState, env)
 						Just localState	
-							= (Just (encodeResponse False response), False, ProcessingRequest request localState, env)
+							= (Just (encodeResponse False response), False, NTProcessingRequest request localState, env)
 				| otherwise
-					= (Nothing, False, ReadingRequest rstate, env)		
+					= (Nothing, False, NTReadingRequest rstate, env)		
 
 	//Close idle connections if the keepalive time has passed
-	handleActiveConnection Nothing connState=:(Idle ip (Timestamp t)) env
-		# (Timestamp now,env)	= serverTime env	//TODO: Do we really need to do this for every connection all the time?
-		= (Nothing, now >= t + keepAliveTime, connState, env)
+	eval Nothing connState=:(NTIdle ip (Timestamp t)) iworld=:{IWorld|world}
+		# (Timestamp now,world)	= time world//TODO: Do we really need to do this for every connection all the time?
+		= (Nothing, now >= t + keepAliveTime, connState, {IWorld|iworld & world = world})
 
 	//Do nothing if no data arrives for now
-	handleActiveConnection Nothing connState env = (Nothing,False,connState,env)
+	eval Nothing connState env = (Nothing,False,connState,env)
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up
-	handleConnectionLost (ProcessingRequest request loc) env
+	handleConnectionLost (NTProcessingRequest request loc) env
 		= case selectHandler request requestProcessHandlers of
 			Nothing	= env
 			Just (_,_,_,_,connLostHandler) = connLostHandler request loc env
@@ -228,50 +247,13 @@ where
 
 	isKeepAlive request = maybe (request.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) (get "Connection" request.req_headers)
 
-import StdDebug
+    encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
+	    # rsp_headers = addDefault rsp_headers "Server" "iTasks HTTP Server"
+	    # rsp_headers = addDefault rsp_headers "Content-Type" "text/html"
+	    # rsp_headers = if autoContentLength
+	    					(addDefault rsp_headers "Content-Length" (toString (size rsp_data)))
+	    					rsp_headers
+	    = toString {response & rsp_headers = rsp_headers}
+    where		
+    	addDefault headers hdr val = if ((lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 
-encodeResponse :: !Bool !HTTPResponse -> String
-encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
-	# rsp_headers = addDefault rsp_headers "Server" "iTasks HTTP Server"
-	# rsp_headers = addDefault rsp_headers "Content-Type" "text/html"
-	# rsp_headers = if autoContentLength 
-						(addDefault rsp_headers "Content-Length" (toString (size rsp_data)))
-						rsp_headers
-	= toString {response & rsp_headers = rsp_headers}
-where		
-	addDefault headers hdr val 
-		= case lookup hdr headers of
-			Nothing = [(hdr,val):headers]
-					= headers
-
-simpleHTTPResponse ::
-	(!(String -> Bool),HTTPRequest *env -> (!HTTPResponse,*env))
-	->
-	(!(String -> Bool),!Bool,!(HTTPRequest *env -> (HTTPResponse, Maybe loc,*env))
-							,!(HTTPRequest (Maybe {#Char}) loc *env -> (!Maybe {#Char}, !Bool, loc, !*env))
-							,!(HTTPRequest loc *env -> *env))
-simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
-where
-	initFun req env
-		# (rsp,env) = responseFun req env
-		= (rsp,Nothing,env)
-		
-	dataFun _ _ s env = (Nothing,True,s,env)
-	lostFun _ s env = env
-
-// Task level server
-
-//Wrapper instance for TCP channels with IWorld
-instance ChannelEnv IWorld
-where
-	channelEnvKind iworld=:{IWorld|world}
-		# (kind,world) = channelEnvKind world
-		= (kind,{IWorld|iworld & world = world})
-	
-	mb_close_inet_receiver_without_id b (endpoint,cat) iworld=:{IWorld|world}
-		= {IWorld|iworld & world = mb_close_inet_receiver_without_id b (endpoint,cat) world}
-	
-	channel_env_get_current_tick iworld=:{IWorld|world}
-		# (tick,world) = channel_env_get_current_tick world
-		= (tick,{IWorld|iworld & world = world})
-	

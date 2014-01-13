@@ -4,7 +4,7 @@ import Text.JSON
 import iTasks.Framework.UIDefinition
 
 from iTasks					import JSONEncode, JSONDecode
-from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: TaskCompositionType, :: EventNo
+from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: EventNo
 import iTasks.API.Core.SystemTypes
 
 derive JSONEncode TIMeta, TIType, SessionInfo, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo
@@ -18,7 +18,7 @@ derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, U
 derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts
 
-derive JSONDecode TaskCompositionType
+//derive JSONDecode TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIControlStack, UISubUI, UISubUIStack
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode

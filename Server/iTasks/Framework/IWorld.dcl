@@ -12,7 +12,7 @@ from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
-from iTasks.Framework.TaskServer	import class HttpServerEnv
+from iTasks.Framework.Task import :: NetTaskState, :: NetTask, :: BackgroundTask
 from Data.SharedDataSource import :: RWShared
 from iTasks.Framework.Shared import :: ReadWriteShared, :: Shared
 
@@ -21,6 +21,7 @@ from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
 from Sapl.Target.Flavour import :: Flavour
 from Sapl.SaplParser import :: ParserState
+from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -57,6 +58,7 @@ from Sapl.SaplParser import :: ParserState
 
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
                     , random                :: [Int]                                    // Infinite random stream
+                    , loop                  :: !*MainLoop                               // The mainloop
 					, world					:: !*World									// The outside world
 
                     //Experimental database connection cache
@@ -70,6 +72,16 @@ from Sapl.SaplParser import :: ParserState
 	, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
     , publicWebDirectories  :: ![FilePath]                              // List of directories that contain files that are served publicly by the iTask webserver
     }
+
+:: *MainLoop =
+    { done :: !*[MainLoopInstance]
+    , todo :: !*[MainLoopInstance]
+    }
+
+:: *MainLoopInstance
+    = ListenerInstance !Int !*TCP_Listener !NetTask
+    | ConnectionInstance !IPAddress !*TCP_DuplexChannel !NetTask !NetTaskState
+    | BackgroundInstance !BackgroundTask
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
@@ -95,8 +107,6 @@ getUIMessages		:: !InstanceNo                  !*IWorld -> (![UIMessage],!*IWorl
 		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
 
 instance FileSystem IWorld
-
-instance HttpServerEnv IWorld
 
 instance registerSDSDependency		InstanceNo	IWorld
 instance registerSDSChangeDetection				IWorld

@@ -3,7 +3,6 @@ definition module iTasks.API.Core.LayoutCombinators
 import iTasks.API.Core.SystemTypes
 from iTasks.API.Core.CoreCombinators import class tune
 
-from iTasks.Framework.Task import :: TaskCompositionType
 from iTasks.Framework.TaskState import :: TIMeta
 import iTasks.Framework.UIDefinition
 

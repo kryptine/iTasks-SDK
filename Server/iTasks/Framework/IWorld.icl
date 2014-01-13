@@ -11,7 +11,7 @@ from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
-from iTasks.Framework.TaskServer import class HttpServerEnv(..)
+//from iTasks.Framework.TaskServer import class HttpServerEnv(..)
 
 from Data.List import splitWith
 from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
@@ -129,12 +129,6 @@ where
 	sfopen filename mode iworld=:{IWorld|world}
 		# (ok,file,world) = sfopen filename mode world
 		= (ok,file,{IWorld|iworld & world = world})
-
-instance HttpServerEnv IWorld
-where
-	serverTime iworld=:{IWorld|world}
-		# (ts,world) = time world
-		= (ts,{IWorld|iworld & world = world})
 
 instance registerSDSDependency InstanceNo IWorld
 where

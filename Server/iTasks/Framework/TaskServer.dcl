@@ -6,34 +6,15 @@ from TCPIP				import class ChannelEnv, :: IPAddress, :: Timeout
 from Internet.HTTP		import :: HTTPRequest, :: HTTPResponse
 from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld	import :: IWorld
-// Core server
-startServer :: !Int 
-				(IPAddress *env -> (loc,*env)) ((Maybe {#Char}) loc *env -> *(Maybe {#Char},!Bool, !loc, !*env)) (loc *env -> *env)
-				(*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) !*env -> *env | ChannelEnv env
+from iTasks.Framework.Task      import :: NetTask, :: BackgroundTask
+from iTasks.Framework.Engine    import :: ConnectionType
 
-// HTTP Server
-class HttpServerEnv env
-where
-    serverTime :: *env -> (!Timestamp,!*env)
+//Core task server loop
+serve :: !Int !NetTask !BackgroundTask (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 
-instance HttpServerEnv World
-
-startHTTPServer :: !Int !Int
-						[(!(String -> Bool)
-						 ,!Bool
-						 ,!(HTTPRequest *env -> (!HTTPResponse,!Maybe loc,!*env))
-						 ,!(HTTPRequest (Maybe {#Char}) loc *env -> (!Maybe {#Char}, !Bool, loc, !*env))
-						 ,!(HTTPRequest loc *env -> *env)
-						 )] (*env -> (!Maybe Timeout,!*env)) (*env -> (!Bool,!*env)) !*env -> *env | ChannelEnv env & HttpServerEnv env
-
-// Task Server
-
-// Temporary util
-simpleHTTPResponse ::
-	(!(String -> Bool),HTTPRequest *env -> (!HTTPResponse,*env))
-	->
-	(!(String -> Bool),!Bool,!(HTTPRequest *env -> (HTTPResponse, Maybe loc,*env))
-							,!(HTTPRequest (Maybe {#Char}) loc *env -> (!Maybe {#Char}, !Bool, loc, !*env))
-							,!(HTTPRequest loc *env -> *env))
-
-instance ChannelEnv IWorld
+httpService :: !Int !Int ![(!String -> Bool
+				,!Bool
+				,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
+				)] -> NetTask

@@ -502,6 +502,7 @@ where
 		= markListEntryRemoved parId entryId iworld
 	remove _ _ iworld = iworld
 
+import StdDebug
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where

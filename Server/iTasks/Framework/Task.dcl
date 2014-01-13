@@ -50,15 +50,28 @@ derive gEq				Task
 					
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]
-
-//Summary of the composition structure of tasks (used as input for layouting)
-:: TaskCompositionType
-	= ViewPart
-	| SingleTask
-	| SequentialComposition
-	| ParallelComposition
-
 :: TaskPart			:== (!String, !JSONNode)		//Task id, value
+
+
+//Low level specific tasks that handle network connections
+from Internet.HTTP import :: HTTPRequest
+from iTasks.Framework.Engine import :: ConnectionType
+
+:: NetTask = NetTask !((Maybe String) NetTaskState *IWorld -> *(!Maybe String, !Bool, !NetTaskState, !*IWorld))
+:: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
+
+:: NetTaskState
+    = NTIdle String Timestamp
+    | NTReadingRequest NTHttpReqState
+	| NTProcessingRequest HTTPRequest ConnectionType
+
+:: NTHttpReqState =
+    { request       :: HTTPRequest
+    , method_done   :: Bool
+    , headers_done  :: Bool
+    , data_done     :: Bool
+    , error         :: Bool
+    }
 
 /**
 * 'downgrades' an event to a refresh, but keeps the client given event number

@@ -45,7 +45,7 @@ startEngine publishable world
 	// mark all instance as outdated initially
 	# (maxNo,iworld)		= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
-	# iworld				= startHTTPServer port keepalive (engine publishable) timeout background iworld
+	# iworld				= serve port (httpService port keepalive (engine publishable)) (BackgroundTask background) timeout iworld
 	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
@@ -114,9 +114,7 @@ where
 	
 MAX_TIMEOUT :== 86400000 // one day
 
-background :: !*IWorld -> (!Bool,!*IWorld)
-background iworld=:{IWorld|shutdown=True}
-	= (True,iworld)
+background :: !*IWorld -> *IWorld
 background iworld
 	# iworld			= updateCurrentDateTime iworld
 	# (mbWork, iworld)	= dequeueWork iworld
@@ -140,7 +138,7 @@ background iworld
 			# (curTime, iworld) = currentTimestamp iworld
 			= (Just (toTimeout curTime time), iworld)
 			*/
-	= (False,iworld)
+	= iworld
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
@@ -223,6 +221,7 @@ initIWorld sdkDir world
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
 	  ,shutdown				= False
+      ,loop                 = {done = [], todo = []}
 	  ,world				= world
       ,resources            = Nothing
       ,random               = genRandInt seed
@@ -260,6 +259,7 @@ finalizeIWorld iworld=:{IWorld|world} = world
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
+
 handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
 handleStaticResourceRequest req iworld=:{IWorld|systemDirectories={publicWebDirectories}}
     = serveStaticResource req publicWebDirectories iworld
@@ -280,6 +280,22 @@ where
 	//Translate a URL path to a filesystem path
 	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 	mimeType path	= extensionToMimeType (takeExtension path)
+
+simpleHTTPResponse ::
+	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
+	->
+	(!(String -> Bool),!Bool,!(HTTPRequest *IWorld -> (HTTPResponse, Maybe loc,*IWorld))
+							,!(HTTPRequest (Maybe {#Char}) loc *IWorld -> (!Maybe {#Char}, !Bool, loc, !*IWorld))
+							,!(HTTPRequest loc *IWorld -> *IWorld))
+simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
+where
+	initFun req env
+		# (rsp,env) = responseFun req env
+		= (rsp,Nothing,env)
+		
+	dataFun _ _ s env = (Nothing,True,s,env)
+	lostFun _ s env = env
+
 
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
