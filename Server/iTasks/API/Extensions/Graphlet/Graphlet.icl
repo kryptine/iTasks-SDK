@@ -24,11 +24,11 @@ derive class iTask GraphletDiff, GraphletState, GraphletLoc
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (GraphletState n e) (GraphletDiff n e) | iTask n & iTask e
-graphlet graph renderer
+graphlet :: (Graph n e) GraphletLoc (GraphletRenderer n e) -> Editlet (GraphletState n e) (GraphletDiff n e) | iTask n & iTask e
+graphlet graph loc renderer
   = toEditlet simpl
   where
-  simpl = EditletSimpl {currGraph = graph, currLoc = NodeLoc 0}
+  simpl = EditletSimpl {currGraph = graph, currLoc = loc}
             { EditletSimplDef
             | genUI    = \cid world -> (uiDef cid, world)
             , updateUI = onUpdate

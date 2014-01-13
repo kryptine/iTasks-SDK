@@ -35,4 +35,4 @@ derive gVerify Graph, Node
 
 derive class iTask GraphletDiff, GraphletState, GraphletLoc
 
-graphlet :: (Graph n e) (GraphletRenderer n e) -> Editlet (GraphletState n e) (GraphletDiff n e) | iTask n & iTask e
+graphlet :: (Graph n e) GraphletLoc (GraphletRenderer n e) -> Editlet (GraphletState n e) (GraphletDiff n e) | iTask n & iTask e
