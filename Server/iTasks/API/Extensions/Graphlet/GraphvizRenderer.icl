@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Graphlet.GraphvizRenderer
 
 import StdOverloaded
+from Data.Graph import :: NodeIndex, :: EdgeIndex
 import iTasks.API.Extensions.Graphlet.Graphlet
 import iTasks.API.Extensions.Graphlet.D3
 import iTasks.API.Extensions.Graphlet.Graphlib
@@ -67,8 +68,8 @@ defaultShapeTransform = \bbh bbw d3 world -> setAttrs [ ("x", toJSVal (0 - (bbw 
                                                       , ("height", toJSVal bbh)
                                                       ] d3 world
 
-drawNode :: GraphvizShape GLGraph Int D3 *JSWorld -> *JSWorld
-drawNode shape graph u root world
+drawNode :: GraphletLoc GraphvizShape GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+drawNode currLoc shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
   where
@@ -108,8 +109,8 @@ drawNode shape graph u root world
     = world
   drawNode` _                  _ _ _    world = world
 
-drawEdgeLabel :: GraphvizEdge GLGraph (Int, Int) D3 *JSWorld -> *JSWorld
-drawEdgeLabel mstrs _ _ root world
+drawEdgeLabel :: GraphletLoc GraphvizEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+drawEdgeLabel currLoc mstrs _ _ root world
   = mkNode Rect "edge-label" mstrs defaultLabelTransform
       (\bbh bbw d3 world -> setAttrs [ ("rx", toJSVal 5)
                                      , ("ry", toJSVal 5)
