@@ -5,7 +5,7 @@ function __itask_background_process(){
 	console.time('background process');
 	
 	var ret = __iTasks_Framework_Engine_background(_iworld);
-	_iworld = Sapl.feval(ret[3]);
+	_iworld = Sapl.feval(ret);
 	
 	ret = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_getUIUpdates,[_iworld]);
 	_iworld = Sapl.feval(ret[3]);
