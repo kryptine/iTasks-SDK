@@ -6,10 +6,17 @@ definition module iTasks.Framework.WebService
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks.Framework.Engine		import :: ServiceFormat, :: ConnectionType
 from iTasks.Framework.IWorld		import :: IWorld
-from iTasks.Framework.Task 			import :: Task
+from iTasks.Framework.Task 			import :: Task, :: ConnectionTask
 from iTasks.API.Core.SystemTypes	import :: InstanceNo
 
 import iTasks.Framework.Generic
+
+httpServer :: !Int !Int ![(!String -> Bool
+				,!Bool
+				,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
+				)] -> ConnectionTask
 
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 				 (!(String -> Bool)

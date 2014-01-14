@@ -12,7 +12,7 @@ from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
-from iTasks.Framework.Task import :: NetTaskState, :: NetTask, :: BackgroundTask
+from iTasks.Framework.Task import :: NetTaskState, :: ConnectionTask, :: BackgroundTask
 from Data.SharedDataSource import :: RWShared
 from iTasks.Framework.Shared import :: ReadWriteShared, :: Shared
 
@@ -79,8 +79,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     }
 
 :: *MainLoopInstance
-    = ListenerInstance !Int !*TCP_Listener !NetTask
-    | ConnectionInstance !IPAddress !*TCP_DuplexChannel !NetTask !NetTaskState
+    = ListenerInstance !Int !*TCP_Listener !ConnectionTask
+    | ConnectionInstance !IPAddress !*TCP_DuplexChannel !ConnectionTask !NetTaskState
     | BackgroundInstance !BackgroundTask
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...

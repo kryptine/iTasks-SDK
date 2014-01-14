@@ -57,7 +57,7 @@ derive gEq				Task
 from Internet.HTTP import :: HTTPRequest
 from iTasks.Framework.Engine import :: ConnectionType
 
-:: NetTask = NetTask !((Maybe String) NetTaskState *IWorld -> *(!Maybe String, !Bool, !NetTaskState, !*IWorld))
+:: ConnectionTask = ConnectionTask !(String *IWorld -> *(!Maybe String,!Bool,!NetTaskState,!*IWorld)) !((Maybe String) NetTaskState *IWorld -> *(!Maybe String, !Bool, !NetTaskState, !*IWorld))
 :: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
 
 :: NetTaskState

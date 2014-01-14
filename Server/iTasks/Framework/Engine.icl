@@ -45,7 +45,7 @@ startEngine publishable world
 	// mark all instance as outdated initially
 	# (maxNo,iworld)		= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
-	# iworld				= serve port (httpService port keepalive (engine publishable)) (BackgroundTask background) timeout iworld
+	# iworld				= serve port (httpServer port keepalive (engine publishable)) (BackgroundTask background) timeout iworld
 	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
@@ -54,7 +54,7 @@ where
 	instructions :: [String]
 	instructions =
 		["Available commandline options:"
-		," -help             : Show this message and exit" 
+		," -help             : Show this message and exit"
 		," -sdk <path>       : Use <path> as location of the iTasks SDK"
 		," -port <port>      : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
 		," -keepalive <time> : Set connection keepalive time in seconds (default " +++ toString DEFAULT_KEEPALIVE_TIME +++ ")"

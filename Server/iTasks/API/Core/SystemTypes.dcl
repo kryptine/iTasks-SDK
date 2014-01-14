@@ -517,6 +517,10 @@ instance toUserConstraint UserId
 	= RunningProcess !String
 	| CompletedProcess !Int
 
+//* TCP Communication
+:: TCPSend = SendBytes !{#Char} | CloseConnection
+:: TCPReceive = ReceivedBytes !{#Char} | ConnectionClosed
+
 //* Next task actions
 :: Action	= Action !ActionName ![ActionOption]
 

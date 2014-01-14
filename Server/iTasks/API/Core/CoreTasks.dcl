@@ -102,6 +102,16 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask))) -> Task l | descr d & iTask l & iTask r & iTask v
 
 /**
+* Core tcp network task. Using this core task automated interactions with external systems can be programmed.
+* @param Hostname
+* @param Port
+* @param ReadOnlyShared: A reference to shared data the task has access to
+* @param Initialization function: function that is called when the connection is established
+* @param Communication function: function that is called when data arrives, the connection is closed or the observed share changes.
+*/
+tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (l,[TCPSend])) (l r [TCPReceive] Bool -> (l,[TCPSend])) -> Task l | iTask l & iTask r
+
+/**
 * Evaluate a "World" function that does not yield any result once.
 *
 * @param World function: The function to evaluate

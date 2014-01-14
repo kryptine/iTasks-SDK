@@ -121,6 +121,12 @@ where
 		# uidef		= UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls})
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
+tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (l,[TCPSend])) (l r [TCPReceive] Bool -> (l,[TCPSend])) -> Task l | iTask l & iTask r
+tcpconnect host port shared initFun commFun = Task eval
+where
+	eval event repOpts tree=:(TCInit taskId ts) iworld
+        = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree,iworld)
+
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
 where
