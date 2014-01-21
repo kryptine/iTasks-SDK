@@ -73,7 +73,7 @@ where
 		= reqFun url task defaultFormat req {IWorld|iworld & serverURL = server_url}
 
 	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld) | iTask a
-	reqFun url task defaultFormat req iworld=:{IWorld|application,config}
+	reqFun url task defaultFormat req iworld=:{IWorld|application,config,customCSS}
 		//Check for uploads
 		| hasParam "upload" req
 			# uploads = toList req.arg_uploads
@@ -106,7 +106,7 @@ where
                         (Error err, iworld)
 				            = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) application, Nothing, iworld)
+				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) application customCSS, Nothing, iworld)
                 JSONPlain
                     # (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
 				    = case mbResult of
@@ -121,7 +121,7 @@ where
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
                 [instanceNo,instanceKey]
-                    = (itwcStartResponse url instanceNo instanceKey (theme []) application, Nothing, iworld)
+                    = (itwcStartResponse url instanceNo instanceKey (theme []) application customCSS, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
@@ -225,7 +225,7 @@ where
         format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
         format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 
-	itwcStartResponse path instanceNo instanceKey theme appName = {okResponse & rsp_data = toString itwcStartPage}
+	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
 	where
 		itwcStartPage = HtmlTag [] [head,body]
 		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
@@ -253,7 +253,7 @@ where
             ["itwc-theme-"+++theme+++"/itwc-theme.css"
 			,"css/icons.css"
 			,"css/app.css"
-			,appName +++ ".css"]
+			: if customCSS [appName +++ ".css"] []]
 
         scriptfiles =
             ["/app/taskeval/utils.js","/app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess

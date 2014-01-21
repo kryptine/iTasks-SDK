@@ -26,8 +26,10 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
 					, serverURL				:: !String									// URL of the server like "//any.com:80"
+                    , customCSS             :: !Bool                                    // Does the application use a custom css stylesheet
 					, config				:: !Config									// The server configuration
                     , systemDirectories     :: !SystemDirectories                       // Filesystem paths that are used by iTasks
+
 					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 					, timestamp				:: !Timestamp								// The timestamp of the current request	
 					, currentLocalDateTime	:: !DateTime								// The local date & time of the current request

@@ -161,6 +161,7 @@ initIWorld sdkDir world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
+    # (customCSS,world)         = fileExists (appDir </> "Static"</> addExtension appName "css") world
 	# dataDir					= appDir </> appName +++ "-data"
     # (extensionsWeb,world)     = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
 	# (res,world)				= getFileInfo appPath world
@@ -175,7 +176,6 @@ initIWorld sdkDir world
 	# (_,world)					= ensureDir "tmp" tmpDir world
 	# storeDir					= dataDir </> "store-"+++ build
 	# (exists,world)			= ensureDir "store" storeDir world
-	
 	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] [] //TODO: Comment please
 										["iTasks.Framework.Client.Override"
 										,"dynamic_string"
@@ -194,6 +194,7 @@ initIWorld sdkDir world
 	  |application			= appName
 	  ,build				= build
 	  ,serverURL			= "//127.0.0.1:80"
+      ,customCSS            = customCSS
 	  ,systemDirectories    =
             {appDirectory		    = appDir
 	        ,sdkDirectory		    = sdkDir

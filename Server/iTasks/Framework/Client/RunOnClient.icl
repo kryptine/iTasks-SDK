@@ -148,6 +148,7 @@ createClientIWorld serverURL currentInstance
 		  |application			= "application"
 		  ,build				= "build"
 		  ,serverURL			= serverURL
+          ,customCSS            = False
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
 		  ,systemDirectories	= {appDirectory  = locundef "appDirectory"
 		  						  ,dataDirectory = locundef "dataDirectory"
