@@ -21,7 +21,21 @@ DEFAULT_THEME :== "gray"
 	, value		:: !JSONNode
 	, actions	:: ![String]
 	}
-	
+
+:: NetTaskState
+    = NTIdle String Timestamp
+    | NTReadingRequest HttpReqState
+	| NTProcessingRequest HTTPRequest ConnectionType
+
+:: HttpReqState =
+    { request       :: HTTPRequest
+    , method_done   :: Bool
+    , headers_done  :: Bool
+    , data_done     :: Bool
+    , error         :: Bool
+    }
+
+
 derive JSONEncode ServiceResponsePart
 
 // Websocket task access messages
@@ -39,7 +53,7 @@ derive JSONEncode ServiceResponsePart
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
                          ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-						 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+						 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 						 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
@@ -175,14 +189,14 @@ where
         where
             (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
-	dataFun :: HTTPRequest (Maybe {#Char}) !ConnectionType !*IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld)
+	dataFun :: HTTPRequest (Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld)
     dataFun req mbData (WebSocketConnection i) iworld
-        = (mbData,False,(WebSocketConnection i),iworld) //TEMPORARY ECHO WEBSOCKET
+        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection i),iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req _ (EventSourceConnection instanceNo) iworld
         # (messages,iworld)	= getUIMessages instanceNo iworld	
 		= case messages of
-			[]	= (Nothing,False,(EventSourceConnection instanceNo),iworld)
-			_	= (Just (formatMessageEvents messages),False,(EventSourceConnection instanceNo),iworld)
+			[]	= ([],False,(EventSourceConnection instanceNo),iworld)
+			_	= ([formatMessageEvents messages],False,(EventSourceConnection instanceNo),iworld)
 
     disconnectFun :: HTTPRequest !ConnectionType !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld
@@ -261,55 +275,55 @@ where
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
 				,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 				,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				)] -> ConnectionTask
-httpServer port keepAliveTime requestProcessHandlers = ConnectionTask init eval
+httpServer port keepAliveTime requestProcessHandlers = ConnectionTask init eval close
 where
     init host iworld=:{IWorld|world}
         # (ts,world) = time world
-        = (Nothing,False,NTIdle host ts,{IWorld|iworld & world = world})
+        = ([],False,dynamic (NTIdle host ts),{IWorld|iworld & world = world})
 
-	eval mbData connState=:(NTProcessingRequest request localState) env
+	eval mbData (connState=:(NTProcessingRequest request localState) :: NetTaskState) env
 		//Select handler based on request path
 		= case selectHandler request requestProcessHandlers of
 			Just (_,_,_,handler,_)
 				# (mbData,done,localState,env=:{IWorld|world}) = handler request mbData localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
 					# (now,world)       = time world
-					= (mbData, False, NTIdle request.client_name now,{IWorld|env & world = world})
+					= (mbData, False, dynamic (NTIdle request.client_name now),{IWorld|env & world = world})
 				| otherwise
-					= (mbData,done,NTProcessingRequest request localState,{IWorld|env & world = world})
+					= (mbData,done,dynamic (NTProcessingRequest request localState),{IWorld|env & world = world})
 			Nothing
-				= (Just "HTTP/1.1 400 Bad Request\r\n\r\n", True, connState, env)
+				= (["HTTP/1.1 400 Bad Request\r\n\r\n"], True, dynamic connState, env)
 
-	eval (Just data) connState env  //(connState is either Idle or ReadingRequest)
+	eval (Just data) (connState :: NetTaskState) env  //(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
 				//Add new data to the request
 				# request   = {newHTTPRequest & client_name = client_name, server_port = port}
 				# (request, method_done, headers_done, data_done, error) = http_addRequestData request False False False data
-				= {NTHttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
-			(NTReadingRequest {NTHttpReqState|request, method_done, headers_done, data_done})
+				= {HttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
+			(NTReadingRequest {HttpReqState|request, method_done, headers_done, data_done})
 				//Add new data to the request
 				# (request, method_done, headers_done, data_done, error) = http_addRequestData request method_done headers_done data_done (toString data)
-				= {NTHttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
+				= {HttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
 			_
-				= {NTHttpReqState|request=newHTTPRequest,method_done=False,headers_done=False,data_done=False,error=True}
-		| rstate.NTHttpReqState.error
+				= {HttpReqState|request=newHTTPRequest,method_done=False,headers_done=False,data_done=False,error=True}
+		| rstate.HttpReqState.error
 			//Sent bad request response and disconnect
-			= (Just "HTTP/1.1 400 Bad Request\r\n\r\n", True, connState, env)
-		| not rstate.NTHttpReqState.headers_done
+			= (["HTTP/1.1 400 Bad Request\r\n\r\n"], True, dynamic connState, env)
+		| not rstate.HttpReqState.headers_done
 			//Without headers we can't select our handler functions yet
-			= (Nothing, False, NTReadingRequest rstate, env)
+			= ([], False, dynamic NTReadingRequest rstate, env)
 		//Determine the handler
-		= case selectHandler rstate.NTHttpReqState.request requestProcessHandlers of
+		= case selectHandler rstate.HttpReqState.request requestProcessHandlers of
 			Nothing
-				= (Just "HTTP/1.1 404 Not Found\r\n\r\n", True, connState, env)
+				= (["HTTP/1.1 404 Not Found\r\n\r\n"], True, dynamic connState, env)
 			Just (_,completeRequest,newReqHandler,procReqHandler,_)
 				//Process a completed request, or as soon as the headers are done if the handler indicates so
-				| rstate.NTHttpReqState.data_done || (not completeRequest)
-					# request	= if completeRequest (http_parseArguments rstate.NTHttpReqState.request) rstate.NTHttpReqState.request
+				| rstate.HttpReqState.data_done || (not completeRequest)
+					# request	= if completeRequest (http_parseArguments rstate.HttpReqState.request) rstate.HttpReqState.request
 					//Determine if a  persistent connection was requested
 					# keepalive	= isKeepAlive request
 					// Create a response
@@ -323,21 +337,23 @@ where
 							| keepalive
                                 # env=:{IWorld|world} = env
 								# (now,world)       = time world
-								= (Just reply, False, NTIdle rstate.NTHttpReqState.request.client_name now, {IWorld|env & world=world})
+								= ([reply], False, dynamic (NTIdle rstate.HttpReqState.request.client_name now), {IWorld|env & world=world})
 							| otherwise
-								= (Just reply, True, connState, env)
+								= ([reply], True, dynamic connState, env)
 						Just localState	
-							= (Just (encodeResponse False response), False, NTProcessingRequest request localState, env)
+							= ([(encodeResponse False response)], False, dynamic (NTProcessingRequest request localState), env)
 				| otherwise
-					= (Nothing, False, NTReadingRequest rstate, env)		
+					= ([], False, (dynamic NTReadingRequest rstate), env)		
 
 	//Close idle connections if the keepalive time has passed
-	eval Nothing connState=:(NTIdle ip (Timestamp t)) iworld=:{IWorld|world}
+	eval Nothing (connState=:(NTIdle ip (Timestamp t)) :: NetTaskState) iworld=:{IWorld|world}
 		# (Timestamp now,world)	= time world//TODO: Do we really need to do this for every connection all the time?
-		= (Nothing, now >= t + keepAliveTime, connState, {IWorld|iworld & world = world})
+		= ([], now >= t + keepAliveTime, dynamic connState, {IWorld|iworld & world = world})
 
 	//Do nothing if no data arrives for now
-	eval Nothing connState env = (Nothing,False,connState,env)
+	eval Nothing connState env = ([],False,connState,env)
+
+    close connState env = (connState,env) //TODO Maybe we need to clean up
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up

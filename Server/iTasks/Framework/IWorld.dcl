@@ -12,7 +12,7 @@ from iTasks.Framework.TaskState			import :: TaskListEntry
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
-from iTasks.Framework.Task import :: NetTaskState, :: ConnectionTask, :: BackgroundTask
+from iTasks.Framework.Task import :: ConnectionTask, :: BackgroundTask
 from Data.SharedDataSource import :: RWShared
 from iTasks.Framework.Shared import :: ReadWriteShared, :: Shared
 
@@ -55,7 +55,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]
 					, uiMessages            :: !Map InstanceNo [UIMessage]				// Messages for communicating with the user interfaces of sessions
-
+                    , connectionValues      :: !Map TaskId Dynamic                      // Temporary task values for low-level connection tasks
 					, shutdown				:: !Bool									// Flag that signals the server function to shut down
                     , random                :: [Int]                                    // Infinite random stream
                     , loop                  :: !*MainLoop                               // The mainloop
@@ -80,7 +80,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: *MainLoopInstance
     = ListenerInstance !Int !*TCP_Listener !ConnectionTask
-    | ConnectionInstance !IPAddress !*TCP_DuplexChannel !ConnectionTask !NetTaskState
+    | ConnectionInstance !IPAddress !*TCP_DuplexChannel !ConnectionTask !Dynamic
     | BackgroundInstance !BackgroundTask
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...

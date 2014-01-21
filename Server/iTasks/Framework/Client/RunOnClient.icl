@@ -172,6 +172,7 @@ createClientIWorld serverURL currentInstance
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,workQueue			= []
 		  ,uiMessages			= 'Data.Map'.newMap
+		  ,connectionValues     = 'Data.Map'.newMap
 		  ,shutdown				= False
           ,random               = genRandInt seed
           ,loop                 = {done=[],todo=[]}

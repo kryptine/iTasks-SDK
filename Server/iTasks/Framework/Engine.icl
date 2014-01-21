@@ -144,7 +144,7 @@ background iworld
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
 					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-					  ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+					  ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 					  ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 					  )] | Publishable publish
 engine publishable
@@ -176,7 +176,7 @@ initIWorld sdkDir world
 	# storeDir					= dataDir </> "store-"+++ build
 	# (exists,world)			= ensureDir "store" storeDir world
 	
-	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] [] 
+	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] [] //TODO: Comment please
 										["iTasks.Framework.Client.Override"
 										,"dynamic_string"
 										,"graph_to_string_with_descriptors"
@@ -220,6 +220,7 @@ initIWorld sdkDir world
       ,editletDiffs         = newMap
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
+      ,connectionValues     = newMap
 	  ,shutdown				= False
       ,loop                 = {done = [], todo = []}
 	  ,world				= world
@@ -285,7 +286,7 @@ simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
 	->
 	(!(String -> Bool),!Bool,!(HTTPRequest *IWorld -> (HTTPResponse, Maybe loc,*IWorld))
-							,!(HTTPRequest (Maybe {#Char}) loc *IWorld -> (!Maybe {#Char}, !Bool, loc, !*IWorld))
+							,!(HTTPRequest (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, !*IWorld))
 							,!(HTTPRequest loc *IWorld -> *IWorld))
 simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
 where
@@ -293,7 +294,7 @@ where
 		# (rsp,env) = responseFun req env
 		= (rsp,Nothing,env)
 		
-	dataFun _ _ s env = (Nothing,True,s,env)
+	dataFun _ _ s env = ([],True,s,env)
 	lostFun _ s env = env
 
 

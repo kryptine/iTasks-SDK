@@ -8,6 +8,7 @@ from Data.Void   import :: Void
 from Data.Error  import :: MaybeError, :: MaybeErrorString
 from System.FilePath import :: FilePath
 from Internet.HTTP import :: HTTPMethod
+from Text.URI import :: URI
 
 import iTasks.Framework.Generic
 from iTasks.Framework.Task               import :: Task
@@ -53,12 +54,13 @@ callInstantProcess :: !FilePath ![String] !(Maybe FilePath)-> Task Int
 * @param URL: The URL of the webservice
 * @param Parameters: A list of name/value pairs
 * @param Response handler: A parse function that parses the response
-* 
-* @return A shared reference in which the response will be stored
-* 
+*
+* @return The parsedd value
+*
 * @gin-title Call web service
 * @gin-icon webservice
 */
+callHTTP2   :: !HTTPMethod !URI !String !(String -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP	:: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 

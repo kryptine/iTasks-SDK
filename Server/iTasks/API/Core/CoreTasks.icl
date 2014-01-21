@@ -1,8 +1,7 @@
 implementation module iTasks.API.Core.CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc
-import System.Time, Data.Error, System.OSError, Data.Tuple, Text.JSON
-import qualified StdList
+import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDefinition, iTasks.Framework.Shared
@@ -12,9 +11,13 @@ from Data.SharedDataSource			import qualified read, readRegister, write, writeFi
 from StdFunc					import o, id
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.API.Core.SystemData	import topLevelTasks
-from Data.Map						import qualified get
-from Data.Map						import newMap, put
-
+from Data.Map					import qualified newMap, get, put, del
+from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT
+from TCPChannels                import toByteSeq, send, class Send, instance Send TCP_SChannel_
+from TCPChannels                import :: TimeoutReport, :: Timeout, :: Port
+from TCPChannels                import instance toString IPAddress
+from TCPChannels                import class closeRChannel(..), instance closeRChannel TCP_RChannel_
+from TCPChannelClass            import :: DuplexChannel(..), closeChannel
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -118,14 +121,86 @@ where
 	visualizeView taskId repOpts value=:(v,vmask,vver) desc valueAttr iworld
 		# layout	= repLayoutRules repOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
-		# uidef		= UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls})
+		# uidef		= UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes='Data.Map'.put VALUE_ATTRIBUTE valueAttr 'Data.Map'.newMap,controls=controls})
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
+import StdMisc
 
-tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (l,[TCPSend])) (l r [TCPReceive] Bool -> (l,[TCPSend])) -> Task l | iTask l & iTask r
+tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (l,[String],Bool)) (l r [String] Bool Bool -> (l,[String],Bool)) -> Task l | iTask l & iTask r
 tcpconnect host port shared initFun commFun = Task eval
 where
-	eval event repOpts tree=:(TCInit taskId ts) iworld
-        = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree,iworld)
+	eval event repOpts tree=:(TCInit taskId ts) iworld=:{IWorld|loop={done,todo},world}
+        //Connect
+        # (mbIP,world) = lookupIPAddress host world
+        | mbIP =: Nothing
+            = (ExceptionResult (dynamic lookupErr) lookupErr, {iworld & loop = {done=done,todo=todo},world = world})
+        # (tReport,mbConn,world) = connectTCP_MT Nothing (fromJust mbIP,port) world
+        = case mbConn of
+            Nothing
+                = (ExceptionResult (dynamic connectErr) connectErr, {iworld & loop = {done=done,todo=todo},world = world})
+            Just {DuplexChannel|rChannel,sChannel}
+                # ip = fromJust mbIP
+                # task=:(ConnectionTask init _ _) = connTask taskId shared initFun commFun
+                # (out,close,state,iworld=:{IWorld|loop={done,todo},world}) = init (toString ip) {iworld & loop = {done=done,todo=todo},world = world}
+                # (sChannel,world) = case out of
+                    []          = (sChannel,world)
+                    data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
+                | close
+ 		            # world = closeRChannel rChannel world
+                    # world = closeChannel sChannel world
+                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & loop = {done=done,todo=todo},world=world})
+                | otherwise
+                    //Add connection task to todo queue
+                    # todo = todo ++ [ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} task state]
+                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & loop = {done=done,todo=todo},world=world})
+
+    eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{connectionValues}
+        # value = case 'Data.Map'.get taskId connectionValues of
+            Just (l :: l^) = Value l False
+            _              = NoValue
+        = (ValueResult value {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree, iworld)
+
+    eval event repOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{connectionValues}
+        # iworld = {iworld & connectionValues = 'Data.Map'.del taskId connectionValues}
+        = (DestroyedResult,iworld)
+
+    lookupErr = "Failed to lookup host "+++ host
+    connectErr = "Failed to connect to host "+++ host
+
+    connTask :: !TaskId (ReadOnlyShared r) (r -> (l,[String],Bool)) (l r [String] Bool Bool -> (l,[String],Bool)) -> ConnectionTask | iTask r & iTask l
+    connTask taskId=:(TaskId instanceNo _) shared initFun commFun = ConnectionTask init eval close
+    where
+        init host iworld
+		    # (val,iworld=:{connectionValues}) = 'Data.SharedDataSource'.read shared iworld
+		    = case val of
+			    Ok r
+                    # (l,data,close) = initFun r
+                    # iworld = {iworld & connectionValues = 'Data.Map'.put taskId (dynamic l) connectionValues}
+                    = (data, close, dynamic (r,l), iworld)
+			    Error e
+                    = ([],True, dynamic (toString e), iworld)
+
+        eval (Just data) ((prevr,l) :: (r^,l^)) iworld
+		    # (val,iworld=:{connectionValues}) = 'Data.SharedDataSource'.read shared iworld
+            = case val of
+                Ok r
+                    # (l,sends,close) = commFun l r [data] (r =!= prevr) False
+                    # iworld = {iworld & connectionValues = 'Data.Map'.put taskId (dynamic l) connectionValues}
+                    # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                    = (sends,close,dynamic (r,l), iworld)
+			    Error e
+                    = ([],True,dynamic (toString e), iworld)
+        eval _  state iworld = ([],False,state,iworld) //TODO: ALSO DEAL WITH CASE WHERE SHARE CHANGED, BUT NO DATA
+
+        close ((prevr,l) :: (r^,l^)) iworld
+		    # (val,iworld=:{connectionValues}) = 'Data.SharedDataSource'.read shared iworld
+            = case val of
+                Ok r
+                    # (l,_,_) = commFun l r [] (r =!= prevr) True
+                    # iworld = {iworld & connectionValues = 'Data.Map'.put taskId (dynamic l) connectionValues}
+                    # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                    = (dynamic (r,l), iworld)
+			    Error e
+                    = (dynamic (toString e), iworld)
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval

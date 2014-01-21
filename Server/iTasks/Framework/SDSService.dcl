@@ -9,7 +9,7 @@ import Data.Maybe, Data.Void, Data.Error, Text.JSON
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
                  ,!(HTTPRequest *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				 )
 

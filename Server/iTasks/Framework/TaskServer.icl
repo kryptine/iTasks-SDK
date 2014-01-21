@@ -12,7 +12,7 @@ import iTasks.Framework.Task
 //have been temporarily removed.
 :: *MainLoopInstanceDuringSelect
     = ListenerInstanceDS !Int !ConnectionTask
-    | ConnectionInstanceDS !IPAddress !*TCP_SChannel !ConnectionTask !NetTaskState
+    | ConnectionInstanceDS !IPAddress !*TCP_SChannel !ConnectionTask !Dynamic
     | BackgroundInstanceDS !BackgroundTask
 
 serve :: !Int !ConnectionTask !BackgroundTask (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
@@ -91,25 +91,33 @@ where
 
 process :: !Int [(!Int,!SelectResult)] !*IWorld -> *IWorld
 process i chList iworld=:{loop={done,todo=[]}} = iworld
-process i chList iworld=:{loop={done,todo=[ListenerInstance port listener nt=:(ConnectionTask init _):todo]},world}
+process i chList iworld=:{loop={done,todo=[ListenerInstance port listener nt=:(ConnectionTask init _ _):todo]},world}
     # (mbSelect,chList) = checkSelect i chList
     | mbSelect =:(Just _)
  	    # (tReport, mbNewConn, listener, world)   = receive_MT (Just 0) listener world
         | tReport == TR_Success
-            # (ip,conn)     = fromJust mbNewConn
-            # (out,close,state,iworld=:{loop={todo,done}}) = init (toString ip) {iworld & loop={done=done,todo=todo},world=world}
-            //TODO Send output and/or close
-            # todo          = todo ++ [ConnectionInstance ip conn nt state]
-            = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}}
+            # (ip,{rChannel,sChannel}) = fromJust mbNewConn
+            # (out,close,state,iworld=:{loop={todo,done},world}) = init (toString ip) {iworld & loop={done=done,todo=todo},world=world}
+            # (sChannel,world) = case out of
+                []          = (sChannel,world)
+                data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
+            | close
+ 		        # world = closeRChannel rChannel world
+                # world = closeChannel sChannel world
+                = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
+            # todo          = todo ++ [ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} nt state]
+            = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
         = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
     = process (i+1) chList {iworld & loop={done=[ListenerInstance port listener nt:done],todo=todo}, world=world}
-process i chList iworld=:{loop={done,todo=[ConnectionInstance ip {rChannel,sChannel} nt=:(ConnectionTask _ eval) state:todo]},world}
+process i chList iworld=:{loop={done,todo=[ConnectionInstance ip {rChannel,sChannel} nt=:(ConnectionTask _ eval close) state:todo]},world}
     # (mbSelect,chList) = checkSelect i chList
     //Check if disconnected
     | mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
+        //Call disconnect function
+        # (state,iworld=:{world}) = close state {iworld & loop={done=done,todo=todo},world=world}
  	    # world = closeRChannel rChannel world
         # world = closeChannel sChannel world
-        = process (i+1) chList {iworld & loop={done=done,todo=todo},world=world}
+        = process (i+1) chList {iworld & world=world}
     //Read data
     # (data,rChannel,world) = case mbSelect of
         Just SR_Available
@@ -122,10 +130,9 @@ process i chList iworld=:{loop={done,todo=[ConnectionInstance ip {rChannel,sChan
         = eval data state {iworld & loop={done=done,todo=todo},world=world}
     //Send data if produced
     # (sChannel,world) = case out of
-        Just data   = send (toByteSeq data) sChannel world
-        _           = (sChannel,world)
+        []          = (sChannel,world)
+        data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
     | close
-        //Close connection
  		# world = closeRChannel rChannel world
         # world = closeChannel sChannel world
         = process (i+1) chList {iworld & loop={done=done,todo=todo},world=world}

@@ -19,7 +19,7 @@ import StdMisc, StdDebug, graph_to_sapl_string
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
                  ,!(HTTPRequest *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				 )
 
@@ -62,8 +62,8 @@ where
 	jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json")], rsp_data = toString json}			
 				
-	dataFun :: !HTTPRequest !(Maybe {#Char}) !ConnectionType !*IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld)
-    dataFun req mbData instanceNo iworld = (mbData, True, instanceNo, iworld)
+	dataFun :: !HTTPRequest !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld)
+    dataFun req mbData instanceNo iworld = ([], True, instanceNo, iworld)
 
     disconnectFun :: !HTTPRequest !ConnectionType !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld

@@ -57,21 +57,8 @@ derive gEq				Task
 from Internet.HTTP import :: HTTPRequest
 from iTasks.Framework.Engine import :: ConnectionType
 
-:: ConnectionTask = ConnectionTask !(String *IWorld -> *(!Maybe String,!Bool,!NetTaskState,!*IWorld)) !((Maybe String) NetTaskState *IWorld -> *(!Maybe String, !Bool, !NetTaskState, !*IWorld))
+:: ConnectionTask = ConnectionTask !(String *IWorld -> *(![String],!Bool,!Dynamic,!*IWorld)) !((Maybe String) Dynamic *IWorld -> *([String], !Bool, !Dynamic, !*IWorld)) !(Dynamic *IWorld -> *(!Dynamic, !*IWorld))
 :: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
-
-:: NetTaskState
-    = NTIdle String Timestamp
-    | NTReadingRequest NTHttpReqState
-	| NTProcessingRequest HTTPRequest ConnectionType
-
-:: NTHttpReqState =
-    { request       :: HTTPRequest
-    , method_done   :: Bool
-    , headers_done  :: Bool
-    , data_done     :: Bool
-    , error         :: Bool
-    }
 
 /**
 * 'downgrades' an event to a refresh, but keeps the client given event number

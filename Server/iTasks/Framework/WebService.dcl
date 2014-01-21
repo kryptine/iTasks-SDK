@@ -14,13 +14,13 @@ import iTasks.Framework.Generic
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
 				,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 				,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				)] -> ConnectionTask
 
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 				 (!(String -> Bool)
                  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (!Maybe {#Char}, !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
 				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				 ) | iTask a

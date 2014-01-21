@@ -3,17 +3,17 @@ implementation module iTasks.API.Core.IntegrationTasks
 import StdInt, StdFile, StdTuple, StdList
 
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError, Text.Encodings.UrlEncoding, Text, Data.Tuple, Text.JSON
-import Data.Either, System.OS
+import Data.Either, System.OS, Text.URI, Internet.HTTP
 
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.Shared
 import iTasks.Framework.Generic.Interaction
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.CoreTasks, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.SystemData
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.CommonCombinators //TODO don't import from Common in Core
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
-from Internet.HTTP import :: HTTPMethod(..)
 from System.File				import qualified fileExists, readFile
 from Data.Map				import qualified newMap, put
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
@@ -101,9 +101,32 @@ where
 				= (Error (dynamic ex,toString ex), {IWorld|iworld & world = world})
 			Ok i	= (Ok i, {IWorld|iworld & world = world})
 
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
-callRPCHTTP method url params transformResult
-	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
+import StdMisc
+
+callHTTP2 :: !HTTPMethod !URI !String !(String -> (MaybeErrorString a)) -> Task a | iTask a
+callHTTP2 method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
+    =   tcpconnect uriRegName port null onConnect onData
+    @?  taskResult
+where
+    port = fromMaybe 80 uriPort
+    path = uriPath +++ maybe "" (\q -> ("?"+++q)) uriQuery +++ maybe "" (\f -> ("#"+++f)) uriFragment
+    //VERY SIMPLE HTTP 1.0 Request
+    req = toString method +++ " " +++ path +++ " HTTP/1.0\r\n\r\n"+++data
+
+    onConnect _ = (Left [],[req],False)
+    onData (Left acc) _ events shareChanged connectionClosed
+        | connectionClosed
+            = case parseFun (concat (acc ++ events)) of
+                Ok a    = (Right a,[],True)
+                _       = abort "TODO: FIX CALL HTTP2"
+        | otherwise
+            = (Left (acc ++ events),[],False)
+
+    taskResult (Value (Right a) _)  = Value a True
+    taskResult _                    = NoValue
+
+callHTTP2 _ url _ _
+    = throw ("Invalid url: " +++ toString url)
 
 //TODO: Add proper cleanup
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
@@ -143,6 +166,11 @@ where
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
+
+callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
+callRPCHTTP method url params transformResult
+	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
+
 
 curlError :: Int -> String
 curlError exitCode = 
