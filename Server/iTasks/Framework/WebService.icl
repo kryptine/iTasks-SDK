@@ -68,12 +68,12 @@ where
             _                   = False
 
 	reqFun` :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld) | iTask a
-	reqFun` url task defaultFormat req iworld 
+	reqFun` url task defaultFormat req iworld=:{server}
 		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
-		= reqFun url task defaultFormat req {IWorld|iworld & serverURL = server_url}
+		= reqFun url task defaultFormat req {IWorld|iworld & server = {server & serverURL = server_url}}
 
 	reqFun :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld) | iTask a
-	reqFun url task defaultFormat req iworld=:{IWorld|application,config,customCSS}
+	reqFun url task defaultFormat req iworld=:{IWorld|server={serverName,customCSS},config}
 		//Check for uploads
 		| hasParam "upload" req
 			# uploads = toList req.arg_uploads
@@ -106,7 +106,7 @@ where
                         (Error err, iworld)
 				            = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) application customCSS, Nothing, iworld)
+				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) serverName customCSS, Nothing, iworld)
                 JSONPlain
                     # (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
 				    = case mbResult of
@@ -121,7 +121,7 @@ where
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
                 [instanceNo,instanceKey]
-                    = (itwcStartResponse url instanceNo instanceKey (theme []) application customCSS, Nothing, iworld)
+                    = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld

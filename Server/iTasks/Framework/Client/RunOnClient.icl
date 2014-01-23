@@ -39,20 +39,15 @@ gen_res {TaskState|value=Just NoValue} = NoValue
 gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
 
 roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
-roc_generator task (TaskId instanceNo _) _ iworld=:{currentSession}
-
-	# currentInstance = fromJust currentSession
+roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Just currentInstance}}
     # currentSession = "SESSIONID-" +++ toString currentInstance
-
 	# gui = TaskletTUI {TaskletTUI|instanceNo = instanceNo, controllerFunc = controllerFunc}
-	
 	# state = 	{ TaskState
 				| instanceNo = instanceNo
 				, sessionId  = currentSession
 				, taskId 	 = Nothing
 				, task		 = task
 				, value 	 = Nothing}
-	
 	= (gui, state, iworld)
 
 // Init
@@ -145,38 +140,41 @@ createClientIWorld serverURL currentInstance
         # world = newWorld
         # (Timestamp seed,world) = time world
 		= {IWorld
-		  |application			= "application"
-		  ,build				= "build"
-		  ,serverURL			= serverURL
-          ,customCSS            = False
+		  |server =
+            {serverName = "application"
+		    ,serverURL	= serverURL
+		    ,buildID    = "build"
+		    ,paths      = {appDirectory  = locundef "appDirectory"
+                          ,dataDirectory = locundef "dataDirectory"
+                          ,sdkDirectory  = locundef "sdkDirectory"
+                          ,publicWebDirectories = locundef "publicWebDirectories" }
+            ,customCSS  = False }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
-		  ,systemDirectories	= {appDirectory  = locundef "appDirectory"
-		  						  ,dataDirectory = locundef "dataDirectory"
-		  						  ,sdkDirectory  = locundef "sdkDirectory"
-    							  ,publicWebDirectories = locundef "publicWebDirectories"}
-		  ,taskTime				= 0
-		  ,timestamp			= Timestamp 1
-		  ,currentLocalDateTime	= DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
-		  ,currentUTCDateTime	= DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
-		  ,currentUser			= SystemUser
-		  ,currentInstance		= currentInstance
-		  ,currentSession		= Just currentInstance
-		  ,currentAttachment	= []
-		  ,nextTaskNo			= 6666
-		  ,localShares			= 'Data.Map'.newMap
-		  ,localLists			= 'Data.Map'.newMap
-		  ,localTasks			= 'Data.Map'.newMap
-		  ,eventRoute			= 'Data.Map'.newMap
-		  ,readShares			= []
-		  ,editletDiffs			= 'Data.Map'.newMap
+          ,current =
+		    {timestamp			= Timestamp 1
+		    ,utcDateTime	    = DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
+		    ,localDateTime	    = DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
+            ,taskTime			= 0
+		    ,taskInstance	    = currentInstance
+		    ,sessionInstance	= Just currentInstance
+		    ,attachmentChain    = []
+		    ,nextTaskNo			= 6666
+		    ,user               = SystemUser
+		    ,localShares		= 'Data.Map'.newMap
+		    ,localLists			= 'Data.Map'.newMap
+		    ,localTasks			= 'Data.Map'.newMap
+		    ,eventRoute			= 'Data.Map'.newMap
+		    ,readShares			= []
+		    ,editletDiffs		= 'Data.Map'.newMap
+          }
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,workQueue			= []
 		  ,uiMessages			= 'Data.Map'.newMap
-		  ,connectionValues     = 'Data.Map'.newMap
 		  ,shutdown				= False
           ,random               = genRandInt seed
-          ,loop                 = {done=[],todo=[]}
+          ,io                   = {done=[],todo=[]}
+		  ,ioValues             = 'Data.Map'.newMap
 		  ,world				= world
 		  ,resources			= Nothing
 		  ,onClient				= True

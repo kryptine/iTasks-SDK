@@ -1,5 +1,5 @@
 implementation module iTasks.API.Common.ImportTasks
- 
+
 import StdBool, _SystemArray, StdInt
 import Text.Encodings.MIME, Text, Text.CSV, System.File, Data.Map, Text.JSON, Data.Error, System.FilePath
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore
@@ -52,7 +52,7 @@ importJSONFileWith parsefun filename = mkInstantTask eval
 where
 	eval taskId iworld = readJSON taskId filename parsefun iworld
 	
-fileTask taskId filename f iworld=:{IWorld|taskTime,world}
+fileTask taskId filename f iworld=:{IWorld|current={taskTime},world}
 	# (ok,file,world)	= fopen filename FReadData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (res,file)		= f file
@@ -68,7 +68,7 @@ readAll file
 		# (rest,file) = readAll file
 		= (chunk +++ rest,file)
 
-readJSON taskId filename parsefun iworld=:{IWorld|taskTime,world}
+readJSON taskId filename parsefun iworld=:{IWorld|current={taskTime},world}
 	# (ok,file,world)	= fopen filename FReadData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
@@ -78,13 +78,13 @@ readJSON taskId filename parsefun iworld=:{IWorld|taskTime,world}
 		Just a 	= (Ok a, {IWorld|iworld & world = world})
 		Nothing	= (parseException filename, {IWorld|iworld & world = world})
 		
-readDocument taskId filename iworld=:{IWorld|taskTime,world}
+readDocument taskId filename iworld=:{IWorld|current={taskTime},world}
 	# (ok,file,world)	= fopen filename FReadData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
 	| not ok				= (closeException filename,{IWorld|iworld & world = world})
-	# name					= dropDirectory filename 
+	# name					= dropDirectory filename
 	# mime					= extensionToMimeType (takeExtension name)
 	# (mbDocument,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
 	= case mbDocument of

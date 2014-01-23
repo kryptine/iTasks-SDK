@@ -32,8 +32,8 @@ where
 worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e & toString e
 worldIO f = mkInstantTask eval
 where
-	eval taskId iworld=:{taskTime,world}
-		= case f world of 
+	eval taskId iworld=:{current={taskTime},world}
+		= case f world of
 			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
 			(Error e,world)	= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 
@@ -49,11 +49,11 @@ where
 			Ok handle
 		        = eval event repOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
-	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,currentInstance}
+	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={taskInstance}}
 		| stable
-            # status        = fromJust (fromJSON encv) 
+            # status        = fromJust (fromJSON encv)
             # (rep,iworld)  = makeRep taskId repOpts status iworld
-            # iworld = queueWork (Evaluate currentInstance,Nothing) iworld
+            # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
 			= (ValueResult (Value status True) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state, iworld)
 		| otherwise
             //Check status
@@ -66,7 +66,7 @@ where
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
                     # (rep,iworld)  = makeRep taskId repOpts status {IWorld|iworld & world = world}
-                    # iworld = queueWork (Evaluate currentInstance,Nothing) iworld
+                    # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
                     = (ValueResult (Value status stable) {TaskInfo|lastEvent=lastEvent,refreshSensitive=True} rep state, iworld)
 
 	eval event repAs (TCDestroy _) iworld
@@ -93,7 +93,7 @@ where
 callInstantProcess :: !FilePath ![String] !(Maybe FilePath) -> Task Int
 callInstantProcess cmd args dir = mkInstantTask eval
 where
-	eval taskId iworld=:{taskTime,world}
+	eval taskId iworld=:{current={taskTime},world}
 		# (res,world)	= 'System.Process'.callProcess cmd args dir world
 		= case res of
 			Error e
@@ -146,9 +146,9 @@ where
 		
 	initRPC = mkInstantTask eval
 	
-	eval taskId iworld=:{IWorld|taskTime,build,systemDirectories={sdkDirectory,dataDirectory},world}
-		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "request")
-		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
+	eval taskId iworld=:{IWorld|current={taskTime},server={buildID,paths={sdkDirectory,dataDirectory}},world}
+		# infile  = dataDirectory </> "tmp-" +++ buildID </> (mkFileName taskId "request")
+		# outfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
 			# ex = RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))
@@ -269,8 +269,8 @@ httpDownloadDocumentTo url path
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{build,systemDirectories={dataDirectory}}
-		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+	eval event repOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
+		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
 		# (mbErr,world)		= createDirectory tmpdir world
 		= case mbErr of
@@ -279,11 +279,11 @@ where
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
 
-	eval event repOpts (TCShared taskId ts treea) iworld=:{build,systemDirectories={dataDirectory},taskTime,world}
-		# tmpdir 					= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+	eval event repOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
+		# tmpdir 					= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (exception (fromError mbCurdir), {IWorld|iworld & world = world})
-        # (mbErr,world)             = setCurrentDirectory tmpdir world 
+        # (mbErr,world)             = setCurrentDirectory tmpdir world
         | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
@@ -298,9 +298,9 @@ where
 				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
 			ExceptionResult e str = (ExceptionResult e str,{IWorld|iworld & world = world})
 	
-	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{build,systemDirectories={dataDirectory}} //First destroy inner task
-		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
-		# (Task evala)		= taskfun tmpdir 
+	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
+		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
+		# (Task evala)		= taskfun tmpdir
 		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
 		= (resa,iworld)
@@ -311,12 +311,12 @@ where
 	//Inline copy of function from CoreCombinators.icl
 	//I don't want to export it there because CoreCombinators is an API module
 	getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-	getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
+	getNextTaskId iworld=:{current=current=:{taskInstance,nextTaskNo}} = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|taskTime,config}
+	eval taskId iworld=:{IWorld|current={taskTime},config}
 		# sender		= toEmail sender
 		# recipients	= map toEmail recipients
 		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients

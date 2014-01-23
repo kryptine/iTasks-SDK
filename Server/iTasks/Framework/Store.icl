@@ -9,7 +9,7 @@ import Data.SharedDataSource
 
 import iTasks.Framework.Client.JSStore
 
-from iTasks.Framework.IWorld		import :: IWorld {onClient,build,world,systemDirectories,application}, :: SystemDirectories(..), :: Work, :: UIMessage, :: Resource
+from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: ServerInfo(..), :: SystemPaths(..), :: Work, :: UIMessage, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState		import :: TaskListEntry
@@ -34,7 +34,7 @@ where
 		= (Ok Void,storeValue namespace storeId v iworld)
 
 storePath :: !FilePath !String -> FilePath
-storePath dataDir build = dataDir </> "store-" +++ build
+storePath dataDir buildID = dataDir </> "store-" +++ buildID
 
 safeName :: !String -> String
 safeName s = copy 0 (createArray len '\0') 
@@ -54,8 +54,8 @@ storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | 
 storeValueAs format namespace key value iworld=:{IWorld|onClient=True}
 	= jsStoreValue namespace key value iworld
 
-storeValueAs format namespace key value iworld=:{IWorld|build,systemDirectories={dataDirectory}}
-	= writeToDisk namespace key {StoreItem|format=format,content=content} (storePath dataDirectory build) iworld
+storeValueAs format namespace key value iworld=:{IWorld|server={buildID,paths={dataDirectory}}}
+	= writeToDisk namespace key {StoreItem|format=format,content=content} (storePath dataDirectory buildID) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
@@ -65,8 +65,8 @@ storeBlob :: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
 storeBlob namespace key blob iworld=:{IWorld|onClient=True}
 	= jsStoreValue namespace key blob iworld
 	
-storeBlob namespace key blob iworld=:{IWorld|build,systemDirectories={dataDirectory}}
-	= writeToDisk namespace key {StoreItem|format=SFDynamic,content=blob} (storePath dataDirectory build) iworld
+storeBlob namespace key blob iworld=:{IWorld|server={buildID,paths={dataDirectory}}}
+	= writeToDisk namespace key {StoreItem|format=SFDynamic,content=blob} (storePath dataDirectory buildID) iworld
 
 writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
 writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|world}
@@ -96,11 +96,11 @@ loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDec
 loadValue namespace key iworld=:{IWorld|onClient=True}
 	= jsLoadValue namespace key iworld
 	
-loadValue namespace key iworld=:{IWorld|build,systemDirectories={dataDirectory}}
+loadValue namespace key iworld=:{IWorld|server={buildID,paths={dataDirectory}}}
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue (not old) item of
-			Just v	= (Just v, if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
+			Just v	= (Just v, if old (writeToDisk namespace key item (storePath dataDirectory buildID) iworld) iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
@@ -119,8 +119,8 @@ unpackValue allowFunctions {StoreItem|format=SFDynamic,content}
 		Error _  = Nothing
 
 loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!Bool,!*IWorld)
-loadStoreItem namespace key iworld=:{build,systemDirectories={dataDirectory},world}
-	= case loadFromDisk namespace key (storePath dataDirectory build) world of
+loadStoreItem namespace key iworld=:{server={buildID,paths={dataDirectory}},world}
+	= case loadFromDisk namespace key (storePath dataDirectory buildID) world of
 		(Just item,world)	= (Just item,False,{iworld & world = world})
 		(Nothing,world)	
 			| namespace == NS_APPLICATION_SHARES
@@ -133,17 +133,17 @@ loadBlob :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe {#Char}, !*IWorld)
 loadBlob namespace key iworld=:{onClient=True}
 	= jsLoadValue namespace key iworld
 
-loadBlob namespace key iworld=:{build,systemDirectories={dataDirectory},world}
-	= case loadFromDisk namespace key (storePath dataDirectory build) world of
+loadBlob namespace key iworld=:{server={buildID,paths={dataDirectory}},world}
+	= case loadFromDisk namespace key (storePath dataDirectory buildID) world of
 		(Just {StoreItem|content},world)	= (Just content, {IWorld|iworld & world = world})
 		(Nothing,world)						= (Nothing, {IWorld|iworld & world = world})
 	
 //Look in stores of previous builds for a version of the store that can be migrated
 findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
-findOldStoreItem namespace key iworld=:{application,build,systemDirectories={appDirectory,dataDirectory},world}
+findOldStoreItem namespace key iworld=:{server={serverName,paths={appDirectory,dataDirectory}},world}
 	# (builds,world) = readBuilds dataDirectory world
 	  //Also Look in 'old' data directory
-	# (deprBuilds,world) = readBuilds (appDirectory </> application) world
+	# (deprBuilds,world) = readBuilds (appDirectory </> serverName) world
 	#  builds = builds ++ deprBuilds
 	# (mbItem,world) = searchStoreItem (sortBy (\x y -> x > y) builds) world
 	= (mbItem,{IWorld|iworld & world = world})
@@ -202,13 +202,13 @@ deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
 
 deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{build,systemDirectories={dataDirectory},world}
+deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{server={buildID,paths={dataDirectory}},world}
 	//Delete items from disk
 	# world = deleteFromDisk world
 	= {iworld & world = world}
 where
 	deleteFromDisk world
-		# storeDir		= storePath dataDirectory build </> namespace
+		# storeDir		= storePath dataDirectory buildID </> namespace
 		# (res, world)	= readDirectory storeDir world
 		| isError res = abort ("Cannot read store directory " +++ storeDir +++ ": " +++ snd (fromError res))
 		= unlink storeDir (fromOk res) world

@@ -20,19 +20,19 @@ sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just d
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where
-	read iworld=:{currentLocalDateTime,timestamp=Timestamp ts}
-		= ((currentLocalDateTime, Timestamp (ts + 1)), iworld)
+	read iworld=:{current={localDateTime,timestamp=Timestamp ts}}
+		= ((localDateTime, Timestamp (ts + 1)), iworld)
 		
 currentTime :: ReadOnlyShared Time
 currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
 where
-	read iworld=:{currentLocalDateTime=DateTime _ time,timestamp=Timestamp ts}
+	read iworld=:{current={localDateTime=DateTime _ time,timestamp=Timestamp ts}}
 		= ((time, Timestamp (ts + 1)), iworld)
 		
 currentDate :: ReadOnlyShared Date
 currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
 where
-	read iworld=:{currentLocalDateTime=DateTime date time,timestamp=Timestamp ts}
+	read iworld=:{current={localDateTime=DateTime date time,timestamp=Timestamp ts}}
 		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
 
 	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
@@ -40,19 +40,19 @@ where
 currentUTCDateTime :: ReadOnlyShared DateTime
 currentUTCDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDateTime" read
 where
-	read iworld=:{currentUTCDateTime,timestamp=Timestamp ts}
-		= ((currentUTCDateTime, Timestamp (ts + 1)), iworld)
+	read iworld=:{current={utcDateTime,timestamp=Timestamp ts}}
+		= ((utcDateTime, Timestamp (ts + 1)), iworld)
 
 currentUTCTime :: ReadOnlyShared Time
 currentUTCTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCTime" read
 where
-	read iworld=:{currentUTCDateTime=DateTime _ time,timestamp=Timestamp ts}
+	read iworld=:{current={utcDateTime=DateTime _ time,timestamp=Timestamp ts}}
 		= ((time, Timestamp (ts + 1)), iworld)
 
 currentUTCDate :: ReadOnlyShared Date
 currentUTCDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDate" read
 where
-	read iworld=:{currentUTCDateTime=DateTime date time,timestamp=Timestamp ts}
+	read iworld=:{current={utcDateTime=DateTime date time,timestamp=Timestamp ts}}
 		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
 
 	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
@@ -86,7 +86,7 @@ isSession {TIMeta|instanceType=SessionInstance _}	= True
 isSession _						 	                = False
 
 currentUser :: ReadOnlyShared User
-currentUser = createReadOnlySDS (\iworld=:{currentUser} -> (currentUser,iworld))
+currentUser = createReadOnlySDS (\iworld=:{current={user}} -> (user,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare
@@ -94,17 +94,17 @@ currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentI
 applicationName :: ReadOnlyShared String
 applicationName = createReadOnlySDS appName
 where
-	appName iworld=:{IWorld|application} = (application,iworld)
+	appName iworld=:{IWorld|server={serverName}} = (serverName,iworld)
 
 applicationBuild:: ReadOnlyShared String
 applicationBuild  = createReadOnlySDS appBuild
 where
-	appBuild iworld=:{IWorld|build} = (build,iworld)
+	appBuild iworld=:{IWorld|server={buildID}} = (buildID,iworld)
 
 applicationDirectory :: ReadOnlyShared FilePath
 applicationDirectory = createReadOnlySDS appDir
 where
-	appDir iworld=:{IWorld|systemDirectories={appDirectory}} = (appDirectory,iworld)
+	appDir iworld=:{IWorld|server={paths={appDirectory}}} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
 applicationConfig = createReadOnlySDS config

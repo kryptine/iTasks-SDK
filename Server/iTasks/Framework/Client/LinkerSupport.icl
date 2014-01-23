@@ -72,12 +72,12 @@ taskletLinker :: !st 							// state
 	 ,!*IWorld)
 
 taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
-						iworld=:{world,currentInstance,jsCompilerState}
+						iworld=:{world,current={taskInstance},jsCompilerState}
 						
 	// unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap))
+	# linkerstate = (loaderstate, ftmap, maybe newSet id (get taskInstance skipmap))
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 
@@ -144,7 +144,7 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 	# (_, world) = writeFile "debug.js" (toString js_lib) world
 
 	= (js_ST, toString js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, 
-			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
+			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put taskInstance skipset skipmap)})
 
 editletLinker :: 
 	![(!String, !String, EditletEventHandlerFunc a)]	// event handlers
@@ -165,9 +165,9 @@ editletLinker ::
 	 ,!*IWorld)
 
 editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
-						iworld=:{world,currentSession=Nothing} = ("",[],"","","","","",iworld)
+						iworld=:{world,current={sessionInstance=Nothing}} = ("",[],"","","","","",iworld)
 editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
-						iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
+						iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState}
 
 	// unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
@@ -219,8 +219,8 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
-diffLinker cdf idf iworld=:{world,currentSession=Nothing} = ("","","",iworld)
-diffLinker cdf idf iworld=:{world,currentSession=Just currentInstance,jsCompilerState}
+diffLinker cdf idf iworld=:{world,current={sessionInstance=Nothing}} = ("","","",iworld)
+diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState}
     // unpack "compiler state"
 	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
 	// create per sesssion "linker state"

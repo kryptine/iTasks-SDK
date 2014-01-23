@@ -9,6 +9,7 @@ from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: Ins
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry
+from iTasks.Framework.Task              import :: TaskValue
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
 from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
@@ -23,27 +24,11 @@ from Sapl.Target.Flavour import :: Flavour
 from Sapl.SaplParser import :: ParserState
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
-:: *IWorld		=	{ application			:: !String									// The name of the application	
-					, build					:: !String									// The date/time identifier of the application's build
-					, serverURL				:: !String									// URL of the server like "//any.com:80"
-                    , customCSS             :: !Bool                                    // Does the application use a custom css stylesheet
-					, config				:: !Config									// The server configuration
-                    , systemDirectories     :: !SystemDirectories                       // Filesystem paths that are used by iTasks
+:: *IWorld		=	{ server                :: !ServerInfo                              // Static server info, initialized at startup
+					, config				:: !Config									// Server configuration
+                    , current               :: !TaskEvalState                           // Shared state during task evaluation
 
-					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
-					, timestamp				:: !Timestamp								// The timestamp of the current request	
-					, currentLocalDateTime	:: !DateTime								// The local date & time of the current request
-					, currentUTCDateTime	:: !DateTime								// The local date & time of the current request
-					, currentUser			:: !User									// The current user
-					, currentInstance		:: !InstanceNo								// The current evaluated task instance
-                    , currentSession        :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
-                    , currentAttachment     :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
-					, nextTaskNo			:: !TaskNo									// The next task number to assign
-					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
-					, localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
-					, localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
-					, eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
-					, readShares			:: ![String]								// The IDs of shares from which was read
+                    , random                :: [Int]                                    // Infinite random stream
 
 					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)
 
@@ -53,34 +38,59 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Maybe ParserState						// Some information collected by the parser for the code generator
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
-                    , editletDiffs          :: !UIEditletDiffs
 
-					, workQueue				:: ![(!Work,!Maybe Timestamp)]
-					, uiMessages            :: !Map InstanceNo [UIMessage]				// Messages for communicating with the user interfaces of sessions
-                    , connectionValues      :: !Map TaskId Dynamic                      // Temporary task values for low-level connection tasks
-					, shutdown				:: !Bool									// Flag that signals the server function to shut down
-                    , random                :: [Int]                                    // Infinite random stream
-                    , loop                  :: !*MainLoop                               // The mainloop
+					, workQueue				:: ![(!Work,!Maybe Timestamp)]              // (Instance input)
+					, uiMessages            :: !Map InstanceNo [UIMessage]				// (Instance output)
+
+                    , io                    :: !*IOTasks                                // The low-level input/output tasks
+                    , ioValues              :: !Map TaskId (TaskValue Dynamic)          // Task values of low-level tasks, indexed by the high-level taskid that it is linked to
 					, world					:: !*World									// The outside world
 
                     //Experimental database connection cache
                     , resources             :: !*(Maybe *Resource)
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
+					, shutdown				:: !Bool									// Flag that signals the server function to shut down
 					}
 
-:: SystemDirectories =
-    { appDirectory			:: !FilePath								// Location of the application's executable
-	, dataDirectory			:: !FilePath								// Location of the applications data files
-	, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
-    , publicWebDirectories  :: ![FilePath]                              // List of directories that contain files that are served publicly by the iTask webserver
+:: ServerInfo =
+    { serverName      :: !String				// The name of the server application
+	, serverURL		  :: !String				// URL of the server like "//any.com:80"
+	, buildID		  :: !String				// The date/time identifier of the server's build
+    , paths           :: !SystemPaths           // Filesystem paths that are used by iTasks
+    , customCSS       :: !Bool                  // Does the application use a custom css stylesheet
     }
 
-:: *MainLoop =
-    { done :: !*[MainLoopInstance]
-    , todo :: !*[MainLoopInstance]
+:: SystemPaths =
+    { appDirectory			:: !FilePath		// Location of the application's executable
+	, dataDirectory			:: !FilePath		// Location of the applications data files
+	, sdkDirectory			:: !FilePath		// Location of the iTasks SDK
+    , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
     }
 
-:: *MainLoopInstance
+:: TaskEvalState =
+	{ timestamp				:: !Timestamp								// The timestamp of the current request	
+    , utcDateTime	        :: !DateTime								// The local date & time of the current request
+    , localDateTime	        :: !DateTime								// The local date & time of the current request
+    , taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
+	, taskInstance		    :: !InstanceNo								// The current evaluated task instance
+    , sessionInstance       :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
+    , attachmentChain       :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
+    , nextTaskNo			:: !TaskNo									// The next task number to assign
+    , user			        :: !User									// The current user
+    , localShares			:: !Map TaskId JSONNode						// The set of locally shared values
+    , localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
+    , localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
+    , eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
+    , readShares			:: ![String]								// The IDs of shares from which was read
+    , editletDiffs          :: !UIEditletDiffs                          // Diffs of editlets
+    }
+
+:: *IOTasks =
+    { done :: !*[IOTaskInstance]
+    , todo :: !*[IOTaskInstance]
+    }
+
+:: *IOTaskInstance
     = ListenerInstance !Int !*TCP_Listener !ConnectionTask
     | ConnectionInstance !IPAddress !*TCP_DuplexChannel !ConnectionTask !Dynamic
     | BackgroundInstance !BackgroundTask

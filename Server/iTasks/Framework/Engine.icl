@@ -191,39 +191,43 @@ initIWorld sdkDir world
 	# (flavour, world)		= readFlavour sdkDir world
 	# (Timestamp seed, world)	= time world
 	= {IWorld
-	  |application			= appName
-	  ,build				= build
-	  ,serverURL			= "//127.0.0.1:80"
-      ,customCSS            = customCSS
-	  ,systemDirectories    =
+	  |server =
+        {serverName = appName
+	    ,serverURL	= "//127.0.0.1:80"
+	    ,buildID	= build
+        ,paths      =
             {appDirectory		    = appDir
 	        ,sdkDirectory		    = sdkDir
 	        ,dataDirectory		    = dataDir
             ,publicWebDirectories   = [sdkDir </> "Client", appDir </> "Static":extensionsWeb]
             }
+        ,customCSS  = customCSS
+        }
 	  ,config				= initialConfig
-	  ,taskTime				= 0
-	  ,timestamp			= timestamp
-	  ,currentLocalDateTime	= localDateTime
-	  ,currentUTCDateTime	= utcDateTime
-	  ,currentUser			= AnonymousUser ""
-	  ,currentInstance		= 0
-      ,currentSession       = Nothing
-      ,currentAttachment    = []
-	  ,nextTaskNo			= 0
-	  ,localShares			= newMap
-	  ,localLists			= newMap
-	  ,localTasks			= newMap
-      ,eventRoute			= newMap
-	  ,readShares			= []
+      ,current =
+	    {TaskEvalState
+	    |timestamp			    = timestamp
+    	,utcDateTime	        = utcDateTime
+	    ,localDateTime	        = localDateTime
+        ,taskTime				= 0
+	    ,taskInstance		    = 0
+        ,sessionInstance        = Nothing
+        ,attachmentChain        = []
+	    ,nextTaskNo			    = 0
+	    ,user			        = AnonymousUser ""
+	    ,localShares			= newMap
+	    ,localLists			    = newMap
+	    ,localTasks			    = newMap
+        ,eventRoute			    = newMap
+	    ,readShares			    = []
+        ,editletDiffs           = newMap }
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
-      ,editletDiffs         = newMap
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
-      ,connectionValues     = newMap
 	  ,shutdown				= False
-      ,loop                 = {done = [], todo = []}
+      ,io                   = {done = [], todo = []}
+      ,ioValues             = newMap
 	  ,world				= world
       ,resources            = Nothing
       ,random               = genRandInt seed
@@ -263,7 +267,7 @@ finalizeIWorld iworld=:{IWorld|world} = world
 // This request handler is used for serving system wide javascript, css, images, etc...
 
 handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-handleStaticResourceRequest req iworld=:{IWorld|systemDirectories={publicWebDirectories}}
+handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
     = serveStaticResource req publicWebDirectories iworld
 where
     serveStaticResource req [] iworld
@@ -272,7 +276,7 @@ where
 	    # filename		= d +++ filePath req.req_path
 	    # type			= mimeType filename
 	    # (mbContent, world)	= readFile filename world
-	    | isOk mbContent		= ({ okResponse & 
+	    | isOk mbContent		= ({ okResponse &
 	    							 rsp_headers = [("Content-Type", type),
 												    ("Content-Length", toString (size (fromOk mbContent)))]
 							   	   , rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})

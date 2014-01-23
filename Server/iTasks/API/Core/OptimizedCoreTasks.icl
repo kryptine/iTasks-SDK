@@ -26,7 +26,7 @@ where
 				# (l,(v,mask))	= initFun r
 				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{taskTime}
+	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
@@ -57,10 +57,10 @@ where
 		# (l,(v,mask))	= initVal
 		= eval event repOpts (TCInteractLocal taskId ts (toJSON l) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteractLocal taskId=:(TaskId instanceNo _) ts encl encv mask) iworld=:{taskTime}
+	eval event repOpts (TCInteractLocal taskId=:(TaskId instanceNo _) ts encl encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,v)				    = (fromJust (fromJSON encl), fromJust (fromJSON encv))
-		//Determine next v by applying edit event if applicable 	
+		//Determine next v by applying edit event if applicable	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
@@ -87,7 +87,7 @@ where
 				# (v,mask)	= initFun r
 				= eval event repOpts (TCInteractViewOnly taskId ts (toJSON r) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteractViewOnly taskId=:(TaskId instanceNo _) ts encr encv mask) iworld=:{taskTime}
+	eval event repOpts (TCInteractViewOnly taskId=:(TaskId instanceNo _) ts encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (r,v)				    = (fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable
@@ -119,7 +119,7 @@ where
 		# (v,mask)	= initVal
 		= eval event repOpts (TCInteractLocalViewOnly taskId ts (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteractLocalViewOnly taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{taskTime}
+	eval event repOpts (TCInteractLocalViewOnly taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# v				        = fromJust (fromJSON encv)
 		//Determine next v by applying edit event if applicable
@@ -235,7 +235,7 @@ where
 				# v = toView r
 				# (l,v,mask) = (r,v,Touched)
 				= eval event repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
+	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  r = fromJust (fromJSON encr)
@@ -268,7 +268,7 @@ where
 		# v = initFun
 		# mask = Untouched
 		= eval event repOpts (TCInteract1 taskId ts (toJSON v) mask) iworld
-	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{taskTime}
+	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{current={taskTime}}
 		//Decode stored value
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
@@ -298,7 +298,7 @@ where
 		  l = m
 		  mask = Touched
 		= eval event repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
-	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
+	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
@@ -330,7 +330,7 @@ where
 		  v = Display (tof l)
 		  mask = Touched
 		= eval event repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
-	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
+	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  v = Display (tof l)

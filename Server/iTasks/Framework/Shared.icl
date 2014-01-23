@@ -47,21 +47,18 @@ where
 			(Error e) = (Error e, iworld)
 
 	write val iworld
-		= 'Data.SharedDataSource'.write (toJSON val) shared iworld 
+		= 'Data.SharedDataSource'.write (toJSON val) shared iworld
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld&random = drop 32 random})
 
 newURL :: !*IWorld -> (!String, !*IWorld)
-newURL iworld=:{IWorld|serverURL,random}
+newURL iworld=:{IWorld|server={serverURL},random}
 	# (sdsid, iworld) = newSDSId iworld
 	= getURLbyId sdsid iworld
 
 // TODO: different URL for clients
 getURLbyId :: !String !*IWorld -> (!String, !*IWorld)
-getURLbyId sdsid iworld=:{IWorld|serverURL,random}
+getURLbyId sdsid iworld=:{IWorld|server={serverURL},random}
 	= ("sds:" +++ serverURL +++ "/" +++ sdsid, iworld)	
-	 				
-	 				
-	 				

@@ -35,7 +35,7 @@ gEq{|Editlet|} fa _ (Editlet x _ _) (Editlet y _ _) = fa x y //Only compare valu
 gVisualizeText{|Editlet|} fa _ mode (Editlet value _ _) = fa mode value
 
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp
-						(Editlet value serverDef clientDef, mask, ver) meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|editletDiffs,world}}
+						(Editlet value serverDef clientDef, mask, ver) meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 	# (uiDef, world)        = serverDef.EditletServerDef.genUI htmlId world
 	# iworld                = {iworld & world = world}
     = case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
@@ -103,12 +103,12 @@ where
 
 	clientUpdateUI = clientDef.EditletClientDef.updateUI
 
-    setEditletDiffs value opts diffs iworld=:{IWorld|editletDiffs}
-        = {IWorld|iworld & editletDiffs = put (taskId,editorId dp) (toJSONA value,opts,diffs) editletDiffs}
+    setEditletDiffs value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
+        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (toJSONA value,opts,diffs) editletDiffs}}
 
 gEditMeta{|Editlet|} fa _ (Editlet value _ _) = fa value
 
-gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov=:(Editlet value defsv=:{EditletServerDef|appDiff} defcl),omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|editletDiffs}}
+gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov=:(Editlet value defsv=:{EditletServerDef|appDiff} defcl),omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 	= case jDecd [jsonDiff] of
 		(Just diff,_)
             # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
@@ -116,7 +116,7 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov=:(Editlet va
                     (Just ref,_)
                         # ref = appDiff diff ref
                         # [jsonRef:_] = jEnca ref
-                        = {IWorld|iworld & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}
+                        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}}
                     _ = iworld
                 Nothing = iworld
             = ((Editlet (appDiff diff value) defsv defcl,Touched),{USt|ust & iworld = iworld})

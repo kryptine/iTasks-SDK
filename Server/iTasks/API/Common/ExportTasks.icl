@@ -16,7 +16,7 @@ where
 createCSVFile :: !String ![[String]] -> Task Document
 createCSVFile filename content = mkInstantTask eval
 where
-	eval taskId iworld=:{taskTime}
+	eval taskId iworld=:{current={taskTime}}
 		# (mbDoc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
 		= case mbDoc of
 			Ok doc	= (Ok doc, iworld)
@@ -42,7 +42,7 @@ exportJSONFileWith encoder filename content = mkInstantTask eval
 where
 	eval taskId iworld = fileTask taskId filename content (writeJSON encoder) iworld
 
-fileTask taskId filename content f iworld=:{IWorld|taskTime,world}
+fileTask taskId filename content f iworld=:{IWorld|current={taskTime},world}
 	# (ok,file,world)	= fopen filename FWriteData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# file				= f content file
@@ -57,7 +57,7 @@ writeJSON encoder content file
 	= fwrites (toString (encoder content)) file
 
 writeDocument taskId filename document iworld
-	# (mbContent,iworld=:{IWorld|taskTime,world})
+	# (mbContent,iworld=:{IWorld|current={taskTime},world})
 							= loadDocumentContent document.Document.documentId iworld
 	| isNothing mbContent	= (ioException filename, {IWorld|iworld & world = world})
 	# (ok,file,world)		= fopen filename FWriteData world
