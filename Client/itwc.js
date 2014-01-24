@@ -1115,7 +1115,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         tab = document.createElement('li');
 
         label = document.createElement('a');
-        label.innerHTML = itemCmp.definition.title;
+        label.innerHTML = '<span>'+itemCmp.definition.title+'</span>';
         label.href = '#';
         if(itemCmp.definition.focusTaskId) {
             label.addEventListener('click',function(e) {
@@ -1209,11 +1209,36 @@ itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
         this.initItemLayout();
     },
     setTitle: function(title) {
-        var me = this;
+        var me = this, label;
         me.definition.title = title;
 
         //Update label of tab in DOM
-        me.parentCmp.tabBar.childNodes[me.getChildIndex()].childNodes[0].innerHTML = title;
+        label = me.parentCmp.tabBar.childNodes[me.getChildIndex()].childNodes[0];
+        label.childNodes[label.childNodes.length - 1].innerHTML = title; //Title is always the last element of a label
+    },
+    setIconCls: function(iconCls) {
+        var me = this, label, icon;
+
+        //Update label of tab in DOM
+        label = me.parentCmp.tabBar.childNodes[me.getChildIndex()].childNodes[0];
+
+        if(iconCls === null) { //Remove icon if it was there
+            if(label.childNodes.length > 1) {
+                label.removeChild(label.childNodes[0]);
+            }
+        } else {
+            if(label.childNodes.length > 1) { //Update existing icon
+                icon = label.childNodes[0];
+                icon.classList.remove(me.definition.iconCls);
+                icon.classList.add(iconCls);
+            } else {
+                icon = document.createElement('div');
+                icon.classList.add('tabicon');
+                icon.classList.add(iconCls);
+                label.insertBefore(icon,label.childNodes[0]);
+            }
+        }
+        me.definition.iconCls = iconCls;
     },
     setFocusTaskId: function(taskId) {
         var me = this;
