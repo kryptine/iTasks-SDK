@@ -24,45 +24,49 @@ from StdFile import instance FileSystem World
 import qualified StdArray as SA
 from StdArray import class Array, instance Array {#} Char
 import StdDebug
-import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor
+import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.Graph
 import qualified Data.Map as DM
 
 derive gEditor
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive gEditMeta
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive gVisualizeText
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive gDefault
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive gUpdate
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension
+  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
+tonicBind :: String String Int Int (Task a) (a -> Task b) -> Task b | iTask a & iTask b
+tonicBind mn tn euid xuid ta a2tb = ta >>= \x -> tonicTune` mn tn euid xuid (toString (toJSON x)) (a2tb x) // TODO toJSON ?
+
+tonicTune` :: String String Int Int String (Task b) -> Task b
+tonicTune` mn tn euid xuid xstr tb = tune {TonicTune | moduleName = mn, taskName = tn, entryUniqId = euid, exitUniqId = xuid, valAsStr = Just xstr} tb
+
 tonicTune :: String String Int Int (Task a) -> Task a
-tonicTune mn tn euid xuid ta = tune {TonicTune | moduleName = mn, taskName = tn, entryUniqId = euid, exitUniqId = xuid} ta
+tonicTune mn tn euid xuid ta = tune {TonicTune | moduleName = mn, taskName = tn, entryUniqId = euid, exitUniqId = xuid, valAsStr = Nothing} ta
 
-mkTrace :: TraceType TonicTune -> TonicTrace
-mkTrace ttype tinf = {TonicTrace|traceType = ttype, tuneInfo = tinf}
+mkTrace :: User TonicTune TraceType Timestamp -> TonicTrace
+mkTrace user tinf ttype tstamp = {TonicTrace|traceType = ttype, tuneInfo = tinf, traceUser = user, traceTime = tstamp}
 
-userActiveTask :: !User -> Shared [TonicTrace]
-userActiveTask currentUser = sharedStore ("userActiveTask" +++ username currentUser) []
-  where username (AnonymousUser _)           = "Anon"
-        username (AuthenticatedUser uid _ _) = uid
+tonicTraces :: Shared [TonicTrace]
+tonicTraces = sharedStore "tonicTraces" []
 
 mkUniqLbl :: TonicTune -> String
 mkUniqLbl tt = tt.moduleName +++ "." +++ tt.taskName +++ "." +++ toString tt.entryUniqId +++ "." +++ toString tt.exitUniqId
@@ -70,20 +74,21 @@ mkUniqLbl tt = tt.moduleName +++ "." +++ tt.taskName +++ "." +++ toString tt.ent
 instance tune TonicTune where
   tune ttn (Task eval) = Task eval`
   where
-    eval` event repOpts state iworld=:{IWorld|currentUser}
-      # share         = userActiveTask currentUser
-      # iworld        = trace_n ("starting trace in Tonic share: " +++ mkUniqLbl ttn)
-                        (pushTrace (mkTrace EnterTrace ttn) share iworld)
-      # (tr, iworld)  = eval event repOpts state iworld
-      # iworld        = trace_n ("stopping trace in Tonic share: " +++ mkUniqLbl ttn)
-                        (pushTrace (mkTrace ExitTrace ttn) share iworld)
+    // Strict lets are required to ensure traces are pushed to the trace stack
+    // in the correct order.
+    eval` event repOpts state iworld=:{IWorld|current}
+      #! iworld        = trace_n ("starting trace in Tonic share: " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
+                        (pushTrace (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
+      #! (tr, iworld)  = eval event repOpts state iworld
+      #! iworld        = trace_n ("stopping trace in Tonic share: " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
+                        (pushTrace (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
       = (tr, iworld)
     pushTrace t shts world
-      //# (mets , world)  = 'DSDS'.read shts world
-      //# ts              = case mets of
-                            //Ok xs  = xs
-                            //_      = []
-      //# (_, world)      = 'DSDS'.write [t:ts] shts world
+      # (mets , world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
+      # ts              = case mets of
+                            Ok xs  = xs
+                            _      = []
+      # (_, world)      = 'DSDS'.write [t:ts] shts world
       = world
 
 getTonicModules :: Task [String]
@@ -100,8 +105,8 @@ getTonicModules
 getTonicDir :: Task String
 getTonicDir = mkInstantTask f
   where f _ iworld
-          # (sdirs, iworld) = iworld!systemDirectories
-          = (Ok (sdirs.appDirectory </> "tonic"), iworld)
+          # (server, iworld) = iworld!server
+          = (Ok (server.paths.appDirectory </> "tonic"), iworld)
 
 tonicLogin :: String -> Task Void
 tonicLogin appName = forever (
@@ -135,32 +140,37 @@ derive class iTask MaybeError, FileError
 getTasks :: TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
 
-getTask :: String TonicModule -> Maybe GinGraph
+getTask :: String TonicModule -> Maybe TonicTask
 getTask tn tm = 'DM'.get tn tm.tm_tasks
 
 tonicUI :: String -> Task Void
 tonicUI appName
   =            get currentUser >>-
   \currUser -> selectModule >>=
-  \tm       -> selectTask tm >>=
-  \g        -> viewTask currUser g >>|
+  \(mn, tm) -> selectTask tm >>=
+  \(tn, tt) -> viewTask currUser tn mn tt >>|
                return Void
 
-selectModule :: Task TonicModule
+selectModule :: Task (String, TonicModule)
 selectModule
-  = getTonicModules >>-
-    enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)] >>=
-    getModule
+  =      getTonicModules >>-
+         enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)] >>=
+  \mn -> getModule mn >>=
+  \m  -> return (mn, m)
 
-selectTask :: TonicModule -> Task GinGraph
+selectTask :: TonicModule -> Task (String, TonicTask)
 selectTask tm
   =      enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm) >>=
   \tn -> case getTask tn tm of
-           Just g -> return g
-           _      -> throw "Should not happen"
+           Just tt -> return (tn, tt)
+           _       -> throw "Should not happen"
 
 //viewTask :: User GinGraph -> Task (Editlet GinGraph GinGraph)
-viewTask u g = viewInformation "Selected graph" [] (graphlet g tonicRenderer) -|| viewSharedInformation "Current traces" [] (userActiveTask u)
+//viewTask u tn mn tt = (viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
+                  //||- (viewInformation ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] (graphlet tt.tt_graph (NodeLoc (fromMaybe 0 (sourceNode tt.tt_graph))) tonicRenderer)
+                  //-|| viewSharedInformation "Current traces" [] (userTraces u))) <<@ FullScreen
+viewTask u tn mn tt = viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
+                  ||- viewSharedInformation ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") [ViewWith (\traces -> graphlet (TonicState traces) (\_ _ -> TonicDiff) (\_ s -> s) tonicRenderer tt.tt_graph)] tonicTraces <<@ FullScreen
 
 //tonicUI :: String -> Task Void
 //tonicUI appName =
@@ -195,7 +205,7 @@ viewTask u g = viewInformation "Selected graph" [] (graphlet g tonicRenderer) -|
   //=      loadModule shmmn >>-
   //\tm -> viewSharedInformation "Current graph" [] (mapRead (maybe Nothing (\tn -> fmap toniclet ('DM'.get tn tm.tm_tasks))) shmtn) // >>| return Void
 
-//liveData currUser = viewSharedInformation "Current task name" [] (userActiveTask currUser)
+//liveData currUser = viewSharedInformation "Current task name" [] (userTraces currUser)
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)

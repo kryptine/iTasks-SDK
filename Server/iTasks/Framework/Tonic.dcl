@@ -7,12 +7,14 @@ import iTasks.Framework.Generic
 from iTasks.API.Core.CoreCombinators import class tune
 from iTasks.API.Core.SystemTypes import :: User
 from iTasks.API.Core.CoreTasks import :: Task
+from System.Time import :: Timestamp
 
 :: TonicTune =
 	{ moduleName  :: String
 	, taskName    :: String
 	, entryUniqId :: Int
 	, exitUniqId  :: Int
+	, valAsStr    :: Maybe String
 	}
 
 :: TraceType = EnterTrace | ExitTrace
@@ -20,11 +22,13 @@ from iTasks.API.Core.CoreTasks import :: Task
 :: TonicTrace =
 	{ traceType  :: !TraceType
 	, tuneInfo   :: !TonicTune
+	, traceUser  :: !User
+	, traceTime  :: !Timestamp
 	}
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
-userActiveTask :: !User -> Shared [TonicTrace]
+tonicTraces :: Shared [TonicTrace]
 
 tonicTune :: String String Int Int (Task a) -> Task a
 

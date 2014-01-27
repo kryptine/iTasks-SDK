@@ -76,3 +76,7 @@ rect {
   stroke: #000;
   stroke-width: 0.15em;
 }
+
+.activeNode ellipse , .activeNode rect, .activeNode circle {
+  fill: #cfc;
+}

@@ -8,19 +8,25 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension
+  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension
+  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension
+  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
 
 :: TonicModule =
   { tm_name  :: String
-  , tm_tasks :: Map String GinGraph
+  //, tm_tasks :: Map String GinGraph
+  , tm_tasks :: Map String TonicTask
+  }
+
+:: TonicTask =
+  { tt_args  :: [String]
+  , tt_graph :: GinGraph
   }
 
 :: GinGraph :== Graph GNode GEdge
@@ -34,8 +40,19 @@ derive gEq
 :: DecisionType = IfDecision | CaseDecision
 
 :: GNode =
-  { nodeType :: !GNodeType
+  { nodeType      :: !GNodeType
+  , nodeTonicInfo :: Maybe TonicInfo
   }
+
+:: TonicInfo =
+  { tonicModuleName  :: String
+  , tonicTaskName    :: String
+  , tonicEntryUniqId :: Int
+  , tonicExitUniqId  :: Int
+  , tonicValAsStr    :: Maybe String
+  }
+
+mkGNode :: GNodeType -> GNode
 
 :: GIdentifier :== String
 
@@ -44,6 +61,7 @@ derive gEq
   |  GDecision DecisionType !GCleanExpression
   |  GInit
   |  GLet GLet
+//  | GList [GExpression]
   |  GListComprehension GListComprehension
   |  GParallelSplit
   |  GParallelJoin GJoinType
@@ -65,8 +83,8 @@ derive gEq
 :: GExpression
   =  GUndefinedExpression
   |  GGraphExpression GinGraph
-  |  GListExpression [GExpression]
-  |  GListComprehensionExpression GListComprehension
+  //|  GListExpression [GExpression]
+  //|  GListComprehensionExpression GListComprehension
   |  GCleanExpression GCleanExpression
 
 :: GCleanExpression :== String
@@ -74,6 +92,17 @@ derive gEq
 :: GListComprehension =
   {  output    :: GExpression
   ,  guard     :: Maybe GCleanExpression
-  ,  selector  :: GPattern
-  ,  input     :: GExpression
+  ,  comprElem :: [ComprElem]
+  //,  selector  :: GPattern
+  //,  input     :: GExpression
   }
+
+:: ComprElem =
+  { cePattern :: GPattern
+  , ceType    :: CEType
+  , ceInput   :: GExpression
+  }
+
+:: CEType
+  = ParComp
+  | SeqComp
