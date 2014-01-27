@@ -175,7 +175,7 @@ where
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId repOpts NoRep val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep (UIActionSet []) (stepActions taskId val)) [])
+		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIActionSet [],windows=[]} (stepActions taskId val)) [])
 	doStepLayout taskId repOpts (TaskRep def parts) val
 		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (stepActions taskId val)) parts)
 	stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
@@ -552,7 +552,7 @@ where
     release taskId meta = meta
 
 	inUseDef worker
-		= UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)]}
+		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)]},windows=[]}
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to
@@ -654,7 +654,7 @@ where
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
             (res,iworld) = (res,iworld)
 
-        updRep NoRep               = TaskRep (f (UIAttributeSet 'Data.Map'.newMap)) []
+        updRep NoRep               = TaskRep (f {UIDef|content=UIAttributeSet 'Data.Map'.newMap,windows=[]}) []
         updRep (TaskRep def parts) = TaskRep (f def) parts
 		
 instance tune ModifyLayout
@@ -675,7 +675,7 @@ where
 		    	(ValueResult value=:(Value v _) info rep tree,iworld) = (ValueResult value info (updRep v rep) tree, iworld)
 		    	(res,iworld) = (res,iworld)
 
-        updRep v NoRep	             = TaskRep (UIAttributeSet ('Data.Map'.put attr (f v) 'Data.Map'.newMap)) []
+        updRep v NoRep	             = TaskRep ({UIDef|content=UIAttributeSet ('Data.Map'.put attr (f v) 'Data.Map'.newMap),windows=[]}) []
         updRep v (TaskRep def parts) = TaskRep (uiDefSetAttribute attr (f v) def) parts
 	
 instance tune LazyRefresh

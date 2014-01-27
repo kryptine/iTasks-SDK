@@ -204,10 +204,11 @@ taskInfo ts = {TaskInfo | lastEvent = ts, refreshSensitive = True}
 
 appTweak tasklet taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 
-toDef c = UIControlStack {UIControlStack
-						 | attributes = newMap
-						 , controls	 = [(c, newMap)]
-						 }
+toDef c = {UIDef|content=UIControlStack
+            {UIControlStack
+			| attributes = newMap
+			, controls	 = [(c, newMap)]
+			},windows = []}
 
 /* Controller wrapper to be easier to write controller function:
  * 1. taskId is parsed

@@ -12,7 +12,7 @@ import iTasks.Framework.IWorld
 
 import System.Time, System.File, System.FilePath
 
-from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIControlStack, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UISubUI, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
+from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIContent(..), :: UIControlStack, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UISubUI, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from iTasks.API.Core.LayoutCombinators import mergeAttributes, setMargins
 
 //* EmailAddress
@@ -1322,37 +1322,37 @@ where
 	
 instance descr Void
 where
-	toPrompt _ = UIAttributeSet newMap
+	toPrompt _ = {UIDef|content=UIAttributeSet newMap,windows=[]}
 
 instance descr String
 where
-	toPrompt prompt = UIControlStack {UIControlStack|attributes = newMap, controls = [(stringDisplay prompt,newMap)]}
+	toPrompt prompt = {UIDef|content=UIControlStack {UIControlStack|attributes = newMap, controls = [(stringDisplay prompt,newMap)]},windows=[]}
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,prompt) = UIControlStack {UIControlStack|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)]}
+	toPrompt (title,prompt) = {UIDef|content=UIControlStack {UIControlStack|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)]},windows=[]}
 
 instance descr (!Icon,!String,!String)
 where
-	toPrompt (icon,title,prompt) = UIControlStack
+	toPrompt (icon,title,prompt) = {UIDef|content=UIControlStack
         {UIControlStack|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
-	    ,controls = [(stringDisplay prompt,newMap)]}
+	    ,controls = [(stringDisplay prompt,newMap)]},windows = []}
 
 instance descr Title
 where
-	toPrompt (Title title) = UIAttributeSet (put TITLE_ATTRIBUTE title newMap)
+	toPrompt (Title title) = {UIDef|content=UIAttributeSet (put TITLE_ATTRIBUTE title newMap), windows = []}
 	
 instance descr Hint
 where
-	toPrompt (Hint hint) = UIAttributeSet (put HINT_ATTRIBUTE hint newMap)
+	toPrompt (Hint hint) = {UIDef|content=UIAttributeSet (put HINT_ATTRIBUTE hint newMap), windows = []}
 	
 instance descr Icon
 where
-	toPrompt icon = UIAttributeSet (put ICON_ATTRIBUTE (toString icon) newMap)
+	toPrompt icon = {UIDef|content=UIAttributeSet (put ICON_ATTRIBUTE (toString icon) newMap), windows = []}
 
 instance descr Attribute
 where
-	toPrompt (Attribute k v) = UIAttributeSet (put k v newMap)
+	toPrompt (Attribute k v) = {UIDef|content=UIAttributeSet (put k v newMap), windows = []}
 	
 instance descr Att
 where
@@ -1360,7 +1360,7 @@ where
 	
 instance descr [d] | descr d
 where
-	toPrompt list = UIAttributeSet (foldl mergeAttributes newMap [att \\ (UIAttributeSet att) <- (map toPrompt list)])
+	toPrompt list = {UIDef|content=UIAttributeSet (foldl mergeAttributes newMap [att \\ {UIDef|content=UIAttributeSet att} <- (map toPrompt list)]), windows = []}
 
 
 derive JSONEncode		Icon

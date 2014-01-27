@@ -22,7 +22,12 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 *
 * The UIDef type has contstructors for the various types of partial UI definitions.
 */
-:: UIDef
+:: UIDef =
+    { content :: UIContent
+    , windows :: [UIWindow]
+    }
+
+:: UIContent
     = UIAttributeSet        !UIAttributes           //A set of attributes, for example from tuning a hidden task
 	| UIActionSet			!UIActions              //A set of actions, for example from a chooseAction task
 	| UIControlStack 	    !UIControlStack         //A stack of anotated controls from one or more interact tasks
@@ -38,7 +43,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 	{ attributes	:: UIAttributes
 	, content       :: UIItemsOpts
 	, actions		:: UIActions
-	, windows		:: [UIWindow]
 	, hotkeys		:: [UIKeyAction]
 	}
 :: UISubUIStack =
@@ -64,7 +68,6 @@ from iTasks.API.Core.SystemTypes	import :: Document, :: DocumentId, :: Date, :: 
 :: UIViewportOpts =
 	{ title			:: !Maybe String
 	, hotkeys		:: !Maybe [UIKeyAction]
-	, windows		:: ![UIWindow]
 	}
 
 // Floating window

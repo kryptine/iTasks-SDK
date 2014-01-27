@@ -30,27 +30,28 @@ autoAccuInteract prompt editor
 		}
 
 autoAccuStep :: UIDef [UIAction]-> UIDef
-autoAccuStep (UIAttributeSet _) actions = UIActionSet actions
-autoAccuStep (UIActionSet actions) stepActions
-	= UIActionSet (actions ++ stepActions)
-autoAccuStep (UIControlStack stack=:{UIControlStack|attributes,controls}) actions
+autoAccuStep {UIDef|content=UIAttributeSet _,windows} actions = {UIDef|content=UIActionSet actions,windows=windows}
+autoAccuStep {UIDef|content=UIActionSet actions,windows} stepActions
+	= {UIDef|content=UIActionSet (actions ++ stepActions),windows=windows}
+autoAccuStep {UIDef|content=UIControlStack stack=:{UIControlStack|attributes,controls},windows} actions
 	//Recognize special case of a complete empty interaction wrapped in a step as an actionset
 	| isEmpty controls
-		= UIActionSet actions
+		= {UIDef|content=UIActionSet actions,windows=windows}
     //Promote to abstract container
-        = UISubUI {UISubUI|autoLayoutControlStack stack & actions = actions}
-autoAccuStep (UISubUI sub=:{UISubUI|actions=[]}) stepActions
+        = {UIDef|content=UISubUI {UISubUI|autoLayoutControlStack stack & actions = actions},windows=windows}
+autoAccuStep {UIDef|content=UISubUI sub=:{UISubUI|actions=[]},windows} stepActions
 	//If an abstract container without actions is placed under a step container, we add the actions
-	= UISubUI {UISubUI|sub & actions = stepActions}
-autoAccuStep (UISubUI sub=:{UISubUI|actions}) stepActions
-	= UISubUI sub
-autoAccuStep (UISubUIStack stack) stepActions
+	= {UIDef|content=UISubUI {UISubUI|sub & actions = stepActions},windows=windows}
+autoAccuStep {UIDef|content=UISubUI sub=:{UISubUI|actions},windows} stepActions
+	= {UIDef|content=UISubUI sub,windows=windows}
+autoAccuStep {UIDef|content=UISubUIStack stack,windows} stepActions
     # sub=:{UISubUI|actions} = autoLayoutSubUIStack stack
-	= UISubUI {UISubUI|sub & actions = actions ++ stepActions}
+	= {UIDef|content=UISubUI {UISubUI|sub & actions = actions ++ stepActions},windows=windows}
 
 autoAccuParallel :: UIDef [UIDef] -> UIDef
 autoAccuParallel prompt defs
     # defs = if (emptyPrompt prompt) defs [prompt:defs]
+    # windows = flatten [windows \\ {UIDef|windows} <- [prompt:defs]]
     # (nAttributeSet,nActionSet,nControlStack,nSubUI,nSubUIStack,nFinal) = foldl count (0,0,0,0,0,0) defs
     //| trace_tn (print nAttributeSet nActionSet nControlStack nSubUI nSubUIStack nFinal) && False = undef
     //If there is just one def, leave it be
@@ -58,47 +59,47 @@ autoAccuParallel prompt defs
         = /* trace_n "Case for one item"*/ (hd defs)
     //If there are final defs, pick the first one
     | nFinal > 0
-        = /*trace_n "Case for final"*/ (hd [def \\def=:(UIFinal _) <- defs])
+        = /*trace_n "Case for final"*/ (hd [def \\def=:{UIDef|content=UIFinal _} <- defs])
     //If the defs are only attributes we can make an attributeset
     | nAttributeSet > 0 && nActionSet+nControlStack+nSubUI+nSubUIStack+nFinal == 0
-        = /*trace_n "Case for attribute set"*/ (UIAttributeSet (foldl mergeAttributes 'Data.Map'.newMap [attr \\ UIAttributeSet attr <- defs]))
+        = /*trace_n "Case for attribute set"*/ {UIDef|content=(UIAttributeSet (foldl mergeAttributes 'Data.Map'.newMap [attr \\ {UIDef|content=UIAttributeSet attr} <- defs])),windows=windows}
     //If the defs are only actionsets (or empty attribute sets) we can make an actionsset
-    | nActionSet > 0 && nControlStack+nSubUI+nSubUIStack+nFinal == 0 && (isEmpty (flatten ['Data.Map'.toList a \\UIAttributeSet a<-defs]))
-        = /*trace_n "Case for action set"*/ (UIActionSet (flatten [actions \\ UIActionSet actions <- defs]))
+    | nActionSet > 0 && nControlStack+nSubUI+nSubUIStack+nFinal == 0 && (isEmpty (flatten ['Data.Map'.toList a \\{UIDef|content=UIAttributeSet a} <-defs]))
+        = /*trace_n "Case for action set"*/ {UIDef|content=(UIActionSet (flatten [actions \\ {UIDef|content=UIActionSet actions} <- defs])),windows=windows}
     //If there are no sub uis and actions we can make a control stack
     | nActionSet+nSubUI+nSubUIStack+nFinal == 0
-        = /*trace_n "Case for control stack"*/ (UIControlStack (fst (foldl collectControlsAndActions ({UIControlStack|attributes='Data.Map'.newMap,controls=[]},[]) defs)))
+        = /*trace_n "Case for control stack"*/ {UIDef|content=(UIControlStack (fst (foldl collectControlsAndActions ({UIControlStack|attributes='Data.Map'.newMap,controls=[]},[]) defs))),windows=windows}
     //If there are no sub uis, but just controls and actions, we can make a SubUI
     | nSubUI+nSubUIStack+nFinal == 0
         # (controls,actions) = foldl collectControlsAndActions ({UIControlStack|attributes='Data.Map'.newMap,controls=[]},[]) defs
-        = /*trace_n "Case for controls + actions"*/ (UISubUI {UISubUI|autoLayoutControlStack controls & actions = actions})
+        = /*trace_n "Case for controls + actions"*/ {UIDef|content=(UISubUI {UISubUI|autoLayoutControlStack controls & actions = actions}),windows=windows}
     //If there is exactly one sub ui, and actions and attributes we add them to that sub ui
     | nSubUI == 1 && nControlStack+nSubUIStack+nFinal == 0
-        # ui            = hd [ui \\ UISubUI ui <- defs]
-        # actions       = flatten (map uiDefActions  defs)
+        # ui            = hd [ui \\ {UIDef|content=UISubUI ui} <- defs]
+        # actions       = flatten (map uiDefActions defs)
         # attributes    = foldl mergeAttributes 'Data.Map'.newMap (map uiDefAttributes defs)
-        = /*trace_n "Case for 1 subui"*/ (UISubUI {UISubUI|ui & attributes = attributes, actions = actions})
+        = /*trace_n "Case for 1 subui"*/ {UIDef|content=(UISubUI {UISubUI|ui & attributes = attributes, actions = actions}),windows=windows}
     //If there are no actions we can create a sub ui stack
     | nActionSet == 0
-        = /*trace_n "Case for subui stack"*/ (UISubUIStack (foldl collectSubUIs {UISubUIStack|attributes='Data.Map'.newMap,subuis=[]} defs))
+        = /*trace_n "Case for subui stack"*/ {UIDef|content=(UISubUIStack (foldl collectSubUIs {UISubUIStack|attributes='Data.Map'.newMap,subuis=[]} defs)),windows=windows}
     //We collect the ui stack, combine it to a single UI and add the actions
     | otherwise
         # ui            = autoLayoutSubUIStack (foldl collectSubUIs {UISubUIStack|attributes='Data.Map'.newMap,subuis=[]} defs)
-        # actions       = flatten [actions \\ UIActionSet actions <- defs]
-        = /*trace_n "Otherwise"*/ (UISubUI {UISubUI|ui & actions = ui.UISubUI.actions ++ actions})
+        # actions       = flatten [actions \\ {UIDef|content=UIActionSet actions} <- defs]
+        = /*trace_n "Otherwise"*/ {UIDef|content=(UISubUI {UISubUI|ui & actions = ui.UISubUI.actions ++ actions}),windows=windows}
 where
-    emptyPrompt (UIAttributeSet attributes)
+    emptyPrompt {UIDef|content=UIAttributeSet attributes}
         = isEmpty ('Data.Map'.toList attributes)
-    emptyPrompt (UIControlStack {UIControlStack|attributes,controls})
+    emptyPrompt {UIDef|content=UIControlStack {UIControlStack|attributes,controls}}
         = (isEmpty ('Data.Map'.toList attributes)) && (isEmpty controls)
     emptyPrompt _ = False
 
-    count (n1,n2,n3,n4,n5,n6) (UIAttributeSet _)    = (inc n1,n2,n3,n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) (UIActionSet _)       = (n1,inc n2,n3,n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) (UIControlStack _)    = (n1,n2,inc n3,n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) (UISubUI _)           = (n1,n2,n3,inc n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) (UISubUIStack _)      = (n1,n2,n3,n4,inc n5,n6)
-    count (n1,n2,n3,n4,n5,n6) (UIFinal _)           = (n1,n2,n3,n4,n5,inc n6)
+    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIAttributeSet _}    = (inc n1,n2,n3,n4,n5,n6)
+    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIActionSet _}       = (n1,inc n2,n3,n4,n5,n6)
+    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIControlStack _}    = (n1,n2,inc n3,n4,n5,n6)
+    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UISubUI _}           = (n1,n2,n3,inc n4,n5,n6)
+    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UISubUIStack _}      = (n1,n2,n3,n4,inc n5,n6)
+    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIFinal _}           = (n1,n2,n3,n4,n5,inc n6)
 
     print nAttributeSet nActionSet nControlStack nSubUI nSubUIStack nFinal
         =   "AttributeSet #" +++ toString nAttributeSet +++ ", "
@@ -108,27 +109,26 @@ where
         +++ "SubUIStack #" +++ toString nSubUIStack +++ ", "
         +++ "Final # " +++ toString nFinal
 
-    collectControlsAndActions (stack=:{UIControlStack|attributes},actions) (UIAttributeSet a)
+    collectControlsAndActions (stack=:{UIControlStack|attributes},actions) {UIDef|content=UIAttributeSet a}
         = ({UIControlStack|stack & attributes = mergeAttributes attributes a},actions)
-    collectControlsAndActions (stack,actions) (UIActionSet a)
+    collectControlsAndActions (stack,actions) {UIDef|content=UIActionSet a}
         = (stack,actions ++ a)
-    collectControlsAndActions (stack1,actions) (UIControlStack stack2)
+    collectControlsAndActions (stack1,actions) {UIDef|content=UIControlStack stack2}
         = ({UIControlStack|attributes = mergeAttributes stack1.UIControlStack.attributes stack2.UIControlStack.attributes
                           ,controls = stack1.UIControlStack.controls ++ stack2.UIControlStack.controls
                           },actions)
 
-    collectSubUIs stack=:{UISubUIStack|attributes} (UIAttributeSet a)   = {UISubUIStack|stack & attributes = mergeAttributes attributes a}
-    collectSubUIs stack=:{UISubUIStack|subuis} (UIControlStack c)       = {UISubUIStack|stack & subuis = subuis ++ [autoLayoutControlStack c]}
-    collectSubUIs stack=:{UISubUIStack|subuis} (UISubUI ui)             = {UISubUIStack|stack & subuis = subuis ++ [ui]}
-    collectSubUIs stack1 (UISubUIStack stack2)
-        = {UISubUIStack|subuis = stack1.subuis ++ [{UISubUI|subui & attributes = subAttributes subui.UISubUI.attributes stack2.UISubUIStack.attributes} \\ subui <- stack2.subuis]
+    collectSubUIs stack=:{UISubUIStack|attributes} {UIDef|content=UIAttributeSet a}
+        = {UISubUIStack|stack & attributes = mergeAttributes attributes a}
+    collectSubUIs stack=:{UISubUIStack|subuis} {UIDef|content=UIControlStack c}
+        = {UISubUIStack|stack & subuis = subuis ++ [autoLayoutControlStack c]}
+    collectSubUIs stack=:{UISubUIStack|subuis} {UIDef|content=UISubUI ui}
+        = {UISubUIStack|stack & subuis = subuis ++ [ui]}
+    collectSubUIs stack1 {UIDef|content=UISubUIStack stack2}
+        = {UISubUIStack|subuis = stack1.subuis ++ [{UISubUI|subui & attributes = mergeAttributes stack2.UISubUIStack.attributes subui.UISubUI.attributes} \\ subui <- stack2.subuis]
                        ,attributes=mergeAttributes stack1.UISubUIStack.attributes stack2.UISubUIStack.attributes}
-    where
-        subAttributes subuiAttr stackAttr //THIS IS STARTING TO BECOME TOO COMPLEX AGAIN :(
-            | hasWindowContainerAttr subuiAttr  = subuiAttr
-            | otherwise                         = mergeAttributes stackAttr subuiAttr
-
-    collectSubUIs stack _                                               = stack
+    collectSubUIs stack _
+        = stack
 
 
 /**
@@ -150,12 +150,12 @@ autoLayoutSubEditor {UIControlStack|attributes,controls}
 autoLayoutControlStack :: UIControlStack -> UISubUI
 //Special case for choices and maps
 autoLayoutControlStack {UIControlStack|attributes,controls=[(c=:UITree _ _ _ ,_)]}
-    = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],windows=[],hotkeys=[]}
+    = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],hotkeys=[]}
 autoLayoutControlStack {UIControlStack|attributes,controls=[(c=:UIGrid _ _ _ ,_)]}
-    = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],windows=[],hotkeys=[]}
+    = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],hotkeys=[]}
 //General case
 autoLayoutControlStack {UIControlStack|attributes,controls}
-	= {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],windows=[],hotkeys=[]}
+	= {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],hotkeys=[]}
 
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: UIAnnotatedControls -> UIControls
@@ -220,7 +220,8 @@ autoLayoutSubUIStack :: UISubUIStack -> UISubUI
 autoLayoutSubUIStack uis = arrangeVertical uis
 
 instance tune InWindow
-where tune InWindow t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "window")) t
+where tune InWindow t = tune (AfterLayout uiDefToWindow) t
+
 instance tune InPanel
 where tune InPanel t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel")) t
 instance tune InContainer
@@ -243,15 +244,15 @@ where
     tune ForceLayout t = tune (AfterLayout forceLayout) t
 
 forceLayout :: UIDef -> UIDef
-forceLayout (UIControlStack stack)     = UISubUI (autoLayoutControlStack stack)
-forceLayout (UISubUI ui)               = UISubUI (autoLayoutSubUIStack {UISubUIStack|attributes='Data.Map'.newMap,subuis=[ui]})
-forceLayout (UISubUIStack stack)       = UISubUI (autoLayoutSubUIStack stack)
+forceLayout {UIDef|content=UIControlStack stack,windows}     = {UIDef|content=UISubUI (autoLayoutControlStack stack),windows=windows}
+forceLayout {UIDef|content=UISubUI ui,windows}               = {UIDef|content=UISubUI (autoLayoutSubUIStack {UISubUIStack|attributes='Data.Map'.newMap,subuis=[ui]}),windows=windows}
+forceLayout {UIDef|content=UISubUIStack stack,windows}       = {UIDef|content=UISubUI (autoLayoutSubUIStack stack),windows=windows}
 forceLayout def                        = def
 
 arrangeSubUIStack :: (UISubUIStack -> UISubUI) UIDef -> UIDef
-arrangeSubUIStack f (UIControlStack stack)  = UISubUI (f {UISubUIStack|attributes='Data.Map'.newMap,subuis=[autoLayoutControlStack stack]})
-arrangeSubUIStack f (UISubUI ui)            = UISubUI (f {UISubUIStack|attributes='Data.Map'.newMap,subuis=[ui]})
-arrangeSubUIStack f (UISubUIStack stack)    = UISubUI (f stack)
+arrangeSubUIStack f {UIDef|content=UIControlStack stack,windows}  = {UIDef|content=UISubUI (f {UISubUIStack|attributes='Data.Map'.newMap,subuis=[autoLayoutControlStack stack]}),windows=windows}
+arrangeSubUIStack f {UIDef|content=UISubUI ui,windows}            = {UIDef|content=UISubUI (f {UISubUIStack|attributes='Data.Map'.newMap,subuis=[ui]}),windows=windows}
+arrangeSubUIStack f {UIDef|content=UISubUIStack stack,windows}    = {UIDef|content=UISubUI (f stack),windows=windows}
 arrangeSubUIStack f def                     = def
 
 instance tune ArrangeVertical
@@ -270,20 +271,15 @@ arrangeHorizontal = arrangeStacked Horizontal
 
 arrangeStacked :: UIDirection UISubUIStack -> UISubUI
 arrangeStacked direction {UISubUIStack|attributes,subuis}
-    = foldl append {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},actions=[],windows=[],hotkeys=[]} subuis
+    = foldl append {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},actions=[],hotkeys=[]} subuis
 where
     append ui1 ui2
-        | hasWindowContainerAttr ui2.UISubUI.attributes
-            # window = subUIToWindow ui2
-            = {UISubUI|ui1 & windows = ui1.UISubUI.windows ++ [window] ++ ui2.UISubUI.windows}
-        | otherwise
-            # (control,attributes,actions,hotkeys) = subUIToControl ui2
-            = {UISubUI|ui1 & content = {UIItemsOpts|ui1.UISubUI.content & items = ui1.UISubUI.content.UIItemsOpts.items ++ [control]}
-                           , actions = ui1.UISubUI.actions ++ actions
-                           , hotkeys = ui1.UISubUI.hotkeys ++ hotkeys
-                           , attributes = mergeAttributes ui1.UISubUI.attributes attributes
-                           , windows = ui1.UISubUI.windows ++ ui2.UISubUI.windows
-                           }
+        # (control,attributes,actions,hotkeys) = subUIToControl ui2
+        = {UISubUI|ui1 & content = {UIItemsOpts|ui1.UISubUI.content & items = ui1.UISubUI.content.UIItemsOpts.items ++ [control]}
+                       , actions = ui1.UISubUI.actions ++ actions
+                       , hotkeys = ui1.UISubUI.hotkeys ++ hotkeys
+                       , attributes = mergeAttributes ui1.UISubUI.attributes attributes
+                       }
 
 instance tune ArrangeWithTabs
 where
@@ -294,28 +290,23 @@ arrangeWithTabs = arrange
 where
     arrange stack=:{UISubUIStack|attributes,subuis}
         # parts         = foldl append [] subuis
-        # tabs          = [tab \\ Left (tab,_) <- parts]
-        # windows       = [window \\ Right window <- parts] ++ flatten [windows\\{UISubUI|windows} <- subuis]
+        # tabs          = [tab \\ (tab,_) <- parts]
         # activeTab     = activeIndex parts
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
-        = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical},actions=[],windows=windows,hotkeys=[]}
+        = {UISubUI|attributes=attributes,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical},actions=[],hotkeys=[]}
 
     append parts ui=:{UISubUI|attributes,content={UIItemsOpts|items}}
         | isEmpty items
             = parts
-        | hasWindowContainerAttr ui.UISubUI.attributes
-            # window = subUIToWindow ui
-            = parts ++ [Right window]
         | otherwise
             # tab = subUIToTab ui
-            = parts ++ [Left (tab,ui.UISubUI.attributes)]
+            = parts ++ [(tab,ui.UISubUI.attributes)]
 
     activeIndex parts = find 0 Nothing parts
     where
 		find i best                 [] = fmap fst best
-        find i best                 [Right _:ds] = find i best ds //Ignore windows
-        find i Nothing              [Left (_,acur):ds] = find (i+1) (Just (i,acur)) ds
-        find i (Just (ibest,abest)) [Left (_,acur):ds]
+        find i Nothing              [(_,acur):ds] = find (i+1) (Just (i,acur)) ds
+        find i (Just (ibest,abest)) [(_,acur):ds]
             | later acur abest  = find (i+1) (Just (i,acur)) ds
                                 = find (i+1) (Just (ibest,abest)) ds
 
@@ -339,7 +330,6 @@ arrangeWithSideBar index side size = arrange
 where
     arrange stack=:{UISubUIStack|subuis=[]} = autoLayoutSubUIStack stack
     arrange stack=:{UISubUIStack|attributes,subuis}
-        # (subuis,windows) = removeWindows subuis
         | index >= length subuis = autoLayoutSubUIStack stack
         # sidePart = subuis !! index
         # restPart = case removeAt index subuis of
@@ -354,15 +344,8 @@ where
                             &direction = if (side===TopSide || side === BottomSide) Vertical Horizontal
                             }
                   ,actions = restAc ++ sideAc
-                  ,windows = restPart.UISubUI.windows ++ sidePart.UISubUI.windows ++ windows
                   ,hotkeys = restHK ++ sideHK
                   }
-
-    removeWindows subuis = foldr removeWindow ([],[]) subuis
-    where
-        removeWindow subui (subuis,windows)
-            | hasWindowContainerAttr subui.UISubUI.attributes = (subuis,[subUIToWindow subui:subui.UISubUI.windows] ++ windows)
-            | otherwise                                     = ([subui:subuis],windows)
 
 instance tune ArrangeCustom
 where
@@ -402,25 +385,6 @@ where
 	iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
     attributes` = ('Data.Map'.del TITLE_ATTRIBUTE o 'Data.Map'.del ICON_ATTRIBUTE) attributes
 
-subUIToWindow :: UISubUI -> UIWindow
-subUIToWindow {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,attributes}
-    //Check for window close action
-	# (close,actions)		        = actionsToCloseId actions
-    //Add button actions
-	# (buttons,buttonkeys,actions)	= actionsToButtons actions	
-	# (items,direction)	    	    = addButtonPanel attributes direction buttons items
-    //Add menu actions
-	# (menus,menukeys,actions)	    = actionsToMenus actions
-    = UIWindow sizeOpts {UIItemsOpts|content&items=items,direction=direction} (windowOpts (buttonkeys++menukeys) menus close)
-where
-	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
-	windowOpts hotkeys menus close
-                = {UIWindowOpts|title = title, tbar = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
-                  ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = iconCls}
-	
-	title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
-	iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
-
 subUIToTab :: UISubUI -> UITab
 subUIToTab {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,attributes}
     //Check for tab close action
@@ -440,17 +404,65 @@ where
 	title       = fromMaybe "Untitled" ('Data.Map'.get TITLE_ATTRIBUTE attributes)
     iconCls     = fmap (\i -> "icon-" +++ i) ('Data.Map'.get ICON_ATTRIBUTE attributes)
 
+uiDefToWindow :: UIDef -> UIDef
+uiDefToWindow {UIDef|content=UIControlStack stack,windows}
+    = {UIDef|content=UIAttributeSet 'Data.Map'.newMap, windows = [subUIToWindow (autoLayoutControlStack stack):windows]}
+uiDefToWindow {UIDef|content=UISubUI subui,windows}
+    = {UIDef|content=UIAttributeSet 'Data.Map'.newMap, windows = [subUIToWindow subui:windows]}
+uiDefToWindow {UIDef|content=UISubUIStack stack,windows}
+    = {UIDef|content=UIAttributeSet 'Data.Map'.newMap, windows = [subUIToWindow (autoLayoutSubUIStack stack):windows]}
+uiDefToWindow def = def
+
+attributesToWindow :: UIAttributes -> UIWindow
+attributesToWindow attributes
+    = UIWindow sizeOpts (defaultItemsOpts []) windowOpts
+where
+	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
+	windowOpts  = {UIWindowOpts|title = title, tbar = Nothing, closeTaskId = Nothing, focusTaskId = Nothing,hotkeys = Nothing, iconCls = iconCls}
+
+    title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
+    iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
+
+actionsToWindow :: UIActions -> UIWindow
+actionsToWindow actions
+	# (close,actions)		        = actionsToCloseId actions
+	# (buttons,buttonkeys,actions)	= actionsToButtons actions	
+	# (items,direction)	    	    = addButtonPanel 'Data.Map'.newMap Vertical buttons []
+	# (menus,menukeys,actions)	    = actionsToMenus actions
+    = UIWindow sizeOpts {defaultItemsOpts items & direction = direction} (windowOpts (buttonkeys++menukeys) menus close)
+where
+	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
+	windowOpts hotkeys menus close
+        = {UIWindowOpts|title = Nothing, tbar = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
+                      ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = Nothing}
+
+subUIToWindow :: UISubUI -> UIWindow
+subUIToWindow {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,attributes}
+    //Check for window close action
+	# (close,actions)		        = actionsToCloseId actions
+    //Add button actions
+	# (buttons,buttonkeys,actions)	= actionsToButtons actions	
+	# (items,direction)	    	    = addButtonPanel attributes direction buttons items
+    //Add menu actions
+	# (menus,menukeys,actions)	    = actionsToMenus actions
+    = UIWindow sizeOpts {UIItemsOpts|content&items=items,direction=direction} (windowOpts (buttonkeys++menukeys) menus close)
+where
+	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
+	windowOpts hotkeys menus close
+        = {UIWindowOpts|title = title, tbar = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
+                      ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = iconCls}
+	
+    title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
+    iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
+
 autoLayoutFinal :: UIDef -> UIDef
-autoLayoutFinal (UIActionSet actions)
-	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing,windows = []})
-autoLayoutFinal (UIAttributeSet attributes)
-	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,hotkeys = Nothing,windows = []})
-autoLayoutFinal (UIControlStack stack)
-    = autoLayoutFinal (UISubUI (autoLayoutControlStack stack))
-autoLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotkeys})
-    | hasWindowContainerAttr attributes
-        # window = subUIToWindow subui
-        = UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys=Nothing, windows =[window]++ windows})
+autoLayoutFinal {UIDef|content=UIActionSet actions,windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing}),windows=windows}
+autoLayoutFinal {UIDef|content=UIAttributeSet attributes,windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,hotkeys = Nothing}),windows=windows}
+autoLayoutFinal {UIDef|content=UIControlStack stack,windows}
+    = autoLayoutFinal {UIDef|content=UISubUI (autoLayoutControlStack stack),windows=windows}
+autoLayoutFinal {UIDef|content=UISubUI subui=:{UISubUI|attributes,content,actions,hotkeys},windows}
     # (panel,attributes,actions,panelkeys)   = case 'Data.Map'.get SCREEN_ATTRIBUTE attributes of
         Just "full"     = subUIToPanel {UISubUI|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes}
         _
@@ -460,25 +472,23 @@ autoLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotk
 	# items				        = if (isEmpty menu) [panel] [setTBar menu panel]
 	# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
-	= UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys, windows = windows})
-autoLayoutFinal (UISubUIStack stack)
-    = autoLayoutFinal (UISubUI (autoLayoutSubUIStack stack))
-autoLayoutFinal (UIFinal viewport) = UIFinal viewport
+	= {UIDef|content=UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys}),windows=windows}
+autoLayoutFinal {UIDef|content=UISubUIStack stack,windows}
+    = autoLayoutFinal {UIDef|content=UISubUI (autoLayoutSubUIStack stack),windows=windows}
+autoLayoutFinal {UIDef|content=UIFinal viewport,windows} = {UIDef|content=UIFinal viewport,windows=windows}
 
 plainLayoutFinal :: UIDef -> UIDef
-plainLayoutFinal (UIActionSet actions)
-	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing,windows = []})
-plainLayoutFinal (UIAttributeSet attributes)
-	= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,hotkeys = Nothing,windows = []})
-plainLayoutFinal (UISubUI subui=:{UISubUI|attributes,content,actions,windows,hotkeys})
-    | hasWindowContainerAttr attributes
-        # window = subUIToWindow subui
-        = UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys=Nothing, windows =[window]++ windows})
+plainLayoutFinal {UIDef|content=UIActionSet actions,windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing}),windows=windows}
+plainLayoutFinal {UIDef|content=UIAttributeSet attributes,windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,hotkeys = Nothing}),windows=windows}
+plainLayoutFinal {UIDef|content=UISubUI subui=:{UISubUI|attributes,content,actions,hotkeys},windows}
     # (UIContainer sOpts iOpts,attributes,_,_) = subUIToContainer subui
-    = UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys = Just hotkeys, windows = windows})
-plainLayoutFinal (UISubUIStack stack)
-    = plainLayoutFinal (UISubUI (autoLayoutSubUIStack stack))
-plainLayoutFinal (UIFinal viewport) = UIFinal viewport
+    = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys = Just hotkeys}),windows=windows}
+plainLayoutFinal {UIDef|content=UISubUIStack stack,windows}
+    = plainLayoutFinal {UIDef|content=UISubUI (autoLayoutSubUIStack stack),windows=windows}
+plainLayoutFinal {UIDef|content=UIFinal viewport,windows}
+    = {UIDef|content=UIFinal viewport,windows=windows}
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: [(UIControl,UIAttributes)] -> [UIControl]
@@ -713,28 +723,31 @@ where
         = maybe ('Data.Map'.put k v attr) (const attr) ('Data.Map'.get k attr)
 
 tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
-tweakUI f (UIControlStack stack=:{UIControlStack|controls})
-	= UIControlStack {UIControlStack|stack & controls = [(f c,a) \\ (c,a) <- controls]}
-tweakUI f (UISubUI sub=:{UISubUI|content=content=:{UIItemsOpts|items}})
-	= UISubUI {UISubUI|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts)) = UIFinal (UIViewport {UIItemsOpts|iOpts & items = (map f items)} opts)
+tweakUI f {UIDef|content=UIControlStack stack=:{UIControlStack|controls},windows}
+	= {UIDef|content=UIControlStack {UIControlStack|stack & controls = [(f c,a) \\ (c,a) <- controls]},windows=windows}
+tweakUI f {UIDef|content=UISubUI sub=:{UISubUI|content=content=:{UIItemsOpts|items}},windows}
+	= {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|content & items = map f items}},windows=windows}
+tweakUI f {UIDef|content=UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts),windows}
+    = {UIDef|content=UIFinal (UIViewport {UIItemsOpts|iOpts & items = (map f items)} opts),windows=windows}
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
-tweakAttr f (UIAttributeSet attributes)
-	= UIAttributeSet (f attributes)
-tweakAttr f (UIControlStack stack=:{UIControlStack|attributes})
-	= UIControlStack {UIControlStack|stack & attributes = f attributes}
-tweakAttr f (UISubUI sub=:{UISubUI|attributes})
-	= UISubUI {UISubUI| sub & attributes = f attributes}
-tweakAttr f (UISubUIStack stack=:{UISubUIStack|attributes})
-	= UISubUIStack {UISubUIStack| stack & attributes = f attributes}
+tweakAttr f {UIDef|content=UIAttributeSet attributes,windows}
+	= {UIDef|content=UIAttributeSet (f attributes),windows=windows}
+tweakAttr f {UIDef|content=UIControlStack stack=:{UIControlStack|attributes},windows}
+	= {UIDef|content=UIControlStack {UIControlStack|stack & attributes = f attributes},windows=windows}
+tweakAttr f {UIDef|content=UISubUI sub=:{UISubUI|attributes},windows}
+	= {UIDef|content=UISubUI {UISubUI| sub & attributes = f attributes},windows=windows}
+tweakAttr f {UIDef|content=UISubUIStack stack=:{UISubUIStack|attributes},windows}
+	= {UIDef|content=UISubUIStack {UISubUIStack| stack & attributes = f attributes},windows=windows}
 tweakAttr f def = def
 
 tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
-tweakControls f (UIControlStack stack=:{UIControlStack|controls})
-	= UIControlStack {UIControlStack|stack & controls = f controls}
-tweakControls f (UISubUI sub=:{UISubUI|content=content=:{UIItemsOpts|items}})
-	= UISubUI {UISubUI|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'Data.Map'.newMap) \\ c <- items])}}
-tweakControls f (UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts)) = UIFinal (UIViewport {UIItemsOpts|iOpts & items = map fst (f [(c,'Data.Map'.newMap) \\ c <- items])} opts)
+tweakControls f {UIDef|content=UIControlStack stack=:{UIControlStack|controls},windows}
+	= {UIDef|content=UIControlStack {UIControlStack|stack & controls = f controls},windows=windows}
+tweakControls f {UIDef|content=UISubUI sub=:{UISubUI|content=content=:{UIItemsOpts|items}},windows=windows}
+	= {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'Data.Map'.newMap) \\ c <- items])}},windows=windows}
+tweakControls f {UIDef|content=UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts),windows}
+    = {UIDef|content=UIFinal (UIViewport {UIItemsOpts|iOpts & items = map fst (f [(c,'Data.Map'.newMap) \\ c <- items])} opts),windows=windows}
 tweakControls f def	= def
+

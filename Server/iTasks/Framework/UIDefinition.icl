@@ -3,7 +3,6 @@ implementation module iTasks.Framework.UIDefinition
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
 from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
 	
-
 defaultSizeOpts :: UISizeOpts
 defaultSizeOpts = {UISizeOpts|width = Nothing, minWidth = Nothing, maxWidth = Nothing, height = Nothing, minHeight = Nothing, maxHeight = Nothing, margins = Nothing}
 
@@ -300,72 +299,79 @@ getMargins ctrl
                            = Nothing
 
 uiDefAttributes	:: UIDef -> UIAttributes
-uiDefAttributes (UIControlStack {UIControlStack|attributes})	    = attributes
-uiDefAttributes (UIAttributeSet attributes)					        = attributes
-uiDefAttributes (UISubUI {UISubUI|attributes})	                    = attributes
-uiDefAttributes (UISubUIStack {UISubUIStack|attributes})	        = attributes
-uiDefAttributes _													= newMap
+uiDefAttributes {UIDef|content=UIControlStack {UIControlStack|attributes}}	= attributes
+uiDefAttributes {UIDef|content=UIAttributeSet attributes}					= attributes
+uiDefAttributes {UIDef|content=UISubUI {UISubUI|attributes}}	            = attributes
+uiDefAttributes {UIDef|content=UISubUIStack {UISubUIStack|attributes}}	    = attributes
+uiDefAttributes _													        = newMap
 
 uiDefControls :: UIDef -> [UIControl]
-uiDefControls (UIControlStack {UIControlStack|controls})		    = map fst controls
-uiDefControls (UISubUI {UISubUI|content})	                        = content.UIItemsOpts.items
-uiDefControls (UIFinal (UIViewport content _))						= content.UIItemsOpts.items
-uiDefControls _														= []
+uiDefControls {UIDef|content=UIControlStack {UIControlStack|controls}}	= map fst controls
+uiDefControls {UIDef|content=UISubUI {UISubUI|content}}	                = content.UIItemsOpts.items
+uiDefControls {UIDef|content=UIFinal (UIViewport content _)}			= content.UIItemsOpts.items
+uiDefControls _														    = []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
-uiDefAnnotatedControls (UIControlStack {UIControlStack|controls})   = controls
-uiDefAnnotatedControls (UISubUI {UISubUI|content})	                = [(c,newMap)\\c <- content.UIItemsOpts.items]
-uiDefAnnotatedControls (UIFinal (UIViewport content _))			    = [(c,newMap)\\c <- content.UIItemsOpts.items]
-uiDefAnnotatedControls _										    = []
+uiDefAnnotatedControls {UIDef|content=UIControlStack {UIControlStack|controls}} = controls
+uiDefAnnotatedControls {UIDef|content=UISubUI {UISubUI|content}}	            = [(c,newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls {UIDef|content=UIFinal (UIViewport content _)}			= [(c,newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls _										                = []
 
 uiDefActions :: UIDef -> [UIAction]
-uiDefActions (UIActionSet actions)	        = actions
-uiDefActions (UISubUI {UISubUI|actions})	= actions
-uiDefActions _								= []
+uiDefActions {UIDef|content=UIActionSet actions}	    = actions
+uiDefActions {UIDef|content=UISubUI {UISubUI|actions}}	= actions
+uiDefActions _								            = []
 
 uiDefDirection :: UIDef -> UIDirection
-uiDefDirection (UISubUI {UISubUI|content})	                    = content.UIItemsOpts.direction
-uiDefDirection (UIFinal (UIViewport content _))	                = content.UIItemsOpts.direction
+uiDefDirection {UIDef|content=UISubUI {UISubUI|content}}	    = content.UIItemsOpts.direction
+uiDefDirection {UIDef|content=UIFinal (UIViewport content _)}	= content.UIItemsOpts.direction
 uiDefDirection _											    = Vertical
 
 uiDefWindows :: UIDef -> [UIWindow]
-uiDefWindows (UISubUI {UISubUI|windows})		                    = windows
-uiDefWindows _													    = []
+uiDefWindows {UIDef|windows}		                            = windows
+uiDefWindows _													= []
 
 uiDefSetAttribute :: String String UIDef -> UIDef
-uiDefSetAttribute key value (UIAttributeSet attributes)
-	= UIAttributeSet (put key value attributes)
-uiDefSetAttribute key value (UIControlStack stack=:{UIControlStack|attributes})
-	= UIControlStack {UIControlStack|stack & attributes = put key value attributes}
-uiDefSetAttribute key value (UISubUI sub=:{UISubUI|attributes})
-	= UISubUI {UISubUI|sub & attributes = put key value attributes}
-uiDefSetAttribute key value (UISubUIStack stack=:{UISubUIStack|attributes})
-	= UISubUIStack {UISubUIStack|stack & attributes = put key value attributes}
+uiDefSetAttribute key value {UIDef|content=UIAttributeSet attributes,windows}
+	= {UIDef|content=UIAttributeSet (put key value attributes),windows=windows}
+uiDefSetAttribute key value {UIDef|content=UIControlStack stack=:{UIControlStack|attributes},windows}
+	= {UIDef|content=UIControlStack {UIControlStack|stack & attributes = put key value attributes},windows=windows}
+uiDefSetAttribute key value {UIDef|content=UISubUI sub=:{UISubUI|attributes},windows}
+	= {UIDef|content=UISubUI {UISubUI|sub & attributes = put key value attributes},windows=windows}
+uiDefSetAttribute key value {UIDef|content=UISubUIStack stack=:{UISubUIStack|attributes},windows}
+	= {UIDef|content=UISubUIStack {UISubUIStack|stack & attributes = put key value attributes},windows=windows}
 uiDefSetAttribute key value def = def
 
 uiDefSetDirection :: UIDirection UIDef -> UIDef
-uiDefSetDirection direction (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & direction = direction}}
+uiDefSetDirection direction {UIDef|content=(UISubUI sub),windows}
+    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & direction = direction}},windows=windows}
 uiDefSetDirection direction def = def
 
 uiDefSetHalign :: UIHAlign UIDef -> UIDef
-uiDefSetHalign align (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & halign = align}}
+uiDefSetHalign align {UIDef|content=UISubUI sub,windows}
+    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & halign = align}},windows=windows}
 uiDefSetHalign align def = def
 
 uiDefSetValign :: UIVAlign UIDef -> UIDef
-uiDefSetValign align (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & valign = align}}
+uiDefSetValign align {UIDef|content=UISubUI sub,windows}
+    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & valign = align}},windows=windows}
 uiDefSetValign align def = def
 
 uiDefSetPadding :: Int Int Int Int UIDef -> UIDef
-uiDefSetPadding top right bottom left (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}}
+uiDefSetPadding top right bottom left {UIDef|content=UISubUI sub,windows}
+    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}},windows=windows}
 uiDefSetPadding _ _ _ _ def = def
 
 uiDefSetBaseCls :: String UIDef -> UIDef
-uiDefSetBaseCls baseCls (UISubUI sub) = UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.content & baseCls = Just baseCls}}
+uiDefSetBaseCls baseCls {UIDef|content=UISubUI sub,windows}
+    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & baseCls = Just baseCls}},windows=windows}
 uiDefSetBaseCls _ def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode
-encodeUIDefinition (UIFinal (UIViewport iopts opts))	= enc "itwc_viewport" [toJSON iopts, encViewportOpts opts]
-encodeUIDefinition def									= enc "itwc_viewport" [toJSON (defaultItemsOpts (uiDefControls def))]
+encodeUIDefinition {UIDef|content=UIFinal (UIViewport iopts opts),windows}
+    = enc "itwc_viewport" [toJSON iopts, encViewportOpts opts]
+encodeUIDefinition def
+    = enc "itwc_viewport" [toJSON (defaultItemsOpts (uiDefControls def))]
 
 encodeUIControl :: !UIControl -> JSONNode
 encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,encViewOpts vopts]
@@ -485,9 +491,9 @@ encEditOpts {UIEditOpts|taskId,editorId,value}
 	= JSONObject ([("taskId",JSONString taskId),("editorId",JSONString editorId)] ++ maybe [] (\v -> [("value",v)]) value)
 
 encViewportOpts :: UIViewportOpts -> JSONNode
-encViewportOpts {UIViewportOpts|title,hotkeys,windows}
+encViewportOpts {UIViewportOpts|title,hotkeys}
 	= JSONObject (
-		[("xtype",JSONString "itwc_viewport"),("windows",JSONArray [encodeUIWindow w \\ w <- windows])]	++
+		[("xtype",JSONString "itwc_viewport")]	++
 		maybe [] (\t -> [("title",JSONString t)]) title ++
 		maybe [] (\k -> [("hotkeys",toJSON k)]) hotkeys
 		)

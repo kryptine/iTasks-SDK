@@ -11,7 +11,7 @@ import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from with
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskInfo, TaskRep
-derive JSONEncode UIDef, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
+derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIControlStack, UISubUI, UISubUIStack
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
@@ -19,7 +19,7 @@ derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes,
 derive JSONEncode UITaskletOpts, UIEditletOpts
 
 derive JSONDecode TaskResult, TaskInfo, TaskRep
-derive JSONDecode UIDef, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
+derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIControlStack, UISubUI, UISubUIStack
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts

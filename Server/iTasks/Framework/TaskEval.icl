@@ -88,7 +88,7 @@ where
 			(ExceptionResult e str,iworld)			= (ExceptionResult e str,iworld)
 
 createResult :: !InstanceNo !TaskTime -> TaskResult JSONNode
-createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep (UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap}) []) (TCInit (TaskId instanceNo 0) 1)
+createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep {UIDef|content=UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap},windows=[]} []) (TCInit (TaskId instanceNo 0) 1)
 
 evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
 evalSessionTaskInstance instanceNo event iworld

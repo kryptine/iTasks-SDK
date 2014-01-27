@@ -15,20 +15,20 @@ derive gEq UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISide, UISize, UIBound, UISide
 derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
-derive gEq UIDef, UIControlStack, UISubUI, UISubUIStack, UIAction
+derive gEq UIDef, UIContent, UIControlStack, UISubUI, UISubUIStack, UIAction
 derive gEq UITaskletOpts, UIEditletOpts
 
 derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
-diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal vp2=:(UIViewport iOpts2 opts2)) event editletDiffs
+diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {UIDef|content=UIFinal vp2=:(UIViewport iOpts2 opts2),windows=w2} event editletDiffs
 	= (
         diffItems [] event editletDiffs iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
-	++	diffAllWindows event editletDiffs opts1.UIViewportOpts.windows opts2.UIViewportOpts.windows
+	++	diffAllWindows event editletDiffs w1 w2
 	++	(case (diffHotkeys (fromMaybe [] opts1.UIViewportOpts.hotkeys) (fromMaybe [] opts2.UIViewportOpts.hotkeys)) of [] = []; ops = [UIUpdate [] ops])
 	++	if (opts1.UIViewportOpts.title === opts2.UIViewportOpts.title) [] [UIUpdate [] [("setTitle",[toJSON opts2.UIViewportOpts.title])]]
-    , removeEditletDiffs (findEditletsInViewport vp2) editletDiffs)
+    , removeEditletDiffs (findEditletsInViewport vp2 ++ findEditletsInWindows w2 []) editletDiffs)
 
 diffUIDefinitions d1 d2 event editletDiffs //Unclear when this case occurs :(
 	= (diffItems [] event editletDiffs (uiDefControls d1) (uiDefControls d2), editletDiffs)
@@ -343,8 +343,7 @@ allDiffsPossible [(DiffPossible _):ps]	= allDiffsPossible ps
 
 //Collect all editlet definitions
 findEditletsInViewport :: UIViewport -> [UIEditletID]
-findEditletsInViewport (UIViewport {UIItemsOpts|items} {UIViewportOpts|windows})
-    = findEditletsInWindows windows (findEditletsInItems items [])
+findEditletsInViewport (UIViewport {UIItemsOpts|items} _) =findEditletsInItems items []
 
 findEditletsInWindows :: [UIWindow] [UIEditletID] -> [UIEditletID]
 findEditletsInWindows windows acc = foldr findEditletsInWindow acc windows
