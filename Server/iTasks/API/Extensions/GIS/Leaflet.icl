@@ -7,8 +7,8 @@ import StdMisc, Data.Tuple
 
 from StdArray import class Array(uselect), instance Array {} a
 
-LEAFLET_JS :== "leaflet-0.6.3/leaflet.js"
-LEAFLET_CSS :== "leaflet-0.6.3/leaflet.css"
+LEAFLET_JS :== "leaflet-0.7.2/leaflet.js"
+LEAFLET_CSS :== "leaflet-0.7.2/leaflet.css"
 
 :: LeafletClientState =
     {mapObj         :: !JSVal JSObject
@@ -323,7 +323,6 @@ where
     onAfterShow cid event (map=:{LeafletMap|perspective},Just st=:{mapObj}) world
         # world     = syncMapDivSize cid world
         # (_,world) = callObjectMethod "invalidateSize" [] mapObj world
-        //Update bounds
         # (bounds,world) = getMapBounds mapObj world
         # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
         = ((map,Just st),world)
