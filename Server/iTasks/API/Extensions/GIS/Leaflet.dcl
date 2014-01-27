@@ -11,7 +11,7 @@ import iTasks
     { center        :: LeafletLatLng
     , zoom          :: Int
     , cursor        :: Maybe LeafletLatLng
-    , bounds        :: Maybe LeafletLatLngBounds
+    , bounds        :: Maybe LeafletBounds
     }
 :: LeafletIcon =
     { iconUrl       :: String
@@ -19,10 +19,13 @@ import iTasks
     }
 
 :: LeafletLatLng =
-    { lat :: Real
-    , lng :: Real
+    { lat :: !Real
+    , lng :: !Real
     }
-:: LeafletLatLngBounds :== (!LeafletLatLng,!LeafletLatLng)
+:: LeafletBounds =
+    { southWest :: !LeafletLatLng
+    , northEast :: !LeafletLatLng
+    }
 
 :: LeafletLayer
     = TileLayer String
@@ -41,13 +44,13 @@ import iTasks
 
 openStreetMapTiles :: LeafletLayer
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gUpdate          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
-derive gVerify	        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gUpdate          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
+derive gVerify	        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker
 

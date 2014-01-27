@@ -39,6 +39,7 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     = LDSetZoom         !Int
     | LDSetCenter       !LeafletLatLng
     | LDSetCursor       !(Maybe LeafletLatLng)
+    | LDSetBounds       !(Maybe LeafletBounds)
     //Icons
     | LDAddIcons        ![LeafletIcon]
     | LDUpdateIcon      !Int LeafletIcon
@@ -64,6 +65,7 @@ where
         =   if (p1.zoom === p2.zoom) [] [LDSetZoom p2.zoom]
         ++  if (p1.center === p2.center) [] [LDSetCenter p2.center]
         ++  if (p1.cursor === p2.cursor) [] [LDSetCursor p2.cursor]
+        ++  if (p1.bounds === p2.bounds) [] [LDSetBounds p2.bounds]
 
     diffIcons i [] [] = []
     diffIcons i [] i2 = [LDAddIcons i2]
@@ -95,6 +97,7 @@ appDiff [] m                            = m
 appDiff [LDSetZoom zoom:ds] m           = appDiff ds {m & perspective = {m.perspective & zoom = zoom}}
 appDiff [LDSetCenter center:ds] m       = appDiff ds {m & perspective = {m.perspective & center = center}}
 appDiff [LDSetCursor cursor:ds] m       = appDiff ds {m & perspective = {m.perspective & cursor = cursor}}
+appDiff [LDSetBounds bounds:ds] m       = appDiff ds {m & perspective = {m.perspective & bounds = bounds}}
 appDiff [LDAddIcons icons:ds] m         = appDiff ds {m & icons = m.icons ++ icons}
 appDiff [LDRemoveIcons n:ds] m          = appDiff ds {m & icons = take n m.icons}
 appDiff [LDUpdateIcon i icon:ds] m      = appDiff ds {m & icons = updateAt i icon m.icons}
@@ -222,6 +225,9 @@ where
         //Set perspective
         # (center,world) = toJSArray [perspective.center.lat,perspective.center.lng] world
         # (_,world) = callObjectMethod "setView" [toJSArg center, toJSArg perspective.LeafletPerspective.zoom] mapObj world
+        //Update map bounds
+        # (bounds,world) = getMapBounds mapObj world
+        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
         //Create cursor
         # (mapCursor,world) = case perspective.cursor of
             Nothing     = (Nothing,world)
@@ -286,11 +292,13 @@ where
         # (mapobj,world) = jsGetObjectAttr "target" event world
         # (latlng,world) = callObjectMethod "getCenter" [] mapobj world
         # (center,world) = getPos latlng world
-        = (({LeafletMap|map & perspective = {perspective & center = center}},mbSt),world)
+        # (bounds,world) = getMapBounds mapobj world
+        = (({LeafletMap|map & perspective = {perspective & center = center,bounds=bounds}},mbSt),world)
     onZoomChange cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) world
         # (mapobj,world)    = jsGetObjectAttr "target" event world
         # (zoom,world)      = callObjectMethod "getZoom" [] mapobj world
-        = (({LeafletMap|map & perspective = {perspective & zoom = jsValToInt zoom}},mbSt),world)
+        # (bounds,world)    = getMapBounds mapobj world
+        = (({LeafletMap|map & perspective = {perspective & zoom = jsValToInt zoom,bounds=bounds}},mbSt),world)
     onMapClick cid {[0]=event} (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Nothing}) world
         # (l, world)        = findObject "L" world
         # (latlng,world)    = jsGetObjectAttr "latlng" event world
@@ -312,9 +320,12 @@ where
             = ObjectLayer [Marker {m & selected = m.markerId == markerId} \\ Marker m <- objects]
         selectMarker l = l
 
-    onAfterShow cid event (map,Just st=:{mapObj}) world
+    onAfterShow cid event (map=:{LeafletMap|perspective},Just st=:{mapObj}) world
         # world     = syncMapDivSize cid world
         # (_,world) = callObjectMethod "invalidateSize" [] mapObj world
+        //Update bounds
+        # (bounds,world) = getMapBounds mapObj world
+        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
         = ((map,Just st),world)
     onAfterShow cid event st world
         = (st,world)
@@ -323,6 +334,14 @@ where
 		# (lat, world) = jsGetObjectAttr "lat" obj world
 		# (lng, world) = jsGetObjectAttr "lng" obj world
 		= ({LeafletLatLng|lat=jsValToReal lat,lng=jsValToReal lng}, world)
+
+    getMapBounds mapObj world
+        # (bounds,world)    = callObjectMethod "getBounds" [] mapObj world
+        # (sw,world)        = callObjectMethod "getSouthWest" [] bounds world
+        # (ne,world)        = callObjectMethod "getNorthEast" [] bounds world
+		# (swpos, world)    = getPos sw world
+		# (nepos, world)    = getPos ne world
+        = (Just {southWest=swpos,northEast=nepos},world)
 
     removeObjects :: !(JSVal [a]) !(JSVal b) !*JSWorld -> *JSWorld
     removeObjects removeRefs layer world
@@ -369,12 +388,12 @@ gDefault{|LeafletPerspective|}
 gEq{|LeafletLatLng|} x y
     = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gUpdate                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gUpdate                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
