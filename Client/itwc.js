@@ -1440,7 +1440,6 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
         }
         label = document.createElement('label');
         label.id = nodeId + "-l";
-        label.setAttribute('for',nodeId + "-e");
 
         if(option.iconCls) {
             label.classList.add(option.iconCls);
