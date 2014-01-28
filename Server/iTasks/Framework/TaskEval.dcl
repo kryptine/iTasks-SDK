@@ -26,7 +26,7 @@ createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!Task
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !SessionInfo, ![UIUpdate]), !*IWorld) |  iTask a
+createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !EventNo, ![UIUpdate]), !*IWorld) |  iTask a
 
 //Create a session instance without evaluating it
 createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
@@ -55,7 +55,7 @@ createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !Man
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionInfo, ![UIUpdate]), !*IWorld)
+evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !EventNo, ![UIUpdate]), !*IWorld)
 
 /**
 * Evaluate a task instance without any events

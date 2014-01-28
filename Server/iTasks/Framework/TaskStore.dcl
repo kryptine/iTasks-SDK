@@ -21,14 +21,16 @@ newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 //Create and delete task instances
 deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
 
-//Task instance state is accessible as shared data sources
-detachedInstances		:: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of detached instances
-sessionInstances        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld //The master index of session instances
+//Rebuild the task instance index in the iworld from the store content
+initInstanceMeta        :: !*IWorld -> *IWorld
 
-detachedInstanceMeta	:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-sessionInstanceMeta		:: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+//Task instance state is accessible as shared data sources
+fullInstanceMeta        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+
+taskInstanceMeta        :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
 taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
-taskInstanceResult		:: !InstanceNo -> RWShared (TaskResult JSONNode) (TaskResult JSONNode) IWorld
+taskInstanceValue       :: !InstanceNo -> RWShared TIValue TIValue IWorld
+taskInstanceRep         :: !InstanceNo -> RWShared TaskRep TaskRep IWorld
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

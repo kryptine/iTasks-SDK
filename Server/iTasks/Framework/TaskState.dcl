@@ -4,8 +4,8 @@ import iTasks.API.Core.SystemTypes
 
 from iTasks.Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo
 
-derive JSONEncode TIMeta, SessionInfo, TIReduct, TaskTree
-derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
+derive JSONEncode TIMeta, TIReduct, TaskTree
+derive JSONDecode TIMeta, TIReduct, TaskTree
 
 //Persistent context of active tasks
 //Split up version of task instance information
@@ -21,23 +21,25 @@ derive JSONDecode TIMeta, SessionInfo, TIReduct, TaskTree
 	}
 
 :: TIType
-    = SessionInstance !SessionInfo          //An instance directly linked to a client session
+    = SessionInstance                       //An instance directly linked to a client session
     | DetachedInstance                      //A detached task that is not in use
     | AttachedInstance ![TaskId] !User      //A previously detached task that has been attached to another instance
     | TmpAttachedInstance ![TaskId] !User   //A temporarily attached task that will automatically turn into a detached instance after evaluation
 
-:: SessionInfo =
-	{ lastEvent		:: EventNo
-	}
-	
 :: TIReduct =
-	{ task			:: !Task JSONNode
-	, nextTaskNo	:: !TaskNo
-	, nextTaskTime	:: !TaskTime
+	{ task			:: !Task JSONNode                   //Main task definition
+    , tree          :: !TaskTree                        //Main task state
+	, nextTaskNo	:: !TaskNo                          //Local task number counter
+	, nextTaskTime	:: !TaskTime                        //Local task time (incremented at every evaluation)
+    , lastEventNo   :: !EventNo                         //Last event number received from a client
 	, shares		:: !Map TaskId JSONNode				//Locally shared data
 	, lists			:: !Map TaskId [TaskListEntry]		//Parallel task lists
 	, tasks			:: !Map TaskId Dynamic				//Task functions of embedded parallel tasks
 	}
+
+:: TIValue
+   = TIValue !(TaskValue JSONNode)
+   | TIException !Dynamic !String
 
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
@@ -69,7 +71,7 @@ derive JSONDecode DeferredJSON
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
     , name              :: !Maybe String            //Optional name, for easy referencing
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
-	, lastEval			:: !TaskResult JSONNode		//Result of last evaluation
+	, lastEval          :: !TaskResult JSONNode     //Value of last evaluation
 	, attributes		:: !Map String String		//Stored attributes of last evaluation
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
 	, lastEvent			:: !TaskTime				//Last modified time

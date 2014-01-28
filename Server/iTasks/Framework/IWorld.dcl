@@ -8,7 +8,7 @@ from System.Time				import :: Timestamp
 from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
-from iTasks.Framework.TaskState			import :: TaskListEntry
+from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue
 from Text.JSON				import :: JSONNode
 from StdFile			import class FileSystem		
@@ -39,6 +39,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
 
+                    , ti                    :: !Map InstanceNo TIMeta                   // Task instance index
+                    , nextInstanceNo        :: !Int                                     // Next task instance number
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]              // (Instance input)
 					, uiMessages            :: !Map InstanceNo [UIMessage]				// (Instance output)
 

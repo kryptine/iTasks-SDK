@@ -43,8 +43,8 @@ where
 	copy :: !Int !*String -> String
 	copy i n
 		| i == len	= n
-		| isAlphanum s.[i]	= copy (i + 1) {n & [i] = s.[i]}
-							= copy (i + 1) {n & [i] = '_'} 
+		| isAlphanum s.[i] || s.[i] == '-'  = copy (i + 1) {n & [i] = s.[i]}
+							                = copy (i + 1) {n & [i] = '_'} 
 
 storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue namespace key value iworld 
@@ -221,3 +221,12 @@ where
 					= unlink dir fs world
 				| otherwise
 					= unlink dir fs world
+
+listKeys :: !StoreNamespace !*IWorld -> (![StoreKey], !*IWorld)
+listKeys namespace iworld=:{server={buildID,paths={dataDirectory}},world}
+    # storeDir		= storePath dataDirectory buildID </> namespace
+    # (res,world)   = readDirectory storeDir world
+    = case res of
+        Error e     = ([], {iworld & world = world})
+        Ok keys     = ([dropExtension k \\ k <- keys | not (k == "." || k == "..")], {iworld & world = world})
+

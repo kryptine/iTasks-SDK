@@ -75,3 +75,9 @@ storeBlob				:: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
 * Load a binary blob
 */
 loadBlob				:: !StoreNamespace !StoreKey 				!*IWorld -> (!Maybe {#Char}, !*IWorld)
+
+/**
+* List the keys for a given namespace
+*/
+listKeys                :: !StoreNamespace                          !*IWorld -> (![StoreKey], !*IWorld)
+

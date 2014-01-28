@@ -41,6 +41,9 @@ processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 currentUser				:: ReadOnlyShared User
 currentTopTask			:: ReadOnlyShared TaskId
 
+//Task instances
+allTaskInstances        :: ReadOnlyShared [TaskListItem Void]
+
 // Application
 applicationName			:: ReadOnlyShared String	// Application name
 applicationBuild		:: ReadOnlyShared String	// Application build identifier

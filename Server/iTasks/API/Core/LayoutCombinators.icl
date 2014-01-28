@@ -9,7 +9,7 @@ from Data.Map import qualified put, get, del, newMap, toList
 from StdFunc import o, const
 
 from iTasks.Framework.Task import :: EventNo
-from iTasks.Framework.TaskState import :: TIMeta(..), :: TIType(..), :: SessionInfo(..)
+from iTasks.Framework.TaskState import :: TIMeta(..), :: TIType(..)
 
 derive gEq UISide
 

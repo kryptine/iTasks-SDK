@@ -132,12 +132,12 @@ where
                             = (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
                         Ok (ValueResult (Value _ True) _ _ _,_,_,_)
                             = (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-                        Ok (ValueResult _ info curRep context,instanceNo,{SessionInfo|lastEvent},updates)
+                        Ok (ValueResult _ info curRep context,instanceNo,lastEventNo,updates)
                             //Determine expiry date	
                             # (expiresIn,iworld) = getResponseExpiry instanceNo iworld
                             # json	= JSONObject [("success",JSONBool True)
                                                  ,("expiresIn",toJSON expiresIn)
-                                                 ,("lastEvent",JSONInt lastEvent)
+                                                 ,("lastEvent",JSONInt lastEventNo)
                                                  ,("updates", encodeUIUpdates updates)
                                                  ]
                             = (json,iworld)

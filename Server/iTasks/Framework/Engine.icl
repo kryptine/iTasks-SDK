@@ -42,6 +42,8 @@ startEngine publishable world
 	//Normal execution
 	# world					= show (running port) world
 	# iworld				= initIWorld (fromJust mbSDKPath) world
+    //Initialize task instance index
+    # iworld                = initInstanceMeta iworld
 	// mark all instance as outdated initially
 	# (maxNo,iworld)		= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
@@ -223,6 +225,8 @@ initIWorld sdkDir world
         ,editletDiffs           = newMap }
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
+      ,ti                   = newMap
+      ,nextInstanceNo       = 0
 	  ,workQueue			= []
 	  ,uiMessages           = newMap
 	  ,shutdown				= False

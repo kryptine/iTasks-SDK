@@ -199,7 +199,6 @@ where
 			Nothing -> Nothing
 
 // Parallel composition
-import StdDebug
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
 parallel desc initTasks = Task eval
 where
@@ -269,7 +268,7 @@ where
 	//Evaluate embedded tasks
 	evalParTask taskId event mbEventIndex repOpts (Nothing,acc,iworld=:{current={localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree, removed=False})
 		# evalNeeded = case mbEventIndex of
-			Nothing	= True//We don't know the event index, so we just have to try
+			Nothing	= True //We don't know the event index, so we just have to try
 			Just eventIndex
 				| eventIndex == index	= True								//The event is targeted at this branch, we evaluate
 										= info.TaskInfo.refreshSensitive	//Also evaluate if the branch is refresh sensitive
@@ -294,13 +293,14 @@ where
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI (Nothing,acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
-		# (mbMeta,iworld)	= readRegister curInstanceNo (detachedInstanceMeta instanceNo) iworld
-		# (mbResult,iworld)	= readRegister curInstanceNo (taskInstanceResult instanceNo) iworld
-		= case (mbMeta,mbResult) of
-			(Ok meta,Ok result)
-				# (entry,iworld) = updateListEntryDetachedResult taskId entryId result meta.TIMeta.progress meta.TIMeta.management iworld
+		# (mbMeta,iworld)	= readRegister curInstanceNo (taskInstanceMeta instanceNo) iworld
+		# (mbValue,iworld)	= readRegister curInstanceNo (taskInstanceValue instanceNo) iworld
+		= case (mbMeta,mbValue) of
+			(Ok meta,Ok value)
+				# (entry,iworld) = updateListEntryDetachedResult taskId entryId value meta.TIMeta.progress meta.TIMeta.management iworld
 				= (Nothing,acc++[Nothing],iworld)
-			_	= (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
+			_	
+                =  (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
 
 	//Do nothing if an exeption occurred or marked as removed
 	evalParTask taskId event mbEventIndex noUI (result,acc,iworld) (index,entry) = (result,acc,iworld) 
@@ -353,7 +353,7 @@ where
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 appendTaskToList taskId (parType,parTask) iworld=:{current={taskTime,user,attachmentChain,localDateTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {issuedAt=localDateTime,issuedBy=user,stable=True,firstEvent=Nothing,latestEvent=Nothing}
+	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,stable=True,firstEvent=Nothing,latestEvent=Nothing} //FIXME : value should not be None
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
@@ -394,13 +394,18 @@ where
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
 
-updateListEntryDetachedResult :: !TaskId !TaskId (TaskResult JSONNode) !ProgressMeta !ManagementMeta !*IWorld -> (!TaskListEntry,!*IWorld)
-updateListEntryDetachedResult listId entryId lastEval progress management iworld
+updateListEntryDetachedResult :: !TaskId !TaskId TIValue !ProgressMeta !ManagementMeta !*IWorld -> (!TaskListEntry,!*IWorld)
+updateListEntryDetachedResult listId entryId lastValue progress management iworld
 	= updateListEntry listId entryId update iworld
 where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
+        # lastEval = case lastValue of
+            TIValue val = ValueResult val info NoRep TCNop
+            TIException e str = ExceptionResult e str
 		= {TaskListEntry| e & state = DetachedState no progress management, lastEval = lastEval}
 	update e = e
+
+    info = {refreshSensitive=True,lastEvent=0} //FIXME probably a bad idea to construct this nonsense info that may or may not be used
 
 markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
 markListEntryRemoved listId entryId iworld
@@ -452,9 +457,10 @@ taskListSelfId tasklist = mapRead (\{TaskList|selfId} -> selfId) (toReadOnly tas
 taskListSelfManagement :: !(SharedTaskList a) -> Shared ManagementMeta
 taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) tasklist
 where
-    toPrj {TaskList|selfId,items} = case [meta \\ {TaskListItem|taskId,managementMeta=Just meta} <- items | taskId == selfId] of
-        [meta:_]    = Ok meta
-        _           = Error "Self management share is only available for detached tasks"
+    toPrj {TaskList|selfId,items} = case [m \\ m=:{TaskListItem|taskId} <- items | taskId == selfId] of
+        []                              = trace_n (length items) (Error "Task id not found in self management share")
+        [{managementMeta=Nothing}:_]    = Error "Self management share is only possible for detached tasks"
+        [{managementMeta=Just meta}:_]  = Ok meta
 
     fromPrj meta {TaskList|selfId}
         = Ok (Just [(selfId,meta)])
@@ -503,16 +509,15 @@ where
 		= markListEntryRemoved parId entryId iworld
 	remove _ _ iworld = iworld
 
-import StdDebug
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{current={attachmentChain,user}}
-		# (meta,iworld)		= read (detachedInstanceMeta instanceNo) iworld
+		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld
 		= case meta of
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
-				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (detachedInstanceMeta instanceNo) iworld
+				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (taskInstanceMeta instanceNo) iworld
 				# iworld		= queueUrgentEvaluate instanceNo iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
@@ -520,29 +525,35 @@ where
 		
 	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{current={taskInstance,user}}
 		//Load instance
-		# (meta,iworld)		= readRegister taskInstance (detachedInstanceMeta instanceNo) iworld
-		# (result,iworld)	= readRegister taskInstance (taskInstanceResult instanceNo) iworld
+		# (meta,iworld)		= readRegister taskInstance (taskInstanceMeta instanceNo) iworld
+		# (rep,iworld)	    = readRegister taskInstance (taskInstanceRep instanceNo) iworld
 		# layout			= repLayoutRules repOpts
-		= case (meta,result) of
-			(_,Ok (ValueResult (Value _ True) _ _ _))
-				= (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
-			(_,Ok (ExceptionResult _ _))
-				= (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
-			(Ok meta=:{TIMeta|instanceType=AttachedInstance _ worker},Ok (ValueResult _ _ (TaskRep def parts) _))
+		= case (meta,rep) of
+			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker},Ok rep)
+                | progress.ProgressMeta.value === Exception
+				    = (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+                | progress.ProgressMeta.value === Stable
+				    = (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 				| worker == user
-					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn def meta) parts)
+                    # rep = case rep of
+                        (TaskRep def parts) = TaskRep (layout.LayoutRules.accuWorkOn def meta) parts
+                        _                   = NoRep
+					# rep = finalizeRep repOpts rep
 					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) parts)
+                    # rep = case rep of
+                        (TaskRep def parts) = TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) parts
+                        _                   = NoRep
+					# rep = finalizeRep repOpts rep
 					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
-        # (meta,iworld) = read detachedInstances iworld
+        # (meta,iworld) = read fullInstanceMeta iworld //FIXME: Figure out how to get the right share notifications for the released instances
         = case meta of
             Ok instances
-                # (_,iworld) = write ('Data.Map'.fromList [(n,release taskId m) \\ (n,m) <- 'Data.Map'.toList instances]) detachedInstances iworld
+                # (_,iworld) = write ('Data.Map'.fromList [(n,release taskId m) \\ (n,m) <- 'Data.Map'.toList instances]) fullInstanceMeta iworld
                 = (DestroyedResult,iworld)
 		    _   = (DestroyedResult,iworld)
 

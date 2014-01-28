@@ -7,8 +7,8 @@ from iTasks					import JSONEncode, JSONDecode
 from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: EventNo
 import iTasks.API.Core.SystemTypes
 
-derive JSONEncode TIMeta, TIType, SessionInfo, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo
-derive JSONDecode TIMeta, TIType, SessionInfo, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo
+derive JSONEncode TIMeta, TIType, TIValue, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo
+derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskInfo
 
 //IS ALSO DERIVED IN TASK STORE: SEEMS REDUNDANT
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts

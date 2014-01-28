@@ -391,12 +391,19 @@ instance <			TaskId
 	}
 		
 :: ProgressMeta =
-	{ issuedAt			:: !DateTime				//* When was the task created
+	{ value             :: !ValueStatus             //* Status of the task value
+    , issuedAt			:: !DateTime				//* When was the task created
 	, issuedBy			:: !User					//* By whom was the task created
 	, stable			:: !Stability				//* Is a maintask stable
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
 	}
+
+:: ValueStatus
+    = None
+    | Unstable
+    | Stable
+    | Exception
 
 //* Tasks can have three levels of priority
 :: TaskPriority		= LowPriority					
@@ -619,16 +626,16 @@ ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
 alt key			:== {key=key,ctrl=False,alt=True,shift=False}
 shift key		:== {key=key,ctrl=False,alt=False,shift=True}
 
-derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
-derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 

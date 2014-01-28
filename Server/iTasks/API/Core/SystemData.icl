@@ -11,6 +11,7 @@ from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimes
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
 from Data.Map import toList
+derive gEq TIType
 
 SYSTEM_DATA_NS :== "SystemData"
 
@@ -62,10 +63,10 @@ topLevelTasks :: SharedTaskList Void
 topLevelTasks = topListShare
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
-currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances)]) (toReadOnly sessionInstances)
+currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | m.instanceType === SessionInstance]) (toReadOnly fullInstanceMeta)
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances)]) (toReadOnly detachedInstances)
+currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | m.instanceType =!= SessionInstance]) (toReadOnly fullInstanceMeta)
 
 toTaskListItem :: !TIMeta -> TaskListItem a 
 toTaskListItem {TIMeta|instanceNo,listId,progress,management}
@@ -82,8 +83,11 @@ where
 	forWorker _ _																							= False
 
 isSession :: !TIMeta -> Bool
-isSession {TIMeta|instanceType=SessionInstance _}	= True
-isSession _						 	                = False
+isSession {TIMeta|instanceType=SessionInstance}	= True
+isSession _						 	            = False
+
+allTaskInstances :: ReadOnlyShared [TaskListItem Void]
+allTaskInstances = createReadOnlySDS (\iworld=:{ti} -> (map (toTaskListItem o snd) (toList ti),iworld))
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\iworld=:{current={user}} -> (user,iworld))

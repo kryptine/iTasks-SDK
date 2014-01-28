@@ -169,6 +169,8 @@ createClientIWorld serverURL currentInstance
           }
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
+          ,ti                   = 'Data.Map'.newMap
+          ,nextInstanceNo       = 0
 		  ,workQueue			= []
 		  ,uiMessages			= 'Data.Map'.newMap
 		  ,shutdown				= False

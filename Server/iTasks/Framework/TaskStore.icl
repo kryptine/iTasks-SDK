@@ -6,11 +6,12 @@ import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Fun
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
 
-from Data.SharedDataSource import qualified read, write, mapReadWriteError
+from Data.SharedDataSource import qualified read, write, mapReadWriteError, createChangeOnWriteSDS
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
+import qualified Data.Map
 
 //Derives required for storage of UI definitions
-derive JSONEncode TaskResult, TaskInfo, TaskRep
+derive JSONEncode TaskResult, TaskInfo, TaskRep, TIValue
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIControlStack, UISubUI, UISubUIStack
@@ -18,7 +19,7 @@ derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, U
 derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts
 
-derive JSONDecode TaskResult, TaskInfo, TaskRep
+derive JSONDecode TaskResult, TaskInfo, TaskRep, TIValue
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIControlStack, UISubUI, UISubUIStack
@@ -29,16 +30,17 @@ derive JSONDecode UITaskletOpts, UIEditletOpts
 INCREMENT				:== "increment"
 SHARE_REGISTRATIONS		:== "share-registrations"
 
-reduct_store t	= toString t +++ "-reduct"
-result_store t	= toString t +++ "-result"
+meta_store t    = toString t +++ "-meta"
 rep_store t		= toString t +++ "-rep"
+value_store t	= toString t +++ "-value"
+reduct_store t	= toString t +++ "-reduct"
 
 newInstanceNo :: !*IWorld -> (!InstanceNo,!*IWorld)
 newInstanceNo iworld
 	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
 	= case mbNewTid of
 		Just tid
-			# iworld = storeValue NS_TASK_INSTANCES INCREMENT (tid+1) iworld 
+			# iworld = storeValue NS_TASK_INSTANCES INCREMENT (tid+1) iworld
 			= (tid,iworld)
 		Nothing
 			# iworld = storeValue NS_TASK_INSTANCES INCREMENT 2 iworld //store the next value (2)
@@ -61,35 +63,50 @@ newDocumentId iworld=:{IWorld|random}
 	
 deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteInstance instanceNo iworld
-    = delete instanceNo detachedInstances (delete instanceNo sessionInstances iworld)
-where
-	delete instanceNo instances iworld = case 'Data.SharedDataSource'.read instances iworld of
-		(Ok list,iworld)    = snd ('Data.SharedDataSource'.write (del instanceNo list) instances iworld)
+    = case 'Data.SharedDataSource'.read fullInstanceMeta iworld of
+		(Ok list,iworld)    = snd ('Data.SharedDataSource'.write (del instanceNo list) fullInstanceMeta iworld)
 		(_,iworld)          = iworld
 
-detachedInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
-detachedInstances = storeAccess NS_TASK_INSTANCES "detached" (Just newMap)
+initInstanceMeta :: !*IWorld -> *IWorld
+initInstanceMeta iworld
+    # (keys,iworld) = listKeys NS_TASK_INSTANCES iworld
+    # (ti,iworld)   = foldl restore (newMap,iworld) [key \\ key <- keys | endsWith "-meta" key]
+    = {iworld & ti = ti}
+where
+    restore (ti,iworld) key
+        # instanceNo = toInt (hd (split "-" key))
+        # (mbMeta,iworld) = loadValue NS_TASK_INSTANCES key iworld
+        = (maybe ti (\meta -> 'Data.Map'.put instanceNo meta ti) mbMeta,iworld)
 
-sessionInstances :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
-sessionInstances = storeAccess NS_TASK_INSTANCES "sessions" (Just newMap)
+fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+fullInstanceMeta = 'Data.SharedDataSource'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
+where
+    read iworld=:{IWorld|ti}
+		= (Ok ti, iworld)
+    write ti iworld
+        # iworld = {iworld & ti = ti}
+        = (Ok Void,iworld)
 
-detachedInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-detachedInstanceMeta instanceNo = 'Data.SharedDataSource'.mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) detachedInstances
+//The instance meta data is stored directly in the iworld
+taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+taskInstanceMeta instanceNo = 'Data.SharedDataSource'.createChangeOnWriteSDS NS_TASK_INSTANCES (meta_store instanceNo) read write
+where
+    read iworld=:{IWorld|ti}
+		= (maybe (Error ("Could not read task instance meta of instance "+++toString instanceNo)) Ok ('Data.Map'.get instanceNo ti), iworld)
+	write meta iworld=:{IWorld|ti}
+        # iworld = {iworld & ti = 'Data.Map'.put instanceNo meta ti}
+        # iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld //Sync to disk to enable server restarts
+        = (Ok Void,iworld)
 
-sessionInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-sessionInstanceMeta instanceNo = 'Data.SharedDataSource'.mapReadWriteError (readTIMeta instanceNo,writeTIMeta instanceNo) sessionInstances
-
-readTIMeta instanceNo instances = case get instanceNo instances of
-	Just i	= Ok i
-	_		= Error ("Task instance " +++ toString instanceNo +++ " could not be found")
-
-writeTIMeta instanceNo i instances = Ok (Just (put instanceNo i instances))
-
+//The remaining instance parts are stored on disk
 taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
 taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
 
-taskInstanceResult	:: !InstanceNo -> RWShared (TaskResult JSONNode) (TaskResult JSONNode) IWorld
-taskInstanceResult instanceNo = storeAccess NS_TASK_INSTANCES (result_store instanceNo) Nothing
+taskInstanceValue :: !InstanceNo -> RWShared TIValue TIValue IWorld
+taskInstanceValue instanceNo = storeAccess NS_TASK_INSTANCES (value_store instanceNo) Nothing
+
+taskInstanceRep :: !InstanceNo -> RWShared TaskRep TaskRep IWorld
+taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
