@@ -124,7 +124,7 @@ where
 		# uidef		= {UIDef|content=UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes='Data.Map'.put VALUE_ATTRIBUTE valueAttr 'Data.Map'.newMap,controls=controls}),windows=[]}
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
-tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (l,[String],Bool)) (l r [String] Bool Bool -> (l,[String],Bool)) -> Task l | iTask l & iTask r
+tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> Task l | iTask l & iTask r
 tcpconnect host port shared initFun commFun = Task eval
 where
 	eval event repOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
@@ -153,10 +153,16 @@ where
                     = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
 
     eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioValues}
-        # value = case 'Data.Map'.get taskId ioValues of
-            Just (Value (l :: l^) s) = Value l s
-            _                        = NoValue
-        = (ValueResult value {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree, iworld)
+        = case 'Data.Map'.get taskId ioValues of
+            Nothing
+                = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree, iworld)
+            Just (IOValue (l :: l^) s)
+                = (ValueResult (Value l s) {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree, iworld)
+            Just (IOException e)
+                = (ExceptionResult (dynamic e) e,iworld)
+            _
+                # e = "Corrupt IO task result"
+                = (ExceptionResult (dynamic e) e,iworld)
 
     eval event repOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioValues}
         # iworld = {iworld & ioValues = 'Data.Map'.del taskId ioValues}
@@ -165,16 +171,21 @@ where
     lookupErr = "Failed to lookup host "+++ host
     connectErr = "Failed to connect to host "+++ host
 
-    connTask :: !TaskId (ReadOnlyShared r) (r -> (l,[String],Bool)) (l r [String] Bool Bool -> (l,[String],Bool)) -> ConnectionTask | iTask r & iTask l
+    connTask :: !TaskId (ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> ConnectionTask | iTask r & iTask l
     connTask taskId=:(TaskId instanceNo _) shared initFun commFun = ConnectionTask init eval close
     where
         init host iworld
 		    # (val,iworld=:{ioValues}) = 'Data.SharedDataSource'.read shared iworld
 		    = case val of
 			    Ok r
-                    # (l,data,close) = initFun r
-                    # iworld = {iworld & ioValues = 'Data.Map'.put taskId (Value (dynamic l) False) ioValues}
-                    = (data, close, dynamic (r,l), iworld)
+                    # (mbl,sends,close) = initFun r
+                    = case mbl of
+                        Ok l
+                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
+                            = (sends, close, dynamic (r,l), iworld)
+                        Error e
+                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
+                            = (sends,True, dynamic e, iworld)
 			    Error e
                     = ([],True, dynamic (toString e), iworld)
 
@@ -182,10 +193,16 @@ where
 		    # (val,iworld=:{ioValues}) = 'Data.SharedDataSource'.read shared iworld
             = case val of
                 Ok r
-                    # (l,sends,close) = commFun l r [data] (r =!= prevr) False
-                    # iworld = {iworld & ioValues = 'Data.Map'.put taskId (Value (dynamic l) False) ioValues}
-                    # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
-                    = (sends,close,dynamic (r,l), iworld)
+                    # (mbl,sends,close) = commFun l r [data] (r =!= prevr) False
+                    = case mbl of
+                        Ok l
+                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
+                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            = (sends,close,dynamic (r,l), iworld)
+                        Error e
+                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
+                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            = (sends,True,dynamic e, iworld)
 			    Error e
                     = ([],True,dynamic (toString e), iworld)
         eval _  state iworld = ([],False,state,iworld) //TODO: ALSO DEAL WITH CASE WHERE SHARE CHANGED, BUT NO DATA
@@ -194,10 +211,16 @@ where
 		    # (val,iworld=:{ioValues}) = 'Data.SharedDataSource'.read shared iworld
             = case val of
                 Ok r
-                    # (l,_,_) = commFun l r [] (r =!= prevr) True
-                    # iworld = {iworld & ioValues = 'Data.Map'.put taskId (Value (dynamic l) True) ioValues}
-                    # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
-                    = (dynamic (r,l), iworld)
+                    # (mbl,_,_) = commFun l r [] (r =!= prevr) True
+                    = case mbl of
+                        Ok l
+                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) True) ioValues}
+                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            = (dynamic (r,l), iworld)
+			            Error e
+                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
+                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            = (dynamic e, iworld)
 			    Error e
                     = (dynamic (toString e), iworld)
 

@@ -113,14 +113,14 @@ where
     //VERY SIMPLE HTTP 1.0 Request
     req = toString method +++ " " +++ path +++ " HTTP/1.0\r\n\r\n"+++data
 
-    onConnect _ = (Left [],[req],False)
+    onConnect _ = (Ok (Left []),[req],False)
     onData (Left acc) _ events shareChanged connectionClosed
         | connectionClosed
             = case parseFun (concat (acc ++ events)) of
-                Ok a    = (Right a,[],True)
-                _       = abort "TODO: FIX CALL HTTP2"
+                Ok a    = (Ok (Right a),[],True)
+                Error e = (Error e,[],True)
         | otherwise
-            = (Left (acc ++ events),[],False)
+            = (Ok (Left (acc ++ events)),[],False)
 
     taskResult (Value (Right a) _)  = Value a True
     taskResult _                    = NoValue

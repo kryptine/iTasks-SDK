@@ -63,9 +63,12 @@ newDocumentId iworld=:{IWorld|random}
 	
 deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteInstance instanceNo iworld
-    = case 'Data.SharedDataSource'.read fullInstanceMeta iworld of
-		(Ok list,iworld)    = snd ('Data.SharedDataSource'.write (del instanceNo list) fullInstanceMeta iworld)
-		(_,iworld)          = iworld
+    //Delete all states
+    # iworld        = deleteValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
+    # iworld        = deleteValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
+    # iworld        = deleteValue NS_TASK_INSTANCES (value_store instanceNo) iworld
+    # iworld=:{ti}  = deleteValue NS_TASK_INSTANCES (rep_store instanceNo) iworld
+    = {iworld & ti = 'Data.Map'.del instanceNo ti}
 
 initInstanceMeta :: !*IWorld -> *IWorld
 initInstanceMeta iworld

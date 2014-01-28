@@ -45,7 +45,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 					, uiMessages            :: !Map InstanceNo [UIMessage]				// (Instance output)
 
                     , io                    :: !*IOTasks                                // The low-level input/output tasks
-                    , ioValues              :: !Map TaskId (TaskValue Dynamic)          // Task values of low-level tasks, indexed by the high-level taskid that it is linked to
+                    , ioValues              :: !Map TaskId IOTaskValue                  // Task values of low-level tasks, indexed by the high-level taskid that it is linked to
+
 					, world					:: !*World									// The outside world
 
                     //Experimental database connection cache
@@ -96,6 +97,10 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     = ListenerInstance !Int !*TCP_Listener !ConnectionTask
     | ConnectionInstance !IPAddress !*TCP_DuplexChannel !ConnectionTask !Dynamic
     | BackgroundInstance !BackgroundTask
+
+:: IOTaskValue
+    = IOValue !Dynamic !Bool
+    | IOException !String
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 

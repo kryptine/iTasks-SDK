@@ -182,27 +182,27 @@ evalTaskInstance event instanceNo iworld=:{current=current=:{taskTime,localDateT
         (ValueResult _ _ _ newTree) = newTree
         _                           = tree
 	//Re-read old meta data because it may have been changed during the task evaluation
-	# (oldMeta, iworld) = case 'Data.SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
-        (Ok meta, iworld)		= (meta, iworld)
-		(_, iworld)				= (oldMeta, iworld)
+	# (oldMeta,deleted,iworld) = case 'Data.SharedDataSource'.read (taskInstanceMeta instanceNo) iworld of
+        (Ok meta, iworld)		= (meta,False, iworld)
+		(Error e, iworld)		= (oldMeta,True, iworld) //If old meta is no longer there, it must have been removed
     # newMeta					= case instanceType of
        (SessionInstance)           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress}
        (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress, instanceType = DetachedInstance}
        _                           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress}
     //Store new meta data
-    # (_,iworld)                = 'Data.SharedDataSource'.write newMeta (taskInstanceMeta instanceNo) iworld //TODO Check error
+    # iworld                    = if deleted iworld (snd ('Data.SharedDataSource'.write newMeta (taskInstanceMeta instanceNo) iworld)) //TODO Check error
     //Store updated reduct
     # (nextTaskNo,iworld)		= getNextTaskNo iworld
 	# (shares,iworld)			= getLocalShares iworld
 	# (lists,iworld)			= getLocalLists iworld
 	# (tasks,iworld)			= getLocalTasks iworld
 	# newReduct					= {TIReduct|oldReduct & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, lastEventNo = lastEventNo event, shares = shares, lists = lists, tasks = tasks}
-	# (_,iworld)				= 'Data.SharedDataSource'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld //TODO Check error
+	# iworld                    = if deleted iworld (snd ('Data.SharedDataSource'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld)) //TODO Check error
     //Store update value
     # newValue                  = case newResult of
         (ValueResult val _ _ _) = TIValue val
         (ExceptionResult e str) = TIException e str
-	# (_,iworld)				= 'Data.SharedDataSource'.write newValue (taskInstanceValue instanceNo) iworld //TODO Check error
+	# iworld                    = if deleted iworld (snd ('Data.SharedDataSource'.write newValue (taskInstanceValue instanceNo) iworld)) //TODO Check error
 	//Determine user interface updates by comparing the previous UI to the newly calculated one
 	# (out,iworld) = case newMeta.TIMeta.instanceType of
 	    SessionInstance = case newResult of
@@ -222,8 +222,8 @@ evalTaskInstance event instanceNo iworld=:{current=current=:{taskTime,localDateT
             = (Right [no \\ (TaskId no _) <- attachment],iworld)
 		_				= (Right [],iworld)
     //Store updated representation (after we did the diff with previous)
-    # newRep                    = case newResult of (ValueResult _ _ rep _) = rep ; _ = NoRep
-	# (_,iworld)				= 'Data.SharedDataSource'.write newRep (taskInstanceRep instanceNo) iworld //TODO Check error
+    # newRep                = case newResult of (ValueResult _ _ rep _) = rep ; _ = NoRep
+	# iworld				= if deleted iworld (snd ('Data.SharedDataSource'.write newRep (taskInstanceRep instanceNo) iworld)) //TODO Check error
     //Return the result
 	= (Ok (newResult,out), iworld)
 where
