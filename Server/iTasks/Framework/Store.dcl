@@ -14,7 +14,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
-from Data.SharedDataSource import :: RWShared
+from iTasks.Framework.SDS import :: RWShared
 from iTasks.Framework.IWorld import :: IWorld
 
 // Storage formats

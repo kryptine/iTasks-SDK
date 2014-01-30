@@ -10,12 +10,12 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletO
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue
-from Text.JSON				import :: JSONNode
-from StdFile			import class FileSystem		
-from Data.SharedDataSource		import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
-from iTasks.Framework.Task import :: ConnectionTask, :: BackgroundTask
-from Data.SharedDataSource import :: RWShared
+from Text.JSON				            import :: JSONNode
+from StdFile			                import class FileSystem		
 from iTasks.Framework.Shared import :: ReadWriteShared, :: Shared
+from iTasks.Framework.Task import :: ConnectionTask, :: BackgroundTask
+from iTasks.Framework.SDS import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import :: RWShared
 
 from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState

@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.Tonic
 
-import qualified Data.SharedDataSource as DSDS
+import qualified iTasks.Framework.SharedDataSource as DSDS
 import iTasks.Framework.Engine
 import iTasks.Framework.Shared
 import iTasks.Framework.IWorld

@@ -5,9 +5,9 @@ import iTasks.Framework.IWorld
 
 from Data.Void import :: Void
 from Data.Error import :: MaybeErrorString, :: MaybeError
-from Data.SharedDataSource import :: RWShared, ::ROShared, :: WOShared
-from Data.SharedDataSource import mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly, >+<, >+|, |+<, |+|, null
-from Data.SharedDataSource import createChangeOnWriteSDS, createPollingSDS, createReadOnlySDS, createReadOnlySDSError, createReadOnlySDSPredictable, createReadOnlySDSErrorPredictable
+from iTasks.Framework.SDS import :: RWShared, ::ROShared, :: WOShared
+from iTasks.Framework.SDS import mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly, >+<, >+|, |+<, |+|, null
+from iTasks.Framework.SDS import createChangeOnWriteSDS, createPollingSDS, createReadOnlySDS, createReadOnlySDSError, createReadOnlySDSPredictable, createReadOnlySDSErrorPredictable
 
 :: ReadWriteShared r w  :== RWShared r w *IWorld
 :: Shared a				:== ReadWriteShared a a

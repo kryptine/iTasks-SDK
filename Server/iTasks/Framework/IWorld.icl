@@ -11,10 +11,9 @@ from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
-//from iTasks.Framework.TaskServer import class HttpServerEnv(..)
 
 from Data.List import splitWith
-from Data.SharedDataSource	import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 
 import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Data.Map
 import iTasks.Framework.TaskStore, iTasks.Framework.Util

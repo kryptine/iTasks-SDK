@@ -1,10 +1,10 @@
 implementation module iTasks.Framework.Shared
 
-from Data.SharedDataSource import :: RWShared, :: Hash, null, ::ROShared, :: WOShared
-from Data.SharedDataSource import mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly
-from Data.SharedDataSource import >+<, >+|, |+<, |+|, createChangeOnWriteSDS, createReadOnlySDS, createReadOnlySDSError
-from Data.SharedDataSource import >!>, >?>, :: WriteShare(..)
-from Data.SharedDataSource import qualified read, write
+from iTasks.Framework.SDS import :: RWShared, :: Hash, null, ::ROShared, :: WOShared
+from iTasks.Framework.SDS import mapRead, mapWrite, mapReadWrite, mapReadError, mapWriteError, mapReadWriteError, toReadOnly
+from iTasks.Framework.SDS import >+<, >+|, |+<, |+|, createChangeOnWriteSDS, createReadOnlySDS, createReadOnlySDSError
+from iTasks.Framework.SDS import >!>, >?>, :: WriteShare(..)
+from iTasks.Framework.SDS as SDS import qualified read, write
 
 import iTasks.Framework.IWorld
 import iTasks.Framework.Client.Override
@@ -23,7 +23,7 @@ toJSONShared :: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & J
 toJSONShared shared = createChangeOnWriteSDS "exposedShare" "?" read write
 where
 	read iworld
-		# (val,iworld) = 'Data.SharedDataSource'.read shared iworld
+		# (val,iworld) = 'SDS'.read shared iworld
 		= case val of
 			(Ok val)  = (Ok (toJSON val), iworld)
 			(Error e) = (Error e, iworld)
@@ -33,13 +33,13 @@ where
 			Nothing
 				= (Error "Shared type mismatch in toJSONShared", iworld)
 			Just val
-				= 'Data.SharedDataSource'.write val shared iworld
+				= 'SDS'.write val shared iworld
 
 fromJSONShared :: (Shared JSONNode) -> ReadWriteShared r w | JSONDecode{|*|} r & JSONEncode{|*|} w
 fromJSONShared shared = createChangeOnWriteSDS "exposedShare" "?" read write
 where
 	read iworld
-		# (ret,iworld) = 'Data.SharedDataSource'.read shared iworld
+		# (ret,iworld) = 'SDS'.read shared iworld
 		= case ret of
 			(Ok json)  = case (fromJSON json) of
 							(Just val)  = (Ok val, iworld)
@@ -47,7 +47,7 @@ where
 			(Error e) = (Error e, iworld)
 
 	write val iworld
-		= 'Data.SharedDataSource'.write (toJSON val) shared iworld
+		= 'SDS'.write (toJSON val) shared iworld
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}

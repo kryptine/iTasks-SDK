@@ -6,8 +6,8 @@ import qualified StdList
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval
 import iTasks.Framework.TaskStore, iTasks.Framework.UIDefinition, iTasks.Framework.Shared
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
-import iTasks.API.Core.LayoutCombinators 
-from Data.SharedDataSource			import qualified read, readRegister, write, writeFilterMsg
+import iTasks.API.Core.LayoutCombinators
+from iTasks.Framework.SDS as SDS import qualified read, readRegister, write, writeFilterMsg
 from StdFunc						import o, id
 from iTasks.Framework.IWorld		import :: IWorld(..)
 from iTasks.API.Core.SystemData		import topLevelTasks
@@ -19,7 +19,7 @@ interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v
 interactExposed desc shared initFun refreshFun = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
@@ -32,7 +32,7 @@ where
 		//Determine next v by applying edit event if applicable 	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
@@ -80,7 +80,7 @@ interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,Inte
 interactViewOnly desc shared initFun refreshFun = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
@@ -93,7 +93,7 @@ where
 		//Determine next v by applying edit event if applicable
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
@@ -144,7 +144,7 @@ interactSharedChoice	:: !d !(ReadOnlyShared r) (Maybe s) (l -> s) (r (Maybe s) -
 interactSharedChoice desc shared initial_mask targetFun toView = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e,iworld)
 			Ok r
@@ -159,7 +159,7 @@ where
 		//Determine next v by applying edit event if applicable 	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
@@ -187,7 +187,7 @@ interactSharedChoiceNoView	:: !d !(ReadOnlyShared r) (Maybe s) (l -> s) (r (Mayb
 interactSharedChoiceNoView desc shared initial_mask targetFun toViewId = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e,iworld)
 			Ok r
@@ -202,7 +202,7 @@ where
 		//Determine next v by applying edit event if applicable 	
 		# (nv,nmask,nts,iworld)	= matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
@@ -228,7 +228,7 @@ interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d
 interactSharedInformation desc shared toView = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e,iworld)
 			Ok r
@@ -243,7 +243,7 @@ where
 		//Determine next v by applying edit event if applicable 	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr), iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed

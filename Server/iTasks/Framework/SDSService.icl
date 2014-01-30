@@ -6,7 +6,7 @@ from iTasks.Framework.Engine	    import :: ConnectionType
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
 import iTasks.Framework.Shared, iTasks.Framework.RemoteAccess
-from Data.SharedDataSource import qualified read, write
+from iTasks.Framework.SDS as SDS import qualified read, write
 
 from StdFunc import o
 import StdString, StdList
@@ -47,14 +47,14 @@ where
 									HTTP_PUT = writeit shared iworld
 											 = (badRequestResponse "Invalid method",Nothing,iworld)
 	where
-		readit shared iworld 
-			# (res, iworld) = 'Data.SharedDataSource'.read shared iworld
+		readit shared iworld
+			# (res, iworld) = 'SDS'.read shared iworld
 			= case res of
 				(Ok json) = (jsonResponse json, Nothing, iworld)
 				(Error e) = (errorResponse e, Nothing, iworld)			
 			
-		writeit shared iworld 
-			# (res, iworld) = 'Data.SharedDataSource'.write (fromString req.req_data) shared iworld
+		writeit shared iworld
+			# (res, iworld) = 'SDS'.write (fromString req.req_data) shared iworld
 			= case res of
 				(Ok _)    = (jsonResponse "OK", Nothing, iworld)
 				(Error e) = (errorResponse e, Nothing, iworld)			

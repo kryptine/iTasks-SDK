@@ -6,7 +6,7 @@ import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Fun
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
 
-from Data.SharedDataSource import qualified read, write, mapReadWriteError, createChangeOnWriteSDS
+from iTasks.Framework.SDS as SDS import qualified read, write, mapReadWriteError, createChangeOnWriteSDS
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
 import qualified Data.Map
 
@@ -82,7 +82,7 @@ where
         = (maybe ti (\meta -> 'Data.Map'.put instanceNo meta ti) mbMeta,iworld)
 
 fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
-fullInstanceMeta = 'Data.SharedDataSource'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
+fullInstanceMeta = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
 where
     read iworld=:{IWorld|ti}
 		= (Ok ti, iworld)
@@ -92,7 +92,7 @@ where
 
 //The instance meta data is stored directly in the iworld
 taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-taskInstanceMeta instanceNo = 'Data.SharedDataSource'.createChangeOnWriteSDS NS_TASK_INSTANCES (meta_store instanceNo) read write
+taskInstanceMeta instanceNo = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES (meta_store instanceNo) read write
 where
     read iworld=:{IWorld|ti}
 		= (maybe (Error ("Could not read task instance meta of instance "+++toString instanceNo)) Ok ('Data.Map'.get instanceNo ti), iworld)

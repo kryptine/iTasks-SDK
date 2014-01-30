@@ -5,9 +5,9 @@ import Data.Void
 import Data.Maybe, Data.Map, Data.Functor
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.JSON
-import Data.SharedDataSource
 
 import iTasks.Framework.Client.JSStore
+import iTasks.Framework.SDS
 
 from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: ServerInfo(..), :: SystemPaths(..), :: Work, :: UIMessage, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts

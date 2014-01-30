@@ -7,7 +7,7 @@ import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Fr
 import iTasks.Framework.UIDefinition, iTasks.Framework.Shared
 import iTasks.API.Core.LayoutCombinators
 
-from Data.SharedDataSource			import qualified read, readRegister, write, writeFilterMsg
+from iTasks.Framework.SDS as SDS import qualified read, readRegister, write, writeFilterMsg
 from StdFunc					import o, id
 from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.API.Core.SystemData	import topLevelTasks
@@ -29,7 +29,7 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime}}
-		# (val,iworld) = 'Data.SharedDataSource'.read shared iworld
+		# (val,iworld) = 'SDS'.read shared iworld
 		= case val of
 			Ok val		= (Ok val,iworld)
 			Error e		= (Error (dynamic (SharedException e), e), iworld)
@@ -38,8 +38,7 @@ set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
-		//# (res,iworld)	='Data.SharedDataSource'.writeFilterMsg val ((<>) currentInstance) shared iworld
-		# (res,iworld)	='Data.SharedDataSource'.write val shared iworld
+		# (res,iworld)	='SDS'.write val shared iworld
 		= case res of
 			Ok _	= (Ok val,iworld)
 			Error e	= (Error (dynamic (SharedException e), e), iworld)
@@ -48,13 +47,12 @@ upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 upd fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
-		# (er, iworld)	= 'Data.SharedDataSource'.read shared iworld
+		# (er, iworld)	= 'SDS'.read shared iworld
 		= case er of
 			Error e		= (Error (dynamic (SharedException e), e), iworld)
 			Ok r	
 				# w				= fun r
-				//# (er, iworld)	=  'Data.SharedDataSource'.writeFilterMsg w ((<>) currentInstance) shared iworld
-				# (er, iworld)	=  'Data.SharedDataSource'.write w shared iworld
+				# (er, iworld)	=  'SDS'.write w shared iworld
 				= case er of
 					Ok _	= (Ok w, iworld)
 					Error e = (Error (dynamic (SharedException e), e), iworld)
@@ -63,7 +61,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (val,iworld)	= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (val,iworld)	= 'SDS'.readRegister instanceNo shared iworld
 		# res = case val of
 			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,refreshSensitive=True}
 				(finalizeRep repOpts NoRep) (TCInit taskId ts)
@@ -77,7 +75,7 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,Intera
 interact desc shared initFun refreshFun = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
@@ -90,7 +88,7 @@ where
 		//Determine next v by applying edit event if applicable 	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'Data.SharedDataSource'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
@@ -175,7 +173,7 @@ where
     connTask taskId=:(TaskId instanceNo _) shared initFun commFun = ConnectionTask init eval close
     where
         init host iworld
-		    # (val,iworld=:{ioValues}) = 'Data.SharedDataSource'.read shared iworld
+		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
 		    = case val of
 			    Ok r
                     # (mbl,sends,close) = initFun r
@@ -190,7 +188,7 @@ where
                     = ([],True, dynamic (toString e), iworld)
 
         eval (Just data) ((prevr,l) :: (r^,l^)) iworld
-		    # (val,iworld=:{ioValues}) = 'Data.SharedDataSource'.read shared iworld
+		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
             = case val of
                 Ok r
                     # (mbl,sends,close) = commFun l r [data] (r =!= prevr) False
@@ -208,7 +206,7 @@ where
         eval _  state iworld = ([],False,state,iworld) //TODO: ALSO DEAL WITH CASE WHERE SHARE CHANGED, BUT NO DATA
 
         close ((prevr,l) :: (r^,l^)) iworld
-		    # (val,iworld=:{ioValues}) = 'Data.SharedDataSource'.read shared iworld
+		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
             = case val of
                 Ok r
                     # (mbl,_,_) = commFun l r [] (r =!= prevr) True

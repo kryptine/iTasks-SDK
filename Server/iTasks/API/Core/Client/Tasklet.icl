@@ -10,7 +10,6 @@ import iTasks.API.Core.Client.Interface
 
 import Data.Functor, Data.Error
 
-from Data.SharedDataSource import qualified readRegister
 from Data.Map import newMap
 
 :: EventQueue :== Void
