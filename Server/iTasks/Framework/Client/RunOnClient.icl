@@ -4,6 +4,7 @@ import StdMisc
 import iTasks
 import iTasks.Framework.TaskStore
 import iTasks.Framework.TaskEval
+import iTasks.Framework.IWorld
 import iTasks.API.Core.Client.Tasklet
 import iTasks.Framework.UIDiff
 

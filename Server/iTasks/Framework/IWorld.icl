@@ -13,7 +13,7 @@ from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
 
 from Data.List import splitWith
-from iTasks.Framework.SDS import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import class registerSDSDependency, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 
 import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Data.Map
 import iTasks.Framework.TaskStore, iTasks.Framework.Util
@@ -129,24 +129,17 @@ where
 		# (ok,file,world) = sfopen filename mode world
 		= (ok,file,{IWorld|iworld & world = world})
 
-instance registerSDSDependency InstanceNo IWorld
+instance registerSDSDependency InstanceNo
 where
 	registerSDSDependency sdsId instanceNo iworld
 		= addShareRegistration sdsId instanceNo iworld
-
-instance registerSDSChangeDetection IWorld
-where
-	registerSDSPredictableChange timestamp sdsId iworld
-		= queueWork (TriggerSDSChange sdsId, Just timestamp) iworld
-	registerSDSCheckForChange timestamp hash checkF sdsId iworld
-		= queueWork (CheckSDS sdsId hash checkF, Just timestamp) iworld
-		
-instance reportSDSChange InstanceNo IWorld
+	
+instance reportSDSChange InstanceNo
 where
 	reportSDSChange sdsId filterFun iworld
 		= addOutdatedOnShareChange sdsId filterFun iworld
 
-instance reportSDSChange Void IWorld
+instance reportSDSChange Void
 where
 	reportSDSChange sdsId _ iworld
 		= addOutdatedOnShareChange sdsId (\_ -> True) iworld

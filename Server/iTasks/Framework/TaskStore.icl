@@ -81,7 +81,7 @@ where
         # (mbMeta,iworld) = loadValue NS_TASK_INSTANCES key iworld
         = (maybe ti (\meta -> 'Data.Map'.put instanceNo meta ti) mbMeta,iworld)
 
-fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
 fullInstanceMeta = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
 where
     read iworld=:{IWorld|ti}
@@ -91,7 +91,7 @@ where
         = (Ok Void,iworld)
 
 //The instance meta data is stored directly in the iworld
-taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
+taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta
 taskInstanceMeta instanceNo = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES (meta_store instanceNo) read write
 where
     read iworld=:{IWorld|ti}
@@ -102,13 +102,13 @@ where
         = (Ok Void,iworld)
 
 //The remaining instance parts are stored on disk
-taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct IWorld
+taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct
 taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
 
-taskInstanceValue :: !InstanceNo -> RWShared TIValue TIValue IWorld
+taskInstanceValue :: !InstanceNo -> RWShared TIValue TIValue
 taskInstanceValue instanceNo = storeAccess NS_TASK_INSTANCES (value_store instanceNo) Nothing
 
-taskInstanceRep :: !InstanceNo -> RWShared TaskRep TaskRep IWorld
+taskInstanceRep :: !InstanceNo -> RWShared TaskRep TaskRep
 taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

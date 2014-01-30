@@ -4,7 +4,7 @@ definition module iTasks.API.Core.CoreTasks
 */
 
 import iTasks.Framework.Generic
-import iTasks.Framework.Shared
+import iTasks.Framework.SDS
 from iTasks.Framework.Task			import :: Task
 from iTasks.API.Core.SystemTypes	import class descr
 from Data.Error					import ::MaybeError(..)

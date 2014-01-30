@@ -4,16 +4,16 @@ import StdList, StdTuple, StdMisc, StdBool, StdOrdList
 
 import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List, Data.Error, Data.Either, Text.JSON
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
-import iTasks.Framework.Util, iTasks.Framework.Shared, iTasks.Framework.Store
+import iTasks.Framework.Util, iTasks.Framework.Store
 import iTasks.Framework.Generic, iTasks.Framework.UIDefinition
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
+import iTasks.Framework.IWorld
 
 import iTasks.Framework.Client.Override
 
 from Data.Map						    import qualified get, put, del, newMap, toList, fromList
 from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-from iTasks.Framework.IWorld	        import :: IWorld(..)
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
 from iTasks.API.Core.CoreTasks	        import return
@@ -617,7 +617,7 @@ where
 	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
 		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
-		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^ *IWorld, toJSONShared shared) exposedShares
+		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^, toJSONShared shared) exposedShares
 		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
 		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		

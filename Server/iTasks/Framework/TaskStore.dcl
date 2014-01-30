@@ -24,12 +24,12 @@ deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
 initInstanceMeta        :: !*IWorld -> *IWorld
 
 //Task instance state is accessible as shared data sources
-fullInstanceMeta        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta) IWorld
+fullInstanceMeta        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
 
-taskInstanceMeta        :: !InstanceNo -> RWShared TIMeta TIMeta IWorld
-taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct IWorld
-taskInstanceValue       :: !InstanceNo -> RWShared TIValue TIValue IWorld
-taskInstanceRep         :: !InstanceNo -> RWShared TaskRep TaskRep IWorld
+taskInstanceMeta        :: !InstanceNo -> RWShared TIMeta TIMeta
+taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct
+taskInstanceValue       :: !InstanceNo -> RWShared TIValue TIValue
+taskInstanceRep         :: !InstanceNo -> RWShared TaskRep TaskRep
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

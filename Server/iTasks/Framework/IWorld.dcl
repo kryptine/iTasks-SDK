@@ -12,10 +12,9 @@ from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue
 from Text.JSON				            import :: JSONNode
 from StdFile			                import class FileSystem		
-from iTasks.Framework.Shared import :: ReadWriteShared, :: Shared
 from iTasks.Framework.Task import :: ConnectionTask, :: BackgroundTask
-from iTasks.Framework.SDS import class registerSDSDependency, class registerSDSChangeDetection, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
-from iTasks.Framework.SDS import :: RWShared
+from iTasks.Framework.SDS import class registerSDSDependency, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared
 
 from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -127,10 +126,9 @@ getUIMessages		:: !InstanceNo                  !*IWorld -> (![UIMessage],!*IWorl
 
 instance FileSystem IWorld
 
-instance registerSDSDependency		InstanceNo	IWorld
-instance registerSDSChangeDetection				IWorld
-instance reportSDSChange			InstanceNo	IWorld
-instance reportSDSChange 			Void		IWorld
+instance registerSDSDependency		InstanceNo
+instance reportSDSChange			InstanceNo
+instance reportSDSChange 			Void
 
 //Sync work queue to disk (Only used with CGI wrapper)
 saveWorkQueue :: !*IWorld -> *IWorld

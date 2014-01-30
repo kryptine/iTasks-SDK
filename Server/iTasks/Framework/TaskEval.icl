@@ -2,7 +2,7 @@ implementation module iTasks.Framework.TaskEval
 
 import StdList, StdBool, StdTuple, StdMisc
 import Data.Error, Data.Func, Data.Either, Text.JSON
-import iTasks.Framework.IWorld, iTasks.Framework.Shared, iTasks.Framework.Task, iTasks.Framework.TaskState
+import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
 import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
 import iTasks.Framework.UIDiff

@@ -4,12 +4,11 @@ import StdList, StdBool, StdInt, StdTuple,StdMisc
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
-import iTasks.Framework.UIDefinition, iTasks.Framework.Shared
+import iTasks.Framework.UIDefinition, iTasks.Framework.IWorld
 import iTasks.API.Core.LayoutCombinators
 
 from iTasks.Framework.SDS as SDS import qualified read, readRegister, write, writeFilterMsg
 from StdFunc					import o, id
-from iTasks.Framework.IWorld	import :: IWorld(..)
 from iTasks.API.Core.SystemData	import topLevelTasks
 from Data.Map					import qualified newMap, get, put, del
 from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT

@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error, Data.Func
-import iTasks.Framework.IWorld, iTasks.Framework.Shared
+import iTasks.Framework.IWorld, iTasks.Framework.SDS
 from iTasks.Framework.SDS import class reportSDSChange(..)
 import qualified Data.Map
 

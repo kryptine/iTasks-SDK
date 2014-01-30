@@ -24,7 +24,7 @@ from System.Time 					import :: Timestamp(..), instance < Timestamp, instance to
 
 :: StoreFormat = SFPlain | SFDynamic
 
-storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 storeAccess namespace storeId defaultV = createChangeOnWriteSDS namespace storeId read write
 where
 	read iworld

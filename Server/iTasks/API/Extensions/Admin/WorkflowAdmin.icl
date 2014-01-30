@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.Admin.WorkflowAdmin
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks.Framework.Shared, iTasks.Framework.Generic.Interaction
+import iTasks.Framework.SDS, iTasks.Framework.Generic.Interaction
 from StdFunc import seq
 from Data.Map import qualified newMap
 

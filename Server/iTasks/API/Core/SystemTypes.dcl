@@ -35,7 +35,7 @@ from iTasks.Framework.Generic				import class iTask
 from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
 from iTasks.Framework.Generic.Visualization	import generic gVisualizeText, :: VisualizationFormat(..), visualizeAsText
 from iTasks.Framework.Generic.Defaults		import generic gDefault
-from iTasks.Framework.Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from iTasks.Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
 import iTasks.Framework.SerializationGraphCopy

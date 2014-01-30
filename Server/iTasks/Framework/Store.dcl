@@ -14,7 +14,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
-from iTasks.Framework.SDS import :: RWShared
+from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks.Framework.IWorld import :: IWorld
 
 // Storage formats
@@ -39,7 +39,7 @@ NS_JAVASCRIPT_CACHE     :== "js-cache"
 *
 * @return The shared data source
 */
-storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> RWShared a a IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Determine the location of the store from data directory and build
