@@ -14,7 +14,6 @@ import	iTasks.Framework.Engine						// iTasks engine
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings
 	,	iTasks.Framework.Generic			// Generic foundation modules
-	, 	iTasks.Framework.SDS				// Shared data sources
 	,	iTasks.Framework.GenSpecialize		// Functions for custom specializations
 	
 	//	API extensions for user  & workflow management
