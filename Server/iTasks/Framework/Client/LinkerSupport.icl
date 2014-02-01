@@ -16,7 +16,7 @@ from iTasks.API.Core.Client.Editlet import :: EditletEventHandlerFunc, :: Editle
 from iTasks.Framework.Client.RunOnClient import createClientIWorld, getUIUpdates
 from iTasks.Framework.Engine import background
 
-import iTasks.API.Core.SystemTypes, iTasks.Framework.IWorld
+import iTasks.API.Core.Types, iTasks.Framework.IWorld
 import Sapl.Target.JS.CodeGeneratorJS, Sapl.Linker.LazyLinker, Sapl.SaplParser
 
 //---------------------------------------------------------------------------------------

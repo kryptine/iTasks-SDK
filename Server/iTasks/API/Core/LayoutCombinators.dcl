@@ -1,7 +1,7 @@
 definition module iTasks.API.Core.LayoutCombinators
 
-import iTasks.API.Core.SystemTypes
-from iTasks.API.Core.CoreCombinators import class tune
+import iTasks.API.Core.Types
+from iTasks.API.Core.TaskCombinators import class tune
 
 from iTasks.Framework.TaskState import :: TIMeta
 import iTasks.Framework.UIDefinition

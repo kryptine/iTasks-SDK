@@ -3,7 +3,7 @@ definition module iTasks.Framework.Util
 from StdClass import class Eq
 from Data.Error import :: MaybeErrorString, :: MaybeError
 
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])

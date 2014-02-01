@@ -6,7 +6,7 @@ import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Fun
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.Util, iTasks.Framework.UIDefinition
 
-from iTasks.Framework.SDS as SDS import qualified read, write, mapReadWriteError, createChangeOnWriteSDS
+from iTasks.Framework.SDS as SDS import qualified read, write, createChangeOnWriteSDS
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
 import qualified Data.Map
 

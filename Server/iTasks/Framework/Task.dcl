@@ -3,7 +3,7 @@ definition module iTasks.Framework.Task
 * This module provides types for the definition of tasks.
 */
 
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 import iTasks.Framework.Generic
 
 from iTasks.Framework.TaskState			import :: TaskTree

@@ -1,11 +1,12 @@
-implementation module iTasks.API.Core.SystemData
+implementation module iTasks.API.Core.SDSs
 
 import StdList, StdBool, StdFile, StdTuple
 import System.Time, Text, Data.Tuple, Data.Functor, Data.Error, System.File
 import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Util
 import iTasks.Framework.Task
-import iTasks.API.Core.SystemTypes
 import iTasks.Framework.IWorld
+import iTasks.API.Core.Types
+import iTasks.API.Core.SDSCombinators
 from StdFunc					import o, seq
 from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
@@ -18,6 +19,12 @@ SYSTEM_DATA_NS :== "SystemData"
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just defaultV)
 
+constShare :: !a -> ReadOnlyShared a
+constShare v = createReadOnlySDS (\env -> (v, env))
+
+null :: WriteOnlyShared a
+null = createSDS Nothing (\env -> (Ok (Void, OnWrite), env)) (\_ env -> (Ok Void, env))
+			
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where

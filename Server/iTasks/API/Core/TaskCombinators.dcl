@@ -1,4 +1,4 @@
-definition module iTasks.API.Core.CoreCombinators
+definition module iTasks.API.Core.TaskCombinators
 /**
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.

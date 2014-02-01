@@ -6,7 +6,7 @@ import Data.Maybe, Data.Functor, Data.List, Data.Map
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
 import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.Engine, iTasks.Framework.IWorld
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 import Crypto.Hash.SHA1, Text.Encodings.Base64
 
 from HttpUtil import http_addRequestData, http_parseArguments

@@ -1,4 +1,4 @@
-implementation module iTasks.API.Core.CoreCombinators
+implementation module iTasks.API.Core.TaskCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
 
@@ -6,7 +6,7 @@ import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
 import iTasks.Framework.Util, iTasks.Framework.Store
 import iTasks.Framework.Generic, iTasks.Framework.UIDefinition
-import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
 import iTasks.Framework.IWorld
 
 import iTasks.Framework.Client.Override
@@ -16,7 +16,8 @@ from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
-from iTasks.API.Core.CoreTasks	        import return
+from iTasks.API.Core.Tasks	            import return
+from iTasks.API.Core.SDSCombinators     import toReadOnly, mapRead, mapReadWriteError
 
 derive class iTask ParallelTaskType, WorkOnStatus
 

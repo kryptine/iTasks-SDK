@@ -3,7 +3,7 @@ implementation module iTasks.Framework.Task
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc
 import Text.HTML, Internet.HTTP, Data.Map, Data.Error, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.UIDefinition, iTasks.Framework.Util
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction
 
 from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: TIType(..)

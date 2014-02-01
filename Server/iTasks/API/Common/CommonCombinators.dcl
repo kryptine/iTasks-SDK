@@ -2,10 +2,10 @@ definition module iTasks.API.Common.CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators.
 */
-import iTasks.API.Core.CoreCombinators, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.TaskCombinators, iTasks.API.Core.LayoutCombinators
 
-from iTasks.API.Core.SystemTypes		import :: User
-from Data.Map				import :: Map
+from iTasks.API.Core.Types		import :: User
+from Data.Map				    import :: Map
 from Data.Either				import :: Either
 
 /**

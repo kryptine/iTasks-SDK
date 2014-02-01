@@ -1,4 +1,4 @@
-implementation module iTasks.API.Core.CoreTasks
+implementation module iTasks.API.Core.Tasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
@@ -8,8 +8,8 @@ import iTasks.Framework.UIDefinition, iTasks.Framework.IWorld
 import iTasks.API.Core.LayoutCombinators
 
 from iTasks.Framework.SDS as SDS import qualified read, readRegister, write, writeFilterMsg
+from iTasks.API.Core.SDSs       import topLevelTasks
 from StdFunc					import o, id
-from iTasks.API.Core.SystemData	import topLevelTasks
 from Data.Map					import qualified newMap, get, put, del
 from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT
 from TCPChannels                import toByteSeq, send, class Send, instance Send TCP_SChannel_

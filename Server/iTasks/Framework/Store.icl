@@ -13,7 +13,7 @@ from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: Serve
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState		import :: TaskListEntry
-from iTasks.API.Core.SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
+from iTasks.API.Core.Types	        import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks							import serialize, deserialize, defaultStoreFormat, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 

@@ -9,7 +9,7 @@ import iTasks.Framework.Generic
 import iTasks.Framework.SDS
 
 from iTasks.Framework.Task	import :: Task
-from iTasks.API.Core.SystemTypes import class descr, class Choice
+from iTasks.API.Core.Types import class descr, class Choice
 
 //Interact which yields the view value directly.
 //This way it does not need to be encoded in the local l to access it

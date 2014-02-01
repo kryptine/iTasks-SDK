@@ -6,7 +6,7 @@ definition module iTasks.Framework.TaskStore
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition, iTasks.Framework.SDS
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 
 from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError

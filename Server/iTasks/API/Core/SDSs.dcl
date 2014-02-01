@@ -1,14 +1,14 @@
-definition module iTasks.API.Core.SystemData
+definition module iTasks.API.Core.SDSs
 /**
 * This module provides access to the iTask framework data by means of
 * a set of shared data structures.
 */
 from Text.JSON import generic JSONEncode, generic JSONDecode
 import iTasks.Framework.SDS
-from iTasks.API.Core.SystemTypes	import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: ManagementMeta
-from iTasks.API.Core.SystemTypes	import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
-from Data.Void							import :: Void
-from System.FilePath						import :: FilePath
+from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: ManagementMeta
+from iTasks.API.Core.Types	    import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
+from Data.Void					import :: Void
+from System.FilePath			import :: FilePath
 
 //USER-DEFINED SHARES
 
@@ -18,7 +18,13 @@ from System.FilePath						import :: FilePath
 */
 sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
+// constant share, value does never change
+constShare	            :: !a -> ReadOnlyShared a
+
 //PREDEFINED SHARES
+
+// null share
+null		            :: WriteOnlyShared a
 
 // Date & time (in task server's local timezone)
 currentDateTime			:: ReadOnlyShared DateTime

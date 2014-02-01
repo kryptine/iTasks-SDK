@@ -11,9 +11,9 @@ from Internet.HTTP import :: HTTPMethod
 from Text.URI import :: URI
 
 import iTasks.Framework.Generic
-from iTasks.Framework.Task               import :: Task
-from iTasks.API.Core.SystemTypes         import class descr, :: Note, :: EmailAddress, :: ProcessStatus, :: Document
-from iTasks.API.Common.InteractionTasks  import :: ViewOption //TODO: We shouldn't import from Common in Core
+from iTasks.Framework.Task              import :: Task
+from iTasks.API.Core.Types              import class descr, :: Note, :: EmailAddress, :: ProcessStatus, :: Document
+from iTasks.API.Common.InteractionTasks import :: ViewOption //TODO: We shouldn't import from Common in Core
 
 /**
 * Call a function that interacts with the world

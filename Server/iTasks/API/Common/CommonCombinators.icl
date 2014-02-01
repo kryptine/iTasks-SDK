@@ -6,12 +6,13 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Framework.Util
 from StdFunc			import id, const, o
-from iTasks.API.Core.SystemTypes		import :: User(..), :: Note(..)
-from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON
-from iTasks.API.Core.SystemData			import randomInt, topLevelTasks
+from iTasks.API.Core.Types		    import :: User(..), :: Note(..)
+from iTasks.API.Core.SDSs           import randomInt, topLevelTasks
+from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 from Data.Map				import qualified put
 
-import iTasks.API.Core.CoreTasks, iTasks.API.Core.CoreCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.SDSCombinators
 
 (>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps

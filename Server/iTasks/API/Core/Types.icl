@@ -1,4 +1,4 @@
-implementation module iTasks.API.Core.SystemTypes
+implementation module iTasks.API.Core.Types
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdFunc, StdOrdList

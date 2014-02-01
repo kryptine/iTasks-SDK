@@ -1,4 +1,4 @@
-definition module iTasks.API.Core.SystemTypes
+definition module iTasks.API.Core.Types
 /**
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.

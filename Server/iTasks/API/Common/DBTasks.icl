@@ -3,7 +3,7 @@ implementation module iTasks.API.Common.DBTasks
 import StdList, StdOrdList, Data.List
 import iTasks.Framework.Generic, iTasks.Framework.Task, iTasks.Framework.SDS
 import iTasks.Framework.Util
-from iTasks.API.Core.CoreTasks			import get, set, return
+from iTasks.API.Core.Tasks			        import get, set, return
 from iTasks.API.Common.CommonCombinators	import >>|, >>=
 
 //	Convenient operations on databases

@@ -1,22 +1,21 @@
 definition module iTasks.Framework.IWorld
 
-from System.FilePath			import :: FilePath
+from System.FilePath		import :: FilePath
 from Data.Void				import :: Void
 from Data.Map				import :: Map
 from Data.Maybe				import :: Maybe
-from System.Time				import :: Timestamp
-from iTasks.API.Core.SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
+from Data.Set               import :: Set
+from StdFile			                import class FileSystem		
+from System.Time				        import :: Timestamp
+from Text.JSON				            import :: JSONNode
+from iTasks.API.Core.Types		        import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
-from iTasks.Framework.Task              import :: TaskValue
-from Text.JSON				            import :: JSONNode
-from StdFile			                import class FileSystem		
-from iTasks.Framework.Task import :: ConnectionTask, :: BackgroundTask
+from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
 from iTasks.Framework.SDS import class registerSDSDependency, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
 from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared
 
-from Data.Set import :: Set
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
 from Sapl.Target.Flavour import :: Flavour

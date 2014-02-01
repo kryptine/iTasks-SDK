@@ -3,7 +3,7 @@ definition module iTasks.API.Common.ExportTasks
 * This module provides tasks for exporting data from a workflow to an external source
 */
 from System.FilePath import :: FilePath
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 import iTasks.Framework.Task
 
 /**

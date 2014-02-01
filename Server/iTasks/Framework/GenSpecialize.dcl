@@ -21,7 +21,7 @@ from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gUpdate, :: VSt, :: USt, :: VisualizationResult, :: EditMeta
 from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat
 from iTasks.Framework.Generic.Defaults import generic gDefault
-from iTasks.API.Core.SystemTypes import :: DataPath, :: InteractionMask, :: Verification, :: MaskedValue, :: VerifiedValue
+from iTasks.API.Core.Types import :: DataPath, :: InteractionMask, :: Verification, :: MaskedValue, :: VerifiedValue
 
 //generic JSONEncode t :: !t -> [JSONNode]
 //generic JSONDecode t :: ![JSONNode] -> (!Maybe t,![JSONNode])

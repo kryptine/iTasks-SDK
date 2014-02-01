@@ -1,6 +1,6 @@
 definition module iTasks.Framework.TaskState
 
-import iTasks.API.Core.SystemTypes
+import iTasks.API.Core.Types
 
 from iTasks.Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo
 

@@ -3,7 +3,7 @@ definition module iTasks.Framework.Generic.Interaction
 from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.Framework.UIDiff import :: UIControl, :: UIAttributes
-from iTasks.API.Core.SystemTypes import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue
+from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue
 from iTasks.API.Core.LayoutCombinators import :: LayoutRules
 
 from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat

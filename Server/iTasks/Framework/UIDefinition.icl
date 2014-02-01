@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.UIDefinition
 
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
-from iTasks.API.Core.SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
+from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
 	
 defaultSizeOpts :: UISizeOpts
 defaultSizeOpts = {UISizeOpts|width = Nothing, minWidth = Nothing, maxWidth = Nothing, height = Nothing, minHeight = Nothing, maxHeight = Nothing, margins = Nothing}

@@ -7,7 +7,7 @@ from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks.Framework.Engine		import :: ServiceFormat, :: ConnectionType
 from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Task 			import :: Task, :: ConnectionTask
-from iTasks.API.Core.SystemTypes	import :: InstanceNo
+from iTasks.API.Core.Types	        import :: InstanceNo
 
 import iTasks.Framework.Generic
 

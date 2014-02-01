@@ -1,16 +1,16 @@
 implementation module iTasks.API.Common.InteractionTasks
 
 from StdFunc import id, const, o, flip
-from iTasks.API.Core.SystemData import null
+from iTasks.API.Core.SDSs import null
 from Data.Tuple import appSnd
 from Data.List import isMemberGen, findIndex, instance Functor []
 from System.Time import :: Timestamp(..)
 from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
-import iTasks.API.Core.CoreTasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Core.CoreCombinators
-import iTasks.API.Common.CommonCombinators, iTasks.API.Core.LayoutCombinators, iTasks.API.Core.SystemData
-import iTasks.Framework.Generic.Interaction
+import iTasks.API.Core.Tasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Core.TaskCombinators
+import iTasks.API.Common.CommonCombinators, iTasks.API.Core.LayoutCombinators, iTasks.API.Core.SDSs
+import iTasks.Framework.Generic.Interaction, iTasks.API.Core.SDSCombinators
 
 /*
 editInformation :: !d ![UpdateOption m m] (Maybe m) -> Task m | descr d & iTask m

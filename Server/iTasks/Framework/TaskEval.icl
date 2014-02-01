@@ -4,14 +4,15 @@ import StdList, StdBool, StdTuple, StdMisc
 import Data.Error, Data.Func, Data.Either, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
-import iTasks.API.Core.SystemTypes, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
 import iTasks.Framework.UIDiff
 import iTasks.Framework.SDSService
 
 from iTasks.Framework.IWorld			import dequeueWorkFilter
-from iTasks.API.Core.CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
+from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
+from iTasks.API.Core.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
 
 derive gEq TIMeta, TIType
 
