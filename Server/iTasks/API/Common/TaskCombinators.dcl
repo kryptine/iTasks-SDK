@@ -1,4 +1,4 @@
-definition module iTasks.API.Common.CommonCombinators
+definition module iTasks.API.Common.TaskCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators.
 */

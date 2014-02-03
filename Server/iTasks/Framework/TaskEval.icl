@@ -12,7 +12,7 @@ from iTasks.Framework.IWorld			import dequeueWorkFilter
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
-from iTasks.API.Core.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
+from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
 
 derive gEq TIMeta, TIType
 

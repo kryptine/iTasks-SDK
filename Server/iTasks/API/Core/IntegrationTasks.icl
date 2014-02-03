@@ -10,7 +10,7 @@ import iTasks.Framework.SDS
 import iTasks.Framework.Generic.Interaction
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.API.Core.LayoutCombinators
 import iTasks.API.Core.SDSs
-import iTasks.API.Common.InteractionTasks, iTasks.API.Common.CommonCombinators //TODO don't import from Common in Core
+import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 

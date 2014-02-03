@@ -1,4 +1,4 @@
-implementation module iTasks.API.Common.CommonCombinators
+implementation module iTasks.API.Common.TaskCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
@@ -12,7 +12,7 @@ from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 from Data.Map				import qualified put
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
-import iTasks.API.Core.SDSCombinators
+import iTasks.API.Common.SDSCombinators
 
 (>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps

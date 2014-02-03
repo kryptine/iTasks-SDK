@@ -6,7 +6,8 @@ import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Util
 import iTasks.Framework.Task
 import iTasks.Framework.IWorld
 import iTasks.API.Core.Types
-import iTasks.API.Core.SDSCombinators
+import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
+
 from StdFunc					import o, seq
 from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare

@@ -17,7 +17,7 @@ from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynam
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
 from iTasks.API.Core.Tasks	            import return
-from iTasks.API.Core.SDSCombinators     import toReadOnly, mapRead, mapReadWriteError
+from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
