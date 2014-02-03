@@ -22,6 +22,8 @@ deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
 
 //Rebuild the task instance index in the iworld from the store content
 initInstanceMeta        :: !*IWorld -> *IWorld
+//Reload the share registrations index
+initShareRegistrations  :: !*IWorld -> *IWorld
 
 //Task instance state is accessible as shared data sources
 fullInstanceMeta        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
@@ -31,17 +33,13 @@ taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct
 taskInstanceValue       :: !InstanceNo -> RWShared TIValue TIValue
 taskInstanceRep         :: !InstanceNo -> RWShared TaskRep TaskRep
 
+//Save share registration index in store
+saveShareRegistrations  :: !*IWorld -> *IWorld
+
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocumentWith		:: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
-
-//Keep track of outdated task instances that need to be refreshed
-addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
-//Queue evaluation when shares change
-addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 

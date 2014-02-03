@@ -28,7 +28,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
                     , random                :: [Int]                                    // Infinite random stream
 
-					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)
+                    , sdsRegistrations      :: !Map BasicShareId [InstanceNo]           // Registered task/share dependencies
+					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)   // Shared source
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
 											   ,!FuncTypeMap							// Function name -> source code mapping
@@ -102,32 +103,21 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
-updateCurrentDateTime :: !*IWorld -> *IWorld
+:: Work	= Evaluate !InstanceNo
+		| EvaluateUrgent !InstanceNo
+		| TriggerSDSChange !BasicShareId
+		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
 
-queueWork			:: !(!Work, !Maybe Timestamp)	!*IWorld -> *IWorld
-queueUrgentEvaluate	:: !InstanceNo					!*IWorld -> *IWorld
-dequeueWork			:: 								!*IWorld -> (!DequeueResult, !*IWorld)
-dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
+:: UIMessage = UIUpdates ![UIUpdate] | UIReset !String
+
+updateCurrentDateTime :: !*IWorld -> *IWorld
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
 addUIMessage        :: !InstanceNo !UIMessage       !*IWorld -> *IWorld
 getUIMessages		:: !InstanceNo                  !*IWorld -> (![UIMessage],!*IWorld)
 
-:: UIMessage = UIUpdates ![UIUpdate] | UIReset !String
-
-:: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
-
-:: Work	= Evaluate !InstanceNo
-		| EvaluateUrgent !InstanceNo
-		| TriggerSDSChange !BasicShareId
-		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
-
 instance FileSystem IWorld
-
-instance registerSDSDependency		InstanceNo
-instance reportSDSChange			InstanceNo
-instance reportSDSChange 			Void
 
 //Sync work queue to disk (Only used with CGI wrapper)
 saveWorkQueue :: !*IWorld -> *IWorld

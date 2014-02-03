@@ -1,8 +1,10 @@
 implementation module iTasks.Framework.SDS
 
 import StdString, StdFunc, StdTuple, StdMisc, StdList
-import Data.Error, Data.Func, Data.Tuple, Data.Void, System.Time, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, Data.Void, Data.Map, System.Time, Text.JSON
 import iTasks.Framework.IWorld
+import iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
+import dynamic_string //For fake Hash implementation
 
 createChangeOnWriteSDS ::
 	!String
@@ -111,12 +113,15 @@ read` mbNotificationF (BasicSource {read,mbId}) env = case read env of
 		= (Ok r, env)
 	(err, env)
 		= (liftError err, env)
+where
+    genHash :: !a -> Hash
+    genHash x = copy_to_string x // fake hash implementation
 read` mbNotificationF (ComposedRead share cont) env = seqErrorsSt (read` mbNotificationF share) (f mbNotificationF cont) env
 where
 	f :: !(Maybe (Hash ChangeNotification (Maybe BasicShareId) *IWorld -> *IWorld))  !(x -> MaybeErrorString (RWShared r w)) !x !*IWorld -> (!MaybeErrorString r, !*IWorld)
 	f mbNotificationF cont x env = seqErrorsSt (\env -> (cont x, env)) (read` mbNotificationF) env
 read` mbNotificationF (ComposedWrite share _ _) env = read` mbNotificationF share env
-	
+
 write :: !w !(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 write w sds env = write` w sds filter env
 where
@@ -133,6 +138,7 @@ write` w (BasicSource {mbId,write}) filter env
 		Just id	= reportSDSChange id filter env
 		Nothing	= env
 	= (mbErr, env)
+
 write` w (ComposedRead share _) filter env = write` w share filter env
 write` w (ComposedWrite _ readCont writeOp) filter env
 	# (er, env)	= seqErrorsSt (\env -> (readCont w, env)) read env
@@ -143,10 +149,43 @@ write` w (ComposedWrite _ readCont writeOp) filter env
 	// TODO: check for errors in res
 	= (Ok Void, env)
 	
-import dynamic_string
+instance registerSDSDependency InstanceNo
+where
+	registerSDSDependency sdsId instanceNo iworld
+		= addShareRegistration sdsId instanceNo iworld
+	
+instance reportSDSChange InstanceNo
+where
+	reportSDSChange sdsId filterFun iworld
+		= addOutdatedOnShareChange sdsId filterFun iworld
 
-genHash :: !a -> Hash
-genHash x = copy_to_string x // fake hash implementation
+instance reportSDSChange Void
+where
+	reportSDSChange sdsId _ iworld
+		= addOutdatedOnShareChange sdsId (\_ -> True) iworld
+
+addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
+addShareRegistration shareId instanceNo iworld=:{IWorld|sdsRegistrations}
+	= saveShareRegistrations {IWorld|iworld & sdsRegistrations = put shareId (removeDup (fromMaybe [] (get shareId sdsRegistrations) ++ [instanceNo])) sdsRegistrations}
+	
+clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
+clearShareRegistrations instanceNo iworld=:{IWorld|sdsRegistrations}
+	= saveShareRegistrations {iworld & sdsRegistrations = (fromList o clear instanceNo o toList) sdsRegistrations}
+where
+	clear :: InstanceNo [(BasicShareId,[InstanceNo])] -> [(BasicShareId,[InstanceNo])]
+	clear no regs = [(shareId,removeMember no insts) \\ (shareId,insts) <- regs]
+
+addOutdatedOnShareChange :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
+addOutdatedOnShareChange shareId filterFun iworld=:{IWorld|sdsRegistrations}
+	= case get shareId sdsRegistrations of
+		Just outdated=:[_:_]
+			# iworld            = {IWorld|iworld & sdsRegistrations = put shareId (filter (not o filterFun) outdated) sdsRegistrations}
+			# iworld			= addOutdatedInstances [(outd, Nothing) \\ outd <- filter filterFun outdated] iworld
+			= saveShareRegistrations iworld
+		_	= iworld
+
+addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
+addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
 
 toJSONShared :: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w
 toJSONShared shared = createChangeOnWriteSDS "exposedShare" "?" read` write`

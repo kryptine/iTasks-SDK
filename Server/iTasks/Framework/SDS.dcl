@@ -2,6 +2,7 @@ definition module iTasks.Framework.SDS
 
 import System.FilePath, Data.Void, Data.Maybe, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
+from iTasks.API.Core.Types import :: InstanceNo
 
 :: RWShared r w
 	= E.b:			BasicSource		!(BasicSource b r w)
@@ -33,7 +34,11 @@ from iTasks.Framework.IWorld import :: IWorld
 :: Shared a				:== ReadWriteShared a a
 
 class registerSDSDependency msg :: !BasicShareId msg !*IWorld -> *IWorld
+instance registerSDSDependency InstanceNo
+
 class reportSDSChange msg :: !BasicShareId !(msg -> Bool) !*IWorld -> *IWorld
+instance reportSDSChange	InstanceNo
+instance reportSDSChange 	Void
 
 registerSDSPredictableChange	:: !Timestamp 										    !BasicShareId !*IWorld -> *IWorld
 registerSDSCheckForChange		:: !Timestamp !Hash !(*IWorld -> (!CheckRes,!*IWorld))	!BasicShareId !*IWorld -> *IWorld
@@ -90,9 +95,15 @@ readRegister	:: !msg					!(RWShared r w) !*IWorld -> (!MaybeErrorString r, !*IWo
 write			:: !w					!(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
 writeFilterMsg	:: !w !(msg -> Bool)	!(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	| reportSDSChange msg
 
+//Dependency administration
+addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
+clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
+addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
+addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
+
+//Exposing shares for external nodes
 toJSONShared	:: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w
 fromJSONShared	:: (Shared JSONNode) -> ReadWriteShared r w | JSONDecode{|*|} r & JSONEncode{|*|} w
-
-newURL 		:: !*IWorld -> (!String, !*IWorld)
-getURLbyId 	:: !String !*IWorld -> (!String, !*IWorld)
+newURL 		    :: !*IWorld -> (!String, !*IWorld)
+getURLbyId 	    :: !String !*IWorld -> (!String, !*IWorld)
 

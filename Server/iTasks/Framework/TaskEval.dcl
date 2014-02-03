@@ -4,7 +4,7 @@ definition module iTasks.Framework.TaskEval
 */
 
 from iTasks.API.Core.Types	        import :: TaskListItem, :: User, :: TaskId, :: SessionId 
-from iTasks.Framework.IWorld		import :: IWorld
+from iTasks.Framework.IWorld		import :: IWorld, :: Work
 from iTasks.Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from iTasks.Framework.SDS           import :: Shared
 from iTasks.Framework.UIDiff		import :: UIUpdate
@@ -13,6 +13,8 @@ import iTasks.Framework.TaskState, iTasks.Framework.Generic
 
 from Text.JSON import :: JSONNode
 from Data.Error import :: MaybeErrorString, :: MaybeError
+
+:: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
 
@@ -75,6 +77,11 @@ refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 * @return The IWorld state
 */
 refreshUrgentTaskInstances :: !*IWorld -> *IWorld
+
+queueWork			:: !(!Work, !Maybe Timestamp)	!*IWorld -> *IWorld
+queueUrgentEvaluate	:: !InstanceNo					!*IWorld -> *IWorld
+dequeueWork			:: 								!*IWorld -> (!DequeueResult, !*IWorld)
+dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
 
 //Helper functions that provide access to shares and parallel task lists
 localShare		:: !TaskId ->	        Shared a			| iTask a

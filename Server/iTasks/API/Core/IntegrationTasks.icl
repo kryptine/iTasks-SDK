@@ -6,7 +6,7 @@ import System.Directory, System.File, System.FilePath, Data.Error, System.OSErro
 import Data.Either, System.OS, Text.URI, Internet.HTTP
 
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
-import iTasks.Framework.SDS
+import iTasks.Framework.SDS, iTasks.Framework.TaskEval
 import iTasks.Framework.Generic.Interaction
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.API.Core.LayoutCombinators
 import iTasks.API.Core.SDSs

@@ -1,14 +1,14 @@
 implementation module iTasks.Framework.TaskEval
 
 import StdList, StdBool, StdTuple, StdMisc
-import Data.Error, Data.Func, Data.Either, Text.JSON
+import Data.Error, Data.Func, Data.Either, Data.List, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
 import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
 import iTasks.Framework.UIDiff
 import iTasks.Framework.SDSService
 
-from iTasks.Framework.IWorld			import dequeueWorkFilter
+from iTasks.Framework.IWorld			import :: Work(..)
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
@@ -288,6 +288,67 @@ where
 	inTree searchId (TCShared taskId _ tree) = searchId == taskId || inTree searchId tree
 	inTree searchId (TCStable taskId _ _) = searchId == taskId
 	inTree searchId _ = False
+
+queueWork :: !(!Work, !Maybe Timestamp) !*IWorld -> *IWorld
+queueWork newWork iworld=:{workQueue}
+	= {iworld & workQueue = queue newWork workQueue}
+where
+	queue newWork [] = [newWork]
+	queue newWorkTs=:(newWork,mbNewTimestamp) [workTs=:(work,mbTimestamp):qs]
+		| newWork == work	= [(work,minTs mbNewTimestamp mbTimestamp):qs]
+		| otherwise			= [workTs:queue newWorkTs qs]
+	
+	minTs Nothing _			= Nothing
+	minTs _ Nothing			= Nothing
+	minTs (Just x) (Just y)	= Just (min x y)
+	
+instance == Work
+where
+	(==) (Evaluate instanceNoX)			(Evaluate instanceNoY)			= instanceNoX == instanceNoY
+	(==) (EvaluateUrgent instanceNoX)	(EvaluateUrgent instanceNoY)	= instanceNoX == instanceNoY
+	(==) (TriggerSDSChange sdsIdX)		(TriggerSDSChange sdsIdY)		= sdsIdX == sdsIdY
+	(==) (CheckSDS sdsIdX hashX _)		(CheckSDS sdsIdY hashY _)		= sdsIdX == sdsIdY && hashX == hashY
+	(==) _							_							= False
+
+queueUrgentEvaluate	:: !InstanceNo !*IWorld -> *IWorld
+queueUrgentEvaluate instanceNo iworld=:{workQueue}
+	= {iworld & workQueue = queue instanceNo workQueue}
+where
+	queue newInstanceNo []			= [(EvaluateUrgent instanceNo,Nothing)]
+	queue newInstanceNo [(EvaluateUrgent no,ts):qs]
+		| newInstanceNo == no		= [(EvaluateUrgent no,ts):qs]
+									= [(EvaluateUrgent no,ts):queue newInstanceNo qs]
+	queue newInstanceNo [(Evaluate no,ts):qs]		
+		| newInstanceNo == no		= [(EvaluateUrgent no,Nothing):qs]	
+									= [(Evaluate no,ts):queue newInstanceNo qs]
+	queue newInstanceNo [q:qs]		= [q:queue newInstanceNo qs]
+	
+dequeueWork	:: !*IWorld -> (!DequeueResult, !*IWorld)
+dequeueWork iworld=:{workQueue}
+	| isEmpty workQueue	= (Empty, iworld)
+	# (curTime, iworld)	= currentTimestamp iworld
+	# (res, workQueue)	= getFirst curTime Nothing workQueue
+	= (res, {iworld & workQueue = workQueue})
+where
+	getFirst _ mbMin [] = (maybe Empty WorkAt mbMin,[])
+	getFirst curTime mbMin [(w,mbTime):ws] = case mbTime of
+		Nothing
+			= (Work w,ws)
+		Just time | curTime >= time
+			= (Work w,ws)
+		Just time
+			# (mbWork,ws) = getFirst curTime (Just (maybe time (min time) mbMin)) ws
+			= (mbWork,[(w,mbTime):ws])
+			
+dequeueWorkFilter :: !(Work -> Bool) !*IWorld -> (![Work], !*IWorld)
+dequeueWorkFilter filter iworld=:{workQueue}
+	# (curTime, iworld)		= currentTimestamp iworld
+	# (result,workQueue)	= splitWith (filter` curTime) workQueue
+	= (map fst result, {iworld & workQueue = workQueue})
+where
+	filter` _		(work,Nothing)		= filter work
+	filter` curTime	(work,Just time)	= curTime >= time && filter work
+
 
 localShare :: !TaskId -> Shared a | iTask a
 localShare taskId=:(TaskId instanceNo taskNo) = createChangeOnWriteSDS "localShare" shareKey read write

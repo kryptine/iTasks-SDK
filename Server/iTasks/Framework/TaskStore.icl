@@ -4,7 +4,7 @@ import StdEnv
 import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Func, Data.Tuple, Data.Error, System.FilePath
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
-import iTasks.Framework.Util, iTasks.Framework.UIDefinition
+import iTasks.Framework.TaskEval, iTasks.Framework.Util, iTasks.Framework.UIDefinition
 
 from iTasks.Framework.SDS as SDS import qualified read, write, createChangeOnWriteSDS
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
@@ -81,6 +81,11 @@ where
         # (mbMeta,iworld) = loadValue NS_TASK_INSTANCES key iworld
         = (maybe ti (\meta -> 'Data.Map'.put instanceNo meta ti) mbMeta,iworld)
 
+initShareRegistrations :: !*IWorld -> *IWorld
+initShareRegistrations iworld
+    # (mbRegistrations,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
+    = {IWorld|iworld & sdsRegistrations = fromMaybe 'Data.Map'.newMap mbRegistrations}
+
 fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
 fullInstanceMeta = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
 where
@@ -111,6 +116,10 @@ taskInstanceValue instanceNo = storeAccess NS_TASK_INSTANCES (value_store instan
 taskInstanceRep :: !InstanceNo -> RWShared TaskRep TaskRep
 taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing
 
+saveShareRegistrations :: !*IWorld -> *IWorld
+saveShareRegistrations iworld=:{sdsRegistrations}
+    = storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS sdsRegistrations iworld
+
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
@@ -134,35 +143,3 @@ loadDocumentMeta documentId iworld
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
 	= (storePath dataDirectory buildID </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
-
-addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-addShareRegistration shareId instanceNo iworld
-	# (mbRegs,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-	# regs	= fromMaybe newMap mbRegs
-	# sregs	= fromMaybe [] (get shareId regs)
-	# regs	= put shareId (removeDup (sregs ++ [instanceNo])) regs
-	= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
-	
-clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
-clearShareRegistrations instanceNo iworld
-	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-	# regs				= maybe newMap (fromList o clear instanceNo o toList) mbRegs
-	= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
-where
-	clear :: InstanceNo [(BasicShareId,[InstanceNo])] -> [(BasicShareId,[InstanceNo])]
-	clear no regs = [(shareId,removeMember no insts) \\ (shareId,insts) <- regs]
-
-addOutdatedOnShareChange :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-addOutdatedOnShareChange shareId filterFun iworld
-	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-	# regs				= fromMaybe newMap mbRegs
-	= case get shareId regs of
-		Just outdated=:[_:_]
-			# iworld			= addOutdatedInstances [(outd, Nothing) \\ outd <- filter filterFun outdated] iworld
-			# regs				= put shareId (filter (not o filterFun) outdated) regs
-			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
-		_	= iworld
-
-addOutdatedInstances :: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
-addOutdatedInstances outdated iworld = seqSt queueWork [(Evaluate instanceNo,mbTs) \\ (instanceNo,mbTs) <- outdated] iworld
-

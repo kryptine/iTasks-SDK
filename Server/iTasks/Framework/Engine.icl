@@ -29,7 +29,7 @@ startEngine publishable world
 	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
 	// Show server name
 	# world					= show (infoline app) world
-	//Check options
+  	//Check options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
@@ -44,6 +44,7 @@ startEngine publishable world
 	# iworld				= initIWorld (fromJust mbSDKPath) world
     //Initialize task instance index
     # iworld                = initInstanceMeta iworld
+    # iworld                = initShareRegistrations iworld
 	// mark all instance as outdated initially
 	# (maxNo,iworld)		= maxInstanceNo iworld
 	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
@@ -223,6 +224,7 @@ initIWorld sdkDir world
         ,eventRoute			    = newMap
 	    ,readShares			    = []
         ,editletDiffs           = newMap }
+      ,sdsRegistrations     = newMap
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
       ,ti                   = newMap

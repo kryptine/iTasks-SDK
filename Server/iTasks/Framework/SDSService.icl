@@ -1,12 +1,12 @@
 implementation module iTasks.Framework.SDSService
 
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
-from iTasks.Framework.IWorld		import :: IWorld {exposedShares}, instance reportSDSChange Void, class reportSDSChange
+from iTasks.Framework.IWorld		import :: IWorld {exposedShares}
 from iTasks.Framework.Engine	    import :: ConnectionType
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
 import iTasks.Framework.RemoteAccess
-from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared
+from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared, class reportSDSChange, instance reportSDSChange Void
 from iTasks.Framework.SDS import getURLbyId
 
 from StdFunc import o

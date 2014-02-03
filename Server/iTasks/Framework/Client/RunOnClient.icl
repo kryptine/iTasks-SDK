@@ -168,6 +168,7 @@ createClientIWorld serverURL currentInstance
 		    ,readShares			= []
 		    ,editletDiffs		= 'Data.Map'.newMap
           }
+          ,sdsRegistrations     = 'Data.Map'.newMap
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
           ,ti                   = 'Data.Map'.newMap
