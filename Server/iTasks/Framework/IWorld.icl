@@ -50,9 +50,12 @@ addUIMessage :: !InstanceNo !UIMessage !*IWorld -> *IWorld
 addUIMessage instanceNo message iworld=:{uiMessages}
 	= {iworld & uiMessages = put instanceNo (maybe [message] (\m -> m ++ [message]) (get instanceNo uiMessages)) uiMessages}
 
-getUIMessages :: !InstanceNo !*IWorld -> (![UIMessage],!*IWorld)
-getUIMessages instanceNo iworld=:{uiMessages}
-	= (fromMaybe [] (get instanceNo uiMessages),{iworld & uiMessages = del instanceNo uiMessages})
+getUIMessages :: ![InstanceNo] !*IWorld -> (![UIMessage],!*IWorld)
+getUIMessages instances iworld=:{uiMessages}
+    # uiMessages    = toList uiMessages
+    # outMessages   = flatten [messages \\ (instanceNo,messages) <- uiMessages | isMember instanceNo instances]
+    # uiMessages    = fromList [um \\ um=:(instanceNo,_) <- uiMessages | not (isMember instanceNo instances)]
+	= (outMessages, {iworld & uiMessages = uiMessages})
 
 //Wrapper instance for file access
 instance FileSystem IWorld

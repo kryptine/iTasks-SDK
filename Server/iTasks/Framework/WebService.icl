@@ -11,7 +11,6 @@ import Crypto.Hash.SHA1, Text.Encodings.Base64
 
 from HttpUtil import http_addRequestData, http_parseArguments
 
-
 DEFAULT_THEME :== "gray"
 
 //The representation of the JSON service
@@ -34,7 +33,6 @@ DEFAULT_THEME :== "gray"
     , data_done     :: Bool
     , error         :: Bool
     }
-
 
 derive JSONEncode ServiceResponsePart
 
@@ -62,9 +60,10 @@ where
     matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
     where
         isTaskUrl "" = True
-        isTaskUrl s = case dropWhile ((==)"") (split "/" s) of //Ignore slashes at the beginning of the path
-            [instanceNo,_]      = toInt instanceNo > 0 // {instanceNo}/{instanceKey}
-            [instanceNo,_,_]    = toInt instanceNo > 0 // {instanceNo}/{instanceKey}/{view}
+        isTaskUrl s = case dropWhile ((==)"") (split "/" s) of  // Ignore slashes at the beginning of the path
+            ["gui-stream"]      = True                          // Updates stream for multiple instances
+            [instanceNo,_]      = toInt instanceNo > 0          // {instanceNo}/{instanceKey}
+            [instanceNo,_,_]    = toInt instanceNo > 0          // {instanceNo}/{instanceKey}/{view}
             _                   = False
 
 	reqFun` :: !String !(HTTPRequest -> Task a) !ServiceFormat HTTPRequest !*IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld) | iTask a
@@ -98,7 +97,7 @@ where
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection 0),iworld)
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),iworld)
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
@@ -120,6 +119,10 @@ where
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
+                ["gui-stream"]
+                    //Stream messages for multiple instances
+                    # (messages,iworld)	= getUIMessages instances iworld //TODO: Check keys
+                    = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
                 [instanceNo,instanceKey]
                     = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
@@ -136,6 +139,7 @@ where
                             //Determine expiry date	
                             # (expiresIn,iworld) = getResponseExpiry instanceNo iworld
                             # json	= JSONObject [("success",JSONBool True)
+                                                 ,("instance",JSONInt instanceNo)
                                                  ,("expiresIn",toJSON expiresIn)
                                                  ,("lastEvent",JSONInt lastEventNo)
                                                  ,("updates", encodeUIUpdates updates)
@@ -144,10 +148,10 @@ where
                         _
 					        = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
                     = (jsonResponse json, Nothing, iworld)
-                //Stream messages
+                //Stream messages for a specific instance
                 [instanceNo,instanceKey,"gui-stream"]
-                    # (messages,iworld)	= getUIMessages (toInt instanceNo) iworld	
-                    = (eventsResponse messages, Just (EventSourceConnection (toInt instanceNo)), iworld)
+                    # (messages,iworld)	= getUIMessages [toInt instanceNo] iworld	
+                    = (eventsResponse messages, Just (EventSourceConnection [toInt instanceNo]), iworld)
                 //Just send the value encoded as JSON
                 [instanceNo,instanceKey,"value"]
                     # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
@@ -174,6 +178,8 @@ where
 		    actionEventParam	= paramValue "actionEvent" req
 		    focusEventParam		= paramValue "focusEvent" req
 
+            instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
+
             theme [Theme name:_] = name
             theme _              = DEFAULT_THEME
 
@@ -190,13 +196,13 @@ where
             (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
 	dataFun :: HTTPRequest (Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld)
-    dataFun req mbData (WebSocketConnection i) iworld
-        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection i),iworld) //TEMPORARY ECHO WEBSOCKET
-	dataFun req _ (EventSourceConnection instanceNo) iworld
-        # (messages,iworld)	= getUIMessages instanceNo iworld	
+    dataFun req mbData (WebSocketConnection instances) iworld
+        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),iworld) //TEMPORARY ECHO WEBSOCKET
+	dataFun req _ (EventSourceConnection instances) iworld
+        # (messages,iworld)	= getUIMessages instances iworld	
 		= case messages of
-			[]	= ([],False,(EventSourceConnection instanceNo),iworld)
-			_	= ([formatMessageEvents messages],False,(EventSourceConnection instanceNo),iworld)
+			[]	= ([],False,(EventSourceConnection instances),iworld)
+			_	= ([formatMessageEvents messages],False,(EventSourceConnection instances),iworld)
 
     disconnectFun :: HTTPRequest !ConnectionType !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld
@@ -222,7 +228,7 @@ where
 	
 	formatMessageEvents messages = join "" (map format messages)
     where
-        format (UIUpdates updates) = "data: " +++ toString (encodeUIUpdates updates) +++ "\n\n"
+        format (UIUpdates instanceNo updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIUpdates updates) +++ "}\n\n"
         format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
 
 	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
@@ -238,14 +244,7 @@ where
             [RawText "window.itwc = {};"
             ,RawText ("itwc.START_INSTANCE_NO = "+++toString instanceNo+++";")
             ,RawText ("itwc.START_INSTANCE_KEY = \""+++instanceKey+++"\";")
-            ,RawText ("itwc.START_INSTANCE_URL = \""+++startUrl path instanceNo instanceKey+++"\"; ")
             ]
-	
-        startUrl path instanceNo instanceKey //Check if the requested path ended with a slash
-            | path.[size path - 1] == '/'
-                = path +++ toString instanceNo +++ "/" +++ instanceKey
-                = path +++ "/" +++ toString instanceNo +++ "/" +++ instanceKey
-
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		

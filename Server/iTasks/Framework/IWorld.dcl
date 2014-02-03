@@ -108,14 +108,14 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 		| TriggerSDSChange !BasicShareId
 		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
 
-:: UIMessage = UIUpdates ![UIUpdate] | UIReset !String
+:: UIMessage = UIUpdates !InstanceNo ![UIUpdate] | UIReset !String
 
 updateCurrentDateTime :: !*IWorld -> *IWorld
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
 addUIMessage        :: !InstanceNo !UIMessage       !*IWorld -> *IWorld
-getUIMessages		:: !InstanceNo                  !*IWorld -> (![UIMessage],!*IWorld)
+getUIMessages		:: ![InstanceNo]                !*IWorld -> (![UIMessage],!*IWorld)
 
 instance FileSystem IWorld
 

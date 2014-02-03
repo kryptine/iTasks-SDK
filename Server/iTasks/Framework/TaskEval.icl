@@ -122,7 +122,7 @@ refreshTaskInstance instanceNo iworld
 	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo iworld
 	= case mbResult of
 		(Ok (_,Left (_,[])))	    = iworld
-		(Ok (_,Left (_,updates)))	= addUIMessage instanceNo (UIUpdates updates) iworld
+		(Ok (_,Left (_,updates)))	= addUIMessage instanceNo (UIUpdates instanceNo updates) iworld
 		(Error e)					= addUIMessage instanceNo (UIReset e) iworld	
 		_	                        = iworld
 

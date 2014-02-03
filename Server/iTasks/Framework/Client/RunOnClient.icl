@@ -130,11 +130,11 @@ getUIUpdates iworld=:{uiMessages}
 			[]   = (Nothing, iworld)		
 			msgs = (Just (map getUpdates msgs), {iworld & uiMessages = 'Data.Map'.newMap}) 
 where
-	isUIUpdates (UIUpdates _) = True
+	isUIUpdates (UIUpdates _ _) = True
 	isUIUpdates _ = False
 
 	getUpdates (instanceNo,msgs)
-		= (instanceNo, map (\(UIUpdates upds) -> toString (encodeUIUpdates upds)) (filter isUIUpdates msgs))
+		= (instanceNo, map (\(UIUpdates instanceNo upds) -> toString (encodeUIUpdates upds)) (filter isUIUpdates msgs))
 
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance

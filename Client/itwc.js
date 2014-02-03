@@ -848,7 +848,8 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 
             //Create task instance proxy
             proxy = new itwc.taskletInstanceProxy();
-            proxy.init(itwc.controller,me);
+            proxy.init(itwc.controller);
+            proxy.setRootNode(me);
 
             itwc.controller.instanceProxies[me.definition.instanceNo] = proxy;
 						
@@ -861,7 +862,7 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 			console.timeEnd('controllerWrapper timer: eval');
 			
 			console.time('controllerWrapper timer: apply UI');
-			itwc.controller.updateUI(JSON.parse(ui), me);
+			itwc.controller.updateUI({instance: me.definition.instanceNo, updates: JSON.parse(ui)}, me);
 			console.timeEnd('controllerWrapper timer: apply UI');
 
 			// Start background process on _iworld
@@ -1550,24 +1551,23 @@ itwc.taskInstanceProxy = function() {
     me.rootNode = null;
 };
 itwc.taskInstanceProxy.prototype = {
-    init: function(controller,rootNode) {},
+    init: function(controller) {},
     sendEditEvent: function(taskId, editorId, value) {},
     sendActionEvent: function(taskId, actionId) {},
     sendFocusEvent: function(taskId) {}
 }
-itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
+itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
-    init: function(controller,rootNode,baseUrl) {
+    init: function(controller) {
         var me = this,
             urlSplit;
         me.controller = controller;
-        me.rootNode = rootNode;
         me.nextSendEventNo = 0;
         me.lastReceivedEventNo = 0;
         me.taskEvents = [];
         me.updateSource = null;
         me.flushingTaskEvents = false;
-        me.baseUrl = baseUrl;
+        me.instances = {};
 
         //Check url parameters
         if((urlSplit = window.location.toString().split('?')).length == 2) {
@@ -1575,6 +1575,10 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         } else {
             me.urlParameters = '';
         }
+    },
+    addInstance: function (instanceNo,instanceKey,rootNode) {
+        var me = this;
+        me.instances[instanceNo] = {instanceKey: instanceKey, rootNode: rootNode};
     },
     queueTaskEvent: function (eventData) {
         var me = this,
@@ -1601,7 +1605,7 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             me.flushingTaskEvents = true;
             //Send request
             xhr = new XMLHttpRequest();
-            xhr.open('POST',me.baseUrl+'/gui'+me.urlParameters,true);
+            xhr.open('POST',itwc.START_INSTANCE_NO + '/' + itwc.START_INSTANCE_KEY +'/gui'+me.urlParameters,true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onload = me.onTaskEventResponse.bind(me);
             xhr.send(itwc.util.urlEncode(params));
@@ -1621,7 +1625,7 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.lastReceivedEventNo = msg.lastEvent;
         //Update user interface
         if(msg.updates) {
-            me.controller.updateUI(msg.updates,me.rootNode);
+            me.controller.updateUI({instance: msg.instance,updates: msg.updates},me.instances[msg.instance].rootNode);
         }
         if(msg.done) {
             return;
@@ -1638,7 +1642,8 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     },
     startUIEventSource: function() {
         var me = this;
-        me.updateSource = new EventSource(me.baseUrl+'/gui-stream');
+        console.log('gui-stream?instances='+Object.keys(me.instances).join(','));
+        me.updateSource = new EventSource('gui-stream?instances='+Object.keys(me.instances).join(','));
         me.updateSource.addEventListener('reset', me.onResetPushEvent.bind(me), false);
         me.updateSource.addEventListener('message', me.onUpdatePushEvent.bind(me), false);
     },
@@ -1647,8 +1652,10 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         console.log("Task done!");
     },
     onUpdatePushEvent: function (e) {
-        var me = this;
-        me.controller.updateUI(JSON.parse(e.data),me.rootNode);
+        var me = this,
+            msg = JSON.parse(e.data);
+
+        me.controller.updateUI(msg, me.instances[msg.instance].rootNode);
         me.flushingTaskEvents = false;
         me.flushTaskEvents();
     },
@@ -1667,11 +1674,13 @@ itwc.serverInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 });
 itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
-    init: function(controller,rootNode) {
+    init: function(controller) {
         var me = this;
         me.controller = controller;
-        me.rootNode = rootNode;
         me.nextSendEventNo = 0;
+    },
+    setRootNode: function(rootNode) {
+        me.rootNode = rootNode;
     },
 	sendEditEvent: function(taskId, editorId, value) {
         this.processEvent(taskId, "edit", this.nextSendEventNo++, editorId, value);
@@ -1686,7 +1695,8 @@ itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 	
 	    console.time('controllerWrapper: eval');
         var me = this,
-    	    taskletId = taskId.split("-")[0] + "-0",
+            instanceNo = taskId.split("-")[0],
+    	    taskletId = instanceNo + "-0",
     	    state = me.rootNode.definition.st;
             controllerFunc = me.rootNode.definition.controllerFunc
 
@@ -1733,7 +1743,7 @@ itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             console.timeEnd('controllerWrapper: eval');
 				
             console.time('controllerWrapper: apply UI update');
-            itwc.controller.updateUI(JSON.parse(upd), me.rootNode);
+            itwc.controller.updateUI({instance: instanceNo, updates:JSON.parse(upd)}, me.rootNode);
             console.timeEnd('controllerWrapper: apply UI update');
 		
             __itask_background_process();
@@ -1765,11 +1775,13 @@ itwc.controller.prototype = {
 
     //The set of task instance proxies which handle events & UI updates
     instanceProxies: {},
-	
+
+    //The shared remote instance proxy
+    remoteProxy: null,	
+
     onWindowResize: function(e) {
         itwc.UI.afterResize();
     },
-
     sendEditEvent: function(taskId, editorId, value) {
         var me = this,
             instanceNo = taskId.split("-")[0];
@@ -1800,8 +1812,10 @@ itwc.controller.prototype = {
             return me.instanceProxies[itwc.START_INSTANCE_NO].sendFocusEvent(taskId);
         }
     },	
-    updateUI: function(updates,root) {
+    updateUI: function(update,root) {
         var me = this,
+            instance = update.instance,
+            updates = update.updates,
             cmp;
 
         updates.forEach(function(update) {
@@ -1946,8 +1960,8 @@ itwc.controller.prototype = {
         document.body.removeChild(cmp.windows[winIdx].domEl);
         cmp.windows.splice(winIdx,1);
     },
-    reset: function(startInstanceNo,startInstanceUrl) {
-        var me = this, proxy;
+    reset: function(startInstanceNo,startInstanceKey) {
+        var me = this;
 
         //Initialize the client component tree and DOM
         itwc.DOMID = 1000;
@@ -1957,18 +1971,19 @@ itwc.controller.prototype = {
         itwc.UI.init();
         itwc.UI.render(0);
 
-        //Create an initial server proxy
-        proxy = new itwc.serverInstanceProxy();
-        proxy.init(me,itwc.UI,itwc.START_INSTANCE_URL);
-        proxy.queueTaskEvent({});
+        //Create the shared remote proxy
+        me.remoteProxy = new itwc.remoteInstanceProxy();
+        me.remoteProxy.init(me);
+        me.remoteProxy.addInstance(startInstanceNo,startInstanceKey,itwc.UI);
+        me.remoteProxy.queueTaskEvent({});
 
-        me.instanceProxies[itwc.START_INSTANCE_NO] = proxy;
+        me.instanceProxies[startInstanceNo] = me.remoteProxy;
     },
     start: function () {
         var me = this;
 
         //Initialize user interface data structures and DOM
-        me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_URL);
+        me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_KEY);
 
         //Listen for changes in the viewport size
         window.addEventListener('resize',me.onWindowResize,me);

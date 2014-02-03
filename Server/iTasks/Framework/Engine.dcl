@@ -41,8 +41,8 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 
 //Connection types used by the engine
 :: ConnectionType
-    = EventSourceConnection InstanceNo
-    | WebSocketConnection InstanceNo
+    = EventSourceConnection [InstanceNo]    //Server -> Client updates push
+    | WebSocketConnection [InstanceNo]      //Server <-> Client events and updates channel
 
 /**
 * Starts the task engine with a list of published task definitions.
