@@ -75,7 +75,7 @@ where
 		  , height			= ExactSize 300
 		  }
 		
-	mapdomid cid = "map_place_holder_" +++ cid
+	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
     initEditlet cid _ clval=:{val} world
@@ -118,7 +118,7 @@ where
 		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
 
     //Initial setup of UI
-	updateUI cid mbDiffs clval=:{mbSt=Nothing} world
+	updateUI cid _ clval=:{mbSt=Nothing} world
         # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
         | jsIsUndefined gmaps_loaded
             //Check if another editlet has already loaded the javascript

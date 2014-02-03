@@ -1,12 +1,12 @@
 definition module iTasks.Framework.Tonic
 
-from iTasks.Framework.Shared import :: Shared, :: ReadWriteShared, :: RWShared
+from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.Framework.Engine import :: PublishedTask
 import iTasks.Framework.Generic
-from iTasks.API.Core.CoreCombinators import class tune
-from iTasks.API.Core.SystemTypes import :: User
-from iTasks.API.Core.CoreTasks import :: Task
+from iTasks.API.Core.TaskCombinators import class tune
+from iTasks.API.Core.Types import :: User
+from iTasks.API.Core.Tasks import :: Task
 from System.Time import :: Timestamp
 
 :: TonicTune =
@@ -31,6 +31,8 @@ derive class iTask TonicTrace, TraceType, TonicTune
 tonicTraces :: Shared [TonicTrace]
 
 tonicTune :: String String Int Int (Task a) -> Task a
+
+tonicBind :: String String Int Int (Task a) (a -> Task b) -> Task b | iTask a & iTask b
 
 instance tune TonicTune
 

@@ -51,3 +51,6 @@ appendHtml html root world
   # world = jsTrace (toString html) world
   # (g, world) = append "g" root world
   = setHtml (toString html) g world
+
+removeElems :: D3 *JSWorld -> *(D3, *JSWorld)
+removeElems d3 world = callObjectMethod "remove" [] d3 world

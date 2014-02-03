@@ -34,3 +34,5 @@ setTextWith :: (JSVal (JSFunction c)) D3 *JSWorld -> *(D3, *JSWorld)
 firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)
 
 appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)
+
+removeElems :: D3 *JSWorld -> *(D3, *JSWorld)

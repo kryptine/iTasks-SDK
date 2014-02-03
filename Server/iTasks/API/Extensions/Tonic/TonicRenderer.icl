@@ -5,13 +5,13 @@ from StdClass import max
 import Data.Functor
 import iTasks.Framework.Tonic
 import iTasks.Framework.Tonic.AbsSyn
-import iTasks.API.Extensions.Graphlet.Graphlet
+import iTasks.API.Extensions.Tonic.Toniclet
 import iTasks.API.Extensions.Graphlet.D3
 import iTasks.API.Extensions.Graphlet.Graphlib
 
 derive class iTask TonicState, TonicDiff
 
-tonicRenderer :: GraphletRenderer TonicState GNode GEdge
+tonicRenderer :: GraphletRenderer GNode GEdge
 tonicRenderer =
   { GraphletRenderer
   | drawNodeCallback      = drawNode
@@ -129,23 +129,34 @@ ppGExpression (GCleanExpression expr) = expr
   //, tonicExitUniqId  :: Int
   //, tonicValAsStr    :: Maybe String
   //}
-isActiveNode :: (Maybe TonicInfo) TonicState -> Bool
-isActiveNode (Just ti) (TonicState [{tuneInfo}:_]) =
-  trace_n ("comparing: " +++ toString tuneInfo.moduleName  +++ " with " +++ toString ti.tonicModuleName  +++ "\n" +++
-                             toString tuneInfo.taskName    +++ " with " +++ toString ti.tonicTaskName    +++ "\n" +++
-                             toString tuneInfo.entryUniqId +++ " with " +++ toString ti.tonicEntryUniqId +++ "\n" +++
-                             toString tuneInfo.exitUniqId  +++ " with " +++ toString ti.tonicExitUniqId
-          )
-                                                     tuneInfo.moduleName  == ti.tonicModuleName  &&
-                                                     tuneInfo.taskName    == ti.tonicTaskName    &&
-                                                     tuneInfo.entryUniqId == ti.tonicEntryUniqId &&
-                                                     tuneInfo.exitUniqId  == ti.tonicExitUniqId
-isActiveNode _  _ = False
+isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
+//isActiveNode (Just renderingNode) (TonicState [{traceType=EnterTrace, tuneInfo}:_]) world
+isActiveNode (Just renderingNode) (TonicState [{traceType, tuneInfo}:_]) world
+  # world = jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
+                     toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
+                     toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
+                     toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
+                     toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
+                    ) world
+  = ( renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
+      renderingNode.tonicTaskName    == tuneInfo.taskName    &&
+      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
+      renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
+    , world)
+isActiveNode Nothing  _ world
+  # world = jsTrace "isActiveNode missing info for current rendering node" world
+  = (False, world)
+isActiveNode _  (TonicState []) world
+  # world = jsTrace "isActiveNode no tonic stack" world
+  = (False, world)
+isActiveNode _  _ world
+  # world = jsTrace "isActiveNode Fallthrough" world
+  = (False, world)
 
-mkCSSClasses :: (Maybe TonicInfo) TonicState String -> String
-mkCSSClasses mti ts cls = cls +++ if (isActiveNode mti ts) (" " +++ "activeNode") ""
+mkCSSClasses :: Bool String -> String
+mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
 
-drawNode :: TonicState GNode GLGraph Int D3 *JSWorld -> *JSWorld
+drawNode :: TonicState GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
 drawNode ts shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
@@ -153,7 +164,8 @@ drawNode ts shape graph u root world
   drawNode` :: GNode GLGraph Int D3 *JSWorld -> *JSWorld
   drawNode` {nodeType=GAssign expr, nodeTonicInfo} _ _ root world
     # (g, world)    = append "g" root world
-    # (g, world)    = setAttr "class" (toJSVal "tonic-assign") g world
+    # (ia, world)   = isActiveNode nodeTonicInfo ts world
+    # (g, world)    = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-assign")) g world
     # (head, world) = append "circle" g world
     # (head, world) = setAttrs [ ("cx", toJSVal "1em")
                                , ("cy", toJSVal "1em")
@@ -173,7 +185,8 @@ drawNode ts shape graph u root world
     = world
   drawNode` {nodeType=GDecision _ expr, nodeTonicInfo} _ nid root world
     # (g, world)          = append "g" root world
-    # (g, world)          = setAttr "class" (toJSVal "tonic-decision") g world
+    # (ia, world)         = isActiveNode nodeTonicInfo ts world
+    # (g, world)          = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-decision")) g world
     # (path, world)       = append "path" g world
     # (g``, world)        = append "g" g world
     # (text, world)       = append "text" g`` world
@@ -206,7 +219,8 @@ drawNode ts shape graph u root world
     = world
   drawNode` {nodeType=GLet gl, nodeTonicInfo}               _ _ root world
     # (g, world)          = append "g" root world
-    # (g, world)          = setAttr "class" (toJSVal "tonic-let") g world
+    # (ia, world)         = isActiveNode nodeTonicInfo ts world
+    # (g, world)          = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-let")) g world
     # (rect, world)       = append "rect" g world
     # (g``, world)        = append "g" g world
     # (text, world)       = append "text" g`` world
@@ -221,7 +235,8 @@ drawNode ts shape graph u root world
     = world
   drawNode` {nodeType=GListComprehension gl, nodeTonicInfo} _ _ root world
     # (g, world)        = append "g" root world
-    # (g, world)        = setAttr "class" (toJSVal "tonic-listcomprehension") g world
+    # (ia, world)       = isActiveNode nodeTonicInfo ts world
+    # (g, world)        = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-listcomprehension")) g world
     # (app, world)      = append "rect" g world
     # (tg, world)       = append "g" g world
     # (task, world)     = append "text" tg world
@@ -258,7 +273,8 @@ drawNode ts shape graph u root world
     = world
   drawNode` {nodeType=GParallelSplit, nodeTonicInfo}          _ _ root world
     # (g, world)    = append "g" root world
-    # (g, world)    = setAttr "class" (toJSVal "tonic-parallelsplit") g world
+    # (ia, world)   = isActiveNode nodeTonicInfo ts world
+    # (g, world)    = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-parallelsplit")) g world
     # (poly, world) = append "circle" g world
     # (poly, world) = setAttrs [ ("r", toJSVal "2.5em")
                                , ("stroke-dasharray", toJSVal "5,5")
@@ -270,7 +286,8 @@ drawNode ts shape graph u root world
     = mkCenteredTspan ["Start", "parallel", "tasks"] text world
   drawNode` {nodeType=GParallelJoin jt, nodeTonicInfo}      _ _ root world
     # (g, world)    = append "g" root world
-    # (g, world)    = setAttr "class" (toJSVal "tonic-paralleljoin") g world
+    # (ia, world)   = isActiveNode nodeTonicInfo ts world
+    # (g, world)    = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-paralleljoin")) g world
     # (poly, world) = append "circle" g world
     # (poly, world) = setAttrs [ ("r", toJSVal "2.5em")
                                , ("stroke-dasharray", toJSVal "5,5")
@@ -289,7 +306,8 @@ drawNode ts shape graph u root world
                       ) text world
   drawNode` {nodeType=GReturn expr, nodeTonicInfo} _ nid root world
     # (g, world)          = append "g" root world
-    # (g, world)          = setAttr "class" (toJSVal (mkCSSClasses nodeTonicInfo ts "tonic-return")) g world
+    # (ia, world)         = isActiveNode nodeTonicInfo ts world
+    # (g, world)          = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-return")) g world
     # (rect, world)       = append "ellipse" g world
     # (g``, world)        = append "g" g world
     # (text, world)       = append "text" g`` world
@@ -313,7 +331,8 @@ drawNode ts shape graph u root world
     = world
   drawNode` {nodeType=GTaskApp tid exprs, nodeTonicInfo}    _ _ root world
     # (g, world)        = append "g" root world
-    # (g, world)        = setAttr "class" (toJSVal "tonic-taskapplication") g world
+    # (ia, world)       = isActiveNode nodeTonicInfo ts world
+    # (g, world)        = setAttr "class" (toJSVal (mkCSSClasses ia "tonic-taskapplication")) g world
     # (app, world)      = append "rect" g world
     # (tg, world)       = append "g" g world
     # (task, world)     = append "text" tg world
@@ -357,9 +376,33 @@ getBBox root world
   # (jbbw, world) = jsGetObjectAttr "width" bbox world
   = ((jsValToInt jbbh, jsValToInt jbbw), world)
 
-drawEdgeLabel :: TonicState GEdge GLGraph (Int, Int) D3 *JSWorld -> *JSWorld
-drawEdgeLabel st {edge_pattern} _ _ root world
-  = mkNode Rect "edge-label" (fmap (\x -> [x]) edge_pattern) defaultLabelTransform
+
+//:: TonicTune =
+	//{ moduleName  :: String
+	//, taskName    :: String
+	//, entryUniqId :: Int
+	//, exitUniqId  :: Int
+	//, valAsStr    :: Maybe String
+	//}
+
+//:: TraceType = EnterTrace | ExitTrace
+
+//:: TonicTrace =
+	//{ traceType  :: !TraceType
+	//, tuneInfo   :: !TonicTune
+	//, traceUser  :: !User
+	//, traceTime  :: !Timestamp
+	//}
+
+drawEdgeLabel :: TonicState GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+drawEdgeLabel (TonicState []) {edge_pattern} _ (fromIdx, toIdx) root world = drawEdgeLabel` edge_pattern root world
+drawEdgeLabel (TonicState [{tuneInfo={entryUniqId,exitUniqId,valAsStr}}:_]) {edge_pattern} _ (fromIdx, toIdx) root world
+  | entryUniqId == fromIdx && exitUniqId == toIdx = drawEdgeLabel` (fmap (\x -> x +++ (maybe "" (\ms -> " [" +++ ms +++ "]") valAsStr)) edge_pattern) root world
+  | otherwise                                     = drawEdgeLabel` edge_pattern root world
+
+drawEdgeLabel` :: (Maybe String) D3 *JSWorld -> *JSWorld
+drawEdgeLabel` pat root world
+  = mkNode Rect "edge-label" (fmap (\x -> [x]) pat) defaultLabelTransform
       (\bbh bbw d3 world -> setAttrs [ ("rx", toJSVal 5)
                                      , ("ry", toJSVal 5)
                                      , ("x", toJSVal (0 - (bbw / 2)))
@@ -368,4 +411,3 @@ drawEdgeLabel st {edge_pattern} _ _ root world
                                      , ("height", toJSVal bbh)
                                      ] d3 world
                                      ) root world
-import StdDebug

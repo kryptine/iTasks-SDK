@@ -1,10 +1,12 @@
-definition module iTasks.API.Extensions.Graphlet.Graphlet
+definition module iTasks.API.Extensions.Tonic.Toniclet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
 from Data.Graph import :: Graph, :: Node, :: NodeIndex, :: EdgeIndex
 from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
+from iTasks.API.Extensions.Tonic.TonicRenderer import :: TonicState
+from iTasks.Framework.Tonic import :: TonicTrace
 
 derive gEditor Graph, Node
 derive gEditMeta Graph, Node
@@ -20,20 +22,20 @@ derive gVerify Graph, Node
   |  AddEdges [(e, EdgeIndex)]
   |  UpdateNodes [(NodeIndex, n)]
 
-:: GraphletRenderer s n e =
-  { drawNodeCallback      :: s n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-  , drawEdgeLabelCallback :: s e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+:: GraphletRenderer n e =
+  { drawNodeCallback      :: TonicState n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: TonicState e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
 
-:: Graphlet s n e =
-  { graph       :: Graph n e
-  , customState :: s
+:: Graphlet n e =
+  { graph      :: Graph n e
+  , tonicState :: TonicState
   }
 
-:: GraphletClientData s n e =
+:: GraphletClientData n e =
   { mbClientState :: Maybe GraphletClientState
-  , graphlet      :: Graphlet s n e
+  , graphlet      :: Graphlet n e
   }
 
 :: GraphletClientState =
@@ -45,6 +47,5 @@ derive class iTask GraphletDiff, Graphlet
 
 //graphlet :: s (s s -> cd) (cd s -> s) (GraphletRenderer s n e) (Graph n e)
          //-> Editlet (GraphletState s n e) (GraphletDiff cd n e) | iTask n & iTask e & iTask s & iTask cd
-graphlet :: (s s -> Maybe [GraphletDiff n e]) ([GraphletDiff n e] s -> s)
-            (GraphletRenderer s n e) (Graphlet s n e)
-         -> Editlet (Graphlet s n e) [GraphletDiff n e] | iTask s & iTask n & iTask e
+graphlet :: (GraphletRenderer n e) (Graphlet n e)
+         -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e

@@ -1,20 +1,19 @@
 implementation module iTasks.Framework.Tonic
 
-import qualified iTasks.Framework.SharedDataSource as DSDS
 import iTasks.Framework.Engine
-import iTasks.Framework.Shared
+import iTasks.Framework.SDS
+import qualified iTasks.Framework.SDS as DSDS
 import iTasks.Framework.IWorld
 import iTasks.Framework.Tonic.AbsSyn
-import iTasks.API.Core.CoreCombinators
-import iTasks.API.Core.CoreTasks
-import iTasks.API.Core.SystemTypes
-import iTasks.API.Core.SystemData
-import iTasks.API.Common.CommonCombinators
+import iTasks.API.Core.TaskCombinators
+import iTasks.API.Core.Tasks
+import iTasks.API.Core.Types
+import iTasks.API.Core.SDSs
+import iTasks.API.Common.TaskCombinators
 import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
-//import iTasks.API.Extensions.Tonic.Toniclet
-import iTasks.API.Extensions.Graphlet.Graphlet
+import iTasks.API.Extensions.Tonic.Toniclet
 import iTasks.API.Extensions.Tonic.TonicRenderer
 import System.File
 from StdFunc import o
@@ -77,63 +76,63 @@ instance tune TonicTune where
     // Strict lets are required to ensure traces are pushed to the trace stack
     // in the correct order.
     eval` event repOpts state iworld=:{IWorld|current}
-      #! iworld        = trace_n ("starting trace in Tonic share: " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
-                        (pushTrace (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
-      #! (tr, iworld)  = eval event repOpts state iworld
-      #! iworld        = trace_n ("stopping trace in Tonic share: " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
-                        (pushTrace (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
+      #! iworld        = trace_n ("Enter trace: " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
+                         (pushTrace (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
+      #  (tr, iworld)  = eval event repOpts state iworld
+      #! iworld        = trace_n ("Exit trace: " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
+                         (pushTrace (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
       = (tr, iworld)
     pushTrace t shts world
-      # (mets , world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
-      # ts              = case mets of
-                            Ok xs  = xs
-                            _      = []
-      # (_, world)      = 'DSDS'.write [t:ts] shts world
+      # (mets, world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
+      # ts             = case mets of
+                           Ok xs  = xs
+                           _      = []
+      # (_, world)     = 'DSDS'.write [t:ts] shts world
       = world
 
 getTonicModules :: Task [String]
 getTonicModules
   =         getTonicDir >>-
-    \dir -> accWorld (rd dir) >>-
+    \dir -> accWorld (readDirectory dir) >>-
     \mfs -> case mfs of
               Ok fs   -> return (map dropExtension (filter noDots fs))
               Error _ -> throw "Failed to read Tonic dir"
   where
-  rd dir world = readDirectory dir world
-  noDots str   = not ('SA'.select str 0 == '.')
+  noDots str = not ('SA'.select str 0 == '.')
 
 getTonicDir :: Task String
 getTonicDir = mkInstantTask f
-  where f _ iworld
-          # (server, iworld) = iworld!server
-          = (Ok (server.paths.appDirectory </> "tonic"), iworld)
+  where
+  f _ iworld
+    # (server, iworld) = iworld!server
+    = (Ok (server.paths.appDirectory </> "tonic"), iworld)
 
 tonicLogin :: String -> Task Void
-tonicLogin appName = forever (
-      (viewTitle "Tonic"
-  ||- enterInformation ("Login", "Enter your credentials and login") [])
-  >>* [ OnAction (Action "Login" [ActionIcon "login", ActionKey (unmodified KEY_ENTER)]) (hasValue authenticatedTonic)
-      ])
-  where
-  authenticatedTonic {Credentials|username, password}
-    =            authenticateUser username password >>=
-      \mbUser -> case mbUser of
-                   Just user -> workAs user (tonicUI appName)
-                   Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+tonicLogin appName = forever (tonicUI appName)
+//tonicLogin :: String -> Task Void
+//tonicLogin appName = forever (
+      //(viewTitle "Tonic"
+  //||- enterInformation ("Login", "Enter your credentials and login") [])
+  //>>* [ OnAction (Action "Login" [ActionIcon "login", ActionKey (unmodified KEY_ENTER)]) (hasValue authenticatedTonic)
+      //])
+  //where
+  //authenticatedTonic {Credentials|username, password}
+    //=            authenticateUser username password >>=
+      //\mbUser -> case mbUser of
+                   //Just user -> workAs user (tonicUI appName)
+                   //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 
 getModule :: String -> Task TonicModule
 getModule moduleName
   =           getTonicDir >>-
-    \dir ->   let moduleTonicFile = dir </> (moduleName +++ ".tonic") in
-              accWorld (rf moduleTonicFile) >>-
+    \dir ->   accWorld (readFile (dir </> (moduleName +++ ".tonic"))) >>-
     \mjson -> case mjson of
                 Ok json   -> case fromJSON (fromString json) of
                                Just gg  -> return gg
                                _        -> err "Failed to deserialize JSON"
                 Error msg -> err (toString msg)
   where
-  err msg                  = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
-  rf moduleTonicFile world = readFile moduleTonicFile world
+  err msg = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
 
 derive class iTask MaybeError, FileError
 
@@ -170,7 +169,15 @@ selectTask tm
                   //||- (viewInformation ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] (graphlet tt.tt_graph (NodeLoc (fromMaybe 0 (sourceNode tt.tt_graph))) tonicRenderer)
                   //-|| viewSharedInformation "Current traces" [] (userTraces u))) <<@ FullScreen
 viewTask u tn mn tt = viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
-                  ||- viewSharedInformation ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") [ViewWith (\traces -> graphlet (TonicState traces) (\_ _ -> TonicDiff) (\_ s -> s) tonicRenderer tt.tt_graph)] tonicTraces <<@ FullScreen
+                    //||- viewSharedInformation "Tonic share contents" [] tonicTraces
+                  ||- viewSharedInformation
+                        ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'")
+                        [ViewWith (\traces -> graphlet tonicRenderer {graph=tt.tt_graph, tonicState=TonicState traces})]
+                        tonicTraces
+                  //||- viewSharedInformation
+                        //("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
+                        //(mapRead (\traces -> graphlet (TonicState traces) (\_ _ -> TonicDiff) (\_ s -> s) tonicRenderer tt.tt_graph) tonicTraces)
+                  <<@ FullScreen
 
 //tonicUI :: String -> Task Void
 //tonicUI appName =

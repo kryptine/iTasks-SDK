@@ -1,4 +1,4 @@
-implementation module iTasks.API.Extensions.Graphlet.Graphlet
+implementation module iTasks.API.Extensions.Tonic.Toniclet
 
 import iTasks
 import iTasks.API.Extensions.Graphlet.D3
@@ -24,10 +24,9 @@ derive class iTask GraphletDiff, Graphlet
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-graphlet :: (s s -> Maybe [GraphletDiff n e]) ([GraphletDiff n e] s -> s)
-            (GraphletRenderer s n e) (Graphlet s n e)
-         -> Editlet (Graphlet s n e) [GraphletDiff n e] | iTask s & iTask n & iTask e
-graphlet genCustDiff appCustDiff renderer graphlet =
+graphlet :: (GraphletRenderer n e) (Graphlet n e)
+         -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e
+graphlet renderer graphlet =
   Editlet graphlet
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
@@ -45,7 +44,7 @@ graphlet genCustDiff appCustDiff renderer graphlet =
     }
   where
   defGraphlet = graphlet // { graph = 'DG'.emptyGraph
-                //, customState = gDefault{|*|}
+                //, tonicState = []
                 //}
 
   uiDef cid
@@ -94,8 +93,8 @@ graphlet genCustDiff appCustDiff renderer graphlet =
     # (jsgraph, world) = mkDigraph world
     # world            = addNodesEdges graphlet.graph jsgraph world
     # (drend, world)   = mkRenderer world
-    # renderNodeFun    = createEditletEventHandler (drawNodeCb graphlet.customState) cid
-    # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb graphlet.customState) cid
+    # renderNodeFun    = createEditletEventHandler (drawNodeCb graphlet.tonicState) cid
+    # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb graphlet.tonicState) cid
     # world            = setDrawNode drend renderNodeFun world
     # world            = setDrawEdgeLabel drend renderEdgeLblFun world
     # world            = runRenderer drend jsgraph svgg world
@@ -127,11 +126,7 @@ graphlet genCustDiff appCustDiff renderer graphlet =
     = (cgraph, world)
 
   //genServerDiff :: (GraphletServerState s n e) (GraphletServerState s n e) -> Maybe [GraphletDiff n e]
-  genServerDiff oldSt newSt = case (genDiff oldSt.graph newSt.graph, genCustDiff oldSt.customState newSt.customState) of
-                                (Just xs, Just ys) -> Just (xs ++ ys)
-                                (Just xs, _)       -> Just xs
-                                (_, Just ys)       -> Just ys
-                                _                  -> Nothing
+  genServerDiff oldSt newSt = genDiff oldSt.graph newSt.graph
 
   genDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
                                 []    -> Nothing
@@ -156,7 +151,7 @@ graphlet genCustDiff appCustDiff renderer graphlet =
                     xs -> [UpdateNodes xs]
 
   //appServerDiff :: [GraphletDiff n e] (GraphletServerState s n e) -> GraphletServerState s n e
-  appServerDiff diffs serverState = {serverState & graph = appDiff diffs serverState.graph, customState = appCustDiff diffs serverState.customState}
+  appServerDiff diffs serverState = {serverState & graph = appDiff diffs serverState.graph}
 
   appDiff diffs graph = foldl f graph diffs
     where
@@ -167,14 +162,10 @@ graphlet genCustDiff appCustDiff renderer graphlet =
     f graph (UpdateNodes ns) = foldr (\(ni, n) g -> 'DG'.setNodeData ni n g) graph ns
 
   //genClientDiff :: (GraphletClientData s) (GraphletClientData s) -> Maybe [GraphletDiff n e]
-  genClientDiff oldSt newSt = case (genDiff oldSt.graphlet.graph newSt.graphlet.graph, genCustDiff oldSt.graphlet.customState newSt.graphlet.customState) of
-                                (Just xs, Just ys) -> Just (xs ++ ys)
-                                (Just xs, _)       -> Just xs
-                                (_, Just ys)       -> Just ys
-                                _                  -> Nothing
+  genClientDiff oldSt newSt = genDiff oldSt.graphlet.graph newSt.graphlet.graph
 
   //appClientDiff :: [GraphletDiff n e] (GraphletClientData s) -> GraphletClientData s
-  appClientDiff diffs cs=:{graphlet={graph, customState}} = {cs & graphlet = {graph = appDiff diffs graph, customState=appCustDiff diffs customState}}
+  appClientDiff diffs cs=:{graphlet={graph, tonicState}} = {cs & graphlet = {graph = appDiff diffs graph, tonicState=tonicState}}
 
 addNodesEdges :: (Graph n e) GLGraph *JSWorld -> *JSWorld // | iTask n & iTask e
 addNodesEdges g jsgraph world
