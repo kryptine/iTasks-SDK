@@ -52,26 +52,26 @@ derive gVerify
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
-tonicBind :: String String Int Int (Task a) (a -> Task b) -> Task b | iTask a & iTask b
+tonicBind :: String String Int Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 tonicBind mn tn euid xuid ta a2tb = ta >>= \x -> tonicTune` mn tn euid xuid (toString (toJSON x)) (a2tb x) // TODO toJSON ?
 
 tonicTune` :: String String Int Int String (Task b) -> Task b
 tonicTune` mn tn euid xuid xstr tb = tune  { TonicTune
-                                           | moduleName = mn
-                                           , taskName = tn
+                                           | moduleName  = mn
+                                           , taskName    = tn
                                            , entryUniqId = euid
-                                           , exitUniqId = xuid
-                                           , valAsStr = Just xstr
-                                           , isBind = True} tb
+                                           , exitUniqId  = xuid
+                                           , valAsStr    = Just xstr
+                                           , isBind      = True} tb
 
 tonicTune :: String String Int Int (Task a) -> Task a
 tonicTune mn tn euid xuid ta = tune  { TonicTune
-                                     | moduleName = mn
-                                     , taskName = tn
+                                     | moduleName  = mn
+                                     , taskName    = tn
                                      , entryUniqId = euid
-                                     , exitUniqId = xuid
-                                     , valAsStr = Nothing
-                                     , isBind = False} ta
+                                     , exitUniqId  = xuid
+                                     , valAsStr    = Nothing
+                                     , isBind      = False} ta
 
 mkTrace :: User TonicTune TraceType Timestamp -> TonicTrace
 mkTrace user tinf ttype tstamp = {TonicTrace|traceType = ttype, tuneInfo = tinf, traceUser = user, traceTime = tstamp}

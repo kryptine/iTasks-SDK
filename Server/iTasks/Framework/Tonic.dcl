@@ -33,7 +33,7 @@ tonicTraces :: Shared [TonicTrace]
 
 tonicTune :: String String Int Int (Task a) -> Task a
 
-tonicBind :: String String Int Int (Task a) (a -> Task b) -> Task b | iTask a & iTask b
+tonicBind :: String String Int Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 
 instance tune TonicTune
 

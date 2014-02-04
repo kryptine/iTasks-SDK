@@ -114,18 +114,18 @@ ppGExpression (GCleanExpression expr) = expr
 isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
 isActiveNode (Just renderingNode) (TonicState xs=:[_:_]) world //[{traceType, tuneInfo}:_]) world
   # tuneInfo = getNonBindTrace xs // TODO Ugh... ugly :(
-  # world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
-                          toString tuneInfo.moduleName  +++
-                          toString tuneInfo.taskName    +++
-                          toString tuneInfo.entryUniqId +++
-                          toString tuneInfo.exitUniqId
-                         ) world)
-                        (jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
-                     toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
-                     toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
-                     toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
-                     toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
-                    ) world)
+  //# world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
+                          //toString tuneInfo.moduleName  +++
+                          //toString tuneInfo.taskName    +++
+                          //toString tuneInfo.entryUniqId +++
+                          //toString tuneInfo.exitUniqId
+                         //) world)
+                        //(jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
+                     //toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
+                     //toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
+                     //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
+                     //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
+                    //) world)
   = ( not tuneInfo.isBind &&
       renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.taskName    &&
@@ -364,9 +364,24 @@ getBBox root world
 
 drawEdgeLabel :: TonicState GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
 drawEdgeLabel (TonicState []) {edge_pattern} _ (fromIdx, toIdx) root world = drawEdgeLabel` edge_pattern root world
-drawEdgeLabel (TonicState [{tuneInfo={entryUniqId,exitUniqId,valAsStr}}:_]) {edge_pattern} _ (fromIdx, toIdx) root world
-  | entryUniqId == fromIdx && exitUniqId == toIdx = drawEdgeLabel` (fmap (\x -> x +++ (maybe "" (\ms -> " [" +++ ms +++ "]") valAsStr)) edge_pattern) root world
-  | otherwise                                     = drawEdgeLabel` edge_pattern root world
+drawEdgeLabel (TonicState xs=:[_:_]) {edge_pattern} _ (fromIdx, toIdx) root world
+  # mTuneInfo = edgeInTraces (takeCurrentTraces xs)
+  = case mTuneInfo of
+      Just {entryUniqId,exitUniqId,valAsStr} -> drawEdgeLabel` (fmap (\x -> x +++ (maybe "" (\ms -> " [" +++ ms +++ "]") valAsStr)) edge_pattern) root world
+      _                                      -> drawEdgeLabel` edge_pattern root world
+  where
+  edgeInTraces []              = Nothing
+  edgeInTraces [{tuneInfo=ti=:{entryUniqId,exitUniqId,valAsStr}}:xs]
+    | entryUniqId == fromIdx && exitUniqId == toIdx = Just ti
+    | otherwise                                     = edgeInTraces xs
+
+  takeCurrentTraces []                  = []
+  takeCurrentTraces xs=:[{traceTime}:_] = takeCurrentTraces` traceTime xs
+    where
+    takeCurrentTraces` _  []     = []
+    takeCurrentTraces` tt [t=:{traceTime}:xs]
+      | tt == traceTime = [t:takeCurrentTraces` traceTime xs]
+      | otherwise       = []
 
 drawEdgeLabel` :: (Maybe String) D3 *JSWorld -> *JSWorld
 drawEdgeLabel` pat root world
