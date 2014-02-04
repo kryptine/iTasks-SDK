@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.Tonic.TonicRenderer
 
 import StdOverloaded
 from StdClass import max
+from StdMisc import abort
 import Data.Functor
 import iTasks.Framework.Tonic
 import iTasks.Framework.Tonic.AbsSyn
@@ -111,18 +112,31 @@ ppGExpression (GGraphExpression _)    = "<complex subgraph; consider refactoring
 ppGExpression (GCleanExpression expr) = expr
 
 isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
-isActiveNode (Just renderingNode) (TonicState [{traceType, tuneInfo}:_]) world
-  # world = jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
+isActiveNode (Just renderingNode) (TonicState xs=:[_:_]) world //[{traceType, tuneInfo}:_]) world
+  # tuneInfo = getNonBindTrace xs // TODO Ugh... ugly :(
+  # world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
+                          toString tuneInfo.moduleName  +++
+                          toString tuneInfo.taskName    +++
+                          toString tuneInfo.entryUniqId +++
+                          toString tuneInfo.exitUniqId
+                         ) world)
+                        (jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
                      toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
                      toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
                      toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
                      toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
-                    ) world
-  = ( renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
+                    ) world)
+  = ( not tuneInfo.isBind &&
+      renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.taskName    &&
-      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId && // TODO This causes problems with the recently added traces for binds. We might need to be more exact, or differentiate between binds and non-binds
+      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
       renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
     , world)
+  where
+  getNonBindTrace []     = abort "getNonBindTrace: should not happen"
+  getNonBindTrace [{tuneInfo}:xs]
+    | tuneInfo.isBind = getNonBindTrace xs
+    | otherwise       = tuneInfo
 isActiveNode _ _ world = (False, world)
 
 mkCSSClasses :: Bool String -> String

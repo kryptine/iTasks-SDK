@@ -15,6 +15,7 @@ from System.Time import :: Timestamp
 	, entryUniqId :: Int
 	, exitUniqId  :: Int
 	, valAsStr    :: Maybe String
+	, isBind      :: Bool
 	}
 
 :: TraceType = EnterTrace | ExitTrace

@@ -118,6 +118,7 @@ graphlet renderer initGraphlet =
         = (jsgraph, world)
 
     updateUI` cid (Just [AddTraces ts:diffs]) clval=:{graphlet, mbClientState=Just {graphObj}} world
+      # world = foldl (\world x -> jsTrace (toString (toJSON x)) world) world ts
       # (TonicState xs) = graphlet.tonicState
       = updateUI` cid (Just diffs) {clval & graphlet={graphlet & tonicState = TonicState (ts ++ xs)}} world
 
