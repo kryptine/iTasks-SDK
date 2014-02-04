@@ -18,9 +18,10 @@ derive gVerify Graph, Node
 :: GraphletDiff n e
   =  RemoveNodes [NodeIndex]
   |  RemoveEdges [EdgeIndex]
-  |  AddNodes [n]
-  |  AddEdges [(e, EdgeIndex)]
-  |  UpdateNodes [(NodeIndex, n)]
+  |  AddNodes    [(n, NodeIndex)]
+  |  AddEdges    [(e, EdgeIndex)]
+  |  UpdateNodes [(n, NodeIndex)]
+  |  AddTraces   [TonicTrace]
 
 :: GraphletRenderer n e =
   { drawNodeCallback      :: TonicState n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
@@ -39,7 +40,8 @@ derive gVerify Graph, Node
   }
 
 :: GraphletClientState =
-  { graphObj    :: GLGraph
+  { graphObj  :: GLGraph
+  , svgTarget :: D3
   //, activeNodeIds :: [(User, [NodeIndex])]
   }
 

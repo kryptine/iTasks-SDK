@@ -140,7 +140,7 @@ isActiveNode (Just renderingNode) (TonicState [{traceType, tuneInfo}:_]) world
                     ) world
   = ( renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.taskName    &&
-      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
+      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId && // TODO This causes problems with the recently added traces for binds. We might need to be more exact, or differentiate between binds and non-binds
       renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
     , world)
 isActiveNode Nothing  _ world

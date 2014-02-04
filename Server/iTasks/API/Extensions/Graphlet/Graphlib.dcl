@@ -37,3 +37,5 @@ isDirected :: GLGraph *JSWorld -> *(Bool, *JSWorld)
 hasNode :: GLGraph (JSVal i) *JSWorld -> *(Bool, *JSWorld)
 
 hasEdge :: GLGraph (JSVal i) *JSWorld -> *(Bool, *JSWorld)
+
+eachNode :: GLGraph (JSVal (JSFunction f)) *JSWorld -> *JSWorld

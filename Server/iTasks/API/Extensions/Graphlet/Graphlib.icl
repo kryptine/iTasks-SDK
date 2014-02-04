@@ -60,3 +60,6 @@ hasEdge :: GLGraph (JSVal i) *JSWorld -> *(Bool, *JSWorld)
 hasEdge graph ev world
   # (jb, world) = callObjectMethod "hasEdge" [] graph world
   = (jsValToBool jb, world)
+
+eachNode :: GLGraph (JSVal (JSFunction f)) *JSWorld -> *JSWorld
+eachNode graph jsf world = snd (callObjectMethod "eachNode" [toJSArg jsf] graph world)
