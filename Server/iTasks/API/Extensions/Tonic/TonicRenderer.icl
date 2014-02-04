@@ -109,28 +109,8 @@ addPath xs path world
 ppGExpression GUndefinedExpression    = "undefined"
 ppGExpression (GGraphExpression _)    = "<complex subgraph; consider refactoring>"
 ppGExpression (GCleanExpression expr) = expr
-//:: TonicTrace =
-	//{ traceType  :: !TraceType
-	//, tuneInfo   :: !TonicTune
-	//, traceUser  :: !User
-	//, traceTime  :: !Timestamp
-	//}
-//:: TonicTune =
-	//{ moduleName  :: String
-	//, taskName    :: String
-	//, entryUniqId :: Int
-	//, exitUniqId  :: Int
-	//, valAsStr    :: Maybe String
-	//}
-//:: TonicInfo =
-  //{ tonicModuleName  :: String
-  //, tonicTaskName    :: String
-  //, tonicEntryUniqId :: Int
-  //, tonicExitUniqId  :: Int
-  //, tonicValAsStr    :: Maybe String
-  //}
+
 isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
-//isActiveNode (Just renderingNode) (TonicState [{traceType=EnterTrace, tuneInfo}:_]) world
 isActiveNode (Just renderingNode) (TonicState [{traceType, tuneInfo}:_]) world
   # world = jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
                      toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
@@ -143,15 +123,7 @@ isActiveNode (Just renderingNode) (TonicState [{traceType, tuneInfo}:_]) world
       renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId && // TODO This causes problems with the recently added traces for binds. We might need to be more exact, or differentiate between binds and non-binds
       renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
     , world)
-isActiveNode Nothing  _ world
-  # world = jsTrace "isActiveNode missing info for current rendering node" world
-  = (False, world)
-isActiveNode _  (TonicState []) world
-  # world = jsTrace "isActiveNode no tonic stack" world
-  = (False, world)
-isActiveNode _  _ world
-  # world = jsTrace "isActiveNode Fallthrough" world
-  = (False, world)
+isActiveNode _ _ world = (False, world)
 
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
@@ -375,24 +347,6 @@ getBBox root world
   # (jbbh, world) = jsGetObjectAttr "height" bbox world
   # (jbbw, world) = jsGetObjectAttr "width" bbox world
   = ((jsValToInt jbbh, jsValToInt jbbw), world)
-
-
-//:: TonicTune =
-	//{ moduleName  :: String
-	//, taskName    :: String
-	//, entryUniqId :: Int
-	//, exitUniqId  :: Int
-	//, valAsStr    :: Maybe String
-	//}
-
-//:: TraceType = EnterTrace | ExitTrace
-
-//:: TonicTrace =
-	//{ traceType  :: !TraceType
-	//, tuneInfo   :: !TonicTune
-	//, traceUser  :: !User
-	//, traceTime  :: !Timestamp
-	//}
 
 drawEdgeLabel :: TonicState GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
 drawEdgeLabel (TonicState []) {edge_pattern} _ (fromIdx, toIdx) root world = drawEdgeLabel` edge_pattern root world

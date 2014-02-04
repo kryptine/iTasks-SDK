@@ -8,7 +8,6 @@ import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.Tonic.TonicRenderer
 from iTasks.API.Extensions.Graphlet.Graphlib import delNode, delEdge
 import StdMisc
-import StdDebug
 import StdArray
 from Data.Graph import :: Graph, :: Node{..}, :: NodeIndex, :: EdgeIndex
 import qualified Data.Graph as DG
@@ -58,8 +57,6 @@ graphlet renderer initGraphlet =
       }
 
   updateUI cid diffs clval=:{mbClientState=Nothing} world
-    # world = jsTrace "updateUI NoClientState" world
-    # world = jsTrace  diffs world
     # (dagre, world) = findObject "dagreD3" world
     | jsIsUndefined dagre
         # world = foldr addCSSFromUrl world renderer.styleSheets
@@ -71,11 +68,9 @@ graphlet renderer initGraphlet =
         = onLibLoaded diffs cid undef clval world
 
   updateUI cid (Just xs) clval=:{mbClientState=Just {graphObj}} world
-    # world = jsTrace "updateUI Just ClientState" world
     = updateUI` cid (Just xs) clval world
     where
     updateUI` cid (Just [RemoveNodes rmnds:diffs]) clval=:{mbClientState=Just {graphObj}} world
-      # world = jsTrace "updateUI` RemoveNodes" world
       # world = snd (foldr removeNode` (graphObj, world) rmnds)
       = updateUI` cid (Just diffs) clval world
       where
@@ -85,7 +80,6 @@ graphlet renderer initGraphlet =
         = (jsgraph, world)
 
     updateUI` cid (Just [RemoveEdges rmes:diffs]) clval=:{mbClientState=Just {graphObj}} world
-      # world = jsTrace "updateUI` RemoveEdges" world
       # world = snd (foldr removeEdge` (graphObj, world) rmes)
       = updateUI` cid (Just diffs) clval world
       where
@@ -95,7 +89,6 @@ graphlet renderer initGraphlet =
         = (jsgraph, world)
 
     updateUI` cid (Just [AddNodes ans:diffs]) clval=:{mbClientState=Just {graphObj}} world
-      # world = jsTrace "updateUI` AddNodes" world
       # world = snd (foldr addNode` (graphObj, world) ans)
       = updateUI` cid (Just diffs) clval world
       where
@@ -107,7 +100,6 @@ graphlet renderer initGraphlet =
         = (jsgraph, world)
 
     updateUI` cid (Just [AddEdges aes:diffs]) clval=:{mbClientState=Just {graphObj}} world
-      # world = jsTrace "updateUI` AddEdges" world
       # world = snd (foldr addEdge` (graphObj, world) aes)
       = updateUI` cid (Just diffs) clval world
       where
@@ -118,7 +110,6 @@ graphlet renderer initGraphlet =
         = (jsgraph, world)
 
     updateUI` cid (Just [UpdateNodes uns:diffs]) clval=:{mbClientState=Just {graphObj}} world
-      # world = jsTrace "updateUI` UpdateNodes" world
       # world = snd (foldr updateNode` (graphObj, world) uns)
       = updateUI` cid (Just diffs) clval world
       where
@@ -127,12 +118,10 @@ graphlet renderer initGraphlet =
         = (jsgraph, world)
 
     updateUI` cid (Just [AddTraces ts:diffs]) clval=:{graphlet, mbClientState=Just {graphObj}} world
-      # world           = jsTrace "updateUI` AddTraces" world
       # (TonicState xs) = graphlet.tonicState
       = updateUI` cid (Just diffs) {clval & graphlet={graphlet & tonicState = TonicState (ts ++ xs)}} world
 
     updateUI` cid (Just []) clval=:{graphlet, mbClientState=Just {graphObj, svgTarget}} world
-      # world = jsTrace "updateUI` []" world
       // Start hackish solution to prevent double rerendering
       # (subs, world)    = selectAllChildElems svgTarget "g" world
       # (_, world)       = removeElems subs world
@@ -146,26 +135,21 @@ graphlet renderer initGraphlet =
       = (clval, world)
 
     updateUI` _ _ clval world
-      # world = jsTrace "updateUI` fallthrough" world
       = (clval, world)
 
   updateUI _ _ clval world
-    # world = jsTrace "updateUI Nothing" world
     = (clval, world)
 
   onLibLoaded diffs cid _ clval=:{mbClientState=Nothing} world
-    # world = jsTrace "onLibLoaded NoClientState" world
     # (svgg, world)    = selectElem ("#" +++ mkSVGId cid) world
     # (jsgraph, world) = mkDigraph world
     # clval            = {clval & mbClientState = Just {graphObj = jsgraph, svgTarget = svgg}}
     = updateUI cid diffs clval world
 
   onLibLoaded diffs cid _ clval world
-    # world = jsTrace "onLibLoaded Has ClientState" world
     = updateUI cid diffs clval world
 
   drawNodeCb st cid {[0] = jsgraph, [1] = u, [2] = root} clval world
-    # world = jsTrace "drawNodeCb" world
     # graphValue = jsUnsafeCoerce jsgraph
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
@@ -175,9 +159,8 @@ graphlet renderer initGraphlet =
     = (clval, world)
 
   drawEdgeLabelCb st cid {[0] = jsgraph, [1] = e, [2] = root} clval world
-    # world = jsTrace "drawEdgeLabelCb" world
     # graphValue    = jsUnsafeCoerce jsgraph
-    # edgeIdLst     = jsUnsafeCoerce e // We really need the #! here, because jsGetObjectEl will try to get elements from a thunk otherwise
+    # edgeIdLst     = jsUnsafeCoerce e
     # (fEId, world) = jsGetObjectEl 0 edgeIdLst world
     # (tEId, world) = jsGetObjectEl 1 edgeIdLst world
     # edgeId        = (jsValToInt fEId, jsValToInt tEId)
@@ -187,29 +170,29 @@ graphlet renderer initGraphlet =
                         _            -> world
     = (clval, world)
 
-  genServerDiff oldSt newSt = trace_n "genServerDiff" mappendMaybeList (genGraphDiff oldSt.graph newSt.graph) (genTonicDiff oldSt.tonicState newSt.tonicState)
+  genServerDiff oldSt newSt = mappendMaybeList (genGraphDiff oldSt.graph newSt.graph) (genTonicDiff oldSt.tonicState newSt.tonicState)
 
-  genGraphDiff oldGraph newGraph = trace_n "genGraphDiff" case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
-                                []    -> trace_n "genGraphDiff []" Nothing
-                                diffs -> trace_n "genGraphDiff Just diffs" Just diffs
+  genGraphDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
+                                     []    -> Nothing
+                                     diffs -> Just diffs
     where
     rmNodes     = case 'DG'.foldrNodes (\ni _ xs -> if ('DG'.nodeExists ni newGraph) xs [ni:xs]) [] oldGraph of
-                    [] -> trace_n "rmNodes []" []
-                    xs -> trace_n "rmNodes xs" [RemoveNodes xs]
+                    [] -> []
+                    xs -> [RemoveNodes xs]
     rmEdges     = case 'DG'.foldrEdges (\ei _ xs -> if ('DG'.edgeExists ei newGraph) xs [ei:xs]) [] oldGraph of
-                    [] -> trace_n "rmEdges []" []
-                    xs -> trace_n "rmEdges xs" [RemoveEdges xs]
+                    [] -> []
+                    xs -> [RemoveEdges xs]
     addNodes    = case 'DG'.foldlNodes (\xs ni {data} -> if ('DG'.nodeExists ni oldGraph) xs [(data, ni):xs]) [] newGraph of // TODO use foldlNodes ?
-                    [] -> trace_n "addNodes []" []
-                    xs -> trace_n ("addNodes xs " +++ toString (length xs)) [AddNodes xs]
+                    [] ->  []
+                    xs ->  [AddNodes xs]
     addEdges    = case 'DG'.foldrEdges (\ei edge xs -> if ('DG'.edgeExists ei oldGraph) xs [(edge, ei):xs]) [] newGraph of // TODO user foldlEdges ?
-                    [] -> trace_n "addEdges []" []
-                    xs -> trace_n ("addEdges xs " +++ toString (length xs)) [AddEdges xs]
+                    [] -> []
+                    xs -> [AddEdges xs]
     updateNodes = case 'DG'.foldrNodes (\ni {data=newData} xs -> case 'DG'.getNodeData ni oldGraph of
                                                                    Just oldData -> if (newData =!= oldData) [(newData, ni):xs] xs
                                                                    _            -> xs) [] newGraph of
-                    [] -> trace_n "updateNodes []" []
-                    xs -> trace_n "updateNodes xs" [UpdateNodes xs]
+                    [] -> []
+                    xs -> [UpdateNodes xs]
 
   genTonicDiff (TonicState xs) (TonicState ys) = Just [AddTraces (take (length ys - length xs) ys)]
 
@@ -218,9 +201,9 @@ graphlet renderer initGraphlet =
     f (AddTraces traces) xs = traces ++ xs
     f _                  xs = xs
 
-  appServerDiff diffs serverState = trace_n "appServerDiff" {serverState & graph = appGraphDiff diffs serverState.graph, tonicState = appTonicDiff diffs serverState.tonicState}
+  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph, tonicState = appTonicDiff diffs serverState.tonicState}
 
-  appGraphDiff diffs graph = trace_n "appGraphDiff" foldl f graph diffs
+  appGraphDiff diffs graph = foldl f graph diffs
     where
     f graph (RemoveNodes ns) = foldr 'DG'.removeNode graph ns
     f graph (RemoveEdges es) = foldr 'DG'.removeEdge graph es
@@ -229,9 +212,9 @@ graphlet renderer initGraphlet =
     f graph (UpdateNodes ns) = foldr (\(n, ni) g -> 'DG'.setNodeData ni n g) graph ns
     f graph _                = graph
 
-  genClientDiff oldSt newSt = trace_n "genClientDiff" genGraphDiff oldSt.graphlet.graph newSt.graphlet.graph
+  genClientDiff oldSt newSt = genGraphDiff oldSt.graphlet.graph newSt.graphlet.graph
 
-  appClientDiff diffs cs=:{graphlet={graph, tonicState}} = trace_n "appClientDiff" {cs & graphlet = {graph = appGraphDiff diffs graph, tonicState=tonicState}}
+  appClientDiff diffs cs=:{graphlet={graph, tonicState}} = {cs & graphlet = {graph = appGraphDiff diffs graph, tonicState=tonicState}}
 
 mappendMaybeList (Just xs) (Just ys) = Just (xs ++ ys)
 mappendMaybeList (Just xs) _         = Just xs
