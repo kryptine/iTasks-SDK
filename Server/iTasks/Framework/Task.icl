@@ -56,6 +56,7 @@ toRefresh (EditEvent no _ _ _)	= RefreshEvent (Just no)
 toRefresh (ActionEvent no _ _)	= RefreshEvent (Just no)
 toRefresh (FocusEvent no _)		= RefreshEvent (Just no)
 toRefresh (RefreshEvent mbNo)	= RefreshEvent mbNo
+toRefresh (ResetEvent)          = RefreshEvent Nothing
 
 exception :: !e -> TaskResult a | TC, toString e
 exception e = ExceptionResult (dynamic e) (toString e)

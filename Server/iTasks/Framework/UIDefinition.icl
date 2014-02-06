@@ -3,6 +3,9 @@ implementation module iTasks.Framework.UIDefinition
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
 	
+emptyUI :: UIDef
+emptyUI = {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows = []}
+
 defaultSizeOpts :: UISizeOpts
 defaultSizeOpts = {UISizeOpts|width = Nothing, minWidth = Nothing, maxWidth = Nothing, height = Nothing, minHeight = Nothing, maxHeight = Nothing, margins = Nothing}
 
@@ -19,10 +22,10 @@ defaultContainer :: ![UIControl] -> UIControl
 defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items)
 
 defaultPanel :: ![UIControl] -> UIControl
-defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,hotkeys=Nothing,iconCls=Nothing}
+defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
 
 defaultWindow :: ![UIControl] -> UIWindow
-defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|title=Nothing,tbar=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,hotkeys=Nothing,iconCls=Nothing}
+defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|title=Nothing,iconCls=Nothing,menu=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,hotkeys=Nothing}
 
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
@@ -287,10 +290,6 @@ setValign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {iOpts & valig
 setValign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & valign = align} opts
 setValign align ctrl							= ctrl
 
-setTBar :: ![UIControl] !UIControl -> UIControl
-setTBar tbar (UIPanel sOpts iOpts opts)			= UIPanel sOpts iOpts {UIPanelOpts|opts & tbar = Just tbar}
-setTBar tbar ctrl								= ctrl
-
 getMargins :: !UIControl -> (Maybe UISideSizes)
 getMargins ctrl
     | hasSizeOpts ctrl     = getSizeOpts (\{UISizeOpts|margins} -> margins) ctrl
@@ -406,6 +405,7 @@ encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON so
 encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts]
 encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
 encodeUIControl (UIEditlet sopts opts)					= enc "itwc_edit_editlet" [toJSON sopts, removeEditletValue (toJSON opts)]
+encodeUIControl (UIEmbedding sopts opts)                = enc "itwc_embedding" [toJSON sopts, toJSON opts]
 
 removeEditletValue (JSONObject fields) = JSONObject [field \\ field=:(name,_) <- fields | name <> "value"]
 
@@ -419,7 +419,7 @@ derive JSONEncode UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
 derive JSONEncode UIIconOpts
 derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
-derive JSONEncode UITaskletOpts, UIEditletOpts
+derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
 JSONEncode{|UISizeOpts|} {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
     = [JSONObject [field \\ field <- [("itwcWidth",toJSON width)

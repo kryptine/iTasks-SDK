@@ -54,87 +54,52 @@ roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Jus
 // Init
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing} Nothing Nothing Nothing iworld
 	# (taskId, iworld)  = createClientTaskInstance task sessionId instanceNo iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (RefreshEvent Nothing) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
 	= case mbResult of
-		Ok (ValueResult _ _ (TaskRep def _) _, _, _, update)
-					= (Just update, {TaskState | st & taskId = Just taskId}, iworld)
+		Ok (_,_,updates)
+					= (Just updates, {TaskState | st & taskId = Just taskId}, iworld)
 		_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
-
 // Refresh
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (RefreshEvent Nothing) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
-					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
-					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
-					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _)
-					= abort msg
+		Ok (_,value,updates)
+					= (Just updates, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
-		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
-
 // Focus
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} (Just eventNo) Nothing Nothing iworld
 	# iworld = trace_n "c_focus" iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (FocusEvent eventNo t) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (FocusEvent eventNo t) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
-					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
-					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
-					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _)
-					= abort msg
+		Ok (_,value,updates)
+					= (Just updates, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
-		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
-
 // Edit
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) (Just jsonval) iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (EditEvent eventNo taskId name (fromString jsonval)) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (EditEvent eventNo taskId name (fromString jsonval)) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
-					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
-					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
-					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _)
-					= abort msg
+		Ok (_,value,updates)
+					= (Just updates, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
-		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
-
 // Action
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) Nothing iworld
-	# (mbResult,iworld)	= evalSessionTaskInstance instanceNo (ActionEvent eventNo taskId name) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (ActionEvent eventNo taskId name) iworld
 	= case mbResult of
-		Ok (ValueResult val _ (TaskRep def _) _, _, _, update)
-					= (Just update, {TaskState | st & value = Just val}, iworld)
-		Ok (ValueResult val _ NoRep _, _, _, _)
-					= abort "NoRep"
-		Ok (DestroyedResult, _, _, _)
-					= abort "Destroy"
-		Ok (ExceptionResult _ msg, _, _, _)
-					= abort msg
+		Ok (_,value,updates)
+					= (Just updates, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
-		_			= (Nothing, {TaskState | st & value = Nothing}, iworld)	
 
 newWorld :: *World
 newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
-getUIUpdates iworld=:{uiMessages}
-		= case 'Data.Map'.toList uiMessages of
+getUIUpdates iworld=:{uiUpdates}
+		= case 'Data.Map'.toList uiUpdates of
 			[]   = (Nothing, iworld)		
-			msgs = (Just (map getUpdates msgs), {iworld & uiMessages = 'Data.Map'.newMap}) 
+			msgs = (Just (map getUpdates msgs), {iworld & uiUpdates = 'Data.Map'.newMap})
 where
-	isUIUpdates (UIUpdates _ _) = True
-	isUIUpdates _ = False
 
-	getUpdates (instanceNo,msgs)
-		= (instanceNo, map (\(UIUpdates instanceNo upds) -> toString (encodeUIUpdates upds)) (filter isUIUpdates msgs))
+	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIUpdates upds)])
 
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
@@ -174,7 +139,7 @@ createClientIWorld serverURL currentInstance
           ,ti                   = 'Data.Map'.newMap
           ,nextInstanceNo       = 0
 		  ,workQueue			= []
-		  ,uiMessages			= 'Data.Map'.newMap
+		  ,uiUpdates			= 'Data.Map'.newMap
 		  ,shutdown				= False
           ,random               = genRandInt seed
           ,io                   = {done=[],todo=[]}

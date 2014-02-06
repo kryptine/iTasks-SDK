@@ -16,22 +16,23 @@ derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIA
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIContent, UIControlStack, UISubUI, UISubUIStack, UIAction
-derive gEq UITaskletOpts, UIEditletOpts
+derive gEq UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
 derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
+diffUIDefinitions _ def ResetEvent editletDiffs
+    # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent Nothing) editletDiffs
+    = ([UIUpdate [] [("reset",[])]:updates],editletDiffs)
 diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {UIDef|content=UIFinal vp2=:(UIViewport iOpts2 opts2),windows=w2} event editletDiffs
 	= (
         diffItems [] event editletDiffs iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
 	++	diffAllWindows event editletDiffs w1 w2
 	++	(case (diffHotkeys (fromMaybe [] opts1.UIViewportOpts.hotkeys) (fromMaybe [] opts2.UIViewportOpts.hotkeys)) of [] = []; ops = [UIUpdate [] ops])
 	++	if (opts1.UIViewportOpts.title === opts2.UIViewportOpts.title) [] [UIUpdate [] [("setTitle",[toJSON opts2.UIViewportOpts.title])]]
+    ++  diffMenus [] event editletDiffs opts1.UIViewportOpts.menu opts2.UIViewportOpts.menu
     , removeEditletDiffs (findEditletsInViewport vp2 ++ findEditletsInWindows w2 []) editletDiffs)
-
-diffUIDefinitions d1 d2 event editletDiffs //Unclear when this case occurs :(
-	= (diffItems [] event editletDiffs (uiDefControls d1) (uiDefControls d2), editletDiffs)
 
 removeEditletDiffs removeIds editletDiffs = fromList [(editletId,(value,opts,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(value,opts,diffs)) <- toList editletDiffs]
 
@@ -103,6 +104,8 @@ diffControls path event editletDiffs c1 c2
 			= [diffOpts sOpts1 sOpts2,diffItemsOpts path event editletDiffs iOpts1 iOpts2, diffOpts opts1 opts2]
 		(UITabSet sOpts1 opts1, UITabSet sOpts2 opts2)
 			= [diffOpts sOpts1 sOpts2, diffTabSetOpts path event editletDiffs opts1 opts2]
+        (UIEmbedding sOpts1 opts1, UIEmbedding sOpts2 opts2)
+            = [diffOpts sOpts1 sOpts2, diffOpts opts1 opts2]
 		(_,_)
 			= [DiffImpossible]		
 	= DiffPossible (replaceControlIfImpossible path c2 parts)
@@ -204,17 +207,14 @@ diffPanelOpts :: UIPath Event UIEditletDiffs UIPanelOpts UIPanelOpts -> DiffResu
 diffPanelOpts path event editletDiffs opts1 opts2
 	| impossible	= DiffImpossible
 					= case flatten [titleUpd,hotkeyUpd] of
-						[]	= DiffPossible menusUpd
-						ops	= DiffPossible [UIUpdate path ops:menusUpd]
+						[]	= DiffPossible []
+						ops	= DiffPossible [UIUpdate path ops]
 where
 	impossible	=  opts1.UIPanelOpts.frame <> opts2.UIPanelOpts.frame
 				|| opts1.UIPanelOpts.iconCls <> opts2.UIPanelOpts.iconCls
-				|| (isJust opts1.UIPanelOpts.tbar && isNothing opts2.UIPanelOpts.tbar)	//Can only update menu items, not create a menubar suddenly
-				|| (isNothing opts1.UIPanelOpts.tbar && isJust opts2.UIPanelOpts.tbar)
 				
 	titleUpd	= if (opts1.UIPanelOpts.title == opts2.UIPanelOpts.title) [] [("setTitle",[toJSON opts2.UIPanelOpts.title])]
 	hotkeyUpd	= diffHotkeys (fromMaybe [] opts1.UIPanelOpts.hotkeys) (fromMaybe [] opts2.UIPanelOpts.hotkeys)
-	menusUpd	= diffItems [MenuStep:path] event editletDiffs (fromMaybe [] opts1.UIPanelOpts.tbar) (fromMaybe [] opts2.UIPanelOpts.tbar)
 
 diffWindowOpts :: UIPath Event UIEditletDiffs UIWindowOpts UIWindowOpts -> DiffResult
 diffWindowOpts path event editletDiffs opts1 opts2
@@ -229,7 +229,7 @@ where
 
 	titleUpd	= if (opts1.UIWindowOpts.title == opts2.UIWindowOpts.title) [] [("setTitle",[toJSON opts2.UIWindowOpts.title])]
 	hotkeyUpd	= diffHotkeys (fromMaybe [] opts1.UIWindowOpts.hotkeys) (fromMaybe [] opts2.UIWindowOpts.hotkeys)
-	menusUpd	= diffItems [MenuStep:path] event editletDiffs (fromMaybe [] opts1.UIWindowOpts.tbar) (fromMaybe [] opts2.UIWindowOpts.tbar)
+	menusUpd	= diffMenus path event editletDiffs opts1.UIWindowOpts.menu opts2.UIWindowOpts.menu
 
 diffButtonOpts :: UIPath UIButtonOpts UIButtonOpts -> DiffResult
 diffButtonOpts path b1 b2 = DiffPossible (diffMultiProperties path [textUpd,iconUpd,enabledUpd])
@@ -246,10 +246,8 @@ where
 
 diffTabOpts :: UIPath Event UIEditletDiffs UITabOpts UITabOpts -> DiffResult
 diffTabOpts path event editletDiffs t1 t2
-	| (isJust t1.UITabOpts.tbar && isNothing t1.UITabOpts.tbar)	//Can only update menu items, not create a menubar suddenly
-		|| (isNothing t1.UITabOpts.tbar && isJust t2.UITabOpts.tbar)	
-		|| (isJust t1.UITabOpts.closeTaskId && isNothing t2.UITabOpts.closeTaskId) //We cannot make a non-closable tab closable or vice-versa
-		|| (isNothing t1.UITabOpts.closeTaskId && isJust t2.UITabOpts.closeTaskId) 
+	| (isJust t1.UITabOpts.closeTaskId && isNothing t2.UITabOpts.closeTaskId) //We cannot make a non-closable tab closable or vice-versa
+		|| (isNothing t1.UITabOpts.closeTaskId && isJust t2.UITabOpts.closeTaskId)
 		= DiffImpossible
 	| otherwise
 		= DiffPossible ((diffMultiProperties path [titleUpd,focusUpd,closeUpd,iconUpd,hotkeyUpd]) ++ menusUpd)
@@ -258,7 +256,7 @@ where
 	focusUpd = if (t1.UITabOpts.focusTaskId === t2.UITabOpts.focusTaskId) [] [("setFocusTaskId",[toJSON t2.UITabOpts.focusTaskId])]
 	closeUpd = if (t1.UITabOpts.closeTaskId === t2.UITabOpts.closeTaskId) [] [("setCloseTaskId",[toJSON t2.UITabOpts.closeTaskId])]
 	iconUpd = if (t1.UITabOpts.iconCls === t2.UITabOpts.iconCls) [] [("setIconCls",[toJSON t2.UITabOpts.iconCls])]
-	menusUpd = diffItems [MenuStep:path] event editletDiffs (fromMaybe [] t1.UITabOpts.tbar) (fromMaybe [] t2.UITabOpts.tbar)
+	menusUpd = diffMenus path event editletDiffs t1.UITabOpts.menu t2.UITabOpts.menu
 	hotkeyUpd = diffHotkeys (fromMaybe [] t1.UITabOpts.hotkeys) (fromMaybe [] t2.UITabOpts.hotkeys)
 
 diffItems :: UIPath Event UIEditletDiffs [UIControl] [UIControl] -> [UIUpdate]
@@ -318,6 +316,15 @@ diffWindows path event editletDiffs w1=:(UIWindow sOpts1 iOpts1 opts1) w2=:(UIWi
 
 diffHotkeys :: [UIKeyAction] [UIKeyAction] -> [UIUpdateOperation]
 diffHotkeys keys1 keys2 = if (keys1 === keys2) [] [("setHotkeys",[toJSON keys2])]
+
+diffMenus :: UIPath Event UIEditletDiffs (Maybe [UIControl]) (Maybe [UIControl]) -> [UIUpdate]
+diffMenus path event editletDiffs Nothing Nothing = []
+diffMenus path event editletDiffs (Just menu1) (Just menu2)
+	= diffItems [MenuStep:path] event editletDiffs menu1 menu2
+diffMenus path event editletDiffs Nothing (Just menu2)
+    = [UIUpdate path [("addMenu",[JSONArray (map encodeUIControl menu2)])]]
+diffMenus path event editletDiffs (Just _) Nothing
+    = [UIUpdate path [("removeMenu",[])]]
 
 //Try to diff a control in parts. If one of the parts is impossible, then return a full replace instruction
 replaceControlIfImpossible :: UIPath UIControl [DiffResult] -> [UIUpdate]

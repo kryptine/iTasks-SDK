@@ -230,7 +230,7 @@ initIWorld sdkDir world
       ,ti                   = newMap
       ,nextInstanceNo       = 0
 	  ,workQueue			= []
-	  ,uiMessages           = newMap
+	  ,uiUpdates            = newMap
 	  ,shutdown				= False
       ,io                   = {done = [], todo = []}
       ,ioValues             = newMap

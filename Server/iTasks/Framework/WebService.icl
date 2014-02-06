@@ -101,48 +101,44 @@ where
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
-                    = case createUnevaluatedTaskInstance (task req) iworld of
+                    = case createTaskInstance (task req) iworld of
                         (Error err, iworld)
 				            = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-				            = (itwcStartResponse url instanceNo instanceKey  (theme opts) serverName customCSS, Nothing, iworld)
+				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, iworld)
                 JSONPlain
-                    # (mbResult,iworld) = createSessionTaskInstance (task req) event iworld
-				    = case mbResult of
-					    Ok (ExceptionResult _ err,_,_,_,_)
-						    = (errorResponse err, Nothing, iworld)
-					    Ok (ValueResult (Value val _) _ _ _,_,_,_,_)
-						    = (jsonResponse val, Nothing, iworld)
-					    _
-						    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
+                    = case createTaskInstance (task req) iworld of
+                        (Error err, iworld)
+				            = (errorResponse err, Nothing, iworld)
+                        (Ok (instanceNo,instanceKey),iworld)
+                            = case evalTaskInstance instanceNo event iworld of
+                                (Error err,iworld)            = (errorResponse err, Nothing, iworld)
+					            (Ok (_,Value val _,_),iworld) = (jsonResponse val, Nothing, iworld)
+					            (Ok (_,NoValue,_),iworld)     = (jsonResponse JSONNull, Nothing, iworld)
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
                 ["gui-stream"]
                     //Stream messages for multiple instances
-                    # (messages,iworld)	= getUIMessages instances iworld //TODO: Check keys
+                    # (messages,iworld)	= popUIUpdates instances iworld //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
                 [instanceNo,instanceKey]
                     = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
-                    # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
+                    # instanceNo         = toInt instanceNo
+                    # (mbResult, iworld) = evalTaskInstance instanceNo event iworld
                     # (json, iworld) = case mbResult of
                         Error err
-					        = (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-                        Ok (ExceptionResult _ err,_,_,_)
-                            = (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-                        Ok (ValueResult (Value _ True) _ _ _,_,_,_)
-                            = (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-                        Ok (ValueResult _ info curRep context,instanceNo,lastEventNo,updates)
+					        = (JSONObject [("error",JSONString err)],iworld)
+                        Ok (lastEventNo,value,updates)
                             //Determine expiry date	
                             # (expiresIn,iworld) = getResponseExpiry instanceNo iworld
-                            # json	= JSONObject [("success",JSONBool True)
-                                                 ,("instance",JSONInt instanceNo)
+                            # json	= JSONObject [("instance",JSONInt instanceNo)
                                                  ,("expiresIn",toJSON expiresIn)
                                                  ,("lastEvent",JSONInt lastEventNo)
-                                                 ,("updates", encodeUIUpdates updates)
+                                                 ,("updates",encodeUIUpdates updates)
                                                  ]
                             = (json,iworld)
                         _
@@ -150,18 +146,8 @@ where
                     = (jsonResponse json, Nothing, iworld)
                 //Stream messages for a specific instance
                 [instanceNo,instanceKey,"gui-stream"]
-                    # (messages,iworld)	= getUIMessages [toInt instanceNo] iworld	
+                    # (messages,iworld)	= popUIUpdates [toInt instanceNo] iworld	
                     = (eventsResponse messages, Just (EventSourceConnection [toInt instanceNo]), iworld)
-                //Just send the value encoded as JSON
-                [instanceNo,instanceKey,"value"]
-                    # (mbResult, iworld)    = evalSessionTaskInstance (toInt instanceNo) event iworld
-                    = case mbResult of
-                        Ok (ExceptionResult _ err,_,_,_)
-                            = (errorResponse err, Nothing, iworld)
-                        Ok (ValueResult (Value val _) _ _ _,_,_,_)
-                            = (jsonResponse val, Nothing, iworld)
-                        _
-                            = (errorResponse "No value available", Nothing, iworld)
                 _
 				    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
 	    where
@@ -177,6 +163,7 @@ where
 		    editEventParam		= paramValue "editEvent" req
 		    actionEventParam	= paramValue "actionEvent" req
 		    focusEventParam		= paramValue "focusEvent" req
+            resetEventParam     = paramValue "resetEvent" req
 
             instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
 
@@ -189,7 +176,7 @@ where
 				    Just (taskId,actionId)	= ActionEvent eventNo (fromString taskId) actionId
 				    _	= case (fromJSON (fromString focusEventParam)) of
 					    Just taskId			= FocusEvent eventNo (fromString taskId)
-					    _					= RefreshEvent (Just eventNo)
+					    _   = if (resetEventParam == "") (RefreshEvent (Just eventNo)) ResetEvent
 
         webSocketHandShake key = base64Encode digest
         where
@@ -199,7 +186,7 @@ where
     dataFun req mbData (WebSocketConnection instances) iworld
         = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req _ (EventSourceConnection instances) iworld
-        # (messages,iworld)	= getUIMessages instances iworld	
+        # (messages,iworld)	= popUIUpdates instances iworld	
 		= case messages of
 			[]	= ([],False,(EventSourceConnection instances),iworld)
 			_	= ([formatMessageEvents messages],False,(EventSourceConnection instances),iworld)
@@ -226,10 +213,9 @@ where
 		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
                         , rsp_data = formatMessageEvents messages}
 	
-	formatMessageEvents messages = join "" (map format messages)
+	formatMessageEvents messages = concat (map format messages)
     where
-        format (UIUpdates instanceNo updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIUpdates updates) +++ "}\n\n"
-        format (UIReset text) = "event: reset\ndata: " +++ text +++ "\n\n"
+        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIUpdates updates) +++ "}\n\n"
 
 	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
 	where

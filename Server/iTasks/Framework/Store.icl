@@ -9,7 +9,7 @@ import Text, Text.JSON
 import iTasks.Framework.Client.JSStore
 import iTasks.Framework.SDS
 
-from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: ServerInfo(..), :: SystemPaths(..), :: Work, :: UIMessage, :: Resource
+from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: ServerInfo(..), :: SystemPaths(..), :: Work, :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState		import :: TaskListEntry

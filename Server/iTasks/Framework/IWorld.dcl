@@ -41,7 +41,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
                     , ti                    :: !Map InstanceNo TIMeta                   // Task instance index
                     , nextInstanceNo        :: !Int                                     // Next task instance number
 					, workQueue				:: ![(!Work,!Maybe Timestamp)]              // (Instance input)
-					, uiMessages            :: !Map InstanceNo [UIMessage]				// (Instance output)
+					, uiUpdates             :: !Map InstanceNo [UIUpdate]				// (Instance output)
 
                     , io                    :: !*IOTasks                                // The low-level input/output tasks
                     , ioValues              :: !Map TaskId IOTaskValue                  // Task values of low-level tasks, indexed by the high-level taskid that it is linked to
@@ -108,14 +108,13 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 		| TriggerSDSChange !BasicShareId
 		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
 
-:: UIMessage = UIUpdates !InstanceNo ![UIUpdate] | UIReset !String
-
 updateCurrentDateTime :: !*IWorld -> *IWorld
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
-addUIMessage        :: !InstanceNo !UIMessage       !*IWorld -> *IWorld
-getUIMessages		:: ![InstanceNo]                !*IWorld -> (![UIMessage],!*IWorld)
+addUIUpdates    :: !InstanceNo ![UIUpdate]  !*IWorld -> *IWorld
+popUIUpdates    :: ![InstanceNo]            !*IWorld -> (![(!InstanceNo,![UIUpdate])],!*IWorld)
+clearUIUpdates  :: !InstanceNo              !*IWorld -> *IWorld
 
 instance FileSystem IWorld
 

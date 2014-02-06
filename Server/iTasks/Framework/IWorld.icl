@@ -46,16 +46,21 @@ where
 	expiry instanceNo [_:ws]	= expiry instanceNo ws
 
 
-addUIMessage :: !InstanceNo !UIMessage !*IWorld -> *IWorld
-addUIMessage instanceNo message iworld=:{uiMessages}
-	= {iworld & uiMessages = put instanceNo (maybe [message] (\m -> m ++ [message]) (get instanceNo uiMessages)) uiMessages}
+addUIUpdates :: !InstanceNo ![UIUpdate] !*IWorld -> *IWorld
+addUIUpdates instanceNo [] iworld = iworld
+addUIUpdates instanceNo updates iworld=:{uiUpdates}
+	= {iworld & uiUpdates = put instanceNo (maybe updates (\u -> u ++ updates) (get instanceNo uiUpdates)) uiUpdates}
 
-getUIMessages :: ![InstanceNo] !*IWorld -> (![UIMessage],!*IWorld)
-getUIMessages instances iworld=:{uiMessages}
-    # uiMessages    = toList uiMessages
-    # outMessages   = flatten [messages \\ (instanceNo,messages) <- uiMessages | isMember instanceNo instances]
-    # uiMessages    = fromList [um \\ um=:(instanceNo,_) <- uiMessages | not (isMember instanceNo instances)]
-	= (outMessages, {iworld & uiMessages = uiMessages})
+popUIUpdates :: ![InstanceNo] !*IWorld -> (![(!InstanceNo,![UIUpdate])],!*IWorld)
+popUIUpdates instances iworld=:{uiUpdates}
+    # uiUpdates     = toList uiUpdates
+    # outUpdates    = [m \\ m=:(instanceNo,updates) <- uiUpdates | isMember instanceNo instances]
+    # uiUpdates     = [m \\ m=:(instanceNo,_) <- uiUpdates | not (isMember instanceNo instances)]
+	= (outUpdates, {iworld & uiUpdates = fromList uiUpdates})
+
+clearUIUpdates :: !InstanceNo !*IWorld -> *IWorld
+clearUIUpdates instanceNo iworld=:{uiUpdates}
+    = {iworld & uiUpdates = del instanceNo uiUpdates}
 
 //Wrapper instance for file access
 instance FileSystem IWorld

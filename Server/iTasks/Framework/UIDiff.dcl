@@ -14,6 +14,7 @@ from iTasks.Framework.Task import :: Event
 	| MenuStep			//Select the menu bar
 	| WindowStep !Int	//Select window i (only possible as first step)
 
+//Compare a user interface to a previous version and compute
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
 
 encodeUIUpdates :: ![UIUpdate] -> JSONNode

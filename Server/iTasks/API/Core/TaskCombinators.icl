@@ -526,26 +526,19 @@ where
 		
 	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{current={taskInstance,user}}
 		//Load instance
-		# (meta,iworld)		= readRegister taskInstance (taskInstanceMeta instanceNo) iworld
-		# (rep,iworld)	    = readRegister taskInstance (taskInstanceRep instanceNo) iworld
 		# layout			= repLayoutRules repOpts
-		= case (meta,rep) of
-			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker},Ok rep)
+		# (meta,iworld)		= readRegister taskInstance (taskInstanceMeta instanceNo) iworld
+		= case meta of
+			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker,instanceKey})
                 | progress.ProgressMeta.value === Exception
 				    = (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
                 | progress.ProgressMeta.value === Stable
 				    = (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 				| worker == user
-                    # rep = case rep of
-                        (TaskRep def parts) = TaskRep (layout.LayoutRules.accuWorkOn def meta) parts
-                        _                   = NoRep
-					# rep = finalizeRep repOpts rep
+                    # rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
 					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,refreshSensitive=True} rep tree, iworld)
 				| otherwise
-                    # rep = case rep of
-                        (TaskRep def parts) = TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) parts
-                        _                   = NoRep
-					# rep = finalizeRep repOpts rep
+					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) [])
 					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
@@ -563,6 +556,8 @@ where
                                         = meta
     release taskId meta = meta
 
+    embedTaskDef instanceNo instanceKey
+		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(UIEmbedding defaultSizeOpts {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'Data.Map'.newMap)]},windows=[]}
 	inUseDef worker
 		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)]},windows=[]}
 /*

@@ -18,20 +18,8 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
 
-/**
-* Create a new session task instance and evaluate its immediately
-*
-* @param The task to run as session
-* @param An event
-* @param The IWorld state
-*
-* @return The result of the targeted main task and the tasknr of the instance or an error
-* @return The IWorld state
-*/
-createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !EventNo, ![UIUpdate]), !*IWorld) |  iTask a
-
-//Create a session instance without evaluating it
-createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+//Create a task instance
+createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 
 /**
 * Create a stored task instance in the task pool (lazily without evaluating it)
@@ -48,16 +36,16 @@ createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!Inst
 createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
-* Evaluate a session task instance
+* Evaluate a task instance
 *
-* @param The session id
+* @param The instance id
 * @param An event
 * @param The IWorld state
-* 
+*
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !EventNo, ![UIUpdate]), !*IWorld)
+evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)
 
 /**
 * Evaluate a task instance without any events
@@ -70,13 +58,14 @@ evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!T
 refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 
 /**
-* Refresh all urgent task instances
+* Evaluate a task instance without any events and restart output stream
 *
+* @param The task instance number
 * @param The IWorld state
 *
 * @return The IWorld state
 */
-refreshUrgentTaskInstances :: !*IWorld -> *IWorld
+resetTaskInstance   :: !InstanceNo !*IWorld -> *IWorld
 
 queueWork			:: !(!Work, !Maybe Timestamp)	!*IWorld -> *IWorld
 queueUrgentEvaluate	:: !InstanceNo					!*IWorld -> *IWorld

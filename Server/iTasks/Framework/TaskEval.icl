@@ -25,32 +25,12 @@ createClientTaskInstance task sessionId instanceNo iworld=:{current={localDateTi
 	# meta					= createMeta instanceNo "client" SessionInstance (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
-	# (_,iworld)			= 'SDS'.write createRep (taskInstanceRep instanceNo) iworld
+	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
 	= (TaskId instanceNo 0, iworld)	
-		
-createSessionTaskInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !InstanceKey, !EventNo, ![UIUpdate]), !*IWorld) |  iTask a
-createSessionTaskInstance task event iworld=:{current={localDateTime,taskTime}}
-	# (instanceNo,iworld)	= newInstanceNo iworld
-    # (instanceKey,iworld)  = newInstanceKey iworld
-	# worker				= AnonymousUser instanceKey
-	//Create the initial instance data in the store
-	# mmeta					= defaultValue
-	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo instanceKey SessionInstance (TaskId 0 0) Nothing mmeta pmeta
-	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
-	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
-	# (_,iworld)			= 'SDS'.write createRep (taskInstanceRep instanceNo) iworld
-	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
-	//Evaluate once
-	# (mbResult,iworld)		= evalTaskInstance event instanceNo iworld
-	= case mbResult of
-		Ok (result,Left (eventNo,updates))	= (Ok (result,instanceNo,instanceKey,eventNo,updates),iworld)
-		Error e				= (Error e, iworld)
-		_					= (Error "Unknown error in createSessionTaskInstance", iworld)
 
-createUnevaluatedTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createUnevaluatedTaskInstance task iworld=:{current={localDateTime,taskTime}}
+createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createTaskInstance task iworld=:{current={localDateTime,taskTime}}
 	# (instanceNo,iworld)	= newInstanceNo iworld
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
@@ -59,7 +39,7 @@ createUnevaluatedTaskInstance task iworld=:{current={localDateTime,taskTime}}
 	# meta					= createMeta instanceNo instanceKey SessionInstance (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
-	# (_,iworld)			= 'SDS'.write createRep (taskInstanceRep instanceNo) iworld
+	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
     = (Ok (instanceNo,instanceKey),iworld)
 
@@ -73,7 +53,7 @@ createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachme
 	# meta					= createMeta instanceNo instanceKey (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
-	# (_,iworld)			= 'SDS'.write createRep (taskInstanceRep instanceNo) iworld
+	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
     # iworld                = if (isJust mbAttachment) (queueUrgentEvaluate instanceNo iworld) iworld
 	= (TaskId instanceNo 0, iworld)
@@ -92,64 +72,26 @@ where
 			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
 			(ExceptionResult e str,iworld)			= (ExceptionResult e str,iworld)
 
-createRep :: TaskRep
-createRep = TaskRep {UIDef|content=UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap},windows=[]} []
-
-createResult :: !InstanceNo !TaskTime -> TaskResult JSONNode
-createResult instanceNo taskTime = ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} (TaskRep {UIDef|content=UIControlStack {UIControlStack|controls=[],attributes='Data.Map'.newMap},windows=[]} []) (TCInit (TaskId instanceNo 0) 1)
-
-evalSessionTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !EventNo, ![UIUpdate]), !*IWorld)
-evalSessionTaskInstance instanceNo event iworld
-	//Update current datetime in iworld
-	# iworld					= updateCurrentDateTime iworld
-    = evalUntilSession event instanceNo (eventTarget event instanceNo) iworld
-where
-	eventTarget (EditEvent _ (TaskId no _) _ _)	_	= no
-	eventTarget (ActionEvent _ (TaskId no _) _) _ 	= no
-	eventTarget (FocusEvent _ (TaskId no _)) _		= no
-	eventTarget (RefreshEvent _) no					= no
-
-    evalUntilSession event sessionNo instanceNo iworld
-        = case evalTaskInstance event instanceNo iworld of
-			(Ok (result,Left (eventNo,updates)),iworld) = (Ok (result,sessionNo,eventNo,updates),iworld)   //Done! we have evaluated the session instance
-            (Ok (_,Right [next:_]),iworld)                  = evalUntilSession (toRefresh event) next sessionNo iworld //We have not yet reached a session instance
-            (Ok (_,Right []),iworld)                        = (Error "Event did not reach an instance attached to a session",iworld)
-            (Error e, iworld)                               = (Error e,iworld)
-
-//Evaluate a task instance, just to refresh its state
-refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
-refreshTaskInstance instanceNo iworld
-	# (mbResult,iworld)	= evalTaskInstance (RefreshEvent Nothing) instanceNo iworld
-	= case mbResult of
-		(Ok (_,Left (_,[])))	    = iworld
-		(Ok (_,Left (_,updates)))	= addUIMessage instanceNo (UIUpdates instanceNo updates) iworld
-		(Error e)					= addUIMessage instanceNo (UIReset e) iworld	
-		_	                        = iworld
-
-refreshUrgentTaskInstances :: !*IWorld -> *IWorld
-refreshUrgentTaskInstances iworld
-	# (work,iworld) = dequeueWorkFilter isUrgent iworld
-	= seqSt refreshTaskInstance [instanceNo \\EvaluateUrgent instanceNo <- work] iworld
-where
-	isUrgent (EvaluateUrgent _)	= True
-	isUrgent _					= False
-
-import StdDebug
 //Evaluate a single task instance
-evalTaskInstance :: !Event !InstanceNo !*IWorld -> (!MaybeErrorString (TaskResult JSONNode, Either (EventNo,[UIUpdate]) [InstanceNo]),!*IWorld)
-evalTaskInstance event instanceNo iworld=:{current=current=:{taskTime,localDateTime,user,taskInstance,nextTaskNo,localShares,localLists}}
+evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)
+evalTaskInstance instanceNo event iworld
+    # iworld = updateCurrentDateTime iworld
+    # iworld = resetUIUpdates instanceNo event iworld
+    = evalTaskInstance` instanceNo event iworld
+where
+    evalTaskInstance` instanceNo event iworld=:{current=current=:{taskTime,localDateTime,user,taskInstance,nextTaskNo,localShares,localLists}}
     # (oldMeta, iworld)         = 'SDS'.read (taskInstanceMeta instanceNo) iworld
 	| isError oldMeta			= (liftError oldMeta, iworld)
 	# oldMeta=:{TIMeta|instanceType,instanceKey,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'SDS'.read (taskInstanceReduct instanceNo) iworld
 	| isError oldReduct			= (liftError oldReduct, iworld)
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
-    //Check execption
+    //Check exeption
     | progress.ProgressMeta.value === Exception
 	    # (oldValue, iworld)		= 'SDS'.read (taskInstanceValue instanceNo) iworld
         = case oldValue of
             (Error e)                   = (Error e, iworld)
-		    (Ok (TIException e msg))    = (Ok (ExceptionResult e msg, Right []), iworld)
+		    (Ok (TIException e msg))    = (Error msg, iworld)
     //Eval instance
     # (currentUser,currentSession,currentAttachment) = case instanceType of
         SessionInstance                         = (AnonymousUser instanceKey,Just instanceNo,[])
@@ -177,8 +119,8 @@ evalTaskInstance event instanceNo iworld=:{current=current=:{taskTime,localDateT
 	# iworld					= clearShareRegistrations instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld)		= eval event repAs tree iworld
-    //Finalize task UI for session instances
-    # newResult                 = if (instanceType === SessionInstance) (finalizeSessionUI newResult) newResult
+    //Finalize task UI
+    # newResult                 = finalizeUI instanceType newResult
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree) = newTree
         _                           = tree
@@ -191,7 +133,9 @@ evalTaskInstance event instanceNo iworld=:{current=current=:{taskTime,localDateT
        (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress, instanceType = DetachedInstance}
        _                           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress}
     //Store new meta data
-    # iworld                    = if deleted iworld (snd ('SDS'.write newMeta (taskInstanceMeta instanceNo) iworld)) //TODO Check error
+    # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (taskInstanceMeta instanceNo) iworld)
+    | mbErr=:(Error _)          = (liftError mbErr,iworld)
+
     //Store updated reduct
     # (nextTaskNo,iworld)		= getNextTaskNo iworld
 	# (shares,iworld)			= getLocalShares iworld
@@ -203,31 +147,29 @@ evalTaskInstance event instanceNo iworld=:{current=current=:{taskTime,localDateT
     # newValue                  = case newResult of
         (ValueResult val _ _ _) = TIValue val
         (ExceptionResult e str) = TIException e str
-	# iworld                    = if deleted iworld (snd ('SDS'.write newValue (taskInstanceValue instanceNo) iworld)) //TODO Check error
+	# (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newValue (taskInstanceValue instanceNo) iworld)
+    | mbErr=:(Error _)          = (liftError mbErr,iworld)
 	//Determine user interface updates by comparing the previous UI to the newly calculated one
-	# (out,iworld) = case newMeta.TIMeta.instanceType of
-	    SessionInstance = case newResult of
-	        (ValueResult _ _ (TaskRep newUI _) _)	
-	            = case 'SDS'.read (taskInstanceRep instanceNo) iworld of
-                    (Ok (TaskRep oldUI _),iworld)
-                        //Editlets compute their own diffs we pass to the diff algorithm
-    			        # (editletDiffs,iworld)		= getEditletDiffs iworld
-                        # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
-                        # iworld                    = setEditletDiffs editletDiffs iworld
-                        = (Left (lastEventNo event, updates),iworld)
-            	    (_,iworld)
-                        = (Left (lastEventNo event,[]),iworld) //TODO: Deal with error
-            _	
-            	= (Left (lastEventNo event,[]),iworld)
-        AttachedInstance attachment _
-            = (Right [no \\ (TaskId no _) <- attachment],iworld)
-		_				= (Right [],iworld)
-    //Store updated representation (after we did the diff with previous)
-    # newRep                = case newResult of (ValueResult _ _ rep _) = rep ; _ = NoRep
-	# iworld				= if deleted iworld (snd ('SDS'.write newRep (taskInstanceRep instanceNo) iworld)) //TODO Check error
-    //Return the result
-	= (Ok (newResult,out), iworld)
-where
+	= case newResult of
+        (ValueResult value _ newRep _)	
+	        = case 'SDS'.read (taskInstanceRep instanceNo) iworld of
+                (Ok oldRep, iworld)
+                    # oldUI = case oldRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
+                    # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
+                    //Editlets compute their own diffs we pass to the diff algorithm
+    			    # (editletDiffs,iworld)		= getEditletDiffs iworld
+                    # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
+                    # iworld                    = setEditletDiffs editletDiffs iworld
+                    //Store the new reference UI for further updates
+	                # (mbErr,iworld) = if deleted (Ok Void,iworld) ('SDS'.write newRep (taskInstanceRep instanceNo) iworld)
+                    | mbErr=:(Error _)
+                       = (liftError mbErr,iworld)
+                    = (Ok (lastEventNo event,value,updates), iworld)
+            	(Error e,iworld)
+                    = (Error e, iworld)
+        (ExceptionResult e msg)
+            = (Error msg, iworld)
+
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
 	getLocalShares iworld=:{IWorld|current={localShares}}	= (localShares,iworld)
 	getLocalLists iworld=:{IWorld|current={localLists}}	    = (localLists,iworld)
@@ -235,9 +177,10 @@ where
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
-    finalizeSessionUI (ValueResult value info (TaskRep ui parts) tree)
+    finalizeUI instanceType (ValueResult value info (TaskRep ui parts) tree)
+        # ui = if (instanceType === SessionInstance) (uiDefSetAttribute "session" "true" ui) ui
         = (ValueResult value info (TaskRep (autoLayoutFinal ui) parts) tree)
-    finalizeSessionUI res = res
+    finalizeUI instanceType res = res
 
 	updateProgress now result progress
 		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Nothing} //EXPERIMENT
@@ -247,14 +190,32 @@ where
 			(ValueResult _ _ (TaskRep ui _) _)	= {progress & value = Unstable, stable = False}
 			_									= {progress & value = None, stable = False}
 
-
 	lastEventNo (EditEvent eventNo _ _ _)     = eventNo
 	lastEventNo (ActionEvent eventNo _ _)     = eventNo
 	lastEventNo (FocusEvent eventNo _)        = eventNo
 	lastEventNo (RefreshEvent (Just eventNo)) = eventNo
 	lastEventNo _ = 0
 
+    resetUIUpdates instanceNo ResetEvent iworld = clearUIUpdates instanceNo iworld
+    resetUIUpdates _ _ iworld = iworld
+
+//Evaluate a task instance, just to refresh its state
+refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
+refreshTaskInstance instanceNo iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
+	= case mbResult of
+		(Ok (_,_,updates)) = addUIUpdates instanceNo updates iworld
+		_	               = iworld
+
+resetTaskInstance :: !InstanceNo !*IWorld -> *IWorld
+resetTaskInstance instanceNo iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo ResetEvent iworld
+    = case mbResult of
+		(Ok (_,_,updates)) = addUIUpdates instanceNo updates iworld
+        _                  = iworld
+
 determineEventRoute :: Event (Map TaskId [TaskListEntry]) -> Map TaskId Int
+determineEventRoute (ResetEvent) _			    = 'Data.Map'.newMap
 determineEventRoute (RefreshEvent _) _			= 'Data.Map'.newMap
 determineEventRoute (EditEvent _ id _ _) lists	= determineEventRoute` id ('Data.Map'.toList lists)
 determineEventRoute (ActionEvent _ id _) lists	= determineEventRoute` id ('Data.Map'.toList lists)

@@ -63,10 +63,11 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	}
 
 //The top level viewport
-:: UIViewport = UIViewport !UIItemsOpts !UIViewportOpts 
+:: UIViewport = UIViewport !UIItemsOpts !UIViewportOpts
 
 :: UIViewportOpts =
 	{ title			:: !Maybe String
+	, menu			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
 	}
 
@@ -75,11 +76,11 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	
 :: UIWindowOpts =
 	{ title			:: !Maybe String
-	, tbar			:: !Maybe [UIControl]
+	, iconCls		:: !Maybe String
+	, menu			:: !Maybe [UIControl]
+	, hotkeys		:: !Maybe [UIKeyAction]
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, iconCls		:: !Maybe String
 	}
 
 // A tab that goes into a tab set.
@@ -125,6 +126,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	| UIPanel			!UISizeOpts     !UIItemsOpts !UIPanelOpts					    // - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts     !UIItemsOpts !UIFieldSetOpts				    // - Fieldset (wrapper with a simple border and title)
 	| UITabSet			!UISizeOpts     !UITabSetOpts
+    | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
 
 //Most components can be resized in two dimensions
 :: UISizeOpts =
@@ -301,7 +303,6 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 :: UIPanelOpts =
 	{ title			:: !Maybe String
 	, frame			:: !Bool
-	, tbar			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
 	, iconCls		:: !Maybe String
 	}
@@ -314,15 +315,22 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	{ items		:: ![UITab]
 	, activeTab	:: !Maybe Int
 	}
+:: UIEmbeddingOpts =
+    { instanceNo  :: !Int
+    , instanceKey :: !String
+    }
 
 :: UITabOpts =
 	{ title			:: !String
-	, tbar			:: !Maybe [UIControl]
+	, iconCls		:: !Maybe String
+	, menu			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
-	, iconCls		:: !Maybe String
 	}
+
+//Empty viewport
+emptyUI         :: UIDef
 
 //Modifier functions
 setSize         :: !UISize !UISize          !UIControl -> UIControl
@@ -354,7 +362,6 @@ setBaseCls		:: !String					!UIControl -> UIControl
 setDirection	:: !UIDirection				!UIControl -> UIControl
 setHalign		:: !UIHAlign				!UIControl -> UIControl
 setValign		:: !UIVAlign				!UIControl -> UIControl
-setTBar         :: ![UIControl]             !UIControl -> UIControl
 
 //Access functions
 getMargins      ::                          !UIControl -> (Maybe UISideSizes)

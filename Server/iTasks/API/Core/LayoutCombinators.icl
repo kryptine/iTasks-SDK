@@ -337,7 +337,7 @@ where
             uis  = autoLayoutSubUIStack {UISubUIStack|attributes='Data.Map'.newMap,subuis=uis}
         # (sideC,sideAt,sideAc,sideHK) = subUIToControl sidePart
         # (restC,restAt,restAc,restHK) = subUIToControl restPart
-        # sideC = if (side === TopSide|| side === BottomSide) (setHeight (ExactSize size) sideC) (setWidth (ExactSize size) sideC)
+        # sideC = if (side === TopSide|| side === BottomSide) (setSize FlexSize (ExactSize size) sideC) (setSize (ExactSize size) FlexSize sideC)
         # restC = fill restC
         = {UISubUI|attributes=mergeAttributes attributes (mergeAttributes restAt sideAt)
                   ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) [sideC,restC] [restC,sideC])
@@ -380,7 +380,7 @@ subUIToPanel {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,att
     = (UIPanel sizeOpts {UIItemsOpts|content & items=items,direction=direction} panelOpts,attributes`,actions,hotkeys)
 where
 	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just FlexSize}
-	panelOpts	= {UIPanelOpts|title = title,frame = False, tbar = Nothing, hotkeys = Nothing, iconCls = iconCls}
+	panelOpts	= {UIPanelOpts|title = title,frame = False, hotkeys = Nothing, iconCls = iconCls}
 	title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
 	iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
     attributes` = ('Data.Map'.del TITLE_ATTRIBUTE o 'Data.Map'.del ICON_ATTRIBUTE) attributes
@@ -397,7 +397,7 @@ subUIToTab {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,attri
     = UITab {UIItemsOpts|content&items=items,direction=direction} (tabOpts (buttonkeys++menukeys) menus close)
 where
 	tabOpts hotkeys menus close
-        = {UITabOpts|title = title, tbar = if (isEmpty menus) Nothing (Just menus)
+        = {UITabOpts|title = title, menu = if (isEmpty menus) Nothing (Just menus)
           , hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), focusTaskId = taskId, closeTaskId = close,iconCls=iconCls}
 
 	taskId		= 'Data.Map'.get TASK_ATTRIBUTE attributes
@@ -418,7 +418,7 @@ attributesToWindow attributes
     = UIWindow sizeOpts (defaultItemsOpts []) windowOpts
 where
 	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
-	windowOpts  = {UIWindowOpts|title = title, tbar = Nothing, closeTaskId = Nothing, focusTaskId = Nothing,hotkeys = Nothing, iconCls = iconCls}
+	windowOpts  = {UIWindowOpts|title = title, menu = Nothing, closeTaskId = Nothing, focusTaskId = Nothing,hotkeys = Nothing, iconCls = iconCls}
 
     title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
@@ -433,7 +433,7 @@ actionsToWindow actions
 where
 	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
 	windowOpts hotkeys menus close
-        = {UIWindowOpts|title = Nothing, tbar = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
+        = {UIWindowOpts|title = Nothing, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
                       ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = Nothing}
 
 subUIToWindow :: UISubUI -> UIWindow
@@ -449,7 +449,7 @@ subUIToWindow {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,at
 where
 	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
 	windowOpts hotkeys menus close
-        = {UIWindowOpts|title = title, tbar = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
+        = {UIWindowOpts|title = title, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
                       ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = iconCls}
 	
     title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
@@ -457,34 +457,32 @@ where
 
 autoLayoutFinal :: UIDef -> UIDef
 autoLayoutFinal {UIDef|content=UIActionSet actions,windows}
-	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing}),windows=windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
 autoLayoutFinal {UIDef|content=UIAttributeSet attributes,windows}
-	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,hotkeys = Nothing}),windows=windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,menu=Nothing,hotkeys = Nothing}),windows=windows}
 autoLayoutFinal {UIDef|content=UIControlStack stack,windows}
     = autoLayoutFinal {UIDef|content=UISubUI (autoLayoutControlStack stack),windows=windows}
 autoLayoutFinal {UIDef|content=UISubUI subui=:{UISubUI|attributes,content,actions,hotkeys},windows}
-    # (panel,attributes,actions,panelkeys)   = case 'Data.Map'.get SCREEN_ATTRIBUTE attributes of
-        Just "full"     = subUIToPanel {UISubUI|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes}
-        _
-            # (panel,attributes,actions,hotkeys) = subUIToPanel subui
-            = ((setSize WrapSize WrapSize o setFramed True) panel,attributes,actions,hotkeys)
+    # fullScreen = ('Data.Map'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('Data.Map'.get "session" attributes)
+    # (panel,attributes,actions,panelkeys) = subUIToPanel (if fullScreen {UISubUI|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes} subui)
+    # panel = if fullScreen (setSize FlexSize FlexSize panel) ((setSize WrapSize WrapSize o setFramed True) panel)
 	# (menu,menukeys,actions)	= actionsToMenus actions
-	# items				        = if (isEmpty menu) [panel] [setTBar menu panel]
+	# items				        = [panel]
 	# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
-	= {UIDef|content=UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys = hotkeys}),windows=windows}
+	= {UIDef|content=UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}),windows=windows}
 autoLayoutFinal {UIDef|content=UISubUIStack stack,windows}
     = autoLayoutFinal {UIDef|content=UISubUI (autoLayoutSubUIStack stack),windows=windows}
 autoLayoutFinal {UIDef|content=UIFinal viewport,windows} = {UIDef|content=UIFinal viewport,windows=windows}
 
 plainLayoutFinal :: UIDef -> UIDef
 plainLayoutFinal {UIDef|content=UIActionSet actions,windows}
-	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,hotkeys = Nothing}),windows=windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
 plainLayoutFinal {UIDef|content=UIAttributeSet attributes,windows}
-	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,hotkeys = Nothing}),windows=windows}
+	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,menu=Nothing,hotkeys = Nothing}),windows=windows}
 plainLayoutFinal {UIDef|content=UISubUI subui=:{UISubUI|attributes,content,actions,hotkeys},windows}
     # (UIContainer sOpts iOpts,attributes,_,_) = subUIToContainer subui
-    = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, hotkeys = Just hotkeys}),windows=windows}
+    = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}),windows=windows}
 plainLayoutFinal {UIDef|content=UISubUIStack stack,windows}
     = plainLayoutFinal {UIDef|content=UISubUI (autoLayoutSubUIStack stack),windows=windows}
 plainLayoutFinal {UIDef|content=UIFinal viewport,windows}
@@ -536,7 +534,7 @@ toPanel	:: !UIControl -> UIControl
 toPanel ctrl=:(UIPanel _ _ _)		= ctrl
 //Containers are coerced to panels
 toPanel ctrl=:(UIContainer sOpts iOpts)
-	= UIPanel sOpts iOpts {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,hotkeys=Nothing,iconCls=Nothing}
+	= UIPanel sOpts iOpts {UIPanelOpts|title=Nothing,frame=False,hotkeys=Nothing,iconCls=Nothing}
 //Uncoercable items are wrapped in a panel instead
 toPanel ctrl = defaultPanel [ctrl]
 
@@ -659,7 +657,8 @@ where
 			{UIButtonOpts|text=Just item,iconCls = actionIcon action, disabled = not enabled}
 	createItem item sub taskId action enabled //Sub item
 		= UISubMenuItem
-				{ text = Just item
+				{ UIMenuButtonOpts
+                | text = Just item
 				, iconCls = actionIcon action
 				, disabled = False
 				, menu = addToItems sub taskId action enabled []

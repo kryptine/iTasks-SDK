@@ -16,7 +16,7 @@ derive JSONEncode UIControlStack, UISubUI, UISubUIStack
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONEncode UITaskletOpts, UIEditletOpts
+derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
 //derive JSONDecode TaskCompositionType
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
@@ -24,7 +24,7 @@ derive JSONDecode UIControlStack, UISubUI, UISubUIStack
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONDecode UITaskletOpts, UIEditletOpts
+derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
 JSONEncode{|DeferredJSON|} (DeferredJSON a)
 	= JSONEncode{|*|} a
