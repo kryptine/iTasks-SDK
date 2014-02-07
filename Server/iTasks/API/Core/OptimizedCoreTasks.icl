@@ -358,5 +358,5 @@ matchAndApplyEvent _ matchId taskTime v mask ts iworld
 visualizeView taskId repOpts (v,mask,ver) desc valueAttr iworld
 	# layout	= repLayoutRules repOpts
 	# (controls,iworld) = visualizeAsEditor (v,mask,ver) taskId layout iworld
-	# uidef		= {UIDef|content=UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls}),windows=[]}
+	# uidef		= {UIDef|content=UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes=put VALUE_ATTRIBUTE valueAttr newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
 	= (TaskRep uidef [(toString taskId,toJSON v)], iworld)

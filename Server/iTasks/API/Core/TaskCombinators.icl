@@ -557,9 +557,14 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(UIEmbedding defaultSizeOpts {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'Data.Map'.newMap)]},windows=[]}
+		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'Data.Map'.newMap)],size=embedSize},windows=[]}
+
+    embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
+
 	inUseDef worker
-		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)]},windows=[]}
+		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)],size=defaultSizeOpts},windows=[]}
+
+
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

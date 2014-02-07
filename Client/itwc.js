@@ -249,6 +249,7 @@ itwc.Container = itwc.extend(itwc.Component,{
         }
 
         me.targetEl = document.createElement('div');
+        me.targetEl.classList.add("DEBUG");
         me.targetEl.style.flex = 1;
         me.targetEl.style.alignSelf = 'stretch';
         me.initItemLayout();

@@ -38,16 +38,19 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 :: UIControlStack =
 	{ attributes	:: UIAttributes
 	, controls		:: UIAnnotatedControls
+    , size          :: UISizeOpts
 	}
 :: UISubUI =
 	{ attributes	:: UIAttributes
 	, content       :: UIItemsOpts
+    , size          :: UISizeOpts
 	, actions		:: UIActions
 	, hotkeys		:: [UIKeyAction]
 	}
 :: UISubUIStack =
     { attributes    :: UIAttributes
     , subuis        :: [UISubUI]
+    , size          :: UISizeOpts
     }
 
 :: UIAttributes 		:== Map String String
@@ -392,6 +395,10 @@ uiDefSetHalign		    :: UIHAlign	UIDef -> UIDef
 uiDefSetValign		    :: UIVAlign	UIDef -> UIDef
 uiDefSetPadding         :: Int Int Int Int UIDef -> UIDef
 uiDefSetBaseCls         :: String UIDef -> UIDef
+uiDefSetHeight		    :: UISize UIDef -> UIDef
+uiDefSetWidth           :: UISize UIDef -> UIDef
+uiDefSetSize            :: UISize UISize UIDef -> UIDef
+
 //Encode a user interface definition to a format that
 //can be interpreted by the client framework
 encodeUIDefinition		:: !UIDef -> JSONNode

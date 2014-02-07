@@ -58,7 +58,7 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ mx _ _ dp vv=:(OBJECT x,
             Untouched   = ([],[])
             Blanked     = ([],[])
             _           = (controlsOf items,[selectedConsIndex])
-		# content	= layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = controls}
+		# content	= layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = controls,size = defaultSizeOpts}
 		= (NormalEditor [(UIDropdown defaultHSizeOpts
 								{UIChoiceOpts
 								| taskId = taskId
@@ -78,9 +78,9 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ mx _ _ dp vv=:(OBJECT x,
                 = NormalEditor [(stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),newMap)]
 				//= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
 			NormalEditor items
-				= NormalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items})
+				= NormalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items, size = defaultSizeOpts})
 			OptionalEditor items
-				= OptionalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items})
+				= OptionalEditor (layout.layoutSubEditor {UIControlStack|attributes = newMap, controls = items, size = defaultSizeOpts})
 		= (vis,{vst & selectedConsIndex = oldSelectedConsIndex})
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} fx _ _ mx _ _ dp (CONS x,mask,ver) meta vst=:{VSt|taskId,optional,disabled}
@@ -161,7 +161,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item
-		# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item})
+		# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}

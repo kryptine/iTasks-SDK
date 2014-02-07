@@ -108,8 +108,8 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 
-    layout {UISubUIStack|attributes,subuis=[startWork,dashBoard,manageWork:activeWork]}
-        = arrangeWithSideBar 0 LeftSide 260 {UISubUIStack|attributes=attributes,subuis=[startWork,mainArea]}
+    layout {UISubUIStack|attributes,subuis=[startWork,dashBoard,manageWork:activeWork],size}
+        = arrangeWithSideBar 0 LeftSide 260 {UISubUIStack|attributes=attributes,subuis=[startWork,mainArea],size=size}
     where
         mainArea = arrangeWithSideBar 0 TopSide 30 (toSubUIStack [dashBoard,workArea])
         workArea = arrangeWithSideBar 0 TopSide 200 (toSubUIStack [manageWork,tabsArea])

@@ -207,6 +207,7 @@ toDef c = {UIDef|content=UIControlStack
             {UIControlStack
 			| attributes = newMap
 			, controls	 = [(c, newMap)]
+            , size = defaultSizeOpts
 			},windows = []}
 
 /* Controller wrapper to be easier to write controller function:

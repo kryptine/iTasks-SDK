@@ -1326,17 +1326,17 @@ where
 
 instance descr String
 where
-	toPrompt prompt = {UIDef|content=UIControlStack {UIControlStack|attributes = newMap, controls = [(stringDisplay prompt,newMap)]},windows=[]}
+	toPrompt prompt = {UIDef|content=UIControlStack {UIControlStack|attributes = newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,prompt) = {UIDef|content=UIControlStack {UIControlStack|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)]},windows=[]}
+	toPrompt (title,prompt) = {UIDef|content=UIControlStack {UIControlStack|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
 
 instance descr (!Icon,!String,!String)
 where
 	toPrompt (icon,title,prompt) = {UIDef|content=UIControlStack
         {UIControlStack|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
-	    ,controls = [(stringDisplay prompt,newMap)]},windows = []}
+	    ,controls = [(stringDisplay prompt,newMap)],size = defaultSizeOpts}, windows = []}
 
 instance descr Title
 where

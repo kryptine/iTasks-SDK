@@ -366,6 +366,33 @@ uiDefSetBaseCls baseCls {UIDef|content=UISubUI sub,windows}
     = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & baseCls = Just baseCls}},windows=windows}
 uiDefSetBaseCls _ def = def
 
+uiDefSetHeight :: UISize UIDef -> UIDef
+uiDefSetHeight height {UIDef|content=UIControlStack stack=:{UIControlStack|size},windows}
+    = {UIDef|content=UIControlStack {UIControlStack|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
+uiDefSetHeight height {UIDef|content=UISubUI ui=:{UISubUI|size},windows}
+    = {UIDef|content=UISubUI {UISubUI|ui & size = {UISizeOpts|size & height = Just height}},windows=windows}
+uiDefSetHeight height {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
+    = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
+uiDefSetHeight height def = def
+
+uiDefSetWidth :: UISize UIDef -> UIDef
+uiDefSetWidth width {UIDef|content=UIControlStack stack=:{UIControlStack|size},windows}
+    = {UIDef|content=UIControlStack {UIControlStack|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
+uiDefSetWidth width {UIDef|content=UISubUI ui=:{UISubUI|size},windows}
+    = {UIDef|content=UISubUI {UISubUI|ui & size = {UISizeOpts|size & width = Just width}},windows=windows}
+uiDefSetWidth width {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
+    = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
+uiDefSetWidth width def = def
+
+uiDefSetSize :: UISize UISize UIDef -> UIDef
+uiDefSetSize width height {UIDef|content=UIControlStack stack=:{UIControlStack|size},windows}
+    = {UIDef|content=UIControlStack {UIControlStack|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
+uiDefSetSize width height {UIDef|content=UISubUI ui=:{UISubUI|size},windows}
+    = {UIDef|content=UISubUI {UISubUI|ui & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
+uiDefSetSize width height {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
+    = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
+uiDefSetSize width height def = def
+
 encodeUIDefinition :: !UIDef -> JSONNode
 encodeUIDefinition {UIDef|content=UIFinal (UIViewport iopts opts),windows}
     = enc "itwc_viewport" [toJSON iopts, encViewportOpts opts]
