@@ -60,7 +60,7 @@ createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap,
 	= 		 	Source 		(Source p` r` w` env)
 	| E.r w:	Projection 	(PView  p` r  w  env) (Lens r w r` w`)
 	| E.p:		Translation (PView  p  r` w` env) (p` -> p) 							& TC p
-	| E.p1 p2:	Split 		(PView  p1 r` w` env) (Split p2 r` w`) (p` -> (p1,p2)) 		& TC p1 & TC p2
+	| E.p1 p2:	Split   	(PView  p1 r` w` env) (Split p2 r` w`) (p` -> (p1,p2)) 		& TC p1 & TC p2
 	| E.p1 r1 w1 p2 r2 w2:
 				Join		(PView  p1 r1 w1 env) (PView p2 r2 w2 env) (p` -> (p1,p2)) (w` -> (w1,w2)) (r1 r2 -> r`) & TC p1 & TC p2
 	| E.p1 p2:
@@ -200,14 +200,14 @@ put` d=:(Union pview1 pview2 trp ifunl ifunr) p wval env
 					(Ok rval, env)   = case put` pview1 p1 wval env of
 											(Error msg, _, env) = (Error msg, [], env)
 											(Ok ifun, ns, env)  # ifun` = genifun (ifunl p1 rval wval) ifun 
- 														   		= (Ok ifun`, [NEvent (getDescriptor d) ifun`], env)
+ 														   		= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
 
 		Right p2 = case get` pview2 p2 env of
 					(Error msg, env) = (Error msg, [], env)
 					(Ok rval, env)   = case put` pview2 p2 wval env of
 											(Error msg, _, env) = (Error msg, [], env)
 											(Ok ifun, ns, env) # ifun` = genifun ifun (ifunr p2 rval wval)
- 															   = (Ok ifun`, [NEvent (getDescriptor d) ifun`], env) 															   
+ 															   = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env) 															   
 where
 	genifun ifun1 ifun2 p = case trp p of
 								(Left p1)  = ifun2 p1
@@ -249,16 +249,16 @@ where
 		lowerLayers = [createRequest viewid dynparam \\ (viewid, dynparam) <- collectIds pview p]
 		
 		collectIds :: (PView p r w *MyWorld) p -> [(VIEWID, Dynamic)] | TC p
-		collectIds d=:(Source _) p = []//[(getDescriptor d, dynamic p)]
+		collectIds d=:(Source _) p = [(getDescriptor d, dynamic p)]
 		collectIds d=:(Projection pview _) p = collectIds pview p
 		collectIds d=:(Translation pview tr) p = collectIds pview (tr p)
-		collectIds d=:(Split pview split trp) p = [(getDescriptor d, dynamic p)]//:collectIds pview (fst (trp p))]
+		collectIds d=:(Split pview split trp) p = [(getDescriptor d, dynamic p):collectIds pview (fst (trp p))]
 		collectIds d=:(Join pview1 pview2 trp _ _) p 
 			= let (p1, p2) = trp p in [(getDescriptor d, dynamic p):collectIds pview1 p1 ++ collectIds pview2 p2]
 		collectIds d=:(Union pview1 pview2 trp _ _) p 
 			= case trp p of
-				Left p1 = [(getDescriptor d, dynamic p)]//:collectIds pview1 p1]
-				Right p2 = [(getDescriptor d, dynamic p)]//:collectIds pview2 p2]
+				Left p1 = [(getDescriptor d, dynamic p):collectIds pview1 p1]
+				Right p2 = [(getDescriptor d, dynamic p):collectIds pview2 p2]
 
 // -----------------------------------------------------------------------
 
@@ -378,7 +378,7 @@ instanceTableData =
 			[{instanceId=1,instanceType=SessionTask,instanceTags = ["old"],instanceState = "Hansje"}
             ,{instanceId=2,instanceType=SessionTask,instanceTags = [],instanceState = "Pansje"}
             ,{instanceId=3,instanceType=SessionTask,instanceTags = [],instanceState = "Kevertje"}
-            ,{instanceId=4,instanceType=PersistentTask,instanceTags = ["work","personal"],instanceState = "Die"}
+            ,{instanceId=4,instanceType=PersistentTask,instanceTags = ["work","personal","old"],instanceState = "Die"}
             ,{instanceId=5,instanceType=SessionTask,instanceTags = [],instanceState = "Zat"}
             ,{instanceId=6,instanceType=PersistentTask,instanceTags = ["important","work"],instanceState = "Eens"}
             ,{instanceId=7,instanceType=PersistentTask,instanceTags = ["work"],instanceState = "Op"}
@@ -461,17 +461,7 @@ tagidifun _ os is id = any (\{instanceId} -> id == instanceId) (is++os)
 Start world 
 	# myworld = createMyWorld world
 	
-	//# (instanceTable, myworld) 	= createMemoryView instanceTableData myworld
-
-/*
-	# instancesOfType 			= applySplit instanceTable instancesOfTypeSplit tr1
-	# sessionInstances 			= fixP instancesOfType SessionTask
-	# persistentInstances 		= fixP instancesOfType PersistentTask
-
-	# persistentWithTag			= applySplit persistentInstances tagSplit
-	# (val, myworld) = get (fixP instancesOfType PersistentTask) myworld
-*/
-
+/*	
 	# instanceOfId 			= applySplit instanceTable instanceIdSplit tr1
 	# instancesOfTag 		= applySplit instanceTable tagSplit tr1	
 	# instancesOfIdTag 		= union instanceOfId instancesOfTag idtagifun tagidifun
@@ -482,9 +472,20 @@ Start world
 
 	# (_, myworld) = put (fixP instancesOfIdTag (Left 1)) [{instanceId=1,instanceType=SessionTask,instanceTags = ["new"],instanceState = "Hansje2"}] myworld
 	
-
 	# (val, myworld) = get instanceTable myworld
-	//# (val, myworld) = get (fixP instancesOfIdTag (Left 1)) myworld
+	# (val, myworld) = get (fixP instancesOfIdTag (Left 1)) myworld
+*/
+
+	# myworld = registerForNotification filteredInstances {emptyFilter & filterById= Just 1} "Id 1" myworld
+//	# myworld = registerForNotification instanceById 4 "Id 4" myworld
+//	# myworld = registerForNotification persistentWithTag ("new",emptyFilter) "Tag 'new'" myworld	
+//	# myworld = registerForNotification persistentWithTag ("old",emptyFilter) "Tag 'old'" myworld	
+
+	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterById=Just 4}) [{instanceId=4,instanceType=PersistentTask,instanceTags = ["new"],instanceState = "Hansje2"}] myworld
+//	# (val, myworld) = get instanceTable myworld
+
+//	# (val, myworld) = get (fixP filteredInstances {emptyFilter & filterByTag= Just "old"}) myworld
+	# (val, myworld) = get (fixP filteredInstances {emptyFilter & filterById= Just 4}) myworld
 
 	= (val, myworld.world)
 	
