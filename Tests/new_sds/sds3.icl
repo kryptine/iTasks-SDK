@@ -1,7 +1,7 @@
 module sds3
 
 import StdEnv
-import Data.Void, Data.Tuple, Data.Error, Data.Func, Data.Either, Text.JSON
+import Data.Void, Data.Tuple, Data.Error, Data.Func, Data.Either, Text.JSON, Data.List
 import System.File, System.Time 
 
 from Data.Map import :: Map
@@ -38,13 +38,14 @@ genID world=:{nextid}
 
 :: *MyWorld = 
 		{ sdsmem		:: Map Int JSONNode
+        , sdsstore      :: Map String JSONNode
 		, notification	:: [NRequest]
 		, nextid		:: Int
 		, world			:: *World
 		}
 
 createMyWorld :: *World -> *MyWorld
-createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, notification = [], nextid = 1, world = world}
+createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = [], nextid = 1, world = world}
 
 // -----------------------------------------------------------------------
 
@@ -278,6 +279,19 @@ where
 		= (Ok (const True), {myworld & sdsmem = 'Map'.put memid (toJSON val) sdsmem})
 
 
+createStoreView :: String a -> (PView Void a a MyWorld) | JSONEncode{|*|} a & JSONDecode{|*|} a
+createStoreView name def = Source {Source | get = get` name def, put = put` name}
+where
+    get` name def Void myworld=:{sdsstore}
+        = case 'Map'.get name sdsstore of
+			(Just json) = case fromJSON json of
+								(Just val) = (Ok val, myworld)
+								Nothing	   = (Error "E2", myworld)
+			Nothing 	= (Ok def, myworld)
+
+    put` name Void val myworld=:{sdsstore}
+        = (Ok (const True), {myworld & sdsstore = 'Map'.put name (toJSON val) sdsstore})
+
 /*
 // -----------------------------------------------------------------------
 
@@ -341,6 +355,15 @@ Start world
 
 :: TaskInstanceType = SessionTask | PersistentTask
 
+:: TaskInstanceFilter =
+    { filterById    :: Maybe Int
+    , filterByType  :: Maybe TaskInstanceType
+    , filterByTag   :: Maybe String
+    }
+
+emptyFilter :: TaskInstanceFilter
+emptyFilter = {filterById = Nothing,filterByType=Nothing,filterByTag=Nothing}
+
 instance == TaskInstanceType
 where
 	(==) SessionTask SessionTask = True
@@ -350,7 +373,7 @@ where
 derive JSONEncode TaskInstance, TaskInstanceType
 derive JSONDecode TaskInstance, TaskInstanceType
 
-instanceTableData :: [TaskInstance] 
+instanceTableData :: [TaskInstance]
 instanceTableData =
 			[{instanceId=1,instanceType=SessionTask,instanceTags = ["old"],instanceState = "Hansje"}
             ,{instanceId=2,instanceType=SessionTask,instanceTags = [],instanceState = "Pansje"}
@@ -366,6 +389,52 @@ instanceTableData =
             ,{instanceId=12,instanceType=SessionTask,instanceTags = [],instanceState = "De"}
             ,{instanceId=13,instanceType=SessionTask,instanceTags = [],instanceState = "Regen"}
             ]
+
+instanceTable :: PView Void [TaskInstance] [TaskInstance] MyWorld
+instanceTable = createStoreView "instanceTable" instanceTableData
+
+filteredInstances :: PView TaskInstanceFilter [TaskInstance] [TaskInstance] MyWorld
+filteredInstances = applySplit instanceTable {sget = sget`, sput = sput`} tr1
+where
+    sget` tfilter is = filter (filterFun tfilter) is
+    sput` tfilter is ws
+        = let (ds,us) = splitWith (filterFun tfilter) is
+          in (us ++ ws, notifyFun (ds ++ ws))
+
+    filterFun {filterById,filterByType,filterByTag}
+        = \i -> (maybe True (\m -> i.instanceId == m) filterById)
+            &&  (maybe True (\m -> i.instanceType == m) filterByType)
+            &&  (maybe True (\m -> isMember m i.instanceTags) filterByTag)
+
+    notifyFun ws {filterById,filterByType,filterByTag}
+        =   (maybe True (\m -> isMember m (writeIds ws)) filterById)
+        ||  (maybe True (\m -> isMember m (writeTypes ws)) filterByType)
+        ||  (maybe True (\m -> isMember m (writeTags ws)) filterByTag)
+
+    writeIds ws   = removeDup (map (\i. i.instanceId) ws)
+    writeTypes ws = removeDup (map (\i. i.instanceType) ws)
+    writeTags ws  = removeDup (flatten (map (\i. i.instanceTags) ws))
+
+instancesOfType :: PView (TaskInstanceType,TaskInstanceFilter) [TaskInstance] [TaskInstance] MyWorld
+instancesOfType = applyTransformation filteredInstances (\(t,f) -> {f & filterByType = Just t})
+
+persistentInstances :: PView TaskInstanceFilter [TaskInstance] [TaskInstance] MyWorld
+persistentInstances = applyTransformation instancesOfType (\f -> (PersistentTask,f))
+
+sessionInstances :: PView TaskInstanceFilter [TaskInstance] [TaskInstance] MyWorld
+sessionInstances = applyTransformation instancesOfType (\f -> (SessionTask,f))
+
+persistentWithTag :: PView (String,TaskInstanceFilter) [TaskInstance] [TaskInstance] MyWorld
+persistentWithTag = applyTransformation persistentInstances (\(t,f) -> {f & filterByTag = Just t})
+
+importantInstances :: PView TaskInstanceFilter [TaskInstance] [TaskInstance] MyWorld
+importantInstances = applyTransformation persistentWithTag (\f -> ("important",f))
+
+instanceById :: PView Int TaskInstance TaskInstance MyWorld
+instanceById = applyLens (applyTransformation filteredInstances (\i -> {emptyFilter & filterById = Just i})) singletonLens
+
+singletonLens :: Lens [a] [a] a a
+singletonLens = {lget = \[x:_] -> x, lput = \_ x -> [x]}
 
 instancesOfTypeSplit = {sget = sget`, sput = sput`}
 where
@@ -392,7 +461,7 @@ tagidifun _ os is id = any (\{instanceId} -> id == instanceId) (is++os)
 Start world 
 	# myworld = createMyWorld world
 	
-	# (instanceTable, myworld) 	= createMemoryView instanceTableData myworld
+	//# (instanceTable, myworld) 	= createMemoryView instanceTableData myworld
 
 /*
 	# instancesOfType 			= applySplit instanceTable instancesOfTypeSplit tr1
