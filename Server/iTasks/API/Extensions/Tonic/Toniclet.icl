@@ -11,6 +11,7 @@ import StdMisc
 import StdArray
 from Data.Graph import :: Graph, :: Node{..}, :: NodeIndex, :: EdgeIndex
 import qualified Data.Graph as DG
+import qualified Data.Map as DM
 import dynamic_string
 
 derive gEditor Graph, Node
@@ -45,15 +46,17 @@ graphlet renderer initGraphlet =
     }
   where
   defGraphlet = { graph      = 'DG'.emptyGraph
-                , tonicState = TonicState []
+                , tonicState = { traces = 'DM'.newMap
+                               , renderMode = MultiUser []
+                               }
                 }
 
   uiDef cid
     = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"]
                                [GTag [TransformAttr "translate(20, 20)"] []]
       , eventHandlers = []
-      , width         = WrapSize
-      , height        = WrapSize
+      , width         = ExactSize 1024
+      , height        = ExactSize 2048
       }
 
   updateUI cid diffs clval=:{mbClientState=Nothing} world
@@ -117,10 +120,8 @@ graphlet renderer initGraphlet =
         # world = setNodeValue graphObj (toJSVal ni) (toJSVal node) world
         = (jsgraph, world)
 
-    updateUI` cid (Just [AddTraces ts:diffs]) clval=:{graphlet, mbClientState=Just {graphObj}} world
-      # world = foldl (\world x -> jsTrace (toString (toJSON x)) world) world ts
-      # (TonicState xs) = graphlet.tonicState
-      = updateUI` cid (Just diffs) {clval & graphlet={graphlet & tonicState = TonicState (ts ++ xs)}} world
+    updateUI` cid (Just [SetTonicState ts:diffs]) clval=:{graphlet, mbClientState=Just {graphObj}} world
+      = updateUI` cid (Just diffs) {clval & graphlet={graphlet & tonicState = ts}} world
 
     updateUI` cid (Just []) clval=:{graphlet, mbClientState=Just {graphObj, svgTarget}} world
       // Start hackish solution to prevent double rerendering
@@ -195,11 +196,13 @@ graphlet renderer initGraphlet =
                     [] -> []
                     xs -> [UpdateNodes xs]
 
-  genTonicDiff (TonicState xs) (TonicState ys) = Just [AddTraces (take (length ys - length xs) ys)]
+  genTonicDiff oldSt newSt
+    | oldSt =!= newSt = Just [SetTonicState newSt]
+    | otherwise       = Nothing
 
-  appTonicDiff diffs (TonicState xs) = TonicState (foldr f xs diffs)
+  appTonicDiff diffs ts = foldr f ts diffs
     where
-    f (AddTraces traces) xs = traces ++ xs
+    f (SetTonicState ts) _  = ts
     f _                  xs = xs
 
   appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph, tonicState = appTonicDiff diffs serverState.tonicState}

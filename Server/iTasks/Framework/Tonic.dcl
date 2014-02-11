@@ -6,8 +6,9 @@ from iTasks.Framework.Engine import :: PublishedTask
 import iTasks.Framework.Generic
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Types import :: User
-from iTasks.API.Core.Tasks import :: Task
+from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 from System.Time import :: Timestamp
+from Data.Map import :: Map
 
 :: TonicTune =
 	{ moduleName  :: String
@@ -29,7 +30,9 @@ from System.Time import :: Timestamp
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
-tonicTraces :: Shared [TonicTrace]
+:: UserTraceMap :== Map User (Map InstanceNo [TonicTrace])
+
+tonicTraces :: Shared UserTraceMap
 
 tonicTune :: String String Int Int (Task a) -> Task a
 
