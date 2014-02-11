@@ -407,9 +407,11 @@ where
             &&  (maybe True (\m -> isMember m i.instanceTags) filterByTag)
 
     notifyFun ws {filterById,filterByType,filterByTag}
-        =   (maybe True (\m -> isMember m (writeIds ws)) filterById)
-        ||  (maybe True (\m -> isMember m (writeTypes ws)) filterByType)
-        ||  (maybe True (\m -> isMember m (writeTags ws)) filterByTag)
+        = not (ignoreBasedOnId || ignoreBasedOnType || ignoreBasedOnTag)
+    where
+        ignoreBasedOnId = maybe False (\m -> not (isMember m (writeIds ws))) filterById
+        ignoreBasedOnType = maybe False (\m -> not (isMember m (writeTypes ws))) filterByType
+        ignoreBasedOnTag = maybe False (\m -> not (isMember m (writeTags ws))) filterByTag
 
     writeIds ws   = removeDup (map (\i. i.instanceId) ws)
     writeTypes ws = removeDup (map (\i. i.instanceType) ws)
