@@ -7,6 +7,7 @@ import iTasks.Framework.Generic
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Types import :: User
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
+from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GNode
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 
@@ -31,6 +32,8 @@ from Data.Map import :: Map
 derive class iTask TonicTrace, TraceType, TonicTune
 
 :: UserTraceMap :== Map User (Map InstanceNo [TonicTrace])
+
+:: UserGraphMap :== Map User GinGraph
 
 tonicTraces :: Shared UserTraceMap
 

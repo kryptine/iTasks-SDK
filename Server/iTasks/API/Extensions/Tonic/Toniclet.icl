@@ -46,9 +46,7 @@ graphlet renderer initGraphlet =
     }
   where
   defGraphlet = { graph      = 'DG'.emptyGraph
-                , tonicState = { traces = 'DM'.newMap
-                               , renderMode = MultiUser []
-                               }
+                , tonicState = Nothing
                 }
 
   uiDef cid

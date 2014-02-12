@@ -21,17 +21,17 @@ derive gVerify Graph, Node
   |  AddNodes       [(n, NodeIndex)]
   |  AddEdges       [(e, EdgeIndex)]
   |  UpdateNodes    [(n, NodeIndex)]
-  |  SetTonicState  TonicState
+  |  SetTonicState  (Maybe TonicState)
 
 :: GraphletRenderer n e =
-  { drawNodeCallback      :: TonicState n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-  , drawEdgeLabelCallback :: TonicState e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+  { drawNodeCallback      :: (Maybe TonicState) n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: (Maybe TonicState) e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
 
 :: Graphlet n e =
   { graph      :: Graph n e
-  , tonicState :: TonicState
+  , tonicState :: Maybe TonicState
   }
 
 :: GraphletClientData n e =

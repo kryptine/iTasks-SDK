@@ -274,12 +274,14 @@ getNonBindTrace [{tuneInfo}:xs]
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
 
-drawNode :: TonicState GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode {traces, renderMode=SingleUser user instanceNo} shape graph u root world
+drawNode :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
   # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
   = drawNode_ traces singleUserMap shape graph u root world
-drawNode {traces, renderMode=MultiUser instanceNos} shape graph u root world
+drawNode (Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
   = drawNode_ traces (activeUserTracesMap traces instanceNos) shape graph u root world
+drawNode _ shape graph u root world
+  = drawNode_ 'DM'.newMap 'DM'.newMap shape graph u root world
 
 //drawNode_ :: TonicState GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
 drawNode_ allTraces userTracesMap shape graph u root world
@@ -495,12 +497,14 @@ getBBox root world
   # (jbbw, world) = jsGetObjectAttr "width" bbox world
   = ((jsValToReal jbbh, jsValToReal jbbw), world)
 
-drawEdgeLabel :: TonicState GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
-drawEdgeLabel {traces, renderMode=SingleUser user instanceNo} {edge_pattern} _ (fromIdx, toIdx) root world
+drawEdgeLabel :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+drawEdgeLabel (Just {traces, renderMode=SingleUser user instanceNo}) {edge_pattern} _ (fromIdx, toIdx) root world
   # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
   = drawEdgeLabel` traces singleUserMap edge_pattern (fromIdx, toIdx) root world
-drawEdgeLabel {traces, renderMode=MultiUser instanceNos} {edge_pattern} _ (fromIdx, toIdx) root world
+drawEdgeLabel (Just {traces, renderMode=MultiUser instanceNos}) {edge_pattern} _ (fromIdx, toIdx) root world
   = drawEdgeLabel` traces (activeUserTracesMap traces instanceNos) edge_pattern (fromIdx, toIdx) root world
+drawEdgeLabel _ {edge_pattern} _ (fromIdx, toIdx) root world
+  = drawEdgeLabel` 'DM'.newMap 'DM'.newMap edge_pattern (fromIdx, toIdx) root world
 
 drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
   # (grp, world)          = append "g" root world

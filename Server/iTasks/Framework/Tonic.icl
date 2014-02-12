@@ -52,8 +52,63 @@ derive gVerify
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
+tonicGraphs :: Shared UserGraphMap
+tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
+
 tonicBind :: String String Int Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 tonicBind mn tn euid xuid ta a2tb = ta >>= \x -> tonicTune` mn tn euid xuid (toString (toJSON x)) (a2tb x) // TODO toJSON ?
+
+tonicAnyTask :: String String Int Int ![Task a] -> Task a | iTask a
+tonicAnyTask mn tn euid xuid ts = anyTask ts
+// TODO
+// We assume that the compiler keeps a plain anyTask when there is a concrete
+// list it is being applied to. I.e., when we know the number of tasks anyTask
+// is applied to and their names.
+//
+// When anyTask is applied to a variable, we do not statically know the number
+// of tasks in the list or their names.
+//
+// Questions: can we determine which task it is that is being executed?
+// A problem is that a task does not know its own name, unless we transform
+// all tasks at compile time to some form where we do know the name. We need
+// a name to determine which task is being worked on. This goes for task
+// delegation as well.
+//
+// We could provide tasks with their own name as follows: after generating the
+// graph node, we tune the entire task with a TaskName type:
+//
+// :: TaskName = TaskName String String
+//
+// As an example, a task f = t in module M would become:
+//
+// f = tune (TaskName "M" "f") t
+//
+// We then need to store the task name in the task itself:
+//
+// :: Task = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+//
+// is extended with a Maybe TaskName
+//
+// :: Task = Task (Maybe TaskName) !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+//
+// This is not entirely unlike Typeable in Haskell.
+// This way we always know which task is being executed, except when a task is
+// truly being constructed dynamically.
+// The downside of this approach is that we also need to apply this TaskName
+// tune to core iTasks tasks. Of course this can be done automatically during
+// compilation...
+
+//tonicAnyTask mn tn euid xuid ts = mkTAT (anyTask ts)
+  //where
+  //mkTAT (Task eval) = Task eval`
+    //where
+    //eval` (Just taskName) event repOpts state iworld
+      //# (tr, iworld) = eval event repOpts state iworld
+      //= (tr, iworld)
+    //eval` _ event repOpts state iworld = eval event repOpts state iworld
+
+tonicAllTasks :: String String Int Int ![Task a] -> Task [a] | iTask a
+tonicAllTasks mn tn euid xuid ts = allTasks ts // TODO Tonicify
 
 tonicTune` :: String String Int Int String (Task b) -> Task b
 tonicTune` mn tn euid xuid xstr tb = tune  { TonicTune
@@ -129,7 +184,7 @@ getTonicDir = mkInstantTask f
     = (Ok (server.paths.appDirectory </> "tonic"), iworld)
 
 tonicLogin :: String -> Task Void
-tonicLogin appName = forever (tonicUI appName)
+tonicLogin appName = tonicUI appName
 //tonicLogin :: String -> Task Void
 //tonicLogin appName = forever (
       //(viewTitle "Tonic"
@@ -165,11 +220,24 @@ getTask tn tm = 'DM'.get tn tm.tm_tasks
 
 tonicUI :: String -> Task Void
 tonicUI appName
-  =            get currentUser >>-
-  \currUser -> selectModule >>=
+  = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Active Dynamic cockpit it is possible to monitor the application while it executes.") >>*
+    [ OnAction (Action "Static Task Browser" []) (\_ -> Just viewStatic)
+    , OnAction (Action "Active Dynamic Cockpit" []) (\_ -> Just viewDynamic)
+    ]
+  ////=            get currentUser >>-
+  ////\currUser -> selectModule >>=
+  ////\(mn, tm) -> selectTask tm >>=
+  ////\(tn, tt) -> viewTask currUser tn mn tt >>|
+  //>&> \sharedMaybeSelectedUser ->
+    ////watch sharedMaybeSelectedUser >>= \maybeSelectedUser ->
+    //viewSharedInformation "Selected user" [] sharedMaybeSelectedUser
+  //>>|
+
+viewStatic
+  =            selectModule >>=
   \(mn, tm) -> selectTask tm >>=
-  \(tn, tt) -> viewTask currUser tn mn tt >>|
-               return Void
+  \(tn, tt) -> viewStaticTask tn mn tt >>|
+  return Void
 
 selectModule :: Task (String, TonicModule)
 selectModule
@@ -185,8 +253,18 @@ selectTask tm
            Just tt -> return (tn, tt)
            _       -> throw "Should not happen"
 
-// TODO Allow choice between single user and multi-user view
-viewTask u tn mn tt =
+viewStaticTask tn mn tt =
+        viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
+    ||- viewInformation
+          ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
+          (graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
+    <<@ FullScreen
+
+viewDynamic
+  =       enterChoiceWithShared "Select a user" [] users >>=
+  \usr -> return Void
+
+viewDynamicTask u tn mn tt =
         viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
     ||- viewSharedInformation
           ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'")
@@ -195,6 +273,7 @@ viewTask u tn mn tt =
     <<@ FullScreen
   where
   mkState nos traces =
+    Just
     { TonicState
     | traces     = traces
     , renderMode = MultiUser nos
