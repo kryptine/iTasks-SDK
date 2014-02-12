@@ -21,7 +21,11 @@ derive gEditMeta		Task
 derive gEq				Task
 
 // Tasks
-:: Task a = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: ModuleName :== String
+:: TaskName   :== String
+:: TaskIdentifier = TaskIdentifier ModuleName TaskName
+
+:: Task a = Task (Maybe TaskIdentifier) !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event	= EditEvent		!EventNo !TaskId !String !JSONNode		//Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!EventNo !TaskId !String				//Progress in a step combinator: Task id, action id

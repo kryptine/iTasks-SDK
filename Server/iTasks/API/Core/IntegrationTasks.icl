@@ -25,6 +25,8 @@ from StdFunc			import o
 derive JSONEncode ProcessHandle
 derive JSONDecode ProcessHandle
 
+mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.IntegrationTasks" tid)
+
 instance toString (OSErrorCode,String)
 where
     toString (_,e) = e
@@ -38,7 +40,7 @@ where
 			(Error e,world)	= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 
 callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
-callProcess desc opts cmd args dir = Task eval
+callProcess desc opts cmd args dir = Task (mkTaskIdent "callProcess") eval
 where
     //Start the process
     eval event repOpts (TCInit taskId ts) iworld=:{IWorld|world}
@@ -267,7 +269,7 @@ httpDownloadDocumentTo url path
     @  \_ -> path
 
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
-withTemporaryDirectory taskfun = Task eval
+withTemporaryDirectory taskfun = Task (mkTaskIdent "withTemporaryDirectory") eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
 		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
@@ -288,7 +290,7 @@ where
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
-		# (Task evala)				= taskfun tmpdir
+		# (Task _ evala)			= taskfun tmpdir
 		# (resa,iworld=:{world})	= evala event repOpts treea {IWorld|iworld & world = world}
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
         | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
@@ -300,7 +302,7 @@ where
 	
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
 		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
-		# (Task evala)		= taskfun tmpdir
+		# (Task _ evala)	= taskfun tmpdir
 		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
 		= (resa,iworld)

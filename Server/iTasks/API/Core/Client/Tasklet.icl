@@ -14,6 +14,8 @@ from Data.Map import newMap
 
 :: EventQueue :== Void
 
+mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.Client.Tasklet" tid)
+
 //---------------------------------------------------------------------------------------
 
 printlnI :: !String !*IWorld -> *IWorld
@@ -46,7 +48,7 @@ mkTask :: (Tasklet st res) -> Task res | iTask res
 mkTask ti = mkInterfaceTask ti []
 
 mkInterfaceTask :: (Tasklet st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkInterfaceTask tasklet fs = Task taskFunc
+mkInterfaceTask tasklet fs = Task (mkTaskIdent "mkInterfaceTask") taskFunc
 where
 
 	norep = TaskRep (toDef (stringDisplay "nothing")) []

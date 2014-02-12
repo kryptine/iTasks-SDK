@@ -11,7 +11,7 @@ from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRule
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
-mkInstantTask iworldfun = Task (evalOnce iworldfun)
+mkInstantTask iworldfun = Task Nothing (evalOnce iworldfun)
 where
 	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
 		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
@@ -47,7 +47,7 @@ gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",n
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
-gDefault{|Task|} gDefx = Task (\_ -> abort error)
+gDefault{|Task|} gDefx = Task Nothing (\_ -> abort error)
 where
 	error = "Creating default task functions is impossible"
 	

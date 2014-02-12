@@ -247,7 +247,7 @@ where tune (Icon icon) t = tune (AfterLayout (uiDefSetAttribute ICON_ATTRIBUTE i
 
 instance tune NoUserInterface
 where
-    tune NoUserInterface (Task eval) = Task eval`
+    tune NoUserInterface (Task tid eval) = Task tid eval`
     where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
 instance tune ForceLayout

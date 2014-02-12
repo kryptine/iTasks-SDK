@@ -66,7 +66,7 @@ createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
 	= {TIReduct|task=toJSONTask task,tree=TCInit (TaskId instanceNo 0) 1,nextTaskNo=2,nextTaskTime=1,lastEventNo=0,shares = 'Data.Map'.newMap, lists = 'Data.Map'.newMap, tasks= 'Data.Map'.newMap}
 where
-	toJSONTask (Task eval) = Task eval`
+	toJSONTask (Task tid eval) = Task tid eval`
 	where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
 			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
@@ -85,7 +85,7 @@ where
 	# oldMeta=:{TIMeta|instanceType,instanceKey,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'SDS'.read (taskInstanceReduct instanceNo) iworld
 	| isError oldReduct			= (liftError oldReduct, iworld)
-	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
+	# oldReduct=:{TIReduct|task=Task _ eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
     //Check exeption
     | progress.ProgressMeta.value === Exception
 	    # (oldValue, iworld)		= 'SDS'.read (taskInstanceValue instanceNo) iworld
