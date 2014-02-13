@@ -433,7 +433,7 @@ derive JSONDecode TaskInstance, TaskInstanceType
 
 instanceTableData :: [TaskInstance]
 instanceTableData =
-			[{instanceId=1,instanceType=SessionTask,instanceTags = ["old"],instanceState = "Hansje"}
+			[{instanceId=1,instanceType=PersistentTask,instanceTags = ["old"],instanceState = "Hansje"}
             ,{instanceId=2,instanceType=SessionTask,instanceTags = [],instanceState = "Pansje"}
             ,{instanceId=3,instanceType=SessionTask,instanceTags = [],instanceState = "Kevertje"}
             ,{instanceId=4,instanceType=PersistentTask,instanceTags = ["work","personal"],instanceState = "Die"}
@@ -464,13 +464,16 @@ where
             &&  (maybe True (\m -> i.instanceType == m) filterByType)
             &&  (maybe True (\m -> isMember m i.instanceTags) filterByTag)
 
+    notifyFun ws qfilter = any (filterFun qfilter) ws
+/*
     notifyFun ws f=:{filterById,filterByType,filterByTag}
-        = not (ignoreBasedOnId || ignoreBasedOnType || ignoreBasedOnTag)
+        # verdict = not (ignoreBasedOnId || ignoreBasedOnType || ignoreBasedOnTag)
+        = gt (ws,f,verdict) verdict
     where
         ignoreBasedOnId = maybe False (\m -> not (isMember m (writeIds ws))) filterById
         ignoreBasedOnType = maybe False (\m -> not (isMember m (writeTypes ws))) filterByType
         ignoreBasedOnTag = maybe False (\m -> not (isMember m (writeTags ws))) filterByTag
-
+*/
     writeIds ws   = removeDup (map (\i. i.instanceId) ws)
     writeTypes ws = removeDup (map (\i. i.instanceType) ws)
     writeTags ws  = removeDup (flatten (map (\i. i.instanceTags) ws))
@@ -540,9 +543,10 @@ Start world
 */
 
 	# myworld = registerForNotification instanceByTag "new" "Tag 'NEW'" myworld	
-	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "new", filterByType = Nothing} "Tag 'new'" myworld
+	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "new", filterByType = Just PersistentTask} "Tag 'new'" myworld
 	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Just PersistentTask} "Tag 'old' P" myworld
-	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=PersistentTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
+
+	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=SessionTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
 
 //	# myworld = registerForNotification instanceById 4 "Id 4" myworld
 //	# myworld = registerForNotification instanceByTag "new" "Tag 'new'" myworld	
