@@ -30,8 +30,7 @@ genID world=:{nextid}
 // Notificication request
 :: NRequest = 
 		{ nreqid  :: Int
-		, target  :: VIEWID // The node where the request is attached
-		, param   :: Dynamic /* p */
+		, param   :: Dynamic
 		, handler :: *MyWorld -> *MyWorld
 		}
 
@@ -97,13 +96,13 @@ UPDATE: counterexample (origin and eventsource are in two different branches)
 :: *MyWorld = 
 		{ sdsmem		:: Map Int JSONNode
         , sdsstore      :: Map String JSONNode
-		, notification	:: [NRequest]
+		, notification	:: Map VIEWID [NRequest]
 		, nextid		:: Int
 		, world			:: *World
 		}
 
 createMyWorld :: *World -> *MyWorld
-createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = [], nextid = 1, world = world}
+createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = 'Map'.newMap, nextid = 1, world = world}
 
 // -----------------------------------------------------------------------
 
@@ -202,7 +201,7 @@ put pview w env
 	= case put` pview Void w env of
 		(Error msg, _, myworld) = (Error msg, myworld)
 		(Ok _, ns, myworld)
-			# myworld = notificateAll (getDescriptor pview) ns myworld
+			# myworld = notificateAll ns myworld
 			= (Ok Void, myworld)
 			
 :: NEvent = E.p: NEvent VIEWID (p -> Bool) & TC p // Notification event
@@ -271,13 +270,13 @@ where
 								(Left p1)  = ifun2 p1
 								(Right p2) = ifun1 p2
 
-notificateAll :: VIEWID [NEvent] *MyWorld -> *MyWorld
-notificateAll eventsource ns myworld = fst (foldl notificate (myworld,'set'.newSet) ns)
+notificateAll :: [NEvent] *MyWorld -> *MyWorld
+notificateAll ns myworld = fst (foldl notificate (myworld,'set'.newSet) ns)
 where
-	notificate (myworld=:{MyWorld|notification},s) (NEvent sdsid invalidator)  
-			= foldl geninv (myworld,s) notification
+	notificate (myworld=:{MyWorld|notification},s) (NEvent viewid invalidator)  
+			= foldl geninv (myworld,s) (maybe [] id ('Map'.get viewid notification))
 	where
-		geninv (myworld,s) {nreqid, target,handler, param} | target == sdsid && not ('set'.member nreqid s)
+		geninv (myworld,s) {nreqid, handler, param} | not ('set'.member nreqid s)
 			= case param of
 				(qr :: qr^) = case invalidator qr of
 										False = (myworld, 'set'.insert nreqid s)
@@ -294,17 +293,24 @@ instance registerForNotification MyWorld
 where
 	registerForNotification pview p msg myworld=:{MyWorld|notification}
 		# (nreqid, myworld) = genID myworld
-		= {MyWorld | myworld & notification = [createRequest origin (dynamic p) nreqid:tl (lowerLayers nreqid)++notification]}
+		# notification = addRequest notification (getDescriptor pview, createRequest (dynamic p) nreqid)
+		# notification = addRequests notification (tl (lowerLayers nreqid))
+		= {MyWorld | myworld & notification = notification}
 	where
-		origin = getDescriptor pview
-		createRequest target param nreqid = 	
-										{ nreqid = nreqid
-										, target = target 
+	
+		addRequest notification (target, n)
+			= case 'Map'.get target notification of
+					(Just ns) = 'Map'.put target [n:ns] notification
+					Nothing   = 'Map'.put target [n] notification
+
+		addRequests notification ns = foldl addRequest notification ns
+	
+		createRequest param nreqid = 	{ nreqid = nreqid
 										, param = param
 										, handler = println ("Notification: "+++msg)
 										} 
 	
-		lowerLayers nreqid = [createRequest viewid dynparam nreqid \\ (viewid, dynparam) <- collectIds pview p]
+		lowerLayers nreqid = [(viewid, createRequest dynparam nreqid) \\ (viewid, dynparam) <- collectIds pview p]
 				
 		collectIds :: (PView p r w *MyWorld) p -> [(VIEWID, Dynamic)] | TC p
 		collectIds d=:(Source _) p = [(getDescriptor d, dynamic p)]
@@ -465,18 +471,6 @@ where
             &&  (maybe True (\m -> isMember m i.instanceTags) filterByTag)
 
     notifyFun ws qfilter = any (filterFun qfilter) ws
-/*
-    notifyFun ws f=:{filterById,filterByType,filterByTag}
-        # verdict = not (ignoreBasedOnId || ignoreBasedOnType || ignoreBasedOnTag)
-        = gt (ws,f,verdict) verdict
-    where
-        ignoreBasedOnId = maybe False (\m -> not (isMember m (writeIds ws))) filterById
-        ignoreBasedOnType = maybe False (\m -> not (isMember m (writeTypes ws))) filterByType
-        ignoreBasedOnTag = maybe False (\m -> not (isMember m (writeTags ws))) filterByTag
-*/
-    writeIds ws   = removeDup (map (\i. i.instanceId) ws)
-    writeTypes ws = removeDup (map (\i. i.instanceType) ws)
-    writeTags ws  = removeDup (flatten (map (\i. i.instanceTags) ws))
 
 instancesOfType :: PView (TaskInstanceType,TaskInstanceFilter) [TaskInstance] [TaskInstance] MyWorld
 instancesOfType = applyTransformation filteredInstances (\(t,f) -> {f & filterByType = Just t})
