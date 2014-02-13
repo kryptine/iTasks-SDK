@@ -64,7 +64,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister instanceNo shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,refreshSensitive=True}
+			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
 				(finalizeRep repOpts NoRep) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
@@ -101,7 +101,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts,refreshSensitive=True} (finalizeRep repOpts rep)
+		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep)
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -145,18 +145,18 @@ where
                 | close
  		            # world = closeRChannel rChannel world
                     # world = closeChannel sChannel world
-                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
                 | otherwise
                     //Add connection task to todo queue
                     # todo = todo ++ [ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} task state]
-                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
 
     eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioValues}
         = case 'Data.Map'.get taskId ioValues of
             Nothing
-                = (ValueResult NoValue {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOValue (l :: l^) s)
-                = (ValueResult (Value l s) {TaskInfo|lastEvent=ts,refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult (Value l s) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOException e)
                 = (ExceptionResult (dynamic e) e,iworld)
             _

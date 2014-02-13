@@ -1,8 +1,10 @@
 module sds3
 
-import StdEnv
+import StdEnv, StdDebug
 import Data.Void, Data.Tuple, Data.Error, Data.Func, Data.Either, Text.JSON, Data.List
-import System.File, System.Time 
+import qualified Data.Set as set
+import System.File, System.Time, Crypto.Hash.MD5
+import graph_to_sapl_string
 
 from Data.Map import :: Map
 import qualified Data.Map as Map
@@ -16,36 +18,91 @@ println msg iw=:{world}
 	= {iw & world = world} 
 
 getDescriptor :: !a -> VIEWID
-getDescriptor _
-	= code {
-		pushD_a	0
-		pop_a	1
-	}
+getDescriptor a = md5 (graph_to_sapl_string a)
 
 genID world=:{nextid}
 	= (nextid, {world & nextid = nextid + 1})
 	
 // -----------------------------------------------------------------------
 
-:: VIEWID :== Int
+:: VIEWID :== String
 
-:: NRequest = // Notificication request
-		{ target  :: VIEWID
-		, origin  :: VIEWID
-		, param   :: Dynamic /* p */
+// Notificication request
+:: NRequest = 
+		{ nreqid  :: Int
+		, param   :: Dynamic
 		, handler :: *MyWorld -> *MyWorld
 		}
+
+/*
+eventsource: The id of the source node of the write (top layer)
+origin:      The id of the node of the original notification request
+target:      The id of the node the notification is attached 
+
+For the node you reqest for a notification "target == origin".
+But there are many request generated automatically for the lower layers. For those "target <> origin"
+A notification must be triggered:
+
+viewid: the node we are currently processing
+
+1. if the origin and eventsource is the same:
+
+-----
+| 1 | 
+| 2 | <- eventsource, origin
+| 3 |
+| 4 |
+| 5 |
+-----
+
+trigger: target == viewid && target == origin
+
+2. if the origin is below eventsource in the graph
+
+-----
+| 1 | 
+| 2 | <- eventsource
+| 3 |
+| 4 | <- origin
+| 5 |
+-----
+
+trigger: target == viewid && target == origin
+
+3. if eventsource is below the origin
+
+-----
+| 1 | 
+| 2 | <- origin
+| 3 |
+| 4 | <- eventsource
+| 5 |
+-----
+
+trigger: target == viewid && target == eventsource
+
+UPDATE: counterexample (origin and eventsource are in two different branches)
+
+-----
+| 1 | 
+| 2 | <- origin
+| 3 |        ---
+| 4 |--------|6] <- eventsource
+| 5 |        --- 
+-----
+
+*/
 
 :: *MyWorld = 
 		{ sdsmem		:: Map Int JSONNode
         , sdsstore      :: Map String JSONNode
-		, notification	:: [NRequest]
+		, notification	:: Map VIEWID [NRequest]
 		, nextid		:: Int
 		, world			:: *World
 		}
 
 createMyWorld :: *World -> *MyWorld
-createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = [], nextid = 1, world = world}
+createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = 'Map'.newMap, nextid = 1, world = world}
 
 // -----------------------------------------------------------------------
 
@@ -144,7 +201,7 @@ put pview w env
 	= case put` pview Void w env of
 		(Error msg, _, myworld) = (Error msg, myworld)
 		(Ok _, ns, myworld)
-			# myworld = notificateAll (getDescriptor pview) ns myworld
+			# myworld = notificateAll ns myworld
 			= (Ok Void, myworld)
 			
 :: NEvent = E.p: NEvent VIEWID (p -> Bool) & TC p // Notification event
@@ -175,7 +232,7 @@ put` d=:(Split pview {sput} trp) p wval env
 						 = case put` pview p1 wval env of	
 								(Error msg, _, env) = (Error msg, [], env)
 								(Ok ifun1, ns, env) # ifun` = genifun ifun1 ifun2
-													= (Ok ifun`, [NEvent (getDescriptor d) ifun`], env)
+													= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
 where
 	genifun _ ifun2 p = let (p1,p2) = trp p in ifun2 p2 // TODO: notification when actually???
 	(p1, p2) = trp p
@@ -213,45 +270,52 @@ where
 								(Left p1)  = ifun2 p1
 								(Right p2) = ifun1 p2
 
-notificateAll :: VIEWID [NEvent] *MyWorld -> *MyWorld
-notificateAll eventsource ns myworld = foldl notificate myworld ns
+notificateAll :: [NEvent] *MyWorld -> *MyWorld
+notificateAll ns myworld = fst (foldl notificate (myworld,'set'.newSet) ns)
 where
-	notificate myworld=:{MyWorld|notification} (NEvent sdsid invalidator)  
-			= foldl geninv myworld notification
+	notificate (myworld=:{MyWorld|notification},s) (NEvent viewid invalidator)  
+			= foldl geninv (myworld,s) (maybe [] id ('Map'.get viewid notification))
 	where
-		// Skip if ...
-		geninv myworld {target, origin} | target <> sdsid || (target <> origin && origin == eventsource)
-			= myworld
-	
-		geninv myworld {target, handler, param} | target == sdsid
+		geninv (myworld,s) {nreqid, handler, param} | not ('set'.member nreqid s)
 			= case param of
 				(qr :: qr^) = case invalidator qr of
-										False = myworld
-										True  = handler myworld
-							= myworld	
+										False = (myworld, 'set'.insert nreqid s)
+										True  = (handler myworld, 'set'.insert nreqid s)
+							= (myworld, 'set'.insert nreqid s)
 			
-		geninv myworld _ = myworld
+		geninv a _ = a
+
+gt a b = trace_n (graph_to_sapl_string a) b 
 
 class registerForNotification env :: (PView p r w *env) p String *env -> *env | TC p
 
 instance registerForNotification MyWorld
 where
-	registerForNotification pview p msg myworld=:{MyWorld|notification} 
-		= {MyWorld | myworld & notification = [createRequest origin (dynamic p):lowerLayers++notification]}
+	registerForNotification pview p msg myworld=:{MyWorld|notification}
+		# (nreqid, myworld) = genID myworld
+		# notification = addRequest notification (getDescriptor pview, createRequest (dynamic p) nreqid)
+		# notification = addRequests notification (tl (lowerLayers nreqid))
+		= {MyWorld | myworld & notification = notification}
 	where
-		origin = getDescriptor pview
-		createRequest target param = 	{ target = target 
-										, origin = origin 
+	
+		addRequest notification (target, n)
+			= case 'Map'.get target notification of
+					(Just ns) = 'Map'.put target [n:ns] notification
+					Nothing   = 'Map'.put target [n] notification
+
+		addRequests notification ns = foldl addRequest notification ns
+	
+		createRequest param nreqid = 	{ nreqid = nreqid
 										, param = param
 										, handler = println ("Notification: "+++msg)
 										} 
 	
-		lowerLayers = [createRequest viewid dynparam \\ (viewid, dynparam) <- collectIds pview p]
-		
+		lowerLayers nreqid = [(viewid, createRequest dynparam nreqid) \\ (viewid, dynparam) <- collectIds pview p]
+				
 		collectIds :: (PView p r w *MyWorld) p -> [(VIEWID, Dynamic)] | TC p
 		collectIds d=:(Source _) p = [(getDescriptor d, dynamic p)]
-		collectIds d=:(Projection pview _) p = collectIds pview p
-		collectIds d=:(Translation pview tr) p = collectIds pview (tr p)
+		collectIds d=:(Projection pview _) p = [(getDescriptor d, dynamic p):collectIds pview p]
+		collectIds d=:(Translation pview tr) p = [(getDescriptor d, dynamic p):collectIds pview (tr p)]
 		collectIds d=:(Split pview split trp) p = [(getDescriptor d, dynamic p):collectIds pview (fst (trp p))]
 		collectIds d=:(Join pview1 pview2 trp _ _) p 
 			= let (p1, p2) = trp p in [(getDescriptor d, dynamic p):collectIds pview1 p1 ++ collectIds pview2 p2]
@@ -375,10 +439,10 @@ derive JSONDecode TaskInstance, TaskInstanceType
 
 instanceTableData :: [TaskInstance]
 instanceTableData =
-			[{instanceId=1,instanceType=SessionTask,instanceTags = ["old"],instanceState = "Hansje"}
+			[{instanceId=1,instanceType=PersistentTask,instanceTags = ["old"],instanceState = "Hansje"}
             ,{instanceId=2,instanceType=SessionTask,instanceTags = [],instanceState = "Pansje"}
             ,{instanceId=3,instanceType=SessionTask,instanceTags = [],instanceState = "Kevertje"}
-            ,{instanceId=4,instanceType=PersistentTask,instanceTags = ["work","personal","old"],instanceState = "Die"}
+            ,{instanceId=4,instanceType=PersistentTask,instanceTags = ["work","personal"],instanceState = "Die"}
             ,{instanceId=5,instanceType=SessionTask,instanceTags = [],instanceState = "Zat"}
             ,{instanceId=6,instanceType=PersistentTask,instanceTags = ["important","work"],instanceState = "Eens"}
             ,{instanceId=7,instanceType=PersistentTask,instanceTags = ["work"],instanceState = "Op"}
@@ -406,16 +470,7 @@ where
             &&  (maybe True (\m -> i.instanceType == m) filterByType)
             &&  (maybe True (\m -> isMember m i.instanceTags) filterByTag)
 
-    notifyFun ws {filterById,filterByType,filterByTag}
-        = not (ignoreBasedOnId || ignoreBasedOnType || ignoreBasedOnTag)
-    where
-        ignoreBasedOnId = maybe False (\m -> not (isMember m (writeIds ws))) filterById
-        ignoreBasedOnType = maybe False (\m -> not (isMember m (writeTypes ws))) filterByType
-        ignoreBasedOnTag = maybe False (\m -> not (isMember m (writeTags ws))) filterByTag
-
-    writeIds ws   = removeDup (map (\i. i.instanceId) ws)
-    writeTypes ws = removeDup (map (\i. i.instanceType) ws)
-    writeTags ws  = removeDup (flatten (map (\i. i.instanceTags) ws))
+    notifyFun ws qfilter = any (filterFun qfilter) ws
 
 instancesOfType :: PView (TaskInstanceType,TaskInstanceFilter) [TaskInstance] [TaskInstance] MyWorld
 instancesOfType = applyTransformation filteredInstances (\(t,f) -> {f & filterByType = Just t})
@@ -434,6 +489,9 @@ importantInstances = applyTransformation persistentWithTag (\f -> ("important",f
 
 instanceById :: PView Int TaskInstance TaskInstance MyWorld
 instanceById = applyLens (applyTransformation filteredInstances (\i -> {emptyFilter & filterById = Just i})) singletonLens
+
+instanceByTag :: PView String [TaskInstance] [TaskInstance] MyWorld
+instanceByTag = applyTransformation filteredInstances (\t -> {emptyFilter & filterByTag = Just t})
 
 singletonLens :: Lens [a] [a] a a
 singletonLens = {lget = \[x:_] -> x, lput = \_ x -> [x]}
@@ -469,7 +527,7 @@ Start world
 	# instancesOfIdTag 		= union instanceOfId instancesOfTag idtagifun tagidifun
 
 	# myworld = registerForNotification instancesOfIdTag (Left 1) "Id 1" myworld
-	# myworld = registerForNotification instancesOfIdTag (Right "new") "Tag 'new'" myworld	
+		# myworld = registerForNotification instancesOfIdTag (Right "new") "Tag 'new'" myworld	
 	# myworld = registerForNotification instancesOfIdTag (Right "old") "Tag 'old'" myworld	
 
 	# (_, myworld) = put (fixP instancesOfIdTag (Left 1)) [{instanceId=1,instanceType=SessionTask,instanceTags = ["new"],instanceState = "Hansje2"}] myworld
@@ -478,16 +536,24 @@ Start world
 	# (val, myworld) = get (fixP instancesOfIdTag (Left 1)) myworld
 */
 
-	# myworld = registerForNotification filteredInstances {emptyFilter & filterById= Just 1} "Id 1" myworld
+	# myworld = registerForNotification instanceByTag "new" "Tag 'NEW'" myworld	
+	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "new", filterByType = Just PersistentTask} "Tag 'new'" myworld
+	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Just PersistentTask} "Tag 'old' P" myworld
+
+	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=SessionTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
+
 //	# myworld = registerForNotification instanceById 4 "Id 4" myworld
-//	# myworld = registerForNotification persistentWithTag ("new",emptyFilter) "Tag 'new'" myworld	
-//	# myworld = registerForNotification persistentWithTag ("old",emptyFilter) "Tag 'old'" myworld	
+//	# myworld = registerForNotification instanceByTag "new" "Tag 'new'" myworld	
+//	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Just PersistentTask} "Tag 'old' p" myworld
+//	# myworld = registerForNotification persistentWithTag ("old", emptyFilter) "Tag 'old' p" myworld		
+//	# myworld = registerForNotification instanceByTag "old" "Tag 'old'" myworld	
 
-	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterById=Just 4}) [{instanceId=4,instanceType=PersistentTask,instanceTags = ["new"],instanceState = "Hansje2"}] myworld
-//	# (val, myworld) = get instanceTable myworld
+//	# (_, myworld) = put (fixP instanceByTag "old") [{instanceId=4, instanceType=PersistentTask,instanceTags = ["new2"],instanceState = "Hansje2"}] myworld
+	# (val, myworld) = get instanceTable myworld
 
-//	# (val, myworld) = get (fixP filteredInstances {emptyFilter & filterByTag= Just "old"}) myworld
-	# (val, myworld) = get (fixP filteredInstances {emptyFilter & filterById= Just 4}) myworld
+//	# (val, myworld) = get (fixP instanceByTag "old") myworld
+//	# (val, myworld) = get (fixP filteredInstances {emptyFilter & filterById= Just 4}) myworld
+	# (val, myworld) = get (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Just PersistentTask}) myworld
 
 	= (val, myworld.world)
 	

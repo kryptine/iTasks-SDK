@@ -110,7 +110,10 @@ tonicAnyTask mn tn euid xuid ts = anyTask ts
 tonicAllTasks :: String String Int Int ![Task a] -> Task [a] | iTask a
 tonicAllTasks mn tn euid xuid ts = allTasks ts // TODO Tonicify
 
-tonicTune` :: String String Int Int String (Task b) -> Task b
+tonicReflection :: String String !(Task a) -> Task a
+tonicReflection mn tn t = tune (TaskIdentifier mn tn) t
+
+tonicTune` :: String String Int Int String !(Task b) -> Task b
 tonicTune` mn tn euid xuid xstr tb = tune  { TonicTune
                                            | moduleName  = mn
                                            , taskName    = tn
@@ -119,7 +122,7 @@ tonicTune` mn tn euid xuid xstr tb = tune  { TonicTune
                                            , valAsStr    = Just xstr
                                            , isBind      = True} tb
 
-tonicTune :: String String Int Int (Task a) -> Task a
+tonicTune :: String String Int Int !(Task a) -> Task a
 tonicTune mn tn euid xuid ta = tune  { TonicTune
                                      | moduleName  = mn
                                      , taskName    = tn
@@ -138,7 +141,7 @@ mkUniqLbl :: TonicTune -> String
 mkUniqLbl tt = tt.moduleName +++ "." +++ tt.taskName +++ "." +++ toString tt.entryUniqId +++ "." +++ toString tt.exitUniqId
 
 instance tune TonicTune where
-  tune ttn (Task eval) = Task eval`
+  tune ttn (Task tid eval) = Task tid eval`
   where
     // Strict lets are required to ensure traces are pushed to the trace stack
     // in the correct order.

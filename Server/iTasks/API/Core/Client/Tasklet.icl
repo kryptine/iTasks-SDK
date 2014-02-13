@@ -201,7 +201,7 @@ where
 					 , instanceNo     = Nothing
 					 , controllerFunc = Nothing}))
 
-taskInfo ts = {TaskInfo | lastEvent = ts, refreshSensitive = True}
+taskInfo ts = {TaskInfo | lastEvent = ts, involvedUsers= [], refreshSensitive = True}
 
 appTweak tasklet taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 

@@ -394,7 +394,7 @@ instance <			TaskId
 	{ value             :: !ValueStatus             //* Status of the task value
     , issuedAt			:: !DateTime				//* When was the task created
 	, issuedBy			:: !User					//* By whom was the task created
-	, stable			:: !Stability				//* Is a maintask stable
+    , involvedUsers     :: ![User]                  //* Users currently involved in the task
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
 	}

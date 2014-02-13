@@ -37,9 +37,11 @@ derive class iTask TonicTrace, TraceType, TonicTune
 
 tonicTraces :: Shared UserTraceMap
 
-tonicTune :: String String Int Int (Task a) -> Task a
+tonicTune :: String String Int Int !(Task a) -> Task a
 
 tonicBind :: String String Int Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+
+tonicReflection :: String String !(Task a) -> Task a
 
 instance tune TonicTune
 
