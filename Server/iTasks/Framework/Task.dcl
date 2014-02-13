@@ -36,8 +36,9 @@ derive gEq				Task
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 
 :: TaskInfo =
-	{ lastEvent			:: !TaskTime		//When was the last edit, action or focus event in this task
-	, refreshSensitive	:: !Bool			//Can refresh events change the value or ui of this task (e.g. because shared data is read)
+	{ lastEvent			:: !TaskTime	//When was the last edit, action or focus event in this task
+    , involvedUsers     :: ![User]      //Which user identities are involved in the task
+	, refreshSensitive	:: !Bool		//Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 
 :: TaskRepOpts	=

@@ -232,10 +232,11 @@ where
 						# stable			= all (isStable o snd) values
 						# refreshSensitive	= foldr (\(e,_) s -> s || refreshSensitive e) False entries
 						# ts				= foldr max 0 [ts:map fst values]
+                        # involvedUsers     = foldr (\(e,_) i -> involvedUsers e ++ i) [] entries
 						# ts				= case event of
 							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
-						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,refreshSensitive=refreshSensitive}
+						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,involvedUsers=involvedUsers,refreshSensitive=refreshSensitive}
 							(finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & current = {current & localLists = 'Data.Map'.put taskId (map fst entries) localLists}})
 	//Cleanup
 	eval event repOpts (TCDestroy (TCParallel taskId ts)) iworld=:{current={localLists}}
@@ -345,7 +346,10 @@ where
 
 	refreshSensitive {TaskListEntry|lastEval=ValueResult _ {TaskInfo|refreshSensitive} _ _} = refreshSensitive
 	refreshSensitive _ = True
-	
+
+	involvedUsers {TaskListEntry|lastEval=ValueResult _ {TaskInfo|involvedUsers} _ _} = involvedUsers
+    involvedUsers _ = []	
+
 	//Helper function to help type inferencing a little
 	fixOverloading :: (TaskResult a) [(!ParallelTaskType,!ParallelTask a)] !b -> b
 	fixOverloading _ _ x = x
@@ -354,7 +358,7 @@ where
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 appendTaskToList taskId (parType,parTask) iworld=:{current={taskTime,user,attachmentChain,localDateTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,stable=True,firstEvent=Nothing,latestEvent=Nothing} //FIXME : value should not be None
+	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing} //FIXME : value should not be None
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
@@ -374,7 +378,7 @@ appendTaskToList taskId (parType,parTask) iworld=:{current={taskTime,user,attach
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
 			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
-	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,refreshSensitive=True} NoRep (TCInit taskIda taskTime)
+	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)	
@@ -406,7 +410,7 @@ where
 		= {TaskListEntry| e & state = DetachedState no progress management, lastEval = lastEval}
 	update e = e
 
-    info = {refreshSensitive=True,lastEvent=0} //FIXME probably a bad idea to construct this nonsense info that may or may not be used
+    info = {refreshSensitive=True,involvedUsers=[],lastEvent=0} //FIXME probably a bad idea to construct this nonsense info that may or may not be used
 
 markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
 markListEntryRemoved listId entryId iworld
@@ -531,17 +535,17 @@ where
 		= case meta of
 			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker,instanceKey})
                 | progress.ProgressMeta.value === Exception
-				    = (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+				    = (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
                 | progress.ProgressMeta.value === Stable
-				    = (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+				    = (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 				| worker == user
                     # rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
-					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,refreshSensitive=True} rep tree, iworld)
+					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) [])
-					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,refreshSensitive=False} rep tree, iworld)		
+					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} rep tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
         # (meta,iworld) = read fullInstanceMeta iworld //FIXME: Figure out how to get the right share notifications for the released instances
@@ -575,7 +579,11 @@ workAs asUser (Task eval) = Task eval`
 where
 	eval` event repOpts state iworld=:{current=current=:{user}}
 		# (result,iworld=:{current}) = eval event repOpts state {iworld & current = {current & user = asUser}}
-		= (result,{iworld & current = {current & user = user}})
+		= (addInvolvedUser asUser result,{iworld & current = {current & user = user}})
+
+    addInvolvedUser asUser (ValueResult val info=:{TaskInfo|involvedUsers} rep tree)
+        = ValueResult val {TaskInfo|info & involvedUsers= [asUser:involvedUsers]} rep tree
+    addInvolvedUser user res = res
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval

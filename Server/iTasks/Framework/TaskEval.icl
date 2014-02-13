@@ -21,7 +21,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{current={localDateTi
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo "client" SessionInstance (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -35,7 +35,7 @@ createTaskInstance task iworld=:{current={localDateTime,taskTime}}
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
-	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=worker,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey SessionInstance (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -49,7 +49,7 @@ createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachme
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
-	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=issuer,stable=False,firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {value=None,issuedAt=localDateTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -122,16 +122,16 @@ where
     //Finalize task UI
     # newResult                 = finalizeUI instanceType newResult
     # tree                      = case newResult of
-        (ValueResult _ _ _ newTree) = newTree
-        _                           = tree
+        (ValueResult _ _ _ newTree)  = newTree
+        _                                                   = tree
 	//Re-read old meta data because it may have been changed during the task evaluation
 	# (oldMeta,deleted,iworld) = case 'SDS'.read (taskInstanceMeta instanceNo) iworld of
         (Ok meta, iworld)		= (meta,False, iworld)
 		(Error e, iworld)		= (oldMeta,True, iworld) //If old meta is no longer there, it must have been removed
     # newMeta					= case instanceType of
-       (SessionInstance)           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress}
-       (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress, instanceType = DetachedInstance}
-       _                           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult progress}
+       (SessionInstance)           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult currentUser progress}
+       (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult currentUser progress, instanceType = DetachedInstance}
+       _                           = {TIMeta|oldMeta & progress = updateProgress localDateTime newResult currentUser progress}
     //Store new meta data
     # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (taskInstanceMeta instanceNo) iworld)
     | mbErr=:(Error _)          = (liftError mbErr,iworld)
@@ -182,13 +182,15 @@ where
         = (ValueResult value info (TaskRep (autoLayoutFinal ui) parts) tree)
     finalizeUI instanceType res = res
 
-	updateProgress now result progress
+	updateProgress now result currentUser progress
 		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Nothing} //EXPERIMENT
 		= case result of
-			(ExceptionResult _ _)				= {progress & value = Exception, stable = True}
-			(ValueResult (Value _ True) _ _ _)	= {progress & value = Stable, stable = True}
-			(ValueResult _ _ (TaskRep ui _) _)	= {progress & value = Unstable, stable = False}
-			_									= {progress & value = None, stable = False}
+			(ExceptionResult _ _)				= {ProgressMeta|progress & value = Exception}
+			(ValueResult (Value _ stable) {TaskInfo|involvedUsers} _ _)	
+                = {ProgressMeta|progress & value = if stable Stable Unstable, involvedUsers = [currentUser:involvedUsers]}
+			(ValueResult _ {TaskInfo|involvedUsers} _ _)	
+                = {ProgressMeta|progress & value = None, involvedUsers = [currentUser:involvedUsers]}
+			_									= {ProgressMeta|progress & value = None}
 
 	lastEventNo (EditEvent eventNo _ _ _)     = eventNo
 	lastEventNo (ActionEvent eventNo _ _)     = eventNo
