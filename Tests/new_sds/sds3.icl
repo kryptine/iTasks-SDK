@@ -122,6 +122,8 @@ createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap,
 				Join		(PView  p1 r1 w1 env) (PView p2 r2 w2 env) (p` -> (p1,p2)) (w` -> (w1,w2)) (r1 r2 -> r`) & TC p1 & TC p2
 	| E.p1 p2:
 				Union		(PView  p1 r` w` env) (PView p2 r` w` env) (p` -> Either p1 p2) (p1 r` w` -> IFun p2) (p2 r` w` -> IFun p1) & TC p1 & TC p2
+	| E.rp wp:
+				PSeq		(PView  p` rp wp env) (PView rp r` w` env) & TC rp
 	
 :: View r w *env :== PView Void r w env
 
@@ -152,6 +154,9 @@ join pview1 pview2 = Join pview1 pview2 id id tuple
 
 union :: (PView p1 r w *env) (PView p2 r w *env) (p1 r w -> IFun p2) (p2 r w -> IFun p1) -> (PView (Either p1 p2) r w *env) | TC p1 & TC p2
 union pview1 pview2 ifun1 ifun2 = Union pview1 pview2 id ifun1 ifun2
+
+pseq :: (PView p pr pw *env) (PView pr r w *env) -> (PView p r w *env) | TC pr
+pseq pview1 pview2 = PSeq pview1 pview2
 
 // These can be encoded as a type class if we have functional dependencies...
 tr1 a = (Void, a)
@@ -195,6 +200,11 @@ get` (Union pview1 pview2 trp _ _) p env
 	= case trp p of
 		Left p1  = get` pview1 p1 env
 		Right p2 = get` pview2 p2 env
+
+get` (PSeq pview1 pview2) p env
+	= case get` pview1 p env of
+		(Ok pr, env) = get` pview2 pr env
+		(Error msg, env) =  (Error msg, env)
 
 put :: (View r w *MyWorld) w *MyWorld -> *(MaybeErrorString Void, *MyWorld)
 put pview w env 
@@ -264,11 +274,19 @@ put` d=:(Union pview1 pview2 trp ifunl ifunr) p wval env
 					(Ok rval, env)   = case put` pview2 p2 wval env of
 											(Error msg, _, env) = (Error msg, [], env)
 											(Ok ifun, ns, env) # ifun` = genifun ifun (ifunr p2 rval wval)
- 															   = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env) 															   
+ 															   = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
 where
 	genifun ifun1 ifun2 p = case trp p of
 								(Left p1)  = ifun2 p1
 								(Right p2) = ifun1 p2
+
+put` d=:(PSeq pview1 pview2) p wval env
+	= case get` pview1 p env of
+			(Error msg, env) = (Error msg, [], env)	
+			(Ok pval, env)   = case put` pview2 pval wval env of
+									(Error msg, _, env) = (Error msg, [], env)			
+									(Ok ifun, ns, env)  # ifun` = const True
+														= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
 
 notificateAll :: [NEvent] *MyWorld -> *MyWorld
 notificateAll ns myworld = fst (foldl notificate (myworld,'set'.newSet) ns)
@@ -323,6 +341,8 @@ where
 			= case trp p of
 				Left p1 = [(getDescriptor d, dynamic p):collectIds pview1 p1]
 				Right p2 = [(getDescriptor d, dynamic p):collectIds pview2 p2]
+		collectIds d=:(PSeq pview1 pview2) p = 
+				[(getDescriptor d, dynamic p):collectIds pview1 p]
 
 // -----------------------------------------------------------------------
 
@@ -595,7 +615,6 @@ where
           in (us ++ ws, notifyFun (ds ++ ws))
 
     notifyFun ws bounds = any (inBounds bounds) ws
-
 
 makeMapView :: (PView Void GeoPerspective GeoPerspective MyWorld)
             -> (PView Void GeoMap GeoPerspective MyWorld)
