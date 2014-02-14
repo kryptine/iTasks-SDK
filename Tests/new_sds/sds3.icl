@@ -2,12 +2,13 @@ module sds3
 
 import StdEnv, StdDebug
 import Data.Void, Data.Tuple, Data.Error, Data.Func, Data.Either, Text.JSON, Data.List
-import qualified Data.Set as set
 import System.File, System.Time, Crypto.Hash.MD5
 import graph_to_sapl_string
 
 from Data.Map import :: Map
+from Data.Set import :: Set
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 println :: !a !*MyWorld -> *MyWorld | toString a
 println msg iw=:{world} 
@@ -30,6 +31,7 @@ genID world=:{nextid}
 // Notificication request
 :: NRequest = 
 		{ nreqid  :: Int
+		, target  :: VIEWID
 		, param   :: Dynamic
 		, handler :: *MyWorld -> *MyWorld
 		}
@@ -96,13 +98,13 @@ UPDATE: counterexample (origin and eventsource are in two different branches)
 :: *MyWorld = 
 		{ sdsmem		:: Map Int JSONNode
         , sdsstore      :: Map String JSONNode
-		, notification	:: Map VIEWID [NRequest]
+		, notification	:: [NRequest]
 		, nextid		:: Int
 		, world			:: *World
 		}
 
 createMyWorld :: *World -> *MyWorld
-createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = 'Map'.newMap, nextid = 1, world = world}
+createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap, notification = [], nextid = 1, world = world}
 
 // -----------------------------------------------------------------------
 
@@ -122,8 +124,8 @@ createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap,
 				Join		(PView  p1 r1 w1 env) (PView p2 r2 w2 env) (p` -> (p1,p2)) (w` -> (w1,w2)) (r1 r2 -> r`) & TC p1 & TC p2
 	| E.p1 p2:
 				Union		(PView  p1 r` w` env) (PView p2 r` w` env) (p` -> Either p1 p2) (p1 r` w` -> IFun p2) (p2 r` w` -> IFun p1) & TC p1 & TC p2
-	| E.rp wp:
-				PSeq		(PView  p` rp wp env) (PView rp r` w` env) & TC rp
+//	| E.rp wp p:
+//				PSeq		(PView Void rp wp env) (PView p r` w` env) (p` rp -> p) & TC p
 	
 :: View r w *env :== PView Void r w env
 
@@ -155,8 +157,8 @@ join pview1 pview2 = Join pview1 pview2 id id tuple
 union :: (PView p1 r w *env) (PView p2 r w *env) (p1 r w -> IFun p2) (p2 r w -> IFun p1) -> (PView (Either p1 p2) r w *env) | TC p1 & TC p2
 union pview1 pview2 ifun1 ifun2 = Union pview1 pview2 id ifun1 ifun2
 
-pseq :: (PView p pr pw *env) (PView pr r w *env) -> (PView p r w *env) | TC pr
-pseq pview1 pview2 = PSeq pview1 pview2
+//pseq :: (View pr pw *env) (PView p` r w *env) (p` rp -> p) -> (PView p r w *env) | TC p`
+//pseq pview1 pview2 tr = PSeq pview1 pview2 tr
 
 // These can be encoded as a type class if we have functional dependencies...
 tr1 a = (Void, a)
@@ -200,11 +202,6 @@ get` (Union pview1 pview2 trp _ _) p env
 	= case trp p of
 		Left p1  = get` pview1 p1 env
 		Right p2 = get` pview2 p2 env
-
-get` (PSeq pview1 pview2) p env
-	= case get` pview1 p env of
-		(Ok pr, env) = get` pview2 pr env
-		(Error msg, env) =  (Error msg, env)
 
 put :: (View r w *MyWorld) w *MyWorld -> *(MaybeErrorString Void, *MyWorld)
 put pview w env 
@@ -280,6 +277,7 @@ where
 								(Left p1)  = ifun2 p1
 								(Right p2) = ifun1 p2
 
+/*
 put` d=:(PSeq pview1 pview2) p wval env
 	= case get` pview1 p env of
 			(Error msg, env) = (Error msg, [], env)	
@@ -287,19 +285,22 @@ put` d=:(PSeq pview1 pview2) p wval env
 									(Error msg, _, env) = (Error msg, [], env)			
 									(Ok ifun, ns, env)  # ifun` = const True
 														= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
+*/
 
 notificateAll :: [NEvent] *MyWorld -> *MyWorld
-notificateAll ns myworld = fst (foldl notificate (myworld,'set'.newSet) ns)
+notificateAll ns myworld=:{MyWorld|notification} 
+	# (myworld,_,ds) = foldl notificate (myworld,'Set'.newSet,[]) ns
+	= {myworld & notification = filter (\{nreqid} -> not (isMember nreqid ds)) notification}
 where
-	notificate (myworld=:{MyWorld|notification},s) (NEvent viewid invalidator)  
-			= foldl geninv (myworld,s) (maybe [] id ('Map'.get viewid notification))
-	where
-		geninv (myworld,s) {nreqid, handler, param} | not ('set'.member nreqid s)
+	notificate st=:(myworld,_,_) (NEvent viewid invalidator)  
+			= foldl geninv st notification
+	where 
+		geninv (myworld,s,ds) {nreqid, target, handler, param} | target == viewid && 'Set'.notMember nreqid s
 			= case param of
 				(qr :: qr^) = case invalidator qr of
-										False = (myworld, 'set'.insert nreqid s)
-										True  = (handler myworld, 'set'.insert nreqid s)
-							= (myworld, 'set'.insert nreqid s)
+										False = (myworld, 'Set'.insert nreqid s, ds)
+										True  = (handler myworld, 'Set'.insert nreqid s, [nreqid:ds])
+							= (myworld, 'Set'.insert nreqid s, ds)
 			
 		geninv a _ = a
 
@@ -311,24 +312,16 @@ instance registerForNotification MyWorld
 where
 	registerForNotification pview p msg myworld=:{MyWorld|notification}
 		# (nreqid, myworld) = genID myworld
-		# notification = addRequest notification (getDescriptor pview, createRequest (dynamic p) nreqid)
-		# notification = addRequests notification (tl (lowerLayers nreqid))
-		= {MyWorld | myworld & notification = notification}
-	where
-	
-		addRequest notification (target, n)
-			= case 'Map'.get target notification of
-					(Just ns) = 'Map'.put target [n:ns] notification
-					Nothing   = 'Map'.put target [n] notification
-
-		addRequests notification ns = foldl addRequest notification ns
-	
-		createRequest param nreqid = 	{ nreqid = nreqid
+		= {MyWorld | myworld & notification = [createRequest (getDescriptor pview) (dynamic p) nreqid:tl (lowerLayers nreqid) ++ notification]}
+	where	
+		createRequest target param nreqid = 	
+										{ nreqid = nreqid
+										, target = target
 										, param = param
 										, handler = println ("Notification: "+++msg)
 										} 
 	
-		lowerLayers nreqid = [(viewid, createRequest dynparam nreqid) \\ (viewid, dynparam) <- collectIds pview p]
+		lowerLayers nreqid = [createRequest viewid dynparam nreqid \\ (viewid, dynparam) <- collectIds pview p]
 				
 		collectIds :: (PView p r w *MyWorld) p -> [(VIEWID, Dynamic)] | TC p
 		collectIds d=:(Source _) p = [(getDescriptor d, dynamic p)]
@@ -341,8 +334,8 @@ where
 			= case trp p of
 				Left p1 = [(getDescriptor d, dynamic p):collectIds pview1 p1]
 				Right p2 = [(getDescriptor d, dynamic p):collectIds pview2 p2]
-		collectIds d=:(PSeq pview1 pview2) p = 
-				[(getDescriptor d, dynamic p):collectIds pview1 p]
+//		collectIds d=:(PSeq pview1 pview2) p = 
+//				[(getDescriptor d, dynamic p):collectIds pview1 p]
 
 // -----------------------------------------------------------------------
 
@@ -622,11 +615,13 @@ makeMapView perspective = undef
 
 Start world
 	# myworld = createMyWorld world
-	
+
+/*	
     # (p1,myworld) = createMemoryView {center=(3,3),bounds=Just (1,1,6,6)} myworld
     # (p2,myworld) = createMemoryView {center=(3,3),bounds=Just (1,1,6,6)} myworld
 
 	# myworld = registerForNotification (makeMapView p1) Void "p1"  myworld	
+*/
 
 /*	
 	# instanceOfId 			= applySplit instanceTable instanceIdSplit tr1
@@ -648,6 +643,7 @@ Start world
 	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Just PersistentTask} "Tag 'old' P" myworld
 
 	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=SessionTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
+//	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=SessionTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
 
 //	# myworld = registerForNotification instanceById 4 "Id 4" myworld
 //	# myworld = registerForNotification instanceByTag "new" "Tag 'new'" myworld	
