@@ -124,8 +124,8 @@ createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap,
 				Join		(PView  p1 r1 w1 env) (PView p2 r2 w2 env) (p` -> (p1,p2)) (w` -> (w1,w2)) (r1 r2 -> r`) & TC p1 & TC p2
 	| E.p1 p2:
 				Union		(PView  p1 r` w` env) (PView p2 r` w` env) (p` -> Either p1 p2) (p1 r` w` -> IFun p2) (p2 r` w` -> IFun p1) & TC p1 & TC p2
-//	| E.rp wp p:
-//				PSeq		(PView Void rp wp env) (PView p r` w` env) (p` rp -> p) & TC p
+	| E.a r w p:
+				PSeq		(PView p` a a env) (PView p r w env) (a -> p) (w` -> (a,w)) (a r -> r`) & TC p
 	
 :: View r w *env :== PView Void r w env
 
@@ -157,8 +157,8 @@ join pview1 pview2 = Join pview1 pview2 id id tuple
 union :: (PView p1 r w *env) (PView p2 r w *env) (p1 r w -> IFun p2) (p2 r w -> IFun p1) -> (PView (Either p1 p2) r w *env) | TC p1 & TC p2
 union pview1 pview2 ifun1 ifun2 = Union pview1 pview2 id ifun1 ifun2
 
-//pseq :: (View pr pw *env) (PView p` r w *env) (p` rp -> p) -> (PView p r w *env) | TC p`
-//pseq pview1 pview2 tr = PSeq pview1 pview2 tr
+pseq :: (PView p a a *env) (PView p` r2 w2 *env) (a -> p`) (w -> (a,w2)) (a r2 -> r) -> (PView p r w *env) | TC p`
+pseq pview1 pview2 trp trw trr = PSeq pview1 pview2 trp trw trr
 
 // These can be encoded as a type class if we have functional dependencies...
 tr1 a = (Void, a)
@@ -202,6 +202,13 @@ get` (Union pview1 pview2 trp _ _) p env
 	= case trp p of
 		Left p1  = get` pview1 p1 env
 		Right p2 = get` pview2 p2 env
+
+get` (PSeq pview1 pview2 trp trw trr) p env
+	= case get` pview1 p env of
+		(Error msg, env) = (Error msg, env)
+		(Ok r1, env) 	 = case get` pview2 (trp r1) env of
+								(Error msg, env) = (Error msg, env)		
+								(Ok r2, env)     = (Ok (trr r1 r2), env)
 
 put :: (View r w *MyWorld) w *MyWorld -> *(MaybeErrorString Void, *MyWorld)
 put pview w env 
@@ -277,15 +284,14 @@ where
 								(Left p1)  = ifun2 p1
 								(Right p2) = ifun1 p2
 
-/*
-put` d=:(PSeq pview1 pview2) p wval env
-	= case get` pview1 p env of
-			(Error msg, env) = (Error msg, [], env)	
-			(Ok pval, env)   = case put` pview2 pval wval env of
-									(Error msg, _, env) = (Error msg, [], env)			
-									(Ok ifun, ns, env)  # ifun` = const True
-														= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
-*/
+put` d=:(PSeq pview1 pview2 trp trw trr) p wval env
+	# (w1, w2) = trw wval
+	= case put` pview1 p w1 env of
+			(Error msg, _, env)  = (Error msg, [], env)	
+			(Ok ifun1, ns1, env) = case put` pview2 (trp w1) w2 env of
+									(Error msg, _, env)  = (Error msg, [], env)			
+									(Ok ifun2, ns2, env) # ifun` = const True // TODO
+														 = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns1++ns2], env)
 
 notificateAll :: [NEvent] *MyWorld -> *MyWorld
 notificateAll ns myworld=:{MyWorld|notification} 
