@@ -21,6 +21,10 @@ println msg iw=:{world}
 getDescriptor :: !a -> VIEWID
 getDescriptor a = md5 (graph_to_sapl_string a)
 
+geq a b = graph_to_sapl_string a == graph_to_sapl_string b
+
+gt a b = trace_n (graph_to_sapl_string a) b 
+
 genID world=:{nextid}
 	= (nextid, {world & nextid = nextid + 1})
 	
@@ -108,7 +112,7 @@ createMyWorld world = {MyWorld | sdsmem = 'Map'.newMap, sdsstore = 'Map'.newMap,
 
 // -----------------------------------------------------------------------
 
-:: IFun p :== p -> Bool
+:: IFun p :== p -> Maybe Bool
 
 :: Source p r w *env =
 	{ get	:: p   env -> *(MaybeErrorString r, env)
@@ -217,27 +221,30 @@ put pview w env
 		(Ok _, ns, myworld)
 			# myworld = notificateAll ns myworld
 			= (Ok Void, myworld)
-			
-:: NEvent = E.p: NEvent VIEWID (p -> Bool) & TC p // Notification event
+
+// Notification event
+:: NEvent = E.p:   NEvent VIEWID (IFun p) & TC p 
+
+nevent d ifun = NEvent (getDescriptor d) ifun
 
 put` :: (PView p r w *env) p w *env -> (MaybeErrorString (IFun p), [NEvent], *env) | TC p
 put` d=:(Source pview) p wval myworld
 	= case pview.put p wval myworld of
 		(Error msg, myworld) = (Error msg, [], myworld)
-		(Ok ifun, myworld) 	 = (Ok ifun, [NEvent (getDescriptor d) ifun], myworld)
+		(Ok ifun, myworld) 	 = (Ok ifun, [nevent d ifun], myworld)
 
 put` d=:(Projection pview {lput}) p wval env
 	= case get` pview p env of 
 		(Error msg, env) = (Error msg, [], env)
 		(Ok rval, env)   = case put` pview p (lput rval wval) env of	
-									(Error msg, _, env)  = (Error msg, [], env)
-									(Ok ifun, ns, env) 	 = (Ok ifun, [NEvent (getDescriptor d) ifun:ns], env)
+									(Error msg, _, env) = (Error msg, [], env)
+									(Ok ifun, ns, env)  = (Ok ifun, [nevent d ifun: ns], env)
 
 put` d=:(Translation pview tr) p wval env
 	= case put` pview (tr p) wval env of
 		(Error msg, _, env) = (Error msg, [], env)
-		(Ok ifun, ns, env) 	# ifun` = \p -> ifun (tr p)
-							= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
+		(Ok ifun, ns, env)  # ifun` = ifun o tr
+							= (Ok ifun`, [nevent d ifun`: ns], env)
 
 put` d=:(Split pview {sput} trp) p wval env 
 	= case get` pview p1 env of 
@@ -246,9 +253,12 @@ put` d=:(Split pview {sput} trp) p wval env
 						 = case put` pview p1 wval env of	
 								(Error msg, _, env) = (Error msg, [], env)
 								(Ok ifun1, ns, env) # ifun` = genifun ifun1 ifun2
-													= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
+													= (Ok ifun`, [nevent d ifun`: ns], env)
 where
-	genifun _ ifun2 p = let (p1,p2) = trp p in ifun2 p2 // TODO: notification when actually???
+	genifun ifun1 ifun2 p = genifun` ifun1 ifun2 (trp p) // TODO: verify notification condition
+	genifun` ifun1 ifun2 (p1`,p2`)  
+		| geq p1 p1` = ifun2 p2`
+					 = ifun1 p1`
 	(p1, p2) = trp p
 
 put` d=:(Join pview1 pview2 trp trw _) p wval env 
@@ -257,11 +267,15 @@ put` d=:(Join pview1 pview2 trp trw _) p wval env
 		(Ok ifun1, ns1, env) = case put` pview2 p2 w2 env of
 									(Error msg, _, env)  = (Error msg, [], env)
 									(Ok ifun2, ns2, env) # ifun` = genifun ifun1 ifun2
-														 = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns1++ns2], env)
+														 = (Ok ifun`, [nevent d ifun`: ns1++ns2], env)
 where
-	genifun ifun1 ifun2 p = let (p1,p2) = trp p in ifun1 p1 || ifun2 p2
+	genifun ifun1 ifun2 p = let (p1,p2) = trp p in mbor (ifun1 p1) (ifun2 p2)
 	(p1, p2) = trp p
 	(w1, w2) = trw wval
+
+	mbor Nothing  _        = Nothing
+	mbor _        Nothing  = Nothing	
+	mbor (Just a) (Just b) = Just (a || b)
 
 put` d=:(Union pview1 pview2 trp ifunl ifunr) p wval env
 	= case trp p of
@@ -271,14 +285,14 @@ put` d=:(Union pview1 pview2 trp ifunl ifunr) p wval env
 					(Ok rval, env)   = case put` pview1 p1 wval env of
 											(Error msg, _, env) = (Error msg, [], env)
 											(Ok ifun, ns, env)  # ifun` = genifun (ifunl p1 rval wval) ifun 
- 														   		= (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
+ 														   		= (Ok ifun`, [nevent d ifun`: ns], env)
 
 		Right p2 = case get` pview2 p2 env of
 					(Error msg, env) = (Error msg, [], env)
 					(Ok rval, env)   = case put` pview2 p2 wval env of
 											(Error msg, _, env) = (Error msg, [], env)
 											(Ok ifun, ns, env) # ifun` = genifun ifun (ifunr p2 rval wval)
- 															   = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns], env)
+ 															   = (Ok ifun`, [nevent d ifun`: ns], env)
 where
 	genifun ifun1 ifun2 p = case trp p of
 								(Left p1)  = ifun2 p1
@@ -287,11 +301,11 @@ where
 put` d=:(PSeq pview1 pview2 trp trw trr) p wval env
 	# (w1, w2) = trw wval
 	= case put` pview1 p w1 env of
-			(Error msg, _, env)  = (Error msg, [], env)	
-			(Ok ifun1, ns1, env) = case put` pview2 (trp w1) w2 env of
-									(Error msg, _, env)  = (Error msg, [], env)			
-									(Ok ifun2, ns2, env) # ifun` = const True // TODO
-														 = (Ok ifun`, [NEvent (getDescriptor d) ifun`:ns1++ns2], env)
+			(Error msg, _, env)  = (Error msg, [], env)
+			(Ok _, ns1, env) = case put` pview2 (trp w1) w2 env of
+									(Error msg, _, env)  = (Error msg, [], env)
+									(Ok _, ns2, env) # ifun` = const Nothing
+													 = (Ok ifun`, ns1++ns2, env)  // TODO
 
 notificateAll :: [NEvent] *MyWorld -> *MyWorld
 notificateAll ns myworld=:{MyWorld|notification} 
@@ -304,13 +318,12 @@ where
 		geninv (myworld,s,ds) {nreqid, target, handler, param} | target == viewid && 'Set'.notMember nreqid s
 			= case param of
 				(qr :: qr^) = case invalidator qr of
-										False = (myworld, 'Set'.insert nreqid s, ds)
-										True  = (handler myworld, 'Set'.insert nreqid s, [nreqid:ds])
+										Just False = (myworld, 'Set'.insert nreqid s, ds)
+										Just True  = (handler myworld, 'Set'.insert nreqid s, [nreqid:ds])
+										Nothing    = (myworld, s, ds)
 							= (myworld, 'Set'.insert nreqid s, ds)
 			
 		geninv a _ = a
-
-gt a b = trace_n (graph_to_sapl_string a) b 
 
 class registerForNotification env :: (PView p r w *env) p String *env -> *env | TC p
 
@@ -359,7 +372,7 @@ where
 			Nothing 	= (Error "E1", myworld)
 
 	put` memid Void val myworld=:{sdsmem}
-		= (Ok (const True), {myworld & sdsmem = 'Map'.put memid (toJSON val) sdsmem})
+		= (Ok (const (Just True)), {myworld & sdsmem = 'Map'.put memid (toJSON val) sdsmem})
 
 
 createStoreView :: String a -> (PView Void a a MyWorld) | JSONEncode{|*|} a & JSONDecode{|*|} a
@@ -373,7 +386,7 @@ where
 			Nothing 	= (Ok def, myworld)
 
     put` name Void val myworld=:{sdsstore}
-        = (Ok (const True), {myworld & sdsstore = 'Map'.put name (toJSON val) sdsstore})
+        = (Ok (const (Just True)), {myworld & sdsstore = 'Map'.put name (toJSON val) sdsstore})
 
 /*
 // -----------------------------------------------------------------------
@@ -489,7 +502,7 @@ where
             &&  (maybe True (\m -> i.instanceType == m) filterByType)
             &&  (maybe True (\m -> isMember m i.instanceTags) filterByTag)
 
-    notifyFun ws qfilter = any (filterFun qfilter) ws
+    notifyFun ws qfilter = Just (any (filterFun qfilter) ws)
 
 instancesOfType :: PView (TaskInstanceType,TaskInstanceFilter) [TaskInstance] [TaskInstance] MyWorld
 instancesOfType = applyTransformation filteredInstances (\(t,f) -> {f & filterByType = Just t})
@@ -518,12 +531,12 @@ singletonLens = {lget = \[x:_] -> x, lput = \_ x -> [x]}
 instancesOfTypeSplit = {sget = sget`, sput = sput`}
 where
 	sget` type is = filter (\{instanceType} -> instanceType == type) is
-	sput` type is ws = (filter (\{instanceType} -> instanceType <> type) is ++ ws, (==) type)
+	sput` type is ws = (filter (\{instanceType} -> instanceType <> type) is ++ ws, Just o (==) type)
 
 tagSplit = {sget = sget`, sput = sput`}
 where
 	sget` tag is = [i \\ i <- is | isMember tag i.instanceTags]
-	sput` tag is ws = (kept ++ ws, \tag = isMember tag affectedtags)
+	sput` tag is ws = (kept ++ ws, \tag = Just (isMember tag affectedtags))
 	where
 		kept = [i \\ i <- is | not (isMember tag i.instanceTags)]
 		replaced = [i \\ i <- is | isMember tag i.instanceTags]
@@ -532,7 +545,7 @@ where
 instanceIdSplit = {sget = sget`, sput = sput`}
 where
 	sget` iid is = filter (\{instanceId} -> instanceId == iid) is
-	sput` iid is ws = (filter (\{instanceId} -> instanceId <> iid) is ++ ws, (==) iid)
+	sput` iid is ws = (filter (\{instanceId} -> instanceId <> iid) is ++ ws, Just o (==) iid)
 
 idtagifun _ os is tag = any (\{instanceTags} -> isMember tag instanceTags) (is++os)
 tagidifun _ os is id = any (\{instanceId} -> id == instanceId) (is++os)
@@ -578,7 +591,7 @@ shipByName :: PView String Contact Contact MyWorld
 shipByName = applyLens (applySplit allShips {sget = sget`, sput = sput`} tr1) singletonLens
 where
     sget` name ships = [s \\ s <- ships | s.name == name]
-    sput` name ships new = (new ++ [s \\ s <- ships | s.name <> name], (<>) name)
+    sput` name ships new = (new ++ [s \\ s <- ships | s.name <> name], Just o (<>) name)
 
 shipsByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
 shipsByBounds = applySplit allShips {sget = sget`, sput = sput`} tr1
@@ -588,7 +601,7 @@ where
         = let (ds,us) = splitWith (inBounds bounds) is
           in (us ++ ws, notifyFun (ds ++ ws))
 
-    notifyFun ws bounds = any (inBounds bounds) ws
+    notifyFun ws bounds = Just (any (inBounds bounds) ws)
 
 allPlanes :: PView Void [Contact] [Contact] MyWorld
 allPlanes = createStoreView "allPlanes" planes
@@ -603,7 +616,7 @@ planeByName :: PView String Contact Contact MyWorld
 planeByName = applyLens (applySplit allPlanes {sget = sget`, sput = sput`} tr1) singletonLens
 where
     sget` name planes = [p \\ p <- planes | p.name == name]
-    sput` name planes new = (new ++ [p \\ p <- planes | p.name <> name], (<>) name)
+    sput` name planes new = (new ++ [p \\ p <- planes | p.name <> name], Just o (<>) name)
 
 planeByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
 planeByBounds = applySplit allPlanes {sget = sget`, sput = sput`} tr1
@@ -613,7 +626,7 @@ where
         = let (ds,us) = splitWith (inBounds bounds) is
           in (us ++ ws, notifyFun (ds ++ ws))
 
-    notifyFun ws bounds = any (inBounds bounds) ws
+    notifyFun ws bounds = Just (any (inBounds bounds) ws)
 
 makeMapView :: (PView Void GeoPerspective GeoPerspective MyWorld)
             -> (PView Void GeoMap GeoPerspective MyWorld)
@@ -649,7 +662,6 @@ Start world
 	# myworld = registerForNotification filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Just PersistentTask} "Tag 'old' P" myworld
 
 	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=SessionTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
-//	# (_, myworld) = put (fixP filteredInstances {emptyFilter & filterByTag = Just "old", filterByType = Nothing}) [{instanceId=4, instanceType=SessionTask, instanceTags = ["new"],instanceState = "Hansje2"}] myworld
 
 //	# myworld = registerForNotification instanceById 4 "Id 4" myworld
 //	# myworld = registerForNotification instanceByTag "new" "Tag 'new'" myworld	
