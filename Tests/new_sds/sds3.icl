@@ -388,6 +388,12 @@ where
     put` name Void val myworld=:{sdsstore}
         = (Ok (const (Just True)), {myworld & sdsstore = 'Map'.put name (toJSON val) sdsstore})
 
+constantView :: a -> (PView Void a a MyWorld)
+constantView def = Source {Source | get = get` def, put = put`}
+where
+    get` def Void myworld = (Ok def,myworld)
+    put` Void _ myworld = (Ok (const (Just True)),myworld)
+
 /*
 // -----------------------------------------------------------------------
 
@@ -528,6 +534,9 @@ instanceByTag = applyTransformation filteredInstances (\t -> {emptyFilter & filt
 singletonLens :: Lens [a] [a] a a
 singletonLens = {lget = \[x:_] -> x, lput = \_ x -> [x]}
 
+readOnlyLens :: Lens a a a Void
+readOnlyLens = {lget = id, lput = const}
+
 instancesOfTypeSplit = {sget = sget`, sput = sput`}
 where
 	sget` type is = filter (\{instanceType} -> instanceType == type) is
@@ -575,6 +584,9 @@ inBounds :: (Int,Int,Int,Int) Contact -> Bool
 inBounds (minx,miny,maxx,maxy) {position=(x,y)}
     = x >= minx && x <= maxy && y >= miny && y <= maxy
 
+contactMarker :: Contact -> (String,(Int,Int))
+contactMarker {Contact|name,type,position} = (name+++" ("+++type+++")",position)
+
 derive JSONEncode GeoPerspective,GeoMap,Contact
 derive JSONDecode GeoPerspective,GeoMap,Contact
 
@@ -618,8 +630,8 @@ where
     sget` name planes = [p \\ p <- planes | p.name == name]
     sput` name planes new = (new ++ [p \\ p <- planes | p.name <> name], Just o (<>) name)
 
-planeByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
-planeByBounds = applySplit allPlanes {sget = sget`, sput = sput`} tr1
+planesByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
+planesByBounds = applySplit allPlanes {sget = sget`, sput = sput`} tr1
 where
     sget` bounds is = filter (inBounds bounds) is
     sput` bounds is ws
@@ -628,9 +640,34 @@ where
 
     notifyFun ws bounds = Just (any (inBounds bounds) ws)
 
+contactsByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
+contactsByBounds = joinLists shipsByBounds planesByBounds splitter
+where
+    splitter c=:{Contact|type} = (type == "Ship")
+
+joinLists :: (PView p [a] [a] MyWorld) (PView p [a] [a] MyWorld) (a -> Bool) -> (PView p [a] [a] MyWorld) | TC a & TC p
+joinLists l1 l2 f = applyLens (applyTransformation (join l1 l2) trans) {lget=lget,lput=lput}
+where
+    trans p = (p,p)
+    lget (l1,l2) = l1 ++ l2
+    lput _ l  = splitWith f l
+
+maybeParam :: a (PView p a a MyWorld) -> (PView (Maybe p) a a MyWorld) | TC p
+maybeParam def view = applyTransformation (union (constantView def) view notify notify) trans
+where
+    trans Nothing   = Left Void
+    trans (Just p)  = Right p
+    notify _ _ _    = const (Just False)
+
 makeMapView :: (PView Void GeoPerspective GeoPerspective MyWorld)
             -> (PView Void GeoMap GeoPerspective MyWorld)
-makeMapView perspective = undef
+makeMapView perspective = pseq perspective contacts paramF writeF readF
+where
+    paramF {GeoPerspective|bounds} = bounds
+    writeF perspective = (perspective,Void)
+    readF perspective contacts = {GeoMap|perspective=perspective,markers=map contactMarker contacts}
+
+    contacts = applyLens (maybeParam [] contactsByBounds) readOnlyLens
 
 Start world
 	# myworld = createMyWorld world
