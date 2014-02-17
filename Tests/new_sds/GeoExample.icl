@@ -27,7 +27,7 @@ from Data.List import splitWith
 
 inBounds :: (Int,Int,Int,Int) Contact -> Bool
 inBounds (minx,miny,maxx,maxy) {position=(x,y)}
-    = x >= minx && x <= maxy && y >= miny && y <= maxy
+    = x >= minx && x <= maxx && y >= miny && y <= maxy
 
 contactMarker :: Contact -> (String,(Int,Int))
 contactMarker {Contact|name,type,position} = (name+++" ("+++type+++")",position)
@@ -104,11 +104,18 @@ Start world
 	# myworld = createMyWorld world
 	
     # (p1,myworld) = createMemoryView {center=(3,3),bounds=Just (1,1,6,6)} myworld
-    # (p2,myworld) = createMemoryView {center=(3,3),bounds=Just (1,1,6,6)} myworld
 
 	# myworld = registerForNotification (makeMapView p1) Void "p1"  myworld	
 
-	= (1, getWorld myworld)
+	# (val, myworld) = get (fixP planeByName "PB") myworld
+	# (val, myworld) = get (fixP planesByBounds (2,3,3,6)) myworld
+
+//	# (_,myworld) = put p1 {center=(3,3),bounds=Just (2,3,3,6)} myworld
+	# (_,myworld) = put (makeMapView p1) {center=(3,3),bounds=Just (2,3,3,6)} myworld
+
+	# (val, myworld) = get (makeMapView p1) myworld
+
+	= (val, getWorld myworld)
 	
 	
 	
