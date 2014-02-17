@@ -602,8 +602,8 @@ where
 shipByName :: PView String Contact Contact MyWorld
 shipByName = applyLens (applySplit allShips {sget = sget`, sput = sput`} tr1) singletonLens
 where
-    sget` name ships = [s \\ s <- ships | s.name == name]
-    sput` name ships new = (new ++ [s \\ s <- ships | s.name <> name], Just o (<>) name)
+    sget` name ships = [s \\ s <- ships | s.Contact.name == name]
+    sput` name ships new = (new ++ [s \\ s <- ships | s.Contact.name <> name], Just o (<>) name)
 
 shipsByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
 shipsByBounds = applySplit allShips {sget = sget`, sput = sput`} tr1
@@ -627,8 +627,8 @@ where
 planeByName :: PView String Contact Contact MyWorld
 planeByName = applyLens (applySplit allPlanes {sget = sget`, sput = sput`} tr1) singletonLens
 where
-    sget` name planes = [p \\ p <- planes | p.name == name]
-    sput` name planes new = (new ++ [p \\ p <- planes | p.name <> name], Just o (<>) name)
+    sget` name planes = [p \\ p <- planes | p.Contact.name == name]
+    sput` name planes new = (new ++ [p \\ p <- planes | p.Contact.name <> name], Just o (<>) name)
 
 planesByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
 planesByBounds = applySplit allPlanes {sget = sget`, sput = sput`} tr1
@@ -668,6 +668,61 @@ where
     readF perspective contacts = {GeoMap|perspective=perspective,markers=map contactMarker contacts}
 
     contacts = applyLens (maybeParam [] contactsByBounds) readOnlyLens
+
+// ONE-TO-MANY RELATION EXAMPLE
+:: Person =
+    { personId          :: Int
+    , name              :: String
+    , group             :: String
+    , emailAddresses    :: [(Int,String)]
+    }
+
+:: PersonRec :== (Int,String,String) //PersonId, Name
+:: EmailRec  :== (Int,Int,String) //EmailId, PersonId, EmailAddress
+
+persons :: PView Void [PersonRec] [PersonRec] MyWorld
+persons = createStoreView "persons" data
+where
+    data = [(1,"Alice","family"),(2,"Bob","family"),(3,"Charlie","work"),(4,"Dave","work")]
+
+email :: PView Void [EmailRec] [EmailRec] MyWorld
+email = createStoreView "email" data
+where
+    data = [(1,1,"alice@example.com"),(2,2,"bob@example.com"),(3,2,"bobbie@example.com"),(4,4,"dave@example.net")]
+
+personsByGroup :: PView String [Person] [Person] MyWorld
+personsByGroup = pseq personRecsByGroup emailRecsByPersonId paramF writeF readF
+where
+    paramF recs = [personId \\(personId,_,_) <- recs]
+    writeF persons = (map personrecs persons,flatten (map emailrecs persons))
+    where
+        personrecs {Person|personId,name,group}    = (personId,name,group)
+        emailrecs {Person|personId,emailAddresses} = [(emailId,personId,email) \\(emailId,email) <- emailAddresses]
+
+    readF precs erecs = map person precs
+    where
+        person (personId,name,group) = {Person|personId=personId,name=name,group=group,emailAddresses=email personId}
+        email matchId
+            = [(emailId,email) \\ (emailId,personId,email) <- erecs | personId == matchId]
+
+personRecsByGroup :: PView String [PersonRec] [PersonRec] MyWorld
+personRecsByGroup = applySplit persons (listFilterSplit filterFun) tr1
+where
+    filterFun match (_,_,group) = group == match
+
+emailRecsByPersonId :: PView [Int] [EmailRec] [EmailRec] MyWorld
+emailRecsByPersonId = applySplit email (listFilterSplit filterFun) tr1
+where
+    filterFun pids (_,personId,_) = isMember personId pids
+
+listFilterSplit filterFun = {sget=sget,sput=sput}
+where
+    sget par is = filter (filterFun par) is
+    sput par is ws
+        = let (ds,us) = splitWith (filterFun par) is
+          in (us ++ ws, notifyFun (ds ++ ws))
+
+    notifyFun ws par = Just (any (filterFun par) ws)
 
 Start world
 	# myworld = createMyWorld world
