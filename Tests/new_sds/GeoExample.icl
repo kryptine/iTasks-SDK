@@ -50,20 +50,10 @@ shipView = union shipsByName shipsByBounds
 				(\_ is ws name -> let (ds,_) = splitWith (\p->p.Contact.name == name) is in any (\p->p.Contact.name == name) (ds ++ ws))
 
 shipsByName :: PView String [Contact] [Contact] MyWorld
-shipsByName = applySplit allShips {sget = sget`, sput = sput`} tr1
-where
-    sget` name ships = [s \\ s <- ships | s.Contact.name == name]
-    sput` name ships new = (new ++ [s \\ s <- ships | s.Contact.name <> name], (==) name)
+shipsByName = applySplit allShips (listFilterSplit \name s -> s.Contact.name == name) tr1
 
 shipsByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
-shipsByBounds = applySplit allShips {sget = sget`, sput = sput`} tr1
-where
-    sget` bounds is = filter (inBounds bounds) is
-    sput` bounds is ws
-        = let (ds,us) = splitWith (inBounds bounds) is
-          in (us ++ ws, notifyFun (ds ++ ws))
-
-    notifyFun ws bounds = any (inBounds bounds) ws
+shipsByBounds = applySplit allShips (listFilterSplit \bounds -> inBounds bounds) tr1
 
 allPlanes :: PView Void [Contact] [Contact] MyWorld
 allPlanes = createStoreView "allPlanes" planes
@@ -80,20 +70,10 @@ planeView = union planesByName planesByBounds
 				(\_ is ws name -> let (ds,_) = splitWith (\p->p.Contact.name == name) is in any (\p->p.Contact.name == name) (ds ++ ws))
 
 planesByName :: PView String [Contact] [Contact] MyWorld
-planesByName = applySplit allPlanes {sget = sget`, sput = sput`} tr1
-where
-    sget` name planes = [p \\ p <- planes | p.Contact.name == name]
-    sput` name planes new = (new ++ [p \\ p <- planes | p.Contact.name <> name], (==) name)
+planesByName = applySplit allPlanes (listFilterSplit \name s -> s.Contact.name == name) tr1
 
 planesByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
-planesByBounds = applySplit allPlanes {sget = sget`, sput = sput`} tr1
-where
-    sget` bounds is = filter (inBounds bounds) is
-    sput` bounds is ws
-        = let (ds,us) = splitWith (inBounds bounds) is
-          in (us ++ ws, notifyFun (ds ++ ws))
-
-    notifyFun ws bounds = any (inBounds bounds) ws
+planesByBounds = applySplit allPlanes (listFilterSplit \bounds -> inBounds bounds) tr1
 
 contactView :: PView (Either String (Int,Int,Int,Int)) [Contact] [Contact] MyWorld
 contactView = joinLists shipView planeView splitter
