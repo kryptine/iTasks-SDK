@@ -333,8 +333,10 @@ class registerForNotification env :: (PView p r w *env) p String *env -> *env | 
 instance registerForNotification MyWorld
 where
 	registerForNotification pview p msg myworld=:{MyWorld|notification}
-		# (nreqid, myworld) = genID myworld
-		= {MyWorld | myworld & notification = [createRequest (getDescriptor pview) (dynamic p) nreqid:tl (lowerLayers nreqid) ++ notification]}
+		# (nreqid, myworld)   = genID myworld
+		# (lowerids, myworld) = collectIds pview p myworld
+		# lowerLayers = [createRequest viewid dynparam nreqid \\ (viewid, dynparam) <- lowerids]
+		= {MyWorld | myworld & notification = [createRequest (getDescriptor pview) (dynamic p) nreqid:tl lowerLayers ++ notification]}
 	where	
 		createRequest target param nreqid = 	
 										{ nreqid = nreqid
@@ -343,21 +345,32 @@ where
 										, handler = println ("Notification: "+++msg)
 										} 
 	
-		lowerLayers nreqid = [createRequest viewid dynparam nreqid \\ (viewid, dynparam) <- collectIds pview p]
-				
-		collectIds :: (PView p r w *MyWorld) p -> [(VIEWID, Dynamic)] | TC p
-		collectIds d=:(Source _) p = [(getDescriptor d, dynamic p)]
-		collectIds d=:(Projection pview _) p = [(getDescriptor d, dynamic p):collectIds pview p]
-		collectIds d=:(Translation pview tr) p = [(getDescriptor d, dynamic p):collectIds pview (tr p)]
-		collectIds d=:(Split pview split trp) p = [(getDescriptor d, dynamic p):collectIds pview (fst (trp p))]
-		collectIds d=:(Join pview1 pview2 trp _ _) p 
-			= let (p1, p2) = trp p in [(getDescriptor d, dynamic p):collectIds pview1 p1 ++ collectIds pview2 p2]
-		collectIds d=:(Union pview1 pview2 trp _ _) p 
+		collectIds :: (PView p r w *MyWorld) p *MyWorld -> *([(VIEWID, Dynamic)], *MyWorld) | TC p
+		collectIds d=:(Source _) p myworld = ([(getDescriptor d, dynamic p)], myworld)
+		collectIds d=:(Projection pview _) p myworld
+				= let (ids, myworld`) = collectIds pview p myworld in ([(getDescriptor d, dynamic p):ids], myworld`)
+		collectIds d=:(Translation pview tr) p myworld
+				= let (ids, myworld`) = collectIds pview (tr p) myworld in ([(getDescriptor d, dynamic p):ids], myworld`)		
+		collectIds d=:(Split pview split trp) p myworld
+				= let (ids, myworld`) = collectIds pview (fst (trp p)) myworld in ([(getDescriptor d, dynamic p):ids], myworld`)					
+
+		collectIds d=:(Join pview1 pview2 trp _ _) p myworld
+				# (ids1, myworld) = collectIds pview1 p1 myworld
+				# (ids2, myworld) = collectIds pview2 p2 myworld
+				= ([(getDescriptor d, dynamic p):ids1 ++ ids2], myworld)
+		where
+			(p1, p2) = trp p
+			
+		collectIds d=:(Union pview1 pview2 trp _ _) p myworld
 			= case trp p of
-				Left p1 = [(getDescriptor d, dynamic p):collectIds pview1 p1]
-				Right p2 = [(getDescriptor d, dynamic p):collectIds pview2 p2]
-		collectIds d=:(PSeq pview1 pview2 _ _ _) p = 
-				[(getDescriptor d, dynamic p):collectIds pview1 p] // TODO: read!
+				Left p1  = let (ids, myworld`) = collectIds pview1 p1 myworld in ([(getDescriptor d, dynamic p):ids], myworld`)
+				Right p2 = let (ids, myworld`) = collectIds pview2 p2 myworld in ([(getDescriptor d, dynamic p):ids], myworld`)				
+						
+		collectIds d=:(PSeq pview1 pview2 trp _ _) p myworld
+				# (ids1, myworld) = collectIds pview1 p myworld
+				# (Ok rval, myworld) = get` pview1 p myworld
+				# (ids2, myworld) = collectIds pview2 (trp rval) myworld				
+				= ([(getDescriptor d, dynamic p):ids1 ++ ids2], myworld)
 
 // -----------------------------------------------------------------------
 

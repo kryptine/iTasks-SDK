@@ -44,8 +44,13 @@ where
         ,{name = "SC",type = "Ship", position = (3,2)}
         ]
 
-shipByName :: PView String Contact Contact MyWorld
-shipByName = applyLens (applySplit allShips {sget = sget`, sput = sput`} tr1) singletonLens
+shipView :: PView (Either String (Int,Int,Int,Int)) [Contact] [Contact] MyWorld
+shipView = union shipsByName shipsByBounds 
+				(\_ is ws bounds -> let (ds,_) = splitWith (inBounds bounds) is in any (inBounds bounds) (ds ++ ws))
+				(\_ is ws name -> let (ds,_) = splitWith (\p->p.Contact.name == name) is in any (\p->p.Contact.name == name) (ds ++ ws))
+
+shipsByName :: PView String [Contact] [Contact] MyWorld
+shipsByName = applySplit allShips {sget = sget`, sput = sput`} tr1
 where
     sget` name ships = [s \\ s <- ships | s.Contact.name == name]
     sput` name ships new = (new ++ [s \\ s <- ships | s.Contact.name <> name], (==) name)
@@ -69,8 +74,13 @@ where
         ,{name = "PC",type = "Plane", position = (6,6)}
         ]
 
-planeByName :: PView String Contact Contact MyWorld
-planeByName = applyLens (applySplit allPlanes {sget = sget`, sput = sput`} tr1) singletonLens
+planeView :: PView (Either String (Int,Int,Int,Int)) [Contact] [Contact] MyWorld
+planeView = union planesByName planesByBounds 
+				(\_ is ws bounds -> let (ds,_) = splitWith (inBounds bounds) is in any (inBounds bounds) (ds ++ ws))
+				(\_ is ws name -> let (ds,_) = splitWith (\p->p.Contact.name == name) is in any (\p->p.Contact.name == name) (ds ++ ws))
+
+planesByName :: PView String [Contact] [Contact] MyWorld
+planesByName = applySplit allPlanes {sget = sget`, sput = sput`} tr1
 where
     sget` name planes = [p \\ p <- planes | p.Contact.name == name]
     sput` name planes new = (new ++ [p \\ p <- planes | p.Contact.name <> name], (==) name)
@@ -85,8 +95,8 @@ where
 
     notifyFun ws bounds = any (inBounds bounds) ws
 
-contactsByBounds :: PView (Int,Int,Int,Int) [Contact] [Contact] MyWorld
-contactsByBounds = joinLists shipsByBounds planesByBounds splitter
+contactView :: PView (Either String (Int,Int,Int,Int)) [Contact] [Contact] MyWorld
+contactView = joinLists shipView planeView splitter
 where
     splitter c=:{Contact|type} = (type == "Ship")
 
@@ -94,31 +104,41 @@ makeMapView :: (PView Void GeoPerspective GeoPerspective MyWorld)
             -> (PView Void GeoMap GeoPerspective MyWorld)
 makeMapView perspective = pseq perspective contacts paramF writeF readF
 where
-    paramF {GeoPerspective|bounds} = bounds
+    paramF {GeoPerspective|bounds} = fmap Right bounds
     writeF perspective = (perspective,Void)
     readF perspective contacts = {GeoMap|perspective=perspective,markers=map contactMarker contacts}
 
-    contacts = applyLens (maybeParam [] contactsByBounds) readOnlyLens
+    contacts = applyLens (maybeParam [] contactView) readOnlyLens
 
 Start world
 	# myworld = createMyWorld world
 	
-    # (p1,myworld) = createMemoryView {center=(3,3),bounds=Just (2,3,3,6)} myworld
+/* OK
+	# (val, myworld) = get (fixP planeView (Left "PB")) myworld
+	# (val, myworld) = get (fixP planeView (Right (2,3,3,6))) myworld
+*/
 
+/* OK
+ 	# myworld = registerForNotification planeView (Right (2,3,3,6)) "PC"  myworld	
+ 	# (_,myworld) = put (fixP planeView (Left "PC")) [{name = "PC",type = "Plane", position = (2,5)}] myworld
+	# (val, myworld) = get (fixP planeView (Right (2,3,3,6))) myworld
+*/
+
+    # (p1,myworld) = createMemoryView {center=(3,3),bounds=Just (2,3,3,6)} myworld
 	# myworld = registerForNotification (makeMapView p1) Void "p1"  myworld	
 
-	# (val, myworld) = get (fixP planeByName "PB") myworld
-	# (val, myworld) = get (fixP planesByBounds (2,3,3,6)) myworld
-
+// OK
 //	# (_,myworld) = put p1 {center=(3,3),bounds=Just (2,3,3,6)} myworld
+// OK
 //	# (_,myworld) = put (makeMapView p1) {center=(3,3),bounds=Just (2,3,3,6)} myworld
-// 	# (_,myworld) = put (fixP planeByName "PA") {name = "PA",type = "Plane", position = (3,5)} myworld
+// OK
+// 	# (_,myworld) = put (fixP planeView (Left "PA")) [{name = "PA",type = "Plane", position = (3,5)}] myworld
+// OK
+// 	# (_,myworld) = put (fixP planeView (Left "PA")) [{name = "PA",type = "Plane", position = (7,7)}] myworld
+// OK
+// 	# (_,myworld) = put (fixP planeView (Left "PB")) [{name = "PB",type = "Plane", position = (7,7)}] myworld
 
- 	# myworld = registerForNotification planeByName "PC" "PC"  myworld	
- 	# (_,myworld) = put (fixP planeByName "PC") {name = "PC",type = "Plane", position = (7,7)} myworld
-	# (val, myworld) = get (fixP planeByName "PC") myworld
-
-//	# (val, myworld) = get (makeMapView p1) myworld
+	# (val, myworld) = get (makeMapView p1) myworld
 
 	= (val, getWorld myworld)
 	
