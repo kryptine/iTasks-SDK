@@ -465,7 +465,7 @@ editWithStatistics
 						in	parallel Void 	[ (Embedded, showStatistics file )
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
-									  		]
+									  		] []
 							>>*	 			[ OnAction (ActionQuit) (always (return Void))
 											]
 											
@@ -483,8 +483,8 @@ where
 	noStat	=			viewInformation Void [] Void
  				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
  						]
-	showStat :: Task Void 
-	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile 
+	showStat :: Task Void
+	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile
  				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
  						]
 
@@ -555,7 +555,7 @@ planMeeting users =   enterDateTimeOptions
 enterDateTimeOptions :: Task [DateTime]
 enterDateTimeOptions = enterInformation "Propose meeting dates and times..." []
 
-askPreferences :: [User] -> TaskStep [DateTime] [(User,[DateTime])]
+askPreferences :: [User] -> TaskCont [DateTime] (Task [(User,[DateTime])])
 askPreferences users
   = OnAction (Action "Continue" []) (hasValue (ask users))
 
@@ -564,7 +564,7 @@ ask users options
 	= parallel "Collect possibilities"
 	  [ (Embedded, monitor) 
 	  :[(Detached (worker u) False,select u options) \\ u <- users]
-	  ]
+	  ] []
 	  @ \answers -> [a \\ (_,Value a _) <- answers]
 
 monitor :: ParallelTask a | iTask a
@@ -573,11 +573,11 @@ monitor = \all_results -> viewSharedInformation "Results so far" [] (mapRead tl 
 select :: User [DateTime] -> ParallelTask (User,[DateTime])
 select user options = \_ -> (enterMultipleChoice "Enter preferences" [] options @ \choice -> (user,choice))
  
-tryAgain :: [User] -> TaskStep [(User,[DateTime])] DateTime
+tryAgain :: [User] -> TaskCont [(User,[DateTime])] (Task DateTime)
 tryAgain users
   = OnAction (Action "Try again" []) (always (planMeeting users))
  
-decide :: TaskStep [(User,[DateTime])] DateTime
+decide :: TaskCont [(User,[DateTime])] (Task DateTime)
 decide = OnAction (Action "Make decision" []) (hasValue pick)
 
 pick :: [(User,[DateTime])] -> Task DateTime

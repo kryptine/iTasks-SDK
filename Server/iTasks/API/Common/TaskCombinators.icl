@@ -14,7 +14,7 @@ from Data.Map				import qualified put
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
 import iTasks.API.Common.SDSCombinators
 
-(>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
+(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps
 
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -59,28 +59,30 @@ try task handler = step task id [OnValue (ifStable return), OnException handler]
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
 catchAll task handler = step task id [OnValue (ifStable return), OnAllExceptions handler]
 
-(>^*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
+(>^*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task a | iTask a & iTask b
 (>^*) task steps = sideStep task steps
 
-sideStep :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
-sideStep ta steps = parallel Void [(Embedded,const ta),(Embedded,stepper)] @ (map snd) @? firstRes
+sideStep :: !(Task a) ![TaskCont a (Task b)] -> Task a | iTask a & iTask b
+sideStep ta conts = parallel Void [(Embedded,const ta)] (map pcont conts) @ (map snd) @? firstRes
 where
-    firstRes (Value [v:_] _) = v
-    stepper l = forever (watch (taskListState l) >>* steps`) @? const NoValue
-    where
-        steps` = [OnAction action (taskfun` taskfun) \\ (OnAction action taskfun) <- steps]
-        where
-            //Only enable when there are two tasks in the parallel set, hence no other sideSteps are active
-            taskfun` taskfun (Value [v,_] _) = case taskfun v of
-                Just t  = Just (appendTask Embedded (removeWhenStable t) l)
-                Nothing = Nothing
-            taskfun` _ _ = Nothing
+    pcont (OnValue tfun)         = OnValue (vfun tfun)
+    pcont (OnAction action tfun) = OnAction action (vfun tfun)
+    pcont (OnException tfun)     = OnException (efun tfun)
+    pcont (OnAllExceptions tfun) = OnAllExceptions (efun tfun)
 
-    removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
+    vfun tfun (Value [(t,v):_] _) = fmap (\t -> (Embedded,removeWhenStable t)) (tfun v)
+    efun tfun e = (\t -> (Embedded,removeWhenStable t)) (tfun e)
+
+    firstRes (Value [v:_] _) = v
+
+removeWhenStable :: (Task a) -> ParallelTask b | iTask a & iTask b
+removeWhenStable t
+    = \l -> t >>* [OnValue (ifStable (const (get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue)))]
 
 //Helper functions for projections
 projectJust :: (Maybe a) r -> Maybe (Maybe a)
 projectJust mba _ = Just mba
+
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
@@ -88,7 +90,7 @@ projectJust mba _ = Just mba
 assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task
 	=	parallel Void
-			[(Embedded, \s -> processControl s),(Detached props False, \_ -> task)]
+			[(Embedded, \s -> processControl s),(Detached props False, \_ -> task)] []
 	@?	result
 where
 	processControl tlist
@@ -138,7 +140,7 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void [(Embedded,const task),(Embedded,restarter)] @? res
+	= parallel Void [(Embedded,const task),(Embedded,restarter)] [] @? res
 where
     restarter tlist = ((watch (taskListState tlist) @ hd) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
 
@@ -166,7 +168,7 @@ forever	t = (t <! (const False))
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
 	= parallel Void
-		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] [] @? res
 where
 	res	(Value [_,(_,Value (Right b) s)] _)	= Value b s
 	res _									= NoValue
@@ -174,7 +176,7 @@ where
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
 	= parallel Void
-		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res			
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] [] @? res
 where
 	res	(Value [(_,Value (Left a) s),_] _)	= Value a s
 	res _									= NoValue
@@ -182,7 +184,7 @@ where
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
 	= parallel Void
-		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] [] @? res
 where
 	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _)	= Value (a,b) (sa && sb)
 	res _														    = NoValue
@@ -191,7 +193,7 @@ feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | de
 feedForward desc taska taskbf = parallel desc
 	[(Embedded, \s -> taska @ Left)
 	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
-	] @? res
+	] [] @? res
 where
 	prj [Value (Left a) _,_]		= Just a
 	prj _							= Nothing
@@ -206,7 +208,7 @@ feedSideways :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | d
 feedSideways desc taska taskbf = parallel desc
     [(Embedded, \s -> taska)
 	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @? const NoValue)
-    ] @? res
+    ] [] @? res
 where
 	prj [Value a _:_]	= Just a
 	prj _				= Nothing
@@ -226,7 +228,7 @@ derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
-	= parallel Void [(Embedded,const t) \\ t <- tasks] @? res
+	= parallel Void [(Embedded,const t) \\ t <- tasks] [] @? res
 where
 	res (Value l _) = let sl = sortBy (\a b -> fst a > fst b) l in
                         hd ([v \\ (_,v=:(Value _ True)) <- sl] ++ [v \\ (_,v=:(Value _ False)) <- sl] ++ [NoValue])
@@ -235,7 +237,7 @@ where
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks
 	= parallel Void
-		[(Embedded,const t) \\ t <- tasks] @? res
+		[(Embedded,const t) \\ t <- tasks] [] @? res
 where
 	res (Value l _)	= Value [v \\ (_,Value v _) <- l] (foldl allStable True l)
 

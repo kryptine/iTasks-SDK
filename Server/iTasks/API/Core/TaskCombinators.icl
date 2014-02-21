@@ -67,7 +67,7 @@ where
 				Nothing = (result, iworld)
 			Error e = (exception e, iworld)
 
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskStep a b] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
 step (Task evala) lhsValFun conts = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld
@@ -80,12 +80,9 @@ where
 		# ts				= case event of
 							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
-		# mbcommit			= case event of
-			(ActionEvent _ t action)
-				| t == taskId 		= Just action
-			_						= Nothing
+        # mbAction          = matchAction taskId event
 		# mbCont			= case resa of
-			ValueResult val info rep ntreea = case searchContValue val mbcommit conts of
+			ValueResult val info rep ntreea = case searchContValue val mbAction conts of
 				Nothing			
 					# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
@@ -136,39 +133,10 @@ where
 			Just (Task evalb)	= evalb event repOpts (TCDestroy treeb) iworld
 			Nothing				= (exception "Corrupt task value in step", iworld)
 			
-	//Incorred state
+	//Incorrect state
 	eval event _ state iworld
 		= (exception ("Corrupt task state in step:" +++ (toString (toJSON state))), iworld)
 
-	searchContValue val mbcommit conts = search val mbcommit 0 Nothing conts
-	where
-		search _ _ _ mbmatch []							= mbmatch									//No matching OnValue steps were found, return the potential match
-		search val mbcommit i mbmatch [OnValue f:cs]
-			= case f val of
-				Just cont	= Just (i, cont, DeferredJSON val)			//Don't look any further, first matching trigger wins
-				Nothing		= search val mbcommit (i + 1) mbmatch cs	//Keep search
-		search val (Just commit) i Nothing [OnAction action f:cs]
-			| commit == actionName action
-				= case f val of
-					Just cont	= search val (Just commit) (i + 1) (Just (i, cont, DeferredJSON val)) cs 	//We found a potential winner (if no OnValue values are in cs)
-					Nothing		= search val (Just commit) (i + 1) Nothing cs								//Keep searching
-			| otherwise
-								= search val (Just commit) (i + 1) Nothing cs								//Keep searching														
-		search val mbcommit i mbmatch [_:cs]			= search val mbcommit (i + 1) mbmatch cs			//Keep searching
-		
-	searchContException dyn str conts = search dyn str 0 Nothing conts
-	where
-		search _ _ _ catchall []					= catchall														//Return the maybe catchall
-		search dyn str i catchall [OnException f:cs] = case (match f dyn) of
-			Just (taskb,enca)						= Just (i, taskb, enca)											//We have a match
-			_										= search dyn str (i + 1) catchall cs							//Keep searching
-		search dyn str i Nothing [OnAllExceptions f:cs]	= search dyn str (i + 1) (Just (i, f str, DeferredJSON str)) cs //Keep searching (at least we have a catchall)
-		search dyn str i mbcatchall [_:cs]			= search dyn str (i + 1) mbcatchall cs							//Keep searching
-				
-		match :: (e -> Task b) Dynamic -> Maybe (Task b, DeferredJSON) | iTask e
-		match f (e :: e^)	= Just (f e, DeferredJSON e)
-		match _ _			= Nothing 
-	
 	restoreTaskB sel d_json_a = case conts !! sel of
 		(OnValue taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
 		(OnAction _ taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
@@ -176,10 +144,10 @@ where
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId repOpts NoRep val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIActionSet [],windows=[]} (stepActions taskId val)) [])
+		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIActionSet [],windows=[]} (contActions taskId val conts)) [])
 	doStepLayout taskId repOpts (TaskRep def parts) val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (stepActions taskId val)) parts)
-	stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
+		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (contActions taskId val conts)) parts)
+
 
 	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -199,9 +167,49 @@ where
 			Just a ->  Just (f_tva_tb a)
 			Nothing -> Nothing
 
+matchAction :: TaskId Event -> Maybe String
+matchAction taskId (ActionEvent _ matchId action)
+    | matchId == taskId     = Just action
+                            = Nothing
+matchAction taskId _        = Nothing
+
+contActions :: TaskId (TaskValue a) [TaskCont a b]-> [UIAction]
+contActions taskId val conts = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
+
+searchContValue :: (TaskValue a) (Maybe String) [TaskCont a b] -> Maybe (!Int, !b, !DeferredJSON) | TC a & JSONEncode{|*|} a
+searchContValue val mbAction conts = search val mbAction 0 Nothing conts
+where
+    search _ _ _ mbMatch []							= mbMatch		//No matching OnValue steps were found, return the potential match
+	search val mbAction i mbMatch [OnValue f:cs]
+	    = case f val of
+			Just cont	= Just (i, cont, DeferredJSON val)			//Don't look any further, first matching trigger wins
+			Nothing		= search val mbAction (i + 1) mbMatch cs	//Keep search
+    search val mbAction=:(Just actionEvent) i Nothing [OnAction action f:cs]
+	    | actionEvent == actionName action
+		    = case f val of
+                Just cont	= search val mbAction (i + 1) (Just (i, cont, DeferredJSON val)) cs 	//We found a potential winner (if no OnValue values are in cs)
+                Nothing		= search val mbAction (i + 1) Nothing cs								//Keep searching
+        | otherwise
+                            = search val mbAction (i + 1) Nothing cs								//Keep searching														
+    search val mbAction i mbMatch [_:cs]			= search val mbAction (i + 1) mbMatch cs		//Keep searching
+
+searchContException :: Dynamic String [TaskCont a b] -> Maybe (Int, !b, !DeferredJSON)
+searchContException dyn str conts = search dyn str 0 Nothing conts
+where
+    search _ _ _ catchall []					= catchall														//Return the maybe catchall
+    search dyn str i catchall [OnException f:cs] = case (match f dyn) of
+        Just (taskb,enca)						= Just (i, taskb, enca)											//We have a match
+        _										= search dyn str (i + 1) catchall cs							//Keep searching
+    search dyn str i Nothing [OnAllExceptions f:cs]	= search dyn str (i + 1) (Just (i, f str, DeferredJSON str)) cs //Keep searching (at least we have a catchall)
+    search dyn str i mbcatchall [_:cs]			= search dyn str (i + 1) mbcatchall cs							//Keep searching
+				
+    match :: (e -> b) Dynamic -> Maybe (b, DeferredJSON) | iTask e
+    match f (e :: e^)	= Just (f e, DeferredJSON e)
+    match _ _			= Nothing
+
 // Parallel composition
-parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
-parallel desc initTasks = Task eval
+parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
+parallel desc initTasks conts = Task eval
 where
 	//Create initial task list
 	eval event repOpts (TCInit taskId ts) iworld=:{IWorld|current=current=:{localLists}}
@@ -210,16 +218,16 @@ where
 		//Evaluate the parallel
 		= eval event repOpts (TCParallel taskId ts) iworld
 	where
-		append iworld t = snd (appendTaskToList taskId t iworld)
+		append iworld t = snd (addTaskToList taskId t Nothing iworld)
 
 	//Evaluate the task list
 	eval event repOpts (TCParallel taskId ts) iworld=:{current={taskTime}}
 		//Evaluate all parallel tasks in the list
-		= case evalParTasks taskId event repOpts iworld of
-			(Just res=:(ExceptionResult e str),_,iworld)	= (res,iworld)
-			(Just res=:(ValueResult _ _ _ _),_,iworld)		= (exception "parallel evaluation yielded unexpected result",iworld)
-			(Nothing,results,iworld=:{current=current=:{localLists}})
-                # entries = [(e,r) \\ e <- (fromMaybe [] ('Data.Map'.get taskId localLists)) & r <- results]
+		= case evalParTasks taskId event repOpts conts iworld of
+			(Left (e,str),iworld)	= (ExceptionResult e str,iworld)
+			(Right results,iworld=:{current=current=:{localLists}})
+                # entries = [(e,r) \\ e <- (fromMaybe [] ('Data.Map'.get taskId localLists)) & (_,r) <- results]
+                # actions = contActions taskId (Value (map fst results) False) conts
 				//Filter out removed entries and destroy their state
 				# (removed,entries)	= splitWith (\({TaskListEntry|removed},_) -> removed) entries
 				= case foldl destroyParTask (Nothing,iworld) (map fst removed) of
@@ -227,7 +235,7 @@ where
 					(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in parallel"),iworld)
 					(Nothing,iworld=:{current=current=:{localLists}})
 						//Destruction is ok, build parallel result
-						# rep				= parallelRep desc taskId repOpts entries
+						# rep				= parallelRep desc taskId repOpts entries actions
 						# values			= map (toValueAndTime o fst) entries
 						# stable			= all (isStable o snd) values
 						# refreshSensitive	= foldr (\(e,_) s -> s || refreshSensitive e) False entries
@@ -252,23 +260,29 @@ where
 	eval _ _ _ iworld
 		= (exception "Corrupt task state in parallel", iworld)
 	
-	evalParTasks :: !TaskId !Event !TaskRepOpts !*IWorld -> (!Maybe (TaskResult [(TaskTime,TaskValue a)]),![Maybe TaskRep],!*IWorld) | iTask a
-	evalParTasks taskId event repOpts iworld=:{current={localLists,eventRoute}}
-		= evalFrom 0 [] (fromMaybe [] ('Data.Map'.get taskId localLists)) ('Data.Map'.get taskId eventRoute) repOpts iworld
+	evalParTasks :: !TaskId !Event !TaskRepOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !*IWorld
+                    -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
+	evalParTasks taskId event repOpts conts iworld=:{current={localLists,eventRoute}}
+		= evalFrom 0 [] (fromMaybe [] ('Data.Map'.get taskId localLists)) ('Data.Map'.get taskId eventRoute) (matchAction taskId event) repOpts iworld
 	where
-		evalFrom n acc list mbEventIndex repOpts iworld = case foldl (evalParTask taskId event mbEventIndex repOpts) (Nothing,acc,iworld) [(i,e) \\ e <- drop n list & i <- [n..]]  of
-			(Just (ExceptionResult e str),acc,iworld)	= (Just (ExceptionResult e str),acc,iworld)
-			(Nothing,acc,iworld=:{current={localLists}})			
+		evalFrom n acc list mbEventIndex mbAction repOpts iworld
+            = case foldl (evalParTask taskId event mbEventIndex repOpts conts) (Right acc,iworld) [(i,e) \\ e <- drop n list & i <- [n..]] of
+			(Left (e,str), iworld)	= (Left (e,str), iworld)
+			(Right acc,iworld=:{current={localLists}})			
 				# nlist = fromMaybe [] ('Data.Map'.get taskId localLists)
 				# lenlist = length list
-				| length nlist > lenlist	= evalFrom lenlist acc nlist Nothing repOpts iworld	//Extra branches were added -> evaluate these as well 
-											= (Nothing,acc,iworld)						        //Done
-			//IMPORTANT: This last rule should never match, but it helps to solve overloading 
-			(Just (ValueResult val info=:{TaskInfo|lastEvent} rep tree),acc,iworld) = (Just (ValueResult (Value [(lastEvent,val)] False) info rep tree),acc,iworld)
+                //Check if extra branches were added -> evaluate these as well
+				| length nlist > lenlist	= evalFrom lenlist acc nlist Nothing mbAction repOpts iworld	
+                //Check if for matching continations -> add them and continue evaluation
+                = case searchContValue (Value (map fst acc) False) mbAction conts of
+                    Nothing     = (Right acc,iworld) //Done
+                    Just (_,extension,_) //TODO: Add multiple matches at once, not just one?
+                        # (_,iworld) = addTaskToList taskId extension Nothing iworld
+                        = evalFrom lenlist acc nlist Nothing Nothing repOpts iworld	
 	
-	evalParTask :: !TaskId !Event !(Maybe Int) !TaskRepOpts !(!Maybe (TaskResult a),![Maybe TaskRep],!*IWorld) !(!Int,!TaskListEntry) -> (!Maybe (TaskResult a),![Maybe TaskRep],!*IWorld) | iTask a
+	evalParTask :: !TaskId !Event !(Maybe Int) !TaskRepOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !(!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a),Maybe TaskRep)],!*IWorld) !(!Int,!TaskListEntry) -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
 	//Evaluate embedded tasks
-	evalParTask taskId event mbEventIndex repOpts (Nothing,acc,iworld=:{current={localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree, removed=False})
+	evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld=:{current={localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree, removed=False})
 		# evalNeeded = case mbEventIndex of
 			Nothing	= True //We don't know the event index, so we just have to try
 			Just eventIndex
@@ -276,36 +290,43 @@ where
 										= info.TaskInfo.refreshSensitive	//Also evaluate if the branch is refresh sensitive
 		| evalNeeded
 			//Evaluate the branch
-			= case 'Data.Map'.get entryId localTasks of
-                Just dtask
-                    # (Task evala) = unwrapTask dtask
-				//Just (Task evala :: Task a^)
+			= case fmap unwrapTask ('Data.Map'.get entryId localTasks) of
+                Just (Task evala)
 					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=repOpts.noUI} tree iworld
 					= case result of
-						ExceptionResult _ _
-							= (Just result,acc,iworld)	
+						ExceptionResult e str
+                            //Check if we have an exception handler the continuations
+                            = case searchContException e str conts of
+                                Nothing = (Left (e,str),iworld) //No handler, unfortunately
+                                Just (_,handler=:(_,parTask),_) //Replace tasklist entry and try again
+                                    # (entry,iworld) = addTaskToList taskId handler (Just index) iworld
+                                    = evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld) (index,entry)
 						ValueResult val info rep tree
 							# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId result iworld
-							= (Nothing, acc++[Just rep],iworld)
+							= (Right (acc++[((info.TaskInfo.lastEvent,val),Just rep)]),iworld)
 				_
-					= (Nothing,acc,iworld)	
+					= (Right acc,iworld)	
 		| otherwise
 			# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId (ValueResult jsonval info rep tree) iworld
-			= (Nothing, acc++[Just rep],iworld)
+			= (Right (acc++[((info.TaskInfo.lastEvent,fromJSONTaskValue jsonval),Just rep)]),iworld)
 					
 	//Copy the last stored result of detached tasks
-	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI (Nothing,acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
+	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI conts (Right acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
 		# (mbMeta,iworld)	= readRegister curInstanceNo (taskInstanceMeta instanceNo) iworld
 		# (mbValue,iworld)	= readRegister curInstanceNo (taskInstanceValue instanceNo) iworld
 		= case (mbMeta,mbValue) of
-			(Ok meta,Ok value)
+			(Ok meta,Ok value=:(TIValue jsonval))
 				# (entry,iworld) = updateListEntryDetachedResult taskId entryId value meta.TIMeta.progress meta.TIMeta.management iworld
-				= (Nothing,acc++[Nothing],iworld)
+				= (Right (acc++[((entry.TaskListEntry.lastEvent,fromJSONTaskValue jsonval),Nothing)]),iworld)
+            //TODO deal with detached exception case (we now possibly have an exception handler)
 			_	
-                =  (Nothing,acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
+                = (Right acc,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
 
 	//Do nothing if an exeption occurred or marked as removed
-	evalParTask taskId event mbEventIndex noUI (result,acc,iworld) (index,entry) = (result,acc,iworld) 
+	evalParTask taskId event mbEventIndex noUI conts (result,iworld) (index,entry) = (result,iworld)
+
+    fromJSONTaskValue NoValue = NoValue
+    fromJSONTaskValue (Value j s) = maybe NoValue (\v -> Value v s) (fromJSON j)
 
 	destroyParTask :: (!Maybe (TaskResult a),!*IWorld) !TaskListEntry -> (!Maybe (TaskResult a),!*IWorld) | iTask a
 	//Destroy embedded tasks
@@ -333,13 +354,13 @@ where
 		deserialize NoValue	= NoValue
 	toValueAndTime {TaskListEntry|lastEvent}						= (lastEvent,NoValue)
 	
-	parallelRep :: !d !TaskId !TaskRepOpts ![(!TaskListEntry,!Maybe TaskRep)] -> TaskRep | descr d
-	parallelRep desc taskId repOpts entries
+	parallelRep :: !d !TaskId !TaskRepOpts ![(!TaskListEntry,!Maybe TaskRep)] [UIAction] -> TaskRep | descr d
+	parallelRep desc taskId repOpts entries actions
 		# layout		= repLayoutRules repOpts
 		# listId		= toString taskId
 		# parts = [(uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent) (uiDefSetAttribute CREATED_AT_ATTRIBUTE (toString createdAt) (uiDefSetAttribute TASK_ATTRIBUTE (toString entryId) def)))
 					 \\ ({TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult val _ _ _,createdAt,lastEvent,removed=False},Just (TaskRep def _)) <- entries | not (isStable val)]	
-		= TaskRep (layout.LayoutRules.accuParallel (toPrompt desc) parts) []
+		= TaskRep (layout.LayoutRules.accuParallel (toPrompt desc) parts actions) []
 
 	isStable (Value _ stable) 	= stable
 	isStable _					= False
@@ -355,10 +376,11 @@ where
 	fixOverloading _ _ x = x
 						
 //SHARED HELPER FUNCTIONS
-appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
-appendTaskToList taskId (parType,parTask) iworld=:{current={taskTime,user,attachmentChain,localDateTime}}
+
+addTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !(Maybe Int) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
+addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain,localDateTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing} //FIXME : value should not be None
+	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
@@ -380,8 +402,9 @@ appendTaskToList taskId (parType,parTask) iworld=:{current={taskTime,user,attach
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
-	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
-	= (taskIda, iworld)	
+    # list      = maybe (list++[entry]) (\pos -> updateAt pos entry list) mbPos
+	# iworld	= storeTaskList taskId list iworld
+	= (entry, iworld)	
 
 updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
 updateListEntryEmbeddedResult listId entryId result iworld
@@ -491,7 +514,8 @@ where
 		# task						= parTask topListShare
 		= createDetachedTaskInstance task Nothing name meta user (TaskId 0 0) (if evalDirect (Just attachmentChain) Nothing) iworld
 	append (ParallelTaskList parId) parType parTask iworld
-		= appendTaskToList parId (parType,parTask) iworld
+	    # ({TaskListEntry|entryId},iworld) = addTaskToList parId (parType,parTask) Nothing iworld
+        = (entryId,iworld)
 
 /**
 * Removes (and stops) a task from a task list

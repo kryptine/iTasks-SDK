@@ -49,9 +49,9 @@ autoAccuStep {UIDef|content=UISubUIStack stack,windows} stepActions
     # sub=:{UISubUI|actions} = autoLayoutSubUIStack stack
 	= {UIDef|content=UISubUI {UISubUI|sub & actions = actions ++ stepActions},windows=windows}
 
-autoAccuParallel :: UIDef [UIDef] -> UIDef
-autoAccuParallel prompt defs
-    # defs = if (emptyPrompt prompt) defs [prompt:defs]
+autoAccuParallel :: UIDef [UIDef] [UIAction] -> UIDef
+autoAccuParallel prompt defs parActions
+    # defs = (if (emptyPrompt prompt) defs [prompt:defs]) ++ if (isEmpty parActions) [] [{content=UIActionSet parActions,windows=[]}]
     # windows = flatten [windows \\ {UIDef|windows} <- [prompt:defs]]
     # (nAttributeSet,nActionSet,nControlStack,nSubUI,nSubUIStack,nFinal) = foldl count (0,0,0,0,0,0) defs
     //| trace_tn (print nAttributeSet nActionSet nControlStack nSubUI nSubUIStack nFinal) && False = undef
