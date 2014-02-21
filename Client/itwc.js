@@ -1488,6 +1488,13 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
         label.addEventListener('click',function(e) {
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
         },me);
+
+        if(me.definition.doubleClickAction) {
+            label.addEventListener('dblclick',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
+                itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+            });
+        }
         node.appendChild(label);
 
         if(option.children && option.children.length) {
@@ -1546,6 +1553,12 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
             rowEl.addEventListener('click',function(e) {
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
             },me);
+            if(me.definition.doubleClickAction) {
+                rowEl.addEventListener('dblclick',function(e) {
+                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
+                    itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+                },me);
+            }
             option.forEach(function(cell) {
                 cellEl = document.createElement('div');
                 cellEl.innerHTML = cell;

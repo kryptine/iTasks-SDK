@@ -39,55 +39,58 @@ autoAccuStep {UIDef|content=UIControlStack stack=:{UIControlStack|attributes,con
 	| isEmpty controls
 		= {UIDef|content=UIActionSet actions,windows=windows}
     //Promote to abstract container
-        = {UIDef|content=UISubUI {UISubUI|autoLayoutControlStack stack & actions = actions,size=size},windows=windows}
+        # (triggers,actions) = extractTriggers actions
+        = addTriggersToUIDef triggers {UIDef|content=UISubUI {UISubUI|autoLayoutControlStack stack & actions = actions,size=size},windows=windows}
 autoAccuStep {UIDef|content=UISubUI sub=:{UISubUI|actions=[]},windows} stepActions
 	//If an abstract container without actions is placed under a step container, we add the actions
-	= {UIDef|content=UISubUI {UISubUI|sub & actions = stepActions},windows=windows}
+    # (triggers,stepActions) = extractTriggers stepActions
+	= addTriggersToUIDef triggers {UIDef|content=UISubUI {UISubUI|sub & actions = stepActions},windows=windows}
 autoAccuStep {UIDef|content=UISubUI sub=:{UISubUI|actions},windows} stepActions
 	= {UIDef|content=UISubUI sub,windows=windows}
 autoAccuStep {UIDef|content=UISubUIStack stack,windows} stepActions
+    # (triggers,stepActions) = extractTriggers stepActions
     # sub=:{UISubUI|actions} = autoLayoutSubUIStack stack
-	= {UIDef|content=UISubUI {UISubUI|sub & actions = actions ++ stepActions},windows=windows}
+	= addTriggersToUIDef triggers {UIDef|content=UISubUI {UISubUI|sub & actions = actions ++ stepActions},windows=windows}
 
 autoAccuParallel :: UIDef [UIDef] [UIAction] -> UIDef
 autoAccuParallel prompt defs parActions
+    # (triggers,parActions) = extractTriggers parActions
     # defs = (if (emptyPrompt prompt) defs [prompt:defs]) ++ if (isEmpty parActions) [] [{content=UIActionSet parActions,windows=[]}]
     # windows = flatten [windows \\ {UIDef|windows} <- [prompt:defs]]
     # (nAttributeSet,nActionSet,nControlStack,nSubUI,nSubUIStack,nFinal) = foldl count (0,0,0,0,0,0) defs
-    //| trace_tn (print nAttributeSet nActionSet nControlStack nSubUI nSubUIStack nFinal) && False = undef
     //If there is just one def, leave it be
     | nAttributeSet+nActionSet+nControlStack+nSubUI+nSubUIStack+nFinal == 1
-        = /* trace_n "Case for one item"*/ (hd defs)
+        = /* trace_n "Case for one item"*/ addTriggersToUIDef triggers (hd defs)
     //If there are final defs, pick the first one
     | nFinal > 0
-        = /*trace_n "Case for final"*/ (hd [def \\def=:{UIDef|content=UIFinal _} <- defs])
+        = /*trace_n "Case for final"*/ addTriggersToUIDef triggers (hd [def \\def=:{UIDef|content=UIFinal _} <- defs])
     //If the defs are only attributes we can make an attributeset
     | nAttributeSet > 0 && nActionSet+nControlStack+nSubUI+nSubUIStack+nFinal == 0
-        = /*trace_n "Case for attribute set"*/ {UIDef|content=(UIAttributeSet (foldl mergeAttributes 'Data.Map'.newMap [attr \\ {UIDef|content=UIAttributeSet attr} <- defs])),windows=windows}
+        = /*trace_n "Case for attribute set"*/ addTriggersToUIDef triggers {UIDef|content=(UIAttributeSet (foldl mergeAttributes 'Data.Map'.newMap [attr \\ {UIDef|content=UIAttributeSet attr} <- defs])),windows=windows}
     //If the defs are only actionsets (or empty attribute sets) we can make an actionsset
     | nActionSet > 0 && nControlStack+nSubUI+nSubUIStack+nFinal == 0 && (isEmpty (flatten ['Data.Map'.toList a \\{UIDef|content=UIAttributeSet a} <-defs]))
-        = /*trace_n "Case for action set"*/ {UIDef|content=(UIActionSet (flatten [actions \\ {UIDef|content=UIActionSet actions} <- defs])),windows=windows}
+        = /*trace_n "Case for action set"*/ addTriggersToUIDef triggers {UIDef|content=(UIActionSet (flatten [actions \\ {UIDef|content=UIActionSet actions} <- defs])),windows=windows}
     //If there are no sub uis and actions we can make a control stack
     | nActionSet+nSubUI+nSubUIStack+nFinal == 0
-        = /*trace_n "Case for control stack"*/ {UIDef|content=(UIControlStack (fst (foldl collectControlsAndActions ({UIControlStack|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts},[]) defs))),windows=windows}
+        = /*trace_n "Case for control stack"*/ addTriggersToUIDef triggers {UIDef|content=(UIControlStack (fst (foldl collectControlsAndActions ({UIControlStack|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts},[]) defs))),windows=windows}
     //If there are no sub uis, but just controls and actions, we can make a SubUI
     | nSubUI+nSubUIStack+nFinal == 0
         # (controls,actions) = foldl collectControlsAndActions ({UIControlStack|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts},[]) defs
-        = /*trace_n "Case for controls + actions"*/ {UIDef|content=(UISubUI {UISubUI|autoLayoutControlStack controls & actions = actions}),windows=windows}
+        = /*trace_n "Case for controls + actions"*/ addTriggersToUIDef triggers {UIDef|content=(UISubUI {UISubUI|autoLayoutControlStack controls & actions = actions}),windows=windows}
     //If there is exactly one sub ui, and actions and attributes we add them to that sub ui
     | nSubUI == 1 && nControlStack+nSubUIStack+nFinal == 0
         # ui            = hd [ui \\ {UIDef|content=UISubUI ui} <- defs]
         # actions       = flatten (map uiDefActions defs)
         # attributes    = foldl mergeAttributes 'Data.Map'.newMap (map uiDefAttributes defs)
-        = /*trace_n "Case for 1 subui"*/ {UIDef|content=(UISubUI {UISubUI|ui & attributes = attributes, actions = actions, size = ui.UISubUI.size}),windows=windows}
+        = /*trace_n "Case for 1 subui"*/ addTriggersToUIDef triggers {UIDef|content=(UISubUI {UISubUI|ui & attributes = attributes, actions = actions, size = ui.UISubUI.size}),windows=windows}
     //If there are no actions we can create a sub ui stack
     | nActionSet == 0
-        = /*trace_n "Case for subui stack"*/ {UIDef|content=(UISubUIStack (foldl collectSubUIs {UISubUIStack|attributes='Data.Map'.newMap,subuis=[],size=defaultSizeOpts} defs)),windows=windows}
+        = /*trace_n "Case for subui stack"*/ addTriggersToUIDef triggers {UIDef|content=(UISubUIStack (foldl collectSubUIs {UISubUIStack|attributes='Data.Map'.newMap,subuis=[],size=defaultSizeOpts} defs)),windows=windows}
     //We collect the ui stack, combine it to a single UI and add the actions
     | otherwise
         # ui            = autoLayoutSubUIStack (foldl collectSubUIs {UISubUIStack|attributes='Data.Map'.newMap,subuis=[],size=defaultSizeOpts} defs)
         # actions       = flatten [actions \\ {UIDef|content=UIActionSet actions} <- defs]
-        = /*trace_n "Otherwise"*/ {UIDef|content=(UISubUI {UISubUI|ui & actions = ui.UISubUI.actions ++ actions}),windows=windows}
+        = /*trace_n "Otherwise"*/ addTriggersToUIDef triggers {UIDef|content=(UISubUI {UISubUI|ui & actions = ui.UISubUI.actions ++ actions}),windows=windows}
 where
     emptyPrompt {UIDef|content=UIAttributeSet attributes}
         = isEmpty ('Data.Map'.toList attributes)
@@ -528,19 +531,37 @@ addButtonPanel attr direction buttons items
 		(Just "bottom",Vertical)	= (items ++ [buttonPanel buttons],Vertical)
 		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),buttonPanel buttons],Vertical)
 
-addTriggers :: [(Trigger,String,String)] [UIControl] -> [UIControl]
-addTriggers triggers items = foldl addTriggerToItems items triggers
-where
-    addTriggerToItems items t = map (addTriggerToItem t) items
+addTriggersToUIDef :: [(Trigger,String,String)] UIDef -> UIDef
+addTriggersToUIDef triggers def=:{UIDef|content=content=:(UIControlStack stack=:{UIControlStack|controls})}
+    = {UIDef|def & content = UIControlStack {UIControlStack|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}}
+addTriggersToUIDef triggers def=:{UIDef|content=content=:(UISubUI subui)}
+    = {UIDef|def & content = UISubUI (addTriggersToSubUI triggers subui)}
+addTriggersToUIDef triggers def=:{UIDef|content=UISubUIStack stack=:{UISubUIStack|subuis}}
+    = {UIDef|def & content = UISubUIStack {UISubUIStack|stack & subuis = map (addTriggersToSubUI triggers) subuis}}
+addTriggersToUIDef triggers def = def
 
-    addTriggerToItem (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
-    addTriggerToItem (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
-    //For recursive application
-    addTriggerToItem t (UIContainer sOpts iOpts=:{UIItemsOpts|items}) = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggerToItem t) items}
-    addTriggerToItem t (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts) = UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggerToItem t) items} opts
-    //TODO move down into tabs and fieldsets??
-    addTriggerToItem t c = c
+addTriggersToSubUI :: [(Trigger,String,String)] UISubUI -> UISubUI
+addTriggersToSubUI triggers ui=:{UISubUI|content=content=:{UIItemsOpts|items}}
+    = {UISubUI|ui & content = {UIItemsOpts|content & items = map (addTriggersToControl triggers) items}}
 
+addTriggersToControl :: [(Trigger,String,String)] UIControl -> UIControl
+//Recursive cases
+addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
+    = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items}
+addTriggersToControl triggers (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
+    = UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts
+addTriggersToControl triggers (UITabSet sOpts tOpts=:{UITabSetOpts|items})
+    = UITabSet sOpts {UITabSetOpts|tOpts & items = map (addTriggersToTab triggers) items}
+//Single controls
+addTriggersToControl triggers control = foldr addTriggerToControl control triggers
+
+addTriggerToControl :: (Trigger,String,String) UIControl -> UIControl
+addTriggerToControl (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
+addTriggerToControl (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
+addTriggerToControl t c = c
+
+addTriggersToTab :: [(Trigger,String,String)] UITab -> UITab
+addTriggersToTab triggers (UITab iOpts=:{UIItemsOpts|items} opts) = (UITab {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts)
 
 //Container coercion
 toPanel	:: !UIControl -> UIControl
@@ -688,10 +709,11 @@ where
 	menuOrder (UIMenuButton _ {UIMenuButtonOpts|text=Just m1}) (UIMenuButton _ {UIMenuButtonOpts|text=Just m2}) = m1 < m2
 	menuOrder m1 m2 = False
 
-actionsToTriggers :: ![UIAction] -> ([(Trigger,String,String)], [UIAction])
-actionsToTriggers [] = ([],[])
-actionsToTriggers [a=:{taskId,action=(Action name options)}:as]
-    # (ts,as) = actionsToTriggers as
+//Extract triggers from a list of actions
+extractTriggers :: ![UIAction] -> ([(Trigger,String,String)], [UIAction])
+extractTriggers [] = ([],[])
+extractTriggers [a=:{taskId,action=(Action name options)}:as]
+    # (ts,as) = extractTriggers as
     = case [ t \\ ActionTrigger t <- options] of
         []          = (ts,[a:as])
         triggers    = ([(t,taskId,name) \\ t <- triggers] ++ ts, [{a & action= Action name (filter (not o isTrigger) options)}:as])
