@@ -27,10 +27,10 @@ from System.Time 					import :: Timestamp(..), instance < Timestamp, instance to
 storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 storeAccess namespace storeId defaultV = createChangeOnWriteSDS namespace storeId read write
 where
-	read iworld
+	read Void iworld
 		# (mbV,iworld) = loadValue namespace storeId iworld
 		= (maybe (maybe (Error ("Can't read " +++ storeId)) Ok defaultV) Ok mbV, iworld)
-	write v iworld
+	write Void v iworld
 		= (Ok Void,storeValue namespace storeId v iworld)
 
 storePath :: !FilePath !String -> FilePath

@@ -19,7 +19,7 @@ from System.FilePath			import :: FilePath
 sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 // constant share, value does never change
-constShare	            :: !a -> ReadOnlyShared a
+constShare	            :: !a -> ROShared p a
 
 //PREDEFINED SHARES
 

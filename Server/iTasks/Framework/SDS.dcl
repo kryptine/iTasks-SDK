@@ -1,20 +1,66 @@
 definition module iTasks.Framework.SDS
 
-import System.FilePath, Data.Void, Data.Maybe, Data.Error, System.Time, Text.JSON
+import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.API.Core.Types import :: InstanceNo
 
-:: RWShared r w
-	= E.b:			BasicSource		!(BasicSource b r w)
-	| E.rx wy:		ComposedRead	!(RWShared rx w) !(rx -> MaybeErrorString (RWShared r wy))
-	| E.r` w` w``:	ComposedWrite	!(RWShared r w`) !(w -> MaybeErrorString (RWShared r` w``)) !(w r` -> MaybeErrorString [WriteShare])
+:: RWShared p r w
+	= 			            SDSSource		!(SDSSource p r w)
+    //'NEW' COMPOSITIONS
+    | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSLens rs ws r w)
+	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
+    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit pn r w) (p -> (ps,pn)) & TC ps & TC pn
+    | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
+    | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
+    | E.rw1 p2 r2 w2:       SDSSequence     !(RWShared p rw1 rw1) !(RWShared p2 r2 w2)  (SDSSequence rw1 p2 r2 w2 r w) & TC p2
+    //'OLD' COMPOSITIONS
+	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeErrorString (RWShared p r wy))
+	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
 
-:: BasicSource b r w =
-	{ read			:: !*IWorld -> *(!MaybeErrorString (!r,!ChangeNotification), !*IWorld)
-	, write			:: !w *IWorld -> *(!MaybeErrorString Void, !*IWorld)
+:: SDSSource p r w =
+	{ read			:: p *IWorld -> *(!MaybeErrorString (!r,!ChangeNotification), !*IWorld)
+	, write			:: p w *IWorld -> *(!MaybeErrorString Void, !*IWorld)
 	, mbId			:: !Maybe BasicShareId
 	}
-	
+
+//A notification is function predictate that can determine whether
+//some registered parameter of type p needs to be notified.
+:: SDSNotifyPred p :== p -> Bool
+
+//Lens maps values from a source (s) domain to a new target (t) domain
+:: SDSLens rs ws rt wt =
+    { read         :: rs -> rt
+    , write        :: rs wt -> ws
+    }
+
+//Split divides a domain into two subdomains by introducing a new parameter
+:: SDSSplit p r w =
+    { read         :: p r -> r
+    , write        :: p r w -> (w, SDSNotifyPred p)
+    }
+
+//Merge two sources by selecting one based on the parameter
+:: SDSMerge p p1 p2 r w =
+    { select        :: p -> Either p1 p2
+    , notifyr       :: p1 r w -> SDSNotifyPred p2
+    , notifyl       :: p2 r w -> SDSNotifyPred p1
+    }
+
+//Read from and write to two independent SDS's
+:: SDSParallel p1 r1 w1 p2 r2 w2 p r w =
+    { param         :: p -> (p1,p2)
+    , read          :: (r1,r2) -> r
+    , write         :: w -> (w1,w2)
+    }
+
+//Read from and write to two dependent SDS's
+//The read value from the first is used to compute the parameter for the second
+:: SDSSequence rw1 p2 r2 w2 r w =
+    { param         :: rw1 -> p2
+    , read          :: (rw1,r2) -> r
+    , write         :: w -> (rw1,w2)
+    }
+
 :: ChangeNotification = OnWrite
 						| Predictable	!Timestamp
 						| Polling		!Timestamp !(*IWorld -> *(!CheckRes,!*IWorld))
@@ -22,13 +68,13 @@ from iTasks.API.Core.Types import :: InstanceNo
 :: CheckRes = Changed | CheckAgain Timestamp
 						
 :: BasicShareId :== String	
-:: WriteShare = E.r w: Write !w !(RWShared r w)
+:: WriteShare p = E.r w: Write !w !(RWShared p r w)
 	
-:: ROShared a 	:== RWShared a Void
-:: WOShared a 	:== RWShared Void a
-:: Hash				:== String
+:: ROShared p a 	:== RWShared p a Void
+:: WOShared p a 	:== RWShared p Void a
+:: Hash			    :== String
 
-:: ReadWriteShared r w  :== RWShared r w
+:: ReadWriteShared r w  :== RWShared Void r w
 :: ReadOnlyShared a		:== ReadWriteShared a Void
 :: WriteOnlyShared a	:== ReadWriteShared Void a
 :: Shared a				:== ReadWriteShared a a
@@ -46,54 +92,54 @@ registerSDSCheckForChange		:: !Timestamp !Hash !(*IWorld -> (!CheckRes,!*IWorld)
 createChangeOnWriteSDS ::
 	!String
 	!String
-	!(*IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
 	->
-	RWShared r w
-	
+	RWShared p r w
+
 createPollingSDS ::
 	!String
 	!String
-	!(*IWorld -> *(!MaybeErrorString (!r, !Timestamp, !(*IWorld -> *(!CheckRes,!*IWorld))), !*IWorld))
-	!(w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString (!r, !Timestamp, !(*IWorld -> *(!CheckRes,!*IWorld))), !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
 	->
-	RWShared r w
+	RWShared p r w
 
 createReadOnlySDS ::
-	!(*IWorld -> *(!r, !*IWorld))
+	!(p *IWorld -> *(!r, !*IWorld))
 	->
-	ROShared r
+	ROShared p r
 	
 createReadOnlySDSError ::
-	!(*IWorld -> *(!MaybeErrorString r, !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
 	->
-	ROShared r
+	ROShared p r
 	
 createReadOnlySDSPredictable ::
 	!String
 	!String
-	!(*IWorld -> *(!(!r, !Timestamp), !*IWorld))
+	!(p *IWorld -> *(!(!r, !Timestamp), !*IWorld))
 	->
-	ROShared r
+	ROShared p r
 	
 createReadOnlySDSErrorPredictable ::
 	!String
 	!String
-	!(*IWorld -> *(!MaybeErrorString (!r, !Timestamp), !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString (!r, !Timestamp), !*IWorld))
 	->
-	ROShared r
+	ROShared p r
 
 createSDS ::
 	!(Maybe BasicShareId)
-	!(*IWorld -> *(!MaybeErrorString (!r, !ChangeNotification), !*IWorld))
-	!(w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString (!r, !ChangeNotification), !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
 	->
-	RWShared r w
+	RWShared p r w
 
-read			::						!(RWShared r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
-readRegister	:: !msg					!(RWShared r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)		| registerSDSDependency msg
-write			:: !w					!(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
-writeFilterMsg	:: !w !(msg -> Bool)	!(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	| reportSDSChange msg
+read			::						!(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+readRegister	:: !msg					!(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)	| registerSDSDependency msg
+write			:: !w					!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
+writeFilterMsg	:: !w !(msg -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	| reportSDSChange msg
 
 //Dependency administration
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld

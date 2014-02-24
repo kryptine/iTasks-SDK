@@ -26,12 +26,12 @@ initInstanceMeta        :: !*IWorld -> *IWorld
 initShareRegistrations  :: !*IWorld -> *IWorld
 
 //Task instance state is accessible as shared data sources
-fullInstanceMeta        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
+fullInstanceMeta        :: RWShared Void (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
 
-taskInstanceMeta        :: !InstanceNo -> RWShared TIMeta TIMeta
-taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct
-taskInstanceValue       :: !InstanceNo -> RWShared TIValue TIValue
-taskInstanceRep         :: !InstanceNo -> RWShared TaskRep TaskRep
+taskInstanceMeta        :: !InstanceNo -> RWShared Void TIMeta TIMeta
+taskInstanceReduct		:: !InstanceNo -> RWShared Void TIReduct TIReduct
+taskInstanceValue       :: !InstanceNo -> RWShared Void TIValue TIValue
+taskInstanceRep         :: !InstanceNo -> RWShared Void TaskRep TaskRep
 
 //Save share registration index in store
 saveShareRegistrations  :: !*IWorld -> *IWorld

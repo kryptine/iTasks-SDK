@@ -20,28 +20,28 @@ SYSTEM_DATA_NS :== "SystemData"
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just defaultV)
 
-constShare :: !a -> ReadOnlyShared a
-constShare v = createReadOnlySDS (\env -> (v, env))
+constShare :: !a -> ROShared p a
+constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 null :: WriteOnlyShared a
-null = createSDS Nothing (\env -> (Ok (Void, OnWrite), env)) (\_ env -> (Ok Void, env))
+null = createSDS Nothing (\Void env -> (Ok (Void, OnWrite), env)) (\Void _ env -> (Ok Void, env))
 			
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
 where
-	read iworld=:{current={localDateTime,timestamp=Timestamp ts}}
+	read Void iworld=:{current={localDateTime,timestamp=Timestamp ts}}
 		= ((localDateTime, Timestamp (ts + 1)), iworld)
 		
 currentTime :: ReadOnlyShared Time
 currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
 where
-	read iworld=:{current={localDateTime=DateTime _ time,timestamp=Timestamp ts}}
+	read Void iworld=:{current={localDateTime=DateTime _ time,timestamp=Timestamp ts}}
 		= ((time, Timestamp (ts + 1)), iworld)
 		
 currentDate :: ReadOnlyShared Date
 currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
 where
-	read iworld=:{current={localDateTime=DateTime date time,timestamp=Timestamp ts}}
+	read Void iworld=:{current={localDateTime=DateTime date time,timestamp=Timestamp ts}}
 		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
 
 	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
@@ -49,19 +49,19 @@ where
 currentUTCDateTime :: ReadOnlyShared DateTime
 currentUTCDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDateTime" read
 where
-	read iworld=:{current={utcDateTime,timestamp=Timestamp ts}}
+	read Void iworld=:{current={utcDateTime,timestamp=Timestamp ts}}
 		= ((utcDateTime, Timestamp (ts + 1)), iworld)
 
 currentUTCTime :: ReadOnlyShared Time
 currentUTCTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCTime" read
 where
-	read iworld=:{current={utcDateTime=DateTime _ time,timestamp=Timestamp ts}}
+	read Void iworld=:{current={utcDateTime=DateTime _ time,timestamp=Timestamp ts}}
 		= ((time, Timestamp (ts + 1)), iworld)
 
 currentUTCDate :: ReadOnlyShared Date
 currentUTCDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDate" read
 where
-	read iworld=:{current={utcDateTime=DateTime date time,timestamp=Timestamp ts}}
+	read Void iworld=:{current={utcDateTime=DateTime date time,timestamp=Timestamp ts}}
 		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
 
 	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
@@ -95,10 +95,10 @@ isSession {TIMeta|instanceType=SessionInstance}	= True
 isSession _						 	            = False
 
 allTaskInstances :: ReadOnlyShared [TaskListItem Void]
-allTaskInstances = createReadOnlySDS (\iworld=:{ti} -> (map (toTaskListItem o snd) (toList ti),iworld))
+allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map (toTaskListItem o snd) (toList ti),iworld))
 
 currentUser :: ReadOnlyShared User
-currentUser = createReadOnlySDS (\iworld=:{current={user}} -> (user,iworld))
+currentUser = createReadOnlySDS (\Void iworld=:{current={user}} -> (user,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare
@@ -106,28 +106,28 @@ currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentI
 applicationName :: ReadOnlyShared String
 applicationName = createReadOnlySDS appName
 where
-	appName iworld=:{IWorld|server={serverName}} = (serverName,iworld)
+	appName Void iworld=:{IWorld|server={serverName}} = (serverName,iworld)
 
-applicationBuild:: ReadOnlyShared String
-applicationBuild  = createReadOnlySDS appBuild
+applicationBuild :: ReadOnlyShared String
+applicationBuild = createReadOnlySDS appBuild
 where
-	appBuild iworld=:{IWorld|server={buildID}} = (buildID,iworld)
+	appBuild Void iworld=:{IWorld|server={buildID}} = (buildID,iworld)
 
 applicationDirectory :: ReadOnlyShared FilePath
 applicationDirectory = createReadOnlySDS appDir
 where
-	appDir iworld=:{IWorld|server={paths={appDirectory}}} = (appDirectory,iworld)
+	appDir Void iworld=:{IWorld|server={paths={appDirectory}}} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
 applicationConfig = createReadOnlySDS config
 where
-	config iworld=:{IWorld|config} = (config,iworld)
+	config Void iworld=:{IWorld|config} = (config,iworld)
 
 // Random source
 randomInt	:: ReadOnlyShared Int
 randomInt = createReadOnlySDS randomInt
 where
-	randomInt iworld=:{IWorld|random=[i:is]}
+	randomInt Void iworld=:{IWorld|random=[i:is]}
 		= (i, {IWorld|iworld & random = is})
 
 EXTERNAL_FILE_POLLING_RATE :== 10
@@ -135,7 +135,7 @@ EXTERNAL_FILE_POLLING_RATE :== 10
 externalFile :: !FilePath -> Shared String
 externalFile path = createPollingSDS "externalFile" path read write
 where
-	read iworld
+	read Void iworld
 		# (Timestamp ts, iworld)	= 'iFU'.currentTimestamp iworld
 		# (res, iworld)				= read` iworld
 		= (fmap (\r -> (r, Timestamp (ts + EXTERNAL_FILE_POLLING_RATE), checkF r)) res, iworld)
@@ -155,7 +155,7 @@ where
 		# (Timestamp ts, iworld) = 'iFU'.currentTimestamp iworld
 		= (CheckAgain (Timestamp (ts + EXTERNAL_FILE_POLLING_RATE)), iworld)
 		
-	write content iworld=:{world}
+	write Void content iworld=:{world}
 		# (ok,file,world)			= fopen path FWriteText world
 		| not ok					= (Error (toString CannotOpen), {IWorld|iworld & world = world})
 		# file						= fwrites content file

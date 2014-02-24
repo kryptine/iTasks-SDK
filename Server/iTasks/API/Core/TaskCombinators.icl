@@ -650,7 +650,7 @@ where
 	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
 		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
-		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^, toJSONShared shared) exposedShares
+		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared Void r^ w^, toJSONShared shared) exposedShares
 		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
 		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		

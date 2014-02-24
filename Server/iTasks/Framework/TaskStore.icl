@@ -86,34 +86,34 @@ initShareRegistrations iworld
     # (mbRegistrations,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
     = {IWorld|iworld & sdsRegistrations = fromMaybe 'Data.Map'.newMap mbRegistrations}
 
-fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
+fullInstanceMeta :: RWShared Void (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
 fullInstanceMeta = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
 where
-    read iworld=:{IWorld|ti}
+    read Void iworld=:{IWorld|ti}
 		= (Ok ti, iworld)
-    write ti iworld
+    write Void ti iworld
         # iworld = {iworld & ti = ti}
         = (Ok Void,iworld)
 
 //The instance meta data is stored directly in the iworld
-taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta
+taskInstanceMeta :: !InstanceNo -> RWShared Void TIMeta TIMeta
 taskInstanceMeta instanceNo = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES (meta_store instanceNo) read write
 where
-    read iworld=:{IWorld|ti}
+    read Void iworld=:{IWorld|ti}
 		= (maybe (Error ("Could not read task instance meta of instance "+++toString instanceNo)) Ok ('Data.Map'.get instanceNo ti), iworld)
-	write meta iworld=:{IWorld|ti}
+	write Void meta iworld=:{IWorld|ti}
         # iworld = {iworld & ti = 'Data.Map'.put instanceNo meta ti}
         # iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld //Sync to disk to enable server restarts
         = (Ok Void,iworld)
 
 //The remaining instance parts are stored on disk
-taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct
+taskInstanceReduct :: !InstanceNo -> RWShared Void TIReduct TIReduct
 taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
 
-taskInstanceValue :: !InstanceNo -> RWShared TIValue TIValue
+taskInstanceValue :: !InstanceNo -> RWShared Void TIValue TIValue
 taskInstanceValue instanceNo = storeAccess NS_TASK_INSTANCES (value_store instanceNo) Nothing
 
-taskInstanceRep :: !InstanceNo -> RWShared TaskRep TaskRep
+taskInstanceRep :: !InstanceNo -> RWShared Void TaskRep TaskRep
 taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing
 
 saveShareRegistrations :: !*IWorld -> *IWorld

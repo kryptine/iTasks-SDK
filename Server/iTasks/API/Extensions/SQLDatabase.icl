@@ -14,7 +14,7 @@ sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQL
 								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> ReadWriteShared r w 
 sqlShare db name readFun writeFun = createChangeOnWriteSDS "SQLShares" name read write
 where
-	read iworld
+	read Void iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e,  iworld)
@@ -22,7 +22,7 @@ where
 				# (res,cur) = readFun cur
 				# iworld	= closeMySQLDb cur con cxt iworld
 				= (res,iworld)
-	write w iworld
+	write Void w iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
@@ -77,7 +77,7 @@ sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values)
 sqlSelectShare :: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
 sqlSelectShare db name query values = createChangeOnWriteSDS "SQLShares" name read write
 where
-	read iworld
+	read Void iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
@@ -89,7 +89,7 @@ where
 				# iworld				= closeMySQLDb cur con cxt iworld
 				= (Ok rows,iworld)
 
-    write Void iworld = (Ok Void,iworld)
+    write Void Void iworld = (Ok Void,iworld)
 		
 openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
 openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}

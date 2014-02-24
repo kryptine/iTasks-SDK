@@ -312,13 +312,12 @@ where
 	filter` _		(work,Nothing)		= filter work
 	filter` curTime	(work,Just time)	= curTime >= time && filter work
 
-
 localShare :: !TaskId -> Shared a | iTask a
 localShare taskId=:(TaskId instanceNo taskNo) = createChangeOnWriteSDS "localShare" shareKey read write
 where
 	shareKey = toString taskId
 
-	read iworld=:{current={taskInstance,localShares}}
+	read Void iworld=:{current={taskInstance,localShares}}
 		//Local share
 		| instanceNo == taskInstance
 			= case 'Data.Map'.get taskId localShares of
@@ -341,7 +340,7 @@ where
 				(Error _,iworld)
 					= (Error ("Could not read remote shared state " +++ shareKey), iworld)
 				
-	write value iworld=:{current=current=:{taskInstance,localShares}}
+	write Void value iworld=:{current=current=:{taskInstance,localShares}}
 		| instanceNo == taskInstance
 			= (Ok Void, {iworld & current = {current & localShares = 'Data.Map'.put taskId (toJSON value) localShares}})
 		| otherwise
@@ -356,8 +355,8 @@ where
 exposedShare :: !String -> ReadWriteShared r w | iTask r & iTask w & TC r & TC w
 exposedShare url = createChangeOnWriteSDS "exposedShare" url read write
 where
-	read :: !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r & JSONDecode{|*|} r
-	read iworld=:{exposedShares}
+	read :: !Void !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r & JSONDecode{|*|} r
+	read Void iworld=:{exposedShares}
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
 				= case readRemoteSDS url iworld of
@@ -370,7 +369,7 @@ where
 			Just dyn
 				= (Error ("Exposed share type mismatch: " +++ url), iworld)
 				
-	write val iworld=:{exposedShares}
+	write Void val iworld=:{exposedShares}
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
 				= writeRemoteSDS (toJSON val) url iworld
@@ -398,13 +397,13 @@ where
     applyUpdate instances _ = instances
 
 currentInstanceShare :: ReadOnlyShared InstanceNo
-currentInstanceShare = createReadOnlySDS (\iworld=:{current={taskInstance}} -> (taskInstance,iworld))
+currentInstanceShare = createReadOnlySDS (\Void iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
 parListShare :: !TaskId !TaskId -> SharedTaskList a | iTask a
 parListShare listId=:(TaskId instanceNo taskNo) entryId = createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
 where
 	shareKey = toString listId
-	read iworld=:{current={taskInstance,localLists}}
+	read Void iworld=:{current={taskInstance,localLists}}
 		| instanceNo == taskInstance		
 			= case 'Data.Map'.get listId localLists of
 				Just entries
@@ -439,7 +438,7 @@ where
 	deserialize NoValue	= NoValue
 	deserialize (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
 
-	write updates iworld
+	write Void updates iworld
         = case updateInstanceMeta updates iworld of
             (Error e,iworld) = (Error e,iworld)
             (Ok Void,iworld) = updateListReduct updates iworld

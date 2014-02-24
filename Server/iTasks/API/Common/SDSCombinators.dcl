@@ -14,26 +14,26 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 * @param A reference to shared data
 * @return A reference to shared data of another type
 */
-mapRead			:: !(r -> r`)					!(RWShared r w) -> RWShared r` w
-mapWrite		:: !(w` r -> Maybe w)			!(RWShared r w) -> RWShared r w`
-mapReadWrite	:: !(!r -> r`,!w` r -> Maybe w)	!(RWShared r w) -> RWShared r` w`
+mapRead			:: !(r -> r`)					!(RWShared p r w) -> RWShared p r` w
+mapWrite		:: !(w` r -> Maybe w)			!(RWShared p r w) -> RWShared p r w`
+mapReadWrite	:: !(!r -> r`,!w` r -> Maybe w)	!(RWShared p r w) -> RWShared p r` w`
 
-mapReadError		:: !(r -> MaybeErrorString r`)										!(RWShared r w) -> RWShared r` w
-mapWriteError		:: !(w` r -> MaybeErrorString (Maybe w))							!(RWShared r w) -> RWShared r w`
-mapReadWriteError	:: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Maybe w))	!(RWShared r w) -> RWShared r` w`
+mapReadError		:: !(r -> MaybeErrorString r`)										!(RWShared p r w) -> RWShared p r` w
+mapWriteError		:: !(w` r -> MaybeErrorString (Maybe w))							!(RWShared p r w) -> RWShared p r w`
+mapReadWriteError	:: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Maybe w))	!(RWShared p r w) -> RWShared p r` w`
 
-toReadOnly :: !(RWShared r w) -> ROShared r
+toReadOnly :: !(RWShared p r w) -> ROShared p r
 
 // Composition of two shared references.
 // The read type is a tuple of both types.
 // The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).
-(>+<) infixl 6 :: !(RWShared rx wx) !(RWShared ry wy) -> RWShared (rx,ry) (wx,wy)
-(>+|) infixl 6 :: !(RWShared rx wx) !(RWShared ry wy) -> RWShared (rx,ry) wx
-(|+<) infixl 6 :: !(RWShared rx wx) !(RWShared ry wy) -> RWShared (rx,ry) wy
-(|+|) infixl 6 :: !(RWShared rx wx) !(RWShared ry wy) -> RWShared (rx,ry) Void
+(>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy)
+(>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx
+(|+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy
+(|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) Void
 
 // Use the value of one share as parameter for another
-(>+>) infixl 6 :: !(RWShared r0 w0) !(r0 -> (RWShared r1 w1)) -> RWShared r1 w1
+(>+>) infixl 6 :: !(RWShared p r0 w0) !(r0 -> (RWShared p r1 w1)) -> RWShared p r1 w1
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
@@ -45,5 +45,5 @@ toReadOnly :: !(RWShared r w) -> ROShared r
 * @param SymmetricShared b
 * @param RWShared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared a a) !(RWShared b b) -> (!RWShared a a, !RWShared b b)
+symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b)
 
