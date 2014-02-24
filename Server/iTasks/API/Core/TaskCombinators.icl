@@ -21,7 +21,7 @@ from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWrite
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
-mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.OptimizedCoreTasks" tid)
+mkTaskIdent tid = Just (ModuleTaskName "iTasks.API.Core.OptimizedCoreTasks" tid)
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{taskInstance,nextTaskNo}}
@@ -38,18 +38,18 @@ where
 project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
 project projection share (Task tid evala) = Task tid eval
 where
-	eval event repOpts (TCDestroy (TCProject taskId encprev treea)) iworld	//Cleanup duty simply passed to inner task
+	eval event repOpts (TCDestroy (TCProject taskId _ encprev treea)) iworld	//Cleanup duty simply passed to inner task
 		= evala event repOpts (TCDestroy treea) iworld
 
 	eval event repOpts state iworld
-		# (taskId,prev,statea) = case state of
-			(TCInit taskId _)					= (taskId,NoValue,state)
-			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
+		# (taskId,mtn,prev,statea) = case state of
+			(TCInit taskId mtn _)					= (taskId,mtn,NoValue,state)
+			(TCProject taskId mtn encprev statea)	= (taskId,mtn,fromJust (fromJSON encprev),statea)
 			
 		# (resa, iworld) 	= evala event repOpts statea iworld
 		= case resa of
 			ValueResult val ts rep ncxta
-				# result = ValueResult val ts rep (TCProject taskId (toJSON val) ncxta)
+				# result = ValueResult val ts rep (TCProject taskId mtn (toJSON val) ncxta)
 				| val =!= prev
 					= projectOnShare val result iworld
 				| otherwise
@@ -70,14 +70,14 @@ where
 			Error e = (exception e, iworld)
 
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskStep a b] -> Task b | iTask a & iTask b
-step (Task tid evala) lhsValFun conts = Task tid eval
+step (Task tid evala) lhsValFun conts = Task Nothing eval
 where
-	eval event repOpts (TCInit taskId ts) iworld
+	eval event repOpts (TCInit taskId mtn ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
-		= eval event repOpts (TCStep taskId ts (Left (TCInit taskIda ts))) iworld
+		= eval event repOpts (TCStep taskId tid ts (Left (TCInit taskIda mtn ts))) iworld
 
 	//Eval left-hand side
-	eval event repOpts (TCStep taskId ts (Left treea)) iworld=:{current={taskTime}}
+	eval event repOpts (TCStep taskId mtn ts (Left treea)) iworld=:{current={taskTime}}
 		# (resa, iworld) 	= evala event repOpts treea iworld
 		# ts				= case event of
 							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
@@ -91,27 +91,27 @@ where
 				Nothing			
 					# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
-					= Left (ValueResult value info (doStepLayout taskId repOpts rep val) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
+					= Left (ValueResult value info (doStepLayout taskId repOpts rep val) (TCStep taskId mtn info.TaskInfo.lastEvent (Left ntreea)) )
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskInfo.lastEvent)
 			ExceptionResult e str = case searchContException e str conts of
 				Nothing			= Left (ExceptionResult e str)
 				Just rewrite	= Right (rewrite,Nothing, ts)		//TODO: Figure out how to garbage collect after exceptions
 		= case mbCont of
 			Left res = (res,iworld)
-			Right ((sel,Task _ evalb,d_json_a),mbTreeA, lastEvent)
+			Right ((sel,Task mtn evalb,d_json_a),mbTreeA, lastEvent)
 				//Cleanup state of left-hand side
 				# iworld	= case mbTreeA of
 					Nothing		= iworld
 					Just treea	= snd (evala (toRefresh event) repOpts (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= evalb (toRefresh event) repOpts (TCInit taskIdb lastEvent) iworld 
+				# (resb,iworld)		= evalb (toRefresh event) repOpts (TCInit taskIdb mtn lastEvent) iworld 
 				= case resb of
 					ValueResult val info rep nstateb	
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
+						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId mtn info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
 					ExceptionResult e str				= (ExceptionResult e str, iworld)
 	//Eval right-hand side
-	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{current={taskTime}}
+	eval event repOpts (TCStep taskId mtn ts (Right (enca,sel,treeb))) iworld=:{current={taskTime}}
 		# ts				= case event of
 							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
@@ -121,19 +121,19 @@ where
 				= case resb of
 					ValueResult val info rep ntreeb
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
+						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId mtn info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
 					ExceptionResult e str			= (ExceptionResult e str, iworld)
 			Nothing
 				= (exception "Corrupt task value in step", iworld)	
 	
 	//Cleanup
-	eval event repOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
+	eval event repOpts (TCDestroy (TCStep _ _ _ (Left treea))) iworld
 		= case evala event repOpts (TCDestroy treea) iworld of
 			(DestroyedResult,iworld)		= (DestroyedResult,iworld)
 			(ExceptionResult e str,iworld)	= (ExceptionResult e str,iworld)
 			(ValueResult _ _ _ _,iworld)	= (exception "Destroy failed in step",iworld)
 	
-	eval event repOpts (TCDestroy (TCStep taskId ts (Right(enca,sel,treeb)))) iworld
+	eval event repOpts (TCDestroy (TCStep _ _ _ (Right(enca,sel,treeb)))) iworld
 		= case restoreTaskB sel enca of
 			Just (Task _ evalb)	= evalb event repOpts (TCDestroy treeb) iworld
 			Nothing				= (exception "Corrupt task value in step", iworld)
@@ -206,16 +206,16 @@ parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskV
 parallel desc initTasks = Task (mkTaskIdent "parallel") eval
 where
 	//Create initial task list
-	eval event repOpts (TCInit taskId ts) iworld=:{IWorld|current=current=:{localLists}}
+	eval event repOpts (TCInit taskId mtn ts) iworld=:{IWorld|current=current=:{localLists}}
 		//Append the initial tasks to the list
 		# iworld	= foldl append {iworld & current = {current & localLists = 'Data.Map'.put taskId [] localLists}} initTasks
 		//Evaluate the parallel
-		= eval event repOpts (TCParallel taskId ts) iworld
+		= eval event repOpts (TCParallel taskId mtn ts) iworld
 	where
 		append iworld t = snd (appendTaskToList taskId t iworld)
 
 	//Evaluate the task list
-	eval event repOpts (TCParallel taskId ts) iworld=:{current={taskTime}}
+	eval event repOpts (TCParallel taskId mtn ts) iworld=:{current={taskTime}}
 		//Evaluate all parallel tasks in the list
 		= case evalParTasks taskId event repOpts iworld of
 			(Just res=:(ExceptionResult e str),_,iworld)	= (res,iworld)
@@ -239,9 +239,9 @@ where
 							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 							_						= ts
 						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,involvedUsers=involvedUsers,refreshSensitive=refreshSensitive}
-							(finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & current = {current & localLists = 'Data.Map'.put taskId (map fst entries) localLists}})
+							(finalizeRep repOpts rep) (TCParallel taskId mtn ts),{iworld & current = {current & localLists = 'Data.Map'.put taskId (map fst entries) localLists}})
 	//Cleanup
-	eval event repOpts (TCDestroy (TCParallel taskId ts)) iworld=:{current={localLists}}
+	eval event repOpts (TCDestroy (TCParallel taskId _ ts)) iworld=:{current={localLists}}
 		# entries = fromMaybe [] ('Data.Map'.get taskId localLists)
 		= case foldl destroyParTask (Nothing,iworld) entries of
 			(Nothing,iworld=:{current=current=:{localLists}}) //All destroyed
@@ -380,7 +380,7 @@ appendTaskToList taskId (parType,parTask) iworld=:{current={taskTime,user,attach
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
 			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
-	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
+	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda Nothing taskTime) // TODO TCInit taskIda Nothing -> Nothing here? Or should we parameterize this function with a ModuleTaskName?
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)	
@@ -519,18 +519,18 @@ where
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task (mkTaskIdent "workOn") eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{current={attachmentChain,user}}
+	eval event repOpts (TCInit taskId mtn ts) iworld=:{current={attachmentChain,user}}
 		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld
 		= case meta of
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
 				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (taskInstanceMeta instanceNo) iworld
 				# iworld		= queueUrgentEvaluate instanceNo iworld
-				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
+				= eval event repOpts (TCBasic taskId mtn ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult (dynamic e) e,iworld)
 		
-	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{current={taskInstance,user}}
+	eval event repOpts tree=:(TCBasic taskId _ ts _ _) iworld=:{current={taskInstance,user}}
 		//Load instance
 		# layout			= repLayoutRules repOpts
 		# (meta,iworld)		= readRegister taskInstance (taskInstanceMeta instanceNo) iworld
@@ -549,7 +549,7 @@ where
 			_
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 
-	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
+	eval event repOpts (TCDestroy (TCBasic taskId _ _ _ _)) iworld
         # (meta,iworld) = read fullInstanceMeta iworld //FIXME: Figure out how to get the right share notifications for the released instances
         = case meta of
             Ok instances
@@ -590,13 +590,13 @@ where
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task (mkTaskIdent "withShared") eval
 where	
-	eval event repOpts (TCInit taskId ts) iworld
+	eval event repOpts (TCInit taskId mtn ts) iworld
 		# (taskIda,iworld=:{current=current=:{localShares}})
                                     = getNextTaskId iworld
 		# localShares				= 'Data.Map'.put taskId (toJSON initial) localShares
-		= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & current = {current & localShares = localShares}}
+		= eval event repOpts (TCShared taskId mtn ts (TCInit taskIda mtn ts)) {iworld & current = {current & localShares = localShares}}
 		
-	eval event repOpts (TCShared taskId ts treea) iworld=:{current={taskTime}}
+	eval event repOpts (TCShared taskId mtn ts treea) iworld=:{current={taskTime}}
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
@@ -605,13 +605,13 @@ where
 		= case resa of
 			ValueResult NoValue info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult NoValue info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
+				= (ValueResult NoValue info rep (TCShared taskId mtn info.TaskInfo.lastEvent ntreea),iworld)
 			ValueResult (Value stable val) info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult (Value stable val) info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
+				= (ValueResult (Value stable val) info rep (TCShared taskId mtn info.TaskInfo.lastEvent ntreea),iworld)
 			ExceptionResult e str								= (ExceptionResult e str,iworld)
 	
-	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld //First destroy inner task, then remove shared state
+	eval event repOpts (TCDestroy (TCShared taskId _ ts treea)) iworld //First destroy inner task, then remove shared state
 		# (Task _ evala)					= stask (localShare taskId)
 		# (resa,iworld=:{current=current=:{localShares}})
             = evala event repOpts (TCDestroy treea) iworld
@@ -625,14 +625,14 @@ import StdDebug
 exposeShared :: !(ReadWriteShared r w) !(String (ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
 exposeShared shared stask = Task (mkTaskIdent "exposeShared") eval
 where	
-	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
+	eval event repOpts (TCInit taskId mtn ts) iworld=:{exposedShares}
 		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
 		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^, toJSONShared shared) exposedShares
 		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
-		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
+		= eval event repOpts (TCExposedShared taskId mtn ts url (TCInit taskIda mtn ts)) {iworld & exposedShares = exposedShares}
 		
-	eval event repOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}
+	eval event repOpts (TCExposedShared taskId mtn ts url treea) iworld=:{current={taskTime}}
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
@@ -641,11 +641,11 @@ where
 		= case resa of
 			ValueResult value info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult value info rep (TCExposedShared taskId info.TaskInfo.lastEvent url ntreea),iworld)
+				= (ValueResult value info rep (TCExposedShared taskId mtn info.TaskInfo.lastEvent url ntreea),iworld)
 			ExceptionResult e str					
 				= (ExceptionResult e str,iworld)
 	
-	eval event repOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
+	eval event repOpts (TCDestroy (TCExposedShared taskId _ ts url treea)) iworld //First destroy inner task, then remove shared state
 		# (Task _ evala)				= stask url (exposedShare url)
 		# (resa,iworld)					= evala event repOpts (TCDestroy treea) iworld
 		= (resa,{iworld & exposedShares = 'Data.Map'.del url iworld.exposedShares})
@@ -709,6 +709,25 @@ where
 				(ValueResult value info rep tree,iworld) = (ValueResult value {TaskInfo|info&refreshSensitive=False} rep tree, iworld)
 				(res,iworld) = (res,iworld)
 
-instance tune TaskIdentifier
+instance tune ModuleTaskName
 where
-  tune tid (Task _ eval) = Task (Just tid) eval
+  tune mtn (Task _ eval) = Task (Just mtn) eval`
+    where
+      eval` event repOpts state iworld
+        = eval event repOpts (annotTaskTree state) iworld
+      justMtn = Just mtn
+      annotTaskTree (TCInit                  tid _ ttime)         = TCInit tid justMtn ttime
+      annotTaskTree (TCBasic                 tid _ ttime json1 b) = TCBasic tid justMtn ttime json1 b
+      annotTaskTree (TCInteract              tid _ ttime json1 json2 json3 imask) = TCInteract tid justMtn ttime json1 json2 json3 imask
+      annotTaskTree (TCInteractLocal         tid _ ttime json1 json2       imask) = TCInteractLocal tid justMtn ttime json1 json2 imask
+      annotTaskTree (TCInteractViewOnly      tid _ ttime json1 json2       imask) = TCInteractViewOnly tid justMtn ttime json1 json2 imask
+      annotTaskTree (TCInteractLocalViewOnly tid _ ttime json1             imask) = TCInteractLocalViewOnly tid justMtn ttime json1 imask
+      annotTaskTree (TCInteract1             tid _ ttime json1             imask) = TCInteract1 tid justMtn ttime json1 imask
+      annotTaskTree (TCInteract2             tid _ ttime json1 json2       imask) = TCInteract2 tid justMtn ttime json1 json2 imask
+      annotTaskTree (TCProject               tid _       json1 ttree) = TCProject tid justMtn json1 ttree
+      annotTaskTree (TCStep                  tid _ ttime ettj) = TCStep tid justMtn ttime ettj
+      annotTaskTree (TCParallel              tid _ ttime)      = TCParallel tid justMtn ttime
+      annotTaskTree (TCShared                tid _ ttime       ttree) = TCShared tid justMtn ttime ttree
+      annotTaskTree (TCExposedShared         tid _ ttime str   ttree) = TCExposedShared tid justMtn ttime str ttree
+      annotTaskTree (TCStable                tid _ ttime djson) = TCStable tid justMtn ttime djson
+      annotTaskTree x = x

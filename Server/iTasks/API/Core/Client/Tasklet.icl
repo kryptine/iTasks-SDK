@@ -14,7 +14,7 @@ from Data.Map import newMap
 
 :: EventQueue :== Void
 
-mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.Client.Tasklet" tid)
+mkTaskIdent tid = Just (ModuleTaskName "iTasks.API.Core.Client.Tasklet" tid)
 
 //---------------------------------------------------------------------------------------
 
@@ -58,10 +58,10 @@ where
 //		= (ValueResult NoValue (taskInfo ts) norep context, printlnI ("init, no session id") iworld)
 
 	// Init
-	taskFunc event taskRepOpts (TCInit taskId ts) iworld
+	taskFunc event taskRepOpts (TCInit taskId mtn ts) iworld
 		# (rep, st, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 		# res = tasklet.Tasklet.resultFunc st
-		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts (toJSON res) False)
+		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId mtn ts (toJSON res) False)
 		= (result, printlnI ("init") iworld) 
 
 	// Refresh: no session id
@@ -69,7 +69,7 @@ where
 //		= (ValueResult NoValue (taskInfo ts) norep context, printlnI ("refresh, no session id") iworld)
 
 	// Refresh: server restart. anything else?
-	taskFunc (RefreshEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (RefreshEvent _) taskRepOpts context=:(TCBasic taskId _ ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 
 		//No! because state and value will be out of sync!
@@ -80,32 +80,32 @@ where
 		= (result, printlnI "refresh" iworld)
 
 	// Focus: tab switch. anything else?
-	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCBasic taskId _ ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld	
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) rep context
 		= (result, printlnI "focus" iworld)
  
 	// Edit: "result"
-	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId mtn ts _ _) iworld
 		| targetTaskId == taskId
 			# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld			
 			# res = fromJust (fromJSON (jsonRes))
-			# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+			# result = ValueResult res (taskInfo ts) rep (TCBasic taskId mtn ts jsonRes False)
 			= (result, printlnI "result" iworld) 
  
 	// Edit: "finalize"
-	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId _ _ _ _) iworld
 		| targetTaskId == taskId	
 			# res = fromJust (fromJSON (jsonRes))
 			# result = DestroyedResult
 			= (result, printlnI "finalize" iworld)  
  
 	// Commit
-	taskFunc event taskRepOpts (TCBasic taskId ts jsonRes _) iworld
+	taskFunc event taskRepOpts (TCBasic taskId mtn ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId mtn ts jsonRes False)
 		= (result, printlnI "commit" iworld)
 
 	// Destroy

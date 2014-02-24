@@ -135,21 +135,21 @@ userColour user = userColour` user % (0, 6)
   userColour` SystemUser                  = "ccffcc"
   userColour` (AuthenticatedUser uid _ _) = md5 uid
 
-tracesForUserInstance :: User InstanceNo UserTraceMap -> [TonicTrace]
-tracesForUserInstance user instanceNo userInstanceTraceMap =
+tracesForUserTaskId :: User TaskId UserTraceMap -> [TonicTrace]
+tracesForUserTaskId user taskid userInstanceTraceMap =
   case 'DM'.get user userInstanceTraceMap of
     Just instanceTraceMap ->
-      case 'DM'.get instanceNo instanceTraceMap of
+      case 'DM'.get taskid instanceTraceMap of
         Just traces -> traces
         _           -> []
     _ -> []
 
-activeUserTracesMap :: UserTraceMap [InstanceNo] -> Map User [TonicTrace]
+activeUserTracesMap :: UserTraceMap [TaskId] -> Map User [TonicTrace]
 activeUserTracesMap utmap activeInstanceNos = 'DM'.foldrWithKey f 'DM'.newMap utmap
   where
   f user instanceTraceMap userTraceMap = 'DM'.put user (flatten [traces \\ Just traces <- ['DM'.get ino instanceTraceMap \\ ino <- activeInstanceNos]]) userTraceMap
 
-activeUserTraces :: UserTraceMap [InstanceNo] -> [TonicTrace]
+activeUserTraces :: UserTraceMap [TaskId] -> [TonicTrace]
 activeUserTraces utmap activeInstanceNos = 'DM'.foldrWithKey f [] utmap
   where
   f user instanceTraceMap traces = flatten [traces \\ Just traces <- ['DM'.get ino instanceTraceMap \\ ino <- activeInstanceNos]] ++ traces
@@ -213,70 +213,42 @@ isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
 isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo} world
   | 'DM'.empty traces = (False, world)
   | otherwise
-      = case tracesForUserInstance user instanceNo traces of
+      = case tracesForUserTaskId user instanceNo traces of
           [] -> (False, world)
-          xs -> (isActiveNode` xs, world)
-  where
-  isActiveNode` [] = False
-  isActiveNode` traces=:[_:_]
-    # tuneInfo = getNonBindTrace traces
-    //# world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
-                            //toString tuneInfo.moduleName  +++
-                            //toString tuneInfo.taskName    +++
-                            //toString tuneInfo.entryUniqId +++
-                            //toString tuneInfo.exitUniqId
-                           //) world)
-                          //(jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
-                       //toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
-                       //toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
-                       //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
-                       //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
-                      //) world)
-    = not tuneInfo.isBind &&
-      renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
-      renderingNode.tonicTaskName    == tuneInfo.taskName    &&
-      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
-      renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
+          xs -> (isActiveNode` renderingNode xs, world)
 isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
   | 'DM'.empty traces = (False, world)
   | otherwise
       = case activeUserTraces traces instanceNos of
           [] -> (False, world)
-          xs -> (isActiveNode` xs, world)
-  where
-  isActiveNode` [] = False
-  isActiveNode` traces=:[_:_]
-    # tuneInfo = getNonBindTrace traces
-    //# world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
-                            //toString tuneInfo.moduleName  +++
-                            //toString tuneInfo.taskName    +++
-                            //toString tuneInfo.entryUniqId +++
-                            //toString tuneInfo.exitUniqId
-                           //) world)
-                          //(jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
-                       //toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
-                       //toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
-                       //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
-                       //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
-                      //) world)
-    = not tuneInfo.isBind &&
-      renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
-      renderingNode.tonicTaskName    == tuneInfo.taskName    &&
-      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
-      renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
+          xs -> (isActiveNode` renderingNode xs, world)
 isActiveNode _ _ world = (False, world)
 
-getNonBindTrace []     = abort "getNonBindTrace: should not happen"
+isActiveNode` _ [] = False
+isActiveNode` renderingNode traces
+  # tuneInfo = getNonBindTrace traces
+  = not tuneInfo.tiIsBind &&
+    renderingNode.tiModuleName  == tuneInfo.tiModuleName  &&
+    renderingNode.tiTaskName    == tuneInfo.tiTaskName    &&
+    compTonicIdent renderingNode tuneInfo
+  where
+  compTonicIdent {tiIdent=TEntryExitIds rEntry rExit} {tiIdent=TEntryExitIds iEntry iExit} =
+    rEntry >= iEntry && rExit  <= iExit
+  compTonicIdent {tiIdent=TTaskId rino rtno} {tiIdent=TTaskId iino itno} =
+    rino == iino && rtno == itno
+  compTonicIdent _ _ = False
+
+getNonBindTrace []    = abort "getNonBindTrace: should not happen"
 getNonBindTrace [{tuneInfo}:xs]
-  | tuneInfo.isBind = getNonBindTrace xs
-  | otherwise       = tuneInfo
+  | tuneInfo.tiIsBind = getNonBindTrace xs
+  | otherwise         = tuneInfo
 
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
 
 drawNode :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
 drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
-  # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
+  # singleUserMap = 'DM'.singleton user (tracesForUserTaskId user instanceNo traces)
   = drawNode_ traces singleUserMap shape graph u root world
 drawNode (Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
   = drawNode_ traces (activeUserTracesMap traces instanceNos) shape graph u root world
@@ -488,6 +460,12 @@ drawNode_ allTraces userTracesMap shape graph u root world
     # (args`, world)    = selectAllChildElems args "tspan" world
     # (args`, world)    = setAttr "x" (toJSVal (0.0 - (tw / 2.0))) args` world
     = world
+  drawNode` {nodeType=GVar cexpr, nodeTonicInfo}    _ _ root world
+    # (g, world)   = append "g" root world
+    # (g, world)   = setAttr "class" (toJSVal "tonic-var") g world
+    # (var, world) = append "text" g world
+    # (var, world) = setText cexpr var world
+    = world
   drawNode` _                       _ _ _    world = world
 
 getBBox root world
@@ -499,7 +477,7 @@ getBBox root world
 
 drawEdgeLabel :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
 drawEdgeLabel (Just {traces, renderMode=SingleUser user instanceNo}) {edge_pattern} _ (fromIdx, toIdx) root world
-  # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
+  # singleUserMap = 'DM'.singleton user (tracesForUserTaskId user instanceNo traces)
   = drawEdgeLabel` traces singleUserMap edge_pattern (fromIdx, toIdx) root world
 drawEdgeLabel (Just {traces, renderMode=MultiUser instanceNos}) {edge_pattern} _ (fromIdx, toIdx) root world
   = drawEdgeLabel` traces (activeUserTracesMap traces instanceNos) edge_pattern (fromIdx, toIdx) root world
@@ -539,7 +517,7 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
   f user traces ((patsGrp, n), world)
     # mTuneInfo = edgeInTraces fromIdx toIdx user traces
     = case mTuneInfo of
-        Just {entryUniqId, exitUniqId, valAsStr}
+        Just {tiValAsStr}
           # (box, world)   = append (toString Rect) patsGrp world
           # (box, world)   = setAttr "x" (toJSVal (toString n +++ "em")) box world
           # (box, world)   = setAttr "y" (toJSVal "-0.5em") box world
@@ -547,15 +525,19 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
           # (box, world)   = setAttr "height" (toJSVal "1em") box world
           # (box, world)   = setAttr "width" (toJSVal "1em") box world
           # (title, world) = append "title" box world
-          # (_, world)     = setText (maybe "" (\ms -> toString user +++ ": " +++ ms) valAsStr) title world
+          # (_, world)     = setText (maybe "" (\ms -> toString user +++ ": " +++ ms) tiValAsStr) title world
           = ((patsGrp, n + 1.2), world)
         _ = ((patsGrp, n), world)
 
 edgeInTraces _ _ _ [] = Nothing
-edgeInTraces fromIdx toIdx user [{tuneInfo=ti=:{entryUniqId,exitUniqId,valAsStr}, traceUser}:xs]
-  | traceUser   == user    &&
-    entryUniqId == fromIdx &&
-    exitUniqId  == toIdx
+edgeInTraces fromIdx toIdx user [{tuneInfo=ti=:{tiIdent=TEntryExitIds enter exit, tiValAsStr}, traceUser}:xs]
+  | traceUser     == user    &&
+    enter == fromIdx &&
+    exit  == toIdx
     = Just ti
   | otherwise = edgeInTraces fromIdx toIdx user xs
+// TODO Do we need this? Probably only if we want to dynamically read the binds
+//edgeInTraces fromIdx toIdx user [{tuneInfo=ti=:{tiIdent=TInstanceNo ino, tiValAsStr}, traceUser}:xs]
+edgeInTraces fromIdx toIdx user [_:xs]
+  = edgeInTraces fromIdx toIdx user xs
 

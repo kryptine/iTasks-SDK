@@ -14,21 +14,21 @@ from iTasks.API.Core.SDSs		    import topLevelTasks
 from Data.Map						import qualified get
 from Data.Map						import newMap, put
 
-mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.OptimizedCoreTasks" tid)
+mkTaskIdent tid = Just (ModuleTaskName "iTasks.API.Core.OptimizedCoreTasks" tid)
 
 interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
                         -> Task (l,v) | descr d & iTask l & iTask r & iTask v
 interactExposed desc shared initFun refreshFun = Task (mkTaskIdent "interactExposed") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
 				# (l,(v,mask))	= initFun r
-				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				= eval event repOpts (TCInteract taskId mtn ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
+	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) mtn ts encl encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
@@ -47,7 +47,7 @@ where
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep)
-			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+			(TCInteract taskId mtn nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -55,11 +55,11 @@ interactLocalExposed :: !d (l,(v,InteractionMask)) (l (v,InteractionMask) Bool -
                         -> Task (l,v) | descr d & iTask l & iTask v
 interactLocalExposed desc initVal refreshFun = Task (mkTaskIdent "interactLocalExposed") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (l,(v,mask))	= initVal
-		= eval event repOpts (TCInteractLocal taskId ts (toJSON l) (toJSON v) mask) iworld
+		= eval event repOpts (TCInteractLocal taskId mtn ts (toJSON l) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteractLocal taskId=:(TaskId instanceNo _) ts encl encv mask) iworld=:{current={taskTime}}
+	eval event repOpts (TCInteractLocal taskId=:(TaskId instanceNo _) mtn ts encl encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,v)				    = (fromJust (fromJSON encl), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
@@ -73,7 +73,7 @@ where
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep)
-			(TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nmask), iworld)
+			(TCInteractLocal taskId mtn nts (toJSON nl) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -81,15 +81,15 @@ interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,Inte
                         -> Task v | descr d & iTask r & iTask v
 interactViewOnly desc shared initFun refreshFun = Task (mkTaskIdent "interactViewOnly") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
 				# (v,mask)	= initFun r
-				= eval event repOpts (TCInteractViewOnly taskId ts (toJSON r) (toJSON v) mask) iworld
+				= eval event repOpts (TCInteractViewOnly taskId mtn ts (toJSON r) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteractViewOnly taskId=:(TaskId instanceNo _) ts encr encv mask) iworld=:{current={taskTime}}
+	eval event repOpts (TCInteractViewOnly taskId=:(TaskId instanceNo _) mtn ts encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (r,v)				    = (fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable
@@ -108,7 +108,7 @@ where
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nv) iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep)
-			(TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nmask), iworld)
+			(TCInteractViewOnly taskId mtn nts (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -117,11 +117,11 @@ interactLocalViewOnly :: !d (v,InteractionMask) ((v,InteractionMask) Bool -> (v,
                         -> Task v | descr d & iTask v
 interactLocalViewOnly desc initVal refreshFun = Task (mkTaskIdent "interactLocalViewOnly") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (v,mask)	= initVal
-		= eval event repOpts (TCInteractLocalViewOnly taskId ts (toJSON v) mask) iworld
+		= eval event repOpts (TCInteractLocalViewOnly taskId mtn ts (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteractLocalViewOnly taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{current={taskTime}}
+	eval event repOpts (TCInteractLocalViewOnly taskId=:(TaskId instanceNo _) mtn ts encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# v				        = fromJust (fromJSON encv)
 		//Determine next v by applying edit event if applicable
@@ -135,7 +135,7 @@ where
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nv) iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep)
-			(TCInteractLocalViewOnly taskId nts (toJSON nv) nmask), iworld)
+			(TCInteractLocalViewOnly taskId mtn nts (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -229,15 +229,15 @@ where
 interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v
 interactSharedInformation desc shared toView = Task (mkTaskIdent "interactSharedInformation") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e,iworld)
 			Ok r
 				# v = toView r
 				# (l,v,mask) = (r,v,Touched)
-				= eval event repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{current={taskTime}}
+				= eval event repOpts (TCInteract2 taskId mtn ts (toJSON l) (toJSON r) mask) iworld
+	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) mtn ts encl encr mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  r = fromJust (fromJSON encr)
@@ -256,7 +256,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep) (TCInteract2 taskId mtn nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun r
@@ -266,11 +266,11 @@ where
 interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v & iTask l
 interactNullEnter desc initFun fromf = Task (mkTaskIdent "interactNullEnter") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# v = initFun
 		# mask = Untouched
-		= eval event repOpts (TCInteract1 taskId ts (toJSON v) mask) iworld
-	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{current={taskTime}}
+		= eval event repOpts (TCInteract1 taskId mtn ts (toJSON v) mask) iworld
+	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) mtn ts encv mask) iworld=:{current={taskTime}}
 		//Decode stored value
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
@@ -284,7 +284,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId mtn nts (toJSON nv) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -295,12 +295,12 @@ where
 interactNullUpdate :: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v
 interactNullUpdate desc tof fromf m = Task (mkTaskIdent "interactNullUpdate") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# v = tof m
 		  l = m
 		  mask = Touched
-		= eval event repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
-	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{current={taskTime}}
+		= eval event repOpts (TCInteract1 taskId mtn ts (toJSON l) mask) iworld
+	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) mtn ts encl mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
@@ -314,7 +314,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId mtn nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -327,12 +327,12 @@ where
 interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v
 interactNullView desc tof m = Task (mkTaskIdent "interactNullView") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# l = m
 		  v = Display (tof l)
 		  mask = Touched
-		= eval event repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
-	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{current={taskTime}}
+		= eval event repOpts (TCInteract1 taskId mtn ts (toJSON l) mask) iworld
+	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) mtn ts encl mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  v = Display (tof l)
@@ -343,7 +343,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts rep) (TCInteract1 taskId mtn nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent (EditEvent _ taskId name value) matchId taskTime v mask ts iworld

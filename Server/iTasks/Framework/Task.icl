@@ -13,11 +13,11 @@ from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSON
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task Nothing (evalOnce iworldfun)
 where
-	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
+	evalOnce f _ repOpts (TCInit taskId mtn ts) iworld = case f taskId iworld of	
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId mtn ts (DeferredJSON a)), iworld)
 		(Error (e,s), iworld)					= (ExceptionResult e s, iworld)
 
-	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+	evalOnce f _ repOpts state=:(TCStable taskId _ ts enc) iworld = case fromJSONOfDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
 		Nothing	= (exception "Corrupt task result", iworld)
 

@@ -64,7 +64,7 @@ createMeta instanceNo instanceKey instanceType listId name mmeta pmeta
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
-	= {TIReduct|task=toJSONTask task,tree=TCInit (TaskId instanceNo 0) 1,nextTaskNo=2,nextTaskTime=1,lastEventNo=0,shares = 'Data.Map'.newMap, lists = 'Data.Map'.newMap, tasks= 'Data.Map'.newMap}
+	= {TIReduct|task=toJSONTask task,tree=TCInit (TaskId instanceNo 0) Nothing 1,nextTaskNo=2,nextTaskTime=1,lastEventNo=0,shares = 'Data.Map'.newMap, lists = 'Data.Map'.newMap, tasks= 'Data.Map'.newMap} // TODO TCInit .. Nothing -> Nothing here?
 where
 	toJSONTask (Task tid eval) = Task tid eval`
 	where
@@ -239,17 +239,17 @@ where
 	inEntry searchId {TaskListEntry|lastEval=ValueResult _ _ _ tree} = inTree searchId tree
 	inEntry _ _ = False
 
-	inTree searchId (TCInit taskId _) = searchId == taskId
-	inTree searchId (TCBasic taskId _ _ _) = searchId == taskId
-	inTree searchId (TCInteract taskId _ _ _ _ _) = searchId == taskId
-	inTree searchId (TCInteract1 taskId _ _ _) = searchId == taskId
-	inTree searchId (TCInteract2 taskId _ _ _ _) = searchId == taskId
-	inTree searchId (TCProject taskId _ tree) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStep taskId _ (Left tree)) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStep taskId _ (Right (_,_,tree))) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCParallel taskId _) = searchId == taskId
-	inTree searchId (TCShared taskId _ tree) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStable taskId _ _) = searchId == taskId
+	inTree searchId (TCInit taskId _ _) = searchId == taskId
+	inTree searchId (TCBasic taskId _ _ _ _) = searchId == taskId
+	inTree searchId (TCInteract taskId _ _ _ _ _ _) = searchId == taskId
+	inTree searchId (TCInteract1 taskId _ _ _ _) = searchId == taskId
+	inTree searchId (TCInteract2 taskId _ _ _ _ _) = searchId == taskId
+	inTree searchId (TCProject taskId _ _ tree) = searchId == taskId || inTree searchId tree
+	inTree searchId (TCStep taskId _ _ (Left tree)) = searchId == taskId || inTree searchId tree
+	inTree searchId (TCStep taskId _ _ (Right (_,_,tree))) = searchId == taskId || inTree searchId tree
+	inTree searchId (TCParallel taskId _ _) = searchId == taskId
+	inTree searchId (TCShared taskId _ _ tree) = searchId == taskId || inTree searchId tree
+	inTree searchId (TCStable taskId _ _ _) = searchId == taskId
 	inTree searchId _ = False
 
 queueWork :: !(!Work, !Maybe Timestamp) !*IWorld -> *IWorld

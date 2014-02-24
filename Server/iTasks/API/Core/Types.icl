@@ -1140,6 +1140,9 @@ wrapperUpdate fx get set target upd (val,mask) iworld
 verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
 verifyDisplay fx options mv = alwaysValid mv
 
+derive class iTask ModuleTaskName
+derive gLexOrd ModuleTaskName
+
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint
 derive gDefault			Hidden, Display, Editable, VisualizationHint

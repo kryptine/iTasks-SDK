@@ -156,4 +156,4 @@ instance tunev  SetValueAttribute a     //Set a meta attribute based on the curr
 *  Fine tune evaluation behaviour
 */
 instance tune	LazyRefresh
-instance tune TaskIdentifier
+instance tune ModuleTaskName

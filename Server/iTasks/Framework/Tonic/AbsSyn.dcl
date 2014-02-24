@@ -8,19 +8,21 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo,
+  TonicIdent
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo,
+  TonicIdent
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo,
+  TonicIdent
 
 :: TonicModule =
   { tm_name  :: String
-  //, tm_tasks :: Map String GinGraph
   , tm_tasks :: Map String TonicTask
   }
 
@@ -44,12 +46,16 @@ derive gEq
   , nodeTonicInfo :: Maybe TonicInfo
   }
 
+:: TonicIdent
+  = TEntryExitIds Int Int
+  | TTaskId Int Int
+
 :: TonicInfo =
-  { tonicModuleName  :: String
-  , tonicTaskName    :: String
-  , tonicEntryUniqId :: Int
-  , tonicExitUniqId  :: Int
-  , tonicValAsStr    :: Maybe String
+  { tiModuleName   :: String
+  , tiTaskName     :: String
+  , tiValAsStr     :: Maybe String
+  , tiIsBind       :: Bool
+  , tiIdent        :: TonicIdent
   }
 
 mkGNode :: GNodeType -> GNode
@@ -69,6 +75,7 @@ mkGNode :: GNodeType -> GNode
   |  GStep
   |  GStop
   |  GTaskApp GIdentifier ![GExpression]
+  |  GVar GCleanExpression
 
 :: GJoinType
   =  DisFirstBin
@@ -106,3 +113,17 @@ mkGNode :: GNodeType -> GNode
 :: CEType
   = ParComp
   | SeqComp
+
+//:: TonicSyn
+  //=  TaskApp Taskname [Arg]
+  //|  Parallel ParallelType TonicSyn
+  //|  Bind (Maybe Varname) TonicSyn TonicSyn
+  //|  Assign Varname TonicSyn
+  //|  TIf CleanCode TonicSyn TonicSyn
+  //|  TCase CleanCode [(CleanCode, TonicSyn)]
+  //|  TLet // TODO
+  //|  TListCompr // TODO
+  //|  TReturn TonicSyn
+  //|  TStep // TODO
+  //|  TList [TonicSyn]
+  //|  TVar Varname

@@ -12,13 +12,13 @@ from iTasks.API.Extensions.Tonic.Toniclet import :: GraphletRenderer
   }
 
 :: RenderMode
-  =  SingleUser User InstanceNo
-  |  MultiUser [InstanceNo]
+  =  SingleUser User TaskId
+  |  MultiUser [TaskId]
 
 derive class iTask TonicState, RenderMode
 
 tonicRenderer :: GraphletRenderer GNode GEdge
 
-tracesForUserInstance :: User InstanceNo UserTraceMap -> [TonicTrace]
+tracesForUserTaskId :: User TaskId UserTraceMap -> [TonicTrace]
 
-activeUserTracesMap :: UserTraceMap [InstanceNo] -> Map User [TonicTrace]
+activeUserTracesMap :: UserTraceMap [TaskId] -> Map User [TonicTrace]

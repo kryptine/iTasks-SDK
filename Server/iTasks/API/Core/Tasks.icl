@@ -18,7 +18,7 @@ from TCPChannels                import instance toString IPAddress
 from TCPChannels                import class closeRChannel(..), instance closeRChannel TCP_RChannel_
 from TCPChannelClass            import :: DuplexChannel(..), closeChannel
 
-mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.Tasks" tid)
+mkTaskIdent tid = Just (ModuleTaskName "iTasks.API.Core.Tasks" tid)
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -61,11 +61,11 @@ where
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task (mkTaskIdent "watch") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister instanceNo shared iworld
 		# res = case val of
 			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
-				(finalizeRep repOpts NoRep) (TCInit taskId ts)
+				(finalizeRep repOpts NoRep) (TCInit taskId mtn ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -75,15 +75,15 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,Intera
 			-> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun = Task (mkTaskIdent "interact") eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) mtn ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error e		= (exception e, iworld)
 			Ok r
 				# (l,(v,mask))	= initFun r
-				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				= eval event repOpts (TCInteract taskId mtn ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
+	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) mtn ts encl encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
@@ -102,7 +102,7 @@ where
 		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc (visualizeAsLabel nl) iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
 		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep)
-			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+			(TCInteract taskId mtn nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -126,7 +126,7 @@ where
 tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> Task l | iTask l & iTask r
 tcpconnect host port shared initFun commFun = Task (mkTaskIdent "tcpconnect") eval
 where
-	eval event repOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
+	eval event repOpts tree=:(TCInit taskId mtn ts) iworld=:{IWorld|io={done,todo},world}
         //Connect
         # (mbIP,world) = lookupIPAddress host world
         | mbIP =: Nothing
@@ -145,13 +145,13 @@ where
                 | close
  		            # world = closeRChannel rChannel world
                     # world = closeChannel sChannel world
-                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId mtn ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
                 | otherwise
                     //Add connection task to todo queue
                     # todo = todo ++ [ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} task state]
-                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId mtn ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
 
-    eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioValues}
+    eval event repOpts tree=:(TCBasic taskId _ ts _ _) iworld=:{ioValues}
         = case 'Data.Map'.get taskId ioValues of
             Nothing
                 = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
@@ -163,7 +163,7 @@ where
                 # e = "Corrupt IO task result"
                 = (ExceptionResult (dynamic e) e,iworld)
 
-    eval event repOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioValues}
+    eval event repOpts tree=:(TCDestroy (TCBasic taskId _ _ _ _)) iworld=:{ioValues}
         # iworld = {iworld & ioValues = 'Data.Map'.del taskId ioValues}
         = (DestroyedResult,iworld)
 

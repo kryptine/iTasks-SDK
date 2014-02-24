@@ -25,7 +25,7 @@ from StdFunc			import o
 derive JSONEncode ProcessHandle
 derive JSONDecode ProcessHandle
 
-mkTaskIdent tid = Just (TaskIdentifier "iTasks.API.Core.IntegrationTasks" tid)
+mkTaskIdent tid = Just (ModuleTaskName "iTasks.API.Core.IntegrationTasks" tid)
 
 instance toString (OSErrorCode,String)
 where
@@ -43,15 +43,15 @@ callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePa
 callProcess desc opts cmd args dir = Task (mkTaskIdent "callProcess") eval
 where
     //Start the process
-    eval event repOpts (TCInit taskId ts) iworld=:{IWorld|world}
+    eval event repOpts (TCInit taskId mtn ts) iworld=:{IWorld|world}
         //Call the external process
         # (res,world) = 'System.Process'.runProcess cmd args dir world
         = case res of
 			Error e	= (ExceptionResult (dynamic e) (snd e), {IWorld|iworld & world = world})
 			Ok handle
-		        = eval event repOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
+		        = eval event repOpts (TCBasic taskId mtn ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
-	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={taskInstance}}
+	eval event repOpts state=:(TCBasic taskId mtn lastEvent encv stable) iworld=:{IWorld|world,current={taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
             # (rep,iworld)  = makeRep taskId repOpts status iworld
@@ -65,7 +65,7 @@ where
 			    Error e	= (ExceptionResult (dynamic e) (snd e), {IWorld|iworld & world = world})
                 Ok mbExitCode
                     # (status,stable,state) = case mbExitCode of
-                        Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
+                        Just c  = (CompletedProcess c,True, TCBasic taskId mtn lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
                     # (rep,iworld)  = makeRep taskId repOpts status {IWorld|iworld & world = world}
                     # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
@@ -271,17 +271,17 @@ httpDownloadDocumentTo url path
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task (mkTaskIdent "withTemporaryDirectory") eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
+	eval event repOpts (TCInit taskId mtn ts) iworld=:{server={buildID,paths={dataDirectory}}}
 		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
 		# (mbErr,world)		= createDirectory tmpdir world
 		= case mbErr of
 			Ok Void
-				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
+				= eval event repOpts (TCShared taskId mtn ts (TCInit taskIda mtn ts)) {iworld & world = world}
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
 
-	eval event repOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
+	eval event repOpts (TCShared taskId mtn ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
 		# tmpdir 					= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (exception (fromError mbCurdir), {IWorld|iworld & world = world})
@@ -297,10 +297,10 @@ where
 		= case resa of
 			ValueResult value info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
+				= (ValueResult value info rep (TCShared taskId mtn info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
 			ExceptionResult e str = (ExceptionResult e str,{IWorld|iworld & world = world})
 	
-	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
+	eval event repOpts (TCDestroy (TCShared taskId _ ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
 		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
 		# (Task _ evala)	= taskfun tmpdir
 		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld

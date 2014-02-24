@@ -27,6 +27,7 @@ from GenEq import generic gEq
 from Data.Map 				import :: Map
 from Data.Map 				import qualified get
 from Text.HTML 				import class html
+from GenLexOrd import generic gLexOrd, :: LexOrd
 from System.Time				import :: Timestamp
 from iTasks.Framework.IWorld			import :: IWorld
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControlStack, :: UIAnnotatedControls, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
@@ -351,7 +352,7 @@ derive gVerify			Hidden, Display, Editable, VisualizationHint
 
 //* Task results
 :: TaskValue a		= NoValue				
-					| Value !a !Stability 
+					| Value !a !Stability
 
 StableValue   a :== Value a True
 UnstableValue a :== Value a False
@@ -369,6 +370,13 @@ instance Functor TaskValue
 :: InstanceNo	:== Int
 :: TaskNo		:== Int
 :: InstanceKey  :== String
+
+:: ModuleTaskName = ModuleTaskName !ModuleName !TaskName
+:: ModuleName     :== String
+:: TaskName       :== String
+
+derive class iTask ModuleTaskName
+derive gLexOrd ModuleTaskName
 
 :: SessionId	:== String
 

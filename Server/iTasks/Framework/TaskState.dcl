@@ -42,20 +42,20 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
    | TIException !Dynamic !String
 
 :: TaskTree
-	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
-	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
-	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
-	| TCInteractLocal	        !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCInteractViewOnly	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCInteractLocalViewOnly   !TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract1				!TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCProject					!TaskId !JSONNode !TaskTree
-	| TCStep					!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
-	| TCParallel				!TaskId !TaskTime
-	| TCShared					!TaskId !TaskTime !TaskTree
-	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL
-	| TCStable					!TaskId !TaskTime !DeferredJSON
+	= TCInit		            !TaskId !(Maybe ModuleTaskName) !TaskTime													//Initial state for all tasks
+	| TCBasic		            !TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
+	| TCInteract	            !TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
+	| TCInteractLocal	        !TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCInteractViewOnly	    !TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCInteractLocalViewOnly   !TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !InteractionMask
+	| TCInteract1				!TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !InteractionMask
+	| TCInteract2				!TaskId !(Maybe ModuleTaskName) !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCProject					!TaskId !(Maybe ModuleTaskName) !JSONNode !TaskTree
+	| TCStep					!TaskId !(Maybe ModuleTaskName) !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
+	| TCParallel				!TaskId !(Maybe ModuleTaskName) !TaskTime
+	| TCShared					!TaskId !(Maybe ModuleTaskName) !TaskTime !TaskTree
+	| TCExposedShared			!TaskId !(Maybe ModuleTaskName) !TaskTime !String !TaskTree	// +URL
+	| TCStable					!TaskId !(Maybe ModuleTaskName) !TaskTime !DeferredJSON
 	| TCNop			
 	| TCDestroy					!TaskTree															//Marks a task state as garbage that must be destroyed
 	| TCTasklet			
