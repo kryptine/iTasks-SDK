@@ -17,7 +17,7 @@ from Data.Either				import :: Either
 *
 * @gin False
 */
-(>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
+(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 
 //Standard monadic operations:
 
@@ -116,8 +116,8 @@ from Data.Either				import :: Either
 * in parallel with the first task. When the chosen task step becomes stable, it is removed
 * and the actions are enabled again.
 */
-(>^*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
-sideStep       :: !(Task a) ![TaskStep a b] -> Task a | iTask a & iTask b
+(>^*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task a | iTask a & iTask b
+sideStep       :: !(Task a) ![TaskCont a (Task b)] -> Task a | iTask a & iTask b
 
 /**
 * Exception combinator.

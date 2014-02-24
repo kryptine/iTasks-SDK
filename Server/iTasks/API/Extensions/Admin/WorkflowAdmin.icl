@@ -102,7 +102,7 @@ workflowDashboard
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
-		] <<@ ArrangeCustom layout <<@ FullScreen
+		] [] <<@ ArrangeCustom layout <<@ FullScreen
 	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return Void))]
 where
 	isValue (Value _ _) = True

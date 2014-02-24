@@ -39,7 +39,7 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task 
 *
 * @param Task: The first step in the sequence
 * @param Value before step function: Computes the value of the composition before a step is taken
-* @param Continuations: A set of continuation definitions from which one is selected
+* @param Continuations: A set of continuation definitions from which one is selected to make the step
 *   -OnValue: inspect the value, step if the predicate matches
 *	-OnAction: enable an action if the predicate matches, step if the actions is chosen
 *	-OnException: Provides an exception handler for exceptions of type e
@@ -47,24 +47,34 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task 
 *
 *	@return The combined task
 */
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskStep a b] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
 
-:: TaskStep a b
-    =       OnValue             ((TaskValue a)  -> Maybe (Task b))
-    |       OnAction    Action  ((TaskValue a)  -> Maybe (Task b))
-    | E.e:  OnException         (e              -> Task b)           & iTask e
-    |       OnAllExceptions     (String         -> Task b)
+:: TaskCont a b
+    =       OnValue             ((TaskValue a)  -> Maybe b)
+    |       OnAction    Action  ((TaskValue a)  -> Maybe b)
+    | E.e:  OnException         (e              -> b)           & iTask e
+    |       OnAllExceptions     (String         -> b)
 
 /**
-* All-in-one swiss-army-knife parallel task creation
+* Parallel task creation
 *
 * @param Description: The (overloaded) task description
-* @param Tasks: The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
+* @param Initial tasks: The initial list of tasks to run in parallel, each task is given
+*        a view on the status of all tasks in the list
+* @param Continuations: A set of continuation definitions with which the list of tasks
+*        can be extended
+*   -OnValue:         Inspect the value, add if the predicate matches
+*	-OnAction:        Enable an action if the predicate matches, add if the actions is chosen
+*	-OnException:     Provides an exception handler for exceptions of type e
+*                     The task in the parallel set that raised the exception is replaced
+*                     with the continuation
+*	-OnAllExceptions: Provides an exception handler that catches all exceptions
+*                     The task in the parallel set that raised the exception is replaced
+*                     with the continuation
 * @return The sum of all results
-* 
 * @gin False
 */
-parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
+parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
 					
 /**
 * Get the shared state of a task list
@@ -83,7 +93,7 @@ taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
 */
 taskListSelfManagement :: !(SharedTaskList a) -> Shared ManagementMeta
 
-//Task list manipulation 
+//Task list manipulation
 
 /**
 * Appends a task to a task list
