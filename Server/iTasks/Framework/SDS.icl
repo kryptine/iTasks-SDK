@@ -5,6 +5,17 @@ import Data.Error, Data.Func, Data.Tuple, Data.Void, Data.Map, System.Time, Text
 import iTasks.Framework.IWorld
 import iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
 import dynamic_string //For fake Hash implementation
+import graph_to_sapl_string
+
+:: SDSIdentity  :== String
+:: NotifyEvent  = E.p: NotifyEvent !SDSIdentity (SDSNotifyPredIWorld p) & TC p
+
+:: NotifyRequest =
+    { reqid         :: Int
+    , sdsid         :: SDSIdentity
+    , param         :: Dynamic
+    , taskInstance  :: InstanceNo
+    }
 
 createChangeOnWriteSDS ::
 	!String
@@ -90,7 +101,7 @@ registerSDSCheckForChange timestamp hash checkF sdsId iworld
 read :: !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 read sds env = read` Void Nothing sds env
 
-readRegister :: !msg !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld) | registerSDSDependency msg
+readRegister :: !InstanceNo !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 readRegister msg sds env = read` Void (Just notify) sds env
 where
 	notify hash notification mbId env
@@ -161,97 +172,142 @@ read` p mbNotificationF (SDSSequence sds1 sds2 {SDSSequence|param,read}) env
     = (Ok (read (r1,fromOk res2)),env)
 
 write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
-write w sds env = write` Void w sds filter env
-where
-	filter :: !Void -> Bool
-	filter _ = True
+write w sds env = writeFilterMsg w (const True) sds env
 	
-writeFilterMsg :: !w !(msg -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | reportSDSChange msg
-writeFilterMsg w filter sds env = write` Void w sds filter env
-	
-write` :: !p !w !(RWShared p r w) !(msg -> Bool) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | reportSDSChange msg
+writeFilterMsg :: !w !(InstanceNo -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
+writeFilterMsg w filter sds env
+    # (mbErr,_,iworld) = write` Void w sds filter env
+    = (fmap (const Void) mbErr, iworld)
+
+geq a b = graph_to_sapl_string a == graph_to_sapl_string b //FIXME
+
+wrapIWorld npred p env = (npred p, env)
+
+write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [NotifyEvent], !*IWorld) | TC p
 write` p w (SDSSource {mbId,write}) filter env
 	# (mbErr, env) = write p w env
 	# env = case mbId of
 		Just id	= reportSDSChange id filter env
 		Nothing	= env
     = case mbErr of
-        (Ok _)      = (Ok Void,env)
-        (Error e)   = (Error e,env)
+        (Error e)   = (Error e, [], env)
+        (Ok npred)  = (Ok (wrapIWorld npred), [], env)
 
-write` p w (ComposedRead share _) filter env = write` p w share filter env
+write` p w (ComposedRead share _) filter env
+    = write` p w share filter env
+
 write` p w (ComposedWrite _ readCont writeOp) filter env
-	# (er, env)	= seqErrorsSt (\env -> (readCont w, env)) (read` p Nothing) env
-	| isError er = (liftError er, env)
-	# ewrites	= writeOp w (fromOk er)
-	| isError ewrites = (liftError ewrites, env)
-	# (res,env)	= mapSt (\(Write w share) -> write` p w share filter) (fromOk ewrites) env
-	// TODO: check for errors in res
-	= (Ok Void, env)
+    = case readCont w of
+        Error e = (Error e, [], env)
+        Ok sds1 = case read` p Nothing sds1 env of
+            (Error e,env) = (Error e, [], env)
+            (Ok r, env)
+                = case writeOp w r of
+                    (Error e) = (Error e, [], env)
+                    (Ok writes)
+                        = case doWrites writes env of
+                            (Error e,env) = (Error e,[],env) //Not correct, but this combinator will not be used with new notifications anyway
+                            (Ok Void,env) = (Ok npred,[],env)
+where
+    npred p env = (True, env)
+
+    doWrites [] env = (Ok Void, env)
+    doWrites [Write w sds:ws] env = case write` p w sds filter env of
+        (Error e,_,env) = (Error e,env)
+        (Ok _,_,env)    = doWrites ws env
 
 write` p w (SDSProjection sds {SDSLens|write}) filter env
-    # (mbr,env) = read` p Nothing sds env
-	| isError mbr = (liftError mbr, env)
-    # ws = write (fromOk mbr) w
-    = write` p ws sds filter env
+    = case read` p Nothing sds env of
+        (Error e, env)  = (Error e, [], env)
+        (Ok r, env)     = write` p (write r w) sds filter env
 
 write` p w (SDSTranslation sds translate) filter env
-    = write` (translate p) w sds filter env
+    = case write` (translate p) w sds filter env of
+        (Error e, _, env) = (Error e, [], env)
+        (Ok npred, ns, env)
+            # npred = \p env -> npred (translate p) env
+            = (Ok npred, ns, env)
 
 write` p w (SDSSplit sds {SDSSplit|param,write}) filter env
     # (ps,pn) = param p
     = case read` ps Nothing sds env of
-        (Error e, env)  = (Error e, env)
+        (Error e, env)  = (Error e, [], env)
         (Ok r, env)
-            # (ws,_) = write pn r w
+            # (ws, npredn) = write pn r w
             = case write` ps ws sds filter env of
-                (Error e, env) = (Error e, env)
-                (Ok Void, env) = (Ok Void, env)
+                (Error e, _, env) = (Error e, [], env)
+                (Ok npreds, ns, env)
+                    # npred = gennpred npreds (wrapIWorld npredn)
+                    = (Ok npred, [], env)
+where
+    gennpred npred1 npred2 p env = gennpred` npred1 npred2 (param p) env
+    gennpred` npred1 npred2 (p1,p2) env
+        | geq p1 p2 = npred2 p2 env
+                    = npred1 p1 env
 
 write` p w (SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
     = case select p of
-        Left p1 = case read` p1 Nothing sds1 env of //(read val is not yet used, is prep for notification)
-            (Error e, env)  = (Error e, env)
+        Left p1 = case read` p1 Nothing sds1 env of
+            (Error e, env)  = (Error e, [], env)
             (Ok r1, env)    = case write` p1 w sds1 filter env of
-                (Error e, env) = (Error e, env)
-                (Ok Void, env) = (Ok Void, env)
+                (Error e, _, env) = (Error e, [], env)
+                (Ok npred1, ns, env)
+                    # npred = gennpred (wrapIWorld (notifyl p1 r1 w)) npred1
+                    = (Ok npred, [], env)
+
         Right p2 = case read` p2 Nothing sds2 env of
-            (Error e, env)  = (Error e, env)
+            (Error e, env)  = (Error e, [], env)
             (Ok r2, env)    = case write` p2 w sds2 filter env of
-                (Error e, env) = (Error e, env)
-                (Ok Void, env) = (Ok Void, env)
+                (Error e, _, env) = (Error e, [], env)
+                (Ok npred2, ns, env)
+                    # npred = gennpred npred2 (wrapIWorld (notifyr p2 r2 w))
+                    = (Ok npred, [], env)
+where
+    gennpred npred1 npred2 p env = case select p of
+        (Left p1) = npred2 p1 env
+        (Right p2) = npred1 p2 env
 
 write` p w (SDSParallel sds1 sds2 {SDSParallel|param,write}) filter env
     # (p1,p2) = param p
     # (w1,w2) = write w
     = case write` p1 w1 sds1 filter env of
-        (Error e, env) = (Error e, env)
-        (Ok Void, env) = case write` p2 w2 sds2 filter env of
-            (Error e, env) = (Error e, env)
-            (Ok Void, env) = (Ok Void, env)
+        (Error e, _, env) = (Error e, [], env)
+        (Ok npred1, ns1, env) = case write` p2 w2 sds2 filter env of
+            (Error e, _, env) = (Error e, [], env)
+            (Ok npred2, ns2, env)
+                # npred = gennpred npred1 npred2
+                = (Ok npred, ns1 ++ ns2, env)
+where
+    gennpred npred1 npred2 p env = gennpred` npred1 npred2 (param p) env
+    gennpred` npred1 npred2 (p1,p2) env
+		= case npred1 p1 env of
+			(False, env) = npred2 p2 env
+			(True, env)  = (True, env)
 
 write` p w (SDSSequence sds1 sds2 {SDSSequence|param,write}) filter env
     # (w1,w2) = write w
     = case write` p w1 sds1 filter env of
-        (Error e, env)  = (Error e, env)
-        (Ok Void, env)  = case write` (param w1) w2 sds2 filter env of
-            (Error e, env) = (Error e, env)
-            (Ok Void, env) = (Ok Void, env)
-
-instance registerSDSDependency InstanceNo
+        (Error e, _, env)   = (Error e, [], env)
+        (Ok npred1, ns1, env)  = case write` (param w1) w2 sds2 filter env of
+            (Error e, _, env) = (Error e, [], env)
+            (Ok npred2, ns2, env)
+                # npred = gennpred npred1 npred2
+                = (Ok npred, ns1 ++ ns2, env)
 where
-	registerSDSDependency sdsId instanceNo iworld
-		= addShareRegistration sdsId instanceNo iworld
+	gennpred npred1 npred2 p env
+        = case npred1 p env of
+			(False, env) = case read` p Nothing sds1 env of
+                (Error msg, env)    = (True, env)
+				(Ok r1, env)        = npred2 (param r1) env
+			(True, env)  = (True, env)
+
+registerSDSDependency :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
+registerSDSDependency sdsId instanceNo iworld
+    = addShareRegistration sdsId instanceNo iworld
 	
-instance reportSDSChange InstanceNo
-where
-	reportSDSChange sdsId filterFun iworld
-		= addOutdatedOnShareChange sdsId filterFun iworld
-
-instance reportSDSChange Void
-where
-	reportSDSChange sdsId _ iworld
-		= addOutdatedOnShareChange sdsId (\_ -> True) iworld
+reportSDSChange :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
+reportSDSChange sdsId filterFun iworld
+    = addOutdatedOnShareChange sdsId filterFun iworld
 
 addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 addShareRegistration shareId instanceNo iworld=:{IWorld|sdsRegistrations}

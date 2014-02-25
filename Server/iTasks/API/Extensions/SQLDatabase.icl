@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error, Data.Func
 import iTasks.Framework.IWorld, iTasks.Framework.SDS
-from iTasks.Framework.SDS import class reportSDSChange(..)
+from iTasks.Framework.SDS import reportSDSChange
 import qualified Data.Map
 
 //Extend Resource type for mysql resources
@@ -29,7 +29,7 @@ where
 			Ok (cur,con,cxt)
 				# (res,cur) = writeFun w cur
 				# iworld	= closeMySQLDb cur con cxt iworld
-				= (res,iworld)
+                = (fmap (const (const True)) res, iworld)
 
 sqlExecute :: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
 sqlExecute db touchIds queryFun = mkInstantTask exec
@@ -45,8 +45,7 @@ where
 					Error e		= (Error (dynamic e,toString e), iworld)
 					Ok v		
                         //Trigger share change for all touched ids
-                        //# iworld = seqSt (\s w -> queueWork (TriggerSDSChange s,Nothing) w) touchIds {IWorld|iworld & world = world}
-                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (\Void->True) w) touchIds iworld
+                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (const True) w) touchIds iworld
                         = (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
@@ -89,7 +88,7 @@ where
 				# iworld				= closeMySQLDb cur con cxt iworld
 				= (Ok rows,iworld)
 
-    write Void Void iworld = (Ok Void,iworld)
+    write Void Void iworld = (Ok (const True),iworld)
 		
 openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
 openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}

@@ -44,8 +44,8 @@ from iTasks.API.Core.Types import :: InstanceNo
 //Merge two sources by selecting one based on the parameter
 :: SDSMerge p p1 p2 r w =
     { select        :: p -> Either p1 p2
-    , notifyr       :: p1 r w -> SDSNotifyPred p2
-    , notifyl       :: p2 r w -> SDSNotifyPred p1
+    , notifyl       :: p1 r w -> SDSNotifyPred p2
+    , notifyr       :: p2 r w -> SDSNotifyPred p1
     }
 
 //Read from and write to two independent SDS's
@@ -81,12 +81,8 @@ from iTasks.API.Core.Types import :: InstanceNo
 :: WriteOnlyShared a	:== ReadWriteShared Void a
 :: Shared a				:== ReadWriteShared a a
 
-class registerSDSDependency msg :: !BasicShareId msg !*IWorld -> *IWorld
-instance registerSDSDependency InstanceNo
-
-class reportSDSChange msg :: !BasicShareId !(msg -> Bool) !*IWorld -> *IWorld
-instance reportSDSChange	InstanceNo
-instance reportSDSChange 	Void
+registerSDSDependency   :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
+reportSDSChange         :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
 
 registerSDSPredictableChange	:: !Timestamp 										    !BasicShareId !*IWorld -> *IWorld
 registerSDSCheckForChange		:: !Timestamp !Hash !(*IWorld -> (!CheckRes,!*IWorld))	!BasicShareId !*IWorld -> *IWorld
@@ -138,10 +134,10 @@ createSDS ::
 	->
 	RWShared p r w
 
-read			::						!(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
-readRegister	:: !msg					!(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)	| registerSDSDependency msg
-write			:: !w					!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
-writeFilterMsg	:: !w !(msg -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	| reportSDSChange msg
+read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
+writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 
 //Dependency administration
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld

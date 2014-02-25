@@ -6,7 +6,7 @@ from iTasks.Framework.Engine	    import :: ConnectionType
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
 import iTasks.Framework.RemoteAccess
-from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared, class reportSDSChange, instance reportSDSChange Void
+from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared
 from iTasks.Framework.SDS import getURLbyId
 
 from StdFunc import o
