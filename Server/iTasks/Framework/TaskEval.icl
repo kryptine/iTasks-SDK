@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.TaskEval
 
 import StdList, StdBool, StdTuple, StdMisc
-import Data.Error, Data.Func, Data.Either, Data.List, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
 import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
@@ -13,6 +13,7 @@ from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: Parallel
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
 from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
+from StdFunc import const
 
 derive gEq TIMeta, TIType
 
@@ -342,13 +343,13 @@ where
 				
 	write Void value iworld=:{current=current=:{taskInstance,localShares}}
 		| instanceNo == taskInstance
-			= (Ok Void, {iworld & current = {current & localShares = 'Data.Map'.put taskId (toJSON value) localShares}})
+			= (Ok (const True), {iworld & current = {current & localShares = 'Data.Map'.put taskId (toJSON value) localShares}})
 		| otherwise
 			= case 'SDS'.read (taskInstanceReduct instanceNo) iworld of
 				(Ok reduct,iworld)
 					# reduct		= {TIReduct|reduct & shares = 'Data.Map'.put taskId (toJSON value) reduct.TIReduct.shares}
 					# (_,iworld)	= 'SDS'.write reduct (taskInstanceReduct instanceNo) iworld
-					= (Ok Void, iworld)
+					= (Ok (const True), iworld)
 				(Error _,iworld)
 					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
 
@@ -372,9 +373,9 @@ where
 	write Void val iworld=:{exposedShares}
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
-				= writeRemoteSDS (toJSON val) url iworld
+				= appFst (fmap (const (const True))) (writeRemoteSDS (toJSON val) url iworld)
 			Just (shared :: ReadWriteShared r w^, z)		
-				= 'SDS'.write val shared iworld
+				= appFst (fmap (const (const True))) ('SDS'.write val shared iworld)
 			Just _
 				= (Error ("Exposed share type mismatch: " +++ url), iworld)
 				
@@ -456,14 +457,14 @@ where
     updateListReduct updates iworld=:{current=current=:{taskInstance,localLists}}
        | instanceNo == taskInstance
 			= case 'Data.Map'.get listId localLists of
-				Just entries    = (Ok Void,{iworld & current = {current & localLists = 'Data.Map'.put listId (applyUpdates updates entries) localLists}})
+				Just entries    = (Ok (const True),{iworld & current = {current & localLists = 'Data.Map'.put listId (applyUpdates updates entries) localLists}})
                 _               = (Error ("Could not load local task list " +++ shareKey), iworld)
         | otherwise
 			= case 'SDS'.read (taskInstanceReduct instanceNo) iworld of //TODO: Check if reading another shared during a write is ok??
 				(Ok reduct, iworld)
 					= case 'Data.Map'.get listId reduct.TIReduct.lists of					
                         Just entries
-                            = 'SDS'.write {TIReduct|reduct & lists = 'Data.Map'.put listId (applyUpdates updates entries) reduct.TIReduct.lists} (taskInstanceReduct instanceNo) iworld
+                            = appFst (fmap (const (const True))) ('SDS'.write {TIReduct|reduct & lists = 'Data.Map'.put listId (applyUpdates updates entries) reduct.TIReduct.lists} (taskInstanceReduct instanceNo) iworld)
 						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
 				(Error _,iworld)
 					= (Error ("Could not load remote task list " +++ shareKey), iworld)

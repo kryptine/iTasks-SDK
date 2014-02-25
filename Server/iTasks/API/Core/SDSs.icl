@@ -8,7 +8,7 @@ import iTasks.Framework.IWorld
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
-from StdFunc					import o, seq
+from StdFunc					import o, seq, const
 from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
@@ -24,7 +24,7 @@ constShare :: !a -> ROShared p a
 constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 null :: WriteOnlyShared a
-null = createSDS Nothing (\Void env -> (Ok (Void, OnWrite), env)) (\Void _ env -> (Ok Void, env))
+null = createSDS Nothing (\Void env -> (Ok (Void, OnWrite), env)) (\Void _ env -> (Ok (const False), env))
 			
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
@@ -161,4 +161,4 @@ where
 		# file						= fwrites content file
 		# (ok,world)				= fclose file world
 		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
-		= (Ok Void, {IWorld|iworld & world = world})
+		= (Ok (const True), {IWorld|iworld & world = world})

@@ -9,7 +9,7 @@ from iTasks.API.Core.Types import :: InstanceNo
     //'NEW' COMPOSITIONS
     | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSLens rs ws r w)
 	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
-    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit pn r w) (p -> (ps,pn)) & TC ps & TC pn
+    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.rw1 p2 r2 w2:       SDSSequence     !(RWShared p rw1 rw1) !(RWShared p2 r2 w2)  (SDSSequence rw1 p2 r2 w2 r w) & TC p2
@@ -18,14 +18,15 @@ from iTasks.API.Core.Types import :: InstanceNo
 	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
 
 :: SDSSource p r w =
-	{ read			:: p *IWorld -> *(!MaybeErrorString (!r,!ChangeNotification), !*IWorld)
-	, write			:: p w *IWorld -> *(!MaybeErrorString Void, !*IWorld)
-	, mbId			:: !Maybe BasicShareId
+	{ mbId          :: !Maybe BasicShareId
+    , read			:: p *IWorld -> *(!MaybeErrorString (!r,!ChangeNotification), !*IWorld)
+	, write			:: p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld)
 	}
 
 //A notification is function predictate that can determine whether
 //some registered parameter of type p needs to be notified.
-:: SDSNotifyPred p :== p -> Bool
+:: SDSNotifyPred p          :== p -> Bool
+:: SDSNotifyPredIWorld p    :== p *IWorld -> *(!Bool,!*IWorld)
 
 //Lens maps values from a source (s) domain to a new target (t) domain
 :: SDSLens rs ws rt wt =
@@ -34,9 +35,10 @@ from iTasks.API.Core.Types import :: InstanceNo
     }
 
 //Split divides a domain into two subdomains by introducing a new parameter
-:: SDSSplit p r w =
-    { read         :: p r -> r
-    , write        :: p r w -> (w, SDSNotifyPred p)
+:: SDSSplit p ps pn r w =
+    { param        :: p -> (ps,pn)
+    , read         :: pn r -> r
+    , write        :: pn r w -> (w, SDSNotifyPred pn)
     }
 
 //Merge two sources by selecting one based on the parameter
@@ -93,7 +95,7 @@ createChangeOnWriteSDS ::
 	!String
 	!String
 	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 
@@ -101,7 +103,7 @@ createPollingSDS ::
 	!String
 	!String
 	!(p *IWorld -> *(!MaybeErrorString (!r, !Timestamp, !(*IWorld -> *(!CheckRes,!*IWorld))), !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 
@@ -132,7 +134,7 @@ createReadOnlySDSErrorPredictable ::
 createSDS ::
 	!(Maybe BasicShareId)
 	!(p *IWorld -> *(!MaybeErrorString (!r, !ChangeNotification), !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 

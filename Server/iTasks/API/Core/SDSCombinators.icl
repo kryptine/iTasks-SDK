@@ -18,8 +18,8 @@ sdsProject sds lens = SDSProjection sds lens
 sdsTranslate :: !(RWShared ps r w) !(p -> ps) -> RWShared p r w | TC ps
 sdsTranslate sds translation = SDSTranslation sds translation
 
-sdsSplit :: !(RWShared ps r w) !(SDSSplit pn r w) !(p -> (ps,pn)) -> RWShared p r w | TC ps & TC pn
-sdsSplit sds split translation = SDSSplit sds split translation
+sdsSplit :: !(RWShared ps r w) !(SDSSplit p ps pn r w) -> RWShared p r w | TC ps & TC pn
+sdsSplit sds split = SDSSplit sds split
 
 sdsMerge :: !(RWShared p1 r w) !(RWShared p2 r w) !(SDSMerge p p1 p2 r w) -> RWShared p r w | TC p1 & TC p2
 sdsMerge sds1 sds2 merge = SDSMerge sds1 sds2 merge

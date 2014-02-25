@@ -31,7 +31,7 @@ where
 		# (mbV,iworld) = loadValue namespace storeId iworld
 		= (maybe (maybe (Error ("Can't read " +++ storeId)) Ok defaultV) Ok mbV, iworld)
 	write Void v iworld
-		= (Ok Void,storeValue namespace storeId v iworld)
+		= (Ok (const True),storeValue namespace storeId v iworld)
 
 storePath :: !FilePath !String -> FilePath
 storePath dataDir buildID = dataDir </> "store-" +++ buildID

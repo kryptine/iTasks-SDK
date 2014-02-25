@@ -10,7 +10,7 @@ createChangeOnWriteSDS ::
 	!String
 	!String
 	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 createChangeOnWriteSDS type id read write
@@ -22,7 +22,7 @@ createPollingSDS ::
 	!String
 	!String
 	!(p *IWorld -> *(!MaybeErrorString (!r, !Timestamp, !(*IWorld -> *(!CheckRes,!*IWorld))), !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 createPollingSDS type id read write
@@ -46,7 +46,7 @@ createReadOnlySDSError ::
 	->
 	ROShared p r
 createReadOnlySDSError read
-	= createSDS Nothing (\p env -> appFst (fmap (\r -> (r, OnWrite))) (read p env)) (\_ _ env -> (Ok Void, env))
+	= createSDS Nothing (\p env -> appFst (fmap (\r -> (r, OnWrite))) (read p env)) (\_ _ env -> (Ok (const True), env))
 
 createReadOnlySDSPredictable ::
 	!String
@@ -64,12 +64,12 @@ createReadOnlySDSErrorPredictable ::
 	->
 	ROShared p a
 createReadOnlySDSErrorPredictable type id read
-	= createSDS (Just (type +++ ":" +++ id)) (\p env -> appFst (fmap (appSnd Predictable)) (read p env)) (\_ _ env -> (Ok Void, env))
+	= createSDS (Just (type +++ ":" +++ id)) (\p env -> appFst (fmap (appSnd Predictable)) (read p env)) (\_ _ env -> (Ok (const True), env))
 
 createSDS ::
 	!(Maybe BasicShareId)
 	!(p *IWorld -> *(!MaybeErrorString (!r, !ChangeNotification), !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 createSDS id read write = SDSSource
@@ -130,6 +130,36 @@ read` p mbNotificationF (SDSProjection sds {SDSLens|read}) env
 read` p mbNotificationF (SDSTranslation sds translate) env
     = read` (translate p) mbNotificationF sds env
 
+read` p mbNotificationF (SDSSplit sds {SDSSplit|read,param}) env
+    # (p1,p2) = param p
+    # (res, env) = read` p1 mbNotificationF sds env
+    = (fmap (read p2) res, env)
+
+read` p mbNotificationF (SDSMerge sds1 sds2 {SDSMerge|select}) env
+    = case select p of
+        Left p1     = read` p1 mbNotificationF sds1 env
+        Right p2    = read` p2 mbNotificationF sds2 env
+
+read` p mbNotificationF (SDSParallel sds1 sds2 {SDSParallel|param,read}) env
+    # (p1,p2) = param p
+    # (res1, env) = read` p1 mbNotificationF sds1 env
+    | res1 =:(Error _)
+        = (liftError res1, env)
+    # (res2, env) = read` p2  mbNotificationF sds2 env
+    | res2 =:(Error _)
+        = (liftError res2, env)
+    = (Ok (read (fromOk res1, fromOk res2)), env)
+
+read` p mbNotificationF (SDSSequence sds1 sds2 {SDSSequence|param,read}) env
+    # (res1,env) = read` p mbNotificationF sds1 env
+    | res1 =:(Error _)
+        = (liftError res1,env)
+    # r1 = fromOk res1
+    # (res2,env) = read` (param r1) mbNotificationF sds2 env
+    | res2 =:(Error _)
+        = (liftError res2,env)
+    = (Ok (read (r1,fromOk res2)),env)
+
 write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 write w sds env = write` Void w sds filter env
 where
@@ -145,7 +175,9 @@ write` p w (SDSSource {mbId,write}) filter env
 	# env = case mbId of
 		Just id	= reportSDSChange id filter env
 		Nothing	= env
-	= (mbErr, env)
+    = case mbErr of
+        (Ok _)      = (Ok Void,env)
+        (Error e)   = (Error e,env)
 
 write` p w (ComposedRead share _) filter env = write` p w share filter env
 write` p w (ComposedWrite _ readCont writeOp) filter env
@@ -165,6 +197,46 @@ write` p w (SDSProjection sds {SDSLens|write}) filter env
 
 write` p w (SDSTranslation sds translate) filter env
     = write` (translate p) w sds filter env
+
+write` p w (SDSSplit sds {SDSSplit|param,write}) filter env
+    # (ps,pn) = param p
+    = case read` ps Nothing sds env of
+        (Error e, env)  = (Error e, env)
+        (Ok r, env)
+            # (ws,_) = write pn r w
+            = case write` ps ws sds filter env of
+                (Error e, env) = (Error e, env)
+                (Ok Void, env) = (Ok Void, env)
+
+write` p w (SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
+    = case select p of
+        Left p1 = case read` p1 Nothing sds1 env of //(read val is not yet used, is prep for notification)
+            (Error e, env)  = (Error e, env)
+            (Ok r1, env)    = case write` p1 w sds1 filter env of
+                (Error e, env) = (Error e, env)
+                (Ok Void, env) = (Ok Void, env)
+        Right p2 = case read` p2 Nothing sds2 env of
+            (Error e, env)  = (Error e, env)
+            (Ok r2, env)    = case write` p2 w sds2 filter env of
+                (Error e, env) = (Error e, env)
+                (Ok Void, env) = (Ok Void, env)
+
+write` p w (SDSParallel sds1 sds2 {SDSParallel|param,write}) filter env
+    # (p1,p2) = param p
+    # (w1,w2) = write w
+    = case write` p1 w1 sds1 filter env of
+        (Error e, env) = (Error e, env)
+        (Ok Void, env) = case write` p2 w2 sds2 filter env of
+            (Error e, env) = (Error e, env)
+            (Ok Void, env) = (Ok Void, env)
+
+write` p w (SDSSequence sds1 sds2 {SDSSequence|param,write}) filter env
+    # (w1,w2) = write w
+    = case write` p w1 sds1 filter env of
+        (Error e, env)  = (Error e, env)
+        (Ok Void, env)  = case write` (param w1) w2 sds2 filter env of
+            (Error e, env) = (Error e, env)
+            (Ok Void, env) = (Ok Void, env)
 
 instance registerSDSDependency InstanceNo
 where
@@ -218,7 +290,7 @@ where
 			Nothing
 				= (Error "Shared type mismatch in toJSONShared", iworld)
 			Just val
-				= write val shared iworld
+			    = appFst (fmap (const (const True))) (write val shared iworld)
 
 fromJSONShared :: (Shared JSONNode) -> ReadWriteShared r w | JSONDecode{|*|} r & JSONEncode{|*|} w
 fromJSONShared shared = createChangeOnWriteSDS "exposedShare" "?" read` write`
@@ -232,7 +304,7 @@ where
 			(Error e) = (Error e, iworld)
 
 	write` _ val iworld
-		= write (toJSON val) shared iworld
+        = appFst (fmap (const (const True))) (write (toJSON val) shared iworld)
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}

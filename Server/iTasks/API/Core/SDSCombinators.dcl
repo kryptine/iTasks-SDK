@@ -21,7 +21,7 @@ sdsProject :: !(RWShared p rs ws) !(SDSLens rs ws r w) -> RWShared p r w
 sdsTranslate :: !(RWShared ps r w) !(p -> ps) -> RWShared p r w | TC ps
 
 // Introduce a new parameter
-sdsSplit :: !(RWShared ps r w) !(SDSSplit pn r w) !(p -> (ps,pn)) -> RWShared p r w | TC ps & TC pn
+sdsSplit :: !(RWShared ps r w) !(SDSSplit p ps pn r w) -> RWShared p r w | TC ps & TC pn
 
 // Choose between two SDS's based on the parameter.
 // Because there may be overlap in the parameter spaces of the two SDS's

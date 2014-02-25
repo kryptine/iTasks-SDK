@@ -93,7 +93,7 @@ where
 		= (Ok ti, iworld)
     write Void ti iworld
         # iworld = {iworld & ti = ti}
-        = (Ok Void,iworld)
+        = (Ok (const True),iworld)
 
 //The instance meta data is stored directly in the iworld
 taskInstanceMeta :: !InstanceNo -> RWShared Void TIMeta TIMeta
@@ -104,7 +104,7 @@ where
 	write Void meta iworld=:{IWorld|ti}
         # iworld = {iworld & ti = 'Data.Map'.put instanceNo meta ti}
         # iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld //Sync to disk to enable server restarts
-        = (Ok Void,iworld)
+        = (Ok (const True),iworld)
 
 //The remaining instance parts are stored on disk
 taskInstanceReduct :: !InstanceNo -> RWShared Void TIReduct TIReduct
