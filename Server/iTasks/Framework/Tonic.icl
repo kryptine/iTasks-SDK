@@ -25,7 +25,6 @@ from StdMisc import undef, abort
 from StdFile import instance FileSystem World
 import qualified StdArray as SA
 from StdArray import class Array, instance Array {#} Char
-import StdDebug
 import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.Graph
 import qualified Data.Map as DM
 
@@ -66,8 +65,7 @@ tonicBind mn tn euid xuid ta a2tb
 
 tonicVarToSingleTask :: String String Int Int Int (Task a) -> Task a
 tonicVarToSingleTask mn tn varNodeId predId succId t
-  = trace_n ("tonicVarToSingleTask: orig: " +++ toString varNodeId +++ " pred: " +++ toString predId +++ " succ: " +++ toString succId)
-    tune tr t
+  = tune tr t
   where
   tr
     = { TonicReplace
@@ -80,7 +78,7 @@ tonicVarToSingleTask mn tn varNodeId predId succId t
 
 tonicVarToListOfTask :: String String Int Int Int [Task a] -> [Task a]
 tonicVarToListOfTask mn tn varNodeId predId succIds ts
-  = trace_n "tonicVarToListOfTask" map (tonicVarToSingleTask mn tn varNodeId predId succIds) ts
+  = map (tonicVarToSingleTask mn tn varNodeId predId succIds) ts
 
 getTaskIdFromTree (TCInit                  tid _ _)         = Just tid
 getTaskIdFromTree (TCBasic                 tid _ _ _ _)     = Just tid
@@ -124,7 +122,7 @@ mkGraphChange trep tinfo instanceNo taskNo user shts t world
                                                        _           -> emptyGraph
                                                    , instanceMap)
                                _                -> (emptyGraph, 'DM'.newMap)
-        # (nid, g) = trace_n ("Updating graph for instance " +++ toString instanceNo +++ " and task " +++ toString taskNo) updateG trep tinfo g t
+        # (nid, g) = updateG trep tinfo g t
         = (nid, snd ('DSDS'.write ('DM'.put user ('DM'.put instanceNo g instanceMap) userMap) shts world))
       _ = (Nothing, world)
   where
@@ -361,14 +359,13 @@ viewStaticTask tn mn tt
          (graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
    <<@ FullScreen
 
-mkModuleTaskMap :: (Map ModuleTaskName [TaskId]) [TonicModule] -> [(TonicModule, ModuleTaskName, TaskId)]
+mkModuleTaskMap :: (Map ModuleTaskName [TaskId]) [TonicModule] -> [(TonicModule, ModuleTaskName, [TaskId])]
 mkModuleTaskMap mtninosmap tonicModules = foldr f [] mtns
   where
     f (mod, mtn) acc
       # mbis = 'DM'.gGet mtn mtninosmap
       # is   = fromMaybe [] mbis
-      = let g i acc = [(mod, mtn, i):acc]
-        in foldr g acc is
+      = [(mod, mtn, reverse is):acc] // reverse is to put the most recent TaskId on top
     mtns = foldr (\tm acc -> 'DM'.foldrWithKey (\tasknm _ acc -> [(tm, ModuleTaskName tm.tm_name tasknm):acc]) acc tm.tm_tasks) [] tonicModules
 
 mkModuleTaskIdMap :: [Maybe (TaskId, ModuleTaskName)] -> Map ModuleTaskName [TaskId]
@@ -384,15 +381,15 @@ viewSingelUserDynamic
   =                        get currentUser >>-
   \originalUser         -> getTonicModules >>-
   \tonicModules         -> enterChoiceWithShared "Select a user" [] users >>=
-  \selectedUser         -> workAs selectedUser (get allTaskInstances) >>- // TODO refactor this all such that the drop-down list of tasks refreshes when this share refreshes
+  \selectedUser         -> workAs selectedUser (get allTaskInstances) >>-
+   // TODO refactor this all such that the drop-down list of tasks refreshes when this share refreshes
   \taskInstances        -> mapT getModuleTaskName [ taskInstance.TaskListItem.taskId \\ taskInstance <- taskInstances
                                                   | taskInstanceHasUser selectedUser taskInstance] >>-
-  \instanceModuleTasks  -> enterChoice "Select a task" [ChooseWith (ChooseFromGrid (\(_, mtn, tid) -> (mtn, tid)))]
+  \instanceModuleTasks  -> enterChoice "Select a task" [ChooseWith (ChooseFromGrid (\(_, mtn, tids) -> (mtn, tids)))]
                              (mkModuleTaskMap (mkModuleTaskIdMap instanceModuleTasks) tonicModules) >>=
-  \(tm, ModuleTaskName mn tn, tid) -> withJust (getTask tn tm)
-  \tt                   -> viewDynamicTask selectedUser tid tn mn tt >>|
+  \(tm, ModuleTaskName mn tn, tids) -> withJust (getTask tn tm)
+  \tt                   -> viewDynamicTask selectedUser tids tn mn tt >>|
                            return Void
-
   where
   withJust (Just v) t = t v
   withJust _        t = return Void
@@ -401,7 +398,7 @@ viewSingelUserDynamic
   taskInstanceHasUser selUsr _                        = False
 
   getModuleTaskName :: TaskId -> Task (Maybe (TaskId, ModuleTaskName))
-  getModuleTaskName tid=:(TaskId instanceNo taskNo) = mkInstantTask f
+  getModuleTaskName tid=:(TaskId instanceNo _) = mkInstantTask f
     where
     f _ iworld
       # (mbReduct, iworld) = 'DSDS'.read (taskInstanceReduct instanceNo) iworld
@@ -411,22 +408,24 @@ viewSingelUserDynamic
                           _        -> (Ok Nothing, iworld)
           _         -> (Ok Nothing, iworld)
 
-getModuleTaskNameFromTree (TCInit                  _ mtn _)         = mtn
-getModuleTaskNameFromTree (TCBasic                 _ mtn _ _ _)     = mtn
-getModuleTaskNameFromTree (TCInteract              _ mtn _ _ _ _ _) = mtn
-getModuleTaskNameFromTree (TCInteractLocal         _ mtn _ _ _ _)   = mtn
-getModuleTaskNameFromTree (TCInteractLocalViewOnly _ mtn _ _ _)     = mtn
-getModuleTaskNameFromTree (TCInteract1             _ mtn _ _ _)     = mtn
-getModuleTaskNameFromTree (TCInteract2             _ mtn _ _ _ _)   = mtn
-getModuleTaskNameFromTree (TCProject               _ mtn _ _)       = mtn
-getModuleTaskNameFromTree (TCStep                  _ mtn _ _)       = mtn
-getModuleTaskNameFromTree (TCParallel              _ mtn _)         = mtn
-getModuleTaskNameFromTree (TCShared                _ mtn _ _)       = mtn
-getModuleTaskNameFromTree (TCExposedShared         _ mtn _ _ _)     = mtn
-getModuleTaskNameFromTree (TCStable                _ mtn _ _)       = mtn
-getModuleTaskNameFromTree _                                         = Nothing
+getModuleTaskNameFromTree (TCInit                  _ mtn _)                  = mtn
+getModuleTaskNameFromTree (TCBasic                 _ mtn _ _ _)              = mtn
+getModuleTaskNameFromTree (TCInteract              _ mtn _ _ _ _ _)          = mtn
+getModuleTaskNameFromTree (TCInteractLocal         _ mtn _ _ _ _)            = mtn
+getModuleTaskNameFromTree (TCInteractLocalViewOnly _ mtn _ _ _)              = mtn
+getModuleTaskNameFromTree (TCInteract1             _ mtn _ _ _)              = mtn
+getModuleTaskNameFromTree (TCInteract2             _ mtn _ _ _ _)            = mtn
+getModuleTaskNameFromTree (TCProject               _ _ _ tt)                 = getModuleTaskNameFromTree tt
+getModuleTaskNameFromTree (TCStep                  _ _ _ (Left tt))          = getModuleTaskNameFromTree tt
+getModuleTaskNameFromTree (TCStep                  _ _ _ (Right (_, _, tt))) = getModuleTaskNameFromTree tt
+getModuleTaskNameFromTree (TCParallel              _ mtn _)                  = mtn
+getModuleTaskNameFromTree (TCShared                _ _ _ tt)                 = getModuleTaskNameFromTree tt
+getModuleTaskNameFromTree (TCExposedShared         _ _ _ _ tt)               = getModuleTaskNameFromTree tt
+getModuleTaskNameFromTree (TCStable                _ mtn _ _)                = mtn
+getModuleTaskNameFromTree _                                                  = Nothing
 
-viewDynamicTask u tid=:(TaskId ino tno) tn mn tt
+// TODO The head task ID is not necessarily the most recent. Enable a selection
+viewDynamicTask u [tid=:(TaskId ino tno):_] tn mn tt
   =
       viewInformation Void [] ("Dynamic view for " +++ toString u)
   ||- viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
@@ -435,6 +434,7 @@ viewDynamicTask u tid=:(TaskId ino tno) tn mn tt
         [ViewWith (\(traces, tonicGraphs) -> graphlet tonicRenderer {graph=getFromUserMap tonicGraphs tt.tt_graph u tid, tonicState=mkState traces})]
         (tonicTraces |+| tonicGraphs)
   <<@ FullScreen
+  >>| return Void
   where
   mkState traces
     = Just
@@ -442,6 +442,7 @@ viewDynamicTask u tid=:(TaskId ino tno) tn mn tt
       | traces     = traces
       , renderMode = SingleUser u tid
       }
+viewDynamicTask _ _ tn mn tt = viewStaticTask tn mn tt >>| return Void
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName

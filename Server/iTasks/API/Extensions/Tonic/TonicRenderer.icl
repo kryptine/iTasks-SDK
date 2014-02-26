@@ -209,14 +209,14 @@ pickColour utm user = f ('DM'.toList utm) 0
                      (f xs (n + 1))
                      (f xs 0)
 
-isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
-isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo} world
+isActiveNode :: (Maybe TonicInfo) (Maybe TonicState) *JSWorld -> *(Bool, *JSWorld)
+isActiveNode (Just renderingNode) (Just {traces, renderMode=SingleUser user instanceNo}) world
   | 'DM'.empty traces = (False, world)
   | otherwise
       = case tracesForUserTaskId user instanceNo traces of
           [] -> (False, world)
           xs -> (isActiveNode` renderingNode xs, world)
-isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
+isActiveNode (Just renderingNode) (Just {traces, renderMode=MultiUser instanceNos}) world
   | 'DM'.empty traces = (False, world)
   | otherwise
       = case activeUserTraces traces instanceNos of
@@ -247,18 +247,19 @@ mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
 
 drawNode :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
+drawNode mts=:(Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
   # singleUserMap = 'DM'.singleton user (tracesForUserTaskId user instanceNo traces)
-  = drawNode_ traces singleUserMap shape graph u root world
-drawNode (Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
-  = drawNode_ traces (activeUserTracesMap traces instanceNos) shape graph u root world
+  = drawNode_ mts traces singleUserMap shape graph u root world
+drawNode mts=:(Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
+  = drawNode_ mts traces (activeUserTracesMap traces instanceNos) shape graph u root world
 drawNode _ shape graph u root world
-  = drawNode_ 'DM'.newMap 'DM'.newMap shape graph u root world
+  = drawNode_  Nothing 'DM'.newMap 'DM'.newMap shape graph u root world
 
 //drawNode_ :: TonicState GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode_ allTraces userTracesMap shape graph u root world
+drawNode_ mbTonicState allTraces userTracesMap shape graph u root world
   # (root`, world) = append "g" root world
-  = drawNode` shape graph u root` world
+  # world = drawNode` shape graph u root` world
+  = world
   where
   drawNode` :: GNode GLGraph Int D3 *JSWorld -> *JSWorld
   drawNode` {nodeType=GAssign expr, nodeTonicInfo} _ _ root world
@@ -281,6 +282,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                ] text world
     # (_, world)    = setText expr text world
     = world
+
   drawNode` {nodeType=GDecision _ expr, nodeTonicInfo} _ nid root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-decision") g world
@@ -297,6 +299,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                     , "Z"] path world
     # (g, world)          = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ ",0)")) g world
     = world
+
   drawNode` {nodeType=GInit, nodeTonicInfo} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-init") g world
@@ -314,6 +317,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                , ("points", toJSVal "0,0 2,1 0,2 0,0")
                                ] poly world
     = world
+
   drawNode` {nodeType=GLet gl, nodeTonicInfo}               _ _ root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-let") g world
@@ -329,6 +333,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                      , ("height", toJSVal bbh)
                                      ] rect world
     = world
+
   drawNode` {nodeType=GListComprehension gl, nodeTonicInfo} _ _ root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-listcomprehension") g world
@@ -378,6 +383,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                , ("y", toJSVal "-1.75em")
                                ] text world
     = mkCenteredTspan ["Start", "parallel", "tasks"] text world
+
   drawNode` {nodeType=GParallelJoin jt, nodeTonicInfo}      _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-paralleljoin") g world
@@ -397,6 +403,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                          ConAll       -> ["All", "task", "results"]
                          ConPair      -> ["Paired", "task", "results"]
                       ) text world
+
   drawNode` {nodeType=GReturn expr, nodeTonicInfo} _ nid root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-return") g world
@@ -410,8 +417,10 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                      , ("ry", toJSVal bbh)
                                      ] rect world
     = world
+
   drawNode` {nodeType=GStep, nodeTonicInfo}                   _ _ root world
     = world
+
   drawNode` {nodeType=GStop, nodeTonicInfo} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-stop") g world
@@ -421,8 +430,7 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                , ("width", toJSVal "1em")
                                , ("height", toJSVal "1em") ] stop world
     = world
-    // TODO Instead of coloring the backgroun, draw coloured squares next to
-    // the task application and display the corresponding user name on mouse over
+
   drawNode` {nodeType=GTaskApp tid exprs, nodeTonicInfo}    _ _ root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-taskapplication") g world
@@ -459,14 +467,35 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                    ] args world
     # (args`, world)    = selectAllChildElems args "tspan" world
     # (args`, world)    = setAttr "x" (toJSVal (0.0 - (tw / 2.0))) args` world
+    # world             = addUserBoxesToNode allTraces userTracesMap g g th world
     = world
+
   drawNode` {nodeType=GVar cexpr, nodeTonicInfo}    _ _ root world
     # (g, world)   = append "g" root world
     # (g, world)   = setAttr "class" (toJSVal "tonic-var") g world
     # (var, world) = append "text" g world
     # (var, world) = setText cexpr var world
     = world
-  drawNode` _                       _ _ _    world = world
+
+  drawNode` _ _ _ _ world = world
+
+addUserBoxesToNode allTraces userTracesMap root nextTo bbh world
+  # (grp, world)      = append "g" root world
+  # (nextTo, world)   = firstNode nextTo world
+  # (bbox, world)     = callObjectMethod "getBBox" [] nextTo world
+  # (bbw, world)      = jsGetObjectAttr "width" bbox world
+  # ((grp, _), world) = 'DM'.foldrWithKey f ((grp, (jsValToReal bbw / bbh) + 0.25), world) userTracesMap
+  = world
+  where
+  f user traces ((grp, n), world)
+    # (box, world)   = append (toString Rect) grp world
+    # (box, world)   = setAttr "x" (toJSVal (toString n +++ "em")) box world
+    # (box, world)   = setAttr "y" (toJSVal "-0.5em") box world
+    # (box, world)   = setAttr "style" (toJSVal ("fill:" +++ pickColour allTraces user)) box world
+    # (box, world)   = setAttr "height" (toJSVal "1em") box world
+    # (box, world)   = setAttr "width" (toJSVal "1em") box world
+    = ((grp, n + 1.2), world)
+
 
 getBBox root world
   # (elem, world) = firstNode root world

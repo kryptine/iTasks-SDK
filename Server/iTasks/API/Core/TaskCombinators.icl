@@ -735,23 +735,24 @@ where
 
 instance tune ModuleTaskName
 where
-  tune mtn (Task _ eval) = Task (Just mtn) eval`
+  tune mtn=:(ModuleTaskName mn tn) (Task _ eval) = Task (Just mtn) eval`
     where
       eval` event repOpts state iworld
         = eval event repOpts (annotTaskTree state) iworld
       justMtn = Just mtn
-      annotTaskTree (TCInit                  tid _ ttime)         = TCInit tid justMtn ttime
-      annotTaskTree (TCBasic                 tid _ ttime json1 b) = TCBasic tid justMtn ttime json1 b
+      annotTaskTree (TCInit                  tid _ ttime)                         = TCInit tid justMtn ttime
+      annotTaskTree (TCBasic                 tid _ ttime json1 b)                 = TCBasic tid justMtn ttime json1 b
       annotTaskTree (TCInteract              tid _ ttime json1 json2 json3 imask) = TCInteract tid justMtn ttime json1 json2 json3 imask
       annotTaskTree (TCInteractLocal         tid _ ttime json1 json2       imask) = TCInteractLocal tid justMtn ttime json1 json2 imask
       annotTaskTree (TCInteractViewOnly      tid _ ttime json1 json2       imask) = TCInteractViewOnly tid justMtn ttime json1 json2 imask
       annotTaskTree (TCInteractLocalViewOnly tid _ ttime json1             imask) = TCInteractLocalViewOnly tid justMtn ttime json1 imask
       annotTaskTree (TCInteract1             tid _ ttime json1             imask) = TCInteract1 tid justMtn ttime json1 imask
       annotTaskTree (TCInteract2             tid _ ttime json1 json2       imask) = TCInteract2 tid justMtn ttime json1 json2 imask
-      annotTaskTree (TCProject               tid _       json1 ttree) = TCProject tid justMtn json1 ttree
-      annotTaskTree (TCStep                  tid _ ttime ettj) = TCStep tid justMtn ttime ettj
-      annotTaskTree (TCParallel              tid _ ttime)      = TCParallel tid justMtn ttime
-      annotTaskTree (TCShared                tid _ ttime       ttree) = TCShared tid justMtn ttime ttree
-      annotTaskTree (TCExposedShared         tid _ ttime str   ttree) = TCExposedShared tid justMtn ttime str ttree
-      annotTaskTree (TCStable                tid _ ttime djson) = TCStable tid justMtn ttime djson
+      annotTaskTree (TCProject               tid _       json1 ttree)             = TCProject tid justMtn json1 (annotTaskTree ttree)
+      annotTaskTree (TCStep                  tid _ ttime (Left tt))               = TCStep tid justMtn ttime (Left (annotTaskTree tt))
+      annotTaskTree (TCStep                  tid _ ttime (Right (x, y, tt)))      = TCStep tid justMtn ttime (Right (x, y, annotTaskTree tt))
+      annotTaskTree (TCParallel              tid _ ttime)                         = TCParallel tid justMtn ttime
+      annotTaskTree (TCShared                tid _ ttime       ttree)             = TCShared tid justMtn ttime (annotTaskTree ttree)
+      annotTaskTree (TCExposedShared         tid _ ttime str   ttree)             = TCExposedShared tid justMtn ttime str (annotTaskTree ttree)
+      annotTaskTree (TCStable                tid _ ttime djson)                   = TCStable tid justMtn ttime djson
       annotTaskTree x = x
