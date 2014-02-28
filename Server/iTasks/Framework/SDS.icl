@@ -1,21 +1,14 @@
 implementation module iTasks.Framework.SDS
 
-import StdString, StdFunc, StdTuple, StdMisc, StdList
+import StdString, StdFunc, StdTuple, StdMisc, StdList, StdBool
 import Data.Error, Data.Func, Data.Tuple, Data.Void, Data.Map, System.Time, Text.JSON
+import qualified Data.Set as Set
 import iTasks.Framework.IWorld
 import iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
 import dynamic_string //For fake Hash implementation
-import graph_to_sapl_string
+import graph_to_sapl_string, Crypto.Hash.MD5
 
-:: SDSIdentity  :== String
-:: NotifyEvent  = E.p: NotifyEvent !SDSIdentity (SDSNotifyPredIWorld p) & TC p
-
-:: NotifyRequest =
-    { reqid         :: Int
-    , sdsid         :: SDSIdentity
-    , param         :: Dynamic
-    , taskInstance  :: InstanceNo
-    }
+:: SDSNotifyEvent  = E.p: SDSNotifyEvent !SDSIdentity (SDSNotifyPredIWorld p) & TC p
 
 createChangeOnWriteSDS ::
 	!String
@@ -97,7 +90,16 @@ registerSDSPredictableChange timestamp sdsId iworld
 registerSDSCheckForChange		:: !Timestamp !Hash !(*IWorld -> (!CheckRes,!*IWorld))	!BasicShareId !*IWorld -> *IWorld
 registerSDSCheckForChange timestamp hash checkF sdsId iworld
     = queueWork (CheckSDS sdsId hash checkF, Just timestamp) iworld
-		
+	
+
+//Construct the identity of a potentially composed sds
+sdsIdentity :: !(RWShared p r w) -> SDSIdentity
+sdsIdentity sds = md5 (graph_to_sapl_string sds) //FIXME: Use a less hacky identity scheme
+
+geq a b = graph_to_sapl_string a == graph_to_sapl_string b //FIXME use a normal equality instance to compare parameters
+
+wrapIWorld npred p env = (npred p, env)
+
 read :: !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 read sds env = read` Void Nothing sds env
 
@@ -176,22 +178,20 @@ write w sds env = writeFilterMsg w (const True) sds env
 	
 writeFilterMsg :: !w !(InstanceNo -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 writeFilterMsg w filter sds env
-    # (mbErr,_,iworld) = write` Void w sds filter env
-    = (fmap (const Void) mbErr, iworld)
+    # (mbErr,nevents,iworld) = write` Void w sds filter env
+    = (fmap (const Void) mbErr, processNotifications nevents iworld)
 
-geq a b = graph_to_sapl_string a == graph_to_sapl_string b //FIXME
-
-wrapIWorld npred p env = (npred p, env)
-
-write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [NotifyEvent], !*IWorld) | TC p
-write` p w (SDSSource {mbId,write}) filter env
+write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [SDSNotifyEvent], !*IWorld) | TC p
+write` p w sds=:(SDSSource {mbId,write}) filter env
 	# (mbErr, env) = write p w env
 	# env = case mbId of
 		Just id	= reportSDSChange id filter env
 		Nothing	= env
     = case mbErr of
         (Error e)   = (Error e, [], env)
-        (Ok npred)  = (Ok (wrapIWorld npred), [], env)
+        (Ok npred)
+            # npred = wrapIWorld npred
+            = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred], env)
 
 write` p w (ComposedRead share _) filter env
     = write` p w share filter env
@@ -216,36 +216,38 @@ where
         (Error e,_,env) = (Error e,env)
         (Ok _,_,env)    = doWrites ws env
 
-write` p w (SDSProjection sds {SDSLens|write}) filter env
-    = case read` p Nothing sds env of
+write` p w sds=:(SDSProjection sds1 {SDSLens|write}) filter env
+    = case read` p Nothing sds1 env of
         (Error e, env)  = (Error e, [], env)
-        (Ok r, env)     = write` p (write r w) sds filter env
+        (Ok r, env)     = case write` p (write r w) sds1 filter env of
+            (Error e, _, env)   = (Error e, [], env)
+            (Ok npred, ns, env) = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 
-write` p w (SDSTranslation sds translate) filter env
-    = case write` (translate p) w sds filter env of
+write` p w sds=:(SDSTranslation sds1 translate) filter env
+    = case write` (translate p) w sds1 filter env of
         (Error e, _, env) = (Error e, [], env)
         (Ok npred, ns, env)
             # npred = \p env -> npred (translate p) env
-            = (Ok npred, ns, env)
+            = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 
-write` p w (SDSSplit sds {SDSSplit|param,write}) filter env
+write` p w sds=:(SDSSplit sds1 {SDSSplit|param,write}) filter env
     # (ps,pn) = param p
-    = case read` ps Nothing sds env of
+    = case read` ps Nothing sds1 env of
         (Error e, env)  = (Error e, [], env)
         (Ok r, env)
             # (ws, npredn) = write pn r w
-            = case write` ps ws sds filter env of
+            = case write` ps ws sds1 filter env of
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npreds, ns, env)
                     # npred = gennpred npreds (wrapIWorld npredn)
-                    = (Ok npred, [], env)
+                    = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 where
     gennpred npred1 npred2 p env = gennpred` npred1 npred2 (param p) env
     gennpred` npred1 npred2 (p1,p2) env
         | geq p1 p2 = npred2 p2 env
                     = npred1 p1 env
 
-write` p w (SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
+write` p w sds=:(SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
     = case select p of
         Left p1 = case read` p1 Nothing sds1 env of
             (Error e, env)  = (Error e, [], env)
@@ -253,7 +255,7 @@ write` p w (SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npred1, ns, env)
                     # npred = gennpred (wrapIWorld (notifyl p1 r1 w)) npred1
-                    = (Ok npred, [], env)
+                    = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 
         Right p2 = case read` p2 Nothing sds2 env of
             (Error e, env)  = (Error e, [], env)
@@ -261,13 +263,13 @@ write` p w (SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npred2, ns, env)
                     # npred = gennpred npred2 (wrapIWorld (notifyr p2 r2 w))
-                    = (Ok npred, [], env)
+                    = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 where
     gennpred npred1 npred2 p env = case select p of
         (Left p1) = npred2 p1 env
         (Right p2) = npred1 p2 env
 
-write` p w (SDSParallel sds1 sds2 {SDSParallel|param,write}) filter env
+write` p w sds=:(SDSParallel sds1 sds2 {SDSParallel|param,write}) filter env
     # (p1,p2) = param p
     # (w1,w2) = write w
     = case write` p1 w1 sds1 filter env of
@@ -276,7 +278,7 @@ write` p w (SDSParallel sds1 sds2 {SDSParallel|param,write}) filter env
             (Error e, _, env) = (Error e, [], env)
             (Ok npred2, ns2, env)
                 # npred = gennpred npred1 npred2
-                = (Ok npred, ns1 ++ ns2, env)
+                = (Ok npred,[SDSNotifyEvent (sdsIdentity sds) npred :ns1 ++ ns2], env)
 where
     gennpred npred1 npred2 p env = gennpred` npred1 npred2 (param p) env
     gennpred` npred1 npred2 (p1,p2) env
@@ -284,7 +286,7 @@ where
 			(False, env) = npred2 p2 env
 			(True, env)  = (True, env)
 
-write` p w (SDSSequence sds1 sds2 {SDSSequence|param,write}) filter env
+write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,write}) filter env
     # (w1,w2) = write w
     = case write` p w1 sds1 filter env of
         (Error e, _, env)   = (Error e, [], env)
@@ -292,7 +294,7 @@ write` p w (SDSSequence sds1 sds2 {SDSSequence|param,write}) filter env
             (Error e, _, env) = (Error e, [], env)
             (Ok npred2, ns2, env)
                 # npred = gennpred npred1 npred2
-                = (Ok npred, ns1 ++ ns2, env)
+                = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns1 ++ ns2], env)
 where
 	gennpred npred1 npred2 p env
         = case npred1 p env of
@@ -300,6 +302,36 @@ where
                 (Error msg, env)    = (True, env)
 				(Ok r1, env)        = npred2 (param r1) env
 			(True, env)  = (True, env)
+
+processNotifications :: ![SDSNotifyEvent] !*IWorld -> *IWorld
+processNotifications ns iworld
+    # (notified,iworld) = process 'Set'.newSet [] ns iworld
+    = clearNotified notified iworld
+where
+    process checked notified [] iworld = (notified,iworld)
+    process checked notified [SDSNotifyEvent sdsIdentity npred:ns] iworld=:{IWorld|sdsNotifyRequests}
+        # (checked,notified,iworld) = checkNotifyPred sdsIdentity npred checked notified sdsNotifyRequests iworld
+        = process checked notified ns iworld
+
+    checkNotifyPred sdsIdentity npred checked notified [] iworld = (checked,notified,iworld)
+    checkNotifyPred sdsIdentity npred checked notified [{SDSNotifyRequest|reqid,sdsid,param,taskInstance}:rs] iworld
+        | sdsIdentity == sdsid && 'Set'.notMember reqid checked
+            # (hit,iworld) = case param of
+                (qr :: qr^) = npred qr iworld
+                _           = (False,iworld)
+            # checked = 'Set'.insert reqid checked
+            | hit
+                # iworld = trace_n ("Matched notification predicate for taskno:" +++ toString taskInstance) iworld
+                //TODO: Actually do something with the notification
+                = checkNotifyPred sdsIdentity npred checked [reqid:notified] rs iworld
+            | otherwise
+                = checkNotifyPred sdsIdentity npred checked notified rs iworld
+        | otherwise
+            = checkNotifyPred sdsIdentity npred checked notified rs iworld
+
+    clearNotified notified iworld=:{IWorld|sdsNotifyRequests}
+        = {iworld & sdsNotifyRequests = [req \\ req=:{SDSNotifyRequest|reqid} <- sdsNotifyRequests | not (isMember reqid notified)]}
+import StdDebug
 
 registerSDSDependency :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 registerSDSDependency sdsId instanceNo iworld

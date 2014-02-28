@@ -22,7 +22,7 @@ from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWrite
 derive class iTask ParallelTaskType, WorkOnStatus
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-getNextTaskId iworld=:{current=current=:{taskInstance,nextTaskNo}}
+getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
@@ -55,7 +55,7 @@ where
 			ExceptionResult e str
 				= (ExceptionResult e str,iworld)
 	
-	projectOnShare val result iworld=:{current={taskInstance}}
+	projectOnShare val result iworld=:{current={TaskEvalState|taskInstance}}
 		# (er, iworld) = read share iworld
    		= case er of
 			Ok r = case projection val r of

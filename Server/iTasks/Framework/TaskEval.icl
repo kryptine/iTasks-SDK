@@ -398,7 +398,7 @@ where
     applyUpdate instances _ = instances
 
 currentInstanceShare :: ReadOnlyShared InstanceNo
-currentInstanceShare = createReadOnlySDS (\Void iworld=:{current={taskInstance}} -> (taskInstance,iworld))
+currentInstanceShare = createReadOnlySDS (\Void iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))
 
 parListShare :: !TaskId !TaskId -> SharedTaskList a | iTask a
 parListShare listId=:(TaskId instanceNo taskNo) entryId = createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write

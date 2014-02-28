@@ -49,7 +49,7 @@ where
 			Ok handle
 		        = eval event repOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
-	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={taskInstance}}
+	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
             # (rep,iworld)  = makeRep taskId repOpts status iworld
@@ -311,7 +311,7 @@ where
 	//Inline copy of function from CoreCombinators.icl
 	//I don't want to export it there because CoreCombinators is an API module
 	getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-	getNextTaskId iworld=:{current=current=:{taskInstance,nextTaskNo}} = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
+	getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}} = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval

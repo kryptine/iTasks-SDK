@@ -28,6 +28,15 @@ from iTasks.API.Core.Types import :: InstanceNo
 :: SDSNotifyPred p          :== p -> Bool
 :: SDSNotifyPredIWorld p    :== p *IWorld -> *(!Bool,!*IWorld)
 
+//Notification requests are stored in the IWorld
+:: SDSNotifyRequest =
+    { reqid         :: Int
+    , sdsid         :: SDSIdentity
+    , param         :: Dynamic
+    , taskInstance  :: InstanceNo
+    }
+:: SDSIdentity  :== String
+
 //Lens maps values from a source (s) domain to a new target (t) domain
 :: SDSLens rs ws rt wt =
     { read         :: rs -> rt

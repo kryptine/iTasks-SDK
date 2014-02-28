@@ -13,7 +13,7 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletO
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
-from iTasks.Framework.SDS import :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import :: SDSNotifyRequest, :: CheckRes(..), :: BasicShareId, :: Hash
 from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -29,6 +29,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
                     , random                :: [Int]                                    // Infinite random stream
 
                     , sdsRegistrations      :: !Map BasicShareId [InstanceNo]           // Registered task/share dependencies
+                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                      // Notification requests from previously read sds's
 					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)   // Shared source
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader

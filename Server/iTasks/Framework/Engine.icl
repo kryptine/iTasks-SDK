@@ -225,6 +225,7 @@ initIWorld sdkDir world
 	    ,readShares			    = []
         ,editletDiffs           = newMap }
       ,sdsRegistrations     = newMap
+      ,sdsNotifyRequests    = []
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
       ,ti                   = newMap
