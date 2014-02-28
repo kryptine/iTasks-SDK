@@ -27,13 +27,13 @@ toReadOnly :: !(RWShared p r w) -> ROShared p r
 // Composition of two shared references.
 // The read type is a tuple of both types.
 // The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).
-(>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy)
-(>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx
-(|+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy
-(|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) Void
+(>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy)     | TC p
+(>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx          | TC p
+(|+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy          | TC p
+(|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) Void        | TC p
 
 // Use the value of one share as parameter for another
-(>+>) infixl 6 :: !(RWShared p r0 w0) !(r0 -> (RWShared p r1 w1)) -> RWShared p r1 w1
+(>+>) infixl 6 :: !(RWShared p r0 w0) !(r0 -> (RWShared p r1 w1)) -> RWShared p r1 w1 | TC p
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
@@ -45,5 +45,5 @@ toReadOnly :: !(RWShared p r w) -> ROShared p r
 * @param SymmetricShared b
 * @param RWShared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b)
+symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b) | TC p
 

@@ -7,7 +7,7 @@ from iTasks.API.Core.Types import :: InstanceNo
 :: RWShared p r w
 	= 			            SDSSource		!(SDSSource p r w)
     //'NEW' COMPOSITIONS
-    | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSLens rs ws r w)
+    | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSProjection rs ws r w)
 	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
     | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
@@ -37,11 +37,20 @@ from iTasks.API.Core.Types import :: InstanceNo
     }
 :: SDSIdentity  :== String
 
-//Lens maps values from a source (s) domain to a new target (t) domain
-:: SDSLens rs ws rt wt =
-    { read         :: rs -> rt
-    , write        :: rs wt -> ws
+//Project maps values from a source (s) domain to a new target (t) domain
+:: SDSProjection rs ws rt wt =
+    { read         :: SDSReadProjection rs rt
+    , write        :: SDSWriteProjection rs ws wt
     }
+
+:: SDSReadProjection rs rt
+    = SDSLensRead      (rs -> MaybeErrorString rt)      //Read lens-like
+    | SDSConstRead     rt                               //No need to read the original source
+
+:: SDSWriteProjection rs ws wt
+    = SDSLensWrite     (rs wt   -> MaybeErrorString (Maybe ws)) //Write lens-like
+    | SDSBlindWrite    (wt      -> MaybeErrorString (Maybe ws)) //No-need to read the original source
+    | SDSNoWrite
 
 //Split divides a domain into two subdomains by introducing a new parameter
 :: SDSSplit p ps pn r w =

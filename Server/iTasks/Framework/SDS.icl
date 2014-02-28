@@ -137,8 +137,13 @@ where
 
 read` p mbNotificationF (ComposedWrite share _ _) env = read` p mbNotificationF share env
 
-read` p mbNotificationF (SDSProjection sds {SDSLens|read}) env
-    = appFst (fmap read) (read` p mbNotificationF sds env)
+read` p mbNotificationF (SDSProjection sds {SDSProjection|read}) env
+    = case read of
+        SDSLensRead proj = case (read` p mbNotificationF sds env) of
+            (Error e,env)   = (Error e, env)
+            (Ok r,env)      = (proj r,env)
+        SDSConstRead r
+            = (Ok r,env)
 
 read` p mbNotificationF (SDSTranslation sds translate) env
     = read` (translate p) mbNotificationF sds env
@@ -216,12 +221,24 @@ where
         (Error e,_,env) = (Error e,env)
         (Ok _,_,env)    = doWrites ws env
 
-write` p w sds=:(SDSProjection sds1 {SDSLens|write}) filter env
-    = case read` p Nothing sds1 env of
-        (Error e, env)  = (Error e, [], env)
-        (Ok r, env)     = case write` p (write r w) sds1 filter env of
-            (Error e, _, env)   = (Error e, [], env)
-            (Ok npred, ns, env) = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
+write` p w sds=:(SDSProjection sds1 {SDSProjection|write}) filter env
+    = case write of
+        SDSLensWrite proj = case read` p Nothing sds1 env of
+            (Error e, env)  = (Error e, [], env)
+            (Ok r, env)     = case proj r w of
+                (Error e)       = (Error e, [], env)
+                (Ok Nothing)    = (Ok (\p env -> (False,env)),[],env)
+                (Ok (Just w`))  = case write` p w` sds1 filter env of
+                    (Error e, _, env)   = (Error e, [], env)
+                    (Ok npred, ns, env) = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
+        SDSBlindWrite proj = case proj w of
+            (Error e)       = (Error e, [], env)
+            (Ok Nothing)    = (Ok (\p env -> (False,env)),[],env)
+            (Ok (Just w`))  = case write` p w` sds1 filter env of
+                (Error e, _, env)   = (Error e, [], env)
+                (Ok npred, ns, env) = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
+        SDSNoWrite
+            = (Ok (\p env -> (False,env)), [], env)
 
 write` p w sds=:(SDSTranslation sds1 translate) filter env
     = case write` (translate p) w sds1 filter env of

@@ -12,20 +12,20 @@ import Data.Maybe, Data.Error
 (>!>) infixl 6 :: !(RWShared p r w`) !(!w -> MaybeErrorString (RWShared p r` w``), !w r` -> MaybeErrorString [WriteShare p]) -> RWShared p r w
 (>!>) share (readOp,writeOp) = ComposedWrite share readOp writeOp
 
-sdsProject :: !(RWShared p rs ws) !(SDSLens rs ws r w) -> RWShared p r w
-sdsProject sds lens = SDSProjection sds lens
+sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(RWShared p rs ws) -> RWShared p r w
+sdsProject read write sds = SDSProjection sds {SDSProjection|read=read,write=write}
 
-sdsTranslate :: !(RWShared ps r w) !(p -> ps) -> RWShared p r w | TC ps
-sdsTranslate sds translation = SDSTranslation sds translation
+sdsTranslate :: !(p -> ps) !(RWShared ps r w) -> RWShared p r w | TC ps
+sdsTranslate translation sds = SDSTranslation sds translation
 
-sdsSplit :: !(RWShared ps r w) !(SDSSplit p ps pn r w) -> RWShared p r w | TC ps & TC pn
-sdsSplit sds split = SDSSplit sds split
+sdsSplit :: !(p -> (ps,pn)) !(pn r -> r) !(pn r w -> (w,SDSNotifyPred pn)) !(RWShared ps r w) -> RWShared p r w | TC ps & TC pn
+sdsSplit param read write sds = SDSSplit sds {SDSSplit|param=param,read=read,write=write}
 
-sdsMerge :: !(RWShared p1 r w) !(RWShared p2 r w) !(SDSMerge p p1 p2 r w) -> RWShared p r w | TC p1 & TC p2
-sdsMerge sds1 sds2 merge = SDSMerge sds1 sds2 merge
+sdsMerge :: !(p -> Either p1 p2) !(p1 r w -> SDSNotifyPred p2) !(p2 r w -> SDSNotifyPred p1) !(RWShared p1 r w) !(RWShared p2 r w) -> RWShared p r w | TC p1 & TC p2
+sdsMerge select notifyl notifyr sds1 sds2 = SDSMerge sds1 sds2 {SDSMerge|select=select,notifyl=notifyl,notifyr=notifyr}
 
-sdsParallel :: !(RWShared p1 r1 w1) !(RWShared p2 r2 w2) !(SDSParallel p1 r1 w1 p2 r2 w2 p r w) -> RWShared p r w | TC p1 & TC p2
-sdsParallel sds1 sds2 par = SDSParallel sds1 sds2 par
+sdsParallel :: !(p -> (p1,p2)) !((r1,r2) -> r) !(w -> (w1,w2)) !(RWShared p1 r1 w1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p1 & TC p2
+sdsParallel param read write sds1 sds2 = SDSParallel sds1 sds2 {SDSParallel|param=param,read=read,write=write}
 
-sdsSequence :: !(RWShared p rw1 rw1) !(RWShared p2 r2 w2) !(SDSSequence rw1 p2 r2 w2 r w) -> RWShared p r w | TC p2
-sdsSequence sds1 sds2 seq = SDSSequence sds1 sds2 seq
+sdsSequence :: !(rw1 -> p2) !((rw1,r2) -> r) !(w -> (rw1,w2)) !(RWShared p rw1 rw1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p2
+sdsSequence param read write sds1 sds2 = SDSSequence sds1 sds2 {SDSSequence|param=param,read=read,write=write}
