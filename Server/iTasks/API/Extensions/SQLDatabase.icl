@@ -10,11 +10,11 @@ import qualified Data.Map
 
 derive class iTask SQLValue, SQLDate, SQLTime
 
-sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> ReadWriteShared r w 
-sqlShare db name readFun writeFun = createChangeOnWriteSDS "SQLShares" name read write
+sqlShare :: String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
+								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared SQLDatabase r w
+sqlShare name readFun writeFun = createChangeOnWriteSDS "SQLShares" name read write
 where
-	read Void iworld
+	read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e,  iworld)
@@ -22,7 +22,7 @@ where
 				# (res,cur) = readFun cur
 				# iworld	= closeMySQLDb cur con cxt iworld
 				= (res,iworld)
-	write Void w iworld
+	write db w iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
@@ -73,10 +73,10 @@ execDelete query values cur
 sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values) 
 
-sqlSelectShare :: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
-sqlSelectShare db name query values = createChangeOnWriteSDS "SQLShares" name read write
+sqlSelectShare :: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]
+sqlSelectShare name query values = createChangeOnWriteSDS "SQLShares" name read write
 where
-	read Void iworld
+	read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
@@ -88,7 +88,7 @@ where
 				# iworld				= closeMySQLDb cur con cxt iworld
 				= (Ok rows,iworld)
 
-    write Void Void iworld = (Ok (const True),iworld)
+    write _ Void iworld = (Ok (const True),iworld)
 		
 openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
 openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}

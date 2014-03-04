@@ -303,16 +303,41 @@ where
 			(False, env) = npred2 p2 env
 			(True, env)  = (True, env)
 
-write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,write}) filter env
-    # (w1,w2) = write w
-    = case write` p w1 sds1 filter env of
-        (Error e, _, env)   = (Error e, [], env)
-        (Ok npred1, ns1, env)  = case write` (param w1) w2 sds2 filter env of
-            (Error e, _, env) = (Error e, [], env)
-            (Ok npred2, ns2, env)
-                # npred = gennpred npred1 npred2
-                = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns1 ++ ns2], env)
+write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,writel,writer}) filter env //NOT OK YET, BUT ILLUSTRATES USE CASE!
+    = case read` p Nothing sds1 env of
+        (Error e, env)  = (Error e, [], env)
+        (Ok r1, env)
+            //Write sds1 if necessary
+            # (npred1,ns1,env) = case writel of
+                (SDSLensWrite f)  = case f r1 w of
+                    Error e          = (Error e, [], env)
+                    Ok (Nothing)     = (Ok nowrite,[],env)
+                    Ok (Just w1)     = write` p w1 sds1 filter env
+                (SDSBlindWrite f) = case f w of
+                    Error e          = (Error e, [], env)
+                    Ok (Nothing)     = (Ok nowrite,[],env)
+                    Ok (Just w1)     = write` p w1 sds1 filter env
+                (SDSNoWrite)         = (Ok nowrite,[],env)
+            | npred1 =:(Error _) = (liftError npred1, [], env)
+            //Read/write sds2 if necessary
+            # (npred2,ns2,env) = case writer of
+                (SDSLensWrite f) = case read` (param r1) Nothing sds2 env of //Also read sds2
+                    (Error e, env)  = (Error e, [], env)
+                    (Ok r2,env)     = case f r2 w of
+                        Error e         = (Error e,[],env)
+                        Ok (Nothing)    = (Ok nowrite,[],env)
+                        Ok (Just w2)    = write` (param r1) w2 sds2 filter env
+                (SDSBlindWrite f) = case f w of
+                    Error e             = (Error e,[],env)
+                    Ok (Nothing)        = (Ok nowrite,[],env)
+                    Ok (Just w2)        = write` (param r1) w2 sds2 filter env
+                (SDSNoWrite)            = (Ok nowrite,[],env)
+            | npred2 =:(Error _) = (liftError npred2, [], env)
+            # npred = gennpred (fromOk npred1) (fromOk npred2)
+            = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns1 ++ ns2], env)
 where
+    nowrite p env = (False,env)
+
 	gennpred npred1 npred2 p env
         = case npred1 p env of
 			(False, env) = case read` p Nothing sds1 env of

@@ -20,8 +20,8 @@ derive class iTask SQLValue, SQLTime, SQLDate
 * 
 * @return The shared data source
 */
-sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> ReadWriteShared r w 
+sqlShare :: String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
+								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared SQLDatabase r w
 
 /**
 * Perform one or multiple queries on an SQL database
@@ -44,4 +44,4 @@ sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 * Note: Although it is possible to do other queries than just selects,
 * this is a bad idea. You never know how many times the query will be executed
 */
-sqlSelectShare	:: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
+sqlSelectShare	:: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]

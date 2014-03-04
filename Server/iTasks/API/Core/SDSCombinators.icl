@@ -27,5 +27,5 @@ sdsMerge select notifyl notifyr sds1 sds2 = SDSMerge sds1 sds2 {SDSMerge|select=
 sdsParallel :: !(p -> (p1,p2)) !((r1,r2) -> r) !(w -> (w1,w2)) !(RWShared p1 r1 w1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p1 & TC p2
 sdsParallel param read write sds1 sds2 = SDSParallel sds1 sds2 {SDSParallel|param=param,read=read,write=write}
 
-sdsSequence :: !(rw1 -> p2) !((rw1,r2) -> r) !(w -> (rw1,w2)) !(RWShared p rw1 rw1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p2
-sdsSequence param read write sds1 sds2 = SDSSequence sds1 sds2 {SDSSequence|param=param,read=read,write=write}
+sdsSequence :: !(r1 -> p2) !((r1,r2) -> r) !(SDSWriteProjection r1 w1 w) !(SDSWriteProjection r2 w2 w) !(RWShared p r1 w1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p2
+sdsSequence param read writel writer sds1 sds2 = SDSSequence sds1 sds2 {SDSSequence|param=param,read=read,writel=writel,writer=writer}
