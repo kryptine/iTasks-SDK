@@ -11,20 +11,53 @@ from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
+from StdFunc import const
 
 from Data.List import splitWith
+from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
 import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Data.Map
 import iTasks.Framework.TaskStore, iTasks.Framework.Util
-import iTasks.Framework.SerializationGraphCopy 
+import iTasks.Framework.SerializationGraphCopy
+import iTasks.Framework.SDS
 
-updateCurrentDateTime :: !*IWorld -> *IWorld
-updateCurrentDateTime iworld=:{IWorld|current,world}
+iworldLocalDate :: Shared Date
+iworldLocalDate = createReadWriteSDS "IWorld" "localDate" read write
+where
+    read Void iworld=:{IWorld|clocks={localDate}} = (Ok localDate,iworld)
+    write Void localDate iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & localDate=localDate}})
+
+iworldLocalTime :: Shared Time
+iworldLocalTime = createReadWriteSDS "IWorld" "localTime" read write
+where
+    read Void iworld=:{IWorld|clocks={localTime}} = (Ok localTime,iworld)
+    write Void localTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & localTime=localTime}})
+
+iworldUTCDate :: Shared Date
+iworldUTCDate = createReadWriteSDS "IWorld" "utcDate" read write
+where
+    read Void iworld=:{IWorld|clocks={utcDate}} = (Ok utcDate,iworld)
+    write Void utcDate iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcDate=utcDate}})
+
+iworldUTCTime :: Shared Time
+iworldUTCTime = createReadWriteSDS "IWorld" "utcTime" read write
+where
+    read Void iworld=:{IWorld|clocks={utcTime}} = (Ok utcTime,iworld)
+    write Void utcTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcTime=utcTime}})
+
+updateClocks :: !*IWorld -> *IWorld
+updateClocks iworld=:{IWorld|clocks,current,world}
 	# (timestamp,world)		= time world
-	# (localDt,world)		= currentLocalDateTimeWorld world
-	# (utcDt,world)			= currentUTCDateTimeWorld world
-	= {IWorld|iworld  & current = {current & timestamp = timestamp, utcDateTime = utcDt, localDateTime = localDt}, world = world}
-
+    //Determine current date and time
+	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
+	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
+	# iworld = {IWorld|iworld  & current = {current & timestamp = timestamp}, world = world}
+    //Write SDS's if necessary
+    # iworld = if (localDate == clocks.localDate) iworld (snd (write localDate iworldLocalDate iworld))
+    # iworld = if (localTime == clocks.localTime) iworld (snd (write localTime iworldLocalTime iworld))
+    # iworld = if (utcDate == clocks.utcDate) iworld (snd (write utcDate iworldUTCDate iworld))
+    # iworld = if (utcTime == clocks.utcTime) iworld (snd (write utcTime iworldUTCTime iworld))
+    = iworld
 
 //Determine the expiration of request, thereby determining the poll interval of
 //polling clients
@@ -33,17 +66,8 @@ FAST_EXPIRY			:== 100
 IMMEDIATE_EXPIRY	:== 0
 
 getResponseExpiry :: !InstanceNo !*IWorld -> (!Maybe Int, !*IWorld) 
-getResponseExpiry instanceNo iworld=:{workQueue}
-	= (Just (expiry instanceNo workQueue), iworld)
-where
-	expiry _ [] = REGULAR_EXPIRY	
-	expiry instanceNo [(Evaluate _,Just (Timestamp 0)):ws]		//HACK...
-								= IMMEDIATE_EXPIRY
-	expiry instanceNo [(Evaluate evalNo,_):ws]
-		| evalNo == instanceNo	= FAST_EXPIRY
-								= expiry instanceNo ws
-	expiry instanceNo [_:ws]	= expiry instanceNo ws
-
+getResponseExpiry instanceNo iworld=:{refreshQueue=[]} = (Just REGULAR_EXPIRY,iworld)
+getResponseExpiry instanceNo iworld=:{refreshQueue} = (Just FAST_EXPIRY,iworld)
 
 addUIUpdates :: !InstanceNo ![UIUpdate] !*IWorld -> *IWorld
 addUIUpdates instanceNo [] iworld = iworld
@@ -76,17 +100,3 @@ where
 	sfopen filename mode iworld=:{IWorld|world}
 		# (ok,file,world) = sfopen filename mode world
 		= (ok,file,{IWorld|iworld & world = world})
-
-// serialise Work as dynamic since it contains functions on unique states
-JSONEncode{|Work|} work  = [JSONArray [JSONString "_FUNCTION_", JSONString (base64URLEncode (serialize work))]]
-JSONDecode{|Work|} [JSONArray [JSONString "_FUNCTION_",JSONString string]:c] = (Just (fromOk(deserialize {s` \\ s` <-: base64URLDecode string})) ,c)
-
-WORKQUEUE_INDEX :== "workqueue-index"
-	
-saveWorkQueue :: !*IWorld -> *IWorld
-saveWorkQueue iworld=:{workQueue} = storeValue NS_TASK_INSTANCES WORKQUEUE_INDEX workQueue iworld
-
-restoreWorkQueue :: !*IWorld -> *IWorld
-restoreWorkQueue iworld
-	# (mbWorkQueue,iworld) = loadValue NS_TASK_INSTANCES WORKQUEUE_INDEX iworld
-	= {iworld & workQueue = fromMaybe [] mbWorkQueue}

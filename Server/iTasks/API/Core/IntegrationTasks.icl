@@ -53,7 +53,7 @@ where
 		| stable
             # status        = fromJust (fromJSON encv)
             # (rep,iworld)  = makeRep taskId repOpts status iworld
-            # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
+            # iworld = queueRefresh [taskInstance] iworld
 			= (ValueResult (Value status True) {TaskInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
 		| otherwise
             //Check status
@@ -66,7 +66,7 @@ where
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
                     # (rep,iworld)  = makeRep taskId repOpts status {IWorld|iworld & world = world}
-                    # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
+                    # iworld = queueRefresh [taskInstance] iworld
                     = (ValueResult (Value status stable) {TaskInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
 
 	eval event repAs (TCDestroy _) iworld

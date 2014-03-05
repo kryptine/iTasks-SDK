@@ -378,9 +378,9 @@ where
 //SHARED HELPER FUNCTIONS
 
 addTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !(Maybe Int) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
-addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain,localDateTime}}
+addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain},clocks={localDate,localTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# progress = {value=None, issuedAt=DateTime localDate localTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
@@ -547,7 +547,7 @@ where
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
 				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (taskInstanceMeta instanceNo) iworld
-				# iworld		= queueUrgentEvaluate instanceNo iworld
+				# iworld		= queueUrgentRefresh [instanceNo] iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult (dynamic e) e,iworld)

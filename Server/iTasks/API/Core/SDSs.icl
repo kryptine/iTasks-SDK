@@ -24,47 +24,25 @@ constShare :: !a -> ROShared p a
 constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 null :: WriteOnlyShared a
-null = createSDS Nothing (\Void env -> (Ok (Void, OnWrite), env)) (\Void _ env -> (Ok (const False), env))
+null = createReadWriteSDS SYSTEM_DATA_NS "null" (\Void env -> (Ok Void, env)) (\Void _ env -> (Ok (const False), env))
 			
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
-where
-	read Void iworld=:{current={localDateTime,timestamp=Timestamp ts}}
-		= ((localDateTime, Timestamp (ts + 1)), iworld)
-		
+currentDateTime = mapRead (\(d,t) -> DateTime d t) (iworldLocalDate |+| iworldLocalTime)
+
 currentTime :: ReadOnlyShared Time
-currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
-where
-	read Void iworld=:{current={localDateTime=DateTime _ time,timestamp=Timestamp ts}}
-		= ((time, Timestamp (ts + 1)), iworld)
+currentTime = toReadOnly iworldLocalTime
 		
 currentDate :: ReadOnlyShared Date
-currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
-where
-	read Void iworld=:{current={localDateTime=DateTime date time,timestamp=Timestamp ts}}
-		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
-
-	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
+currentDate = toReadOnly iworldLocalDate
 
 currentUTCDateTime :: ReadOnlyShared DateTime
-currentUTCDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDateTime" read
-where
-	read Void iworld=:{current={utcDateTime,timestamp=Timestamp ts}}
-		= ((utcDateTime, Timestamp (ts + 1)), iworld)
+currentUTCDateTime = mapRead (\(d,t) -> DateTime d t) (iworldUTCDate |+| iworldUTCTime)
 
 currentUTCTime :: ReadOnlyShared Time
-currentUTCTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCTime" read
-where
-	read Void iworld=:{current={utcDateTime=DateTime _ time,timestamp=Timestamp ts}}
-		= ((time, Timestamp (ts + 1)), iworld)
+currentUTCTime = toReadOnly iworldUTCTime
 
 currentUTCDate :: ReadOnlyShared Date
-currentUTCDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDate" read
-where
-	read Void iworld=:{current={utcDateTime=DateTime date time,timestamp=Timestamp ts}}
-		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
-
-	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
+currentUTCDate = toReadOnly iworldUTCDate
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
@@ -130,17 +108,10 @@ where
 	randomInt Void iworld=:{IWorld|random=[i:is]}
 		= (i, {IWorld|iworld & random = is})
 
-EXTERNAL_FILE_POLLING_RATE :== 10
-
 externalFile :: !FilePath -> Shared String
-externalFile path = createPollingSDS "externalFile" path read write
+externalFile path = createReadWriteSDS "externalFile" path read write
 where
-	read Void iworld
-		# (Timestamp ts, iworld)	= 'iFU'.currentTimestamp iworld
-		# (res, iworld)				= read` iworld
-		= (fmap (\r -> (r, Timestamp (ts + EXTERNAL_FILE_POLLING_RATE), checkF r)) res, iworld)
-	
-	read` iworld=:{world}
+	read Void iworld=:{world}
 		# (ok,file,world)			= fopen path FReadData iworld.world
 		| not ok					= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
 		# (res,file)				= readAll file
@@ -148,13 +119,7 @@ where
 		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
 		| isError res				= (Error (toString (fromError res)) ,{IWorld|iworld & world = world})
 		= (Ok (fromOk res), {IWorld|iworld & world = world})
-		
-	checkF old iworld
-		# (res,iworld)= read` iworld
-		| isOk res && (fromOk res) <> old = (Changed, iworld)
-		# (Timestamp ts, iworld) = 'iFU'.currentTimestamp iworld
-		= (CheckAgain (Timestamp (ts + EXTERNAL_FILE_POLLING_RATE)), iworld)
-		
+
 	write Void content iworld=:{world}
 		# (ok,file,world)			= fopen path FWriteText world
 		| not ok					= (Error (toString CannotOpen), {IWorld|iworld & world = world})

@@ -194,11 +194,11 @@ where
                     = case mbl of
                         Ok l
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
-                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            # iworld = queueRefresh [instanceNo] iworld
                             = (sends,close,dynamic (r,l), iworld)
                         Error e
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
-                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            # iworld = queueRefresh [instanceNo] iworld
                             = (sends,True,dynamic e, iworld)
 			    Error e
                     = ([],True,dynamic (toString e), iworld)
@@ -212,11 +212,11 @@ where
                     = case mbl of
                         Ok l
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) True) ioValues}
-                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            # iworld = queueRefresh [instanceNo] iworld
                             = (dynamic (r,l), iworld)
 			            Error e
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
-                            # iworld = addOutdatedInstances [(instanceNo,Nothing)] iworld
+                            # iworld = queueRefresh [instanceNo] iworld
                             = (dynamic e, iworld)
 			    Error e
                     = (dynamic (toString e), iworld)

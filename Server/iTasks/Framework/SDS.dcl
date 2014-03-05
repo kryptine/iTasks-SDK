@@ -1,5 +1,6 @@
 definition module iTasks.Framework.SDS
 
+import StdClass
 import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.API.Core.Types import :: InstanceNo
@@ -19,7 +20,7 @@ from iTasks.API.Core.Types import :: InstanceNo
 
 :: SDSSource p r w =
 	{ mbId          :: !Maybe BasicShareId
-    , read			:: p *IWorld -> *(!MaybeErrorString (!r,!ChangeNotification), !*IWorld)
+    , read			:: p *IWorld -> *(!MaybeErrorString r, !*IWorld)
 	, write			:: p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld)
 	}
 
@@ -30,10 +31,9 @@ from iTasks.API.Core.Types import :: InstanceNo
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
-    { reqid         :: Int
+    { taskInstance  :: InstanceNo
     , sdsid         :: SDSIdentity
     , param         :: Dynamic
-    , taskInstance  :: InstanceNo
     }
 :: SDSIdentity  :== String
 
@@ -82,9 +82,9 @@ from iTasks.API.Core.Types import :: InstanceNo
     , writer        :: SDSWriteProjection r2 w2 w
     }
 
-:: ChangeNotification = OnWrite
-						| Predictable	!Timestamp
-						| Polling		!Timestamp !(*IWorld -> *(!CheckRes,!*IWorld))
+:: ChangeNotification
+    = OnWrite
+	//| Polling		!Timestamp !(*IWorld -> *(!CheckRes,!*IWorld))
 							
 :: CheckRes = Changed | CheckAgain Timestamp
 						
@@ -102,22 +102,11 @@ from iTasks.API.Core.Types import :: InstanceNo
 
 registerSDSDependency   :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 reportSDSChange         :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-
-registerSDSPredictableChange	:: !Timestamp 										    !BasicShareId !*IWorld -> *IWorld
-registerSDSCheckForChange		:: !Timestamp !Hash !(*IWorld -> (!CheckRes,!*IWorld))	!BasicShareId !*IWorld -> *IWorld
 	
-createChangeOnWriteSDS ::
+createReadWriteSDS ::
 	!String
 	!String
 	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
-	->
-	RWShared p r w
-
-createPollingSDS ::
-	!String
-	!String
-	!(p *IWorld -> *(!MaybeErrorString (!r, !Timestamp, !(*IWorld -> *(!CheckRes,!*IWorld))), !*IWorld))
 	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
@@ -126,32 +115,11 @@ createReadOnlySDS ::
 	!(p *IWorld -> *(!r, !*IWorld))
 	->
 	ROShared p r
-	
+
 createReadOnlySDSError ::
 	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
 	->
 	ROShared p r
-	
-createReadOnlySDSPredictable ::
-	!String
-	!String
-	!(p *IWorld -> *(!(!r, !Timestamp), !*IWorld))
-	->
-	ROShared p r
-	
-createReadOnlySDSErrorPredictable ::
-	!String
-	!String
-	!(p *IWorld -> *(!MaybeErrorString (!r, !Timestamp), !*IWorld))
-	->
-	ROShared p r
-
-createSDS ::
-	!(Maybe BasicShareId)
-	!(p *IWorld -> *(!MaybeErrorString (!r, !ChangeNotification), !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
-	->
-	RWShared p r w
 
 read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
@@ -161,8 +129,6 @@ writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!Ma
 //Dependency administration
 addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
-addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
 
 //Exposing shares for external nodes
 toJSONShared	:: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w

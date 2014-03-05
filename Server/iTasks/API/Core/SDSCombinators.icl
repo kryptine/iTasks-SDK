@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.SDSCombinators
 
-import StdTuple
+import StdTuple, StdClass
 import iTasks.Framework.SDS
 import iTasks.API.Core.SDSs
 from StdFunc import const, o

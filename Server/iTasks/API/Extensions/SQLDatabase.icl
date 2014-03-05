@@ -12,7 +12,7 @@ derive class iTask SQLValue, SQLDate, SQLTime
 
 sqlShare :: String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
 								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared SQLDatabase r w
-sqlShare name readFun writeFun = createChangeOnWriteSDS "SQLShares" name read write
+sqlShare name readFun writeFun = createReadWriteSDS "SQLShares" name read write
 where
 	read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
@@ -74,7 +74,7 @@ sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values) 
 
 sqlSelectShare :: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]
-sqlSelectShare name query values = createChangeOnWriteSDS "SQLShares" name read write
+sqlSelectShare name query values = createReadWriteSDS "SQLShares" name read write
 where
 	read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
