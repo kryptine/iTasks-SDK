@@ -13,7 +13,7 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletO
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
-from iTasks.Framework.SDS import :: SDSNotifyRequest, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
 from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared
 
 from Sapl.Linker.LazyLinker import :: LoaderState

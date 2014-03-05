@@ -5,6 +5,7 @@ from Data.Void import :: Void
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Error import :: MaybeError, :: MaybeErrorString
+from StdClass import class Eq
 
 //'OLD' core combinators
 
@@ -22,7 +23,7 @@ sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(RWShared
 sdsTranslate :: !(p -> ps) !(RWShared ps r w) -> RWShared p r w | TC ps
 
 // Introduce a new parameter
-sdsSplit :: !(p -> (ps,pn)) !(pn r -> r) !(pn r w -> (w,SDSNotifyPred pn)) !(RWShared ps r w) -> RWShared p r w | TC ps & TC pn
+sdsSplit :: !(p -> (ps,pn)) !(pn r -> r) !(pn r w -> (w,SDSNotifyPred pn)) !(RWShared ps r w) -> RWShared p r w | TC ps & TC pn & Eq ps
 
 // Choose between two SDS's based on the parameter.
 // Because there may be overlap in the parameter spaces of the two SDS's

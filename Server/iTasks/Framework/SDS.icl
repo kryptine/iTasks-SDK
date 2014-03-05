@@ -208,16 +208,13 @@ write` p w sds=:(SDSSplit sds1 {SDSSplit|param,write}) filter env
             = case write` ps ws sds1 filter env of
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npreds, ns, env)
-                    # npred = gennpred npreds (wrapIWorld npredn)
+                    # npred = gennpred ps npreds pn (wrapIWorld npredn)
                     = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 where
-    gennpred npred1 npred2 p env = gennpred` npred1 npred2 (param p) env
-    gennpred` npred1 npred2 (p1,p2) env
-        | geq p1 p2 = npred2 p2 env
-                    = npred1 p1 env
-
-    //FIXME Figure out this weird equality
-    geq a b = graph_to_sapl_string a == graph_to_sapl_string b
+    gennpred p1 npred1 p2 npred2 p env = gennpred` p1 npred1 p2 npred2 (param p) env
+    gennpred` p1 npred1 p2 npred2 (p1`,p2`) env
+        | p1 == p1`    = npred2 p2` env
+                       = npred1 p1` env
 
 write` p w sds=:(SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
     = case select p of

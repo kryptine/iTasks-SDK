@@ -10,7 +10,7 @@ from iTasks.API.Core.Types import :: InstanceNo
     //'NEW' COMPOSITIONS
     | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSProjection rs ws r w)
 	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
-    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn
+    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn & Eq ps
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence r1 w1 p2 r2 w2 r w) & TC p2
@@ -82,18 +82,11 @@ from iTasks.API.Core.Types import :: InstanceNo
     , writer        :: SDSWriteProjection r2 w2 w
     }
 
-:: ChangeNotification
-    = OnWrite
-	//| Polling		!Timestamp !(*IWorld -> *(!CheckRes,!*IWorld))
-							
-:: CheckRes = Changed | CheckAgain Timestamp
-						
 :: BasicShareId :== String	
 :: WriteShare p = E.r w: Write !w !(RWShared p r w)
 	
 :: ROShared p a 	:== RWShared p a Void
 :: WOShared p a 	:== RWShared p Void a
-:: Hash			    :== String
 
 :: ReadWriteShared r w  :== RWShared Void r w
 :: ReadOnlyShared a		:== ReadWriteShared a Void
