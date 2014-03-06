@@ -137,11 +137,10 @@ createClientIWorld serverURL currentInstance
 		    ,readShares			= []
 		    ,editletDiffs		= 'Data.Map'.newMap
           }
-          ,sdsRegistrations     = 'Data.Map'.newMap
           ,sdsNotifyRequests    = []
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
-          ,ti                   = 'Data.Map'.newMap
+          ,ti                   = []
           ,nextInstanceNo       = 0
 		  ,refreshQueue			= []
 		  ,uiUpdates			= 'Data.Map'.newMap

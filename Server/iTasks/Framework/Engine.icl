@@ -44,7 +44,6 @@ startEngine publishable world
 	# iworld				= initIWorld (fromJust mbSDKPath) world
     //Initialize task instance index
     # iworld                = initInstanceMeta iworld
-    # iworld                = initShareRegistrations iworld
 	// mark all instance as outdated initially
 	# (maxNo,iworld)		= maxInstanceNo iworld
 	# iworld				= queueRefresh [1..maxNo] iworld
@@ -210,11 +209,10 @@ initIWorld sdkDir world
         ,eventRoute			    = newMap
 	    ,readShares			    = []
         ,editletDiffs           = newMap }
-      ,sdsRegistrations     = newMap
       ,sdsNotifyRequests    = []
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
-      ,ti                   = newMap
+      ,ti                   = []
       ,nextInstanceNo       = 0
 	  ,refreshQueue			= []
 	  ,uiUpdates            = newMap

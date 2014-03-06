@@ -49,10 +49,12 @@ topLevelTasks :: SharedTaskList Void
 topLevelTasks = topListShare
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
-currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | m.instanceType === SessionInstance]) (toReadOnly fullInstanceMeta)
+currentSessions
+    = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just True} filteredInstanceMeta))
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | m.instanceType =!= SessionInstance]) (toReadOnly fullInstanceMeta)
+currentProcesses
+    = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta))
 
 toTaskListItem :: !TIMeta -> TaskListItem a 
 toTaskListItem {TIMeta|instanceNo,listId,progress,management}
@@ -68,12 +70,8 @@ where
 	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {ManagementMeta|worker=UserWithRole role}}	= isMember role roles
 	forWorker _ _																							= False
 
-isSession :: !TIMeta -> Bool
-isSession {TIMeta|instanceType=SessionInstance}	= True
-isSession _						 	            = False
-
 allTaskInstances :: ReadOnlyShared [TaskListItem Void]
-allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map (toTaskListItem o snd) (toList ti),iworld))
+allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map toTaskListItem ti,iworld))
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\Void iworld=:{current={user}} -> (user,iworld))

@@ -22,8 +22,19 @@ mapWriteError write sds = sdsProject (SDSLensRead Ok) (SDSLensWrite (flip write)
 mapReadWriteError :: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Maybe w)) !(RWShared p r w) -> RWShared p r` w`
 mapReadWriteError (read,write) sds = sdsProject (SDSLensRead read) (SDSLensWrite (flip write)) sds
 
+mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w)
+mapSingle sds = sdsProject (SDSLensRead read) (SDSBlindWrite write) sds
+where
+    read [x]    = Ok x
+    read _      = Error "Element not found"
+
+    write x     = Ok (Just [x])
+
 toReadOnly :: !(RWShared p r w) -> ROShared p r
 toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds
+
+setParam :: !p !(RWShared p r w) -> (RWShared Void r w) | TC p
+setParam p sds = sdsTranslate (\Void -> p) sds
 
 (>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy) | TC p
 (>+<) sds1 sds2 = sdsParallel (\p -> (p,p)) id id sds1 sds2

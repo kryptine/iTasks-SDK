@@ -29,7 +29,6 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
                     , random                :: [Int]                                    // Infinite random stream
 
-                    , sdsRegistrations      :: !Map BasicShareId [InstanceNo]           // Registered task/share dependencies
                     , sdsNotifyRequests     :: ![SDSNotifyRequest]                      // Notification requests from previously read sds's
 					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)   // Shared source
 
@@ -40,8 +39,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
 
-                    , ti                    :: !Map InstanceNo TIMeta                   // Task instance index
-                    , nextInstanceNo        :: !Int                                     // Next task instance number
+                    , ti                    :: ![TIMeta]                                // Task instance table
+                    , nextInstanceNo        :: !InstanceNo                              // Next task instance number
                     , refreshQueue          :: ![InstanceNo]                            // Instances that need refreshing
 					, uiUpdates             :: !Map InstanceNo [UIUpdate]				// (Instance output)
 

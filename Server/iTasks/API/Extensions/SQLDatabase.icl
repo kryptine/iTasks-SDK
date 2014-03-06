@@ -45,7 +45,7 @@ where
 					Error e		= (Error (dynamic e,toString e), iworld)
 					Ok v		
                         //Trigger share change for all touched ids
-                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (const True) w) touchIds iworld
+                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) w) touchIds iworld
                         = (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur

@@ -24,6 +24,11 @@ mapReadWriteError	:: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Mayb
 
 toReadOnly :: !(RWShared p r w) -> ROShared p r
 
+setParam :: !p !(RWShared p r w) -> (RWShared Void r w) | TC p
+
+//Map a list SDS of one element to the element itsel
+mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w)
+
 // Composition of two shared references.
 // The read type is a tuple of both types.
 // The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).

@@ -1,6 +1,6 @@
 definition module iTasks.Framework.SDS
 
-import StdClass
+import GenEq
 import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.API.Core.Types import :: InstanceNo
@@ -10,7 +10,7 @@ from iTasks.API.Core.Types import :: InstanceNo
     //'NEW' COMPOSITIONS
     | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSProjection rs ws r w)
 	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
-    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn & Eq ps
+    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn & gEq{|*|} ps
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence r1 w1 p2 r2 w2 r w) & TC p2
@@ -19,7 +19,7 @@ from iTasks.API.Core.Types import :: InstanceNo
 	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
 
 :: SDSSource p r w =
-	{ mbId          :: !Maybe BasicShareId
+	{ name          :: String
     , read			:: p *IWorld -> *(!MaybeErrorString r, !*IWorld)
 	, write			:: p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld)
 	}
@@ -93,8 +93,7 @@ from iTasks.API.Core.Types import :: InstanceNo
 :: WriteOnlyShared a	:== ReadWriteShared Void a
 :: Shared a				:== ReadWriteShared a a
 
-registerSDSDependency   :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-reportSDSChange         :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
+reportSDSChange         :: !String !*IWorld -> *IWorld
 	
 createReadWriteSDS ::
 	!String
@@ -120,8 +119,7 @@ write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, 
 writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 
 //Dependency administration
-addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
+clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
 
 //Exposing shares for external nodes
 toJSONShared	:: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w

@@ -11,7 +11,7 @@ import iTasks.Framework.SDSService
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
-from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
+from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError, setParam
 from StdFunc import const
 
 derive gEq TIMeta, TIType
@@ -22,8 +22,8 @@ createClientTaskInstance task sessionId instanceNo iworld=:{current={taskTime},c
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo "client" SessionInstance (TaskId 0 0) Nothing mmeta pmeta
-	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
+	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
+	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
@@ -36,8 +36,8 @@ createTaskInstance task iworld=:{current={taskTime},clocks={localDate,localTime}
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo instanceKey SessionInstance (TaskId 0 0) Nothing mmeta pmeta
-	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
+	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
+	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
@@ -50,17 +50,18 @@ createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachme
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo instanceKey (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
-	# (_,iworld)			= 'SDS'.write meta (taskInstanceMeta instanceNo) iworld
+	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
+	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
     # iworld                = if (isJust mbAttachment) (queueUrgentRefresh [instanceNo] iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
-createMeta :: !InstanceNo !InstanceKey !TIType !TaskId !(Maybe String) !ManagementMeta !ProgressMeta  -> TIMeta
-createMeta instanceNo instanceKey instanceType listId name mmeta pmeta
-	= {TIMeta|instanceNo=instanceNo,instanceKey=instanceKey,instanceType=instanceType,listId=listId,name=name,management=mmeta,progress=pmeta}
+createMeta :: !InstanceNo !InstanceKey !Bool !TIType !TaskId !(Maybe String) !ManagementMeta !ProgressMeta  -> TIMeta
+createMeta instanceNo instanceKey session instanceType listId name mmeta pmeta
+	= {TIMeta|instanceNo=instanceNo,instanceKey=instanceKey,instanceType=instanceType,session=session
+      ,listId=listId,name=name,management=mmeta,progress=pmeta}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -79,9 +80,9 @@ evalTaskInstance instanceNo event iworld
     = evalTaskInstance` instanceNo event iworld
 where
     evalTaskInstance` instanceNo event iworld=:{current=current=:{taskTime,user,taskInstance,nextTaskNo,localShares,localLists},clocks={localDate,localTime}}
-    # (oldMeta, iworld)         = 'SDS'.read (taskInstanceMeta instanceNo) iworld
+    # (oldMeta, iworld)         = 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld
 	| isError oldMeta			= (liftError oldMeta, iworld)
-	# oldMeta=:{TIMeta|instanceType,instanceKey,listId,progress} = fromOk oldMeta
+	# oldMeta=:{TIMeta|instanceType,instanceKey,session,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'SDS'.read (taskInstanceReduct instanceNo) iworld
 	| isError oldReduct			= (liftError oldReduct, iworld)
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
@@ -92,11 +93,11 @@ where
             (Error e)                   = (Error e, iworld)
 		    (Ok (TIException e msg))    = (Error msg, iworld)
     //Eval instance
-    # (currentUser,currentSession,currentAttachment) = case instanceType of
-        SessionInstance                         = (AnonymousUser instanceKey,Just instanceNo,[])
-        DetachedInstance                        = (SystemUser,Nothing,[])
-        AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker    = (worker,Just sessionNo,attachment)
-        TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker = (worker,Just sessionNo,attachment)
+    # (currentUser,currentSession,currentAttachment) = case (session,instanceType) of
+        (True,_)                = (AnonymousUser instanceKey,Just instanceNo,[])
+        (_,DetachedInstance)    = (SystemUser,Nothing,[])
+        (_,AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker)    = (worker,Just sessionNo,attachment)
+        (_,TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker) = (worker,Just sessionNo,attachment)
     # repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=False}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
@@ -119,20 +120,20 @@ where
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld)		= eval event repAs tree iworld
     //Finalize task UI
-    # newResult                 = finalizeUI instanceType newResult
+    # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
         _                                                   = tree
 	//Re-read old meta data because it may have been changed during the task evaluation
-	# (oldMeta,deleted,iworld) = case 'SDS'.read (taskInstanceMeta instanceNo) iworld of
+	# (oldMeta,deleted,iworld) = case 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld of
         (Ok meta, iworld)		= (meta,False, iworld)
 		(Error e, iworld)		= (oldMeta,True, iworld) //If old meta is no longer there, it must have been removed
-    # newMeta					= case instanceType of
-       (SessionInstance)           = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
-       (TmpAttachedInstance _ _)   = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress, instanceType = DetachedInstance}
-       _                           = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
+    # newMeta					= case (session,instanceType) of
+       (True,_)                     = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
+       (_,TmpAttachedInstance _ _)  = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress, instanceType = DetachedInstance}
+       _                            = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
     //Store new meta data
-    # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (taskInstanceMeta instanceNo) iworld)
+    # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (setParam instanceNo taskInstanceMeta) iworld)
     | mbErr=:(Error _)          = (liftError mbErr,iworld)
 
     //Store updated reduct
@@ -176,10 +177,10 @@ where
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
-    finalizeUI instanceType (ValueResult value info (TaskRep ui parts) tree)
-        # ui = if (instanceType === SessionInstance) (uiDefSetAttribute "session" "true" ui) ui
+    finalizeUI session (ValueResult value info (TaskRep ui parts) tree)
+        # ui = if session (uiDefSetAttribute "session" "true" ui) ui
         = (ValueResult value info (TaskRep (autoLayoutFinal ui) parts) tree)
-    finalizeUI instanceType res = res
+    finalizeUI session res = res
 
 	updateProgress now result currentUser progress
 		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Nothing} //EXPERIMENT
@@ -331,9 +332,9 @@ where
 				
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = mapReadWrite (readPrj,writePrj) (fullInstanceMeta >+| currentInstanceShare)
+topListShare = mapReadWrite (readPrj,writePrj) (setParam {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta >+| currentInstanceShare)
 where
-	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = [toTaskListItem m \\ (_,m) <- ('Data.Map'.toList instances) | m.instanceType =!= SessionInstance], selfId = TaskId currentInstance 0}
+	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = map toTaskListItem instances, selfId = TaskId currentInstance 0}
 
     toTaskListItem {TIMeta|instanceNo,listId,name,progress,management}
 	    = {taskId = TaskId instanceNo 0, listId = listId, name = name, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
@@ -341,17 +342,18 @@ where
     writePrj [] instances = Nothing
     writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)
 
-    applyUpdate instances (TaskId instanceNo 0,management)
-        = case 'Data.Map'.get instanceNo instances of
-            Just meta   = 'Data.Map'.put instanceNo {TIMeta|meta&management=management} instances
-            _           = instances
+    applyUpdate instances (TaskId targetNo 0,management) = map upd instances
+    where
+        upd m=:{TIMeta|instanceNo}
+            | instanceNo == targetNo    = {TIMeta|m & management=management}
+                                        = m
     applyUpdate instances _ = instances
 
 currentInstanceShare :: ReadOnlyShared InstanceNo
 currentInstanceShare = createReadOnlySDS (\Void iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))
 
 parListShare :: !TaskId !TaskId -> SharedTaskList a | iTask a
-parListShare listId=:(TaskId instanceNo taskNo) entryId = createReadWriteSDS NS_TASK_INSTANCES "meta-index" read write
+parListShare listId=:(TaskId instanceNo taskNo) entryId = createReadWriteSDS NS_TASK_INSTANCES ("parListSDS-"+++toString listId) read write
 where
 	shareKey = toString listId
 	read Void iworld=:{current={taskInstance,localLists}}
@@ -397,9 +399,9 @@ where
     //Update the master index of task instance data
     updateInstanceMeta [] iworld = (Ok Void,iworld)
     updateInstanceMeta [(TaskId instanceNo 0,management):updates] iworld
-        = case 'SDS'.read (taskInstanceMeta instanceNo) iworld of
+        = case 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld of
 	        (Error _,iworld) = (Error ("Could not read task meta data of task instance " <+++ instanceNo), iworld)
-            (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & management=management} (taskInstanceMeta instanceNo) iworld of
+            (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & management=management} (setParam instanceNo taskInstanceMeta) iworld of
                 (Error _,iworld) = (Error ("Could not write task meta data of task instance " <+++ instanceNo), iworld)
                 (Ok _,iworld)   = updateInstanceMeta updates iworld
 

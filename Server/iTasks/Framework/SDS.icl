@@ -17,10 +17,8 @@ createReadWriteSDS ::
 	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
-createReadWriteSDS type id read write
-	= createSDS (Just basicId) read write
-where
-	basicId = type +++ ":" +++ id
+createReadWriteSDS ns id read write
+	= createSDS ns id read write
 
 createReadOnlySDS ::
 	!(p *IWorld -> *(!r, !*IWorld))
@@ -34,26 +32,29 @@ createReadOnlySDSError ::
 	->
 	ROShared p r
 createReadOnlySDSError read
-	= createSDS Nothing read (\_ _ env -> (Ok (const True), env))
+	= createSDS "readonly" "readonly" read (\_ _ env -> (Ok (const True), env))
 
 createSDS ::
-	!(Maybe BasicShareId)
+	!String
+    !String
 	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
 	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
-createSDS id read write = SDSSource
+createSDS ns id read write = SDSSource
 	{ SDSSource
-	| read = read
+	| name = ns +++ ":" +++ id
+    , read = read
 	, write = write
-	, mbId = id
 	}
 
 //Construct the identity of a potentially composed sds
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
+sdsIdentity (SDSSource {SDSSource|name}) = name
 sdsIdentity sds = md5 (graph_to_sapl_string sds) //FIXME: Use a less hacky identity scheme
 
-wrapIWorld npred p env = (npred p, env)
+iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
+iworldNotifyPred npred p env = (npred p, env)
 
 read :: !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 read sds env = read` Void Nothing sds env
@@ -68,13 +69,9 @@ mbRegister p sds (Just taskInstance) iworld=:{IWorld|sdsNotifyRequests}
     = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
 
 read` :: !p !(Maybe InstanceNo) !(RWShared p r w) !*IWorld -> (!MaybeErrorString r, !*IWorld) | TC p
-read` p mbNotify sds=:(SDSSource {read,mbId}) env
+read` p mbNotify sds=:(SDSSource {SDSSource|name,read}) env
     //New registration
     # env = mbRegister p sds mbNotify env
-    //Old registration
-    # env = case (mbId,mbNotify) of
-        (Just sdsId,Just instanceNo) = registerSDSDependency sdsId instanceNo env
-        _                            = env
     = read p env
 
 read` p mbNotify (ComposedRead share cont) env = seqErrorsSt (read` p mbNotify share) (f p mbNotify cont) env
@@ -139,15 +136,11 @@ writeFilterMsg w filter sds env
     = (fmap (const Void) mbErr, processNotifications nevents iworld)
 
 write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [SDSNotifyEvent], !*IWorld) | TC p
-write` p w sds=:(SDSSource {mbId,write}) filter env
-	# (mbErr, env) = write p w env
-	# env = case mbId of
-		Just id	= reportSDSChange id filter env
-		Nothing	= env
-    = case mbErr of
-        (Error e)   = (Error e, [], env)
-        (Ok npred)
-            # npred = wrapIWorld npred
+write` p w sds=:(SDSSource {SDSSource|name,write}) filter env
+    = case write p w env of
+        (Error e, env)   = (Error e, [], env)
+        (Ok npred, env)
+            # npred = iworldNotifyPred npred
             = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred], env)
 
 write` p w (ComposedRead share _) filter env
@@ -208,12 +201,12 @@ write` p w sds=:(SDSSplit sds1 {SDSSplit|param,write}) filter env
             = case write` ps ws sds1 filter env of
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npreds, ns, env)
-                    # npred = gennpred ps npreds pn (wrapIWorld npredn)
+                    # npred = gennpred ps npreds pn (iworldNotifyPred npredn)
                     = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 where
     gennpred p1 npred1 p2 npred2 p env = gennpred` p1 npred1 p2 npred2 (param p) env
     gennpred` p1 npred1 p2 npred2 (p1`,p2`) env
-        | p1 == p1`    = npred2 p2` env
+        | p1 === p1`   = npred2 p2` env
                        = npred1 p1` env
 
 write` p w sds=:(SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter env
@@ -223,7 +216,7 @@ write` p w sds=:(SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter en
             (Ok r1, env)    = case write` p1 w sds1 filter env of
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npred1, ns, env)
-                    # npred = gennpred (wrapIWorld (notifyl p1 r1 w)) npred1
+                    # npred = gennpred (iworldNotifyPred (notifyl p1 r1 w)) npred1
                     = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 
         Right p2 = case read` p2 Nothing sds2 env of
@@ -231,7 +224,7 @@ write` p w sds=:(SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) filter en
             (Ok r2, env)    = case write` p2 w sds2 filter env of
                 (Error e, _, env) = (Error e, [], env)
                 (Ok npred2, ns, env)
-                    # npred = gennpred npred2 (wrapIWorld (notifyr p2 r2 w))
+                    # npred = gennpred npred2 (iworldNotifyPred (notifyr p2 r2 w))
                     = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 where
     gennpred npred1 npred2 p env = case select p of
@@ -315,8 +308,7 @@ where
                 _           = (False,iworld)
             # checked = 'Set'.insert taskInstance checked
             | hit
-                //# iworld = trace_n ("NEW: Notification needed for taskno:" +++ toString taskInstance) iworld
-                //TODO: Actually do something with the notification
+                # iworld = queueRefresh [taskInstance] iworld
                 = checkNotifyPred sdsIdentity npred checked [taskInstance:notified] rs iworld
             | otherwise
                 = checkNotifyPred sdsIdentity npred checked notified rs iworld
@@ -325,32 +317,16 @@ where
 
     clearNotified notified iworld=:{IWorld|sdsNotifyRequests}
         = {iworld & sdsNotifyRequests = [req \\ req=:{SDSNotifyRequest|taskInstance} <- sdsNotifyRequests | not (isMember taskInstance notified)]}
-import StdDebug
-
-registerSDSDependency :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-registerSDSDependency sdsId instanceNo iworld
-    = addShareRegistration sdsId instanceNo iworld
 	
-reportSDSChange :: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-reportSDSChange sdsId filterFun iworld=:{IWorld|sdsRegistrations}
- 	= case get sdsId sdsRegistrations of
-		Just outdated=:[_:_]
-			# iworld            = {IWorld|iworld & sdsRegistrations = put sdsId (filter (not o filterFun) outdated) sdsRegistrations}
-            //# iworld = trace_n ("OLD: Notification needed for tasknos:" +++ join "," (map toString (filter filterFun outdated))) iworld
-			# iworld			= queueRefresh (filter filterFun outdated) iworld
-			= saveShareRegistrations iworld
-		_	= iworld
+reportSDSChange :: !String !*IWorld -> *IWorld
+reportSDSChange matchId iworld=:{IWorld|sdsNotifyRequests}
+    # outdated = [taskInstance \\ {SDSNotifyRequest|sdsid,taskInstance} <- sdsNotifyRequests | sdsid == matchId]
+    # iworld = seqSt clearShareRegistrations outdated iworld
+    = queueRefresh outdated iworld
 
-addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-addShareRegistration shareId instanceNo iworld=:{IWorld|sdsRegistrations}
-	= saveShareRegistrations {IWorld|iworld & sdsRegistrations = put shareId (removeDup (fromMaybe [] (get shareId sdsRegistrations) ++ [instanceNo])) sdsRegistrations}
-	
 clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
-clearShareRegistrations instanceNo iworld=:{IWorld|sdsRegistrations}
-	= saveShareRegistrations {iworld & sdsRegistrations = (fromList o clear instanceNo o toList) sdsRegistrations}
-where
-	clear :: InstanceNo [(BasicShareId,[InstanceNo])] -> [(BasicShareId,[InstanceNo])]
-	clear no regs = [(shareId,removeMember no insts) \\ (shareId,insts) <- regs]
+clearShareRegistrations instanceNo iworld=:{IWorld|sdsNotifyRequests}
+    = {iworld & sdsNotifyRequests = [r \\ r <- sdsNotifyRequests | r.SDSNotifyRequest.taskInstance <> instanceNo]}
 
 toJSONShared :: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w
 toJSONShared shared = createReadWriteSDS "exposedShare" "?" read` write`

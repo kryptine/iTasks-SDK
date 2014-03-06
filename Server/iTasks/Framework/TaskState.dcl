@@ -14,6 +14,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	{ instanceNo	:: !InstanceNo			//Unique global identification
     , instanceKey   :: !InstanceKey         //Random string that a client needs to provide to access the task instance
     , instanceType  :: !TIType
+    , session       :: !Bool                //Is this a session
 	, listId        :: !TaskId              //Reference to parent tasklist
     , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
@@ -21,8 +22,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	}
 
 :: TIType
-    = SessionInstance                       //An instance directly linked to a client session
-    | DetachedInstance                      //A detached task that is not in use
+    = DetachedInstance                      //A detached task that is not in use
     | AttachedInstance ![TaskId] !User      //A previously detached task that has been attached to another instance
     | TmpAttachedInstance ![TaskId] !User   //A temporarily attached task that will automatically turn into a detached instance after evaluation
 
