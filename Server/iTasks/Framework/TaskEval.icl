@@ -43,14 +43,14 @@ createTaskInstance task iworld=:{current={taskTime},clocks={localDate,localTime}
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
     = (Ok (instanceNo,instanceKey),iworld)
 
-createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachment iworld=:{current={taskTime},clocks={localDate,localTime}}
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAttachment iworld=:{current={taskTime},clocks={localDate,localTime}}
 	# (instanceNo,iworld)	= case mbInstanceNo of
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name mmeta pmeta
+	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta
 	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
@@ -58,10 +58,10 @@ createDetachedTaskInstance task mbInstanceNo name mmeta issuer listId mbAttachme
     # iworld                = if (isJust mbAttachment) (queueUrgentRefresh [instanceNo] iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
-createMeta :: !InstanceNo !InstanceKey !Bool !TIType !TaskId !(Maybe String) !ManagementMeta !ProgressMeta  -> TIMeta
-createMeta instanceNo instanceKey session instanceType listId name mmeta pmeta
+createMeta :: !InstanceNo !InstanceKey !Bool !TIType !TaskId !(Maybe String) !TaskAttributes !ProgressMeta  -> TIMeta
+createMeta instanceNo instanceKey session instanceType listId name attributes pmeta
 	= {TIMeta|instanceNo=instanceNo,instanceKey=instanceKey,instanceType=instanceType,session=session
-      ,listId=listId,name=name,management=mmeta,progress=pmeta}
+      ,listId=listId,name=name,progress=pmeta,attributes=attributes}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -336,16 +336,16 @@ topListShare = mapReadWrite (readPrj,writePrj) (setParam {InstanceFilter|instanc
 where
 	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = map toTaskListItem instances, selfId = TaskId currentInstance 0}
 
-    toTaskListItem {TIMeta|instanceNo,listId,name,progress,management}
-	    = {taskId = TaskId instanceNo 0, listId = listId, name = name, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
+    toTaskListItem {TIMeta|instanceNo,listId,name,progress,attributes}
+	    = {taskId = TaskId instanceNo 0, listId = listId, name = name, value = NoValue, progressMeta = Just progress, attributes = attributes}
 
     writePrj [] instances = Nothing
     writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)
 
-    applyUpdate instances (TaskId targetNo 0,management) = map upd instances
+    applyUpdate instances (TaskId targetNo 0,attr) = map upd instances
     where
         upd m=:{TIMeta|instanceNo}
-            | instanceNo == targetNo    = {TIMeta|m & management=management}
+            | instanceNo == targetNo    = {TIMeta|m & attributes=attr}
                                         = m
     applyUpdate instances _ = instances
 
@@ -380,13 +380,13 @@ where
             ,listId         = listId
             ,name           = name
 			,value			= deserialize val
-			,managementMeta = management
+			,attributes     = attributes
 			,progressMeta	= progress
 			}
 	where
-		(progress,management) = case state of
-			DetachedState _ p m = (Just p,Just m)
-			_					= (Nothing,Nothing)
+		(progress,attributes) = case state of
+			DetachedState _ p a = (Just p,a)
+			_					= (Nothing,'Data.Map'.newMap)
 	
 	deserialize NoValue	= NoValue
 	deserialize (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
@@ -398,10 +398,10 @@ where
 
     //Update the master index of task instance data
     updateInstanceMeta [] iworld = (Ok Void,iworld)
-    updateInstanceMeta [(TaskId instanceNo 0,management):updates] iworld
+    updateInstanceMeta [(TaskId instanceNo 0,attr):updates] iworld
         = case 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld of
 	        (Error _,iworld) = (Error ("Could not read task meta data of task instance " <+++ instanceNo), iworld)
-            (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & management=management} (setParam instanceNo taskInstanceMeta) iworld of
+            (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & attributes=attr} (setParam instanceNo taskInstanceMeta) iworld of
                 (Error _,iworld) = (Error ("Could not write task meta data of task instance " <+++ instanceNo), iworld)
                 (Ok _,iworld)   = updateInstanceMeta updates iworld
 
@@ -422,9 +422,9 @@ where
 					= (Error ("Could not load remote task list " +++ shareKey), iworld)
     where
         applyUpdates [] entries = entries
-        applyUpdates [(taskId,management):updates] entries = applyUpdates updates (map (updateManagementMeta taskId management) entries)
+        applyUpdates [(taskId,attr):updates] entries = applyUpdates updates (map (updateManagementMeta taskId attr) entries)
 
-        updateManagementMeta taskId management e=:{TaskListEntry|entryId,state=DetachedState s p _}
-            | entryId == taskId     = {TaskListEntry|e & state = DetachedState s p management}
+        updateManagementMeta taskId attr e=:{TaskListEntry|entryId,state=DetachedState s p _}
+            | entryId == taskId     = {TaskListEntry|e & state = DetachedState s p attr}
                                     = e
-        updateManagementMeta taskId management e = e
+        updateManagementMeta taskId attr e = e

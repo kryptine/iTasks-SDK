@@ -5,9 +5,10 @@ definition module iTasks.API.Core.SDSs
 */
 from Text.JSON import generic JSONEncode, generic JSONDecode
 import iTasks.Framework.SDS
-from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: ManagementMeta
+from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: TaskAttributes
 from iTasks.API.Core.Types	    import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
 from Data.Void					import :: Void
+from Data.Map                   import :: Map
 from System.FilePath			import :: FilePath
 
 //USER-DEFINED SHARES

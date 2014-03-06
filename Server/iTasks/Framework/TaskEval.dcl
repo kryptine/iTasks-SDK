@@ -31,7 +31,7 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,Inst
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
 * Evaluate a task instance

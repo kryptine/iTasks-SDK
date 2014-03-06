@@ -151,7 +151,7 @@ catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
 *
 * @gin False
 */ 
-assign :: !ManagementMeta !(Task a) -> Task a | iTask a
+assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 /**
 * Assign a task to a user. (no deadline, normal priority)
 *
@@ -348,7 +348,7 @@ whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Tas
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagementMeta !Bool !(Task a) -> Task TaskId | iTask a
+appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 

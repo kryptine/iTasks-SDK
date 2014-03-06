@@ -18,7 +18,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, listId        :: !TaskId              //Reference to parent tasklist
     , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
-	, management	:: !ManagementMeta
+	, attributes    :: !TaskAttributes      //Meta-data
 	}
 
 :: TIType
@@ -72,12 +72,13 @@ derive JSONDecode DeferredJSON
     , name              :: !Maybe String            //Optional name, for easy referencing
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
 	, lastEval          :: !TaskResult JSONNode     //Value of last evaluation
-	, attributes		:: !Map String String		//Stored attributes of last evaluation
+	, uiAttributes		:: !Map String String		//Stored attributes of last evaluation
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
 	, lastEvent			:: !TaskTime				//Last modified time
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
 	}												//If it is false we have determined that this is not necessary during the last computation
 
 :: TaskListEntryState
-	= EmbeddedState 											//An embedded task
-	| DetachedState !InstanceNo !ProgressMeta !ManagementMeta	//A reference to the detached task (management and progress meta are cached copies)
+	= EmbeddedState 										    //An embedded task
+	| DetachedState !InstanceNo !ProgressMeta !TaskAttributes	//A reference to the detached task (management and progress meta are cached copies)
+

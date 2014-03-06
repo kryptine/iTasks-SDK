@@ -12,7 +12,7 @@ from StdFunc					import o, seq, const
 from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
-from Data.Map import toList
+import qualified Data.Map as DM
 derive gEq TIType
 
 SYSTEM_DATA_NS :== "SystemData"
@@ -56,19 +56,24 @@ currentProcesses ::ReadOnlyShared [TaskListItem Void]
 currentProcesses
     = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta))
 
-toTaskListItem :: !TIMeta -> TaskListItem a 
-toTaskListItem {TIMeta|instanceNo,listId,progress,management}
-	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
+toTaskListItem :: !TIMeta -> TaskListItem a
+toTaskListItem {TIMeta|instanceNo,listId,progress,attributes}
+	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, attributes = attributes}
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
-	forWorker user {managementMeta=Just {ManagementMeta|worker=AnyUser}}									= True
-	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {ManagementMeta|worker=UserWithId uid2}}	= uid1 == uid2
-	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {ManagementMeta|worker=UserWithRole role}}	= isMember role roles
-	forWorker _ _																							= False
+    forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
+        Just uid1 = case user of
+            (AuthenticatedUser uid2 _ _)    = uid1 == uid2
+            _                               = False
+        Nothing = case 'DM'.get "role" attributes of
+            Just role = case user of
+                (AuthenticatedUser _ roles _)   = isMember role roles
+                _                               = False
+            Nothing = True
 
 allTaskInstances :: ReadOnlyShared [TaskListItem Void]
 allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map toTaskListItem ti,iworld))

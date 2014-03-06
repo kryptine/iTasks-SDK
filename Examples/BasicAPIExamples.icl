@@ -3,6 +3,7 @@ import iTasks, iTasks.API.Extensions.Admin.UserAdmin, iTasks.API.Extensions.Admi
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
 import ligrettoTOP
+import qualified Data.Map as DM
 
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
@@ -590,8 +591,8 @@ pick user_dates
 transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]
 
-worker :: User -> ManagementMeta
-worker (AuthenticatedUser id _ _) = {defaultValue & worker = UserWithId id}
+worker :: User -> TaskAttributes
+worker (AuthenticatedUser id _ _) = 'DM'.fromList [("user",id)]
 
 // tic-tac-toe, simplistic
 :: TicTacToe
