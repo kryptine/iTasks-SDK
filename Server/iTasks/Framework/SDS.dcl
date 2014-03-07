@@ -13,7 +13,7 @@ from iTasks.API.Core.Types import :: InstanceNo
     | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn & gEq{|*|} ps
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
-    | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence r1 w1 p2 r2 w2 r w) & TC p2
+    | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
     //'OLD' COMPOSITIONS
 	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeErrorString (RWShared p r wy))
 	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
@@ -75,8 +75,8 @@ from iTasks.API.Core.Types import :: InstanceNo
 
 //Read from and write to two dependent SDS's
 //The read value from the first is used to compute the parameter for the second
-:: SDSSequence r1 w1 p2 r2 w2 r w =
-    { param         :: r1 -> p2
+:: SDSSequence p r1 w1 p2 r2 w2 r w =
+    { param         :: p r1 -> p2
     , read          :: (r1,r2) -> r
     , writel        :: SDSWriteProjection r1 w1 w
     , writer        :: SDSWriteProjection r2 w2 w

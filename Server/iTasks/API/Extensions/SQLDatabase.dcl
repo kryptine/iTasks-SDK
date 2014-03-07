@@ -20,8 +20,8 @@ derive class iTask SQLValue, SQLTime, SQLDate
 * 
 * @return The shared data source
 */
-sqlShare :: String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared SQLDatabase r w
+sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
+								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabase,p) r w
 
 /**
 * Perform one or multiple queries on an SQL database

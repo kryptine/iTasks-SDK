@@ -10,24 +10,24 @@ import qualified Data.Map
 
 derive class iTask SQLValue, SQLDate, SQLTime
 
-sqlShare :: String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared SQLDatabase r w
+sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
+								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabase,p) r w
 sqlShare name readFun writeFun = createReadWriteSDS "SQLShares" name read write
 where
-	read db iworld
+	read (db,p) iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e,  iworld)
 			Ok (cur,con,cxt)
-				# (res,cur) = readFun cur
+				# (res,cur) = readFun p cur
 				# iworld	= closeMySQLDb cur con cxt iworld
 				= (res,iworld)
-	write db w iworld
+	write (db,p) w iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
 			Ok (cur,con,cxt)
-				# (res,cur) = writeFun w cur
+				# (res,cur) = writeFun p w cur
 				# iworld	= closeMySQLDb cur con cxt iworld
                 = (fmap (const (const True)) res, iworld)
 

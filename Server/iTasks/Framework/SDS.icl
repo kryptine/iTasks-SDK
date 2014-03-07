@@ -122,7 +122,7 @@ read` p mbNotify sds=:(SDSSequence sds1 sds2 {SDSSequence|param,read}) env
     | res1 =:(Error _)
         = (liftError res1,env)
     # r1 = fromOk res1
-    # (res2,env) = read` (param r1) mbNotify sds2 env
+    # (res2,env) = read` (param p r1) mbNotify sds2 env
     | res2 =:(Error _)
         = (liftError res2,env)
     = (Ok (read (r1,fromOk res2)),env)
@@ -266,16 +266,16 @@ write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,writel,writer}) filter
             | npred1 =:(Error _) = (liftError npred1, [], env)
             //Read/write sds2 if necessary
             # (npred2,ns2,env) = case writer of
-                (SDSLensWrite f) = case read` (param r1) Nothing sds2 env of //Also read sds2
+                (SDSLensWrite f) = case read` (param p r1) Nothing sds2 env of //Also read sds2
                     (Error e, env)  = (Error e, [], env)
                     (Ok r2,env)     = case f r2 w of
                         Error e         = (Error e,[],env)
                         Ok (Nothing)    = (Ok nowrite,[],env)
-                        Ok (Just w2)    = write` (param r1) w2 sds2 filter env
+                        Ok (Just w2)    = write` (param p r1) w2 sds2 filter env
                 (SDSBlindWrite f) = case f w of
                     Error e             = (Error e,[],env)
                     Ok (Nothing)        = (Ok nowrite,[],env)
-                    Ok (Just w2)        = write` (param r1) w2 sds2 filter env
+                    Ok (Just w2)        = write` (param p r1) w2 sds2 filter env
                 (SDSNoWrite)            = (Ok nowrite,[],env)
             | npred2 =:(Error _) = (liftError npred2, [], env)
             # npred = gennpred (fromOk npred1) (fromOk npred2)
@@ -287,7 +287,7 @@ where
         = case npred1 p env of
 			(False, env) = case read` p Nothing sds1 env of
                 (Error msg, env)    = (True, env)
-				(Ok r1, env)        = npred2 (param r1) env
+				(Ok r1, env)        = npred2 (param p r1) env
 			(True, env)  = (True, env)
 
 processNotifications :: ![SDSNotifyEvent] !*IWorld -> *IWorld
