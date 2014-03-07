@@ -1066,8 +1066,7 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
         me.currentIcon = me.definition.iconCls;
 
         if(me.definition.tooltip) {
-            el.setAttribute('data-hint',me.definition.tooltip);
-            el.classList.add('hint--left');
+            el.setAttribute('tooltip',me.definition.tooltip);
         }
     },
     setIconCls: function(iconCls) {
@@ -1080,8 +1079,7 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
     setTooltip: function(tooltip) {
         var me = this,
             el = me.domEl;
-        el.setAttribute('data-hint',tooltip);
-        el.classList.add('hint--left');
+        el.setAttribute('tooltip',tooltip);
     }
 });
 itwc.component.itwc_label = itwc.extend(itwc.Container,{
