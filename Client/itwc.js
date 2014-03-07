@@ -243,13 +243,12 @@ itwc.Container = itwc.extend(itwc.Component,{
             itwc.controller.addComponent(me.menu,menuIdx,menuCmp);
         });
 
-        if(me.direction == 'horizontal') { //Flip direction for the domEl
+        if(me.definition.direction == 'horizontal') { //Flip direction for the domEl
             me.domEl.classList.remove('hcontainer');
             me.domEl.classList.add('vcontainer');
         }
 
         me.targetEl = document.createElement('div');
-        me.targetEl.classList.add("DEBUG");
         me.targetEl.style.flex = 1;
         me.targetEl.style.alignSelf = 'stretch';
         me.initItemLayout();
