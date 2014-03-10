@@ -37,7 +37,7 @@ setParam :: !p !(RWShared p r w) -> (RWShared Void r w) | TC p
 setParam p sds = sdsTranslate (\Void -> p) sds
 
 (>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy) | TC p
-(>+<) sds1 sds2 = sdsParallel (\p -> (p,p)) id id sds1 sds2
+(>+<) sds1 sds2 = sdsParallel (\p -> (p,p)) id (SDSBlindWrite (Ok o Just o fst)) (SDSBlindWrite (Ok o Just o snd)) sds1 sds2
 
 (>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx | TC p
 (>+|) srcX srcY = mapWrite (\wx _ -> Just (wx, Void)) (srcX >+< toReadOnly srcY)

@@ -10,7 +10,7 @@ from iTasks.API.Core.Types import :: InstanceNo
     //'NEW' COMPOSITIONS
     | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSProjection rs ws r w)
 	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
-    | E.ps pn:              SDSSplit        !(RWShared ps r w)                          (SDSSplit p ps pn r w) & TC ps & TC pn & gEq{|*|} ps
+    | E.ps pn rs ws:        SDSSplit        !(RWShared ps rs ws)                        (SDSSplit p ps pn rs ws r w) & TC ps & TC pn & gEq{|*|} ps
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
@@ -53,10 +53,10 @@ from iTasks.API.Core.Types import :: InstanceNo
     | SDSNoWrite
 
 //Split divides a domain into two subdomains by introducing a new parameter
-:: SDSSplit p ps pn r w =
+:: SDSSplit p ps pn rs ws r w =
     { param        :: p -> (ps,pn)
-    , read         :: pn r -> r
-    , write        :: pn r w -> (w, SDSNotifyPred pn)
+    , read         :: pn rs -> r
+    , write        :: pn rs w -> (ws, SDSNotifyPred pn)
     }
 
 //Merge two sources by selecting one based on the parameter
@@ -70,7 +70,8 @@ from iTasks.API.Core.Types import :: InstanceNo
 :: SDSParallel p1 r1 w1 p2 r2 w2 p r w =
     { param         :: p -> (p1,p2)
     , read          :: (r1,r2) -> r
-    , write         :: w -> (w1,w2)
+    , writel        :: SDSWriteProjection r1 w1 w
+    , writer        :: SDSWriteProjection r2 w2 w
     }
 
 //Read from and write to two dependent SDS's
