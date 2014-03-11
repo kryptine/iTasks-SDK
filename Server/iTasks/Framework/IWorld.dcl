@@ -8,12 +8,12 @@ from Data.Set               import :: Set
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
-from iTasks.API.Core.Types		        import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
+from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
-from iTasks.Framework.SDS import class registerSDSDependency, class reportSDSChange, :: CheckRes(..), :: BasicShareId, :: Hash
+from iTasks.Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
 from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -24,11 +24,12 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: *IWorld		=	{ server                :: !ServerInfo                              // Static server info, initialized at startup
 					, config				:: !Config									// Server configuration
+                    , clocks                :: !SystemClocks                            // Server side clocks
                     , current               :: !TaskEvalState                           // Shared state during task evaluation
 
                     , random                :: [Int]                                    // Infinite random stream
 
-                    , sdsRegistrations      :: !Map BasicShareId [InstanceNo]           // Registered task/share dependencies
+                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                      // Notification requests from previously read sds's
 					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)   // Shared source
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
@@ -38,9 +39,9 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
 
-                    , ti                    :: !Map InstanceNo TIMeta                   // Task instance index
-                    , nextInstanceNo        :: !Int                                     // Next task instance number
-					, workQueue				:: ![(!Work,!Maybe Timestamp)]              // (Instance input)
+                    , ti                    :: ![TIMeta]                                // Task instance table
+                    , nextInstanceNo        :: !InstanceNo                              // Next task instance number
+                    , refreshQueue          :: ![InstanceNo]                            // Instances that need refreshing
 					, uiUpdates             :: !Map InstanceNo [UIUpdate]				// (Instance output)
 
                     , io                    :: !*IOTasks                                // The low-level input/output tasks
@@ -69,10 +70,15 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
     }
 
+:: SystemClocks =
+    { localDate             :: !Date
+    , localTime             :: !Time
+    , utcDate               :: !Date
+    , utcTime               :: !Time
+    }
+
 :: TaskEvalState =
 	{ timestamp				:: !Timestamp								// The timestamp of the current request	
-    , utcDateTime	        :: !DateTime								// The local date & time of the current request
-    , localDateTime	        :: !DateTime								// The local date & time of the current request
     , taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 	, taskInstance		    :: !InstanceNo								// The current evaluated task instance
     , sessionInstance       :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
@@ -103,12 +109,14 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
-:: Work	= Evaluate !InstanceNo
-		| EvaluateUrgent !InstanceNo
-		| TriggerSDSChange !BasicShareId
-		| CheckSDS !BasicShareId !Hash (*IWorld -> *(!CheckRes, !*IWorld))
+//Internally used clock shares
+iworldLocalDate :: Shared Date
+iworldLocalTime :: Shared Time
+iworldUTCDate   :: Shared Date
+iworldUTCTime   :: Shared Time
 
-updateCurrentDateTime :: !*IWorld -> *IWorld
+//Update the clock shares
+updateClocks    :: !*IWorld -> *IWorld
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
@@ -117,7 +125,3 @@ popUIUpdates    :: ![InstanceNo]            !*IWorld -> (![(!InstanceNo,![UIUpda
 clearUIUpdates  :: !InstanceNo              !*IWorld -> *IWorld
 
 instance FileSystem IWorld
-
-//Sync work queue to disk (Only used with CGI wrapper)
-saveWorkQueue :: !*IWorld -> *IWorld
-restoreWorkQueue :: !*IWorld -> *IWorld

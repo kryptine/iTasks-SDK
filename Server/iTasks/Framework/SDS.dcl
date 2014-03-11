@@ -1,105 +1,126 @@
 definition module iTasks.Framework.SDS
 
-import System.FilePath, Data.Void, Data.Maybe, Data.Error, System.Time, Text.JSON
+import GenEq
+import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.API.Core.Types import :: InstanceNo
 
-:: RWShared r w
-	= E.b:			BasicSource		!(BasicSource b r w)
-	| E.rx wy:		ComposedRead	!(RWShared rx w) !(rx -> MaybeErrorString (RWShared r wy))
-	| E.r` w` w``:	ComposedWrite	!(RWShared r w`) !(w -> MaybeErrorString (RWShared r` w``)) !(w r` -> MaybeErrorString [WriteShare])
+:: RWShared p r w
+	= 			            SDSSource		!(SDSSource p r w)
+    //'NEW' COMPOSITIONS
+    | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSProjection rs ws r w)
+	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
+    | E.ps pn rs ws:        SDSSplit        !(RWShared ps rs ws)                        (SDSSplit p ps pn rs ws r w) & TC ps & TC pn & gEq{|*|} ps
+    | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
+    | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
+    | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
+    //'OLD' COMPOSITIONS
+	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeErrorString (RWShared p r wy))
+	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
 
-:: BasicSource b r w =
-	{ read			:: !*IWorld -> *(!MaybeErrorString (!r,!ChangeNotification), !*IWorld)
-	, write			:: !w *IWorld -> *(!MaybeErrorString Void, !*IWorld)
-	, mbId			:: !Maybe BasicShareId
+:: SDSSource p r w =
+	{ name          :: String
+    , read			:: p *IWorld -> *(!MaybeErrorString r, !*IWorld)
+	, write			:: p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld)
 	}
-	
-:: ChangeNotification = OnWrite
-						| Predictable	!Timestamp
-						| Polling		!Timestamp !(*IWorld -> *(!CheckRes,!*IWorld))
-							
-:: CheckRes = Changed | CheckAgain Timestamp
-						
-:: BasicShareId :== String	
-:: WriteShare = E.r w: Write !w !(RWShared r w)
-	
-:: ROShared a 	:== RWShared a Void
-:: WOShared a 	:== RWShared Void a
-:: Hash				:== String
 
-:: ReadWriteShared r w  :== RWShared r w
+//A notification is function predictate that can determine whether
+//some registered parameter of type p needs to be notified.
+:: SDSNotifyPred p          :== p -> Bool
+:: SDSNotifyPredIWorld p    :== p *IWorld -> *(!Bool,!*IWorld)
+
+//Notification requests are stored in the IWorld
+:: SDSNotifyRequest =
+    { taskInstance  :: InstanceNo
+    , sdsid         :: SDSIdentity
+    , param         :: Dynamic
+    }
+:: SDSIdentity  :== String
+
+//Project maps values from a source (s) domain to a new target (t) domain
+:: SDSProjection rs ws rt wt =
+    { read         :: SDSReadProjection rs rt
+    , write        :: SDSWriteProjection rs ws wt
+    }
+
+:: SDSReadProjection rs rt
+    = SDSLensRead      (rs -> MaybeErrorString rt)      //Read lens-like
+    | SDSConstRead     rt                               //No need to read the original source
+
+:: SDSWriteProjection rs ws wt
+    = SDSLensWrite     (rs wt   -> MaybeErrorString (Maybe ws)) //Write lens-like
+    | SDSBlindWrite    (wt      -> MaybeErrorString (Maybe ws)) //No-need to read the original source
+    | SDSNoWrite
+
+//Split divides a domain into two subdomains by introducing a new parameter
+:: SDSSplit p ps pn rs ws r w =
+    { param        :: p -> (ps,pn)
+    , read         :: pn rs -> r
+    , write        :: pn rs w -> (ws, SDSNotifyPred pn)
+    }
+
+//Merge two sources by selecting one based on the parameter
+:: SDSMerge p p1 p2 r w =
+    { select        :: p -> Either p1 p2
+    , notifyl       :: p1 r w -> SDSNotifyPred p2
+    , notifyr       :: p2 r w -> SDSNotifyPred p1
+    }
+
+//Read from and write to two independent SDS's
+:: SDSParallel p1 r1 w1 p2 r2 w2 p r w =
+    { param         :: p -> (p1,p2)
+    , read          :: (r1,r2) -> r
+    , writel        :: SDSWriteProjection r1 w1 w
+    , writer        :: SDSWriteProjection r2 w2 w
+    }
+
+//Read from and write to two dependent SDS's
+//The read value from the first is used to compute the parameter for the second
+:: SDSSequence p r1 w1 p2 r2 w2 r w =
+    { param         :: p r1 -> p2
+    , read          :: (r1,r2) -> r
+    , writel        :: SDSWriteProjection r1 w1 w
+    , writer        :: SDSWriteProjection r2 w2 w
+    }
+
+:: BasicShareId :== String	
+:: WriteShare p = E.r w: Write !w !(RWShared p r w)
+	
+:: ROShared p a 	:== RWShared p a Void
+:: WOShared p a 	:== RWShared p Void a
+
+:: ReadWriteShared r w  :== RWShared Void r w
 :: ReadOnlyShared a		:== ReadWriteShared a Void
 :: WriteOnlyShared a	:== ReadWriteShared Void a
 :: Shared a				:== ReadWriteShared a a
 
-class registerSDSDependency msg :: !BasicShareId msg !*IWorld -> *IWorld
-instance registerSDSDependency InstanceNo
-
-class reportSDSChange msg :: !BasicShareId !(msg -> Bool) !*IWorld -> *IWorld
-instance reportSDSChange	InstanceNo
-instance reportSDSChange 	Void
-
-registerSDSPredictableChange	:: !Timestamp 										    !BasicShareId !*IWorld -> *IWorld
-registerSDSCheckForChange		:: !Timestamp !Hash !(*IWorld -> (!CheckRes,!*IWorld))	!BasicShareId !*IWorld -> *IWorld
+reportSDSChange         :: !String !*IWorld -> *IWorld
 	
-createChangeOnWriteSDS ::
+createReadWriteSDS ::
 	!String
 	!String
-	!(*IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
+	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
 	->
-	RWShared r w
-	
-createPollingSDS ::
-	!String
-	!String
-	!(*IWorld -> *(!MaybeErrorString (!r, !Timestamp, !(*IWorld -> *(!CheckRes,!*IWorld))), !*IWorld))
-	!(w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
-	->
-	RWShared r w
+	RWShared p r w
 
 createReadOnlySDS ::
-	!(*IWorld -> *(!r, !*IWorld))
+	!(p *IWorld -> *(!r, !*IWorld))
 	->
-	ROShared r
-	
+	ROShared p r
+
 createReadOnlySDSError ::
-	!(*IWorld -> *(!MaybeErrorString r, !*IWorld))
+	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
 	->
-	ROShared r
-	
-createReadOnlySDSPredictable ::
-	!String
-	!String
-	!(*IWorld -> *(!(!r, !Timestamp), !*IWorld))
-	->
-	ROShared r
-	
-createReadOnlySDSErrorPredictable ::
-	!String
-	!String
-	!(*IWorld -> *(!MaybeErrorString (!r, !Timestamp), !*IWorld))
-	->
-	ROShared r
+	ROShared p r
 
-createSDS ::
-	!(Maybe BasicShareId)
-	!(*IWorld -> *(!MaybeErrorString (!r, !ChangeNotification), !*IWorld))
-	!(w *IWorld -> *(!MaybeErrorString Void, !*IWorld))
-	->
-	RWShared r w
-
-read			::						!(RWShared r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
-readRegister	:: !msg					!(RWShared r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)		| registerSDSDependency msg
-write			:: !w					!(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
-writeFilterMsg	:: !w !(msg -> Bool)	!(RWShared r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	| reportSDSChange msg
+read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
+writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 
 //Dependency administration
-addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
-clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
-addOutdatedOnShareChange	:: !BasicShareId !(InstanceNo -> Bool) !*IWorld -> *IWorld
-addOutdatedInstances		:: ![(!InstanceNo, !Maybe Timestamp)] !*IWorld -> *IWorld
+clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
 
 //Exposing shares for external nodes
 toJSONShared	:: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w

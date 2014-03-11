@@ -1,14 +1,18 @@
 implementation module iTasks.Framework.TaskStore
 
 import StdEnv
-import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Map, Data.Func, Data.Tuple, Data.Error, System.FilePath
+import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.TaskEval, iTasks.Framework.Util, iTasks.Framework.UIDefinition
+import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
-from iTasks.Framework.SDS as SDS import qualified read, write, createChangeOnWriteSDS
+from iTasks.Framework.SDS as SDS import qualified read, write, createReadWriteSDS
+
 import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
 import qualified Data.Map
+
+derive gEq TIType
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskInfo, TaskRep, TIValue
@@ -30,7 +34,7 @@ derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 INCREMENT				:== "increment"
 SHARE_REGISTRATIONS		:== "share-registrations"
 
-meta_store t    = toString t +++ "-meta"
+meta_index      = "instances"
 rep_store t		= toString t +++ "-rep"
 value_store t	= toString t +++ "-value"
 reduct_store t	= toString t +++ "-reduct"
@@ -64,61 +68,53 @@ newDocumentId iworld=:{IWorld|random}
 deleteInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteInstance instanceNo iworld
     //Delete all states
-    # iworld        = deleteValue NS_TASK_INSTANCES (meta_store instanceNo) iworld
     # iworld        = deleteValue NS_TASK_INSTANCES (reduct_store instanceNo) iworld
     # iworld        = deleteValue NS_TASK_INSTANCES (value_store instanceNo) iworld
     # iworld=:{ti}  = deleteValue NS_TASK_INSTANCES (rep_store instanceNo) iworld
-    = {iworld & ti = 'Data.Map'.del instanceNo ti}
+    = {iworld & ti = [m \\ m <- ti | m.TIMeta.instanceNo <> instanceNo]}
 
 initInstanceMeta :: !*IWorld -> *IWorld
 initInstanceMeta iworld
-    # (keys,iworld) = listKeys NS_TASK_INSTANCES iworld
-    # (ti,iworld)   = foldl restore (newMap,iworld) [key \\ key <- keys | endsWith "-meta" key]
-    = {iworld & ti = ti}
-where
-    restore (ti,iworld) key
-        # instanceNo = toInt (hd (split "-" key))
-        # (mbMeta,iworld) = loadValue NS_TASK_INSTANCES key iworld
-        = (maybe ti (\meta -> 'Data.Map'.put instanceNo meta ti) mbMeta,iworld)
+    # (mbIndex,iworld) = loadValue NS_TASK_INSTANCES meta_index iworld
+    = {iworld & ti = fromMaybe [] mbIndex}
 
-initShareRegistrations :: !*IWorld -> *IWorld
-initShareRegistrations iworld
-    # (mbRegistrations,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
-    = {IWorld|iworld & sdsRegistrations = fromMaybe 'Data.Map'.newMap mbRegistrations}
-
-fullInstanceMeta :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
-fullInstanceMeta = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES "meta-index" read write
+fullInstanceMeta :: RWShared Void [TIMeta] [TIMeta]
+fullInstanceMeta = 'SDS'.createReadWriteSDS NS_TASK_INSTANCES "tiindex" read write
 where
-    read iworld=:{IWorld|ti}
+    read Void iworld=:{IWorld|ti}
 		= (Ok ti, iworld)
-    write ti iworld
+    write Void ti iworld
         # iworld = {iworld & ti = ti}
-        = (Ok Void,iworld)
+        # iworld = storeValue NS_TASK_INSTANCES meta_index ti iworld //Sync to disk to enable server restarts
+        = (Ok (const True),iworld)
+
+filteredInstanceMeta :: RWShared InstanceFilter [TIMeta] [TIMeta]
+filteredInstanceMeta = sdsSplit (\p -> (Void,p)) read write fullInstanceMeta
+where
+    read tfilter is = filter (filterFun tfilter) is
+
+    write tfilter is ws = let (ds,us) = splitWith (filterFun tfilter) is in
+        (us ++ ws, notifyFun (ds ++ ws))
+
+    filterFun {InstanceFilter|instanceNo,session} i
+        =   (maybe True (\m -> i.TIMeta.instanceNo == m) instanceNo)
+        &&  (maybe True (\m -> i.TIMeta.session == m) session)
+
+    notifyFun ws qfilter = any (filterFun qfilter) ws
 
 //The instance meta data is stored directly in the iworld
-taskInstanceMeta :: !InstanceNo -> RWShared TIMeta TIMeta
-taskInstanceMeta instanceNo = 'SDS'.createChangeOnWriteSDS NS_TASK_INSTANCES (meta_store instanceNo) read write
-where
-    read iworld=:{IWorld|ti}
-		= (maybe (Error ("Could not read task instance meta of instance "+++toString instanceNo)) Ok ('Data.Map'.get instanceNo ti), iworld)
-	write meta iworld=:{IWorld|ti}
-        # iworld = {iworld & ti = 'Data.Map'.put instanceNo meta ti}
-        # iworld = storeValue NS_TASK_INSTANCES (meta_store instanceNo) meta iworld //Sync to disk to enable server restarts
-        = (Ok Void,iworld)
+taskInstanceMeta :: RWShared InstanceNo TIMeta TIMeta
+taskInstanceMeta = mapSingle (sdsTranslate (\no -> {InstanceFilter|instanceNo=Just no, session = Nothing}) filteredInstanceMeta)
 
 //The remaining instance parts are stored on disk
-taskInstanceReduct :: !InstanceNo -> RWShared TIReduct TIReduct
+taskInstanceReduct :: !InstanceNo -> RWShared Void TIReduct TIReduct
 taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
 
-taskInstanceValue :: !InstanceNo -> RWShared TIValue TIValue
+taskInstanceValue :: !InstanceNo -> RWShared Void TIValue TIValue
 taskInstanceValue instanceNo = storeAccess NS_TASK_INSTANCES (value_store instanceNo) Nothing
 
-taskInstanceRep :: !InstanceNo -> RWShared TaskRep TaskRep
+taskInstanceRep :: !InstanceNo -> RWShared Void TaskRep TaskRep
 taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing
-
-saveShareRegistrations :: !*IWorld -> *IWorld
-saveShareRegistrations iworld=:{sdsRegistrations}
-    = storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS sdsRegistrations iworld
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld

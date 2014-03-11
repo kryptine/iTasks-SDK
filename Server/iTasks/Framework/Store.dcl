@@ -12,6 +12,7 @@ definition module iTasks.Framework.Store
 //import Text.JSON
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
+from Data.Void import :: Void
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared

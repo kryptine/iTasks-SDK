@@ -4,7 +4,7 @@ import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks.Framework.SDS, iTasks.Framework.Generic.Interaction
 from StdFunc import seq
-from Data.Map import qualified newMap
+import qualified Data.Map as DM
 
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -89,9 +89,9 @@ installInitialWorkflows iflows
 		
 :: WorklistRow =
     { title		:: Maybe String
-	, priority	:: TaskPriority
+	, priority	:: Maybe String
 	, date		:: DateTime
-	, deadline	:: Maybe DateTime
+	, deadline	:: Maybe String
 	}
 
 derive class iTask ClientPart, WorklistRow
@@ -155,7 +155,7 @@ where
                 = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode wfpath, type= ifExpandedGroup wfpath expanded (insertWorkflow` wfpath pathR [])}]
 		    insertWorkflow` wfpath path [node:nodesR] = [node:insertWorkflow` wfpath path nodesR]
 
-	noAnnotation (c,_) = (c,'Data.Map'.newMap)
+	noAnnotation (c,_) = (c,'DM'.newMap)
 	
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
@@ -171,11 +171,14 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser
 	>>=	\user ->
-		appendTopLevelTask {defaultValue & worker = toUserConstraint user, title = Just (workflowTitle wf)} False (fromContainer wf.Workflow.task)
+		appendTopLevelTask ('DM'.fromList [("title",workflowTitle wf):userAttr user]) False (fromContainer wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
 where
+    userAttr (AuthenticatedUser uid _ _) = [("user",uid)]
+    userAttr _                           = []
+
 	fromContainer (WorkflowTask t) = t @ const Void
 	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @ const Void)		
 
@@ -189,17 +192,17 @@ where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
 	processes = mapRead (\(procs,ownPid) -> [(p.TaskListItem.taskId,mkRow p) \\ p <- procs | show ownPid p && isActive p])  (processesForCurrentUser |+| currentTopTask)
 	where
-		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid
+		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta} = taskId <> ownPid
 		show ownPid _ = False
 		
-	isActive {progressMeta=Just {ProgressMeta|value}}	= value === None || value ===Unstable
+	isActive {progressMeta=Just {ProgressMeta|value}}	= value === None || value === Unstable
 
-	mkRow {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just mmeta} =
+	mkRow {TaskListItem|taskId,progressMeta=Just pmeta,attributes} =
 		{WorklistRow
-		|title = mmeta.ManagementMeta.title	
-		,priority = mmeta.ManagementMeta.priority
-		,date = pmeta.issuedAt
-		,deadline = mmeta.completeBefore
+		|title      = 'DM'.get "title" attributes
+		,priority   = 'DM'.get "priority" attributes
+		,date       = pmeta.issuedAt
+		,deadline   = 'DM'.get "completeBefore" attributes
 		}
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart

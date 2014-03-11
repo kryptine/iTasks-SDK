@@ -385,19 +385,6 @@ instance fromString	TaskId
 instance ==			TaskId
 instance <			TaskId
 
-//* Meta-data of tasks
-:: ManagementMeta =
-	{ title				:: !Maybe String			//* Title to identify the task
-	, worker			:: !UserConstraint			//* Who has to do the task?
-	, role				:: !Maybe Role				//* What role does a worker need to do the task
-	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
-	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
-	, notifyAt			:: !Maybe DateTime			//* When would you like to be notified about the task
-	, priority			:: !TaskPriority			//* What is the current priority of this task?
-    , tags              :: ![String]                //* Custom labels for categorizing
-    , properties        :: !Map String String       //* Custom untyped properties
-	}
-		
 :: ProgressMeta =
 	{ value             :: !ValueStatus             //* Status of the task value
     , issuedAt			:: !DateTime				//* When was the task created
@@ -438,17 +425,19 @@ instance toString (TaskListId s)
     , listId            :: !TaskId
     , name              :: !Maybe String            //Optional identifier, for example for adding tasks just once
 	, value				:: !TaskValue a
-	, managementMeta	:: !Maybe ManagementMeta	//Only for detached tasks
+	, attributes        :: !TaskAttributes
 	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
 	}
 
-:: SharedTaskList a	:==	ReadWriteShared (TaskList a) [(TaskId,ManagementMeta)]
+:: TaskAttributes :== Map String String
+
+:: SharedTaskList a	:==	ReadWriteShared (TaskList a) [(TaskId,!TaskAttributes)]
 
 :: ParallelTaskType	
 	= Embedded                                    //Simplest embedded
     | NamedEmbedded !String                       //Embedded with name
-	| Detached !ManagementMeta !Bool              //Management meta and flag whether the task should be started at once
-    | NamedDetached !String !ManagementMeta !Bool //Detached with name
+	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
+    | NamedDetached !String !TaskAttributes !Bool //Detached with name
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 
@@ -634,16 +623,16 @@ ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
 alt key			:== {key=key,ctrl=False,alt=True,shift=False}
 shift key		:== {key=key,ctrl=False,alt=False,shift=True}
 
-derive JSONEncode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
-derive gVisualizeText	TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, TaskListItem, ManagementMeta, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVisualizeText	TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 

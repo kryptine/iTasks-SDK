@@ -148,9 +148,9 @@ where
 * Overrule the title attribute with the title in the task meta data
 */
 autoAccuWorkOn :: UIDef TIMeta -> UIDef
-autoAccuWorkOn def meta=:{TIMeta|management}
+autoAccuWorkOn def meta=:{TIMeta|attributes}
     # def = uiDefSetSize FlexSize FlexSize def
-	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) management.ManagementMeta.title)
+	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('Data.Map'.get "title" attributes))
 
 	/**
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset

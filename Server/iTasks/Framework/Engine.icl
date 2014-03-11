@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.Engine
 
-import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool
+import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
 from StdFunc import o, seqList, ::St
 import Data.Map, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
@@ -44,10 +44,9 @@ startEngine publishable world
 	# iworld				= initIWorld (fromJust mbSDKPath) world
     //Initialize task instance index
     # iworld                = initInstanceMeta iworld
-    # iworld                = initShareRegistrations iworld
 	// mark all instance as outdated initially
 	# (maxNo,iworld)		= maxInstanceNo iworld
-	# iworld				= addOutdatedInstances [(instanceNo, Nothing) \\ instanceNo <- [1..maxNo]] iworld
+	# iworld				= queueRefresh [1..maxNo] iworld
 	# iworld				= serve port (httpServer port keepalive (engine publishable)) (BackgroundTask background) timeout iworld
 	= finalizeIWorld iworld
 where
@@ -119,29 +118,10 @@ MAX_TIMEOUT :== 86400000 // one day
 
 background :: !*IWorld -> *IWorld
 background iworld
-	# iworld			= updateCurrentDateTime iworld
-	# (mbWork, iworld)	= dequeueWork iworld
-	# iworld = case mbWork of
-		Empty
-			= iworld
-		Work work
-			# iworld = case work of
-				(Evaluate instanceNo)		= refreshTaskInstance instanceNo iworld
-				(EvaluateUrgent instanceNo)	= refreshTaskInstance instanceNo iworld
-				(TriggerSDSChange sdsId)	= addOutdatedOnShareChange sdsId (const True) iworld
-				(CheckSDS sdsId hash checkF)
-					# (checkRes,iworld)		= checkF iworld
-					= case checkRes of
-						Changed				= addOutdatedOnShareChange sdsId (const True) iworld
-						(CheckAgain time)	= queueWork (CheckSDS sdsId hash checkF, Just time) iworld
-			= iworld // give http server the chance to handle request
-		WorkAt time
-			= iworld
-			/*
-			# (curTime, iworld) = currentTimestamp iworld
-			= (Just (toTimeout curTime time), iworld)
-			*/
-	= iworld
+	# iworld			= updateClocks iworld
+    = case dequeueRefresh iworld of
+        (Just instanceNo,iworld) = refreshTaskInstance instanceNo iworld
+        (_,iworld)               = iworld
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
@@ -172,8 +152,8 @@ initIWorld sdkDir world
 	# tm						= (fromOk res).lastModifiedTime
 	# build						= strfTime "%Y%m%d-%H%M%S" tm
 	# (timestamp,world)			= time world
-	# (localDateTime,world)	    = currentLocalDateTimeWorld world
-	# (utcDateTime,world)	    = currentUTCDateTimeWorld world
+	# (DateTime localDate localTime,world)	= currentLocalDateTimeWorld world
+	# (DateTime utcDate utcTime,world)	    = currentUTCDateTimeWorld world
 	# (_,world)					= ensureDir "data" dataDir world
 	# tmpDir					= dataDir </> "tmp-" +++ build
 	# (_,world)					= ensureDir "tmp" tmpDir world
@@ -207,11 +187,16 @@ initIWorld sdkDir world
         ,customCSS  = customCSS
         }
 	  ,config				= initialConfig
+      ,clocks =
+        {SystemClocks
+        |localDate=localDate
+        ,localTime=localTime
+        ,utcDate=utcDate
+        ,utcTime=utcTime
+        }
       ,current =
 	    {TaskEvalState
 	    |timestamp			    = timestamp
-    	,utcDateTime	        = utcDateTime
-	    ,localDateTime	        = localDateTime
         ,taskTime				= 0
 	    ,taskInstance		    = 0
         ,sessionInstance        = Nothing
@@ -224,12 +209,12 @@ initIWorld sdkDir world
         ,eventRoute			    = newMap
 	    ,readShares			    = []
         ,editletDiffs           = newMap }
-      ,sdsRegistrations     = newMap
+      ,sdsNotifyRequests    = []
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
-      ,ti                   = newMap
+      ,ti                   = []
       ,nextInstanceNo       = 0
-	  ,workQueue			= []
+	  ,refreshQueue			= []
 	  ,uiUpdates            = newMap
 	  ,shutdown				= False
       ,io                   = {done = [], todo = []}

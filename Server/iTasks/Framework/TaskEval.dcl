@@ -4,7 +4,7 @@ definition module iTasks.Framework.TaskEval
 */
 
 from iTasks.API.Core.Types	        import :: TaskListItem, :: User, :: TaskId, :: SessionId 
-from iTasks.Framework.IWorld		import :: IWorld, :: Work
+from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from iTasks.Framework.SDS           import :: Shared
 from iTasks.Framework.UIDiff		import :: UIUpdate
@@ -13,8 +13,6 @@ import iTasks.Framework.TaskState, iTasks.Framework.Generic
 
 from Text.JSON import :: JSONNode
 from Data.Error import :: MaybeErrorString, :: MaybeError
-
-:: DequeueResult = Empty | Work !Work | WorkAt !Timestamp
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
 
@@ -33,7 +31,7 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,Inst
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !ManagementMeta !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
 * Evaluate a task instance
@@ -67,10 +65,9 @@ refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 */
 resetTaskInstance   :: !InstanceNo !*IWorld -> *IWorld
 
-queueWork			:: !(!Work, !Maybe Timestamp)	!*IWorld -> *IWorld
-queueUrgentEvaluate	:: !InstanceNo					!*IWorld -> *IWorld
-dequeueWork			:: 								!*IWorld -> (!DequeueResult, !*IWorld)
-dequeueWorkFilter	:: !(Work -> Bool)				!*IWorld -> (![Work], !*IWorld)
+queueRefresh        :: ![InstanceNo]                !*IWorld -> *IWorld
+queueUrgentRefresh  :: ![InstanceNo]				!*IWorld -> *IWorld
+dequeueRefresh      :: 								!*IWorld -> (!Maybe InstanceNo, !*IWorld)
 
 //Helper functions that provide access to shares and parallel task lists
 localShare		:: !TaskId ->	        Shared a			| iTask a

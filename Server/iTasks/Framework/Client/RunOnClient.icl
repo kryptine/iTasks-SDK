@@ -116,10 +116,14 @@ createClientIWorld serverURL currentInstance
                           ,publicWebDirectories = locundef "publicWebDirectories" }
             ,customCSS  = False }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
+          ,clocks =
+            { localDate =   {Date|day = 1, mon = 1, year = 1977}
+            , localTime =   {Time|hour = 0, min = 0, sec = 0}
+            , utcDate =     {Date|day = 1, mon = 1, year = 1977}
+            , utcTime =     {Time|hour = 0, min = 0, sec = 0}
+            }
           ,current =
 		    {timestamp			= Timestamp 1
-		    ,utcDateTime	    = DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
-		    ,localDateTime	    = DateTime {Date|day = 1, mon = 1, year = 1977} {Time|hour = 0, min = 0, sec = 0}
             ,taskTime			= 0
 		    ,taskInstance	    = currentInstance
 		    ,sessionInstance	= Just currentInstance
@@ -133,12 +137,12 @@ createClientIWorld serverURL currentInstance
 		    ,readShares			= []
 		    ,editletDiffs		= 'Data.Map'.newMap
           }
-          ,sdsRegistrations     = 'Data.Map'.newMap
+          ,sdsNotifyRequests    = []
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
-          ,ti                   = 'Data.Map'.newMap
+          ,ti                   = []
           ,nextInstanceNo       = 0
-		  ,workQueue			= []
+		  ,refreshQueue			= []
 		  ,uiUpdates			= 'Data.Map'.newMap
 		  ,shutdown				= False
           ,random               = genRandInt seed

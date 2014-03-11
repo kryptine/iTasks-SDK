@@ -17,14 +17,14 @@ from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynam
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
 from iTasks.API.Core.Tasks	            import return
-from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError
+from iTasks.API.Common.SDSCombinators   import toReadOnly, setParam, mapRead, mapReadWriteError
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
 mkTaskIdent tid = Just (ModuleTaskName "iTasks.API.Core.OptimizedCoreTasks" tid)
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-getNextTaskId iworld=:{current=current=:{taskInstance,nextTaskNo}}
+getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
@@ -57,7 +57,7 @@ where
 			ExceptionResult e str
 				= (ExceptionResult e str,iworld)
 	
-	projectOnShare val result iworld=:{current={taskInstance}}
+	projectOnShare val result iworld=:{current={TaskEvalState|taskInstance}}
 		# (er, iworld) = read share iworld
    		= case er of
 			Ok r = case projection val r of
@@ -314,11 +314,11 @@ where
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI conts (Right acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
-		# (mbMeta,iworld)	= readRegister curInstanceNo (taskInstanceMeta instanceNo) iworld
+		# (mbMeta,iworld)	= readRegister curInstanceNo (setParam instanceNo taskInstanceMeta) iworld
 		# (mbValue,iworld)	= readRegister curInstanceNo (taskInstanceValue instanceNo) iworld
 		= case (mbMeta,mbValue) of
 			(Ok meta,Ok value=:(TIValue jsonval))
-				# (entry,iworld) = updateListEntryDetachedResult taskId entryId value meta.TIMeta.progress meta.TIMeta.management iworld
+				# (entry,iworld) = updateListEntryDetachedResult taskId entryId value meta.TIMeta.progress meta.TIMeta.attributes iworld
 				= (Right (acc++[((entry.TaskListEntry.lastEvent,fromJSONTaskValue jsonval),Nothing)]),iworld)
             //TODO deal with detached exception case (we now possibly have an exception handler)
 			_	
@@ -380,9 +380,9 @@ where
 //SHARED HELPER FUNCTIONS
 
 addTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !(Maybe Int) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
-addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain,localDateTime}}
+addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain},clocks={localDate,localTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {value=None, issuedAt=localDateTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# progress = {value=None, issuedAt=DateTime localDate localTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
@@ -403,7 +403,7 @@ addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,att
 			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda Nothing taskTime) // TODO TCInit taskIda Nothing -> Nothing here? Or should we parameterize this function with a ModuleTaskName?
-	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, attributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
+	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, uiAttributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
     # list      = maybe (list++[entry]) (\pos -> updateAt pos entry list) mbPos
 	# iworld	= storeTaskList taskId list iworld
 	= (entry, iworld)	
@@ -411,7 +411,7 @@ addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,att
 updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
 updateListEntryEmbeddedResult listId entryId result iworld
 	= updateListEntry listId entryId (\e=:{TaskListEntry|state,lastEvent} ->
-		{TaskListEntry|e & lastEval= wrap result, attributes = newAttr result, lastEvent = maxTime lastEvent result}) iworld
+		{TaskListEntry|e & lastEval= wrap result, uiAttributes = newAttr result, lastEvent = maxTime lastEvent result}) iworld
 where
 	wrap (ValueResult val info=:{TaskInfo|refreshSensitive=True} _ tree) //When we know for certain that we'll recompute the task on the next event, 
 		= ValueResult (fmap toJSON val) info NoRep tree					 //don't bother storing the task representation
@@ -424,15 +424,15 @@ where
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
 
-updateListEntryDetachedResult :: !TaskId !TaskId TIValue !ProgressMeta !ManagementMeta !*IWorld -> (!TaskListEntry,!*IWorld)
-updateListEntryDetachedResult listId entryId lastValue progress management iworld
+updateListEntryDetachedResult :: !TaskId !TaskId TIValue !ProgressMeta !TaskAttributes !*IWorld -> (!TaskListEntry,!*IWorld)
+updateListEntryDetachedResult listId entryId lastValue progress attributes iworld
 	= updateListEntry listId entryId update iworld
 where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
         # lastEval = case lastValue of
             TIValue val = ValueResult val info NoRep TCNop
             TIException e str = ExceptionResult e str
-		= {TaskListEntry| e & state = DetachedState no progress management, lastEval = lastEval}
+		= {TaskListEntry| e & state = DetachedState no progress attributes, lastEval = lastEval}
 	update e = e
 
     info = {refreshSensitive=True,involvedUsers=[],lastEvent=0} //FIXME probably a bad idea to construct this nonsense info that may or may not be used
@@ -478,22 +478,21 @@ readListId slist iworld = case read slist iworld of
 taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
 taskListState tasklist = mapRead (\{TaskList|items} -> [value \\ {TaskListItem|value} <- items]) (toReadOnly tasklist)
 
-taskListMeta :: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,ManagementMeta)]
+taskListMeta :: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,TaskAttributes)]
 taskListMeta tasklist = mapRead (\{TaskList|items} -> items) tasklist
 
 taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
 taskListSelfId tasklist = mapRead (\{TaskList|selfId} -> selfId) (toReadOnly tasklist)
 
-taskListSelfManagement :: !(SharedTaskList a) -> Shared ManagementMeta
+taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) tasklist
 where
     toPrj {TaskList|selfId,items} = case [m \\ m=:{TaskListItem|taskId} <- items | taskId == selfId] of
         []                              = trace_n (length items) (Error "Task id not found in self management share")
-        [{managementMeta=Nothing}:_]    = Error "Self management share is only possible for detached tasks"
-        [{managementMeta=Just meta}:_]  = Ok meta
+        [{TaskListItem|attributes}:_]   = Ok attributes
 
-    fromPrj meta {TaskList|selfId}
-        = Ok (Just [(selfId,meta)])
+    fromPrj attributes {TaskList|selfId}
+        = Ok (Just [(selfId,attributes)])
 
 appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task TaskId | iTask a
 appendTask parType parTask slist = mkInstantTask eval
@@ -544,12 +543,12 @@ workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task (mkTaskIdent "workOn") eval
 where
 	eval event repOpts (TCInit taskId mtn ts) iworld=:{current={attachmentChain,user}}
-		# (meta,iworld)		= read (taskInstanceMeta instanceNo) iworld
+		# (meta,iworld)		= read (setParam instanceNo taskInstanceMeta) iworld
 		= case meta of
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
-				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (taskInstanceMeta instanceNo) iworld
-				# iworld		= queueUrgentEvaluate instanceNo iworld
+				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (setParam instanceNo taskInstanceMeta) iworld
+				# iworld		= queueUrgentRefresh [instanceNo] iworld
 				= eval event repOpts (TCBasic taskId mtn ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult (dynamic e) e,iworld)
@@ -557,7 +556,7 @@ where
 	eval event repOpts tree=:(TCBasic taskId _ ts _ _) iworld=:{current={taskInstance,user}}
 		//Load instance
 		# layout			= repLayoutRules repOpts
-		# (meta,iworld)		= readRegister taskInstance (taskInstanceMeta instanceNo) iworld
+		# (meta,iworld)		= readRegister taskInstance (setParam instanceNo taskInstanceMeta) iworld
 		= case meta of
 			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker,instanceKey})
                 | progress.ProgressMeta.value === Exception
@@ -574,15 +573,18 @@ where
 				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 
 	eval event repOpts (TCDestroy (TCBasic taskId _ _ _ _)) iworld
+        /*
         # (meta,iworld) = read fullInstanceMeta iworld //FIXME: Figure out how to get the right share notifications for the released instances
         = case meta of
             Ok instances
-                # (_,iworld) = write ('Data.Map'.fromList [(n,release taskId m) \\ (n,m) <- 'Data.Map'.toList instances]) fullInstanceMeta iworld
+                # (_,iworld) = write (map (release taskId) instances) fullInstanceMeta iworld
                 = (DestroyedResult,iworld)
 		    _   = (DestroyedResult,iworld)
+        */
+        = (DestroyedResult,iworld)
 
     release taskId meta=:{TIMeta|instanceType=AttachedInstance attachment worker}
-        | isMember taskId attachment    = {meta & instanceType = DetachedInstance}
+        | isMember taskId attachment    = {TIMeta|meta & instanceType = DetachedInstance}
                                         = meta
     release taskId meta = meta
 
@@ -652,7 +654,7 @@ where
 	eval event repOpts (TCInit taskId mtn ts) iworld=:{exposedShares}
 		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
-		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared r^ w^, toJSONShared shared) exposedShares
+		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared Void r^ w^, toJSONShared shared) exposedShares
 		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
 		= eval event repOpts (TCExposedShared taskId mtn ts url (TCInit taskIda mtn ts)) {iworld & exposedShares = exposedShares}
 		

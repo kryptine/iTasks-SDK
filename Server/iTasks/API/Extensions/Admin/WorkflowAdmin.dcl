@@ -9,7 +9,7 @@ import iTasks
 	{ path				:: String					//* a unique name of this workflow
 	, roles				:: [String]					//* the roles that are allowed to initate this workflow
 	, description		:: String					//* a description of the workflow
-	, managerProperties	:: ManagementMeta			//* the initial manager properties of the main task
+	, managerProperties	:: TaskAttributes           //* the initial manager properties of the main task
 	, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
 	}						
 :: WorkflowTaskContainer
@@ -61,8 +61,8 @@ instance toWorkflow (WorkflowContainer a)			| iTask a
 instance toWorkflow (a -> Task b)					| iTask a & iTask b
 instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 
-:: WorkflowContainer a			= Workflow		ManagementMeta (Task a)
-:: ParamWorkflowContainer a b	= ParamWorkflow	ManagementMeta (a -> Task b)
+:: WorkflowContainer a			= Workflow		TaskAttributes (Task a)
+:: ParamWorkflowContainer a b	= ParamWorkflow	TaskAttributes (a -> Task b)
 
 /**
 * Default workflow management task.

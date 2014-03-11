@@ -9,7 +9,7 @@ import Text, Text.JSON
 import iTasks.Framework.Client.JSStore
 import iTasks.Framework.SDS
 
-from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: ServerInfo(..), :: SystemPaths(..), :: Work, :: Resource
+from iTasks.Framework.IWorld		import :: IWorld {onClient,server,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState		import :: TaskListEntry
@@ -25,13 +25,13 @@ from System.Time 					import :: Timestamp(..), instance < Timestamp, instance to
 :: StoreFormat = SFPlain | SFDynamic
 
 storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-storeAccess namespace storeId defaultV = createChangeOnWriteSDS namespace storeId read write
+storeAccess namespace storeId defaultV = createReadWriteSDS namespace storeId read write
 where
-	read iworld
+	read Void iworld
 		# (mbV,iworld) = loadValue namespace storeId iworld
 		= (maybe (maybe (Error ("Can't read " +++ storeId)) Ok defaultV) Ok mbV, iworld)
-	write v iworld
-		= (Ok Void,storeValue namespace storeId v iworld)
+	write Void v iworld
+		= (Ok (const True),storeValue namespace storeId v iworld)
 
 storePath :: !FilePath !String -> FilePath
 storePath dataDir buildID = dataDir </> "store-" +++ buildID

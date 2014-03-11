@@ -51,11 +51,11 @@ where
 			Ok handle
 		        = eval event repOpts (TCBasic taskId mtn ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
-	eval event repOpts state=:(TCBasic taskId mtn lastEvent encv stable) iworld=:{IWorld|world,current={taskInstance}}
+	eval event repOpts state=:(TCBasic taskId mtn lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
             # (rep,iworld)  = makeRep taskId repOpts status iworld
-            # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
+            # iworld = queueRefresh [taskInstance] iworld
 			= (ValueResult (Value status True) {TaskInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
 		| otherwise
             //Check status
@@ -68,7 +68,7 @@ where
                         Just c  = (CompletedProcess c,True, TCBasic taskId mtn lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
                     # (rep,iworld)  = makeRep taskId repOpts status {IWorld|iworld & world = world}
-                    # iworld = queueWork (Evaluate taskInstance,Nothing) iworld
+                    # iworld = queueRefresh [taskInstance] iworld
                     = (ValueResult (Value status stable) {TaskInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
 
 	eval event repAs (TCDestroy _) iworld
@@ -313,7 +313,7 @@ where
 	//Inline copy of function from CoreCombinators.icl
 	//I don't want to export it there because CoreCombinators is an API module
 	getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-	getNextTaskId iworld=:{current=current=:{taskInstance,nextTaskNo}} = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
+	getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}} = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval

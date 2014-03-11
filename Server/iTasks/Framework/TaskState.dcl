@@ -14,15 +14,15 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	{ instanceNo	:: !InstanceNo			//Unique global identification
     , instanceKey   :: !InstanceKey         //Random string that a client needs to provide to access the task instance
     , instanceType  :: !TIType
+    , session       :: !Bool                //Is this a session
 	, listId        :: !TaskId              //Reference to parent tasklist
     , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
-	, management	:: !ManagementMeta
+	, attributes    :: !TaskAttributes      //Meta-data
 	}
 
 :: TIType
-    = SessionInstance                       //An instance directly linked to a client session
-    | DetachedInstance                      //A detached task that is not in use
+    = DetachedInstance                      //A detached task that is not in use
     | AttachedInstance ![TaskId] !User      //A previously detached task that has been attached to another instance
     | TmpAttachedInstance ![TaskId] !User   //A temporarily attached task that will automatically turn into a detached instance after evaluation
 
@@ -72,12 +72,13 @@ derive JSONDecode DeferredJSON
     , name              :: !Maybe String            //Optional name, for easy referencing
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
 	, lastEval          :: !TaskResult JSONNode     //Value of last evaluation
-	, attributes		:: !Map String String		//Stored attributes of last evaluation
+	, uiAttributes		:: !Map String String		//Stored attributes of last evaluation
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
 	, lastEvent			:: !TaskTime				//Last modified time
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
 	}												//If it is false we have determined that this is not necessary during the last computation
 
 :: TaskListEntryState
-	= EmbeddedState 											//An embedded task
-	| DetachedState !InstanceNo !ProgressMeta !ManagementMeta	//A reference to the detached task (management and progress meta are cached copies)
+	= EmbeddedState 										    //An embedded task
+	| DetachedState !InstanceNo !ProgressMeta !TaskAttributes	//A reference to the detached task (management and progress meta are cached copies)
+

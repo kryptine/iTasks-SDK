@@ -8,11 +8,11 @@ import iTasks.Framework.IWorld
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
-from StdFunc					import o, seq
+from StdFunc					import o, seq, const
 from iTasks.Framework.Util as iFU import qualified currentTimestamp, dateToTimestamp
 from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
-from Data.Map import toList
+import qualified Data.Map as DM
 derive gEq TIType
 
 SYSTEM_DATA_NS :== "SystemData"
@@ -20,85 +20,66 @@ SYSTEM_DATA_NS :== "SystemData"
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just defaultV)
 
-constShare :: !a -> ReadOnlyShared a
-constShare v = createReadOnlySDS (\env -> (v, env))
+constShare :: !a -> ROShared p a
+constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 null :: WriteOnlyShared a
-null = createSDS Nothing (\env -> (Ok (Void, OnWrite), env)) (\_ env -> (Ok Void, env))
+null = createReadWriteSDS SYSTEM_DATA_NS "null" (\Void env -> (Ok Void, env)) (\Void _ env -> (Ok (const False), env))
 			
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDateTime" read
-where
-	read iworld=:{current={localDateTime,timestamp=Timestamp ts}}
-		= ((localDateTime, Timestamp (ts + 1)), iworld)
-		
+currentDateTime = mapRead (\(d,t) -> DateTime d t) (iworldLocalDate |+| iworldLocalTime)
+
 currentTime :: ReadOnlyShared Time
-currentTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentTime" read
-where
-	read iworld=:{current={localDateTime=DateTime _ time,timestamp=Timestamp ts}}
-		= ((time, Timestamp (ts + 1)), iworld)
+currentTime = toReadOnly iworldLocalTime
 		
 currentDate :: ReadOnlyShared Date
-currentDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentDate" read
-where
-	read iworld=:{current={localDateTime=DateTime date time,timestamp=Timestamp ts}}
-		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
-
-	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
+currentDate = toReadOnly iworldLocalDate
 
 currentUTCDateTime :: ReadOnlyShared DateTime
-currentUTCDateTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDateTime" read
-where
-	read iworld=:{current={utcDateTime,timestamp=Timestamp ts}}
-		= ((utcDateTime, Timestamp (ts + 1)), iworld)
+currentUTCDateTime = mapRead (\(d,t) -> DateTime d t) (iworldUTCDate |+| iworldUTCTime)
 
 currentUTCTime :: ReadOnlyShared Time
-currentUTCTime = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCTime" read
-where
-	read iworld=:{current={utcDateTime=DateTime _ time,timestamp=Timestamp ts}}
-		= ((time, Timestamp (ts + 1)), iworld)
+currentUTCTime = toReadOnly iworldUTCTime
 
 currentUTCDate :: ReadOnlyShared Date
-currentUTCDate = createReadOnlySDSPredictable SYSTEM_DATA_NS "currentUTCDate" read
-where
-	read iworld=:{current={utcDateTime=DateTime date time,timestamp=Timestamp ts}}
-		= ((date, Timestamp (ts + secondsUntilChange time)), iworld)
-
-	secondsUntilChange {Time|hour,min,sec} = (23-hour)*3600 + (59-min)*60 + (60-sec)
+currentUTCDate = toReadOnly iworldUTCDate
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
 topLevelTasks = topListShare
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
-currentSessions = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | m.instanceType === SessionInstance]) (toReadOnly fullInstanceMeta)
+currentSessions
+    = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just True} filteredInstanceMeta))
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = mapRead (\instances -> [toTaskListItem m \\ (_,m) <- (toList instances) | m.instanceType =!= SessionInstance]) (toReadOnly fullInstanceMeta)
+currentProcesses
+    = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta))
 
-toTaskListItem :: !TIMeta -> TaskListItem a 
-toTaskListItem {TIMeta|instanceNo,listId,progress,management}
-	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, managementMeta = Just management}
+toTaskListItem :: !TIMeta -> TaskListItem a
+toTaskListItem {TIMeta|instanceNo,listId,progress,attributes}
+	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, attributes = attributes}
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
-	forWorker user {managementMeta=Just {ManagementMeta|worker=AnyUser}}									= True
-	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {ManagementMeta|worker=UserWithId uid2}}	= uid1 == uid2
-	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {ManagementMeta|worker=UserWithRole role}}	= isMember role roles
-	forWorker _ _																							= False
-
-isSession :: !TIMeta -> Bool
-isSession {TIMeta|instanceType=SessionInstance}	= True
-isSession _						 	            = False
+    forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
+        Just uid1 = case user of
+            (AuthenticatedUser uid2 _ _)    = uid1 == uid2
+            _                               = False
+        Nothing = case 'DM'.get "role" attributes of
+            Just role = case user of
+                (AuthenticatedUser _ roles _)   = isMember role roles
+                _                               = False
+            Nothing = True
 
 allTaskInstances :: ReadOnlyShared [TaskListItem Void]
-allTaskInstances = createReadOnlySDS (\iworld=:{ti} -> (map (toTaskListItem o snd) (toList ti),iworld))
+allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map toTaskListItem ti,iworld))
 
 currentUser :: ReadOnlyShared User
-currentUser = createReadOnlySDS (\iworld=:{current={user}} -> (user,iworld))
+currentUser = createReadOnlySDS (\Void iworld=:{current={user}} -> (user,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare
@@ -106,41 +87,34 @@ currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentI
 applicationName :: ReadOnlyShared String
 applicationName = createReadOnlySDS appName
 where
-	appName iworld=:{IWorld|server={serverName}} = (serverName,iworld)
+	appName Void iworld=:{IWorld|server={serverName}} = (serverName,iworld)
 
-applicationBuild:: ReadOnlyShared String
-applicationBuild  = createReadOnlySDS appBuild
+applicationBuild :: ReadOnlyShared String
+applicationBuild = createReadOnlySDS appBuild
 where
-	appBuild iworld=:{IWorld|server={buildID}} = (buildID,iworld)
+	appBuild Void iworld=:{IWorld|server={buildID}} = (buildID,iworld)
 
 applicationDirectory :: ReadOnlyShared FilePath
 applicationDirectory = createReadOnlySDS appDir
 where
-	appDir iworld=:{IWorld|server={paths={appDirectory}}} = (appDirectory,iworld)
+	appDir Void iworld=:{IWorld|server={paths={appDirectory}}} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
 applicationConfig = createReadOnlySDS config
 where
-	config iworld=:{IWorld|config} = (config,iworld)
+	config Void iworld=:{IWorld|config} = (config,iworld)
 
 // Random source
 randomInt	:: ReadOnlyShared Int
 randomInt = createReadOnlySDS randomInt
 where
-	randomInt iworld=:{IWorld|random=[i:is]}
+	randomInt Void iworld=:{IWorld|random=[i:is]}
 		= (i, {IWorld|iworld & random = is})
 
-EXTERNAL_FILE_POLLING_RATE :== 10
-
 externalFile :: !FilePath -> Shared String
-externalFile path = createPollingSDS "externalFile" path read write
+externalFile path = createReadWriteSDS "externalFile" path read write
 where
-	read iworld
-		# (Timestamp ts, iworld)	= 'iFU'.currentTimestamp iworld
-		# (res, iworld)				= read` iworld
-		= (fmap (\r -> (r, Timestamp (ts + EXTERNAL_FILE_POLLING_RATE), checkF r)) res, iworld)
-	
-	read` iworld=:{world}
+	read Void iworld=:{world}
 		# (ok,file,world)			= fopen path FReadData iworld.world
 		| not ok					= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
 		# (res,file)				= readAll file
@@ -148,17 +122,11 @@ where
 		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
 		| isError res				= (Error (toString (fromError res)) ,{IWorld|iworld & world = world})
 		= (Ok (fromOk res), {IWorld|iworld & world = world})
-		
-	checkF old iworld
-		# (res,iworld)= read` iworld
-		| isOk res && (fromOk res) <> old = (Changed, iworld)
-		# (Timestamp ts, iworld) = 'iFU'.currentTimestamp iworld
-		= (CheckAgain (Timestamp (ts + EXTERNAL_FILE_POLLING_RATE)), iworld)
-		
-	write content iworld=:{world}
+
+	write Void content iworld=:{world}
 		# (ok,file,world)			= fopen path FWriteText world
 		| not ok					= (Error (toString CannotOpen), {IWorld|iworld & world = world})
 		# file						= fwrites content file
 		# (ok,world)				= fclose file world
 		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
-		= (Ok Void, {IWorld|iworld & world = world})
+		= (Ok (const True), {IWorld|iworld & world = world})

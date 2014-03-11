@@ -53,9 +53,6 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 */
 startEngine :: a !*World -> *World | Publishable a
 
-// Background process. TODO
-background :: !*IWorld -> *IWorld
-
 /**
 * Wraps a task together with a url to make it publishable by the engine
 */
@@ -70,3 +67,6 @@ instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
 
 determineAppName :: !*World -> (!String,!*World)
+
+// Background process. TODO
+background :: !*IWorld -> *IWorld

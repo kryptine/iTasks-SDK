@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Data.Error, Data.Func
 import iTasks.Framework.IWorld, iTasks.Framework.SDS
-from iTasks.Framework.SDS import class reportSDSChange(..)
+from iTasks.Framework.SDS import reportSDSChange
 import qualified Data.Map
 
 //Extend Resource type for mysql resources
@@ -10,26 +10,26 @@ import qualified Data.Map
 
 derive class iTask SQLValue, SQLDate, SQLTime
 
-sqlShare :: SQLDatabase String (A.*cur: *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> ReadWriteShared r w 
-sqlShare db name readFun writeFun = createChangeOnWriteSDS "SQLShares" name read write
+sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
+								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabase,p) r w
+sqlShare name readFun writeFun = createReadWriteSDS "SQLShares" name read write
 where
-	read iworld
+	read (db,p) iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e,  iworld)
 			Ok (cur,con,cxt)
-				# (res,cur) = readFun cur
+				# (res,cur) = readFun p cur
 				# iworld	= closeMySQLDb cur con cxt iworld
 				= (res,iworld)
-	write w iworld
+	write (db,p) w iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
 			Ok (cur,con,cxt)
-				# (res,cur) = writeFun w cur
+				# (res,cur) = writeFun p w cur
 				# iworld	= closeMySQLDb cur con cxt iworld
-				= (res,iworld)
+                = (fmap (const (const True)) res, iworld)
 
 sqlExecute :: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
 sqlExecute db touchIds queryFun = mkInstantTask exec
@@ -45,8 +45,7 @@ where
 					Error e		= (Error (dynamic e,toString e), iworld)
 					Ok v		
                         //Trigger share change for all touched ids
-                        //# iworld = seqSt (\s w -> queueWork (TriggerSDSChange s,Nothing) w) touchIds {IWorld|iworld & world = world}
-                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) (\Void->True) w) touchIds iworld
+                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) w) touchIds iworld
                         = (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
@@ -74,10 +73,10 @@ execDelete query values cur
 sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values) 
 
-sqlSelectShare :: SQLDatabase String SQLStatement ![SQLValue] -> ReadOnlyShared [SQLRow]
-sqlSelectShare db name query values = createChangeOnWriteSDS "SQLShares" name read write
+sqlSelectShare :: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]
+sqlSelectShare name query values = createReadWriteSDS "SQLShares" name read write
 where
-	read iworld
+	read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error e, iworld)
@@ -89,7 +88,7 @@ where
 				# iworld				= closeMySQLDb cur con cxt iworld
 				= (Ok rows,iworld)
 
-    write Void iworld = (Ok Void,iworld)
+    write _ Void iworld = (Ok (const True),iworld)
 		
 openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
 openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}

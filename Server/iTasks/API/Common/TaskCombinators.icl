@@ -9,7 +9,7 @@ from StdFunc			import id, const, o
 from iTasks.API.Core.Types		    import :: User(..), :: Note(..)
 from iTasks.API.Core.SDSs           import randomInt, topLevelTasks
 from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
-from Data.Map				import qualified put
+import qualified Data.Map as DM
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators
 import iTasks.API.Common.SDSCombinators
@@ -87,20 +87,20 @@ projectJust mba _ = Just mba
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-assign :: !ManagementMeta !(Task a) -> Task a | iTask a
-assign props task
+assign :: !TaskAttributes !(Task a) -> Task a | iTask a
+assign attr task
 	=	parallel Void
-			[(Embedded, \s -> processControl s),(Detached props False, \_ -> task)] []
+			[(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
 	@?	result
 where
 	processControl tlist
 		= viewSharedInformation (Title "Waiting for result") [ViewWith toView] (taskListMeta tlist) @? const NoValue
 					
-	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
-		{ assignedTo	= toString m.ManagementMeta.worker
+	toView [_,{TaskListItem|progressMeta=Just p,attributes}]=
+		{ assignedTo	= visualizeAsLabel ('DM'.get "user" attributes)
 		, issuedBy		= toString p.ProgressMeta.issuedBy
 		, issuedAt		= p.ProgressMeta.issuedAt
-		, priority		= m.ManagementMeta.priority
+		, priority		= visualizeAsLabel ('DM'.get "priority" attributes)
 		, firstWorkedOn	= p.ProgressMeta.firstEvent
 		, lastWorkedOn	= p.ProgressMeta.latestEvent
 		}	
@@ -116,14 +116,21 @@ where
 :: ProcessControlView =	{ assignedTo	:: !String
 						, issuedBy		:: !String
 						, issuedAt		:: !DateTime
-						, priority		:: !TaskPriority
+						, priority		:: !String
 						, firstWorkedOn	:: !Maybe DateTime
 						, lastWorkedOn	:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
 
+workerAttributes :: worker -> TaskAttributes | toUserConstraint worker
+workerAttributes worker = case toUserConstraint worker of
+    AnyUser = 'DM'.newMap
+    UserWithId uid = 'DM'.fromList [("user",uid)]
+    UserWithRole role = 'DM'.fromList [("role",role)]
+
+
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-(@:) worker task = assign {defaultValue & worker = toUserConstraint worker} task
+(@:) worker task = assign (workerAttributes worker) task
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
@@ -278,11 +285,11 @@ whileUnchangedWith eq share task
 	= 	((get share >>= \val -> (wait Void (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
-appendTopLevelTask :: !ManagementMeta !Bool !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask props evalDirect task = appendTask (Detached props evalDirect) (\_ -> task @ const Void) topLevelTasks
+appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
+appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const Void) topLevelTasks
 
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
-appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask {defaultValue & worker = toUserConstraint worker} evalDirect task
+appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask (workerAttributes worker) evalDirect task
 			
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

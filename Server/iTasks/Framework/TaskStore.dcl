@@ -12,6 +12,11 @@ from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError
 from System.Time    import :: Timestamp
 
+:: InstanceFilter =
+    { instanceNo    :: Maybe InstanceNo
+    , session       :: Maybe Bool
+    }
+
 newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
@@ -22,19 +27,15 @@ deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
 
 //Rebuild the task instance index in the iworld from the store content
 initInstanceMeta        :: !*IWorld -> *IWorld
-//Reload the share registrations index
-initShareRegistrations  :: !*IWorld -> *IWorld
 
 //Task instance state is accessible as shared data sources
-fullInstanceMeta        :: RWShared (Map InstanceNo TIMeta) (Map InstanceNo TIMeta)
+//fullInstanceMeta        :: RWShared Void [TIMeta] [TIMeta]
+filteredInstanceMeta    :: RWShared InstanceFilter [TIMeta] [TIMeta]
 
-taskInstanceMeta        :: !InstanceNo -> RWShared TIMeta TIMeta
-taskInstanceReduct		:: !InstanceNo -> RWShared TIReduct TIReduct
-taskInstanceValue       :: !InstanceNo -> RWShared TIValue TIValue
-taskInstanceRep         :: !InstanceNo -> RWShared TaskRep TaskRep
-
-//Save share registration index in store
-saveShareRegistrations  :: !*IWorld -> *IWorld
+taskInstanceMeta        :: RWShared InstanceNo TIMeta TIMeta
+taskInstanceReduct		:: !InstanceNo -> RWShared Void TIReduct TIReduct
+taskInstanceValue       :: !InstanceNo -> RWShared Void TIValue TIValue
+taskInstanceRep         :: !InstanceNo -> RWShared Void TaskRep TaskRep
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

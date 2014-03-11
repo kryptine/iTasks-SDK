@@ -243,13 +243,12 @@ itwc.Container = itwc.extend(itwc.Component,{
             itwc.controller.addComponent(me.menu,menuIdx,menuCmp);
         });
 
-        if(me.direction == 'horizontal') { //Flip direction for the domEl
+        if(me.definition.direction == 'horizontal') { //Flip direction for the domEl
             me.domEl.classList.remove('hcontainer');
             me.domEl.classList.add('vcontainer');
         }
 
         me.targetEl = document.createElement('div');
-        me.targetEl.classList.add("DEBUG");
         me.targetEl.style.flex = 1;
         me.targetEl.style.alignSelf = 'stretch';
         me.initItemLayout();
@@ -1067,8 +1066,7 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
         me.currentIcon = me.definition.iconCls;
 
         if(me.definition.tooltip) {
-            el.setAttribute('data-hint',me.definition.tooltip);
-            el.classList.add('hint--left');
+            el.setAttribute('tooltip',me.definition.tooltip);
         }
     },
     setIconCls: function(iconCls) {
@@ -1081,8 +1079,7 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
     setTooltip: function(tooltip) {
         var me = this,
             el = me.domEl;
-        el.setAttribute('data-hint',tooltip);
-        el.classList.add('hint--left');
+        el.setAttribute('tooltip',tooltip);
     }
 });
 itwc.component.itwc_label = itwc.extend(itwc.Container,{
@@ -1488,6 +1485,13 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
         label.addEventListener('click',function(e) {
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
         },me);
+
+        if(me.definition.doubleClickAction) {
+            label.addEventListener('dblclick',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
+                itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+            });
+        }
         node.appendChild(label);
 
         if(option.children && option.children.length) {
@@ -1546,6 +1550,12 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
             rowEl.addEventListener('click',function(e) {
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
             },me);
+            if(me.definition.doubleClickAction) {
+                rowEl.addEventListener('dblclick',function(e) {
+                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
+                    itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+                },me);
+            }
             option.forEach(function(cell) {
                 cellEl = document.createElement('div');
                 cellEl.innerHTML = cell;
