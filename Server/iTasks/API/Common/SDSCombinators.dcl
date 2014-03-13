@@ -24,7 +24,7 @@ mapReadWriteError	:: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Mayb
 
 toReadOnly :: !(RWShared p r w) -> ROShared p r
 
-setParam :: !p !(RWShared p r w) -> (RWShared Void r w) | TC p
+setParam :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p
 
 //Map a list SDS of one element to the element itsel
 mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w)
