@@ -454,7 +454,7 @@ where
                       ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = Nothing}
 
 subUIToWindow :: UISubUI -> UIWindow
-subUIToWindow {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,attributes}
+subUIToWindow {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
     //Check for window close action
 	# (close,actions)		        = actionsToCloseId actions
     //Add button actions
@@ -464,7 +464,7 @@ subUIToWindow {UISubUI|content=content=:{UIItemsOpts|items,direction},actions,at
 	# (menus,menukeys,actions)	    = actionsToMenus actions
     = UIWindow sizeOpts {UIItemsOpts|content&items=items,direction=direction} (windowOpts (buttonkeys++menukeys) menus close)
 where
-	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
+	sizeOpts	= {UISizeOpts|size & width = Just (fromMaybe WrapSize size.UISizeOpts.width), height = Just (fromMaybe WrapSize size.UISizeOpts.height)}
 	windowOpts hotkeys menus close
         = {UIWindowOpts|title = title, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
                       ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = iconCls}
