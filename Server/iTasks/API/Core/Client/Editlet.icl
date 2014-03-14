@@ -12,9 +12,9 @@ toEditlet (EditletSimpl a {EditletSimplDef|genUI,updateUI,genDiff,appDiff})
 				{EditletClientDef|updateUI = updateUI, defVal = gDefault{|*|}, genDiff = genDiff, appDiff = appDiff}
 
 //* Client-side types
-JSONEncode{|Editlet|} _ _ tt = [dynamicJSONEncode tt]		
-JSONDecode{|Editlet|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|Editlet|} _ _ c = (Nothing,c)
+JSONEncode{|Editlet|} _ _ _ tt = [dynamicJSONEncode tt]		
+JSONDecode{|Editlet|} _ _ _ [tt:c] = (dynamicJSONDecode tt,c)
+JSONDecode{|Editlet|} _ _ _ c = (Nothing,c)
 
 gDefault{|Editlet|} fa _
     = Editlet fa { EditletServerDef
@@ -75,11 +75,11 @@ where
 
 	ui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (UIEditlet defaultSizeOpts opts)
 	
-	toJSONA a = case jsonEncA a of
+	toJSONA a = case jsonEncA False a of
 		[json:_]	= json
 		_			= JSONNull
 
-    fromJSONA json = fst (jsonDecA [json])
+    fromJSONA json = fst (jsonDecA False [json])
 
 	// Argument is necessary to stop evaluation on the server
 	defValueFun _ = clientDef.EditletClientDef.defVal
@@ -97,7 +97,7 @@ where
 		Just diff		= toJSOND diff
 		_				= JSONNull
     where
-	    toJSOND d = case jsonEncD d of
+	    toJSOND d = case jsonEncD False d of
 		    [json:_]	= json
 		    _			= JSONNull
 
@@ -109,13 +109,13 @@ where
 gEditMeta{|Editlet|} fa _ (Editlet value _ _) = fa value
 
 gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov=:(Editlet value defsv=:{EditletServerDef|appDiff} defcl),omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
-	= case jDecd [jsonDiff] of
+	= case jDecd False [jsonDiff] of
 		(Just diff,_)
             # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                Just (jsonRef,opts,diffs) = case jDeca [jsonRef] of
+                Just (jsonRef,opts,diffs) = case jDeca False [jsonRef] of
                     (Just ref,_)
                         # ref = appDiff diff ref
-                        # [jsonRef:_] = jEnca ref
+                        # [jsonRef:_] = jEnca False ref
                         = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}}
                     _ = iworld
                 Nothing = iworld

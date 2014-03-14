@@ -33,9 +33,9 @@ fromJSONOfDeferredJSON (DeferredJSONNode json)
 
 make_dynamic v = dynamic v
 
-JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]		
-JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|Task|} _ c = (Nothing,c)
+JSONEncode{|Task|} _ _ tt = [dynamicJSONEncode tt]		
+JSONDecode{|Task|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
+JSONDecode{|Task|} _ _ c = (Nothing,c)
 
 gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\Void t -> Just t) target upd val iworld
 

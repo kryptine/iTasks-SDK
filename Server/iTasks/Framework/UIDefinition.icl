@@ -448,60 +448,64 @@ derive JSONEncode UIIconOpts
 derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
-JSONEncode{|UISizeOpts|} {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
-    = [JSONObject [field \\ field <- [("itwcWidth",toJSON width)
-                                     ,("itwcMinWidth",toJSON minWidth)
-                                     ,("itwcMaxWidth",toJSON maxWidth)
-                                     ,("itwcHeight",toJSON height)
-                                     ,("itwcMinHeight",toJSON minHeight)
-                                     ,("itwcMaxHeight",toJSON maxHeight)
-                                     ,("margins",toJSON margins)
-                                     ] | snd field =!= JSONNull]
-      ]
-JSONEncode{|UIHSizeOpts|} {UIHSizeOpts|width,minWidth,maxWidth,margins}
-    = [JSONObject [field \\ field <- [("itwcWidth",toJSON width)
-                                     ,("itwcMinWidth",toJSON minWidth)
-                                     ,("itwcMaxWidth",toJSON maxWidth)
-                                     ,("margins",toJSON margins)
-                                     ] | snd field =!= JSONNull]
-      ]
-JSONEncode{|UIFSizeOpts|} {UIFSizeOpts|margins}
-    = [JSONObject [field \\ field <- [("margins",toJSON margins)] | snd field =!= JSONNull]]
+toJSONField x = case (JSONEncode{|*|} True x) of
+	[node]	= node
+	_		= JSONError
 
-JSONEncode{|UISideSizes|} {top,right,bottom,left}
+JSONEncode{|UISizeOpts|} _ {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
+    = [JSONObject [field \\ field <- [("itwcWidth",toJSONField width)
+                                     ,("itwcMinWidth",toJSONField minWidth)
+                                     ,("itwcMaxWidth",toJSONField maxWidth)
+                                     ,("itwcHeight",toJSONField height)
+                                     ,("itwcMinHeight",toJSONField minHeight)
+                                     ,("itwcMaxHeight",toJSONField maxHeight)
+                                     ,("margins",toJSONField margins)
+                                     ] | snd field =!= JSONNull]
+      ]
+JSONEncode{|UIHSizeOpts|} _ {UIHSizeOpts|width,minWidth,maxWidth,margins}
+    = [JSONObject [field \\ field <- [("itwcWidth",toJSONField width)
+                                     ,("itwcMinWidth",toJSONField minWidth)
+                                     ,("itwcMaxWidth",toJSONField maxWidth)
+                                     ,("margins",toJSONField margins)
+                                     ] | snd field =!= JSONNull]
+      ]
+JSONEncode{|UIFSizeOpts|} _ {UIFSizeOpts|margins}
+    = [JSONObject [field \\ field <- [("margins",toJSONField margins)] | snd field =!= JSONNull]]
+
+JSONEncode{|UISideSizes|} _ {top,right,bottom,left}
 	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
 
-JSONEncode{|UISize|} (ExactSize s)		= [JSONInt s]
-JSONEncode{|UISize|} WrapSize			= [JSONString "wrap"]
-JSONEncode{|UISize|} FlexSize			= [JSONString "flex"]
+JSONEncode{|UISize|} _ (ExactSize s)	= [JSONInt s]
+JSONEncode{|UISize|} _ WrapSize			= [JSONString "wrap"]
+JSONEncode{|UISize|} _ FlexSize			= [JSONString "flex"]
 
-JSONEncode{|UIBound|} (ExactBound s)	= [JSONInt s]
-JSONEncode{|UIBound|} WrapBound		    = [JSONString "wrap"]
+JSONEncode{|UIBound|} _ (ExactBound s)	= [JSONInt s]
+JSONEncode{|UIBound|} _ WrapBound		= [JSONString "wrap"]
 
-JSONEncode{|UIVAlign|} AlignTop			= [JSONString "top"]
-JSONEncode{|UIVAlign|} AlignMiddle		= [JSONString "middle"]
-JSONEncode{|UIVAlign|} AlignBottom		= [JSONString "bottom"]
+JSONEncode{|UIVAlign|} _ AlignTop		= [JSONString "top"]
+JSONEncode{|UIVAlign|} _ AlignMiddle	= [JSONString "middle"]
+JSONEncode{|UIVAlign|} _ AlignBottom	= [JSONString "bottom"]
 
-JSONEncode{|UIHAlign|} AlignLeft		= [JSONString "left"]
-JSONEncode{|UIHAlign|} AlignCenter		= [JSONString "center"]
-JSONEncode{|UIHAlign|} AlignRight		= [JSONString "right"]
+JSONEncode{|UIHAlign|} _ AlignLeft		= [JSONString "left"]
+JSONEncode{|UIHAlign|} _ AlignCenter	= [JSONString "center"]
+JSONEncode{|UIHAlign|} _ AlignRight		= [JSONString "right"]
 
-JSONEncode{|UIDirection|} Vertical		= [JSONString "vertical"]
-JSONEncode{|UIDirection|} Horizontal	= [JSONString "horizontal"]
+JSONEncode{|UIDirection|} _ Vertical	= [JSONString "vertical"]
+JSONEncode{|UIDirection|} _ Horizontal	= [JSONString "horizontal"]
 
-JSONEncode{|UIMenuButtonOpts|} {UIMenuButtonOpts|text,iconCls,disabled,menu}
+JSONEncode{|UIMenuButtonOpts|} _ {UIMenuButtonOpts|text,iconCls,disabled,menu}
 	= [JSONObject (text` ++ [("disabled",JSONBool disabled),("menu",menu`)] ++ iconCls`)]
 where
 	text`		= maybe [] (\s -> [("text",JSONString s)]) text
 	iconCls`	= maybe [] (\s -> [("iconCls",JSONString s)]) iconCls
 	menu`= JSONObject [("xtype",JSONString "itwc_menu"),("items",JSONArray (map toJSON menu))]
 
-JSONEncode{|UIMenuItem|} (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuitem" [toJSON aopts,toJSON opts]]
-JSONEncode{|UIMenuItem|} (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts]]
+JSONEncode{|UIMenuItem|} _ (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuitem" [toJSON aopts,toJSON opts]]
+JSONEncode{|UIMenuItem|} _ (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts]]
 
-JSONEncode{|UIControl|} control = [encodeUIControl control]
+JSONEncode{|UIControl|} _ control = [encodeUIControl control]
 
-JSONEncode{|UIDef|} uidef = [encodeUIDefinition uidef]
+JSONEncode{|UIDef|} _ uidef = [encodeUIDefinition uidef]
 
 enc :: String [JSONNode] -> JSONNode
 enc xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]

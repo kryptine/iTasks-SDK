@@ -14,9 +14,9 @@ gEditor{|WorkflowTaskContainer|} _ _ _ vst			    = (HiddenEditor,vst)
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gUpdate{|WorkflowTaskContainer|} target upd val iworld  = basicUpdate (\Void x -> Just x) target upd val iworld
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv
-JSONEncode{|WorkflowTaskContainer|} c				    = [dynamicJSONEncode c]
-JSONDecode{|WorkflowTaskContainer|} [c:r]			    = (dynamicJSONDecode c,r)
-JSONDecode{|WorkflowTaskContainer|} r				    = (Nothing,r)
+JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]
+JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)
+JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _					    = True
 gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return Void)
 

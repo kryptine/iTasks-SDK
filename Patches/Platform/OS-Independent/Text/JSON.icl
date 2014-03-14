@@ -424,122 +424,122 @@ intersperse i [x:xs] = [x,i:intersperse i xs]
 //-------------------------------------------------------------------------------------------
 
 toJSON :: !a -> JSONNode | JSONEncode{|*|} a
-toJSON x = case (JSONEncode{|*|} x) of
+toJSON x = case (JSONEncode{|*|} False x) of
 	[node]	= node
 	_		= JSONError 
 
 /*
 * Generic JSON encoder
 */
-generic JSONEncode t :: !t -> [JSONNode]
+generic JSONEncode t :: !Bool !t -> [JSONNode]
 
-JSONEncode{|Int|} x = [JSONInt x]
-JSONEncode{|Real|} x = [JSONReal x]
-JSONEncode{|Char|} x = [JSONString {x}]
-JSONEncode{|Bool|} x = [JSONBool x]
-JSONEncode{|String|} x = [JSONString x]
-JSONEncode{|UNIT|} (UNIT) = []
-JSONEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
+JSONEncode{|Int|} _ x = [JSONInt x]
+JSONEncode{|Real|} _ x = [JSONReal x]
+JSONEncode{|Char|} _ x = [JSONString {x}]
+JSONEncode{|Bool|} _ x = [JSONBool x]
+JSONEncode{|String|} _ x = [JSONString x]
+JSONEncode{|UNIT|} _ (UNIT) = []
+JSONEncode{|PAIR|} fx fy _ (PAIR x y) = fx False x ++ fy False y
 where
 	(++) infixr 5::![.a] u:[.a] -> u:[.a]
 	(++) [hd:tl]	list	= [hd:tl ++ list]
 	(++) nil 		list	= list
-JSONEncode{|EITHER|} fx fy (LEFT x) = fx x
-JSONEncode{|EITHER|} fx fy (RIGHT y) = fy y
-JSONEncode{|OBJECT|} fx (OBJECT x) = fx x
-JSONEncode{|CONS of {gcd_arity=0,gcd_name}|} fx (CONS x)
+JSONEncode{|EITHER|} fx fy _ (LEFT x) = fx False x
+JSONEncode{|EITHER|} fx fy _ (RIGHT y) = fy False y
+JSONEncode{|OBJECT|} fx _ (OBJECT x) = fx False x
+JSONEncode{|CONS of {gcd_arity=0,gcd_name}|} fx _ (CONS x)
 	//Constructor without parameters
 	= [JSONString gcd_name]
-JSONEncode{|CONS of {gcd_name}|} fx (CONS x)
+JSONEncode{|CONS of {gcd_name}|} fx _ (CONS x)
 	//Constructor with parameters				
-	= [JSONArray [JSONString gcd_name : fx x]]
-JSONEncode{|RECORD of {grd_fields}|} fx (RECORD x)
-	= [JSONObject [(name, o) \\ o <- fx x & name <- grd_fields | isNotNull o]]
+	= [JSONArray [JSONString gcd_name : fx False x]]
+JSONEncode{|RECORD of {grd_fields}|} fx _ (RECORD x)
+	= [JSONObject [(name, o) \\ o <- fx False x & name <- grd_fields | isNotNull o]]
 where
 	isNotNull JSONNull = False
 	isNotNull _ = True
-JSONEncode{|FIELD|} fx (FIELD x) = fx x
-JSONEncode{|[]|} fx x = [JSONArray (flatten [fx e \\ e <- x])]
-JSONEncode{|(,)|} fx fy (x,y) = [JSONArray (fx x ++ fy y)]
-JSONEncode{|(,,)|} fx fy fz (x,y,z) = [JSONArray (fx x ++ fy y ++ fz z)]
-JSONEncode{|(,,,)|} fx fy fz fi (x,y,z,i) = [JSONArray (fx x ++ fy y ++ fz z ++ fi i)]
-JSONEncode{|(,,,,)|} fx fy fz fi fj (x,y,z,i,j) = [JSONArray (fx x ++ fy y ++ fz z ++ fi i ++ fj j)]
-JSONEncode{|{}|} fx x = [JSONArray (flatten [fx e \\ e <-: x])]
-JSONEncode{|{!}|} fx x = [JSONArray (flatten [fx e \\ e <-: x])]
-JSONEncode{|Maybe|} fx (Just x) = fx x
-JSONEncode{|Maybe|} fx (Nothing) = [JSONNull]
-JSONEncode{|JSONNode|} node = [node]
+JSONEncode{|FIELD|} fx _ (FIELD x) = fx True x
+JSONEncode{|[]|} fx _ x = [JSONArray (flatten [fx False e \\ e <- x])]
+JSONEncode{|(,)|} fx fy _ (x,y) = [JSONArray (fx False x ++ fy False y)]
+JSONEncode{|(,,)|} fx fy fz _ (x,y,z) = [JSONArray (fx False x ++ fy False y ++ fz False z)]
+JSONEncode{|(,,,)|} fx fy fz fi _ (x,y,z,i) = [JSONArray (fx False x ++ fy False y ++ fz False z ++ fi False i)]
+JSONEncode{|(,,,,)|} fx fy fz fi fj _ (x,y,z,i,j) = [JSONArray (fx False x ++ fy False y ++ fz False z ++ fi False i ++ fj False j)]
+JSONEncode{|{}|} fx _ x = [JSONArray (flatten [fx False e \\ e <-: x])]
+JSONEncode{|{!}|} fx _ x = [JSONArray (flatten [fx False e \\ e <-: x])]
+JSONEncode{|Maybe|} fx inField (Just x) = if inField (fx False x) [JSONArray (fx False x)]
+JSONEncode{|Maybe|} fx inField Nothing = if inField [JSONNull] [JSONArray []]
+JSONEncode{|JSONNode|} _ node = [node]
 
 //-------------------------------------------------------------------------------------------
 fromJSON :: !JSONNode -> Maybe a | JSONDecode{|*|} a
-fromJSON node = fst (JSONDecode{|*|} [node])
+fromJSON node = fst (JSONDecode{|*|} False [node])
 
 /*
 * Generic JSON parser, using a list of tokens
 */
-generic JSONDecode t :: ![JSONNode] -> (!Maybe t, ![JSONNode])
+generic JSONDecode t :: !Bool ![JSONNode] -> (!Maybe t, ![JSONNode])
 
-JSONDecode{|Int|} [JSONInt i:xs]		= (Just i, xs)
-JSONDecode{|Int|} l						= (Nothing, l)
+JSONDecode{|Int|} _ [JSONInt i:xs]		= (Just i, xs)
+JSONDecode{|Int|} _ l					= (Nothing, l)
 
-JSONDecode{|Real|} [JSONReal r:xs]		= (Just r, xs)
-JSONDecode{|Real|} [JSONInt i:xs]		= (Just (toReal i), xs)
-JSONDecode{|Real|} l					= (Nothing, l)
+JSONDecode{|Real|} _ [JSONReal r:xs]	= (Just r, xs)
+JSONDecode{|Real|} _ [JSONInt i:xs]		= (Just (toReal i), xs)
+JSONDecode{|Real|} _ l					= (Nothing, l)
 
-JSONDecode{|Char|} l =: [JSONString s:xs]
+JSONDecode{|Char|} _ l=:[JSONString s:xs]
 	| size s == 1						= (Just s.[0],xs)
 										= (Nothing, l)
-JSONDecode{|Char|} l					= (Nothing, l)
+JSONDecode{|Char|} _ l					= (Nothing, l)
 
-JSONDecode{|Bool|} [JSONBool b:xs]		= (Just b,xs)
-JSONDecode{|Bool|} l					= (Nothing, l)
+JSONDecode{|Bool|} _ [JSONBool b:xs]	= (Just b,xs)
+JSONDecode{|Bool|} _ l					= (Nothing, l)
 
-JSONDecode{|String|} [JSONString s:xs]	= (Just s, xs)
-JSONDecode{|String|} l					= (Nothing, l)
+JSONDecode{|String|} _ [JSONString s:xs]= (Just s, xs)
+JSONDecode{|String|} _ l				= (Nothing, l)
 
-JSONDecode{|UNIT|} l					= (Just UNIT, l)
+JSONDecode{|UNIT|} _ l					= (Just UNIT, l)
 
-JSONDecode{|PAIR|} fx fy l = d1 (fx l) l
+JSONDecode{|PAIR|} fx fy _ l = d1 (fx False l) l
 where
-	d1 (Just x,xs)  l = d2 x (fy xs) l
+	d1 (Just x,xs)  l = d2 x (fy False xs) l
 	d1 (Nothing, _) l = (Nothing, l)
 
 	d2 x (Just y, ys) l = (Just (PAIR x y), ys)
 	d2 x (Nothing, _) l = (Nothing, l)
 
-JSONDecode{|EITHER|} fx fy l = case fx l of
+JSONDecode{|EITHER|} fx fy _ l = case fx False l of
 	(Just x, xs)				= (Just (LEFT x),xs)
-	(Nothing, xs)				= case fy l of
+	(Nothing, xs)				= case fy False l of
 		(Just y, ys)			= (Just (RIGHT y),ys)
 		(Nothing, ys)			= (Nothing, l)
 
-JSONDecode{|OBJECT|} fx l = case fx l of
+JSONDecode{|OBJECT|} fx _ l = case fx False l of
 	(Just x, xs)	= (Just (OBJECT x),xs)
 	_				= (Nothing, l)
 
-JSONDecode{|CONS of {gcd_arity=0,gcd_name}|} fx l=:[JSONString name: xs]
+JSONDecode{|CONS of {gcd_arity=0,gcd_name}|} fx _ l=:[JSONString name: xs]
 	//Constructor without parameters
-	| name == gcd_name				= case fx xs of
+	| name == gcd_name				= case fx False xs of
 		(Just x, ys)				= (Just (CONS x),ys)
 		_							= (Nothing, l)
 	| otherwise						= (Nothing, l)
-JSONDecode{|CONS of {gcd_name}|} fx l=:[JSONArray [JSONString name:fields] :xs]
+JSONDecode{|CONS of {gcd_name}|} fx _ l=:[JSONArray [JSONString name:fields] :xs]
 	//Constructor with parameters
-	| name == gcd_name				= case fx fields of
+	| name == gcd_name				= case fx False fields of
 		(Just x, _)					= (Just (CONS x), xs)
 		_							= (Nothing, l)
 	| otherwise						= (Nothing, l)		
-JSONDecode{|CONS|} fx l = (Nothing, l)
+JSONDecode{|CONS|} fx _ l = (Nothing, l)
 
-JSONDecode{|RECORD|} fx l=:[obj=:JSONObject fields : xs] = d (fx [obj]) xs l
+JSONDecode{|RECORD|} fx _ l=:[obj=:JSONObject fields : xs] = d (fx False [obj]) xs l
 where
 	d (Just x, _)  xs l = (Just (RECORD x),xs)
 	d (Nothing, _) xs l = (Nothing, l)
-JSONDecode{|RECORD|} fx l = (Nothing,l)
+JSONDecode{|RECORD|} fx _ l = (Nothing,l)
 
-JSONDecode{|FIELD of {gfd_name}|} fx l =: [JSONObject fields]
+JSONDecode{|FIELD of {gfd_name}|} fx _ l =:[JSONObject fields]
 	# field = findField gfd_name fields
-	= case fx field of
+	= case fx True field of
 		(Just x, _)	= (Just (FIELD x), l)
 		(_, _)		= (Nothing, l)
 where
@@ -547,86 +547,92 @@ where
 		| l == match 	= [x]
 						= findField match xs						
 	findField match [] 	= []
-JSONDecode{|FIELD|} fx l = (Nothing, l)
+JSONDecode{|FIELD|} fx _ l = (Nothing, l)
 
-JSONDecode{|[]|} fx l =:[JSONArray items:xs]
+JSONDecode{|[]|} fx _ l =:[JSONArray items:xs]
 	= case decodeItems fx items of
 		(Just x)		= (Just x, xs)
 		_				= (Nothing, l)
-JSONDecode{|[]|} fx l 	= (Nothing, l)
+JSONDecode{|[]|} fx _ l = (Nothing, l)
 
-JSONDecode{|(,)|} fx fy l =:[JSONArray [xo,yo]:xs]
-	= case fx [xo] of
-		(Just x,_)	= case fy [yo] of
+JSONDecode{|(,)|} fx fy _ l =:[JSONArray [xo,yo]:xs]
+	= case fx False [xo] of
+		(Just x,_)	= case fy False [yo] of
 			(Just y,_)		= (Just (x,y), xs)
 			_				= (Nothing, l)
 		_					= (Nothing, l)
-JSONDecode{|(,)|} fx fy l	= (Nothing, l)
+JSONDecode{|(,)|} fx fy _ l	= (Nothing, l)
 
-JSONDecode{|(,,)|} fx fy fz l =:[JSONArray [xo,yo,zo]:xs]
-	= case fx [xo] of
-		(Just x,_)	= case fy [yo] of
-			(Just y,_)			= case fz [zo] of
+JSONDecode{|(,,)|} fx fy fz _ l =:[JSONArray [xo,yo,zo]:xs]
+	= case fx False [xo] of
+		(Just x,_)	= case fy False [yo] of
+			(Just y,_)			= case fz False [zo] of
 				(Just z,_)		= (Just (x,y,z), xs)
 				_				= (Nothing, l)
 			_					= (Nothing, l)
 		_						= (Nothing, l)
-JSONDecode{|(,,)|} fx fy fz l	= (Nothing, l)
+JSONDecode{|(,,)|} fx fy fz _ l	= (Nothing, l)
 
-JSONDecode{|(,,,)|} fx fy fz fi l =:[JSONArray [xo,yo,zo,io]:xs]
-	= case fx [xo] of
-		(Just x,_)	= case fy [yo] of
-			(Just y,_)	= case fz [zo] of
-				(Just z,_) = case fi [io] of
+JSONDecode{|(,,,)|} fx fy fz fi _ l =:[JSONArray [xo,yo,zo,io]:xs]
+	= case fx False [xo] of
+		(Just x,_) = case fy False [yo] of
+			(Just y,_)	= case fz False [zo] of
+				(Just z,_) = case fi False [io] of
 					(Just i,_)		= (Just (x,y,z,i), xs)
 					_				= (Nothing, l)
 				_					= (Nothing, l)
 			_						= (Nothing, l)
 		_							= (Nothing, l)
-JSONDecode{|(,,,)|} fx fy fz fi l	= (Nothing, l)
+JSONDecode{|(,,,)|} fx fy fz fi _ l	= (Nothing, l)
 
-JSONDecode{|(,,,,)|} fx fy fz fi fj l =:[JSONArray [xo,yo,zo,io,jo]:xs]
-	= case fx [xo] of
-		(Just x,_)	= case fy [yo] of
-			(Just y,_)	= case fz [zo] of
-				(Just z,_) = case fi [io] of
-					(Just i,_)	= case fj [jo] of
+JSONDecode{|(,,,,)|} fx fy fz fi fj _ l =:[JSONArray [xo,yo,zo,io,jo]:xs]
+	= case fx False [xo] of
+		(Just x,_)	= case fy False [yo] of
+			(Just y,_)	= case fz False [zo] of
+				(Just z,_) = case fi False [io] of
+					(Just i,_)	= case fj False [jo] of
 						(Just j,_)		= (Just (x,y,z,i,j), xs)
 						_				= (Nothing, l)
 					_					= (Nothing, l)
 				_						= (Nothing, l)
 			_							= (Nothing, l)
 		_								= (Nothing, l)
-JSONDecode{|(,,,,)|} fx fy fz fi fj l	= (Nothing, l)
+JSONDecode{|(,,,,)|} fx fy fz fi fj _ l	= (Nothing, l)
 
-JSONDecode{|{}|} fx l =:[JSONArray items:xs]
+JSONDecode{|{}|} fx _ l =:[JSONArray items:xs]
 	= case decodeItems fx items of
 		(Just x)		= (Just {e \\ e <- x}, xs)
 		_				= (Nothing, l)
-JSONDecode{|{}|} fx l 	= (Nothing, l)
+JSONDecode{|{}|} fx _ l = (Nothing, l)
 
-JSONDecode{|{!}|} fx l =:[JSONArray items:xs]
+JSONDecode{|{!}|} fx _ l =:[JSONArray items:xs]
 	= case decodeItems fx items of
 		(Just x)		= (Just {e \\ e <- x}, xs)
 		_				= (Nothing, l)
-JSONDecode{|{!}|} fx l 	= (Nothing, l)
+JSONDecode{|{!}|} fx _ l = (Nothing, l)
 
 decodeItems fx [] 		= Just []
-decodeItems fx [ox:oxs]	= case fx [ox] of
+decodeItems fx [ox:oxs]	= case fx False [ox] of
 	(Just x, _)	= case decodeItems fx oxs of
 		(Just xs)	= Just [x:xs]
 		_ 			= Nothing
 	_			= Nothing
 
-JSONDecode{|Maybe|} fx []				= (Just Nothing, [])
-JSONDecode{|Maybe|} fx [JSONNull:xs]	= (Just Nothing, xs)
-JSONDecode{|Maybe|} fx l = case fx l of
-	(Just x,xs)							= (Just (Just x), xs)
-	_									= (Nothing,l)
+JSONDecode{|Maybe|} fx _ [JSONNull:xs]	        = (Just Nothing, xs) //Tolerate interpreting null as Nothing
 
-JSONDecode{|JSONNode|} []				= (Just JSONNull, [])
-JSONDecode{|JSONNode|} [x:xs]			= (Just x, xs)
-JSONDecode{|JSONNode|} l				= (Nothing, l)
+JSONDecode{|Maybe|} fx False [JSONArray []:xs]	= (Just Nothing, xs) //Normally Nothing is encoded as an empty array...
+JSONDecode{|Maybe|} fx True []				    = (Just Nothing, []) //...but in records fields, Nothing is encoded by being absent
+
+JSONDecode{|Maybe|} fx False [JSONArray l:xs] = case fx False l of  //Normally Just is encoded as a one-element array...
+	(Just x,_)							= (Just (Just x), xs)
+	_									= (Nothing, l)
+JSONDecode{|Maybe|} fx True l = case fx False l of                  //...but for record fields, Just is encoded simply by existence in the object
+    (Just x,xs)                         = (Just (Just x), xs)
+    _                                   = (Nothing, l)
+JSONDecode{|Maybe|} _ _ l               = (Nothing, l)
+
+JSONDecode{|JSONNode|} _ [node:xs]      = (Just node, xs)
+JSONDecode{|JSONNode|} _ l				= (Nothing, l)
 
 jsonQuery :: !String !JSONNode -> Maybe a | JSONDecode{|*|} a
 jsonQuery path node

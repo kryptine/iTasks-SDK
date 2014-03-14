@@ -26,14 +26,14 @@ derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, U
 derive JSONDecode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
-JSONEncode{|DeferredJSON|} (DeferredJSON a)
-	= JSONEncode{|*|} a
-JSONEncode{|DeferredJSON|} (DeferredJSONNode json)
+JSONEncode{|DeferredJSON|} _ (DeferredJSON a)
+	= JSONEncode{|*|} False a
+JSONEncode{|DeferredJSON|} _ (DeferredJSONNode json)
 	= [json]
 
-JSONDecode{|DeferredJSON|} []
+JSONDecode{|DeferredJSON|} _ []
 	= (Just (DeferredJSONNode JSONNull), [])
-JSONDecode{|DeferredJSON|} [x:xs]
+JSONDecode{|DeferredJSON|} _ [x:xs]
 	= ((Just (DeferredJSONNode x)), xs)
-JSONDecode{|DeferredJSON|} l
+JSONDecode{|DeferredJSON|} _ l
 	= (Nothing, l)
