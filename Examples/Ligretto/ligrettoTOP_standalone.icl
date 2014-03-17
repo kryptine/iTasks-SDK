@@ -22,12 +22,14 @@ derive class iTask Friend, OwnerChoice
 registered_players :: Shared [(Friend,Color)]
 registered_players
 	= sharedStore "my_ligretto_friends" 
-          [({friend = "owner",  password = Password "owner"},  Red)
-          ,({friend = "friend1",password = Password "friend1"},Blue)
+          [({friend = "owner", password = Password "owner"},  Red)
+          ,({friend = "blue",  password = Password "blue"},   Blue)
+          ,({friend = "yellow",password = Password "yellow"}, Yellow)
+          ,({friend = "green", password = Password "green"},  Green)
           ]
 
 Start :: *World -> *World
-Start world = startEngine check_registered_players world
+Start world = startEngine (get registered_players >>= login) world //check_registered_players world
 where
 	check_registered_players
 		=              get registered_players

@@ -148,7 +148,7 @@ play_cards nr_of_players player
 	    ++ [  OnAction (Action "Play hand"    []) (play_hand nr_of_players player)
 	       ,  OnAction (Action "Next hand"    []) (next_hand nr_of_players player)
 	       ,  OnAction (Action "Shuffle hand" []) (shuffle   nr_of_players player)
-	       ,  OnValue  (player_wins)
+	       ,  OnValue  player_wins
 	       ]
 	    )
 
