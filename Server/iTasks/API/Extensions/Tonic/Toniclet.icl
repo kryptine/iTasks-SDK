@@ -51,7 +51,8 @@ graphlet renderer initGraphlet =
 
   uiDef cid
     = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"]
-                               [GTag [TransformAttr "translate(20, 20)"] []]
+                               []
+                               [GElt [] [TransformAttr [TranslateTransform "20" "20"]] []]
       , eventHandlers = []
       , width         = ExactSize 1024
       , height        = ExactSize 2048
