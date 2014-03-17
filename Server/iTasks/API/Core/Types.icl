@@ -57,10 +57,10 @@ where
 	html (URL url) = ATag [HrefAttr url] [Text url]
 
 //* Note
-JSONEncode{|Note|} (Note txt) = [JSONString txt]
+JSONEncode{|Note|} _ (Note txt) = [JSONString txt]
 
-JSONDecode{|Note|} [JSONString txt:c] = (Just (Note txt),c)
-JSONDecode{|Note|} c = (Nothing,c)
+JSONDecode{|Note|} _ [JSONString txt:c] = (Just (Note txt),c)
+JSONDecode{|Note|} _ c = (Nothing,c)
 
 gVisualizeText{|Note|}			_ val	= [toString val]
 
@@ -103,10 +103,10 @@ where
 	(==) (Note x) (Note y) = x == y
 	
 //* Source code
-JSONEncode{|CleanCode|} (CleanCode txt) = [JSONString txt]
+JSONEncode{|CleanCode|} _ (CleanCode txt) = [JSONString txt]
 
-JSONDecode{|CleanCode|} [JSONString txt:c] = (Just (CleanCode txt),c)
-JSONDecode{|CleanCode|} c = (Nothing,c)
+JSONDecode{|CleanCode|} _ [JSONString txt:c] = (Just (CleanCode txt),c)
+JSONDecode{|CleanCode|} _ c = (Nothing,c)
 
 gVisualizeText{|CleanCode|}		_ val		= [toString val]
 
@@ -217,10 +217,10 @@ derive gEq				EUR, USD
 
 //* (Local) date and time
 
-JSONEncode{|Date|} d		= [JSONString (toString d)]
+JSONEncode{|Date|} _ d		= [JSONString (toString d)]
 
-JSONDecode{|Date|} [JSONString s:c] | isDateFormat s	= (Just (fromString s), c)
-JSONDecode{|Date|} c									= (Nothing, c)
+JSONDecode{|Date|} _ [JSONString s:c] | isDateFormat s	= (Just (fromString s), c)
+JSONDecode{|Date|} _ c									= (Nothing, c)
 isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s.[i] == '-') (isDigit s.[i]))) True [0..9]
 
 gVisualizeText{|Date|} _ val = [toString val]
@@ -298,9 +298,9 @@ where
 		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
 		| otherwise																			= False
 
-JSONEncode{|Time|} t					= [JSONString (toString t)]
-JSONDecode{|Time|} [JSONString s:c]	| isTimeFormat s	= (Just (fromString s), c)
-JSONDecode{|Time|} c									= (Nothing, c)
+JSONEncode{|Time|} _ t					= [JSONString (toString t)]
+JSONDecode{|Time|} _ [JSONString s:c]	| isTimeFormat s	= (Just (fromString s), c)
+JSONDecode{|Time|} _ c									    = (Nothing, c)
 isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.[i] == ':') (isDigit s.[i]))) True [0..7]
 
 gVisualizeText{|Time|} _ val = [toString val]
@@ -372,10 +372,10 @@ where
 		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
 		| otherwise																			= False
 
-JSONEncode{|DateTime|} dt	= [JSONString (toString dt)]
+JSONEncode{|DateTime|} _ dt	= [JSONString (toString dt)]
 
-JSONDecode{|DateTime|} [JSONString s:c]	= (Just (fromString s), c)
-JSONDecode{|DateTime|} c				= (Nothing, c)
+JSONDecode{|DateTime|} _ [JSONString s:c]	= (Just (fromString s), c)
+JSONDecode{|DateTime|} _ c				= (Nothing, c)
 
 derive gDefault			DateTime
 derive gEq				DateTime
@@ -462,10 +462,9 @@ where
 	(==) doc0 doc1 = doc0.documentId == doc1.documentId
 
 //* Authentication
-JSONEncode{|Username|} (Username u) = [JSONString u]
-JSONDecode{|Username|} [JSONString u:c] = (Just (Username u),c)
-
-JSONDecode{|Username|} c = (Nothing,c)
+JSONEncode{|Username|} _ (Username u) = [JSONString u]
+JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
+JSONDecode{|Username|} _ c = (Nothing,c)
 
 gEditor{|Username|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
@@ -495,9 +494,9 @@ instance < Username
 where
 	(<) (Username a) (Username b) = a < b
 
-JSONEncode{|Password|} (Password p) = [JSONString p]
-JSONDecode{|Password|} [JSONString p:c] = (Just (Password p),c)
-JSONDecode{|Password|} c = (Nothing,c)
+JSONEncode{|Password|} _ (Password p) = [JSONString p]
+JSONDecode{|Password|} _ [JSONString p:c] = (Just (Password p),c)
+JSONDecode{|Password|} _ c = (Nothing,c)
 
 gVisualizeText{|Password|} _ val = ["********"]
 
@@ -740,7 +739,7 @@ where
 
 	options (ComboChoice options _)			= [concat (gx AsLabel v) \\ v <- options]
 
-gUpdate{|ComboChoice|} _ _ _ _ target upd val iworld = updateChoice (\idx (ComboChoice options _) -> ComboChoice options idx) target upd val iworld
+gUpdate{|ComboChoice|} _ _ _ _ target upd val iworld = updateChoice (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) target upd val iworld
 
 gVerify{|ComboChoice|} _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
 
@@ -769,7 +768,7 @@ where
 
 
 gUpdate{|RadioChoice|} _ _ _ _ target upd val iworld
-	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options idx) target upd val iworld
+	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) target upd val iworld
 
 gVerify{|RadioChoice|} _ mv options = simpleVerify mv options
 
@@ -953,7 +952,8 @@ where
                 # (mbIdx,ts) = expand idx ts
                 = (mbIdx,[t:ts])
 
-updateChoice select target upd val = basicUpdate (\json choice -> Just (maybe choice (\i -> select i choice) (fromJSON json))) target upd val
+updateChoice select target upd val
+    = basicUpdate (\json choice -> Just (maybe choice (\i -> select i choice) (fromJSON json))) target upd val
 
 setListOption :: !(o -> s) ![(v,o)] !s -> (Maybe Int) | gEq{|*|} s
 setListOption targetFun options newSel
@@ -1382,14 +1382,14 @@ derive JSONEncode		Either, HtmlTag, HtmlAttr
 derive JSONDecode		Either, HtmlTag, HtmlAttr
 derive gEq				Either, HtmlTag, HtmlAttr, Void, Timestamp, JSONNode
 
-JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
-JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
-JSONDecode{|Timestamp|} c				= (Nothing, c)
+JSONEncode{|Timestamp|} _ (Timestamp t)	= [JSONInt t]
+JSONDecode{|Timestamp|} _ [JSONInt t:c]	= (Just (Timestamp t), c)
+JSONDecode{|Timestamp|} _ c				= (Nothing, c)
 
-JSONEncode{|Void|} Void = [JSONNull]
-JSONDecode{|Void|} [JSONNull:c]		= (Just Void, c)
-JSONDecode{|Void|} [JSONObject []:c]= (Just Void, c)
-JSONDecode{|Void|} c				= (Nothing, c)
+JSONEncode{|Void|} _ Void = [JSONNull]
+JSONDecode{|Void|} _ [JSONNull:c]		= (Just Void, c)
+JSONDecode{|Void|} _ [JSONObject []:c]= (Just Void, c)
+JSONDecode{|Void|} _ c				= (Nothing, c)
 
 gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare string representations of graphs functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal

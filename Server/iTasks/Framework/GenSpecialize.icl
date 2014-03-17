@@ -3,10 +3,10 @@ import Text.JSON, Data.Functor
 import iTasks.Framework.Generic
 
 customJSONEncode :: (a -> b) a -> [JSONNode] | JSONEncode{|*|} b
-customJSONEncode toPrj a = JSONEncode{|*|} (toPrj a)
+customJSONEncode toPrj a = JSONEncode{|*|} False (toPrj a)
 
 customJSONDecode :: (b -> a) [JSONNode] -> (Maybe a,![JSONNode]) | JSONDecode{|*|} b
-customJSONDecode fromPrj inp = let (mbb,rem) = JSONDecode{|*|} inp in (fmap fromPrj mbb,rem)
+customJSONDecode fromPrj inp = let (mbb,rem) = JSONDecode{|*|} False inp in (fmap fromPrj mbb,rem)
 
 customGVisualizeText :: (a -> b) !VisualizationFormat !a -> [String] | gVisualizeText{|*|} b
 customGVisualizeText toPrj format val = gVisualizeText{|*|} format (toPrj val)

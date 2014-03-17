@@ -75,19 +75,19 @@ jsonQuery :: !String !JSONNode -> Maybe a | JSONDecode{|*|} a
 * directly but always through the toJSON function. It must be derived
 * for each type you want to encode in JSON format.
 */
-generic JSONEncode t :: !t -> [JSONNode]
+generic JSONEncode t :: !Bool !t -> [JSONNode]
 derive  JSONEncode Int, Real, Char, Bool, String, UNIT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode,
 	EITHER, CONS of {gcd_arity,gcd_name}, OBJECT
 
-JSONEncode{|RECORD of {grd_fields}|} fx (RECORD x)
-	= [JSONObject [(name, o) \\ o <- fx x & name <- grd_fields | isNotNull o]]
+JSONEncode{|RECORD of {grd_fields}|} fx _ (RECORD x)
+	= [JSONObject [(name, o) \\ o <- fx False x & name <- grd_fields | isNotNull o]]
 where
 	isNotNull JSONNull = False
 	isNotNull _ = True
 
-JSONEncode{|FIELD|} fx (FIELD x) = fx x
+JSONEncode{|FIELD|} fx _ (FIELD x) = fx True x
 
-JSONEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
+JSONEncode{|PAIR|} fx fy _ (PAIR x y) = fx False x ++ fy False y
 where
 	(++) infixr 5::![.a] u:[.a] -> u:[.a]
 	(++) [hd:tl]	list	= [hd:tl ++ list]
@@ -98,26 +98,26 @@ where
 * directly, but always through the fromJSON function. It must be derived
 * for each type you want to parse from JSON format.
 */
-generic JSONDecode t :: ![JSONNode] -> (!Maybe t,![JSONNode])
+generic JSONDecode t :: !Bool ![JSONNode] -> (!Maybe t,![JSONNode])
 derive  JSONDecode Int, Real, Char, Bool, String, UNIT, EITHER, CONS of {gcd_arity,gcd_name}, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
 
-JSONDecode{|PAIR|} fx fy l = d1 (fx l) l
+JSONDecode{|PAIR|} fx fy _ l = d1 (fx False l) l
 where
-	d1 (Just x,xs)  l = d2 x (fy xs) l
+	d1 (Just x,xs)  l = d2 x (fy False xs) l
 	d1 (Nothing, _) l = (Nothing, l)
 
 	d2 x (Just y, ys) l = (Just (PAIR x y), ys)
 	d2 x (Nothing, _) l = (Nothing, l)
 
-JSONDecode{|RECORD|} fx l=:[obj=:JSONObject fields : xs] = d (fx [obj]) xs l
+JSONDecode{|RECORD|} fx _ l=:[obj=:JSONObject fields : xs] = d (fx False [obj]) xs l
 where
 	d (Just x, _)  xs l = (Just (RECORD x),xs)
 	d (Nothing, _) xs l = (Nothing, l)
-JSONDecode{|RECORD|} fx l = (Nothing,l)
+JSONDecode{|RECORD|} fx _ l = (Nothing,l)
 
-JSONDecode{|FIELD of {gfd_name}|} fx l =: [JSONObject fields]
+JSONDecode{|FIELD of {gfd_name}|} fx _ l =:[JSONObject fields]
 	# field = findField gfd_name fields
-	= case fx field of
+	= case fx True field of
 		(Just x, _)	= (Just (FIELD x), l)
 		(_, _) = (Nothing, l)
 where
@@ -125,7 +125,7 @@ where
 		| l == match 	= [x]
 						= findField match xs						
 	findField match [] 	= []
-JSONDecode{|FIELD|} fx l = (Nothing, l)
+JSONDecode{|FIELD|} fx _ l = (Nothing, l)
 
 /**
 * Equality of JSON nodes.

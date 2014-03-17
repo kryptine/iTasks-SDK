@@ -33,8 +33,8 @@ where
 toReadOnly :: !(RWShared p r w) -> ROShared p r
 toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds
 
-setParam :: !p !(RWShared p r w) -> (RWShared Void r w) | TC p
-setParam p sds = sdsTranslate (\Void -> p) sds
+setParam :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p
+setParam p sds = sdsTranslate (const p) sds
 
 (>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy) | TC p
 (>+<) sds1 sds2 = sdsParallel (\p -> (p,p)) id (SDSBlindWrite (Ok o Just o fst)) (SDSBlindWrite (Ok o Just o snd)) sds1 sds2
