@@ -126,6 +126,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	GenLexOrd
+		Dir:	{Application}/lib/Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	StdArray
 		Dir:	{Application}/lib/StdEnv
 		Compiler
@@ -674,20 +688,6 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.API.Common.CommonCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	iTasks.API.Common.DBTasks
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
@@ -731,6 +731,34 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.InteractionTasks
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.API.Common.SDSCombinators
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.API.Common.TaskCombinators
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -814,34 +842,6 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.API.Core.CoreCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	iTasks.API.Core.CoreTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	iTasks.API.Core.IntegrationTasks
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
@@ -884,7 +884,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.API.Core.SystemData
+		Name:	iTasks.API.Core.SDSCombinators
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -898,7 +898,49 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.API.Core.SystemTypes
+		Name:	iTasks.API.Core.SDSs
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.API.Core.TaskCombinators
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.API.Core.Tasks
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.API.Core.Types
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -1024,6 +1066,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	iTasks.Framework.DynamicUtil
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	iTasks.Framework.Engine
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
@@ -1136,7 +1192,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.Framework.SerializationGraphCopy
+		Name:	iTasks.Framework.RemoteAccess
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -1150,7 +1206,35 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	iTasks.Framework.Shared
+		Name:	iTasks.Framework.SDS
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.Framework.SDSService
+		Dir:	{Application}/lib/iTasks-SDK/Server
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	iTasks.Framework.SerializationGraphCopy
 		Dir:	{Application}/lib/iTasks-SDK/Server
 		Compiler
 			NeverMemoryProfile:	False
@@ -1360,6 +1444,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	Crypto.Hash.SHA1
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	Data.Either
 		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
 		Compiler
@@ -1472,7 +1570,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Data.Set
+		Name:	Data.Monoid
 		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
@@ -1486,7 +1584,7 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Data.SharedDataSource
+		Name:	Data.Set
 		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
@@ -1515,20 +1613,6 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Void
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Data._SharedDataSourceTypes
 		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
@@ -1710,7 +1794,91 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	Text.Parsers.ParserLanguage
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Text.Parsers.Parsers
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Text.Parsers.ParsersAccessories
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Text.Parsers.ParsersDerived
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Text.Parsers.ParsersKernel
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	Text.StringAppender
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Text.URI
 		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
@@ -1924,6 +2092,20 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Linker.SaplLinkerShared
+		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Sapl.Optimization.StrictnessPropagation
 		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
 		Compiler
 			NeverMemoryProfile:	False

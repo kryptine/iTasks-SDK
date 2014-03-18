@@ -22,6 +22,8 @@ import iTasks
 :: Hand          = { conceal   :: Pile            // the concealed pile
                    , discard   :: Pile            // the discarded pile
                    }
+:: RowNr       :== Int                            // row cards are numbered 1 .. (nr_of_cards_in_row nr_of_players)
+:: Seed        :== Int                            // not part of the model, but required for generating random numbers
 
 /** nr_of_cards_in_row nr_of_players = n:
         @n is the number of cards that a row should have.
@@ -40,13 +42,13 @@ colors               :: !NrOfPlayers -> [Color]
         @nr_of_players should be one of: 2, 3, 4.
         @color should be one of: (colors @nr_ofplayers).
 */
-initial_player       :: !NrOfPlayers !Color !Int -> Player
+initial_player       :: !NrOfPlayers !Color !Seed -> Player
 
 /** row_card row_nr player = card:
 		@card is the card at @row_nr in the current @player.row (counted as 1..(nr_of_cards_in_row nr_of_players)).
 		This function aborts if @row_nr is not one of these values.
 */
-row_card             :: !Int !Player -> Card
+row_card             :: !RowNr !Player -> Card
 
 /** move_ligretto_card_to_row row_nr player = player`:
         @card is the card at @row_nr in the current @player.row (counted as 1..nr_of_players).
@@ -54,7 +56,7 @@ row_card             :: !Int !Player -> Card
         is replaced by the current top card in @player.ligretto, which therefor contains one card less.
         This function aborts if @player.ligretto is empty.
 */
-move_ligretto_card_to_row :: !Int !Player -> Player
+move_ligretto_card_to_row :: !RowNr !Player -> Player
 
 /** top_discard player = Nothing:
         @player has no current cards in her @player.hand.discard pile.
@@ -67,7 +69,7 @@ top_discard          :: !Player -> Maybe Card
         shuffles the current @player.hand.discard pile and sets it to @player`.hand.conceal.
         This function aborts if @player.hand.conceal is empty.
 */
-shuffle_hand         :: !Int !Player -> Player
+shuffle_hand         :: !Seed !Player -> Player
 
 /** remove_top_of_discard player = player`:
         @player` is identical to @player except that the card at the top of @player.hand.discard is removed.

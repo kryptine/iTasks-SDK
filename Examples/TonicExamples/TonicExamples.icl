@@ -5,7 +5,7 @@ import iTasks
 import iTasks.Framework.Tonic
 
 Start :: *World -> *World
-Start world = startEngine [ publish "/" (WebApp []) (\_ -> workAsRoot testTaskWithTaskArgs)
+Start world = startEngine [ publish "/" (WebApp []) (\_ -> workAsRoot testBindWithVar)
                           , tonicPubTask "TonicExamples"] world
 
 workAsRoot :: (Task a) -> Task a | iTask a
@@ -30,7 +30,7 @@ enterViewTask = enterInformation "Enter a number" [] >>= \x -> viewInformation "
 testTaskWithTaskArgs :: Task Int
 testTaskWithTaskArgs = taskWithTaskArgs view42
 
-taskWithTaskArgs :: (Task Int) -> Task Int
+//taskWithTaskArgs :: (Task Int) -> Task Int
 taskWithTaskArgs t = t
 
 /*
@@ -90,4 +90,12 @@ testTaskWithTaskArgs` = taskWithTaskArgs` [view42]
 
 taskWithTaskArgs` :: [Task Int] -> Task Int
 taskWithTaskArgs` ts = anyTask ts
+
+testBindWithVar = bindWithVar view42
+
+bindWithVar :: (Task Int) -> Task Int
+bindWithVar t
+  =     enterInformation "Enter a number" [] >>=
+  \x -> t >>|
+        viewInformation "You have entered" [] x
 
