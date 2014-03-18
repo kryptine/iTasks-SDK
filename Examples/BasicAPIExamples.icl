@@ -3,6 +3,7 @@ import iTasks, iTasks.API.Extensions.Admin.UserAdmin, iTasks.API.Extensions.Admi
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
 import ligrettoTOP
+import iTaskGraphics
 import qualified Data.Map as DM
 
 /**
@@ -16,7 +17,7 @@ import qualified Data.Map as DM
 
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
-costumTypes :== bae +++ "/Interaction with custom types/"
+customTypes :== bae +++ "/Interaction with custom types/"
 sharedData	:== bae +++ "/Interaction with shared data/"
 seqTasks	:== bae +++ "/Sequential task composition/"
 parTasks	:== bae +++ "/Parallel task composition/"
@@ -30,9 +31,9 @@ basicAPIExamples =
 	,workflow (basicTypes +++ "Enter a date & time") 	 	"Entering a date & time" 			enterDateTime
 	,workflow (basicTypes +++ "Browse Google Map") 			"Browse the map" 					browseGoogleMap
 
-	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
-	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
-	,workflow (costumTypes +++ "View a person")             "View a person"                     viewPerson
+	,workflow (customTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
+	,workflow (customTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
+	,workflow (customTypes +++ "View a person")             "View a person"                     viewPerson
 
 	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	viewCurDateTime
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
@@ -67,6 +68,7 @@ basicAPIExamples =
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
+	,workflow "Graphics tests"                              "Graphics tests"                    svg_test
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
 	]
 
