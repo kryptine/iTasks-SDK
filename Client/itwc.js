@@ -25,6 +25,7 @@ itwc.extend = function(inheritFrom,definition) {
 itwc.Component = function() {};
 itwc.Component.prototype = {
     isContainer: false,
+    enableScroll: false,
 
     defaultWidth: 'flex',
     defaultHeight: 'wrap',
@@ -62,29 +63,42 @@ itwc.Component.prototype = {
             width = me.definition.itwcWidth || me.defaultWidth,
             height = me.definition.itwcHeight || me.defaultHeight,
             direction = me.parentCmp.definition.direction || me.parentCmp.defaultDirection;
+
+        //Non-containers never shrink
+        if(!me.isContainer && !me.enableScroll) {
+            el.style.flexShrink = 0;
+            el.style.webkitFlexShrink = 0;
+        }
+
         //Set width
         if(width === 'flex') {
             if(direction == 'horizontal') {
-                el.style.flex = 1;
-                el.style.webkitFlex = 1;
+                el.style.flexGrow = 1;
+                el.style.webkitFlexGrow = 1;
             } else {
                 el.style.alignSelf = 'stretch';
                 el.style.webkitAlignSelf = 'stretch';
             }
         } else if (width === 'wrap') {
+            if(direction == 'horizontal') {
+                el.style.flexShrink = 0;
+            }
         } else {
             el.style.width = width + 'px';
         }
         //Set height
         if(height === 'flex') {
             if(direction == 'vertical') {
-                el.style.flex = 1;
-                el.style.webkitFlex = 1;
+                el.style.flexGrow = 1;
+                el.style.webkitFlexGrow = 1;
             } else {
                 el.style.alignSelf = 'stretch';
                 el.style.webkitAlignSelf = 'stretch';
             }
         } else if (height === 'wrap') {
+            if(direction == 'vertical') {
+                el.style.flexShrink = 0;
+            }
         } else {
             el.style.height = height + 'px';
         }
@@ -344,15 +358,18 @@ itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
 itwc.component.itwc_viewport = itwc.extend(itwc.Container,{
     render: function() {
         var me = this, i;
-        me.domEl = document.body;
-        me.targetEl = document.body;
+        me.domEl = document.createElement('div');
+        me.domEl.id = "viewport";
+        document.body.appendChild(me.domEl);
+        me.targetEl = me.domEl;
+
         me.windows = [];
 
         me.reset();
     },
     reset: function() {
         var me = this, i;
-        //Empty the body
+        //Empty the viewport element
         for(i = me.domEl.childNodes.length - 1; i >= 0; i--) {
             me.domEl.removeChild(me.domEl.childNodes[i]);
         }
@@ -1145,6 +1162,7 @@ itwc.component.itwc_panel = itwc.extend(itwc.Container,{
     }
 });
 itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
+    enableScroll: true,
     isContainer: false, //Don't size as container
     itemsOffset: 1,
     defaultWidth: 'flex',
@@ -1443,6 +1461,7 @@ itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
 });
 itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
     defaultHeight: 'flex',
+    enableScroll: true,
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
@@ -1493,6 +1512,8 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
             label.addEventListener('dblclick',function(e) {
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
                 itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+
+                e.preventDefault();
             });
         }
         node.appendChild(label);
@@ -1557,6 +1578,7 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
                 rowEl.addEventListener('dblclick',function(e) {
                     itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
                     itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+                    e.preventDefault();
                 },me);
             }
             option.forEach(function(cell) {

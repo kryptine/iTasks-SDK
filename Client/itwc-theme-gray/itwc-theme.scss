@@ -14,18 +14,25 @@ $button-text-color: $canvas-text-color;
 
 body {
     height: 100%;
+    width: 100%;
     margin: 0;
 
     font-family: tahoma, arial, verdana, sans-serif;
     font-size: 9pt;
+}
+#viewport {
+    width: 100%;
+    height: 100%;
 
     display: flex;
     display: -webkit-flex;
+
     flex-direction: column;
-    -webkit-flex-direction: column;
     align-items: center;
-    -webkit-align-items: center;
     justify-content: center;
+
+    -webkit-flex-direction: column;
+    -webkit-align-items: center;
     -webkit-justify-content: center;
 }
 .button {
@@ -51,6 +58,7 @@ body {
 }
 .button-label {
     margin: 0 4px;
+    height: 16px;
 }
 .button-icon {
     width: 16px;
