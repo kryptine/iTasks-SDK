@@ -472,7 +472,7 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-            this.domEl.value = value;
+            this.domEl.value = value.length ? value[0] : null;
         }
     }
 });
@@ -492,7 +492,7 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-            this.domEl.value = value;
+            this.domEl.value = value.length ? value[0] : null;
         }
     }
 });
@@ -512,7 +512,7 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
 			sentNo = this.lastEditNo || 0;
 
 		if(receivedNo > sentNo) {
-            this.domEl.value = value;
+            this.domEl.value = value.length ? value[0] : null;
         }
     }
 });
@@ -533,7 +533,7 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
         this.domEl.checked = value;
     },
     setEditorValue: function(value) {
-        this.domEl.checked = value;
+        this.domEl.checked = value.length ? value[0] : false;
     }
 });
 itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
@@ -582,7 +582,7 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-            this.domEl.value = value;
+            this.domEl.value = value.length ? value[0] : null;
         }
     }
 });
@@ -636,7 +636,7 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
         this.domEl.value = value;
     },
     setEditorValue: function(value) {
-        this.domEl.value = value;
+        this.domEl.value = value.length ? value[0] : null;
     }
 });
 itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
@@ -732,7 +732,7 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
             me.xhr.abort();
             me.xhr = null;
         }
-        me.value = value;
+        me.value = value.length ? value[0] : null;
         me.showValue();
     }
 });
@@ -1037,7 +1037,7 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
     setIconCls: function (iconCls) {
         var me = this;
 
-        if(iconCls === null) {
+        if(iconCls.length == 0) {
             if(me.definition.iconCls) {
                 me.domEl.removeChild(me.icon);
             }
@@ -1070,7 +1070,7 @@ itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
     },
     setEditorValue: function(value) {
         var me = this;
-        me.definition.value = value;
+        me.definition.value = value.length ? value[0] : null;
     }
 });
 itwc.component.itwc_icon= itwc.extend(itwc.Component,{
@@ -1285,7 +1285,7 @@ itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
         //Update label of tab in DOM
         label = me.parentCmp.tabBar.childNodes[me.getChildIndex()].childNodes[0];
 
-        if(iconCls === null) { //Remove icon if it was there
+        if(iconCls.length == 0) { //Remove icon if it was there
             if(label.childNodes.length > 1) {
                 label.removeChild(label.childNodes[0]);
             }
@@ -1513,6 +1513,7 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
                 itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
                 itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
 
+                e.stopPropagation();
                 e.preventDefault();
             });
         }
@@ -1578,6 +1579,8 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
                 rowEl.addEventListener('dblclick',function(e) {
                     itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
                     itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+
+                    e.stopPropagation();
                     e.preventDefault();
                 },me);
             }
