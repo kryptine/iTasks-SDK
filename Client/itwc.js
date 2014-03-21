@@ -65,11 +65,10 @@ itwc.Component.prototype = {
             direction = me.parentCmp.definition.direction || me.parentCmp.defaultDirection;
 
         //Non-containers never shrink
-        if(!me.isContainer && !me.enableScroll) {
+        if(!me.enableScroll) {
             el.style.flexShrink = 0;
             el.style.webkitFlexShrink = 0;
         }
-
         //Set width
         if(width === 'flex') {
             if(direction == 'horizontal') {
