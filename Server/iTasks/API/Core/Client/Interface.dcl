@@ -97,4 +97,11 @@ withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
 callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
 
+class JSCall a where
+  (.$) infixl 1 :: !a ![JSArg] -> *(*JSWorld -> *(JSVal r, !*JSWorld))
+
+instance JSCall String
+
+instance JSCall (JSObj o, String)
+
 jsUnsafeCoerce :: (JSVal a) -> (JSVal b)

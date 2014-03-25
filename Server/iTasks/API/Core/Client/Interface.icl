@@ -146,8 +146,13 @@ where
 		= jsGetObjectAttr attr obj world
 
 class JSCall a where
-  (.$) :: !a ![JSArg] -> *(JSVal r, !*JSWorld)
+  (.$) infixl 1 :: !a ![JSArg] -> *(*JSWorld -> *(JSVal r, !*JSWorld))
 
+instance JSCall String where
+  (.$) fun args = \world -> callFunction fun args world
+
+instance JSCall (JSObj o, String) where
+  (.$) (obj, fun) args = \world -> callObjectMethod fun args obj world
 
 
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
