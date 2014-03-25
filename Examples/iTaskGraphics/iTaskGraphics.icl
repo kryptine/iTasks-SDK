@@ -2,26 +2,19 @@ implementation module iTaskGraphics
 
 import iTasks
 
-pi :== 3.1415926
-
 svg_test :: Task Void
 
 svg_test = viewInformation (Title "Sample SVG") [ViewWith (const html)] Void
 where
-	html = SvgTag [WidthAttr "100mm",HeightAttr "100mm"] [VersionAttr "1.1"] 
+	html = SvgTag [WidthAttr "100mm",HeightAttr "100mm"] [VersionAttr "1.1",FontFamilyAttr "Times",FontStyleAttr "italic",TextAnchorAttr "middle"] 
 	              [RectElt [WidthAttr "100mm",HeightAttr "100mm"] 
 	                       [FillAttr   (PaintColor (SVGColorText "white") Nothing)
 	                       ,StrokeAttr (PaintColor (SVGColorText "black") Nothing)
 	                       ]
-	              :[LineElt [] [ X1Attr ("50",MM), Y1Attr ("50",MM)
-	                           , X2Attr (toString (50.0 + 50.0*(cos a)),MM), Y2Attr (toString (50.0 + 50.0*(sin a)),MM)
-	                           , StrokeWidthAttr (StrokeWidthLength (toString ((a+0.5)/(2.0*pi)),MM))
-	                           , StrokeAttr      (PaintColor (SVGRGB (150 - toInt (255.0*a/(5.0*pi))) 
-	                                                                 (150 - toInt (255.0*a/(2.5*pi))) 
-	                                                                 (150 - toInt (255.0*a/(4.0*pi)))
-	                                                         ) Nothing)
-	                           ]
-	               \\ a <- [0.0, 0.01*pi .. 2.0*pi]
+	              :[TextElt [] [ XAttr ("50",MM), YAttr (toString (sum [12, 14 .. 10+2*i]),PT)
+	                           , FontSizeAttr (toString (10+2*i) +++ "pt")
+	                           ] "Hello world!"
+	               \\ i <- [1 .. 12]
 	               ]
 	              ]
 
@@ -76,9 +69,9 @@ where
 ::  ModelRect = { pos :: !(!Real,!Real), size :: !(!Real,!Real), frame :: !String, fill :: !String, opacity :: !Real, angle :: !Int }
 derive class iTask ModelRect
 
-derive gEditor        SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gVisualizeText SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gDefault       SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gEditMeta      SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gUpdate        SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gVerify        SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
+derive gEditor        SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
+derive gVisualizeText SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
+derive gDefault       SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
+derive gEditMeta      SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
+derive gUpdate        SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
+derive gVerify        SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
