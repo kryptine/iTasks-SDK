@@ -36,8 +36,8 @@ jsSetObjectAttr		:: !String !(JSVal v) !(JSObj o) 	!*JSWorld -> *JSWorld
 jsSetObjectEl		:: !Int !(JSVal v) !(JSObj o) 		!*JSWorld -> *JSWorld
 jsDeleteObjectAttr	:: !String !(JSObj o) 				!*JSWorld -> *JSWorld
 (.#) infixl 3       :: a b -> (a, b)
-.?                  :: (JSObj o, String) *JSWorld -> *(JSVal r, *JSWorld)
-(.=) infixl 2       :: (JSObj o, String) (JSVal v) -> (*JSWorld -> *JSWorld)
+.?                  :: (!(JSObj o), !String) *JSWorld -> *(JSVal r, *JSWorld)
+(.=) infixl 2       :: (!(JSObj o), !String) (JSVal v) -> (*JSWorld -> *JSWorld)
 
 //Calling js functions
 jsApply				:: !(JSVal (JSFunction f)) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)

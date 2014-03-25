@@ -90,7 +90,7 @@ fromJSVal ptr world = undef
 
 //UTIL
 
-jsArrayPush :: !(JSVal a) !(JSVal [a]) !*JSWorld -> *(!JSVal [a], !*JSWorld)
+jsArrayPush :: !(JSVal a) !(JSVal [a]) !*JSWorld -> *(!JSObj [a], !*JSWorld)
 jsArrayPush x arr world = callObjectMethod "push" [toJSArg x] arr world
 
 jsArrayPop :: !(JSObj [a]) !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -146,6 +146,11 @@ where
 	op (obj,world) attr | jsIsUndefined obj
 		= (obj, world)
 		= jsGetObjectAttr attr obj world
+
+class JSCall a where
+  (.$) :: !a ![JSArg] -> *(JSVal r, !*JSWorld)
+
+
 
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 callObjectMethod method args obj world
