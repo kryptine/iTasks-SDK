@@ -10,39 +10,43 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 */
 
 :: JSWorld
-:: JSVal a		//Pointer to a javascript object
+:: JSVal a		//Pointer to a javascript value
+:: JSObj a		//Pointer to a javascript object
 :: JSArg
 
 :: JSFunction a	//A javascript function object
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
 :: JSEvent		//Represents an event object
-:: JSObject		//Just for fun
+
 
 //CORE JAVASCRIPT ACCESS
 
 //Constants
-jsNull				:: (JSVal a)		  // Can be any type
-jsWindow			:: (JSVal JSWindow)	  // Singleton 'window' object that serves a global scope
-jsDocument			:: (JSVal JSDocument) // Singleton? 'document'
+jsNull				:: JSVal a		  // Can be any type
+jsWindow			:: JSObj JSWindow	  // Singleton 'window' object that serves a global scope
+jsDocument			:: JSObj JSDocument // Singleton? 'document'
 
 //Manipulating objects
-jsEmptyObject		:: 									!*JSWorld -> *(!JSVal a, !*JSWorld) // {}
-jsNewObject			:: !String ![JSArg]					!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsGetObjectAttr 	:: !String !(JSVal o)				!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsGetObjectEl		:: !Int !(JSVal o) 					!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsSetObjectAttr		:: !String !(JSVal v) !(JSVal o) 	!*JSWorld -> *JSWorld
-jsSetObjectEl		:: !Int !(JSVal v) !(JSVal o) 		!*JSWorld -> *JSWorld
-jsDeleteObjectAttr	:: !String !(JSVal o) 				!*JSWorld -> *JSWorld
+jsEmptyObject		:: 									!*JSWorld -> *(!JSObj a, !*JSWorld) // {}
+jsNewObject			:: !String ![JSArg]					!*JSWorld -> *(!JSObj b, !*JSWorld)
+jsGetObjectAttr 	:: !String !(JSObj o)				!*JSWorld -> *(!JSVal b, !*JSWorld)
+jsGetObjectEl		:: !Int !(JSObj o) 					!*JSWorld -> *(!JSVal b, !*JSWorld)
+jsSetObjectAttr		:: !String !(JSVal v) !(JSObj o) 	!*JSWorld -> *JSWorld
+jsSetObjectEl		:: !Int !(JSVal v) !(JSObj o) 		!*JSWorld -> *JSWorld
+jsDeleteObjectAttr	:: !String !(JSObj o) 				!*JSWorld -> *JSWorld
+(.#) infixl 3       :: a b -> (a, b)
+.?                  :: (JSObj o, String) *JSWorld -> *(JSVal r, *JSWorld)
+(.=) infixl 2       :: (JSObj o, String) (JSVal v) -> (*JSWorld -> *JSWorld)
 
 //Calling js functions
-jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsApply				:: !(JSVal (JSFunction f)) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 //Wrapping clean functions
 jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
 
 //Special keywords
-jsThis				:: !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsThis				:: !*JSWorld -> *(!JSObj a, !*JSWorld)
 jsTypeof			:: !(JSVal a) -> String
 jsAbort             :: a -> b
 
@@ -52,15 +56,15 @@ toJSArgs 			:: ![a] -> [JSArg]
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
-newJSArray          :: !*JSWorld                          -> *(!JSVal [a], !*JSWorld)
+newJSArray          :: !*JSWorld                          -> *(!JSObj [a], !*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 
-jsArrayPush         :: !(JSVal a) !(JSVal [a])    !*JSWorld -> *(!JSVal [a], !*JSWorld)
-jsArrayPop          :: !(JSVal [a])               !*JSWorld -> *(!JSVal a,   !*JSWorld)
-jsArrayReverse      :: !(JSVal [a])               !*JSWorld -> *(!JSVal [a], !*JSWorld)
-toJSArray           :: ![a]                       !*JSWorld -> *(!JSVal [a], !*JSWorld)
-fromJSArray         :: (JSVal a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
+jsArrayPush         :: !(JSVal a) !(JSObj [a])      !*JSWorld -> *(!JSObj [a], !*JSWorld)
+jsArrayPop          :: !(JSObj [a])                 !*JSWorld -> *(!JSVal a,   !*JSWorld)
+jsArrayReverse      :: !(JSObj [a])                 !*JSWorld -> *(!JSObj [a], !*JSWorld)
+toJSArray           :: ![a]                         !*JSWorld -> *(!JSObj [a], !*JSWorld)
+fromJSArray         :: (JSObj [a]) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 
 jsIsUndefined :: !(JSVal a) -> Bool
 
@@ -69,7 +73,7 @@ getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
 setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
 
 //Call a method on a javascript object. Object can be (JSVal null)
-callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !*JSWorld)
+callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
 //Get a value from the global scope.
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching
