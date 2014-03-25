@@ -10,6 +10,8 @@ import Data.Functor, Text, StdMisc
 from Data.Map import newMap
 from StdArray import class Array(uselect), instance Array {} a
 
+:: JSGM = JSGM
+
 :: GoogleMapDiff
     = SetSettings GoogleMapSettings
     | SetPerspective GoogleMapPerspective
@@ -20,7 +22,7 @@ from StdArray import class Array(uselect), instance Array {} a
 
 //--------------------------------------------------------------------------------------------------
 
-:: GoogleMapState = {mapobj       :: JSVal JSObject
+:: GoogleMapState = {mapobj       :: JSVal (JSObject JSGM)
 					,nextMarkerId :: Int
 					,markerMap	  :: JSVal (JSMap String GoogleMapMarker)
 					}
@@ -31,9 +33,9 @@ from StdArray import class Array(uselect), instance Array {} a
 					 }
 
 // Parameter object for creating google.maps.Map
-:: MapOptions = {center    			:: JSVal JSObject
+:: MapOptions = {center    			:: JSVal (JSObject JSGM)
           		,zoom      			:: Int
-          		,mapTypeId 			:: JSVal JSObject
+          		,mapTypeId 			:: JSVal (JSObject JSGM)
 				,mapTypeControl		:: Bool
 				,panControl			:: Bool
 				,zoomControl		:: Bool
@@ -44,11 +46,11 @@ from StdArray import class Array(uselect), instance Array {} a
         		}
 
 // Parameter object for creating google.maps.Marker
-:: MarkerOptions = {map        :: JSVal JSObject
-				   ,position   :: JSVal JSObject
+:: MarkerOptions = {map        :: JSVal (JSObject JSGM)
+				   ,position   :: JSVal (JSObject JSGM)
 				   ,title      :: String
 				   ,draggable  :: Bool
-				   ,icon       :: Maybe (JSVal JSObject)
+				   ,icon       :: Maybe (JSVal (JSObject JSGM))
 				   ,id		   :: String
 				   }
 
