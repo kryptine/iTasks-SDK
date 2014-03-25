@@ -2,7 +2,28 @@ implementation module iTaskGraphics
 
 import iTasks
 
+pi :== 3.1415926
+
 svg_test :: Task Void
+
+svg_test = viewInformation (Title "Sample SVG") [ViewWith (const html)] Void
+where
+	html = SvgTag [WidthAttr "100mm",HeightAttr "100mm"] [VersionAttr "1.1"] 
+	              [RectElt [WidthAttr "100mm",HeightAttr "100mm"] 
+	                       [FillAttr   (PaintColor (SVGColorText "white") Nothing)
+	                       ,StrokeAttr (PaintColor (SVGColorText "black") Nothing)
+	                       ]
+	              :[LineElt [] [ X1Attr ("50",MM), Y1Attr ("50",MM)
+	                           , X2Attr (toString (50.0 + 50.0*(cos a)),MM), Y2Attr (toString (50.0 + 50.0*(sin a)),MM)
+	                           , StrokeWidthAttr (StrokeWidthLength (toString ((a+0.5)/(2.0*pi)),MM))
+	                           , StrokeAttr      (PaintColor (SVGRGB (150 - toInt (255.0*a/(5.0*pi))) 
+	                                                                 (150 - toInt (255.0*a/(2.5*pi))) 
+	                                                                 (150 - toInt (255.0*a/(4.0*pi)))
+	                                                         ) Nothing)
+	                           ]
+	               \\ a <- [0.0, 0.01*pi .. 2.0*pi]
+	               ]
+	              ]
 
 //	not so fast version: an editor of [ModelRect]:
 //svg_test = updateInformation (Title "Create SVG") [] [boundrect] @ (const Void)
@@ -14,7 +35,7 @@ svg_test :: Task Void
 //svg_test = (view_mrs -&&- updateSharedInformation (Title "Create SVG") [] shared_mrs) @ (const Void)
 
 //  slowest version: a shared editor of [SVGElt] + viewer of [SVGElt]:
-svg_test = (view_svg -&&- updateSharedInformation (Title "Create SVG") [] shared_svg) @ (const Void)
+//svg_test = (view_svg -&&- updateSharedInformation (Title "Create SVG") [] shared_svg) @ (const Void)
 
 shared_mrs :: Shared [ModelRect]
 shared_mrs = sharedStore "ModelRect" []
