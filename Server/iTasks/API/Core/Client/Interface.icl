@@ -49,10 +49,10 @@ jsDeleteObjectAttr value obj world = undef
 (.#) infixl 3 :: a b -> (a, b)
 (.#) a b = (a, b)
 
-.? :: (JSObj o, String) *JSWorld -> *(JSVal r, *JSWorld)
+.? :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
 .? (obj, attr) world = jsGetObjectAttr attr obj world
 
-(.=) infixl 2 :: (JSObj o, String) (JSVal v) -> (*JSWorld -> *JSWorld)
+(.=) infixl 2 :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 (.=) (obj, attr) val = \world -> jsSetObjectAttr attr val obj world
 
 jsApply	:: !(JSVal (JSFunction f)) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -90,7 +90,7 @@ fromJSVal ptr world = undef
 
 //UTIL
 
-jsArrayPush :: !(JSVal a) !(JSVal [a]) !*JSWorld -> *(!JSObj [a], !*JSWorld)
+jsArrayPush :: !(JSVal a) !(JSObj [a]) !*JSWorld -> *(!JSObj [a], !*JSWorld)
 jsArrayPush x arr world = callObjectMethod "push" [toJSArg x] arr world
 
 jsArrayPop :: !(JSObj [a]) !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -135,7 +135,7 @@ setDomAttr elemId attr value world
 	# (elem, world)	= getDomElement elemId world
 	= jsSetObjectAttr attr value elem world
 
-findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
+findObject :: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
 findObject query world
 	# (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
 	= case attrs of

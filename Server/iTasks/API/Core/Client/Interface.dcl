@@ -36,8 +36,8 @@ jsSetObjectAttr		:: !String !(JSVal v) !(JSObj o) 	!*JSWorld -> *JSWorld
 jsSetObjectEl		:: !Int !(JSVal v) !(JSObj o) 		!*JSWorld -> *JSWorld
 jsDeleteObjectAttr	:: !String !(JSObj o) 				!*JSWorld -> *JSWorld
 (.#) infixl 3       :: a b -> (a, b)
-.?                  :: (!(JSObj o), !String) *JSWorld -> *(JSVal r, *JSWorld)
-(.=) infixl 2       :: (!(JSObj o), !String) (JSVal v) -> (*JSWorld -> *JSWorld)
+.?                  :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
+(.=) infixl 2       :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 
 //Calling js functions
 jsApply				:: !(JSVal (JSFunction f)) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -77,7 +77,7 @@ callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWor
 
 //Get a value from the global scope.
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching
-findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
+findObject			:: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
 
 //Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
