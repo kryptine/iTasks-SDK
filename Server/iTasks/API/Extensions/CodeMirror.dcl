@@ -2,9 +2,11 @@ definition module iTasks.API.Extensions.CodeMirror
 
 import iTasks.API.Core.Client.Editlet
 
+:: JSCM
+
 :: CodeMirrorClientSt = {
-		  codeMirror 			:: !JSVal JSObject
-		, systemEventHandlers	:: ![(!String, !JSVal (JSFunction JSObject))]
+		  codeMirror 			:: !JSVal (JSObject JSCM)
+		, systemEventHandlers	:: ![(!String, !JSVal (JSFunction JSCM))]
 		}
  
 :: CodeMirrorClient = {

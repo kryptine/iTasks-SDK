@@ -11,13 +11,14 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 
 :: JSWorld
 :: JSVal a		//Pointer to a javascript value
-:: JSObj a		//Pointer to a javascript object
+:: JSObj a :== JSVal a
 :: JSArg
 
 :: JSFunction a	//A javascript function object
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
 :: JSEvent		//Represents an event object
+:: JSObject a   = JSObject
 
 
 //CORE JAVASCRIPT ACCESS
@@ -40,7 +41,7 @@ jsDeleteObjectAttr	:: !String !(JSObj o) 				!*JSWorld -> *JSWorld
 (.=) infixl 2       :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 
 //Calling js functions
-jsApply				:: !(JSVal (JSFunction f)) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsApply				:: !(JSVal (JSObject (JSFunction f))) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 //Wrapping clean functions
 jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)

@@ -11,11 +11,11 @@ LEAFLET_JS :== "leaflet-0.7.2/leaflet.js"
 LEAFLET_CSS :== "leaflet-0.7.2/leaflet.css"
 
 :: LeafletClientState =
-    {mapObj         :: !JSVal JSObject
-    ,mapLayers      :: !JSVal [JSObject]
-    ,mapIcons       :: !JSVal [JSObject]
-    ,mapCursor      :: !Maybe (JSVal JSObject)
-    ,mapObjects     :: !JSVal (JSMap Int [JSObject])
+    {mapObj         :: !JSObj JSLM
+    ,mapLayers      :: !JSVal [JSObj JSLM]
+    ,mapIcons       :: !JSVal [JSObj JSLM]
+    ,mapCursor      :: !Maybe (JSObj JSLM)
+    ,mapObjects     :: !JSVal (JSMap Int [JSObject JSLM])
     }
 :: IconOptions =
     { iconUrl   :: !String
@@ -258,7 +258,7 @@ where
         # (_, world)    = jsArrayPush icon mapIcons world
         = world
 
-    createLayer :: !LeafletLayer !(JSVal JSObject) a !(JSVal [b]) !(JSVal (JSMap Int [c])) !(JSVal d) !String !*(!Int,!*JSWorld) -> *(!Int,!*JSWorld)
+    createLayer :: !LeafletLayer !(JSObj JSLM) a !(JSObj [b]) !(JSObj (JSMap Int [c])) !(JSVal d) !String !*(!Int,!*JSWorld) -> *(!Int,!*JSWorld)
     createLayer (TileLayer url) l mapObj mapLayers mapObjects mapIcons cid (i,world)
         # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
         # (_,world)     = jsArrayPush layer mapLayers world
@@ -273,7 +273,7 @@ where
         # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] layer world
         = (i + 1,world)
 
-    createObject :: !LeafletObject !(JSVal JSObject) !a !(JSVal b) !(JSVal c) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
+    createObject :: !LeafletObject !(JSObj JSLM) !a !(JSVal b) !(JSVal c) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
     createObject (Marker {LeafletMarker|markerId,position,title,icon}) l layer objRefs mapIcons cid (i,world)
         # (args,world)      = case icon of
             Nothing         = ([toJSArg [position.lat,position.lng]],world)

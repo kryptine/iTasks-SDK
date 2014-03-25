@@ -4,7 +4,6 @@ import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 
 :: JSWorld  = JSWorld
 :: JSVal a  = JSVal !a
-:: JSObj a  :== JSVal (JSObject a)
 
 // It describes what is the goal, but the actual wrapping doesn't happen,
 // don't try to unwrap it!
@@ -13,7 +12,6 @@ import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 :: JSWindow     = JSWindow
 :: JSDocument   = JSDocument
 :: JSFunction a = JSFunction
-:: JSObject a   = JSObject
 :: JSEvent      = JSEvent
 
 jsNull :: JSVal a
@@ -55,7 +53,7 @@ jsDeleteObjectAttr value obj world = undef
 (.=) infixl 2 :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 (.=) (obj, attr) val = \world -> jsSetObjectAttr attr val obj world
 
-jsApply	:: !(JSVal (JSFunction f)) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsApply	:: !(JSVal (JSObject (JSFunction f))) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
 
 jsWrapFun :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
