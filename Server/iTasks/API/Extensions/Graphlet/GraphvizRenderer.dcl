@@ -19,4 +19,4 @@ derive class iTask GraphvizShape
 
 :: GraphvizEdge :== Maybe [String]
 
-graphvizRenderer :: GraphletRenderer GraphvizShape GraphvizEdge
+graphvizRenderer :: GraphletRenderer Void GraphvizShape GraphvizEdge

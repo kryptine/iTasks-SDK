@@ -6,10 +6,6 @@ import iTasks.API.Extensions.Graphlet.Graphlib
 
 :: DagreLW = DagreLW
 
-:: DagreLayout :== JSVal DagreLW
-
-:: DagreRankDir = TB | LR
-
 mkLayout :: *JSWorld -> *(DagreLayout, *JSWorld)
 mkLayout world = callFunction "dagre.layout" [] world
 

@@ -1,11 +1,11 @@
 definition module iTasks.API.Extensions.Graphlet.Dagre
 
-from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSVal
+from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSVal, :: JSObj, :: JSObject
 from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
 
 :: DagreLW
 
-:: DagreLayout :== JSVal DagreLW
+:: DagreLayout :== JSObj DagreLW
 
 :: DagreRankDir = TB | LR
 

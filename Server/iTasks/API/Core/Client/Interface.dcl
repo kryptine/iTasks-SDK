@@ -32,13 +32,14 @@ jsWindow			:: JSObj JSWindow	  // Singleton 'window' object that serves a global
 jsDocument			:: JSObj JSDocument // Singleton? 'document'
 
 //Manipulating objects
-jsEmptyObject		:: 									!*JSWorld -> *(!JSObj a, !*JSWorld) // {}
-jsNewObject			:: !String ![JSArg]					!*JSWorld -> *(!JSObj b, !*JSWorld)
-jsGetObjectAttr 	:: !String !(JSObj o)				!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsGetObjectEl		:: !Int !(JSObj o) 					!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsSetObjectAttr		:: !String !(JSVal v) !(JSObj o) 	!*JSWorld -> *JSWorld
-jsSetObjectEl		:: !Int !(JSVal v) !(JSObj o) 		!*JSWorld -> *JSWorld
-jsDeleteObjectAttr	:: !String !(JSObj o) 				!*JSWorld -> *JSWorld
+jsEmptyObject       ::                               !*JSWorld -> *(!JSObj a, !*JSWorld) // {}
+jsNewObject         :: !String ![JSArg]              !*JSWorld -> *(!JSObj b, !*JSWorld)
+jsGetObjectAttr     :: !String            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsGetObjectEl       :: !Int               !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
+jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
+jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> *JSWorld
+
 (.#) infixl 3       :: a b -> (a, b)
 .?                  :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
 (.=) infixl 2       :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)

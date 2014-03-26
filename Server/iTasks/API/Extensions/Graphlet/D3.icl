@@ -5,7 +5,7 @@ import Data.List, Text.HTML
 
 :: D3W = D3W
 
-:: D3 :== JSVal D3W
+:: D3 :== JSObj D3W
 
 selectElem :: String *JSWorld -> *(D3, *JSWorld)
 selectElem sel world = callFunction "d3.select" [toJSArg sel] world
@@ -34,13 +34,13 @@ append attr d3 world = callObjectMethod "append" [toJSArg attr] d3 world
 setHtml :: String D3 *JSWorld -> *(D3, *JSWorld)
 setHtml str d3 world = callObjectMethod "html" [toJSArg str] d3 world
 
-setHtmlWith :: (JSVal (JSFunction c)) D3 *JSWorld -> *(D3, *JSWorld)
+setHtmlWith :: (JSFun c) D3 *JSWorld -> *(D3, *JSWorld)
 setHtmlWith f d3 world = callObjectMethod "html" [toJSArg f] d3 world
 
 setText :: String D3 *JSWorld -> *(D3, *JSWorld)
 setText str d3 world = callObjectMethod "text" [toJSArg str] d3 world
 
-setTextWith :: (JSVal (JSFunction c)) D3 *JSWorld -> *(D3, *JSWorld)
+setTextWith :: (JSFun c) D3 *JSWorld -> *(D3, *JSWorld)
 setTextWith f d3 world = callObjectMethod "text" [toJSArg f] d3 world
 
 firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)

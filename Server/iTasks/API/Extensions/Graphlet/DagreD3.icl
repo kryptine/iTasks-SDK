@@ -9,8 +9,6 @@ import iTasks.API.Extensions.Graphlet.D3
 
 :: DagreRenderW = DagreRenderW
 
-:: DagreRender :== JSVal DagreRenderW
-
 mkDigraph :: *JSWorld -> *(GLGraph, *JSWorld)
 mkDigraph world = jsNewObject "dagreD3.Digraph" [] world
 
@@ -23,8 +21,8 @@ setLayout renderer layout world = snd (callObjectMethod "layout" [toJSArg layout
 runRenderer :: DagreRender GLGraph D3 *JSWorld -> *JSWorld
 runRenderer renderer graph d3 world = snd (callObjectMethod "run" [toJSArg graph, toJSArg d3] renderer world)
 
-setDrawNode :: DagreRender (JSVal (JSFunction a)) *JSWorld -> *JSWorld
+setDrawNode :: DagreRender (JSFun a) *JSWorld -> *JSWorld
 setDrawNode renderer cb world = snd (callObjectMethod "drawNode" [toJSArg cb] renderer world)
 
-setDrawEdgeLabel :: DagreRender (JSVal (JSFunction a)) *JSWorld -> *JSWorld
+setDrawEdgeLabel :: DagreRender (JSFun a) *JSWorld -> *JSWorld
 setDrawEdgeLabel renderer cb world = snd (callObjectMethod "drawEdgeLabel" [toJSArg cb] renderer world)
