@@ -11,14 +11,17 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 
 :: JSWorld
 :: JSVal a		//Pointer to a javascript value
-:: JSObj a :== JSVal a
+:: JSObj a :== JSVal (JSObject a)
+:: JSFun a :== JSObj (JSFunction a)
+:: JSArr a :== JSObj (JSArray a)
 :: JSArg
 
 :: JSFunction a	//A javascript function object
+:: JSArray a	//A javascript array object
+:: JSObject a
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
 :: JSEvent		//Represents an event object
-:: JSObject a   = JSObject
 
 
 //CORE JAVASCRIPT ACCESS
@@ -41,10 +44,10 @@ jsDeleteObjectAttr	:: !String !(JSObj o) 				!*JSWorld -> *JSWorld
 (.=) infixl 2       :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 
 //Calling js functions
-jsApply				:: !(JSVal (JSObject (JSFunction f))) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 //Wrapping clean functions
-jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSFun f, !*JSWorld)
 
 //Special keywords
 jsThis				:: !*JSWorld -> *(!JSObj a, !*JSWorld)
@@ -57,15 +60,15 @@ toJSArgs 			:: ![a] -> [JSArg]
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
-newJSArray          :: !*JSWorld                          -> *(!JSObj [a], !*JSWorld)
+newJSArray          :: !*JSWorld                          -> *(!JSArr a, !*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 
-jsArrayPush         :: !(JSVal a) !(JSObj [a])      !*JSWorld -> *(!JSObj [a], !*JSWorld)
-jsArrayPop          :: !(JSObj [a])                 !*JSWorld -> *(!JSVal a,   !*JSWorld)
-jsArrayReverse      :: !(JSObj [a])                 !*JSWorld -> *(!JSObj [a], !*JSWorld)
-toJSArray           :: ![a]                         !*JSWorld -> *(!JSObj [a], !*JSWorld)
-fromJSArray         :: (JSObj [a]) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
+jsArrayPush         :: !(JSVal a) !(JSArr a)      !*JSWorld -> *(!JSArr a, !*JSWorld)
+jsArrayPop          :: !(JSArr a)                 !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsArrayReverse      :: !(JSArr a)                 !*JSWorld -> *(!JSArr a, !*JSWorld)
+toJSArray           :: ![a]                       !*JSWorld -> *(!JSArr a, !*JSWorld)
+fromJSArray         :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 
 jsIsUndefined :: !(JSVal a) -> Bool
 
@@ -82,7 +85,7 @@ findObject			:: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
 
 //Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
-addJSFromUrl		:: !String !(Maybe (JSVal (JSFunction f))) !*JSWorld -> *JSWorld
+addJSFromUrl		:: !String !(Maybe (JSFun f)) !*JSWorld -> *JSWorld
 //Loaf external CSS stylesheet by its URL
 addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 

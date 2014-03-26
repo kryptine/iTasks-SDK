@@ -125,6 +125,6 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov=:(Editlet va
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
-createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> (JSVal (JSFunction b)) 
+createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef
 

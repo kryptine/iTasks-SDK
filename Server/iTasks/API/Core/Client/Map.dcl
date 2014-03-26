@@ -1,12 +1,13 @@
 definition module iTasks.API.Core.Client.Map
 
 import iTasks.API.Core.Client.Interface
-	
-:: JSMap k v 
 
-jsNewMap :: 									!*JSWorld -> *(!JSVal (JSMap k v), !*JSWorld)
-jsPut 	 :: !k !(JSVal v) !(JSVal (JSMap k v)) 	!*JSWorld -> *JSWorld | toString k
-jsDel 	 :: !k !(JSVal (JSMap k v)) 			!*JSWorld -> *JSWorld | toString k
-jsGet 	 :: !k !(JSVal (JSMap k v)) 			!*JSWorld -> *(!Maybe (JSVal v), !*JSWorld) | toString k
+:: JSMap k v :== JSArr v
 
-jsToList :: !(JSVal (JSMap k v)) 				!*JSWorld -> *(![(!String, !JSVal v)], !*JSWorld)
+
+jsNewMap :: 							        !*JSWorld -> *(!JSMap k (JSVal v), !*JSWorld) | toString k
+jsPut 	 :: !k !(JSVal v) !(JSMap k (JSVal v))  !*JSWorld -> *JSWorld | toString k
+jsDel 	 :: !k !(JSMap k (JSVal v))         	!*JSWorld -> *JSWorld | toString k
+jsGet 	 :: !k !(JSMap k (JSVal v))         	!*JSWorld -> *(!Maybe (JSVal v), !*JSWorld) | toString k
+
+jsToList :: !(JSMap k (JSVal v))        		!*JSWorld -> *(![(!String, !JSVal v)], !*JSWorld) | toString k

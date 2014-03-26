@@ -40,7 +40,7 @@ import iTasks.API.Core.Client.Component
 
 toEditlet :: (EditletSimpl a d) -> (Editlet a d) | iTask a
 
-createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> (JSVal (JSFunction b))
+createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> JSFun b
 
 derive JSONEncode		Editlet
 derive JSONDecode		Editlet

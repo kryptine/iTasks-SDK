@@ -13,7 +13,7 @@ from iTasks.Framework.UIDiff import :: UIUpdate
 :: TaskletEvent a 				:== ComponentEvent TaskId a
 :: TaskletHTML a 				:== ComponentHTML TaskId a
 
-createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFunction b)) 
+createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> JSFun b
 
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
                  | TaskletTUI  !(TaskletTUI  st)

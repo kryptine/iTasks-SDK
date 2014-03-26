@@ -22,9 +22,9 @@ from StdArray import class Array(uselect), instance Array {} a
 
 //--------------------------------------------------------------------------------------------------
 
-:: GoogleMapState = {mapobj       :: JSVal (JSObject JSGM)
+:: GoogleMapState = {mapobj       :: JSObj JSGM
 					,nextMarkerId :: Int
-					,markerMap	  :: JSVal (JSMap String GoogleMapMarker)
+					,markerMap	  :: JSMap String (JSObj GoogleMapMarker)
 					}
 
 :: GoogleMapClient = {val	        :: GoogleMap
@@ -33,9 +33,9 @@ from StdArray import class Array(uselect), instance Array {} a
 					 }
 
 // Parameter object for creating google.maps.Map
-:: MapOptions = {center    			:: JSVal (JSObject JSGM)
+:: MapOptions = {center    			:: JSObj JSGM
           		,zoom      			:: Int
-          		,mapTypeId 			:: JSVal (JSObject JSGM)
+          		,mapTypeId 			:: JSObj JSGM
 				,mapTypeControl		:: Bool
 				,panControl			:: Bool
 				,zoomControl		:: Bool
@@ -46,11 +46,11 @@ from StdArray import class Array(uselect), instance Array {} a
         		}
 
 // Parameter object for creating google.maps.Marker
-:: MarkerOptions = {map        :: JSVal (JSObject JSGM)
-				   ,position   :: JSVal (JSObject JSGM)
+:: MarkerOptions = {map        :: JSObj JSGM
+				   ,position   :: JSObj JSGM
 				   ,title      :: String
 				   ,draggable  :: Bool
-				   ,icon       :: Maybe (JSVal (JSObject JSGM))
+				   ,icon       :: Maybe (JSObj JSGM)
 				   ,id		   :: String
 				   }
 
@@ -303,10 +303,10 @@ where
             # (_,world) = jsApply cb jsWindow [] world
             = world
 
-	genDiffClient :: GoogleMapClient GoogleMapClient -> Maybe [GoogleMapDiff]
+    genDiffClient :: GoogleMapClient GoogleMapClient -> Maybe [GoogleMapDiff]
 	genDiffClient clval1 clval2 = genDiff clval1.val clval2.val
 
-	genDiff :: GoogleMap GoogleMap -> Maybe [GoogleMapDiff]
+    genDiff :: GoogleMap GoogleMap -> Maybe [GoogleMapDiff]
 	genDiff g1 g2 = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
         []      = Nothing
         diffs   = Just diffs
@@ -328,10 +328,10 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-	appDiffClient :: [GoogleMapDiff] GoogleMapClient -> GoogleMapClient
+    appDiffClient :: [GoogleMapDiff] GoogleMapClient -> GoogleMapClient
 	appDiffClient d clval = {clval & val = appDiff d clval.val}
 
-	appDiff :: [GoogleMapDiff] GoogleMap -> GoogleMap
+    appDiff :: [GoogleMapDiff] GoogleMap -> GoogleMap
 	appDiff d g =  foldl app g d
     where
         app g (SetSettings settings)        = {GoogleMap|g & settings = settings}

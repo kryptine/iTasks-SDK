@@ -34,7 +34,7 @@ println msg world
 
 //---------------------------------------------------------------------------------------
 
-createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> (JSVal (JSFunction b)) 
+createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> JSFun b
 createTaskletEventHandler origHandler taskId = undef
 
 fireEvent :: !*EventQueue !TaskId !String a -> *EventQueue

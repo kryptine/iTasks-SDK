@@ -12,10 +12,10 @@ LEAFLET_CSS :== "leaflet-0.7.2/leaflet.css"
 
 :: LeafletClientState =
     {mapObj         :: !JSObj JSLM
-    ,mapLayers      :: !JSVal [JSObj JSLM]
-    ,mapIcons       :: !JSVal [JSObj JSLM]
+    ,mapLayers      :: !JSArr (JSObject JSLM)
+    ,mapIcons       :: !JSArr (JSObject JSLM)
     ,mapCursor      :: !Maybe (JSObj JSLM)
-    ,mapObjects     :: !JSVal (JSMap Int [JSObject JSLM])
+    ,mapObjects     :: !JSMap Int (JSArr JSLM)
     }
 :: IconOptions =
     { iconUrl   :: !String
@@ -166,15 +166,15 @@ where
         # (_,world)     = callObjectMethod "removeLayer" [toJSArg mapCursor] mapObj world
         = onUpdate cid (Just diffs) (map ,Just {st & mapCursor = Nothing}) world
     onUpdate cid (Just [LDUpdateLayer idx (ObjectLayer objects):diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) world
-        # (l, world)    = findObject "L" world
-        # (layer,world) = jsGetObjectEl idx mapLayers world
-        # (_,world)     = callObjectMethod "removeLayer" [toJSArg layer] mapObj world
-        # (layer,world) = callObjectMethod "layerGroup" [] l world
-        # (objRefs,world)   = newJSArray world
-        # (_,world)     = foldl (\w object -> createObject object l layer objRefs mapIcons cid w) (0,world) objects
-        # world         = jsSetObjectEl idx layer mapLayers world
-		# world         = jsPut idx objRefs mapObjects world
-        # (_,world)     = callObjectMethod "addTo" [toJSArg mapObj] layer world
+        # (l, world)      = findObject "L" world
+        # (layer,world)   = jsGetObjectEl idx mapLayers world
+        # (_,world)       = callObjectMethod "removeLayer" [toJSArg layer] mapObj world
+        # (layer,world)   = callObjectMethod "layerGroup" [] l world
+        # (objRefs,world) = newJSArray world
+        # (_,world)       = foldl (\w object -> createObject object l layer objRefs mapIcons cid w) (0,world) objects
+        # world           = jsSetObjectEl idx layer mapLayers world
+		# world           = jsPut idx objRefs mapObjects world
+        # (_,world)       = callObjectMethod "addTo" [toJSArg mapObj] layer world
         = onUpdate cid (Just diffs) (map,Just st) world
     onUpdate cid (Just [LDAddLayers [TileLayer url:layers]:diffs]) (map,Just st=:{mapObj,mapIcons,mapLayers}) world
         # (l, world)    = findObject "L" world
@@ -258,7 +258,7 @@ where
         # (_, world)    = jsArrayPush icon mapIcons world
         = world
 
-    createLayer :: !LeafletLayer !(JSObj JSLM) a !(JSObj [b]) !(JSObj (JSMap Int [c])) !(JSVal d) !String !*(!Int,!*JSWorld) -> *(!Int,!*JSWorld)
+    createLayer :: !LeafletLayer !(JSObj JSLM) a !(JSArr (JSObject b)) !(JSMap Int (JSArr JSLM)) !(JSVal (JSObject d)) !String !*(!Int,!*JSWorld) -> *(!Int,!*JSWorld)
     createLayer (TileLayer url) l mapObj mapLayers mapObjects mapIcons cid (i,world)
         # (layer,world) = callObjectMethod "tileLayer" [toJSArg url] l world
         # (_,world)     = jsArrayPush layer mapLayers world
@@ -273,7 +273,7 @@ where
         # (_,world)         = callObjectMethod "addTo" [toJSArg mapObj] layer world
         = (i + 1,world)
 
-    createObject :: !LeafletObject !(JSObj JSLM) !a !(JSVal b) !(JSVal c) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
+    createObject :: !LeafletObject !(JSObj JSLM) !a !(JSVal (JSObject b)) !(JSVal (JSObject c)) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
     createObject (Marker {LeafletMarker|markerId,position,title,icon}) l layer objRefs mapIcons cid (i,world)
         # (args,world)      = case icon of
             Nothing         = ([toJSArg [position.lat,position.lng]],world)
@@ -342,7 +342,7 @@ where
 		# (nepos, world)    = getPos ne world
         = (Just {southWest=swpos,northEast=nepos},world)
 
-    removeObjects :: !(JSVal [a]) !(JSVal b) !*JSWorld -> *JSWorld
+    removeObjects :: !(JSArr a) !(JSObj b) !*JSWorld -> *JSWorld
     removeObjects removeRefs layer world
         # (ref,world) = jsArrayPop removeRefs world
         | jsIsUndefined ref = world
@@ -358,13 +358,13 @@ where
         # (divSize,world)   = measureDomEl cmpDiv world
         = sizeDomEl divSize mapDiv world
 
-    measureDomEl :: !(JSVal a) !*JSWorld -> (!(!Int,!Int),!*JSWorld)
+    measureDomEl :: !(JSObj a) !*JSWorld -> (!(!Int,!Int),!*JSWorld)
     measureDomEl el world
         # (w,world) = jsGetObjectAttr "clientWidth" el world
         # (h,world) = jsGetObjectAttr "clientHeight" el world
         = ((jsValToInt w,jsValToInt h),world)
 
-    sizeDomEl :: !(!Int,!Int) !(JSVal a) !*JSWorld -> *JSWorld
+    sizeDomEl :: !(!Int,!Int) !(JSObj a) !*JSWorld -> *JSWorld
     sizeDomEl (w,h) el world
         # world = jsSetObjectAttr "style.width" (toJSVal (toString w +++"px")) el world
         # world = jsSetObjectAttr "style.height" (toJSVal (toString h +++"px")) el world

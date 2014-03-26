@@ -38,21 +38,21 @@ toAttrValue (CMViewportMargin a) 			= ("viewportMargin", toJSVal a)
 
 shallowEq a b = fst (toAttrValue a) == fst (toAttrValue b)
 
-createConfigurationObject :: [CodeMirrorConfiguration] !*JSWorld -> *(!JSVal (JSObject CodeMirrorConfiguration), !*JSWorld)
+createConfigurationObject :: [CodeMirrorConfiguration] !*JSWorld -> *(!JSObj CodeMirrorConfiguration, !*JSWorld)
 createConfigurationObject cs world
 	# (obj, world) = jsEmptyObject world
 	= (obj, foldl (set obj) world (map toAttrValue cs))
 where
 	set obj world (attr,value) = jsSetObjectAttr attr value obj world
 
-setOptions :: [CodeMirrorConfiguration] (JSVal (JSObject JSCM)) !*JSWorld -> *JSWorld
+setOptions :: [CodeMirrorConfiguration] (JSObj JSCM) !*JSWorld -> *JSWorld
 setOptions cs cm world
 	# world = foldl upd world (map toAttrValue cs)
 	= loadModulesIfNeeded cs cm world
 where
 	upd world (attr, val) = snd (callObjectMethod "setOption" [toJSArg attr, toJSArg val] cm world)
 
-loadModulesIfNeeded :: [CodeMirrorConfiguration] (JSVal (JSObject JSCM)) !*JSWorld -> *JSWorld
+loadModulesIfNeeded :: [CodeMirrorConfiguration] (JSObj JSCM) !*JSWorld -> *JSWorld
 loadModulesIfNeeded cs cm world
 	# (cmobj, world) = findObject "CodeMirror" world
 

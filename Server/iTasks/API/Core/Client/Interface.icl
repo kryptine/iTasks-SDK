@@ -12,6 +12,8 @@ import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 :: JSWindow     = JSWindow
 :: JSDocument   = JSDocument
 :: JSFunction a = JSFunction
+:: JSArray    a = JSArray
+:: JSObject   a = JSObject
 :: JSEvent      = JSEvent
 
 jsNull :: JSVal a
@@ -53,10 +55,10 @@ jsDeleteObjectAttr value obj world = undef
 (.=) infixl 2 :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 (.=) (obj, attr) val = \world -> jsSetObjectAttr attr val obj world
 
-jsApply	:: !(JSVal (JSObject (JSFunction f))) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsApply	:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
 
-jsWrapFun :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+jsWrapFun :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSFun f, !*JSWorld)
 jsWrapFun fun world = undef
 
 jsThis :: !*JSWorld -> *(!JSObj a, !*JSWorld)
@@ -68,7 +70,7 @@ jsTypeof obj = undef
 jsAbort :: a -> b
 jsAbort _ = undef
 
-newJSArray :: !*JSWorld -> *(!JSObj [a], !*JSWorld)
+newJSArray :: !*JSWorld -> *(!JSArr a, !*JSWorld)
 newJSArray world  = undef
 
 toJSVal :: !a -> JSVal b
@@ -88,23 +90,23 @@ fromJSVal ptr world = undef
 
 //UTIL
 
-jsArrayPush :: !(JSVal a) !(JSObj [a]) !*JSWorld -> *(!JSObj [a], !*JSWorld)
+jsArrayPush :: !(JSVal a) !(JSArr a) !*JSWorld -> *(!JSArr a, !*JSWorld)
 jsArrayPush x arr world = callObjectMethod "push" [toJSArg x] arr world
 
-jsArrayPop :: !(JSObj [a]) !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsArrayPop :: !(JSArr a) !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsArrayPop arr world = callObjectMethod "pop" [] arr world
 
-jsArrayReverse :: !(JSObj [a]) !*JSWorld -> *(!JSObj [a], !*JSWorld)
+jsArrayReverse :: !(JSArr a) !*JSWorld -> *(!JSArr a, !*JSWorld)
 jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
 
-toJSArray :: ![a] !*JSWorld -> *(!JSObj [a], !*JSWorld)
+toJSArray :: ![a] !*JSWorld -> *(!JSArr a, !*JSWorld)
 toJSArray xs world
   # (arr, world) = newJSArray world
   # world = foldl (op arr) world (zip2 [0..] xs)
   = (arr, world)
   where op arr world (i, arg) = jsSetObjectEl i (toJSVal arg) arr world
 
-fromJSArray :: (JSObj [a]) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
+fromJSArray :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 fromJSArray arr f world
   # (l, world) = jsGetObjectAttr "length" arr world
   = fromJSArray` 0 (jsValToInt l) arr world
@@ -181,7 +183,7 @@ callObjectMethod method args obj world
 	# (fun, world) = jsGetObjectAttr method obj world
 	= jsApply fun obj args world
 
-addJSFromUrl :: !String !(Maybe (JSVal (JSFunction a))) !*JSWorld -> *JSWorld
+addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
 addJSFromUrl url mbCallback world
 	//Create script tag
 	# (script,world)	= callObjectMethod "createElement" [toJSArg "script"] jsDocument world
