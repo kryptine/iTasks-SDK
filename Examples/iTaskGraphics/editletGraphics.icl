@@ -52,7 +52,7 @@ instance toString MouseButton where toString LeftButton   = "LeftButton"
 instance toString MouseEvent  where toString {screenPos,clientPos,buttonSt}
                                         = "{ screenPos = " <+++ toString screenPos <+++ " , clientPos = " <+++ toString clientPos <+++ " , buttonSt = " <+++ toString buttonSt <+++ "}"
 
-toMouseEvent :: !ComponentId !ComponentId !(JSVal JSEvent) !*JSWorld -> (!MouseEvent,!*JSWorld)
+toMouseEvent :: !ComponentId !ComponentId !(JSObj JSEvent) !*JSWorld -> (!MouseEvent,!*JSWorld)
 toMouseEvent svg_id elt_id event env
 # (clientX,env)		= jsGetObjectAttr "clientX" event env
 # (clientY,env)		= jsGetObjectAttr "clientY" event env
@@ -146,7 +146,7 @@ where
 consistent :: !MR -> MR
 consistent (MR mrs i)		= MR [{mr & framew = if (j==i) THICK THIN} \\ mr <- mrs & j <- [0..]] i
 
-select_rect :: Int ComponentId {JSVal JSEvent} ((ClientSt,Int),Int) *JSWorld -> *(!(!(!ClientSt,!Int),!Int), !*JSWorld)
+select_rect :: Int ComponentId {JSObj JSEvent} ((ClientSt,Int),Int) *JSWorld -> *(!(!(!ClientSt,!Int),!Int), !*JSWorld)
 select_rect i` cid events=:{[0]=event} ((cst,_),i) env
 # (mouse, env)				= toMouseEvent (main_svg_id cid) (elt_id cid i`) event env
 # env						= jsTrace mouse env
