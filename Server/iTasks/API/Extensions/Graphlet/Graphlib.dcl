@@ -4,7 +4,7 @@ import iTasks.API.Core.Client.Interface
 
 :: GLGraphW
 
-:: GLGraph :== JSVal GLGraphW
+:: GLGraph :== JSObj GLGraphW
 
 mkGraph :: *JSWorld -> *(GLGraph, *JSWorld)
 
@@ -38,4 +38,4 @@ hasNode :: GLGraph (JSVal i) *JSWorld -> *(Bool, *JSWorld)
 
 hasEdge :: GLGraph (JSVal i) *JSWorld -> *(Bool, *JSWorld)
 
-eachNode :: GLGraph (JSVal (JSFunction f)) *JSWorld -> *JSWorld
+eachNode :: GLGraph (JSFun f) *JSWorld -> *JSWorld

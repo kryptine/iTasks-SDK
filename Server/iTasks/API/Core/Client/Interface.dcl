@@ -10,39 +10,48 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 */
 
 :: JSWorld
-:: JSVal a		//Pointer to a javascript object
+:: JSVal a		//Pointer to a javascript value
+:: JSObj a :== JSVal (JSObject a)
+:: JSFun a :== JSObj (JSFunction a)
+:: JSArr a :== JSObj (JSArray a)
 :: JSArg
 
 :: JSFunction a	//A javascript function object
+:: JSArray a	//A javascript array object
+:: JSObject a
 :: JSWindow		//Represents the global window object
 :: JSDocument	//Represents the global window.document object
 :: JSEvent		//Represents an event object
-:: JSObject		//Just for fun
+
 
 //CORE JAVASCRIPT ACCESS
 
 //Constants
-jsNull				:: (JSVal a)		  // Can be any type
-jsWindow			:: (JSVal JSWindow)	  // Singleton 'window' object that serves a global scope
-jsDocument			:: (JSVal JSDocument) // Singleton? 'document'
+jsNull				:: JSVal a		  // Can be any type
+jsWindow			:: JSObj JSWindow	  // Singleton 'window' object that serves a global scope
+jsDocument			:: JSObj JSDocument // Singleton? 'document'
 
 //Manipulating objects
-jsEmptyObject		:: 									!*JSWorld -> *(!JSVal a, !*JSWorld) // {}
-jsNewObject			:: !String ![JSArg]					!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsGetObjectAttr 	:: !String !(JSVal o)				!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsGetObjectEl		:: !Int !(JSVal o) 					!*JSWorld -> *(!JSVal b, !*JSWorld)
-jsSetObjectAttr		:: !String !(JSVal v) !(JSVal o) 	!*JSWorld -> *JSWorld
-jsSetObjectEl		:: !Int !(JSVal v) !(JSVal o) 		!*JSWorld -> *JSWorld
-jsDeleteObjectAttr	:: !String !(JSVal o) 				!*JSWorld -> *JSWorld
+jsEmptyObject       ::                               !*JSWorld -> *(!JSObj a, !*JSWorld) // {}
+jsNewObject         :: !String ![JSArg]              !*JSWorld -> *(!JSObj b, !*JSWorld)
+jsGetObjectAttr     :: !String            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsGetObjectEl       :: !Int               !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
+jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
+jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> *JSWorld
+
+(.#) infixl 3       :: a b -> (a, b)
+.?                  :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
+(.=) infixl 2       :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
 
 //Calling js functions
-jsApply				:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 //Wrapping clean functions
-jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+jsWrapFun           :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSFun f, !*JSWorld)
 
 //Special keywords
-jsThis				:: !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsThis				:: !*JSWorld -> *(!JSObj a, !*JSWorld)
 jsTypeof			:: !(JSVal a) -> String
 jsAbort             :: a -> b
 
@@ -52,15 +61,15 @@ toJSArgs 			:: ![a] -> [JSArg]
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
-newJSArray          :: !*JSWorld                          -> *(!JSVal [a], !*JSWorld)
+newJSArray          :: !*JSWorld                          -> *(!JSArr a, !*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 
-jsArrayPush         :: !(JSVal a) !(JSVal [a])    !*JSWorld -> *(!JSVal [a], !*JSWorld)
-jsArrayPop          :: !(JSVal [a])               !*JSWorld -> *(!JSVal a,   !*JSWorld)
-jsArrayReverse      :: !(JSVal [a])               !*JSWorld -> *(!JSVal [a], !*JSWorld)
-toJSArray           :: ![a]                       !*JSWorld -> *(!JSVal [a], !*JSWorld)
-fromJSArray         :: (JSVal a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
+jsArrayPush         :: !(JSVal a) !(JSArr a)      !*JSWorld -> *(!JSArr a, !*JSWorld)
+jsArrayPop          :: !(JSArr a)                 !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsArrayReverse      :: !(JSArr a)                 !*JSWorld -> *(!JSArr a, !*JSWorld)
+toJSArray           :: ![a]                       !*JSWorld -> *(!JSArr a, !*JSWorld)
+fromJSArray         :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 
 jsIsUndefined :: !(JSVal a) -> Bool
 
@@ -69,15 +78,15 @@ getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
 setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
 
 //Call a method on a javascript object. Object can be (JSVal null)
-callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !*JSWorld)
+callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
 //Get a value from the global scope.
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching
-findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
+findObject			:: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
 
 //Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
-addJSFromUrl		:: !String !(Maybe (JSVal (JSFunction f))) !*JSWorld -> *JSWorld
+addJSFromUrl		:: !String !(Maybe (JSFun f)) !*JSWorld -> *JSWorld
 //Loaf external CSS stylesheet by its URL
 addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 
@@ -91,5 +100,27 @@ jsValToBool   :: !(JSVal a) -> Bool
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
 callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
+
+class ToArgs a where
+  toArgs :: a -> [JSArg]
+
+instance ToArgs [a]
+
+instance ToArgs (a, b)
+
+instance ToArgs (a, b, c)
+
+instance ToArgs (a, b, c, d)
+
+instance ToArgs (a, b, c, d, e)
+
+instance ToArgs (a, b, c, d, e, f)
+
+class JSCall o where
+  (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
+
+instance JSCall String
+
+instance JSCall (JSObj o, String)
 
 jsUnsafeCoerce :: (JSVal a) -> (JSVal b)

@@ -46,4 +46,4 @@ derive class iTask GraphletDiff, Graphlet
 
 graphlet :: (s s -> Maybe [GraphletDiff s n e]) ([GraphletDiff s n e] s -> s)
             (GraphletRenderer s n e) (Graphlet s n e)
-         -> Editlet (Graphlet s n e) [GraphletDiff n e] | iTask s & iTask n & iTask e
+         -> Editlet (Graphlet s n e) [GraphletDiff s n e] | iTask s & iTask n & iTask e

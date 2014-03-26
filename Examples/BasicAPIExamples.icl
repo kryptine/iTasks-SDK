@@ -3,6 +3,7 @@ import iTasks, iTasks.API.Extensions.Admin.UserAdmin, iTasks.API.Extensions.Admi
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
 import ligrettoTOP
+import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
 
 /**
@@ -16,11 +17,12 @@ import qualified Data.Map as DM
 
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
-costumTypes :== bae +++ "/Interaction with custom types/"
+customTypes :== bae +++ "/Interaction with custom types/"
 sharedData	:== bae +++ "/Interaction with shared data/"
 seqTasks	:== bae +++ "/Sequential task composition/"
 parTasks	:== bae +++ "/Parallel task composition/"
 distrTask	:== bae +++ "/Distributed tasks/"
+svgTasks    :== bae +++ "/SVG experiments/"
 
 basicAPIExamples :: [Workflow]
 basicAPIExamples =
@@ -30,11 +32,12 @@ basicAPIExamples =
 	,workflow (basicTypes +++ "Enter a date & time") 	 	"Entering a date & time" 			enterDateTime
 	,workflow (basicTypes +++ "Browse Google Map") 			"Browse the map" 					browseGoogleMap
 
-	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
-	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
-	,workflow (costumTypes +++ "View a person")             "View a person"                     viewPerson
+	,workflow (customTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
+	,workflow (customTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
+	,workflow (customTypes +++ "View a person")             "View a person"                     viewPerson
 
 	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	viewCurDateTime
+	,workflow (sharedData +++ "View time")                  "View the current time"             viewTime
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
 	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						notes
@@ -67,8 +70,12 @@ basicAPIExamples =
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
+	,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
+	,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable rects" svg_rects
+	,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
 	]
+
 
 Start :: *World -> *World
 Start world = startEngine [publish "/" (WebApp []) (\_-> browseExamples basicAPIExamples),publish "/persons" (WebApp []) (const enterPersons)] world
@@ -92,7 +99,6 @@ where
 		
 		
 //* utility functions
-
 undef = undef
 
 //hasValue  tf (Value v _) = Just (tf v)
@@ -177,6 +183,10 @@ viewPerson = viewInformation "View a person" [ViewWith (\{MyPerson | name,gender
 
 viewCurDateTime :: Task DateTime
 viewCurDateTime = viewSharedInformation "The current date and time is:" [] currentDateTime
+
+import iTasks.API.Extensions.Clock
+viewTime :: Task Time
+viewTime = viewSharedInformation "The current time is:" [ViewWith AnalogClock] currentTime
 
 personStore :: Shared [MyPerson]
 personStore = sharedStore "Persons" []

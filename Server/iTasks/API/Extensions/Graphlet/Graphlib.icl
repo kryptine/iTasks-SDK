@@ -5,8 +5,6 @@ import iTasks.API.Core.Client.Interface
 
 :: GLGraphW = GLGraphW
 
-:: GLGraph :== JSVal GLGraphW
-
 mkGraph :: *JSWorld -> *(GLGraph, *JSWorld)
 mkGraph world = jsNewObject "Graph" [] world
 
@@ -61,5 +59,5 @@ hasEdge graph ev world
   # (jb, world) = callObjectMethod "hasEdge" [] graph world
   = (jsValToBool jb, world)
 
-eachNode :: GLGraph (JSVal (JSFunction f)) *JSWorld -> *JSWorld
+eachNode :: GLGraph (JSFun f) *JSWorld -> *JSWorld
 eachNode graph jsf world = snd (callObjectMethod "eachNode" [toJSArg jsf] graph world)

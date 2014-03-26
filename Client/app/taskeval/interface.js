@@ -187,25 +187,28 @@ function __iTasks_API_Core_Client_Interface_newJSArray(world){
 
 // toJSVal :: !a -> JSVal b
 function __iTasks_API_Core_Client_Interface_toJSVal(val){
-
 	val = Sapl.feval(val);
 
-	var eventHandler = function(expr){
-		
-		var h = function(){
-			expr[1].concat(arguments);
-			Sapl.feval(expr);
-		};
-		
-		return h;
-    }
-
 	// if an argument is a function, we handle it as an event handler
-	if(isArray(val) && isFunction(val[0])){
-		return ___wrapJS(eventHandler(val));
-	}else{
-		return ___wrapJS(Sapl.toJS(val));
-	}
+  if (isArray(val)) {
+    if (val[1] === "JSVal") {
+      return val;
+    } else if (isFunction(val[0])) {
+      var eventHandler = function(expr) {
+        var h = function() {
+          expr[1].concat(arguments);
+          Sapl.feval(expr);
+        };
+        return h;
+      }
+
+      return ___wrapJS(eventHandler(val));
+    } else {
+      return ___wrapJS(Sapl.toJS(val));
+    }
+  } else {
+    return ___wrapJS(Sapl.toJS(val));
+  }
 }
 
 // toJSArg :: !a -> JSArg

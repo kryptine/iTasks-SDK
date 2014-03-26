@@ -14,6 +14,7 @@ $button-text-color: $canvas-text-color;
 
 body {
     height: 100%;
+    width: 100%;
     margin: 0;
 
     font-family: tahoma, arial, verdana, sans-serif;
@@ -21,8 +22,24 @@ body {
 
     display: flex;
     display: -webkit-flex;
+
     flex-direction: column;
     -webkit-flex-direction: column;
+    overflow: auto;
+}
+#viewport {
+    height: 0px;
+
+    display: flex;
+    display: -webkit-flex;
+
+    flex-direction: column;
+    -webkit-flex-direction: column;
+
+    flex-grow: 1;
+    -webkit-flex-grow: 1;
+    align-self: stretch;
+    -webkit-align-self: stretch;
     align-items: center;
     -webkit-align-items: center;
     justify-content: center;
@@ -51,6 +68,7 @@ body {
 }
 .button-label {
     margin: 0 4px;
+    height: 16px;
 }
 .button-icon {
     width: 16px;
@@ -109,6 +127,8 @@ body {
     -webkit-align-items: stretch;
     flex-direction: column;
     -webkit-flex-direction: column;
+
+   overflow-y: auto;
 }
 .tabbar {
     text-align: left;
@@ -185,12 +205,16 @@ body {
 }
 .tabitem {
    display: none;
+   height: 0px;
 }
 .tabitem.selected {
    display: flex;
    display: -webkit-flex;
-   flex: 1;
-   -webkit-flex: 1;
+   flex-grow: 1;
+   -webkit-flex-grow: 1;
+   flex-shrink: 0;
+   -webkit-flex-shrink: 0;
+
    background: #fff;
    color: #000;
    z-index: 2;

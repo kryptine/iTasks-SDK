@@ -2,56 +2,66 @@ implementation module iTasks.API.Core.Client.Interface
 
 import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 
-:: JSWorld = JSWorld
-:: JSVal a = JSVal !a
+:: JSWorld  = JSWorld
+:: JSVal a  = JSVal !a
 
 // It describes what is the goal, but the actual wrapping doesn't happen,
 // don't try to unwrap it!
 :: JSArg = E.a: JSArg (JSVal a)
 
-:: JSWindow = JSWindow
-:: JSDocument = JSDocument
+:: JSWindow     = JSWindow
+:: JSDocument   = JSDocument
 :: JSFunction a = JSFunction
-:: JSObject	= JSObject
-:: JSEvent	= JSEvent
+:: JSArray    a = JSArray
+:: JSObject   a = JSObject
+:: JSEvent      = JSEvent
 
-jsNull :: (JSVal a)
+jsNull :: JSVal a
 jsNull = undef
 
-jsWindow :: (JSVal JSWindow)
+jsWindow :: JSObj JSWindow
 jsWindow = undef
 
-jsDocument :: (JSVal JSDocument)
+jsDocument :: JSObj JSDocument
 jsDocument = undef
 
-jsEmptyObject :: !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsEmptyObject :: !*JSWorld -> *(!JSObj a, !*JSWorld)
 jsEmptyObject world = undef
 
-jsNewObject	:: !String ![JSArg] !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsNewObject	:: !String ![JSArg] !*JSWorld -> *(!JSObj b, !*JSWorld)
 jsNewObject cons_name args world = undef
 
-jsGetObjectAttr :: !String !(JSVal a) !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsGetObjectAttr :: !String !(JSObj a) !*JSWorld -> *(!JSVal b, !*JSWorld)
 jsGetObjectAttr attr obj world = undef
 
-jsGetObjectEl :: !Int !(JSVal o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+jsGetObjectEl :: !Int !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
 jsGetObjectEl index obj world = undef
 
-jsSetObjectAttr	:: !String !(JSVal v) !(JSVal o) !*JSWorld -> *JSWorld
+jsSetObjectAttr	:: !String !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
 jsSetObjectAttr attr value obj world = undef
 
-jsSetObjectEl :: !Int !(JSVal v) !(JSVal o) !*JSWorld -> *JSWorld
+jsSetObjectEl :: !Int !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
 jsSetObjectEl index value obj world = undef
 
-jsDeleteObjectAttr :: !String !(JSVal o) !*JSWorld -> *JSWorld
+jsDeleteObjectAttr :: !String !(JSObj o) !*JSWorld -> *JSWorld
 jsDeleteObjectAttr value obj world = undef
 
-jsApply	:: !(JSVal (JSFunction f)) !(JSVal scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+(.#) infixl 3 :: a b -> (a, b)
+(.#) a b = (a, b)
+
+.? :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
+.? (obj, attr) world = jsGetObjectAttr attr obj world
+
+(.=) infixl 2 :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
+(.=) (obj, attr) val = \world -> jsSetObjectAttr attr val obj world
+
+jsApply	:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
 
-jsWrapFun :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f), !*JSWorld)
+jsWrapFun :: !([JSArg] *JSWorld -> *(!JSVal a, !*JSWorld)) !*JSWorld -> *(!JSFun f, !*JSWorld)
 jsWrapFun fun world = undef
 
-jsThis :: !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsThis :: !*JSWorld -> *(!JSObj a, !*JSWorld)
 jsThis world = undef
 
 jsTypeof :: !(JSVal a) -> String
@@ -60,7 +70,7 @@ jsTypeof obj = undef
 jsAbort :: a -> b
 jsAbort _ = undef
 
-newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
+newJSArray :: !*JSWorld -> *(!JSArr a, !*JSWorld)
 newJSArray world  = undef
 
 toJSVal :: !a -> JSVal b
@@ -80,23 +90,23 @@ fromJSVal ptr world = undef
 
 //UTIL
 
-jsArrayPush :: !(JSVal a) !(JSVal [a]) !*JSWorld -> *(!JSVal [a], !*JSWorld)
+jsArrayPush :: !(JSVal a) !(JSArr a) !*JSWorld -> *(!JSArr a, !*JSWorld)
 jsArrayPush x arr world = callObjectMethod "push" [toJSArg x] arr world
 
-jsArrayPop :: !(JSVal [a]) !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsArrayPop :: !(JSArr a) !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsArrayPop arr world = callObjectMethod "pop" [] arr world
 
-jsArrayReverse :: !(JSVal [a]) !*JSWorld -> *(!JSVal [a], !*JSWorld)
+jsArrayReverse :: !(JSArr a) !*JSWorld -> *(!JSArr a, !*JSWorld)
 jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
 
-toJSArray :: ![a] !*JSWorld -> *(!JSVal [a], !*JSWorld)
+toJSArray :: ![a] !*JSWorld -> *(!JSArr a, !*JSWorld)
 toJSArray xs world
   # (arr, world) = newJSArray world
   # world = foldl (op arr) world (zip2 [0..] xs)
   = (arr, world)
   where op arr world (i, arg) = jsSetObjectEl i (toJSVal arg) arr world
 
-fromJSArray         :: (JSVal a) ((JSVal b) -> c)       !*JSWorld -> *([c], !*JSWorld)
+fromJSArray :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 fromJSArray arr f world
   # (l, world) = jsGetObjectAttr "length" arr world
   = fromJSArray` 0 (jsValToInt l) arr world
@@ -117,7 +127,7 @@ getDomElement elemId world
 
 getDomAttr :: !DomElementId !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 getDomAttr elemId attr world
-	# (elem,world)	= getDomElement elemId world
+	# (elem, world)	= getDomElement elemId world
 	= jsGetObjectAttr attr elem world
 	
 setDomAttr :: !DomElementId !String !(JSVal a) !*JSWorld -> *JSWorld
@@ -125,7 +135,7 @@ setDomAttr elemId attr value world
 	# (elem, world)	= getDomElement elemId world
 	= jsSetObjectAttr attr value elem world
 
-findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
+findObject :: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
 findObject query world
 	# (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
 	= case attrs of
@@ -137,12 +147,43 @@ where
 		= (obj, world)
 		= jsGetObjectAttr attr obj world
 
-callObjectMethod	:: !String ![JSArg] !(JSVal o) !*JSWorld -> *(!JSVal c, !*JSWorld)
+class ToArgs a where
+  toArgs :: a -> [JSArg]
+
+instance ToArgs [a] where
+  toArgs xs = map toJSArg xs
+
+instance ToArgs (a, b) where
+  toArgs (x, y) = [toJSArg x, toJSArg y]
+
+instance ToArgs (a, b, c) where
+  toArgs (x, y, z) = [toJSArg x, toJSArg y, toJSArg z]
+
+instance ToArgs (a, b, c, d) where
+  toArgs (x, y, z, p) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p]
+
+instance ToArgs (a, b, c, d, e) where
+  toArgs (x, y, z, p, q) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p, toJSArg q]
+
+instance ToArgs (a, b, c, d, e, f) where
+  toArgs (x, y, z, p, q, r) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p, toJSArg q, toJSArg r]
+
+class JSCall o where
+  (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
+
+instance JSCall String where
+  (.$) fun args = \world -> callFunction fun (toArgs args) world
+
+instance JSCall (JSObj o, String) where
+  (.$) (obj, fun) args = \world -> callObjectMethod fun (toArgs args) obj world
+
+
+callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 callObjectMethod method args obj world
 	# (fun, world) = jsGetObjectAttr method obj world
 	= jsApply fun obj args world
 
-addJSFromUrl :: !String !(Maybe (JSVal (JSFunction a))) !*JSWorld -> *JSWorld
+addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
 addJSFromUrl url mbCallback world
 	//Create script tag
 	# (script,world)	= callObjectMethod "createElement" [toJSArg "script"] jsDocument world

@@ -4,6 +4,7 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.CodeMirror
+import iTasks.API.Extensions.GIS.GoogleMap
 import iTasks.API.Extensions.GIS.Leaflet
 
 import StdDebug
@@ -52,7 +53,7 @@ where
 		# world	= setDomAttr id "value" (toJSVal val) world
 		= (val,world)
 	
-	onChange  :: ComponentId {JSVal JSEvent} String *JSWorld -> (!String, !*JSWorld)
+	onChange  :: ComponentId {JSObj JSEvent} String *JSWorld -> (!String, !*JSWorld)
 	onChange id _ val world
 		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
 		
@@ -189,7 +190,7 @@ where
 	onUpdate :: ComponentId (Maybe (TicTacToe,TicTac)) (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	onUpdate editorId _ state world = (state,world) //(state,redraw "tictactoe" state world)
 
-	onCellClick :: Coordinate ComponentId {JSVal JSEvent} (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
+	onCellClick :: Coordinate ComponentId {JSObj JSEvent} (TicTacToe,TicTac) *JSWorld -> (!(TicTacToe,TicTac), !*JSWorld)
 	onCellClick coord editorId event (board,turn) world
 		# state = (add_cell coord turn board, ~turn)
 		= (state, redraw "tictactoe" state world)

@@ -9,7 +9,7 @@ from StdClass import class Ord, class Eq
 from Data.Map import :: Map, newMap, get, put, toList
 from Data.Set import :: Set, newSet
 
-from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSEvent
+from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSEvent, :: JSObj, :: JSObject
 from iTasks.API.Core.Client.Component import :: ComponentEventHandlerFunc, :: ComponentEvent
 from iTasks.API.Core.Client.Editlet import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
 
