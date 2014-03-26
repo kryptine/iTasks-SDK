@@ -97,8 +97,23 @@ withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
 callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
 
-class JSCall a where
-  (.$) infixl 1 :: !a ![JSArg] -> *(*JSWorld -> *(JSVal r, !*JSWorld))
+class ToArgs a where
+  toArgs :: a -> [JSArg]
+
+instance ToArgs [a]
+
+instance ToArgs (a, b)
+
+instance ToArgs (a, b, c)
+
+instance ToArgs (a, b, c, d)
+
+instance ToArgs (a, b, c, d, e)
+
+instance ToArgs (a, b, c, d, e, f)
+
+class JSCall o where
+  (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
 
 instance JSCall String
 

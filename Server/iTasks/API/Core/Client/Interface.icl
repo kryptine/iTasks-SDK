@@ -145,14 +145,35 @@ where
 		= (obj, world)
 		= jsGetObjectAttr attr obj world
 
-class JSCall a where
-  (.$) infixl 1 :: !a ![JSArg] -> *(*JSWorld -> *(JSVal r, !*JSWorld))
+class ToArgs a where
+  toArgs :: a -> [JSArg]
+
+instance ToArgs [a] where
+  toArgs xs = map toJSArg xs
+
+instance ToArgs (a, b) where
+  toArgs (x, y) = [toJSArg x, toJSArg y]
+
+instance ToArgs (a, b, c) where
+  toArgs (x, y, z) = [toJSArg x, toJSArg y, toJSArg z]
+
+instance ToArgs (a, b, c, d) where
+  toArgs (x, y, z, p) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p]
+
+instance ToArgs (a, b, c, d, e) where
+  toArgs (x, y, z, p, q) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p, toJSArg q]
+
+instance ToArgs (a, b, c, d, e, f) where
+  toArgs (x, y, z, p, q, r) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p, toJSArg q, toJSArg r]
+
+class JSCall o where
+  (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
 
 instance JSCall String where
-  (.$) fun args = \world -> callFunction fun args world
+  (.$) fun args = \world -> callFunction fun (toArgs args) world
 
 instance JSCall (JSObj o, String) where
-  (.$) (obj, fun) args = \world -> callObjectMethod fun args obj world
+  (.$) (obj, fun) args = \world -> callObjectMethod fun (toArgs args) obj world
 
 
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
