@@ -247,6 +247,8 @@ instance tune Title
 where tune (Title title) t = tune (AfterLayout (uiDefSetAttribute TITLE_ATTRIBUTE title)) t
 instance tune Icon
 where tune (Icon icon) t = tune (AfterLayout (uiDefSetAttribute ICON_ATTRIBUTE icon)) t
+instance tune Attribute
+where tune (Attribute k v) t = tune (AfterLayout (uiDefSetAttribute k v)) t
 
 instance tune NoUserInterface
 where

@@ -66,6 +66,7 @@ instance tune FullScreen
 //Attribute tuning types
 instance tune Title
 instance tune Icon
+instance tune Attribute
 
 :: NoUserInterface  = NoUserInterface   //Don't create a user interface for this task
 instance tune NoUserInterface
