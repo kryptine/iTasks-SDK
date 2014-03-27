@@ -153,6 +153,9 @@ class ToArgs a where
 instance ToArgs Void where
   toArgs _ = []
 
+instance ToArgs JSArg where
+  toArgs x = [x]
+
 instance ToArgs [JSArg] where
   toArgs xs = xs
 

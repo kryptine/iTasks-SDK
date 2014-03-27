@@ -106,6 +106,8 @@ class ToArgs a where
 
 instance ToArgs Void
 
+instance ToArgs JSArg
+
 instance ToArgs [JSArg]
 
 instance ToArgs (a, b)
