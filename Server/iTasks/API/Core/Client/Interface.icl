@@ -52,8 +52,8 @@ jsDeleteObjectAttr value obj world = undef
 .? :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
 .? (obj, attr) world = jsGetObjectAttr attr obj world
 
-(.=) infixl 2 :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
-(.=) (obj, attr) val = \world -> jsSetObjectAttr attr val obj world
+(.=) infixl 2 :: !(!JSObj o, !String) !v -> !*(!*JSWorld -> !*JSWorld)
+(.=) (obj, attr) val = \world -> jsSetObjectAttr attr (toJSVal val) obj world
 
 jsApply	:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
@@ -150,8 +150,11 @@ where
 class ToArgs a where
   toArgs :: a -> [JSArg]
 
-instance ToArgs [a] where
-  toArgs xs = map toJSArg xs
+instance ToArgs Void where
+  toArgs _ = []
+
+instance ToArgs [JSArg] where
+  toArgs xs = xs
 
 instance ToArgs (a, b) where
   toArgs (x, y) = [toJSArg x, toJSArg y]

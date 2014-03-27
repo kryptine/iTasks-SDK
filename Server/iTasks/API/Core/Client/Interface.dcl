@@ -42,7 +42,7 @@ jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> *JSWorld
 
 (.#) infixl 3       :: a b -> (a, b)
 .?                  :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
-(.=) infixl 2       :: !(!JSObj o, !String) !(JSVal v) -> !*(!*JSWorld -> !*JSWorld)
+(.=) infixl 2       :: !(!JSObj o, !String) !v -> !*(!*JSWorld -> !*JSWorld)
 
 //Calling js functions
 jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -104,7 +104,9 @@ callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
 class ToArgs a where
   toArgs :: a -> [JSArg]
 
-instance ToArgs [a]
+instance ToArgs Void
+
+instance ToArgs [JSArg]
 
 instance ToArgs (a, b)
 

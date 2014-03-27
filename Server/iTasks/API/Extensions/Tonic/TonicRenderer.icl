@@ -492,9 +492,9 @@ drawNode_ allTraces userTracesMap shape graph u root world
 
 getBBox root world
   # (elem, world) = firstNode root world
-  # (bbox, world) = callObjectMethod "getBBox" [] elem world
-  # (jbbh, world) = jsGetObjectAttr "height" bbox world
-  # (jbbw, world) = jsGetObjectAttr "width" bbox world
+  # (bbox, world) = (elem .# "getBBox" .$ Void) world // callObjectMethod "getBBox" [] elem world
+  # (jbbh, world) = .? (bbox .# "height") world
+  # (jbbw, world) = .? (bbox .# "width") world
   = ((jsValToReal jbbh, jsValToReal jbbw), world)
 
 drawEdgeLabel :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
@@ -517,9 +517,9 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
                               Just strs -> breakText strs txt world
                               _         -> world
   # (rnd, world)          = firstNode root world
-  # (bbox, world)         = callObjectMethod "getBBox" [] rnd world
-  # (bbh, world)          = jsGetObjectAttr "height" bbox world
-  # (bbw, world)          = jsGetObjectAttr "width" bbox world
+  # (bbox, world)         = (rnd .# "getBBox" .$ Void) world // callObjectMethod "getBBox" [] rnd world
+  # (bbh, world)          = .? (bbox .# "height") world
+  # (bbw, world)          = .? (bbox .# "width") world // jsGetObjectAttr "width" bbox world
   # (bbh, bbw)            = (jsValToReal bbh, jsValToReal bbw)
   # (_, world)            = defaultLabelTransform bbh bbw lblSvg world
   # (_, world)            = setAttrs [ ("rx", toJSVal 5)
@@ -531,8 +531,8 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
                                      ] rect world
   # (patsGrp, world)      = append "g" grp world
   # (txt, world)          = firstNode txt world
-  # (bbox, world)         = callObjectMethod "getBBox" [] txt world
-  # (bbw, world)          = jsGetObjectAttr "width" bbox world
+  # (bbox, world)         = (txt .# "getBBox" .$ Void) world // callObjectMethod "getBBox" [] txt world
+  # (bbw, world)          = .? (bbox .# "width") world // jsGetObjectAttr "width" bbox world
   # ((patsGrp, _), world) = 'DM'.foldrWithKey f ((patsGrp, (jsValToReal bbw / bbh) + 0.25), world) userTracesMap
   = world
   where
