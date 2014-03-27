@@ -46,7 +46,7 @@ jsSetObjectEl index value obj world = undef
 jsDeleteObjectAttr :: !String !(JSObj o) !*JSWorld -> *JSWorld
 jsDeleteObjectAttr value obj world = undef
 
-(.#) infixl 3 :: a b -> (a, b)
+(.#) infixl 3 :: !(JSObj a) !String -> !(JSObj a, String)
 (.#) a b = (a, b)
 
 .? :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
@@ -121,7 +121,7 @@ fromJSArray arr f world
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined obj = jsTypeof obj == "undefined"
 	
-getDomElement :: !DomElementId !*JSWorld -> *(!JSVal a, !*JSWorld)
+getDomElement :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
 getDomElement elemId world
 	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
 

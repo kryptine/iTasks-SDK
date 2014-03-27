@@ -40,7 +40,7 @@ jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
 jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
 jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> *JSWorld
 
-(.#) infixl 3       :: a b -> (a, b)
+(.#) infixl 3       :: !(JSObj a)  !String -> !(JSObj a, String)
 .?                  :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
 (.=) infixl 2       :: !(!JSObj o, !String) !v -> !*(!*JSWorld -> !*JSWorld)
 
@@ -73,7 +73,7 @@ fromJSArray         :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 
 jsIsUndefined :: !(JSVal a) -> Bool
 
-getDomElement		:: !DomElementId					!*JSWorld -> *(!JSVal a, !*JSWorld)
+getDomElement		:: !DomElementId					!*JSWorld -> *(!JSObj a, !*JSWorld)
 getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
 setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
 
