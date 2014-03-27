@@ -78,6 +78,15 @@ where
 allTaskInstances :: ReadOnlyShared [TaskListItem Void]
 allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map toTaskListItem ti,iworld))
 
+taskInstanceByNo :: RWShared InstanceNo (TaskListItem Void) TaskAttributes
+taskInstanceByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) (sdsTranslate (\instanceNo -> {InstanceFilter|instanceNo=Just instanceNo,session=Nothing}) filteredInstanceMeta)
+where
+    read [i]    = Ok (toTaskListItem i)
+    read _      = Error "Task instance not found"
+
+    write [i] a = Ok (Just [{TIMeta|i &attributes = a}])
+    write _ _   = Error "Task instance not found"
+
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\Void iworld=:{current={user}} -> (user,iworld))
 

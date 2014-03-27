@@ -44,12 +44,15 @@ currentSessions 		:: ReadOnlyShared [TaskListItem Void]
 currentProcesses		:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 
+
+
 // Session
 currentUser				:: ReadOnlyShared User
 currentTopTask			:: ReadOnlyShared TaskId
 
 //Task instances
 allTaskInstances        :: ReadOnlyShared [TaskListItem Void]
+taskInstanceByNo        :: RWShared InstanceNo (TaskListItem Void) TaskAttributes
 
 // Application
 applicationName			:: ReadOnlyShared String	// Application name

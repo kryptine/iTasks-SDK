@@ -486,7 +486,7 @@ taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) tasklist
 where
     toPrj {TaskList|selfId,items} = case [m \\ m=:{TaskListItem|taskId} <- items | taskId == selfId] of
-        []                              = trace_n (length items) (Error "Task id not found in self management share")
+        []                              = Error "Task id not found in self management share"
         [{TaskListItem|attributes}:_]   = Ok attributes
 
     fromPrj attributes {TaskList|selfId}
