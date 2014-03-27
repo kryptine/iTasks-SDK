@@ -54,24 +54,20 @@ instance toString MouseEvent  where toString {screenPos,clientPos,buttonSt}
 
 toMouseEvent :: !ComponentId !ComponentId !(JSObj JSEvent) !*JSWorld -> (!MouseEvent,!*JSWorld)
 toMouseEvent svg_id elt_id event env
-# (clientX,env)		= .? (event,"clientX") env
-# (clientY,env)		= .? (event,"clientY") env
-# (screenX,env)		= .? (event,"screenX") env
-# (screenY,env)		= .? (event,"screenY") env
-# (button, env)		= .? (event,"button")  env
+# (clientX,env)		= .? (event .# "clientX") env
+# (clientY,env)		= .? (event .# "clientY") env
+# (screenX,env)		= .? (event .# "screenX") env
+# (screenY,env)		= .? (event .# "screenY") env
+# (button, env)		= .? (event .# "button")  env
 # (svg,env)			= getDomElement svg_id env
-//# (pt, env)			= callObjectMethod "createSVGPoint" [] svg env
 # (pt, env)			= (svg .# "createSVGPoint" .$ Void) env
-# env				= jsSetObjectAttr "x" clientX pt env
-# env				= jsSetObjectAttr "y" clientY pt env
-//# (ctm,env)			= callObjectMethod "getScreenCTM" [] svg env
+# env				= (pt .# "x" .= clientX) env
+# env				= (pt .# "y" .= clientY) env
 # (ctm,env)			= (svg .# "getScreenCTM" .$ Void) env
-//# (inv,env)			= callObjectMethod "inverse" [] ctm env
 # (inv,env)			= (ctm .# "inverse" .$ Void) env
-//# (pt`,  env)		= callObjectMethod "matrixTransform" [toJSArg inv] pt env
 # (pt`,env)			= (pt .# "matrixTransform" .$ [toJSArg inv]) env
-# (x, env)			= .? (pt`,"x") env
-# (y, env)			= .? (pt`,"y") env
+# (x, env)			= .? (pt` .# "x") env
+# (y, env)			= .? (pt` .# "y") env
 = ({ screenPos = (jsValToInt screenX,jsValToInt screenY)
    , clientPos = (jsValToInt x,jsValToInt y)
    , buttonSt  = case jsValToInt button of
