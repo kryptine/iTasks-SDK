@@ -1302,13 +1302,13 @@ itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
         }
         me.definition.iconCls = iconCls;
     },
-    setFocusTaskId: function(taskId) {
+    setFocusTaskId: function(focusTaskId) {
         var me = this;
-        me.definition.focusTaskId = taskId;
+        me.definition.focusTaskId = focusTaskId.length ? focusTaskId[0] : null;
     },
     setCloseTaskId: function(closeTaskId) {
         var me = this;
-        me.definition.closeTaskId = closeTaskId;
+        me.definition.closeTaskId = closeTaskId.length ? closeTaskId[0] : null;
     }
 });
 itwc.component.itwc_window = itwc.extend(itwc.Container,{
