@@ -4,9 +4,6 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import StdArray
-from   StdFunc import flip
-import StdDebug
-import GenPrint
 
 svg_rects :: Task Void
 svg_rects = (updateSharedInformation "Click the rects" [] share -&&- updateSharedInformation "What is clicked?" [UpdateWith view upd] share) @ const Void
@@ -37,20 +34,6 @@ gUpdate{|MR|} dp upd (mr,mask) iworld
 
 :: MouseEvent = {screenPos :: !(!Int,!Int), clientPos :: !(!Int,!Int), buttonSt :: !MouseButton}
 :: MouseButton = LeftButton | MiddleButton | RightButton
-/* printing using generic gPrint does not work.
-//derive gPrint MouseEvent, MouseButton, (,)
-instance toString MouseEvent  where toString me = printToString me
-instance toString MouseButton where toString mb = printToString mb
-*/
-// old-fashioned printing...
-instance toString (Maybe a) | toString a where toString Nothing = "Nothing"
-                                               toString (Just a) = "(Just " <+++ toString a <+++ ")"
-instance toString (a,b) | toString a & toString b where toString (a,b) = "(" <+++ toString a <+++ "," <+++ toString b <+++ ")"
-instance toString MouseButton where toString LeftButton   = "LeftButton"
-                                    toString MiddleButton = "MiddleButton"
-                                    toString RightButton  = "RightButton"
-instance toString MouseEvent  where toString {screenPos,clientPos,buttonSt}
-                                        = "{ screenPos = " <+++ toString screenPos <+++ " , clientPos = " <+++ toString clientPos <+++ " , buttonSt = " <+++ toString buttonSt <+++ "}"
 
 toMouseEvent :: !ComponentId !ComponentId !(JSObj JSEvent) !*JSWorld -> (!MouseEvent,!*JSWorld)
 toMouseEvent svg_id elt_id event env
@@ -92,7 +75,7 @@ where
 							                    , genDiff  = genServerDiff
 							                    , appDiff  = \i` (MR mrs _) -> consistent (MR mrs i`)
 							  }
-	client					= {EditletClientDef | updateUI = updUI
+	client					= {EditletClientDef | updateUI = updUI mrs
 							                    , defVal   = ((Initialize,i),i)
 							                    , genDiff  = genClientDiff
 							                    , appDiff  = \i` ((cst,_),i) -> ((cst,i`),i)
@@ -103,14 +86,8 @@ where
 	genUI cid env			= ({ComponentHTML | width      = ExactSize (maxx-minx)
 							                  , height     = ExactSize (maxy-miny)
 							                  , html       = DivTag [IdAttr (main_id cid)] 
-							                                    [SvgTag [IdAttr (main_svg_id cid)] [ViewBoxAttr (toString minx)
-							                                                                                    (toString miny)
-							                                                                                    (toString w)
-							                                                                                    (toString h)
-							                                                                       ] 
-							                                            [ (tosvg {r & framew = if (j==i) THICK THIN}) <@< (IdAttr (elt_id cid j))
-							                                            \\ r <- mrs & j <- [0..]
-							                                            ]
+							                                    [SvgTag [IdAttr (main_svg_id cid)]
+							                                            [ViewBoxAttr (toString minx) (toString miny) (toString w) (toString h)] []
 							                                    ]
 							                  , eventHandlers = []
 							   }
@@ -120,15 +97,26 @@ where
 	genServerDiff (MR _ i) (MR _ i`)
 		= diffUI i i`
 	
-	updUI cid mi ((Initialize,i`),i) env
-	# env					= foldr add_click env [0..length mrs-1]
-	= updUI cid mi ((Running,i`),i) env
+	updUI mrs cid mi ((Initialize,i`),i) env
+	# env					= foldl add_rect env [(mr,i) \\ mr <- mrs & i <- [0..]]
+	= updUI mrs cid mi ((Running,i`),i) env
 	where
-		add_click i env
-		# (rect,env)		= getDomElement (elt_id cid i) env
-		# (_,env)			= callObjectMethod "addEventListener" [toJSArg "click",toJSArg (createEditletEventHandler (select_rect i) cid)] rect env
+		add_rect env (mr,i)
+		# (rect,env)		= (jsDocument .# "createElementNS" .$ [toJSArg "http://www.w3.org/2000/svg", toJSArg "rect"]) env
+		# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "id",           toJSArg (elt_id cid i)]) env
+		# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "width",        toJSArg (toString (fst mr.ModelRect.size)+++"px")]) env
+		# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "height",       toJSArg (toString (snd mr.ModelRect.size)+++"px")]) env
+		# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "x",            toJSArg (toString (fst mr.ModelRect.pos)+++"px")]) env
+		# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "y",            toJSArg (toString (fst mr.ModelRect.pos)+++"px")]) env
+		# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke-width", toJSArg (toString mr.ModelRect.framew+++"px")]) env
+		# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke",       toJSArg mr.ModelRect.frame]) env
+		# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "fill",         toJSArg mr.ModelRect.fill]) env
+		# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "fill-opacity", toJSArg (toString mr.ModelRect.opacity)]) env
+		# (_,env)			= (rect .# "addEventListener" .$ [toJSArg "click",toJSArg (createEditletEventHandler (select_rect i) cid)]) env
+		# (svg,env)			= getDomElement (main_svg_id cid) env
+		# (_,env)			= (svg .# "appendChild" .$ [toJSArg rect]) env
 		= env
-	updUI cid mi ((running,_),i) env
+	updUI _ cid mi ((running,_),i) env
 	# env					= set_framew (elt_id cid i)  THIN  env
 	# env					= set_framew (elt_id cid i`) THICK env
 	= (((running,i`),i`),env)
@@ -154,7 +142,7 @@ select_rect i` cid events=:{[0]=event} ((cst,_),i) env
 set_framew :: ComponentId Int *JSWorld -> *JSWorld
 set_framew cid fw env
 # (r,env)			= getDomElement cid env
-# (_,env)			= callObjectMethod "setAttribute" [toJSArg "stroke-width",toJSArg (toString fw+++"px")] r env
+# (_,env)			= (r .# "setAttribute" .$ [toJSArg "stroke-width",toJSArg (toString fw+++"px")]) env
 = env
 
 main_id :: ComponentId -> ComponentId
@@ -166,39 +154,9 @@ main_svg_id cid = cid +++ "-svg"
 elt_id :: ComponentId Int -> ComponentId
 elt_id cid nr = main_svg_id cid +++ "-" +++ toString nr
 
-main_svg_mouse :: ComponentId *JSWorld -> (!(!Int,!Int),!*JSWorld)
-main_svg_mouse cid env
-# (main_svg,env)		= getDomElement (main_svg_id cid) env
-# (clientX,env)			= .? (main_svg,"x") env
-# (clientY,env)			= .? (main_svg,"y") env
-= ((jsValToInt clientX,jsValToInt clientY),env)
-
 boundingbox :: [ModelRect] -> (Int,Int,Int,Int)
 boundingbox mrs
 	= (minx-THICK/2, miny-THICK/2, maxx+THICK/2, maxy+THICK/2)
 where
 	(minx,miny,maxx,maxy)	= foldr (\{pos=(x,y),size=(w,h)} (minx,miny,maxx,maxy) -> (min minx x, min miny y, max maxx (x+w), max maxy (y+h))) 
 							        (zero,zero,zero,zero) mrs
-
-tosvg :: ModelRect -> SVGElt
-tosvg r
-	= RectElt [ WidthAttr       (toString          (fst r.ModelRect.size)+++"px")
-              , HeightAttr      (toString          (snd r.ModelRect.size)+++"px")
-              ]
-              [ XAttr           (toString          (fst r.ModelRect.pos),PX)
-              , YAttr           (toString          (snd r.ModelRect.pos),PX)
-              , StrokeWidthAttr (StrokeWidthLength (toString r.ModelRect.framew,PX))
-              , StrokeAttr      (PaintColor        (SVGColorText r.ModelRect.frame) Nothing)
-              , FillAttr        (PaintColor        (SVGColorText r.ModelRect.fill)  Nothing)
-              , FillOpacityAttr (FillOpacity       (toString r.ModelRect.opacity))
-              ]
-
-class (<@<) infixl a :: !SVGElt !a -> SVGElt
-instance <@< HtmlAttr where <@< (SVGElt   html_attrs svg_attrs svg_elts) html_attr = SVGElt   [html_attr : html_attrs] svg_attrs svg_elts
-                            <@< (GElt     html_attrs svg_attrs svg_elts) html_attr = GElt     [html_attr : html_attrs] svg_attrs svg_elts
-                            <@< (ImageElt html_attrs svg_attrs svg_elts) html_attr = ImageElt [html_attr : html_attrs] svg_attrs svg_elts
-                            <@< (RectElt  html_attrs svg_attrs)          html_attr = RectElt  [html_attr : html_attrs] svg_attrs
-instance <@< SVGAttr  where <@< (SVGElt   html_attrs svg_attrs svg_elts)  svg_attr = SVGElt   html_attrs [svg_attr : svg_attrs] svg_elts
-                            <@< (GElt     html_attrs svg_attrs svg_elts)  svg_attr = GElt     html_attrs [svg_attr : svg_attrs] svg_elts
-                            <@< (ImageElt html_attrs svg_attrs svg_elts)  svg_attr = ImageElt html_attrs [svg_attr : svg_attrs] svg_elts
-                            <@< (RectElt  html_attrs svg_attrs)           svg_attr = RectElt  html_attrs [svg_attr : svg_attrs]
