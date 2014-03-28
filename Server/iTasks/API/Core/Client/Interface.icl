@@ -46,14 +46,26 @@ jsSetObjectEl index value obj world = undef
 jsDeleteObjectAttr :: !String !(JSObj o) !*JSWorld -> *JSWorld
 jsDeleteObjectAttr value obj world = undef
 
-(.#) infixl 3 :: !(JSObj a) !String -> !(JSObj a, String)
+class JSObjAttr a where
+  jsSetter :: !a !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
+  jsGetter :: !a            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+
+instance JSObjAttr String where
+  jsSetter idx val obj world = jsSetObjectAttr idx val obj world
+  jsGetter idx     obj world = jsGetObjectAttr idx obj world
+
+instance JSObjAttr Int where
+  jsSetter idx val obj world = jsSetObjectEl idx val obj world
+  jsGetter idx     obj world = jsGetObjectEl idx obj world
+
+(.#) infixl 3 :: !(JSObj a) !t -> !(JSObj a, t) | JSObjAttr t
 (.#) a b = (a, b)
 
-.? :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
-.? (obj, attr) world = jsGetObjectAttr attr obj world
+.? :: !(!JSObj o, !t) !*JSWorld -> !*(!JSVal r, !*JSWorld) | JSObjAttr t
+.? (obj, attr) world = jsGetter attr obj world
 
-(.=) infixl 2 :: !(!JSObj o, !String) !v -> !*(!*JSWorld -> !*JSWorld)
-(.=) (obj, attr) val = \world -> jsSetObjectAttr attr (toJSVal val) obj world
+(.=) infixl 2 :: !(!JSObj o, !t) !v -> !*(!*JSWorld -> !*JSWorld) | JSObjAttr t
+(.=) (obj, attr) val = \world -> jsSetter attr (toJSVal val) obj world
 
 jsApply	:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
@@ -135,17 +147,17 @@ setDomAttr elemId attr value world
 	# (elem, world)	= getDomElement elemId world
 	= jsSetObjectAttr attr value elem world
 
-findObject :: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
+findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 findObject query world
-	# (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
-	= case attrs of
-		[]	= (obj,world)
-			= foldl op (obj,world) attrs
-where
-	[attr:attrs] = split "." query
-	op (obj,world) attr | jsIsUndefined obj
-		= (obj, world)
-		= jsGetObjectAttr attr obj world
+  # (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
+  = case attrs of
+      []  = (obj,world)
+          = foldl op (obj,world) attrs
+  where
+    [attr:attrs] = split "." query
+    op (obj, world) attr = ifObj obj
+                             (\obj -> jsGetObjectAttr attr obj)
+                             obj world
 
 class ToArgs a where
   toArgs :: a -> [JSArg]
@@ -256,8 +268,43 @@ withDef f def ptr | jsIsUndefined ptr
 	= def 
 	= f ptr
 
-callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
+callFunction :: !String ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 callFunction fn args world = callObjectMethod fn args jsWindow world
 
-jsUnsafeCoerce :: (JSVal a) -> (JSVal b)
+jsUnsafeCoerce :: !(JSVal a) -> (JSVal b)
 jsUnsafeCoerce x = undef
+
+jsUnsafeObjCoerce :: !(JSVal a) -> (JSObj b)
+jsUnsafeObjCoerce x = undef
+
+jsUnsafeArrCoerce :: !(JSVal a) -> (JSArr b)
+jsUnsafeArrCoerce x = undef
+
+jsUnsafeFunCoerce :: !(JSVal a) -> (JSFun b)
+jsUnsafeFunCoerce x = undef
+
+ifObj :: !(JSVal a) !(!(JSObj b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifObj val f def world
+  | t == "object" || t == "string" = f (jsUnsafeObjCoerce val) world
+  | otherwise                      = (def, world)
+  where t = jsTypeof val
+
+ifArr :: !(JSVal a) !(!(JSArr b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifArr val f def world
+  # (isArr, world) = jsIsArray val world
+  | isArr     = f (jsUnsafeArrCoerce val) world
+  | otherwise = (def, world)
+
+ifFun :: !(JSVal a) !(!(JSFun b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifFun val f def world
+  | jsTypeof val == "function" = f (jsUnsafeFunCoerce val) world
+  | otherwise                  = (def, world)
+
+jsIsArray :: !(JSVal a) !*JSWorld -> *(Bool, !*JSWorld)
+jsIsArray x world
+  # (arr, world) = findObject "Array" world
+  # (jb, world)  = callObjectMethod "isArray" [] arr world
+  = (jsValToBool jb, world)
+
+jsIsNull :: !(JSVal a) -> Bool
+jsIsNull x = undef

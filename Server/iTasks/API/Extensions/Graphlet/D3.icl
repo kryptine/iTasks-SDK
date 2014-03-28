@@ -43,7 +43,7 @@ setText str d3 world = callObjectMethod "text" [toJSArg str] d3 world
 setTextWith :: (JSFun c) D3 *JSWorld -> *(D3, *JSWorld)
 setTextWith f d3 world = callObjectMethod "text" [toJSArg f] d3 world
 
-firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)
+firstNode :: D3 *JSWorld -> *(JSObj v, *JSWorld)
 firstNode d3 world = callObjectMethod "node" [] d3 world
 
 appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)

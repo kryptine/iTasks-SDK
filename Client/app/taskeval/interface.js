@@ -179,6 +179,12 @@ function __iTasks_API_Core_Client_Interface_jsAbort(obj) {
     throw obj;
 }
 
+//jsIsNull :: !(JSVal a) -> !Bool
+function __iTasks_API_Core_Client_Interface_jsIsNull(val) {
+  val = ___unwrapJS(Sapl.feval(val));
+  return (val === null);
+}
+
 // newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
 function __iTasks_API_Core_Client_Interface_newJSArray(world){
 	world = Sapl.feval(world);
@@ -242,6 +248,25 @@ function __iTasks_API_Core_Client_Interface_fromJSVal(ptr, world){
 function __iTasks_API_Core_Client_Interface_jsUnsafeCoerce(expr){
   return Sapl.feval(expr);
 }
+
+// jsUnsafeObjCoerce :: (JSVal a) -> JSObj b
+function __iTasks_API_Core_Client_Interface_jsUnsafeObjCoerce(expr){
+  return Sapl.feval(expr);
+}
+
+// jsUnsafeFunCoerce :: (JSVal a) -> JSFun b
+function __iTasks_API_Core_Client_Interface_jsUnsafeFunCoerce(expr){
+  return Sapl.feval(expr);
+}
+
+// jsUnsafeArrCoerce :: (JSVal a) -> JSArr b
+function __iTasks_API_Core_Client_Interface_jsUnsafeArrCoerce(expr){
+  return Sapl.feval(expr);
+}
+
+
+
+
 
 // createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal b) 
 function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId){

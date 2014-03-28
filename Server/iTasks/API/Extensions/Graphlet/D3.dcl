@@ -31,7 +31,7 @@ setText :: String D3 *JSWorld -> *(D3, *JSWorld)
 
 setTextWith :: (JSFun c) D3 *JSWorld -> *(D3, *JSWorld)
 
-firstNode :: D3 *JSWorld -> *(JSVal v, *JSWorld)
+firstNode :: D3 *JSWorld -> *(JSObj v, *JSWorld)
 
 appendHtml :: HtmlTag D3 *JSWorld -> *(D3, *JSWorld)
 

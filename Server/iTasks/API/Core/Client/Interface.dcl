@@ -36,13 +36,21 @@ jsEmptyObject       ::                               !*JSWorld -> *(!JSObj a, !*
 jsNewObject         :: !String ![JSArg]              !*JSWorld -> *(!JSObj b, !*JSWorld)
 jsGetObjectAttr     :: !String            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
 jsGetObjectEl       :: !Int               !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
-jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
-jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
-jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> *JSWorld
+jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
+jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
+jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> !*JSWorld
 
-(.#) infixl 3       :: !(JSObj a)  !String -> !(JSObj a, String)
-.?                  :: !(!JSObj o, !String) !*JSWorld -> !*(!JSVal r, !*JSWorld)
-(.=) infixl 2       :: !(!JSObj o, !String) !v -> !*(!*JSWorld -> !*JSWorld)
+class JSObjAttr a where
+  jsSetter :: !a !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
+  jsGetter :: !a            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
+
+instance JSObjAttr String
+
+instance JSObjAttr Int
+
+(.#) infixl 3       :: !(JSObj a)  !t -> !(JSObj a, t) | JSObjAttr t
+.?                  :: !(!JSObj o, !t) !*JSWorld -> !*(!JSVal r, !*JSWorld) | JSObjAttr t
+(.=) infixl 2       :: !(!JSObj o, !t) !v -> !*(!*JSWorld -> !*JSWorld) | JSObjAttr t
 
 //Calling js functions
 jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -82,7 +90,7 @@ callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWor
 
 //Get a value from the global scope.
 //The argument may be in dotted notation (e.g. google.maps.MayTypeId.ROADMAP) for deep searching
-findObject			:: !String !*JSWorld -> *(!JSObj a, !*JSWorld)
+findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 //Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
@@ -98,8 +106,6 @@ jsValToInt    :: !(JSVal a) -> Int
 jsValToBool   :: !(JSVal a) -> Bool
 
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
-
-callFunction :: String [JSArg] *JSWorld -> *(JSVal a, *JSWorld)
 
 class ToArgs a where
   toArgs :: a -> [JSArg]
@@ -127,4 +133,22 @@ instance JSCall String
 
 instance JSCall (JSObj o, String)
 
-jsUnsafeCoerce :: (JSVal a) -> (JSVal b)
+callFunction :: !String ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
+
+jsUnsafeCoerce :: !(JSVal a) -> (JSVal b)
+
+jsUnsafeObjCoerce :: !(JSVal a) -> (JSObj b)
+
+jsUnsafeArrCoerce :: !(JSVal a) -> (JSArr b)
+
+jsUnsafeFunCoerce :: !(JSVal a) -> (JSFun b)
+
+ifObj :: !(JSVal a) !(!(JSObj b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+
+ifArr :: !(JSVal a) !(!(JSArr b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+
+ifFun :: !(JSVal a) !(!(JSFun b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+
+jsIsArray :: !(JSVal a) !*JSWorld -> *(Bool, !*JSWorld)
+
+jsIsNull :: !(JSVal a) -> Bool
