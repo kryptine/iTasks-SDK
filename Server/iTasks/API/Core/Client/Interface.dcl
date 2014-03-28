@@ -36,21 +36,21 @@ jsEmptyObject       ::                               !*JSWorld -> *(!JSObj a, !*
 jsNewObject         :: !String ![JSArg]              !*JSWorld -> *(!JSObj b, !*JSWorld)
 jsGetObjectAttr     :: !String            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
 jsGetObjectEl       :: !Int               !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
-jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
-jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
-jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> !*JSWorld
+jsSetObjectAttr     :: !String !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
+jsSetObjectEl       :: !Int    !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
+jsDeleteObjectAttr  :: !String            !(JSObj o) !*JSWorld -> *JSWorld
 
 class JSObjAttr a where
-  jsSetter :: !a !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
+  jsSetter :: !a !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
   jsGetter :: !a            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
 
 instance JSObjAttr String
 
 instance JSObjAttr Int
 
-(.#) infixl 3       :: !(JSObj a)  !t -> !(JSObj a, t) | JSObjAttr t
-.?                  :: !(!JSObj o, !t) !*JSWorld -> !*(!JSVal r, !*JSWorld) | JSObjAttr t
-(.=) infixl 2       :: !(!JSObj o, !t) !v -> !*(!*JSWorld -> !*JSWorld) | JSObjAttr t
+(.#) infixl 3       :: !(JSObj a)  !t -> (JSObj a, t) | JSObjAttr t
+.?                  :: !(!JSObj o, !t) !*JSWorld -> *(!JSVal r, !*JSWorld) | JSObjAttr t
+(.=) infixl 2       :: !(!JSObj o, !t) !v -> *(*JSWorld -> *JSWorld) | JSObjAttr t
 
 //Calling js functions
 jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -135,20 +135,20 @@ instance JSCall (JSObj o, String)
 
 callFunction :: !String ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 
-jsUnsafeCoerce :: !(JSVal a) -> (JSVal b)
+jsUnsafeCoerce :: !(JSVal a) -> JSVal b
 
-jsUnsafeObjCoerce :: !(JSVal a) -> (JSObj b)
+jsUnsafeObjCoerce :: !(JSVal a) -> JSObj b
 
-jsUnsafeArrCoerce :: !(JSVal a) -> (JSArr b)
+jsUnsafeArrCoerce :: !(JSVal a) -> JSArr b
 
-jsUnsafeFunCoerce :: !(JSVal a) -> (JSFun b)
+jsUnsafeFunCoerce :: !(JSVal a) -> JSFun b
 
-ifObj :: !(JSVal a) !(!(JSObj b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifObj :: !(JSVal a) !((JSObj b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
-ifArr :: !(JSVal a) !(!(JSArr b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifArr :: !(JSVal a) !((JSArr b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
-ifFun :: !(JSVal a) !(!(JSFun b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifFun :: !(JSVal a) !((JSFun b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
-jsIsArray :: !(JSVal a) !*JSWorld -> *(Bool, !*JSWorld)
+jsIsArray :: !(JSVal a) !*JSWorld -> *(!Bool, !*JSWorld)
 
 jsIsNull :: !(JSVal a) -> Bool

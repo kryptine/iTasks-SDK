@@ -271,36 +271,36 @@ withDef f def ptr | jsIsUndefined ptr
 callFunction :: !String ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 callFunction fn args world = callObjectMethod fn args jsWindow world
 
-jsUnsafeCoerce :: !(JSVal a) -> (JSVal b)
+jsUnsafeCoerce :: !(JSVal a) -> JSVal b
 jsUnsafeCoerce x = undef
 
-jsUnsafeObjCoerce :: !(JSVal a) -> (JSObj b)
+jsUnsafeObjCoerce :: !(JSVal a) -> JSObj b
 jsUnsafeObjCoerce x = undef
 
-jsUnsafeArrCoerce :: !(JSVal a) -> (JSArr b)
+jsUnsafeArrCoerce :: !(JSVal a) -> JSArr b
 jsUnsafeArrCoerce x = undef
 
-jsUnsafeFunCoerce :: !(JSVal a) -> (JSFun b)
+jsUnsafeFunCoerce :: !(JSVal a) -> JSFun b
 jsUnsafeFunCoerce x = undef
 
-ifObj :: !(JSVal a) !(!(JSObj b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifObj :: !(JSVal a) !((JSObj b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 ifObj val f def world
   | t == "object" || t == "string" = f (jsUnsafeObjCoerce val) world
   | otherwise                      = (def, world)
   where t = jsTypeof val
 
-ifArr :: !(JSVal a) !(!(JSArr b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifArr :: !(JSVal a) !((JSArr b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 ifArr val f def world
   # (isArr, world) = jsIsArray val world
   | isArr     = f (jsUnsafeArrCoerce val) world
   | otherwise = (def, world)
 
-ifFun :: !(JSVal a) !(!(JSFun b) !*JSWorld -> !*(!JSVal c, !*JSWorld)) !(JSVal c) !*JSWorld -> !*(!JSVal c, !*JSWorld)
+ifFun :: !(JSVal a) !((JSFun b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 ifFun val f def world
   | jsTypeof val == "function" = f (jsUnsafeFunCoerce val) world
   | otherwise                  = (def, world)
 
-jsIsArray :: !(JSVal a) !*JSWorld -> *(Bool, !*JSWorld)
+jsIsArray :: !(JSVal a) !*JSWorld -> *(!Bool, !*JSWorld)
 jsIsArray x world
   # (arr, world) = findObject "Array" world
   # (jb, world)  = callObjectMethod "isArray" [] arr world
