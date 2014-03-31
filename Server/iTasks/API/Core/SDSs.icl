@@ -50,11 +50,11 @@ topLevelTasks = topListShare
 
 currentSessions ::ReadOnlyShared [TaskListItem Void]
 currentSessions
-    = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just True} filteredInstanceMeta))
+    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Just True} filteredInstanceMeta))
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
 currentProcesses
-    = mapRead (map toTaskListItem) (toReadOnly (setParam {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta))
+    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta))
 
 toTaskListItem :: !TIMeta -> TaskListItem a
 toTaskListItem {TIMeta|instanceNo,listId,progress,attributes}

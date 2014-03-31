@@ -17,7 +17,8 @@ from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynam
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
 from iTasks.API.Core.Tasks	            import return
-from iTasks.API.Common.SDSCombinators   import toReadOnly, setParam, mapRead, mapReadWriteError
+from iTasks.API.Core.SDSCombinators     import sdsFocus
+from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -312,7 +313,7 @@ where
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI conts (Right acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
-		# (mbMeta,iworld)	= readRegister curInstanceNo (setParam instanceNo taskInstanceMeta) iworld
+		# (mbMeta,iworld)	= readRegister curInstanceNo (sdsFocus instanceNo taskInstanceMeta) iworld
 		# (mbValue,iworld)	= readRegister curInstanceNo (taskInstanceValue instanceNo) iworld
 		= case (mbMeta,mbValue) of
 			(Ok meta,Ok value=:(TIValue jsonval))
@@ -541,11 +542,11 @@ workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{current={attachmentChain,user}}
-		# (meta,iworld)		= read (setParam instanceNo taskInstanceMeta) iworld
+		# (meta,iworld)		= read (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
-				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (setParam instanceNo taskInstanceMeta) iworld
+				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (sdsFocus instanceNo taskInstanceMeta) iworld
 				# iworld		= queueUrgentRefresh [instanceNo] iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
@@ -554,7 +555,7 @@ where
 	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{current={taskInstance,user}}
 		//Load instance
 		# layout			= repLayoutRules repOpts
-		# (meta,iworld)		= readRegister taskInstance (setParam instanceNo taskInstanceMeta) iworld
+		# (meta,iworld)		= readRegister taskInstance (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
 			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker,instanceKey})
                 | progress.ProgressMeta.value === Exception

@@ -18,6 +18,9 @@ sdsProject read write sds = SDSProjection sds {SDSProjection|read=read,write=wri
 sdsTranslate :: !(p -> ps) !(RWShared ps r w) -> RWShared p r w | TC ps
 sdsTranslate translation sds = SDSTranslation sds translation
 
+sdsFocus :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p
+sdsFocus p sds = sdsTranslate (const p) sds
+
 sdsSplit :: !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(RWShared ps rs ws) -> RWShared p r w | TC ps & TC pn & gEq{|*|} ps
 sdsSplit param read write sds = SDSSplit sds {SDSSplit|param=param,read=read,write=write}
 

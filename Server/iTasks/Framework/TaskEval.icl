@@ -11,7 +11,8 @@ import iTasks.Framework.SDSService
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
-from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError, setParam
+from iTasks.API.Core.SDSCombinators import sdsFocus
+from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
 derive gEq TIMeta, TIType
@@ -23,7 +24,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{current={taskTime},c
 	# mmeta					= defaultValue
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
-	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
+	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
@@ -37,7 +38,7 @@ createTaskInstance task iworld=:{current={taskTime},clocks={localDate,localTime}
 	# mmeta					= defaultValue
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
-	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
+	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
@@ -51,7 +52,7 @@ createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAtt
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta
-	# (_,iworld)			= 'SDS'.write meta (setParam instanceNo taskInstanceMeta) iworld
+	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
@@ -80,7 +81,7 @@ evalTaskInstance instanceNo event iworld
     = evalTaskInstance` instanceNo event iworld
 where
     evalTaskInstance` instanceNo event iworld=:{current=current=:{taskTime,user,taskInstance,nextTaskNo,localShares,localLists},clocks={localDate,localTime}}
-    # (oldMeta, iworld)         = 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld
+    # (oldMeta, iworld)         = 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld
 	| isError oldMeta			= (liftError oldMeta, iworld)
 	# oldMeta=:{TIMeta|instanceType,instanceKey,session,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'SDS'.read (taskInstanceReduct instanceNo) iworld
@@ -125,7 +126,7 @@ where
         (ValueResult _ _ _ newTree)  = newTree
         _                                                   = tree
 	//Re-read old meta data because it may have been changed during the task evaluation
-	# (oldMeta,deleted,iworld) = case 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld of
+	# (oldMeta,deleted,iworld) = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
         (Ok meta, iworld)		= (meta,False, iworld)
 		(Error e, iworld)		= (oldMeta,True, iworld) //If old meta is no longer there, it must have been removed
     # newMeta					= case (session,instanceType) of
@@ -133,7 +134,7 @@ where
        (_,TmpAttachedInstance _ _)  = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress, instanceType = DetachedInstance}
        _                            = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
     //Store new meta data
-    # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (setParam instanceNo taskInstanceMeta) iworld)
+    # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (sdsFocus instanceNo taskInstanceMeta) iworld)
     | mbErr=:(Error _)          = (liftError mbErr,iworld)
 
     //Store updated reduct
@@ -332,7 +333,7 @@ where
 				
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = mapReadWrite (readPrj,writePrj) (setParam {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta >+| currentInstanceShare)
+topListShare = mapReadWrite (readPrj,writePrj) (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta >+| currentInstanceShare)
 where
 	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = map toTaskListItem instances, selfId = TaskId currentInstance 0}
 
@@ -399,9 +400,9 @@ where
     //Update the master index of task instance data
     updateInstanceMeta [] iworld = (Ok Void,iworld)
     updateInstanceMeta [(TaskId instanceNo 0,attr):updates] iworld
-        = case 'SDS'.read (setParam instanceNo taskInstanceMeta) iworld of
+        = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
 	        (Error _,iworld) = (Error ("Could not read task meta data of task instance " <+++ instanceNo), iworld)
-            (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & attributes=attr} (setParam instanceNo taskInstanceMeta) iworld of
+            (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & attributes=attr} (sdsFocus instanceNo taskInstanceMeta) iworld of
                 (Error _,iworld) = (Error ("Could not write task meta data of task instance " <+++ instanceNo), iworld)
                 (Ok _,iworld)   = updateInstanceMeta updates iworld
 

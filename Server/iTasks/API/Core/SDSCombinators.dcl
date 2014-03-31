@@ -22,6 +22,9 @@ sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(RWShared
 // Translate the parameter space
 sdsTranslate :: !(p -> ps) !(RWShared ps r w) -> RWShared p r w | TC ps
 
+// Fix a focus parameter
+sdsFocus    :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p
+
 // Introduce a new parameter
 sdsSplit :: !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(RWShared ps rs ws) -> RWShared p r w | TC ps & TC pn & gEq{|*|} ps
 
@@ -35,4 +38,3 @@ sdsParallel :: !(p -> (p1,p2)) !((r1,r2) -> r) !(SDSWriteProjection r1 w1 w) !(S
 
 // Create a new SDS by sequential access to two dependent SDS's
 sdsSequence :: !(p r1 -> p2) !((r1,r2) -> r) !(SDSWriteProjection r1 w1 w) !(SDSWriteProjection r2 w2 w) !(RWShared p r1 w1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p2
-
