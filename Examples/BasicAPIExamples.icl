@@ -71,7 +71,7 @@ basicAPIExamples =
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
-	,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable rects" svg_rects
+	,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
 	,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
 	]
