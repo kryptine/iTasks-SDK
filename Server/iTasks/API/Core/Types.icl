@@ -1140,11 +1140,12 @@ wrapperUpdate fx get set target upd (val,mask) iworld
 verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
 verifyDisplay fx options mv = alwaysValid mv
 
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint
-derive gDefault			Hidden, Display, Editable, VisualizationHint
-derive gEq				Hidden, Display, Editable, VisualizationHint
-derive gEditMeta			Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive JSONDecode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive gDefault			Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive gEq				Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive gEditMeta		Hidden, Display, Editable, VisualizationHint
+derive gVisualizeText   EditableList, EditableListAdd
 
 //* Framework types
 

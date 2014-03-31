@@ -331,13 +331,24 @@ toDisplay				:: !.a -> Display .a
 fromHidden				:: !(Hidden .a) -> .a
 toHidden				:: !.a -> Hidden .a
 
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint
-derive gDefault			Hidden, Display, Editable, VisualizationHint
-derive gEq				Hidden, Display, Editable, VisualizationHint
-derive gVisualizeText	Hidden, Display, Editable, VisualizationHint
+//* Editing lists
+:: EditableList a       =
+    { items     :: [a]
+    , add       :: !EditableListAdd a
+    , remove    :: !Bool
+    , reorder   :: !Bool
+    , count     :: !Bool
+    }
+:: EditableListAdd a
+    = ELNoAdd | ELAddBlank | ELAddValue ([a] -> a)
+
+derive JSONEncode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive JSONDecode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive gDefault			Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive gEq				Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
+derive gVisualizeText	Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
 derive gEditor			Hidden, Display, Editable, VisualizationHint
-derive gEditMeta			Hidden, Display, Editable, VisualizationHint
+derive gEditMeta		Hidden, Display, Editable, VisualizationHint
 derive gUpdate			Hidden, Display, Editable, VisualizationHint
 derive gVerify			Hidden, Display, Editable, VisualizationHint
 

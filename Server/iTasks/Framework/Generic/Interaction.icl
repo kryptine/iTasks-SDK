@@ -6,6 +6,7 @@ import Text, Text.JSON
 import iTasks.Framework.IWorld
 import iTasks.Framework.UIDefinition
 import iTasks.Framework.Util
+import iTasks.API.Core.Types
 import iTasks.API.Core.LayoutCombinators
 
 visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a & gEditMeta{|*|} a
@@ -186,6 +187,41 @@ where
 	
 	numItemsText 1 = "1 item"
 	numItemsText n = toString n +++ " items"
+
+gEditor{|EditableList|} fx _ _ mx _ _ dp ({EditableList|items,add,remove,reorder,count},mask,ver) meta vst=:{VSt|taskId,disabled,layout}
+	# (controls,vst) = listControls dp items (subMasks (length items) mask) (subVerifications (length items) ver) vst
+	= (NormalEditor [(listContainer controls,newMap)],vst)
+where
+    enableAdd = case add of ELNoAdd = False ; _ = True;
+
+	listControls dp items masks vers vst=:{VSt|optional,disabled}
+		# (itemsVis,vst)	= childVisualizations fx mx dp items masks vers vst
+		# numItems = length items
+		| not disabled && (enableAdd || count)
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
+		| otherwise
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
+						
+	listItemControl disabled numItems idx item
+		# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
+		# buttons	= (if reorder
+                      [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
+                      ] []) ++
+					  (if remove
+                      [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
+					  ] [])
+		= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))))
+	addItemControl numItems
+		# counter   = if count [UIViewString {UISizeOpts|defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)}] []
+		# button	= if enableAdd [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}] []
+		= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (defaultContainer (counter ++ button))))
+	
+	listContainer controls
+		= setHeight WrapSize (defaultContainer controls)
+	
+	numItemsText 1 = "1 item"
+	numItemsText n = toString n +++ " items"
 	
 gEditor{|(,)|} fx _ _ mx _ _ fy _ _ my _ _ dp ((x,y),mask,ver) meta vst
 	# (vizx, vst)	= fx (dp ++ [0]) (x,subMasks 2 mask !! 0,subVerifications 2 ver !! 0) (mx x) vst
@@ -233,13 +269,14 @@ gEditMeta{|Dynamic|}	_	= [{label=Nothing,hint=Just "",unit=Nothing}]
 gEditMeta{|HtmlTag|}	_	= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|(->)|} _ _ _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 gEditMeta{|Maybe|} fx _		= fx undef
-gEditMeta{|[]|} fx _		= fx undef
+gEditMeta{|[]|} fx _		        = fx undef
+gEditMeta{|EditableList|} fx _      = fx undef
 
 gEditMeta{|(,)|} fa fb _            = fa undef ++ fb undef
 gEditMeta{|(,,)|} fa fb fc _        = fa undef ++ fb undef ++ fc undef
 gEditMeta{|(,,,)|} fa fb fc fd _    = fa undef ++ fb undef ++ fc undef ++ fd undef
 
-derive gEditMeta Either, Void, Map, JSONNode, Timestamp
+derive gEditMeta Either, Void, Map, JSONNode, Timestamp, EditableListAdd
 
 //Generic Verify
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
@@ -279,6 +316,14 @@ gVerify{|[]|} fx  options=:{VerifyOptions|optional,disabled} (list,mask)
 where
 	verifyListItems [] [] = []
 	verifyListItems [x:xs] [m:ms] = [fx options (x,m):verifyListItems xs ms]
+
+gVerify{|EditableList|} fx options=:{VerifyOptions|optional,disabled} ({EditableList|items},mask)
+	= CompoundVerification (verifyListItems items (subMasks (length items) mask))
+where
+	verifyListItems [] [] = []
+	verifyListItems [x:xs] [m:ms] = [fx options (x,m):verifyListItems xs ms]
+
+derive gVerify EditableListAdd
 		
 gVerify{|(->)|} _ _ _ mv	= alwaysValid mv
 gVerify{|Dynamic|}	_ mv	= alwaysValid mv
@@ -387,7 +432,7 @@ gUpdate{|[]|} gUpdx gDefx jEncx jDecx target upd (l,listMask) ust
 				= (l, subMasks (length l) listMask)
 	# ((l,childMasks),ust) = updateElements gUpdx target upd l childMasks ust
 	| isEmpty target
-		//Process the reordering commands 
+		//Process the reordering commands
 		# split = split "_" (fromMaybe "" (fromJSON upd))
 		# index = toInt (last split)
 		# (l,childMasks) = case hd split of	
@@ -419,6 +464,49 @@ where
 			# l = list !! (index)
 			= updateAt (index-1) l (updateAt index f list)
 
+gUpdate{|EditableList|} gUpdx gDefx jEncx jDecx target upd (l=:{EditableList|items,add,remove,reorder},listMask) ust
+	# (items,childMasks)
+		= case ((not (isEmpty target)) && (hd target >= (length items))) of
+			True
+				= (items++[gDefx], subMasks (length items) listMask ++ [Untouched])
+			False
+				= (items, subMasks (length items) listMask)
+	# ((items,childMasks),ust) = updateElements gUpdx target upd items childMasks ust
+	| isEmpty target
+		//Process the reordering commands
+		# split = split "_" (fromMaybe "" (fromJSON upd))
+		# index = toInt (last split)
+		# (items,childMasks) = case hd split of	
+			"mup" = if reorder (swap items index,swap childMasks index) (items,childMasks)
+			"mdn" = if reorder (swap items (index+1),swap childMasks (index+1)) (items,childMasks)
+			"rem" = if remove  (removeAt index items,removeAt index childMasks)	(items,childMasks)
+			"add"
+                = case add of
+                    ELAddBlank      = (insertAt (length items) gDefx items, insertAt (length items) Untouched childMasks)
+                    ELAddValue f    = (insertAt (length items) (f items) items, insertAt (length items) Touched childMasks)
+                    _               = (items,childMasks)
+			_	
+				= (items,childMasks)
+		= (({EditableList|l & items = items},CompoundMask childMasks),ust)
+	| otherwise
+		= (({EditableList|l & items = items},CompoundMask childMasks),ust)
+where
+	updateElements fx [i:target] upd elems masks ust
+		| i >= (length elems)
+			= ((elems,masks),ust)
+		# ((nx,nm),ust)	= fx target upd (elems !! i,masks !! i) ust
+		= ((updateAt i nx elems, updateAt i nm masks),ust)
+	updateElements fx target upd elems masks ust
+		= ((elems,masks),ust)
+	
+	swap []	  _		= []
+	swap list index
+		| index == 0 			= list //prevent move first element up
+		| index >= length list 	= list //prevent move last element down
+		| otherwise				
+			# f = list !! (index-1)
+			# l = list !! (index)
+			= updateAt (index-1) l (updateAt index f list)
 
 gUpdate{|Dynamic|} target upd val ust = basicUpdate (\Void v -> Just v) target upd val ust
 gUpdate{|(->)|} _ _ _ gUpdy _ _ _ _ target upd val ust = basicUpdate (\Void v -> Just v) target upd val ust

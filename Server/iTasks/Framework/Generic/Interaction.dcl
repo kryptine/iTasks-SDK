@@ -3,7 +3,7 @@ definition module iTasks.Framework.Generic.Interaction
 from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.Framework.UIDiff import :: UIControl, :: UIAttributes
-from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue
+from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue, :: EditableList
 from iTasks.API.Core.LayoutCombinators import :: LayoutRules
 
 from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat
@@ -33,6 +33,7 @@ derive gEditor
 	
 derive gEditor Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gEditor Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gEditor EditableList
 
 /**
 * Type-dependent meta data useful for generating editors
@@ -50,6 +51,7 @@ derive gEditMeta
 	
 derive gEditMeta Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gEditMeta Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gEditMeta EditableList
 
 //Check a value to see if it is ok
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
@@ -57,6 +59,7 @@ generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, [], (,), (,,),(,,,),(->), Dynamic
 derive gVerify Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gVerify EditableList
 
 //Update an existing value and its interaction mask
 generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
@@ -64,6 +67,7 @@ generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNod
 derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic
 derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gUpdate EditableList
 
 //Wrapper functions for generating editors
 visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
