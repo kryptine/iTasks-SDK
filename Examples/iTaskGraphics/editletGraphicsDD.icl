@@ -201,10 +201,10 @@ mousedragdown_elt i` cid es ((cst,mst,_),i) env
     # (px, env)    = .? (p .# "x") env
     # (py, env)    = .? (p .# "y") env
     # (dragX, env) = if (jsIsNull dragX)
-                       (px, env)
+                       (toJSVal 0, env)
                        (("parseInt" .$ toJSArg dragX) env)
     # (dragY, env) = if (jsIsNull dragY)
-                       (py, env)
+                       (toJSVal 0, env)
                        (("parseInt" .$ toJSArg dragY) env)
     # (px, py, dragX, dragY) = (jsValToInt px, jsValToInt py, jsValToInt dragX, jsValToInt dragY)
     = (((cst,{mst & mPos = MouseDown, dragOffsetX = px - dragX, dragOffsetY = py - dragY},i`),i`),env)
