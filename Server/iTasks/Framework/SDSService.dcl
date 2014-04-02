@@ -13,5 +13,5 @@ sdsService ::   (!(String -> Bool)
 				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
 				 )
 
-readRemoteSDS  :: 			!String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
-writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString Void,     !*IWorld)
+readRemoteSDS  ::           !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
+writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString Void,     !*IWorld)

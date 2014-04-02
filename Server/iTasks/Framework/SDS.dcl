@@ -114,6 +114,9 @@ createReadOnlySDSError ::
 	->
 	ROShared p r
 
+readp			:: !p    !(RWShared p r w) !*IWorld -> (!MaybeErrorString r,    !*IWorld) | TC p
+writep			:: !p !w !(RWShared p r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | TC p	
+
 read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
@@ -122,9 +125,11 @@ writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!Ma
 //Dependency administration
 clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
 
+:: JSONShared :== RWShared JSONNode JSONNode JSONNode
+
 //Exposing shares for external nodes
-toJSONShared	:: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w
-fromJSONShared	:: (Shared JSONNode) -> ReadWriteShared r w | JSONDecode{|*|} r & JSONEncode{|*|} w
+toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & TC p
+fromJSONShared  :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
 newURL 		    :: !*IWorld -> (!String, !*IWorld)
 getURLbyId 	    :: !String !*IWorld -> (!String, !*IWorld)
 

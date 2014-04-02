@@ -6,7 +6,7 @@ from iTasks.Framework.Engine	    import :: ConnectionType
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
 import iTasks.Framework.RemoteAccess
-from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared
+from iTasks.Framework.SDS as SDS import qualified readp, writep, :: Shared, :: JSONShared
 from iTasks.Framework.SDS import getURLbyId
 
 from StdFunc import o
@@ -39,7 +39,7 @@ where
 		= case 'Data.Map'.get sdsurl exposedShares of
 			Nothing = (notFoundResponse req,Nothing,iworld) 
 			(Just (dyn, _)) = (jsonResponse (toString (unpackType dyn)), Nothing, iworld)
-	reqFun req iworld=:{exposedShares}
+	reqFun req iworld=:{exposedShares} | hasParam "focus" req
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
 				Nothing = (notFoundResponse req,Nothing,iworld) 
@@ -48,18 +48,22 @@ where
 									HTTP_PUT = writeit shared iworld
 											 = (badRequestResponse "Invalid method",Nothing,iworld)
 	where
+		focus = fromString (paramValue "focus" req)
+	
 		readit shared iworld
-			# (res, iworld) = 'SDS'.read shared iworld
+			# (res, iworld) = 'SDS'.readp focus shared iworld
 			= case res of
 				(Ok json) = (jsonResponse json, Nothing, iworld)
 				(Error e) = (errorResponse e, Nothing, iworld)			
 			
 		writeit shared iworld
-			# (res, iworld) = 'SDS'.write (fromString req.req_data) shared iworld
+			# (res, iworld) = 'SDS'.writep focus (fromString req.req_data) shared iworld
 			= case res of
 				(Ok _)    = (jsonResponse "OK", Nothing, iworld)
 				(Error e) = (errorResponse e, Nothing, iworld)			
-			
+	
+	reqFun req iworld=(notFoundResponse req,Nothing,iworld)
+	
 	jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json")], rsp_data = toString json}			
 				
@@ -68,10 +72,10 @@ where
 
     disconnectFun :: !HTTPRequest !ConnectionType !*IWorld -> *IWorld
 	disconnectFun _ _ iworld = iworld
-	
-readRemoteSDS  :: !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
-readRemoteSDS url iworld 
-	= case convertURL url of
+
+readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
+readRemoteSDS p url iworld 
+	= case convertURL url p of
 		(Ok url) 	= load url iworld
 		(Error e) 	= (Error e, iworld)
 where
@@ -81,21 +85,22 @@ where
 				(Ok (fromString response.rsp_data), iworld)
 				(Error ("Request failed: "+++response.rsp_reason), iworld)
 
-convertURL url
+convertURL url p
 	= case parseURI url of
 		Nothing 	= Error ("Malformed URL: "+++url)
 		(Just uri) 	= if (maybe False ((<>) "sds") uri.uriScheme) 
 							(Error ("Invalid URL: "+++url))
 							(Ok (toString (convert uri)))
 where
-	convert u = {nullURI & uriScheme	= Just "http", 
+	convert u = {nullURI & uriScheme	= Just "http",
+						   uriQuery		= Just ("focus="+++escapeString okInQuery (toString p)),
 						   uriRegName	= u.uriRegName, 
 						   uriPort		= u.uriPort,
 						   uriPath		= "/sds" +++ u.uriPath}
 							
-writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
-writeRemoteSDS val url iworld 
-	= case convertURL url of
+writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
+writeRemoteSDS p val url iworld 
+	= case convertURL url p of
 		(Ok url) 	= load url val iworld
 		(Error e) 	= (Error e, iworld)
 where

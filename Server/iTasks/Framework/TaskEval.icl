@@ -10,7 +10,7 @@ import iTasks.Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
-from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg
+from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg, readp, writep
 from iTasks.API.Core.SDSCombinators import sdsFocus
 from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
@@ -305,29 +305,29 @@ where
 				(Error _,iworld)
 					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
 
-exposedShare :: !String -> ReadWriteShared r w | iTask r & iTask w & TC r & TC w
+exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
 exposedShare url = createReadWriteSDS "exposedShare" url read write
 where
-	read :: !Void !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r & JSONDecode{|*|} r
-	read Void iworld=:{exposedShares}
+	read :: !p !*IWorld -> *(!MaybeErrorString r, !*IWorld) | TC r & JSONDecode{|*|} r & TC p & JSONEncode{|*|} p
+	read p iworld=:{exposedShares}
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
-				= case readRemoteSDS url iworld of
+				= case readRemoteSDS (toJSON p) url iworld of
 					(Ok json, iworld) = case fromJSON json of
 											Nothing = (Error ("Exposed share type mismatch: " +++ url), iworld)
 											(Just val) = (Ok val, iworld)
 					(Error e, iworld) = (Error e, iworld)
-			Just (shared :: ReadWriteShared r^ w, _)	
-				= 'SDS'.read shared iworld
+			Just (shared :: RWShared p^ r^ w, _)	
+				= 'SDS'.readp p shared iworld
 			Just dyn
 				= (Error ("Exposed share type mismatch: " +++ url), iworld)
 				
-	write Void val iworld=:{exposedShares}
+	write p val iworld=:{exposedShares}
 		= case 'Data.Map'.get url exposedShares of
 			Nothing
-				= appFst (fmap (const (const True))) (writeRemoteSDS (toJSON val) url iworld)
-			Just (shared :: ReadWriteShared r w^, z)		
-				= appFst (fmap (const (const True))) ('SDS'.write val shared iworld)
+				= appFst (fmap (const (const True))) (writeRemoteSDS (toJSON p) (toJSON val) url iworld)
+			Just (shared :: RWShared p^ r w^, z)		
+				= appFst (fmap (const (const True))) ('SDS'.writep p val shared iworld)
 			Just _
 				= (Error ("Exposed share type mismatch: " +++ url), iworld)
 				

@@ -14,7 +14,7 @@ from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
 from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
 from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
 from iTasks.Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
-from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared
+from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared, :: JSONShared
 
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
@@ -30,7 +30,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
                     , random                :: [Int]                                    // Infinite random stream
 
                     , sdsNotifyRequests     :: ![SDSNotifyRequest]                      // Notification requests from previously read sds's
-					, exposedShares			:: !Map String (Dynamic, Shared JSONNode)   // Shared source
+					, exposedShares			:: !Map String (Dynamic, JSONShared)        // Shared source
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
 											   ,!FuncTypeMap							// Function name -> source code mapping

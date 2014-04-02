@@ -59,6 +59,9 @@ iworldNotifyPred npred p env = (npred p, env)
 read :: !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 read sds env = read` Void Nothing sds env
 
+readp :: !p !(RWShared p r w) !*IWorld -> (!MaybeErrorString r, !*IWorld) | TC p
+readp p sds env = read` p Nothing sds env
+
 readRegister :: !InstanceNo !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 readRegister instanceNo sds env = read` Void (Just instanceNo) sds env
 
@@ -129,10 +132,18 @@ read` p mbNotify sds=:(SDSSequence sds1 sds2 {SDSSequence|param,read}) env
 
 write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 write w sds env = writeFilterMsg w (const True) sds env
+
+writep :: !p !w !(RWShared p r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | TC p	
+writep p w sds env = writeFilterMsg` p w (const True) sds env
 	
 writeFilterMsg :: !w !(InstanceNo -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
-writeFilterMsg w filter sds env
-    # (mbErr,nevents,iworld) = write` Void w sds filter env
+writeFilterMsg w filter sds iworld
+    # (mbErr,nevents,iworld) = write` Void w sds filter iworld
+    = (fmap (const Void) mbErr, processNotifications nevents iworld)
+
+writeFilterMsg` :: !p !w !(InstanceNo -> Bool) !(RWShared p r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | TC p
+writeFilterMsg` p w filter sds iworld
+    # (mbErr,nevents,iworld) = write` p w sds filter iworld
     = (fmap (const Void) mbErr, processNotifications nevents iworld)
 
 write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [SDSNotifyEvent], !*IWorld) | TC p
@@ -352,35 +363,37 @@ clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations instanceNo iworld=:{IWorld|sdsNotifyRequests}
     = {iworld & sdsNotifyRequests = [r \\ r <- sdsNotifyRequests | r.SDSNotifyRequest.taskInstance <> instanceNo]}
 
-toJSONShared :: (ReadWriteShared r w) -> Shared JSONNode | JSONEncode{|*|} r & JSONDecode{|*|} w
+toJSONShared :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & TC p
 toJSONShared shared = createReadWriteSDS "exposedShare" "?" read` write`
 where
-	read` _ iworld
-		# (val,iworld) = read shared iworld
-		= case val of
-			(Ok val)  = (Ok (toJSON val), iworld)
-			(Error e) = (Error e, iworld)
+	read` jsonp iworld
+		= case fromJSON jsonp of
+			(Just p) # (val,iworld) = readp p shared iworld
+					 = case val of
+							(Ok val)  = (Ok (toJSON val), iworld)
+							(Error e) = (Error e, iworld)
+			_		 = (Error "Shared type mismatch in toJSONShared", iworld)
 				
-	write` _ json iworld
-		= case fromJSON json of
-			Nothing
+	write` jsonp jsonw iworld
+		= case (fromJSON jsonw, fromJSON jsonp) of
+			(Just val, Just p)
+			    = appFst (fmap (const (const True))) (writep p val shared iworld)
+			_
 				= (Error "Shared type mismatch in toJSONShared", iworld)
-			Just val
-			    = appFst (fmap (const (const True))) (write val shared iworld)
 
-fromJSONShared :: (Shared JSONNode) -> ReadWriteShared r w | JSONDecode{|*|} r & JSONEncode{|*|} w
+fromJSONShared :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
 fromJSONShared shared = createReadWriteSDS "exposedShare" "?" read` write`
 where
-	read` _ iworld
-		# (ret,iworld) = read shared iworld
+	read` p iworld
+		# (ret,iworld) = readp (toJSON p) shared iworld
 		= case ret of
 			(Ok json)  = case (fromJSON json) of
 							(Just val)  = (Ok val, iworld)
 							Nothing     = (Error "Shared type mismatch in fromJSONShared", iworld)
 			(Error e) = (Error e, iworld)
 
-	write` _ val iworld
-        = appFst (fmap (const (const True))) (write (toJSON val) shared iworld)
+	write` p val iworld
+        = appFst (fmap (const (const True))) (writep (toJSON p) (toJSON val) shared iworld)
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}

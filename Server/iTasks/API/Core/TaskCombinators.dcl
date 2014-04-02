@@ -148,7 +148,7 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 * @param The share to be exposed
 * @param The task which uses the shared variable
 */
-exposeShared :: !(ReadWriteShared r w) !(String (ReadWriteShared r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
+exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & JSONDecode{|*|} p & JSONEncode{|*|} p & TC p
 
 /**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,
