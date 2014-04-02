@@ -42,8 +42,8 @@ where
 	reqFun req iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
-			Nothing = (notFoundResponse req,Nothing,iworld) 
-			(Just (_, shared)) = case req.req_method of
+				Nothing = (notFoundResponse req,Nothing,iworld) 
+				(Just (_, shared)) = case req.req_method of
 									HTTP_GET = readit shared iworld
 									HTTP_PUT = writeit shared iworld
 											 = (badRequestResponse "Invalid method",Nothing,iworld)

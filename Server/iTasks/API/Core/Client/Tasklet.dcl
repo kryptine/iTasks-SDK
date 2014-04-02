@@ -38,7 +38,7 @@ createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> JSFun b
 	  controllerFunc 	:: !ControllerFunc st
 	}
 
-:: Tasklet st val =
+:: Tasklet st val = 
 	{ genUI				:: !(TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld))
 	, resultFunc		:: !(st -> TaskValue val)
 	, tweakUI 			:: !(UIControl -> UIControl)

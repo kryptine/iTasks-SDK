@@ -135,16 +135,16 @@ viewStoredPersons = viewSharedInformation "These are the currently stored person
 
 notes :: Task Note
 notes 
-	= withShared (Note "") (\note -> exposeShared note body)
+	= runOnClient (withShared (Note "") (\note -> exposeShared note body))
 where
 	body _ note 
-		= runOnClient (
+		= //runOnClient (
 		 	viewSharedInformation "view on note" [] note
 			-||-
 			updateSharedInformation "edit shared note 1" [] note
 			-||-
 			updateSharedInformation "edit shared note 2" [] note
-		)
+		//)
 		
 linesPar :: Task (Maybe String)
 linesPar
@@ -407,10 +407,10 @@ editWithStatistics
 						in	parallel Void 	[ (Embedded, showStatistics file )
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
-									  		]
+									  		] []
 							>>*	 			[ OnAction (ActionQuit) (always (return Void))
 											]
-											
+						
 editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
 editFile fileName sharedFile _
  =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile

@@ -188,6 +188,10 @@ function _bitxor(a,b){
     return Sapl.feval(a) ^ Sapl.feval(b);
 }
 
+function _bitnot(a){
+    return ~ Sapl.feval(a);
+}
+
 function _shiftleft(a,b){
     return Sapl.feval(a) << Sapl.feval(b);
 }

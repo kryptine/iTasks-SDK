@@ -1797,7 +1797,7 @@ itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.nextSendEventNo = 0;
     },
     setRootNode: function(rootNode) {
-        me.rootNode = rootNode;
+        this.rootNode = rootNode;
     },
     sendResetEvent: function(instanceNo) {
         this.processEvent(instanceNo.toString(), "reset", this.nextSendEventNo++);

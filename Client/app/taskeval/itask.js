@@ -17,7 +17,7 @@ function __itask_background_process(){
 			var diff = upd[1];
 			var tasklet = itwc.controller.instanceProxies[instanceId].rootNode;
 			if(tasklet){
-				itwc.controller.updateUI(JSON.parse(diff), tasklet);
+				itwc.controller.updateUI({instance: instanceId, updates: JSON.parse(diff)}, tasklet);
 			}else{
 				console.log("Instance id cannot be found:", instanceId);
 			}
@@ -163,6 +163,10 @@ function __dynamic_string_copy_to_string(a){
 function __dynamic_string_copy_from_string(a){
 	eval("var tmp="+Sapl.feval(a)+";");
 	return ___Tuple2(tmp, a); // TODO: second?
+}
+
+function __graph_to_sapl_string_graph_to_sapl_string(a){
+	return Sapl.dynamicToString(Sapl.feval(a));
 }
 
 function __iTasks_Framework_Client_RunOnClient_newWorld(){
