@@ -2,6 +2,6 @@ definition module iTasks.Framework.RemoteAccess
 
 import StdString
 from iTasks.Framework.IWorld import :: IWorld
-import Data.Maybe, Internet.HTTP
+import Data.Maybe, Internet.HTTP, Text.URI
 
-httpRequest :: !HTTPMethod !String !(Maybe String) !IWorld -> (!HTTPResponse, !IWorld)
+httpRequest :: !HTTPMethod !URI !(Maybe String) !IWorld -> (!HTTPResponse, !IWorld)
