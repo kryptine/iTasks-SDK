@@ -7,7 +7,7 @@ from Data.Maybe  import :: Maybe
 from Data.Void   import :: Void
 from Data.Error  import :: MaybeError, :: MaybeErrorString
 from System.FilePath import :: FilePath
-from Internet.HTTP import :: HTTPMethod
+from Internet.HTTP import :: HTTPMethod, :: HTTPResponse
 from Text.URI import :: URI
 
 import iTasks.Framework.Generic
@@ -60,7 +60,7 @@ callInstantProcess :: !FilePath ![String] !(Maybe FilePath)-> Task Int
 * @gin-title Call web service
 * @gin-icon webservice
 */
-callHTTP2   :: !HTTPMethod !URI !String !(String -> (MaybeErrorString a)) -> Task a | iTask a
+callHTTP2   :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP	:: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 

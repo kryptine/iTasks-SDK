@@ -103,7 +103,7 @@ where
 
 import StdMisc
 
-callHTTP2 :: !HTTPMethod !URI !String !(String -> (MaybeErrorString a)) -> Task a | iTask a
+callHTTP2 :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP2 method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
     =   tcpconnect uriRegName port null onConnect onData
     @?  taskResult
@@ -116,9 +116,11 @@ where
     onConnect _ = (Ok (Left []),[req],False)
     onData (Left acc) _ events shareChanged connectionClosed
         | connectionClosed
-            = case parseFun (concat (acc ++ events)) of
-                Ok a    = (Ok (Right a),[],True)
-                Error e = (Error e,[],True)
+        	= case parseResponse (concat (acc ++ events)) of
+				Nothing    = (Error "Invalid response",[],True)
+        		(Just rsp) = case parseFun rsp of
+ 				               	Ok a    = (Ok (Right a),[],True)
+                				Error e = (Error e,[],True)
         | otherwise
             = (Ok (Left (acc ++ events)),[],False)
 
