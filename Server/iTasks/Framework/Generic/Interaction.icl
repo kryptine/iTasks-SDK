@@ -31,7 +31,7 @@ gEditor{|EITHER|} fx _ _ mx _ _ fy _ _ my _ _ dp (RIGHT y,mask,ver) meta vst =  
 
 gEditor{|RECORD of {grd_arity}|} fx _ _ mx _ _ dp (RECORD x,mask,ver) meta vst=:{VSt|optional,disabled,taskId}
 	//When optional and no value yet, just show the checkbox
-	| optional &&  not (isTouched mask)
+	| optional && not (isTouched mask)
 		= if disabled (OptionalEditor [],vst) (OptionalEditor [checkbox False], vst)
 	# (fieldsViz,vst) = fx (pairPath grd_arity dp) (x,toPairMask grd_arity mask,toPairVerification grd_arity ver) (mx x) {VSt|vst & optional = False}
 	//For optional records we add the checkbox to clear the entire record
@@ -203,7 +203,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 						
 	listItemControl disabled numItems idx item
-		# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
+		# controls	= map (setWidth FlexSize o fst) (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
 		# buttons	= (if reorder
                       [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
@@ -379,6 +379,11 @@ gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jEncx jDecx [index:target] 
 	= ((CONS cons,CompoundMask (updateAt index targetMask childMasks)),ust)
 gUpdate{|CONS|} gUpdx gDefx jEncx jDecx target upd val ust = (val,ust)
 
+gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jEncx jDecx [] upd (RECORD record,mask) ust
+    # mask = case upd of
+        JSONBool False  = Blanked
+        _               = Touched
+    = ((RECORD record,mask),ust)
 gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jEncx jDecx [index:target] upd (RECORD record,mask) ust
 	| index >= grd_arity
 		= ((RECORD record,mask),ust)
