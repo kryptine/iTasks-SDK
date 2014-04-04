@@ -223,6 +223,8 @@ where
 	numItemsText 1 = "1 item"
 	numItemsText n = toString n +++ " items"
 	
+gEditor{|()|} dp vv meta vst = (HiddenEditor,vst)
+
 gEditor{|(,)|} fx _ _ mx _ _ fy _ _ my _ _ dp ((x,y),mask,ver) meta vst
 	# (vizx, vst)	= fx (dp ++ [0]) (x,subMasks 2 mask !! 0,subVerifications 2 ver !! 0) (mx x) vst
 	# (vizy, vst)	= fy (dp ++ [1]) (y,subMasks 2 mask !! 1,subVerifications 2 ver !! 1) (my y) vst
@@ -272,6 +274,7 @@ gEditMeta{|Maybe|} fx _		= fx undef
 gEditMeta{|[]|} fx _		        = fx undef
 gEditMeta{|EditableList|} fx _      = fx undef
 
+gEditMeta{|()|} _                   = []
 gEditMeta{|(,)|} fa fb _            = fa undef ++ fb undef
 gEditMeta{|(,,)|} fa fb fc _        = fa undef ++ fb undef ++ fc undef
 gEditMeta{|(,,,)|} fa fb fc fd _    = fa undef ++ fb undef ++ fc undef ++ fd undef
@@ -323,13 +326,12 @@ where
 	verifyListItems [] [] = []
 	verifyListItems [x:xs] [m:ms] = [fx options (x,m):verifyListItems xs ms]
 
-derive gVerify EditableListAdd
-		
 gVerify{|(->)|} _ _ _ mv	= alwaysValid mv
 gVerify{|Dynamic|}	_ mv	= alwaysValid mv
 
 gVerify{|HtmlTag|} _ mv = alwaysValid mv
 gVerify{|JSONNode|} _ mv = alwaysValid mv
+gVerify{|()|} _ mv      = alwaysValid mv
 
 derive gVerify (,), (,,), (,,,), Void, Either, Timestamp, Map
 
@@ -517,6 +519,7 @@ gUpdate{|Dynamic|} target upd val ust = basicUpdate (\Void v -> Just v) target u
 gUpdate{|(->)|} _ _ _ gUpdy _ _ _ _ target upd val ust = basicUpdate (\Void v -> Just v) target upd val ust
 
 gUpdate{|HtmlTag|} target upd val ust = (val,ust)
+gUpdate{|()|} target upd val ust = (val,ust)
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
 

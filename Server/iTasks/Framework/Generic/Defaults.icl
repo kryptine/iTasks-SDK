@@ -19,6 +19,7 @@ gDefault{|Char|}							= '\0'
 gDefault{|Bool|}						    = False
 gDefault{|String|}						    = ""
 gDefault{|[]|} fa							= []
+gDefault{|()|} 						        = ()
 gDefault{|(,)|} fa fb						= (fa,fb)
 gDefault{|(,,)|} fa fb fc					= (fa,fb,fc)
 gDefault{|(,,,)|} fa fb fc fd				= (fa,fb,fc,fd)

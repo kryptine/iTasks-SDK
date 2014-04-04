@@ -20,7 +20,7 @@ generic gVisualizeText a :: !VisualizationFormat !a -> [String]
 
 //Default available instances
 derive gVisualizeText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD, FIELD of {gfd_name}
-derive gVisualizeText Int, Real, Char, Bool, String, [], (,), (,,), (,,,), (->), Dynamic 
+derive gVisualizeText Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic 
 derive gVisualizeText Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
 
 //Wrapper functions for visualization

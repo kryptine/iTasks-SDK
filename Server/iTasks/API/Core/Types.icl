@@ -1131,20 +1131,38 @@ fromEditable (Editable a) = a
 toEditable :: !.a -> (Editable .a)
 toEditable a = (Editable a)
 
+gVisualizeText{|Row|} gVizx mode (Row val) = gVizx mode val
+gEditor{|Row|} gEditx _ _ _ _ _ dp (Row val,mask,ver) meta vst
+ = appFst (applyToControls (setDirection Horizontal)) (gEditx dp (val,mask,ver) meta vst)
+gUpdate{|Row|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx (\(Row x) -> x) Row target upd val iworld
+gVerify{|Row|} gVerx options (Row x,mask) = gVerx options (x,mask)
+	
+gVisualizeText{|Col|} gVizx mode (Col val) = gVizx mode val
+gEditor{|Col|} gEditx _ _ _ _ _ dp (Col val,mask,ver) meta vst
+ = appFst (applyToControls (setDirection Vertical)) (gEditx dp (val,mask,ver) meta vst)
+gUpdate{|Col|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx (\(Col x) -> x) Col target upd val iworld
+gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
+	
+//Utility for gEditor
+applyToControls f (NormalEditor controls) = NormalEditor (map (appFst f) controls)
+applyToControls f (OptionalEditor controls) = OptionalEditor (map (appFst f) controls)
+applyToControls f def = def
+
 //Utility for gUpdate
 wrapperUpdate fx get set target upd (val,mask) iworld
 	# ((w,mask),iworld) = fx target upd (get val,mask) iworld
 	= ((set w,mask),iworld)
-		
+
 //Utility for gVerify	
 verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
 verifyDisplay fx options mv = alwaysValid mv
 
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gDefault			Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gEq				Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gEditMeta		Hidden, Display, Editable, VisualizationHint
+
+derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gEditMeta		Hidden, Display, Editable, VisualizationHint, Row, Col
 derive gVisualizeText   EditableList, EditableListAdd
 
 //* Framework types
@@ -1321,6 +1339,10 @@ where
 	toString (IconView)	= "view"
 	toString (IconEdit) = "edit"
 	
+instance descr ()
+where
+	toPrompt _ = {UIDef|content=UIAttributeSet newMap,windows=[]}
+
 instance descr Void
 where
 	toPrompt _ = {UIDef|content=UIAttributeSet newMap,windows=[]}
@@ -1378,12 +1400,19 @@ gEditor{|Icon|} _ (Icon icon,msk,ver) meta vst = (NormalEditor [(UIIcon defaultF
 // Generic instances for common library types
 derive JSONEncode		Either, HtmlTag, HtmlAttr
 derive JSONDecode		Either, HtmlTag, HtmlAttr
-derive gEq				Either, HtmlTag, HtmlAttr, Void, Timestamp, JSONNode
+derive gEq				Either, HtmlTag, HtmlAttr, Timestamp, JSONNode
+
+gEq{|()|} _ _ = True
+JSONEncode{|()|} _ () = [JSONNull]
+JSONDecode{|()|} _ [JSONNull:c]		= (Just (), c)
+JSONDecode{|()|} _ [JSONObject []:c]= (Just (), c)
+JSONDecode{|()|} _ c				= (Nothing, c)
 
 JSONEncode{|Timestamp|} _ (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} _ [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} _ c				= (Nothing, c)
 
+gEq{|Void|} _ _ = True
 JSONEncode{|Void|} _ Void = [JSONNull]
 JSONDecode{|Void|} _ [JSONNull:c]		= (Just Void, c)
 JSONDecode{|Void|} _ [JSONObject []:c]= (Just Void, c)

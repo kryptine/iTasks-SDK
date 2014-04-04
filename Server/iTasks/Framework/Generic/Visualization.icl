@@ -62,8 +62,9 @@ gVisualizeText{|(->)|} _ _ _ _				= []
 gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
-gVisualizeText{|(,)|} fa fb AsLabel (a,b)  = [join "," (fa AsLabel a ++ fb AsLabel b)]
-gVisualizeText{|(,)|} fa fb mode   (a,b)   = fa mode a ++ fb mode b
+gVisualizeText{|()|} _ _                    = []
+gVisualizeText{|(,)|} fa fb AsLabel (a,b)   = [join "," (fa AsLabel a ++ fb AsLabel b)]
+gVisualizeText{|(,)|} fa fb mode   (a,b)    = fa mode a ++ fb mode b
 
 gVisualizeText{|(,,)|} fa fb fc AsLabel (a,b,c)  = [join "," (fa AsLabel a ++ fb AsLabel b ++ fc AsLabel c)]
 gVisualizeText{|(,,)|} fa fb fc mode   (a,b,c)   = fa mode a ++ fb mode b ++ fc mode c

@@ -331,6 +331,10 @@ toDisplay				:: !.a -> Display .a
 fromHidden				:: !(Hidden .a) -> .a
 toHidden				:: !.a -> Hidden .a
 
+//* Setting layout directions
+:: Row a                = Row a  //Horizontal
+:: Col a                = Col a  //Vertical
+
 //* Editing lists
 :: EditableList a       =
     { items     :: [a]
@@ -342,15 +346,15 @@ toHidden				:: !.a -> Hidden .a
 :: EditableListAdd a
     = ELNoAdd | ELAddBlank | ELAddValue ([a] -> a)
 
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gDefault			Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gEq				Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gVisualizeText	Hidden, Display, Editable, VisualizationHint, EditableList, EditableListAdd
-derive gEditor			Hidden, Display, Editable, VisualizationHint
-derive gEditMeta		Hidden, Display, Editable, VisualizationHint
-derive gUpdate			Hidden, Display, Editable, VisualizationHint
-derive gVerify			Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gVisualizeText	Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gEditor			Hidden, Display, Editable, VisualizationHint, Row, Col
+derive gEditMeta		Hidden, Display, Editable, VisualizationHint, Row, Col
+derive gUpdate			Hidden, Display, Editable, VisualizationHint, Row, Col
+derive gVerify			Hidden, Display, Editable, VisualizationHint, Row, Col
 
 
 //****************************************************************************//
@@ -690,11 +694,12 @@ class descr d
 where
 	toPrompt		:: !d -> UIDef
 
+instance descr ()                           //No prompt
 instance descr Void							//No prompt
 instance descr String						//Simple instruction
 instance descr (!String, !String)			//Title attribute + instruction
 instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
-//instance descr (!Icon, !Title)				//Icon attribute, title attribute 
+//instance descr (!Icon, !Title)			//Icon attribute, title attribute 
 instance descr Title
 instance descr Hint
 instance descr Icon
@@ -722,9 +727,9 @@ derive gVerify			Icon
 // Generic instances for common library types
 //****************************************************************************//
 
-derive JSONEncode		HtmlTag, Void, Either, Timestamp
-derive JSONDecode		HtmlTag, Void, Either, Timestamp
-derive gEq				HtmlTag, Void, Either, Timestamp, JSONNode, (->), Dynamic
+derive JSONEncode		(), HtmlTag, Void, Either, Timestamp
+derive JSONDecode		(), HtmlTag, Void, Either, Timestamp
+derive gEq				(), HtmlTag, Void, Either, Timestamp, JSONNode, (->), Dynamic
 
 derive JSONEncode SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive JSONDecode SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
