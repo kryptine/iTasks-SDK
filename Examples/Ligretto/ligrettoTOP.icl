@@ -23,7 +23,7 @@ player_view player
 	           ,view_hand     player.hand
 	           ]
 
-view_row :: !Row -> HtmlTag
+view_row :: !CardRow -> HtmlTag
 view_row row
 	= TableTag []
 	           [TrTag [] [TdTag [] [Text (if (i==1) "row" "")] \\ i <- [1..length row]]

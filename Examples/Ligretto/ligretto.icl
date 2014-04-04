@@ -12,12 +12,12 @@ import Math.Random		// for generating random numbers
 :: SideUp        = Front | Back                   // the side of the card that faces upwards
 :: Color         = Red | Green | Blue | Yellow    // the four player / card colors
 :: Player        = { color     :: Color           // the backside color of this player's cards
-                   , row       :: Row             // the row of the player (nr_of_cards_in_row nr_of_players)
+                   , row       :: CardRow             // the row of the player (nr_of_cards_in_row nr_of_players)
                    , ligretto  :: Pile            // the ligretto pile: 10 upto 0 (win) cards
                    , hand      :: Hand            // the hand cards
                    }
 :: Pile        :== [Card]                         // a pile of cards
-:: Row         :== [Card]                         // a row of (nr_of_cards_in_row nr_of_players) cards
+:: CardRow         :== [Card]                         // a row of (nr_of_cards_in_row nr_of_players) cards
 :: Hand          = { conceal   :: Pile            // the concealed pile
                    , discard   :: Pile            // the discarded pile
                    }

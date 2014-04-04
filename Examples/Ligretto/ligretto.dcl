@@ -14,11 +14,11 @@ import iTasks
 :: SideUp        = Front | Back                   // the side of the card that faces upwards
 :: Color         = Red | Green | Blue | Yellow    // the four player / card colors
 :: Player        = { color     :: Color           // the backside color of this player's cards
-                   , row       :: Row             // the row of the player (nr_of_cards_in_row nr_of_players)
+                   , row       :: CardRow             // the row of the player (nr_of_cards_in_row nr_of_players)
                    , ligretto  :: Pile            // the ligretto pile: 10 upto 0 (win) cards
                    , hand      :: Hand            // the hand cards
                    }
-:: Row         :== [Card]                         // nr_of_cards_in_row nr_of_players cards
+:: CardRow         :== [Card]                         // nr_of_cards_in_row nr_of_players cards
 :: Hand          = { conceal   :: Pile            // the concealed pile
                    , discard   :: Pile            // the discarded pile
                    }
