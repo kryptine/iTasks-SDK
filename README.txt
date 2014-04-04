@@ -30,6 +30,9 @@ There are version for the PC, Mac, and Linux.
 - Copy the folder "iTasks-SDK/Patches/Sapl" into "Libraries/StdEnv/".
   The compilation process creates a directory called "sapl" which contains all the necessary SAPL files;
   this directory will be used by the client side execution infrastucture of the iTask toolkit.
+- Copy the file "iTasks-SDS/Patches/_system.abc" into "Libraries/StdEnv/Clean System Files/". This is adds the
+  predefined type () which is used for tasks without a result
+
 
 = Building examples =
 The most up-to-date example suite to run at the moment is the examples collection for the CEFP Summerschool.
