@@ -61,25 +61,8 @@ callInstantProcess :: !FilePath ![String] !(Maybe FilePath)-> Task Int
 * @gin-icon webservice
 */
 callHTTP2   :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
-callHTTP	:: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
-
-/**
-* Downloads a document from the web
-*
-* @param URL: The url that has to be downloaded
-* @return The downloaded document
-*/
-httpDownloadDocument    :: String -> Task Document
-
-/**
-* Downloads a document from the web to a specific location
-*
-* @param URL: The url that has to be downloaded
-* @param URL: The location to which the document is downloaded
-* @return The location of the downloaded document
-*/
-httpDownloadDocumentTo  :: String FilePath -> Task FilePath
+callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a	
+callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
 
 /**
 * Creates a temporary directory on the server's file system for the duration of a task

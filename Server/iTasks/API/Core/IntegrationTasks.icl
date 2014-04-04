@@ -131,20 +131,23 @@ callHTTP2 _ url _ _
     = throw ("Invalid url: " +++ toString url)
 
 //TODO: Add proper cleanup
-callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
-callHTTP method url request parseResult =
+callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a	
+callHTTP method uri request parseFun =
 		initRPC
 	>>- \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) [] cmd args Nothing
 	>>- \(CompletedProcess exitCode) -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
-		(importTextFile outfile >>- \result -> case parseResult result of
+		(importTextFile outfile >>- \result -> case parseFun {rsp_code = 200, rsp_reason = "OK", rsp_headers = [], rsp_data = result} of
 			Ok res	= return res
 			Error e = throw (RPCException e)
 		)
 where
+	url = toString uri
+
 	options	= case method of
 		HTTP_GET	= "--get"
 		HTTP_POST 	= ""
+		HTTP_PUT	= "-XPUT"
 		
 	initRPC = mkInstantTask eval
 	
@@ -169,7 +172,7 @@ where
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
 
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
+callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
 	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
 
@@ -254,19 +257,6 @@ curlError exitCode =
 
 from iTasks.API.Common.ExportTasks import exportTextFile
 from iTasks.API.Common.ImportTasks import importDocument
-
-httpDownloadDocument :: String -> Task Document
-httpDownloadDocument url = withTemporaryDirectory
-    \tmpdir ->
-        callHTTP HTTP_GET url "" Ok
-    >>-         exportTextFile (tmpdir </> "download")
-    >>- \_ ->   importDocument (tmpdir </> "download")
-
-httpDownloadDocumentTo  :: String FilePath -> Task FilePath
-httpDownloadDocumentTo url path
-    =   callHTTP HTTP_GET url "" Ok
-    >>-         exportTextFile path 
-    @  \_ -> path
 
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval

@@ -135,7 +135,7 @@ openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask
 openRemoteSDS url cont 
 	= case convertURL url Nothing of
 			(Error e) = throw e
-			(Ok uri)  = callHTTP2 HTTP_GET uri "" conv >>= \ty -> trace_n (check ty) (cont (Just f))
+			(Ok uri)  = callHTTP2 HTTP_GET uri "" conv >>= \ty -> if (check ty) (cont (Just f)) (throw "Type check failed")
 where
 	conv rsp = Ok rsp.rsp_data
 	check srvty = clnty == srvty
