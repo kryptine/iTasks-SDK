@@ -78,6 +78,8 @@ instance == TypeCode
 :: TC__StrictArray = TC__StrictArray
 :: TC__UnboxedArray = TC__UnboxedArray
 
+:: TC__Unit = TC__Unit
+
 instance toString TypeCodeConstructor
 instance == TypeCodeConstructor
 typeCodeOfDynamic :: !Dynamic -> TypeCode
