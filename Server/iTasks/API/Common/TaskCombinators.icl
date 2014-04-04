@@ -38,6 +38,9 @@ import iTasks.API.Common.SDSCombinators
 (@) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
 (@) task f = transform (fmap f) task
 
+(@!) infixl 1 :: !(Task a) !b -> Task b | iTask a & iTask b
+(@!) task b = transform (fmap (const b)) task
+
 (@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
 (@>) task (f,share) = project f share task
 
