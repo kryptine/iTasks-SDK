@@ -130,6 +130,12 @@ read` p mbNotify sds=:(SDSSequence sds1 sds2 {SDSSequence|param,read}) env
         = (liftError res2,env)
     = (Ok (read (r1,fromOk res2)),env)
 
+read` p mbNotify (SDSDynamic f) env
+	# (mbsds, env) = f p env
+	= case mbsds of
+		(Error e) = (Error e, env)
+		(Ok sds)  = read` p mbNotify sds env
+
 write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 write w sds env = writeFilterMsg w (const True) sds env
 
@@ -325,6 +331,12 @@ where
 				(Ok r1, env)        = npred2 (param p r1) env
 			(True, env)  = (True, env)
 
+write` p w (SDSDynamic f) filter env
+	# (mbsds, env) = f p env
+	= case mbsds of
+		(Error e) = (Error e, [], env)
+		(Ok sds)  = write` p w sds filter env
+
 processNotifications :: ![SDSNotifyEvent] !*IWorld -> *IWorld
 processNotifications ns iworld
     # (notified,iworld) = process 'Set'.newSet [] ns iworld
@@ -364,36 +376,27 @@ clearShareRegistrations instanceNo iworld=:{IWorld|sdsNotifyRequests}
     = {iworld & sdsNotifyRequests = [r \\ r <- sdsNotifyRequests | r.SDSNotifyRequest.taskInstance <> instanceNo]}
 
 toJSONShared :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & TC p
-toJSONShared shared = createReadWriteSDS "exposedShare" "?" read` write`
+toJSONShared shared = SDSTranslation projected trans
 where
-	read` jsonp iworld
-		= case fromJSON jsonp of
-			(Just p) # (val,iworld) = readp p shared iworld
-					 = case val of
-							(Ok val)  = (Ok (toJSON val), iworld)
-							(Error e) = (Error e, iworld)
-			_		 = (Error "Shared type mismatch in toJSONShared", iworld)
-				
-	write` jsonp jsonw iworld
-		= case (fromJSON jsonw, fromJSON jsonp) of
-			(Just val, Just p)
-			    = appFst (fmap (const (const True))) (writep p val shared iworld)
-			_
-				= (Error "Shared type mismatch in toJSONShared", iworld)
+	// TODO: check
+	trans p = fromJust (fromJSON p)
+
+	projected = SDSProjection shared {SDSProjection|read = SDSLensRead read`, write = SDSLensWrite write`}
+
+	read` rs = Ok (toJSON rs)
+	write` _ wt = case fromJSON wt of
+						(Just ws) = Ok (Just ws)
+						Nothing   = Error "Shared type mismatch in toJSONShared"
 
 fromJSONShared :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
-fromJSONShared shared = createReadWriteSDS "exposedShare" "?" read` write`
+fromJSONShared shared = SDSTranslation projected toJSON
 where
-	read` p iworld
-		# (ret,iworld) = readp (toJSON p) shared iworld
-		= case ret of
-			(Ok json)  = case (fromJSON json) of
-							(Just val)  = (Ok val, iworld)
-							Nothing     = (Error "Shared type mismatch in fromJSONShared", iworld)
-			(Error e) = (Error e, iworld)
+	projected = SDSProjection shared {SDSProjection|read = SDSLensRead read`, write = SDSLensWrite write`}
 
-	write` p val iworld
-        = appFst (fmap (const (const True))) (writep (toJSON p) (toJSON val) shared iworld)
+	read` rs = case fromJSON rs of
+						(Just rt) = Ok rt
+						Nothing   = Error "Shared type mismatch in toJSONShared"
+	write` _ wt = Ok (Just (toJSON wt))
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}

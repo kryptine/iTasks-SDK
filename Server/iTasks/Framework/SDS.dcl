@@ -14,6 +14,8 @@ from iTasks.API.Core.Types import :: InstanceNo
     | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
+							// USE IT CAREFULLY, IT CAN BREAK NOTIFICATION!
+    |						SDSDynamic		!(p *IWorld -> *(MaybeErrorString (RWShared p r w), *IWorld))
     //'OLD' COMPOSITIONS
 	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeErrorString (RWShared p r wy))
 	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
