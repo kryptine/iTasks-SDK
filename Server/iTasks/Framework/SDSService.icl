@@ -8,7 +8,7 @@ from iTasks.Framework.Engine	    import :: ConnectionType
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
 import iTasks.Framework.RemoteAccess
-from iTasks.Framework.SDS as SDS import qualified readp, writep, :: Shared, :: JSONShared
+from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared, :: JSONShared
 from iTasks.Framework.SDS import getURLbyId
 from iTasks.API.Core.IntegrationTasks import callHTTP2
 
@@ -49,15 +49,15 @@ where
 		focus = fromString (paramValue "focus" req)
 	
 		readit shared iworld
-			# (res, iworld) = 'SDS'.readp focus shared iworld
+			# (res, iworld) = 'SDS'.read (sdsFocus focus shared) iworld
 			= case res of
 				(Ok json) = (jsonResponse json, Nothing, iworld)
 				(Error e) = (errorResponse e, Nothing, iworld)			
 			
 		writeit shared iworld
-			# (res, iworld) = 'SDS'.writep focus (fromString req.req_data) shared iworld
+			# (res, iworld) = 'SDS'.write (fromString req.req_data) (sdsFocus focus shared) iworld
 			= case res of
-				(Ok _)    = (jsonResponse "OK", Nothing, iworld)
+				(Ok _)    = (okResponse, Nothing, iworld)
 				(Error e) = (errorResponse e, Nothing, iworld)			
 	
 	reqFun req iworld=:{exposedShares}
@@ -85,13 +85,10 @@ readRemoteSDS p url iworld=:{exposedShares}
 		(Error e) 	= (Error e, iworld)
 where
 	load uri iworld
-		// Check if SDS is local
-		= case 'Data.Map'.get url exposedShares of
-			Nothing 			# (response, iworld) = httpRequest HTTP_GET uri Nothing iworld
-								= if (isOkResponse response)
-										(Ok (fromString response.rsp_data), iworld)
-										(Error ("Request failed: "+++response.rsp_reason), iworld)
-			(Just (_, shared))  = readp p shared iworld
+		# (response, iworld) = httpRequest HTTP_GET uri Nothing iworld
+		= if (isOkResponse response)
+					(Ok (fromString response.rsp_data), iworld)
+					(Error ("Request failed: "+++response.rsp_reason), iworld)
 
 convertURL :: !String !(Maybe JSONNode) -> MaybeErrorString URI
 convertURL url mbp
@@ -108,25 +105,31 @@ where
 						   uriPath		= "/sds" +++ u.uriPath}
 							
 writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
-writeRemoteSDS p val url iworld=:{exposedShares}
+writeRemoteSDS p val url iworld
 	= case convertURL url (Just p) of
 		(Ok uri) 	= load uri val iworld
 		(Error e) 	= (Error e, iworld)
 where
 	load uri val iworld
-		// Check if SDS is local
-		= case 'Data.Map'.get url exposedShares of	
-			Nothing				# (response, iworld) = httpRequest HTTP_PUT uri (Just (toString val)) iworld
-								= if (isOkResponse response)
-										(Ok Void, iworld)
-										(Error ("Request failed: "+++response.rsp_reason), iworld)
-			(Just (_, shared))  = writep p val shared iworld										
+		# (response, iworld) = httpRequest HTTP_PUT uri (Just (toString val)) iworld
+		= if (isOkResponse response)
+					(Ok Void, iworld)
+					(Error ("Request failed: "+++response.rsp_reason), iworld)
 
 remoteJSONShared :: !String -> JSONShared
-remoteJSONShared url = createReadWriteSDS "remoteShared" url read` write`
+remoteJSONShared url = SDSDynamic f
 where
-	read` jsonp iworld = readRemoteSDS jsonp url iworld
-	write` jsonp jsonw iworld 
+	f _ iworld=:{exposedShares} 
+			= case 'Data.Map'.get url exposedShares of
+					Nothing
+						= (Ok (createReadWriteSDS "remoteShare" url rread rwrite), iworld)
+					Just (shared :: RWShared p^ r^ w^, _)	
+						= (Ok shared, iworld)
+					Just dyn
+						= (Error ("Exposed share type mismatch: " +++ url), iworld)
+
+	rread jsonp iworld = readRemoteSDS jsonp url iworld
+	rwrite jsonp jsonw iworld 
 		= case writeRemoteSDS jsonp jsonw url iworld of
 			(Ok Void, iworld) = (Ok (const False), iworld)
 			(Error e, iworld) = (Error e, iworld)
@@ -141,4 +144,4 @@ where
 	check srvty = clnty == srvty
 	f = fromJSONShared (remoteJSONShared url)
 	clnty = toString (unpackType (dynamic f))
-	
+		

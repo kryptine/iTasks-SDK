@@ -59,9 +59,6 @@ iworldNotifyPred npred p env = (npred p, env)
 read :: !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 read sds env = read` Void Nothing sds env
 
-readp :: !p !(RWShared p r w) !*IWorld -> (!MaybeErrorString r, !*IWorld) | TC p
-readp p sds env = read` p Nothing sds env
-
 readRegister :: !InstanceNo !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 readRegister instanceNo sds env = read` Void (Just instanceNo) sds env
 
@@ -130,7 +127,8 @@ read` p mbNotify sds=:(SDSSequence sds1 sds2 {SDSSequence|param,read}) env
         = (liftError res2,env)
     = (Ok (read (r1,fromOk res2)),env)
 
-read` p mbNotify (SDSDynamic f) env
+read` p mbNotify sds=:(SDSDynamic f) env
+    # env = mbRegister p sds mbNotify env
 	# (mbsds, env) = f p env
 	= case mbsds of
 		(Error e) = (Error e, env)
@@ -138,18 +136,10 @@ read` p mbNotify (SDSDynamic f) env
 
 write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 write w sds env = writeFilterMsg w (const True) sds env
-
-writep :: !p !w !(RWShared p r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | TC p	
-writep p w sds env = writeFilterMsg` p w (const True) sds env
 	
 writeFilterMsg :: !w !(InstanceNo -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
 writeFilterMsg w filter sds iworld
     # (mbErr,nevents,iworld) = write` Void w sds filter iworld
-    = (fmap (const Void) mbErr, processNotifications nevents iworld)
-
-writeFilterMsg` :: !p !w !(InstanceNo -> Bool) !(RWShared p r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | TC p
-writeFilterMsg` p w filter sds iworld
-    # (mbErr,nevents,iworld) = write` p w sds filter iworld
     = (fmap (const Void) mbErr, processNotifications nevents iworld)
 
 write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [SDSNotifyEvent], !*IWorld) | TC p
@@ -331,11 +321,13 @@ where
 				(Ok r1, env)        = npred2 (param p r1) env
 			(True, env)  = (True, env)
 
-write` p w (SDSDynamic f) filter env
+write` p w sds=:(SDSDynamic f) filter env
 	# (mbsds, env) = f p env
 	= case mbsds of
 		(Error e) = (Error e, [], env)
-		(Ok sds)  = write` p w sds filter env
+		(Ok dsds) = case write` p w dsds filter env of
+					        (Error e, _, env)   =  (Error e, [], env)
+					        (Ok npred, ns, env) =  (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 
 processNotifications :: ![SDSNotifyEvent] !*IWorld -> *IWorld
 processNotifications ns iworld

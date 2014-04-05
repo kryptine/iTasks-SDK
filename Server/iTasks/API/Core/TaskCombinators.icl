@@ -661,7 +661,8 @@ where
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
-		# (Task evala)				= stask url (exposedShare url)
+		# exposedSDS				= exposedShare url
+		# (Task evala)				= stask url exposedSDS
 		# (resa,iworld)				= evala event repOpts treea iworld
 		= case resa of
 			ValueResult value info rep ntreea

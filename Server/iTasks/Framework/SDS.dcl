@@ -39,6 +39,9 @@ from iTasks.API.Core.Types import :: InstanceNo
     }
 :: SDSIdentity  :== String
 
+// For debugging
+sdsIdentity :: !(RWShared p r w) -> SDSIdentity
+
 //Project maps values from a source (s) domain to a new target (t) domain
 :: SDSProjection rs ws rt wt =
     { read         :: SDSReadProjection rs rt
@@ -115,9 +118,6 @@ createReadOnlySDSError ::
 	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
 	->
 	ROShared p r
-
-readp			:: !p    !(RWShared p r w) !*IWorld -> (!MaybeErrorString r,    !*IWorld) | TC p
-writep			:: !p !w !(RWShared p r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld) | TC p	
 
 read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
 readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)

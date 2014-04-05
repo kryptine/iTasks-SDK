@@ -26,9 +26,6 @@ where
 			updateSharedInformation "edit shared note 2" [] note
 		)
 
-// storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-// loadValue  :: !StoreNamespace !StoreKey	  !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
-
 :: ABC = A Int | B String | C Char
 
 instance toString ABC
@@ -62,7 +59,8 @@ where
 server :: Task String
 server = exposeShared testSDS body
 where
-  body url sds = viewInformation "URL" [] url ||- updateSharedInformation "Value" [] (sdsFocus (A 1) sds) 
+  body url sds = (viewSharedInformation "Original" [] (sdsFocus (A 1) sds)) ||- 
+  				 (viewInformation "URL" [] url ||- (updateSharedInformation "Value" [] (sdsFocus (A 1) sds) ||- updateSharedInformation "Value" [] (sdsFocus (A 1) sds)))
 
 client :: Task String
 client = enterInformation "URL" [] >>= \url -> openRemoteSDS url body
