@@ -1,6 +1,6 @@
 implementation module iTasks.Framework.RemoteAccess
 
-import StdString, StdMisc, StdFile, StdBool, StdArray, StdDebug
+import StdString, StdMisc, StdFile, StdBool, StdArray
 import Text
 
 from iTasks.Framework.Task			import :: Task, mkInstantTask
@@ -69,7 +69,7 @@ httpRequest_server method uri request iworld=:{IWorld|current={taskTime},server=
 		| isError res2
 			= abort "httpRequest_server: reading header output file failed"			
 		= case parseResponse (fromOk res2 +++ fromOk res1) of
-			(Just res) = trace_n res.rsp_data (res, iworld)
+			(Just res) = (res, iworld)
 			Nothing    = abort "httpRequest_server: invalid response"	
 where	
 	mkFileName :: !String -> String

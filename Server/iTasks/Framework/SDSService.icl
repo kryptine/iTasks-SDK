@@ -18,7 +18,7 @@ from Data.Map import qualified get, fromList
 from Data.Map import fromList
 import Data.Maybe, Data.Void, Data.Error
 import Text.URI
-import StdMisc, StdDebug, graph_to_sapl_string
+import StdMisc, graph_to_sapl_string
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
@@ -123,7 +123,7 @@ where
 			= case 'Data.Map'.get url exposedShares of
 					Nothing
 						= (Ok (createReadWriteSDS "remoteShare" url rread rwrite), iworld)
-					Just (shared :: RWShared p^ r^ w^, _)	
+					Just (_, shared)	
 						= (Ok shared, iworld)
 					Just dyn
 						= (Error ("Exposed share type mismatch: " +++ url), iworld)
