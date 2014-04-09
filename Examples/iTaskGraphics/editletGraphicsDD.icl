@@ -148,15 +148,15 @@ add_image svg cid env (Line i ml)
   = env
 add_image svg cid env (Rect i mr)
   # (rect,env) = (jsDocument .# "createElementNS" .$ ("http://www.w3.org/2000/svg", "rect")) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("id",           toJSArg (elt_id cid i))) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("width",        toJSArg (toString (fst mr.ModelRect.size)+++"px"))) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("height",       toJSArg (toString (snd mr.ModelRect.size)+++"px"))) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("x",            toJSArg (toString (fst mr.ModelRect.pos)+++"px"))) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("y",            toJSArg (toString (snd mr.ModelRect.pos)+++"px"))) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("stroke-width", toJSArg (toString mr.ModelRect.framew+++"px"))) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("stroke",       toJSArg mr.ModelRect.frame)) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("fill",         toJSArg mr.ModelRect.fill)) env
-  # (_,env)    = (rect .# "setAttribute"     .$ ("fill-opacity", toJSArg (toString mr.ModelRect.opacity))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("id",           elt_id cid i))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("width",        toString (fst mr.ModelRect.size)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("height",       toString (snd mr.ModelRect.size)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("x",            toString (fst mr.ModelRect.pos)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("y",            toString (snd mr.ModelRect.pos)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("stroke-width", toString mr.ModelRect.framew+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("stroke",       mr.ModelRect.frame)) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("fill",         mr.ModelRect.fill)) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("fill-opacity", toString mr.ModelRect.opacity))) env
   # (_,env)    = (rect .# "addEventListener" .$ ("click",        createEditletEventHandler (select_elt i) cid)) env
   # (_,env)    = (svg  .# "appendChild"      .$ rect) env
   = env
