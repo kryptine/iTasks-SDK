@@ -7,29 +7,29 @@ import StdArray
 import qualified Data.Map as DM
 
 toCSSClass :: a -> String | TC a
-toCSSClass x = "cleanTC-" +++ {f c \\ c <-: toString (typeCodeOfDynamic (dynamic :#:))}
-  where f c | isAlphanum c = c
-            | otherwise = replaceChar c
-        replaceChar c = fromMaybe '_' ('DM'.get c repMap)
-        repMap = 'DM'.fromList [ ('~', '-')
-                               , ('@', 'a')
-                               , ('#', 'H')
-                               , ('$', 'S')
-                               , ('%', 'p')
-                               , ('^', 'v')
-                               , ('?', 'q')
-                               , ('!', 'i')
-                               , ('+', 'x')
-                               , ('*', 'o')
-                               , ('<', 'l')
-                               , ('>', 'g')
-                               , ('\\', 'b')
-                               , ('/', 'f')
-                               , ('|', 'l')
-                               , ('&', '8')
-                               , ('=', 'e')
-                               , (':', 'c')
-                               ]
+toCSSClass x = "cleanTC-" +++ { if (isAlphanum c) c (replaceChar c)
+                              \\ c <-: toString (typeCodeOfDynamic (dynamic x))}
+  where
+    replaceChar c = fromMaybe '_' ('DM'.get c repMap)
+    repMap = 'DM'.fromList [ ('~', '-')
+                           , ('@', 'a')
+                           , ('#', 'H')
+                           , ('$', 'S')
+                           , ('%', 'p')
+                           , ('^', 'v')
+                           , ('?', 'q')
+                           , ('!', 'i')
+                           , ('+', 'x')
+                           , ('*', 'o')
+                           , ('<', 'l')
+                           , ('>', 'g')
+                           , ('\\', 'b')
+                           , ('/', 'f')
+                           , ('|', 'l')
+                           , ('&', '8')
+                           , ('=', 'e')
+                           , (':', 'c')
+                           ]
 
 svg_image :: Task MR
 svg_image = updateInformation "Click the rects" [] circles
@@ -191,7 +191,7 @@ mousedragmove_elt i` cid {[0] = evt} ((cst,mst=:{mPos=MouseDown,dragOffsetX,drag
   # env        = (p .# "y" .= eCY) env
   # (m, env)   = (de .# "getScreenCTM" .$ Void) env
   # (inv, env) = (m .# "inverse" .$ Void) env
-  # (p, env)   = (p .# "matrixTransform" .$ Only inv) env
+  # (p, env)   = (p .# "matrixTransform" .$ toJSVal inv) env
   # (px, env)  = .? (p .# "x") env
   # (py, env)  = .? (p .# "y") env
   # (px, py)   = (jsValToInt px - dragOffsetX, jsValToInt py - dragOffsetY)
@@ -219,17 +219,17 @@ mousedragdown_elt i` cid {[0] = evt} ((cst,mst,_),i) env
       # env          = (p .# "y" .= eCY) env
       # (m, env)     = (de .# "getScreenCTM" .$ Void) env
       # (inv, env)   = (m .# "inverse" .$ Void) env
-      # (p, env)     = (p .# "matrixTransform" .$ Only inv) env
-      # (dragX, env) = (target .# "getAttribute" .$ Only "dragx") env
-      # (dragY, env) = (target .# "getAttribute" .$ Only "dragy") env
+      # (p, env)     = (p .# "matrixTransform" .$ toJSVal inv) env
+      # (dragX, env) = (target .# "getAttribute" .$ toJSVal "dragx") env
+      # (dragY, env) = (target .# "getAttribute" .$ toJSVal "dragy") env
       # (px, env)    = .? (p .# "x") env
       # (py, env)    = .? (p .# "y") env
       # (dragX, env) = if (jsIsNull dragX)
                          (toJSVal 0, env)
-                         (("parseInt" .$ Only dragX) env)
+                         (("parseInt" .$ toJSVal dragX) env)
       # (dragY, env) = if (jsIsNull dragY)
                          (toJSVal 0, env)
-                         (("parseInt" .$ Only dragY) env)
+                         (("parseInt" .$ toJSVal dragY) env)
       # (px, py, dragX, dragY) = (jsValToInt px, jsValToInt py, jsValToInt dragX, jsValToInt dragY)
       = (((cst,{mst & mPos = MouseDown, dragOffsetX = px - dragX, dragOffsetY = py - dragY},i`),i`),env)
 mousedragdown_elt _ _ _ st env = (st, env)
@@ -275,7 +275,7 @@ toMouseEvent svg_id elt_id event env
 # env				= (pt .# "y" .= clientY) env
 # (ctm,env)			= (svg .# "getScreenCTM" .$ Void) env
 # (inv,env)			= (ctm .# "inverse" .$ Void) env
-# (pt`,env)			= (pt .# "matrixTransform" .$ Only inv) env
+# (pt`,env)			= (pt .# "matrixTransform" .$ toJSVal inv) env
 # (x, env)			= .? (pt` .# "x") env
 # (y, env)			= .? (pt` .# "y") env
 = ({ screenPos = (jsValToInt screenX,jsValToInt screenY)
