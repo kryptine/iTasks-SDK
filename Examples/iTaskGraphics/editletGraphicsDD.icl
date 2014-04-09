@@ -4,6 +4,32 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import StdArray
+import qualified Data.Map as DM
+
+toCSSClass :: a -> String | TC a
+toCSSClass x = "cleanTC-" +++ {f c \\ c <-: toString (typeCodeOfDynamic (dynamic :#:))}
+  where f c | isAlphanum c = c
+            | otherwise = replaceChar c
+        replaceChar c = fromMaybe '_' ('DM'.get c repMap)
+        repMap = 'DM'.fromList [ ('~', '-')
+                               , ('@', 'a')
+                               , ('#', 'H')
+                               , ('$', 'S')
+                               , ('%', 'p')
+                               , ('^', 'v')
+                               , ('?', 'q')
+                               , ('!', 'i')
+                               , ('+', 'x')
+                               , ('*', 'o')
+                               , ('<', 'l')
+                               , ('>', 'g')
+                               , ('\\', 'b')
+                               , ('/', 'f')
+                               , ('|', 'l')
+                               , ('&', '8')
+                               , ('=', 'e')
+                               , (':', 'c')
+                               ]
 
 svg_image :: Task MR
 svg_image = updateInformation "Click the rects" [] circles
@@ -150,14 +176,13 @@ add_image svg cid env (Circle i mc)
 = env
   where
     mkDraggable rect env
-      # (_, env) = (rect .# "addEventListener" .$ [toJSArg "mousedown",toJSArg (createEditletEventHandler (mousedragdown_elt i) cid)]) env
-      # (_, env) = (rect .# "addEventListener" .$ [toJSArg "mouseup",toJSArg (createEditletEventHandler (mousedragup_elt i) cid)]) env
-      # (_, env) = (rect .# "addEventListener" .$ [toJSArg "mousemove",toJSArg (createEditletEventHandler (mousedragmove_elt i) cid)]) env
+      # (_, env) = (rect .# "addEventListener" .$ ("mousedown", createEditletEventHandler (mousedragdown_elt i) cid)) env
+      # (_, env) = (rect .# "addEventListener" .$ ("mouseup", createEditletEventHandler (mousedragup_elt i) cid)) env
+      # (_, env) = (rect .# "addEventListener" .$ ("mousemove", createEditletEventHandler (mousedragmove_elt i) cid)) env
       = env
 
 mousedragmove_elt :: m ComponentId {JSObj JSEvent} ((ClientSt,MouseSt,m),m) *JSWorld -> *(!(!(!ClientSt, MouseSt, !m),!m), !*JSWorld)
-mousedragmove_elt i` cid es ((cst,mst=:{mPos=MouseDown,dragOffsetX,dragOffsetY, dragElem=Just delem},_),i) env
-  # evt        = es.[0]
+mousedragmove_elt i` cid {[0] = evt} ((cst,mst=:{mPos=MouseDown,dragOffsetX,dragOffsetY, dragElem=Just delem},_),i) env
   # (de, env)  = getDomElement (main_svg_id cid) env
   # (p, env)   = (de .# "createSVGPoint" .$ Void) env
   # (eCX, env) = .? (evt .# "clientX") env
@@ -166,7 +191,7 @@ mousedragmove_elt i` cid es ((cst,mst=:{mPos=MouseDown,dragOffsetX,dragOffsetY, 
   # env        = (p .# "y" .= eCY) env
   # (m, env)   = (de .# "getScreenCTM" .$ Void) env
   # (inv, env) = (m .# "inverse" .$ Void) env
-  # (p, env)   = (p .# "matrixTransform" .$ toJSArg inv) env
+  # (p, env)   = (p .# "matrixTransform" .$ Only inv) env
   # (px, env)  = .? (p .# "x") env
   # (py, env)  = .? (p .# "y") env
   # (px, py)   = (jsValToInt px - dragOffsetX, jsValToInt py - dragOffsetY)
@@ -178,36 +203,36 @@ mousedragmove_elt i` cid es ((cst,mst=:{mPos=MouseDown,dragOffsetX,dragOffsetY, 
       # (_, env) = (delem .# "setAttribute" .$ ("dragy", py)) env
       # (_, env) = (delem .# "setAttribute" .$ ("transform", "translate(" +++ toString px +++ "," +++ toString py +++ ")")) env
       = env
-mousedragmove_elt i` cid es st env = (st, env)
+mousedragmove_elt _ _ _ st env = (st, env)
 
 mousedragdown_elt :: m ComponentId {JSObj JSEvent} ((ClientSt,MouseSt,m),m) *JSWorld -> *(!(!(!ClientSt, MouseSt, !m),!m), !*JSWorld)
-mousedragdown_elt i` cid es ((cst,mst,_),i) env
-# evt = es.[0]
-# (target, env) = .? (evt .# "currentTarget") env
-# mst = {mst & dragElem = Just target}
-| jsIsNull target = (((cst, mst,i`),i`),env)
-| otherwise
-    # (de, env)    = getDomElement (main_svg_id cid) env
-    # (p, env)     = (de .# "createSVGPoint" .$ Void) env
-    # (eCX, env)   = .? (evt .# "clientX") env
-    # (eCY, env)   = .? (evt .# "clientY") env
-    # env          = (p .# "x" .= eCX) env
-    # env          = (p .# "y" .= eCY) env
-    # (m, env)     = (de .# "getScreenCTM" .$ Void) env
-    # (inv, env)   = (m .# "inverse" .$ Void) env
-    # (p, env)     = (p .# "matrixTransform" .$ toJSArg inv) env
-    # (dragX, env) = (target .# "getAttribute" .$ toJSArg "dragx") env
-    # (dragY, env) = (target .# "getAttribute" .$ toJSArg "dragy") env
-    # (px, env)    = .? (p .# "x") env
-    # (py, env)    = .? (p .# "y") env
-    # (dragX, env) = if (jsIsNull dragX)
-                       (toJSVal 0, env)
-                       (("parseInt" .$ toJSArg dragX) env)
-    # (dragY, env) = if (jsIsNull dragY)
-                       (toJSVal 0, env)
-                       (("parseInt" .$ toJSArg dragY) env)
-    # (px, py, dragX, dragY) = (jsValToInt px, jsValToInt py, jsValToInt dragX, jsValToInt dragY)
-    = (((cst,{mst & mPos = MouseDown, dragOffsetX = px - dragX, dragOffsetY = py - dragY},i`),i`),env)
+mousedragdown_elt i` cid {[0] = evt} ((cst,mst,_),i) env
+  # (target, env) = .? (evt .# "currentTarget") env
+  # mst = {mst & dragElem = Just target}
+  | jsIsNull target = (((cst, mst,i`),i`),env)
+  | otherwise
+      # (de, env)    = getDomElement (main_svg_id cid) env
+      # (p, env)     = (de .# "createSVGPoint" .$ Void) env
+      # (eCX, env)   = .? (evt .# "clientX") env
+      # (eCY, env)   = .? (evt .# "clientY") env
+      # env          = (p .# "x" .= eCX) env
+      # env          = (p .# "y" .= eCY) env
+      # (m, env)     = (de .# "getScreenCTM" .$ Void) env
+      # (inv, env)   = (m .# "inverse" .$ Void) env
+      # (p, env)     = (p .# "matrixTransform" .$ Only inv) env
+      # (dragX, env) = (target .# "getAttribute" .$ Only "dragx") env
+      # (dragY, env) = (target .# "getAttribute" .$ Only "dragy") env
+      # (px, env)    = .? (p .# "x") env
+      # (py, env)    = .? (p .# "y") env
+      # (dragX, env) = if (jsIsNull dragX)
+                         (toJSVal 0, env)
+                         (("parseInt" .$ Only dragX) env)
+      # (dragY, env) = if (jsIsNull dragY)
+                         (toJSVal 0, env)
+                         (("parseInt" .$ Only dragY) env)
+      # (px, py, dragX, dragY) = (jsValToInt px, jsValToInt py, jsValToInt dragX, jsValToInt dragY)
+      = (((cst,{mst & mPos = MouseDown, dragOffsetX = px - dragX, dragOffsetY = py - dragY},i`),i`),env)
+mousedragdown_elt _ _ _ st env = (st, env)
 
 mousedragup_elt :: m ComponentId {JSObj JSEvent} ((ClientSt,MouseSt,m),m) *JSWorld -> *(!(!(!ClientSt, MouseSt, !m),!m), !*JSWorld)
 mousedragup_elt i` cid es ((cst,_,_),i) env
@@ -250,7 +275,7 @@ toMouseEvent svg_id elt_id event env
 # env				= (pt .# "y" .= clientY) env
 # (ctm,env)			= (svg .# "getScreenCTM" .$ Void) env
 # (inv,env)			= (ctm .# "inverse" .$ Void) env
-# (pt`,env)			= (pt .# "matrixTransform" .$ [toJSArg inv]) env
+# (pt`,env)			= (pt .# "matrixTransform" .$ Only inv) env
 # (x, env)			= .? (pt` .# "x") env
 # (y, env)			= .? (pt` .# "y") env
 = ({ screenPos = (jsValToInt screenX,jsValToInt screenY)
