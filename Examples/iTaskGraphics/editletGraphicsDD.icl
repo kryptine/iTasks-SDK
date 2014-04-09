@@ -135,63 +135,63 @@ where
 
 add_image :: !(JSObj a) !ComponentId !*JSWorld !ModelImage -> *JSWorld
 add_image svg cid env (Line i ml)
-# (rect,env)		= (jsDocument .# "createElementNS" .$ [toJSArg "http://www.w3.org/2000/svg", toJSArg "line"]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "id",           toJSArg (elt_id cid i)]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "x1",           toJSArg (toString (fst ml.ModelLine.pos)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "y1",           toJSArg (toString (snd ml.ModelLine.pos)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "x2",           toJSArg (toString (fst ml.ModelLine.end)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "y2",           toJSArg (toString (snd ml.ModelLine.end)+++"px")]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke-width", toJSArg (toString ml.ModelLine.linew+++"px")]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke",       toJSArg ml.ModelLine.edge]) env
-# (_,env)			= (rect .# "addEventListener" .$ [toJSArg "click",toJSArg (createEditletEventHandler (select_elt i) cid)]) env
-# (_,env)			= (svg  .# "appendChild"  .$ [toJSArg rect]) env
-= env
+  # (line,env) = (jsDocument .# "createElementNS" .$ ("http://www.w3.org/2000/svg", "line")) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("id",           elt_id cid i)) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("x1",           toString (fst ml.ModelLine.pos)+++"px")) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("y1",           toString (snd ml.ModelLine.pos)+++"px")) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("x2",           toString (fst ml.ModelLine.end)+++"px")) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("y2",           toString (snd ml.ModelLine.end)+++"px")) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("stroke-width", toString ml.ModelLine.linew+++"px")) env
+  # (_,env)    = (line .# "setAttribute"     .$ ("stroke",       ml.ModelLine.edge)) env
+  # (_,env)    = (line .# "addEventListener" .$ ("click",        createEditletEventHandler (select_elt i) cid)) env
+  # (_,env)    = (svg  .# "appendChild"      .$ line) env
+  = env
 add_image svg cid env (Rect i mr)
-# (rect,env)		= (jsDocument .# "createElementNS" .$ [toJSArg "http://www.w3.org/2000/svg", toJSArg "rect"]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "id",           toJSArg (elt_id cid i)]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "width",        toJSArg (toString (fst mr.ModelRect.size)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "height",       toJSArg (toString (snd mr.ModelRect.size)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "x",            toJSArg (toString (fst mr.ModelRect.pos)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "y",            toJSArg (toString (snd mr.ModelRect.pos)+++"px")]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke-width", toJSArg (toString mr.ModelRect.framew+++"px")]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke",       toJSArg mr.ModelRect.frame]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "fill",         toJSArg mr.ModelRect.fill]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "fill-opacity", toJSArg (toString mr.ModelRect.opacity)]) env
-# (_,env)			= (rect .# "addEventListener" .$ [toJSArg "click",toJSArg (createEditletEventHandler (select_elt i) cid)]) env
-# (_,env)			= (svg  .# "appendChild"  .$ [toJSArg rect]) env
-= env
+  # (rect,env) = (jsDocument .# "createElementNS" .$ ("http://www.w3.org/2000/svg", "rect")) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("id",           toJSArg (elt_id cid i))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("width",        toJSArg (toString (fst mr.ModelRect.size)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("height",       toJSArg (toString (snd mr.ModelRect.size)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("x",            toJSArg (toString (fst mr.ModelRect.pos)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("y",            toJSArg (toString (snd mr.ModelRect.pos)+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("stroke-width", toJSArg (toString mr.ModelRect.framew+++"px"))) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("stroke",       toJSArg mr.ModelRect.frame)) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("fill",         toJSArg mr.ModelRect.fill)) env
+  # (_,env)    = (rect .# "setAttribute"     .$ ("fill-opacity", toJSArg (toString mr.ModelRect.opacity))) env
+  # (_,env)    = (rect .# "addEventListener" .$ ("click",        createEditletEventHandler (select_elt i) cid)) env
+  # (_,env)    = (svg  .# "appendChild"      .$ rect) env
+  = env
 add_image svg cid env (Circle i mc)
-# (rect,env)		= (jsDocument .# "createElementNS" .$ [toJSArg "http://www.w3.org/2000/svg", toJSArg "circle"]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "id",           toJSArg (elt_id cid i)]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "cx",           toJSArg (toString (fst mc.ModelCircle.pos)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "cy",           toJSArg (toString (snd mc.ModelCircle.pos)+++"px")]) env
-# (_,env)           = (rect .# "setAttribute" .$ [toJSArg "r",            toJSArg (toString mc.ModelCircle.r+++"px")]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke-width", toJSArg (toString mc.ModelCircle.framew+++"px")]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "stroke",       toJSArg mc.ModelCircle.frame]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "fill",         toJSArg mc.ModelCircle.fill]) env
-# (_,env)			= (rect .# "setAttribute" .$ [toJSArg "fill-opacity", toJSArg (toString mc.ModelCircle.opacity)]) env
-# (_,env)			= (rect .# "addEventListener" .$ [toJSArg "click",toJSArg (createEditletEventHandler (select_elt i) cid)]) env
-# env			    = if mc.draggable (mkDraggable rect env) env
-# (_,env)			= (svg  .# "appendChild"  .$ [toJSArg rect]) env
-= env
-  where
-    mkDraggable rect env
-      # (_, env) = (rect .# "addEventListener" .$ ("mousedown", createEditletEventHandler (mousedragdown_elt i) cid)) env
-      # (_, env) = (rect .# "addEventListener" .$ ("mouseup", createEditletEventHandler (mousedragup_elt i) cid)) env
-      # (_, env) = (rect .# "addEventListener" .$ ("mousemove", createEditletEventHandler (mousedragmove_elt i) cid)) env
-      = env
+  # (circ,env) = (jsDocument .# "createElementNS" .$ ("http://www.w3.org/2000/svg", "circle")) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("id",           elt_id cid i)) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("cx",           toString (fst mc.ModelCircle.pos)+++"px")) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("cy",           toString (snd mc.ModelCircle.pos)+++"px")) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("r",            toString mc.ModelCircle.r+++"px")) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("stroke-width", toString mc.ModelCircle.framew+++"px")) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("stroke",       mc.ModelCircle.frame)) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("fill",         mc.ModelCircle.fill)) env
+  # (_,env)    = (circ .# "setAttribute"     .$ ("fill-opacity", toString mc.ModelCircle.opacity)) env
+  # (_,env)    = (circ .# "addEventListener" .$ ("click", createEditletEventHandler (select_elt i) cid)) env
+  # env        = if mc.draggable (mkDraggable cid i circ env) env
+  # (_,env)    = (svg  .# "appendChild"  .$ circ) env
+  = env
+
+mkDraggable cid i shape env
+  # (_, env) = (shape .# "addEventListener" .$ ("mousedown", createEditletEventHandler (mousedragdown_elt i) cid)) env
+  # (_, env) = (shape .# "addEventListener" .$ ("mouseup",   createEditletEventHandler (mousedragup_elt i) cid)) env
+  # (_, env) = (shape .# "addEventListener" .$ ("mousemove", createEditletEventHandler (mousedragmove_elt i) cid)) env
+  = env
 
 mousedragmove_elt :: m ComponentId {JSObj JSEvent} ((ClientSt,MouseSt,m),m) *JSWorld -> *(!(!(!ClientSt, MouseSt, !m),!m), !*JSWorld)
 mousedragmove_elt i` cid {[0] = evt} ((cst,mst=:{mPos=MouseDown,dragOffsetX,dragOffsetY, dragElem=Just delem},_),i) env
   # (de, env)  = getDomElement (main_svg_id cid) env
-  # (p, env)   = (de .# "createSVGPoint" .$ Void) env
+  # (p, env)   = (de .# "createSVGPoint" .$ ()) env
   # (eCX, env) = .? (evt .# "clientX") env
   # (eCY, env) = .? (evt .# "clientY") env
   # env        = (p .# "x" .= eCX) env
   # env        = (p .# "y" .= eCY) env
-  # (m, env)   = (de .# "getScreenCTM" .$ Void) env
-  # (inv, env) = (m .# "inverse" .$ Void) env
-  # (p, env)   = (p .# "matrixTransform" .$ toJSVal inv) env
+  # (m, env)   = (de .# "getScreenCTM" .$ ()) env
+  # (inv, env) = (m .# "inverse" .$ ()) env
+  # (p, env)   = (p .# "matrixTransform" .$ inv) env
   # (px, env)  = .? (p .# "x") env
   # (py, env)  = .? (p .# "y") env
   # (px, py)   = (jsValToInt px - dragOffsetX, jsValToInt py - dragOffsetY)
@@ -212,24 +212,24 @@ mousedragdown_elt i` cid {[0] = evt} ((cst,mst,_),i) env
   | jsIsNull target = (((cst, mst,i`),i`),env)
   | otherwise
       # (de, env)    = getDomElement (main_svg_id cid) env
-      # (p, env)     = (de .# "createSVGPoint" .$ Void) env
+      # (p, env)     = (de .# "createSVGPoint" .$ ()) env
       # (eCX, env)   = .? (evt .# "clientX") env
       # (eCY, env)   = .? (evt .# "clientY") env
       # env          = (p .# "x" .= eCX) env
       # env          = (p .# "y" .= eCY) env
-      # (m, env)     = (de .# "getScreenCTM" .$ Void) env
-      # (inv, env)   = (m .# "inverse" .$ Void) env
-      # (p, env)     = (p .# "matrixTransform" .$ toJSVal inv) env
-      # (dragX, env) = (target .# "getAttribute" .$ toJSVal "dragx") env
-      # (dragY, env) = (target .# "getAttribute" .$ toJSVal "dragy") env
+      # (m, env)     = (de .# "getScreenCTM" .$ ()) env
+      # (inv, env)   = (m .# "inverse" .$ ()) env
+      # (p, env)     = (p .# "matrixTransform" .$ inv) env
+      # (dragX, env) = (target .# "getAttribute" .$ toJSArg "dragx") env
+      # (dragY, env) = (target .# "getAttribute" .$ toJSArg "dragy") env
       # (px, env)    = .? (p .# "x") env
       # (py, env)    = .? (p .# "y") env
       # (dragX, env) = if (jsIsNull dragX)
                          (toJSVal 0, env)
-                         (("parseInt" .$ toJSVal dragX) env)
+                         (("parseInt" .$ dragX) env)
       # (dragY, env) = if (jsIsNull dragY)
                          (toJSVal 0, env)
-                         (("parseInt" .$ toJSVal dragY) env)
+                         (("parseInt" .$ dragY) env)
       # (px, py, dragX, dragY) = (jsValToInt px, jsValToInt py, jsValToInt dragX, jsValToInt dragY)
       = (((cst,{mst & mPos = MouseDown, dragOffsetX = px - dragX, dragOffsetY = py - dragY},i`),i`),env)
 mousedragdown_elt _ _ _ st env = (st, env)
@@ -253,36 +253,36 @@ elt_id cid nr = main_svg_id cid +++ "-" +++ toString nr
 
 boundingbox :: [ModelImage] -> (Int,Int,Int,Int)
 boundingbox mrs
-	= foldr boundbox (zero,zero,zero,zero) mrs
+  = foldr boundbox (zero,zero,zero,zero) mrs
 where
-	boundbox (Line   _ {ModelLine | pos=(x,y),end=(x2,y2)}) (minx,miny,maxx,maxy) = (minList [minx,x,x2], minList [miny,y,y2], maxList [maxx,x,x2], maxList [maxy,y,y2])
-	boundbox (Rect   _ {ModelRect | pos=(x,y),size=(w,h)})  (minx,miny,maxx,maxy) = (min minx x, min miny y, max maxx (x+w), max maxy (y+h))
-	boundbox (Circle _ {ModelCircle | pos=(x,y),r})         (minx,miny,maxx,maxy) = (min minx (x-r), min miny (y-r), max maxx (x+r), max maxy (y+r))
+  boundbox (Line   _ {ModelLine | pos=(x,y),end=(x2,y2)}) (minx,miny,maxx,maxy) = (minList [minx,x,x2], minList [miny,y,y2], maxList [maxx,x,x2], maxList [maxy,y,y2])
+  boundbox (Rect   _ {ModelRect | pos=(x,y),size=(w,h)})  (minx,miny,maxx,maxy) = (min minx x, min miny y, max maxx (x+w), max maxy (y+h))
+  boundbox (Circle _ {ModelCircle | pos=(x,y),r})         (minx,miny,maxx,maxy) = (min minx (x-r), min miny (y-r), max maxx (x+r), max maxy (y+r))
 
 :: MouseEvent = {screenPos :: !(!Int,!Int), clientPos :: !(!Int,!Int), buttonSt :: !MouseButton}
 :: MouseButton = LeftButton | MiddleButton | RightButton
 
 toMouseEvent :: !ComponentId !ComponentId !(JSObj JSEvent) !*JSWorld -> (!MouseEvent,!*JSWorld)
 toMouseEvent svg_id elt_id event env
-# (clientX,env)		= .? (event .# "clientX") env
-# (clientY,env)		= .? (event .# "clientY") env
-# (screenX,env)		= .? (event .# "screenX") env
-# (screenY,env)		= .? (event .# "screenY") env
-# (button, env)		= .? (event .# "button")  env
-# (svg,env)			= getDomElement svg_id env
-# (pt, env)			= (svg .# "createSVGPoint" .$ Void) env
-# env				= (pt .# "x" .= clientX) env
-# env				= (pt .# "y" .= clientY) env
-# (ctm,env)			= (svg .# "getScreenCTM" .$ Void) env
-# (inv,env)			= (ctm .# "inverse" .$ Void) env
-# (pt`,env)			= (pt .# "matrixTransform" .$ toJSVal inv) env
-# (x, env)			= .? (pt` .# "x") env
-# (y, env)			= .? (pt` .# "y") env
-= ({ screenPos = (jsValToInt screenX,jsValToInt screenY)
-   , clientPos = (jsValToInt x,jsValToInt y)
-   , buttonSt  = case jsValToInt button of
-                   0 = LeftButton
-                   1 = MiddleButton
-                   2 = RightButton
-   }
-  ,env)
+  # (clientX,env) = .? (event .# "clientX") env
+  # (clientY,env) = .? (event .# "clientY") env
+  # (screenX,env) = .? (event .# "screenX") env
+  # (screenY,env) = .? (event .# "screenY") env
+  # (button, env) = .? (event .# "button")  env
+  # (svg,env)     = getDomElement svg_id env
+  # (pt, env)     = (svg .# "createSVGPoint" .$ ()) env
+  # env           = (pt .# "x" .= clientX) env
+  # env           = (pt .# "y" .= clientY) env
+  # (ctm,env)     = (svg .# "getScreenCTM" .$ ()) env
+  # (inv,env)     = (ctm .# "inverse" .$ ()) env
+  # (pt`,env)     = (pt .# "matrixTransform" .$ inv) env
+  # (x, env)      = .? (pt` .# "x") env
+  # (y, env)      = .? (pt` .# "y") env
+  = ({ screenPos = (jsValToInt screenX,jsValToInt screenY)
+     , clientPos = (jsValToInt x,jsValToInt y)
+     , buttonSt  = case jsValToInt button of
+                     0 = LeftButton
+                     1 = MiddleButton
+                     2 = RightButton
+     }
+    ,env)
