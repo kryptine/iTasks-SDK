@@ -112,7 +112,11 @@ class ToArgs a where
 
 instance ToArgs Void
 
+instance ToArgs ()
+
 instance ToArgs JSArg
+
+instance ToArgs (JSVal a)
 
 instance ToArgs [JSArg]
 

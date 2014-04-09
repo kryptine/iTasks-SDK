@@ -162,8 +162,14 @@ findObject query world
 class ToArgs a where
   toArgs :: a -> [JSArg]
 
+instance ToArgs () where
+  toArgs _ = []
+
 instance ToArgs Void where
   toArgs _ = []
+
+instance ToArgs (JSVal a) where
+  toArgs x = [toJSArg x]
 
 instance ToArgs JSArg where
   toArgs x = [x]
