@@ -20,6 +20,7 @@ function __Maybe_Just(__a1) {
 };
 
 var ___predefined__Nil = [1,"_predefined._Nil"];
+var ___predefined__Unit = [1,"_predefined._Unit"];
 // TO BE SURE
 
 // --------- Primitive functions -----------------------------
