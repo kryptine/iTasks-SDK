@@ -358,7 +358,7 @@ where
         # sideC = if (side === TopSide|| side === BottomSide) (setSize FlexSize (ExactSize size) sideC) (setSize (ExactSize size) FlexSize sideC)
         # restC = fill restC
         = {UISubUI|attributes=mergeAttributes attributes (mergeAttributes restAt sideAt)
-                  ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) [sideC,restC] [restC,sideC])
+                  ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) [sideC,UISplitter,restC] [restC,UISplitter,sideC])
                             &direction = if (side===TopSide || side === BottomSide) Vertical Horizontal
                             }
                   ,actions = restAc ++ sideAc

@@ -431,6 +431,19 @@ body {
   border-top: 1px solid #efefef;
   border-bottom: 1px solid #ddd; }
 
+.vsplitter {
+  height: 5px;
+  cursor: row-resize;
+  align-self: stretch; }
+
+.hsplitter {
+  width: 5px;
+  cursor: col-resize;
+  align-self: stretch; }
+
+.vsplitter:hover, .hsplitter:hover {
+  background-color: #ddd; }
+
 .window {
   position: absolute;
   top: 0px;

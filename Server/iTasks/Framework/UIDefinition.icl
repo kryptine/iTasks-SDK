@@ -426,6 +426,7 @@ encodeUIControl (UIActionButton sopts aopts opts)		= enc "itwc_actionbutton" [to
 encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sopts, toJSON opts]
 encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts]
 encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts]
+encodeUIControl (UISplitter)						    = enc "itwc_splitter" []
 encodeUIControl (UIContainer sopts iopts)			    = enc "itwc_container" [toJSON sopts, toJSON iopts]
 encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts]
 encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts]

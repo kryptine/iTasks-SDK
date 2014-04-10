@@ -88,6 +88,8 @@ diffControls path event editletDiffs c1 c2
 			= [diffOpts sOpts1 sOpts2,diffOpts opts1 opts2]
 		(UIIcon sOpts1 opts1, UIIcon sOpts2 opts2)
 			= [diffOpts sOpts1 sOpts2,diffIconOpts path opts1 opts2]
+        (UISplitter,UISplitter)
+            = []
 		// Check their instance id. Different: replace, Equals: update (mostly taskId)
 		(UITasklet sOpts1 opts1, UITasklet sOpts2 opts2)
 			| opts1.UITaskletOpts.taskId == opts2.UITaskletOpts.taskId

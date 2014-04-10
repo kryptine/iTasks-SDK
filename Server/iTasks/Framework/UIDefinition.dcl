@@ -121,6 +121,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	// Misc auxiliary components:
 	| UILabel			!UIHSizeOpts	!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
 	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
+    | UISplitter
 	// Tasklet stuff
 	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
 	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
