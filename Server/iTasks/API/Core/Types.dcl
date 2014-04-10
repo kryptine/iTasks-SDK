@@ -203,7 +203,16 @@ toTable	:: ![a] -> Table | gEditMeta{|*|} a & gVisualizeText{|*|} a
     , value     :: ChoiceTreeValue
     , type      :: ChoiceTreeType v
     }
-:: ChoiceTreeValue  = ChoiceNode !Int | GroupNode !String
+//There are two types of nodes in a choice tree
+//Some nodes represent an element of the list of choices (ChoiceNode) and you
+//indicate which element by its index in the list of options.
+//Other nodes are only used for grouping the available options (GroupNode) and don't indicate
+//a choice. For these nodes a unique name must be supplied to make it possible to
+//track if the node is collapsed or expanded
+:: ChoiceTreeValue
+    = ChoiceNode !Int
+    | GroupNode !String
+
 :: ChoiceTreeType v = LeafNode | CollapsedNode [ChoiceTree v] | ExpandedNode [ChoiceTree v]
 
 choiceTreeChildren :: (ChoiceTree v) -> [ChoiceTree v]
