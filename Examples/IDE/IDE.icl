@@ -50,26 +50,28 @@ manageWork list
 
 //startWork :: Task ClientPart
 startWork list
-	= (chooseFile >&> viewAndStart) <<@ (ArrangeWithSideBar 1 BottomSide 200) 
+	= (chooseFile >&> workOnFiles) <<@ (ArrangeWithSideBar 0 LeftSide 200) <<@ FullScreen
 
 
-viewAndStart :: (ReadOnlyShared (Maybe (FilePath,FilePath))) -> Task (Editlet CodeMirror [CodeMirrorDiff])
-viewAndStart sel 
-=	forever (
-			viewSharedInformation [Att (Title "Show Selection"), Att IconView]  [ViewWith mbJust] sel 
-		>>* [OnAction (Action "Start Editor" [ActionKey (unmodified KEY_ENTER)]) 
-						(hasValue (\v -> openFile (fromJust v)))]
-		)
+workOnFiles :: (ReadOnlyShared (Maybe (FilePath,FilePath))) -> Task ()
+workOnFiles sel 
+	= parallel () [
+		(Embedded,addSelectedFile sel)
+	  ] [] <<@ ArrangeWithTabs @! ()
 where
-	mbJust (Just v) = v
-	mbJust _ = ("","")
-
+	addSelectedFile sel list
+		= watch sel >^* [OnAction  (Action "/Start Editor" [ActionKey (unmodified KEY_ENTER)])
+							(ifValue isJust (\(Just v) -> appendTask Embedded (\_ -> (openFile v <<@ (Title (snd v)))) list))]
+		@? const NoValue
 
 import iTasks.API.Extensions.CodeMirror, StdFile
  
-openFile :: (FilePath,FilePath) -> Task (Editlet CodeMirror [CodeMirrorDiff])
+openFile :: (FilePath,FilePath) -> Task String //(Editlet CodeMirror [CodeMirrorDiff])
 openFile (path,fileName) 
 	= 				fileToString (path </> fileName)
+	>>- viewInformation "TEST" [ViewWith Note]
+	
+	/*
 	>>= \content -> updateInformation fileName [] 
 							(codeMirrorEditlet 	{ configuration = [CMLineNumbers True] 			// [CodeMirrorConfiguration]
 												, position		= 0				// cursor position
@@ -78,7 +80,7 @@ openFile (path,fileName)
 												} []) 
 
 
-
+	*/
 fileToString  :: FilePath -> Task String
 fileToString fileName
 	=	accWorld (myfopen  fileName) 
@@ -98,7 +100,7 @@ filesToSelect files = toReadOnly (mapRead (\_ -> files) filerSelected)
 
 chooseFile :: Task (FilePath,FilePath)
 chooseFile
-	=					accWorld (getFilesInDir filePath  ["icl","dcl","prj","abc","o"]) 
+	=					accWorld (getFilesInDir filePath  ["icl","dcl","prj","abc","o","sapl"]) 
 		>>= \tree ->	enterChoice [Att (Title "Select File"), Att IconEdit] [ChooseWith (ChooseFromTree (\list _ -> toChoiceTree list))] (treeToList tree [])
 		@? adjust
 where
