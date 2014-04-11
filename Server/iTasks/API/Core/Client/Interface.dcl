@@ -110,6 +110,16 @@ withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 class ToArgs a where
   toArgs :: a -> [JSArg]
 
+instance ToArgs Int
+
+instance ToArgs Bool
+
+instance ToArgs Real
+
+instance ToArgs Char
+
+instance ToArgs String
+
 instance ToArgs Void
 
 instance ToArgs ()

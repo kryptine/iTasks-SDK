@@ -162,6 +162,21 @@ findObject query world
 class ToArgs a where
   toArgs :: a -> [JSArg]
 
+instance ToArgs Int where
+  toArgs n = [toJSArg n]
+
+instance ToArgs Bool where
+  toArgs b = [toJSArg b]
+
+instance ToArgs Real where
+  toArgs r = [toJSArg r]
+
+instance ToArgs Char where
+  toArgs c = [toJSArg c]
+
+instance ToArgs String where
+  toArgs s = [toJSArg s]
+
 instance ToArgs () where
   toArgs _ = []
 
