@@ -233,8 +233,8 @@ mousedragdown_elt i` cid evts=:{[0] = evt} ((cst,mst,_),i) env
       # (m, env)     = (de `getScreenCTM` ()) env
       # (inv, env)   = (m `inverse` ()) env
       # (p, env)     = (p `matrixTransform` inv) env
-      # (dragX, env) = (target `getAttribute` toJSArg "dragx") env
-      # (dragY, env) = (target `getAttribute` toJSArg "dragy") env
+      # (dragX, env) = (target `getAttribute` "dragx") env
+      # (dragY, env) = (target `getAttribute` "dragy") env
       # (px, env)    = .? (p .# "x") env
       # (py, env)    = .? (p .# "y") env
       # (dragX, env) = if (jsIsNull dragX)
