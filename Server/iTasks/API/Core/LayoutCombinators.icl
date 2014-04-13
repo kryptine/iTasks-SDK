@@ -328,14 +328,8 @@ where
             | later acur abest  = find (i+1) (Just (i,acur)) ds
                                 = find (i+1) (Just (ibest,abest)) ds
 
-		later a b = case ('Data.Map'.get LAST_EVENT_ATTRIBUTE a,'Data.Map'.get LAST_EVENT_ATTRIBUTE b) of
-			(Just ea,Just eb)
-				| ea == eb	//If the last event time is the same, then we compare creation times to which tab is newest
-					= case ('Data.Map'.get CREATED_AT_ATTRIBUTE a, 'Data.Map'.get CREATED_AT_ATTRIBUTE b) of
-						(Just ca,Just cb)	= toInt ca > toInt cb
-						_					= False
-				| otherwise	
-					= toInt ea > toInt eb
+		later a b = case ('Data.Map'.get LAST_FOCUS_ATTRIBUTE a,'Data.Map'.get LAST_FOCUS_ATTRIBUTE b) of
+            (Just fa,Just fb)   = toInt fa > toInt fb
 			(Just _,Nothing)	= True
 			_					= False
 

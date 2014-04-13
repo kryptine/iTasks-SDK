@@ -74,6 +74,7 @@ derive JSONDecode DeferredJSON
 	, lastEval          :: !TaskResult JSONNode     //Value of last evaluation
 	, uiAttributes		:: !Map String String		//Stored attributes of last evaluation
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
+    , lastFocus         :: !Maybe TaskTime          //Time the entry was last explicitly focused
 	, lastEvent			:: !TaskTime				//Last modified time
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
 	}												//If it is false we have determined that this is not necessary during the last computation

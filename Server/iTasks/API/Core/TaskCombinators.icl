@@ -78,9 +78,6 @@ where
 	//Eval left-hand side
 	eval event repOpts (TCStep taskId ts (Left treea)) iworld=:{current={taskTime}}
 		# (resa, iworld) 	= evala event repOpts treea iworld
-		# ts				= case event of
-							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
-							_						= ts
         # mbAction          = matchAction taskId event
 		# mbCont			= case resa of
 			ValueResult val info rep ntreea = case searchContValue val mbAction conts of
@@ -108,9 +105,6 @@ where
 					ExceptionResult e str				= (ExceptionResult e str, iworld)
 	//Eval right-hand side
 	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{current={taskTime}}
-		# ts				= case event of
-							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
-							_						= ts
 		= case restoreTaskB sel enca of
 			Just (Task evalb)
 				# (resb, iworld)	= evalb event repOpts treeb iworld
@@ -242,9 +236,6 @@ where
 						# refreshSensitive	= foldr (\(e,_) s -> s || refreshSensitive e) False entries
 						# ts				= foldr max 0 [ts:map fst values]
                         # involvedUsers     = foldr (\(e,_) i -> involvedUsers e ++ i) [] entries
-						# ts				= case event of
-							(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
-							_						= ts
 						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,involvedUsers=involvedUsers,refreshSensitive=refreshSensitive}
 							(finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & current = {current & localLists = 'Data.Map'.put taskId (map fst entries) localLists}})
 	//Cleanup
@@ -283,7 +274,11 @@ where
 	
 	evalParTask :: !TaskId !Event !(Maybe Int) !TaskRepOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !(!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a),Maybe TaskRep)],!*IWorld) !(!Int,!TaskListEntry) -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
 	//Evaluate embedded tasks
-	evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld=:{current={localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree, removed=False})
+	evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld=:{current={taskTime,localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree,lastFocus,removed=False})
+        //Update focus if there is a focus event
+        # lastFocus = case event of
+            (FocusEvent _ focusId)  = if (focusId == entryId) (Just taskTime) lastFocus
+            _                       = lastFocus
 		# evalNeeded = case mbEventIndex of
 			Nothing	= True //We don't know the event index, so we just have to try
 			Just eventIndex
@@ -303,12 +298,12 @@ where
                                     # (entry,iworld) = addTaskToList taskId handler (Just index) iworld
                                     = evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld) (index,entry)
 						ValueResult val info rep tree
-							# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId result iworld
+							# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId result lastFocus iworld
 							= (Right (acc++[((info.TaskInfo.lastEvent,val),Just rep)]),iworld)
 				_
 					= (Right acc,iworld)	
 		| otherwise
-			# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId (ValueResult jsonval info rep tree) iworld
+			# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId (ValueResult jsonval info rep tree) lastFocus iworld
 			= (Right (acc++[((info.TaskInfo.lastEvent,fromJSONTaskValue jsonval),Just rep)]),iworld)
 					
 	//Copy the last stored result of detached tasks
@@ -359,8 +354,12 @@ where
 	parallelRep desc taskId repOpts entries actions
 		# layout		= repLayoutRules repOpts
 		# listId		= toString taskId
-		# parts = [(uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent) (uiDefSetAttribute CREATED_AT_ATTRIBUTE (toString createdAt) (uiDefSetAttribute TASK_ATTRIBUTE (toString entryId) def)))
-					 \\ ({TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult val _ _ _,createdAt,lastEvent,removed=False},Just (TaskRep def _)) <- entries | not (isStable val)]	
+		# parts = [( uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent)
+                   o (maybe id (\f -> uiDefSetAttribute LAST_FOCUS_ATTRIBUTE (toString f)) lastFocus)
+                   o uiDefSetAttribute CREATED_AT_ATTRIBUTE (toString createdAt)
+                   o uiDefSetAttribute TASK_ATTRIBUTE (toString entryId)
+                   ) def
+				   \\ ({TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult val _ _ _,createdAt,lastEvent,lastFocus,removed=False},Just (TaskRep def _)) <- entries | not (isStable val)]	
 		= TaskRep (layout.LayoutRules.accuParallel (toPrompt desc) parts actions) []
 
 	isStable (Value _ stable) 	= stable
@@ -402,15 +401,15 @@ addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,att
 			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
-	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, uiAttributes = 'Data.Map'.newMap, createdAt = taskTime, lastEvent = taskTime, removed = False}
+	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, uiAttributes = 'Data.Map'.newMap, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, removed = False}
     # list      = maybe (list++[entry]) (\pos -> updateAt pos entry list) mbPos
 	# iworld	= storeTaskList taskId list iworld
 	= (entry, iworld)	
 
-updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
-updateListEntryEmbeddedResult listId entryId result iworld
+updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) (Maybe TaskTime) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
+updateListEntryEmbeddedResult listId entryId result lastFocus iworld
 	= updateListEntry listId entryId (\e=:{TaskListEntry|state,lastEvent} ->
-		{TaskListEntry|e & lastEval= wrap result, uiAttributes = newAttr result, lastEvent = maxTime lastEvent result}) iworld
+		{TaskListEntry|e & lastEval= wrap result, uiAttributes = newAttr result, lastEvent = maxTime lastEvent result, lastFocus = lastFocus }) iworld
 where
 	wrap (ValueResult val info=:{TaskInfo|refreshSensitive=True} _ tree) //When we know for certain that we'll recompute the task on the next event, 
 		= ValueResult (fmap toJSON val) info NoRep tree					 //don't bother storing the task representation
@@ -622,9 +621,6 @@ where
 		= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & current = {current & localShares = localShares}}
 		
 	eval event repOpts (TCShared taskId ts treea) iworld=:{current={taskTime}}
-		# ts						= case event of
-			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
-			_						= ts
 		# (Task evala)				= stask (localShare taskId)
 		# (resa,iworld)				= evala event repOpts treea iworld
 		= case resa of
@@ -658,9 +654,6 @@ where
 		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		
 	eval event repOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}
-		# ts						= case event of
-			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
-			_						= ts
 		# exposedSDS				= exposedShare url
 		# (Task evala)				= stask url exposedSDS
 		# (resa,iworld)				= evala event repOpts treea iworld

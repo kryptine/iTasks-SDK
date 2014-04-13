@@ -110,8 +110,6 @@ where
 				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) value (v,mask) iworld
 				= (nv,nmask,taskTime,iworld)
 		| otherwise	= (v,mask,ts,iworld)
-	matchAndApplyEvent (FocusEvent eventNo taskId) matchId taskTime v mask ts iworld
-		= (v,mask, if (taskId == matchId) taskTime ts, iworld)
 	matchAndApplyEvent _ matchId taskTime v mask ts iworld
 		= (v,mask,ts,iworld)
 

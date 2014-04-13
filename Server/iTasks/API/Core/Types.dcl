@@ -683,6 +683,7 @@ ICON_ATTRIBUTE			:== "icon"
 SCREEN_ATTRIBUTE        :== "screen"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
+LAST_FOCUS_ATTRIBUTE    :== "lastfocus" //Last focus, also used for ordering
 
 //Preferred container attribute for abstract containers. Does not have to be honoured by layouts
 CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions. Possible preferences: "container", "panel", or "window"
