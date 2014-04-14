@@ -2,58 +2,54 @@ module IDE
  
 import iTasks
 import iTasks.API.Extensions.Development.Codebase
-import iTasks.API.Extensions.Development.CleanCode
- 
+//import iTasks.API.Extensions.Development.CleanCode
+import iTasks.API.Extensions.CodeMirror, StdFile
 import  System.File
  
+// for the time being one has to set the search paths in the code
+
 cleanPath 	:==  "C:\\Users\\rinus\\Desktop\\Clean_2.2"
 idePath 	:==  cleanPath </> "iTasks-SDK\\Examples\\IDE"
-stdEnv   	:==	 cleanPath  </> "Libraries\\StdEnv"
-myEnv		:== [idePath,stdEnv]
+stdEnv   	:==	 cleanPath </> "Libraries\\StdEnv"
+itaskEnv	:==  cleanPath </> "iTasks-SDK\\Server"
+myEnv		:== [idePath,itaskEnv,stdEnv]
  
-//Start w  =  startEngine IDE_Dashboard w
+:: IDE_Status = { openedFiles :: [(FilePath,ModuleName,Extension)]
+			    }
+
+derive class iTask IDE_Status
+
+IDE_Status :: (Shared IDE_Status)
+IDE_Status = sharedStore  "IDE_Status" 	{ openedFiles = []
+			    						}			     
+initIDE
+	=				get IDE_Status
+	>>= \status ->	editModules status.openedFiles
+where
+	editModules [] 							= return ()
+	editModules [(path,name,ext):modules]  	= editCleanModule (path,name) ext
+
+
+
 Start w = startEngine (startWork []) w
-
-startWork list
-	= (chooseFile myEnv ["icl","dcl"] >&> workOnFiles) <<@ (ArrangeWithSideBar 0 LeftSide 200) <<@ FullScreen
-
-workOnFiles :: (ReadOnlyShared (Maybe (FilePath,FilePath))) -> Task ()
-workOnFiles sel 
-	= parallel () [
-		(Embedded,addSelectedFile sel)
-	  ] [] <<@ ArrangeWithTabs @! ()
 where
-	addSelectedFile sel list
-		= watch sel >^* [OnAction  (Action "/Start Editor" [ActionKey (unmodified KEY_ENTER)])
-							(ifValue isJust (\(Just v) -> appendTask Embedded (\_ -> (openFile v <<@ (Title (snd v)))) list))]
-		@? const NoValue
+	startWork list
+		= (		(codeBaseFromFiles myEnv >>= navigateCodebase)
+			>&> 
+				workOnCode
+		  ) <<@ (ArrangeWithSideBar 0 LeftSide 200) <<@ FullScreen
 
-import iTasks.API.Extensions.CodeMirror, StdFile
- 
-openFile :: (FilePath,FilePath) -> Task String //(Editlet CodeMirror [CodeMirrorDiff])
-openFile (path,fileName) 
-	= 				openAndReadFile (path </> fileName)
-	>>- viewInformation "TEST" [ViewWith Note]
-	
-	/*
-	>>= \content -> updateInformation fileName [] 
-							(codeMirrorEditlet 	{ configuration = [CMLineNumbers True] 			// [CodeMirrorConfiguration]
-												, position		= 0				// cursor position
-												, selection 	= Nothing		//!Maybe (Int,Int)
-												, source		= content
-												} []) 
-
-
-	*/
-where
-	openAndReadFile  :: FilePath -> Task String
-	openAndReadFile fileName
-		=	accWorld (myfopen  fileName) 
+	workOnCode :: (ReadOnlyShared (Maybe (FilePath,FilePath))) -> Task ()
+	workOnCode sel 
+		= 	parallel () [(Embedded,\list -> initIDE >>| addSelectedModule sel list)
+						] [] <<@ ArrangeWithTabs @! ()
 	where
-		myfopen fileName world 
-		# (mbError,world) = readFile fileName world
-		| isError mbError = (toString (fromError mbError),world)
-		= (fromOk mbError,world)	
-	
- 
+		addSelectedModule sel list
+			= watch sel >^* [ OnAction  (Action "/Open .icl" [ActionKey (unmodified KEY_ENTER)])
+								(ifValue isJust (\(Just v) -> appendTask Embedded (\_ -> (editCleanModule v Icl <<@ (Title (snd v +++ ".icl")))) list))
+							, OnAction  (Action "/Open .dcl" [ActionKey (unmodified KEY_ENTER)])
+								(ifValue isJust (\(Just v) -> appendTask Embedded (\_ -> (editCleanModule v Dcl <<@ (Title (snd v +++ ".dcl")))) list))
+							]
+			@? const NoValue
 
+ 

@@ -12,7 +12,16 @@ import	UtilDate
 
 :: ModuleDirAndName = {mdn_dir :: !{#Char}, mdn_name :: !{#Char}}
 
-::	Processor //= CurrentProcessor | MC68000 | MC68020 | MC68020_and_68881
+::	Processor
+	= CurrentProcessor
+	| MC68000
+	| MC68020
+	| MC68020_and_68881
+	| PowerPC_Classic
+	| PowerPC_Carbon
+	| PowerPC_MachO
+	| I386
+
 DefaultProcessor :: Processor
 PlatformProcessors :: [Processor]
 

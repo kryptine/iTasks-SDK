@@ -2,7 +2,7 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Project}/Editlet.exe
+	Exec:	{Project}\Editlet.exe.exe
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -56,7 +56,7 @@ MainModule
 OtherModules
 	Module
 		Name:	StdDynamic
-		Dir:	{Application}/lib/Dynamics
+		Dir:	{Application}\Libraries\Dynamics
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -69,13 +69,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_SystemDynamic
-		Dir:	{Application}/lib/Dynamics
+		Name:	BitSet
+		Dir:	{Application}\Libraries\Dynamics\general
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -83,13 +83,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	GenEq
-		Dir:	{Application}/lib/Generics
+		Name:	DefaultElem
+		Dir:	{Application}\Libraries\Dynamics\general
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -97,13 +97,161 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	GenLexOrd
-		Dir:	{Application}/lib/Generics
+		Name:	EnDecode
+		Dir:	{Application}\Libraries\Dynamics\general
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	DynIDMacros
+		Dir:	{Application}\Libraries\Dynamics\implementation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	DynamicUtilities
+		Dir:	{Application}\Libraries\Dynamics\implementation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdDynamicLowLevelInterface
+		Dir:	{Application}\Libraries\Dynamics\implementation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdDynamicTypes
+		Dir:	{Application}\Libraries\Dynamics\implementation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdDynamicVersion
+		Dir:	{Application}\Libraries\Dynamics\implementation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	DynamicGraphConversion
+		Dir:	{Application}\Libraries\Dynamics\implementation\windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	DynamicLinkerInterface
+		Dir:	{Application}\Libraries\Dynamics\implementation\windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededObjFiles
+			ObjectFile:	read_function.obj
+	Module
+		Name:	memory
+		Dir:	{Application}\Libraries\Dynamics\implementation\windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededObjFiles
+			ObjectFile:	mem.obj
+	Module
+		Name:	memory_mapped_files
+		Dir:	{Application}\Libraries\Dynamics\implementation\windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededObjFiles
+			ObjectFile:	low.obj
+		NeededLibraries
+			Library:	StdDynamic_kernel32_library
+	Module
+		Name:	shared_buffer
+		Dir:	{Application}\Libraries\Dynamics\implementation\windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -112,7 +260,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdArray
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -126,12 +274,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdBool
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -140,12 +288,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdChar
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -154,7 +302,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdCharList
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -168,7 +316,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdClass
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -182,7 +330,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdDebug
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -196,7 +344,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdEnum
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -210,7 +358,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdEnv
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -224,12 +372,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdFile
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -238,21 +386,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdFunc
-		Dir:	{Application}/lib/StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdGeneric
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -266,12 +400,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdInt
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -280,7 +414,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdList
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -294,12 +428,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdMisc
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -308,7 +442,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdOrdList
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -322,7 +456,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdOverloaded
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -336,7 +470,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdOverloadedList
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -350,12 +484,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdReal
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -364,7 +498,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdStrictLists
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -378,12 +512,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdString
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -392,7 +526,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdTuple
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -406,7 +540,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	_SystemArray
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -420,7 +554,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	_SystemEnum
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -434,7 +568,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	_SystemEnumStrict
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -448,7 +582,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	_SystemStrictLists
-		Dir:	{Application}/lib/StdEnv
+		Dir:	{Application}\Libraries\StdEnv
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -462,21 +596,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TCPChannelClass
-		Dir:	{Application}/lib/TCPIP
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TCPChannels
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -490,7 +610,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TCPDef
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -504,7 +624,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TCPEvent
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -518,7 +638,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TCPIP
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -532,7 +652,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TCPStringChannels
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -546,7 +666,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TCPStringChannelsInternal
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -560,7 +680,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	ostcp
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -574,9 +694,11 @@ OtherModules
 			Fusion:	False
 		NeededObjFiles
 			ObjectFile:	cTCP_121.
+		NeededLibraries
+			Library:	wsock_library
 	Module
 		Name:	tcp
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -590,7 +712,49 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	tcp_bytestreams
-		Dir:	{Application}/lib/TCPIP
+		Dir:	{Application}\Libraries\TCPIP
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	_SystemDynamic
+		Dir:	{Application}\iTasks-SDK\Patches\Dynamics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	GenEq
+		Dir:	{Application}\iTasks-SDK\Patches\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	GenLexOrd
+		Dir:	{Application}\iTasks-SDK\Patches\Generics
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -604,7 +768,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Generic
-		Dir:	{Application}/lib/iTasks-SDK/Patches/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Patches\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -618,7 +782,35 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.JSON
-		Dir:	{Application}/lib/iTasks-SDK/Patches/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Patches\Platform\OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdGeneric
+		Dir:	{Application}\iTasks-SDK\Patches\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	TCPChannels
+		Dir:	{Application}\iTasks-SDK\Patches\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -632,7 +824,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -646,7 +838,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -660,7 +852,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.DBTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -674,7 +866,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.ExportTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -688,7 +880,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.ImportTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -702,7 +894,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.InteractionTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -716,7 +908,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.SDSCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -730,7 +922,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Common.TaskCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -744,7 +936,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Client.Component
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -758,7 +950,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Client.Editlet
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -772,7 +964,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Client.Interface
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -786,7 +978,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Client.Map
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -800,7 +992,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Client.Tasklet
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -814,7 +1006,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.IntegrationTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -828,7 +1020,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.LayoutCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -842,7 +1034,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.OptimizedCoreTasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -856,7 +1048,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.SDSCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -870,7 +1062,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.SDSs
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -884,7 +1076,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.TaskCombinators
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -898,7 +1090,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Tasks
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -912,7 +1104,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Core.Types
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -926,7 +1118,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Extensions.Admin.UserAdmin
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -940,7 +1132,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Extensions.Admin.WorkflowAdmin
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -954,7 +1146,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Extensions.CodeMirror
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -968,7 +1160,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Extensions.GIS.GoogleMap
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -982,7 +1174,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.API.Extensions.GIS.Leaflet
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -996,7 +1188,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Client.JSStore
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1010,7 +1202,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Client.LinkerSupport
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1024,7 +1216,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Client.Override
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1038,7 +1230,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Client.RunOnClient
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1052,7 +1244,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Client.Tasklet
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1066,7 +1258,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.DynamicUtil
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1080,7 +1272,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Engine
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1094,7 +1286,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.GenSpecialize
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1108,7 +1300,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Generic
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1122,7 +1314,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Generic.Defaults
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1136,7 +1328,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Generic.Interaction
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1150,7 +1342,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Generic.Visualization
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1164,7 +1356,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.HtmlUtil
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1178,7 +1370,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.IWorld
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1192,7 +1384,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.RemoteAccess
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1206,7 +1398,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.SDS
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1220,7 +1412,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.SDSService
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1234,7 +1426,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.SerializationGraphCopy
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1248,7 +1440,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Store
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1262,7 +1454,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Task
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1276,7 +1468,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.TaskEval
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1290,7 +1482,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.TaskServer
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1304,7 +1496,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.TaskState
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1318,7 +1510,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.TaskStore
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1332,7 +1524,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.UIDefinition
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1346,7 +1538,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.UIDiff
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1360,7 +1552,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.Util
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1374,7 +1566,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTasks.Framework.WebService
-		Dir:	{Application}/lib/iTasks-SDK/Server
+		Dir:	{Application}\iTasks-SDK\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1388,7 +1580,21 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Email
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib
+		Dir:	{Application}\iTasks-SDK\Server\lib
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdMaybe
+		Dir:	{Application}\iTasks-SDK\Server\lib
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1402,7 +1608,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	HttpUtil
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Http
+		Dir:	{Application}\iTasks-SDK\Server\lib\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1416,7 +1622,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Control.Applicative
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1430,7 +1636,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Control.Monad
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1444,7 +1650,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Crypto.Hash.MD5
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1458,7 +1664,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Crypto.Hash.SHA1
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1472,7 +1678,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Either
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1486,7 +1692,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Error
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1500,7 +1706,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Func
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1514,21 +1720,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Functor
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Data.IO
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1542,7 +1734,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.List
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1556,7 +1748,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Map
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1570,7 +1762,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Maybe
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1584,7 +1776,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Monoid
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1598,7 +1790,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Set
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1612,7 +1804,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Tuple
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1626,7 +1818,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Void
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1640,7 +1832,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Internet.HTTP
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1654,7 +1846,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Math.Random
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1668,7 +1860,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.CommandLine
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1682,7 +1874,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.FilePath
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1695,8 +1887,22 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	System.IO
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	System._Pointer
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1710,7 +1916,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1724,7 +1930,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.CSV
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1738,7 +1944,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Encodings.Base64
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1752,7 +1958,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Encodings.MIME
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1766,7 +1972,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Encodings.UrlEncoding
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1780,7 +1986,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.HTML
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1794,7 +2000,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.PPrint
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1808,7 +2014,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Parsers.ParserLanguage
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1822,7 +2028,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Parsers.Parsers
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1836,7 +2042,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Parsers.ParsersAccessories
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1850,7 +2056,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Parsers.ParsersDerived
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1864,7 +2070,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Parsers.ParsersKernel
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1878,7 +2084,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.StringAppender
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1892,7 +2098,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.URI
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1906,7 +2112,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Unicode
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1920,7 +2126,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Unicode.Encodings.JS
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1934,7 +2140,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text.Unicode.UChar
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1950,50 +2156,8 @@ OtherModules
 			ObjectFile:	WCsubst.
 			ObjectFile:	bsearch.
 	Module
-		Name:	StdMaybe
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Independent/Deprecated/StdLib
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	System.OS
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Mac
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	System._Posix
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Mac
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	System.Directory
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Posix
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2007,7 +2171,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.Environment
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Posix
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2021,7 +2185,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.File
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Posix
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2035,7 +2199,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.OSError
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Posix
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2049,7 +2213,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.Process
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Posix
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2063,7 +2227,67 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	System.Time
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/Platform/OS-Posix
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededLibraries
+			Library:	msvcrt.txt
+	Module
+		Name:	System._WinBase
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededLibraries
+			Library:	_WinBase_library
+	Module
+		Name:	System._WinDef
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	System._Windows
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	System.OS
+		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows-32
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2077,7 +2301,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.FastString
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2091,7 +2315,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Linker.LazyLinker
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2105,7 +2329,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Linker.SaplLinkerShared
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2119,7 +2343,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Optimization.StrictnessPropagation
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2133,7 +2357,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.SaplParser
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2147,7 +2371,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.SaplStruct
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2161,7 +2385,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.SaplTokenizer
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2175,7 +2399,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Target.Flavour
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2189,7 +2413,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Target.JS.CodeGeneratorJS
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2203,7 +2427,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Sapl.Transform.Let
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/SAPL
+		Dir:	{Application}\iTasks-SDK\Server\lib\SAPL
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2217,7 +2441,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	dynamic_string
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/graph_copy
+		Dir:	{Application}\iTasks-SDK\Server\lib\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2236,7 +2460,7 @@ OtherModules
 			ObjectFile:	copy_graph_to_string_interface.
 	Module
 		Name:	graph_to_sapl_string
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/graph_copy
+		Dir:	{Application}\iTasks-SDK\Server\lib\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2250,7 +2474,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	graph_to_string_with_descriptors
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/graph_copy
+		Dir:	{Application}\iTasks-SDK\Server\lib\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2267,7 +2491,7 @@ OtherModules
 			ObjectFile:	copy_graph_to_string_interface.
 	Module
 		Name:	sapldebug
-		Dir:	{Application}/lib/iTasks-SDK/Server/lib/graph_copy
+		Dir:	{Application}\iTasks-SDK\Server\lib\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False

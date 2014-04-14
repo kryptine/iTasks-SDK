@@ -5,7 +5,7 @@ implementation module IDE_State
 
 import iTasks
 
-import projectManager, SmallUtil
+import projectManager, SmallUtil, StdArray
 
 // The IDE_state is the one and only globally shared state
 
@@ -31,7 +31,7 @@ IDE_State = sharedStore IDE_State_fileName init_IDE_State
 
 
 update_IDE_State :: !(IDE_State -> IDE_State) -> Task !Void
-update_IDE_State fun = update fun IDE_State @ const Void
+update_IDE_State fun = upd fun IDE_State @ const Void
 
 get_IDE_State :: Task IDE_State
 get_IDE_State = get IDE_State 

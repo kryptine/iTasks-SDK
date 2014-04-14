@@ -32,7 +32,7 @@ start_ide
 						[ (Embedded, workPane)									
 						, (Embedded, projectPane)
 						, (Embedded, errorMessages)
-						] /* <<@ SetLayout layout */ @ const Void
+						] [] /* <<@ SetLayout layout */ @ const Void
 where
 	//layout = customMergeLayout (sideMerge TopSide 0 (sideMerge LeftSide 250 (sideMerge BottomSide 100 tabbedMerge))) //TROUBLE
 
@@ -61,7 +61,8 @@ workPane ts
 	>>|				topMenu ts
 
 topMenu ts
-	= forever (whileUnchangedWith visibleInMenu IDE_State (\s -> actionTask >>* handleMenu s ))
+	= return Void
+//	= forever (whileUnchangedWith visibleInMenu IDE_State (\s -> actionTask >>* handleMenu s ))
 where
 	visibleInMenu :: IDE_State IDE_State -> Bool
 	visibleInMenu old new 
@@ -70,9 +71,9 @@ where
 	  old.recentFiles <> new.recentFiles ||
 	  old.recentProjects <> new.recentProjects 
 
-	handleMenu :: IDE_State -> [TaskStep Void Void]
-	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
-        = []
+//	handleMenu :: IDE_State -> [TaskStep Void Void]
+//	handleMenu state=:{projectName, openedFiles, recentFiles, recentProjects, envTargets}
+//        = []
     /*
 	=	[ OnAction (Action "File/Open..." []) 						(always (launch (openFileSelectorAndEdit ts) ts))
 		, OnAction (Action "File/Save All" []) 						(if (openedFiles <> []) always never (saveAll openedFiles))

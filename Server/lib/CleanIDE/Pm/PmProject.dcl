@@ -11,8 +11,37 @@ IclMod :== False
 
 :: Def_and_Imp		:== Bool
 
-:: Project
+::	InfList		:==	List InfListItem
 
+::	InfListItem	=
+	{ mn	:: !Modulename		// module name
+	, info	:: !ModInfo			// module info
+	, src	:: !Bool			// src up to date?
+	, abc	:: !Bool 			// abc up to date?
+	}
+
+
+::	Project	=
+	{ saved						:: !Bool
+	, exec						:: !Bool					// exe linked ok?
+	, inflist					:: !InfList					// list with constituent modules
+	, codegenopt				:: !CodeGenOptions			// code generator options
+	, code_gen_options_unchanged :: !Bool
+	, applicationopt			:: !ApplicationOptions		// application options
+	, linkOptions				:: !LinkOptions
+	, prjpaths					:: !List String				// project paths
+	, staticLibInfo				:: !StaticLibInfo
+	, target					:: !String					// environment
+
+	, dynamic_info				:: !ProjectDynamicInfo
+
+	, relative_root_directory	:: !String			// string of '.'s, relative to .prj file
+	, root_directory			:: !String
+	, execpath					:: !String			// move to app_opts
+	, prec						:: !Maybe String	// " (precompile command)
+	, posl						:: !Maybe String	// " (postlink command)
+	}
+	
 SaveProjectFile	::
 	!String			// path to projectfile
 	!Project		// the project
