@@ -141,6 +141,7 @@ body {
 
     background: -moz-linear-gradient(top, $header-base-color + #323232, $header-base-color);
     background: -webkit-linear-gradient(top, $header-base-color + #323232, $header-base-color);
+    overflow: hidden;
 }
 .tabbar:after {
     position: absolute;
