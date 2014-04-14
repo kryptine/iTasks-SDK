@@ -287,6 +287,17 @@ where
         # (_,env)           = (marker .# "addEventListener" .$ ("click",createEditletEventHandler (onMarkerClick markerId) cid)) env
         # (_,env)           = (marker .# "addTo" .$ (toJSArg layer)) env
         = (i + 1,env)
+    createObject (Polygon {LeafletPolygon|polygonId,points,strokeWidth,strokeColor,fillColor}) l layer objRefs mapIcons cid (i,env)
+        # (options,env)     = jsEmptyObject env
+        # env               = (options .# "stroke" .= strokeWidth) env
+        # env               = (options .# "color" .= strokeColor) env
+        # env               = (options .# "fill" .= (isJust fillColor)) env
+        # env               = (maybe id (\c -> (options .# "fillColor" .= c)) fillColor) env
+        # env               = (options .# "clickable" .= False) env
+        # (polygon,env)     = (l .# "polygon" .$ ([toJSArg [p.lat,p.lng] \\ p <- points],options)) env
+        # env               = (objRefs .# i .= polygon) env
+        # (_,env)           = (polygon .# "addTo" .$ (toJSArg layer)) env
+        = (i + 1,env)
 
     onMapMove cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) env
         # (mapobj,env)      = .? (event .# "target") env
@@ -387,12 +398,12 @@ gDefault{|LeafletPerspective|}
 gEq{|LeafletLatLng|} x y
     = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gUpdate                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
-derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletDiff
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gVisualizeText   LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gUpdate                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
+derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolygon, LeafletDiff
