@@ -159,7 +159,7 @@ autoLayoutSubEditor :: UIControlStack -> UIAnnotatedControls
 autoLayoutSubEditor {UIControlStack|controls=[]}	= []
 autoLayoutSubEditor {UIControlStack|controls=[c]}	= [c]
 autoLayoutSubEditor {UIControlStack|attributes,controls}
-    = [(defaultContainer (decorateControls controls),attributes)]
+    = [(defaultFieldSet ('Data.Map'.get LABEL_ATTRIBUTE attributes) (decorateControls controls),attributes)]
 
 autoLayoutControlStack :: UIControlStack -> UISubUI
 //Special case for choices

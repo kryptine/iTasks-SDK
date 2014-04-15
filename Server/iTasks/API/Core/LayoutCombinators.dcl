@@ -125,3 +125,6 @@ actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
 tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 
 tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
+
+decorateControls    :: UIAnnotatedControls -> UIControls
+decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl

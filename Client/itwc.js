@@ -1161,6 +1161,29 @@ itwc.component.itwc_panel = itwc.extend(itwc.Container,{
         }
     }
 });
+itwc.component.itwc_fieldset = itwc.extend(itwc.Container,{
+    defaultHeight: 'flex',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl, header;
+
+        if(me.definition.baseCls) {
+            el.classList.add(me.definition.baseCls);
+        }
+        el.classList.add('fieldset');
+        if(me.definition.title) {
+            header = document.createElement('div');
+            header.innerHTML = me.definition.title;
+            header.classList.add('fieldset-header');
+
+            el.appendChild(header);
+            me.itemsOffset = 1;
+        }
+    },
+    setTitle: function(title) {
+        this.domEl.childNodes[0].innerHTML = title;
+    }
+});
 itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
     enableScroll: true,
     isContainer: false, //Don't size as container

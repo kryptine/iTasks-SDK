@@ -101,6 +101,14 @@ body {
     width: 16px;
     height: 16px;
 }
+.fieldset {
+    border: 1px solid ($canvas-base-color - #333);
+    margin: 2px;
+    padding: 1px;
+}
+.fieldset-header {
+    font-weight: bold;
+}
 .panel {
     color: $canvas-text-color;
     background-color: $canvas-base-color;

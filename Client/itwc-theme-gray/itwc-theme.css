@@ -85,6 +85,14 @@ body {
   width: 16px;
   height: 16px; }
 
+.fieldset {
+  border: 1px solid #bbbbbb;
+  margin: 2px;
+  padding: 1px; }
+
+.fieldset-header {
+  font-weight: bold; }
+
 .panel {
   color: black;
   background-color: #eeeeee;

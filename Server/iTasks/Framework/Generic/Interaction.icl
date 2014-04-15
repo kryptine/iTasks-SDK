@@ -162,7 +162,8 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item
-		# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
+		//# controls	= map fst (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
+		# controls	= decorateControls (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
@@ -203,7 +204,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 						
 	listItemControl disabled numItems idx item
-		# controls	= map (setWidth FlexSize o fst) (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
+		# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIControlStack| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts}))
 		# buttons	= (if reorder
                       [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}

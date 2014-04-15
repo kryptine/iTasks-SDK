@@ -21,6 +21,9 @@ defaultItemsOpts items = {items = items, direction = Vertical, halign = AlignLef
 defaultContainer :: ![UIControl] -> UIControl
 defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items)
 
+defaultFieldSet :: !(Maybe String) ![UIControl]	-> UIControl
+defaultFieldSet title items = UIFieldSet defaultSizeOpts (defaultItemsOpts items) {UIFieldSetOpts|title=title}
+
 defaultPanel :: ![UIControl] -> UIControl
 defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
 
@@ -256,7 +259,7 @@ setPadding top right bottom left ctrl = ctrl
 
 setTitle :: !String !UIControl -> UIControl
 setTitle title (UIPanel sOpts iOpts opts)		= UIPanel sOpts iOpts {UIPanelOpts|opts & title = Just title}
-setTitle title (UIFieldSet sOpts iOpts opts)	= UIFieldSet sOpts iOpts {UIFieldSetOpts|opts & title = title}
+setTitle title (UIFieldSet sOpts iOpts opts)	= UIFieldSet sOpts iOpts {UIFieldSetOpts|opts & title = Just title}
 setTitle title ctrl								= ctrl
 
 setFramed :: !Bool !UIControl -> UIControl

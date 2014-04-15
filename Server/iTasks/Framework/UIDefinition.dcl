@@ -312,7 +312,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	}
 
 :: UIFieldSetOpts =
-	{ title			:: !String
+	{ title			:: !Maybe String
 	}
 
 :: UITabSetOpts =
@@ -378,6 +378,7 @@ defaultFSizeOpts	    :: UIFSizeOpts
 defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
 
 defaultContainer		:: ![UIControl]	-> UIControl
+defaultFieldSet         :: !(Maybe String) ![UIControl]	-> UIControl
 defaultPanel			:: ![UIControl]	-> UIControl
 defaultWindow			:: ![UIControl]	-> UIWindow
 stringDisplay			:: !String		-> UIControl
