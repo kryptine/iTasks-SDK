@@ -84,7 +84,7 @@ openFile (path,fileName)
 	=					openAndReadFile (path </> fileName)
 	>>= \content ->		updateInformation fileName [] 
 							(codeMirrorEditlet 	{ configuration = [ CMLineNumbers True
-																  , CMMode "Haskell"
+																  , CMMode "haskell"
 																  , CMDragDrop True
 																  ] 			// [CodeMirrorConfiguration]
 												, position		= 0				// cursor position
