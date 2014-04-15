@@ -439,6 +439,7 @@ markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
 markListEntryRemoved listId entryId iworld
 	= snd (updateListEntry listId entryId (\e -> {TaskListEntry|e & removed = True}) iworld)
 
+
 updateListEntry :: !TaskId !TaskId !(TaskListEntry -> TaskListEntry) !*IWorld -> (!TaskListEntry,!*IWorld)
 updateListEntry listId entryId f iworld
 	# (list,iworld) = loadTaskList listId iworld
@@ -536,6 +537,19 @@ where
 	remove (ParallelTaskList parId) entryId iworld
 		= markListEntryRemoved parId entryId iworld
 	remove _ _ iworld = iworld
+
+focusTask :: !TaskId !(SharedTaskList a) -> Task Void | iTask a
+focusTask entryId slist = mkInstantTask eval
+where
+    eval taskId iworld=:{IWorld|current={taskTime}}
+        = case readListId slist iworld of
+            (Ok (ParallelTaskList listId),iworld)
+	            # (_,iworld) = updateListEntry listId entryId (\e -> {TaskListEntry|e & lastFocus = Just taskTime}) iworld
+                = (Ok Void, iworld)
+            (Ok _,iworld)
+                = (Ok Void, iworld)
+			(Error e,iworld)
+				= (Error (dynamic e,e), iworld)
 
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval

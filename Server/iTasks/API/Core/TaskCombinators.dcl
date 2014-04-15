@@ -94,7 +94,6 @@ taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
 taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 
 //Task list manipulation
-
 /**
 * Appends a task to a task list
 */
@@ -103,6 +102,10 @@ appendTask :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task Ta
 * Removes (and stops) a task from a task list
 */
 removeTask :: !TaskId								!(SharedTaskList a)	-> Task Void | iTask a
+/**
+* Focuses a task in a task list
+*/
+focusTask :: !TaskId                                !(SharedTaskList a) -> Task Void | iTask a
 
 /**
 * State of another process the user works on.
