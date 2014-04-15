@@ -87,9 +87,16 @@ arrangeHorizontal       ::                      SubUICombinator
 instance tune ArrangeWithTabs
 arrangeWithTabs         ::                      SubUICombinator
 
-:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int
+
+:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 instance tune ArrangeWithSideBar
-arrangeWithSideBar      :: !Int !UISide !Int -> SubUICombinator
+/*
+* @param Index of the task in the set that should be put in the sidebar
+* @param Location of the sidebar
+* @param Initial size of the sidebar
+* @param Enable resize?
+*/
+arrangeWithSideBar      :: !Int !UISide !Int !Bool -> SubUICombinator
 
 :: ArrangeCustom = ArrangeCustom SubUICombinator
 instance tune ArrangeCustom

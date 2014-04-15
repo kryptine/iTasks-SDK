@@ -109,10 +109,10 @@ where
 	isValue _			= False
 
     layout {UISubUIStack|attributes,subuis=[startWork,dashBoard,manageWork:activeWork],size}
-        = arrangeWithSideBar 0 LeftSide 260 {UISubUIStack|attributes=attributes,subuis=[startWork,mainArea],size=size}
+        = arrangeWithSideBar 0 LeftSide 260 True {UISubUIStack|attributes=attributes,subuis=[startWork,mainArea],size=size}
     where
-        mainArea = arrangeWithSideBar 0 TopSide 30 (toSubUIStack [dashBoard,workArea])
-        workArea = arrangeWithSideBar 0 TopSide 200 (toSubUIStack [manageWork,tabsArea])
+        mainArea = arrangeWithSideBar 0 TopSide 30 False (toSubUIStack [dashBoard,workArea])
+        workArea = arrangeWithSideBar 0 TopSide 200 True (toSubUIStack [manageWork,tabsArea])
         tabsArea = arrangeWithTabs (toSubUIStack activeWork)
     layout stack = autoLayoutSubUIStack stack
 
@@ -130,7 +130,7 @@ where
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list
-	= (chooseWorkflow >&> viewAndStart) <<@ (ArrangeWithSideBar 1 BottomSide 200)
+	= (chooseWorkflow >&> viewAndStart) <<@ (ArrangeWithSideBar 1 BottomSide 200 True)
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel

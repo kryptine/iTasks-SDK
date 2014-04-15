@@ -335,10 +335,11 @@ where
 
 instance tune ArrangeWithSideBar
 where
-    tune (ArrangeWithSideBar index side size) t = tune (AfterLayout (arrangeSubUIStack (arrangeWithSideBar index side size))) t
+    tune (ArrangeWithSideBar index side size resize) t
+        = tune (AfterLayout (arrangeSubUIStack (arrangeWithSideBar index side size resize))) t
 
-arrangeWithSideBar :: !Int !UISide !Int -> SubUICombinator
-arrangeWithSideBar index side size = arrange
+arrangeWithSideBar :: !Int !UISide !Int !Bool -> SubUICombinator
+arrangeWithSideBar index side size resize = arrange
 where
     arrange stack=:{UISubUIStack|subuis=[]} = autoLayoutSubUIStack stack
     arrange stack=:{UISubUIStack|attributes,subuis,size=stackSize}
@@ -352,7 +353,7 @@ where
         # sideC = if (side === TopSide|| side === BottomSide) (setSize FlexSize (ExactSize size) sideC) (setSize (ExactSize size) FlexSize sideC)
         # restC = fill restC
         = {UISubUI|attributes=mergeAttributes attributes (mergeAttributes restAt sideAt)
-                  ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) [sideC,UISplitter,restC] [restC,UISplitter,sideC])
+                  ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) (if resize [sideC,UISplitter,restC] [sideC,restC]) (if resize [restC,UISplitter,sideC] [restC,sideC]))
                             &direction = if (side===TopSide || side === BottomSide) Vertical Horizontal
                             }
                   ,actions = restAc ++ sideAc
