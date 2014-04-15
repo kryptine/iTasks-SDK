@@ -167,32 +167,35 @@ where
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
 	
 	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
-        # world             = syncInnerDivSize cid world
 		# (ta, world)       = getDomElement (sourcearea cid) world
 		# (co, world)       = createConfigurationObject configuration world
         # (cmobj, world)    = findObject "CodeMirror" world
         # (this, world)     = jsThis world
         # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
-		# world = loadModulesIfNeeded configuration cm world
-		# st = {codeMirror = cm, systemEventHandlers = systemEvents}
-		# world = manageSystemEvents "on" st world	
-		# world = foldl (putOnEventHandler cm) world eventhandlers
+		# world 			= loadModulesIfNeeded configuration cm world
+		# st 				= {codeMirror = cm, systemEventHandlers = systemEvents}
+		# world 			= manageSystemEvents "on" st world	
+		# world 			= foldl (putOnEventHandler cm) world eventhandlers
+
+        # (editlets,world)  = findObject "itwc.controller.editlets" world
+        # (cmp,world)       = .? (editlets .# cid) world
+        # (clval,world)		= onAfterShow cm cid undef clval world
+        # world             = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world
 	
         //Call onUpdate to initialize the editor	
         = onUpdate cid mbDiff {clval & mbSt = Just st} world
 	where
-        //Workaround because codemirror doesn't like to be in CSS3 flexbox divs
-        syncInnerDivSize cid world
+		// Set the size directly because CodeMirror seems that cannot work with CSS3 FlexBox stuff
+	    onAfterShow cm cid _ st world
             # (editlets, world) = findObject "itwc.controller.editlets" world
             # (editlet,world)   = jsGetObjectAttr cid editlets world
             # (domEl,world)     = jsGetObjectAttr "domEl" editlet world
             # (style,world)     = callObjectMethod "getComputedStyle" [toJSArg domEl] jsWindow world
             # (width,world)     = jsGetObjectAttr "width" style world
             # (height,world)    = jsGetObjectAttr "height" style world
-		    # (div, world)      = getDomElement (sourcearea cid) world
-            # world = jsSetObjectAttr "style.width" width div world
-            # world = jsSetObjectAttr "style.height" height div world
-            = world
+
+	        # (_,world)       	= (cm .# "setSize" .$ (width,height)) world
+	        = (st, world)
 
 		putOnEventHandler cm world (event, handler)
 			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
