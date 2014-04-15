@@ -670,7 +670,6 @@ derive class iTask		TaskId, Config, ProcessStatus
 				
 //Define initial meta attributes
 TASK_ATTRIBUTE			:== "task"
-VALUE_ATTRIBUTE			:== "value"
 TITLE_ATTRIBUTE			:== "title"
 HINT_ATTRIBUTE			:== "hint"
 VALID_ATTRIBUTE			:== "valid"
