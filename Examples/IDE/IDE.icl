@@ -14,7 +14,7 @@ initIDE
 	>>= \status ->		editModules status.openedFiles
 where
 	editModules [] 					= return ()
-	editModules [module:modules]  	= editCleanModule module
+	editModules [module:modules]  	= editCleanModule module >>| editModules modules
 
 
 test list
@@ -23,7 +23,7 @@ test list
 	>>= \result ->		viewInformation "result" [] result
 	
 
-Start w = startEngine (test []) w
+//Start w = startEngine (test []) w
 
 Start w = startEngine (startWork []) w
 where
@@ -44,11 +44,15 @@ where
 		addSelectedModule sel list
 			= watch sel >^* [ OnAction  (Action "/Open .icl" [ActionKey (unmodified KEY_ENTER)])
 								(ifValue isJust (\(Just (filePath,moduleName)) 
-									-> appendTask Embedded (\_ -> (editCleanModule ((filePath,moduleName),Icl)  <<@ (Title (moduleName +++ ".icl")))) list))
+									-> appendTask Embedded (\_ -> cleanEditor ((filePath,moduleName),Icl)) list))
 							, OnAction  (Action "/Open .dcl" [ActionKey (unmodified KEY_ENTER)])
 								(ifValue isJust (\(Just (filePath,moduleName)) 
-									-> appendTask Embedded (\_ -> (editCleanModule ((filePath,moduleName),Dcl)  <<@ (Title (moduleName +++ ".dcl")))) list))
+									-> appendTask Embedded (\_ -> cleanEditor ((filePath,moduleName),Dcl)) list))
 							]
 			@? const NoValue
 
- 
+
+cleanEditor ((filePath,moduleName),ext) 
+	=   editCleanModule ((filePath,moduleName),ext)  <<@ Title (moduleName +++ toString ext) 
+//		>&>
+//		viewSharedInformation "Oeps" []  
