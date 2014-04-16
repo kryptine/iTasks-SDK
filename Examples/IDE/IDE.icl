@@ -19,7 +19,7 @@ where
 
 test list
 	= 					codeBaseFromEnvironment myEnv
-	>>= \codeBase ->	searchForIdentifier SearchIdentifier False "map" (idePath,"IDE") codeBase
+	>>= \codeBase ->	searchForIdentifier SearchIdentifier True "test" (idePath,"IDE") codeBase
 	>>= \result ->		viewInformation "result" [] result
 	
 

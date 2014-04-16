@@ -5,6 +5,7 @@ implementation module FindDefinitions
 import PmParse 
 from 	UtilStrictLists import :: List
 import	iTasks.API.Extensions.Development.Codebase
+import System.FilePath  
 
 derive class iTask IdentifierPositionList
 
@@ -23,7 +24,7 @@ where
 	search [] baseNotSearched searched found 
 		= return (reverse found,reverse searched)								
 	search [(path,moduleName):rest] baseNotSearched searched found 
-		=					searchInFile what inImports identifier (path +++ moduleName +++ if inImports ".icl" ".dcl")
+		=					searchInFile what inImports identifier (path </> moduleName +++ if inImports ".icl" ".dcl")
 		>>= \(new,pos) -> 	let (nsearched,nfound) = calc (new,pos) 
 								(toDo,restBase)    = searchModulesInCodeBase new baseNotSearched
 								toSearch		   = removeDup (rest ++ toDo)
@@ -40,13 +41,13 @@ where
 // returns (module names imported, positions where identifier has been found)
 searchInFile :: !SearchWhat !Bool !Identifier !String -> Task !(![String],!IdentifierPositionList)
 searchInFile SearchIdentifier inImports identifier fileName 
-	= 					accWorld (accFiles (FindIdentifiersInFile inImports [!fileName!] identifier fileName ))
+	= 					accWorld (accFiles (FindIdentifiersInFile inImports [!!] identifier fileName ))
 	>>= \(list,pos) ->  return (StrictListToList list,pos)
 searchInFile SearchImplementation inImports identifier fileName 
-	= 					accWorld (accFiles (FindDefinitionInFile inImports [!fileName!] identifier fileName ))
+	= 					accWorld (accFiles (FindDefinitionInFile inImports [!!] identifier fileName ))
 	>>= \(list,pos) ->  return (StrictListToList list,pos)
 searchInFile SearchDefinition inImports identifier fileName 
-	= 					accWorld (accFiles (FindDefinitionInFile inImports [!fileName!] identifier fileName ))
+	= 					accWorld (accFiles (FindDefinitionInFile inImports [!!] identifier fileName ))
 	>>= \(list,pos) ->  return (StrictListToList list,pos)
 	
 searchModulesInCodeBase :: ![ModuleName] ![CleanModuleName] -> ([CleanModuleName],[CleanModuleName])
