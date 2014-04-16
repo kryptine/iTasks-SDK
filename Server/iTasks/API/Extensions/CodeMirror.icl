@@ -96,7 +96,7 @@ where
 		= { html 			= DivTag [IdAttr (sourcearea cid), StyleAttr "display: block; position: absolute;"] []
 		  , eventHandlers 	= []
 		  , width 			= FlexSize
-		  , height			= FlexSize //ExactSize 300
+		  , height			= ExactSize 300
 		  }
 	sourcearea id = "cm_source_" +++ id
 	

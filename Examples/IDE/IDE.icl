@@ -54,5 +54,23 @@ where
 
 cleanEditor ((filePath,moduleName),ext) 
 	=   editCleanModule ((filePath,moduleName),ext)  <<@ Title (moduleName +++ toString ext) 
-//		>&>
-//		viewSharedInformation "Oeps" []  
+		>&>
+//		viewSharedInformation "Selected" []  
+			\mirror -> 	viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror 
+			>>*			[OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))]
+		  
+
+searchFor identifier
+	= 					codeBaseFromEnvironment myEnv
+	>>= \codeBase ->	searchForIdentifier SearchIdentifier True identifier (idePath,"IDE") codeBase
+	>>= \result ->		viewInformation "result" [] result
+
+
+
+getSelection :: CodeMirror -> Identifier
+getSelection {position,selection=Nothing,source} =  "nothing"
+getSelection {position,selection=Just (begin,end),source}
+| begin == end =  "zero"
+= source%(begin,end)
+
+
