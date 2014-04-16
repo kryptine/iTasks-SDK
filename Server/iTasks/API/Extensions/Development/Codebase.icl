@@ -5,17 +5,24 @@ import iTasks.API.Extensions.CodeMirror
 
 derive class iTask Extension
 
-codeBaseFromFiles :: [FilePath] -> Task CodeBase
-codeBaseFromFiles paths = accWorld (getFilesInDir paths ["icl"] False)
+codeBaseFromEnvironment :: Environment -> Task CodeBase
+codeBaseFromEnvironment paths = accWorld (getFilesInDir paths ["icl"] False)
 
-navigateCodebase :: CodeBase -> Task (FilePath,ModuleName)
+navigateCodebase :: CodeBase -> Task CleanModuleName
 navigateCodebase codebase = navigate codebase
 
-editCleanModule :: (FilePath,ModuleName) Extension -> Task ()
-editCleanModule (path,fileName) Icl = openFile (path,fileName +++ ".icl") @! ()
-editCleanModule (path,fileName) Dcl = openFile (path,fileName +++ ".dcl") @! ()
+codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
+codeBaseToCleanModuleNames codeBase 
+= [(foldl (</>) path dirs,fileName) \\ (path,dirs,fileName) <- treeToList codeBase []]
 
 
+editCleanModule :: CleanModule -> Task CodeMirror
+editCleanModule ((path,fileName),ext) = openFile (path,fileName +++ toString ext)// @! ()
+
+instance toString Extension
+where
+	toString Dcl = ".dcl"
+	toString Icl = ".icl"
 
 navigate tree = enterChoice [Att (Title "Select File"), Att IconEdit] [ChooseWith (ChooseFromTree (\list _ -> toChoiceTree list))] (treeToList tree [])
 				@? adjust
@@ -35,11 +42,11 @@ where
 	= Value (foldl (</>) path dirs,fileName) stab
 	adjust NoValue   = NoValue
 
-	treeToList :: [(FilePath,[TreeNode FilePath])] [FilePath] -> [(FilePath,[FilePath],FilePath)]
-	treeToList [] 								      dirs = []
-	treeToList [(path,[Leaf file:files]):tree] 	 	  dirs = [(path,dirs,file): treeToList [(path,files)] dirs] ++ treeToList tree []
-	treeToList [(path,[Node dir childs :files]):tree] dirs = treeToList [(path,childs)] (dirs++[dir]) ++ treeToList [(path,files)] dirs ++ treeToList tree []
-	treeToList [_:tree] 				      		  dirs = treeToList tree []
+treeToList :: CodeBase [FilePath] -> [(FilePath,[FilePath],FilePath)]
+treeToList [] 								      dirs = []
+treeToList [(path,[Leaf file:files]):tree] 	 	  dirs = [(path,dirs,file): treeToList [(path,files)] dirs] ++ treeToList tree []
+treeToList [(path,[Node dir childs :files]):tree] dirs = treeToList [(path,childs)] (dirs++[dir]) ++ treeToList [(path,files)] dirs ++ treeToList tree []
+treeToList [_:tree] 				      		  dirs = treeToList tree []
 
 :: FileExtension :== String
 
@@ -80,17 +87,24 @@ readDir path w
 | isError mbInfo             = ([],w)
 | (fromOk mbInfo).directory = getFilesInPath path w
 
+
+config content
+	=   { configuration = [ CMLineNumbers True
+						   , CMMode "haskell"
+						   , CMDragDrop True
+						   ] 			// [CodeMirrorConfiguration]
+		 , position		= 0				// cursor position
+		 , selection 	= Nothing		//!Maybe (Int,Int)
+		 , source		= content
+		 }
+
 openFile (path,fileName) 
 	=					openAndReadFile (path </> fileName)
-	>>= \content ->		updateInformation fileName [] 
-							(codeMirrorEditlet 	{ configuration = [ CMLineNumbers True
-																  , CMMode "haskell"
-																  , CMDragDrop True
-																  ] 			// [CodeMirrorConfiguration]
-												, position		= 0				// cursor position
-												, selection 	= Nothing		//!Maybe (Int,Int)
-												, source		= content
-												} []) 
+	>>= \content ->		withShared (config content)
+						(\config -> updateSharedInformation fileName [UpdateWith 
+																		(\cm -> codeMirrorEditlet cm [])
+																		(\_ (Editlet value _ _) -> value) 
+																	 ] config) 
 where
 	openAndReadFile  :: FilePath -> Task String
 	openAndReadFile fileName

@@ -10,6 +10,10 @@ import projectManager
 import StdGeneric, Data.Either, System.FilePath
 import SmallUtil, IDE_State, CleanEditor
 from StdFunc import seq
+<<<<<<< .mine
+//import iTasks.Framework.iTaskClass
+=======
+>>>>>>> .r2912
 derive class iTask FileError
 
 // It Starts here..
@@ -468,11 +472,19 @@ where
 						closeEditorAndAdministrate compilerMessages
 			>>|			exportTextFile compilerMessages ""						//Empty the log file...
 			>>|			callProcess "Clean Compiler - BatchBuild" [] (state.cleanPath +++  batchBuild) [state.projectPath +++  projectName +++ ".prj"] Nothing
+<<<<<<< .mine
+//						-&&-
+//						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ InWindow
+//			>>*			[ OnAction ActionClose always (\_ -> return Void)
+//						, OnAction ActionOk    always (\_ -> return Void)
+//						]
+=======
 						-&&-
 						viewSharedInformation (Title "Compiler Messages...") [] (externalFile compilerMessages)  <<@ InWindow
 			>>*			[ OnAction ActionClose (always (return Void))
 						, OnAction ActionOk    (always (return Void))
 						]
+>>>>>>> .r2912
 						@ const Void 						
 import redirect
 
