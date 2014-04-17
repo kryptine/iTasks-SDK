@@ -8,7 +8,7 @@ import qualified Data.Map
 //Extend Resource type for mysql resources
 :: *Resource | MySQLResource *(!*MySQLCursor, !*MySQLConnection, !*MySQLContext)
 
-derive class iTask SQLValue, SQLDate, SQLTime
+derive class iTask SQLValue, SQLTime, SQLDate, SQLTable, SQLColumn, SQLColumnType
 
 sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
 								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabase,p) r w
@@ -32,9 +32,9 @@ where
                 = (fmap (const (const True)) res, iworld)
 
 sqlExecute :: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
-sqlExecute db touchIds queryFun = mkInstantTask exec
+sqlExecute db touchIds queryFun = mkInstantTask eval
 where
-	exec _ iworld
+	eval _ iworld
 		# (mbOpen,iworld)	= openMySQLDb db iworld
 		= case mbOpen of
 			Error e			= (Error (dynamic e,toString e), iworld)
@@ -70,8 +70,9 @@ execDelete query values cur
 	| isJust err		= (Error (toString (fromJust err)),cur)
 	= (Ok Void,cur)
 
+
 sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
-sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values) 
+sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values)
 
 sqlSelectShare :: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]
 sqlSelectShare name query values = createReadWriteSDS "SQLShares" name read write
@@ -90,6 +91,60 @@ where
 
     write _ Void iworld = (Ok (const True),iworld)
 		
+sqlTables :: ROShared SQLDatabase [SQLTableName]
+sqlTables = createReadOnlySDSError read
+where
+    read db iworld
+		# (mbOpen,iworld) = openMySQLDb db iworld
+		= case mbOpen of
+			Error e			= (Error e, iworld)
+			Ok (cur,con,cxt)
+                # (err,tables,cur)  = listTables cur
+				| isJust err		= (Error (toString (fromJust err)),iworld)
+				# iworld            = closeMySQLDb cur con cxt iworld
+				= (Ok tables,iworld)
+
+sqlTableDefinition :: ROShared (SQLDatabase,SQLTableName) SQLTable
+sqlTableDefinition = createReadOnlySDSError read
+where
+    read (db,tablename) iworld
+		# (mbOpen,iworld) = openMySQLDb db iworld
+		= case mbOpen of
+			Error e			= (Error e, iworld)
+			Ok (cur,con,cxt)
+                # (err,mbTable,cur)  = describeTable tablename cur
+				| isJust err		= (Error (toString (fromJust err)),iworld)
+				# iworld            = closeMySQLDb cur con cxt iworld
+				= (Ok (fromJust mbTable),iworld)
+
+sqlExecuteCreateTable :: SQLDatabase SQLTable -> Task Void
+sqlExecuteCreateTable db table = mkInstantTask eval
+where
+	eval _ iworld
+		# (mbOpen,iworld)	= openMySQLDb db iworld
+		= case mbOpen of
+			Error e			= (Error (dynamic e,toString e), iworld)
+			Ok (cur,con,cxt)
+				# (res,cur)		= createTable table cur
+				# iworld		= closeMySQLDb cur con cxt iworld
+				= case res of
+					Just e		= (Error (dynamic e,toString e), iworld)
+					Nothing     = (Ok Void, iworld)
+
+sqlExecuteDropTable :: SQLDatabase SQLTableName -> Task Void
+sqlExecuteDropTable db tablename = mkInstantTask eval
+where
+	eval _ iworld
+		# (mbOpen,iworld)	= openMySQLDb db iworld
+		= case mbOpen of
+			Error e			= (Error (dynamic e,toString e), iworld)
+			Ok (cur,con,cxt)
+				# (res,cur)		= deleteTable tablename cur
+				# iworld		= closeMySQLDb cur con cxt iworld
+				= case res of
+					Just e		= (Error (dynamic e,toString e), iworld)
+					Nothing     = (Ok Void, iworld)
+
 openMySQLDb :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
 openMySQLDb db iworld=:{IWorld|resources=Just (MySQLResource con)}
     = (Ok con, {IWorld|iworld & resources=Nothing})

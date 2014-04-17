@@ -6,7 +6,7 @@ definition module iTasks.API.Extensions.SQLDatabase
 * It provides only mimimal functionality and currently only works with MySQL...
 */
 import iTasks, Database.SQL, Data.Error
-derive class iTask SQLValue, SQLTime, SQLDate
+derive class iTask SQLValue, SQLTime, SQLDate, SQLTable, SQLColumn, SQLColumnType
 
 
 /**
@@ -22,6 +22,8 @@ derive class iTask SQLValue, SQLTime, SQLDate
 */
 sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
 								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabase,p) r w
+
+
 
 /**
 * Perform one or multiple queries on an SQL database
@@ -45,3 +47,15 @@ sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 * this is a bad idea. You never know how many times the query will be executed
 */
 sqlSelectShare	:: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]
+
+/*
+* View the list of tables in a database
+*/
+sqlTables :: ROShared SQLDatabase [SQLTableName]
+/**
+* The structure of database table
+*/
+sqlTableDefinition :: ROShared (SQLDatabase,SQLTableName) SQLTable
+
+sqlExecuteCreateTable :: SQLDatabase SQLTable -> Task Void
+sqlExecuteDropTable :: SQLDatabase SQLTableName -> Task Void
