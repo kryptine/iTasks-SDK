@@ -27,6 +27,7 @@ where
 	escapeString` [] = [[qc]]
 	escapeString` ['\'':chars] = [['\\\'']: escapeString` chars]
 	escapeString` ['\"':chars] = [['\\\"']: escapeString` chars]	
+	escapeString` ['\\':chars] = [['\\\\']: escapeString` chars]
 	escapeString` [c   :chars] 
 		| isPrint c
 			= [[c] : escapeString` chars] 
