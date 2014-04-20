@@ -273,13 +273,13 @@ forever :: !(Task a) -> Task a | iTask a
 /**
 * Feed the result of one task as read-only shared to another 
 */
-feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | descr d & iTask a & iTask b
+feedForward :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 
 //Infix version of feedForward
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 
 //Same as feedForward, but with the value of the lefthand side
-feedSideways :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | descr d & iTask a & iTask b
+feedSideways :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
 
 //Infix version of feedSideways
 (>&^) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b

@@ -4,9 +4,9 @@ import iTasks
 /*
 * General purpose management task for a collection of data
 */
-manageCollection :: !d !String (c -> i) (Shared [c]) -> Task (Maybe i) | descr d & iTask c & iTask i
-manageCollection desc itemname identify collection
-	= manageCollectionWith desc (selectItem Void) (viewItem (Title ("Details of " +++ itemname)))
+manageCollection :: !String (c -> i) (Shared [c]) -> Task (Maybe i) | iTask c & iTask i
+manageCollection itemname identify collection
+	= manageCollectionWith (selectItem Void) (viewItem (Title ("Details of " +++ itemname)))
 		[OnAction ActionNew (always (addItem (Title ("Add " +++ itemname)) collection identify))
 		,OnAction ActionEdit (hasValue (editItem ("Edit " +++ itemname) collection (itemShare identify) identify))
 		,OnAction ActionDelete (hasValue (deleteItem ("Delete " +++ itemname,"Are you sure you want to delete the following " +++ itemname +++ "?") collection (itemShare identify) identify))
@@ -18,16 +18,15 @@ manageCollection desc itemname identify collection
 * Customizable management task for a collection of data
 */
 manageCollectionWith ::
-	!d																			//Description
 	((Shared [c]) (c -> i) -> Task i)											//Make selection
 	((Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task a)		//Use selection
 	[TaskCont i (Task (Maybe i))]												//Actions
 	(c -> i)																	//Identification function
 	((Shared [c]) i -> Shared (Maybe c))										//Item share function
 	(Shared [c])																//Shared collection
-	-> Task (Maybe i) | descr d & iTask c & iTask i & iTask a
-manageCollectionWith desc makeSelection useSelection selectionActions identify itemShare collection
-	=	feedForward desc (makeSelection collection identify)
+	-> Task (Maybe i) | iTask c & iTask i & iTask a
+manageCollectionWith makeSelection useSelection selectionActions identify itemShare collection
+	=	feedForward (makeSelection collection identify)
 		( \mbSel -> 
 			forever (
 				whileUnchanged mbSel (\sel -> useSelection collection itemShare sel @ const sel @? onlyJust >>* selectionActions)

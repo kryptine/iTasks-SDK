@@ -58,7 +58,6 @@ step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTa
 /**
 * Parallel task creation
 *
-* @param Description: The (overloaded) task description
 * @param Initial tasks: The initial list of tasks to run in parallel, each task is given
 *        a view on the status of all tasks in the list
 * @param Continuations: A set of continuation definitions with which the list of tasks
@@ -74,7 +73,7 @@ step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTa
 * @return The sum of all results
 * @gin False
 */
-parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
+parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
 					
 /**
 * Get the shared state of a task list

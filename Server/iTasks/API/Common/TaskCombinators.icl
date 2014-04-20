@@ -66,7 +66,7 @@ catchAll task handler = step task id [OnValue (ifStable return), OnAllExceptions
 (>^*) task steps = sideStep task steps
 
 sideStep :: !(Task a) ![TaskCont a (Task b)] -> Task a | iTask a & iTask b
-sideStep ta conts = parallel Void [(Embedded,const ta)] (map pcont conts) @ (map snd) @? firstRes
+sideStep ta conts = parallel [(Embedded,const ta)] (map pcont conts) @ (map snd) @? firstRes
 where
     pcont (OnValue tfun)         = OnValue (vfun tfun)
     pcont (OnAction action tfun) = OnAction action (vfun tfun)
@@ -92,7 +92,7 @@ projectJust mba _ = Just mba
 */
 assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 assign attr task
-	=	parallel Void
+	=	parallel
 			[(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
 	@?	result
 where
@@ -150,7 +150,7 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void [(Embedded,const task),(Embedded,restarter)] [] @? res
+	= parallel [(Embedded,const task),(Embedded,restarter)] [] @? res
 where
     restarter tlist = ((watch (taskListState tlist) @ hd) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
 
@@ -177,7 +177,7 @@ forever	t = (t <! (const False))
 
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel Void
+	= parallel
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] [] @? res
 where
 	res	(Value [_,(_,Value (Right b) s)] _)	= Value b s
@@ -185,7 +185,7 @@ where
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel Void
+	= parallel
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] [] @? res
 where
 	res	(Value [(_,Value (Left a) s),_] _)	= Value a s
@@ -193,14 +193,14 @@ where
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
-	= parallel Void
+	= parallel
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] [] @? res
 where
 	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _)	= Value (a,b) (sa && sb)
 	res _														    = NoValue
 
-feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | descr d & iTask a & iTask b
-feedForward desc taska taskbf = parallel desc
+feedForward :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+feedForward taska taskbf = parallel
 	[(Embedded, \s -> taska @ Left)
 	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
 	] [] @? res
@@ -212,10 +212,10 @@ where
 	res _									= NoValue
 	
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
-(>&>) taska taskbf = feedForward Void taska taskbf
+(>&>) taska taskbf = feedForward taska taskbf
 				
-feedSideways :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | descr d & iTask a & iTask b
-feedSideways desc taska taskbf = parallel desc
+feedSideways :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+feedSideways taska taskbf = parallel
     [(Embedded, \s -> taska)
 	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @? const NoValue)
     ] [] @? res
@@ -227,7 +227,7 @@ where
     res _                   = NoValue
 
 (>&^) infixl 1 :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
-(>&^) taska taskbf = feedSideways Void taska taskbf
+(>&^) taska taskbf = feedSideways taska taskbf
 
 :: ProcessOverviewView =	{ index			:: !Hidden Int
 							, subject		:: !Display String
@@ -238,7 +238,7 @@ derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
-	= parallel Void [(Embedded,const t) \\ t <- tasks] [] @? res
+	= parallel [(Embedded,const t) \\ t <- tasks] [] @? res
 where
 	res (Value l _) = let sl = sortBy (\a b -> fst a > fst b) l in
                         hd ([v \\ (_,v=:(Value _ True)) <- sl] ++ [v \\ (_,v=:(Value _ False)) <- sl] ++ [NoValue])
@@ -246,7 +246,7 @@ where
 
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks
-	= parallel Void
+	= parallel
 		[(Embedded,const t) \\ t <- tasks] [] @? res
 where
 	res (Value l _)	= Value [v \\ (_,Value v _) <- l] (foldl allStable True l)

@@ -98,7 +98,7 @@ derive class iTask ClientPart, WorklistRow
 	
 workflowDashboard :: Task Void
 workflowDashboard
-	=  parallel Void
+	=  parallel
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)

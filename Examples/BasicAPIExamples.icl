@@ -473,7 +473,7 @@ editWithStatistics :: Task Void
 editWithStatistics 
  =						enterInformation "Give name of text file you want to edit..." []
 	>>= \fileName -> 	let file = sharedStore fileName ""
-						in	parallel Void 	[ (Embedded, showStatistics file )
+						in	parallel  	    [ (Embedded, showStatistics file )
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		] []
@@ -572,7 +572,7 @@ askPreferences users
 
 ask :: [User] [DateTime] -> Task [(User,[DateTime])]
 ask users options
-	= parallel "Collect possibilities"
+	= parallel
 	  [ (Embedded, monitor) 
 	  :[(Detached (worker u) False,select u options) \\ u <- users]
 	  ] []

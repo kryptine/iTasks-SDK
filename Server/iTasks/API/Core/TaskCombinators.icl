@@ -203,8 +203,8 @@ where
     match _ _			= Nothing
 
 // Parallel composition
-parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
-parallel desc initTasks conts = Task eval
+parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
+parallel initTasks conts = Task eval
 where
 	//Create initial task list
 	eval event repOpts (TCInit taskId ts) iworld=:{IWorld|current=current=:{localLists}}
@@ -230,7 +230,7 @@ where
 					(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in parallel"),iworld)
 					(Nothing,iworld=:{current=current=:{localLists}})
 						//Destruction is ok, build parallel result
-						# rep				= parallelRep desc taskId repOpts entries actions
+						# rep				= parallelRep taskId repOpts entries actions
 						# values			= map (toValueAndTime o fst) entries
 						# stable			= all (isStable o snd) values
 						# refreshSensitive	= foldr (\(e,_) s -> s || refreshSensitive e) False entries
@@ -350,8 +350,8 @@ where
 		deserialize NoValue	= NoValue
 	toValueAndTime {TaskListEntry|lastEvent}						= (lastEvent,NoValue)
 	
-	parallelRep :: !d !TaskId !TaskRepOpts ![(!TaskListEntry,!Maybe TaskRep)] [UIAction] -> TaskRep | descr d
-	parallelRep desc taskId repOpts entries actions
+	parallelRep :: !TaskId !TaskRepOpts ![(!TaskListEntry,!Maybe TaskRep)] [UIAction] -> TaskRep
+	parallelRep taskId repOpts entries actions
 		# layout		= repLayoutRules repOpts
 		# listId		= toString taskId
 		# parts = [( uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent)
@@ -360,7 +360,7 @@ where
                    o uiDefSetAttribute TASK_ATTRIBUTE (toString entryId)
                    ) def
 				   \\ ({TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult val _ _ _,createdAt,lastEvent,lastFocus,removed=False},Just (TaskRep def _)) <- entries | not (isStable val)]	
-		= TaskRep (layout.LayoutRules.accuParallel (toPrompt desc) parts actions) []
+		= TaskRep (layout.LayoutRules.accuParallel parts actions) []
 
 	isStable (Value _ stable) 	= stable
 	isStable _					= False

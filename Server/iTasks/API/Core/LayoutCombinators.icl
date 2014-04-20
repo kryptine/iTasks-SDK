@@ -52,11 +52,11 @@ autoAccuStep {UIDef|content=UISubUIStack stack,windows} stepActions
     # sub=:{UIBlock|actions} = autoLayoutSubUIStack stack
 	= addTriggersToUIDef triggers {UIDef|content=UIBlock {UIBlock|sub & actions = actions ++ stepActions},windows=windows}
 
-autoAccuParallel :: UIDef [UIDef] [UIAction] -> UIDef
-autoAccuParallel prompt defs parActions
+autoAccuParallel :: [UIDef] [UIAction] -> UIDef
+autoAccuParallel defs parActions
     # (triggers,parActions) = extractTriggers parActions
-    # defs = (if (emptyPrompt prompt) defs [prompt:defs]) ++ if (isEmpty parActions) [] [{content=UIActionSet parActions,windows=[]}]
-    # windows = flatten [windows \\ {UIDef|windows} <- [prompt:defs]]
+    # defs = defs ++ if (isEmpty parActions) [] [{content=UIActionSet parActions,windows=[]}]
+    # windows = flatten [windows \\ {UIDef|windows} <- defs]
     # (nAttributeSet,nActionSet,nControlStack,nSubUI,nSubUIStack,nFinal) = foldl count (0,0,0,0,0,0) defs
     //If there is just one def, leave it be
     | nAttributeSet+nActionSet+nControlStack+nSubUI+nSubUIStack+nFinal == 1

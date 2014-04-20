@@ -15,7 +15,7 @@ import iTasks
 *
 * @return	The last selection
 */
-manageCollection :: !d !String (c -> i) (Shared [c]) -> Task (Maybe i) | descr d & iTask c & iTask i
+manageCollection :: !String (c -> i) (Shared [c]) -> Task (Maybe i) | iTask c & iTask i
 
 /**
 * Configurable collection management task.
@@ -31,14 +31,13 @@ manageCollection :: !d !String (c -> i) (Shared [c]) -> Task (Maybe i) | descr d
 * @return	The last selection 
 */
 manageCollectionWith ::
-	!d																			//Description
 	((Shared [c]) (c -> i) -> Task i)											//Make selection
 	((Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task a)		//Use selection
 	[TaskCont i (Task (Maybe i))]												//Actions
 	(c -> i)																	//Identification function
 	((Shared [c]) i -> Shared (Maybe c))										//Item share function
 	(Shared [c])																//Shared collection
-	-> Task (Maybe i) | descr d & iTask c & iTask i & iTask a
+	-> Task (Maybe i) | iTask c & iTask i & iTask a
 
 /**
 * Create an item share by looking up an item identified by an identitication function
