@@ -116,7 +116,7 @@ where
 	visualizeView taskId repOpts value=:(v,vmask,vver) desc iworld
 		# layout	= repLayoutRules repOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
-		# uidef		= {UIDef|content=UIControlStack (layout.LayoutRules.accuInteract (toPrompt desc) {UIControlStack|attributes='Data.Map'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
+		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='Data.Map'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
 tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> Task l | iTask l & iTask r

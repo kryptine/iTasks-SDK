@@ -12,7 +12,7 @@ import iTasks.Framework.IWorld
 
 import System.Time, System.File, System.FilePath
 
-from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIContent(..), :: UIControlStack, :: UIActions, :: UIControls, :: UITitle, :: UIDirection(..), :: UIAnnotatedControls, :: UISubUI, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
+from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIContent(..), :: UIForm, :: UIActions, :: UIDirection(..), :: UIBlock, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from iTasks.API.Core.LayoutCombinators import mergeAttributes, setMargins
 
 //* EmailAddress
@@ -1349,16 +1349,16 @@ where
 
 instance descr String
 where
-	toPrompt prompt = {UIDef|content=UIControlStack {UIControlStack|attributes = newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
+	toPrompt prompt = {UIDef|content=UIForm {UIForm|attributes = newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,prompt) = {UIDef|content=UIControlStack {UIControlStack|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
+	toPrompt (title,prompt) = {UIDef|content=UIForm {UIForm|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
 
 instance descr (!Icon,!String,!String)
 where
-	toPrompt (icon,title,prompt) = {UIDef|content=UIControlStack
-        {UIControlStack|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
+	toPrompt (icon,title,prompt) = {UIDef|content=UIForm
+        {UIForm|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
 	    ,controls = [(stringDisplay prompt,newMap)],size = defaultSizeOpts}, windows = []}
 
 instance descr Title

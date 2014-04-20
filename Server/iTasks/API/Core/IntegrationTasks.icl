@@ -76,8 +76,8 @@ where
 	    # layout			= repLayoutRules repOpts
 		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
-		# editor			= {UIControlStack| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
-		= (TaskRep ({UIDef|content=UIControlStack (layout.LayoutRules.accuInteract prompt editor),windows=[]}) [],iworld)
+		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
+		= (TaskRep ({UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]}) [],iworld)
 						
 	makeView [ViewWith viewFun] status taskId layout iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

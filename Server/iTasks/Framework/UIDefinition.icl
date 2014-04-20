@@ -301,31 +301,31 @@ getMargins ctrl
                            = Nothing
 
 uiDefAttributes	:: UIDef -> UIAttributes
-uiDefAttributes {UIDef|content=UIControlStack {UIControlStack|attributes}}	= attributes
+uiDefAttributes {UIDef|content=UIForm {UIForm|attributes}}	                = attributes
 uiDefAttributes {UIDef|content=UIAttributeSet attributes}					= attributes
-uiDefAttributes {UIDef|content=UISubUI {UISubUI|attributes}}	            = attributes
+uiDefAttributes {UIDef|content=UIBlock {UIBlock|attributes}}	            = attributes
 uiDefAttributes {UIDef|content=UISubUIStack {UISubUIStack|attributes}}	    = attributes
 uiDefAttributes _													        = newMap
 
 uiDefControls :: UIDef -> [UIControl]
-uiDefControls {UIDef|content=UIControlStack {UIControlStack|controls}}	= map fst controls
-uiDefControls {UIDef|content=UISubUI {UISubUI|content}}	                = content.UIItemsOpts.items
+uiDefControls {UIDef|content=UIForm {UIForm|controls}}	                = map fst controls
+uiDefControls {UIDef|content=UIBlock {UIBlock|content}}	                = content.UIItemsOpts.items
 uiDefControls {UIDef|content=UIFinal (UIViewport content _)}			= content.UIItemsOpts.items
 uiDefControls _														    = []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
-uiDefAnnotatedControls {UIDef|content=UIControlStack {UIControlStack|controls}} = controls
-uiDefAnnotatedControls {UIDef|content=UISubUI {UISubUI|content}}	            = [(c,newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls {UIDef|content=UIForm {UIForm|controls}} = controls
+uiDefAnnotatedControls {UIDef|content=UIBlock {UIBlock|content}}	            = [(c,newMap)\\c <- content.UIItemsOpts.items]
 uiDefAnnotatedControls {UIDef|content=UIFinal (UIViewport content _)}			= [(c,newMap)\\c <- content.UIItemsOpts.items]
 uiDefAnnotatedControls _										                = []
 
 uiDefActions :: UIDef -> [UIAction]
 uiDefActions {UIDef|content=UIActionSet actions}	    = actions
-uiDefActions {UIDef|content=UISubUI {UISubUI|actions}}	= actions
+uiDefActions {UIDef|content=UIBlock {UIBlock|actions}}	= actions
 uiDefActions _								            = []
 
 uiDefDirection :: UIDef -> UIDirection
-uiDefDirection {UIDef|content=UISubUI {UISubUI|content}}	    = content.UIItemsOpts.direction
+uiDefDirection {UIDef|content=UIBlock {UIBlock|content}}	    = content.UIItemsOpts.direction
 uiDefDirection {UIDef|content=UIFinal (UIViewport content _)}	= content.UIItemsOpts.direction
 uiDefDirection _											    = Vertical
 
@@ -336,62 +336,62 @@ uiDefWindows _													= []
 uiDefSetAttribute :: String String UIDef -> UIDef
 uiDefSetAttribute key value {UIDef|content=UIAttributeSet attributes,windows}
 	= {UIDef|content=UIAttributeSet (put key value attributes),windows=windows}
-uiDefSetAttribute key value {UIDef|content=UIControlStack stack=:{UIControlStack|attributes},windows}
-	= {UIDef|content=UIControlStack {UIControlStack|stack & attributes = put key value attributes},windows=windows}
-uiDefSetAttribute key value {UIDef|content=UISubUI sub=:{UISubUI|attributes},windows}
-	= {UIDef|content=UISubUI {UISubUI|sub & attributes = put key value attributes},windows=windows}
+uiDefSetAttribute key value {UIDef|content=UIForm stack=:{UIForm|attributes},windows}
+	= {UIDef|content=UIForm {UIForm|stack & attributes = put key value attributes},windows=windows}
+uiDefSetAttribute key value {UIDef|content=UIBlock sub=:{UIBlock|attributes},windows}
+	= {UIDef|content=UIBlock {UIBlock|sub & attributes = put key value attributes},windows=windows}
 uiDefSetAttribute key value {UIDef|content=UISubUIStack stack=:{UISubUIStack|attributes},windows}
 	= {UIDef|content=UISubUIStack {UISubUIStack|stack & attributes = put key value attributes},windows=windows}
 uiDefSetAttribute key value def = def
 
 uiDefSetDirection :: UIDirection UIDef -> UIDef
-uiDefSetDirection direction {UIDef|content=(UISubUI sub),windows}
-    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & direction = direction}},windows=windows}
+uiDefSetDirection direction {UIDef|content=(UIBlock sub),windows}
+    = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & direction = direction}},windows=windows}
 uiDefSetDirection direction def = def
 
 uiDefSetHalign :: UIHAlign UIDef -> UIDef
-uiDefSetHalign align {UIDef|content=UISubUI sub,windows}
-    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & halign = align}},windows=windows}
+uiDefSetHalign align {UIDef|content=UIBlock sub,windows}
+    = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & halign = align}},windows=windows}
 uiDefSetHalign align def = def
 
 uiDefSetValign :: UIVAlign UIDef -> UIDef
-uiDefSetValign align {UIDef|content=UISubUI sub,windows}
-    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & valign = align}},windows=windows}
+uiDefSetValign align {UIDef|content=UIBlock sub,windows}
+    = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & valign = align}},windows=windows}
 uiDefSetValign align def = def
 
 uiDefSetPadding :: Int Int Int Int UIDef -> UIDef
-uiDefSetPadding top right bottom left {UIDef|content=UISubUI sub,windows}
-    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}},windows=windows}
+uiDefSetPadding top right bottom left {UIDef|content=UIBlock sub,windows}
+    = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}},windows=windows}
 uiDefSetPadding _ _ _ _ def = def
 
 uiDefSetBaseCls :: String UIDef -> UIDef
-uiDefSetBaseCls baseCls {UIDef|content=UISubUI sub,windows}
-    = {UIDef|content=UISubUI {UISubUI|sub & content = {UIItemsOpts|sub.UISubUI.content & baseCls = Just baseCls}},windows=windows}
+uiDefSetBaseCls baseCls {UIDef|content=UIBlock sub,windows}
+    = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & baseCls = Just baseCls}},windows=windows}
 uiDefSetBaseCls _ def = def
 
 uiDefSetHeight :: UISize UIDef -> UIDef
-uiDefSetHeight height {UIDef|content=UIControlStack stack=:{UIControlStack|size},windows}
-    = {UIDef|content=UIControlStack {UIControlStack|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
-uiDefSetHeight height {UIDef|content=UISubUI ui=:{UISubUI|size},windows}
-    = {UIDef|content=UISubUI {UISubUI|ui & size = {UISizeOpts|size & height = Just height}},windows=windows}
+uiDefSetHeight height {UIDef|content=UIForm stack=:{UIForm|size},windows}
+    = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
+uiDefSetHeight height {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
+    = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & height = Just height}},windows=windows}
 uiDefSetHeight height {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
     = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
 uiDefSetHeight height def = def
 
 uiDefSetWidth :: UISize UIDef -> UIDef
-uiDefSetWidth width {UIDef|content=UIControlStack stack=:{UIControlStack|size},windows}
-    = {UIDef|content=UIControlStack {UIControlStack|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
-uiDefSetWidth width {UIDef|content=UISubUI ui=:{UISubUI|size},windows}
-    = {UIDef|content=UISubUI {UISubUI|ui & size = {UISizeOpts|size & width = Just width}},windows=windows}
+uiDefSetWidth width {UIDef|content=UIForm stack=:{UIForm|size},windows}
+    = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
+uiDefSetWidth width {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
+    = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width}},windows=windows}
 uiDefSetWidth width {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
     = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
 uiDefSetWidth width def = def
 
 uiDefSetSize :: UISize UISize UIDef -> UIDef
-uiDefSetSize width height {UIDef|content=UIControlStack stack=:{UIControlStack|size},windows}
-    = {UIDef|content=UIControlStack {UIControlStack|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
-uiDefSetSize width height {UIDef|content=UISubUI ui=:{UISubUI|size},windows}
-    = {UIDef|content=UISubUI {UISubUI|ui & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
+uiDefSetSize width height {UIDef|content=UIForm stack=:{UIForm|size},windows}
+    = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
+uiDefSetSize width height {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
+    = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
 uiDefSetSize width height {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
     = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
 uiDefSetSize width height def = def

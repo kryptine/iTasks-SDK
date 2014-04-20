@@ -601,12 +601,12 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'Data.Map'.newMap)],size=embedSize},windows=[]}
+		= {UIDef|content=UIForm {UIForm|attributes='Data.Map'.newMap,controls=[(UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'Data.Map'.newMap)],size=embedSize},windows=[]}
 
     embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
 
 	inUseDef worker
-		= {UIDef|content=UIControlStack {UIControlStack|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)],size=defaultSizeOpts},windows=[]}
+		= {UIDef|content=UIForm {UIForm|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)],size=defaultSizeOpts},windows=[]}
 
 
 /*

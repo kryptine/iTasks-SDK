@@ -15,7 +15,7 @@ derive gEq UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISide, UISize, UIBound, UISide
 derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
 derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
-derive gEq UIDef, UIContent, UIControlStack, UISubUI, UISubUIStack, UIAction
+derive gEq UIDef, UIContent, UIForm, UIBlock, UISubUIStack, UIAction
 derive gEq UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
 derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize

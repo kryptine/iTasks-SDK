@@ -10,18 +10,18 @@ from Data.Maybe import :: Maybe
 
 // Definition of a layout as collection of combination functions
 :: LayoutRules =
-	{ accuInteract	:: UIDef UIControlStack                 -> UIControlStack       //Combine the prompt and editor of an interact
+	{ accuInteract	:: UIDef UIForm                         -> UIForm       //Combine the prompt and editor of an interact
 	, accuStep		:: UIDef [UIAction]                     -> UIDef				//Combine current definition with the step actions
 	, accuParallel	:: UIDef [UIDef] [UIAction]             -> UIDef		        //Combine the prompt, parts of a parallel composition and possible actions
 	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		        //When a detached task is worked on
 
-    , layoutSubEditor	   :: UIControlStack               -> UIAnnotatedControls	//Combine multiple controls in editors
-    , layoutControlStack   :: UIControlStack               -> UISubUI              //Lay out the controls of a control stack to create a sub-user interface
-    , layoutSubUIStack     :: UISubUIStack                 -> UISubUI              //Combine a stack of sub-user interfaces into one
+    , layoutSubEditor	   :: UIForm                        -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
+    , layoutControlStack   :: UIForm                        -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
+    , layoutSubUIStack     :: UISubUIStack                  -> UIBlock              //Combine a stack of sub-user interfaces into one
 	}
 
-:: UIControlCombinator  :== UIControlStack -> UISubUI
-:: SubUICombinator      :== UISubUIStack -> UISubUI
+:: UIControlCombinator  :== UIForm -> UIBlock
+:: SubUICombinator      :== UISubUIStack -> UIBlock
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout LayoutRules
@@ -37,14 +37,14 @@ from Data.Maybe import :: Maybe
 autoLayoutRules :: LayoutRules
 
 //Partial layouts of autolayout
-autoAccuInteract        :: UIDef UIControlStack -> UIControlStack
+autoAccuInteract        :: UIDef UIForm -> UIForm
 autoAccuStep            :: UIDef [UIAction]-> UIDef
 autoAccuParallel        :: UIDef [UIDef] [UIAction] -> UIDef
 autoAccuWorkOn          :: UIDef TIMeta -> UIDef
 
-autoLayoutSubEditor    :: UIControlStack -> UIAnnotatedControls
-autoLayoutControlStack :: UIControlStack -> UISubUI
-autoLayoutSubUIStack   :: UISubUIStack -> UISubUI
+autoLayoutSubEditor    :: UIForm -> [(UIControl,UIAttributes)]
+autoLayoutControlStack :: UIForm -> UIBlock
+autoLayoutSubUIStack   :: UISubUIStack -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
 autoLayoutFinal        :: UIDef -> UIDef
@@ -100,11 +100,11 @@ arrangeWithSideBar      :: !Int !UISide !Int !Bool -> SubUICombinator
 
 :: ArrangeCustom = ArrangeCustom SubUICombinator
 instance tune ArrangeCustom
-toSubUIStack :: [UISubUI] -> UISubUIStack
+toSubUIStack :: [UIBlock] -> UISubUIStack
 
-subUIToControl      :: UISubUI -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToContainer    :: UISubUI -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToPanel        :: UISubUI -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+subUIToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+subUIToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+subUIToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 
 //Combinators on interface definitions
 hjoin :: ![UIControl] -> UIControl
@@ -133,5 +133,5 @@ tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
 tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 
 tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
 
-decorateControls    :: UIAnnotatedControls -> UIControls
+decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
 decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl

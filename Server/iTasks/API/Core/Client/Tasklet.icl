@@ -203,8 +203,8 @@ taskInfo ts = {TaskInfo | lastEvent = ts, involvedUsers= [], refreshSensitive = 
 
 appTweak tasklet taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 
-toDef c = {UIDef|content=UIControlStack
-            {UIControlStack
+toDef c = {UIDef|content=UIForm
+            {UIForm
 			| attributes = newMap
 			, controls	 = [(c, newMap)]
             , size = defaultSizeOpts
