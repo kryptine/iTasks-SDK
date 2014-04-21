@@ -304,7 +304,6 @@ uiDefAttributes	:: UIDef -> UIAttributes
 uiDefAttributes {UIDef|content=UIForm {UIForm|attributes}}	                = attributes
 uiDefAttributes {UIDef|content=UIAttributeSet attributes}					= attributes
 uiDefAttributes {UIDef|content=UIBlock {UIBlock|attributes}}	            = attributes
-uiDefAttributes {UIDef|content=UISubUIStack {UISubUIStack|attributes}}	    = attributes
 uiDefAttributes _													        = newMap
 
 uiDefControls :: UIDef -> [UIControl]
@@ -340,8 +339,6 @@ uiDefSetAttribute key value {UIDef|content=UIForm stack=:{UIForm|attributes},win
 	= {UIDef|content=UIForm {UIForm|stack & attributes = put key value attributes},windows=windows}
 uiDefSetAttribute key value {UIDef|content=UIBlock sub=:{UIBlock|attributes},windows}
 	= {UIDef|content=UIBlock {UIBlock|sub & attributes = put key value attributes},windows=windows}
-uiDefSetAttribute key value {UIDef|content=UISubUIStack stack=:{UISubUIStack|attributes},windows}
-	= {UIDef|content=UISubUIStack {UISubUIStack|stack & attributes = put key value attributes},windows=windows}
 uiDefSetAttribute key value def = def
 
 uiDefSetDirection :: UIDirection UIDef -> UIDef
@@ -374,8 +371,6 @@ uiDefSetHeight height {UIDef|content=UIForm stack=:{UIForm|size},windows}
     = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
 uiDefSetHeight height {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
     = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & height = Just height}},windows=windows}
-uiDefSetHeight height {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
-    = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & height = Just height}},windows=windows}
 uiDefSetHeight height def = def
 
 uiDefSetWidth :: UISize UIDef -> UIDef
@@ -383,8 +378,6 @@ uiDefSetWidth width {UIDef|content=UIForm stack=:{UIForm|size},windows}
     = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
 uiDefSetWidth width {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
     = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width}},windows=windows}
-uiDefSetWidth width {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
-    = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & width = Just width}},windows=windows}
 uiDefSetWidth width def = def
 
 uiDefSetSize :: UISize UISize UIDef -> UIDef
@@ -392,8 +385,6 @@ uiDefSetSize width height {UIDef|content=UIForm stack=:{UIForm|size},windows}
     = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
 uiDefSetSize width height {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
     = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
-uiDefSetSize width height {UIDef|content=UISubUIStack stack=:{UISubUIStack|size},windows}
-    = {UIDef|content=UISubUIStack {UISubUIStack|stack & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
 uiDefSetSize width height def = def
 
 encodeUIDefinition :: !UIDef -> JSONNode

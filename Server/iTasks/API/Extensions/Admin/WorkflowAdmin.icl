@@ -108,13 +108,14 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 
-    layout {UISubUIStack|attributes,subuis=[startWork,dashBoard,manageWork:activeWork],size}
-        = arrangeWithSideBar 0 LeftSide 260 True {UISubUIStack|attributes=attributes,subuis=[startWork,mainArea],size=size}
+    layout [startWork,dashBoard,manageWork:activeWork]
+        = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea]
     where
-        mainArea = arrangeWithSideBar 0 TopSide 30 False (toSubUIStack [dashBoard,workArea])
-        workArea = arrangeWithSideBar 0 TopSide 200 True (toSubUIStack [manageWork,tabsArea])
-        tabsArea = arrangeWithTabs (toSubUIStack activeWork)
-    layout stack = autoLayoutSubUIStack stack
+        mainArea = arrangeWithSideBar 0 TopSide 30 False [dashBoard,workArea]
+        workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea]
+        tabsArea = arrangeWithTabs activeWork
+
+    layout blocks = autoLayoutBlocks blocks
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list

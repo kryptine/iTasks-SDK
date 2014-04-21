@@ -32,7 +32,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	| UIActionSet			!UIActions              //A set of actions, for example from a chooseAction task
 	| UIForm 	            !UIForm                 //A set of controls from one or more interact tasks
 	| UIBlock 	            !UIBlock                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
-    | UISubUIStack          !UISubUIStack           //A stack of sub user interfaces, which are not yet arranged
+    | UIBlocks              ![UIBlock]              //A set of aggregated blocks that have not yet been arranged
 	| UIFinal				!UIViewport				//The final user interface
 
 :: UIForm =
@@ -47,11 +47,6 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	, actions		:: UIActions
 	, hotkeys		:: [UIKeyAction]
 	}
-:: UISubUIStack =
-    { attributes    :: UIAttributes
-    , subuis        :: [UIBlock]
-    , size          :: UISizeOpts
-    }
 
 :: UIAttributes 		:== Map String String
 :: UIActions			:== [UIAction]

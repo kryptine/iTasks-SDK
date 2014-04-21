@@ -16,12 +16,12 @@ from Data.Maybe import :: Maybe
 	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		        //When a detached task is worked on
 
     , layoutSubEditor	   :: UIForm                        -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
-    , layoutControlStack   :: UIForm                        -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
-    , layoutSubUIStack     :: UISubUIStack                  -> UIBlock              //Combine a stack of sub-user interfaces into one
+    , layoutForm        :: UIForm                        -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
+    , layoutBlocks      :: [UIBlock]                     -> UIBlock              //Combine a stack of sub-user interfaces into one
 	}
 
 :: UIControlCombinator  :== UIForm -> UIBlock
-:: SubUICombinator      :== UISubUIStack -> UIBlock
+:: SubUICombinator      :== [UIBlock] -> UIBlock
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout LayoutRules
@@ -42,9 +42,9 @@ autoAccuStep            :: UIDef [UIAction]-> UIDef
 autoAccuParallel        :: [UIDef] [UIAction] -> UIDef
 autoAccuWorkOn          :: UIDef TIMeta -> UIDef
 
-autoLayoutSubEditor    :: UIForm -> [(UIControl,UIAttributes)]
-autoLayoutControlStack :: UIForm -> UIBlock
-autoLayoutSubUIStack   :: UISubUIStack -> UIBlock
+autoLayoutSubEditor     :: UIForm -> [(UIControl,UIAttributes)]
+autoLayoutForm          :: UIForm -> UIBlock
+autoLayoutBlocks        :: [UIBlock] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
 autoLayoutFinal        :: UIDef -> UIDef
@@ -100,7 +100,6 @@ arrangeWithSideBar      :: !Int !UISide !Int !Bool -> SubUICombinator
 
 :: ArrangeCustom = ArrangeCustom SubUICombinator
 instance tune ArrangeCustom
-toSubUIStack :: [UIBlock] -> UISubUIStack
 
 subUIToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 subUIToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
