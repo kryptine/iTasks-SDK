@@ -66,6 +66,7 @@ importCSVDocumentWith	:: !Char !Char !Char !Document -> Task [[String]]
 * @gin-icon page_white_json
 */
 importJSONFile		:: !FilePath -> Task a | iTask a
+importJSONDocument  :: !Document -> Task a | iTask a
 /**
 * Import and parse a JSON datafile on the server's filesystem using
 * a custom parse function.

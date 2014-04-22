@@ -39,7 +39,6 @@ taskInstanceRep         :: !InstanceNo -> RWShared Void TaskRep TaskRep
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
-createDocumentWith		:: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)

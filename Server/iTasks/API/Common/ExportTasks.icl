@@ -1,6 +1,6 @@
 implementation module iTasks.API.Common.ExportTasks
 
-import StdBool, System.FilePath, Text.CSV, System.File, Data.Map, Data.Error, Text.JSON
+import StdBool, StdList, System.FilePath, Text,Text.CSV, System.File, Data.Map, Data.Error, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore
 
 exportDocument :: !FilePath !Document -> Task Document
@@ -17,12 +17,11 @@ createCSVFile :: !String ![[String]] -> Task Document
 createCSVFile filename content = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime}}
-		# (mbDoc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
+        # csv = join "\n" (map (join ",") content)
+		# (mbDoc,iworld)	= createDocument filename "text/csv" csv iworld
 		= case mbDoc of
 			Ok doc	= (Ok doc, iworld)
-			_	
-				# e = "Failed to create csv file"
-				= (Error (dynamic e,e),iworld)
+			Error e	= (Error (dynamic e,toString e),iworld)
 			
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask eval
@@ -34,9 +33,18 @@ exportCSVFileWith delimitChar quoteChar escapeChar filename content = mkInstantT
 where
 	eval taskId iworld = fileTask taskId filename content (writeCSVFileWith delimitChar quoteChar escapeChar) iworld
 
+createJSONFile :: !String a -> Task Document | iTask a
+createJSONFile filename content = mkInstantTask eval
+where
+	eval taskId iworld
+		# (mbDoc,iworld)	= createDocument filename "text/json" (toString (toJSON content)) iworld
+		= case mbDoc of
+			Ok doc	    = (Ok doc, iworld)
+			Error e     = (Error (dynamic e,toString e),iworld)
+
 exportJSONFile :: !FilePath a -> Task a | iTask a
 exportJSONFile filename content = exportJSONFileWith toJSON filename content
- 
+
 exportJSONFileWith :: !(a -> JSONNode) !FilePath a -> Task a | iTask a
 exportJSONFileWith encoder filename content = mkInstantTask eval
 where

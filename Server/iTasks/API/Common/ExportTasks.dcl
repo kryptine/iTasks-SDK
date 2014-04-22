@@ -74,6 +74,15 @@ exportCSVFile		:: !FilePath ![[String]] -> Task [[String]]
 exportCSVFileWith	:: !Char !Char !Char !FilePath ![[String]] -> Task [[String]]
 
 /**
+* Encode a value as JSON and create a document.
+*
+* @param File name: A name of the created JSONfile
+* @param Value: The content to encode as JSON using the generic JSON encoder
+*
+* @return The exported content as a document
+*/
+createJSONFile      :: !String a -> Task Document | iTask a
+/**
 * Encode and export a JSON datafile to the server's filesystem.
 *
 * @param File path: The path of the exported file

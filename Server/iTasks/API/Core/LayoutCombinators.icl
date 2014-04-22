@@ -300,7 +300,7 @@ where
         # activeTab     = activeIndex parts
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
         = {UIBlock|attributes='Data.Map'.newMap,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical}
-          ,actions=[],hotkeys=[],size={UISizeOpts|defaultSizeOpts & height = Just FlexSize}}
+          ,actions=[],hotkeys=[],size=defaultSizeOpts}
 
     append parts ui=:{UIBlock|attributes,content={UIItemsOpts|items}}
         | isEmpty items

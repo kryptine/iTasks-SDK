@@ -124,10 +124,6 @@ createDocument name mime content iworld
 	# iworld				= storeValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") document iworld	
 	= (Ok document,iworld)
 	
-createDocumentWith :: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
-createDocumentWith name mime f iworld 
-	= createDocument name mime "FIXME" iworld //TODO make it possible to apply the function during creation
-	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
 	= loadBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld
@@ -138,4 +134,4 @@ loadDocumentMeta documentId iworld
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
-	= (storePath dataDirectory buildID </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
+	= (storePath dataDirectory buildID </> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.bin"),iworld)

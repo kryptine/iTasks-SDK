@@ -46,6 +46,13 @@ importJSONFile :: !FilePath -> Task a | iTask a
 importJSONFile filename = mkInstantTask eval
 where
 	eval taskId iworld = readJSON taskId filename fromJSON iworld
+
+importJSONDocument  :: !Document -> Task a | iTask a
+importJSONDocument {Document|documentId} = mkInstantTask eval
+where
+	eval taskId iworld
+		# (filename,iworld) = documentLocation documentId iworld
+        = readJSON taskId filename fromJSON iworld
 	
 importJSONFileWith :: !(JSONNode -> Maybe a) !FilePath -> Task a | iTask a
 importJSONFileWith parsefun filename = mkInstantTask eval
