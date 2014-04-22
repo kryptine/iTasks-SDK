@@ -54,7 +54,7 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ mx _ _ dp vv=:(OBJECT x,
 	//The masks are removed from the states when processing the CONS.
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
-		# (items, vst=:{selectedConsIndex}) = fx dp (x,mask,ver) meta vst
+		# (items, vst=:{selectedConsIndex}) = fx dp (x,mask,ver) meta {VSt|vst & optional=False}
         # (controls,choice) = case mask of
             Untouched   = ([],[])
             Blanked     = ([],[])
