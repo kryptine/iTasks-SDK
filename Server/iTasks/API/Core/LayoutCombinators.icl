@@ -227,18 +227,18 @@ instance tune InWindow
 where tune InWindow t = tune (AfterLayout uiDefToWindow) t
 
 instance tune InPanel
-where tune InPanel t = tune (AfterLayout (forceLayout o uiDefSetAttribute CONTAINER_ATTRIBUTE "panel")) t
+where tune InPanel t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" o forceLayout)) t
 instance tune InContainer
-where tune InContainer t = tune (AfterLayout (forceLayout o uiDefSetAttribute CONTAINER_ATTRIBUTE "container")) t
+where tune InContainer t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" o forceLayout)) t
 instance tune FullScreen
-where tune FullScreen t = tune (AfterLayout (forceLayout o uiDefSetAttribute SCREEN_ATTRIBUTE "full")) t
+where tune FullScreen t = tune (AfterLayout (uiDefSetAttribute SCREEN_ATTRIBUTE "full" o forceLayout)) t
 
 instance tune Title
-where tune (Title title) t = tune (AfterLayout (forceLayout o uiDefSetAttribute TITLE_ATTRIBUTE title)) t
+where tune (Title title) t = tune (AfterLayout (uiDefSetAttribute TITLE_ATTRIBUTE title o forceLayout)) t
 instance tune Icon
-where tune (Icon icon) t = tune (AfterLayout (forceLayout o uiDefSetAttribute ICON_ATTRIBUTE icon)) t
+where tune (Icon icon) t = tune (AfterLayout (uiDefSetAttribute ICON_ATTRIBUTE icon o forceLayout )) t
 instance tune Attribute
-where tune (Attribute k v) t = tune (AfterLayout (forceLayout o uiDefSetAttribute k v)) t
+where tune (Attribute k v) t = tune (AfterLayout (uiDefSetAttribute k v o forceLayout)) t
 
 instance tune NoUserInterface
 where
