@@ -207,6 +207,9 @@ instance ToArgs (a, b, c, d, e) where
 instance ToArgs (a, b, c, d, e, f) where
   toArgs (x, y, z, p, q, r) = [toJSArg x, toJSArg y, toJSArg z, toJSArg p, toJSArg q, toJSArg r]
 
+instance ToArgs a where
+  toArgs x = [toJSArg x]
+
 class JSCall o where
   (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
 

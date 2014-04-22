@@ -140,6 +140,8 @@ instance ToArgs (a, b, c, d, e)
 
 instance ToArgs (a, b, c, d, e, f)
 
+instance ToArgs a
+
 class JSCall o where
   (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
 
