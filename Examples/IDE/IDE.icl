@@ -38,8 +38,8 @@ where
 
 	workOnCode :: (ReadOnlyShared (Maybe (FilePath,FilePath))) -> Task ()
 	workOnCode sel 
-		= 	parallel () [(Embedded,\list -> addSelectedModule sel list)
-						] [] <<@ ArrangeWithTabs @! ()
+		= 	parallel  [(Embedded,\list -> addSelectedModule sel list)
+					  ] [] <<@ ArrangeWithTabs @! ()
 	where
 		addSelectedModule sel list
 			= watch sel >^* [ OnAction  (Action "/Open .icl" [ActionKey (unmodified KEY_ENTER)])
