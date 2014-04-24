@@ -5,7 +5,7 @@ import ligretto
 import iTasks
 
 derive class iTask Player, Color, Hand, Card
-instance toString Color where toString c = hd (gVisualizeText{|*|} AsLabel c)
+instance toString Color where toString c = toSingleLineText c
 
 view_player` :: !Player -> Task Player
 view_player` player

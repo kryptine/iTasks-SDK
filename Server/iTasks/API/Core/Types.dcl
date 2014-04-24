@@ -33,7 +33,7 @@ from iTasks.Framework.UIDefinition		import :: UIDef, :: UIForm, :: UIControl, ::
 from iTasks.Framework.Task				import :: Task, :: TaskId
 from iTasks.Framework.Generic				import class iTask
 from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
-from iTasks.Framework.Generic.Visualization	import generic gVisualizeText, :: VisualizationFormat(..), visualizeAsText
+from iTasks.Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks.Framework.Generic.Defaults		import generic gDefault
 from iTasks.Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
@@ -131,7 +131,7 @@ derive JSONDecode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, Dat
 derive gDefault			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
-derive gVisualizeText	EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gText	        EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gEditor 			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gEditMeta		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 derive gUpdate			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
@@ -190,7 +190,7 @@ instance toString FormButton
 //* Table consisting of headers, the displayed data cells & possibly a selection
 :: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
 
-toTable	:: ![a] -> Table | gEditMeta{|*|} a & gVisualizeText{|*|} a
+toTable	:: ![a] -> Table | gText{|*|} a
 
 //* Simple tree type (used primarily for creating trees to choose from)
 :: Tree a = Tree !.[.TreeNode a]
@@ -228,7 +228,7 @@ derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, But
 derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gVisualizeText	Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditMeta		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
@@ -262,8 +262,8 @@ derive gDefault			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoic
 derive gDefault			CheckMultiChoice
 derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEq				CheckMultiChoice
-derive gVisualizeText	ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
-derive gVisualizeText	CheckMultiChoice
+derive gText	        ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gText	        CheckMultiChoice
 derive gEditor	        ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEditor	        CheckMultiChoice
 derive gEditMeta		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
@@ -359,7 +359,7 @@ derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, Edita
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gVisualizeText	Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
+derive gText	        Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gEditor			Hidden, Display, Editable, VisualizationHint, Row, Col
 derive gEditMeta		Hidden, Display, Editable, VisualizationHint, Row, Col
 derive gUpdate			Hidden, Display, Editable, VisualizationHint, Row, Col
@@ -644,7 +644,7 @@ derive JSONDecode		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPrior
 derive gDefault			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gEq				TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
-derive gVisualizeText	TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gEditor			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gEditMeta		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 derive gUpdate			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskPriority, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
@@ -721,7 +721,7 @@ derive JSONEncode		Icon
 derive JSONDecode		Icon
 derive gDefault			Icon
 derive gEq				Icon
-derive gVisualizeText	Icon
+derive gText	        Icon
 derive gEditor          Icon	
 derive gEditMeta		Icon
 derive gUpdate			Icon

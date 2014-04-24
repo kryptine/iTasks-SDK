@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 // SPECIALIZATIONS
 derive class iTask Workflow
 
-gVisualizeText{|WorkflowTaskContainer|} _ _			    = []
+gText{|WorkflowTaskContainer|} _ _			            = []
 gEditor{|WorkflowTaskContainer|} _ _ _ vst			    = (HiddenEditor,vst)
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gUpdate{|WorkflowTaskContainer|} target upd val iworld  = basicUpdate (\Void x -> Just x) target upd val iworld

@@ -6,7 +6,7 @@ from iTasks.Framework.UIDiff import :: UIControl, :: UIAttributes
 from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue, :: EditableList
 from iTasks.API.Core.LayoutCombinators import :: LayoutRules
 
-from iTasks.Framework.Generic.Visualization import generic gVisualizeText, :: VisualizationFormat
+from iTasks.Framework.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Framework.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Text.HTML import :: HtmlTag
@@ -19,7 +19,7 @@ from System.Time import :: Timestamp
 /**
 * Main eneric editor function
 */
-generic gEditor a | gVisualizeText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
+generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
 				  :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
 
 derive gEditor

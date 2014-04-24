@@ -18,7 +18,7 @@ import iTasks
 
 derive class iTask Workflow
 		
-derive gVisualizeText	WorkflowTaskContainer
+derive gText	        WorkflowTaskContainer
 derive gEditor			WorkflowTaskContainer
 derive gEditMeta		WorkflowTaskContainer
 derive gUpdate			WorkflowTaskContainer

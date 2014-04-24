@@ -11,7 +11,7 @@ derive gEditMeta AnalogClock
 derive gVerify AnalogClock
 derive gEq AnalogClock
 derive gDefault AnalogClock
-derive gVisualizeText AnalogClock
+derive gText AnalogClock
 
 gEditor{|AnalogClock|} dp vv=:(AnalogClock t,mask,ver) meta vst
     = gEditor{|*|} dp (analogClockEditlet t,mask,ver) meta vst

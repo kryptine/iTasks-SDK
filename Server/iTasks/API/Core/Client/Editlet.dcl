@@ -46,7 +46,7 @@ derive JSONEncode		Editlet
 derive JSONDecode		Editlet
 derive gDefault			Editlet
 derive gEq				Editlet
-derive gVisualizeText	Editlet
+derive gText	        Editlet
 derive gEditor	        Editlet
 derive gEditMeta		Editlet
 derive gUpdate			Editlet

@@ -1,6 +1,7 @@
 || ?module? System.Time
 
 System.Time.localTime !world_0 = _localTime world_0
+System.Time.gmTime !world_0 = _localTime world_0
 System.Time.time !world_0 = _time world_0
 System.Time.gmTime !world_0 = _localTime world_0
 

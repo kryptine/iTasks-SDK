@@ -1,81 +1,88 @@
 implementation module iTasks.Framework.Generic.Visualization
 
-import StdGeneric, StdList
+import StdGeneric, StdList, StdMisc
 import Data.Maybe, Data.Either, Data.Void, Data.Map, Data.Functor, Data.List
 import Text, Text.JSON, Text.HTML
 import System.Time
 import iTasks.Framework.Util
 
-visualizeAsLabel :: !a -> String | gVisualizeText{|*|} a
-visualizeAsLabel v = concat (gVisualizeText{|*|} AsLabel v)
+toSingleLineText :: !a -> String | gText{|*|} a
+toSingleLineText v = concat (gText{|*|} AsSingleLine (Just v))
 
-visualizeAsText :: !a -> String | gVisualizeText{|*|} a
-visualizeAsText v = join "\n" (gVisualizeText{|*|} AsText v)
+toMultiLineText :: !a -> String | gText{|*|} a
+toMultiLineText v = join "\n" (gText{|*|} AsMultiLine (Just v))
 
-visualizeAsRow :: !a -> [String] | gVisualizeText{|*|} a
-visualizeAsRow v = gVisualizeText{|*|} AsRow v
-	
 //Generic text visualizer
-generic gVisualizeText a :: !VisualizationFormat !a -> [String]
+generic gText a :: !TextFormat (Maybe a) -> [String]
 
-gVisualizeText{|UNIT|} _ _ = []
+gText{|UNIT|} _ _ = []
 
-gVisualizeText{|RECORD|} fx AsLabel (RECORD x) = [join "," (fx AsLabel x)]
-gVisualizeText{|RECORD|} fx mode (RECORD x) = fx mode x
+gText{|RECORD|} fx AsSingleLine (Just (RECORD x))   = [join ", " (fx AsSingleLine (Just x))]
+gText{|RECORD|} fx mode         (Just (RECORD x))   = fx mode (Just x)
+gText{|RECORD|} fx mode         Nothing             = fx mode Nothing
 		
-gVisualizeText{|FIELD of {gfd_name}|} fx AsText (FIELD x)   = [camelCaseToWords gfd_name, ": ": fx AsText x] ++ [" "]
-gVisualizeText{|FIELD of {gfd_name}|} fx mode (FIELD x)     = fx mode x
+gText{|FIELD of {gfd_name}|} fx AsHeader _                  = [camelCaseToWords gfd_name]
+gText{|FIELD of {gfd_name}|} fx AsRow (Just (FIELD x))      = [concat (fx AsSingleLine (Just x))]
+gText{|FIELD of {gfd_name}|} fx AsMultiLine (Just (FIELD x))= [camelCaseToWords gfd_name +++ ":": fx AsMultiLine (Just x)]
+gText{|FIELD of {gfd_name}|} fx mode (Just (FIELD x))       = fx mode (Just x)
 	
-gVisualizeText{|OBJECT|} fx mode (OBJECT x) = fx mode x
+gText{|OBJECT|} fx mode (Just (OBJECT x))   = fx mode (Just x)
+gText{|OBJECT|} fx mode Nothing             = fx mode Nothing
 
-gVisualizeText{|CONS of {gcd_name,gcd_type_def}|} fx mode (CONS x)
-	= normalADTStaticViz (fx mode x)
-where
-	normalADTStaticViz viz
-		//If viz is empty, only show constructor name
-		| isEmpty viz
-			= [gcd_name]
-		//If there are multiple constructors, also show the name of the constructor
-		| gcd_type_def.gtd_num_conses > 1
-			= intersperse " " [gcd_name:viz]
-		//Otherwise show visualisation of fields separated by spaces
-		| otherwise
-			= intersperse " " viz
+gText{|CONS of {gcd_name,gcd_type_def}|} fx mode (Just (CONS x))
+    # parts = (if (gcd_type_def.gtd_num_conses > 1) [gcd_name] []) ++ fx mode (Just x)
+    = case mode of
+        AsSingleLine    = intersperse " " parts
+        _               = parts
+gText{|CONS of {gcd_name,gcd_type_def}|} fx mode Nothing = fx mode Nothing
 
-gVisualizeText{|PAIR|} fx fy mode (PAIR x y) = fx mode x ++ fy mode y
+gText{|PAIR|} fx fy mode (Just (PAIR x y))  = fx mode (Just x) ++ fy mode (Just y)
+gText{|PAIR|} fx fy mode Nothing            = fx mode Nothing ++ fy mode Nothing
 
-gVisualizeText{|EITHER|} fx fy mode (LEFT x) = fx mode x
-gVisualizeText{|EITHER|} fx fy mode (RIGHT y) = fy mode y
+gText{|EITHER|} fx fy mode (Just (LEFT x))  = fx mode (Just x)
+gText{|EITHER|} fx fy mode (Just (RIGHT y)) = fy mode (Just y)
+gText{|EITHER|} fx fy mode Nothing          = [""]
 
-gVisualizeText{|Int|}			_ val				= [toString val]
-gVisualizeText{|Real|}			_ val				= [toString val]
-gVisualizeText{|Char|}			_ val				= [toString val]
-gVisualizeText{|String|}		_ val				= [toString val]
-gVisualizeText{|Bool|}			_ val				= [toString val]
+gText{|Int|}			_ val				= [maybe "" toString val]
+gText{|Real|}			_ val				= [maybe "" toString val]
+gText{|Char|}			_ val				= [maybe "" toString val]
+gText{|String|}		    _ val				= [maybe "" toString val]
+gText{|Bool|}			_ val				= [maybe "" toString val]
 
-gVisualizeText {|[]|} fx  mode val					= [concat (["[":  flatten (intersperse [", "] [fx mode x \\ x <- val])] ++ ["]"])]
-gVisualizeText{|Maybe|} fx mode val					= fromMaybe ["-"] (fmap (\v -> fx mode v) val)
+gText{|[]|} fx mode (Just val)				= [concat (["[":  flatten (intersperse [", "] [fx mode (Just x) \\ x <- val])] ++ ["]"])]
+gText{|[]|} fx mode Nothing                 = [""]
+gText{|Maybe|} fx mode (Just val)			= fromMaybe ["-"] (fmap (\v -> fx mode (Just v)) val)
+gText{|Maybe|} fx mode Nothing              = fx AsHeader Nothing
 
-gVisualizeText{|Void|} _ _					= []
-gVisualizeText{|Dynamic|} _ _				= []
-gVisualizeText{|(->)|} _ _ _ _				= []
-gVisualizeText{|JSONNode|} _ val			= [toString val]
-gVisualizeText{|HtmlTag|} _ html			= [toString html]
+gText{|Void|} _ _					= []
+gText{|Dynamic|} _ _				= []
+gText{|(->)|} _ _ _ _				= []
+gText{|JSONNode|} _ val			    = [maybe "" toString val]
+gText{|HtmlTag|} _ val              = [maybe "" toString val]
 
-gVisualizeText{|()|} _ _                    = []
-gVisualizeText{|(,)|} fa fb AsLabel (a,b)   = [join "," (fa AsLabel a ++ fb AsLabel b)]
-gVisualizeText{|(,)|} fa fb mode   (a,b)    = fa mode a ++ fb mode b
+gText{|()|} _ _                    = []
 
-gVisualizeText{|(,,)|} fa fb fc AsLabel (a,b,c)  = [join "," (fa AsLabel a ++ fb AsLabel b ++ fc AsLabel c)]
-gVisualizeText{|(,,)|} fa fb fc mode   (a,b,c)   = fa mode a ++ fb mode b ++ fc mode c
+gText{|(,)|} fa fb AsHeader     _               = ["",""]
+gText{|(,)|} fa fb AsRow        (Just (a,b))    = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b))]
+gText{|(,)|} fa fb AsSingleLine (Just (a,b))    = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b))]
+gText{|(,)|} fa fb mode         (Just (a,b))    = fa mode (Just a) ++ fb mode (Just b)
+gText{|(,)|} fa fb mode         Nothing         = fa mode Nothing ++ fb mode Nothing
 
-gVisualizeText{|(,,,)|} fa fb fc fd AsLabel (a,b,c,d)  = [join "," (fa AsLabel a ++ fb AsLabel b ++ fc AsLabel c ++ fd AsLabel d)]
-gVisualizeText{|(,,,)|} fa fb fc fd mode   (a,b,c,d)   = fa mode a ++ fb mode b ++ fc mode c ++ fd mode d
+gText{|(,,)|} fa fb fc AsHeader     _                = ["","",""]
+gText{|(,,)|} fa fb fc AsRow        (Just (a,b,c))   = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c))]
+gText{|(,,)|} fa fb fc AsSingleLine (Just (a,b,c))   = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c))]
+gText{|(,,)|} fa fb fc mode         (Just (a,b,c))   = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c)
+gText{|(,,)|} fa fb fc mode         Nothing          = fa mode Nothing ++ fb mode Nothing ++ fc mode Nothing
 
-derive gVisualizeText Either, Timestamp, Map
+gText{|(,,,)|} fa fb fc fd AsHeader     _                   = ["","","",""]
+gText{|(,,,)|} fa fb fc fd AsRow        (Just (a,b,c,d))    = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d))]
+gText{|(,,,)|} fa fb fc fd AsSingleLine (Just (a,b,c,d))    = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d))]
+gText{|(,,,)|} fa fb fc fd mode         (Just (a,b,c,d))    = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d)
 
-(+++>) infixr 5	:: !a !String -> String | gVisualizeText{|*|} a
-(+++>) a s = visualizeAsLabel a +++ s
+derive gText Either, Timestamp, Map
 
-(<+++) infixl 5	:: !String !a -> String | gVisualizeText{|*|} a
-(<+++) s a = s +++ visualizeAsLabel a
+(+++>) infixr 5	:: !a !String -> String | gText{|*|} a
+(+++>) a s = toSingleLineText a +++ s
+
+(<+++) infixl 5	:: !String !a -> String | gText{|*|} a
+(<+++) s a = s +++ toSingleLineText a

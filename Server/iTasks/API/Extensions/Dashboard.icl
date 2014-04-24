@@ -8,7 +8,7 @@ derive gEditMeta ControlLight
 derive gVerify ControlLight
 derive gEq ControlLight
 derive gDefault ControlLight
-derive gVisualizeText ControlLight
+derive gText ControlLight
 
 gEditor{|ControlLight|} dp vv=:(v,mask,ver) meta vst
     = gEditor{|*|} dp (controlLightEditlet v,mask,ver) meta vst

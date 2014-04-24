@@ -12,7 +12,7 @@ derive gEditMeta      MR
 derive gVerify        MR
 derive gEq            MR
 derive gDefault       MR
-derive gVisualizeText MR
+derive gText          MR
 derive gUpdate        MR
 derive gEditor        MR
 

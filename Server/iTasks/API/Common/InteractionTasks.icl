@@ -419,7 +419,7 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 viewTitle :: !a -> Task a | iTask a
 viewTitle a = viewInformation (Title title) [ViewWith view] a <<@ InContainer //<<@ AfterLayout (tweakAttr titleFromValue)
 where
-	title = visualizeAsLabel a
+	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
 
 viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r

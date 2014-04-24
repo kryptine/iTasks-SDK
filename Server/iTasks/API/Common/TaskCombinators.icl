@@ -100,10 +100,10 @@ where
 		= viewSharedInformation (Title "Waiting for result") [ViewWith toView] (taskListMeta tlist) @? const NoValue
 					
 	toView [_,{TaskListItem|progressMeta=Just p,attributes}]=
-		{ assignedTo	= visualizeAsLabel ('DM'.get "user" attributes)
+		{ assignedTo	= toSingleLineText ('DM'.get "user" attributes)
 		, issuedBy		= toString p.ProgressMeta.issuedBy
 		, issuedAt		= p.ProgressMeta.issuedAt
-		, priority		= visualizeAsLabel ('DM'.get "priority" attributes)
+		, priority		= toSingleLineText ('DM'.get "priority" attributes)
 		, firstWorkedOn	= p.ProgressMeta.firstEvent
 		, lastWorkedOn	= p.ProgressMeta.latestEvent
 		}	

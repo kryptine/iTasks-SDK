@@ -29,4 +29,4 @@ derive gUpdate          ControlLight
 derive gVerify          ControlLight
 derive gEq              ControlLight
 derive gDefault         ControlLight
-derive gVisualizeText   ControlLight
+derive gText            ControlLight

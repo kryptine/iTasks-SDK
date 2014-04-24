@@ -21,7 +21,7 @@ updateValueAndMask taskId path update (a,mask) iworld
     = (res,iworld)
 
 //Generic visualizer
-generic gEditor a | gVisualizeText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
+generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
 				   :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
 
 gEditor{|UNIT|} dp _ _ vst = (NormalEditor [],vst)

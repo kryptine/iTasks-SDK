@@ -15,7 +15,7 @@ derive JSONDecode		Task
 derive gDefault			Task
 derive gUpdate			Task
 derive gVerify			Task
-derive gVisualizeText	Task
+derive gText	        Task
 derive gEditor			Task
 derive gEditMeta		Task
 derive gEq				Task

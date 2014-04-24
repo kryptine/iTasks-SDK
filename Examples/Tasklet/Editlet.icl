@@ -268,6 +268,6 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 //test7 = enterInformation "Test" [] 
 
 Start :: *World -> *World
-Start world = startEngine test5 world
+Start world = startEngine test3 world
 
 

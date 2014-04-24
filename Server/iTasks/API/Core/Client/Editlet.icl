@@ -32,7 +32,8 @@ gDefault{|Editlet|} fa _
 
 gEq{|Editlet|} fa _ (Editlet x _ _) (Editlet y _ _) = fa x y //Only compare values
 
-gVisualizeText{|Editlet|} fa _ mode (Editlet value _ _) = fa mode value
+gText{|Editlet|} fa _ mode (Just (Editlet value _ _)) = fa mode (Just value)
+gText{|Editlet|} fa _ mode Nothing = fa mode Nothing
 
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp
 						(Editlet value serverDef clientDef, mask, ver) meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}

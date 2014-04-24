@@ -14,7 +14,7 @@ class iTask a
 	, gUpdate{|*|}
 	, gVerify{|*|}
 	//Visualization
-	, gVisualizeText{|*|}
+	, gText{|*|}
 	//Serialization
 	, JSONEncode{|*|}
 	, JSONDecode{|*|}

@@ -10,16 +10,13 @@ import projectManager
 import StdGeneric, Data.Either, System.FilePath
 import SmallUtil, IDE_State, CleanEditor
 from StdFunc import seq
-<<<<<<< .mine
-//import iTasks.Framework.iTaskClass
-=======
->>>>>>> .r2912
+O
 derive class iTask FileError
 
 // It Starts here..
 
 Start :: *World -> *World
-Start world = startEngine start_ide world 
+Start world = startEngine start_ide world
 
 /* BUGS:
 - shares: not always up-to-date

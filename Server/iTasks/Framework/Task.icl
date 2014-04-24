@@ -41,7 +41,7 @@ gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\Void t -> Just t) 
 
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
-gVisualizeText{|Task|} _ _ _ = ["<Task>"]
+gText{|Task|} _ _ _ = ["<Task>"]
 gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]

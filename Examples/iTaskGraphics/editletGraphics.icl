@@ -28,7 +28,7 @@ derive gEditMeta      MR
 derive gVerify        MR
 derive gEq            MR
 derive gDefault       MR
-derive gVisualizeText MR
+derive gText          MR
 
 gEditor{|MR|} dp vv=:(mr,mask,ver) meta vst
 	= gEditor{|*|} dp (imageEditlet mr,mask,ver) meta vst

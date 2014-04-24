@@ -14,5 +14,5 @@ derive gUpdate AnalogClock
 derive gVerify AnalogClock
 derive gEq AnalogClock
 derive gDefault AnalogClock
-derive gVisualizeText AnalogClock
+derive gText AnalogClock
 
