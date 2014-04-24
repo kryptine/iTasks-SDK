@@ -15,7 +15,6 @@ codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 codeBaseToCleanModuleNames codeBase 
 = [(foldl (</>) path dirs,fileName) \\ (path,dirs,fileName) <- treeToList codeBase []]
 
-
 editCleanModule :: CleanModule -> Task CodeMirror
 editCleanModule ((path,fileName),ext) = openFile (path,fileName +++ toString ext)// @! ()
 
