@@ -289,6 +289,100 @@ itwc.Container = itwc.extend(itwc.Component,{
         delete me.menu;
     }
 });
+itwc.Panel = itwc.extend(itwc.Container,{
+
+    headerEl: null,
+    titleEl: null,
+    closeEl: null,
+    menuEl: null,
+
+    initDOMEl: function() {
+        this.initPanel();
+    },
+    initPanel: function() {
+        var me = this;
+
+        me.targetEl = document.createElement('div');
+        me.targetEl.classList.add('inner');
+/*
+        me.targetEl.style.flexGrow = 1;
+        me.targetEl.style.flexShrink = 1;
+        me.targetEl.style.alignSelf = 'stretch';
+        me.targetEl.style.display = 'flex';
+*/
+        me.domEl.style.display = 'flex';
+        me.domEl.style.flexDirection = 'column';
+
+        me.domEl.appendChild(me.targetEl);
+    },
+    createHeaderEl: function() {
+        var me = this;
+        me.headerEl = document.createElement('div');
+        me.headerEl.classList.add('header');
+        me.domEl.insertBefore(me.headerEl,me.domEl.childNodes[0]);
+    },
+    createTitleEl: function() {
+        var me = this;
+        me.titleEl = document.createElement('span');
+        if(me.headerEl.childNodes.length) {
+            me.headerEl.insertBefore(me.titleEl,me.domEl.childNodes[0]);
+        } else {
+            me.headerEl.appendChild(me.titleEl);
+        }
+    },
+    createCloseEl: function() {
+        var me = this;
+        me.closeEl = document.createElement('a');
+        me.closeEl.innerHTML = 'x';
+        me.closeEl.href = '#';
+        me.closeEl.classList.add('close');
+        me.closeEl.addEventListener('click',function(e) {
+            itwc.controller.sendActionEvent(me.definition.closeTaskId,'Close');
+            e.preventDefault();
+        },me);
+
+        if(me.headerEl.childNodes.length) {
+            me.headerEl.insertBefore(me.closeEl,me.headerEl.childNodes[me.headerEl.childNodes.length - 1]);
+        } else {
+            me.headerEl.appendChild(me.closeEl);
+        }
+    },
+    setTitle: function(title) {
+        var me = this;
+        if(title) {
+            if(!me.headerEl) { me.createHeaderEl();}
+            if(!me.titleEl) { me.createTitleEl();}
+
+            me.titleEl.innerHTML = title;
+        } else {
+            if(me.titleEl) {
+                me.headerEl.removeChild(me.titleEl);
+                me.titleEl = null;
+            }
+            if(me.headerEl && !me.headerEl.childNodes.length) {
+                me.domEl.removeChild(me.headerEl);
+                me.headerEl = null;
+            }
+        }
+    },
+    setCloseTaskId: function(taskId) {
+        var me = this;
+        me.definition.closeTaskId = taskId;
+        if(taskId) {
+            if(!me.headerEl) { me.createHeaderEl();}
+            if(!me.closeEl) { me.createCloseEl();}
+        } else {
+            if(me.closeEl) {
+                me.headerEl.removeChild(me.closeEl);
+                me.closeEl = null;
+            }
+            if(me.headerEl && !me.headerEl.childNodes.length) {
+                me.domEl.removeChild(me.headerEl);
+                me.headerEl = null;
+            }
+        }
+    }
+});
 
 //#### CORE UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
@@ -1117,12 +1211,14 @@ itwc.component.itwc_container = itwc.extend(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_panel = itwc.extend(itwc.Container,{
+itwc.component.itwc_panel = itwc.extend(itwc.Panel,{
     defaultHeight: 'flex',
     hasTitle: false,
     initDOMEl: function() {
         var me = this,
             el = me.domEl, header;
+
+        me.initPanel();
 
         if(me.definition.baseCls) {
             el.classList.add(me.definition.baseCls);
@@ -1131,34 +1227,8 @@ itwc.component.itwc_panel = itwc.extend(itwc.Container,{
         if(me.definition.frame) {
             el.classList.add('framed');
         }
-        if(me.definition.title) {
-            me.createTitle(me.definition.title);
-        }
+        me.setTitle(me.definition.title);
         me.initMenuBar();
-    },
-    createTitle: function(title) {
-        var me = this, header;
-
-        header = document.createElement('div');
-        header.innerHTML = title;
-        header.classList.add('panel-header');
-        header.style.alignSelf = 'stretch';
-
-        if(me.targetEl.childNodes.length) {
-            me.targetEl.insertBefore(header,me.targetEl.childNodes[0]);
-        } else {
-            me.targetEl.appendChild(header);
-        }
-        me.hasTitle = true;
-        me.itemsOffset = 1;
-    },
-    setTitle: function(title) {
-        var me = this;
-        if(me.hasTitle) {
-            me.domEl.childNodes[0].innerHTML = title;
-        } else {
-            me.createTitle(title);
-        }
     }
 });
 itwc.component.itwc_fieldset = itwc.extend(itwc.Container,{
@@ -1386,43 +1456,15 @@ itwc.component.itwc_splitter = itwc.extend(itwc.Component, {
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
 });
-itwc.component.itwc_window = itwc.extend(itwc.Container,{
+itwc.component.itwc_window = itwc.extend(itwc.Panel, {
     initDOMEl: function() {
-        var me = this,
-            el = me.domEl, header, label, closeLink;
-
-        el.classList.add('window');
-
-        header = document.createElement('div');
-        header.classList.add('window-header');
-        header.style.alignSelf = 'stretch';
-
-        me.titleEl = document.createElement('span');
-        me.titleEl.innerHTML = me.definition.title || '';
-        header.appendChild(me.titleEl);
-
-        if(me.definition.closeTaskId) {
-            closeLink = document.createElement('a');
-            closeLink.innerHTML = 'x';
-            closeLink.href = '#';
-            closeLink.classList.add('windowclose');
-            closeLink.addEventListener('click',function(e) {
-                itwc.controller.sendActionEvent(me.definition.closeTaskId,'Close');
-                e.preventDefault();
-            },me);
-
-            header.appendChild(closeLink);
-        }
-
-        el.appendChild(header);
-
-        me.itemsOffset = 1;
-        me.initMenuBar();
-    },
-    setTitle: function(title) {
         var me = this;
-        me.definition.title = title;
-        me.titleEl.innerHTML = title || '';
+
+        me.domEl.classList.add('window');
+        me.initPanel();
+        me.setTitle(me.definition.title);
+        me.setCloseTaskId(me.definition.closeTaskId);
+        me.initMenuBar();
     }
 });
 itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
