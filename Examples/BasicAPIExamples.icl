@@ -1,5 +1,8 @@
 implementation module BasicAPIExamples
-import iTasks, iTasks.API.Extensions.Admin.UserAdmin, iTasks.API.Extensions.Admin.WorkflowAdmin
+import iTasks
+import iTasks.API.Extensions.Admin.UserAdmin
+import iTasks.API.Extensions.Admin.ServerAdmin
+import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
 import ligrettoTOP
@@ -70,6 +73,7 @@ basicAPIExamples =
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
+	,workflow "Manage server" 							 	"Manage itask server..." 			manageServer
 	,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
 	,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
 	,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
