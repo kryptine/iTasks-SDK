@@ -8,22 +8,24 @@ import FindDefinitions
 
 import IDE_Types
 
+//Global status (for all users! If you open a file, everybody opens a file!)
+IDE_Status :: (Shared IDE_Status)
+IDE_Status = sharedStore  "IDE_Status" 	{ openedFiles   = []
+			    						, codeBase 	    = []
+                                        , codeLocations = []
+                                        }
+
 initIDE
-	=					codeBaseFromEnvironment myEnv
-	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
+    =                   rescanCodeBase
 	>>= \status ->		editModules status.openedFiles
 where
 	editModules [] 					= return ()
 	editModules [module:modules]  	= editCleanModule module >>| editModules modules
 
-
-test list
-	= 					codeBaseFromEnvironment myEnv
-	>>= \codeBase ->	searchForIdentifier SearchIdentifier True "test" (idePath,"IDE") codeBase
-	>>= \result ->		viewInformation "result" [] result
-	
-
-//Start w = startEngine (test []) w
+rescanCodeBase
+    =                   get IDE_Status
+	>>=	\status ->		codeBaseFromEnvironment status.codeLocations
+	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
 
 Start w = startEngine (startWork []) w
 where
@@ -48,6 +50,7 @@ where
 							, OnAction  (Action "/Open .dcl" [ActionKey (unmodified KEY_ENTER)])
 								(ifValue isJust (\(Just (filePath,moduleName)) 
 									-> appendTask Embedded (\_ -> cleanEditor ((filePath,moduleName),Dcl)) list))
+                            , OnAction (Action "Edit code locations" []) (always ((editCodeLocations @? const NoValue)<<@ InWindow))
 							]
 			@? const NoValue
 
@@ -61,11 +64,16 @@ cleanEditor ((filePath,moduleName),ext)
 		  
 
 searchFor identifier
-	= 					codeBaseFromEnvironment myEnv
-	>>= \codeBase ->	searchForIdentifier SearchIdentifier True identifier (idePath,"IDE") codeBase
+	= 					get IDE_Status
+	>>= \status ->	    searchForIdentifier SearchIdentifier True identifier (hd (codeBaseToCleanModuleNames status.codeBase)) status.codeBase
 	>>= \result ->		viewInformation "result" [] result
 
-
+editCodeLocations
+    =   get IDE_Status
+    >>= \status -> updateInformation "Please enter the locations where you keep your Clean code" [] status.codeLocations
+    >>? \codeLocations ->
+            upd (\status -> {status & codeLocations = codeLocations}) IDE_Status
+        >>| rescanCodeBase
 
 getSelection :: CodeMirror -> Identifier
 getSelection {position,selection=Nothing,source} =  "nothing"
@@ -74,3 +82,9 @@ getSelection {position,selection=Just (begin,end),source}
 = source%(begin,end)
 
 
+(>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
+(>>?) taska taskbf = step taska (const Nothing)
+    [OnAction ActionCancel          (always (return Nothing))
+    ,OnAction ActionOk              (hasValue (\a -> taskbf a @ Just))
+    ,OnValue                        (ifStable (\a -> taskbf a @ Just))
+    ]

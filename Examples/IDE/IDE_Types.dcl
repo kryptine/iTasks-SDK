@@ -4,9 +4,10 @@ import iTasks
 import iTasks.API.Extensions.Development.Codebase
 
 :: IDE_Status = { openedFiles	:: [CleanModule]
-			    , codeBase		:: CodeBase		    
+			    , codeBase		:: CodeBase
+                , codeLocations :: [FilePath]
 			    }
 
 derive class iTask IDE_Status
 
-IDE_Status :: (Shared IDE_Status)
+
