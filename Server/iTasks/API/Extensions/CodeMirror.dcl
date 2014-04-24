@@ -63,7 +63,7 @@ derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gDefault         CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gEq              CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
-derive gVisualizeText   CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
+derive gText            CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gEditor          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gEditMeta        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
