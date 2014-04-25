@@ -12,7 +12,7 @@ derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, TaskListEntry, Ta
 
 //IS ALSO DERIVED IN TASK STORE: SEEMS REDUNDANT
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
-derive JSONEncode UIForm, UIBlock
+derive JSONEncode UIEmpty, UIForm, UIBlock
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
@@ -20,7 +20,7 @@ derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
 //derive JSONDecode TaskCompositionType
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
-derive JSONDecode UIForm, UIBlock
+derive JSONDecode UIEmpty, UIForm, UIBlock
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem

@@ -319,7 +319,7 @@ uiDefAnnotatedControls {UIDef|content=UIFinal (UIViewport content _)}			= [(c,ne
 uiDefAnnotatedControls _										                = []
 
 uiDefActions :: UIDef -> [UIAction]
-uiDefActions {UIDef|content=UIActionSet actions}	    = actions
+uiDefActions {UIDef|content=UIEmpty {UIEmpty|actions}}	= actions
 uiDefActions {UIDef|content=UIBlock {UIBlock|actions}}	= actions
 uiDefActions _								            = []
 

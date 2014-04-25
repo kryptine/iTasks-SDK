@@ -15,13 +15,13 @@ from Data.Maybe import :: Maybe
 	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		        //Combine the prompt, parts of a parallel composition and possible actions
 	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		        //When a detached task is worked on
 
-    , layoutSubEditor	   :: UIForm                        -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
-    , layoutForm        :: UIForm                        -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
-    , layoutBlocks      :: [UIBlock]                     -> UIBlock              //Combine a stack of sub-user interfaces into one
+    , layoutSubEditor	:: UIForm                           -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
+    , layoutForm        :: UIForm                           -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
+    , layoutBlocks      :: [UIBlock] [UIAction]             -> UIBlock              //Combine a stack of sub-user interfaces into one
 	}
 
-:: UIControlCombinator  :== UIForm -> UIBlock
-:: SubUICombinator      :== [UIBlock] -> UIBlock
+:: UIFormCombinator     :== UIForm -> UIBlock
+:: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout LayoutRules
@@ -44,7 +44,7 @@ autoAccuWorkOn          :: UIDef TIMeta -> UIDef
 
 autoLayoutSubEditor     :: UIForm -> [(UIControl,UIAttributes)]
 autoLayoutForm          :: UIForm -> UIBlock
-autoLayoutBlocks        :: [UIBlock] -> UIBlock
+autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
 autoLayoutFinal        :: UIDef -> UIDef
@@ -77,15 +77,15 @@ instance tune ForceLayout
 //Alternative Sub-UI Combinators and their layout tuning types
 :: ArrangeVertical = ArrangeVertical
 instance tune ArrangeVertical
-arrangeVertical         ::                      SubUICombinator
+arrangeVertical         ::                      UIBlocksCombinator
 
 :: ArrangeHorizontal = ArrangeHorizontal
 instance tune ArrangeHorizontal
-arrangeHorizontal       ::                      SubUICombinator
+arrangeHorizontal       ::                      UIBlocksCombinator
 
 :: ArrangeWithTabs = ArrangeWithTabs
 instance tune ArrangeWithTabs
-arrangeWithTabs         ::                      SubUICombinator
+arrangeWithTabs         ::                      UIBlocksCombinator
 
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
@@ -96,9 +96,9 @@ instance tune ArrangeWithSideBar
 * @param Initial size of the sidebar
 * @param Enable resize?
 */
-arrangeWithSideBar      :: !Int !UISide !Int !Bool -> SubUICombinator
+arrangeWithSideBar      :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 
-:: ArrangeCustom = ArrangeCustom SubUICombinator
+:: ArrangeCustom = ArrangeCustom UIBlocksCombinator
 instance tune ArrangeCustom
 
 subUIToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])

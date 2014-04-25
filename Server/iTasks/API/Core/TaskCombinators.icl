@@ -139,7 +139,7 @@ where
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId repOpts NoRep val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIActionSet [],windows=[]} (contActions taskId val conts)) [])
+		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) [])
 	doStepLayout taskId repOpts (TaskRep def parts) val
 		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (contActions taskId val conts)) parts)
 

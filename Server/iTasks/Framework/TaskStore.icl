@@ -18,7 +18,7 @@ derive gEq TIType
 derive JSONEncode TaskResult, TaskInfo, TaskRep, TIValue
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONEncode UIForm, UIBlock
+derive JSONEncode UIEmpty, UIForm, UIBlock
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
@@ -26,7 +26,7 @@ derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONDecode TaskResult, TaskInfo, TaskRep, TIValue
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONDecode UIForm, UIBlock
+derive JSONDecode UIEmpty, UIForm, UIBlock
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts

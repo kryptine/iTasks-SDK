@@ -108,14 +108,14 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 
-    layout [startWork,dashBoard,manageWork:activeWork]
-        = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea]
+    layout [startWork,dashBoard,manageWork:activeWork] actions
+        = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea] actions
     where
-        mainArea = arrangeWithSideBar 0 TopSide 30 False [dashBoard,workArea]
-        workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea]
-        tabsArea = arrangeWithTabs activeWork
+        mainArea = arrangeWithSideBar 0 TopSide 30 False [dashBoard,workArea] []
+        workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea] []
+        tabsArea = arrangeWithTabs activeWork []
 
-    layout blocks = autoLayoutBlocks blocks
+    layout blocks actions = autoLayoutBlocks blocks actions
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
