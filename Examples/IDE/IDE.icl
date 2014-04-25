@@ -1,10 +1,10 @@
 module IDE
- 
+
 import iTasks
 import iTasks.API.Extensions.Development.Codebase
 import iTasks.API.Extensions.CodeMirror, StdFile
- 
-import FindDefinitions 
+
+import FindDefinitions
 
 import IDE_Types
 
@@ -27,41 +27,34 @@ rescanCodeBase
 	>>=	\status ->		codeBaseFromEnvironment status.codeLocations
 	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
 
-Start w = startEngine (startWork []) w
+Start w = startEngine workOnCleanModules w
 where
-	startWork list
-		= (		(					initIDE 
-					>>|				get IDE_Status 
-					>>= \status -> 	navigateCodebase status.codeBase
-				)
-			>&> 
-				workOnCode
-		  ) <<@ (ArrangeWithSideBar 0 LeftSide 200 True) <<@ FullScreen
+    workOnCleanModules
+        =   initIDE
+        >>| get IDE_Status
+        >>- \status ->
+            parallel [(Embedded,chooseAndAddModules)] [] <<@ ArrangeCustom arrange <<@ FullScreen
 
-	workOnCode :: (ReadOnlyShared (Maybe (FilePath,FilePath))) -> Task ()
-	workOnCode sel 
-		= 	parallel  [(Embedded,\list -> addSelectedModule sel list)
-					  ] [] <<@ ArrangeWithTabs @! ()
-	where
-		addSelectedModule sel list
-			= watch sel >^* [ OnAction  (Action "/Open .icl" [ActionKey (unmodified KEY_ENTER)])
-								(ifValue isJust (\(Just (filePath,moduleName)) 
-									-> appendTask Embedded (\_ -> cleanEditor ((filePath,moduleName),Icl)) list))
-							, OnAction  (Action "/Open .dcl" [ActionKey (unmodified KEY_ENTER)])
-								(ifValue isJust (\(Just (filePath,moduleName)) 
-									-> appendTask Embedded (\_ -> cleanEditor ((filePath,moduleName),Dcl)) list))
-                            , OnAction (Action "Edit code locations" []) (always ((editCodeLocations @? const NoValue)<<@ InWindow))
-							]
-			@? const NoValue
+    arrange [b:bs] actions
+        = arrangeWithSideBar 0 LeftSide 200 True [b,arrangeWithTabs bs []] actions
 
+    chooseAndAddModules list
+        = whileUnchanged IDE_Status
+          \status ->
+            navigateCodebase status.codeBase
+        >^* [(OnAction (Action "Open .icl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Icl)) list)))
+            ,(OnAction (Action "Open .dcl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Dcl)) list)))
+            ,(OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @? const NoValue) <<@ InWindow)))
+            ]
+        @? const NoValue
 
-cleanEditor ((filePath,moduleName),ext) 
-	=   editCleanModule ((filePath,moduleName),ext)  <<@ Title (moduleName +++ toString ext) 
+cleanEditor ((filePath,moduleName),ext)
+	=  (editCleanModule ((filePath,moduleName),ext)
 		>&>
-//		viewSharedInformation "Selected" []  
-			\mirror -> 	viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror 
-			>>*			[OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))]
-		  
+		(\mirror ->
+            viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror
+            >>*	[OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))]
+        )) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
 
 searchFor identifier
 	= 					get IDE_Status
