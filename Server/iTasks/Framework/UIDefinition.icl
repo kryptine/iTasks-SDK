@@ -302,7 +302,6 @@ getMargins ctrl
 
 uiDefAttributes	:: UIDef -> UIAttributes
 uiDefAttributes {UIDef|content=UIForm {UIForm|attributes}}	                = attributes
-uiDefAttributes {UIDef|content=UIAttributeSet attributes}					= attributes
 uiDefAttributes {UIDef|content=UIBlock {UIBlock|attributes}}	            = attributes
 uiDefAttributes _													        = newMap
 
@@ -333,8 +332,6 @@ uiDefWindows {UIDef|windows}		                            = windows
 uiDefWindows _													= []
 
 uiDefSetAttribute :: String String UIDef -> UIDef
-uiDefSetAttribute key value {UIDef|content=UIAttributeSet attributes,windows}
-	= {UIDef|content=UIAttributeSet (put key value attributes),windows=windows}
 uiDefSetAttribute key value {UIDef|content=UIForm stack=:{UIForm|attributes},windows}
 	= {UIDef|content=UIForm {UIForm|stack & attributes = put key value attributes},windows=windows}
 uiDefSetAttribute key value {UIDef|content=UIBlock sub=:{UIBlock|attributes},windows}

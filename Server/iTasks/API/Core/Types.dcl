@@ -701,7 +701,7 @@ CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions
 //Make the UI definition of the interaction prompt
 class descr d
 where
-	toPrompt		:: !d -> UIDef
+	toPrompt		:: !d -> UIAttributes
 
 instance descr ()                           //No prompt
 instance descr Void							//No prompt

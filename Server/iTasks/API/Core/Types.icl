@@ -1363,41 +1363,39 @@ where
 	
 instance descr ()
 where
-	toPrompt _ = {UIDef|content=UIAttributeSet newMap,windows=[]}
+	toPrompt _ = newMap
 
 instance descr Void
 where
-	toPrompt _ = {UIDef|content=UIAttributeSet newMap,windows=[]}
+	toPrompt _ = newMap
 
 instance descr String
 where
-	toPrompt prompt = {UIDef|content=UIForm {UIForm|attributes = newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
+	toPrompt hint = fromList [(HINT_ATTRIBUTE,hint)]
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,prompt) = {UIDef|content=UIForm {UIForm|attributes = put TITLE_ATTRIBUTE title newMap, controls = [(stringDisplay prompt,newMap)],size=defaultSizeOpts},windows=[]}
+	toPrompt (title,hint) = fromList [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,hint)]
 
 instance descr (!Icon,!String,!String)
 where
-	toPrompt (icon,title,prompt) = {UIDef|content=UIForm
-        {UIForm|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
-	    ,controls = [(stringDisplay prompt,newMap)],size = defaultSizeOpts}, windows = []}
+	toPrompt (icon,title,hint) = fromList [(ICON_ATTRIBUTE,toString icon),(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,hint)]
 
 instance descr Title
 where
-	toPrompt (Title title) = {UIDef|content=UIAttributeSet (put TITLE_ATTRIBUTE title newMap), windows = []}
+	toPrompt (Title title) = fromList [(TITLE_ATTRIBUTE,title)]
 	
 instance descr Hint
 where
-	toPrompt (Hint hint) = {UIDef|content=UIAttributeSet (put HINT_ATTRIBUTE hint newMap), windows = []}
+	toPrompt (Hint hint) = fromList [(HINT_ATTRIBUTE,hint)]
 	
 instance descr Icon
 where
-	toPrompt icon = {UIDef|content=UIAttributeSet (put ICON_ATTRIBUTE (toString icon) newMap), windows = []}
+	toPrompt icon = fromList [(ICON_ATTRIBUTE,toString icon)]
 
 instance descr Attribute
 where
-	toPrompt (Attribute k v) = {UIDef|content=UIAttributeSet (put k v newMap), windows = []}
+	toPrompt (Attribute k v) = fromList [(k,v)]
 	
 instance descr Att
 where
@@ -1405,7 +1403,7 @@ where
 	
 instance descr [d] | descr d
 where
-	toPrompt list = {UIDef|content=UIAttributeSet (foldl mergeAttributes newMap [att \\ {UIDef|content=UIAttributeSet att} <- (map toPrompt list)]), windows = []}
+	toPrompt list = foldl mergeAttributes newMap (map toPrompt list)
 
 
 derive JSONEncode		Icon

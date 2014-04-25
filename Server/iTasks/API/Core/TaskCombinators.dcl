@@ -162,7 +162,6 @@ class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
 instance tune	SetLayout				//Set layout algorithm
 instance tune	AfterLayout				//Apply a modification after a layout has been run
 instance tune	ModifyLayout			//Modify the existing layout
-instance tunev  SetValueAttribute a     //Set a meta attribute based on the current task value
 
 /**
 *  Fine tune evaluation behaviour

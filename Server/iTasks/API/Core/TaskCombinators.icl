@@ -709,7 +709,7 @@ where
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
             (res,iworld) = (res,iworld)
 
-        updRep NoRep               = TaskRep (f {UIDef|content=UIAttributeSet 'Data.Map'.newMap,windows=[]}) []
+        updRep NoRep               = TaskRep (f {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]}) []
         updRep (TaskRep def parts) = TaskRep (f def) parts
 		
 instance tune ModifyLayout
@@ -721,18 +721,6 @@ where
 		eval` event repOpts=:{modLayout=Just g} state iworld
 			= eval event {TaskRepOpts|repOpts & modLayout = Just (g o f)} state iworld 	
 
-instance tunev SetValueAttribute a
-where
-    tunev (SetValueAttribute attr f) (Task eval) = Task eval`
-    where
-		eval` event repOpts state iworld
-            = case (eval event repOpts state iworld) of
-		    	(ValueResult value=:(Value v _) info rep tree,iworld) = (ValueResult value info (updRep v rep) tree, iworld)
-		    	(res,iworld) = (res,iworld)
-
-        updRep v NoRep	             = TaskRep ({UIDef|content=UIAttributeSet ('Data.Map'.put attr (f v) 'Data.Map'.newMap),windows=[]}) []
-        updRep v (TaskRep def parts) = TaskRep (uiDefSetAttribute attr (f v) def) parts
-	
 instance tune LazyRefresh
 where
 	tune _ (Task eval) = Task eval`

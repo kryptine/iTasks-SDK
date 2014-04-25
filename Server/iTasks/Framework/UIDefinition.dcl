@@ -28,8 +28,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
     }
 
 :: UIContent
-    = UIAttributeSet        !UIAttributes           //A set of attributes, for example from tuning a hidden task
-    | UIEmpty               !UIEmpty                //An empty task UI, which may still carry windows and actions
+    = UIEmpty               !UIEmpty                //An empty task UI, which may still carry windows and actions
 	| UIForm 	            !UIForm                 //A set of controls from one or more interact tasks
 	| UIBlock 	            !UIBlock                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
     | UIBlocks              ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged

@@ -22,16 +22,15 @@ autoLayoutRules
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */
-autoAccuInteract :: UIDef UIForm -> UIForm
+autoAccuInteract :: UIAttributes UIForm -> UIForm
 autoAccuInteract prompt editor
 	= {UIForm
-		| attributes = mergeAttributes (uiDefAttributes prompt) editor.UIForm.attributes
-		, controls = [(c,'Data.Map'.newMap)\\ c <- decoratePrompt (uiDefAnnotatedControls prompt)] ++ editor.UIForm.controls
+		| attributes = mergeAttributes prompt editor.UIForm.attributes
+		, controls = editor.UIForm.controls
         , size = editor.UIForm.size
 		}
 
 autoAccuStep :: UIDef [UIAction]-> UIDef
-autoAccuStep {UIDef|content=UIAttributeSet _,windows} actions = {UIDef|content=UIEmpty {UIEmpty|actions=actions},windows=windows}
 autoAccuStep {UIDef|content=UIEmpty {UIEmpty|actions},windows} stepActions
 	= {UIDef|content=UIEmpty {UIEmpty|actions=actions ++ stepActions},windows=windows}
 autoAccuStep {UIDef|content=UIForm stack=:{UIForm|attributes,controls,size},windows} actions
@@ -53,85 +52,58 @@ autoAccuStep {UIDef|content=UIBlocks blocks origActions,windows} stepActions
 
 autoAccuParallel :: [UIDef] [UIAction] -> UIDef
 autoAccuParallel defs parActions
-    # (triggers,parActions) = extractTriggers parActions
-    # defs = defs ++ if (isEmpty parActions) [] [{content=UIEmpty {UIEmpty|actions=parActions},windows=[]}]
     # windows = flatten [windows \\ {UIDef|windows} <- defs]
-    # (nAttributeSet,nEmpty,nControlStack,nSubUI,nSubUIStack,nFinal) = foldl count (0,0,0,0,0,0) defs
-    //If there is just one def, leave it be
-    | nAttributeSet+nEmpty+nControlStack+nSubUI+nSubUIStack+nFinal == 1
-        = /* trace_n "Case for one item"*/ addTriggersToUIDef triggers (hd defs)
-    //If there are final defs, pick the first one
-    | nFinal > 0
-        = /*trace_n "Case for final"*/ addTriggersToUIDef triggers (hd [def \\def=:{UIDef|content=UIFinal _} <- defs])
-    //If the defs are only attributes we can make an attributeset
-    | nAttributeSet > 0 && nEmpty+nControlStack+nSubUI+nSubUIStack+nFinal == 0
-        = /*trace_n "Case for attribute set"*/ addTriggersToUIDef triggers {UIDef|content=(UIAttributeSet (foldl mergeAttributes 'Data.Map'.newMap [attr \\ {UIDef|content=UIAttributeSet attr} <- defs])),windows=windows}
-    //If the defs are only actionsets (or empty attribute sets) we can make an actionsset
-    | nEmpty > 0 && nControlStack+nSubUI+nSubUIStack+nFinal == 0 && (isEmpty (flatten ['Data.Map'.toList a \\{UIDef|content=UIAttributeSet a} <-defs]))
-        = /*trace_n "Case for action set"*/ addTriggersToUIDef triggers {UIDef|content=UIEmpty {UIEmpty|actions=flatten [actions \\ {UIDef|content=UIEmpty {UIEmpty|actions=actions}} <- defs]},windows=windows}
-    //If there are no sub uis and actions we can make a control stack
-    | nEmpty+nSubUI+nSubUIStack+nFinal == 0
-        = /*trace_n "Case for control stack"*/ addTriggersToUIDef triggers {UIDef|content=(UIForm (fst (foldl collectControlsAndActions ({UIForm|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts},[]) defs))),windows=windows}
-    //If there are no sub uis, but just controls and actions, we can make a SubUI
-    | nSubUI+nSubUIStack+nFinal == 0
-        # (controls,actions) = foldl collectControlsAndActions ({UIForm|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts},[]) defs
-        = /*trace_n "Case for controls + actions"*/ addTriggersToUIDef triggers {UIDef|content=(UIBlock {UIBlock|autoLayoutForm controls & actions = actions}),windows=windows}
-    //If there is exactly one sub ui, and actions and attributes we add them to that sub ui
-    | nSubUI == 1 && nControlStack+nSubUIStack+nFinal == 0
-        # ui            = hd [ui \\ {UIDef|content=UIBlock ui} <- defs]
-        # actions       = flatten (map uiDefActions defs)
-        # attributes    = foldl mergeAttributes 'Data.Map'.newMap (map uiDefAttributes defs)
-        = /*trace_n "Case for 1 subui"*/ addTriggersToUIDef triggers {UIDef|content=(UIBlock {UIBlock|ui & attributes = attributes, actions = actions, size = ui.UIBlock.size}),windows=windows}
-    //If there are no actions we can create a sub ui stack
-    | nEmpty == 0
-        = /*trace_n "Case for subui stack"*/ addTriggersToUIDef triggers {UIDef|content=(UIBlocks (foldl collectBlocks [] defs) []),windows=windows}
-    //We collect the ui stack, combine it to a single UI and add the actions
-    | otherwise
-        # ui            = autoLayoutBlocks (foldl collectBlocks [] defs) []
-        # actions       = flatten [actions \\ {UIDef|content=UIEmpty {UIEmpty|actions=actions}} <- defs]
-        = /*trace_n "Otherwise"*/ addTriggersToUIDef triggers {UIDef|content=(UIBlock {UIBlock|ui & actions = ui.UIBlock.actions ++ actions}),windows=windows}
+    = case defs of
+        [{UIDef|content=UIForm form}]
+            # block = autoLayoutForm form
+            = {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
+        [{UIDef|content=UIBlock block}]
+            = {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
+        [{UIDef|content=UIEmpty {UIEmpty|actions}}]
+            = {UIDef|content=UIEmpty {UIEmpty|actions=actions ++ parActions},windows=windows}
+        [def=:{UIDef|content=UIFinal _}]
+            = def
+        _
+            | allForms defs
+                # form = (foldl mergeForms {UIForm|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts} defs)
+                | isEmpty parActions
+                    = {UIDef|content=UIForm form,windows=windows}
+                # block = autoLayoutForm form
+                = {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
+            | otherwise
+                # (blocks,actions) = foldr collectBlocks ([],[]) defs
+                # content = case blocks of
+                    [block] = UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ actions ++ parActions} //Not always a good idea :(
+                    _       = UIBlocks blocks (actions ++ parActions)
+                = {UIDef|content=content,windows=windows}
 where
-    emptyPrompt {UIDef|content=UIAttributeSet attributes}
-        = isEmpty ('Data.Map'.toList attributes)
-    emptyPrompt {UIDef|content=UIForm {UIForm|attributes,controls}}
-        = (isEmpty ('Data.Map'.toList attributes)) && (isEmpty controls)
-    emptyPrompt _ = False
+    oneDef [d]  = True
+    oneDef _    = False
 
-    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIAttributeSet _}    = (inc n1,n2,n3,n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIEmpty _}            = (n1,inc n2,n3,n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIForm _}            = (n1,n2,inc n3,n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIBlock _}           = (n1,n2,n3,inc n4,n5,n6)
-    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIBlocks _ _}        = (n1,n2,n3,n4,inc n5,n6)
-    count (n1,n2,n3,n4,n5,n6) {UIDef|content=UIFinal _}           = (n1,n2,n3,n4,n5,inc n6)
+    allForms []             = True
+    allForms [{UIDef|content=UIForm _}:fs]  = allForms fs
+    allForms _              = False
 
-    print nAttributeSet nEmpty nForm nBlock nBlocks nFinal
-        =   "AttributeSet #" +++ toString nAttributeSet +++ ", "
-        +++ "Empty #" +++ toString nEmpty +++ ", "
-        +++ "Form #" +++ toString nForm +++ ", "
-        +++ "Block #" +++ toString nBlock +++ ","
-        +++ "Blocks #" +++ toString nBlocks +++ ", "
-        +++ "Final # " +++ toString nFinal
+    mergeForms form1 {UIDef|content=UIForm form2}
+        = {UIForm
+          |attributes = mergeAttributes form1.UIForm.attributes form2.UIForm.attributes
+          ,controls = form1.UIForm.controls ++ form2.UIForm.controls
+          ,size = {UISizeOpts|form1.UIForm.size
+                  & width = maybe form1.UIForm.size.UISizeOpts.width Just form2.UIForm.size.UISizeOpts.width
+                  , height = maybe form1.UIForm.size.UISizeOpts.height Just form2.UIForm.size.UISizeOpts.height
+                  }
+          }
 
-    collectControlsAndActions (stack=:{UIForm|attributes},actions) {UIDef|content=UIAttributeSet a}
-        = ({UIForm|stack & attributes = mergeAttributes attributes a},actions)
-    collectControlsAndActions (stack,actions1) {UIDef|content=UIEmpty {UIEmpty|actions}}
-        = (stack,actions1 ++ actions)
-    collectControlsAndActions (stack1,actions) {UIDef|content=UIForm stack2}
-        = ({UIForm|attributes = mergeAttributes stack1.UIForm.attributes stack2.UIForm.attributes
-                          ,controls = stack1.UIForm.controls ++ stack2.UIForm.controls
-                          ,size = {UISizeOpts|stack1.UIForm.size & width = maybe stack1.UIForm.size.UISizeOpts.width Just stack2.UIForm.size.UISizeOpts.width
-                                                                         , height = maybe stack1.UIForm.size.UISizeOpts.height Just stack2.UIForm.size.UISizeOpts.height
-                          }},actions)
-
-    collectBlocks blocks {UIDef|content=UIForm form}
-        = blocks ++ [autoLayoutForm form]
-    collectBlocks blocks {UIDef|content=UIBlock block}
-        = blocks ++ [block]
-    collectBlocks blocks1 {UIDef|content=UIBlocks blocks2 _}
-        = blocks1 ++ blocks2
-    collectBlocks blocks _
-        = blocks
-
+    collectBlocks {UIDef|content=UIForm form} (blocks,actions)
+        = ([autoLayoutForm form:blocks],actions)
+    collectBlocks {UIDef|content=UIEmpty {UIEmpty|actions}} (blocks,actions1)
+        = (blocks,actions ++ actions1)
+    collectBlocks {UIDef|content=UIBlock block} (blocks,actions)
+        = ([block:blocks],actions)
+    collectBlocks {UIDef|content=UIBlocks blocks2 actions2} (blocks1,actions1)
+        = (blocks2 ++ blocks1,actions2 ++ actions1)
+    collectBlocks _ (blocks,actions)
+        = (blocks,actions)
 
 /**
 * Overrule the title attribute with the title in the task meta data
@@ -153,12 +125,12 @@ autoLayoutSubEditor {UIForm|attributes,controls}
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
 autoLayoutForm {UIForm|attributes,controls=[(c=:UITree _ _ _ ,_)],size}
-    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],hotkeys=[],size=size}
+    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 autoLayoutForm {UIForm|attributes,controls=[(c=:UIGrid _ _ _ ,_)],size}
-    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts [fill c] & direction=Vertical},actions=[],hotkeys=[],size=size}
+    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 //General case
 autoLayoutForm {UIForm|attributes,controls,size}
-	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
+	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes++ decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
 
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: [(UIControl,UIAttributes)] -> [UIControl]
@@ -294,19 +266,12 @@ arrangeWithTabs :: UIBlocksCombinator
 arrangeWithTabs = arrange
 where
     arrange blocks actions
-        # parts         = foldl append [] blocks
-        # tabs          = [tab \\ (tab,_) <- parts]
+        # parts         = [(subUIToTab ui,attributes) \\ ui=:{UIBlock|attributes} <- blocks]
+        # tabs          = map fst parts
         # activeTab     = activeIndex parts
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
         = {UIBlock|attributes='Data.Map'.newMap,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical}
           ,actions=actions,hotkeys=[],size=defaultSizeOpts}
-
-    append parts ui=:{UIBlock|attributes,content={UIItemsOpts|items}}
-        | isEmpty items
-            = parts
-        | otherwise
-            # tab = subUIToTab ui
-            = parts ++ [(tab,ui.UIBlock.attributes)]
 
     activeIndex parts = find 0 Nothing parts
     where
@@ -405,11 +370,11 @@ where
 
 uiDefToWindow :: UIDef -> UIDef
 uiDefToWindow {UIDef|content=UIForm form,windows}
-    = {UIDef|content=UIAttributeSet 'Data.Map'.newMap, windows = [subUIToWindow (autoLayoutForm form):windows]}
+    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [subUIToWindow (autoLayoutForm form):windows]}
 uiDefToWindow {UIDef|content=UIBlock block,windows}
-    = {UIDef|content=UIAttributeSet 'Data.Map'.newMap, windows = [subUIToWindow block:windows]}
+    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [subUIToWindow block:windows]}
 uiDefToWindow {UIDef|content=UIBlocks blocks actions,windows}
-    = {UIDef|content=UIAttributeSet 'Data.Map'.newMap, windows = [subUIToWindow (autoLayoutBlocks blocks actions):windows]}
+    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [subUIToWindow (autoLayoutBlocks blocks actions):windows]}
 uiDefToWindow def = def
 
 attributesToWindow :: UIAttributes -> UIWindow
@@ -457,8 +422,6 @@ where
 autoLayoutFinal :: UIDef -> UIDef
 autoLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
-autoLayoutFinal {UIDef|content=UIAttributeSet attributes,windows}
-	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,menu=Nothing,hotkeys = Nothing}),windows=windows}
 autoLayoutFinal {UIDef|content=UIForm stack,windows}
     = autoLayoutFinal {UIDef|content=UIBlock (autoLayoutForm stack),windows=windows}
 autoLayoutFinal {UIDef|content=UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size},windows}
@@ -477,8 +440,6 @@ autoLayoutFinal {UIDef|content=UIFinal viewport,windows} = {UIDef|content=UIFina
 plainLayoutFinal :: UIDef -> UIDef
 plainLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
-plainLayoutFinal {UIDef|content=UIAttributeSet attributes,windows}
-	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title='Data.Map'.get TITLE_ATTRIBUTE attributes,menu=Nothing,hotkeys = Nothing}),windows=windows}
 plainLayoutFinal {UIDef|content=UIBlock block=:{UIBlock|attributes,content,actions,hotkeys},windows}
     # (UIContainer sOpts iOpts,attributes,_,_) = subUIToContainer block
     = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}),windows=windows}
@@ -488,13 +449,14 @@ plainLayoutFinal {UIDef|content=UIFinal viewport,windows}
     = {UIDef|content=UIFinal viewport,windows=windows}
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
-decoratePrompt :: [(UIControl,UIAttributes)] -> [UIControl]
-decoratePrompt []		= []
-decoratePrompt controls	= [UIContainer sizeOpts itemsOpts]
+createPrompt :: UIAttributes -> [UIControl]
+createPrompt attributes = case 'Data.Map'.get HINT_ATTRIBUTE attributes of
+    Just hint   = [UIContainer sizeOpts (itemsOpts hint)]
+    Nothing     = []
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
 			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
-    itemsOpts = {UIItemsOpts|defaultItemsOpts (map fst controls) & baseCls=Just "itwc-prompt"}
+    itemsOpts hint = {UIItemsOpts|defaultItemsOpts [stringDisplay hint] & baseCls=Just "itwc-prompt"}
 
 //Adds a button panel to a set of controls
 //(not the prettiest code)
@@ -749,8 +711,6 @@ tweakUI f {UIDef|content=UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts),wi
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
-tweakAttr f {UIDef|content=UIAttributeSet attributes,windows}
-	= {UIDef|content=UIAttributeSet (f attributes),windows=windows}
 tweakAttr f {UIDef|content=UIForm stack=:{UIForm|attributes},windows}
 	= {UIDef|content=UIForm {UIForm|stack & attributes = f attributes},windows=windows}
 tweakAttr f {UIDef|content=UIBlock sub=:{UIBlock|attributes},windows}

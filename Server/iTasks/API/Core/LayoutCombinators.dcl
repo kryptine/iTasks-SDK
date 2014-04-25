@@ -10,10 +10,10 @@ from Data.Maybe import :: Maybe
 
 // Definition of a layout as collection of combination functions
 :: LayoutRules =
-	{ accuInteract	:: UIDef UIForm                         -> UIForm       //Combine the prompt and editor of an interact
-	, accuStep		:: UIDef [UIAction]                     -> UIDef				//Combine current definition with the step actions
-	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		        //Combine the prompt, parts of a parallel composition and possible actions
-	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		        //When a detached task is worked on
+	{ accuInteract	:: UIAttributes UIForm                  -> UIForm       //Combine the prompt and editor of an interact
+	, accuStep		:: UIDef [UIAction]                     -> UIDef		//Combine current definition with the step actions
+	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		//Combine the prompt, parts of a parallel composition and possible actions
+	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		//When a detached task is worked on
 
     , layoutSubEditor	:: UIForm                           -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
     , layoutForm        :: UIForm                           -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
@@ -37,7 +37,7 @@ from Data.Maybe import :: Maybe
 autoLayoutRules :: LayoutRules
 
 //Partial layouts of autolayout
-autoAccuInteract        :: UIDef UIForm -> UIForm
+autoAccuInteract        :: UIAttributes UIForm -> UIForm
 autoAccuStep            :: UIDef [UIAction]-> UIDef
 autoAccuParallel        :: [UIDef] [UIAction] -> UIDef
 autoAccuWorkOn          :: UIDef TIMeta -> UIDef
