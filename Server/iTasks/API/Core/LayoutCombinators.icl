@@ -53,29 +53,30 @@ autoAccuStep {UIDef|content=UIBlocks blocks origActions,windows} stepActions
 autoAccuParallel :: [UIDef] [UIAction] -> UIDef
 autoAccuParallel defs parActions
     # windows = flatten [windows \\ {UIDef|windows} <- defs]
+    # (triggers,parActions)  = extractTriggers parActions
     = case defs of
         [{UIDef|content=UIForm form}]
             # block = autoLayoutForm form
-            = {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
+            = addTriggersToUIDef triggers {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
         [{UIDef|content=UIBlock block}]
-            = {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
+            = addTriggersToUIDef triggers {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
         [{UIDef|content=UIEmpty {UIEmpty|actions}}]
-            = {UIDef|content=UIEmpty {UIEmpty|actions=actions ++ parActions},windows=windows}
+            = addTriggersToUIDef triggers {UIDef|content=UIEmpty {UIEmpty|actions=actions ++ parActions},windows=windows}
         [def=:{UIDef|content=UIFinal _}]
-            = def
+            = addTriggersToUIDef triggers def
         _
             | allForms defs
                 # form = (foldl mergeForms {UIForm|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts} defs)
                 | isEmpty parActions
                     = {UIDef|content=UIForm form,windows=windows}
                 # block = autoLayoutForm form
-                = {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
+                = addTriggersToUIDef triggers {UIDef|content=UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions},windows=windows}
             | otherwise
                 # (blocks,actions) = foldr collectBlocks ([],[]) defs
                 # content = case blocks of
                     [block] = UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ actions ++ parActions} //Not always a good idea :(
                     _       = UIBlocks blocks (actions ++ parActions)
-                = {UIDef|content=content,windows=windows}
+                = addTriggersToUIDef triggers {UIDef|content=content,windows=windows}
 where
     oneDef [d]  = True
     oneDef _    = False
