@@ -9,7 +9,7 @@ import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 from iTasks.Framework.SDS as SDS import qualified read, write, createReadWriteSDS
 
-import iTasks.Framework.SerializationGraphCopy //TODO: Make switchable from within iTasks module
+import iTasks.Framework.Serialization
 import qualified Data.Map
 
 derive gEq TIType

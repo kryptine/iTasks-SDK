@@ -7,7 +7,7 @@ import iTasks.Framework.UIDefinition
 import iTasks.Framework.Generic.Interaction
 import iTasks.Framework.Generic.Visualization
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.Util
-import iTasks.Framework.SerializationGraphCopy
+import iTasks.Framework.Serialization
 import iTasks.Framework.IWorld
 
 import System.Time, System.File, System.FilePath

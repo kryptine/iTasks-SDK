@@ -18,7 +18,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Data.Map
 import iTasks.Framework.TaskStore, iTasks.Framework.Util
-import iTasks.Framework.SerializationGraphCopy
+import iTasks.Framework.Serialization
 import iTasks.Framework.SDS
 
 iworldLocalDate :: Shared Date

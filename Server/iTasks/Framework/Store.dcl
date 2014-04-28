@@ -18,11 +18,8 @@ from System.FilePath import :: FilePath
 from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks.Framework.IWorld import :: IWorld
 
-// Storage formats
-:: StoreFormat = SFPlain | SFDynamic
-
-:: StoreKey			:== String
 :: StoreNamespace	:== String
+:: StoreName		:== String
 :: StorePrefix		:== String
 
 // Predefined namespaces
@@ -30,6 +27,8 @@ NS_TASK_INSTANCES		:== "task-instances"
 NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
 NS_JAVASCRIPT_CACHE     :== "js-cache"
+
+
 
 /**
 * Create a shared data source for a piece of data in the store
@@ -40,7 +39,7 @@ NS_JAVASCRIPT_CACHE     :== "js-cache"
 *
 * @return The shared data source
 */
-storeAccess :: !StoreNamespace !StoreKey !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storeAccess :: !StoreNamespace !StoreName !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Determine the location of the store from data directory and build
@@ -50,17 +49,17 @@ storePath :: !FilePath !String -> FilePath
 /**
 * Store a value in the default format
 */
-storeValue				:: !StoreNamespace !StoreKey !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
+storeValue				:: !StoreNamespace !StoreName !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 
 /**
 * Load a value from the store
 */
-loadValue				:: !StoreNamespace !StoreKey				!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
+loadValue				:: !StoreNamespace !StoreName			!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
 
 /**
 * Deletes the value with given key from the store
 */
-deleteValue				:: !StoreNamespace !StoreKey				!*IWorld -> *IWorld
+deleteValue				:: !StoreNamespace !StoreName				!*IWorld -> *IWorld
 
 /**
 * Deletes all values that start with the prefix from the store
@@ -70,15 +69,15 @@ deleteValues			:: !StoreNamespace !StorePrefix				!*IWorld -> *IWorld
 /**
 * Store a binary blob
 */
-storeBlob				:: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
+storeBlob				:: !StoreNamespace !StoreName !{#Char}		!*IWorld -> *IWorld
 
 /**
 * Load a binary blob
 */
-loadBlob				:: !StoreNamespace !StoreKey 				!*IWorld -> (!Maybe {#Char}, !*IWorld)
+loadBlob				:: !StoreNamespace !StoreName 				!*IWorld -> (!Maybe {#Char}, !*IWorld)
 
 /**
 * List the keys for a given namespace
 */
-listKeys                :: !StoreNamespace                          !*IWorld -> (![StoreKey], !*IWorld)
+listStores              :: !StoreNamespace                          !*IWorld -> (![StoreName], !*IWorld)
 

@@ -1,8 +1,7 @@
-implementation module iTasks.Framework.SerializationGraphCopy
+implementation module iTasks.Framework.Serialization
 
 import StdEnv
 import dynamic_string
-from iTasks.Framework.Store import :: StoreFormat(..)
 
 import Text.Encodings.Base64
 import Data.Error
@@ -46,8 +45,3 @@ dynamicJSONDecode :: !JSONNode -> Maybe a
 dynamicJSONDecode (JSONArray [JSONString "_DYNAMICENCODE_",JSONString str]) = Just (fst (copy_from_string (base64URLDecode str)))
 dynamicJSONDecode _					= Nothing
 
-serializationModule :: String
-serializationModule = "SerializationGraphCopy"
-
-defaultStoreFormat :: StoreFormat
-defaultStoreFormat = SFPlain

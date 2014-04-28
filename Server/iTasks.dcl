@@ -3,11 +3,7 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	iTasks.Framework.Engine						// iTasks engine 
-
-	,	iTasks.Framework.SerializationGraphCopy		// use serialization via graph_copy
-	//,	iTasks.Framework.SerializationDynamicLinker	// use serialization via dynamic linker
-
+import	iTasks.Framework.Engine				// iTasks engine
     // iTasks API
     ,   iTasks.API
 	

@@ -1,9 +1,8 @@
-definition module iTasks.Framework.SerializationGraphCopy
+definition module iTasks.Framework.Serialization
 
 from Text.JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
 from Data.Error import ::MaybeError, ::MaybeErrorString
 from Data.Maybe import ::Maybe
-from iTasks.Framework.Store import :: StoreFormat
 
 serialize :: !a -> *String
 deserialize	:: !*String -> MaybeErrorString a
@@ -18,6 +17,3 @@ functionFree		:: !JSONNode -> Bool
 
 dynamicJSONEncode	:: !a -> JSONNode
 dynamicJSONDecode	:: !JSONNode -> Maybe a
-
-serializationModule	:: String
-defaultStoreFormat	:: StoreFormat
