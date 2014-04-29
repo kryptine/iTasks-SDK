@@ -11,8 +11,8 @@ import iTasks.Framework.SDSService
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg, read, write
-from iTasks.API.Core.SDSCombinators import sdsFocus
-from iTasks.API.Common.SDSCombinators     import >+|, mapReadWrite, mapReadWriteError
+from iTasks.API.Core.SDSCombinators     import sdsFocus
+from iTasks.API.Common.SDSCombinators   import >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
 derive gEq TIMeta, TIType
@@ -72,7 +72,7 @@ where
 	where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
 			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
-			(ExceptionResult e str,iworld)			= (ExceptionResult e str,iworld)
+			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)
@@ -82,16 +82,16 @@ evalTaskInstance instanceNo event iworld
 where
     evalTaskInstance` instanceNo event iworld=:{current=current=:{taskTime,user,taskInstance,nextTaskNo,localShares,localLists},clocks={localDate,localTime}}
     # (oldMeta, iworld)         = 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld
-	| isError oldMeta			= (liftError oldMeta, iworld)
+	| isError oldMeta           = ((\(Error (e,msg)) -> Error msg) oldMeta, iworld)
 	# oldMeta=:{TIMeta|instanceType,instanceKey,session,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'SDS'.read (taskInstanceReduct instanceNo) iworld
-	| isError oldReduct			= (liftError oldReduct, iworld)
+	| isError oldReduct			= ((\(Error (e,msg)) -> Error msg) oldReduct, iworld)
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
     //Check exeption
     | progress.ProgressMeta.value === Exception
 	    # (oldValue, iworld)		= 'SDS'.read (taskInstanceValue instanceNo) iworld
         = case oldValue of
-            (Error e)                   = (Error e, iworld)
+            (Error (e,msg))             = (Error msg, iworld)
 		    (Ok (TIException e msg))    = (Error msg, iworld)
     //Eval instance
     # (currentUser,currentSession,currentAttachment) = case (session,instanceType) of
@@ -135,41 +135,44 @@ where
        _                            = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
     //Store new meta data
     # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (sdsFocus instanceNo taskInstanceMeta) iworld)
-    | mbErr=:(Error _)          = (liftError mbErr,iworld)
-
-    //Store updated reduct
-    # (nextTaskNo,iworld)		= getNextTaskNo iworld
-	# (shares,iworld)			= getLocalShares iworld
-	# (lists,iworld)			= getLocalLists iworld
-	# (tasks,iworld)			= getLocalTasks iworld
-	# newReduct					= {TIReduct|oldReduct & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, lastEventNo = lastEventNo event, shares = shares, lists = lists, tasks = tasks}
-	# iworld                    = if deleted iworld (snd ('SDS'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld)) //TODO Check error
-    //Store update value
-    # newValue                  = case newResult of
-        (ValueResult val _ _ _) = TIValue val
-        (ExceptionResult e str) = TIException e str
-	# (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newValue (taskInstanceValue instanceNo) iworld)
-    | mbErr=:(Error _)          = (liftError mbErr,iworld)
-	//Determine user interface updates by comparing the previous UI to the newly calculated one
-	= case newResult of
-        (ValueResult value _ newRep _)	
-	        = case 'SDS'.read (taskInstanceRep instanceNo) iworld of
-                (Ok oldRep, iworld)
-                    # oldUI = case oldRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
-                    # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
-                    //Editlets compute their own diffs we pass to the diff algorithm
-    			    # (editletDiffs,iworld)		= getEditletDiffs iworld
-                    # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
-                    # iworld                    = setEditletDiffs editletDiffs iworld
-                    //Store the new reference UI for further updates
-	                # (mbErr,iworld) = if deleted (Ok Void,iworld) ('SDS'.write newRep (taskInstanceRep instanceNo) iworld)
-                    | mbErr=:(Error _)
-                       = (liftError mbErr,iworld)
-                    = (Ok (lastEventNo event,value,updates), iworld)
-            	(Error e,iworld)
-                    = (Error e, iworld)
-        (ExceptionResult e msg)
-            = (Error msg, iworld)
+    = case mbErr of
+        Error (e,msg)          = (Error msg,iworld)
+        Ok _
+            //Store updated reduct
+            # (nextTaskNo,iworld)		= getNextTaskNo iworld
+            # (shares,iworld)			= getLocalShares iworld
+            # (lists,iworld)			= getLocalLists iworld
+            # (tasks,iworld)			= getLocalTasks iworld
+            # newReduct					= {TIReduct|oldReduct & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, lastEventNo = lastEventNo event, shares = shares, lists = lists, tasks = tasks}
+            # iworld                    = if deleted iworld (snd ('SDS'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld)) //TODO Check error
+            //Store update value
+            # newValue                  = case newResult of
+                (ValueResult val _ _ _)     = TIValue val
+                (ExceptionResult (e,str))   = TIException e str
+            # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newValue (taskInstanceValue instanceNo) iworld)
+            = case mbErr of
+                Error (e,msg)          = (Error msg,iworld)
+                Ok _
+                //Determine user interface updates by comparing the previous UI to the newly calculated one
+                = case newResult of
+                    (ValueResult value _ newRep _)	
+                        = case 'SDS'.read (taskInstanceRep instanceNo) iworld of
+                            (Ok oldRep, iworld)
+                                # oldUI = case oldRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
+                                # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
+                                //Editlets compute their own diffs we pass to the diff algorithm
+                                # (editletDiffs,iworld)		= getEditletDiffs iworld
+                                # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
+                                # iworld                    = setEditletDiffs editletDiffs iworld
+                                //Store the new reference UI for further updates
+                                # (mbErr,iworld) = if deleted (Ok Void,iworld) ('SDS'.write newRep (taskInstanceRep instanceNo) iworld)
+                                = case mbErr of
+                                    (Error (e,msg)) = (Error msg,iworld)
+                                    Ok _            = (Ok (lastEventNo event,value,updates), iworld)
+                            (Error (e,msg),iworld)
+                                = (Error msg, iworld)
+                    (ExceptionResult (e,msg))
+                        = (Error msg, iworld)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
 	getLocalShares iworld=:{IWorld|current={localShares}}	= (localShares,iworld)
@@ -186,7 +189,7 @@ where
 	updateProgress now result currentUser progress
 		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Nothing} //EXPERIMENT
 		= case result of
-			(ExceptionResult _ _)				= {ProgressMeta|progress & value = Exception}
+			(ExceptionResult _)				    = {ProgressMeta|progress & value = Exception}
 			(ValueResult (Value _ stable) {TaskInfo|involvedUsers} _ _)	
                 = {ProgressMeta|progress & value = if stable Stable Unstable, involvedUsers = [currentUser:involvedUsers]}
 			(ValueResult _ {TaskInfo|involvedUsers} _ _)	
@@ -269,6 +272,8 @@ localShare :: !TaskId -> Shared a | iTask a
 localShare taskId=:(TaskId instanceNo taskNo) = createReadWriteSDS "localShare" shareKey read write
 where
 	shareKey = toString taskId
+    decodeError = "Could not decode shared state " +++ shareKey
+    readError   = "Could not read shared state " +++ shareKey
 
 	read Void iworld=:{current={taskInstance,localShares}}
 		//Local share
@@ -277,8 +282,8 @@ where
 				Just encs	
 					= case fromJSON encs of
 						Just s	= (Ok s, iworld)
-						_		= (Error ("Could not decode local shared state " +++ shareKey), iworld)
-				_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
+						_		= (Error (dynamic decodeError,decodeError), iworld)
+				_			= (Error (dynamic readError,readError), iworld)
 		//Share of ancestor
 		| otherwise
 			= case 'SDS'.read (taskInstanceReduct instanceNo) iworld of
@@ -287,11 +292,11 @@ where
 						Just encs
 							= case fromJSON encs of	
 								Just s	= (Ok s, iworld)
-								_		= (Error ("Could not decode remote shared state " +++ shareKey), iworld)
+								_		= (Error (dynamic decodeError,decodeError), iworld)
 						_
-							= (Error ("Could not read remote shared state " +++ shareKey), iworld)
-				(Error _,iworld)
-					= (Error ("Could not read remote shared state " +++ shareKey), iworld)
+							= (Error (dynamic readError,readError), iworld)
+				(Error e,iworld)
+					= (Error e, iworld)
 				
 	write Void value iworld=:{current=current=:{taskInstance,localShares}}
 		| instanceNo == taskInstance
@@ -302,31 +307,36 @@ where
 					# reduct		= {TIReduct|reduct & shares = 'Data.Map'.put taskId (toJSON value) reduct.TIReduct.shares}
 					# (_,iworld)	= 'SDS'.write reduct (taskInstanceReduct instanceNo) iworld
 					= (Ok (const True), iworld)
-				(Error _,iworld)
-					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
+				(Error e,iworld)
+					= (Error e, iworld)
 
 exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
 exposedShare url = SDSDynamic f
 where
-	f _ iworld=:{exposedShares} 
-			= case 'Data.Map'.get url exposedShares of
-					Nothing
-						= (Ok (createReadWriteSDS "exposedShare" url rread rwrite), iworld)
-					Just (shared :: RWShared p^ r^ w^, _)	
-						= (Ok shared, iworld)
-					Just dyn
-						= (Error ("Exposed share type mismatch: " +++ url), iworld)
+	f _ iworld=:{exposedShares}
+        = case 'Data.Map'.get url exposedShares of
+		    Nothing
+			    = (Ok (createReadWriteSDS "exposedShare" url rread rwrite), iworld)
+			Just (shared :: RWShared p^ r^ w^, _)	
+				= (Ok shared, iworld)
+			Just dyn
+			    = (Error (dynamic mismatchError,mismatchError), iworld)
 
-	rread p iworld 
+	rread p iworld
 			= case readRemoteSDS (toJSON p) url iworld of
 				(Ok json, iworld) = case fromJSON json of
-										Nothing = (Error ("Exposed share type mismatch: " +++ url), iworld)
-										(Just val) = (Ok val, iworld)
-				(Error e, iworld) = (Error e, iworld)
+										Nothing     = (Error (dynamic mismatchError,mismatchError), iworld)
+										(Just val)  = (Ok val, iworld)
+				(Error msg, iworld) = (Error (dynamic msg,msg), iworld)
 	
 	rwrite p val iworld
-			= appFst (fmap (const (const True))) (writeRemoteSDS (toJSON p) (toJSON val) url iworld)
+        = case writeRemoteSDS (toJSON p) (toJSON val) url iworld of
+            (Ok _,iworld)       = (Ok (const True),iworld)
+            (Error msg,iworld)  = (Error (dynamic msg,msg),iworld)
 							
+    mismatchError = "Exposed share type mismatch: " +++ url
+
+
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
 topListShare = mapReadWrite (readPrj,writePrj) (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta >+| currentInstanceShare)
@@ -353,21 +363,23 @@ parListShare :: !TaskId !TaskId -> SharedTaskList a | iTask a
 parListShare listId=:(TaskId instanceNo taskNo) entryId = createReadWriteSDS NS_TASK_INSTANCES ("parListSDS-"+++toString listId) read write
 where
 	shareKey = toString listId
+    readError = "Could not read task list " +++ shareKey
+
 	read Void iworld=:{current={taskInstance,localLists}}
 		| instanceNo == taskInstance		
 			= case 'Data.Map'.get listId localLists of
 				Just entries
 					= (Ok {TaskList|listId = ParallelTaskList listId, items = [toItem e\\ e <- entries | hasValueResult e && not e.TaskListEntry.removed],selfId=entryId},iworld)
-				_	= (Error ("Could not read local task list " +++ shareKey), iworld)
+				_	= (Error (dynamic readError,readError), iworld)
 		| otherwise
 			= case 'SDS'.read (taskInstanceReduct instanceNo) iworld of
 				(Ok reduct, iworld)
 					= case 'Data.Map'.get listId reduct.TIReduct.lists of					
 						Just entries
 							= (Ok {TaskList|listId = ParallelTaskList listId, items = [toItem e\\ e <- entries | hasValueResult e && not e.TaskListEntry.removed],selfId = entryId},iworld)
-						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
-				(Error _,iworld)
-					= (Error ("Could not load remote task list " +++ shareKey), iworld)
+						_	= (Error (dynamic readError,readError), iworld)
+				(Error e,iworld)
+					= (Error e, iworld)
 					
     hasValueResult {TaskListEntry|lastEval=ValueResult _ _ _ _} = True
     hasValueResult _                                            = False //TODO: Figure out what to with exceptions on this level
@@ -397,9 +409,9 @@ where
     updateInstanceMeta [] iworld = (Ok Void,iworld)
     updateInstanceMeta [(TaskId instanceNo 0,attr):updates] iworld
         = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
-	        (Error _,iworld) = (Error ("Could not read task meta data of task instance " <+++ instanceNo), iworld)
+	        (Error e,iworld) = (Error e, iworld)
             (Ok meta,iworld) = case 'SDS'.write {TIMeta|meta & attributes=attr} (sdsFocus instanceNo taskInstanceMeta) iworld of
-                (Error _,iworld) = (Error ("Could not write task meta data of task instance " <+++ instanceNo), iworld)
+                (Error e,iworld) = (Error e, iworld)
                 (Ok _,iworld)   = updateInstanceMeta updates iworld
 
     //Update the cached management meta in the task list reduct
@@ -407,16 +419,16 @@ where
        | instanceNo == taskInstance
 			= case 'Data.Map'.get listId localLists of
 				Just entries    = (Ok (const True),{iworld & current = {current & localLists = 'Data.Map'.put listId (applyUpdates updates entries) localLists}})
-                _               = (Error ("Could not load local task list " +++ shareKey), iworld)
+                _               = (Error (dynamic readError,readError), iworld)
         | otherwise
 			= case 'SDS'.read (taskInstanceReduct instanceNo) iworld of //TODO: Check if reading another shared during a write is ok??
 				(Ok reduct, iworld)
 					= case 'Data.Map'.get listId reduct.TIReduct.lists of					
                         Just entries
                             = appFst (fmap (const (const True))) ('SDS'.write {TIReduct|reduct & lists = 'Data.Map'.put listId (applyUpdates updates entries) reduct.TIReduct.lists} (taskInstanceReduct instanceNo) iworld)
-						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
-				(Error _,iworld)
-					= (Error ("Could not load remote task list " +++ shareKey), iworld)
+						_	= (Error (dynamic readError,readError), iworld)
+				(Error e,iworld)
+					= (Error e, iworld)
     where
         applyUpdates [] entries = entries
         applyUpdates [(taskId,attr):updates] entries = applyUpdates updates (map (updateManagementMeta taskId attr) entries)
@@ -425,3 +437,4 @@ where
             | entryId == taskId     = {TaskListEntry|e & state = DetachedState s p attr}
                                     = e
         updateManagementMeta taskId attr e = e
+

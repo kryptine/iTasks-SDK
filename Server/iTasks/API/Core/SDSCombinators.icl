@@ -1,15 +1,15 @@
 implementation module iTasks.API.Core.SDSCombinators
 
 import StdTuple, StdClass
-import iTasks.Framework.SDS
+import iTasks.Framework.SDS, iTasks.Framework.Task
 import iTasks.API.Core.SDSs
 from StdFunc import const, o
 import Data.Maybe, Data.Error
 	
-(>?>) infixl 6 :: !(RWShared p rx wx) !(rx -> MaybeErrorString (RWShared p ry wy)) -> RWShared p ry wx
+(>?>) infixl 6 :: !(RWShared p rx wx) !(rx -> MaybeError TaskException (RWShared p ry wy)) -> RWShared p ry wx
 (>?>) sharex cont = ComposedRead sharex cont
 
-(>!>) infixl 6 :: !(RWShared p r w`) !(!w -> MaybeErrorString (RWShared p r` w``), !w r` -> MaybeErrorString [WriteShare p]) -> RWShared p r w
+(>!>) infixl 6 :: !(RWShared p r w`) !(!w -> MaybeError TaskException (RWShared p r` w``), !w r` -> MaybeError TaskException [WriteShare p]) -> RWShared p r w
 (>!>) share (readOp,writeOp) = ComposedWrite share readOp writeOp
 
 sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(RWShared p rs ws) -> RWShared p r w

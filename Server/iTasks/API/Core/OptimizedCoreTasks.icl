@@ -21,7 +21,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
-			Error e		= (exception e, iworld)
+			Error e		= (ExceptionResult e, iworld)
 			Ok r
 				# (l,(v,mask))	= initFun r
 				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
@@ -33,7 +33,7 @@ where
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr),iworld)
+		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
@@ -82,7 +82,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
-			Error e		= (exception e, iworld)
+			Error e		= (ExceptionResult e, iworld)
 			Ok r
 				# (v,mask)	= initFun r
 				= eval event repOpts (TCInteractViewOnly taskId ts (toJSON r) (toJSON v) mask) iworld
@@ -94,7 +94,7 @@ where
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr),iworld)
+		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
@@ -146,7 +146,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
-			Error e		= (exception e,iworld)
+			Error e		= (ExceptionResult e,iworld)
 			Ok r
 				# v = toView r initial_mask
 				# (l,v,mask) = (initial_mask,v,Touched)
@@ -160,7 +160,7 @@ where
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr),iworld)
+		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# changed				= (nts =!= ts) || (nr =!= r) 
@@ -189,7 +189,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
-			Error e		= (exception e,iworld)
+			Error e		= (ExceptionResult e,iworld)
 			Ok r
 				# v = toViewId r initial_mask
 				# (l,v,mask) = (initial_mask,v,Touched)
@@ -203,7 +203,7 @@ where
 		# (nv,nmask,nts,iworld)	= matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr),iworld)
+		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# changed				= (nts =!= ts) || (nr =!= r) 
@@ -230,7 +230,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
-			Error e		= (exception e,iworld)
+			Error e		= (ExceptionResult e,iworld)
 			Ok r
 				# v = toView r
 				# (l,v,mask) = (r,v,Touched)
@@ -244,7 +244,7 @@ where
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr), iworld)
+		| isError mbr			= (ExceptionResult (fromError mbr), iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# changed				= (nts =!= ts) || (nr =!= r) 

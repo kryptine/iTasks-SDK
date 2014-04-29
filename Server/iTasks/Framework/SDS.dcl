@@ -3,6 +3,7 @@ definition module iTasks.Framework.SDS
 import GenEq
 import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
+from iTasks.Framework.Task import :: TaskException
 from iTasks.API.Core.Types import :: InstanceNo
 
 :: RWShared p r w
@@ -15,15 +16,15 @@ from iTasks.API.Core.Types import :: InstanceNo
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
 							// USE IT CAREFULLY, IT CAN BREAK NOTIFICATION!
-    |						SDSDynamic		!(p *IWorld -> *(MaybeErrorString (RWShared p r w), *IWorld))
+    |						SDSDynamic		!(p *IWorld -> *(MaybeError TaskException (RWShared p r w), *IWorld))
     //'OLD' COMPOSITIONS
-	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeErrorString (RWShared p r wy))
-	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeErrorString (RWShared p r` w``)) !(w r` -> MaybeErrorString [WriteShare p])
+	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeError TaskException (RWShared p r wy))
+	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeError TaskException (RWShared p r` w``)) !(w r` -> MaybeError TaskException [WriteShare p])
 
 :: SDSSource p r w =
 	{ name          :: String
-    , read			:: p *IWorld -> *(!MaybeErrorString r, !*IWorld)
-	, write			:: p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld)
+    , read			:: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
+	, write			:: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
 	}
 
 //A notification is function predictate that can determine whether
@@ -49,12 +50,12 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
     }
 
 :: SDSReadProjection rs rt
-    = SDSLensRead      (rs -> MaybeErrorString rt)      //Read lens-like
+    = SDSLensRead      (rs -> MaybeError TaskException rt)      //Read lens-like
     | SDSConstRead     rt                               //No need to read the original source
 
 :: SDSWriteProjection rs ws wt
-    = SDSLensWrite     (rs wt   -> MaybeErrorString (Maybe ws)) //Write lens-like
-    | SDSBlindWrite    (wt      -> MaybeErrorString (Maybe ws)) //No-need to read the original source
+    = SDSLensWrite     (rs wt   -> MaybeError TaskException (Maybe ws)) //Write lens-like
+    | SDSBlindWrite    (wt      -> MaybeError TaskException (Maybe ws)) //No-need to read the original source
     | SDSNoWrite
 
 //Split divides a domain into two subdomains by introducing a new parameter
@@ -104,8 +105,8 @@ reportSDSChange         :: !String !*IWorld -> *IWorld
 createReadWriteSDS ::
 	!String
 	!String
-	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
+	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
+	!(p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 
@@ -115,14 +116,14 @@ createReadOnlySDS ::
 	ROShared p r
 
 createReadOnlySDSError ::
-	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
+	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
 	->
 	ROShared p r
 
-read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
-readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
-write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)	
-writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
+read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)	
+writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)
 
 //Dependency administration
 clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld

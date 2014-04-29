@@ -45,7 +45,7 @@ where
         //Call the external process
         # (res,world) = 'System.Process'.runProcess cmd args dir world
         = case res of
-			Error e	= (ExceptionResult (dynamic e) (snd e), {IWorld|iworld & world = world})
+			Error e	= (ExceptionResult (dynamic e,snd e), {IWorld|iworld & world = world})
 			Ok handle
 		        = eval event repOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
@@ -60,7 +60,7 @@ where
             # handle = fromJust (fromJSON encv)
             # (res,world) = 'System.Process'.checkProcess handle world
             = case res of
-			    Error e	= (ExceptionResult (dynamic e) (snd e), {IWorld|iworld & world = world})
+			    Error e	= (ExceptionResult (dynamic e,snd e), {IWorld|iworld & world = world})
                 Ok mbExitCode
                     # (status,stable,state) = case mbExitCode of
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
@@ -269,26 +269,26 @@ where
 			Ok Void
 				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
 			Error e=:(ecode,emsg)
-				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
+				= (ExceptionResult (dynamic e,emsg), {iworld & world = world})
 
 	eval event repOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
 		# tmpDir 			        = dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
-        | isError mbCurdir          = (exception (fromError mbCurdir), {IWorld|iworld & world = world})
+        | isError mbCurdir          = (ExceptionResult (exception (fromError mbCurdir)), {IWorld|iworld & world = world})
         # (mbErr,world)             = setCurrentDirectory tmpDir world
-        | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
+        | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
 		# (Task evala)				= taskfun tmpDir
 		# (resa,iworld=:{world})	= evala event repOpts treea {IWorld|iworld & world = world}
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
-        | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
+        | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
 		= case resa of
 			ValueResult value info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
 				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
-			ExceptionResult e str = (ExceptionResult e str,{IWorld|iworld & world = world})
+			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
 	
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
 		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
@@ -298,7 +298,7 @@ where
 		= (resa,iworld)
 
 	eval _ _ _ iworld
-		= (exception "Corrupt task state in withShared", iworld)	
+		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
 
 	//Inline copy of function from CoreCombinators.icl
 	//I don't want to export it there because CoreCombinators is an API module

@@ -76,9 +76,9 @@ where
                 = (Ok def,iworld)
             (Error e,Nothing) | resetOnError
                 # iworld = deleteValue namespace storeId iworld
-                = (Error (toString e), iworld)
+                = (Error (dynamic e,toString e), iworld)
             (Error e,_)
-                = (Error (toString e), iworld)
+                = (Error (dynamic e,toString e), iworld)
 	write Void v iworld
 		= (Ok (const True),singleValueStoreWrite namespace storeId checkBuild v iworld)
 

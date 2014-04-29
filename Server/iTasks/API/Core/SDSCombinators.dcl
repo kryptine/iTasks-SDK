@@ -1,6 +1,7 @@
 definition module iTasks.API.Core.SDSCombinators
 
 from iTasks.Framework.SDS import :: RWShared, :: ROShared, :: SDSReadProjection(..), :: SDSWriteProjection(..), :: SDSNotifyPred, :: SDSMerge, :: SDSParallel, ::SDSSequence, :: WriteShare
+from iTasks.Framework.Task import :: TaskException
 from Data.Void import :: Void
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
@@ -10,9 +11,9 @@ from GenEq import generic gEq
 //'OLD' core combinators
 
 // read combinator
-(>?>) infixl 6 :: !(RWShared p rx wx) !(rx -> MaybeErrorString (RWShared p ry wy)) -> RWShared p ry wx
+(>?>) infixl 6 :: !(RWShared p rx wx) !(rx -> MaybeError TaskException (RWShared p ry wy)) -> RWShared p ry wx
 // write combinator
-(>!>) infixl 6 :: !(RWShared p r w`) !(!w -> MaybeErrorString (RWShared p r` w``), !w r` -> MaybeErrorString [WriteShare p]) -> RWShared p r w
+(>!>) infixl 6 :: !(RWShared p r w`) !(!w -> MaybeError TaskException (RWShared p r` w``), !w r` -> MaybeError TaskException [WriteShare p]) -> RWShared p r w
 
 //'NEW' core combinators
 

@@ -31,7 +31,7 @@ where
 		# (val,iworld) = 'SDS'.read shared iworld
 		= case val of
 			Ok val		= (Ok val,iworld)
-			Error e		= (Error (dynamic (SharedException e), e), iworld)
+			Error e		= (Error e, iworld)
 	
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
@@ -39,8 +39,8 @@ where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
 		# (res,iworld)	='SDS'.write val shared iworld
 		= case res of
-			Ok _	= (Ok val,iworld)
-			Error e	= (Error (dynamic (SharedException e), e), iworld)
+			Ok _	= (Ok val, iworld)
+			Error e	= (Error e, iworld)
 
 upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 upd fun shared = mkInstantTask eval
@@ -48,13 +48,13 @@ where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
 		# (er, iworld)	= 'SDS'.read shared iworld
 		= case er of
-			Error e		= (Error (dynamic (SharedException e), e), iworld)
+			Error e		= (Error e, iworld)
 			Ok r	
 				# w				= fun r
 				# (er, iworld)	=  'SDS'.write w shared iworld
 				= case er of
 					Ok _	= (Ok w, iworld)
-					Error e = (Error (dynamic (SharedException e), e), iworld)
+					Error e = (Error e, iworld)
 					
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
@@ -64,7 +64,7 @@ where
 		# res = case val of
 			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
 				(finalizeRep repOpts NoRep) (TCInit taskId ts)
-			Error e		= exception (SharedException e)
+			Error e		= ExceptionResult e
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -76,7 +76,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
 		= case mbr of
-			Error e		= (exception e, iworld)
+			Error e		= (ExceptionResult e, iworld)
 			Ok r
 				# (l,(v,mask))	= initFun r
 				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
@@ -88,7 +88,7 @@ where
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
-		| isError mbr			= (exception (fromError mbr),iworld)
+		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
@@ -126,11 +126,11 @@ where
         //Connect
         # (mbIP,world) = lookupIPAddress host world
         | mbIP =: Nothing
-            = (ExceptionResult (dynamic lookupErr) lookupErr, {iworld & io = {done=done,todo=todo},world = world})
+            = (ExceptionResult (dynamic lookupErr,lookupErr), {iworld & io = {done=done,todo=todo},world = world})
         # (tReport,mbConn,world) = connectTCP_MT Nothing (fromJust mbIP,port) world
         = case mbConn of
             Nothing
-                = (ExceptionResult (dynamic connectErr) connectErr, {iworld & io = {done=done,todo=todo},world = world})
+                = (ExceptionResult (dynamic connectErr,connectErr), {iworld & io = {done=done,todo=todo},world = world})
             Just {DuplexChannel|rChannel,sChannel}
                 # ip = fromJust mbIP
                 # task=:(ConnectionTask init _ _) = connTask taskId shared initFun commFun
@@ -154,10 +154,10 @@ where
             Just (IOValue (l :: l^) s)
                 = (ValueResult (Value l s) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOException e)
-                = (ExceptionResult (dynamic e) e,iworld)
+                = (ExceptionResult (dynamic e,e),iworld)
             _
                 # e = "Corrupt IO task result"
-                = (ExceptionResult (dynamic e) e,iworld)
+                = (ExceptionResult (dynamic e,e),iworld)
 
     eval event repOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioValues}
         # iworld = {iworld & ioValues = 'Data.Map'.del taskId ioValues}
@@ -181,8 +181,8 @@ where
                         Error e
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
                             = (sends,True, dynamic e, iworld)
-			    Error e
-                    = ([],True, dynamic (toString e), iworld)
+			    Error (e,str)
+                    = ([],True, dynamic str, iworld)
 
         eval (Just data) ((prevr,l) :: (r^,l^)) iworld
 		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
@@ -198,8 +198,8 @@ where
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
                             # iworld = queueRefresh [instanceNo] iworld
                             = (sends,True,dynamic e, iworld)
-			    Error e
-                    = ([],True,dynamic (toString e), iworld)
+			    Error (e,str)
+                    = ([],True,dynamic str, iworld)
         eval _  state iworld = ([],False,state,iworld) //TODO: ALSO DEAL WITH CASE WHERE SHARE CHANGED, BUT NO DATA
 
         close ((prevr,l) :: (r^,l^)) iworld
@@ -216,8 +216,8 @@ where
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
                             # iworld = queueRefresh [instanceNo] iworld
                             = (dynamic e, iworld)
-			    Error e
-                    = (dynamic (toString e), iworld)
+			    Error (e,str)
+                    = (dynamic str, iworld)
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval

@@ -31,7 +31,7 @@ transform f (Task evala) = Task eval
 where
 	eval event repOpts tree iworld = case evala event repOpts tree iworld of
 		(ValueResult val lastEvent rep tree,iworld)	= (ValueResult (f val) lastEvent rep tree, iworld)	//TODO: guarantee stability
-		(ExceptionResult e str, iworld)				= (ExceptionResult e str, iworld)
+		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
 project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
@@ -53,8 +53,8 @@ where
 					= projectOnShare val result iworld
 				| otherwise
 					= (result,iworld)
-			ExceptionResult e str
-				= (ExceptionResult e str,iworld)
+			ExceptionResult e
+				= (ExceptionResult e,iworld)
 	
 	projectOnShare val result iworld=:{current={TaskEvalState|taskInstance}}
 		# (er, iworld) = read share iworld
@@ -64,9 +64,9 @@ where
 					# (ew, iworld) = write w share iworld
 					= case ew of
 						Ok _	= (result, iworld)
-						Error e	= (exception e, iworld)
+						Error e	= (ExceptionResult e, iworld)
 				Nothing = (result, iworld)
-			Error e = (exception e, iworld)
+			Error e = (ExceptionResult e, iworld)
 
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
 step (Task evala) lhsValFun conts = Task eval
@@ -86,8 +86,8 @@ where
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 					= Left (ValueResult value info (doStepLayout taskId repOpts rep val) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskInfo.lastEvent)
-			ExceptionResult e str = case searchContException e str conts of
-				Nothing			= Left (ExceptionResult e str)
+			ExceptionResult e = case searchContException e conts of
+				Nothing			= Left (ExceptionResult e)
 				Just rewrite	= Right (rewrite,Nothing, ts)		//TODO: Figure out how to garbage collect after exceptions
 		= case mbCont of
 			Left res = (res,iworld)
@@ -102,7 +102,7 @@ where
 					ValueResult val info rep nstateb	
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
 						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
-					ExceptionResult e str				= (ExceptionResult e str, iworld)
+					ExceptionResult e = (ExceptionResult e, iworld)
 	//Eval right-hand side
 	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{current={taskTime}}
 		= case restoreTaskB sel enca of
@@ -112,25 +112,25 @@ where
 					ValueResult val info rep ntreeb
 						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
 						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
-					ExceptionResult e str			= (ExceptionResult e str, iworld)
+					ExceptionResult e = (ExceptionResult e, iworld)
 			Nothing
-				= (exception "Corrupt task value in step", iworld)	
+				= (ExceptionResult (exception "Corrupt task value in step"), iworld)	
 	
 	//Cleanup
 	eval event repOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
 		= case evala event repOpts (TCDestroy treea) iworld of
 			(DestroyedResult,iworld)		= (DestroyedResult,iworld)
-			(ExceptionResult e str,iworld)	= (ExceptionResult e str,iworld)
-			(ValueResult _ _ _ _,iworld)	= (exception "Destroy failed in step",iworld)
+			(ExceptionResult e,iworld)	    = (ExceptionResult e,iworld)
+			(ValueResult _ _ _ _,iworld)	= (ExceptionResult (exception "Destroy failed in step"),iworld)
 	
 	eval event repOpts (TCDestroy (TCStep taskId ts (Right(enca,sel,treeb)))) iworld
 		= case restoreTaskB sel enca of
 			Just (Task evalb)	= evalb event repOpts (TCDestroy treeb) iworld
-			Nothing				= (exception "Corrupt task value in step", iworld)
+			Nothing				= (ExceptionResult (exception "Corrupt task value in step"), iworld)
 			
 	//Incorrect state
 	eval event _ state iworld
-		= (exception ("Corrupt task state in step:" +++ (toString (toJSON state))), iworld)
+		= (ExceptionResult (exception ("Corrupt task state in step:" +++ (toString (toJSON state)))), iworld)
 
 	restoreTaskB sel d_json_a = case conts !! sel of
 		(OnValue taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
@@ -142,7 +142,6 @@ where
 		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) [])
 	doStepLayout taskId repOpts (TaskRep def parts) val
 		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (contActions taskId val conts)) parts)
-
 
 	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -188,8 +187,8 @@ where
                             = search val mbAction (i + 1) Nothing cs								//Keep searching														
     search val mbAction i mbMatch [_:cs]			= search val mbAction (i + 1) mbMatch cs		//Keep searching
 
-searchContException :: Dynamic String [TaskCont a b] -> Maybe (Int, !b, !DeferredJSON)
-searchContException dyn str conts = search dyn str 0 Nothing conts
+searchContException :: (Dynamic,String) [TaskCont a b] -> Maybe (Int, !b, !DeferredJSON)
+searchContException (dyn,str) conts = search dyn str 0 Nothing conts
 where
     search _ _ _ catchall []					= catchall														//Return the maybe catchall
     search dyn str i catchall [OnException f:cs] = case (match f dyn) of
@@ -219,15 +218,15 @@ where
 	eval event repOpts (TCParallel taskId ts) iworld=:{current={taskTime}}
 		//Evaluate all parallel tasks in the list
 		= case evalParTasks taskId event repOpts conts iworld of
-			(Left (e,str),iworld)	= (ExceptionResult e str,iworld)
+			(Left e,iworld)	    = (ExceptionResult e,iworld)
 			(Right results,iworld=:{current=current=:{localLists}})
                 # entries = [(e,r) \\ e <- (fromMaybe [] ('Data.Map'.get taskId localLists)) & (_,r) <- results]
                 # actions = contActions taskId (Value (map fst results) False) conts
 				//Filter out removed entries and destroy their state
 				# (removed,entries)	= splitWith (\({TaskListEntry|removed},_) -> removed) entries
 				= case foldl destroyParTask (Nothing,iworld) (map fst removed) of
-					(Just (ExceptionResult e str),iworld)	= (ExceptionResult e str,iworld)	//An exception occurred	
-					(Just result,iworld)					= (fixOverloading result initTasks (exception "Destroy failed in parallel"),iworld)
+					(Just (ExceptionResult e),iworld)	= (ExceptionResult e,iworld)	//An exception occurred	
+					(Just result,iworld)				= (fixOverloading result initTasks (ExceptionResult (exception "Destroy failed in parallel")),iworld)
 					(Nothing,iworld=:{current=current=:{localLists}})
 						//Destruction is ok, build parallel result
 						# rep				= parallelRep taskId repOpts entries actions
@@ -244,13 +243,13 @@ where
 		= case foldl destroyParTask (Nothing,iworld) entries of
 			(Nothing,iworld=:{current=current=:{localLists}}) //All destroyed
 				= (DestroyedResult,{iworld & current = {current & localLists = 'Data.Map'.del taskId localLists}})
-			(Just (ExceptionResult e str),iworld=:{current=current=:{localLists}}) //An exception occurred
-				= (ExceptionResult e str,{iworld & current = {current & localLists = 'Data.Map'.del taskId localLists}})
+			(Just (ExceptionResult e),iworld=:{current=current=:{localLists}}) //An exception occurred
+				= (ExceptionResult e,{iworld & current = {current & localLists = 'Data.Map'.del taskId localLists}})
 			(Just result,iworld)
-                = (fixOverloading result initTasks (exception "Destroy failed in step"),iworld)
+                = (fixOverloading result initTasks (ExceptionResult (exception "Destroy failed in step")),iworld)
 	//Fallback
 	eval _ _ _ iworld
-		= (exception "Corrupt task state in parallel", iworld)
+		= (ExceptionResult (exception "Corrupt task state in parallel"), iworld)
 	
 	evalParTasks :: !TaskId !Event !TaskRepOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !*IWorld
                     -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
@@ -290,10 +289,10 @@ where
                 Just (Task evala)
 					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=repOpts.noUI} tree iworld
 					= case result of
-						ExceptionResult e str
+						ExceptionResult e
                             //Check if we have an exception handler the continuations
-                            = case searchContException e str conts of
-                                Nothing = (Left (e,str),iworld) //No handler, unfortunately
+                            = case searchContException e conts of
+                                Nothing = (Left e,iworld) //No handler, unfortunately
                                 Just (_,handler=:(_,parTask),_) //Replace tasklist entry and try again
                                     # (entry,iworld) = addTaskToList taskId handler (Just index) iworld
                                     = evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld) (index,entry)
@@ -414,7 +413,7 @@ where
 	wrap (ValueResult val info=:{TaskInfo|refreshSensitive=True} _ tree) //When we know for certain that we'll recompute the task on the next event, 
 		= ValueResult (fmap toJSON val) info NoRep tree					 //don't bother storing the task representation
 	wrap (ValueResult val info rep tree)	= ValueResult (fmap toJSON val) info rep tree
-	wrap (ExceptionResult e str)			= ExceptionResult e str
+	wrap (ExceptionResult e)			    = ExceptionResult e
 
 	newAttr (ValueResult _ _ (TaskRep def _) _)					= uiDefAttributes def
 	newAttr _													= 'Data.Map'.newMap
@@ -429,7 +428,7 @@ where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
         # lastEval = case lastValue of
             TIValue val = ValueResult val info NoRep TCNop
-            TIException e str = ExceptionResult e str
+            TIException e str = ExceptionResult (e,str)
 		= {TaskListEntry| e & state = DetachedState no progress attributes, lastEval = lastEval}
 	update e = e
 
@@ -468,7 +467,7 @@ storeTaskList taskId=:(TaskId instanceNo taskNo) list iworld=:{current=current=:
 				= iworld
 			(_,iworld)								= iworld
 			
-readListId :: (SharedTaskList a) *IWorld -> (MaybeErrorString (TaskListId a),*IWorld)	| iTask a
+readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException (TaskListId a),*IWorld) | iTask a
 readListId slist iworld = case read slist iworld of
 	(Ok l,iworld)		= (Ok l.TaskList.listId, iworld)
 	(Error e, iworld)	= (Error e, iworld)
@@ -487,7 +486,7 @@ taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) tasklist
 where
     toPrj {TaskList|selfId,items} = case [m \\ m=:{TaskListItem|taskId} <- items | taskId == selfId] of
-        []                              = Error "Task id not found in self management share"
+        []                              = Error (exception "Task id not found in self management share")
         [{TaskListItem|attributes}:_]   = Ok attributes
 
     fromPrj attributes {TaskList|selfId}
@@ -502,7 +501,7 @@ where
 				# (taskIda,iworld) = append listId parType parTask iworld
 				= (Ok taskIda, iworld)
 			(Error e,iworld)
-				= (Error (dynamic e,e), iworld)
+				= (Error e, iworld)
 								
 	append :: !(TaskListId a) !ParallelTaskType !(ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 	append TopLevelTaskList parType parTask iworld=:{current={user,attachmentChain}}
@@ -529,7 +528,7 @@ where
 				# iworld = remove listId entryId iworld
 				= (Ok Void, iworld)
 			(Error e,iworld)
-				= (Error (dynamic e,e), iworld)
+				= (Error e, iworld)
 
 	remove :: !(TaskListId a) !TaskId !*IWorld -> *IWorld
 	remove TopLevelTaskList (TaskId instanceNo 0) iworld
@@ -549,7 +548,7 @@ where
             (Ok _,iworld)
                 = (Ok Void, iworld)
 			(Error e,iworld)
-				= (Error (dynamic e,e), iworld)
+				= (Error e, iworld)
 
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
@@ -563,7 +562,7 @@ where
 				# iworld		= queueUrgentRefresh [instanceNo] iworld
 				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
-				= (ExceptionResult (dynamic e) e,iworld)
+				= (ExceptionResult e,iworld)
 		
 	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{current={taskInstance,user}}
 		//Load instance
@@ -644,7 +643,7 @@ where
 			ValueResult (Value stable val) info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
 				= (ValueResult (Value stable val) info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
-			ExceptionResult e str								= (ExceptionResult e str,iworld)
+			ExceptionResult e   = (ExceptionResult e,iworld)
 	
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld //First destroy inner task, then remove shared state
 		# (Task evala)					= stask (localShare taskId)
@@ -653,7 +652,7 @@ where
 		= (resa,{iworld & current = {current & localShares = 'Data.Map'.del taskId localShares}})
 	
 	eval _ _ _ iworld
-		= (exception "Corrupt task state in withShared", iworld)
+		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
 
 import StdDebug
 
@@ -675,8 +674,8 @@ where
 			ValueResult value info rep ntreea
 				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
 				= (ValueResult value info rep (TCExposedShared taskId info.TaskInfo.lastEvent url ntreea),iworld)
-			ExceptionResult e str					
-				= (ExceptionResult e str,iworld)
+			ExceptionResult e
+				= (ExceptionResult e,iworld)
 	
 	eval event repOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
 		# (Task evala)					= stask url (exposedShare url)
@@ -684,7 +683,7 @@ where
 		= (resa,{iworld & exposedShares = 'Data.Map'.del url iworld.exposedShares})
 	
 	eval _ _ _ iworld
-		= (exception "Corrupt task state in exposeShared", iworld) 
+		= (ExceptionResult (exception "Corrupt task state in exposeShared"), iworld)
 		
 /*
 * Tuning of tasks

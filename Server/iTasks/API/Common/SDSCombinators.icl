@@ -13,22 +13,24 @@ mapWrite write sds = mapWriteError (\r w -> Ok (write r w)) sds
 mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(RWShared p r w) -> RWShared p r` w`
 mapReadWrite (read,write) sds = mapReadWriteError (\r -> Ok (read r), (\r w -> Ok (write r w))) sds
 
-mapReadError :: !(r -> MaybeErrorString r`) !(RWShared p r w) -> RWShared p r` w
+mapReadError :: !(r -> MaybeError TaskException r`) !(RWShared p r w) -> RWShared p r` w
 mapReadError read sds = sdsProject (SDSLensRead read) (SDSBlindWrite (Ok o Just)) sds
 
-mapWriteError :: !(w` r -> MaybeErrorString (Maybe w)) !(RWShared p r w) -> RWShared p r w`
+mapWriteError :: !(w` r -> MaybeError TaskException  (Maybe w)) !(RWShared p r w) -> RWShared p r w`
 mapWriteError write sds = sdsProject (SDSLensRead Ok) (SDSLensWrite (flip write)) sds
 	
-mapReadWriteError :: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Maybe w)) !(RWShared p r w) -> RWShared p r` w`
+mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(RWShared p r w) -> RWShared p r` w`
 mapReadWriteError (read,write) sds = sdsProject (SDSLensRead read) (SDSLensWrite (flip write)) sds
 
 mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w)
 mapSingle sds = sdsProject (SDSLensRead read) (SDSBlindWrite write) sds
 where
     read [x]    = Ok x
-    read _      = Error "Element not found"
+    read _      = Error (dynamic notfound,notfound)
 
     write x     = Ok (Just [x])
+
+    notfound    = "Element not found"
 
 toReadOnly :: !(RWShared p r w) -> ROShared p r
 toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds

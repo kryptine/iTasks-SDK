@@ -32,8 +32,9 @@ derive gEq				Task
 :: EventNo	:== Int	
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskInfo !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
-					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
+					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
+:: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
 
 :: TaskInfo =
 	{ lastEvent			:: !TaskTime	//When was the last edit, action or focus event in this task
@@ -68,9 +69,9 @@ from iTasks.Framework.Engine import :: ConnectionType
 toRefresh :: Event -> Event
 
 /**
-* Creates an execption result
+* Creates an execption
 */
-exception :: !e -> TaskResult a | TC, toString e
+exception :: !e -> TaskException | TC, toString e
 
 /**
 * Determine the layout function for a rep target

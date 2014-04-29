@@ -51,14 +51,14 @@ where
 		readit shared iworld
 			# (res, iworld) = 'SDS'.read (sdsFocus focus shared) iworld
 			= case res of
-				(Ok json) = (jsonResponse json, Nothing, iworld)
-				(Error e) = (errorResponse e, Nothing, iworld)			
+				(Ok json)       = (jsonResponse json, Nothing, iworld)
+				(Error (e,msg)) = (errorResponse msg, Nothing, iworld)			
 			
 		writeit shared iworld
 			# (res, iworld) = 'SDS'.write (fromString req.req_data) (sdsFocus focus shared) iworld
 			= case res of
-				(Ok _)    = (okResponse, Nothing, iworld)
-				(Error e) = (errorResponse e, Nothing, iworld)			
+				(Ok _)          = (okResponse, Nothing, iworld)
+				(Error (e,msg)) = (errorResponse msg, Nothing, iworld)			
 	
 	reqFun req iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
@@ -119,20 +119,20 @@ where
 remoteJSONShared :: !String -> JSONShared
 remoteJSONShared url = SDSDynamic f
 where
-	f _ iworld=:{exposedShares} 
-			= case 'Data.Map'.get url exposedShares of
-					Nothing
-						= (Ok (createReadWriteSDS "remoteShare" url rread rwrite), iworld)
-					Just (_, shared)	
-						= (Ok shared, iworld)
-					Just dyn
-						= (Error ("Exposed share type mismatch: " +++ url), iworld)
+	f _ iworld=:{exposedShares}
+        = case 'Data.Map'.get url exposedShares of
+		    Nothing          = (Ok (createReadWriteSDS "remoteShare" url rread rwrite), iworld)
+			Just (_, shared) = (Ok shared, iworld)
+			Just dyn         = (Error (exception ("Exposed share type mismatch: " +++ url)), iworld)
 
-	rread jsonp iworld = readRemoteSDS jsonp url iworld
-	rwrite jsonp jsonw iworld 
+	rread jsonp iworld
+        = case readRemoteSDS jsonp url iworld of
+            (Ok v, iworld) = (Ok v, iworld)
+            (Error msg, iworld) = (Error (exception msg), iworld)
+	rwrite jsonp jsonw iworld
 		= case writeRemoteSDS jsonp jsonw url iworld of
 			(Ok Void, iworld) = (Ok (const False), iworld)
-			(Error e, iworld) = (Error e, iworld)
+			(Error msg, iworld) = (Error (exception msg), iworld)
 
 openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w
 openRemoteSDS url cont 

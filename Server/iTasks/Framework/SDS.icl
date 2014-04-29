@@ -4,7 +4,7 @@ import StdString, StdFunc, StdTuple, StdMisc, StdList, StdBool
 import Data.Error, Data.Func, Data.Tuple, Data.Void, Data.Map, System.Time, Text, Text.JSON
 import qualified Data.Set as Set
 import iTasks.Framework.IWorld
-import iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
+import iTasks.Framework.Task, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
 import dynamic_string //For fake Hash implementation
 import graph_to_sapl_string, Crypto.Hash.MD5
 
@@ -13,8 +13,8 @@ import graph_to_sapl_string, Crypto.Hash.MD5
 createReadWriteSDS ::
 	!String
 	!String
-	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
+	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
+	!(p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 createReadWriteSDS ns id read write
@@ -28,7 +28,7 @@ createReadOnlySDS read
 	= createReadOnlySDSError (\p env -> appFst Ok (read p env))
 	
 createReadOnlySDSError ::
-	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
+	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
 	->
 	ROShared p r
 createReadOnlySDSError read
@@ -37,8 +37,8 @@ createReadOnlySDSError read
 createSDS ::
 	!String
     !String
-	!(p *IWorld -> *(!MaybeErrorString r, !*IWorld))
-	!(p w *IWorld -> *(!MaybeErrorString (SDSNotifyPred p), !*IWorld))
+	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
+	!(p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld))
 	->
 	RWShared p r w
 createSDS ns id read write = SDSSource
@@ -56,10 +56,10 @@ sdsIdentity sds = md5 (graph_to_sapl_string sds) //FIXME: Use a less hacky ident
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
 
-read :: !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+read :: !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
 read sds env = read` Void Nothing sds env
 
-readRegister :: !InstanceNo !(RWShared Void r w) !*IWorld -> (!MaybeErrorString r, !*IWorld)
+readRegister :: !InstanceNo !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
 readRegister instanceNo sds env = read` Void (Just instanceNo) sds env
 
 mbRegister :: !p !(RWShared p r w) !(Maybe InstanceNo) !*IWorld -> *IWorld | TC p
@@ -68,7 +68,7 @@ mbRegister p sds (Just taskInstance) iworld=:{IWorld|sdsNotifyRequests}
     # req = {taskInstance=taskInstance,sdsid=sdsIdentity sds,param=dynamic p}
     = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
 
-read` :: !p !(Maybe InstanceNo) !(RWShared p r w) !*IWorld -> (!MaybeErrorString r, !*IWorld) | TC p
+read` :: !p !(Maybe InstanceNo) !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC p
 read` p mbNotify sds=:(SDSSource {SDSSource|name,read}) env
     //New registration
     # env = mbRegister p sds mbNotify env
@@ -76,7 +76,7 @@ read` p mbNotify sds=:(SDSSource {SDSSource|name,read}) env
 
 read` p mbNotify (ComposedRead share cont) env = seqErrorsSt (read` p mbNotify share) (f p mbNotify cont) env
 where
-	f :: !p !(Maybe InstanceNo) !(x -> MaybeErrorString (RWShared p r w)) !x !*IWorld -> (!MaybeErrorString r, !*IWorld) | TC p
+	f :: !p !(Maybe InstanceNo) !(x -> MaybeError TaskException (RWShared p r w)) !x !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC p
 	f p mbNotify cont x env = seqErrorsSt (\env -> (cont x, env)) (read` p mbNotify) env
 
 read` p mbNotify (ComposedWrite share _ _) env = read` p mbNotify share env
@@ -134,15 +134,15 @@ read` p mbNotify sds=:(SDSDynamic f) env
 		(Error e) = (Error e, env)
 		(Ok sds)  = read` p mbNotify sds env
 
-write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
+write :: !w !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)
 write w sds env = writeFilterMsg w (const True) sds env
 	
-writeFilterMsg :: !w !(InstanceNo -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeErrorString Void, !*IWorld)
+writeFilterMsg :: !w !(InstanceNo -> Bool) !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)
 writeFilterMsg w filter sds iworld
     # (mbErr,nevents,iworld) = write` Void w sds filter iworld
     = (fmap (const Void) mbErr, processNotifications nevents iworld)
 
-write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeErrorString (SDSNotifyPredIWorld p), [SDSNotifyEvent], !*IWorld) | TC p
+write` :: !p !w !(RWShared p r w) !(InstanceNo -> Bool) !*IWorld -> (!MaybeError TaskException (SDSNotifyPredIWorld p), [SDSNotifyEvent], !*IWorld) | TC p
 write` p w sds=:(SDSSource {SDSSource|name,write}) filter env
     = case write p w env of
         (Error e, env)   = (Error e, [], env)
@@ -378,7 +378,9 @@ where
 	read` rs = Ok (toJSON rs)
 	write` _ wt = case fromJSON wt of
 						(Just ws) = Ok (Just ws)
-						Nothing   = Error "Shared type mismatch in toJSONShared"
+						Nothing   = Error (dynamic e,e)
+    where
+        e = "Shared type mismatch in toJSONShared"
 
 fromJSONShared :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
 fromJSONShared shared = SDSTranslation projected toJSON
@@ -387,7 +389,9 @@ where
 
 	read` rs = case fromJSON rs of
 						(Just rt) = Ok rt
-						Nothing   = Error "Shared type mismatch in toJSONShared"
+						Nothing   = Error (dynamic e,e)
+    where
+        e = "Shared type mismatch in toJSONShared"
 	write` _ wt = Ok (Just (toJSON wt))
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)

@@ -1,6 +1,7 @@
 definition module iTasks.API.Common.SDSCombinators
 
 from iTasks.Framework.SDS import :: RWShared, :: ROShared, :: WriteShare
+from iTasks.Framework.Task import :: TaskException
 from Data.Void import :: Void
 from Data.Maybe import :: Maybe
 from Data.Error import :: MaybeError, :: MaybeErrorString
@@ -18,9 +19,9 @@ mapRead			:: !(r -> r`)					!(RWShared p r w) -> RWShared p r` w
 mapWrite		:: !(w` r -> Maybe w)			!(RWShared p r w) -> RWShared p r w`
 mapReadWrite	:: !(!r -> r`,!w` r -> Maybe w)	!(RWShared p r w) -> RWShared p r` w`
 
-mapReadError		:: !(r -> MaybeErrorString r`)										!(RWShared p r w) -> RWShared p r` w
-mapWriteError		:: !(w` r -> MaybeErrorString (Maybe w))							!(RWShared p r w) -> RWShared p r w`
-mapReadWriteError	:: !(!r -> MaybeErrorString r`,!w` r -> MaybeErrorString (Maybe w))	!(RWShared p r w) -> RWShared p r` w`
+mapReadError		:: !(r -> MaybeError TaskException r`)								!(RWShared p r w) -> RWShared p r` w
+mapWriteError		:: !(w` r -> MaybeError TaskException (Maybe w))					!(RWShared p r w) -> RWShared p r w`
+mapReadWriteError	:: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w))	!(RWShared p r w) -> RWShared p r` w`
 
 toReadOnly :: !(RWShared p r w) -> ROShared p r
 

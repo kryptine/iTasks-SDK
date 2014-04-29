@@ -31,7 +31,7 @@ workflowByPath path = mapReadWriteError (toPrj,fromPrj) workflows
 where
 	toPrj wfs = case [wf \\ wf <- wfs | wf.Workflow.path == path] of
 		[wf:_]	= Ok wf
-		_		= Error ("Workflow " +++ path +++ " could not be found")
+		_		= Error (exception ("Workflow " +++ path +++ " could not be found"))
 
 	fromPrj nwf wfs
 		= Ok (Just [if (wf.path == path) nwf wf \\ wf <- wfs])

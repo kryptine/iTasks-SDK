@@ -82,10 +82,12 @@ taskInstanceByNo :: RWShared InstanceNo (TaskListItem Void) TaskAttributes
 taskInstanceByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) (sdsTranslate (\instanceNo -> {InstanceFilter|instanceNo=Just instanceNo,session=Nothing}) filteredInstanceMeta)
 where
     read [i]    = Ok (toTaskListItem i)
-    read _      = Error "Task instance not found"
+    read _      = Error (dynamic error,error)
 
     write [i] a = Ok (Just [{TIMeta|i &attributes = a}])
-    write _ _   = Error "Task instance not found"
+    write _ _   = Error (dynamic error,error)
+
+    error = "Task instance not found"
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\Void iworld=:{current={user}} -> (user,iworld))
@@ -121,8 +123,9 @@ where
 storeNames :: ROShared String [String]
 storeNames = createReadOnlySDSError read
 where
-    read namespace iworld
-        = listStoreNames namespace iworld
+    read namespace iworld = case listStoreNames namespace iworld of
+        (Ok names,iworld) = (Ok names,iworld)
+        (Error msg,iworld) = (Error (dynamic msg,msg),iworld)
 
 // Random source
 
@@ -140,14 +143,15 @@ where
 		| not ok					= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
 		# (res,file)				= readAll file
 		# (ok,world)				= fclose file world
-		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
-		| isError res				= (Error (toString (fromError res)) ,{IWorld|iworld & world = world})
-		= (Ok (fromOk res), {IWorld|iworld & world = world})
+		| not ok					= (Error (dynamic CannotClose,toString CannotClose) ,{IWorld|iworld & world = world})
+        = case res of
+            Error e                 = (Error (dynamic e,toString e) ,{IWorld|iworld & world = world})
+            Ok content              = (Ok content, {IWorld|iworld & world = world})
 
 	write Void content iworld=:{world}
 		# (ok,file,world)			= fopen path FWriteText world
-		| not ok					= (Error (toString CannotOpen), {IWorld|iworld & world = world})
+		| not ok					= (Error (dynamic CannotOpen,toString CannotOpen), {IWorld|iworld & world = world})
 		# file						= fwrites content file
 		# (ok,world)				= fclose file world
-		| not ok					= (Error (toString CannotClose) ,{IWorld|iworld & world = world})
+		| not ok					= (Error (dynamic CannotClose,toString CannotClose) ,{IWorld|iworld & world = world})
 		= (Ok (const True), {IWorld|iworld & world = world})

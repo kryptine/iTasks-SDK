@@ -15,11 +15,11 @@ mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
 		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
-		(Error (e,s), iworld)					= (ExceptionResult e s, iworld)
+		(Error e, iworld)					    = (ExceptionResult e, iworld)
 
 	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
-		Nothing	= (exception "Corrupt task result", iworld)
+		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 
@@ -58,8 +58,8 @@ toRefresh (FocusEvent no _)		= RefreshEvent (Just no)
 toRefresh (RefreshEvent mbNo)	= RefreshEvent mbNo
 toRefresh (ResetEvent)          = RefreshEvent Nothing
 
-exception :: !e -> TaskResult a | TC, toString e
-exception e = ExceptionResult (dynamic e) (toString e)
+exception :: !e -> TaskException | TC, toString e
+exception e = (dynamic e, toString e)
 
 repLayoutRules :: !TaskRepOpts -> LayoutRules
 repLayoutRules {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
