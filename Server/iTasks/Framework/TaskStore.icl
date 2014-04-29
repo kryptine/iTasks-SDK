@@ -41,21 +41,21 @@ reduct_store t	= toString t +++ "-reduct"
 
 newInstanceNo :: !*IWorld -> (!InstanceNo,!*IWorld)
 newInstanceNo iworld
-	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
+	# (mbNewTid,iworld) = singleValueStoreRead NS_TASK_INSTANCES INCREMENT False iworld
 	= case mbNewTid of
-		Just tid
-			# iworld = storeValue NS_TASK_INSTANCES INCREMENT (tid+1) iworld
+		Ok tid
+			# iworld = singleValueStoreWrite NS_TASK_INSTANCES INCREMENT False (tid+1) iworld
 			= (tid,iworld)
-		Nothing
-			# iworld = storeValue NS_TASK_INSTANCES INCREMENT 2 iworld //store the next value (2)
+		Error e
+			# iworld = singleValueStoreWrite NS_TASK_INSTANCES INCREMENT False 2 iworld //store the next value (2)
 			= (1,iworld) //return the first value (1)
 			
 maxInstanceNo :: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo iworld
-	# (mbNewTid,iworld) = loadValue NS_TASK_INSTANCES INCREMENT iworld
+	# (mbNewTid,iworld) = singleValueStoreRead NS_TASK_INSTANCES INCREMENT False iworld
 	= case mbNewTid of
-		Just tid	= (tid-1,iworld)
-		Nothing		= (0,iworld)
+		Ok tid	= (tid-1,iworld)
+		Error e = (0,iworld)
 
 newInstanceKey :: !*IWorld -> (!InstanceKey, !*IWorld)
 newInstanceKey iworld=:{IWorld|random}
@@ -75,8 +75,10 @@ deleteInstance instanceNo iworld
 
 initInstanceMeta :: !*IWorld -> *IWorld
 initInstanceMeta iworld
-    # (mbIndex,iworld) = loadValue NS_TASK_INSTANCES meta_index iworld
-    = {iworld & ti = fromMaybe [] mbIndex}
+    # (mbIndex,iworld) = singleValueStoreRead NS_TASK_INSTANCES meta_index False iworld
+    = case mbIndex of
+        Ok index    = {iworld & ti = index}
+        Error e     = {iworld & ti = []}
 
 fullInstanceMeta :: RWShared Void [TIMeta] [TIMeta]
 fullInstanceMeta = 'SDS'.createReadWriteSDS NS_TASK_INSTANCES "tiindex" read write
@@ -85,7 +87,7 @@ where
 		= (Ok ti, iworld)
     write Void ti iworld
         # iworld = {iworld & ti = ti}
-        # iworld = storeValue NS_TASK_INSTANCES meta_index ti iworld //Sync to disk to enable server restarts
+        # iworld = singleValueStoreWrite NS_TASK_INSTANCES meta_index False ti iworld //Sync to disk to enable server restarts
         = (Ok (const True),iworld)
 
 filteredInstanceMeta :: RWShared InstanceFilter [TIMeta] [TIMeta]
@@ -108,30 +110,35 @@ taskInstanceMeta = mapSingle (sdsTranslate (\no -> {InstanceFilter|instanceNo=Ju
 
 //The remaining instance parts are stored on disk
 taskInstanceReduct :: !InstanceNo -> RWShared Void TIReduct TIReduct
-taskInstanceReduct instanceNo = storeAccess NS_TASK_INSTANCES (reduct_store instanceNo) Nothing
+taskInstanceReduct instanceNo = singleValueStoreSDS NS_TASK_INSTANCES (reduct_store instanceNo) True False Nothing
 
 taskInstanceValue :: !InstanceNo -> RWShared Void TIValue TIValue
-taskInstanceValue instanceNo = storeAccess NS_TASK_INSTANCES (value_store instanceNo) Nothing
+taskInstanceValue instanceNo = singleValueStoreSDS NS_TASK_INSTANCES (value_store instanceNo) True False Nothing
 
 taskInstanceRep :: !InstanceNo -> RWShared Void TaskRep TaskRep
-taskInstanceRep instanceNo = storeAccess NS_TASK_INSTANCES (rep_store instanceNo) Nothing
+taskInstanceRep instanceNo = singleValueStoreSDS NS_TASK_INSTANCES (rep_store instanceNo) True False Nothing
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
 	# document				= {Document|documentId = documentId, contentUrl = "?download="+++documentId, name = name, mime = mime, size = size content}
-	# iworld				= storeBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
-	# iworld				= storeValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") document iworld	
+	# iworld				= blobStoreWrite NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
+	# iworld				= singleValueStoreWrite NS_DOCUMENT_CONTENT (documentId +++ "-meta") False document iworld	
 	= (Ok document,iworld)
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= loadBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld
+	= case blobStoreRead NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld of
+        (Ok content,iworld) = (Just content,iworld)
+        (Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
-	= loadValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") iworld
+	= case (singleValueStoreRead NS_DOCUMENT_CONTENT (documentId +++ "-meta") False iworld) of
+        (Ok doc,iworld)     = (Just doc,iworld)
+        (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
-	= (storePath dataDirectory buildID </> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.bin"),iworld)
+	= (dataDirectory </>"stores"</> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.bin"),iworld)
+

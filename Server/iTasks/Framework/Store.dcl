@@ -13,6 +13,7 @@ definition module iTasks.Framework.Store
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Void import :: Void
+from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
@@ -28,33 +29,58 @@ NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
 NS_JAVASCRIPT_CACHE     :== "js-cache"
 
+:: StoreReadError
+    = StoreReadMissingError         //When there is no file on disk for this
+    | StoreReadDataError            //When there is a problem reading data from disk
+    | StoreReadTypeError            //When the data cannot be decoded based on the type
+    | StoreReadBuildVersionError    //When there is a stored value but it has the wrong build version
 
+instance toString StoreReadError
 
 /**
 * Create a shared data source for a piece of data in the store
 *
 * @param The namespace in the store
 * @param The key of the value in the  store
+* @param Check the build versions to protect against deserializing outdated functions stored by older versions
+*        of the executable (if in doubt, use True)
+* @param Automatically reset the the store if an error occurs
 * @param Optionally a default value to be used on first read. If nothing is given an error will occur when reading before writing.
 *
 * @return The shared data source
 */
-storeAccess :: !StoreNamespace !StoreName !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-
-/**
-* Determine the location of the store from data directory and build
-*/
-storePath :: !FilePath !String -> FilePath
-
-/**
-* Store a value in the default format
-*/
-storeValue				:: !StoreNamespace !StoreName !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
+singleValueStoreSDS :: !StoreNamespace !StoreName !Bool !Bool !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Load a value from the store
+* @param The namespace
+* @param The name of the store
+* @param Check the build versions to protect against deserializing outdated functions stored by older versions
+*        of the executable (if in doubt, use True)
+* @param The value to write
 */
-loadValue				:: !StoreNamespace !StoreName			!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
+singleValueStoreRead :: !StoreNamespace !StoreName !Bool		!*IWorld -> (!MaybeError StoreReadError a,!*IWorld)				| JSONDecode{|*|}, TC a
+/**
+* Write a value to a store
+* @param The namespace
+* @param The name of the store
+* @param Check the build versions to protect against deserializing outdated functions stored by older versions
+*        of the executable (if in doubt, use True)
+* @param The value to write
+* @param Write build version to enable version check
+*/
+singleValueStoreWrite :: !StoreNamespace !StoreName !Bool !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+
+/**
+* Store a binary blob
+*/
+blobStoreWrite	:: !StoreNamespace !StoreName !{#Char}		!*IWorld -> *IWorld
+
+/**
+* Load a binary blob
+*/
+blobStoreRead	:: !StoreNamespace !StoreName 				!*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
+
 
 /**
 * Deletes the value with given key from the store
@@ -67,17 +93,11 @@ deleteValue				:: !StoreNamespace !StoreName				!*IWorld -> *IWorld
 deleteValues			:: !StoreNamespace !StorePrefix				!*IWorld -> *IWorld
 
 /**
-* Store a binary blob
+* List the namespaces in the store
 */
-storeBlob				:: !StoreNamespace !StoreName !{#Char}		!*IWorld -> *IWorld
-
-/**
-* Load a binary blob
-*/
-loadBlob				:: !StoreNamespace !StoreName 				!*IWorld -> (!Maybe {#Char}, !*IWorld)
-
+listStoreNamespaces     ::                                          !*IWorld -> (![StoreNamespace], !*IWorld)
 /**
 * List the keys for a given namespace
 */
-listStores              :: !StoreNamespace                          !*IWorld -> (![StoreName], !*IWorld)
+listStoreNames          :: !StoreNamespace                          !*IWorld -> (!MaybeErrorString [StoreName], !*IWorld)
 

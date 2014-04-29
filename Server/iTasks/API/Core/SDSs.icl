@@ -18,7 +18,7 @@ derive gEq TIType
 SYSTEM_DATA_NS :== "SystemData"
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = storeAccess NS_APPLICATION_SHARES storeId (Just defaultV)
+sharedStore storeId defaultV = singleValueStoreSDS NS_APPLICATION_SHARES storeId True True (Just defaultV)
 
 constShare :: !a -> ROShared p a
 constShare v = createReadOnlySDS (\_ env -> (v, env))
@@ -113,7 +113,19 @@ applicationConfig = createReadOnlySDS config
 where
 	config Void iworld=:{IWorld|config} = (config,iworld)
 
+storeNamespaces :: ROShared Void [String]
+storeNamespaces = createReadOnlySDS read
+where
+    read Void iworld = listStoreNamespaces iworld
+
+storeNames :: ROShared String [String]
+storeNames = createReadOnlySDSError read
+where
+    read namespace iworld
+        = listStoreNames namespace iworld
+
 // Random source
+
 randomInt	:: ReadOnlyShared Int
 randomInt = createReadOnlySDS randomInt
 where

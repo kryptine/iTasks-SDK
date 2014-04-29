@@ -262,9 +262,9 @@ withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
-		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
+		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
-		# (mbErr,world)		= createDirectory tmpdir world
+		# (mbErr,world)		= createDirectory tmpDir world
 		= case mbErr of
 			Ok Void
 				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
@@ -272,15 +272,15 @@ where
 				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
 
 	eval event repOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
-		# tmpdir 					= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
+		# tmpDir 			        = dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (exception (fromError mbCurdir), {IWorld|iworld & world = world})
-        # (mbErr,world)             = setCurrentDirectory tmpdir world
+        # (mbErr,world)             = setCurrentDirectory tmpDir world
         | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
-		# (Task evala)				= taskfun tmpdir
+		# (Task evala)				= taskfun tmpDir
 		# (resa,iworld=:{world})	= evala event repOpts treea {IWorld|iworld & world = world}
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
         | isError mbErr             = (exception (fromError mbErr), {IWorld|iworld & world = world})
@@ -291,8 +291,8 @@ where
 			ExceptionResult e str = (ExceptionResult e str,{IWorld|iworld & world = world})
 	
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
-		# tmpdir 			= dataDirectory </> "tmp-" +++ buildID </> (toString taskId +++ "-tmpdir")
-		# (Task evala)		= taskfun tmpdir
+		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+		# (Task evala)		= taskfun tmpDir
 		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
 		= (resa,iworld)

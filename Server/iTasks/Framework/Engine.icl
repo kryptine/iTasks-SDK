@@ -155,10 +155,10 @@ initIWorld sdkDir world
 	# (DateTime localDate localTime,world)	= currentLocalDateTimeWorld world
 	# (DateTime utcDate utcTime,world)	    = currentUTCDateTimeWorld world
 	# (_,world)					= ensureDir "data" dataDir world
-	# tmpDir					= dataDir </> "tmp-" +++ build
+	# tmpDir					= dataDir </> "tmp"
 	# (_,world)					= ensureDir "tmp" tmpDir world
-	# storeDir					= dataDir </> "store-"+++ build
-	# (exists,world)			= ensureDir "store" storeDir world
+	# storeDir					= dataDir </> "stores"
+	# (exists,world)			= ensureDir "stores" storeDir world
 	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] [] //TODO: Comment please
 										["iTasks.Framework.Client.Override"
 										,"dynamic_string"

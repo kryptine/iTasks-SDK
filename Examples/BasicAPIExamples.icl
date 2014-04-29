@@ -2,6 +2,7 @@ implementation module BasicAPIExamples
 import iTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 import iTasks.API.Extensions.Admin.ServerAdmin
+import iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
@@ -74,6 +75,7 @@ basicAPIExamples =
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	,workflow "Manage server" 							 	"Manage itask server..." 			manageServer
+	,workflow "Manage store" 							 	"Manage itask store..." 			manageStore
 	,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
 	,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
 	,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog

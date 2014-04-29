@@ -44,8 +44,6 @@ currentSessions 		:: ReadOnlyShared [TaskListItem Void]
 currentProcesses		:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 
-
-
 // Session
 currentUser				:: ReadOnlyShared User
 currentTopTask			:: ReadOnlyShared TaskId
@@ -59,6 +57,10 @@ applicationName			:: ReadOnlyShared String	// Application name
 applicationBuild		:: ReadOnlyShared String	// Application build identifier
 applicationDirectory	:: ReadOnlyShared FilePath	// Directory in which the applicaton resides
 applicationConfig		:: ReadOnlyShared Config	// Server config
+
+// Generic store
+storeNamespaces         :: ROShared Void [String]   // List the namespaces in the store
+storeNames              :: ROShared String [String] // List the stores in a given namespace
 
 // Random source
 randomInt				:: ReadOnlyShared Int

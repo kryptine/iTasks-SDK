@@ -1840,16 +1840,12 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
         if(msg.error) {
             console.log("Server error",msg.error);
-            return;
         }
         //Update event no
         me.lastReceivedEventNo = msg.lastEvent;
         //Update user interface
         if(msg.updates) {
             me.controller.updateUI({instance: msg.instance,updates: msg.updates},me.instances[msg.instance].rootNode);
-        }
-        if(msg.done) {
-            return;
         }
         //Schedule automatic refresh when an expiration time is set
         //and we do not have a push event source
