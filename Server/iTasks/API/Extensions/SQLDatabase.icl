@@ -17,19 +17,24 @@ where
 	read (db,p) iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e,  iworld)
+			Error e			= (Error (exception e),  iworld)
 			Ok (cur,con,cxt)
 				# (res,cur) = readFun p cur
 				# iworld	= closeMySQLDb cur con cxt iworld
-				= (res,iworld)
+                = case res of
+                    (Ok v)    = (Ok v, iworld)
+                    (Error e) = (Error (exception e), iworld)
+
 	write (db,p) w iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e, iworld)
+			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur) = writeFun p w cur
 				# iworld	= closeMySQLDb cur con cxt iworld
-                = (fmap (const (const True)) res, iworld)
+                = case res of
+                    (Error e) = (Error (exception e), iworld)
+                    (Ok _)    = (Ok (const True), iworld)
 
 sqlExecute :: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
 sqlExecute db touchIds queryFun = mkInstantTask eval
@@ -37,12 +42,12 @@ where
 	eval _ iworld
 		# (mbOpen,iworld)	= openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error (dynamic e,toString e), iworld)
+			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= queryFun cur
 				# iworld		= closeMySQLDb cur con cxt iworld
 				= case res of
-					Error e		= (Error (dynamic e,toString e), iworld)
+					Error e		= (Error (exception e), iworld)
 					Ok v		
                         //Trigger share change for all touched ids
                         # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) w) touchIds iworld
@@ -80,12 +85,12 @@ where
 	read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e, iworld)
+			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
 				# (err,cur)			= execute query values cur
-				| isJust err		= (Error (toString (fromJust err)),iworld)
+				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
 				# (err,rows,cur)	= fetchAll cur
-				| isJust err		= (Error (toString (fromJust err)),iworld)
+				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
 				# iworld				= closeMySQLDb cur con cxt iworld
 				= (Ok rows,iworld)
 
@@ -97,10 +102,10 @@ where
     read db iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e, iworld)
+			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
                 # (err,tables,cur)  = listTables cur
-				| isJust err		= (Error (toString (fromJust err)),iworld)
+				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
 				# iworld            = closeMySQLDb cur con cxt iworld
 				= (Ok tables,iworld)
 
@@ -110,10 +115,10 @@ where
     read (db,tablename) iworld
 		# (mbOpen,iworld) = openMySQLDb db iworld
 		= case mbOpen of
-			Error e			= (Error e, iworld)
+			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
-                # (err,mbTable,cur)  = describeTable tablename cur
-				| isJust err		= (Error (toString (fromJust err)),iworld)
+                # (err,mbTable,cur) = describeTable tablename cur
+				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
 				# iworld            = closeMySQLDb cur con cxt iworld
 				= (Ok (fromJust mbTable),iworld)
 
