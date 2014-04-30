@@ -558,7 +558,7 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
         });
     },
     setEditorValue: function(value) {
@@ -578,7 +578,7 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
         el.type = 'password';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
         });
     },
     setEditorValue: function(value) {
@@ -597,7 +597,7 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
             el = this.domEl;
         el.innerHTML = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
         });
     },
     setEditorValue: function(value) {
@@ -620,7 +620,7 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
         el.checked = me.definition.value;
 
         el.addEventListener('click',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.checked);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.checked,false);
         });
     },
     setValue: function(value) {
@@ -656,7 +656,7 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
             } else {
                 value = me.allowDecimal ? parseFloat(e.target.value) : parseInt(e.target.value);
             }
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value);
+            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value,true);
         });
     },
     invalidKey: function(charCode) {
@@ -695,7 +695,7 @@ itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
     }
 });
@@ -708,7 +708,7 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
     }
 });
@@ -723,7 +723,7 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
         el.value = me.definition.cur;
 
         el.addEventListener('change',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,parseInt(e.target.value));
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,parseInt(e.target.value),true);
         });
     },
     setValue: function(value) {
@@ -784,7 +784,7 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
             return;
         }
         if(me.value != null) { //Clear;
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,null);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,null,false);
             me.value = null;
             me.showValue();
         } else { //Select
@@ -815,7 +815,7 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
             rsp = JSON.parse(me.xhr.responseText);
 
             //Switch to value state
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,rsp[0]);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,rsp[0],false);
             me.xhr = null;
             me.value = rsp[0];
             me.showValue();
@@ -928,7 +928,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			me.value = ys[2];
 			//Synchronize
 			if(diff !== null) {
-				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,diff);
+				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,diff,false);
 			}
 		};
 		return h;
@@ -1160,7 +1160,7 @@ itwc.component.itwc_actionbutton = itwc.extend(itwc.ButtonComponent,{
 itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
-        itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value);
+        itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value,false);
     },
     setEditorValue: function(value) {
         var me = this;
@@ -1493,7 +1493,7 @@ itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
 
         el.addEventListener('change',function(e) {
             var value = parseInt(e.target.value);
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value,false);
         });
     },
     setValue: function(selection) {
@@ -1529,7 +1529,7 @@ itwc.component.itwc_choice_radiogroup = itwc.extend(itwc.Component,{
                 inputEl.checked = true;
             }
             inputEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx);
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
             });
             liEl.appendChild(inputEl);
 
@@ -1562,7 +1562,7 @@ itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
                 inputEl.checked = true;
             }
             inputEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked]);
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked],false);
             });
             liEl.appendChild(inputEl);
 
@@ -1621,12 +1621,12 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
         }
         label.innerHTML = option.text;
         label.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
         },me);
 
         if(me.definition.doubleClickAction) {
             label.addEventListener('dblclick',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true]);
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
                 itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
 
                 e.stopPropagation();
@@ -1689,11 +1689,11 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
         me.definition.options.forEach(function(option,rowIdx) {
             rowEl = document.createElement('div');
             rowEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
             },me);
             if(me.definition.doubleClickAction) {
                 rowEl.addEventListener('dblclick',function(e) {
-                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx]);
+                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
                     itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
 
                     e.stopPropagation();
@@ -1764,7 +1764,7 @@ itwc.taskInstanceProxy = function() {
 itwc.taskInstanceProxy.prototype = {
     init: function(controller) {},
     sendResetEvent: function(instanceNo) {},
-    sendEditEvent: function(taskId, editorId, value) {},
+    sendEditEvent: function(taskId, editorId, value, replace) {},
     sendActionEvent: function(taskId, actionId) {},
     sendFocusEvent: function(taskId) {}
 }
@@ -1800,12 +1800,29 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.taskEvents = me.taskEvents.filter(function(e) {return (e[0] != instanceNo);});
         me.restartUIEventSource();
     },
-    queueTaskEvent: function (instanceNo,eventData) {
+    queueTaskEvent: function (instanceNo,eventData,replaceId) {
         var me = this,
-            eventNo;
+            eventNo, queueLen, i;
 
+        if(replaceId) { //If a replaceId is given see if it is already queued and update the queued event
+            queueLen = me.taskEvents.length;
+            for(i = 0; i < queueLen; i++) {
+                if(me.taskEvents[i].length == 4
+                   && me.taskEvents[i][0] == instanceNo
+                   && me.taskEvents[i][3] == replaceId ) {
+
+                    me.taskEvents[i][2] = eventData;
+                    me.flushTaskEvents();
+                    return me.taskEvents[1];
+                }
+            }
+        }
         eventNo = me.nextSendEventNo++;
-        me.taskEvents.push([instanceNo,eventNo,eventData]);
+        if(replaceId) {
+            me.taskEvents.push([instanceNo,eventNo,eventData,replaceId]);
+        } else {
+            me.taskEvents.push([instanceNo,eventNo,eventData]);
+        }
         me.flushTaskEvents();
         return eventNo;
     },
@@ -1885,11 +1902,11 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         var me = this;
         return me.queueTaskEvent(instanceNo, {resetEvent: instanceNo});
     },
-	sendEditEvent: function(taskId, editorId, value) {
+	sendEditEvent: function(taskId, editorId, value, replace) {
 		var me = this,
             instanceNo = parseInt(taskId.split("-")[0]);
 
-		return me.queueTaskEvent(instanceNo,{editEvent: JSON.stringify([taskId,editorId,value])});
+		return me.queueTaskEvent(instanceNo,{editEvent: JSON.stringify([taskId,editorId,value])}, replace ? editorId : null );
 	},
 	sendActionEvent: function(taskId, actionId) {
 		var me = this,
@@ -2015,14 +2032,14 @@ itwc.controller.prototype = {
     onWindowResize: function(e) {
         itwc.UI.afterResize();
     },
-    sendEditEvent: function(taskId, editorId, value) {
+    sendEditEvent: function(taskId, editorId, value, replace) {
         var me = this,
             instanceNo = taskId.split("-")[0];
 		
         if(me.instanceProxies[instanceNo]) {
-            return me.instanceProxies[instanceNo].sendEditEvent(taskId,editorId,value);
+            return me.instanceProxies[instanceNo].sendEditEvent(taskId,editorId,value,replace);
         } else {
-            return me.instanceProxies[itwc.START_INSTANCE_NO].sendEditEvent(taskId,editorId,value);
+            return me.instanceProxies[itwc.START_INSTANCE_NO].sendEditEvent(taskId,editorId,value,replace);
         }
     },
     sendActionEvent: function(taskId, actionId) {
