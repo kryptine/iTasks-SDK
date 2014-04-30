@@ -20,6 +20,7 @@ import iTasks.API.Extensions.CodeMirror
 
 derive class iTask Extension
 instance toString Extension
+instance == Extension
 
 // Scan directory environment and find all the modules on disk
 codeBaseFromEnvironment :: Environment -> Task CodeBase

@@ -4,6 +4,10 @@ import System.File, System.Directory,StdFile
 import iTasks.API.Extensions.CodeMirror
 
 derive class iTask Extension
+instance == Extension
+	where   (==) Icl Icl = True
+			(==) Dcl Dcl = True
+			(==) _ _ 	 = False
 
 codeBaseFromEnvironment :: Environment -> Task CodeBase
 codeBaseFromEnvironment paths = accWorld (getFilesInDir paths ["icl"] False)

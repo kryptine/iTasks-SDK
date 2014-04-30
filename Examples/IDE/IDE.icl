@@ -17,10 +17,6 @@ IDE_Status = sharedStore  "IDE_Status" 	{ openedFiles   = []
 
 initIDE
     =                   rescanCodeBase
-	>>= \status ->		editModules status.openedFiles
-where
-	editModules [] 					= return ()
-	editModules [module:modules]  	= editCleanModule module >>| editModules modules
 
 rescanCodeBase
     =                   get IDE_Status
@@ -31,35 +27,50 @@ Start w = startEngine workOnCleanModules w
 where
     workOnCleanModules
         =   initIDE
-        >>| get IDE_Status
-        >>- \status ->
-            parallel [(Embedded,chooseAndAddModules)] [] <<@ ArrangeCustom arrange <<@ FullScreen
+        >>| parallel [(Embedded,chooseAndAddModules)] [] <<@ ArrangeCustom arrange <<@ FullScreen
 
     arrange [b:bs] actions
         = arrangeWithSideBar 0 LeftSide 200 True [b,arrangeWithTabs bs []] actions
 
     chooseAndAddModules list
-        = whileUnchanged IDE_Status
-          \status ->
-            navigateCodebase status.codeBase
-        >^* [(OnAction (Action "Open .icl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Icl)) list)))
-            ,(OnAction (Action "Open .dcl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Dcl)) list)))
-            ,(OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @? const NoValue) <<@ InWindow)))
-            ]
-        @? const NoValue
+        = 			 	whileUnchanged IDE_Status
+            \status -> ((navigateCodebase status.codeBase 
+				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Icl)) list))
+				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Dcl)) list))
+				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @? const NoValue) <<@ InWindow))
+				            ])
+				       )@? const NoValue
 
-cleanEditor ((filePath,moduleName),ext)
-	=  (editCleanModule ((filePath,moduleName),ext)
-		>&>
-		(\mirror ->
-            viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror
-            >>*	[OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))]
-        )) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+	where
+		cleanEditor fileName=:((filePath,moduleName),ext)
+		=   ((		upd (\st -> {st & openedFiles = removeDup (st.openedFiles ++ [fileName])}) IDE_Status
+			 >>|	editCleanModule fileName
+			)
+			>&>
+			(\mirror ->
+	            	viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror
+	            >>*	[ OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))
+	            	, OnAction ActionClose 			(always (closeEditor fileName))
+	            	]
+	        )) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+	
+		openOldEditors status 
+			=				openPreviousFiles status.openedFiles 
+		where
+			openPreviousFiles [] 					= 		return ()
+			openPreviousFiles [module:modules]  	= 		appendTask Embedded (\_ -> cleanEditor module) list 
+														>>| openPreviousFiles modules
+		closeEditor fileName
+			=				upd (\st -> {st & openedFiles = removeMember fileName st.openedFiles}) IDE_Status
+			>>|				get (taskListSelfId list)
+			>>= \myId ->	removeTask myId list 
+			@! ()
 
 searchFor identifier
 	= 					get IDE_Status
 	>>= \status ->	    searchForIdentifier SearchIdentifier True identifier (hd (codeBaseToCleanModuleNames status.codeBase)) status.codeBase
-	>>= \result ->		viewInformation "result" [] result
+	>>= \result ->		viewInformation "result" [] result 
+	@! ()
 
 editCodeLocations
     =   get IDE_Status
@@ -72,7 +83,7 @@ getSelection :: CodeMirror -> Identifier
 getSelection {position,selection=Nothing,source} =  "nothing"
 getSelection {position,selection=Just (begin,end),source}
 | begin == end =  "zero"
-= source%(begin,end)
+= source%(begin,end-1)
 
 
 (>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
