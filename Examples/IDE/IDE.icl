@@ -58,7 +58,7 @@ where
     closeEditor fileName list
         =				upd (\st -> {st & openedFiles = removeMember fileName st.openedFiles}) IDE_Status
         >>|				get (taskListSelfId list)
-        >>= \myId ->	removeTask myId list 
+        >>= \myId ->	removeTask myId list
         @! ()
 
 searchFor identifier
