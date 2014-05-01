@@ -394,6 +394,7 @@ body {
   flex-direction: row;
   justify-content: flex-start;
   align-items: center;
+  align-self: stretch;
   margin: 0;
   padding: 2px 5px;
   background: #eeeeee;
