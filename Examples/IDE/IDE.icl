@@ -27,44 +27,39 @@ Start w = startEngine workOnCleanModules w
 where
     workOnCleanModules
         =   initIDE
-        >>| parallel [(Embedded,chooseAndAddModules)] [] <<@ ArrangeCustom arrange <<@ FullScreen
+        >>- \initState ->
+            parallel [(Embedded,chooseAndAddModules)
+                     :[(Embedded,cleanEditor module) \\ module <- initState.openedFiles]] [] <<@ ArrangeCustom arrange <<@ FullScreen
 
     arrange [b:bs] actions
         = arrangeWithSideBar 0 LeftSide 200 True [b,arrangeWithTabs bs []] actions
 
     chooseAndAddModules list
         = 			 	whileUnchanged IDE_Status
-            \status -> ((navigateCodebase status.codeBase 
-				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Icl)) list))
-				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> appendTask Embedded (\_-> cleanEditor (module,Dcl)) list))
+            \status -> ((navigateCodebase status.codeBase
+				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> appendTask Embedded (cleanEditor (module,Icl)) list))
+				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> appendTask Embedded (cleanEditor (module,Dcl)) list))
 				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @? const NoValue) <<@ InWindow))
 				            ])
 				       )@? const NoValue
 
-	where
-		cleanEditor fileName=:((filePath,moduleName),ext)
-		=   ((		upd (\st -> {st & openedFiles = removeDup (st.openedFiles ++ [fileName])}) IDE_Status
-			 >>|	editCleanModule fileName
-			)
-			>&>
-			(\mirror ->
-	            	viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror
-	            >>*	[ OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))
-	            	, OnAction ActionClose 			(always (closeEditor fileName))
-	            	]
-	        )) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+    cleanEditor fileName=:((filePath,moduleName),ext) list
+    =   (((		upd (\st -> {st & openedFiles = removeDup (st.openedFiles ++ [fileName])}) IDE_Status
+         >>|	editCleanModule fileName
+        )
+        >&>
+        (\mirror ->
+                viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror
+            >>*	[ OnAction (Action "Search" []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror))))
+                ]
+        )) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+        ) >>* [OnAction ActionClose 			(always (closeEditor fileName list))]
 	
-		openOldEditors status 
-			=				openPreviousFiles status.openedFiles 
-		where
-			openPreviousFiles [] 					= 		return ()
-			openPreviousFiles [module:modules]  	= 		appendTask Embedded (\_ -> cleanEditor module) list 
-														>>| openPreviousFiles modules
-		closeEditor fileName
-			=				upd (\st -> {st & openedFiles = removeMember fileName st.openedFiles}) IDE_Status
-			>>|				get (taskListSelfId list)
-			>>= \myId ->	removeTask myId list 
-			@! ()
+    closeEditor fileName list
+        =				upd (\st -> {st & openedFiles = removeMember fileName st.openedFiles}) IDE_Status
+        >>|				get (taskListSelfId list)
+        >>= \myId ->	removeTask myId list 
+        @! ()
 
 searchFor identifier
 	= 					get IDE_Status
