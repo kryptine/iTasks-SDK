@@ -1214,12 +1214,6 @@ instance < TaskId
 where
 	(<) (TaskId a0 b0) (TaskId a1 b1) = if (a0 == a1) (b0 < b1) (a0 < a1)
 
-instance toString TaskPriority
-where
-	toString LowPriority	= "Low"
-	toString NormalPriority	= "Normal"
-	toString HighPriority	= "High"
-
 instance toString (TaskListId s)
 where
 	toString (TopLevelTaskList)					= "tasklist-top"
@@ -1343,15 +1337,15 @@ actionWeight (Action _ options) = case [weight \\ ActionWeight weight <- options
 	[weight:_]	= weight
 	_			= 0 
 
-derive JSONEncode		TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gText	        TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, ProgressMeta, ValueStatus, TaskPriority, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, ProgressMeta, ValueStatus, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, ProgressMeta, ValueStatus, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, ProgressMeta, ValueStatus, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, ProgressMeta, ValueStatus, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, ProgressMeta, ValueStatus, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, ProgressMeta, ValueStatus, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, ProgressMeta, ValueStatus, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, ProgressMeta, ValueStatus, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, ProgressMeta, ValueStatus, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
 	

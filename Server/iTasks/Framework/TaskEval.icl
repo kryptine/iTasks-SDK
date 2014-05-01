@@ -22,7 +22,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{current={taskTime},c
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -36,7 +36,7 @@ createTaskInstance task iworld=:{current={taskTime},clocks={localDate,localTime}
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
-	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -50,7 +50,7 @@ createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAtt
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
-	# pmeta					= {value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -187,7 +187,7 @@ where
     finalizeUI session res = res
 
 	updateProgress now result currentUser progress
-		# progress = {progress & firstEvent = Just (fromMaybe now progress.firstEvent), latestEvent = Nothing} //EXPERIMENT
+		# progress = {ProgressMeta|progress & firstEvent = Just (fromMaybe now progress.ProgressMeta.firstEvent), latestEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {ProgressMeta|progress & value = Exception}
 			(ValueResult (Value _ stable) {TaskInfo|involvedUsers} _ _)	

@@ -5,7 +5,21 @@ import System.FilePath
 import iTasks.API.Extensions.CodeMirror
 
 :: CodeBase 		:== [SourceTree]
-:: SourceTree 		:== (DirPathName,[TreeNode FileName])	// absolute path, tree of code 
+
+:: SourceTree
+    = LibraryTree       LibraryTree
+    | ApplicationTree   ApplicationTree
+
+:: LibraryTree =
+    { rootDir       :: DirPathName
+    , moduleFiles   :: [TreeNode FileName]
+    }
+:: ApplicationTree =
+    { rootDir       :: DirPathName
+    , moduleFiles   :: [TreeNode FileName]
+    , mainModule    :: FileName
+    }
+
 :: DirPathName		:== String								// Path name leading to a directory
 :: FileName			:== String								// Name of file, with extension
 :: ModuleName 		:== String								// Name of module, without extension
@@ -18,7 +32,7 @@ import iTasks.API.Extensions.CodeMirror
 :: Environment		:== [DirPathName]	// Directories where code is stored
 :: Identifier		:== String								// Clean identifier 
 
-derive class iTask Extension
+derive class iTask SourceTree, LibraryTree, ApplicationTree, Extension
 instance toString Extension
 instance == Extension
 

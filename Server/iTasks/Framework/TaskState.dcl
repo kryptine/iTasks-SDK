@@ -18,7 +18,16 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, listId        :: !TaskId              //Reference to parent tasklist
     , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
-	, attributes    :: !TaskAttributes      //Meta-data
+	, attributes    :: !TaskAttributes      //Arbitrary meta-data
+	}
+
+:: TIProgress =
+	{ value             :: !ValueStatus             //* Status of the task value
+    , issuedAt			:: !DateTime				//* When was the task created
+	, issuedBy			:: !User					//* By whom was the task created
+    , involvedUsers     :: ![User]                  //* Users currently involved in the task
+	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
+	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
 	}
 
 :: TIType

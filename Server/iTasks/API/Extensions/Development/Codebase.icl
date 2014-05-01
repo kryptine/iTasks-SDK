@@ -3,14 +3,13 @@ import iTasks
 import System.File, System.Directory,StdFile
 import iTasks.API.Extensions.CodeMirror
 
-derive class iTask Extension
-instance == Extension
-	where   (==) Icl Icl = True
-			(==) Dcl Dcl = True
-			(==) _ _ 	 = False
+derive class iTask SourceTree, LibraryTree, ApplicationTree, Extension
+instance == Extension where (==) x y = x === y
 
 codeBaseFromEnvironment :: Environment -> Task CodeBase
-codeBaseFromEnvironment paths = accWorld (getFilesInDir paths ["icl"] False)
+codeBaseFromEnvironment paths 
+    = accWorld (getFilesInDir paths ["icl"] False)
+    @ map (\(rootDir,moduleFiles) -> LibraryTree {LibraryTree|rootDir=rootDir,moduleFiles=moduleFiles})
 
 navigateCodebase :: CodeBase -> Task CleanModuleName
 navigateCodebase codebase = navigate codebase
@@ -47,8 +46,8 @@ where
 
 treeToList :: CodeBase [FilePath] -> [(FilePath,[FilePath],FilePath)]
 treeToList [] 								      dirs = []
-treeToList [(path,[Leaf file:files]):tree] 	 	  dirs = [(path,dirs,file): treeToList [(path,files)] dirs] ++ treeToList tree []
-treeToList [(path,[Node dir childs :files]):tree] dirs = treeToList [(path,childs)] (dirs++[dir]) ++ treeToList [(path,files)] dirs ++ treeToList tree []
+treeToList [LibraryTree {LibraryTree|rootDir,moduleFiles=[Leaf file:files]}:tree] dirs = [(rootDir,dirs,file): treeToList [LibraryTree {LibraryTree|rootDir=rootDir,moduleFiles=files}] dirs] ++ treeToList tree []
+treeToList [LibraryTree {LibraryTree|rootDir,moduleFiles=[Node dir childs :files]}:tree] dirs = treeToList [LibraryTree {LibraryTree|rootDir=rootDir,moduleFiles=childs}] (dirs++[dir]) ++ treeToList [LibraryTree{LibraryTree|rootDir=rootDir,moduleFiles=files}] dirs ++ treeToList tree []
 treeToList [_:tree] 				      		  dirs = treeToList tree []
 
 :: FileExtension :== String

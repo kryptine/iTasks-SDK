@@ -379,7 +379,7 @@ where
 addTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !(Maybe Int) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
 addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain},clocks={localDate,localTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {value=None, issuedAt=DateTime localDate localTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# progress = {ProgressMeta|value=None, issuedAt=DateTime localDate localTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
