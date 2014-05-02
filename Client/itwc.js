@@ -127,10 +127,10 @@ itwc.Component.prototype = {
                     case 'right':   el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
                 }
             } else {
-                switch(me.definition.valign) {
-                    case 'top':     el.style.alignItems = 'flex-start'; el.style.webkitAlignItems = 'flex-start'; break;
-                    case 'middle':  el.style.alignItems = 'center'; el.style.webkitAlignItems  = 'center'; break;
-                    case 'bottom':  el.style.alignItems = 'flex-end'; el.style.webkitAlignItems = 'flex-end'; break;
+                switch(me.definition.halign) {
+                    case 'left':    el.style.alignItems = 'flex-start'; el.style.webkitAlignItems = 'flex-start'; break;
+                    case 'center':  el.style.alignItems = 'center'; el.style.webkitAlignItems  = 'center'; break;
+                    case 'right':   el.style.alignItems = 'flex-end'; el.style.webkitAlignItems = 'flex-end'; break;
                 }
             }
         }
@@ -143,10 +143,10 @@ itwc.Component.prototype = {
                     case 'bottom':  el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
                 }
             } else {
-                switch(me.definition.halign) {
-                    case 'left':    el.style.alignItems = 'flex-start'; el.style.webkitAlignItems = 'flex-start'; break;
-                    case 'center':  el.style.alignItems = 'center'; el.style.webkitAlignItems  = 'center'; break;
-                    case 'right':   el.style.alignItems = 'flex-end'; el.style.webkitAlignItems = 'flex-end'; break;
+                switch(me.definition.valign) {
+                    case 'top':     el.style.alignItems = 'flex-start'; el.style.webkitAlignItems = 'flex-start'; break;
+                    case 'middle':  el.style.alignItems = 'center'; el.style.webkitAlignItems  = 'center'; break;
+                    case 'bottom':  el.style.alignItems = 'flex-end'; el.style.webkitAlignItems = 'flex-end'; break;
                 }
             }
         }
@@ -2039,6 +2039,7 @@ itwc.controller.prototype = {
         if(me.instanceProxies[instanceNo]) {
             return me.instanceProxies[instanceNo].sendEditEvent(taskId,editorId,value,replace);
         } else {
+            console.log("Is dit het?");
             return me.instanceProxies[itwc.START_INSTANCE_NO].sendEditEvent(taskId,editorId,value,replace);
         }
     },
