@@ -221,8 +221,9 @@ where
 	where
 		itwcStartPage = HtmlTag [] [head,body]
 		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
-                          ,MetaTag [NameAttr "viewport",ContentAttr "width=device-width"] []
+                          ,MetaTag [NameAttr "viewport",ContentAttr "width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui"] []
                           ,MetaTag [NameAttr "mobile-web-app-capable",ContentAttr "yes"] []
+                          ,MetaTag [NameAttr "apple-mobile-web-app-capable",ContentAttr "yes"] []
                           ,TitleTag [] [Text appName], startUrlScript : styles ++ scripts]
 		body = BodyTag [] []
 
