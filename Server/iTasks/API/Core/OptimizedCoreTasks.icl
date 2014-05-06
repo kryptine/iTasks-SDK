@@ -16,7 +16,7 @@ from Data.Map						import newMap, put
 
 interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
                         -> Task (l,v) | descr d & iTask l & iTask r & iTask v
-interactExposed desc shared initFun refreshFun = Task eval
+interactExposed desc shared initFun refreshFun = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
@@ -51,7 +51,7 @@ where
 
 interactLocalExposed :: !d (l,(v,InteractionMask)) (l (v,InteractionMask) Bool -> (l,(v,InteractionMask)))
                         -> Task (l,v) | descr d & iTask l & iTask v
-interactLocalExposed desc initVal refreshFun = Task eval
+interactLocalExposed desc initVal refreshFun = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (l,(v,mask))	= initVal
@@ -77,7 +77,7 @@ where
 
 interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,InteractionMask) Bool Bool Bool -> (v,InteractionMask))
                         -> Task v | descr d & iTask r & iTask v
-interactViewOnly desc shared initFun refreshFun = Task eval
+interactViewOnly desc shared initFun refreshFun = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
@@ -113,7 +113,7 @@ where
 
 interactLocalViewOnly :: !d (v,InteractionMask) ((v,InteractionMask) Bool -> (v,InteractionMask))
                         -> Task v | descr d & iTask v
-interactLocalViewOnly desc initVal refreshFun = Task eval
+interactLocalViewOnly desc initVal refreshFun = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (v,mask)	= initVal
@@ -225,7 +225,7 @@ where
 					= (nl,v,Touched)
 */
 interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v
-interactSharedInformation desc shared toView = Task eval
+interactSharedInformation desc shared toView = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
@@ -262,7 +262,7 @@ where
 		= (r,v,Touched) 
 
 interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v & iTask l
-interactNullEnter desc initFun fromf = Task eval
+interactNullEnter desc initFun fromf = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = initFun
@@ -291,7 +291,7 @@ where
 			= (l,v,m)
 
 interactNullUpdate :: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v
-interactNullUpdate desc tof fromf m = Task eval
+interactNullUpdate desc tof fromf m = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = tof m
@@ -323,7 +323,7 @@ where
 		= (l,v,m)
 
 interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v
-interactNullView desc tof m = Task eval
+interactNullView desc tof m = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# l = m

@@ -38,7 +38,7 @@ where
 			(Error e,world)	= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 
 callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
-callProcess desc opts cmd args dir = Task eval
+callProcess desc opts cmd args dir = Task Nothing eval
 where
     //Start the process
     eval event repOpts (TCInit taskId ts) iworld=:{IWorld|world}
@@ -259,7 +259,7 @@ from iTasks.API.Common.ExportTasks import exportTextFile
 from iTasks.API.Common.ImportTasks import importDocument
 
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
-withTemporaryDirectory taskfun = Task eval
+withTemporaryDirectory taskfun = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
 		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
@@ -280,7 +280,7 @@ where
 		# ts						= case event of
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
-		# (Task evala)				= taskfun tmpDir
+		# (Task _ evala)			= taskfun tmpDir
 		# (resa,iworld=:{world})	= evala event repOpts treea {IWorld|iworld & world = world}
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
         | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
@@ -292,7 +292,7 @@ where
 	
 	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
 		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
-		# (Task evala)		= taskfun tmpDir
+		# (Task _ evala)	= taskfun tmpDir
 		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
 		= (resa,iworld)

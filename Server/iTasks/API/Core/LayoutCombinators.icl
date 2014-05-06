@@ -214,7 +214,7 @@ where tune (Attribute k v) t = tune (AfterLayout (uiDefSetAttribute k v o forceL
 
 instance tune NoUserInterface
 where
-    tune NoUserInterface (Task eval) = Task eval`
+    tune NoUserInterface (Task mdi eval) = Task mdi eval`
     where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
 instance tune ForceLayout

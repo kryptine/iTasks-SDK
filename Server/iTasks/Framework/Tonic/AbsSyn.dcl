@@ -56,6 +56,10 @@ mkGNode :: GNodeType -> GNode
 
 :: GIdentifier :== String
 
+// TODO Add some sort of parallel arguments node type so we can simply replace
+// the GNode in the actual graph node. Can be used when substituting variables
+// at runtime. We don't need to create extra nodes for that in this graph; just
+// in the rendering.
 :: GNodeType
   =  GAssign GCleanExpression
   |  GDecision DecisionType !GCleanExpression
