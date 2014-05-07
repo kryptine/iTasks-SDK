@@ -67,6 +67,9 @@ instance JSObjAttr Int where
 (.=) infixl 2 :: !(!JSObj o, !t) !v -> !*(!*JSWorld -> !*JSWorld) | JSObjAttr t
 (.=) (obj, attr) val = \world -> jsSetter attr (toJSVal val) obj world
 
+new :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
+new objNm args = jsNewObject objNm (toArgs args)
+
 jsApply	:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsApply fun scope args world = undef
 

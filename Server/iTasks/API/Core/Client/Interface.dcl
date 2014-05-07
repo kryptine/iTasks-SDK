@@ -51,6 +51,7 @@ instance JSObjAttr Int
 (.#) infixl 3       :: !(JSObj a)  !t -> (JSObj a, t) | JSObjAttr t
 .?                  :: !(!JSObj o, !t) !*JSWorld -> *(!JSVal r, !*JSWorld) | JSObjAttr t
 (.=) infixl 2       :: !(!JSObj o, !t) !v -> *(*JSWorld -> *JSWorld) | JSObjAttr t
+new                 :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
 
 //Calling js functions
 jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
