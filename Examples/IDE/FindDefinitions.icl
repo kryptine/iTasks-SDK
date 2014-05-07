@@ -13,27 +13,30 @@ derive class iTask IdentifierPositionList
 
 from UtilStrictLists import :: List, StrictListToList, ListToStrictList
 
-searchForIdentifier :: !SearchWhat !Bool !Identifier !CleanModuleName  !CodeBase 
+searchForIdentifier :: !SearchWhat !Bool !Identifier !(Maybe CleanModuleName)  !CodeBase 
 												-> Task (![(!CleanModule,!IdentifierPositionList)],![CleanModuleName])
 
-searchForIdentifier what inImports identifier cleanModuleName codeBase 
-	= search [cleanModuleName] (codeBaseToCleanModuleNames codeBase) [] [] 
+searchForIdentifier what inImports identifier maybeName codeBase 
+# allNames = codeBaseToCleanModuleNames codeBase
+= case maybeName of
+		Nothing -> if (allNames == [])
+					  (return ([],[]))
+					  (search allNames [] [] []) 
+		(Just name) -> (search [name] allNames [] [])
 where
 	search ::  ![CleanModuleName] ![CleanModuleName] ![CleanModuleName] [(!CleanModule,!IdentifierPositionList)] 
 												-> Task (![(!CleanModule,!IdentifierPositionList)],![CleanModuleName])
-	search [] baseNotSearched searched found 
+	search [] notSearched searched found 			
 		= return (reverse found,reverse searched)								
-	search [(path,moduleName):rest] baseNotSearched searched found 
+	search [(path,moduleName):rest] notSearched searched found 
 		=					searchInFile what inImports identifier (path </> moduleName +++ if inImports ".icl" ".dcl")
-		>>= \(new,pos) -> 	let (nsearched,nfound) = calc (new,pos) 
-								(toDo,restBase)    = searchModulesInCodeBase new baseNotSearched
-								toSearch		   = removeDup (rest ++ toDo)
-							in	search toSearch restBase nsearched nfound
+		>>= continue 
 	where
-		calc (new,pos) 
-		# nsearched 	= [(path,moduleName):searched]
-		# nfound 		= ifPosNil pos found [(((path,moduleName),if inImports Icl Dcl),pos):found]
-		= (nsearched,nfound)
+		continue (imported,pos) 						// modules imported by searched file, found identifiers
+		# nfound 			= ifPosNil pos found [(((path,moduleName),if inImports Icl Dcl),pos):found]
+		# (toDo,restBase)   = searchModulesInCodeBase imported notSearched
+		# toSearch		    = removeDup (rest ++ toDo)
+		= search toSearch restBase [(path,moduleName):searched] nfound	
 	
 	ifPosNil PosNil then else = then
 	ifPosNil _      then else = else

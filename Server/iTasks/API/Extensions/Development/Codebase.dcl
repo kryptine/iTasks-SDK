@@ -46,4 +46,4 @@ navigateCodebase :: CodeBase -> Task CleanModuleName
 codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 
 //Editor for Clean Source Code
-editCleanModule :: CleanModule -> Task CodeMirror
+editCleanModule :: Bool CleanModule -> Task CodeMirror

@@ -6,7 +6,7 @@ import iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
-import ligrettoTOP
+//import ligrettoTOP
 import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
 
@@ -15,7 +15,6 @@ import qualified Data.Map as DM
 */
 
 //* Running the tasks in a workflow browser
-
 
 //import ligrettoTOP
 
@@ -69,7 +68,7 @@ basicAPIExamples =
 	,workflow (distrTask +++ "Chat with someone")   		"Chat with someone" 				chat
 	,workflow (distrTask +++ "Plan meeting") 				"Plan meeting" 						testMeeting
 	,workflow (distrTask +++ "Tic-Tac-Toe")                 "Play tic-tac-toe"                  tictactoe
-	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
+//	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
 
 	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
