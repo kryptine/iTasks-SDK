@@ -65,16 +65,15 @@ mkGNode :: GNodeType -> GNode
   |  GDecision DecisionType !GCleanExpression
   |  GInit
   |  GLet GLet
-//  | GList [GExpression]
+//  | GList [GCleanExpression]
   |  GListComprehension GListComprehension
-  |  GParallelSplit
-  |  GParallelJoin GJoinType
-  |  GReturn !GExpression
-  |  GStep
+  |  GParallel GParType [GinGraph]
+  |  GReturn !GCleanExpression
+  |  GStep [StepElem]
   |  GStop
-  |  GTaskApp GIdentifier ![GExpression]
+  |  GTaskApp GIdentifier ![GCleanExpression]
 
-:: GJoinType
+:: GParType
   =  DisFirstBin
   |  DisFirstList
   |  DisLeft
@@ -82,29 +81,29 @@ mkGNode :: GNodeType -> GNode
   |  ConAll
   |  ConPair
 
-:: GEdge = { edge_pattern :: !Maybe GPattern }
+:: StepElem =
+  { stepType :: StepType
+  , stepExpr :: GinGraph
+  }
 
-:: GExpression
-  =  GUndefinedExpression
-  |  GGraphExpression GinGraph
-  //|  GListExpression [GExpression]
-  //|  GListComprehensionExpression GListComprehension
-  |  GCleanExpression GCleanExpression
+:: StepType = OnValue | OnButton String | OnException
+
+:: GEdge = { edge_pattern :: !Maybe GPattern }
 
 :: GCleanExpression :== String
 
 :: GListComprehension =
-  {  output    :: GExpression
+  {  output    :: GCleanExpression
   ,  guard     :: Maybe GCleanExpression
   ,  comprElem :: [ComprElem]
   //,  selector  :: GPattern
-  //,  input     :: GExpression
+  //,  input     :: GCleanExpression
   }
 
 :: ComprElem =
   { cePattern :: GPattern
   , ceType    :: CEType
-  , ceInput   :: GExpression
+  , ceInput   :: GCleanExpression
   }
 
 :: CEType
