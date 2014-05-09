@@ -211,6 +211,8 @@ instance tune Icon
 where tune (Icon icon) t = tune (AfterLayout (uiDefSetAttribute ICON_ATTRIBUTE icon o forceLayout )) t
 instance tune Attribute
 where tune (Attribute k v) t = tune (AfterLayout (uiDefSetAttribute k v o forceLayout)) t
+instance tune Label
+where tune (Label label) t = tune (AfterLayout (tweakControls (map (\(c,a) -> (c,'Data.Map'.put LABEL_ATTRIBUTE label a))))) t
 
 instance tune NoUserInterface
 where
@@ -715,7 +717,7 @@ tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
 tweakAttr f {UIDef|content=UIForm stack=:{UIForm|attributes},windows}
 	= {UIDef|content=UIForm {UIForm|stack & attributes = f attributes},windows=windows}
 tweakAttr f {UIDef|content=UIBlock sub=:{UIBlock|attributes},windows}
-	= {UIDef|content=UIBlock {UIBlock| sub & attributes = f attributes},windows=windows}
+	= {UIDef|content=UIBlock {UIBlock|sub & attributes = f attributes},windows=windows}
 tweakAttr f def = def
 
 tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef

@@ -65,6 +65,7 @@ instance tune FullScreen
 
 //Attribute tuning types
 instance tune Title
+instance tune Label
 instance tune Icon
 instance tune Attribute
 
