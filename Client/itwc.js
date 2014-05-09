@@ -115,12 +115,13 @@ itwc.Component.prototype = {
     },
     initItemLayout: function() {
         var me = this,
-            el = me.targetEl;
+            el = me.targetEl,
+            horizontal = ((me.definition.direction && me.definition.direction) == 'horizontal') || false;
 
-        el.classList.add(me.definition.direction == 'horizontal' ? 'hcontainer' : 'vcontainer');
+        el.classList.add(horizontal ? 'hcontainer' : 'vcontainer');
         //Horizontal alignment
         if(me.definition.halign) {
-            if(me.definition.direction == 'horizontal') {
+            if(horizontal) {
                 switch(me.definition.halign) {
                     case 'left':    el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
                     case 'center':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
@@ -136,7 +137,7 @@ itwc.Component.prototype = {
         }
         //Vertical alignment
         if(me.definition.valign) {
-            if(me.definition.direction == 'vertical') {
+            if(!horizontal) {
                 switch(me.definition.valign)  {
                     case 'top':     el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
                     case 'middle':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
@@ -227,67 +228,7 @@ itwc.Container = itwc.extend(itwc.Component,{
     defaultDirection: 'vertical',
     itemsOffset: 0,                  //The number of DOM elements before the child items are positioned (for example 1 if a panel has a header)
     afterItemAdded: null,
-    afterItemRemoved: null,
-
-    initMenuBar: function() {
-        var me = this;
-
-        //Add a menu bar
-        if(me.definition.menu) {
-            me.domEl.classList.add('vcontainer');
-            me.menu = new itwc.component.itwc_menubar();
-            me.menu.init({xtype: "itwc_menubar", items: me.definition.menu}, me);
-            me.menu.render(0);
-            me.domEl.appendChild(me.menu.domEl);
-
-            me.targetEl = document.createElement('div');
-            me.targetEl.style.flex = 1;
-            me.domEl.appendChild(me.targetEl);
-        }
-    },
-    addMenu: function(items) {
-        var me = this;
-
-        me.menu = new itwc.component.itwc_menubar();
-        me.menu.init({xtype: "itwc_menubar", items: items}, me);
-        me.menu.render(0);
-        //Add menu items (TODO: SHOULD NOT REALLY BE DONE HERE :()
-        me.menu.definition.items.forEach(function(menuCmp,menuIdx) {
-            itwc.controller.addComponent(me.menu,menuIdx,menuCmp);
-        });
-
-        if(me.definition.direction == 'horizontal') { //Flip direction for the domEl
-            me.domEl.classList.remove('hcontainer');
-            me.domEl.classList.add('vcontainer');
-        }
-
-        me.targetEl = document.createElement('div');
-        me.targetEl.style.flex = 1;
-        me.targetEl.style.alignSelf = 'stretch';
-        me.initItemLayout();
-
-        //Move children of body to wrapper div
-        while(me.domEl.firstChild) {
-            me.targetEl.appendChild(me.domEl.firstChild);
-        }
-        me.domEl.appendChild(me.menu.domEl);
-        me.domEl.appendChild(me.targetEl);
-    },
-    removeMenu: function() {
-        var me = this;
-        me.menu.beforeDOMRemove();
-        //Remove menu first
-        me.domEl.removeChild(me.menu.domEl);
-        //Move children from wrapper div to body and remove it
-        while(me.targetEl.firstChild) {
-            me.domEl.appendChild(me.targetEl.firstChild);
-        }
-        me.domEl.removeChild(me.targetEl);
-        me.targetEl = me.domEl;
-        me.initItemLayout();
-
-        delete me.menu;
-    }
+    afterItemRemoved: null
 });
 itwc.Panel = itwc.extend(itwc.Container,{
 
@@ -304,15 +245,6 @@ itwc.Panel = itwc.extend(itwc.Container,{
 
         me.targetEl = document.createElement('div');
         me.targetEl.classList.add('inner');
-/*
-        me.targetEl.style.flexGrow = 1;
-        me.targetEl.style.flexShrink = 1;
-        me.targetEl.style.alignSelf = 'stretch';
-        me.targetEl.style.display = 'flex';
-*/
-        me.domEl.style.display = 'flex';
-        me.domEl.style.flexDirection = 'column';
-
         me.domEl.appendChild(me.targetEl);
     },
     createHeaderEl: function() {
@@ -346,6 +278,17 @@ itwc.Panel = itwc.extend(itwc.Container,{
         } else {
             me.headerEl.appendChild(me.closeEl);
         }
+    },
+    createMenuEl: function(definition) {
+        var me = this;
+
+        me.menu = new itwc.component.itwc_menubar();
+        me.menu.definition = definition;
+        me.menu.init(definition, me);
+        me.menu.render(0);
+        me.menuEl = me.menu.domEl;
+
+        me.domEl.insertBefore(me.menuEl,me.targetEl);
     },
     setTitle: function(title) {
         var me = this;
@@ -381,9 +324,47 @@ itwc.Panel = itwc.extend(itwc.Container,{
                 me.headerEl = null;
             }
         }
+    },
+    setMenu: function(items) {
+        var me = this;
+
+        if(items) {
+            if(!me.menuEl) {
+                me.createMenuEl({xtype: 'itwc_menubar', items: items});
+            }
+        } else { //remove
+            if(me.menuEl) {
+                me.menu.beforeDOMRemove();
+                me.domEl.removeChild(me.menuEl);
+                me.menuEl = null;
+                me.menu = null;
+            }
+        }
     }
 });
+itwc.Layer = itwc.extend(itwc.Panel,{
+    maximize: false,
 
+    initDOMEl: function() {
+        this.initLayer();
+    },
+    initLayer: function() {
+        this.domEl.classList.add("layer");
+        this.initPanel();
+    },
+    initSize: function() {
+        var me = this;
+
+        //Layers are put directly in the body and sized by the controller
+        if(me.maximize) {
+            this.domEl.style.width = window.innerWidth;
+            this.domEl.style.height = window.innerHeight;
+        }
+
+        //Children are size using their iTasks attributes
+        me.initItemLayout();
+    }
+});
 //#### CORE UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
 
@@ -411,7 +392,7 @@ itwc.component.itwc_menubutton = itwc.extend(itwc.Component, {
         el.appendChild(linkEl)
         //Menu items
         me.menu = new itwc.component.itwc_menu();
-        me.menu.init(me.definition.menu,me);
+        me.menu.init({xtype: 'itwc_menu', items: me.definition.menu},me);
         me.menu.render(0);
         el.appendChild(me.menu.domEl);
     },
@@ -448,28 +429,91 @@ itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
     },
     initSize: function() {} //Don't size
 });
-itwc.component.itwc_viewport = itwc.extend(itwc.Container,{
-    render: function() {
-        var me = this, i;
-        me.domEl = document.createElement('div');
-        me.domEl.id = "viewport";
-        document.body.appendChild(me.domEl);
-        me.targetEl = me.domEl;
+
+itwc.component.itwc_viewport = itwc.extend(itwc.Layer,{
+    initDOMEl: function() {
+        var me = this;
 
         me.windows = [];
+        me.maximize = true;
 
-        me.reset();
-    },
-    reset: function() {
-        var me = this, i;
-        //Empty the viewport element
-        for(i = me.domEl.childNodes.length - 1; i >= 0; i--) {
-            me.domEl.removeChild(me.domEl.childNodes[i]);
+        me.domEl.classList.add('viewport');
+        me.initLayer();
+        if(me.definition.menu) {
+            me.setMenu(me.definition.menu);
         }
-        me.initMenuBar();
+        itwc.controller.instanceProxies[me.definition.instanceNo] = itwc.controller.remoteProxy;
+        itwc.controller.remoteProxy.addInstance(me.definition.instanceNo,me.definition.instanceKey,me);
+    },
+    beforeDOMRemove: function() {
+        var me = this;
+        itwc.controller.remoteProxy.removeInstance(me.definition.instanceNo);
     },
     setTitle: function(title) {
-        document.title = title;
+        document.title = title || '';
+    },
+    reset: function() {
+    }
+});
+itwc.component.itwc_window = itwc.extend(itwc.Layer, {
+    initDOMEl: function() {
+        var me = this;
+        me.domEl.classList.add('window');
+        me.initLayer();
+        me.setTitle(me.definition.title);
+        me.setCloseTaskId(me.definition.closeTaskId);
+        if(me.definition.menu) {
+            me.setMenu(me.definition.menu);
+        }
+        if(me.headerEl) {
+            me.headerEl.addEventListener('mousedown', me.onStartDrag.bind(me));
+        }
+    },
+    initSize: function() {
+        var me = this,
+            el = me.domEl,
+            width = me.definition.itwcWidth || me.defaultWidth,
+            height = me.definition.itwcHeight || me.defaultHeight;
+
+        if(width != 'flex' && width != 'wrap') {
+            el.style.width = width + 'px';
+        }
+        if(height != 'flex' && height != 'wrap') {
+            el.style.height = height + 'px';
+        }
+        me.initItemLayout();
+    },
+    onStartDrag: function(e) {
+        var me = this;
+
+        e.preventDefault();
+        me.lastX = e.clientX;
+        me.lastY = e.clientY;
+        me.onDragging_ = me.onDragging.bind(me);
+        me.onStopDrag_ = me.onStopDrag.bind(me);
+        window.addEventListener('mousemove', me.onDragging_);
+        window.addEventListener('mouseup', me.onStopDrag_);
+    },
+    onDragging: function(e) {
+        var me = this,
+            newX = e.clientX,
+            newY = e.clientY,
+            diffY = newY - me.lastY,
+            diffX = newX - me.lastX,
+            left, top;
+
+        left = parseInt(document.defaultView.getComputedStyle(me.domEl,'').getPropertyValue('left'),10);
+        top = parseInt(document.defaultView.getComputedStyle(me.domEl,'').getPropertyValue('top'),10);
+        me.domEl.style.left = ((left < 0) ? 0 : (left + diffX)) + 'px';
+        me.domEl.style.top = ((top < 0) ? 0 : (top + diffY)) + 'px';
+
+        me.lastX = newX;
+        me.lastY = newY;
+    },
+    onStopDrag: function(e) {
+        var me = this;
+        window.removeEventListener('mousemove', me.onDragging_);
+        window.removeEventListener('mouseup', me.onStopDrag_);
     }
 });
 itwc.component.itwc_view_string = itwc.extend(itwc.Component,{
@@ -988,8 +1032,6 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 
 		if(me.definition.html) {
 			el.innerHTML = me.definition.html;
-        } else if(me.definition.menu) {
-            me.initMenuBar();
         }
         // Prepare javascript
         if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
@@ -1211,26 +1253,6 @@ itwc.component.itwc_container = itwc.extend(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_panel = itwc.extend(itwc.Panel,{
-    defaultHeight: 'flex',
-    hasTitle: false,
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl, header;
-
-        me.initPanel();
-
-        if(me.definition.baseCls) {
-            el.classList.add(me.definition.baseCls);
-        }
-        el.classList.add('panel');
-        if(me.definition.frame) {
-            el.classList.add('framed');
-        }
-        me.setTitle(me.definition.title);
-        me.initMenuBar();
-    }
-});
 itwc.component.itwc_fieldset = itwc.extend(itwc.Container,{
     defaultHeight: 'flex',
     initDOMEl: function() {
@@ -1252,6 +1274,29 @@ itwc.component.itwc_fieldset = itwc.extend(itwc.Container,{
     },
     setTitle: function(title) {
         this.domEl.childNodes[0].innerHTML = title;
+    }
+});
+itwc.component.itwc_panel = itwc.extend(itwc.Panel,{
+    defaultHeight: 'flex',
+    hasTitle: false,
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl, header;
+
+        me.initPanel();
+
+        el.classList.add('panel');
+
+        if(me.definition.baseCls) {
+            el.classList.add(me.definition.baseCls);
+        }
+        if(me.definition.frame) {
+            el.classList.add('framed');
+        }
+        me.setTitle(me.definition.title);
+        if(me.definition.menu) {
+            me.setMenu(me.definition.menu);
+        }
     }
 });
 itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
@@ -1346,17 +1391,20 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         }
     }
 });
-itwc.component.itwc_tabitem = itwc.extend(itwc.Container,{
+itwc.component.itwc_tabitem = itwc.extend(itwc.Panel,{
 
     initDOMEl: function(itemIdx) {
         var me = this,
             el = me.domEl;
 
+        me.initPanel();
         el.classList.add('tabitem');
         if(itemIdx === me.parentCmp.activeTab) {
             el.classList.add('selected');
         }
-        me.initMenuBar();
+        if(me.definition.menu) {
+            me.setMenu(me.definition.menu);
+        }
     },
     initSize: function() {
         //Size is managed with css by tabset container
@@ -1454,17 +1502,6 @@ itwc.component.itwc_splitter = itwc.extend(itwc.Component, {
         var me = this;
         window.removeEventListener('mousemove', me.onDragging_);
         window.removeEventListener('mouseup', me.onStopDrag_);
-    }
-});
-itwc.component.itwc_window = itwc.extend(itwc.Panel, {
-    initDOMEl: function() {
-        var me = this;
-
-        me.domEl.classList.add('window');
-        me.initPanel();
-        me.setTitle(me.definition.title);
-        me.setCloseTaskId(me.definition.closeTaskId);
-        me.initMenuBar();
     }
 });
 itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
@@ -1731,11 +1768,13 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
     }
 });
 
-itwc.component.itwc_embedding = itwc.extend(itwc.Container, {
+itwc.component.itwc_embedding = itwc.extend(itwc.Panel, {
     initDOMEl: function() {
         var me = this;
 
         me.windows = [];
+        me.domEl.classList.add('panel');
+        me.initPanel();
 
         itwc.controller.instanceProxies[me.definition.instanceNo] = itwc.controller.remoteProxy;
         itwc.controller.remoteProxy.addInstance(me.definition.instanceNo,me.definition.instanceKey,me);
@@ -1747,8 +1786,8 @@ itwc.component.itwc_embedding = itwc.extend(itwc.Container, {
     },
     reset: function() {
         var me = this, i;
-        for(i = me.domEl.childNodes.length - 1; i >= 0; i--) {
-            me.domEl.removeChild(me.domEl.childNodes[i]);
+        for(i = me.targetEl.childNodes.length - 1; i >= 0; i--) {
+            me.targetEl.removeChild(me.targetEl.childNodes[i]);
         }
     }
 });
@@ -2019,6 +2058,9 @@ itwc.controller = function() {
 };
 itwc.controller.prototype = {
 
+    //Global set of layers
+    layers: [],
+
 	//Global registration of tasklets & editlets
     editlets: {},
 	tasklets: {},
@@ -2029,18 +2071,12 @@ itwc.controller.prototype = {
     //The shared remote instance proxy
     remoteProxy: null,	
 
-    onWindowResize: function(e) {
-        itwc.UI.afterResize();
-    },
     sendEditEvent: function(taskId, editorId, value, replace) {
         var me = this,
             instanceNo = taskId.split("-")[0];
 		
         if(me.instanceProxies[instanceNo]) {
             return me.instanceProxies[instanceNo].sendEditEvent(taskId,editorId,value,replace);
-        } else {
-            console.log("Is dit het?");
-            return me.instanceProxies[itwc.START_INSTANCE_NO].sendEditEvent(taskId,editorId,value,replace);
         }
     },
     sendActionEvent: function(taskId, actionId) {
@@ -2049,8 +2085,6 @@ itwc.controller.prototype = {
 
         if(me.instanceProxies[instanceNo]) {
             return me.instanceProxies[instanceNo].sendActionEvent(taskId,actionId);
-        } else {
-            return me.instanceProxies[itwc.START_INSTANCE_NO].sendActionEvent(taskId,actionId);
         }
     },
     sendFocusEvent: function(taskId) {
@@ -2059,8 +2093,6 @@ itwc.controller.prototype = {
 
         if(me.instanceProxies[instanceNo]) {
             return me.instanceProxies[instanceNo].sendFocusEvent(taskId);
-        } else { //Temporary fallback
-            return me.instanceProxies[itwc.START_INSTANCE_NO].sendFocusEvent(taskId);
         }
     },	
     updateUI: function(update,root) {
@@ -2101,6 +2133,12 @@ itwc.controller.prototype = {
                         break;
                     case 'removeWindow':
                         me.removeWindow(cmp,op.arguments[0]);
+                        break;
+                    case 'addMenu':
+                        me.addMenu(cmp,op.arguments[0]);
+                        break;
+                    case 'removeMenu':
+                        me.removeMenu(cmp,op.arguments[0]);
                         break;
                     default:
                         cmp.applyUpdate(op.method,op.arguments);
@@ -2148,11 +2186,10 @@ itwc.controller.prototype = {
                 me.addComponent(newCmp,childIdx,childCmp);
             });
         }
-
-        //Add menubar items the parent support that
-        if(newCmp.menu) {
-            newCmp.menu.definition.items.forEach(function(menuCmp,menuIdx) {
-                me.addComponent(newCmp.menu,menuIdx,menuCmp);
+        //Recursively add menu items
+        if(newCmp.menu && insertDef.menu) {
+            insertDef.menu.forEach(function(childCmp,childIdx) {
+                me.addComponent(newCmp.menu,childIdx,childCmp);
             });
         }
         if(parentCmp.afterItemAdded) {
@@ -2193,16 +2230,18 @@ itwc.controller.prototype = {
                 me.addComponent(win,childIdx,childCmp);
             });
         }
-        //Add menu items if the window has a menu
-        if(win.menu) {
-            win.menu.definition.items.forEach(function(menuCmp,menuIdx) {
-                me.addComponent(win.menu,menuIdx,menuCmp);
+        //Add window' menus
+        if(win.menu && winDef.menu) {
+            winDef.menu.forEach(function(childCmp,childIdx) {
+                me.addComponent(win.menu,childIdx,childCmp);
             });
         }
+
         cmp.windows[winIdx] = win;
 
         //Inject in DOM
         document.body.appendChild(win.domEl);
+
         //Position window
         win.domEl.style.left = ((document.body.offsetWidth / 2) - (win.domEl.offsetWidth / 2)) + 'px';
         win.domEl.style.top = ((document.body.offsetHeight / 2) - (win.domEl.offsetHeight / 2)) + 'px';
@@ -2211,24 +2250,58 @@ itwc.controller.prototype = {
         document.body.removeChild(cmp.windows[winIdx].domEl);
         cmp.windows.splice(winIdx,1);
     },
+    addMenu: function(cmp,items) {
+        var me = this;
+        //Create menu
+        cmp.setMenu(items);
+        //Add menu items
+        if(cmp.menu) {
+            items.forEach(function(childCmp,childIdx) {
+                me.addComponent(cmp.menu,childIdx,childCmp);
+            });
+        }
+    },
+    removeMenu: function(cmp) {
+        cmp.setMenu(null);
+    },
     reset: function(startInstanceNo,startInstanceKey) {
         var me = this;
 
         //Initialize the client component tree and DOM
         itwc.DOMID = 1000;
 
-        itwc.UI = new itwc.component.itwc_viewport();
+        //Empty instance proxy list
+        me.instanceProxies = [];
 
-        itwc.UI.init({halign: 'center',valign: 'center'});
-        itwc.UI.render(0);
+        //Empty layer list
+        me.layers = [];
 
         //Create the shared remote proxy
         me.remoteProxy = new itwc.remoteInstanceProxy();
         me.remoteProxy.init(me);
-        me.remoteProxy.addInstance(startInstanceNo,startInstanceKey,itwc.UI);
-        me.remoteProxy.sendResetEvent(startInstanceNo);
 
-        me.instanceProxies[startInstanceNo] = me.remoteProxy;
+        //Create the viewport layer
+        me.layers[0] = new itwc.component.itwc_viewport();
+        me.layers[0].init({instanceNo: startInstanceNo, instanceKey: startInstanceKey, halign: 'center', valign: 'middle'});
+        me.layers[0].render(0);
+        document.body.appendChild(me.layers[0].domEl);
+
+        //Send reset event for the start instance
+        me.remoteProxy.sendResetEvent(startInstanceNo);
+    },
+    onWindowResize: function(e) {
+        var me = this,
+            width = window.innerWidth,
+            height = window.innerHeight, num, i, layer;
+        num = me.layers.length;
+        for(i = 0; i < num; i++) {
+            layer = me.layers[i];
+            if(layer.maximize) {
+                layer.domEl.style.width = width;
+                layer.domEl.style.height = height;
+                layer.afterResize();
+            }
+        }
     },
     start: function () {
         var me = this;
@@ -2237,7 +2310,10 @@ itwc.controller.prototype = {
         me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_KEY);
 
         //Listen for changes in the viewport size
-        window.addEventListener('resize',me.onWindowResize,me);
+        window.addEventListener('resize',me.onWindowResize.bind(me));
+        //Listen for global errors
+        window.onerror = function(msg,url,line) {
+        }
     }
 };
 //Set up a singleton controller object

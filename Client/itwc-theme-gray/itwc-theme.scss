@@ -3,54 +3,130 @@
  You can use this to easily create branded iTask applications.
  Compile to CSS using 'sass itwc-theme.scss itwc-theme.css'
 */
-$canvas-base-color: #eee;
-$canvas-text-color: #000;
-$header-base-color: #ccc;
-$header-text-color: #000;
-$borders-color:     #ccc;
-
-$button-base-color: $canvas-base-color;
-$button-text-color: $canvas-text-color;
+/* Color definitions for the theme */
+@import "colors.scss";
 
 body {
-    height: 100%;
     width: 100%;
+    height: 100%;
     margin: 0;
 
     font-family: tahoma, arial, verdana, sans-serif;
     font-size: 9pt;
-
+    overflow: hidden;
+}
+td, th {
+    font-size: 9pt;
+}
+.layer {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: flex;
     display: -webkit-flex;
 
     flex-direction: column;
     -webkit-flex-direction: column;
+    align-items: stretch;
+    -webkit-align-items: stretch;
+}
+.inner {
+    display: flex;
+    display: -webkit-flex;
+    flex: 1;
+    -webkit-flex: 1;
     overflow: auto;
 }
-#viewport {
-    height: 0px;
+.header {
+    font-weight: bold;
+    font-size: 11px;
+    height: 25px;
+    align-self: stretch;
+    -webkit-align-self: stretch;
 
+    a.close {
+        float: right;
+        color: $panel-header-text-color;
+        display: inline-block;
+        position: relative;
+        margin: 4px 4px 0 0;
+        top: 0px;
+        font-weight: bold;
+        font-size: 8px;
+        line-height: 8px;
+        background: $panel-header-base-color + #222;
+        border: 1px solid $panel-header-text-color;
+        border-radius: 2px;
+        padding: 0 4px 2px 4px;
+        text-decoration: none;
+    }
+    span {
+        float: left;
+        margin: 4px 0 0 4px;
+    }
+}
+.panel {
+    color: $canvas-text-color;
+    background-color: $canvas-base-color;
+    border: 1px solid $panel-border-color;
     display: flex;
     display: -webkit-flex;
-
     flex-direction: column;
     -webkit-flex-direction: column;
 
-    flex-grow: 1;
-    -webkit-flex-grow: 1;
-    align-self: stretch;
-    -webkit-align-self: stretch;
-    align-items: center;
-    -webkit-align-items: center;
-    justify-content: center;
-    -webkit-justify-content: center;
+    > .header {
+        color: $panel-header-text-color;
+        background-color: $panel-header-base-color;
+        background: -moz-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
+        background: -webkit-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
+    }
 }
+.framed {
+    border-radius: 5px;
+}
+.window {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 100;
+    display: flex;
+    display: -webkit-flex;
+    color: $canvas-text-color;
+    background-color: $canvas-base-color;
+    border: 1px solid $window-border-color;
+    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
+    border-radius: 5px;
+}
+.window > .header {
+    cursor: move;
+    color: $window-header-text-color;
+    background-color: $window-header-base-color;
+    background: -moz-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+    background: -webkit-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+}
+.vcontainer {
+    overflow: auto;
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+}
+.hcontainer {
+    overflow: auto;
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+}
+
 .button {
     font-size: 8pt;
     background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
     background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
     background-repeat: none;
-    border: 1px solid $borders-color;
+    border: 1px solid ($button-base-color - #333);
     border-radius: 3px;
 
     display: flex;
@@ -62,9 +138,11 @@ body {
     padding: 3px;
     text-decoration: none;
     color: $button-text-color;
-}
-.button:hover {
-    border-color: $borders-color - #444;
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: $button-base-color - #333;
+    }
 }
 .button-label {
     margin: 0 4px;
@@ -75,27 +153,31 @@ body {
     height: 16px;
 }
 .button-disabled {
-    color: $button-base-color - #333;
+    color: $button-text-color - #666;
     background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
     background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
 }
 .button-disabled:hover {
-    border-color: $borders-color;
+    border-color: $button-base-color - #333;
 }
 .button-disabled .button-icon {
     opacity: 0.5;
 }
 .vcontainer {
+    overflow: auto;
     display: flex;
     display: -webkit-flex;
     flex-direction: column;
     -webkit-flex-direction: column;
 }
 .hcontainer {
+    overflow: auto;
     display: flex;
     display: -webkit-flex;
     flex-direction: row;
     -webkit-flex-direction: row;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
 }
 .icon {
     width: 16px;
@@ -109,46 +191,7 @@ body {
 .fieldset-header {
     font-weight: bold;
 }
-.panel {
-    color: $canvas-text-color;
-    background-color: $canvas-base-color;
-    border: 1px solid $borders-color;
-}
-.header {
-    color: $header-text-color;
-    background-color: $header-base-color;
-    background: -moz-linear-gradient(top, ($header-base-color + #222) 0%, $header-base-color 100%);
-    background: -webkit-linear-gradient(top, ($header-base-color + #222) 0%, $header-base-color 100%);
-    font-weight: bold;
-    font-size: 11px;
-    padding: 4px 10px 6px 8px;
-    flex-shrink: 0;
-    -webkit-flex-shrink: 0;
-}
-.header a.close {
-    float: right;
-    color: $header-text-color;
-    display: inline-block;
-    position: relative;
-    margin: 0;
-    top: 0px;
-    font-weight: bold;
-    font-size: 8px;
-    line-height: 8px;
-    background: $header-base-color + #222;
-    border: 1px solid $header-text-color;
-    border-radius: 2px;
-    padding: 0 4px 2px 4px;
-    text-decoration: none;
-}
-.inner {
-    flex: 1;
-    -webkit-flex: 1;
-    overflow: auto;
-}
-.framed {
-    border: 1px solid $borders-color;
-    border-radius: 5px;
+.view-html {
 }
 /* Tabs */
 .tabset {
@@ -159,7 +202,7 @@ body {
     flex-direction: column;
     -webkit-flex-direction: column;
 
-   overflow-y: auto;
+    overflow: auto;
 }
 .tabbar {
     text-align: left;
@@ -170,8 +213,8 @@ body {
     position: relative;
     min-height: 24px;
 
-    background: -moz-linear-gradient(top, $header-base-color + #323232, $header-base-color);
-    background: -webkit-linear-gradient(top, $header-base-color + #323232, $header-base-color);
+    background: -moz-linear-gradient(top, $panel-header-base-color + #323232, $panel-header-base-color);
+    background: -webkit-linear-gradient(top, $panel-header-base-color + #323232, $panel-header-base-color);
     overflow: hidden;
 }
 .tabbar:after {
@@ -180,7 +223,7 @@ body {
     width: 100%;
     bottom: 0;
     left: 0;
-    border-bottom: 1px solid #aaa;
+    border-bottom: 1px solid $tab-border-color;
     z-index: 1;
 }
 .tabbar:before {
@@ -189,8 +232,8 @@ body {
 .tabbar li {
     margin: 0;
     padding: 0 10px;
-    border: 1px solid #aaa;
-    background: #ececec;
+    border: 1px solid $tab-border-color;
+    background: $tab-base-color - #131313;
     display: inline-block;
     position: relative;
     z-index: 0;
@@ -199,7 +242,7 @@ body {
     border-top-right-radius: 5px;
 }
 .tabbar li a {
-    color: #000;
+    color: $tab-text-color;
     text-decoration: none;
 }
 .tabbar li:before,
@@ -209,48 +252,49 @@ body {
     width: 5px;
     height: 5px;
     content: " ";
-    border: 1px solid #aaa;
+    border: 1px solid $tab-border-color;
 }
 .tabbar li:before {
     left: -6px;
     border-bottom-right-radius: 5px;
     border-width: 0 1px 1px 0;
-    box-shadow: 2px 2px 0 #ececec;
+    box-shadow: 2px 2px 0 ($tab-base-color - #131313);
 }
 .tabbar li:after {
     right: -6px;
     border-bottom-left-radius: 5px;
     border-width: 0 0 1px 1px;
-    box-shadow: -2px 2px 0 #ececec;
+    box-shadow: -2px 2px 0 ($tab-base-color - #131313);
 }
 .tabbar li.selected {
-    background: #FFF;
-    color: #000;
+    background: $tab-base-color;
+    color: $tab-text-color;
     z-index: 2;
-    border-bottom-color: #fff;
+    border-bottom-color: $tab-base-color;
 }
 .tabbar li.selected:before {
-    box-shadow: 2px 2px 0 #fff;
+    box-shadow: 2px 2px 0 $tab-base-color;
 }
 .tabbar li.selected:after {
-    box-shadow: -2px 2px 0 #fff;
+    box-shadow: -2px 2px 0 $tab-base-color;
 }
 .tabitem {
    display: none;
    height: 0px;
 }
 .tabitem.selected {
+   flex: 1;
+   -webkit-flex: 1;
+
    display: flex;
    display: -webkit-flex;
-   flex-grow: 1;
-   -webkit-flex-grow: 1;
-   flex-shrink: 0;
-   -webkit-flex-shrink: 0;
+   flex-direction: column;
+   -webkit-flex-direction: column;
 
-   background: #fff;
-   color: #000;
+   background: $canvas-base-color;
+   color: $canvas-text-color;
    z-index: 2;
-   border: 1px solid #aaa;
+   border: 1px solid $tab-border-color;
    border-top-width: 0;
 }
 .tabbar li a.tabclose {
@@ -282,29 +326,32 @@ body {
     -webkit-flex-direction: column;
 }
 .choicegrid-header {
-    color: $header-text-color;
-    background: $header-base-color;
-    background: -moz-linear-gradient(center top, $header-base-color + #0a0a0a, $header-base-color - #0a0907);
-    background: -webkit-linear-gradient(center top, $header-base-color + #0a0a0a, $header-base-color - #0a0907);
+    color: $panel-header-text-color;
+    background: $panel-header-base-color;
+    background: -moz-linear-gradient(center top, $panel-header-base-color + #0a0a0a, $panel-header-base-color - #0a0907);
+    background: -webkit-linear-gradient(center top, $panel-header-base-color + #0a0a0a, $panel-header-base-color - #0a0907);
     display: flex;
     display: -webkit-flex;
     flex-direction: row;
     -webkit-flex-direction: row;
+    flex: none;
 }
 .choicegrid-header > div {
-    $up-color: $header-base-color + #111;
-    $down-color: $header-base-color + #222;
+    $up-color: $panel-header-base-color + #111;
+    $down-color: $panel-header-base-color + #222;
     border: 1px solid;
     border-color:  $up-color $up-color $down-color $down-color;
     flex: 1;
     -webkit-flex: 1;
     padding: 3px 5px;
     font-size: 11px;
+    height: 20px;
 }
 .choicegrid-body {
     flex: 1;
     -webkit-flex: 1;
     background: #fff;
+    color: #000;
     overflow: auto;
 }
 .choicegrid-body > div {
@@ -324,7 +371,8 @@ body {
     background-color: #eee;
 }
 .choicegrid-body > div.selected {
-    background-color: #ddd;
+    background-color: $select-base-color;
+    color: $select-text-color;
     border: 1px dotted #333;
 }
 .choicegrid-body > div > div {
@@ -341,11 +389,16 @@ body {
 }
 .choicetree {
     overflow: auto;
+    min-width: 150px;
+    -webkit-min-width: 150px;
+    min-height: 100px;
+    -webkit-min-height: 100px;
+
     background: #fff;
     color: #000;
 }
 .choicetree ol {
-    margin: 0 0 0 20px;
+    margin: 5px 0 0 20px;
     padding: 0;
 }
 .choicetree li {
@@ -358,7 +411,8 @@ body {
     margin-left: -1px !important;
 }
 .choicetree li.leaf > label {
-    background: url(img/document.png) 16px 0px no-repeat;
+    background-position: 16px 0px;
+    background-repeat: no-repeat;
 }
 .choicetree li input {
     position: absolute;
@@ -378,17 +432,24 @@ body {
     font-size: 12px;
     padding-left: 37px;
     background-color: #fff;
-    background: url(img/folder-horizontal.png) 15px 1px no-repeat;
+    background-position: 15px 1px;
+    background-repeat: no-repeat;
+}
+.choicetree li label.default-folder {
+    background-image: url('img/folder-horizontal.png');
+}
+.choicetree li label.default-leaf {
+    background-image: url('img/document.png');
 }
 .choicetree li input + ol {
-    margin: -0.938em 0 0 -44px; /* 15px */
+    margin: -15px 0 0 -44px;
     display: block;
     height: 1em;
     background: url(img/toggle-small-expand.png) 42px -3px no-repeat;
 }
 .choicetree li input + ol > li {
     display: none;
-    margin-left: -14px !important;
+    margin-left: -24px !important;
     padding-left: 1px;
 }
 .choicetree li.selected > label {
@@ -406,84 +467,111 @@ body {
 
 .toolbar {
     display: flex;
+    display: -webkit-flex;
     flex-direction: row;
+    -webkit-flex-direction: row;
     justify-content: flex-start;
+    -webkit-justify-content: flex-start;
     align-items: center;
-    align-self: stretch;
+    -webkit-align-items: center;
     margin: 0;
     padding: 2px 5px;
-    background: $button-base-color;
-    background: -moz-linear-gradient(center top, $button-base-color + #0a0a0a, $button-base-color - #0a0907);
-    background: -webkit-linear-gradient(center top, $button-base-color + #0a0a0a, $button-base-color - #0a0907);
+    background: $canvas-base-color;
+    background: -moz-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
+    background: -webkit-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
+
+    > .menu-item > a {
+        background-image: url('img/menu-down.png');
+        background-repeat: no-repeat;
+        background-position: 95% center;
+    }
 }
 .menu-item {
     display: block;
     position: relative;
     border: 1px solid transparent;
     margin: 1px 0;
-}
-.menu-item:hover {
-    border: 1px solid;
-    border-color: #ddd #ddd #fff #fff;
-}
-.menu-item a {
-    color: #000;
-    text-decoration: none;
-    float: left;
-    height: 20px;
-    padding: 5px;
-}
-.menu-item:hover > .menu {
-    display: block;
+
+    &:hover {
+        > .menu {
+            display: block;
+        }
+    }
+    a {
+        font-size: 8pt;
+        background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+        background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+        background-repeat: none;
+        border: 1px solid ($button-base-color - #333);
+        border-radius: 3px;
+        text-decoration: none;
+        float: left;
+        color: #000;
+
+        padding: 4px 20px 4px 10px;
+    }
 }
 .submenu-item {
     float: left;
     position: relative;
-}
-.submenu-item:hover > a{
-    background: #ddd;
-}
-.submenu-item:hover > .menu {
-    display: block;
+
+    &:hover {
+        > a {
+            background: #ddd;
+        }
+        > .menu {
+            display: block;
+        }
+    }
 }
 .menu {
-    top: 30px;
+    top: 23px;
     margin: 0;
     padding: 0;
     display: none;
     position: absolute;
     background: #eee;
     box-shadow: 0 5px 5px rgba(0,0,0,0.5);
-}
-.menu a {
-    min-width: 100px;
-    padding: 10px;
-    height: 10px;
-    height: auto;
-    line-height: 1;
-    display: block;
-    float: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.menu .menu {
-    top: 0;
-    left: 99%;
-    margin: 2px 0 0 -2px;
-}
-.menu .submenu-item {
-    float: none;
-    margin: 0;
-    padding: 0;
-    display: block;
-    border-top: 1px solid #efefef;
-    border-bottom: 1px solid #ddd;
+    border: 1px solid ($button-base-color - #333);
+
+    a {
+        border: none;
+        border-radius: 0;
+        min-width: 100px;
+        padding: 5px;
+        height: 10px;
+        height: auto;
+        line-height: 1;
+        display: block;
+        float: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .menu {
+        top: 0;
+        left: 99%;
+        margin: 2px 0 0 -2px;
+    }
+    .submenu-item {
+        float: none;
+        margin: 0;
+        padding: 0;
+        display: block;
+        border-top: 1px solid #efefef;
+        border-bottom: 1px solid #ddd;
+    }
 }
 .vsplitter, .hsplitter {
+    background-color: $panel-header-base-color + #222;
     flex-shrink: 0;
     -webkit-flex-shrink: 0;
     align-self: stretch;
+    -webkit-align-self: stretch;
+
+    &:hover {
+        background-color: $panel-header-base-color;
+    }
 }
 .vsplitter {
     height: 5px;
@@ -492,23 +580,4 @@ body {
 .hsplitter {
     width: 5px;
     cursor: col-resize;
-    align-self: stretch;
 }
-.vsplitter:hover, .hsplitter:hover {
-    background-color: #ddd;
-}
-.window {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    z-index: 100;
-    display: flex;
-    display: -webkit-flex;
-
-    color: $canvas-text-color;
-    background-color: $canvas-base-color;
-    border: 1px solid $borders-color;
-    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
-    border-radius: 5px;
-}
-

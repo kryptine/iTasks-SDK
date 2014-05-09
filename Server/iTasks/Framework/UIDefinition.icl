@@ -490,7 +490,7 @@ JSONEncode{|UIMenuButtonOpts|} _ {UIMenuButtonOpts|text,iconCls,disabled,menu}
 where
 	text`		= maybe [] (\s -> [("text",JSONString s)]) text
 	iconCls`	= maybe [] (\s -> [("iconCls",JSONString s)]) iconCls
-	menu`= JSONObject [("xtype",JSONString "itwc_menu"),("items",JSONArray (map toJSON menu))]
+	menu`       = JSONArray (map toJSON menu)
 
 JSONEncode{|UIMenuItem|} _ (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuitem" [toJSON aopts,toJSON opts]]
 JSONEncode{|UIMenuItem|} _ (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts]]

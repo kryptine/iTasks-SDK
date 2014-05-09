@@ -53,7 +53,8 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 	obj = ___unwrapJS(Sapl.feval(obj));
 
 	var value,
-		path = attr.split('.'), step;
+		path = attr.split('.'), step,
+        undefined;
 
 	try{	
 		
