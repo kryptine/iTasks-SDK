@@ -1486,6 +1486,8 @@ itwc.component.itwc_splitter = itwc.extend(itwc.Component, {
     },
     initSize: function() {
     },
+    initMargins: function() {
+    },
     afterAdd: function() {
         var me = this,
             el = me.domEl;
