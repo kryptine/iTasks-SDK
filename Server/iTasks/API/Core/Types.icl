@@ -1379,6 +1379,10 @@ instance descr Title
 where
 	toPrompt (Title title) = fromList [(TITLE_ATTRIBUTE,title)]
 	
+instance descr Label
+where
+	toPrompt (Label label) = fromList [(LABEL_ATTRIBUTE,label)]
+
 instance descr Hint
 where
 	toPrompt (Hint hint) = fromList [(HINT_ATTRIBUTE,hint)]

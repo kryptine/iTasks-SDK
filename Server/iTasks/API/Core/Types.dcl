@@ -682,12 +682,12 @@ CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions
 :: Att				= E.a: Att !a & descr a
 
 :: Title			= Title !String
+:: Label            = Label !String
 :: Hint				= Hint !String
 
 :: Icon				= Icon !String
 					| IconView
 					| IconEdit
-
 
 
 //Make the UI definition of the interaction prompt
@@ -702,6 +702,7 @@ instance descr (!String, !String)			//Title attribute + instruction
 instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
 //instance descr (!Icon, !Title)			//Icon attribute, title attribute 
 instance descr Title
+instance descr Label
 instance descr Hint
 instance descr Icon
 instance descr Attribute

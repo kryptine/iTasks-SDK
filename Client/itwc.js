@@ -1680,6 +1680,10 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
             if(option.expanded) {
                 childExpand.checked = true;
             }
+            childExpand.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["exp",option.value,childExpand.checked],false);
+            },me);
+
             node.appendChild(childExpand);
             childOl = document.createElement('ol');
             option.children.forEach(function(option,childIdx) {
