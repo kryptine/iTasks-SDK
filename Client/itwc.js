@@ -41,7 +41,7 @@ itwc.Component.prototype = {
         me.definition = definition || {};
         me.hotkeyListener = null;
     },
-    render: function(itemIdx) {
+    render: function(itemIdx, isLast) {
         var me = this;
         me.domId = 'itwc-' + itwc.DOMID++;
 
@@ -50,14 +50,14 @@ itwc.Component.prototype = {
         me.targetEl = me.domEl;
 
         me.initDOMEl(itemIdx);
-        me.initSize();
+        me.initSize(itemIdx, isLast);
         me.domEl.id = me.domId;
     },
     //Configurable properties for initializing the DOM element
     domTag: 'div',
     initDOMEl: function(itemIdx) {
     },
-    initSize: function() {
+    initSize: function(itemIdx,isLast) {
         var me = this,
             el = me.domEl,
             width = me.definition.itwcWidth || me.defaultWidth,
@@ -102,9 +102,9 @@ itwc.Component.prototype = {
             el.style.height = height + 'px';
         }
         //Set margins
-        if(me.definition.margins) {
-            el.style.margin = me.definition.margins.split(' ').map(function(s) { return s + 'px'}).join(' ');
-        }
+        me.initMargins(itemIdx,isLast);
+
+        //Set padding
         if(me.definition.padding) {
             el.style.padding = me.definition.padding.split(' ').map(function(s) { return s + 'px'}).join(' ');
         }
@@ -113,44 +113,62 @@ itwc.Component.prototype = {
             me.initItemLayout();
         }
     },
+    initMargins: function(itemIdx,isLast) {
+        var me = this,
+            el = me.domEl,
+            width = me.definition.itwcWidth || me.defaultWidth,
+            height = me.definition.itwcHeight || me.defaultHeight,
+            direction = me.parentCmp.definition.direction || me.parentCmp.defaultDirection,
+            valign = me.parentCmp.definition.valign || 'top',
+            halign = me.parentCmp.definition.halign || 'left';
+
+        //Set margins as specified
+        if(me.definition.margins) {
+            el.style.margin = me.definition.margins.split(' ').map(function(s) { return s + 'px'}).join(' ');
+        } else {
+            el.style.margin = '0 0 0 0';
+        }
+        //Set margins to auto based on alignment of parent
+        if(direction == 'vertical') {
+            if(width !== 'flex') {
+                switch(halign) {
+                    case 'left': el.style.marginRight = 'auto'; break;
+                    case 'center': el.style.marginRight = 'auto'; el.style.marginLeft = 'auto'; break;
+                    case 'right': el.style.marginLeft = 'auto'; break;
+                }
+            }
+            //If this element is the first, maybe also adjust top margin;
+            if(itemIdx === 0 && (valign == 'middle' || valign == 'bottom')) {
+                el.style.marginTop = 'auto';
+            }
+            //If this element is the last, maybe also adjust bottom margin;
+            if(isLast && (valign == 'middle' || 'top')) {
+                el.style.marginBottom = 'auto';
+            }
+        } else {
+            if(height !== 'flex') {
+                switch(valign) {
+                    case 'top': el.style.marginBottom = 'auto'; break;
+                    case 'middle': el.style.marginBottom = 'auto'; el.style.marginTop = 'auto'; break;
+                    case 'bottom': el.style.marginTop = 'auto'; break;
+                }
+            }
+            //If this element is the first, maybe also adjust left margin;
+            if(itemIdx === 0 && (halign == 'center' || halign == 'right')) {
+                el.style.marginLeft = 'auto';
+            }
+            //If this element is the last, maybe also adjust right margin;
+            if(isLast && (halign == 'center' || halign == 'left')) {
+                el.style.marginRight = 'auto';
+            }
+        }
+    },
     initItemLayout: function() {
         var me = this,
             el = me.targetEl,
             horizontal = ((me.definition.direction && me.definition.direction) == 'horizontal') || false;
 
         el.classList.add(horizontal ? 'hcontainer' : 'vcontainer');
-        //Horizontal alignment
-        if(me.definition.halign) {
-            if(horizontal) {
-                switch(me.definition.halign) {
-                    case 'left':    el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
-                    case 'center':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
-                    case 'right':   el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
-                }
-            } else {
-                switch(me.definition.halign) {
-                    case 'left':    el.style.alignItems = 'flex-start'; el.style.webkitAlignItems = 'flex-start'; break;
-                    case 'center':  el.style.alignItems = 'center'; el.style.webkitAlignItems  = 'center'; break;
-                    case 'right':   el.style.alignItems = 'flex-end'; el.style.webkitAlignItems = 'flex-end'; break;
-                }
-            }
-        }
-        //Vertical alignment
-        if(me.definition.valign) {
-            if(!horizontal) {
-                switch(me.definition.valign)  {
-                    case 'top':     el.style.justifyContent = 'flex-start'; el.style.webkitJustifyContent = 'flex-start'; break;
-                    case 'middle':  el.style.justifyContent = 'center'; el.style.webkitJustifyContent = 'center'; break;
-                    case 'bottom':  el.style.justifyContent = 'flex-end'; el.style.webkitJustifyContent = 'flex-end'; break;
-                }
-            } else {
-                switch(me.definition.valign) {
-                    case 'top':     el.style.alignItems = 'flex-start'; el.style.webkitAlignItems = 'flex-start'; break;
-                    case 'middle':  el.style.alignItems = 'center'; el.style.webkitAlignItems  = 'center'; break;
-                    case 'bottom':  el.style.alignItems = 'flex-end'; el.style.webkitAlignItems = 'flex-end'; break;
-                }
-            }
-        }
     },
     afterAdd: function() {
         var me = this;
@@ -226,7 +244,6 @@ itwc.Component.prototype = {
 itwc.Container = itwc.extend(itwc.Component,{
     isContainer: true,
     defaultDirection: 'vertical',
-    itemsOffset: 0,                  //The number of DOM elements before the child items are positioned (for example 1 if a panel has a header)
     afterItemAdded: null,
     afterItemRemoved: null
 });
@@ -285,7 +302,7 @@ itwc.Panel = itwc.extend(itwc.Container,{
         me.menu = new itwc.component.itwc_menubar();
         me.menu.definition = definition;
         me.menu.init(definition, me);
-        me.menu.render(0);
+        me.menu.render(0,false);
         me.menuEl = me.menu.domEl;
 
         me.domEl.insertBefore(me.menuEl,me.targetEl);
@@ -369,6 +386,8 @@ itwc.Layer = itwc.extend(itwc.Panel,{
 itwc.component = {};
 
 itwc.component.itwc_menubar = itwc.extend(itwc.Container, {
+    defaultDirection: 'horizontal',
+
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
@@ -393,7 +412,7 @@ itwc.component.itwc_menubutton = itwc.extend(itwc.Component, {
         //Menu items
         me.menu = new itwc.component.itwc_menu();
         me.menu.init({xtype: 'itwc_menu', items: me.definition.menu},me);
-        me.menu.render(0);
+        me.menu.render(0,false);
         el.appendChild(me.menu.domEl);
     },
     initSize: function() {} //Don't size
@@ -1269,8 +1288,10 @@ itwc.component.itwc_fieldset = itwc.extend(itwc.Container,{
             header.classList.add('fieldset-header');
 
             el.appendChild(header);
-            me.itemsOffset = 1;
         }
+        me.targetEl = document.createElement('div');
+        me.targetEl.classList.add('inner');
+        el.appendChild(me.targetEl);
     },
     setTitle: function(title) {
         this.domEl.childNodes[0].innerHTML = title;
@@ -1302,7 +1323,6 @@ itwc.component.itwc_panel = itwc.extend(itwc.Panel,{
 itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
     enableScroll: true,
     isContainer: false, //Don't size as container
-    itemsOffset: 1,
     defaultWidth: 'flex',
     defaultHeight: 'flex',
     activeTab: 0,
@@ -1310,13 +1330,15 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
     initDOMEl: function() {
         var me = this,
             el = me.domEl, bar;
-        el.classList.add('tabset');
 
-        bar = document.createElement('ul');
-        bar.classList.add('tabbar');
+        me.domEl.classList.add('tabset');
+        me.tabBar = document.createElement('ul');
+        me.tabBar.classList.add('tabbar');
+        me.domEl.appendChild(me.tabBar);
 
-        el.appendChild(bar);
-        me.tabBar = bar;
+        me.targetEl = document.createElement('div');
+        me.targetEl.classList.add('tabitems');
+        me.domEl.appendChild(me.targetEl);
     },
     afterItemAdded: function(itemIdx,itemCmp) {
         var me = this,
@@ -2118,17 +2140,17 @@ itwc.controller.prototype = {
             update.operations.forEach(function(op) {
                 switch(op.method) {
                     case 'add':
-                        me.addComponent(cmp,op.arguments[0],op.arguments[1]);
+                        me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
                         //Call initializion function that needs to be applied after the full component and
                         //its children are available in the DOM
                         cmp.items[op.arguments[0]].afterAdd();
                         break;
                     case 'remove':
-                        me.removeComponent(cmp,op.arguments[0]);
+                        me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
                         break;
                     case 'replace':
-                        me.removeComponent(cmp,op.arguments[0]);
-                        me.addComponent(cmp,op.arguments[0],op.arguments[1]);
+                        me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
+                        me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
                         cmp.items[op.arguments[0]].afterAdd();
                         break;
                     case 'addWindow':
@@ -2165,9 +2187,8 @@ itwc.controller.prototype = {
         });
         return cmp;
     },
-    addComponent: function(parentCmp,insertIdx,insertDef) {
-        var me = this,
-            newCmp, domIdx;
+    addComponent: function(parentCmp,insertIdx,insertDef,isLast) {
+        var me = this, newCmp, prevIdx;
 
         //Create component
         if(itwc.component[insertDef.xtype]) {
@@ -2182,7 +2203,19 @@ itwc.controller.prototype = {
         parentCmp.items.splice(insertIdx,0,newCmp);
 
         //Render the DOM element
-        newCmp.render(insertIdx);
+        newCmp.render(insertIdx,isLast);
+
+        //Correct sibling margins
+        if(insertIdx > 0) {
+            prevIdx = insertIdx - 1;
+            parentCmp.items[prevIdx].initMargins(prevIdx,false);
+        }
+        /*
+        if(!isLast) {
+            nextIdx = insertIdx + 1;
+            parentCmp.items[prevIdx].restore
+        }
+        */
 
         //Recursively add children
         if(insertDef.items) {
@@ -2200,19 +2233,21 @@ itwc.controller.prototype = {
             parentCmp.afterItemAdded(insertIdx,newCmp);
         }
         //Inject the component's DOM element in its parent component's
-        domIdx = insertIdx + (parentCmp.itemsOffset || 0);
-        if(parentCmp.targetEl.childNodes.length === domIdx) {
+        if(isLast) {
             parentCmp.targetEl.appendChild(newCmp.domEl);
         } else {
-            parentCmp.targetEl.insertBefore(newCmp.domEl,parentCmp.targetEl.childNodes[domIdx]);
+            parentCmp.targetEl.insertBefore(newCmp.domEl,parentCmp.targetEl.childNodes[insertIdx]);
         }
     },
-    removeComponent: function(parentCmp,removeIdx) {
+    removeComponent: function(parentCmp,removeIdx,isLast) {
+        var prevIdx;
+
         //Call pre-removal function
         parentCmp.items[removeIdx].beforeDOMRemove();
 
         //We need to take the number of non-child component nodes (like a header) of the parent into account
-        parentCmp.targetEl.removeChild(parentCmp.targetEl.childNodes[removeIdx + (parentCmp.itemsOffset || 0)]);
+        parentCmp.targetEl.removeChild(parentCmp.targetEl.childNodes[removeIdx]);
+
         //Remove from component tree
         parentCmp.items.splice(removeIdx,1);
 
@@ -2226,7 +2261,7 @@ itwc.controller.prototype = {
 
         win = new itwc.component.itwc_window();
         win.init(winDef,cmp);
-        win.render(winIdx);
+        win.render(winIdx,false);
 
         //Add window's children
         if(winDef.items) {
@@ -2287,7 +2322,7 @@ itwc.controller.prototype = {
         //Create the viewport layer
         me.layers[0] = new itwc.component.itwc_viewport();
         me.layers[0].init({instanceNo: startInstanceNo, instanceKey: startInstanceKey, halign: 'center', valign: 'middle'});
-        me.layers[0].render(0);
+        me.layers[0].render(0,false);
         document.body.appendChild(me.layers[0].domEl);
 
         //Send reset event for the start instance

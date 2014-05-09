@@ -95,21 +95,20 @@ td, th {
   background: -moz-linear-gradient(top, #eeeeee 0%, #cccccc 100%);
   background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
 
-.vcontainer {
+.vcontainer, .hcontainer {
   overflow: auto;
   display: flex;
   display: -webkit-flex;
+  align-items: flex-start;
+  -webkit-align-items: flex-start; }
+
+.vcontainer {
   flex-direction: column;
   -webkit-flex-direction: column; }
 
 .hcontainer {
-  overflow: auto;
-  display: flex;
-  display: -webkit-flex;
   flex-direction: row;
-  -webkit-flex-direction: row;
-  flex-shrink: 0;
-  -webkit-flex-shrink: 0; }
+  -webkit-flex-direction: row; }
 
 .button {
   font-size: 8pt;
@@ -185,8 +184,7 @@ td, th {
   align-items: stretch;
   -webkit-align-items: stretch;
   flex-direction: column;
-  -webkit-flex-direction: column;
-  overflow: auto; }
+  -webkit-flex-direction: column; }
 
 .tabbar {
   text-align: left;
@@ -260,9 +258,21 @@ td, th {
 .tabbar li.selected:after {
   box-shadow: -2px 2px 0 #eeeeee; }
 
+.tabitems {
+  flex: 1;
+  -webkit-flex: 1;
+  align-self: stretch;
+  -webkit-align: self;
+  display: flex;
+  display: -webkit-flex;
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  z-index: 2;
+  border: 1px solid #cccccc;
+  border-top-width: 0; }
+
 .tabitem {
-  display: none;
-  height: 0px; }
+  display: none; }
 
 .tabitem.selected {
   flex: 1;
@@ -270,12 +280,7 @@ td, th {
   display: flex;
   display: -webkit-flex;
   flex-direction: column;
-  -webkit-flex-direction: column;
-  background: #eeeeee;
-  color: black;
-  z-index: 2;
-  border: 1px solid #cccccc;
-  border-top-width: 0; }
+  -webkit-flex-direction: column; }
 
 .tabbar li a.tabclose {
   color: #aaa;
