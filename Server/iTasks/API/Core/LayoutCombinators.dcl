@@ -88,7 +88,6 @@ arrangeHorizontal       ::                      UIBlocksCombinator
 instance tune ArrangeWithTabs
 arrangeWithTabs         ::                      UIBlocksCombinator
 
-
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 instance tune ArrangeWithSideBar
 /*
@@ -98,6 +97,14 @@ instance tune ArrangeWithSideBar
 * @param Enable resize?
 */
 arrangeWithSideBar      :: !Int !UISide !Int !Bool -> UIBlocksCombinator
+
+/*
+* @param Direction to split the available space in
+* @param Enable resize?
+*/
+:: ArrangeSplit = ArrangeSplit !UIDirection !Bool
+instance tune ArrangeSplit
+arrangeSplit            :: !UIDirection !Bool -> UIBlocksCombinator
 
 :: ArrangeCustom = ArrangeCustom UIBlocksCombinator
 instance tune ArrangeCustom

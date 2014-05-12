@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.LayoutCombinators
 
 import StdTuple, StdList, StdBool, StdOrdList
-import Data.Maybe, Text, Data.Tuple, Data.Either, Data.Functor
+import Data.Maybe, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.UIDefinition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
@@ -314,6 +314,26 @@ where
                             }
                   ,actions = actions ++ restAc ++ sideAc
                   ,hotkeys = restHK ++ sideHK
+                  ,size = defaultSizeOpts
+                  }
+
+instance tune ArrangeSplit
+where
+    tune (ArrangeSplit direction resize) t
+        = tune (AfterLayout (arrangeBlocks (arrangeSplit direction resize))) t
+
+arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
+arrangeSplit direction resize = arrange
+where
+    arrange [] actions = autoLayoutBlocks [] actions
+    arrange blocks actions
+        # (bcontrols,_,bactions,bhotkeys) = unzip4 (map subUIToPanel blocks)
+        # controls = map fill bcontrols
+        # controls = if resize (intersperse UISplitter controls) controls
+        = {UIBlock|attributes='Data.Map'.newMap
+                  ,content = {UIItemsOpts|defaultItemsOpts controls & direction = direction}
+                  ,actions = actions ++ flatten bactions
+                  ,hotkeys = flatten bhotkeys
                   ,size = defaultSizeOpts
                   }
 
