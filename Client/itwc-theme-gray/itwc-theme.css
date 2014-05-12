@@ -25,13 +25,14 @@ td, th {
   -webkit-flex-direction: column;
   align-items: stretch;
   -webkit-align-items: stretch; }
+  .layer > .inner {
+    overflow: auto; }
 
 .inner {
   display: flex;
   display: -webkit-flex;
   flex: 1;
-  -webkit-flex: 1;
-  overflow: auto; }
+  -webkit-flex: 1; }
 
 .header {
   font-weight: bold;
@@ -71,6 +72,8 @@ td, th {
     background-color: #cccccc;
     background: -moz-linear-gradient(top, #eeeeee 0%, #cccccc 100%);
     background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
+  .panel > .inner {
+    overflow: auto; }
 
 .framed {
   border-radius: 5px; }
@@ -87,6 +90,8 @@ td, th {
   border: 1px solid #cccccc;
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
   border-radius: 5px; }
+  .window > .inner {
+    overflow: auto; }
 
 .window > .header {
   cursor: move;
@@ -96,7 +101,6 @@ td, th {
   background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
 
 .vcontainer, .hcontainer {
-  overflow: auto;
   display: flex;
   display: -webkit-flex;
   align-items: flex-start;
@@ -150,14 +154,12 @@ td, th {
   opacity: 0.5; }
 
 .vcontainer {
-  overflow: auto;
   display: flex;
   display: -webkit-flex;
   flex-direction: column;
   -webkit-flex-direction: column; }
 
 .hcontainer {
-  overflow: auto;
   display: flex;
   display: -webkit-flex;
   flex-direction: row;

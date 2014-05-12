@@ -29,13 +29,15 @@ td, th {
     -webkit-flex-direction: column;
     align-items: stretch;
     -webkit-align-items: stretch;
+    > .inner {
+        overflow: auto;
+    }
 }
 .inner {
     display: flex;
     display: -webkit-flex;
     flex: 1;
     -webkit-flex: 1;
-    overflow: auto;
 }
 .header {
     font-weight: bold;
@@ -80,6 +82,9 @@ td, th {
         background: -moz-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
         background: -webkit-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
     }
+    > .inner {
+        overflow: auto;
+    }
 }
 .framed {
     border-radius: 5px;
@@ -96,6 +101,10 @@ td, th {
     border: 1px solid $window-border-color;
     box-shadow: 0 5px 5px rgba(0,0,0,0.5);
     border-radius: 5px;
+
+    > .inner {
+        overflow: auto;
+    }
 }
 .window > .header {
     cursor: move;
@@ -105,7 +114,6 @@ td, th {
     background: -webkit-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
 }
 .vcontainer, .hcontainer {
-    overflow: auto;
     display: flex;
     display: -webkit-flex;
     align-items: flex-start;
@@ -163,14 +171,12 @@ td, th {
     opacity: 0.5;
 }
 .vcontainer {
-    overflow: auto;
     display: flex;
     display: -webkit-flex;
     flex-direction: column;
     -webkit-flex-direction: column;
 }
 .hcontainer {
-    overflow: auto;
     display: flex;
     display: -webkit-flex;
     flex-direction: row;
