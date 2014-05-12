@@ -50,6 +50,7 @@ import iTasks.API.Core.Client.Editlet
 		  configuration 	:: ![CodeMirrorConfiguration]
 		, position			:: !Int // cursor position
 		, selection 		:: !Maybe (Int,Int)
+		, highlighted		:: ![(Int,Int)]
 		, source			:: String // TODO: strictness kills graph_to_sapl_string here
 		}
 
@@ -58,6 +59,7 @@ import iTasks.API.Core.Client.Editlet
 		| SetPosition !Int
 		| SetSelection !(Maybe (Int,Int))
 		| SetValue !String // TODO
+		| SetHighlights ![(Int,Int)]
 
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror

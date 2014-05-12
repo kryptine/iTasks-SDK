@@ -80,20 +80,22 @@ codeMirrorEditlet :: !CodeMirror
 codeMirrorEditlet g eventhandlers = Editlet g
 				{ EditletServerDef
 				| genUI		= \cid world -> (uiDef cid, world)
-				, defVal	= {source = "", configuration = [], position = 0, selection = Nothing}
+				, defVal	= {source = "", configuration = [], position = 0, selection = Nothing, highlighted = []}
 				, genDiff	= genDiffServer
 				, appDiff	= appDiffServer
 				}
 				{ EditletClientDef
 				| updateUI	= onUpdate
-				, defVal 	= {val = {source = "", configuration = [], position = 0, selection = Nothing}, mbSt = Nothing}
+				, defVal 	= {val = {source = "", configuration = [], position = 0, selection = Nothing, highlighted = []}, mbSt = Nothing}
 				, genDiff	= genDiffClient
 				, appDiff	= appDiffClient
 				}
 				
 where
 	uiDef cid
-		= { html 			= DivTag [IdAttr (sourcearea cid), StyleAttr "display: block; position: absolute;"] []
+		= { html 			= DivTag [] 
+										[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
+										,DivTag [IdAttr (sourcearea cid), StyleAttr "display: block; position: absolute;"] []]
 		  , eventHandlers 	= []
 		  , width 			= FlexSize
 		  , height			= ExactSize 400
@@ -144,6 +146,18 @@ where
 			(Just (SetValue str)) 	
 						= snd (callObjectMethod "setValue" [toJSArg str] cmdoc world)
 
+		# world = case find isSetHighlights nopts of
+			Nothing    	= world
+			(Just (SetHighlights newmarks)) 	
+
+						// Clear all marks
+						# (marks, world) = (cmdoc .# "getAllMarks" .$ ()) world
+						# (marks, world) = fromJSArray marks id world
+						# world = foldl (\world m -> snd ((m .# "clear" .$ ()) world)) world marks
+
+						// Set marks
+						= foldl (\world pos -> addMark cmdoc pos world) world newmarks
+
 		// enable system event handlers
 		# world = manageSystemEvents "on" st world
 					
@@ -164,7 +178,17 @@ where
 		isSetVal (SetValue _) = True
 		isSetVal _ = False
 
+		isSetHighlights (SetHighlights _) = True
+		isSetHighlights _ = False
+
 		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
+
+		addMark cmdoc (i1,i2) world
+			# (p1, world) = posFromIndex i1 cmdoc world
+			# (p2, world) = posFromIndex i2 cmdoc world
+			# (conf, world) = jsEmptyObject world
+			# world = (conf .# "className" .= "cm-highlight") world
+			= snd ((cmdoc .# "markText" .$ (p1,p2,conf)) world)
 	
 	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
 		# (ta, world)       = getDomElement (sourcearea cid) world
@@ -249,7 +273,9 @@ where
 							   ++
 							   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
 							   ++
-							   if (val1.source == val2.source) [] [SetValue val2.source]) of
+							   if (val1.source == val2.source) [] [SetValue val2.source])
+							   ++ 
+							   [SetHighlights val2.highlighted] of
         []      = Nothing
         diffs   = Just diffs
 
@@ -260,7 +286,8 @@ where
 		upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
 		upd val=:{position} (SetPosition pos) = {val & position = pos}
 		upd val=:{selection} (SetSelection sel) = {val & selection = sel}	
-		upd val=:{source} (SetValue str) = {val & source = str}				
+		upd val=:{source} (SetValue str) = {val & source = str}
+		upd val=:{highlighted} (SetHighlights hs) = {val & highlighted = hs}					
 
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror

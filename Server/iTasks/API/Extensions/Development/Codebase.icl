@@ -123,6 +123,7 @@ config mode content
 						  ] 			// [CodeMirrorConfiguration]
 		 , position		= 0				// cursor position
 		 , selection 	= Nothing		//!Maybe (Int,Int)
+		 , highlighted	= []
 		 , source		= content
 		 }
 
