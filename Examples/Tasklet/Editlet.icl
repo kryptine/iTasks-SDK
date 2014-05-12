@@ -235,6 +235,7 @@ empty_board = repeatn 3 (repeatn 3 Clear)
 defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
         , position = 0
         , selection = Nothing
+        , highlighted = []
         , source = "Buu"}
 
 //test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
@@ -248,7 +249,7 @@ test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings
 
 
         
-//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
+test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
 
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
@@ -268,6 +269,6 @@ test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value)
 //test7 = enterInformation "Test" [] 
 
 Start :: *World -> *World
-Start world = startEngine test3 world
+Start world = startEngine test5 world
 
 
