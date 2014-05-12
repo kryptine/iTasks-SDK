@@ -115,7 +115,7 @@ where
 		handler = createEditletEventHandler (onLoad mbDiffs) cid
 
 	// update
-	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror}} world	
+	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror,marks}} world	
 		// disable system event handlers
 		# world = manageSystemEvents "off" st world		
 	
@@ -146,22 +146,22 @@ where
 			(Just (SetValue str)) 	
 						= snd (callObjectMethod "setValue" [toJSArg str] cmdoc world)
 
-		# world = case find isSetHighlights nopts of
-			Nothing    	= world
+		# (marks, world) = case find isSetHighlights nopts of
+			Nothing    	= (marks, world)
 			(Just (SetHighlights newmarks)) 	
 
 						// Clear all marks
-						# (marks, world) = (cmdoc .# "getAllMarks" .$ ()) world
-						# (marks, world) = fromJSArray marks id world
+						//# (marks, world) = (cmdoc .# "getAllMarks" .$ ()) world
+						//# (marks, world) = fromJSArray marks id world
 						# world = foldl (\world m -> snd ((m .# "clear" .$ ()) world)) world marks
 
 						// Set marks
-						= foldl (\world pos -> addMark cmdoc pos world) world newmarks
+						= foldl (\(ms, world) pos -> let (m,w) = addMark cmdoc pos world in ([m:ms], w)) ([], world) newmarks
 
 		// enable system event handlers
 		# world = manageSystemEvents "on" st world
 					
-		= (clval, world)
+		= ({clval & mbSt = Just {st & marks = marks}}, world)
 	where
 		(opts`, nopts) = splitWith isSetOpt diffs
 		opts = map (\(SetOption opt) -> opt) opts`
@@ -188,7 +188,7 @@ where
 			# (p2, world) = posFromIndex i2 cmdoc world
 			# (conf, world) = jsEmptyObject world
 			# world = (conf .# "className" .= "cm-highlight") world
-			= snd ((cmdoc .# "markText" .$ (p1,p2,conf)) world)
+			= (cmdoc .# "markText" .$ (p1,p2,conf)) world
 	
 	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
 		# (ta, world)       = getDomElement (sourcearea cid) world
@@ -197,7 +197,7 @@ where
         # (this, world)     = jsThis world
         # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
 		# world 			= loadModulesIfNeeded configuration cm world
-		# st 				= {codeMirror = cm, systemEventHandlers = systemEvents}
+		# st 				= {codeMirror = cm, systemEventHandlers = systemEvents, marks = []}
 		# world 			= manageSystemEvents "on" st world	
 		# world 			= foldl (putOnEventHandler cm) world eventhandlers
 

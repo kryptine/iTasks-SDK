@@ -7,6 +7,7 @@ import iTasks.API.Core.Client.Editlet
 :: CodeMirrorClientSt = {
 		  codeMirror 			:: !JSObj JSCM
 		, systemEventHandlers	:: ![(!String, !JSFun JSCM)]
+		, marks					:: ![JSObj JSCM]
 		}
  
 :: CodeMirrorClient = {
