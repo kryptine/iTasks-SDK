@@ -25,7 +25,6 @@ itwc.extend = function(inheritFrom,definition) {
 itwc.Component = function() {};
 itwc.Component.prototype = {
     isContainer: false,
-    enableScroll: false,
 
     defaultWidth: 'flex',
     defaultHeight: 'wrap',
@@ -64,16 +63,11 @@ itwc.Component.prototype = {
             height = me.definition.itwcHeight || me.defaultHeight,
             direction = me.parentCmp.definition.direction || me.parentCmp.defaultDirection;
 
-        //Non-containers never shrink
-        if(!me.enableScroll) {
-            el.style.flexShrink = 0;
-            el.style.webkitFlexShrink = 0;
-        }
         //Set width
         if(width === 'flex') {
             if(direction == 'horizontal') {
-                el.style.flexGrow = 1;
-                el.style.webkitFlexGrow = 1;
+                el.style.flex = 1;
+                el.style.webkitFlex = 1;
             } else {
                 el.style.alignSelf = 'stretch';
                 el.style.webkitAlignSelf = 'stretch';
@@ -84,12 +78,13 @@ itwc.Component.prototype = {
             }
         } else {
             el.style.width = width + 'px';
+            el.style.minWidth = width + 'px';
         }
         //Set height
         if(height === 'flex') {
             if(direction == 'vertical') {
-                el.style.flexGrow = 1;
-                el.style.webkitFlexGrow = 1;
+                el.style.flex = 1;
+                el.style.webkitFlex = 1;
             } else {
                 el.style.alignSelf = 'stretch';
                 el.style.webkitAlignSelf = 'stretch';
@@ -100,6 +95,7 @@ itwc.Component.prototype = {
             }
         } else {
             el.style.height = height + 'px';
+            el.style.minHeight = height + 'px';
         }
         //Set margins
         me.initMargins(itemIdx,isLast);
@@ -496,9 +492,11 @@ itwc.component.itwc_window = itwc.extend(itwc.Layer, {
 
         if(width != 'flex' && width != 'wrap') {
             el.style.width = width + 'px';
+            el.style.minWidth = width + 'px';
         }
         if(height != 'flex' && height != 'wrap') {
             el.style.height = height + 'px';
+            el.style.minHeight = height + 'px';
         }
         me.initItemLayout();
     },
@@ -1321,7 +1319,6 @@ itwc.component.itwc_panel = itwc.extend(itwc.Panel,{
     }
 });
 itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
-    enableScroll: true,
     isContainer: false, //Don't size as container
     defaultWidth: 'flex',
     defaultHeight: 'flex',
@@ -1638,7 +1635,6 @@ itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
 });
 itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
     defaultHeight: 'flex',
-    enableScroll: true,
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
