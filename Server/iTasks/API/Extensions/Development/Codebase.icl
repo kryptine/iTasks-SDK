@@ -93,16 +93,16 @@ readDir path w
 editCleanModule :: Bool CleanModule -> Task CodeMirror
 editCleanModule mode ((path,fileName),ext) = openEditor mode (path,fileName +++ toString ext)// @! ()
 
-openEditor mode (path,fileName) 
+openEditor True (path,fileName) 
 	=					openAndReadFile (path </> fileName)
-	>>= \content ->		withShared (config mode content)
+	>>= \content ->		withShared (config False content)
 						(\config -> updateSharedInformation fileName [UpdateWith 
 																		(\cm -> codeMirrorEditlet cm [])
 																		(\_ (Editlet value _ _) -> value) 
 																	 ] config) 
-openEditor mode (path,fileName) 
+openEditor False (path,fileName) 
 	=					openAndReadFile (path </> fileName)
-	>>= \content ->		withShared (config mode content)
+	>>= \content ->		withShared (config True content)
 						(\config -> viewSharedInformation fileName [ViewWith 
 																		(\cm -> codeMirrorEditlet cm []) 
 																	 ] config) 

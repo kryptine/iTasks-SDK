@@ -232,7 +232,7 @@ where
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
-defcm = { configuration = [CMMode "javascript", CMLineNumbers True]
+defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
         , position = 0
         , selection = Nothing
         , highlighted = []

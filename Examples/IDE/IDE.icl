@@ -53,9 +53,10 @@ openEditor fileName=:((filePath,moduleName),ext) list
     (\mirror -> forever (
             viewSharedInformation "Selected" [ViewWith (getSelection o fromJust)] mirror
         >>*	[ OnAction (Action "/Search/Search Identifier..." []) (ifValue isJust (\mirror -> searchFor (getSelection (fromJust mirror)) <<@ InWindow ))
+            , OnAction ActionClose 			(always (closeEditor fileName list))
             ])
     )) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
-    ) >>* [OnAction ActionClose 			(always (closeEditor fileName list))]
+    ) 
 
 closeEditor fileName list
     =				upd (\st -> {st & openedFiles = removeMember fileName st.openedFiles}) IDE_Status
