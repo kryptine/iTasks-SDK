@@ -98,7 +98,7 @@ where
 										,DivTag [IdAttr (sourcearea cid), StyleAttr "display: block; position: absolute;"] []]
 		  , eventHandlers 	= []
 		  , width 			= FlexSize
-		  , height			= ExactSize 400
+		  , height			= FlexSize
 		  }
 	sourcearea id = "cm_source_" +++ id
 	
@@ -205,6 +205,7 @@ where
         # (cmp,world)       = .? (editlets .# cid) world
         # (clval,world)		= onAfterShow cm cid undef clval world
         # world             = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world
+        # world             = (cmp .# "afterShow" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world        
 	
         //Call onUpdate to initialize the editor	
         = onUpdate cid mbDiff {clval & mbSt = Just st} world
