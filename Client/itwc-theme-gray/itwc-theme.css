@@ -78,27 +78,38 @@ td, th {
 .framed {
   border-radius: 5px; }
 
-.window {
+.floating-window, .modal-window, .notification-bubble {
   position: absolute;
   top: 0px;
   left: 0px;
   z-index: 100;
   display: flex;
-  display: -webkit-flex;
+  display: -webkit-flex; }
+  .floating-window > .inner, .modal-window > .inner, .notification-bubble > .inner {
+    overflow: auto; }
+
+.floating-window, .modal-window {
   color: black;
   background-color: #eeeeee;
   border: 1px solid #cccccc;
-  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
   border-radius: 5px; }
-  .window > .inner {
-    overflow: auto; }
+  .floating-window > .header, .modal-window > .header {
+    color: black;
+    background-color: #cccccc;
+    background: -moz-linear-gradient(top, #eeeeee 0%, #cccccc 100%);
+    background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
 
-.window > .header {
-  cursor: move;
-  color: black;
-  background-color: #cccccc;
-  background: -moz-linear-gradient(top, #eeeeee 0%, #cccccc 100%);
-  background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
+.floating-window {
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5); }
+
+.notification-bubble {
+  background-color: #eeeeee;
+  border: 3px solid #cccccc;
+  border-radius: 10px;
+  opacity: 0.9; }
+  .notification-bubble > .header {
+    color: black;
+    background-color: #cccccc; }
 
 .vcontainer, .hcontainer {
   display: flex;
@@ -113,6 +124,12 @@ td, th {
 .hcontainer {
   flex-direction: row;
   -webkit-flex-direction: row; }
+
+.modal-masker {
+  position: absolute;
+  background-color: #000;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000; }
 
 .button {
   font-size: 8pt;
@@ -283,6 +300,8 @@ td, th {
   display: -webkit-flex;
   flex-direction: column;
   -webkit-flex-direction: column; }
+  .tabitem.selected > .inner {
+    overflow: auto; }
 
 .tabbar li a.tabclose {
   color: #aaa;

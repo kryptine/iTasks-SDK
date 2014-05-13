@@ -28,17 +28,31 @@ itwc.Component.prototype = {
 
     defaultWidth: 'flex',
     defaultHeight: 'wrap',
+    defaultMargins: [0,0,0,00],
 
-    init: function(definition, parentCmp ) {
+    init: function(definition, parentCmp) {
         var me = this;
 
-        me.type = (definition && definition.xtype) || 'itwc_component';
         me.domEl = null;
         me.targetEl = null;
         me.parentCmp = parentCmp || null;
         me.items = [];
-        me.definition = definition || {};
+        me.processDefinition(definition);
         me.hotkeyListener = null;
+    },
+    processDefinition: function(definition) {
+        var me = this;
+        //Initialize component properties
+        //from the definition
+        me.definition = definition || {};
+        me.type = (definition && definition.xtype) || 'itwc_component';
+
+        //Parse margins
+        if(definition.margins) {
+            me.margins = definition.margins.split(' ').map(function(m) { return parseInt(m)});
+        } else {
+            me.margins = me.defaultMargins;
+        }
     },
     render: function(itemIdx, isLast) {
         var me = this;
@@ -119,11 +133,8 @@ itwc.Component.prototype = {
             halign = me.parentCmp.definition.halign || 'left';
 
         //Set margins as specified
-        if(me.definition.margins) {
-            el.style.margin = me.definition.margins.split(' ').map(function(s) { return s + 'px'}).join(' ');
-        } else {
-            el.style.margin = '0 0 0 0';
-        }
+        el.style.margin = me.margins.map(function(s) { return s + 'px'}).join(' ');
+
         //Set margins to auto based on alignment of parent
         if(direction == 'vertical') {
             if(width !== 'flex') {
@@ -245,6 +256,7 @@ itwc.Container = itwc.extend(itwc.Component,{
 });
 itwc.Panel = itwc.extend(itwc.Container,{
 
+    panelEl: null,
     headerEl: null,
     titleEl: null,
     closeEl: null,
@@ -256,21 +268,24 @@ itwc.Panel = itwc.extend(itwc.Container,{
     initPanel: function() {
         var me = this;
 
+        if(!me.panelEl) {
+            me.panelEl = me.domEl;
+        }
         me.targetEl = document.createElement('div');
         me.targetEl.classList.add('inner');
-        me.domEl.appendChild(me.targetEl);
+        me.panelEl.appendChild(me.targetEl);
     },
     createHeaderEl: function() {
         var me = this;
         me.headerEl = document.createElement('div');
         me.headerEl.classList.add('header');
-        me.domEl.insertBefore(me.headerEl,me.domEl.childNodes[0]);
+        me.panelEl.insertBefore(me.headerEl,me.panelEl.childNodes[0]);
     },
     createTitleEl: function() {
         var me = this;
         me.titleEl = document.createElement('span');
         if(me.headerEl.childNodes.length) {
-            me.headerEl.insertBefore(me.titleEl,me.domEl.childNodes[0]);
+            me.headerEl.insertBefore(me.titleEl,me.headerEl.childNodes[0]);
         } else {
             me.headerEl.appendChild(me.titleEl);
         }
@@ -357,19 +372,31 @@ itwc.Panel = itwc.extend(itwc.Container,{
 });
 itwc.Layer = itwc.extend(itwc.Panel,{
     maximize: false,
+    modal: false,
+    defaultVpos: 'middle',
+    defaultHpos: 'center',
 
     initDOMEl: function() {
         this.initLayer();
     },
     initLayer: function() {
-        this.domEl.classList.add("layer");
-        this.initPanel();
+        var me = this, wrapEl;
+
+        me.domEl.classList.add('layer');
+        me.initPanel();
+        //If the layer is modal, we need to wrap the element in an additional full size
+        //div that masks everything beneath it
+        if(me.modal) {
+            me.domEl = document.createElement('div');
+            me.domEl.classList.add('modal-masker');
+            me.domEl.appendChild(me.panelEl);
+        }
     },
     initSize: function() {
         var me = this;
 
         //Layers are put directly in the body and sized by the controller
-        if(me.maximize) {
+        if(me.maximize || me.modal) {
             this.domEl.style.width = window.innerWidth;
             this.domEl.style.height = window.innerHeight;
         }
@@ -383,7 +410,6 @@ itwc.component = {};
 
 itwc.component.itwc_menubar = itwc.extend(itwc.Container, {
     defaultDirection: 'horizontal',
-
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
@@ -471,22 +497,37 @@ itwc.component.itwc_viewport = itwc.extend(itwc.Layer,{
     }
 });
 itwc.component.itwc_window = itwc.extend(itwc.Layer, {
+    defaultMargins: [10,10,10,10],
+    movable: false,
     initDOMEl: function() {
         var me = this;
-        me.domEl.classList.add('window');
+        switch(me.definition.windowType) {
+            case 'modal':
+                me.modal = true;
+                me.domEl.classList.add('modal-window');
+                break;
+            case 'bubble':
+                me.domEl.classList.add('notification-bubble');
+                break;
+            default:
+                me.movable = true;
+                me.domEl.classList.add('floating-window');
+        }
         me.initLayer();
         me.setTitle(me.definition.title);
         me.setCloseTaskId(me.definition.closeTaskId);
+
         if(me.definition.menu) {
             me.setMenu(me.definition.menu);
         }
-        if(me.headerEl) {
+        if(me.movable && me.headerEl) {
             me.headerEl.addEventListener('mousedown', me.onStartDrag.bind(me));
+            me.headerEl.style.cursor = 'move';
         }
     },
     initSize: function() {
         var me = this,
-            el = me.domEl,
+            el = me.panelEl,
             width = me.definition.itwcWidth || me.defaultWidth,
             height = me.definition.itwcHeight || me.defaultHeight;
 
@@ -497,6 +538,10 @@ itwc.component.itwc_window = itwc.extend(itwc.Layer, {
         if(height != 'flex' && height != 'wrap') {
             el.style.height = height + 'px';
             el.style.minHeight = height + 'px';
+        }
+        if(me.modal) {
+            me.domEl.style.width = window.innerWidth + 'px';
+            me.domEl.style.height = window.innerHeight + 'px';
         }
         me.initItemLayout();
     },
@@ -519,10 +564,10 @@ itwc.component.itwc_window = itwc.extend(itwc.Layer, {
             diffX = newX - me.lastX,
             left, top;
 
-        left = parseInt(document.defaultView.getComputedStyle(me.domEl,'').getPropertyValue('left'),10);
-        top = parseInt(document.defaultView.getComputedStyle(me.domEl,'').getPropertyValue('top'),10);
-        me.domEl.style.left = ((left < 0) ? 0 : (left + diffX)) + 'px';
-        me.domEl.style.top = ((top < 0) ? 0 : (top + diffY)) + 'px';
+        left = parseInt(document.defaultView.getComputedStyle(me.panelEl,'').getPropertyValue('left'),10);
+        top = parseInt(document.defaultView.getComputedStyle(me.panelEl,'').getPropertyValue('top'),10);
+        me.panelEl.style.left = ((left < 0) ? 0 : (left + diffX)) + 'px';
+        me.panelEl.style.top = ((top < 0) ? 0 : (top + diffY)) + 'px';
 
         me.lastX = newX;
         me.lastY = newY;
@@ -1226,6 +1271,13 @@ itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
         me.definition.value = value.length ? value[0] : null;
     }
 });
+itwc.component.itwc_clientbutton = itwc.extend(itwc.ButtonComponent,{
+    onClick: function(e) {
+        var me = this;
+        itwc.controller[me.definition.actionId]();
+    }
+});
+
 itwc.component.itwc_icon= itwc.extend(itwc.Component,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -1908,9 +1960,13 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             xhr = new XMLHttpRequest();
             xhr.open('POST',instanceNo + '/' + me.instances[instanceNo].instanceKey +'/gui'+me.urlParameters,true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onerror = me.onTaskEventError.bind(me);
             xhr.onload = me.onTaskEventResponse.bind(me);
             xhr.send(itwc.util.urlEncode(params));
         }
+    },
+    onTaskEventError: function(e) {
+        itwc.controller.showError("Flushing events failed");
     },
     onTaskEventResponse: function(e) {
         var me = this,
@@ -1940,6 +1996,7 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     startUIEventSource: function() {
         var me = this;
         me.updateSource = new EventSource('gui-stream?instances='+Object.keys(me.instances).join(','));
+        me.updateSource.onerror = me.onPushError.bind(me);
         me.updateSource.addEventListener('reset', me.onResetPushEvent.bind(me), false);
         me.updateSource.addEventListener('message', me.onUpdatePushEvent.bind(me), false);
     },
@@ -1949,6 +2006,18 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             me.updateSource.close();
         }
         me.startUIEventSource();
+    },
+    stopUIEventSource: function() {
+        var me = this;
+        if(me.updateSource) {
+            me.updateSource.close();
+            me.updateSource = null;
+        }
+    },
+    onPushError:function(e) {
+        var me = this;
+        me.stopUIEventSource();
+        itwc.controller.showError("Disconnected from server");
     },
     onResetPushEvent: function(e) {
         var me = this;
@@ -2072,6 +2141,10 @@ itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 itwc.controller = function() {
     var me = this;
 
+    // Client state
+    // One of: disconnected/connected-eventsource/connected-poll
+    me.state = 'disconnected';
+
     //Event queue and administration
     me.taskEvents = [];
     me.nextSendEventNo = 0;
@@ -2079,6 +2152,13 @@ itwc.controller = function() {
     me.refresher = null;
     me.updateSource = null;
     me.urlParameters = '';
+
+    //Global set of layers
+    me.layers = [];
+    me.errorLayer = [];
+
+    //The shared remote instance proxy
+    me.remoteProxy = null;
 };
 itwc.controller.prototype = {
 
@@ -2091,9 +2171,6 @@ itwc.controller.prototype = {
 
     //The set of task instance proxies which handle events & UI updates
     instanceProxies: {},
-
-    //The shared remote instance proxy
-    remoteProxy: null,	
 
     sendEditEvent: function(taskId, editorId, value, replace) {
         var me = this,
@@ -2255,7 +2332,7 @@ itwc.controller.prototype = {
     },
     addWindow: function(cmp,winIdx,winDef) {
         var me = this,
-            win;
+            win,top,left;
 
         win = new itwc.component.itwc_window();
         win.init(winDef,cmp);
@@ -2273,15 +2350,28 @@ itwc.controller.prototype = {
                 me.addComponent(win.menu,childIdx,childCmp);
             });
         }
-
+        //Register references
         cmp.windows[winIdx] = win;
+        me.layers.push(win);
 
         //Inject in DOM
         document.body.appendChild(win.domEl);
 
         //Position window
-        win.domEl.style.left = ((document.body.offsetWidth / 2) - (win.domEl.offsetWidth / 2)) + 'px';
-        win.domEl.style.top = ((document.body.offsetHeight / 2) - (win.domEl.offsetHeight / 2)) + 'px';
+        switch(winDef.vpos || win.defaultVpos) {
+            case 'top': top = win.margins[0]; break;
+            case 'middle': top = (document.body.offsetHeight / 2) - (win.panelEl.offsetHeight / 2); break;
+            case 'bottom': top = document.body.offsetHeight - win.panelEl.offsetHeight - win.margins[2]; break;
+        }
+        switch(winDef.hpos || win.defaultHpos) {
+            case 'left': left = win.margins[3]; break;
+            case 'center': left = ((document.body.offsetWidth / 2) - (win.panelEl.offsetWidth / 2)); break;
+            case 'right': left = document.body.offsetWidth - win.panelEl.offsetWidth - win.margins[1]; break;
+        }
+        win.panelEl.style.top = top + 'px';
+        win.panelEl.style.left = left + 'px';
+
+        return win;
     },
     removeWindow: function(cmp,winIdx) {
         document.body.removeChild(cmp.windows[winIdx].domEl);
@@ -2301,7 +2391,50 @@ itwc.controller.prototype = {
     removeMenu: function(cmp) {
         cmp.setMenu(null);
     },
-    reset: function(startInstanceNo,startInstanceKey) {
+    showError: function(error) {
+        var me = this;
+
+        if(me.errorWindow) {
+            me.errorWindow.items[0].setValue(error);
+        } else {
+            me.errorWindow = me.addWindow(me.layers[0],0,{
+                xtype: 'itwc_window',
+                windowType: 'modal',
+                title: 'Connection error',
+                itwcWidth: 300,
+                items: [{xtype:'itwc_view_html',value: error, margins: '5 5 5 5'}
+                       ,{xtype:'itwc_container',halign: 'right',itwcWidth: 'flex',padding: '5 5 5 5'
+                        ,items:[{xtype:'itwc_clientbutton',text:'Reset',actionId:'reset'}]
+                        }
+                       ]
+            });
+        }
+    },
+    clearError: function() {
+        var me = this;
+        if(me.errorLayer) {
+            document.body.removeChild(me.errorLayer);
+            me.errorLayer = null;
+        }
+    },
+    reset: function() {
+        window.location.reload();
+    },
+    onWindowResize: function(e) {
+        var me = this,
+            width = window.innerWidth,
+            height = window.innerHeight, num, i, layer;
+        num = me.layers.length;
+        for(i = 0; i < num; i++) {
+            layer = me.layers[i];
+            if(layer.maximize || layer.modal) {
+                layer.domEl.style.width = width;
+                layer.domEl.style.height = height;
+                layer.afterResize();
+            }
+        }
+    },
+    start: function () {
         var me = this;
 
         //Initialize the client component tree and DOM
@@ -2319,32 +2452,13 @@ itwc.controller.prototype = {
 
         //Create the viewport layer
         me.layers[0] = new itwc.component.itwc_viewport();
-        me.layers[0].init({instanceNo: startInstanceNo, instanceKey: startInstanceKey, halign: 'center', valign: 'middle'});
+        me.layers[0].init({instanceNo: itwc.START_INSTANCE_NO, instanceKey: itwc.START_INSTANCE_KEY, halign: 'center', valign: 'middle'});
         me.layers[0].render(0,false);
+
         document.body.appendChild(me.layers[0].domEl);
 
-        //Send reset event for the start instance
-        me.remoteProxy.sendResetEvent(startInstanceNo);
-    },
-    onWindowResize: function(e) {
-        var me = this,
-            width = window.innerWidth,
-            height = window.innerHeight, num, i, layer;
-        num = me.layers.length;
-        for(i = 0; i < num; i++) {
-            layer = me.layers[i];
-            if(layer.maximize) {
-                layer.domEl.style.width = width;
-                layer.domEl.style.height = height;
-                layer.afterResize();
-            }
-        }
-    },
-    start: function () {
-        var me = this;
-
-        //Initialize user interface data structures and DOM
-        me.reset(itwc.START_INSTANCE_NO,itwc.START_INSTANCE_KEY);
+        //Send empty event to synchronize the start instance
+        me.remoteProxy.sendResetEvent(itwc.START_INSTANCE_NO);
 
         //Listen for changes in the viewport size
         window.addEventListener('resize',me.onWindowResize.bind(me));

@@ -53,12 +53,19 @@ autoLayoutFinal        :: UIDef -> UIDef
 plainLayoutFinal       :: UIDef -> UIDef
 
 //Placement tuning types
-:: InWindow         = InWindow          //Indicate that a task should be put in a window
+:: ToWindow     = ToWindow UIWindowType UIVAlign UIHAlign
+
+InWindow                :== InFloatingWindow  //Indicate that a task should be put in a window
+InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
+InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
+InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
+
+
 :: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
 :: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
 
-instance tune InWindow
+instance tune ToWindow
 instance tune InPanel
 instance tune InContainer
 instance tune FullScreen

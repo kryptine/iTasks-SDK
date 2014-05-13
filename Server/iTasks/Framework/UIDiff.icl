@@ -14,7 +14,8 @@ from iTasks.Framework.Task import :: Event(..), :: EventNo
 derive gEq UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISide, UISize, UIBound, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
 derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
 derive gEq UILabelOpts, UIIconOpts
-derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts, UIVAlign, UIHAlign, UIDirection, UITabSetOpts, UITab, UITabOpts
+derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts
+derive gEq UIVAlign, UIHAlign, UIDirection, UIWindowType, UITabSetOpts, UITab, UITabOpts
 derive gEq UIDef, UIContent, UIEmpty, UIForm, UIBlock, UIAction
 derive gEq UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 

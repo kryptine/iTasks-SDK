@@ -28,7 +28,7 @@ defaultPanel :: ![UIControl] -> UIControl
 defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
 
 defaultWindow :: ![UIControl] -> UIWindow
-defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|title=Nothing,iconCls=Nothing,menu=Nothing,closeTaskId=Nothing,focusTaskId=Nothing,hotkeys=Nothing}
+defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|windowType=FloatingWindow,title=Nothing,iconCls=Nothing,menu=Nothing,hotkeys=Nothing,vpos=Nothing,hpos=Nothing,closeTaskId=Nothing,focusTaskId=Nothing}
 
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
@@ -484,6 +484,10 @@ JSONEncode{|UIHAlign|} _ AlignRight		= [JSONString "right"]
 
 JSONEncode{|UIDirection|} _ Vertical	= [JSONString "vertical"]
 JSONEncode{|UIDirection|} _ Horizontal	= [JSONString "horizontal"]
+
+JSONEncode{|UIWindowType|} _ FloatingWindow = [JSONString "floating"]
+JSONEncode{|UIWindowType|} _ ModalDialog = [JSONString "modal"]
+JSONEncode{|UIWindowType|} _ NotificationBubble = [JSONString "bubble"]
 
 JSONEncode{|UIMenuButtonOpts|} _ {UIMenuButtonOpts|text,iconCls,disabled,menu}
 	= [JSONObject (text` ++ [("disabled",JSONBool disabled),("menu",menu`)] ++ iconCls`)]

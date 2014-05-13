@@ -89,29 +89,42 @@ td, th {
 .framed {
     border-radius: 5px;
 }
-.window {
+.floating-window, .modal-window, .notification-bubble {
     position: absolute;
     top: 0px;
     left: 0px;
     z-index: 100;
     display: flex;
     display: -webkit-flex;
-    color: $canvas-text-color;
-    background-color: $canvas-base-color;
-    border: 1px solid $window-border-color;
-    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
-    border-radius: 5px;
-
     > .inner {
         overflow: auto;
     }
 }
-.window > .header {
-    cursor: move;
-    color: $window-header-text-color;
-    background-color: $window-header-base-color;
-    background: -moz-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
-    background: -webkit-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+.floating-window, .modal-window {
+    color: $canvas-text-color;
+    background-color: $canvas-base-color;
+    border: 1px solid $window-border-color;
+    border-radius: 5px;
+
+    > .header {
+        color: $window-header-text-color;
+        background-color: $window-header-base-color;
+        background: -moz-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+        background: -webkit-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+    }
+}
+.floating-window {
+    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
+}
+.notification-bubble {
+    background-color: $canvas-base-color;
+    border: 3px solid $window-header-base-color;
+    border-radius: 10px;
+    opacity: 0.9;
+    > .header {
+        color: $window-header-text-color;
+        background-color: $window-header-base-color;
+    }
 }
 .vcontainer, .hcontainer {
     display: flex;
@@ -127,7 +140,12 @@ td, th {
     flex-direction: row;
     -webkit-flex-direction: row;
 }
-
+.modal-masker {
+    position: absolute;
+    background-color: #000;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+}
 .button {
     font-size: 8pt;
     background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
@@ -306,6 +324,10 @@ td, th {
    display: -webkit-flex;
    flex-direction: column;
    -webkit-flex-direction: column;
+
+   > .inner {
+    overflow: auto;
+   }
 }
 .tabbar li a.tabclose {
     color: #aaa;

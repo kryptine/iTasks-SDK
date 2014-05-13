@@ -72,13 +72,20 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 :: UIWindow = UIWindow !UISizeOpts !UIItemsOpts !UIWindowOpts					
 	
 :: UIWindowOpts =
-	{ title			:: !Maybe String
+	{ windowType    :: !UIWindowType
+    , title			:: !Maybe String
 	, iconCls		:: !Maybe String
 	, menu			:: !Maybe [UIControl]
 	, hotkeys		:: !Maybe [UIKeyAction]
+    , vpos          :: !Maybe UIVAlign
+    , hpos          :: !Maybe UIHAlign
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
 	}
+:: UIWindowType
+    = FloatingWindow        //Normal movable window
+    | ModalDialog           //Fixed position modal dialog
+    | NotificationBubble    //Fixed position info
 
 // A tab that goes into a tab set.
 :: UITab = UITab !UIItemsOpts !UITabOpts

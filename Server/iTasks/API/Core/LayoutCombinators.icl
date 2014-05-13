@@ -195,8 +195,8 @@ where
 autoLayoutBlocks :: [UIBlock] [UIAction] -> UIBlock
 autoLayoutBlocks blocks actions = arrangeVertical blocks actions
 
-instance tune InWindow
-where tune InWindow t = tune (AfterLayout uiDefToWindow) t
+instance tune ToWindow
+where tune (ToWindow windowType vpos hpos) t = tune (AfterLayout (uiDefToWindow windowType vpos hpos)) t
 
 instance tune InPanel
 where tune InPanel t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" o forceLayout)) t
@@ -391,40 +391,17 @@ where
 	title       = fromMaybe "Untitled" ('Data.Map'.get TITLE_ATTRIBUTE attributes)
     iconCls     = fmap (\i -> "icon-" +++ i) ('Data.Map'.get ICON_ATTRIBUTE attributes)
 
-uiDefToWindow :: UIDef -> UIDef
-uiDefToWindow {UIDef|content=UIForm form,windows}
-    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [subUIToWindow (autoLayoutForm form):windows]}
-uiDefToWindow {UIDef|content=UIBlock block,windows}
-    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [subUIToWindow block:windows]}
-uiDefToWindow {UIDef|content=UIBlocks blocks actions,windows}
-    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [subUIToWindow (autoLayoutBlocks blocks actions):windows]}
-uiDefToWindow def = def
+uiDefToWindow :: UIWindowType UIVAlign UIHAlign UIDef -> UIDef
+uiDefToWindow windowType vpos hpos {UIDef|content=UIForm form,windows}
+    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [blockToWindow windowType vpos hpos (autoLayoutForm form):windows]}
+uiDefToWindow windowType vpos hpos {UIDef|content=UIBlock block,windows}
+    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [blockToWindow windowType vpos hpos block:windows]}
+uiDefToWindow windowType vpos hpos {UIDef|content=UIBlocks blocks actions,windows}
+    = {UIDef|content=UIEmpty {UIEmpty|actions=[]}, windows = [blockToWindow windowType vpos hpos (autoLayoutBlocks blocks actions):windows]}
+uiDefToWindow windowType vpos hpos def = def
 
-attributesToWindow :: UIAttributes -> UIWindow
-attributesToWindow attributes
-    = UIWindow sizeOpts (defaultItemsOpts []) windowOpts
-where
-	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
-	windowOpts  = {UIWindowOpts|title = title, menu = Nothing, closeTaskId = Nothing, focusTaskId = Nothing,hotkeys = Nothing, iconCls = iconCls}
-
-    title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
-    iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
-
-actionsToWindow :: UIActions -> UIWindow
-actionsToWindow actions
-	# (close,actions)		        = actionsToCloseId actions
-	# (buttons,buttonkeys,actions)	= actionsToButtons actions	
-	# (items,direction)	    	    = addButtonPanel 'Data.Map'.newMap Vertical buttons []
-	# (menus,menukeys,actions)	    = actionsToMenus actions
-    = UIWindow sizeOpts {defaultItemsOpts items & direction = direction} (windowOpts (buttonkeys++menukeys) menus close)
-where
-	sizeOpts	= {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
-	windowOpts hotkeys menus close
-        = {UIWindowOpts|title = Nothing, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
-                      ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = Nothing}
-
-subUIToWindow :: UIBlock -> UIWindow
-subUIToWindow {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToWindow :: UIWindowType UIVAlign UIHAlign UIBlock -> UIWindow
+blockToWindow windowType vpos hpos {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
     //Check for window close action
 	# (close,actions)		        = actionsToCloseId actions
     //Add button actions
@@ -436,8 +413,8 @@ subUIToWindow {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,at
 where
 	sizeOpts	= {UISizeOpts|size & width = Just (fromMaybe WrapSize size.UISizeOpts.width), height = Just (fromMaybe WrapSize size.UISizeOpts.height)}
 	windowOpts hotkeys menus close
-        = {UIWindowOpts|title = title, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
-                      ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), iconCls = iconCls}
+        = {UIWindowOpts|windowType = windowType, title = title, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
+                      ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), vpos = Just vpos, hpos = Just hpos, iconCls = iconCls}
 	
     title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
