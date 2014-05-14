@@ -88,10 +88,8 @@ readDir path w
 # (mbInfo,w)                 = getFileInfo path w
 | isError mbInfo             = ([],w)
 | (fromOk mbInfo).directory = getFilesInPath path w
+= ([],w)
 
-
-editCleanModule :: Bool CleanModule -> Task CodeMirror
-editCleanModule mode ((path,fileName),ext) = openEditor mode (path,fileName +++ toString ext)// @! ()
 
 openEditor True (path,fileName) 
 	=					openAndReadFile (path </> fileName)
@@ -106,6 +104,26 @@ openEditor False (path,fileName)
 						(\config -> viewSharedInformation fileName [ViewWith 
 																		(\cm -> codeMirrorEditlet cm []) 
 																	 ] config) 
+editCleanModule :: Bool CleanModule -> Task CodeMirror
+editCleanModule mode ((path,fileName),ext) = openEditor mode (path,fileName +++ toString ext)// @! ()
+
+
+
+updateCleanEditor :: (Shared CodeMirror) CleanModule -> Task CodeMirror
+updateCleanEditor mirror ((path,fileName),ext) 
+=						openAndReadFile (path </> fileName +++ toString ext)
+	>>= \content ->		upd (\mir -> {mir & source = content}) mirror 
+	>>|					updateSharedInformation fileName [UpdateWith  (\cm -> codeMirrorEditlet cm [])
+																	  (\_ (Editlet value _ _) -> value) 
+														 ] mirror
+
+viewCleanEditor :: (Shared CodeMirror) CleanModule -> Task CodeMirror
+viewCleanEditor shared ((path,fileName),ext) 
+=						openAndReadFile (path </> fileName +++ toString ext)
+	>>= \content ->		viewSharedInformation fileName [ViewWith 
+																		(\cm -> codeMirrorEditlet cm []) 
+																	 ] shared
+
 openAndReadFile  :: FilePath -> Task String
 openAndReadFile fileName
 	=	accWorld (myfopen  fileName) 
@@ -115,6 +133,7 @@ where
 	| isError mbError = (toString (fromError mbError),world)
 	= (fromOk mbError,world)	
 
+config :: Bool String -> CodeMirror
 config mode content
 	=   { configuration = [ CMLineNumbers True
 						  , CMMode "haskell"
