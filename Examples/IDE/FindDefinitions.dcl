@@ -18,7 +18,7 @@ derive class iTask IdentifierPositionList
 * Recursively searches in all imported modules known in codebase
 *
 * @param SearchWhat : 		kind of search: all identifiers, c.q. defining occurence in definition or implementation module
-* @param Bool:  			search in implementaion or definition module
+* @param Bool:  			search in implementation or definition module
 * @param Identifier: 		the identifier to search for
 * @param CleanModuleName:   module name to start the search with
 * @param CodeBase:   		hierarchical tree with all modules names
