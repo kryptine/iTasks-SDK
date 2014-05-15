@@ -8,11 +8,10 @@ body {
   width: 100%;
   height: 100%;
   margin: 0;
-  font-family: tahoma, arial, verdana, sans-serif;
-  font-size: 9pt;
-  overflow: hidden; }
+  overflow: hidden;
+  font-family: tahoma, arial, verdana, sans-serif; }
 
-td, th {
+body, input, td, th, select {
   font-size: 9pt; }
 
 .layer {
@@ -133,6 +132,7 @@ td, th {
 
 .button {
   font-size: 8pt;
+  padding: 3px;
   background: -moz-linear-gradient(top, #fefefe, #eeeeee);
   background: -webkit-linear-gradient(top, #fefefe, #eeeeee);
   background-repeat: none;
@@ -144,7 +144,6 @@ td, th {
   -webkit-flex-direction: row;
   align-items: center;
   -webkit-align-items: center;
-  padding: 3px;
   text-decoration: none;
   color: black;
   flex-shrink: 0; }

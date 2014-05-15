@@ -558,7 +558,7 @@ setItemsOfUI items ctrl								= ctrl
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
+	= (wrapHeight o fillWidth o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (setBaseCls "buttonbar" (defaultContainer buttons))
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIKeyAction],![UIAction])
 actionsToButtons [] = ([],[],[])
