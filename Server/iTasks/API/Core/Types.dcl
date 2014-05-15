@@ -239,6 +239,9 @@ derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, Butto
 //* Represents the choice of one element from a list represented as radio buttons
 :: RadioChoice v = RadioChoice ![v] !(Maybe Int)
 
+//* Represents the choice of one element from a list represented as a list of html buttons
+:: ListChoice v = ListChoice ![v] !(Maybe Int)
+
 //* Bundles a tree with options with a selection
 :: TreeChoice v = TreeChoice ![ChoiceTree v] !(Maybe Int)
 
@@ -250,26 +253,27 @@ derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, Butto
 :: DynamicChoice v
 	= DCCombo (ComboChoice v)
 	| DCRadio (RadioChoice v)
+	| DCList  (ListChoice v)
 	| DCTree  (TreeChoice v)
 	| DCGrid  (GridChoice v)
 
-derive JSONEncode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive JSONEncode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive JSONEncode		CheckMultiChoice
-derive JSONDecode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive JSONDecode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive JSONDecode		CheckMultiChoice
-derive gDefault			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gDefault			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gDefault			CheckMultiChoice
-derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEq				ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEq				CheckMultiChoice
-derive gText	        ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gText	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gText	        CheckMultiChoice
-derive gEditor	        ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEditor	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEditor	        CheckMultiChoice
-derive gEditMeta		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEditMeta		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEditMeta		CheckMultiChoice
-derive gUpdate			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gUpdate			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gUpdate			CheckMultiChoice
-derive gVerify			ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice
+derive gVerify			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gVerify			CheckMultiChoice
 
 /**
@@ -288,7 +292,7 @@ where
     //* Sets the index of the selection
     setSelectionIndex       :: !(Maybe Int) !(t v)          -> t v
 
-instance Choice ComboChoice,RadioChoice,TreeChoice,GridChoice,DynamicChoice
+instance Choice ComboChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,DynamicChoice
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]

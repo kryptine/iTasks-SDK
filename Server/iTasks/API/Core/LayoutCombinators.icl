@@ -125,6 +125,8 @@ autoLayoutSubEditor {UIForm|attributes,controls}
 
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
+autoLayoutForm {UIForm|attributes,controls=[(c=:UIListChoice _ _ ,_)],size}
+    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 autoLayoutForm {UIForm|attributes,controls=[(c=:UITree _ _ _ ,_)],size}
     = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 autoLayoutForm {UIForm|attributes,controls=[(c=:UIGrid _ _ _ ,_)],size}

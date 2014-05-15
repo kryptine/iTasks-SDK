@@ -13,6 +13,7 @@ from Data.Functor import class Functor
 :: ChoiceType o v	    = AutoChoice (o -> v)
 						| ChooseFromComboBox (o -> v)
 						| ChooseFromRadioButtons (o -> v)
+						| ChooseFromList (o -> v)
 						| ChooseFromGrid (o -> v)
 						| ChooseFromTree ([(Int,o)] [ChoiceTreeValue] -> [ChoiceTree v])
 					

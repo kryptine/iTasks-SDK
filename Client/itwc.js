@@ -1652,6 +1652,31 @@ itwc.component.itwc_choice_radiogroup = itwc.extend(itwc.Component,{
         });
     }
 });
+itwc.component.itwc_choice_list = itwc.extend(itwc.Component,{
+    domTag: 'div',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            value = me.definition.value.length ? me.definition.value[0] : null;
+
+        el.classList.add('choice-list');
+
+        me.definition.options.forEach(function(option,idx) {
+            var optionEl;
+            optionEl = document.createElement('div');
+            optionEl.classList.add('choice-list-option');
+            if(idx === value) {
+                optionEl.classList.add('selected');
+            }
+            optionEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
+            });
+            optionEl.innerHTML = option;
+
+            el.appendChild(optionEl);
+        });
+    }
+});
 itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
     domTag: 'ul',
     initDOMEl: function() {

@@ -226,6 +226,7 @@ where
     mkDynChoice (AutoChoice view) container             = mkDynChoice (autoChoiceType view container) container
     mkDynChoice (ChooseFromComboBox view) container     = DCCombo   (ComboChoice [view o \\ o <- container] Nothing)
     mkDynChoice (ChooseFromRadioButtons view) container = DCRadio   (RadioChoice [view o \\ o <- container] Nothing)
+    mkDynChoice (ChooseFromList view) container         = DCList    (ListChoice  [view o \\ o <- container] Nothing)
     mkDynChoice (ChooseFromTree view) container         = DCTree    (TreeChoice  (view [(i,o) \\ i <- [0..] & o <- container] []) Nothing)
     mkDynChoice (ChooseFromGrid view) container         = DCGrid    (GridChoice [view o \\ o <- container] Nothing)
 

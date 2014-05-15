@@ -788,6 +788,35 @@ where
     getSelectionIndex (RadioChoice _ mbSel)                     = mbSel
     setSelectionIndex mbSel (RadioChoice options _)             = RadioChoice options mbSel
 
+gDefault{|ListChoice|} _ = ListChoice [] Nothing
+gText{|ListChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
+gText{|ListChoice|} fv _ _ = [""]
+
+gEditor{|ListChoice|} _ gx _ hx _ _ dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
+	| disabled
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
+	| otherwise
+		= (NormalEditor [(UIListChoice defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},newMap/*editorAttributes vv (gEditMeta{|*->*|} hx val)*/)],vst)
+where
+	vvalue (ListChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
+	vvalue _								= Nothing
+	evalue (ListChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
+	
+	options (ListChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
+
+
+gUpdate{|ListChoice|} _ _ _ _ target upd val iworld
+	= updateChoice (\idx (ListChoice options _) -> ListChoice options (Just idx)) target upd val iworld
+
+gVerify{|ListChoice|} _ mv options = simpleVerify mv options
+
+instance Choice ListChoice
+where
+	getSelectionView (ListChoice options mbSel)			= getListOption options mbSel
+	setSelectionView mbSel (ListChoice options _)		= ListChoice options (maybe Nothing (getListIndex options) mbSel)
+    getSelectionIndex (ListChoice _ mbSel)              = mbSel
+    setSelectionIndex mbSel (ListChoice options _)      = ListChoice options mbSel
+
 gDefault{|TreeChoice|} _ = TreeChoice [] Nothing
 
 gText{|TreeChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
@@ -862,6 +891,7 @@ where
 gDefault{|DynamicChoice|} fx = DCRadio (gDefault{|*->*|} fx )
 
 gText{|DynamicChoice|}		fv mode (Just (DCRadio val))	= gText{|*->*|} fv mode (Just val)
+gText{|DynamicChoice|}		fv mode (Just (DCList val))	    = gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv mode (Just (DCCombo val))	= gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv mode (Just (DCGrid val))	    = gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv mode (Just (DCTree val))	    = gText{|*->*|} fv mode (Just val)
@@ -871,6 +901,8 @@ gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCCombo val,mask,ver) meta vst
 	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
 gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCRadio val,mask,ver) meta vst
 	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCList val,mask,ver) meta vst
+	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
 gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCTree val,mask,ver) meta vst
 	= gEditor{|*->*|} f1 f2 f3 f4 f5 f6 dp (val,mask,ver) meta vst
 gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCGrid val,mask,ver) meta vst
@@ -878,11 +910,13 @@ gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 dp (DCGrid val,mask,ver) meta vst
 
 gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCCombo val,mask) iworld	= appFst (appFst DCCombo) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
 gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCRadio val,mask) iworld	= appFst (appFst DCRadio) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
+gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCList val,mask) iworld	= appFst (appFst DCList) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
 gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCTree val,mask) iworld	= appFst (appFst DCTree) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
 gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCGrid val,mask) iworld	= appFst (appFst DCGrid) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
 
 gVerify{|DynamicChoice|} fx options (DCCombo v,mask) = gVerify{|*->*|} fx options (v,mask)
 gVerify{|DynamicChoice|} fx options (DCRadio v,mask) = gVerify{|*->*|} fx options (v,mask)
+gVerify{|DynamicChoice|} fx options (DCList v,mask) = gVerify{|*->*|} fx options (v,mask)
 gVerify{|DynamicChoice|} fx options (DCTree v,mask) = gVerify{|*->*|} fx options (v,mask)
 gVerify{|DynamicChoice|} fx options (DCGrid v,mask) = gVerify{|*->*|} fx options (v,mask)
 	
@@ -890,21 +924,25 @@ instance Choice DynamicChoice
 where
 	getSelectionView (DCCombo choice)		    = getSelectionView choice
 	getSelectionView (DCRadio choice)		    = getSelectionView choice
+	getSelectionView (DCList choice)		    = getSelectionView choice
 	getSelectionView (DCTree choice)		    = getSelectionView choice
 	getSelectionView (DCGrid choice)		    = getSelectionView choice
 
 	setSelectionView mbSel (DCCombo choice)		= DCCombo (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCRadio choice)		= DCRadio (setSelectionView mbSel choice)
+	setSelectionView mbSel (DCList choice)		= DCList (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCTree choice)		= DCTree (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCGrid choice)		= DCGrid (setSelectionView mbSel choice)
 
     getSelectionIndex (DCCombo choice)          = getSelectionIndex choice
     getSelectionIndex (DCRadio choice)          = getSelectionIndex choice
+    getSelectionIndex (DCList choice)           = getSelectionIndex choice
     getSelectionIndex (DCTree choice)           = getSelectionIndex choice
     getSelectionIndex (DCGrid choice)           = getSelectionIndex choice
 
     setSelectionIndex mbSel (DCCombo choice)    = DCCombo (setSelectionIndex mbSel choice)
     setSelectionIndex mbSel (DCRadio choice)    = DCRadio (setSelectionIndex mbSel choice)
+    setSelectionIndex mbSel (DCList choice)     = DCList (setSelectionIndex mbSel choice)
     setSelectionIndex mbSel (DCTree choice)     = DCTree (setSelectionIndex mbSel choice)
     setSelectionIndex mbSel (DCGrid choice)     = DCGrid (setSelectionIndex mbSel choice)
 
@@ -1067,10 +1105,10 @@ treeToList [{ChoiceTree|label,type=LeafNode}:r] = [Just label:treeToList r]
 treeToList [{ChoiceTree|label,type=CollapsedNode children}:r] = [Just label:treeToList children ++ treeToList r]
 treeToList [{ChoiceTree|label,type=ExpandedNode children}:r] = [Just label:treeToList children ++ treeToList r]
 
-derive JSONEncode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive JSONDecode		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gEq				ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gEditMeta		ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive JSONEncode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive JSONDecode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive gEq				ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive gEditMeta		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 
 //* Visualization wrappers
 gText{|VisualizationHint|} fx mode (Just val) = case val of

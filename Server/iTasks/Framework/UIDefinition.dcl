@@ -114,6 +114,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	| UIDropdown		!UIHSizeOpts	!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	    !(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
 	| UITree			!UISizeOpts	    !(UIChoiceOpts UITreeNode) !UITreeOpts		    // - Tree (selecting a node in a tree structure)
+	| UIListChoice		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
 	| UIRadioGroup		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
 	| UICheckboxGroup	!UISizeOpts     !(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
