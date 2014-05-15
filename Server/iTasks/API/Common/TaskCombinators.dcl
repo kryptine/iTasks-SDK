@@ -362,13 +362,13 @@ appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
 //Utility functions for defining task steps
-always 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
-never 		:: (Task b) 					(TaskValue a) -> Maybe (Task b)
+always 		:: b					        (TaskValue a) -> Maybe b
+never 		:: b 					        (TaskValue a) -> Maybe b
 
-hasValue	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
-ifStable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
-ifUnstable 	:: (a -> Task b) 				(TaskValue a) -> Maybe (Task b)
+hasValue	:: (a -> b) 				    (TaskValue a) -> Maybe b
+ifStable 	:: (a -> b) 				    (TaskValue a) -> Maybe b
+ifUnstable 	:: (a -> b) 				    (TaskValue a) -> Maybe b
 
-ifValue 	:: (a -> Bool) 	(a -> Task b) 	(TaskValue a) -> Maybe (Task b)
-ifCond 		:: Bool (Task b) 				(TaskValue a) -> Maybe (Task b)
+ifValue 	:: (a -> Bool) 	(a -> b) 	    (TaskValue a) -> Maybe b
+ifCond 		:: Bool b 				        (TaskValue a) -> Maybe b
 
