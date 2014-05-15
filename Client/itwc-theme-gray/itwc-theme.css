@@ -544,6 +544,7 @@ body, input, td, th, select {
     display: block; }
 
 .menu {
+  z-index: 10;
   top: 23px;
   margin: 0;
   padding: 0;
