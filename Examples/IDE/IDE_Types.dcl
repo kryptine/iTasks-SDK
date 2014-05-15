@@ -1,18 +1,12 @@
 definition module IDE_Types
 
-import iTasks  
+import iTasks
 import iTasks.API.Extensions.Development.Codebase
 
-:: IDE_Status =  { info 	 	 :: [EditorInfo]
-			     , codeBase		 :: CodeBase
-                 , codeLocations :: [FilePath]
+:: IDE_Status =  { codeBase		 :: CodeBase        //Cached shared structured with
+                 , codeLocations :: [FilePath]      //File locations where clean code is on disk
+                 , recentModules :: [CleanModule]   //Recently opened modules
 			     }
-:: EditorInfo =  { cleanModule	 :: CleanModule
-				 , codeMirrir	 :: CodeMirror
-				 , opened		 :: Bool
-				 }
 
-
-derive class iTask IDE_Status, EditorInfo
-
+derive class iTask IDE_Status
 
