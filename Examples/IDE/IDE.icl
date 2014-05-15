@@ -12,14 +12,13 @@ import IDE_Types
 IDE_Status :: (Shared IDE_Status)
 IDE_Status = sharedStore  "IDE_Status" 	{ codeBase 	    = []
                                         , codeLocations = []
-                                        , recentModules = []
+                                        , openModules   = []
                                         }
 initIDE
     =                   rescanCodeBase
 
 rescanCodeBase
     =                   get IDE_Status
-	//>>=	\status ->		upd (\status -> {status & info = map (\info -> {info & opened = False} status.info)}) 
 	>>= \status ->		codeBaseFromEnvironment status.codeLocations
 	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
 
@@ -29,83 +28,94 @@ where
         =   initIDE
         >>- \initState ->
             parallel [(Embedded,chooseAndAddModules)
-                     :[(Embedded,openEditor cleanModule) \\ cleanModule <- initState.recentModules]] [] <<@ ArrangeCustom arrange <<@ FullScreen
+                     ,(Embedded,addSearches)
+                     :[(Embedded,closableParTask (\l -> editCleanModule cleanModule l @ IDE_ModuleEdit)) \\ cleanModule <- initState.openModules]]
+                        [OnAction (Action "/Setup code locations" []) (always (Embedded,\_ -> editCodeLocations <<@ InWindow @! IDE_SettingsEdit))]
+                       <<@ ArrangeCustom arrange <<@ FullScreen
+        @> (updateOpenModules,IDE_Status)
 
-    arrange [b:bs] actions
-        = arrangeWithSideBar 0 LeftSide 200 True [b,arrangeWithTabs bs []] actions
+    arrange [b1,b2:bs] actions
+        = arrangeWithSideBar 0 LeftSide 200 True
+                [b1, arrangeWithSideBar 0 TopSide 60 False [b2,arrangeWithTabs bs []] []] actions
 
     chooseAndAddModules list
-        = 			 	whileUnchanged IDE_Status
+        = 			 	(whileUnchanged IDE_Status
             \status -> ((navigateCodebase status.codeBase
-				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> appendTask Embedded (openEditor (module,Icl)) list 
-				        															 >>= \id -> focusTask id list @! ()))
-				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> appendTask Embedded (openEditor (module,Dcl)) list
-				            														 >>= \id -> focusTask id list @! ()))
-				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @! ()) <<@ InWindow))
+				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> openEditor (module,Icl) list))
+				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> openEditor (module,Dcl) list))
+				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @! ()) <<@ InWindow)) //TODO: Remove if actions on parallel work...
 				            ])
-				       ) @? const NoValue
+				       )) @? const NoValue
 
+    addSearches list = forever
+          (     enterInformation () []
+            >>* [OnAction (Action "Search" []) (hasValue (\query -> openSearch SearchIdentifier query list))]
+          ) @? const NoValue
 
-openEditor fileName=:((filePath,moduleName),ext) list =
-/*
-=   			get IDE_Status
-	\status ->  case find fileName status of
-					(Just i) -> if (status.info[i] == opened)
-										(return ())
-										(return ())
-										//(create-an-sds-projection-on-the-status)
-*/
-	(		upd (\st -> {st & recentModules = removeDup (st.recentModules ++ [fileName])}) IDE_Status
-     >>|	withShared (config True "") (\mirror -> updateCleanEditor mirror fileName -&&- forever (showSelection mirror)) 
-    ) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+    updateOpenModules (Value results _) status
+        | openModules <> status.openModules = Just {status & openModules = openModules}
+                                            = Nothing
+    where
+        openModules = [moduleName \\ (_,Value (IDE_ModuleEdit {IDE_ModuleEdit|moduleName}) _) <- results]
+    updateOpenModules _ _ = Nothing
+
+openEditor :: CleanModule (SharedTaskList IDE_TaskResult) -> Task ()
+openEditor moduleName list
+    =   appendTask Embedded (closableParTask (\l -> editCleanModule moduleName l @ IDE_ModuleEdit)) list
+    >>- \taskId -> focusTask taskId list
+    @!  ()
+
+editCleanModule :: CleanModule (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
+editCleanModule fileName=:((filePath,moduleName),ext) list
+    = withShared (initCleanEditor True "")
+        (\mirror -> updateCleanEditor mirror fileName
+         -&&-
+         (forever (showSelection mirror list))
+        ) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+    @! {IDE_ModuleEdit|moduleName=fileName}
+
 where
-	showSelection :: (Shared CodeMirror) -> Task ()
-	showSelection mirror
-	=        viewSharedInformation "Selected" [ViewWith getSelection] mirror
-        >>*	[ OnAction (Action "/Search/Search Identifier..." [])     (hasValue (\mirror -> searchFor SearchIdentifier     (getSelection mirror) mirror <<@ InFloatingWindow ))
-			, OnAction (Action "/Search/Search Definition..." [])     (hasValue (\mirror -> searchFor SearchDefinition     (getSelection mirror) mirror <<@ InFloatingWindow ))
-            , OnAction (Action "/Search/Search Implementation..." []) (hasValue (\mirror -> searchFor SearchImplementation (getSelection mirror) mirror <<@ InFloatingWindow ))
-            , OnAction ActionClose 			(always (closeEditor fileName list))
+	showSelection :: (Shared CodeMirror) (SharedTaskList IDE_TaskResult) -> Task String
+	showSelection mirror list
+	=        viewSharedInformation "Selection" [] (mapRead getSelection mirror)
+        >^*	[ OnAction (Action "/Search/Search Identifier..." [])     (hasValue (\selection -> openSearch SearchIdentifier selection list))
+			, OnAction (Action "/Search/Search Definition..." [])     (hasValue (\selection -> openSearch SearchDefinition selection list))
+            , OnAction (Action "/Search/Search Implementation..." []) (hasValue (\selection -> openSearch SearchImplementation selection list))
             ]
 
-closeEditor fileName list
-    =				upd (\st -> {st & recentModules = removeMember fileName st.recentModules}) IDE_Status
-    >>|				get (taskListSelfId list)
-    >>= \myId ->	removeTask myId list
-    @! ()
+openSearch what identifier list
+    =   appendTask Embedded (closableParTask (\l -> searchCodebase what identifier l @ IDE_Search)) list
+    >>- \taskId -> focusTask taskId list
+    @!  ()
 
-searchFor what identifier mirror
-= 						updateInformation "Search" [] identifier
-	>>= \identifier ->	get IDE_Status
-	>>= \status ->	    searchForIdentifier what True identifier Nothing status.codeBase
-	>>= \result	->		showIdentifiersFound (fst result)
-	>>|					return ()
+searchCodebase what initq list
+    =   (updateInformation (Title "Search") [] initq -&&- get IDE_Status)
+    >>= \(identifier,status) -> searchForIdentifier what True identifier Nothing status.codeBase
+	>>= \results ->
+        (showIdentifiersFound identifier (fst results))
+    @! {IDE_Search|query=identifier,results=fst results}
+
+showIdentifiersFound :: !String [(!CleanModule,!IdentifierPositionList)] -> Task (!CleanModule,!IdentifierPositionList)
+showIdentifiersFound identifier []
+    =	viewInformation (Title "Search") [] (identifier +++ " has *not* been found !") @? const NoValue
+showIdentifiersFound identifier found
+    =   enterChoice ("Search","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
+
 where
-	showIdentifiersFound :: [(!CleanModule,!IdentifierPositionList)] -> Task (Maybe FoundInfo)
-	showIdentifiersFound []
-	=					viewInformation (identifier +++ " has *not* been found !") [] Nothing
-	  >>=				return
-	showIdentifiersFound found
-	=					enterChoice ("\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
-	 >>= 				viewInformation "result" []
-	 //>>=				return o Just
-     @!                 Nothing
-
-	where
-		toGrid :: (!CleanModule,!IdentifierPositionList) -> FoundInfo
-		toGrid (((path,name),ext),positions) = { fileName = name +++ toString ext, found =  length (toList positions) }
-		toList (Pos begin end rest) = [(begin,end): toList rest] 
-		toList _ = []
+    toGrid :: (!CleanModule,!IdentifierPositionList) -> FoundInfo
+    toGrid (((path,name),ext),positions) = { fileName = name +++ toString ext, numFound =  length (toList positions) }
+    toList (Pos begin end rest) = [(begin,end): toList rest]
+    toList _ = []
 
 :: FoundInfo =  { fileName	:: FileName
-				, found		:: Int
+				, numFound		:: Int
 				}
-derive class iTask FoundInfo
 
+derive class iTask FoundInfo
 
 editCodeLocations
     =   get IDE_Status
-    >>= \status -> updateInformation "Please enter the locations where you keep your Clean code" [] status.codeLocations
+    >>= \status -> updateInformation ("Code locations","Please enter the locations where you keep your Clean code") [] status.codeLocations
     >>? \codeLocations ->
             upd (\status -> {status & codeLocations = codeLocations}) IDE_Status
         >>| rescanCodeBase
@@ -123,4 +133,9 @@ getSelection {position,selection=Just (begin,end),source}
 | begin == end =  "zero"
 = source%(begin,end-1)
 
-
+closableParTask :: (ParallelTask a) -> (ParallelTask a) | iTask a
+closableParTask task = task`
+where
+    task` l =   get (taskListSelfId l)
+            >>- \myId ->
+                (task l -|| (viewInformation () [] () >>* [OnAction ActionClose (always (removeTask myId l))]))

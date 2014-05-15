@@ -48,7 +48,7 @@ codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 //Editor for Clean Source Code
 editCleanModule :: Bool CleanModule -> Task CodeMirror
 
-config 				:: Bool String -> CodeMirror
+initCleanEditor     :: Bool String -> CodeMirror
 
 updateCleanEditor 	:: (Shared CodeMirror) CleanModule -> Task CodeMirror
 viewCleanEditor 	:: (Shared CodeMirror) CleanModule -> Task CodeMirror

@@ -93,14 +93,14 @@ readDir path w
 
 openEditor True (path,fileName) 
 	=					openAndReadFile (path </> fileName)
-	>>= \content ->		withShared (config False content)
+	>>= \content ->		withShared (initCleanEditor False content)
 						(\config -> updateSharedInformation fileName [UpdateWith 
 																		(\cm -> codeMirrorEditlet cm [])
 																		(\_ (Editlet value _ _) -> value) 
 																	 ] config) 
 openEditor False (path,fileName) 
 	=					openAndReadFile (path </> fileName)
-	>>= \content ->		withShared (config True content)
+	>>= \content ->		withShared (initCleanEditor True content)
 						(\config -> viewSharedInformation fileName [ViewWith 
 																		(\cm -> codeMirrorEditlet cm []) 
 																	 ] config) 
@@ -133,8 +133,8 @@ where
 	| isError mbError = (toString (fromError mbError),world)
 	= (fromOk mbError,world)	
 
-config :: Bool String -> CodeMirror
-config mode content
+initCleanEditor :: Bool String -> CodeMirror
+initCleanEditor mode content
 	=   { configuration = [ CMLineNumbers True
 						  , CMMode "haskell"
 						  , CMDragDrop True
