@@ -71,9 +71,7 @@ editCleanModule :: CleanModule (SharedTaskList IDE_TaskResult) -> Task IDE_Modul
 editCleanModule fileName=:((filePath,moduleName),ext) list
     = withShared (initCleanEditor True "")
         (\mirror -> updateCleanEditor mirror fileName
-         //-&&-
-         //(forever (showSelection mirror list))
-        ) /* <<@ (ArrangeWithSideBar 1 BottomSide 100 True) */ <<@ Title (moduleName +++ toString ext)
+        ) <<@ Title (moduleName +++ toString ext)
     @! {IDE_ModuleEdit|moduleName=fileName}
 
 where
@@ -91,17 +89,25 @@ openSearch what identifier list
     @!  ()
 
 searchCodebase what initq list
-    =   (updateInformation (Title "Search") [] initq -&&- get IDE_Status)
-    >>= \(identifier,status) -> searchForIdentifier what True identifier Nothing status.codeBase
-	>>= \results ->
-        (showIdentifiersFound identifier (fst results))
-    @! {IDE_Search|query=identifier,results=fst results}
+    = withShared initq
+    \query -> (
+        (updateSharedInformation () [] query)
+        ||-
+        (whileUnchanged query
+            \identifier ->
+                get IDE_Status
+            >>- \status ->
+                searchForIdentifier what True identifier Nothing status.codeBase
+            >>- \results ->
+                showIdentifiersFound identifier (fst results)
+            @! {IDE_Search|query=identifier,results=fst results}
+        )) <<@ (ArrangeWithSideBar 0 TopSide 50 False) <<@ (Title "Search")
 
 showIdentifiersFound :: !String [(!CleanModule,!IdentifierPositionList)] -> Task (!CleanModule,!IdentifierPositionList)
 showIdentifiersFound identifier []
-    =	viewInformation (Title "Search") [] (identifier +++ " has *not* been found !") @? const NoValue
+    =	viewInformation (Title "Results") [] (identifier +++ " has *not* been found !") @? const NoValue
 showIdentifiersFound identifier found
-    =   enterChoice ("Search","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
+    =   enterChoice ("Results","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
 
 where
     toGrid :: (!CleanModule,!IdentifierPositionList) -> FoundInfo
