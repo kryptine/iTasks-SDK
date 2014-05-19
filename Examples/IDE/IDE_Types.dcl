@@ -3,6 +3,7 @@ definition module IDE_Types
 import iTasks
 import iTasks.API.Extensions.Development.Codebase
 import FindDefinitions
+from PmParse import :: IdentifierPositionList
 
 :: IDE_Status =  { codeBase		 :: CodeBase        //Cached shared structured with
                  , codeLocations :: [FilePath]      //File locations where clean code is on disk
