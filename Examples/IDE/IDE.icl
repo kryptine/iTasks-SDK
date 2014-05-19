@@ -99,21 +99,22 @@ searchCodebase what initq list
             >>- \status ->
                 searchForIdentifier what True identifier Nothing status.codeBase
             >>- \results ->
-                showIdentifiersFound identifier (fst results)
+                viewSearchResults identifier (fst results) list
             @! {IDE_Search|query=identifier,results=fst results}
         )) <<@ (ArrangeWithSideBar 0 TopSide 50 False) <<@ (Title "Search")
-
-showIdentifiersFound :: !String [(!CleanModule,!IdentifierPositionList)] -> Task (!CleanModule,!IdentifierPositionList)
-showIdentifiersFound identifier []
-    =	viewInformation (Title "Results") [] (identifier +++ " has *not* been found !") @? const NoValue
-showIdentifiersFound identifier found
-    =   enterChoice ("Results","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
-
 where
+    viewSearchResults :: !String [(!CleanModule,!IdentifierPositionList)] (SharedTaskList IDE_TaskResult) -> Task (!CleanModule,!IdentifierPositionList)
+    viewSearchResults identifier [] list
+        =	viewInformation (Title "Results") [] (identifier +++ " has *not* been found !") @? const NoValue
+    viewSearchResults identifier found list
+        =   enterChoice ("Results","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
+        >^* [OnAction (Action "Open module" [ActionTrigger DoubleClick]) (hasValue (\(module,_) -> openEditor module list))]
+
     toGrid :: (!CleanModule,!IdentifierPositionList) -> FoundInfo
     toGrid (((path,name),ext),positions) = { fileName = name +++ toString ext, numFound =  length (toList positions) }
     toList (Pos begin end rest) = [(begin,end): toList rest]
     toList _ = []
+
 
 :: FoundInfo =  { fileName	:: FileName
 				, numFound		:: Int
