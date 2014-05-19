@@ -60,7 +60,6 @@ InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
 InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
 InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
 
-
 :: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
 :: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
@@ -82,7 +81,7 @@ instance tune NoUserInterface
 :: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
 instance tune ForceLayout
 
-//Alternative Sub-UI Combinators and their layout tuning types
+//Alternative block combinators and their layout tuning types
 :: ArrangeVertical = ArrangeVertical
 instance tune ArrangeVertical
 arrangeVertical         ::                      UIBlocksCombinator
@@ -116,9 +115,9 @@ arrangeSplit            :: !UIDirection !Bool -> UIBlocksCombinator
 :: ArrangeCustom = ArrangeCustom UIBlocksCombinator
 instance tune ArrangeCustom
 
-subUIToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+blockToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+blockToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+blockToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 
 //Combinators on interface definitions
 hjoin :: ![UIControl] -> UIControl

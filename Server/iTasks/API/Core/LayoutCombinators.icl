@@ -256,7 +256,7 @@ arrangeStacked direction blocks actions
     = foldl append {UIBlock|attributes='Data.Map'.newMap,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},actions=actions,hotkeys=[],size=defaultSizeOpts} blocks
 where
     append ui1 ui2
-        # (control,attributes,actions,hotkeys) = subUIToControl ui2
+        # (control,attributes,actions,hotkeys) = blockToControl ui2
         = {UIBlock|ui1 & content = {UIItemsOpts|ui1.UIBlock.content & items = ui1.UIBlock.content.UIItemsOpts.items ++ [control]}
                        , actions = ui1.UIBlock.actions ++ actions
                        , hotkeys = ui1.UIBlock.hotkeys ++ hotkeys
@@ -271,7 +271,7 @@ arrangeWithTabs :: UIBlocksCombinator
 arrangeWithTabs = arrange
 where
     arrange blocks actions
-        # parts         = [(subUIToTab ui,attributes) \\ ui=:{UIBlock|attributes} <- blocks]
+        # parts         = [(blockToTab ui,attributes) \\ ui=:{UIBlock|attributes} <- blocks]
         # tabs          = map fst parts
         # activeTab     = activeIndex parts
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
@@ -306,8 +306,8 @@ where
         # restPart = case removeAt index blocks of
             [ui] = ui
             uis  = autoLayoutBlocks uis []
-        # (sideC,sideAt,sideAc,sideHK) = subUIToControl sidePart
-        # (restC,restAt,restAc,restHK) = subUIToControl restPart
+        # (sideC,sideAt,sideAc,sideHK) = blockToControl sidePart
+        # (restC,restAt,restAc,restHK) = blockToControl restPart
         # sideC = if (side === TopSide|| side === BottomSide) (setSize FlexSize (ExactSize size) sideC) (setSize (ExactSize size) FlexSize sideC)
         # restC = fill restC
         = {UIBlock|attributes=mergeAttributes restAt sideAt
@@ -329,7 +329,7 @@ arrangeSplit direction resize = arrange
 where
     arrange [] actions = autoLayoutBlocks [] actions
     arrange blocks actions
-        # (bcontrols,_,bactions,bhotkeys) = unzip4 (map subUIToPanel blocks)
+        # (bcontrols,_,bactions,bhotkeys) = unzip4 (map blockToPanel blocks)
         # controls = map fill bcontrols
         # controls = if resize (intersperse UISplitter controls) controls
         = {UIBlock|attributes='Data.Map'.newMap
@@ -343,17 +343,15 @@ instance tune ArrangeCustom
 where
     tune (ArrangeCustom f) t = tune (AfterLayout (arrangeBlocks f)) t
 
-subUIToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToControl ui=:{UIBlock|attributes}
+blockToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+blockToControl ui=:{UIBlock|attributes}
     = case ('Data.Map'.get CONTAINER_ATTRIBUTE attributes) of
-		(Just "panel")		= subUIToPanel ui
-		(Just "container")	= subUIToContainer ui
-        _                   = case ('Data.Map'.get TITLE_ATTRIBUTE attributes) of
-            Nothing = subUIToContainer ui
-            Just _  = subUIToPanel ui
+		(Just "panel")		= blockToPanel ui
+		(Just "container")	= blockToContainer ui
+        _                   = if (isNothing ('Data.Map'.get TITLE_ATTRIBUTE attributes)) (blockToContainer ui) (blockToPanel ui)
 
-subUIToContainer :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToContainer :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+blockToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
     //Add button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)		    = addButtonPanel attributes direction buttons items
@@ -361,8 +359,8 @@ subUIToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},actions
 where
 	sizeOpts		= {UISizeOpts|size & width = Just FlexSize}
 
-subUIToPanel :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-subUIToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToPanel :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+blockToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
     //Add button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)		    = addButtonPanel attributes direction buttons items
@@ -374,8 +372,8 @@ where
 	iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
     attributes` = ('Data.Map'.del TITLE_ATTRIBUTE o 'Data.Map'.del ICON_ATTRIBUTE) attributes
 
-subUIToTab :: UIBlock -> UITab
-subUIToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToTab :: UIBlock -> UITab
+blockToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
     //Check for tab close action
 	# (close,actions)		        = actionsToCloseId actions
     //Add button actions
@@ -428,7 +426,7 @@ autoLayoutFinal {UIDef|content=UIForm stack,windows}
     = autoLayoutFinal {UIDef|content=UIBlock (autoLayoutForm stack),windows=windows}
 autoLayoutFinal {UIDef|content=UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size},windows}
     # fullScreen = ('Data.Map'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('Data.Map'.get "session" attributes)
-    # (panel,attributes,actions,panelkeys) = subUIToPanel (if fullScreen {UIBlock|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes} subui)
+    # (panel,attributes,actions,panelkeys) = blockToPanel (if fullScreen {UIBlock|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes} subui)
     # panel = if fullScreen (setSize FlexSize FlexSize panel) ((setSize WrapSize WrapSize o setFramed True) panel)
 	# (menu,menukeys,actions)	= actionsToMenus actions
 	# items				        = [panel]
@@ -443,7 +441,7 @@ plainLayoutFinal :: UIDef -> UIDef
 plainLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
 plainLayoutFinal {UIDef|content=UIBlock block=:{UIBlock|attributes,content,actions,hotkeys},windows}
-    # (UIContainer sOpts iOpts,attributes,_,_) = subUIToContainer block
+    # (UIContainer sOpts iOpts,attributes,_,_) = blockToContainer block
     = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}),windows=windows}
 plainLayoutFinal {UIDef|content=UIBlocks blocks actions,windows}
     = plainLayoutFinal {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
@@ -466,16 +464,16 @@ addButtonPanel :: UIAttributes UIDirection [UIControl] [UIControl] -> (![UIContr
 addButtonPanel attr direction [] items = (items,direction)
 addButtonPanel attr direction buttons items
 	= case ('Data.Map'.get "buttonPosition" attr,direction) of
-		(Nothing,Vertical)			= (items ++ [buttonPanel buttons],Vertical)
-		(Nothing,Horizontal)		= ([setDirection Horizontal (defaultContainer items),buttonPanel buttons],Vertical)
-		(Just "left",Vertical)		= ([buttonPanel buttons,setDirection Vertical (defaultContainer items)],Horizontal)
-		(Just "left",Horizontal)	= ([buttonPanel buttons:items],Horizontal)
-		(Just "right",Vertical)		= ([setDirection Vertical (defaultContainer items),buttonPanel buttons],Horizontal)
-		(Just "right",Horizontal)	= (items ++ [buttonPanel buttons],Horizontal)	
-		(Just "top",Vertical)		= ([buttonPanel buttons:items],Vertical)
-		(Just "top",Horizontal)		= ([buttonPanel buttons,setDirection Horizontal (defaultContainer items)],Vertical)
-		(Just "bottom",Vertical)	= (items ++ [buttonPanel buttons],Vertical)
-		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),buttonPanel buttons],Vertical)
+		(Nothing,Vertical)			= (items ++ [fillWidth (buttonPanel buttons)],Vertical)
+		(Nothing,Horizontal)		= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
+		(Just "left",Vertical)		= ([wrapWidth (buttonPanel buttons),setDirection Vertical (defaultContainer items)],Horizontal)
+		(Just "left",Horizontal)	= ([wrapWidth (buttonPanel buttons):items],Horizontal)
+		(Just "right",Vertical)		= ([setDirection Vertical (defaultContainer items),wrapWidth (buttonPanel buttons)],Horizontal)
+		(Just "right",Horizontal)	= (items ++ [wrapWidth (buttonPanel buttons)],Horizontal)	
+		(Just "top",Vertical)		= ([fillWidth (buttonPanel buttons):items],Vertical)
+		(Just "top",Horizontal)		= ([fillWidth (buttonPanel buttons),setDirection Horizontal (defaultContainer items)],Vertical)
+		(Just "bottom",Vertical)	= (items ++ [fillWidth (buttonPanel buttons)],Vertical)
+		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
 
 addTriggersToUIDef :: [(Trigger,String,String)] UIDef -> UIDef
 addTriggersToUIDef triggers def=:{UIDef|content=content=:(UIForm stack=:{UIForm|controls})}
@@ -558,7 +556,7 @@ setItemsOfUI items ctrl								= ctrl
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (setBaseCls "buttonbar" (defaultContainer buttons))
+	= (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (setBaseCls "buttonbar" (defaultContainer buttons))
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIKeyAction],![UIAction])
 actionsToButtons [] = ([],[],[])

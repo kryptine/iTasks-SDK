@@ -36,11 +36,11 @@ where
 
     arrange [b1,b2:bs] actions
         = arrangeWithSideBar 0 LeftSide 200 True
-                [b1, arrangeWithSideBar 0 TopSide 60 False [b2,arrangeWithTabs bs []] []] actions
+                [b1, arrangeWithSideBar 0 TopSide 40 False [b2,arrangeWithTabs bs []] []] actions
 
     chooseAndAddModules list
-        = 			 	(whileUnchanged IDE_Status
-            \status -> ((navigateCodebase status.codeBase
+        = 			 	(whileUnchanged (mapRead (\s -> s.codeBase) IDE_Status)
+            \codeBase -> ((navigateCodebase codeBase
 				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> openEditor (module,Icl) list))
 				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> openEditor (module,Dcl) list))
 				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @! ()) <<@ InWindow)) //TODO: Remove if actions on parallel work...
@@ -49,8 +49,10 @@ where
 
     addSearches list = forever
           (     enterInformation () []
-            >>* [OnAction (Action "Search" []) (hasValue (\query -> openSearch SearchIdentifier query list))]
-          ) @? const NoValue
+            >>* [OnAction (Action "Search" [ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
+                    (hasValue (\query -> openSearch SearchIdentifier query list))]
+          ) <<@ (Attribute "buttonPosition" "right")
+          @? const NoValue
 
     updateOpenModules (Value results _) status
         | openModules <> status.openModules = Just {status & openModules = openModules}
@@ -69,9 +71,9 @@ editCleanModule :: CleanModule (SharedTaskList IDE_TaskResult) -> Task IDE_Modul
 editCleanModule fileName=:((filePath,moduleName),ext) list
     = withShared (initCleanEditor True "")
         (\mirror -> updateCleanEditor mirror fileName
-         -&&-
-         (forever (showSelection mirror list))
-        ) <<@ (ArrangeWithSideBar 1 BottomSide 100 True) <<@ Title (moduleName +++ toString ext)
+         //-&&-
+         //(forever (showSelection mirror list))
+        ) /* <<@ (ArrangeWithSideBar 1 BottomSide 100 True) */ <<@ Title (moduleName +++ toString ext)
     @! {IDE_ModuleEdit|moduleName=fileName}
 
 where
