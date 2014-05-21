@@ -7,7 +7,7 @@ from syntax import	::AType,
 					::TypeContext,
 					::TypeDef
 					
-from PPrint import	class Pretty,
+from Text.PPrint import	class Pretty,
 					::Doc
 
 printAType :: !Bool !AType  -> Doc

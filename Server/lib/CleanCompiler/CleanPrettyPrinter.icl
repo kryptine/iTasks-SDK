@@ -2,7 +2,7 @@ implementation module CleanPrettyPrinter
 
 import syntax
 
-from PPrint import	class Pretty(..), ::Doc, ::SimpleDoc, <->, </>, <$>, align, brackets, comma, display, empty, fill, fillSep, 
+from Text.PPrint import	class Pretty(..), ::Doc, ::SimpleDoc, <->, </>, <$>, align, brackets, comma, display, empty, fill, fillSep, 
 					hang, hcat, hsep, lbrace, linebreak, nest, parens, punctuate, rbrace, renderPretty, text, tupled, vsep
 
 instance Pretty AType where

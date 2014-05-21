@@ -22,7 +22,20 @@ rescanCodeBase
 	>>= \status ->		codeBaseFromEnvironment status.codeLocations
 	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
 
-Start w = startEngine workOnCleanModules w
+import APIDocumentation
+
+Start w = startEngine test w
+
+test 
+	= 					enterInformation "enter dcl file name to parse" [] 
+		>>= \name ->    doDclToTeX name
+		>>= 			viewInformation "result:" []
+		>>|				test 
+		>>| 			return ()
+
+
+
+Start2 w = startEngine workOnCleanModules w
 where
     workOnCleanModules
         =   initIDE
