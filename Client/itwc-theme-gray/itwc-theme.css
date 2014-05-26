@@ -422,80 +422,60 @@ body, input, td, th, select {
   -webkit-min-height: 100px;
   background: #fff;
   color: #000; }
-
-.choicetree ol {
-  margin: 5px 0 0 20px;
-  padding: 0; }
-
-.choicetree li {
-  position: relative;
-  margin-left: -15px;
-  margin-bottom: 2px;
-  list-style: none; }
-
-.choicetree li.leaf {
-  margin-left: -1px !important; }
-
-.choicetree li.leaf > label {
-  background-position: 16px 0px;
-  background-repeat: no-repeat; }
-
-.choicetree li input {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin-left: 0;
-  opacity: 0;
-  z-index: 2;
-  cursor: pointer;
-  height: 1em;
-  width: 1em; }
-
-.choicetree li label {
-  cursor: pointer;
-  display: block;
-  white-space: nowrap;
-  font-size: 12px;
-  padding-left: 37px;
-  background-color: #fff;
-  background-position: 15px 1px;
-  background-repeat: no-repeat; }
-
-.choicetree li label.default-folder {
-  background-image: url("img/folder-horizontal.png"); }
-
-.choicetree li label.default-leaf {
-  background-image: url("img/document.png"); }
-
-.choicetree li input + ol {
-  margin: -15px 0 0 -44px;
-  display: block;
-  height: 1em;
-  background: url(img/toggle-small-expand.png) 42px -3px no-repeat; }
-
-.choicetree li input + ol > li {
-  display: none;
-  margin-left: -24px !important;
-  padding-left: 1px; }
-
-.choicetree li.selected > label {
-  font-weight: bold; }
-
-.choicetree li input:checked + ol {
-  margin: -1.25em 0 0 -44px;
-  /* 20px */
-  padding: 1.563em 0 0 80px;
-  height: auto;
-  background: url(img/toggle-small.png) 42px 0 no-repeat; }
-
-.choicetree li input:checked + ol > li {
-  display: block;
-  margin: 0 0 0.125em;
-  /* 2px */ }
-
-.choicetree li input:checked + ol > li:last-child {
-  margin: 0 0 0.063em;
-  /* 1px */ }
+  .choicetree ol {
+    margin: 5px 0 0 20px;
+    padding: 0; }
+  .choicetree li {
+    position: relative;
+    margin: 0 0 2px -15px;
+    list-style: none; }
+    .choicetree li input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      margin-left: 0;
+      opacity: 0;
+      z-index: 2;
+      cursor: pointer;
+      height: 1em;
+      width: 1em; }
+      .choicetree li input + ol {
+        margin: -15px 0 0 -44px;
+        display: block;
+        height: 1em;
+        background: url(img/toggle-small-expand.png) 42px -3px no-repeat; }
+        .choicetree li input + ol > li {
+          display: none;
+          margin-left: -24px !important;
+          padding-left: 1px; }
+      .choicetree li input:checked + ol {
+        margin: -20px 0 0 -44px;
+        padding: 20px 0 0 80px;
+        height: auto;
+        background: url(img/toggle-small.png) 42px 0 no-repeat; }
+        .choicetree li input:checked + ol > li {
+          display: block;
+          margin: 0 0 2px; }
+          .choicetree li input:checked + ol > li:last-child {
+            margin: 0 0 1px; }
+    .choicetree li.leaf > label {
+      background-position: 16px 0px;
+      background-repeat: no-repeat; }
+    .choicetree li.selected > label {
+      font-weight: bold; }
+    .choicetree li label {
+      cursor: pointer;
+      display: block;
+      white-space: nowrap;
+      font-size: 12px;
+      padding-left: 37px;
+      background-color: #fff;
+      background-position: 15px 1px;
+      background-repeat: no-repeat; }
+    .choicetree li label.default-folder {
+      background-image: url("img/folder-horizontal.png"); }
+    .choicetree li label.default-leaf {
+      background-image: url("img/document.png"); }
 
 .toolbar {
   display: flex;
