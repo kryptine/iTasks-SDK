@@ -3,8 +3,10 @@ module IDE
 import iTasks
 import iTasks.API.Extensions.Development.Codebase
 import iTasks.API.Extensions.CodeMirror, StdFile
+import Text
 
 import FindDefinitions
+import APIDocumentation
 
 import IDE_Types
 
@@ -22,27 +24,25 @@ rescanCodeBase
 	>>= \status ->		codeBaseFromEnvironment status.codeLocations
 	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
 
-import APIDocumentation
+//Start w = startEngine test w
 
-Start w = startEngine test w
-
+/*
 test 
 	= 					enterInformation "enter dcl file name to parse" [] 
 		>>= \name ->    doDclToTeX name
 		>>= 			viewInformation "result:" []
 		>>|				test 
 		>>| 			return ()
+*/
 
-
-
-Start2 w = startEngine workOnCleanModules w
+Start w = startEngine workOnCleanModules w
 where
     workOnCleanModules
         =   initIDE
         >>- \initState ->
             parallel [(Embedded,chooseAndAddModules)
                      ,(Embedded,addSearches)
-                     :[(Embedded,closableParTask (\l -> editCleanModule cleanModule l @ IDE_ModuleEdit)) \\ cleanModule <- initState.openModules]]
+                     :[]/*[(Embedded,closableParTask (\l -> editCleanModule cleanModule l @ IDE_ModuleEdit)) \\ cleanModule <- initState.openModules]*/]
                         [OnAction (Action "/Setup code locations" []) (always (Embedded,\_ -> editCodeLocations <<@ InWindow @! IDE_SettingsEdit))]
                        <<@ ArrangeCustom arrange <<@ FullScreen
         @> (updateOpenModules,IDE_Status)
@@ -54,8 +54,7 @@ where
     chooseAndAddModules list
         = 			 	(whileUnchanged (mapRead (\s -> s.codeBase) IDE_Status)
             \codeBase -> ((navigateCodebase codeBase
-				        >^* [ OnAction (Action "Open .icl" []) (hasValue (\module -> openEditor (module,Icl) list))
-				            , OnAction (Action "Open .dcl" []) (hasValue (\module -> openEditor (module,Dcl) list))
+				        >^* [ OnAction (Action "Open" []) (hasValue (\(base,module,type) -> openEditor base module list))
 				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @! ()) <<@ InWindow)) //TODO: Remove if actions on parallel work...
 				            ])
 				       )) @? const NoValue
@@ -71,22 +70,28 @@ where
         | openModules <> status.openModules = Just {status & openModules = openModules}
                                             = Nothing
     where
-        openModules = [moduleName \\ (_,Value (IDE_ModuleEdit {IDE_ModuleEdit|moduleName}) _) <- results]
+        openModules = [] //[moduleName \\ (_,Value (IDE_ModuleEdit {IDE_ModuleEdit|moduleName}) _) <- results]
+
     updateOpenModules _ _ = Nothing
 
-openEditor :: CleanModule (SharedTaskList IDE_TaskResult) -> Task ()
-openEditor moduleName list
-    =   appendTask Embedded (closableParTask (\l -> editCleanModule moduleName l @ IDE_ModuleEdit)) list
+openEditor :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task ()
+openEditor base module list
+    =   appendTask Embedded (closableParTask (\l -> editCleanModule base module l @ IDE_ModuleEdit)) list
     >>- \taskId -> focusTask taskId list
     @!  ()
 
-editCleanModule :: CleanModule (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
-editCleanModule fileName=:((filePath,moduleName),ext) list
-    = withShared (initCleanEditor True "")
-        (\mirror -> updateCleanEditor mirror fileName
-        ) <<@ Title (moduleName +++ toString ext)
-    @! {IDE_ModuleEdit|moduleName=fileName}
-
+editCleanModule :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
+editCleanModule base moduleName list
+    = viewInformation () [ViewWith (\s -> SpanTag [StyleAttr "font-size: 24px"] [Text s])] moduleName
+      ||-
+      (((withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Dcl) <<@ Title "Definition")
+       -&&-
+       (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Icl) <<@ Title "Implementation")
+       -&&-
+       (doDclToTeX (cleanFilePath (base,moduleName,Dcl)) >>- \doc -> viewInformation () [] doc <<@ Title "Documentation")
+      ) <<@ ArrangeWithTabs)
+      <<@ (ArrangeWithSideBar 0 TopSide 35 False) <<@ (Title moduleName)
+    @! {IDE_ModuleEdit|moduleName=moduleName}
 where
 	showSelection :: (Shared CodeMirror) (SharedTaskList IDE_TaskResult) -> Task String
 	showSelection mirror list
@@ -116,15 +121,16 @@ searchCodebase what initq list
             @! {IDE_Search|query=identifier,results=fst results}
         )) <<@ (ArrangeWithSideBar 0 TopSide 50 False) <<@ (Title "Search")
 where
-    viewSearchResults :: !String [(!CleanModule,!IdentifierPositionList)] (SharedTaskList IDE_TaskResult) -> Task (!CleanModule,!IdentifierPositionList)
+    viewSearchResults :: !String [(!CleanFile,!IdentifierPositionList)] (SharedTaskList IDE_TaskResult) -> Task (!CleanFile,!IdentifierPositionList)
     viewSearchResults identifier [] list
         =	viewInformation (Title "Results") [] (identifier +++ " has *not* been found !") @? const NoValue
     viewSearchResults identifier found list
         =   enterChoice ("Results","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
-        >^* [OnAction (Action "Open module" [ActionTrigger DoubleClick]) (hasValue (\(module,_) -> openEditor module list))]
+        >^* [OnAction (Action "Open module" [ActionTrigger DoubleClick]) (hasValue (\((base,module,_),_) -> openEditor base module list))]
 
-    toGrid :: (!CleanModule,!IdentifierPositionList) -> FoundInfo
-    toGrid (((path,name),ext),positions) = { fileName = name +++ toString ext, numFound =  length (toList positions) }
+    toGrid :: (!CleanFile,!IdentifierPositionList) -> FoundInfo
+    toGrid ((base,modName,ext),positions) = { fileName = foldl (</>) base (split "." modName) +++ toString ext, numFound = length (toList positions) }
+
     toList (Pos begin end rest) = [(begin,end): toList rest]
     toList _ = []
 

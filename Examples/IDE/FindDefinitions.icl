@@ -13,36 +13,32 @@ derive class iTask IdentifierPositionList
 
 from UtilStrictLists import :: List, StrictListToList, ListToStrictList
 
-searchForIdentifier :: !SearchWhat !Bool !Identifier !(Maybe CleanModuleName)  !CodeBase 
-												-> Task (![(!CleanModule,!IdentifierPositionList)],![CleanModuleName])
-
-searchForIdentifier what inImports identifier maybeName codeBase 
-# allNames = codeBaseToCleanModuleNames codeBase
-= case maybeName of
-		Nothing -> if (allNames == [])
-					  (return ([],[]))
-					  (search allNames [] [] []) 
-		(Just name) -> (search [name] allNames [] [])
+searchForIdentifier :: !SearchWhat !Bool !Identifier !(Maybe CleanFile)  !CodeBase 
+												-> Task (![(!CleanFile,!IdentifierPositionList)],![CleanFile])
+searchForIdentifier what inImports identifier maybeName codeBase
+    # allNames = listFilesInCodeBase codeBase
+    = maybe (if (allNames == []) (return ([],[])) (search allNames [] [] []))
+            (\name -> search [name] allNames [] []) maybeName
 where
-	search ::  ![CleanModuleName] ![CleanModuleName] ![CleanModuleName] [(!CleanModule,!IdentifierPositionList)] 
-												-> Task (![(!CleanModule,!IdentifierPositionList)],![CleanModuleName])
-	search [] notSearched searched found 			
-		= return (reverse found,reverse searched)								
-	search [(path,moduleName):rest] notSearched searched found 
-		=					searchInFile what inImports identifier (path </> moduleName +++ if inImports ".icl" ".dcl")
-		>>= continue 
+	search ::  ![CleanFile] ![CleanFile] ![CleanFile] [(!CleanFile,!IdentifierPositionList)] 
+												-> Task (![(!CleanFile,!IdentifierPositionList)],![CleanFile])
+	search [] notSearched searched found			
+		=   return (reverse found,reverse searched)								
+	search [file:rest] notSearched searched found
+		=   searchInFile what inImports identifier (cleanFilePath file)
+		>>- continue
 	where
-		continue (imported,pos) 						// modules imported by searched file, found identifiers
-		# nfound 			= ifPosNil pos found [(((path,moduleName),if inImports Icl Dcl),pos):found]
+		continue (imported,pos) // modules imported by searched file, found identifiers
+		# nfound 			= ifPosNil pos found [(file,pos):found]
 		# (toDo,restBase)   = searchModulesInCodeBase imported notSearched
 		# toSearch		    = removeDup (rest ++ toDo)
-		= search toSearch restBase [(path,moduleName):searched] nfound	
+		= search toSearch restBase [file:searched] nfound	
 	
 	ifPosNil PosNil then else = then
 	ifPosNil _      then else = else
 
 // returns (module names imported, positions where identifier has been found)
-searchInFile :: !SearchWhat !Bool !Identifier !String -> Task !(![String],!IdentifierPositionList)
+searchInFile :: !SearchWhat !Bool !Identifier !String -> Task (![String],!IdentifierPositionList)
 searchInFile SearchIdentifier inImports identifier fileName 
 	= 					accWorld (accFiles (FindIdentifiersInFile inImports [!!] identifier fileName ))
 	>>= \(list,pos) ->  return (StrictListToList list,pos)
@@ -53,11 +49,7 @@ searchInFile SearchDefinition inImports identifier fileName
 	= 					accWorld (accFiles (FindDefinitionInFile inImports [!!] identifier fileName ))
 	>>= \(list,pos) ->  return (StrictListToList list,pos)
 	
-searchModulesInCodeBase :: ![ModuleName] ![CleanModuleName] -> ([CleanModuleName],[CleanModuleName])
-searchModulesInCodeBase moduleNames codeBase 
-	= span (\(path,name) -> isMember name moduleNames) codeBase
+searchModulesInCodeBase :: ![ModuleName] ![CleanFile] -> ([CleanFile],[CleanFile])
+searchModulesInCodeBase moduleNames codeBase
+	= span (\(base,name,ext) -> isMember name moduleNames) codeBase
 
-
-
-
-		

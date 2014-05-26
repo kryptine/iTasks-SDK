@@ -20,7 +20,7 @@ from PmParse import :: IdentifierPositionList
 
 //Relevent observable information of editing a module
 :: IDE_ModuleEdit =
-    { moduleName    :: CleanModule
+    { moduleName    :: ModuleName
     //lastEdit      :: Timestamp (TODO)
     //lastSave      :: Timestamp (TODO)
     }
@@ -28,7 +28,7 @@ from PmParse import :: IdentifierPositionList
 //Relevent observable information of searching the codebase
 :: IDE_Search =
     { query     :: String
-    , results   :: [(!CleanModule,!IdentifierPositionList)]
+    , results   :: [(!CleanFile,!IdentifierPositionList)]
     }
 
 derive class iTask IDE_Status, IDE_TaskResult, IDE_ModuleEdit, IDE_Search

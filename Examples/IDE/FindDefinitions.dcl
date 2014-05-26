@@ -25,7 +25,7 @@ derive class iTask IdentifierPositionList
 * @return					list with all modules where the identifier has been found, with the positions where they occur 		
 * 							and list of all modules names which have been searched
 */
-searchForIdentifier :: !SearchWhat !Bool !Identifier !(Maybe CleanModuleName)  !CodeBase 
-												-> Task (![(!CleanModule,!IdentifierPositionList)],![CleanModuleName])
+searchForIdentifier :: !SearchWhat !Bool !Identifier !(Maybe CleanFile)  !CodeBase 
+												-> Task (![(!CleanFile,!IdentifierPositionList)],![CleanFile])
 
 			
