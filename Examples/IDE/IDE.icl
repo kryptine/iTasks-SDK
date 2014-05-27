@@ -24,17 +24,6 @@ rescanCodeBase
 	>>= \status ->		codeBaseFromEnvironment status.codeLocations
 	>>= \codeBase ->	upd (\status -> {status & codeBase = codeBase}) IDE_Status
 
-//Start w = startEngine test w
-
-/*
-test 
-	= 					enterInformation "enter dcl file name to parse" [] 
-		>>= \name ->    doDclToTeX name
-		>>= 			viewInformation "result:" []
-		>>|				test 
-		>>| 			return ()
-*/
-
 Start w = startEngine workOnCleanModules w
 where
     workOnCleanModules
@@ -84,7 +73,7 @@ editCleanModule :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task I
 editCleanModule base moduleName list
     = viewInformation () [ViewWith (\s -> SpanTag [StyleAttr "font-size: 24px"] [Text s])] moduleName
       ||-
-      (((withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Dcl) <<@ Title "Definition")
+      (((catchAll (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Dcl)) (\e -> viewInformation () [] "No definition module." @? const NoValue) <<@ Title "Definition")
        -&&-
        (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Icl) <<@ Title "Implementation")
        -&&-

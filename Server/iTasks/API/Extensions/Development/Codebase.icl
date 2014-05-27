@@ -29,13 +29,16 @@ where
 	    insert nodeList (i,m=:(rootDir,modName,modType)) = insert` modName (split "." modName) nodeList
         where
     	    insert` wfpath [] nodeList = nodeList
-		    insert` wfpath [title] nodeList = nodeList ++ [{ChoiceTree|label=title,icon=Nothing,value=ChoiceNode i,type=LeafNode}]
+		    insert` wfpath [title] nodeList = nodeList ++ [{ChoiceTree|label=title,icon=Just (icon modType),value=ChoiceNode i,type=LeafNode}]
 		    insert` wfpath path=:[nodeP:pathR] [node=:{ChoiceTree|label=nodeL}:nodesR]
 		    	| nodeP == nodeL	= [{ChoiceTree|node & type = ifExpandedChoice i expanded (insert` wfpath pathR (choiceTreeChildren node))}:nodesR]
 		    	| otherwise			= [node:insert` wfpath path nodesR]
 		    insert` wfpath path=:[nodeP:pathR] []
                 = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode wfpath, type= ifExpandedGroup wfpath expanded (insert` wfpath pathR [])}]
 		    insert` wfpath path [node:nodesR] = [node:insert` wfpath path nodesR]
+
+        icon MainModule = "mainmodule"
+        icon AuxModule = "auxmodule"
 
 listFilesInCodeBase :: CodeBase -> [CleanFile]
 listFilesInCodeBase codeBase
@@ -44,6 +47,15 @@ listFilesInCodeBase codeBase
 
 cleanFilePath :: CleanFile -> FilePath
 cleanFilePath (baseDir,modName,ext) = foldl (</>) baseDir (split "." modName) +++ toString ext
+
+getModuleType :: ModuleName CodeBase -> Maybe ModuleType
+getModuleType modName [] = Nothing
+getModuleType modName [{SourceTree|modules}:ts] = maybe (getModuleType modName ts) Just (search modules)
+where
+    search [] = Nothing
+    search [(m,t):ms]
+        | modName == m  = Just t
+                        = search ms
 
 codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 codeBaseToCleanModuleNames codeBase

@@ -44,6 +44,9 @@ listFilesInCodeBase :: CodeBase -> [CleanFile]
 //Convert a CleanFile triple to an absolute file path
 cleanFilePath :: CleanFile -> FilePath
 
+//Lookup type of a module
+getModuleType :: ModuleName CodeBase -> Maybe ModuleType
+
 // Convert CodeBase Tree to a list
 codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 
