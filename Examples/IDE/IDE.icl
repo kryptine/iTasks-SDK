@@ -10,6 +10,9 @@ import APIDocumentation
 
 import IDE_Types
 
+
+
+
 //Global status (for all users! If you open a file, everybody opens a file!)
 IDE_Status :: (Shared IDE_Status)
 IDE_Status = sharedStore  "IDE_Status" 	{ codeBase 	    = []
@@ -73,9 +76,9 @@ editCleanModule :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task I
 editCleanModule base moduleName list
     = viewInformation () [ViewWith (\s -> SpanTag [StyleAttr "font-size: 24px"] [Text s])] moduleName
       ||-
-      (((catchAll (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Dcl)) (\e -> viewInformation () [] "No definition module." @? const NoValue) <<@ Title "Definition")
+      (((catchAll (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor (shareSearchResults Dcl list mirror) base moduleName Dcl)) (\e -> viewInformation () [] "No definition module." @? const NoValue) <<@ Title "Definition")
        -&&-
-       (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor mirror base moduleName Icl) <<@ Title "Implementation")
+       (withShared (initCleanEditor False "") (\mirror -> updateCleanEditor (shareSearchResults Icl list mirror) base moduleName Icl) <<@ Title "Implementation")
        -&&-
        (doDclToTeX (cleanFilePath (base,moduleName,Dcl)) >>- \doc -> viewInformation () [] doc <<@ Title "Documentation")
       ) <<@ ArrangeWithTabs)
@@ -89,6 +92,20 @@ where
 			, OnAction (Action "/Search/Search Definition..." [])     (hasValue (\selection -> openSearch SearchDefinition selection list))
             , OnAction (Action "/Search/Search Implementation..." []) (hasValue (\selection -> openSearch SearchImplementation selection list))
             ]
+
+	shareSearchResults :: Extension (SharedTaskList IDE_TaskResult) (Shared CodeMirror)  -> (Shared CodeMirror)
+	shareSearchResults ext list mirror 
+	= 				list >+> filterSearchers 
+	where
+		filterSearchers :: (TaskList IDE_TaskResult) -> (Shared CodeMirror)
+		filterSearchers {TaskList|items} 
+		# highLight 		=  [ toList posList \\ {TaskListItem|value=Value (IDE_Search {results}) _} <- items
+												,  ((sBase,sModule,sExt),posList) <- results 
+												|  sBase == base && sModule == moduleName && sExt == ext
+							   ]
+		= case highLight of
+			[] 		-> mirror
+		    lights  -> mapWrite (\mw mr -> Just {mr & highlighted = flatten lights}) mirror
 
 openSearch what identifier list
     =   appendTask Embedded (closableParTask (\l -> searchCodebase what identifier l @ IDE_Search)) list
@@ -120,8 +137,6 @@ where
     toGrid :: (!CleanFile,!IdentifierPositionList) -> FoundInfo
     toGrid ((base,modName,ext),positions) = { fileName = foldl (</>) base (split "." modName) +++ toString ext, numFound = length (toList positions) }
 
-    toList (Pos begin end rest) = [(begin,end): toList rest]
-    toList _ = []
 
 
 :: FoundInfo =  { fileName	:: FileName
@@ -156,3 +171,10 @@ where
     task` l =   get (taskListSelfId l)
             >>- \myId ->
                 (task l -|| (viewInformation () [] () >>* [OnAction ActionClose (always (removeTask myId l))]))
+
+toList :: IdentifierPositionList -> [(Int,Int)]
+toList (Pos begin end rest) = [(begin,end): toList rest]
+toList _ = []
+                
+                
+
