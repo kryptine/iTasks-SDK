@@ -42,7 +42,10 @@ where
 
 listFilesInCodeBase :: CodeBase -> [CleanFile]
 listFilesInCodeBase codeBase
-    = flatten [[(rootDir, modName, Icl) \\ (modName,modType) <- modules] \\ {SourceTree|rootDir,modules} <- codeBase]
+    = flatten [	[(rootDir, modName, Icl) \\ (modName,_)         <- modules] ++
+    			[(rootDir, modName, Dcl) \\ (modName,AuxModule) <- modules]
+	    	  \\ {SourceTree|rootDir,modules} <- codeBase]
+
     //TODO Also add dcl files
 
 cleanFilePath :: CleanFile -> FilePath
@@ -178,6 +181,7 @@ initCleanEditor mode content
 						  , CMMode "haskell"
 						  , CMDragDrop True
 		 				  , CMReadOnly mode
+		 				  , CMAutofocus True
 						  ] 			// [CodeMirrorConfiguration]
 		 , position		= 0				// cursor position
 		 , selection 	= Nothing		//!Maybe (Int,Int)

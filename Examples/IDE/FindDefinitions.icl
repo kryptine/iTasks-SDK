@@ -16,7 +16,10 @@ from UtilStrictLists import :: List, StrictListToList, ListToStrictList
 searchForIdentifier :: !SearchWhat !Bool !Identifier !(Maybe CleanFile)  !CodeBase 
 												-> Task (![(!CleanFile,!IdentifierPositionList)],![CleanFile])
 searchForIdentifier what inImports identifier maybeName codeBase
-    # allNames = listFilesInCodeBase codeBase
+    # allNames = case what of
+    				SearchDefinition 	 -> [fileNames \\ fileNames =: (filePath,moduleName,Dcl) <- listFilesInCodeBase codeBase ]			
+    				SearchImplementation -> [fileNames \\ fileNames =: (filePath,moduleName,Icl) <- listFilesInCodeBase codeBase ]
+    				_ -> 					listFilesInCodeBase codeBase 		
     = maybe (if (allNames == []) (return ([],[])) (search allNames [] [] []))
             (\name -> search [name] allNames [] []) maybeName
 where
@@ -25,7 +28,7 @@ where
 	search [] notSearched searched found			
 		=   return (reverse found,reverse searched)								
 	search [file:rest] notSearched searched found
-		=   searchInFile what inImports identifier (cleanFilePath file)
+		=   searchInFile what False identifier (cleanFilePath file)
 		>>- continue
 	where
 		continue (imported,pos) // modules imported by searched file, found identifiers

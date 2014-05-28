@@ -53,8 +53,13 @@ where
 
     addSearches list = forever
           (     enterInformation () []
-            >>* [OnAction (Action "Search" [ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
-                    (hasValue (\query -> openSearch SearchIdentifier query list))]
+            >>* [OnAction (Action "Identifiers ?" [ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
+                    (hasValue (\query -> openSearch SearchIdentifier query list))
+                ,OnAction (Action "Definition ?" [ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
+                    (hasValue (\query -> openSearch SearchDefinition query list))
+                 ,OnAction (Action "Implementation ?" [ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
+                    (hasValue (\query -> openSearch SearchImplementation query list))
+               ]
           ) <<@ (Attribute "buttonPosition" "right")
           @? const NoValue
 
@@ -123,24 +128,36 @@ searchCodebase what initq list
             >>- \status ->
                 searchForIdentifier what True identifier Nothing status.codeBase
             >>- \results ->
-                viewSearchResults identifier (fst results) list
+                viewSearchResults what identifier (fst results) list
             @! {IDE_Search|query=identifier,results=fst results}
         )) <<@ (ArrangeWithSideBar 0 TopSide 50 False) <<@ (Title "Search")
 where
-    viewSearchResults :: !String [(!CleanFile,!IdentifierPositionList)] (SharedTaskList IDE_TaskResult) -> Task (!CleanFile,!IdentifierPositionList)
-    viewSearchResults identifier [] list
-        =	viewInformation (Title "Results") [] (identifier +++ " has *not* been found !") @? const NoValue
-    viewSearchResults identifier found list
-        =   enterChoice ("Results","\"" +++ identifier +++ "\" has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
+    viewSearchResults :: !SearchWhat !String [(!CleanFile,!IdentifierPositionList)] (SharedTaskList IDE_TaskResult) -> Task (!CleanFile,!IdentifierPositionList)
+    viewSearchResults what identifier [] list
+        =	viewInformation (Title "Results") [] (toString what identifier +++ "has *not* been found !") @? const NoValue
+    viewSearchResults what identifier found list
+        =   enterChoice ("Results",toString what identifier +++ "has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
         >^* [OnAction (Action "Open module" [ActionTrigger DoubleClick]) (hasValue (\((base,module,_),_) -> openEditor base module list))]
 
+	toString SearchIdentifier 	  ident  = "Identifier \""        +++ ident +++ "\" "
+	toString SearchImplementation ident  = "Implementation of \"" +++ ident +++ "\" "
+	toString SearchDefinition     ident  = "Definition of \""     +++ ident +++ "\" "
+
     toGrid :: (!CleanFile,!IdentifierPositionList) -> FoundInfo
-    toGrid ((base,modName,ext),positions) = { fileName = foldl (</>) base (split "." modName) +++ toString ext, numFound = length (toList positions) }
+    toGrid ((pathName,modName,ext),positions) = { moduleName = modName
+    											, iclDcl	 = ext
+    											, howOften 	 = length (toList positions) 
+    											, positions	 = toList positions
+    											, pathName 	 = pathName
+    											}
 
 
 
-:: FoundInfo =  { fileName	:: FileName
-				, numFound		:: Int
+:: FoundInfo =  { moduleName 	:: ModuleName
+				, iclDcl		:: Extension
+				, howOften		:: Int
+				, positions		:: [(Int,Int)]
+				, pathName		:: FilePath
 				}
 
 derive class iTask FoundInfo
