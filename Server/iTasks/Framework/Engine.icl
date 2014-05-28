@@ -241,7 +241,7 @@ where
 
     readFlavour :: !String !*World -> *(!Flavour, !*World)
     readFlavour sdkPath world
-	    # flavfile 			= sdkPath </> "Server" </> "lib" </> "SAPL" </>"clean.f"
+	    # flavfile 			= sdkPath </> "Dependencies" </> "SAPL" </>"clean.f"
 	    # (flavres, world) 	= readFile flavfile world
 	    | isError flavres
 		    = abort ("JavaScript Flavour file cannot be found at " +++ flavfile)
