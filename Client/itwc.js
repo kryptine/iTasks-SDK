@@ -470,6 +470,27 @@ itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
     },
     initSize: function() {} //Don't size
 });
+itwc.component.itwc_submenuitem = itwc.extend(itwc.Container,{
+    initDOMEl: function() {
+       var me = this,
+           el = me.domEl,
+           iconEl, linkEl;
+        me.disabled = me.definition.disabled;
+
+        el.classList.add('submenu-item');
+
+        linkEl = document.createElement('a');
+        linkEl.href = '#';
+        linkEl.innerHTML = me.definition.text;
+        el.appendChild(linkEl)
+        //Menu items
+        me.menu = new itwc.component.itwc_menu();
+        me.menu.init({xtype: 'itwc_menu', items: me.definition.menu},me);
+        me.menu.render(0,false);
+        el.appendChild(me.menu.domEl);
+    },
+    initSize: function() {} //Don't size
+});
 
 itwc.component.itwc_viewport = itwc.extend(itwc.Layer,{
     initDOMEl: function() {
