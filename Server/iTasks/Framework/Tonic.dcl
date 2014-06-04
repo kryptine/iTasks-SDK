@@ -46,3 +46,9 @@ instance tune TonicTune
 tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
+
+tonicReflection :: String String (Task a) -> Task a
+
+tonicVarToSingleTask :: String String Int Int Int (Task a) -> Task a
+
+tonicVarToListOfTask :: String String Int Int Int [Task a] -> [Task a]

@@ -8,15 +8,15 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType, NodeContents
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType, NodeContents
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType, NodeContents
 
 :: TonicModule =
   { tm_name  :: String
@@ -62,18 +62,23 @@ mkGNode :: GNodeType -> GNode
 // in the rendering.
 :: GNodeType
   =  GAssign GCleanExpression
-  |  GDecision DecisionType !GCleanExpression
+  |  GDecision DecisionType GCleanExpression
   |  GInit
   |  GLet GLet
 //  | GList [GCleanExpression]
   |  GListComprehension GListComprehension
-  |  GParallel GParType [GinGraph]
-  |  GReturn !GCleanExpression
+  |  GParallel GParType [NodeContents]
+  |  GReturn NodeContents
   |  GStep [StepElem]
   |  GStop
   |  GTaskApp GIdentifier ![GCleanExpression]
-  |  GVar !GCleanExpression
+  |  GVar GCleanExpression
   |  GArbitraryExpression
+
+:: NodeContents
+  = VarOrExpr GCleanExpression
+  | ArbitraryOrUnknownExpr
+  | Subgraph GinGraph
 
 :: GParType
   =  DisFirstBin
