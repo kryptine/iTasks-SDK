@@ -7,16 +7,16 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType
 
 derive JSONDecode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType
 
 derive gEq
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge,
-  GExpression, GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType
 
 :: TonicModule =
   { tm_name  :: String
@@ -72,6 +72,8 @@ mkGNode :: GNodeType -> GNode
   |  GStep [StepElem]
   |  GStop
   |  GTaskApp GIdentifier ![GCleanExpression]
+  |  GVar !GCleanExpression
+  |  GArbitraryExpression
 
 :: GParType
   =  DisFirstBin
