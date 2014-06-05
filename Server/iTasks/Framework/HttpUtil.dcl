@@ -1,4 +1,4 @@
-definition module HttpUtil
+definition module iTasks.Framework.HttpUtil
 
 import Internet.HTTP, StdFile
 

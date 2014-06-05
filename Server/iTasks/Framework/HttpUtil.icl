@@ -1,4 +1,4 @@
-implementation module HttpUtil
+implementation module iTasks.Framework.HttpUtil
 
 import Internet.HTTP
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList, StdFunc, StdTuple

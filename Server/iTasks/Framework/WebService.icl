@@ -9,7 +9,7 @@ import iTasks.Framework.UIDiff, iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.API.Core.Types
 import Crypto.Hash.SHA1, Text.Encodings.Base64
 
-from HttpUtil import http_addRequestData, http_parseArguments
+from iTasks.Framework.HttpUtil import http_addRequestData, http_parseArguments
 
 DEFAULT_THEME :== "gray"
 
