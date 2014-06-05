@@ -9,8 +9,12 @@ import iTasks.API.Extensions.CodeMirror
 :: SourceTree =
     { rootDir       :: DirPathName
     , modules       :: [(ModuleName,ModuleType)]
-    , moduleFiles   :: [TreeNode FileName]
+    , readOnly      :: Bool
     }
+:: SourceTreeSelection
+    = SelSourceTree DirPathName
+    | SelMainModule FilePath ModuleName
+    | SelAuxModule  FilePath ModuleName
 
 :: DirPathName		:== String								// Path name leading to a directory
 :: FileName			:== String								// Name of file, with extension
@@ -27,7 +31,7 @@ import iTasks.API.Extensions.CodeMirror
 :: Environment		:== [DirPathName]	// Directories where code is stored
 :: Identifier		:== String								// Clean identifier 
 
-derive class iTask SourceTree, ModuleType, Extension
+derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance toString Extension
 instance == Extension
 
@@ -35,8 +39,8 @@ instance == Extension
 codeBaseFromEnvironment :: Environment -> Task CodeBase
 
 // Browse the modules in a code base and select a Clean module
-//navigateCodebase :: CodeBase -> Task CleanModuleName
-navigateCodebase :: CodeBase -> Task (FilePath,ModuleName,ModuleType)
+//navigateCodebase :: CodeBase -> Task (FilePath,ModuleName,ModuleType)
+navigateCodebase :: CodeBase -> Task SourceTreeSelection
 
 //List all clean files in a codebase
 listFilesInCodeBase :: CodeBase -> [CleanFile]

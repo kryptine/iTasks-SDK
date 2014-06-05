@@ -3,7 +3,7 @@ import iTasks
 import System.File, System.Directory, Text, StdFile
 import iTasks.API.Extensions.CodeMirror
 
-derive class iTask SourceTree, ModuleType, Extension
+derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance == Extension where (==) x y = x === y
 
 instance toString Extension
@@ -14,22 +14,29 @@ where
 codeBaseFromEnvironment :: Environment -> Task CodeBase
 codeBaseFromEnvironment paths
     =   allTasks [ accWorld (findModulesInDir path)
-                 @ (\modules -> {SourceTree|rootDir=path,modules=modules,moduleFiles=[]})
+                 @ (\modules -> {SourceTree|rootDir=path,modules=modules,readOnly=False})
                  \\ path <- paths]
 
-navigateCodebase :: CodeBase -> Task (FilePath,ModuleName,ModuleType)
+//navigateCodebase :: CodeBase -> Task (FilePath,ModuleName,ModuleType)
+navigateCodebase :: CodeBase -> Task SourceTreeSelection
 navigateCodebase codebase
     = enterChoice () [ChooseWith (ChooseFromTree group)] (modulesOf codebase)
 where
     modulesOf codebase
-        = flatten [[(rootDir,modName,modType) \\ (modName,modType) <- modules] \\ {SourceTree|rootDir,modules} <- codebase]
+        = flatten [[SelSourceTree rootDir:[moduleSelection rootDir modName modType \\ (modName,modType) <- modules]] \\ {SourceTree|rootDir,modules} <- codebase]
 
-    group modules expanded = foldl insert [] modules
+    moduleSelection rootDir modName MainModule = SelMainModule rootDir modName
+    moduleSelection rootDir modName AuxModule = SelAuxModule rootDir modName
+
+    group options expanded = foldl insert [] options
     where
-	    insert nodeList (i,m=:(rootDir,modName,modType)) = insert` modName (split "." modName) nodeList
+	    insert nodeList (i,m=:(SelSourceTree rootDir))
+            = nodeList ++ [{ChoiceTree|label=rootDir,icon=Just "sourcetree",value=ChoiceNode i, type = ifExpandedChoice i expanded []}]
+	    insert nodeList (i,m)
+            = insert` (moduleName m) (modulePath m) nodeList
         where
     	    insert` wfpath [] nodeList = nodeList
-		    insert` wfpath [title] nodeList = nodeList ++ [{ChoiceTree|label=title,icon=Just (icon modType),value=ChoiceNode i,type=LeafNode}]
+		    insert` wfpath [title] nodeList = nodeList ++ [{ChoiceTree|label=title,icon=Just (moduleIcon m),value=ChoiceNode i,type=LeafNode}]
 		    insert` wfpath path=:[nodeP:pathR] [node=:{ChoiceTree|label=nodeL}:nodesR]
 		    	| nodeP == nodeL	= [{ChoiceTree|node & type = ifExpandedChoice i expanded (insert` wfpath pathR (choiceTreeChildren node))}:nodesR]
 		    	| otherwise			= [node:insert` wfpath path nodesR]
@@ -37,8 +44,14 @@ where
                 = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode wfpath, type= ifExpandedGroup wfpath expanded (insert` wfpath pathR [])}]
 		    insert` wfpath path [node:nodesR] = [node:insert` wfpath path nodesR]
 
-        icon MainModule = "mainmodule"
-        icon AuxModule = "auxmodule"
+        moduleName (SelMainModule _ name) = name
+        moduleName (SelAuxModule _ name) = name
+
+        modulePath (SelMainModule rootDir name) = [rootDir:split "." name]
+        modulePath (SelAuxModule rootDir name) = [rootDir:split "." name]
+
+        moduleIcon (SelMainModule _ _) = "mainmodule"
+        moduleIcon (SelAuxModule _ _) = "auxmodule"
 
 listFilesInCodeBase :: CodeBase -> [CleanFile]
 listFilesInCodeBase codeBase
@@ -63,12 +76,6 @@ where
 codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 codeBaseToCleanModuleNames codeBase
     = flatten [[(foldl (</>) rootDir (split "." modName), modName) \\ (modName,modType) <- modules] \\ {SourceTree|rootDir,modules} <- codeBase]
-
-treeToList :: CodeBase [FilePath] -> [(FilePath,[FilePath],FilePath)]
-treeToList [] 								      dirs = []
-treeToList [{SourceTree|rootDir,moduleFiles=[Leaf file:files]}:tree] dirs = [(rootDir,dirs,file): treeToList [{SourceTree|rootDir=rootDir,moduleFiles=files,modules=[]}] dirs] ++ treeToList tree []
-treeToList [{SourceTree|rootDir,moduleFiles=[Node dir childs :files]}:tree] dirs = treeToList [{SourceTree|rootDir=rootDir,moduleFiles=childs,modules=[]}] (dirs++[dir]) ++ treeToList [{SourceTree|rootDir=rootDir,moduleFiles=files,modules=[]}] dirs ++ treeToList tree []
-treeToList [_:tree] 				      		  dirs = treeToList tree []
 
 findModulesInDir :: !FilePath !*World -> ([(ModuleName,ModuleType)],*World)
 findModulesInDir path w

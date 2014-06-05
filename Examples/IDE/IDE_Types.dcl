@@ -14,6 +14,7 @@ from PmParse import :: IdentifierPositionList
 //in an IDE can have
 :: IDE_TaskResult
     = IDE_ModuleEdit IDE_ModuleEdit
+    | IDE_SourceTreeEdit FilePath
     | IDE_Search IDE_Search
     | IDE_SettingsEdit
     //|IDE_Build IDE_Build (TODO)

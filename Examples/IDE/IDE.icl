@@ -10,9 +10,6 @@ import APIDocumentation
 
 import IDE_Types
 
-
-
-
 //Global status (for all users! If you open a file, everybody opens a file!)
 IDE_Status :: (Shared IDE_Status)
 IDE_Status = sharedStore  "IDE_Status" 	{ codeBase 	    = []
@@ -46,10 +43,14 @@ where
     chooseAndAddModules list
         = 			 	(whileUnchanged (mapRead (\s -> s.codeBase) IDE_Status)
             \codeBase -> ((navigateCodebase codeBase
-				        >^* [ OnAction (Action "Open" []) (hasValue (\(base,module,type) -> openEditor base module list))
+				        >^* [ OnAction (Action "Open" []) (hasValue (openSelection list))
 				            , OnAction (Action "/Setup code locations" []) (always ((editCodeLocations @! ()) <<@ InWindow)) //TODO: Remove if actions on parallel work...
 				            ])
 				       )) @? const NoValue
+
+    openSelection list (SelSourceTree rootDir) = openSourceTreeSettings rootDir list
+    openSelection list (SelMainModule rootDir moduleName) = openEditor rootDir moduleName list
+    openSelection list (SelAuxModule rootDir moduleName) = openEditor rootDir moduleName list
 
     addSearches list = forever
           (     enterInformation () []
@@ -70,6 +71,16 @@ where
         openModules = [] //[moduleName \\ (_,Value (IDE_ModuleEdit {IDE_ModuleEdit|moduleName}) _) <- results]
 
     updateOpenModules _ _ = Nothing
+
+openSourceTreeSettings :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
+openSourceTreeSettings base list
+    =   appendTask Embedded (closableParTask (\l -> editSourceTree base l @ IDE_SourceTreeEdit)) list
+    >>- \taskId -> focusTask taskId list
+    @!  ()
+
+editSourceTree :: FilePath (SharedTaskList IDE_TaskResult) -> Task FilePath
+editSourceTree base list
+    = viewInformation ("Source tree settings","This is a placeholder for an editor for a source tree") [] base
 
 openEditor :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task ()
 openEditor base module list
