@@ -48,6 +48,6 @@ tonicPubTask :: String -> PublishedTask
 
 tonicReflection :: String String (Task a) -> Task a
 
-tonicVarToSingleTask :: String String Int Int (Task a) -> Task a
+tonicVarToSingleTask :: String String Int (Task a) -> Task a
 
-tonicVarToListOfTask :: String String Int Int [Task a] -> [Task a]
+tonicVarToListOfTask :: String String Int [Task a] -> [Task a]

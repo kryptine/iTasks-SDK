@@ -293,8 +293,8 @@ tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 tonicReflection :: String String (Task a) -> Task a
 tonicReflection _ _ ta = ta
 
-tonicVarToSingleTask :: String String Int Int (Task a) -> Task a
-tonicVarToSingleTask _ _ _ _ ta = ta
+tonicVarToSingleTask :: String String Int (Task a) -> Task a
+tonicVarToSingleTask _ _ _ ta = ta
 
-tonicVarToListOfTask :: String String Int Int [Task a] -> [Task a]
-tonicVarToListOfTask _ _ _ _ tas = tas
+tonicVarToListOfTask :: String String Int [Task a] -> [Task a]
+tonicVarToListOfTask _ _ _ tas = tas

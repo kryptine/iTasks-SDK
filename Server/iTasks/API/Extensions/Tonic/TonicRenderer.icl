@@ -222,18 +222,6 @@ isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo
   isActiveNode` [] = False
   isActiveNode` traces=:[_:_]
     # tuneInfo = getNonBindTrace traces
-    //# world = if tuneInfo.tu_isBind (jsTrace ("Is Bind" +++
-                            //toString tuneInfo.moduleName  +++
-                            //toString tuneInfo.taskName    +++
-                            //toString tuneInfo.entryUniqId +++
-                            //toString tuneInfo.exitUniqId
-                           //) world)
-                          //(jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
-                       //toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
-                       //toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
-                       //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
-                       //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
-                      //) world)
     = not tuneInfo.tu_isBind &&
       renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
@@ -248,18 +236,6 @@ isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} wor
   isActiveNode` [] = False
   isActiveNode` traces=:[_:_]
     # tuneInfo = getNonBindTrace traces
-    //# world = if tuneInfo.tu_isBind (jsTrace ("Is Bind" +++
-                            //toString tuneInfo.moduleName  +++
-                            //toString tuneInfo.taskName    +++
-                            //toString tuneInfo.entryUniqId +++
-                            //toString tuneInfo.exitUniqId
-                           //) world)
-                          //(jsTrace ("Comparing top of trace stack with node being rendered:\n" +++
-                       //toString tuneInfo.moduleName  +++ " == " +++ toString renderingNode.tonicModuleName  +++ "\n" +++
-                       //toString tuneInfo.taskName    +++ " == " +++ toString renderingNode.tonicTaskName    +++ "\n" +++
-                       //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
-                       //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
-                      //) world)
     = not tuneInfo.tu_isBind &&
       renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
