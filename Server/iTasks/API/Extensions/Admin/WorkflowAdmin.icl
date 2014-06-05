@@ -172,7 +172,7 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser
 	>>=	\user ->
-		appendTopLevelTask ('DM'.fromList [("title",workflowTitle wf):userAttr user]) False (fromContainer wf.Workflow.task)
+		appendTopLevelTask ('DM'.fromList [("title",workflowTitle wf),("catalogId",wf.Workflow.path):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -180,8 +180,8 @@ where
     userAttr (AuthenticatedUser uid _ _) = [("user",uid)]
     userAttr _                           = []
 
-	fromContainer (WorkflowTask t) = t @ const Void
-	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @ const Void)		
+unwrapWorkflowTask (WorkflowTask t) = t @ const Void
+unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @ const Void)		
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
@@ -208,11 +208,40 @@ where
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
 openTask taskList taskId
-	=	appendOnce taskId (workOnTask taskId) taskList @ const OpenProcess
+	=	appendOnce taskId (workOnTask taskId) taskList @! OpenProcess
 
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-	=   (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
+    =   workOn taskId
+    >>* [OnValue    (ifValue ((===) WOExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
+        ,OnValue    (ifValue ((===) WOIncompatible) (\_ -> dealWithIncompatibleTask))
+        ,OnAction ActionClose   (always (return OpenProcess))
+        ]
+where
+    dealWithIncompatibleTask
+        =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"
+        >>* [OnAction ActionYes (always restartTask)
+            ,OnAction ActionNo (always (return OpenProcess))
+            ]
+
+    restartTask
+        =   findReplacement taskId
+        >>- \mbReplacement -> case mbReplacement of
+            Nothing
+                =   viewInformation (Title "Error") [] "Sorry, this task is no longer available in the workflow catalog"
+                >>| return OpenProcess
+            Just replacement
+                =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
+                >>| workOnTask taskId
+
+    //Look in the catalog for an entry that has the same path as
+    //the 'catalogId' that is stored in the incompatible task instance's properties
+    findReplacement taskId
+        =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |+| workflows)
+        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
+    where
+        lookup [] catalogId = Nothing
+        lookup [wf=:{Workflow|path}:wfs] catalogId = if (path == catalogId) (Just wf) (lookup wfs catalogId)
 
 appendOnce identity task slist
     =   get (taskListMeta slist)

@@ -80,9 +80,13 @@ parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskVa
 */
 taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
 /**
-* Get the properties share of a task list
+* Get the meta data sds of a task list
 */
 taskListMeta	:: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,TaskAttributes)]
+/**
+* Get the meta data sds for a specific entry in a task list
+*/
+taskListEntryMeta :: !(SharedTaskList a) -> RWShared TaskId (TaskListItem a) TaskAttributes
 /*
 * Get the id of the entry in the list the current task is part of
 */
@@ -96,25 +100,30 @@ taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 /**
 * Appends a task to a task list
 */
-appendTask :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task TaskId | iTask a
+appendTask  :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task TaskId | iTask a
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId								!(SharedTaskList a)	-> Task Void | iTask a
+removeTask  :: !TaskId								!(SharedTaskList a)	-> Task () | iTask a
+/**
+* Replaces a task in a list and resets its execution state.
+* All meta-data is kept
+*/
+replaceTask :: !TaskId !(ParallelTask a)            !(SharedTaskList a) -> Task () | iTask a
 /**
 * Focuses a task in a task list
 */
-focusTask :: !TaskId                                !(SharedTaskList a) -> Task Void | iTask a
+focusTask   :: !TaskId                              !(SharedTaskList a) -> Task () | iTask a
 
 /**
 * State of another process the user works on.
 */
 :: WorkOnStatus
-	= WOActive		//* the process is active, the current user works on it
-	| WOInUse User	//* the process is active, another user is working on it
-	| WOFinished	//* the process is finished
-	| WOExcepted	//* an uncaught exception was thrown inside of the process
-	| WODeleted		//* the process has been deleted
+    = WOAttached Stability  //* the task instance is currently attached to this workOn
+    | WOInUse User          //* the task instance is active, another user is working on it
+    | WOExcepted            //* the task instance had an uncaught exception
+    | WODeleted             //* the task instance does not exist anymore
+    | WOIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
 /**
 * Work on a detached task.

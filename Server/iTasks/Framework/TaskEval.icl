@@ -18,12 +18,12 @@ from StdFunc import const
 derive gEq TIMeta, TIType
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
-createClientTaskInstance task sessionId instanceNo iworld=:{current={taskTime},clocks={localDate,localTime}}
+createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
 	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
+	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
@@ -31,13 +31,13 @@ createClientTaskInstance task sessionId instanceNo iworld=:{current={taskTime},c
 	= (TaskId instanceNo 0, iworld)	
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{current={taskTime},clocks={localDate,localTime}}
+createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
 	# (instanceNo,iworld)	= newInstanceNo iworld
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
 	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta
+	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
@@ -45,13 +45,13 @@ createTaskInstance task iworld=:{current={taskTime},clocks={localDate,localTime}
     = (Ok (instanceNo,instanceKey),iworld)
 
 createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAttachment iworld=:{current={taskTime},clocks={localDate,localTime}}
+createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAttachment iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
 	# (instanceNo,iworld)	= case mbInstanceNo of
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
-	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta
+	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
@@ -59,10 +59,10 @@ createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAtt
     # iworld                = if (isJust mbAttachment) (queueUrgentRefresh [instanceNo] iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
-createMeta :: !InstanceNo !InstanceKey !Bool !TIType !TaskId !(Maybe String) !TaskAttributes !ProgressMeta  -> TIMeta
-createMeta instanceNo instanceKey session instanceType listId name attributes pmeta
+createMeta :: !InstanceNo !InstanceKey !Bool !TIType !TaskId !(Maybe String) !TaskAttributes !ProgressMeta !String -> TIMeta
+createMeta instanceNo instanceKey session instanceType listId name attributes pmeta buildID
 	= {TIMeta|instanceNo=instanceNo,instanceKey=instanceKey,instanceType=instanceType,session=session
-      ,listId=listId,name=name,progress=pmeta,attributes=attributes}
+      ,listId=listId,name=name,progress=pmeta,attributes=attributes,build=buildID}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -73,6 +73,16 @@ where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
 			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
+
+replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeErrorString (), !*IWorld) | iTask a
+replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}}
+    # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld
+	| isError meta          = ((\(Error (e,msg)) -> Error msg) meta, iworld)
+	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
+	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
+	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
+    # (_,iworld)            = 'SDS'.write {TIMeta|fromOk meta & build=buildID} (sdsFocus instanceNo taskInstanceMeta) iworld
+    = (Ok (), iworld)
 
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)

@@ -19,6 +19,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
     , name          :: !Maybe String        //Identifier
 	, progress		:: !ProgressMeta
 	, attributes    :: !TaskAttributes      //Arbitrary meta-data
+    , build         :: !String              //Application build version when the instance was created
 	}
 
 :: TIProgress =

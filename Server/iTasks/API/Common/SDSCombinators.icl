@@ -3,6 +3,7 @@ implementation module iTasks.API.Common.SDSCombinators
 import StdTuple
 import iTasks.API.Core.SDSs, iTasks.API.Core.SDSCombinators
 from StdFunc import o, const, flip, id
+from iTasks.Framework.Task import exception
 
 mapRead :: !(r -> r`) !(RWShared p r w) -> RWShared p r` w
 mapRead read sds = mapReadError (\r -> Ok (read r)) sds
@@ -26,7 +27,8 @@ mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w)
 mapSingle sds = sdsProject (SDSLensRead read) (SDSBlindWrite write) sds
 where
     read [x]    = Ok x
-    read _      = Error (dynamic notfound,notfound)
+    read []     = Error (exception "List element not found")
+    read _      = Error (exception "Multiple list elements found, expected only one") //(dynamic notfound,notfound)
 
     write x     = Ok (Just [x])
 

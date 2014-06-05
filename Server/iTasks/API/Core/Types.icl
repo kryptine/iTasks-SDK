@@ -429,6 +429,11 @@ where
 		| dx == dy	= (tx < ty)
 		| otherwise	= False
 		
+paddedDateTimeString :: DateTime -> String
+paddedDateTimeString (DateTime {Date|year,mon,day} {Time|hour,min,sec})
+	=   lpad (toString year) 4 '0' +++ lpad (toString mon) 2 '0' +++ lpad (toString day) 2 '0'
+	+++ lpad (toString hour) 2 '0' +++ lpad (toString min) 2 '0' +++ lpad (toString sec) 2 '0'
+
 //* Documents
 gText{|Document|} _ (Just val)
 	| val.Document.size == 0			= ["No Document"]

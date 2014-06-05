@@ -98,6 +98,9 @@ instance -			Date, Time, DateTime
 instance ==			Date, Time, DateTime
 instance <			Date, Time, DateTime
 
+//Format datetime as padded string: YYYYmmddHHMMss
+paddedDateTimeString :: DateTime -> String
+
 //* Documents
 :: Document =
 	{ documentId	:: !DocumentId				//*A unique identifier of the document

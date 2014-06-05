@@ -17,8 +17,8 @@ from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynam
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
 from iTasks.API.Core.Tasks	            import return
-from iTasks.API.Core.SDSCombinators     import sdsFocus
-from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError
+from iTasks.API.Core.SDSCombinators     import sdsFocus, sdsSplit
+from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError, mapSingle
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -438,7 +438,6 @@ markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
 markListEntryRemoved listId entryId iworld
 	= snd (updateListEntry listId entryId (\e -> {TaskListEntry|e & removed = True}) iworld)
 
-
 updateListEntry :: !TaskId !TaskId !(TaskListEntry -> TaskListEntry) !*IWorld -> (!TaskListEntry,!*IWorld)
 updateListEntry listId entryId f iworld
 	# (list,iworld) = loadTaskList listId iworld
@@ -478,6 +477,13 @@ taskListState tasklist = mapRead (\{TaskList|items} -> [value \\ {TaskListItem|v
 
 taskListMeta :: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,TaskAttributes)]
 taskListMeta tasklist = mapRead (\{TaskList|items} -> items) tasklist
+
+taskListEntryMeta :: !(SharedTaskList a) -> RWShared TaskId (TaskListItem a) TaskAttributes
+taskListEntryMeta tasklist = mapSingle (sdsSplit param read write tasklist)
+where
+    param p = (Void,p)
+    read p {TaskList|items} = [i \\ i=:{TaskListItem|taskId} <- items | taskId == p]
+    write p _ attributes    = ([(p,a) \\ a <- attributes], (==) p)
 
 taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
 taskListSelfId tasklist = mapRead (\{TaskList|selfId} -> selfId) (toReadOnly tasklist)
@@ -519,14 +525,14 @@ where
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId !(SharedTaskList a) -> Task Void | iTask a
+removeTask :: !TaskId !(SharedTaskList a) -> Task () | iTask a
 removeTask entryId slist = mkInstantTask eval
 where
 	eval taskId iworld
 		= case readListId slist iworld of
 			(Ok listId,iworld)
 				# iworld = remove listId entryId iworld
-				= (Ok Void, iworld)
+				= (Ok (), iworld)
 			(Error e,iworld)
 				= (Error e, iworld)
 
@@ -537,16 +543,41 @@ where
 		= markListEntryRemoved parId entryId iworld
 	remove _ _ iworld = iworld
 
-focusTask :: !TaskId !(SharedTaskList a) -> Task Void | iTask a
+replaceTask :: !TaskId !(ParallelTask a) !(SharedTaskList a) -> Task () | iTask a
+replaceTask entryId=:(TaskId entryInstanceNo _) parTask slist = mkInstantTask eval
+where
+    eval taskId iworld=:{IWorld|current={taskTime}}
+        = case readListId slist iworld of
+            (Ok TopLevelTaskList,iworld)
+                = case replaceTaskInstance entryInstanceNo (parTask topListShare) iworld of
+                    (Ok (), iworld) = (Ok (), iworld)
+                    (Error e, iworld) = (Error (exception e), iworld)
+			(Ok (ParallelTaskList listId),iworld)
+                //Reset state
+	            # (_,iworld) = updateListEntry listId entryId (resetState entryId taskTime) iworld
+                //Update local task function
+                # iworld = updateTaskFun listId entryId parTask iworld
+				= (Ok (), iworld)
+			(Error e,iworld)
+				= (Error e, iworld)
+
+    resetState entryId taskTime e =
+       {TaskListEntry|e & lastEval = ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit entryId taskTime)}
+
+    updateTaskFun listId entryId task iworld=:{current=current=:{localTasks}}
+        # task		= parTask (parListShare listId entryId)
+        = {iworld & current = {current & localTasks = 'Data.Map'.put entryId (dynamic task :: Task a^) localTasks}}
+
+focusTask :: !TaskId !(SharedTaskList a) -> Task () | iTask a
 focusTask entryId slist = mkInstantTask eval
 where
     eval taskId iworld=:{IWorld|current={taskTime}}
         = case readListId slist iworld of
             (Ok (ParallelTaskList listId),iworld)
 	            # (_,iworld) = updateListEntry listId entryId (\e -> {TaskListEntry|e & lastFocus = Just taskTime}) iworld
-                = (Ok Void, iworld)
+                = (Ok (), iworld)
             (Ok _,iworld)
-                = (Ok Void, iworld)
+                = (Ok (), iworld)
 			(Error e,iworld)
 				= (Error e, iworld)
 
@@ -564,19 +595,20 @@ where
 			Error e
 				= (ExceptionResult e,iworld)
 		
-	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{current={taskInstance,user}}
+	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance,user}}
 		//Load instance
 		# layout			= repLayoutRules repOpts
 		# (meta,iworld)		= readRegister taskInstance (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
-			(Ok meta=:{TIMeta|progress,instanceType=AttachedInstance _ worker,instanceKey})
+			(Ok meta=:{TIMeta|instanceType=AttachedInstance _ worker,instanceKey,progress,build})
+                | build <> buildID //Check version
+				    = (ValueResult (Value WOIncompatible True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
                 | progress.ProgressMeta.value === Exception
 				    = (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
-                | progress.ProgressMeta.value === Stable
-				    = (ValueResult (Value WOFinished True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
 				| worker == user
-                    # rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
-					= (ValueResult (Value WOActive False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} rep tree, iworld)
+                    # rep       = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
+                    # stable    = progress.ProgressMeta.value === Stable
+					= (ValueResult (Value (WOAttached stable) stable) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) [])
 					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} rep tree, iworld)		
@@ -606,7 +638,6 @@ where
 
 	inUseDef worker
 		= {UIDef|content=UIForm {UIForm|attributes='Data.Map'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'Data.Map'.newMap)],size=defaultSizeOpts},windows=[]}
-
 
 /*
 * Alters the evaluation functions of a task in such a way

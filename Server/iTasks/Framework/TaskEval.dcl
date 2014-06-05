@@ -20,7 +20,7 @@ createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!Task
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 
 /**
-* Create a stored task instance in the task pool (lazily without evaluating it)
+* Create a stored task instance in the task store (lazily without evaluating it)
 * @param The task to store
 * @param Management meta data
 * @param The user who issued the task
@@ -32,6 +32,16 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,Inst
 * @return The IWorld state
 */
 createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+
+/**
+* Replace a stored task instance in the task store.
+* The execution state is reset, but the meta-data is kept.
+* @param The instance id
+* @param The new task to store
+*
+* @param The IWorld state
+*/
+replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeErrorString (), !*IWorld) | iTask a
 
 /**
 * Evaluate a task instance
