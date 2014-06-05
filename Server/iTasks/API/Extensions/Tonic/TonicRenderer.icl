@@ -109,15 +109,17 @@ addPath xs path world
   # (path, world) = setAttr "d" (toJSVal pts) path world
   = (path, world)
 
-ppGExpression GUndefinedExpression    = "undefined"
-ppGExpression (GGraphExpression _)    = "<complex subgraph; consider refactoring>"
-ppGExpression (GCleanExpression expr) = expr
+ppGExpression e = e 
+
+ppNodeContents (VarOrExpr expr) = expr
+ppNodeContents ArbitraryOrUnknownExpr = "?"
+ppNodeContents (Subgraph _) = "TODO PP Subgraph"
 
 //usersForNode :: (Maybe TonicInfo) TonicState -> [User]
 //usersForNode (Just renderingNode) (TonicState traces=:[_:_])
   //# traces = takeCurrentTraces traces
   //= nub [ trace.traceUser \\ trace <- traces
-        //| not trace.tuneInfo.isBind &&
+        //| not trace.tuneInfo.tu_isBind &&
           //renderingNode.tonicModuleName  == trace.tuneInfo.moduleName  &&
           //renderingNode.tonicTaskName    == trace.tuneInfo.taskName    &&
           //renderingNode.tonicEntryUniqId >= trace.tuneInfo.entryUniqId &&
@@ -220,7 +222,7 @@ isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo
   isActiveNode` [] = False
   isActiveNode` traces=:[_:_]
     # tuneInfo = getNonBindTrace traces
-    //# world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
+    //# world = if tuneInfo.tu_isBind (jsTrace ("Is Bind" +++
                             //toString tuneInfo.moduleName  +++
                             //toString tuneInfo.taskName    +++
                             //toString tuneInfo.entryUniqId +++
@@ -232,11 +234,10 @@ isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo
                        //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
                        //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
                       //) world)
-    = not tuneInfo.isBind &&
-      renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
-      renderingNode.tonicTaskName    == tuneInfo.taskName    &&
-      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
-      renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
+    = not tuneInfo.tu_isBind &&
+      renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
+      renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
+      renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
 isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
   | 'DM'.empty traces = (False, world)
   | otherwise
@@ -247,7 +248,7 @@ isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} wor
   isActiveNode` [] = False
   isActiveNode` traces=:[_:_]
     # tuneInfo = getNonBindTrace traces
-    //# world = if tuneInfo.isBind (jsTrace ("Is Bind" +++
+    //# world = if tuneInfo.tu_isBind (jsTrace ("Is Bind" +++
                             //toString tuneInfo.moduleName  +++
                             //toString tuneInfo.taskName    +++
                             //toString tuneInfo.entryUniqId +++
@@ -259,17 +260,16 @@ isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} wor
                        //toString tuneInfo.entryUniqId +++ " >= " +++ toString renderingNode.tonicEntryUniqId +++ "\n" +++
                        //toString tuneInfo.exitUniqId  +++ " <= " +++ toString renderingNode.tonicExitUniqId
                       //) world)
-    = not tuneInfo.isBind &&
-      renderingNode.tonicModuleName  == tuneInfo.moduleName  &&
-      renderingNode.tonicTaskName    == tuneInfo.taskName    &&
-      renderingNode.tonicEntryUniqId >= tuneInfo.entryUniqId &&
-      renderingNode.tonicExitUniqId  <= tuneInfo.exitUniqId
+    = not tuneInfo.tu_isBind &&
+      renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
+      renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
+      renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
 isActiveNode _ _ world = (False, world)
 
 getNonBindTrace []     = abort "getNonBindTrace: should not happen"
-getNonBindTrace [{tuneInfo}:xs]
-  | tuneInfo.isBind = getNonBindTrace xs
-  | otherwise       = tuneInfo
+getNonBindTrace [{tr_tuneInfo}:xs]
+  | tr_tuneInfo.tu_isBind = getNonBindTrace xs
+  | otherwise             = tr_tuneInfo
 
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
@@ -394,51 +394,20 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                    ] line world
     = world
 
-  drawNode` {nodeType=GParallelSplit, nodeTonicInfo}          _ _ root world
-    # (g, world)    = append "g" root world
-    # (g, world)    = setAttr "class" (toJSVal "tonic-parallelsplit") g world
-    # (poly, world) = append "circle" g world
-    # (poly, world) = setAttrs [ ("r", toJSVal "2.5em")
-                               , ("stroke-dasharray", toJSVal "5,5")
-                               ] poly world
-    # (text, world) = append "text" g world
-    # (text, world) = setAttrs [ ("text-anchor", toJSVal "middle")
-                               , ("y", toJSVal "-1.75em")
-                               ] text world
-    = mkCenteredTspan ["Start", "parallel", "tasks"] text world
-  drawNode` {nodeType=GParallelJoin jt, nodeTonicInfo}      _ _ root world
-    # (g, world)    = append "g" root world
-    # (g, world)    = setAttr "class" (toJSVal "tonic-paralleljoin") g world
-    # (poly, world) = append "circle" g world
-    # (poly, world) = setAttrs [ ("r", toJSVal "2.5em")
-                               , ("stroke-dasharray", toJSVal "5,5")
-                               ] poly world
-    # (text, world) = append "text" g world
-    # (text, world) = setAttrs [ ("text-anchor", toJSVal "middle")
-                               , ("y", toJSVal "-1.75em")
-                               ] text world
-    = mkCenteredTspan (case jt of
-                         DisFirstBin  -> ["First", "task", "result"]
-                         DisFirstList -> ["First", "task", "result"]
-                         DisLeft      -> ["Left", "task", "result"]
-                         DisRight     -> ["Right", "task", "result"]
-                         ConAll       -> ["All", "task", "results"]
-                         ConPair      -> ["Paired", "task", "results"]
-                      ) text world
   drawNode` {nodeType=GReturn expr, nodeTonicInfo} _ nid root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-return") g world
     # (rect, world)       = append "ellipse" g world
     # (g``, world)        = append "g" g world
     # (text, world)       = append "text" g`` world
-    # (_, world)          = setText (ppGExpression expr) text world
+    # (_, world)          = setText (ppNodeContents expr) text world // TODO Draw entire subgraph
     # ((bbh, bbw), world) = getBBox root world
     # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
     # (rect, world)       = setAttrs [ ("rx", toJSVal ((bbw / 2.0) + bbh))
                                      , ("ry", toJSVal bbh)
                                      ] rect world
     = world
-  drawNode` {nodeType=GStep, nodeTonicInfo}                   _ _ root world
+  drawNode` {nodeType=(GStep _), nodeTonicInfo}                   _ _ root world
     = world
   drawNode` {nodeType=GStop, nodeTonicInfo} _ _ root world
     # (g, world)    = append "g" root world
@@ -539,7 +508,7 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
   f user traces ((patsGrp, n), world)
     # mTuneInfo = edgeInTraces fromIdx toIdx user traces
     = case mTuneInfo of
-        Just {entryUniqId, exitUniqId, valAsStr}
+        Just {tu_nodeId, tu_valAsStr}
           # (box, world)   = append (toString Rect) patsGrp world
           # (box, world)   = setAttr "x" (toJSVal (toString n +++ "em")) box world
           # (box, world)   = setAttr "y" (toJSVal "-0.5em") box world
@@ -547,15 +516,12 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
           # (box, world)   = setAttr "height" (toJSVal "1em") box world
           # (box, world)   = setAttr "width" (toJSVal "1em") box world
           # (title, world) = append "title" box world
-          # (_, world)     = setText (maybe "" (\ms -> toString user +++ ": " +++ ms) valAsStr) title world
+          # (_, world)     = setText (maybe "" (\ms -> toString user +++ ": " +++ ms) tu_valAsStr) title world
           = ((patsGrp, n + 1.2), world)
         _ = ((patsGrp, n), world)
 
 edgeInTraces _ _ _ [] = Nothing
-edgeInTraces fromIdx toIdx user [{tuneInfo=ti=:{entryUniqId,exitUniqId,valAsStr}, traceUser}:xs]
-  | traceUser   == user    &&
-    entryUniqId == fromIdx &&
-    exitUniqId  == toIdx
-    = Just ti
-  | otherwise = edgeInTraces fromIdx toIdx user xs
+edgeInTraces fromIdx toIdx user [{tr_tuneInfo=ti=:{tu_nodeId, tu_valAsStr}, tr_traceUser}:xs]
+  | tr_traceUser == user && tu_nodeId == toIdx = Just ti
+  | otherwise                                  = edgeInTraces fromIdx toIdx user xs
 

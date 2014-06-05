@@ -27,36 +27,42 @@ import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, 
 import qualified Data.Map as DM
 
 derive gEditor
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepType
 
 derive gEditMeta
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
-
-derive gVisualizeText
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepType
 
 derive gDefault
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepType
 
 derive gUpdate
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepType
 
 derive gVerify
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GJoinType, GEdge, GExpression,
-  GListComprehension, TonicTask, ComprElem, CEType, TonicInfo
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepType
+
+derive gText
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepType
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
 tonicGraphs :: Shared UserGraphMap
 tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
 
-tonicBind :: String String Int Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-tonicBind mn tn euid xuid ta a2tb = ta >>= \x -> tonicTune` mn tn euid xuid (toString (toJSON x)) (a2tb x) // TODO toJSON ?
+tonicBind :: String String Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+tonicBind mn tn nid ta a2tb = ta >>= \x -> tonicTune` mn tn nid (toString (toJSON x)) (a2tb x) // TODO toJSON ?
 
 tonicAnyTask :: String String Int Int ![Task a] -> Task a | iTask a
 tonicAnyTask mn tn euid xuid ts = anyTask ts
@@ -107,38 +113,40 @@ tonicAnyTask mn tn euid xuid ts = anyTask ts
       //= (tr, iworld)
     //eval` _ event repOpts state iworld = eval event repOpts state iworld
 
-tonicAllTasks :: String String Int Int ![Task a] -> Task [a] | iTask a
-tonicAllTasks mn tn euid xuid ts = allTasks ts // TODO Tonicify
+tonicAllTasks :: String String Int ![Task a] -> Task [a] | iTask a
+tonicAllTasks mn tn nid ts = allTasks ts // TODO Tonicify
 
-tonicTune` :: String String Int Int String (Task b) -> Task b
-tonicTune` mn tn euid xuid xstr tb = tune  { TonicTune
-                                           | moduleName  = mn
-                                           , taskName    = tn
-                                           , entryUniqId = euid
-                                           , exitUniqId  = xuid
-                                           , valAsStr    = Just xstr
-                                           , isBind      = True} tb
+tonicTune` :: String String Int String (Task b) -> Task b
+tonicTune` mn tn nid xstr tb = tune  { TonicTune
+                                     | tu_moduleName  = mn
+                                     , tu_taskName    = tn
+                                     , tu_nodeId      = nid
+                                     , tu_valAsStr    = Just xstr
+                                     , tu_isBind      = True} tb
 
-tonicTune :: String String Int Int (Task a) -> Task a
-tonicTune mn tn euid xuid ta = tune  { TonicTune
-                                     | moduleName  = mn
-                                     , taskName    = tn
-                                     , entryUniqId = euid
-                                     , exitUniqId  = xuid
-                                     , valAsStr    = Nothing
-                                     , isBind      = False} ta
+tonicTune :: String String Int (Task a) -> Task a
+tonicTune mn tn nid ta = tune  { TonicTune
+                               | tu_moduleName  = mn
+                               , tu_taskName    = tn
+                               , tu_nodeId      = nid
+                               , tu_valAsStr    = Nothing
+                               , tu_isBind      = False} ta
 
 mkTrace :: User TonicTune TraceType Timestamp -> TonicTrace
-mkTrace user tinf ttype tstamp = {TonicTrace|traceType = ttype, tuneInfo = tinf, traceUser = user, traceTime = tstamp}
+mkTrace user tinf ttype tstamp = { TonicTrace
+                                 | tr_traceType = ttype
+                                 , tr_tuneInfo  = tinf
+                                 , tr_traceUser = user
+                                 , tr_traceTime = tstamp }
 
 tonicTraces :: Shared UserTraceMap
 tonicTraces = sharedStore "tonicTraces" 'DM'.newMap
 
 mkUniqLbl :: TonicTune -> String
-mkUniqLbl tt = tt.moduleName +++ "." +++ tt.taskName +++ "." +++ toString tt.entryUniqId +++ "." +++ toString tt.exitUniqId
+mkUniqLbl tt = tt.tu_moduleName +++ "." +++ tt.tu_taskName +++ "." +++ toString tt.tu_nodeId
 
 instance tune TonicTune where
-  tune ttn (Task eval) = Task eval`
+  tune ttn (Task tn eval) = Task tn eval`
   where
     // Strict lets are required to ensure traces are pushed to the trace stack
     // in the correct order.
@@ -157,13 +165,13 @@ instance tune TonicTune where
       # (mbUserMap, world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
       = case mbUserMap of
           Ok userMap
-            # (ts, instanceMap) = case 'DM'.get t.traceUser userMap of
+            # (ts, instanceMap) = case 'DM'.get t.tr_traceUser userMap of
                                     Just instanceMap -> ( case 'DM'.get instanceNo instanceMap of
                                                             Just traces -> traces
                                                             _           -> []
                                                         , instanceMap)
                                     _                -> ([], 'DM'.newMap)
-            = snd ('DSDS'.write ('DM'.put t.traceUser ('DM'.put instanceNo [t:ts] instanceMap) userMap) shts world)
+            = snd ('DSDS'.write ('DM'.put t.tr_traceUser ('DM'.put instanceNo [t:ts] instanceMap) userMap) shts world)
           _ = world
 
 getTonicModules :: Task [String]
@@ -285,8 +293,8 @@ tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 tonicReflection :: String String (Task a) -> Task a
 tonicReflection _ _ ta = ta
 
-tonicVarToSingleTask :: String String Int Int Int (Task a) -> Task a
-tonicVarToSingleTask _ _ _ _ _ ta = ta
+tonicVarToSingleTask :: String String Int Int (Task a) -> Task a
+tonicVarToSingleTask _ _ _ _ ta = ta
 
-tonicVarToListOfTask :: String String Int Int Int [Task a] -> [Task a]
-tonicVarToListOfTask _ _ _ _ _ tas = tas
+tonicVarToListOfTask :: String String Int Int [Task a] -> [Task a]
+tonicVarToListOfTask _ _ _ _ tas = tas

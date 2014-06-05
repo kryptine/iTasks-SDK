@@ -12,21 +12,20 @@ from System.Time import :: Timestamp
 from Data.Map import :: Map
 
 :: TonicTune =
-	{ moduleName  :: String
-	, taskName    :: String
-	, entryUniqId :: Int
-	, exitUniqId  :: Int
-	, valAsStr    :: Maybe String
-	, isBind      :: Bool
+	{ tu_moduleName :: String
+	, tu_taskName   :: String
+	, tu_nodeId     :: Int
+	, tu_valAsStr   :: Maybe String
+	, tu_isBind     :: Bool
 	}
 
 :: TraceType = EnterTrace | ExitTrace
 
 :: TonicTrace =
-	{ traceType  :: !TraceType
-	, tuneInfo   :: !TonicTune
-	, traceUser  :: !User
-	, traceTime  :: !Timestamp
+	{ tr_traceType  :: !TraceType
+	, tr_tuneInfo   :: !TonicTune
+	, tr_traceUser  :: !User
+	, tr_traceTime  :: !Timestamp
 	}
 
 derive class iTask TonicTrace, TraceType, TonicTune
@@ -37,9 +36,9 @@ derive class iTask TonicTrace, TraceType, TonicTune
 
 tonicTraces :: Shared UserTraceMap
 
-tonicTune :: String String Int Int (Task a) -> Task a
+tonicTune :: String String Int (Task a) -> Task a
 
-tonicBind :: String String Int Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+tonicBind :: String String Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 
 instance tune TonicTune
 
@@ -49,6 +48,6 @@ tonicPubTask :: String -> PublishedTask
 
 tonicReflection :: String String (Task a) -> Task a
 
-tonicVarToSingleTask :: String String Int Int Int (Task a) -> Task a
+tonicVarToSingleTask :: String String Int Int (Task a) -> Task a
 
-tonicVarToListOfTask :: String String Int Int Int [Task a] -> [Task a]
+tonicVarToListOfTask :: String String Int Int [Task a] -> [Task a]

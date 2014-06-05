@@ -8,15 +8,18 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType, NodeContents
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType,
+  NodeContents
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType, NodeContents
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType,
+  NodeContents
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType, NodeContents
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType,
+  NodeContents
 
 :: TonicModule =
   { tm_name  :: String
@@ -47,8 +50,7 @@ derive gEq
 :: TonicInfo =
   { tonicModuleName  :: String
   , tonicTaskName    :: String
-  , tonicEntryUniqId :: Int
-  , tonicExitUniqId  :: Int
+  , tonicNodeId      :: Int
   , tonicValAsStr    :: Maybe String
   }
 
@@ -93,7 +95,7 @@ mkGNode :: GNodeType -> GNode
   , stepExpr :: GinGraph
   }
 
-:: StepType = OnValue | OnButton String | OnException
+:: StepType = StepOnValue | StepOnButton String | StepOnException
 
 :: GEdge = { edge_pattern :: !Maybe GPattern }
 

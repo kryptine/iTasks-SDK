@@ -16,10 +16,10 @@ import dynamic_string
 
 derive gEditor Graph, Node
 derive gEditMeta Graph, Node
-derive gVisualizeText Graph, Node
 derive gDefault Graph, Node
 derive gUpdate Graph, Node
 derive gVerify Graph, Node
+derive gText Graph, Node
 
 derive class iTask GraphletDiff, Graphlet
 
