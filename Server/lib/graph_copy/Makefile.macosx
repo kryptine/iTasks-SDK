@@ -1,5 +1,6 @@
 
 all: copy_graph_to_string.o copy_graph_to_string_interface.o copy_string_to_graph.o copy_string_to_graph_interface.o
+	cp macosx/graph_to_string_with_descriptors.icl graph_to_string_with_descriptors.icl
 
 copy_graph_to_string.o: copy_graph_to_string.c
 	gcc -S -O -DMACH_O64 copy_graph_to_string.c -o copy_graph_to_string.a
