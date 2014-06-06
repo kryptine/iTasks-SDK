@@ -267,6 +267,7 @@ where
         = DCTree  (TreeChoice  (view [(i,o) \\ i <- [0..] & o <- container] (expanded tree targets container)) Nothing)
     updDynChoice (ChooseFromTree view) _ _          = DCTree  (TreeChoice  (view [(i,o) \\ i <- [0..] & o <- container] []) Nothing)
     updDynChoice (ChooseFromGrid view) _ _          = DCGrid  (GridChoice [view o \\ o <- container] Nothing)
+    updDynChoice (ChooseFromList view) _ _          = DCList  (ListChoice [view o \\ o <- container] Nothing)
 
     expanded tree targets container = remapChoiceIndices targets (map target container) (expandedFromTreeChoiceView tree)
 
