@@ -60,6 +60,12 @@ toTaskListItem :: !TIMeta -> TaskListItem a
 toTaskListItem {TIMeta|instanceNo,listId,progress,attributes}
 	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, attributes = attributes}
 
+taskInstanceFromTIMeta :: TIMeta -> TaskInstance
+taskInstanceFromTIMeta {TIMeta|instanceNo,instanceKey,session,listId,build,name,progress={ProgressMeta|value,issuedAt,issuedBy,involvedUsers,firstEvent,latestEvent},attributes}
+    = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
+      ,name = name, attributes = attributes, value = value, issuedAt = issuedAt, issuedBy = issuedBy, involvedUsers = involvedUsers, firstEvent = firstEvent, latestEvent = latestEvent}
+
+
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
@@ -75,19 +81,24 @@ where
                 _                               = False
             Nothing = True
 
-allTaskInstances :: ReadOnlyShared [TaskListItem Void]
-allTaskInstances = createReadOnlySDS (\Void iworld=:{ti} -> (map toTaskListItem ti,iworld))
-
-taskInstanceByNo :: RWShared InstanceNo (TaskListItem Void) TaskAttributes
-taskInstanceByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) (sdsTranslate (\instanceNo -> {InstanceFilter|instanceNo=Just instanceNo,session=Nothing}) filteredInstanceMeta)
+allTaskInstances :: ROShared Void [TaskInstance]
+allTaskInstances
+    = toReadOnly
+      (sdsProject (SDSLensRead readTIItems) SDSNoWrite
+       (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Nothing} filteredInstanceMeta))
 where
-    read [i]    = Ok (toTaskListItem i)
-    read _      = Error (dynamic error,error)
+    readTIItems is = Ok (map taskInstanceFromTIMeta is)
 
-    write [i] a = Ok (Just [{TIMeta|i &attributes = a}])
-    write _ _   = Error (dynamic error,error)
+taskInstanceByNo :: RWShared InstanceNo TaskInstance TaskAttributes
+taskInstanceByNo
+    = sdsProject (SDSLensRead readTIItem) (SDSLensWrite writeTIItem)
+      (sdsTranslate (\instanceNo -> {InstanceFilter|instanceNo=Just instanceNo,session=Nothing}) filteredInstanceMeta)
+where
+    readTIItem [i]    = Ok (taskInstanceFromTIMeta i)
+    readTIItem _      = Error (exception "Task instance not found")
 
-    error = "Task instance not found"
+    writeTIItem [i] a = Ok (Just [{TIMeta|i &attributes = a}])
+    writeTIItem _ _   = Error (exception "Task instance not found")
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS (\Void iworld=:{current={user}} -> (user,iworld))

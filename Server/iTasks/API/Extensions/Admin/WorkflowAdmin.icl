@@ -202,7 +202,7 @@ where
 		{WorklistRow
 		|title      = 'DM'.get "title" attributes
 		,priority   = 'DM'.get "priority" attributes
-		,date       = pmeta.issuedAt
+		,date       = pmeta.ProgressMeta.issuedAt
 		,deadline   = 'DM'.get "completeBefore" attributes
 		}
 	

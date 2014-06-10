@@ -103,6 +103,7 @@ where
         = case oldValue of
             (Error (e,msg))             = (Error msg, iworld)
 		    (Ok (TIException e msg))    = (Error msg, iworld)
+            (Ok _)                      = (Error "Exception no longer available", iworld)
     //Eval instance
     # (currentUser,currentSession,currentAttachment) = case (session,instanceType) of
         (True,_)                = (AnonymousUser instanceKey,Just instanceNo,[])
