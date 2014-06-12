@@ -109,7 +109,7 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,Intera
 * @param Initialization function: function that is called when the connection is established
 * @param Communication function: function that is called when data arrives, the connection is closed or the observed share changes.
 */
-tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> Task l | iTask l & iTask r
+tcpconnect :: !String !Int !(RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
 
 /**
 * Evaluate a "World" function that does not yield any result once.
@@ -155,6 +155,10 @@ accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a
 */
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
 
+/**
+* Write a value to the server console output for tracing
+*/
+traceValue :: a -> Task a | iTask a
 /**
 * Terminates a running task server
 */

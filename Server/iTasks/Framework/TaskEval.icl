@@ -128,14 +128,16 @@ where
 										, eventRoute = eventRoute
 										}}
     //Clear the instance's registrations for share changes
-	# iworld					= clearShareRegistrations instanceNo iworld
+	# iworld					    = clearShareRegistrations instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld)		= eval event repAs tree iworld
+	# (newResult,iworld=:{current})	= eval event repAs tree iworld
     //Finalize task UI
     # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
         _                                                   = tree
+    //Reset necessary 'current' values in iworld
+    # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
 	//Re-read old meta data because it may have been changed during the task evaluation
 	# (oldMeta,deleted,iworld) = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
         (Ok meta, iworld)		= (meta,False, iworld)

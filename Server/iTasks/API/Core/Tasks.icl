@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.Tasks
 
-import StdList, StdBool, StdInt, StdTuple,StdMisc
+import StdList, StdBool, StdInt, StdTuple, StdMisc, StdDebug
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
@@ -119,7 +119,8 @@ where
 		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='Data.Map'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
-tcpconnect :: !String !Int !(ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> Task l | iTask l & iTask r
+
+tcpconnect :: !String !Int !(RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port shared initFun commFun = Task Nothing eval
 where
 	eval event repOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
@@ -166,20 +167,23 @@ where
     lookupErr = "Failed to lookup host "+++ host
     connectErr = "Failed to connect to host "+++ host
 
-    connTask :: !TaskId (ReadOnlyShared r) (r -> (MaybeErrorString l,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,[String],Bool)) -> ConnectionTask | iTask r & iTask l
+    connTask :: !TaskId (RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> ConnectionTask | iTask r & iTask w & iTask l
     connTask taskId=:(TaskId instanceNo _) shared initFun commFun = ConnectionTask init eval close
     where
         init host iworld
 		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
 		    = case val of
 			    Ok r
-                    # (mbl,sends,close) = initFun r
+                    # (mbl,mbw,sends,close) = initFun r
                     = case mbl of
                         Ok l
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
+                            # iworld = writeShare shared mbw iworld
+                            # iworld = queueUrgentRefresh [instanceNo] iworld
                             = (sends, close, dynamic (r,l), iworld)
                         Error e
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
+                            # iworld = queueUrgentRefresh [instanceNo] iworld
                             = (sends,True, dynamic e, iworld)
 			    Error (e,str)
                     = ([],True, dynamic str, iworld)
@@ -188,15 +192,17 @@ where
 		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
             = case val of
                 Ok r
-                    # (mbl,sends,close) = commFun l r [data] (r =!= prevr) False
+                    # (mbl,mbw,sends,close) = commFun l r [data] (r =!= prevr) False
                     = case mbl of
                         Ok l
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
-                            # iworld = queueRefresh [instanceNo] iworld
+                            # iworld = writeShare shared mbw iworld
+                            # iworld = queueUrgentRefresh [instanceNo] iworld
                             = (sends,close,dynamic (r,l), iworld)
                         Error e
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
-                            # iworld = queueRefresh [instanceNo] iworld
+                            # iworld = writeShare shared mbw iworld
+                            # iworld = queueUrgentRefresh [instanceNo] iworld
                             = (sends,True,dynamic e, iworld)
 			    Error (e,str)
                     = ([],True,dynamic str, iworld)
@@ -206,18 +212,23 @@ where
 		    # (val,iworld=:{ioValues}) = 'SDS'.read shared iworld
             = case val of
                 Ok r
-                    # (mbl,_,_) = commFun l r [] (r =!= prevr) True
+                    # (mbl,mbw,_,_) = commFun l r [] (r =!= prevr) True
                     = case mbl of
                         Ok l
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) True) ioValues}
-                            # iworld = queueRefresh [instanceNo] iworld
+                            # iworld = writeShare shared mbw iworld
+                            # iworld = queueUrgentRefresh [instanceNo] iworld
                             = (dynamic (r,l), iworld)
 			            Error e
                             # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
-                            # iworld = queueRefresh [instanceNo] iworld
+                            # iworld = writeShare shared mbw iworld
+                            # iworld = queueUrgentRefresh [instanceNo] iworld
                             = (dynamic e, iworld)
 			    Error (e,str)
                     = (dynamic str, iworld)
+
+        writeShare shared Nothing iworld = iworld
+        writeShare shared (Just w) iworld = (snd ('SDS'.write w shared iworld)) //TODO CHECK ERROR
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
@@ -247,5 +258,12 @@ where
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
 
-shutDown :: Task Void 
+traceValue :: a -> Task a | iTask a
+traceValue v = mkInstantTask eval
+where
+    eval _ iworld
+       # iworld = trace_n (toSingleLineText v) iworld
+       = (Ok v,iworld)
+
+shutDown :: Task Void
 shutDown = mkInstantTask (\taskId iworld -> (Ok Void, {IWorld|iworld & shutdown = True}))
