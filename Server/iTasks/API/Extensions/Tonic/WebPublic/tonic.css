@@ -48,6 +48,20 @@ rect {
   stroke-width: 0.15em;
 }
 
+.tonic-var rect {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.15em;
+  stroke-dasharray: 5,5;
+}
+
+.tonic-arbitrary rect {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.15em;
+  stroke-dasharray: 5,5;
+}
+
 .tonic-let rect {
   fill: #fff;
   stroke: #000;
@@ -55,6 +69,12 @@ rect {
 }
 
 .tonic-taskapplication rect {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.15em;
+}
+
+.tonic-parallel rect {
   fill: #fff;
   stroke: #000;
   stroke-width: 0.15em;

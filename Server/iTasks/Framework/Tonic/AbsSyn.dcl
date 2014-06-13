@@ -68,7 +68,7 @@ mkGNode :: GNodeType -> GNode
   |  GInit
   |  GLet GLet
 //  | GList [GCleanExpression]
-  |  GListComprehension GListComprehension
+  //|  GListComprehension GListComprehension
   |  GParallel GParType [NodeContents]
   |  GReturn NodeContents
   |  GStep [StepElem]
