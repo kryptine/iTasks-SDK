@@ -121,6 +121,7 @@ where
             = case dropWhile ((==)"") (split "/" urlSpec) of
                 ["gui-stream"]
                     //Stream messages for multiple instances
+                    # iworld            = updateInstanceConnect req.client_name instances iworld
                     # (messages,iworld)	= popUIUpdates instances iworld //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
                 [instanceNo,instanceKey]
@@ -128,6 +129,7 @@ where
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
+                    # iworld             = updateInstanceLastIO [instanceNo] iworld
                     # (mbResult, iworld) = evalTaskInstance instanceNo event iworld
                     # (json, iworld) = case mbResult of
                         Error err
@@ -146,8 +148,10 @@ where
                     = (jsonResponse json, Nothing, iworld)
                 //Stream messages for a specific instance
                 [instanceNo,instanceKey,"gui-stream"]
-                    # (messages,iworld)	= popUIUpdates [toInt instanceNo] iworld	
-                    = (eventsResponse messages, Just (EventSourceConnection [toInt instanceNo]), iworld)
+                    # instances         = [toInt instanceNo]
+                    # iworld            = updateInstanceConnect req.client_name instances iworld
+                    # (messages,iworld)	= popUIUpdates instances iworld	
+                    = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
                 _
 				    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
 	    where
@@ -189,10 +193,13 @@ where
         # (messages,iworld)	= popUIUpdates instances iworld	
 		= case messages of
 			[]	= ([],False,(EventSourceConnection instances),iworld)
-			_	= ([formatMessageEvents messages],False,(EventSourceConnection instances),iworld)
+			_	
+                # iworld = updateInstanceLastIO instances iworld
+                = ([formatMessageEvents messages],False,(EventSourceConnection instances),iworld)
 
     disconnectFun :: HTTPRequest !ConnectionType !*IWorld -> *IWorld
-	disconnectFun _ _ iworld = iworld
+	disconnectFun _ (EventSourceConnection instances) iworld    = updateInstanceDisconnect instances iworld
+	disconnectFun _ _ iworld                                    = iworld
 
 	jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
@@ -339,16 +346,13 @@ where
 	//Do nothing if no data arrives for now
 	eval Nothing connState env = ([],False,connState,env)
 
-    close connState env = (connState,env) //TODO Maybe we need to clean up
-
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up
-	handleConnectionLost (NTProcessingRequest request loc) env
+    close (connState=:(NTProcessingRequest request localState) :: NetTaskState) env
 		= case selectHandler request requestProcessHandlers of
-			Nothing	= env
-			Just (_,_,_,_,connLostHandler) = connLostHandler request loc env
-
-	handleConnectionLost _ env = env
+			Nothing	                        = (dynamic connState,env)
+			Just (_,_,_,_,connLostHandler)  = (dynamic connState, connLostHandler request localState env)
+    close connState env = (connState,env)
 
 	selectHandler req [] = Nothing
 	selectHandler req [h=:(pred,_,_,_,_):hs]

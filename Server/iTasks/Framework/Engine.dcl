@@ -68,5 +68,6 @@ instance Publishable [PublishedTask]
 
 determineAppName :: !*World -> (!String,!*World)
 
-// Background process. TODO
+//HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld
+

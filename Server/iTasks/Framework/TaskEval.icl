@@ -22,7 +22,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},cur
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
 	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -36,7 +36,7 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
-	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
 	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -50,7 +50,7 @@ createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAtt
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
-	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,latestEvent=Nothing}
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
 	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
@@ -200,7 +200,7 @@ where
     finalizeUI session res = res
 
 	updateProgress now result currentUser progress
-		# progress = {ProgressMeta|progress & firstEvent = Just (fromMaybe now progress.ProgressMeta.firstEvent), latestEvent = Nothing} //EXPERIMENT
+		# progress = {ProgressMeta|progress & firstEvent = Just (fromMaybe now progress.ProgressMeta.firstEvent), lastEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {ProgressMeta|progress & value = Exception}
 			(ValueResult (Value _ stable) {TaskInfo|involvedUsers} _ _)	
@@ -280,6 +280,33 @@ queueUrgentRefresh instanceNos iworld=:{refreshQueue}
 dequeueRefresh :: !*IWorld -> (!Maybe InstanceNo, !*IWorld)
 dequeueRefresh iworld=:{refreshQueue=[]} = (Nothing,iworld)
 dequeueRefresh iworld=:{refreshQueue=[instanceNo:refreshQueue]} = (Just instanceNo,{iworld & refreshQueue = refreshQueue})
+
+updateInstanceLastIO ::![InstanceNo] !*IWorld -> *IWorld
+updateInstanceLastIO [] iworld = iworld
+updateInstanceLastIO [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
+    = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
+        (Ok meta, iworld)
+            # (_,iworld) = 'SDS'.write {TIMeta|meta & progress = {ProgressMeta|meta.TIMeta.progress & lastIO = Just (DateTime localDate localTime)}} (sdsFocus instanceNo taskInstanceMeta) iworld
+            = updateInstanceLastIO instanceNos iworld
+        (_,iworld) = updateInstanceLastIO instanceNos iworld
+
+updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *IWorld
+updateInstanceConnect client [] iworld = iworld
+updateInstanceConnect client [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
+    = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
+        (Ok meta, iworld)
+            # (_,iworld) = 'SDS'.write {TIMeta|meta & progress = {ProgressMeta|meta.TIMeta.progress & connectedTo = Just client, lastIO = Just (DateTime localDate localTime)}} (sdsFocus instanceNo taskInstanceMeta) iworld
+            = updateInstanceConnect client instanceNos iworld
+        (_,iworld) = updateInstanceConnect client instanceNos iworld
+
+updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *IWorld
+updateInstanceDisconnect [] iworld = iworld
+updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
+    = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
+        (Ok meta, iworld)
+            # (_,iworld) = 'SDS'.write {TIMeta|meta & progress = {ProgressMeta|meta.TIMeta.progress & connectedTo = Nothing, lastIO = Just (DateTime localDate localTime)}} (sdsFocus instanceNo taskInstanceMeta) iworld
+            = updateInstanceDisconnect instanceNos iworld
+        (_,iworld) = updateInstanceDisconnect instanceNos iworld
 
 localShare :: !TaskId -> Shared a | iTask a
 localShare taskId=:(TaskId instanceNo taskNo) = createReadWriteSDS "localShare" shareKey read write

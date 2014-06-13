@@ -77,7 +77,10 @@ initInstanceMeta :: !*IWorld -> *IWorld
 initInstanceMeta iworld
     # (mbIndex,iworld) = singleValueStoreRead NS_TASK_INSTANCES meta_index False iworld
     = case mbIndex of
-        Ok index    = {iworld & ti = index}
+        //When we restore the process index, reset all the connectedTo fields
+        //because at startup we know there are no connections, but the table may be outdated
+        //when the server was not shutdown properly
+        Ok ti       = {iworld & ti = [{TIMeta|i & progress = {ProgressMeta|i.TIMeta.progress & connectedTo = Nothing}}  \\ i <- ti]}
         Error e     = {iworld & ti = []}
 
 fullInstanceMeta :: RWShared Void [TIMeta] [TIMeta]

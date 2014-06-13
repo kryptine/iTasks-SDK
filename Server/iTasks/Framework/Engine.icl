@@ -8,6 +8,7 @@ import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.IWorld, iTasks.Framework.WebService, iTasks.Framework.SDSService
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
+SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString, StdFunc
 import tcp
@@ -45,9 +46,9 @@ startEngine publishable world
     //Initialize task instance index
     # iworld                = initInstanceMeta iworld
 	// mark all instance as outdated initially
-	# (maxNo,iworld)		= maxInstanceNo iworld
-	# iworld				= queueRefresh [1..maxNo] iworld
-	# iworld				= serve port (httpServer port keepalive (engine publishable)) (BackgroundTask background) timeout iworld
+    # iworld                = queueAllPersistent iworld
+    //Start task server
+	# iworld				= serve port (httpServer port keepalive (engine publishable)) [BackgroundTask removeOutdatedSessions,BackgroundTask refreshTaskInstances] timeout iworld
 	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
@@ -108,20 +109,30 @@ where
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = (Just 100, iworld)					//Run at least 10 times a second
 
-	toTimeout (Timestamp curTime) (Timestamp nextRefresh)
-		# delta = nextRefresh - curTime
-		| delta < 0					= 0
-		| delta > MAX_TIMEOUT/1000	= MAX_TIMEOUT
-		| otherwise					= delta*1000
-	
-MAX_TIMEOUT :== 86400000 // one day
+queueAllPersistent :: !*IWorld -> *IWorld 
+queueAllPersistent iworld=:{IWorld|ti}
+    = queueRefresh [instanceNo \\ {TIMeta|instanceNo,session} <- ti | not session] iworld
 
-background :: !*IWorld -> *IWorld
-background iworld
+refreshTaskInstances :: !*IWorld -> *IWorld
+refreshTaskInstances iworld
 	# iworld			= updateClocks iworld
     = case dequeueRefresh iworld of
         (Just instanceNo,iworld) = refreshTaskInstance instanceNo iworld
         (_,iworld)               = iworld
+
+removeOutdatedSessions :: !*IWorld -> *IWorld
+removeOutdatedSessions iworld=:{IWorld|ti}
+    = foldr removeIfOutdated iworld [i \\ i=:{TIMeta|session=True,progress={ProgressMeta|connectedTo=Nothing}} <- ti]
+where
+    removeIfOutdated {TIMeta|instanceNo,progress={ProgressMeta|lastIO}} iworld=:{clocks={localDate,localTime}}
+        | maybe True (\t -> ((DateTime localDate localTime) - t) > SESSION_TIMEOUT) lastIO
+            = deleteInstance instanceNo iworld
+        | otherwise
+            = iworld
+
+//HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
+background :: !*IWorld -> *IWorld
+background iworld = removeOutdatedSessions (refreshTaskInstances iworld)
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool

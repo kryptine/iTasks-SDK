@@ -15,15 +15,15 @@ import iTasks.Framework.Task
     | ConnectionInstanceDS !IPAddress !*TCP_SChannel !ConnectionTask !Dynamic
     | BackgroundInstanceDS !BackgroundTask
 
-serve :: !Int !ConnectionTask !BackgroundTask (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 serve port ct bt determineTimeout iworld
     = loop determineTimeout (init port ct bt iworld)
 
-init :: !Int !ConnectionTask !BackgroundTask !*IWorld -> *IWorld
+init :: !Int !ConnectionTask ![BackgroundTask] !*IWorld -> *IWorld
 init port ct bt iworld=:{IWorld|io,world}
     # (success, mbListener, world) = openTCP_Listener port world
     | not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
-    = {iworld & io = {done=[],todo=[ListenerInstance port (fromJust mbListener) ct,BackgroundInstance bt]}, world = world}
+    = {iworld & io = {done=[],todo=[ListenerInstance port (fromJust mbListener) ct:map BackgroundInstance bt]}, world = world}
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld

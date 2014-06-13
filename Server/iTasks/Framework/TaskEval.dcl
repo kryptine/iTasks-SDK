@@ -75,13 +75,19 @@ refreshTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 */
 resetTaskInstance   :: !InstanceNo !*IWorld -> *IWorld
 
+//Update the refresh queue
 queueRefresh        :: ![InstanceNo]                !*IWorld -> *IWorld
 queueUrgentRefresh  :: ![InstanceNo]				!*IWorld -> *IWorld
 dequeueRefresh      :: 								!*IWorld -> (!Maybe InstanceNo, !*IWorld)
 
+//Update the I/O information for task instances
+updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *IWorld
+updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *IWorld
+updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *IWorld
+
 //Helper functions that provide access to shares and parallel task lists
-localShare		:: !TaskId ->	        Shared a			| iTask a
-exposedShare 	:: !String -> 			RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
-topListShare	::				        SharedTaskList a
-parListShare	:: !TaskId !TaskId ->	SharedTaskList a	| iTask a
-currentInstanceShare ::                 ReadOnlyShared InstanceNo
+localShare		        :: !TaskId ->	        Shared a			| iTask a
+exposedShare 	        :: !String -> 			RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
+topListShare	        ::				        SharedTaskList a
+parListShare	        :: !TaskId !TaskId ->	SharedTaskList a	| iTask a
+currentInstanceShare    ::                 ReadOnlyShared InstanceNo

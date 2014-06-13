@@ -105,7 +105,7 @@ where
 		, issuedAt		= p.ProgressMeta.issuedAt
 		, priority		= toSingleLineText ('DM'.get "priority" attributes)
 		, firstWorkedOn	= p.ProgressMeta.firstEvent
-		, lastWorkedOn	= p.ProgressMeta.latestEvent
+		, lastWorkedOn	= p.ProgressMeta.lastEvent
 		}	
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue

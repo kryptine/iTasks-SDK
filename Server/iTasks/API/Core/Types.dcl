@@ -413,7 +413,9 @@ instance <			TaskId
 	, issuedBy			:: !User					//* By whom was the task created
     , involvedUsers     :: ![User]                  //* Users currently involved in the task
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
-	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
+	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task	
+    , connectedTo       :: !Maybe String            //* Is there an active client connection for this task
+    , lastIO            :: !Maybe DateTime          //* When was the last input received or output sent to a client
 	}
 
 :: ValueStatus
@@ -471,7 +473,9 @@ instance toString (TaskListId s)
 	, issuedBy			:: !User				//* By whom was the task created
     , involvedUsers     :: ![User]              //* Users currently involved in the task
 	, firstEvent		:: !Maybe DateTime		//* When was the first work done on this task
-	, latestEvent		:: !Maybe DateTime		//* When was the latest event on this task	
+	, lastEvent		    :: !Maybe DateTime		//* When was the last event on this task	
+    , connectedTo       :: !Maybe String        //* Is there an active client connection for this task
+    , lastIO            :: !Maybe DateTime      //* When was the last input received or output sent to a client
 	}
 
 /** Interaction masks contain information about a value as it is being edited

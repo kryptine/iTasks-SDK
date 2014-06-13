@@ -61,10 +61,9 @@ toTaskListItem {TIMeta|instanceNo,listId,progress,attributes}
 	= {taskId = TaskId instanceNo 0, listId = listId, name = Nothing, value = NoValue, progressMeta = Just progress, attributes = attributes}
 
 taskInstanceFromTIMeta :: TIMeta -> TaskInstance
-taskInstanceFromTIMeta {TIMeta|instanceNo,instanceKey,session,listId,build,name,progress={ProgressMeta|value,issuedAt,issuedBy,involvedUsers,firstEvent,latestEvent},attributes}
+taskInstanceFromTIMeta {TIMeta|instanceNo,instanceKey,session,listId,build,name,progress={ProgressMeta|value,issuedAt,issuedBy,involvedUsers,firstEvent,lastEvent,connectedTo,lastIO},attributes}
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,name = name, attributes = attributes, value = value, issuedAt = issuedAt, issuedBy = issuedBy, involvedUsers = involvedUsers, firstEvent = firstEvent, latestEvent = latestEvent}
-
+      ,name = name, attributes = attributes, value = value, issuedAt = issuedAt, issuedBy = issuedBy, involvedUsers = involvedUsers, firstEvent = firstEvent, lastEvent = lastEvent, connectedTo = connectedTo,lastIO = lastIO}
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)

@@ -11,4 +11,4 @@ from iTasks.Framework.Task      import :: ConnectionTask, :: BackgroundTask
 from iTasks.Framework.Engine    import :: ConnectionType
 
 //Core task server loop
-serve :: !Int !ConnectionTask !BackgroundTask (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
