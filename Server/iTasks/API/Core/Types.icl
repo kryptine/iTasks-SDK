@@ -379,16 +379,23 @@ JSONDecode{|DateTime|} _ c				= (Nothing, c)
 
 derive gDefault			DateTime
 derive gEq				DateTime
-derive gEditor	DateTime
+
 
 gText{|DateTime|} AsHeader _ = [""]
 gText{|DateTime|} _ (Just (DateTime date time))
 	= [toSingleLineText date +++" "+++ toSingleLineText time]
-gEditMeta{|DateTime|} _
-	= [{label=Nothing,hint=Just "Enter a date and time",unit=Nothing}]
 
-derive gUpdate			DateTime
-derive gVerify			DateTime
+gEditor{|DateTime|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
+	| disabled
+		# val = checkMask mask val
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value=fmap toString val},newMap)],vst)
+	| otherwise
+		# value = checkMaskValue mask val
+		= (NormalEditor [(UIEditDateTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+
+gUpdate{|DateTime|} target upd val iworld = basicUpdate (\json old -> fromJSON json) target upd val iworld
+gVerify{|DateTime|} mv options = simpleVerify mv options
+gEditMeta{|DateTime|} _ = [{label=Nothing,hint=Just "Enter a date and time (yyyy-mm-dd hh:mm:ss)",unit=Nothing}]
 
 instance toString DateTime
 where

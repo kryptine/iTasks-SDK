@@ -246,6 +246,10 @@ itwc.Component.prototype = {
                 });
             });
         }
+    },
+    setTaskId: function(taskId) {
+        console.log("TEST",this.definition.xtype);
+        this.definition.taskId = taskId;
     }
 };
 itwc.Container = itwc.extend(itwc.Component,{
@@ -689,7 +693,7 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = itwc.START_INSTANCE_NO,
+		var instanceNo = this.definition.taskId.split("-")[0],
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
@@ -709,7 +713,7 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = itwc.START_INSTANCE_NO,
+		var instanceNo = this.definition.taskId.split("-")[0],
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
@@ -728,7 +732,7 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-        var instanceNo = itwc.START_INSTANCE_NO,//this.definition.taskId.split("-")[0],
+        var instanceNo = this.definition.taskId.split("-")[0],
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 
@@ -799,7 +803,7 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
         return false;
     },
     setEditorValue: function(value) {
-		var instanceNo = itwc.START_INSTANCE_NO,
+		var instanceNo = this.definition.taskId.split("-")[0],
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
@@ -824,6 +828,14 @@ itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
+    },
+    setEditorValue: function(value) {
+		var instanceNo = this.definition.taskId.split("-")[0],
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value.length ? value[0] : null;
+        }
     }
 });
 itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
@@ -837,8 +849,38 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
+    },
+    setEditorValue: function(value) {
+		var instanceNo = this.definition.taskId.split("-")[0],
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value.length ? value[0] : null;
+        }
     }
 });
+itwc.component.itwc_edit_datetime = itwc.extend(itwc.Component,{
+    domTag: 'input',
+    defaultWidth: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'text';
+        el.value = me.definition.value ? me.definition.value : '';
+        el.addEventListener('keyup',function(e) {
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
+        });
+    },
+    setEditorValue: function(value) {
+		var instanceNo = this.definition.taskId.split("-")[0],
+            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
+			sentNo = this.lastEditNo || 0;
+		if(receivedNo > sentNo) {
+            this.domEl.value = value.length ? value[0] : null;
+        }
+    }
+});
+
 itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
     domTag: 'input',
     initDOMEl: function() {
@@ -2297,9 +2339,14 @@ itwc.controller.prototype = {
     //Apply update instructions to global ui tree.
     findComponent: function(path,root) {
         var cmp;
+        console.log("Looking up component",path,root);
         if(path.length && path[0] === 'w') {
             cmp = root.windows[path[1]];
             path.splice(0,2);
+            if(!cmp) {
+                console.log("Window not found");
+                return cmp;
+            }
         } else {
             cmp = root ? root : itwc.UI;
         }

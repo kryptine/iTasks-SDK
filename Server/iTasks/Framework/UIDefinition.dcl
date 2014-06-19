@@ -108,6 +108,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	| UIEditSlider		!UIHSizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
 	| UIEditDate		!UIHSizeOpts	!UIEditOpts 							        // - Date (date picker)
 	| UIEditTime		!UIHSizeOpts	!UIEditOpts 							        // - Time (time picker)
+	| UIEditDateTime	!UIHSizeOpts	!UIEditOpts 							        // - DateTime (date + time picker)
 	| UIEditDocument	!UIHSizeOpts    !UIEditOpts 						            // - Document (info + upload possibility)
 	| UIEditButton		!UISizeOpts     !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
 	// Components for indicating choices:

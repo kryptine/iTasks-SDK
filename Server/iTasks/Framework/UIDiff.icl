@@ -71,6 +71,8 @@ diffControls path event editletDiffs c1 c2
 			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditTime sOpts1 eOpts1, UIEditTime sOpts2 eOpts2)
 			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
+		(UIEditDateTime sOpts1 eOpts1, UIEditDateTime sOpts2 eOpts2)
+			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditDocument sOpts1 eOpts1, UIEditDocument sOpts2 eOpts2)
 			= [diffOpts sOpts1 sOpts2,diffEditOpts path event eOpts1 eOpts2]
 		(UIEditButton sOpts1 eOpts1 opts1, UIEditButton sOpts2 eOpts2 opts2)
