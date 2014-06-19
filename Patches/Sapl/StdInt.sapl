@@ -6,6 +6,7 @@ StdInt.bitnot :== bitnot
 <{StdInt.>>}> :== shiftright
 <{StdInt.+_6}> :== add
 <{StdInt.-_7}> :== sub
+StdInt.^_12 :== pow
 StdInt.zero_8 :== 0
 <{StdInt.*_9}> :== mult
 <{StdInt./_10}> :== div
