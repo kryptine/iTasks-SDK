@@ -5,6 +5,7 @@ import iTasks.Framework.SDS
 import qualified iTasks.Framework.SDS as DSDS
 import iTasks.Framework.IWorld
 import iTasks.Framework.Tonic.AbsSyn
+import iTasks.Framework.TaskState
 import iTasks.API.Core.TaskCombinators
 import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
@@ -29,43 +30,38 @@ import qualified Data.Map as DM
 derive gEditor
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepType
+  StepCont, StepFilter
 
 derive gEditMeta
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepType
+  StepCont, StepFilter
 
 derive gDefault
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepType
+  StepCont, StepFilter
 
 derive gUpdate
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepType
+  StepCont, StepFilter
 
 derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepType
+  StepCont, StepFilter
 
 derive gText
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepType
+  StepCont, StepFilter
 
 derive class iTask TonicTrace, TraceType, TonicTune
 
 tonicGraphs :: Shared UserGraphMap
 tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
 
-tonicBind :: String String Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-tonicBind mn tn nid ta a2tb = ta >>= \x -> tonicTune` mn tn nid (toString (toJSON x)) (a2tb x) // TODO toJSON ?
-
-tonicAnyTask :: String String Int Int ![Task a] -> Task a | iTask a
-tonicAnyTask mn tn euid xuid ts = anyTask ts
 // TODO
 // We assume that the compiler keeps a plain anyTask when there is a concrete
 // list it is being applied to. I.e., when we know the number of tasks anyTask
@@ -112,6 +108,50 @@ tonicAnyTask mn tn euid xuid ts = anyTask ts
       //# (tr, iworld) = eval event repOpts state iworld
       //= (tr, iworld)
     //eval` _ event repOpts state iworld = eval event repOpts state iworld
+
+
+getModule` :: String *IWorld -> *(MaybeError (Dynamic, String) TonicModule, *IWorld)
+getModule` moduleName iworld
+  # (mjson, world)   = readFile (iworld.server.paths.appDirectory </> "tonic" </> (moduleName +++ ".tonic")) iworld.world
+  # iworld           = {iworld & world = world}
+  = case mjson of
+      Ok json   -> case fromJSON (fromString json) of
+                     Just gg  -> (gg, iworld)
+                     _        -> err "Failed to deserialize JSON" iworld
+      Error msg -> err (toString msg) iworld
+  where
+  err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
+  throw` e iworld = (Error (dynamic e, toString e), iworld)
+
+tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
+tonicWrapTask mn tn args (Task _ eval) = Task (Just {TaskDefInfo | moduleName = mn, taskName = tn}) eval` // TODO use args
+  where
+    eval` event repOpts state iworld // TODO Instantiate blueprint here based on curr.currentTaskId, mn and tn
+      # (curr, iworld) = iworld!current
+      # oldTaskId      = curr.currentTaskId
+      # (mmod, iworld) = getModule` mn iworld
+      // TODO Store mmod (if Ok) in a share somewhere based on the oldTaskId this is the blueprint instance.
+      // this process could be improved by only reading from disk once and then storing in a share and instantiate from that, but this will do for now
+      # curr           = maybe curr (\tid -> {curr & currentTaskId = tid}) (taskIdFromTree state)
+      # (rep, iworld)  = eval event repOpts state {iworld & current = curr}
+      # (curr, iworld) = iworld!current
+      # iworld         = {iworld & current = {curr & currentTaskId = oldTaskId}}
+      = (rep, iworld)
+
+taskIdFromTree (TCInit                  tid _)         = Just tid
+taskIdFromTree (TCBasic                 tid _ _ _)     = Just tid
+taskIdFromTree (TCInteract              tid _ _ _ _ _) = Just tid
+taskIdFromTree (TCInteractLocal         tid _ _ _ _)   = Just tid
+taskIdFromTree (TCInteractLocalViewOnly tid _ _ _)     = Just tid
+taskIdFromTree (TCInteract1             tid _ _ _)     = Just tid
+taskIdFromTree (TCInteract2             tid _ _ _ _)   = Just tid
+taskIdFromTree (TCProject               tid _ _)       = Just tid
+taskIdFromTree (TCStep                  tid _ _)       = Just tid
+taskIdFromTree (TCParallel              tid _)         = Just tid
+taskIdFromTree (TCShared                tid _ _)       = Just tid
+taskIdFromTree (TCExposedShared         tid _ _ _)     = Just tid
+taskIdFromTree (TCStable                tid _ _)       = Just tid
+taskIdFromTree _                                       = Nothing
 
 tonicAllTasks :: String String Int ![Task a] -> Task [a] | iTask a
 tonicAllTasks mn tn nid ts = allTasks ts // TODO Tonicify
@@ -290,11 +330,11 @@ viewDynamicTask u tn mn tt =
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 
-tonicReflection :: String String (Task a) -> Task a
-tonicReflection _ _ ta = ta
-
 tonicVarToSingleTask :: String String Int (Task a) -> Task a
 tonicVarToSingleTask _ _ _ ta = ta
 
 tonicVarToListOfTask :: String String Int [Task a] -> [Task a]
 tonicVarToListOfTask _ _ _ tas = tas
+
+tonicViewInformation :: String a -> Task () | iTask a
+tonicViewInformation nm val = viewInformation ("Value of " +++ nm) [] val >>| return ()

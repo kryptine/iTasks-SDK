@@ -38,16 +38,17 @@ tonicTraces :: Shared UserTraceMap
 
 tonicTune :: String String Int (Task a) -> Task a
 
-tonicBind :: String String Int !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-
 instance tune TonicTune
 
 tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
 
-tonicReflection :: String String (Task a) -> Task a
-
 tonicVarToSingleTask :: String String Int (Task a) -> Task a
 
 tonicVarToListOfTask :: String String Int [Task a] -> [Task a]
+
+tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
+
+tonicViewInformation :: String a -> Task () | iTask a
+
