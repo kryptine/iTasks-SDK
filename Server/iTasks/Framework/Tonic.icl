@@ -123,14 +123,13 @@ getModule` moduleName iworld
   err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
   throw` e iworld = (Error (dynamic e, toString e), iworld)
 
-tonicViewInformation :: String a -> Task () | iTask a
-tonicViewInformation nm val = viewInformation ("Value of " +++ nm) [] val >>| return ()
-
 tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
+//tonicWrapTask mn tn args=:[(_, x):_] t
+  //| length args == 4 = x >>| t
 tonicWrapTask mn tn args (Task _ eval) = Task (Just {TaskDefInfo | moduleName = mn, taskName = tn}) eval` // TODO use args
   where
     eval` event repOpts state iworld // TODO Instantiate blueprint here based on curr.currentTaskId, mn and tn
-      # (curr, iworld) = iworld!current
+      # (curr, iworld) = trace_n ("tonicWrapTask. Args lenght " +++ toString (length args)) iworld!current
       # oldTaskId      = curr.currentTaskId
       # (mmod, iworld) = getModule` mn iworld
       // TODO Store mmod (if Ok) in a share somewhere based on the oldTaskId this is the blueprint instance.

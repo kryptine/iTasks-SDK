@@ -40,8 +40,6 @@ tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
 
-tonicViewInformation :: String a -> Task () | iTask a
-
 tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
 
 tonicTune :: String String Int (Task a) -> Task a
