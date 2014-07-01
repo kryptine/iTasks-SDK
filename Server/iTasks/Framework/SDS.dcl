@@ -4,7 +4,7 @@ import GenEq
 import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.Framework.Task import :: TaskException
-from iTasks.API.Core.Types import :: InstanceNo
+from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 
 :: RWShared p r w
 	= 			            SDSSource		!(SDSSource p r w)
@@ -35,7 +35,8 @@ from iTasks.API.Core.Types import :: InstanceNo
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
     { taskInstance  :: InstanceNo
-    , sdsid         :: SDSIdentity
+    , reqNo         :: Int
+    , sdsId         :: SDSIdentity
     , param         :: Dynamic
     }
 :: SDSIdentity  :== String
@@ -121,9 +122,8 @@ createReadOnlySDSError ::
 	ROShared p r
 
 read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
-readRegister	:: !InstanceNo              !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+readRegister	:: !TaskId                  !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
 write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)	
-writeFilterMsg	:: !w !(InstanceNo -> Bool)	!(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)
 
 //Dependency administration
 clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld

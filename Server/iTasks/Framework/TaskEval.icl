@@ -10,7 +10,7 @@ import iTasks.Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
-from iTasks.Framework.SDS as SDS import qualified read, write, writeFilterMsg, read, write
+from iTasks.Framework.SDS as SDS import qualified read, write, read, write
 from iTasks.API.Core.SDSCombinators     import sdsFocus
 from iTasks.API.Common.SDSCombinators   import >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
@@ -157,7 +157,7 @@ where
             # (lists,iworld)			= getLocalLists iworld
             # (tasks,iworld)			= getLocalTasks iworld
             # newReduct					= {TIReduct|oldReduct & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1, lastEventNo = lastEventNo event, shares = shares, lists = lists, tasks = tasks}
-            # iworld                    = if deleted iworld (snd ('SDS'.writeFilterMsg newReduct ((<>) instanceNo) (taskInstanceReduct instanceNo) iworld)) //TODO Check error
+            # iworld                    = if deleted iworld (snd ('SDS'.write newReduct (taskInstanceReduct instanceNo) iworld)) //TODO Check error
             //Store update value
             # newValue                  = case newResult of
                 (ValueResult val _ _ _)     = TIValue val

@@ -15,7 +15,7 @@ from Data.Map						    import qualified get, put, del, newMap, toList, fromList
 from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
-from iTasks.Framework.SDS               import write, writeFilterMsg, read, readRegister
+from iTasks.Framework.SDS               import write, read, readRegister
 from iTasks.API.Core.Tasks	            import return
 from iTasks.API.Core.SDSCombinators     import sdsFocus, sdsSplit
 from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError, mapSingle
@@ -307,8 +307,8 @@ where
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI conts (Right acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
-		# (mbMeta,iworld)	= readRegister curInstanceNo (sdsFocus instanceNo taskInstanceMeta) iworld
-		# (mbValue,iworld)	= readRegister curInstanceNo (taskInstanceValue instanceNo) iworld
+		# (mbMeta,iworld)	= readRegister taskId (sdsFocus instanceNo taskInstanceMeta) iworld
+		# (mbValue,iworld)	= readRegister taskId (taskInstanceValue instanceNo) iworld
 		= case (mbMeta,mbValue) of
 			(Ok meta,Ok value=:(TIValue jsonval))
 				# (entry,iworld) = updateListEntryDetachedResult taskId entryId value meta.TIMeta.progress meta.TIMeta.attributes iworld
@@ -598,7 +598,7 @@ where
 	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance,user}}
 		//Load instance
 		# layout			= repLayoutRules repOpts
-		# (meta,iworld)		= readRegister taskInstance (sdsFocus instanceNo taskInstanceMeta) iworld
+		# (meta,iworld)		= readRegister taskId (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
 			(Ok meta=:{TIMeta|instanceType=AttachedInstance _ worker,instanceKey,progress,build})
                 | build <> buildID //Check version

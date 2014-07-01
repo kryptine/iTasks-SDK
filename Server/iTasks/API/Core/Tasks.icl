@@ -7,7 +7,7 @@ import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Fr
 import iTasks.Framework.UIDefinition, iTasks.Framework.IWorld
 import iTasks.API.Core.LayoutCombinators
 
-from iTasks.Framework.SDS as SDS import qualified read, readRegister, write, writeFilterMsg
+from iTasks.Framework.SDS as SDS import qualified read, readRegister, write
 from iTasks.API.Core.SDSs       import topLevelTasks
 from StdFunc					import o, id
 from Data.Map					import qualified newMap, get, put, del
@@ -60,7 +60,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (val,iworld)	= 'SDS'.readRegister instanceNo shared iworld
+		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
 			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
 				(finalizeRep repOpts NoRep) (TCInit taskId ts)
@@ -74,7 +74,7 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,Intera
 interact desc shared initFun refreshFun = Task Nothing eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		= case mbr of
 			Error e		= (ExceptionResult e, iworld)
 			Ok r
@@ -84,10 +84,10 @@ where
 	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
-		//Determine next v by applying edit event if applicable 	
+		//Determine next v by applying edit event if applicable	
 		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'SDS'.readRegister instanceNo shared iworld
+		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
 		# nr					= fromOk mbr
 		//Apply refresh function if r or v changed
