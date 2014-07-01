@@ -123,6 +123,9 @@ getModule` moduleName iworld
   err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
   throw` e iworld = (Error (dynamic e, toString e), iworld)
 
+tonicViewInformation :: String a -> Task () | iTask a
+tonicViewInformation nm val = viewInformation ("Value of " +++ nm) [] val >>| return ()
+
 tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
 tonicWrapTask mn tn args (Task _ eval) = Task (Just {TaskDefInfo | moduleName = mn, taskName = tn}) eval` // TODO use args
   where
@@ -152,9 +155,6 @@ taskIdFromTree (TCShared                tid _ _)       = Just tid
 taskIdFromTree (TCExposedShared         tid _ _ _)     = Just tid
 taskIdFromTree (TCStable                tid _ _)       = Just tid
 taskIdFromTree _                                       = Nothing
-
-tonicAllTasks :: String String Int ![Task a] -> Task [a] | iTask a
-tonicAllTasks mn tn nid ts = allTasks ts // TODO Tonicify
 
 tonicTune` :: String String Int String (Task b) -> Task b
 tonicTune` mn tn nid xstr tb = tune  { TonicTune
@@ -329,12 +329,3 @@ viewDynamicTask u tn mn tt =
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
-
-tonicVarToSingleTask :: String String Int (Task a) -> Task a
-tonicVarToSingleTask _ _ _ ta = ta
-
-tonicVarToListOfTask :: String String Int [Task a] -> [Task a]
-tonicVarToListOfTask _ _ _ tas = tas
-
-tonicViewInformation :: String a -> Task () | iTask a
-tonicViewInformation nm val = viewInformation ("Value of " +++ nm) [] val >>| return ()

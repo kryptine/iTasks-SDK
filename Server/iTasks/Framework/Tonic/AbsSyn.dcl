@@ -8,18 +8,18 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepCont, StepFilter,
+  GParType, NodeContents
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepCont, StepFilter,
+  GParType, NodeContents
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepType, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepCont, StepFilter,
+  GParType, NodeContents
 
 :: TonicModule =
   { tm_name  :: String
@@ -71,7 +71,7 @@ mkGNode :: GNodeType -> GNode
   //|  GListComprehension GListComprehension
   |  GParallel GParType [NodeContents]
   |  GReturn NodeContents
-  |  GStep [StepElem]
+  |  GStep [NodeContents]
   |  GStop
   |  GTaskApp GIdentifier ![GCleanExpression]
   |  GVar GCleanExpression
@@ -81,6 +81,7 @@ mkGNode :: GNodeType -> GNode
   = VarOrExpr GCleanExpression
   | ArbitraryOrUnknownExpr
   | Subgraph GinGraph
+  | StepElem StepElem
 
 :: GParType
   =  DisFirstBin
@@ -90,12 +91,25 @@ mkGNode :: GNodeType -> GNode
   |  ConAll
   |  ConPair
 
-:: StepElem =
-  { stepType :: StepType
-  , stepExpr :: GinGraph
+:: StepElem
+  = StepOnValue StepCont
+  | StepOnButton String StepCont
+  | StepOnException StepCont
+
+:: StepCont =
+  { stepContFilter :: StepFilter
+  , stepContLbl    :: Maybe String
+  , stepContNode   :: GNodeType
   }
 
-:: StepType = StepOnValue | StepOnButton String | StepOnException
+:: StepFilter
+  = StepAlways
+  | StepNever
+  | StepHasValue
+  | StepIfStable
+  | StepIfUnstable
+  | StepIfValue
+  | StepCond GCleanExpression
 
 :: GEdge = { edge_pattern :: !Maybe GPattern }
 

@@ -36,19 +36,14 @@ derive class iTask TonicTrace, TraceType, TonicTune
 
 tonicTraces :: Shared UserTraceMap
 
-tonicTune :: String String Int (Task a) -> Task a
-
-instance tune TonicTune
-
 tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
 
-tonicVarToSingleTask :: String String Int (Task a) -> Task a
-
-tonicVarToListOfTask :: String String Int [Task a] -> [Task a]
+tonicViewInformation :: String a -> Task () | iTask a
 
 tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
 
-tonicViewInformation :: String a -> Task () | iTask a
+tonicTune :: String String Int (Task a) -> Task a
 
+instance tune TonicTune
