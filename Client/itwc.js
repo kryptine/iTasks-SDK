@@ -2339,7 +2339,6 @@ itwc.controller.prototype = {
     //Apply update instructions to global ui tree.
     findComponent: function(path,root) {
         var cmp;
-        console.log("Looking up component",path,root);
         if(path.length && path[0] === 'w') {
             cmp = root.windows[path[1]];
             path.splice(0,2);
