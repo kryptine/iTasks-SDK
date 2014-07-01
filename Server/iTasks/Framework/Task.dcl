@@ -26,7 +26,7 @@ derive gEq				Task
   }
 
 // Tasks
-:: Task a = Task (Maybe TaskDefInfo) !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task (Maybe TaskDefInfo) !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event	= EditEvent		!EventNo !TaskId !String !JSONNode		//Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!EventNo !TaskId !String				//Progress in a step combinator: Task id, action id
@@ -36,21 +36,24 @@ derive gEq				Task
 
 :: EventNo	:== Int	
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskInfo !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !TaskRep !TaskTree						//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 :: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
 
-:: TaskInfo =
-	{ lastEvent			:: !TaskTime	//When was the last edit, action or focus event in this task
-    , involvedUsers     :: ![User]      //Which user identities are involved in the task
-	, refreshSensitive	:: !Bool		//Can refresh events change the value or ui of this task (e.g. because shared data is read)
-	}
-
-:: TaskRepOpts	=
+//Additional options to pass down the tree when evaluating a task
+:: TaskEvalOpts	=
 	{ useLayout			:: Maybe LayoutRules
 	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
     , noUI              :: Bool
+    , callTrace         :: [Int] //References to tasks higher in evaluation who called a the current task
+	}
+
+//Additional information passed up from the tree when evaluating a task
+:: TaskEvalInfo =
+	{ lastEvent			:: !TaskTime	//When was the last edit, action or focus event in this task
+    , involvedUsers     :: ![User]      //Which user identities are involved in the task
+	, refreshSensitive	:: !Bool		//Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
 :: TaskRep	= NoRep								//For some tasks no external representation is generated
@@ -59,7 +62,6 @@ derive gEq				Task
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]
 :: TaskPart			:== (!String, !JSONNode)		//Task id, value
-
 
 //Low level specific tasks that handle network connections
 from Internet.HTTP import :: HTTPRequest
@@ -86,12 +88,17 @@ exception :: !e -> TaskException | TC, toString e
 /**
 * Determine the layout function for a rep target
 */
-repLayoutRules :: !TaskRepOpts -> LayoutRules
+repLayoutRules :: !TaskEvalOpts -> LayoutRules
 
 /**
 * Apply the final layout if necessary
 */
-finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
+finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
+
+/**
+* Extend the call trace with the current task number
+*/
+extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 
 /**
 * Create a task that finishes instantly

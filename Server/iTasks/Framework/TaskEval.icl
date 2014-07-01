@@ -110,7 +110,7 @@ where
         (_,DetachedInstance)    = (SystemUser,Nothing,[])
         (_,AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker)    = (worker,Just sessionNo,attachment)
         (_,TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker) = (worker,Just sessionNo,attachment)
-    # repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=False}
+    # evalOpts					= {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=False,callTrace=[]}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	# eventRoute				= determineEventRoute event lists
@@ -130,7 +130,7 @@ where
     //Clear the instance's registrations for share changes
 	# iworld					    = clearShareRegistrations instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event repAs tree iworld
+	# (newResult,iworld=:{current})	= eval event evalOpts tree iworld
     //Finalize task UI
     # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of
@@ -203,9 +203,9 @@ where
 		# progress = {ProgressMeta|progress & firstEvent = Just (fromMaybe now progress.ProgressMeta.firstEvent), lastEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {ProgressMeta|progress & value = Exception}
-			(ValueResult (Value _ stable) {TaskInfo|involvedUsers} _ _)	
+			(ValueResult (Value _ stable) {TaskEvalInfo|involvedUsers} _ _)	
                 = {ProgressMeta|progress & value = if stable Stable Unstable, involvedUsers = [currentUser:involvedUsers]}
-			(ValueResult _ {TaskInfo|involvedUsers} _ _)	
+			(ValueResult _ {TaskEvalInfo|involvedUsers} _ _)	
                 = {ProgressMeta|progress & value = None, involvedUsers = [currentUser:involvedUsers]}
 			_									= {ProgressMeta|progress & value = None}
 

@@ -29,7 +29,7 @@ getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
 transform f (Task mdi evala) = Task mdi eval
 where
-	eval event repOpts tree iworld = case evala event repOpts tree iworld of
+	eval event evalOpts tree iworld = case evala event evalOpts tree iworld of
 		(ValueResult val lastEvent rep tree,iworld)	= (ValueResult (f val) lastEvent rep tree, iworld)	//TODO: guarantee stability
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
@@ -37,15 +37,15 @@ where
 project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
 project projection share (Task mdi evala) = Task mdi eval
 where
-	eval event repOpts (TCDestroy (TCProject taskId encprev treea)) iworld	//Cleanup duty simply passed to inner task
-		= evala event repOpts (TCDestroy treea) iworld
+	eval event evalOpts (TCDestroy (TCProject taskId encprev treea)) iworld	//Cleanup duty simply passed to inner task
+		= evala event evalOpts (TCDestroy treea) iworld
 
-	eval event repOpts state iworld
+	eval event evalOpts state iworld
 		# (taskId,prev,statea) = case state of
 			(TCInit taskId _)					= (taskId,NoValue,state)
 			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
 			
-		# (resa, iworld) 	= evala event repOpts statea iworld
+		# (resa, iworld) 	= evala event evalOpts statea iworld
 		= case resa of
 			ValueResult val ts rep ncxta
 				# result = ValueResult val ts rep (TCProject taskId (toJSON val) ncxta)
@@ -71,21 +71,21 @@ where
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
 step (Task _ evala) lhsValFun conts = Task Nothing eval
 where
-	eval event repOpts (TCInit taskId ts) iworld
+	eval event evalOpts (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
-		= eval event repOpts (TCStep taskId ts (Left (TCInit taskIda ts))) iworld
+		= eval event evalOpts (TCStep taskId ts (Left (TCInit taskIda ts))) iworld
 
 	//Eval left-hand side
-	eval event repOpts (TCStep taskId ts (Left treea)) iworld=:{current={taskTime}}
-		# (resa, iworld) 	= evala event repOpts treea iworld
+	eval event evalOpts (TCStep taskId ts (Left treea)) iworld=:{current={taskTime}}
+		# (resa, iworld) 	= evala event (extendCallTrace taskId evalOpts) treea iworld
         # mbAction          = matchAction taskId event
 		# mbCont			= case resa of
 			ValueResult val info rep ntreea = case searchContValue val mbAction conts of
 				Nothing			
-					# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+					# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
-					= Left (ValueResult value info (doStepLayout taskId repOpts rep val) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
-				Just rewrite	= Right (rewrite,Just ntreea, info.TaskInfo.lastEvent)
+					= Left (ValueResult value info (doStepLayout taskId evalOpts rep val) (TCStep taskId info.TaskEvalInfo.lastEvent (Left ntreea)) )
+				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent)
 			ExceptionResult e = case searchContException e conts of
 				Nothing			= Left (ExceptionResult e)
 				Just rewrite	= Right (rewrite,Nothing, ts)		//TODO: Figure out how to garbage collect after exceptions
@@ -95,37 +95,37 @@ where
 				//Cleanup state of left-hand side
 				# iworld	= case mbTreeA of
 					Nothing		= iworld
-					Just treea	= snd (evala (toRefresh event) repOpts (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
+					Just treea	= snd (evala (toRefresh event) (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= evalb (toRefresh event) repOpts (TCInit taskIdb lastEvent) iworld 
+				# (resb,iworld)		= evalb (toRefresh event) (extendCallTrace taskId evalOpts) (TCInit taskIdb lastEvent) iworld
 				= case resb of
 					ValueResult val info rep nstateb	
-						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
+						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+						= (ValueResult val info (finalizeRep evalOpts rep) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
 	//Eval right-hand side
-	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{current={taskTime}}
+	eval event evalOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{current={taskTime}}
 		= case restoreTaskB sel enca of
 			Just (Task _ evalb)
-				# (resb, iworld)	= evalb event repOpts treeb iworld
+				# (resb, iworld)	= evalb event (extendCallTrace taskId evalOpts) treeb iworld
 				= case resb of
 					ValueResult val info rep ntreeb
-						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-						= (ValueResult val info (finalizeRep repOpts rep) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
+						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+						= (ValueResult val info (finalizeRep evalOpts rep) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
 			Nothing
 				= (ExceptionResult (exception "Corrupt task value in step"), iworld)	
 	
 	//Cleanup
-	eval event repOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
-		= case evala event repOpts (TCDestroy treea) iworld of
+	eval event evalOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
+		= case evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld of
 			(DestroyedResult,iworld)		= (DestroyedResult,iworld)
 			(ExceptionResult e,iworld)	    = (ExceptionResult e,iworld)
 			(ValueResult _ _ _ _,iworld)	= (ExceptionResult (exception "Destroy failed in step"),iworld)
 	
-	eval event repOpts (TCDestroy (TCStep taskId ts (Right(enca,sel,treeb)))) iworld
+	eval event evalOpts (TCDestroy (TCStep taskId ts (Right(enca,sel,treeb)))) iworld
 		= case restoreTaskB sel enca of
-			Just (Task _ evalb)	= evalb event repOpts (TCDestroy treeb) iworld
+			Just (Task _ evalb)	= evalb event (extendCallTrace taskId evalOpts) (TCDestroy treeb) iworld
 			Nothing				= (ExceptionResult (exception "Corrupt task value in step"), iworld)
 			
 	//Incorrect state
@@ -133,30 +133,30 @@ where
 		= (ExceptionResult (exception ("Corrupt task state in step:" +++ (toString (toJSON state)))), iworld)
 
 	restoreTaskB sel d_json_a = case conts !! sel of
-		(OnValue taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
-		(OnAction _ taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
-		(OnException taskbf)		= call_with_DeferredJSON taskbf d_json_a
-		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
+		(OnValue taskbf)			= callWithDeferredJSONTaskValue taskbf d_json_a
+		(OnAction _ taskbf)			= callWithDeferredJSONTaskValue taskbf d_json_a
+		(OnException taskbf)		= callWithDeferredJSON taskbf d_json_a
+		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
-	doStepLayout taskId repOpts NoRep val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) [])
-	doStepLayout taskId repOpts (TaskRep def parts) val
-		= finalizeRep repOpts (TaskRep ((repLayoutRules repOpts).LayoutRules.accuStep def (contActions taskId val conts)) parts)
+	doStepLayout taskId evalOpts NoRep val
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) [])
+	doStepLayout taskId evalOpts (TaskRep def parts) val
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)) parts)
 
-	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
-	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
+	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
+	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
         = f_tva_tb (cast_to_TaskValue tva)
 	
-	call_with_DeferredJSON_TaskValue f_tva_tb (DeferredJSONNode json)
+	callWithDeferredJSONTaskValue f_tva_tb (DeferredJSONNode json)
 		= case fromJSON json of
 			Just a ->  f_tva_tb a
 			Nothing -> Nothing
 	
-	call_with_DeferredJSON :: (a -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
-    call_with_DeferredJSON f_tva_tb d_json_tva=:(DeferredJSON tva)
+	callWithDeferredJSON :: (a -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
+    callWithDeferredJSON f_tva_tb d_json_tva=:(DeferredJSON tva)
         = Just (f_tva_tb (cast tva))
 
-	call_with_DeferredJSON f_tva_tb (DeferredJSONNode json)
+	callWithDeferredJSON f_tva_tb (DeferredJSONNode json)
 		= case fromJSON json of
 			Just a ->  Just (f_tva_tb a)
 			Nothing -> Nothing
@@ -206,18 +206,18 @@ parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskVa
 parallel initTasks conts = Task Nothing eval
 where
 	//Create initial task list
-	eval event repOpts (TCInit taskId ts) iworld=:{IWorld|current=current=:{localLists}}
+	eval event evalOpts (TCInit taskId ts) iworld=:{IWorld|current=current=:{localLists}}
 		//Append the initial tasks to the list
 		# iworld	= foldl append {iworld & current = {current & localLists = 'Data.Map'.put taskId [] localLists}} initTasks
 		//Evaluate the parallel
-		= eval event repOpts (TCParallel taskId ts) iworld
+		= eval event evalOpts (TCParallel taskId ts) iworld
 	where
 		append iworld t = snd (addTaskToList taskId t Nothing iworld)
 
 	//Evaluate the task list
-	eval event repOpts (TCParallel taskId ts) iworld=:{current={taskTime}}
+	eval event evalOpts (TCParallel taskId ts) iworld=:{current={taskTime}}
 		//Evaluate all parallel tasks in the list
-		= case evalParTasks taskId event repOpts conts iworld of
+		= case evalParTasks taskId event evalOpts conts iworld of
 			(Left e,iworld)	    = (ExceptionResult e,iworld)
 			(Right results,iworld=:{current=current=:{localLists}})
                 # entries = [(e,r) \\ e <- (fromMaybe [] ('Data.Map'.get taskId localLists)) & (_,r) <- results]
@@ -229,16 +229,16 @@ where
 					(Just result,iworld)				= (fixOverloading result initTasks (ExceptionResult (exception "Destroy failed in parallel")),iworld)
 					(Nothing,iworld=:{current=current=:{localLists}})
 						//Destruction is ok, build parallel result
-						# rep				= parallelRep taskId repOpts entries actions
+						# rep				= parallelRep taskId evalOpts entries actions
 						# values			= map (toValueAndTime o fst) entries
 						# stable			= all (isStable o snd) values
 						# refreshSensitive	= foldr (\(e,_) s -> s || refreshSensitive e) False entries
 						# ts				= foldr max 0 [ts:map fst values]
                         # involvedUsers     = foldr (\(e,_) i -> involvedUsers e ++ i) [] entries
-						= (ValueResult (Value values stable) {TaskInfo|lastEvent=ts,involvedUsers=involvedUsers,refreshSensitive=refreshSensitive}
-							(finalizeRep repOpts rep) (TCParallel taskId ts),{iworld & current = {current & localLists = 'Data.Map'.put taskId (map fst entries) localLists}})
+						= (ValueResult (Value values stable) {TaskEvalInfo|lastEvent=ts,involvedUsers=involvedUsers,refreshSensitive=refreshSensitive}
+							(finalizeRep evalOpts rep) (TCParallel taskId ts),{iworld & current = {current & localLists = 'Data.Map'.put taskId (map fst entries) localLists}})
 	//Cleanup
-	eval event repOpts (TCDestroy (TCParallel taskId ts)) iworld=:{current={localLists}}
+	eval event evalOpts (TCDestroy (TCParallel taskId ts)) iworld=:{current={localLists}}
 		# entries = fromMaybe [] ('Data.Map'.get taskId localLists)
 		= case foldl destroyParTask (Nothing,iworld) entries of
 			(Nothing,iworld=:{current=current=:{localLists}}) //All destroyed
@@ -251,29 +251,29 @@ where
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in parallel"), iworld)
 	
-	evalParTasks :: !TaskId !Event !TaskRepOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !*IWorld
+	evalParTasks :: !TaskId !Event !TaskEvalOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !*IWorld
                     -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
-	evalParTasks taskId event repOpts conts iworld=:{current={localLists,eventRoute}}
-		= evalFrom 0 [] (fromMaybe [] ('Data.Map'.get taskId localLists)) ('Data.Map'.get taskId eventRoute) (matchAction taskId event) repOpts iworld
+	evalParTasks taskId event evalOpts conts iworld=:{current={localLists,eventRoute}}
+		= evalFrom 0 [] (fromMaybe [] ('Data.Map'.get taskId localLists)) ('Data.Map'.get taskId eventRoute) (matchAction taskId event) evalOpts iworld
 	where
-		evalFrom n acc list mbEventIndex mbAction repOpts iworld
-            = case foldl (evalParTask taskId event mbEventIndex repOpts conts) (Right acc,iworld) [(i,e) \\ e <- drop n list & i <- [n..]] of
+		evalFrom n acc list mbEventIndex mbAction evalOpts iworld
+            = case foldl (evalParTask taskId event mbEventIndex evalOpts conts) (Right acc,iworld) [(i,e) \\ e <- drop n list & i <- [n..]] of
 			(Left (e,str), iworld)	= (Left (e,str), iworld)
 			(Right acc,iworld=:{current={localLists}})			
 				# nlist = fromMaybe [] ('Data.Map'.get taskId localLists)
 				# lenlist = length list
                 //Check if extra branches were added -> evaluate these as well
-				| length nlist > lenlist	= evalFrom lenlist acc nlist Nothing mbAction repOpts iworld	
+				| length nlist > lenlist	= evalFrom lenlist acc nlist Nothing mbAction evalOpts iworld	
                 //Check if for matching continations -> add them and continue evaluation
                 = case searchContValue (Value (map fst acc) False) mbAction conts of
                     Nothing     = (Right acc,iworld) //Done
                     Just (_,extension,_) //TODO: Add multiple matches at once, not just one?
                         # (_,iworld) = addTaskToList taskId extension Nothing iworld
-                        = evalFrom lenlist acc nlist Nothing Nothing repOpts iworld	
+                        = evalFrom lenlist acc nlist Nothing Nothing evalOpts iworld	
 	
-	evalParTask :: !TaskId !Event !(Maybe Int) !TaskRepOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !(!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a),Maybe TaskRep)],!*IWorld) !(!Int,!TaskListEntry) -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
+	evalParTask :: !TaskId !Event !(Maybe Int) !TaskEvalOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] !(!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a),Maybe TaskRep)],!*IWorld) !(!Int,!TaskListEntry) -> (!Either (!Dynamic,!String) [((!TaskTime,!TaskValue a), Maybe TaskRep)],!*IWorld) | iTask a
 	//Evaluate embedded tasks
-	evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld=:{current={taskTime,localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree,lastFocus,removed=False})
+	evalParTask taskId event mbEventIndex evalOpts conts (Right acc,iworld=:{current={taskTime,localTasks}}) (index,{TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult jsonval info rep tree,lastFocus,removed=False})
         //Update focus if there is a focus event
         # lastFocus = case event of
             (FocusEvent _ focusId)  = if (focusId == entryId) (Just taskTime) lastFocus
@@ -282,12 +282,12 @@ where
 			Nothing	= True //We don't know the event index, so we just have to try
 			Just eventIndex
 				| eventIndex == index	= True								//The event is targeted at this branch, we evaluate
-										= info.TaskInfo.refreshSensitive	//Also evaluate if the branch is refresh sensitive
+										= info.TaskEvalInfo.refreshSensitive	//Also evaluate if the branch is refresh sensitive
 		| evalNeeded
 			//Evaluate the branch
 			= case fmap unwrapTask ('Data.Map'.get entryId localTasks) of
                 Just (Task _ evala)
-					# (result,iworld) = evala event {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=repOpts.noUI} tree iworld
+					# (result,iworld) = evala event (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing,modLayout=Nothing}) tree iworld
 					= case result of
 						ExceptionResult e
                             //Check if we have an exception handler the continuations
@@ -295,15 +295,15 @@ where
                                 Nothing = (Left e,iworld) //No handler, unfortunately
                                 Just (_,handler=:(_,parTask),_) //Replace tasklist entry and try again
                                     # (entry,iworld) = addTaskToList taskId handler (Just index) iworld
-                                    = evalParTask taskId event mbEventIndex repOpts conts (Right acc,iworld) (index,entry)
+                                    = evalParTask taskId event mbEventIndex evalOpts conts (Right acc,iworld) (index,entry)
 						ValueResult val info rep tree
 							# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId result lastFocus iworld
-							= (Right (acc++[((info.TaskInfo.lastEvent,val),Just rep)]),iworld)
+							= (Right (acc++[((info.TaskEvalInfo.lastEvent,val),Just rep)]),iworld)
 				_
 					= (Right acc,iworld)	
 		| otherwise
 			# (entry,iworld)	= updateListEntryEmbeddedResult taskId entryId (ValueResult jsonval info rep tree) lastFocus iworld
-			= (Right (acc++[((info.TaskInfo.lastEvent,fromJSONTaskValue jsonval),Just rep)]),iworld)
+			= (Right (acc++[((info.TaskEvalInfo.lastEvent,fromJSONTaskValue jsonval),Just rep)]),iworld)
 					
 	//Copy the last stored result of detached tasks
 	evalParTask taskId=:(TaskId curInstanceNo _) event mbEventIndex noUI conts (Right acc,iworld) (index,{TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False})
@@ -328,7 +328,7 @@ where
 	destroyParTask (_,iworld=:{current={localTasks}}) {TaskListEntry|entryId,state=EmbeddedState,lastEval=ValueResult _ _ _ tree}
 		= case 'Data.Map'.get entryId localTasks of
 			Just (Task _ evala :: Task a^)
-				# (result,iworld=:{current=current=:{localTasks}}) = evala (RefreshEvent Nothing) {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,noUI=True} (TCDestroy tree) iworld
+				# (result,iworld=:{current=current=:{localTasks}}) = evala (RefreshEvent Nothing) {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=True,callTrace=[]} (TCDestroy tree) iworld
 				# iworld = {iworld & current = {current & localTasks = 'Data.Map'.del entryId localTasks}}
 				= case result of
 					DestroyedResult		= (Nothing,iworld)
@@ -349,9 +349,9 @@ where
 		deserialize NoValue	= NoValue
 	toValueAndTime {TaskListEntry|lastEvent}						= (lastEvent,NoValue)
 	
-	parallelRep :: !TaskId !TaskRepOpts ![(!TaskListEntry,!Maybe TaskRep)] [UIAction] -> TaskRep
-	parallelRep taskId repOpts entries actions
-		# layout		= repLayoutRules repOpts
+	parallelRep :: !TaskId !TaskEvalOpts ![(!TaskListEntry,!Maybe TaskRep)] [UIAction] -> TaskRep
+	parallelRep taskId evalOpts entries actions
+		# layout		= repLayoutRules evalOpts
 		# listId		= toString taskId
 		# parts = [( uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent)
                    o (maybe id (\f -> uiDefSetAttribute LAST_FOCUS_ATTRIBUTE (toString f)) lastFocus)
@@ -364,10 +364,10 @@ where
 	isStable (Value _ stable) 	= stable
 	isStable _					= False
 
-	refreshSensitive {TaskListEntry|lastEval=ValueResult _ {TaskInfo|refreshSensitive} _ _} = refreshSensitive
+	refreshSensitive {TaskListEntry|lastEval=ValueResult _ {TaskEvalInfo|refreshSensitive} _ _} = refreshSensitive
 	refreshSensitive _ = True
 
-	involvedUsers {TaskListEntry|lastEval=ValueResult _ {TaskInfo|involvedUsers} _ _} = involvedUsers
+	involvedUsers {TaskListEntry|lastEval=ValueResult _ {TaskEvalInfo|involvedUsers} _ _} = involvedUsers
     involvedUsers _ = []	
 
 	//Helper function to help type inferencing a little
@@ -399,7 +399,7 @@ addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,att
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
 			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
-	# lastEval	= ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
+	# lastEval	= ValueResult NoValue {TaskEvalInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, uiAttributes = 'Data.Map'.newMap, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, removed = False}
     # list      = maybe (list++[entry]) (\pos -> updateAt pos entry list) mbPos
 	# iworld	= storeTaskList taskId list iworld
@@ -410,7 +410,7 @@ updateListEntryEmbeddedResult listId entryId result lastFocus iworld
 	= updateListEntry listId entryId (\e=:{TaskListEntry|state,lastEvent} ->
 		{TaskListEntry|e & lastEval= wrap result, uiAttributes = newAttr result, lastEvent = maxTime lastEvent result, lastFocus = lastFocus }) iworld
 where
-	wrap (ValueResult val info=:{TaskInfo|refreshSensitive=True} _ tree) //When we know for certain that we'll recompute the task on the next event, 
+	wrap (ValueResult val info=:{TaskEvalInfo|refreshSensitive=True} _ tree) //When we know for certain that we'll recompute the task on the next event, 
 		= ValueResult (fmap toJSON val) info NoRep tree					 //don't bother storing the task representation
 	wrap (ValueResult val info rep tree)	= ValueResult (fmap toJSON val) info rep tree
 	wrap (ExceptionResult e)			    = ExceptionResult e
@@ -418,7 +418,7 @@ where
 	newAttr (ValueResult _ _ (TaskRep def _) _)					= uiDefAttributes def
 	newAttr _													= 'Data.Map'.newMap
 	
-	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
+	maxTime cur (ValueResult _ {TaskEvalInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
 
 updateListEntryDetachedResult :: !TaskId !TaskId TIValue !ProgressMeta !TaskAttributes !*IWorld -> (!TaskListEntry,!*IWorld)
@@ -562,7 +562,7 @@ where
 				= (Error e, iworld)
 
     resetState entryId taskTime e =
-       {TaskListEntry|e & lastEval = ValueResult NoValue {TaskInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit entryId taskTime)}
+       {TaskListEntry|e & lastEval = ValueResult NoValue {TaskEvalInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit entryId taskTime)}
 
     updateTaskFun listId entryId task iworld=:{current=current=:{localTasks}}
         # task		= parTask (parListShare listId entryId)
@@ -584,38 +584,38 @@ where
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task Nothing eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{current={attachmentChain,user}}
+	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain,user}}
 		# (meta,iworld)		= read (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
 				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (sdsFocus instanceNo taskInstanceMeta) iworld
 				# iworld		= queueUrgentRefresh [instanceNo] iworld
-				= eval event repOpts (TCBasic taskId ts JSONNull False) iworld
+				= eval event evalOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult e,iworld)
 		
-	eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance,user}}
+	eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance,user}}
 		//Load instance
-		# layout			= repLayoutRules repOpts
+		# layout			= repLayoutRules evalOpts
 		# (meta,iworld)		= readRegister taskId (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
 			(Ok meta=:{TIMeta|instanceType=AttachedInstance _ worker,instanceKey,progress,build})
                 | build <> buildID //Check version
-				    = (ValueResult (Value WOIncompatible True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+				    = (ValueResult (Value WOIncompatible True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
                 | progress.ProgressMeta.value === Exception
-				    = (ValueResult (Value WOExcepted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+				    = (ValueResult (Value WOExcepted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 				| worker == user
-                    # rep       = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
+                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
                     # stable    = progress.ProgressMeta.value === Stable
-					= (ValueResult (Value (WOAttached stable) stable) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} rep tree, iworld)
+					= (ValueResult (Value (WOAttached stable) stable) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = finalizeRep repOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) [])
-					= (ValueResult (Value (WOInUse worker) False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} rep tree, iworld)		
+					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) [])
+					= (ValueResult (Value (WOInUse worker) False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} rep tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted True) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) tree, iworld)
+				= (ValueResult (Value WODeleted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 
-	eval event repOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
+	eval event evalOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
         /*
         # (meta,iworld) = read fullInstanceMeta iworld //FIXME: Figure out how to get the right share notifications for the released instances
         = case meta of
@@ -647,39 +647,39 @@ where
 workAs :: !User !(Task a) -> Task a | iTask a
 workAs asUser (Task mdi eval) = Task mdi eval`
 where
-	eval` event repOpts state iworld=:{current=current=:{user}}
-		# (result,iworld=:{current}) = eval event repOpts state {iworld & current = {current & user = asUser}}
+	eval` event evalOpts state iworld=:{current=current=:{user}}
+		# (result,iworld=:{current}) = eval event evalOpts state {iworld & current = {current & user = asUser}}
 		= (addInvolvedUser asUser result,{iworld & current = {current & user = user}})
 
-    addInvolvedUser asUser (ValueResult val info=:{TaskInfo|involvedUsers} rep tree)
-        = ValueResult val {TaskInfo|info & involvedUsers= [asUser:involvedUsers]} rep tree
+    addInvolvedUser asUser (ValueResult val info=:{TaskEvalInfo|involvedUsers} rep tree)
+        = ValueResult val {TaskEvalInfo|info & involvedUsers= [asUser:involvedUsers]} rep tree
     addInvolvedUser user res = res
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task Nothing eval
 where	
-	eval event repOpts (TCInit taskId ts) iworld
+	eval event evalOpts (TCInit taskId ts) iworld
 		# (taskIda,iworld=:{current=current=:{localShares}})
                                     = getNextTaskId iworld
 		# localShares				= 'Data.Map'.put taskId (toJSON initial) localShares
-		= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & current = {current & localShares = localShares}}
+		= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & current = {current & localShares = localShares}}
 		
-	eval event repOpts (TCShared taskId ts treea) iworld=:{current={taskTime}}
+	eval event evalOpts (TCShared taskId ts treea) iworld=:{current={taskTime}}
 		# (Task _ evala)			= stask (localShare taskId)
-		# (resa,iworld)				= evala event repOpts treea iworld
+		# (resa,iworld)				= evala event (extendCallTrace taskId evalOpts) treea iworld
 		= case resa of
 			ValueResult NoValue info rep ntreea
-				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult NoValue info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
+				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				= (ValueResult NoValue info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),iworld)
 			ValueResult (Value stable val) info rep ntreea
-				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult (Value stable val) info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
+				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				= (ValueResult (Value stable val) info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),iworld)
 			ExceptionResult e   = (ExceptionResult e,iworld)
 	
-	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld //First destroy inner task, then remove shared state
+	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld //First destroy inner task, then remove shared state
 		# (Task _ evala) = stask (localShare taskId)
 		# (resa,iworld=:{current=current=:{localShares}})
-            = evala event repOpts (TCDestroy treea) iworld
+            = evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
 		= (resa,{iworld & current = {current & localShares = 'Data.Map'.del taskId localShares}})
 	
 	eval _ _ _ iworld
@@ -690,27 +690,27 @@ import StdDebug
 exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & JSONDecode{|*|} p & JSONEncode{|*|} p & TC p
 exposeShared shared stask = Task Nothing eval
 where	
-	eval event repOpts (TCInit taskId ts) iworld=:{exposedShares}
+	eval event evalOpts (TCInit taskId ts) iworld=:{exposedShares}
 		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
 		# exposedShares 	= 'Data.Map'.put url (dynamic shared :: RWShared p^ r^ w^, toJSONShared shared) exposedShares
 		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
-		= eval event repOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
+		= eval event evalOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		
-	eval event repOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}
+	eval event evalOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}
 		# exposedSDS				= exposedShare url
 		# (Task _ evala)			= stask url exposedSDS
-		# (resa,iworld)				= evala event repOpts treea iworld
+		# (resa,iworld)				= evala event (extendCallTrace taskId evalOpts) treea iworld
 		= case resa of
 			ValueResult value info rep ntreea
-				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult value info rep (TCExposedShared taskId info.TaskInfo.lastEvent url ntreea),iworld)
+				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				= (ValueResult value info rep (TCExposedShared taskId info.TaskEvalInfo.lastEvent url ntreea),iworld)
 			ExceptionResult e
 				= (ExceptionResult e,iworld)
 	
-	eval event repOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
+	eval event evalOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
 		# (Task _ evala)				= stask url (exposedShare url)
-		# (resa,iworld)					= evala event repOpts (TCDestroy treea) iworld
+		# (resa,iworld)					= evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
 		= (resa,{iworld & exposedShares = 'Data.Map'.del url iworld.exposedShares})
 	
 	eval _ _ _ iworld
@@ -726,16 +726,16 @@ instance tune SetLayout
 where
 	tune (SetLayout layout) (Task mdi eval)	= Task mdi eval`
 	where
-		eval` event repOpts=:{useLayout=Nothing,modLayout} state iworld
-			= eval event {TaskRepOpts|repOpts & useLayout = Just ((fromMaybe id modLayout) layout), modLayout = Nothing} state iworld 
-		eval` event repOpts=:{useLayout=Just _,modLayout} state iworld
-			= eval event {TaskRepOpts|repOpts & useLayout = Just layout, modLayout = Nothing} state iworld 
+		eval` event evalOpts=:{useLayout=Nothing,modLayout,callTrace} state iworld
+			= eval event {TaskEvalOpts|evalOpts & useLayout = Just ((fromMaybe id modLayout) layout), modLayout = Nothing,callTrace=callTrace} state iworld
+		eval` event evalOpts=:{useLayout=Just _,modLayout,callTrace} state iworld
+			= eval event {TaskEvalOpts|evalOpts & useLayout = Just layout, modLayout = Nothing,callTrace=callTrace} state iworld
 	
 instance tune AfterLayout
 where
 	tune (AfterLayout f) (Task mdi eval) = Task mdi eval`
 	where
-		eval` event repOpts state iworld = case eval event repOpts state iworld of
+		eval` event evalOpts state iworld = case eval event evalOpts state iworld of
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
             (res,iworld) = (res,iworld)
 
@@ -746,18 +746,18 @@ instance tune ModifyLayout
 where
 	tune (ModifyLayout f) (Task mdi eval)	= Task mdi eval`
 	where
-		eval` event repOpts=:{modLayout=Nothing} state iworld
-			= eval event {TaskRepOpts|repOpts & modLayout = Just f} state iworld 
-		eval` event repOpts=:{modLayout=Just g} state iworld
-			= eval event {TaskRepOpts|repOpts & modLayout = Just (g o f)} state iworld 	
+		eval` event evalOpts=:{modLayout=Nothing} state iworld
+			= eval event {TaskEvalOpts|evalOpts & modLayout = Just f} state iworld 
+		eval` event evalOpts=:{modLayout=Just g} state iworld
+			= eval event {TaskEvalOpts|evalOpts & modLayout = Just (g o f)} state iworld 	
 
 instance tune LazyRefresh
 where
 	tune _ (Task mdi eval) = Task mdi eval`
 	where
-		eval` event repOpts state iworld
-			= case (eval event repOpts state iworld) of
-				(ValueResult value info rep tree,iworld) = (ValueResult value {TaskInfo|info&refreshSensitive=False} rep tree, iworld)
+		eval` event evalOpts state iworld
+			= case (eval event evalOpts state iworld) of
+				(ValueResult value info rep tree,iworld) = (ValueResult value {TaskEvalInfo|info&refreshSensitive=False} rep tree, iworld)
 				(res,iworld) = (res,iworld)
 
 instance tune TaskDefInfo

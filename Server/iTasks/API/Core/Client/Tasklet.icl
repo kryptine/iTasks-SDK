@@ -56,8 +56,8 @@ where
 //		= (ValueResult NoValue (taskInfo ts) norep context, printlnI ("init, no session id") iworld)
 
 	// Init
-	taskFunc event taskRepOpts (TCInit taskId ts) iworld
-		# (rep, st, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
+	taskFunc event evalOpts (TCInit taskId ts) iworld
+		# (rep, st, iworld) = genRep tasklet taskId evalOpts Nothing iworld
 		# res = tasklet.Tasklet.resultFunc st
 		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts (toJSON res) False)
 		= (result, printlnI ("init") iworld) 
@@ -186,20 +186,20 @@ where
 					, controllerFunc = mb_cf_js})
 
 	tHTMLToTasklet {ComponentHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js 
-		= toDef (setSize width height 
-				(UITasklet defaultSizeOpts 
-					 {UITaskletOpts 
+		= toDef (setSize width height
+				(UITasklet defaultSizeOpts
+					 {UITaskletOpts
 					 | taskId   	  = toString taskId
 					 , html     	  = Just (toString html)
 					 , st    		  = Just state_js
 					 , script   	  = Just script_js
 					 , events   	  = Just events_js
-					 , interfaceFuncs = Just intfcs_js					 
-					 , resultFunc     = Just rf_js 					 
+					 , interfaceFuncs = Just intfcs_js
+					 , resultFunc     = Just rf_js
 					 , instanceNo     = Nothing
 					 , controllerFunc = Nothing}))
 
-taskInfo ts = {TaskInfo | lastEvent = ts, involvedUsers= [], refreshSensitive = True}
+taskInfo ts = {TaskEvalInfo|lastEvent = ts, involvedUsers= [], refreshSensitive = True}
 
 appTweak tasklet taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 

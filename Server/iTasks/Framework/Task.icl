@@ -64,10 +64,13 @@ toRefresh (ResetEvent)          = RefreshEvent Nothing
 exception :: !e -> TaskException | TC, toString e
 exception e = (dynamic e, toString e)
 
-repLayoutRules :: !TaskRepOpts -> LayoutRules
-repLayoutRules {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
+repLayoutRules :: !TaskEvalOpts -> LayoutRules
+repLayoutRules {TaskEvalOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
 
-finalizeRep :: !TaskRepOpts !TaskRep -> TaskRep
-finalizeRep repOpts=:{TaskRepOpts|noUI=True} _ = NoRep
+finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
+finalizeRep repOpts=:{TaskEvalOpts|noUI=True} _ = NoRep
 finalizeRep repOpts rep = rep
+
+extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
+extendCallTrace (TaskId _ taskNo) repOpts=:{TaskEvalOpts|callTrace} = {repOpts & callTrace = [taskNo:callTrace]}
 

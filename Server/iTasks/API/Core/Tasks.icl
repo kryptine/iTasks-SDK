@@ -59,11 +59,11 @@ where
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task Nothing eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
-				(finalizeRep repOpts NoRep) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
+				(finalizeRep evalOpts NoRep) (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -73,15 +73,15 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,Intera
 			-> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun = Task Nothing eval
 where
-	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		= case mbr of
 			Error e		= (ExceptionResult e, iworld)
 			Ok r
 				# (l,(v,mask))	= initFun r
-				= eval event repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval event repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
+	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
@@ -97,12 +97,12 @@ where
 		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId repOpts (nv,nmask,nver) desc iworld
+		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep repOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep evalOpts rep)
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
-	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	matchAndApplyEvent (EditEvent eventNo taskId name value) matchId taskTime v mask ts iworld
 		| taskId == matchId
@@ -113,8 +113,8 @@ where
 	matchAndApplyEvent _ matchId taskTime v mask ts iworld
 		= (v,mask,ts,iworld)
 
-	visualizeView taskId repOpts value=:(v,vmask,vver) desc iworld
-		# layout	= repLayoutRules repOpts
+	visualizeView taskId evalOpts value=:(v,vmask,vver) desc iworld
+		# layout	= repLayoutRules evalOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
 		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='Data.Map'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
@@ -123,7 +123,7 @@ where
 tcpconnect :: !String !Int !(RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port shared initFun commFun = Task Nothing eval
 where
-	eval event repOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
+	eval event evalOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
         //Connect
         # (mbIP,world) = lookupIPAddress host world
         | mbIP =: Nothing
@@ -142,25 +142,25 @@ where
                 | close
  		            # world = closeRChannel rChannel world
                     # world = closeChannel sChannel world
-                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
                 | otherwise
                     //Add connection task to todo queue
                     # todo = todo ++ [ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} task state]
-                    = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
 
-    eval event repOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioValues}
+    eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioValues}
         = case 'Data.Map'.get taskId ioValues of
             Nothing
-                = (ValueResult NoValue {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOValue (l :: l^) s)
-                = (ValueResult (Value l s) {TaskInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOException e)
                 = (ExceptionResult (dynamic e,e),iworld)
             _
                 # e = "Corrupt IO task result"
                 = (ExceptionResult (dynamic e,e),iworld)
 
-    eval event repOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioValues}
+    eval event evalOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioValues}
         # iworld = {iworld & ioValues = 'Data.Map'.del taskId ioValues}
         = (DestroyedResult,iworld)
 

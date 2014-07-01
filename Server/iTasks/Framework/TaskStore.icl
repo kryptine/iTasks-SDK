@@ -15,7 +15,7 @@ import qualified Data.Map
 derive gEq TIType
 
 //Derives required for storage of UI definitions
-derive JSONEncode TaskResult, TaskInfo, TaskRep, TIValue
+derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIEmpty, UIForm, UIBlock
@@ -23,7 +23,7 @@ derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, U
 derive JSONEncode UISize, UIBound, UIDirection, UIWindowType,  UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 
-derive JSONDecode TaskResult, TaskInfo, TaskRep, TIValue
+derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIEmpty, UIForm, UIBlock

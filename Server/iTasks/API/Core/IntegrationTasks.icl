@@ -41,20 +41,20 @@ callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePa
 callProcess desc opts cmd args dir = Task Nothing eval
 where
     //Start the process
-    eval event repOpts (TCInit taskId ts) iworld=:{IWorld|world}
+    eval event evalOpts (TCInit taskId ts) iworld=:{IWorld|world}
         //Call the external process
         # (res,world) = 'System.Process'.runProcess cmd args dir world
         = case res of
 			Error e	= (ExceptionResult (dynamic e,snd e), {IWorld|iworld & world = world})
 			Ok handle
-		        = eval event repOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
+		        = eval event evalOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
-	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
+	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
-            # (rep,iworld)  = makeRep taskId repOpts status iworld
+            # (rep,iworld)  = makeRep taskId evalOpts status iworld
             # iworld = queueRefresh [taskInstance] iworld
-			= (ValueResult (Value status True) {TaskInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
+			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
 		| otherwise
             //Check status
             # handle = fromJust (fromJSON encv)
@@ -65,15 +65,15 @@ where
                     # (status,stable,state) = case mbExitCode of
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
-                    # (rep,iworld)  = makeRep taskId repOpts status {IWorld|iworld & world = world}
+                    # (rep,iworld)  = makeRep taskId evalOpts status {IWorld|iworld & world = world}
                     # iworld = queueRefresh [taskInstance] iworld
-                    = (ValueResult (Value status stable) {TaskInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
+                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,involvedUsers=[],refreshSensitive=True} rep state, iworld)
 
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)
 
-    makeRep taskId repOpts status iworld
-	    # layout			= repLayoutRules repOpts
+    makeRep taskId evalOpts status iworld
+	    # layout			= repLayoutRules evalOpts
 		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
 		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
@@ -261,17 +261,17 @@ from iTasks.API.Common.ImportTasks import importDocument
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task Nothing eval
 where
-	eval event repOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
+	eval event evalOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
 		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
 		# (mbErr,world)		= createDirectory tmpDir world
 		= case mbErr of
 			Ok Void
-				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
+				= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e,emsg), {iworld & world = world})
 
-	eval event repOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
+	eval event evalOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
 		# tmpDir 			        = dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (ExceptionResult (exception (fromError mbCurdir)), {IWorld|iworld & world = world})
@@ -281,19 +281,19 @@ where
 			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
 		# (Task _ evala)			= taskfun tmpDir
-		# (resa,iworld=:{world})	= evala event repOpts treea {IWorld|iworld & world = world}
+		# (resa,iworld=:{world})	= evala event evalOpts treea {IWorld|iworld & world = world}
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
         | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
 		= case resa of
 			ValueResult value info rep ntreea
-				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
-				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),{IWorld|iworld & world = world})
+				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				= (ValueResult value info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),{IWorld|iworld & world = world})
 			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
 	
-	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
+	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
 		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (Task _ evala)	= taskfun tmpDir
-		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
+		# (resa,iworld)		= evala event evalOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
 		= (resa,iworld)
 
