@@ -125,19 +125,12 @@ getModule` moduleName iworld
 
 tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
 //tonicWrapTask mn tn args=:[(_, x):_] t
-  //| length args == 4 = x >>| t
+  //| length args == 1 = x >>| t
 tonicWrapTask mn tn args (Task _ eval) = Task (Just {TaskDefInfo | moduleName = mn, taskName = tn}) eval` // TODO use args
   where
-    eval` event repOpts state iworld // TODO Instantiate blueprint here based on curr.currentTaskId, mn and tn
-      # (curr, iworld) = trace_n ("tonicWrapTask. Args lenght " +++ toString (length args)) iworld!current
-      # oldTaskId      = curr.currentTaskId
-      # (mmod, iworld) = getModule` mn iworld
-      // TODO Store mmod (if Ok) in a share somewhere based on the oldTaskId this is the blueprint instance.
-      // this process could be improved by only reading from disk once and then storing in a share and instantiate from that, but this will do for now
-      # curr           = maybe curr (\tid -> {curr & currentTaskId = tid}) (taskIdFromTree state)
-      # (rep, iworld)  = eval event repOpts state {iworld & current = curr}
-      # (curr, iworld) = iworld!current
-      # iworld         = {iworld & current = {curr & currentTaskId = oldTaskId}}
+    eval` event repOpts state iworld
+      # (mmod, iworld) = trace_n ("tonicWrapTask. Args lenght " +++ toString (length args)) getModule` mn iworld
+      # (rep, iworld)  = eval event repOpts state iworld
       = (rep, iworld)
 
 taskIdFromTree (TCInit                  tid _)         = Just tid
