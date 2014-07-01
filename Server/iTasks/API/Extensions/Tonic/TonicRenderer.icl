@@ -250,6 +250,35 @@ getNonBindTrace [{tr_tuneInfo}:xs]
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
 
+drawArbitrary g world
+  # (app, world)      = append "rect" g world
+  # (tg, world)       = append "g" g world
+  # (task, world)     = append "text" tg world
+  # (task, world)     = setText "?" task world
+  # (app, world)      = setAttrs [ ("x", toJSVal (-12.5))
+                                 , ("y", toJSVal (-12.5))
+                                 , ("rx", toJSVal "5")
+                                 , ("ry", toJSVal "5")
+                                 , ("width", toJSVal 25)
+                                 , ("height", toJSVal 25)
+                                 ] app world
+  = world
+
+drawVar g expr world
+  # (app, world)      = append "rect" g world
+  # (tg, world)       = append "g" g world
+  # (task, world)     = append "text" tg world
+  # (task, world)     = setText expr task world
+  # (line, world)     = append "line" g world
+  # (app, world)      = setAttrs [ ("x", toJSVal (-12.5))
+                                 , ("y", toJSVal (-12.5))
+                                 , ("rx", toJSVal "5")
+                                 , ("ry", toJSVal "5")
+                                 , ("width", toJSVal 25)
+                                 , ("height", toJSVal 25)
+                                 ] app world
+  = world
+
 drawNode :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
 drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
   # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
@@ -268,34 +297,11 @@ drawNode_ allTraces userTracesMap shape graph u root world
   drawNode` {nodeType=GVar expr, nodeTonicInfo} _ nid root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-var") g world
-    # (app, world)      = append "rect" g world
-    # (tg, world)       = append "g" g world
-    # (task, world)     = append "text" tg world
-    # (task, world)     = setText expr task world
-    # (line, world)     = append "line" g world
-    # (app, world)      = setAttrs [ ("x", toJSVal (-12.5))
-                                   , ("y", toJSVal (-12.5))
-                                   , ("rx", toJSVal "5")
-                                   , ("ry", toJSVal "5")
-                                   , ("width", toJSVal 25)
-                                   , ("height", toJSVal 25)
-                                   ] app world
-    = world
+    = drawVar g expr world
   drawNode` {nodeType=GArbitraryExpression, nodeTonicInfo} _ nid root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-arbitrary") g world
-    # (app, world)      = append "rect" g world
-    # (tg, world)       = append "g" g world
-    # (task, world)     = append "text" tg world
-    # (task, world)     = setText "?" task world
-    # (app, world)      = setAttrs [ ("x", toJSVal (-12.5))
-                                   , ("y", toJSVal (-12.5))
-                                   , ("rx", toJSVal "5")
-                                   , ("ry", toJSVal "5")
-                                   , ("width", toJSVal 25)
-                                   , ("height", toJSVal 25)
-                                   ] app world
-    = world
+    = drawArbitrary g world
   drawNode` {nodeType=GAssign expr, nodeTonicInfo} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-assign") g world
@@ -414,8 +420,40 @@ drawNode_ allTraces userTracesMap shape graph u root world
                                      , ("ry", toJSVal bbh)
                                      ] rect world
     = world
-  drawNode` {nodeType=(GStep _), nodeTonicInfo}                   _ _ root world
-    = world
+  drawNode` {nodeType=(GStep ndcs), nodeTonicInfo} _ _ root world
+    # (g, world)    = append "g" root world
+    # (g, world)    = setAttr "class" (toJSVal "tonic-step") g world
+    = foldr (drawStep g) world ndcs
+    where
+    drawStep g (VarOrExpr str) world = drawVar g str world
+    drawStep g ArbitraryOrUnknownExpr world = drawArbitrary g world
+    drawStep g (Subgraph _) world = world
+    drawStep g (StepElem sel) world = drawStepElem g sel world
+      where
+      drawStepElem g (StepOnValue cont) world = drawCont cont world
+      drawStepElem g (StepOnButton str cont) world
+        # (btnGrp, world)  = append "g" g world
+        # (btnRect, world) = append "rect" btnGrp world
+        # (txt, world)     = append "text" g world
+        # (_, world)       = setText str txt world
+        = drawCont cont world
+      drawStepElem g (StepOnException cont) world = drawCont cont world
+      drawCont {stepContFilter, stepContLbl, stepContNode} world
+        # world = drawFilter stepContFilter world
+        # world = case stepContLbl of
+                    Just lbl
+                      # (txt, world) = append "text" g world
+                      # (_, world)   = setText lbl txt world
+                      = world
+                    _ = world
+        = world // TODO draw stepcondnode
+      drawFilter StepAlways world = world
+      drawFilter StepNever world = world
+      drawFilter StepHasValue world = world
+      drawFilter StepIfStable world = world
+      drawFilter StepIfUnstable world = world
+      drawFilter StepIfValue world = world
+      drawFilter (StepCond str) world = world
   drawNode` {nodeType=GStop, nodeTonicInfo} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-stop") g world

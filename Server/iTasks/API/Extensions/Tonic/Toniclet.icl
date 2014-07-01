@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.Tonic.Toniclet
 
 import iTasks
 import iTasks.API.Extensions.Graphlet.D3
+import iTasks.API.Extensions.Graphlet.Dagre
 import iTasks.API.Extensions.Graphlet.DagreD3
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
@@ -132,6 +133,9 @@ graphlet renderer initGraphlet =
       # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb graphlet.tonicState) cid
       # world            = setDrawNode drend renderNodeFun world
       # world            = setDrawEdgeLabel drend renderEdgeLblFun world
+      # (layout, world)  = mkLayout world
+      # world            = rankDir layout LR world
+      # world            = setLayout drend layout world
       # world            = runRenderer drend graphObj svgTarget world
       = (clval, world)
 
