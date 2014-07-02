@@ -22,13 +22,20 @@ derive gEq
   GParType, NodeContents
 
 :: TonicModule =
-  { tm_name  :: String
+  { tm_name  :: ModuleName
   //, tm_tasks :: Map String GinGraph
-  , tm_tasks :: Map String TonicTask
+  , tm_tasks :: Map TaskName TonicTask
   }
 
+:: ModuleName :== String
+:: VariableName :== String
+:: TypeName :== String
+:: TaskName :== String
+
 :: TonicTask =
-  { tt_args  :: [String]
+  { tt_name  :: TaskName
+  , tt_resty :: TypeName
+  , tt_args  :: [(VariableName, TypeName)]
   , tt_graph :: GinGraph
   }
 
