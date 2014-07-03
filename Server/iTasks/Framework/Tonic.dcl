@@ -24,6 +24,7 @@ tonicSharedRT :: Shared TonicRTMap
   , trt_params       :: [(VarName, Task ())]
   , trt_bpref        :: (ModuleName, TaskName)
   , trt_bpinstance   :: Maybe TonicTask
+  , trt_activeNodeId :: Maybe Int
   , trt_parentTaskId :: TaskId
   , trt_output       :: Maybe (Task ())
   }

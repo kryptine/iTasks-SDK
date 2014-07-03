@@ -146,6 +146,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task eval`
                                  , trt_params       = args
                                  , trt_bpref        = (mn, tn)
                                  , trt_bpinstance   = bpinst
+                                 , trt_activeNodeId = Nothing
                                  , trt_parentTaskId = TaskId instanceNo parentTaskNo
                                  , trt_output       = Nothing
                                  }
@@ -180,32 +181,21 @@ staticBlueprint mn tn = getModule mn >>- \tm -> return (getTask tm tn)
 tonicWrapApp :: ModuleName TaskName Int (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
-  eval` = eval
-  // Strict lets are required to ensure traces are pushed to the trace stack
-  // in the correct order.
-  //eval` event evalOpts state iworld=:{IWorld|current}
-    //# (mbTaskId, iworld) = 'DSDS'.read currentTopTask iworld
-    //= case mbTaskId of
-        //Ok (TaskId instanceNo _)
-          //#! iworld       = // trace_n ("Enter trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
-                            //(pushTrace instanceNo (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
-          //#  (tr, iworld) = eval event evalOpts state iworld
-          //#! iworld       = // trace_n ("Exit trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
-                            //(pushTrace instanceNo (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
-          //= (tr, iworld)
-        //_ = eval event evalOpts state iworld
-  //pushTrace instanceNo t shts world
-    //# (mbUserMap, world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
-    //= case mbUserMap of
-        //Ok userMap
-          //# (ts, instanceMap) = case 'DM'.get t.tr_traceUser userMap of
-                                  //Just instanceMap -> ( case 'DM'.get instanceNo instanceMap of
-                                                          //Just traces -> traces
-                                                          //_           -> []
-                                                      //, instanceMap)
-                                  //_                -> ([], 'DM'.newMap)
-          //= snd ('DSDS'.write ('DM'.put t.tr_traceUser ('DM'.put instanceNo [t:ts] instanceMap) userMap) shts world)
-        //_ = world
+  eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
+    = case taskIdFromTaskTree taskTree of
+        Just (currTaskId=:(TaskId instanceNo _))
+          # parentTaskId = TaskId instanceNo parentTaskNo
+          # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+          = case mrtMap of
+              Ok rtMap
+                # rtMap = case 'DM'.get parentTaskId rtMap of
+                            Just rt -> 'DM'.put parentTaskId {rt & trt_activeNodeId = Just nid} rtMap
+                            _       -> rtMap
+                # (_, iworld) = 'DSDS'.write rtMap tonicSharedRT iworld
+                = eval event evalOpts taskTree iworld
+              _ = eval event evalOpts taskTree iworld
+        _ = eval event evalOpts taskTree iworld
+  eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
 mkTrace :: User /* TonicTune */ TraceType Timestamp -> TonicTrace
 mkTrace user /*tinf*/ ttype tstamp = { TonicTrace
