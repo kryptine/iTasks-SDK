@@ -37,3 +37,20 @@ JSONDecode{|DeferredJSON|} _ [x:xs]
 	= ((Just (DeferredJSONNode x)), xs)
 JSONDecode{|DeferredJSON|} _ l
 	= (Nothing, l)
+
+taskIdFromTaskTree :: TaskTree -> Maybe TaskId
+taskIdFromTaskTree (TCInit taskId _) = Just taskId
+taskIdFromTaskTree (TCBasic taskId _ _ _) = Just taskId
+taskIdFromTaskTree (TCInteract taskId _ _ _ _ _) = Just taskId
+taskIdFromTaskTree (TCInteractLocal taskId _ _ _ _) = Just taskId
+taskIdFromTaskTree (TCInteractViewOnly taskId _ _ _ _) = Just taskId
+taskIdFromTaskTree (TCInteractLocalViewOnly taskId _ _ _) = Just taskId
+taskIdFromTaskTree (TCInteract1 taskId _ _ _) = Just taskId
+taskIdFromTaskTree (TCInteract2 taskId _ _ _ _) = Just taskId
+taskIdFromTaskTree (TCProject taskId _ _) = Just taskId
+taskIdFromTaskTree (TCStep taskId _ _) = Just taskId
+taskIdFromTaskTree (TCParallel taskId _) = Just taskId
+taskIdFromTaskTree (TCShared taskId _ _) = Just taskId
+taskIdFromTaskTree (TCExposedShared taskId _ _ _) = Just taskId
+taskIdFromTaskTree (TCStable taskId _ _) = Just taskId
+taskIdFromTaskTree _ = Nothing
