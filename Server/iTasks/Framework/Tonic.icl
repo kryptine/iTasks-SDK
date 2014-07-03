@@ -298,15 +298,15 @@ selectTask tm
            _       -> throw "Should not happen"
 
 viewStaticTask tn mn tt =
-        viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
-    ||- viewInformation
-          ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
-          (graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
-    <<@ FullScreen
+      viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
+  ||- viewInformation
+        ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
+        (graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
+  <<@ FullScreen
 
-viewDynamic
-  =       enterChoiceWithShared "Select a user" [] users >>=
-  \usr -> return Void
+viewDynamic =
+      viewSharedInformation "Active blueprint instances" [] (mapRead (map snd o 'DM'.toList) tonicSharedRT)
+      >>| return Void
 
 viewDynamicTask u tn mn tt =
         viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
