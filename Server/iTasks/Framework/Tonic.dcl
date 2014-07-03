@@ -11,6 +11,8 @@ from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GN
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 
+:: TaskDict a = TaskDict & iTask a
+
 :: VarName :== String
 
 :: TonicRTMap :== Map TaskId TonicRT
@@ -54,7 +56,7 @@ tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
 
-tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a
+tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
 
 tonicTune :: ModuleName TaskName Int (Task a) -> Task a
 

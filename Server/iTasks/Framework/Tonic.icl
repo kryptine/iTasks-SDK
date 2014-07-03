@@ -126,10 +126,13 @@ getModule` moduleName iworld
   err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
   throw` e iworld = (Error (dynamic e, toString e), iworld)
 
-tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a
+tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
+tonicWrapTask mn tn args TaskDict t = tonicWrapTask2 mn tn args t
+
+tonicWrapTask2 :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 //tonicWrapTask mn tn args=:[(_, x):_] t
   //| length args == 1 = x >>| t
-tonicWrapTask mn tn args (Task eval) = Task eval`
+tonicWrapTask2 mn tn args (Task eval) = Task eval`
   where
     eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
       = case taskIdFromTaskTree taskTree of
@@ -143,17 +146,28 @@ tonicWrapTask mn tn args (Task eval) = Task eval`
             # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
             = case mrtMap of
                 Ok rtMap
-                  # (_, iworld)     = 'DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld
-                  # (mmod, iworld)  = trace_n ("tonicWrapTask. Args lenght " +++ toString (length args)) getModule` mn iworld
-                  # (rep, iworld)   = eval event evalOpts taskTree iworld
-                  = (rep, iworld)
-                _
-                  # (rep, iworld)   = eval event evalOpts taskTree iworld
-                  = (rep, iworld)
-          _
-            # (rep, iworld)  = eval event evalOpts taskTree iworld
-            = (rep, iworld)
+                  # (_, iworld)    = 'DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld
+                  # (mmod, iworld) = getModule` mn iworld
+                  # (tr, iworld)   = eval event evalOpts taskTree iworld
+                  # iworld = case tr of
+                               ValueResult tv _ _ _
+                                 # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+                                 = case mrtMap of
+                                     Ok rtMap
+                                       # rtMap = case 'DM'.get currTaskId rtMap of
+                                                   Just rt -> 'DM'.put currTaskId {rt & trt_output = tvViewInformation tv} rtMap
+                                                   _       -> rtMap
+                                       # (_, iworld) = 'DSDS'.write rtMap tonicSharedRT iworld
+                                       = iworld
+                                     _ = iworld
+                               _ = iworld
+                  = (tr, iworld)
+                _ = eval event evalOpts taskTree iworld
+          _ = eval event evalOpts taskTree iworld
     eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
+    tvViewInformation NoValue     = Nothing
+    tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v >>| return ())
+
 
 tonicTune` :: String String Int String (Task b) -> Task b
 tonicTune` mn tn nid xstr tb = tune  { TonicTune
@@ -269,7 +283,7 @@ tonicUI :: String -> Task Void
 tonicUI appName
   = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Active Dynamic cockpit it is possible to monitor the application while it executes.") >>*
     [ OnAction (Action "Static Task Browser" []) (\_ -> Just viewStatic)
-    , OnAction (Action "Active Dynamic Cockpit" []) (\_ -> Just viewDynamic)
+    , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just viewDynamic)
     ]
   ////=            get currentUser >>-
   ////\currUser -> selectModule >>=
