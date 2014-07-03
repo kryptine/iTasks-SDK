@@ -177,21 +177,12 @@ staticBlueprint :: ModuleName TaskName -> Task (Maybe TonicTask)
 staticBlueprint mn tn = getModule mn >>- \tm -> return (getTask tm tn)
 
 
-tonicTune` :: String String Int String (Task b) -> Task b
-tonicTune` mn tn nid xstr tb = tune  { TonicTune
-                                     | tu_moduleName  = mn
-                                     , tu_taskName    = tn
-                                     , tu_nodeId      = nid
-                                     , tu_valAsStr    = Just xstr
-                                     , tu_isBind      = True} tb
-
 tonicTune :: ModuleName TaskName Int (Task a) -> Task a
 tonicTune mn tn nid ta = tune  { TonicTune
                                | tu_moduleName  = mn
                                , tu_taskName    = tn
                                , tu_nodeId      = nid
-                               , tu_valAsStr    = Nothing
-                               , tu_isBind      = False} ta
+                               } ta
 
 mkTrace :: User TonicTune TraceType Timestamp -> TonicTrace
 mkTrace user tinf ttype tstamp = { TonicTrace

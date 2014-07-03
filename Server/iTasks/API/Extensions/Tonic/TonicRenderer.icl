@@ -115,28 +115,6 @@ ppNodeContents (VarOrExpr expr) = expr
 ppNodeContents ArbitraryOrUnknownExpr = "?"
 ppNodeContents (Subgraph _) = "TODO PP Subgraph"
 
-//usersForNode :: (Maybe TonicInfo) TonicState -> [User]
-//usersForNode (Just renderingNode) (TonicState traces=:[_:_])
-  //# traces = takeCurrentTraces traces
-  //= nub [ trace.traceUser \\ trace <- traces
-        //| not trace.tuneInfo.tu_isBind &&
-          //renderingNode.tonicModuleName  == trace.tuneInfo.moduleName  &&
-          //renderingNode.tonicTaskName    == trace.tuneInfo.taskName    &&
-          //renderingNode.tonicEntryUniqId >= trace.tuneInfo.entryUniqId &&
-          //renderingNode.tonicExitUniqId  <= trace.tuneInfo.exitUniqId
-        //]
-//usersForNode _ _ = []
-
-userNamesAsString [] = ""
-userNamesAsString [x:xs] = toString x +++ ", " +++ userNamesAsString xs
-
-userColour :: User -> String
-userColour user = userColour` user % (0, 6)
-  where
-  userColour` (AnonymousUser sid)         = md5 sid
-  userColour` SystemUser                  = "ccffcc"
-  userColour` (AuthenticatedUser uid _ _) = md5 uid
-
 tracesForUserInstance :: User InstanceNo UserTraceMap -> [TonicTrace]
 tracesForUserInstance user instanceNo userInstanceTraceMap =
   case 'DM'.get user userInstanceTraceMap of
@@ -156,61 +134,6 @@ activeUserTraces utmap activeInstanceNos = 'DM'.foldrWithKey f [] utmap
   where
   f user instanceTraceMap traces = flatten [traces \\ Just traces <- ['DM'.get ino instanceTraceMap \\ ino <- activeInstanceNos]] ++ traces
 
-colours :: {String}
-colours =
-  { "#730000"
-  , "#d96c6c"
-  , "#e53d00"
-  , "#33170d"
-  , "#e6bbac"
-  , "#995426"
-  , "#ff8800"
-  , "#593a16"
-  , "#ffe1bf"
-  , "#b27700"
-  , "#99804d"
-  , "#ccbe00"
-  , "#caf279"
-  , "#44592d"
-  , "#cbe6ac"
-  , "#338000"
-  , "#41f200"
-  , "#00e67a"
-  , "#86b3a4"
-  , "#005947"
-  , "#33ccad"
-  , "#009ba6"
-  , "#1a3133"
-  , "#00ccff"
-  , "#206080"
-  , "#a3bfd9"
-  , "#6c98d9"
-  , "#001b66"
-  , "#334166"
-  , "#8080ff"
-  , "#3600cc"
-  , "#d0bfff"
-  , "#c339e6"
-  , "#300d33"
-  , "#80407b"
-  , "#cc99b4"
-  , "#735665"
-  , "#590024"
-  , "#f23d85"
-  , "#ff0044"
-  }
-
-pickColour :: UserTraceMap User -> String
-pickColour utm user = f ('DM'.toList utm) 0
-  where
-  sz = size colours
-  f [] _ = colours.[0]
-  f [(u, _):xs] n
-    | u === user = colours.[n]
-    | otherwise  = if (n < sz)
-                     (f xs (n + 1))
-                     (f xs 0)
-
 isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
 isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo} world
   | 'DM'.empty traces = (False, world)
@@ -222,8 +145,7 @@ isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo
   isActiveNode` [] = False
   isActiveNode` traces=:[_:_]
     # tuneInfo = getNonBindTrace traces
-    = not tuneInfo.tu_isBind &&
-      renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
+    = renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
       renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
 isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
@@ -236,15 +158,13 @@ isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} wor
   isActiveNode` [] = False
   isActiveNode` traces=:[_:_]
     # tuneInfo = getNonBindTrace traces
-    = not tuneInfo.tu_isBind &&
-      renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
+    = renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
       renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
       renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
 isActiveNode _ _ world = (False, world)
 
 getNonBindTrace []     = abort "getNonBindTrace: should not happen"
 getNonBindTrace [{tr_tuneInfo}:xs]
-  | tr_tuneInfo.tu_isBind = getNonBindTrace xs
   | otherwise             = tr_tuneInfo
 
 mkCSSClasses :: Bool String -> String
@@ -565,52 +485,32 @@ drawEdgeLabel _ {edge_pattern} _ (fromIdx, toIdx) root world
   = drawEdgeLabel` 'DM'.newMap 'DM'.newMap edge_pattern (fromIdx, toIdx) root world
 
 drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
-  # (grp, world)          = append "g" root world
-  # (grp, world)          = setAttr "class" (toJSVal "edge-label") grp world
-  # (rect, world)         = append (toString Rect) grp world
-  # (lblSvg, world)       = append "g" grp world
-  # (txt, world)          = append "text" lblSvg world
-  # (txt, world)          = setAttr "text-anchor" (toJSVal "left") txt world
-  # world                 = case fmap (\x -> [x]) edge_pattern of
-                              Just strs -> breakText strs txt world
-                              _         -> world
-  # (rnd, world)          = firstNode root world
-  # (bbox, world)         = (rnd .# "getBBox" .$ Void) world // callObjectMethod "getBBox" [] rnd world
-  # (bbh, world)          = .? (bbox .# "height") world
-  # (bbw, world)          = .? (bbox .# "width") world // jsGetObjectAttr "width" bbox world
-  # (bbh, bbw)            = (jsValToReal bbh, jsValToReal bbw)
-  # (_, world)            = defaultLabelTransform bbh bbw lblSvg world
-  # (_, world)            = setAttrs [ ("rx", toJSVal 5)
-                                     , ("ry", toJSVal 5)
-                                     , ("x", toJSVal (0.0 - (bbw / 2.0)))
-                                     , ("y", toJSVal (0.0 - (bbh / 2.0)))
-                                     , ("width", toJSVal bbw)
-                                     , ("height", toJSVal bbh)
-                                     ] rect world
-  # (patsGrp, world)      = append "g" grp world
-  # (txt, world)          = firstNode txt world
-  # (bbox, world)         = (txt .# "getBBox" .$ Void) world // callObjectMethod "getBBox" [] txt world
-  # (bbw, world)          = .? (bbox .# "width") world // jsGetObjectAttr "width" bbox world
-  # ((patsGrp, _), world) = 'DM'.foldrWithKey f ((patsGrp, (jsValToReal bbw / bbh) + 0.25), world) userTracesMap
+  # (grp, world)     = append "g" root world
+  # (grp, world)     = setAttr "class" (toJSVal "edge-label") grp world
+  # (rect, world)    = append (toString Rect) grp world
+  # (lblSvg, world)  = append "g" grp world
+  # (txt, world)     = append "text" lblSvg world
+  # (txt, world)     = setAttr "text-anchor" (toJSVal "left") txt world
+  # world            = case fmap (\x -> [x]) edge_pattern of
+                         Just strs -> breakText strs txt world
+                         _         -> world
+  # (rnd, world)     = firstNode root world
+  # (bbox, world)    = (rnd .# "getBBox" .$ Void) world // callObjectMethod "getBBox" [] rnd world
+  # (bbh, world)     = .? (bbox .# "height") world
+  # (bbw, world)     = .? (bbox .# "width") world // jsGetObjectAttr "width" bbox world
+  # (bbh, bbw)       = (jsValToReal bbh, jsValToReal bbw)
+  # (_, world)       = defaultLabelTransform bbh bbw lblSvg world
+  # (_, world)       = setAttrs [ ("rx", toJSVal 5)
+                                , ("ry", toJSVal 5)
+                                , ("x", toJSVal (0.0 - (bbw / 2.0)))
+                                , ("y", toJSVal (0.0 - (bbh / 2.0)))
+                                , ("width", toJSVal bbw)
+                                , ("height", toJSVal bbh)
+                                ] rect world
   = world
-  where
-  f user traces ((patsGrp, n), world)
-    # mTuneInfo = edgeInTraces fromIdx toIdx user traces
-    = case mTuneInfo of
-        Just {tu_nodeId, tu_valAsStr}
-          # (box, world)   = append (toString Rect) patsGrp world
-          # (box, world)   = setAttr "x" (toJSVal (toString n +++ "em")) box world
-          # (box, world)   = setAttr "y" (toJSVal "-0.5em") box world
-          # (box, world)   = setAttr "style" (toJSVal ("fill:" +++ pickColour allTraces user)) box world
-          # (box, world)   = setAttr "height" (toJSVal "1em") box world
-          # (box, world)   = setAttr "width" (toJSVal "1em") box world
-          # (title, world) = append "title" box world
-          # (_, world)     = setText (maybe "" (\ms -> toString user +++ ": " +++ ms) tu_valAsStr) title world
-          = ((patsGrp, n + 1.2), world)
-        _ = ((patsGrp, n), world)
 
 edgeInTraces _ _ _ [] = Nothing
-edgeInTraces fromIdx toIdx user [{tr_tuneInfo=ti=:{tu_nodeId, tu_valAsStr}, tr_traceUser}:xs]
+edgeInTraces fromIdx toIdx user [{tr_tuneInfo=ti=:{tu_nodeId}, tr_traceUser}:xs]
   | tr_traceUser == user && tu_nodeId == toIdx = Just ti
   | otherwise                                  = edgeInTraces fromIdx toIdx user xs
 

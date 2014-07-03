@@ -32,8 +32,6 @@ tonicSharedRT :: Shared TonicRTMap
 	{ tu_moduleName :: ModuleName
 	, tu_taskName   :: TaskName
 	, tu_nodeId     :: Int
-	, tu_valAsStr   :: Maybe String
-	, tu_isBind     :: Bool
 	}
 
 :: TraceType = EnterTrace | ExitTrace
