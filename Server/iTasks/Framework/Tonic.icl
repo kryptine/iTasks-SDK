@@ -65,6 +65,9 @@ tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
 tonicGraphs :: Shared UserGraphMap
 tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
 
+
+
+
 // TODO
 // We assume that the compiler keeps a plain anyTask when there is a concrete
 // list it is being applied to. I.e., when we know the number of tasks anyTask
@@ -126,28 +129,30 @@ getModule` moduleName iworld
   err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
   throw` e iworld = (Error (dynamic e, toString e), iworld)
 
-tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
+tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a
 tonicWrapTask mn tn args TaskDict t = tonicWrapTask2 mn tn args t
 
 tonicWrapTask2 :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-//tonicWrapTask mn tn args=:[(_, x):_] t
-  //| length args == 1 = x >>| t
 tonicWrapTask2 mn tn args (Task eval) = Task eval`
   where
     eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
       = case taskIdFromTaskTree taskTree of
           Just (currTaskId=:(TaskId instanceNo _))
-            # tonicRT = { trt_taskId       = currTaskId
-                        , trt_params       = args
-                        , trt_bpref        = (mn, tn)
-                        , trt_parentTaskId = TaskId instanceNo parentTaskNo
-                        , trt_output       = Nothing // TODO
-                        }
+            # (mmod, iworld)   = getModule` mn iworld
+            # bpinst           = case mmod of
+                                   Ok mod -> getTask mod tn
+                                   _      -> Nothing
+            # tonicRT          = { trt_taskId       = currTaskId
+                                 , trt_params       = args
+                                 , trt_bpref        = (mn, tn)
+                                 , trt_bpinstance   = bpinst
+                                 , trt_parentTaskId = TaskId instanceNo parentTaskNo
+                                 , trt_output       = Nothing
+                                 }
             # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
             = case mrtMap of
                 Ok rtMap
                   # (_, iworld)    = 'DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld
-                  # (mmod, iworld) = getModule` mn iworld
                   # (tr, iworld)   = eval event evalOpts taskTree iworld
                   # iworld = case tr of
                                ValueResult tv _ _ _
@@ -167,6 +172,9 @@ tonicWrapTask2 mn tn args (Task eval) = Task eval`
     eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
     tvViewInformation NoValue     = Nothing
     tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v >>| return ())
+
+staticBlueprint :: ModuleName TaskName -> Task (Maybe TonicTask)
+staticBlueprint mn tn = getModule mn >>- \tm -> return (getTask tm tn)
 
 
 tonicTune` :: String String Int String (Task b) -> Task b
@@ -276,8 +284,8 @@ derive class iTask MaybeError, FileError
 getTasks :: TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
 
-getTask :: String TonicModule -> Maybe TonicTask
-getTask tn tm = 'DM'.get tn tm.tm_tasks
+getTask :: TonicModule String -> Maybe TonicTask
+getTask tm tn = 'DM'.get tn tm.tm_tasks
 
 tonicUI :: String -> Task Void
 tonicUI appName
@@ -310,7 +318,7 @@ selectModule
 selectTask :: TonicModule -> Task (String, TonicTask)
 selectTask tm
   =      enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm) >>=
-  \tn -> case getTask tn tm of
+  \tn -> case getTask tm tn of
            Just tt -> return (tn, tt)
            _       -> throw "Should not happen"
 

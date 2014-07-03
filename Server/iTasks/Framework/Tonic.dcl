@@ -7,7 +7,7 @@ import iTasks.Framework.Generic
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Types import :: User
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
-from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GNode, :: ModuleName, :: TaskName
+from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GNode, :: ModuleName, :: TaskName, :: TonicTask
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 
@@ -23,6 +23,7 @@ tonicSharedRT :: Shared TonicRTMap
   { trt_taskId       :: TaskId
   , trt_params       :: [(VarName, Task ())]
   , trt_bpref        :: (ModuleName, TaskName)
+  , trt_bpinstance   :: Maybe TonicTask
   , trt_parentTaskId :: TaskId
   , trt_output       :: Maybe (Task ())
   }
