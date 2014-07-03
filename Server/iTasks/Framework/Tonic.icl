@@ -57,7 +57,10 @@ derive gText
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
   StepCont, StepFilter
 
-derive class iTask TonicTrace, TraceType, TonicTune
+derive class iTask TonicTrace, TraceType, TonicTune, TonicRT
+
+tonicSharedRT :: Shared TonicRTMap
+tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
 
 tonicGraphs :: Shared UserGraphMap
 tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
@@ -123,7 +126,7 @@ getModule` moduleName iworld
   err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
   throw` e iworld = (Error (dynamic e, toString e), iworld)
 
-tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
+tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a
 //tonicWrapTask mn tn args=:[(_, x):_] t
   //| length args == 1 = x >>| t
 tonicWrapTask mn tn args (Task _ eval) = Task (Just {TaskDefInfo | moduleName = mn, taskName = tn}) eval` // TODO use args
@@ -156,7 +159,7 @@ tonicTune` mn tn nid xstr tb = tune  { TonicTune
                                      , tu_valAsStr    = Just xstr
                                      , tu_isBind      = True} tb
 
-tonicTune :: String String Int (Task a) -> Task a
+tonicTune :: ModuleName TaskName Int (Task a) -> Task a
 tonicTune mn tn nid ta = tune  { TonicTune
                                | tu_moduleName  = mn
                                , tu_taskName    = tn

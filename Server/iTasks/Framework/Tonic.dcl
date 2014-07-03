@@ -7,13 +7,27 @@ import iTasks.Framework.Generic
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Types import :: User
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
-from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GNode
+from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GNode, :: ModuleName, :: TaskName
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 
+:: VarName :== String
+
+:: TonicRTMap :== Map TaskId TonicRT
+
+tonicSharedRT :: Shared TonicRTMap
+
+:: TonicRT =
+  { trt_taskId       :: TaskId
+  , trt_params       :: [(VarName, Task ())]
+  , trt_bpref        :: (ModuleName, TaskName)
+  , trt_parentTaskId :: TaskId
+  , trt_output       :: Maybe (Task ())
+  }
+
 :: TonicTune =
-	{ tu_moduleName :: String
-	, tu_taskName   :: String
+	{ tu_moduleName :: ModuleName
+	, tu_taskName   :: TaskName
 	, tu_nodeId     :: Int
 	, tu_valAsStr   :: Maybe String
 	, tu_isBind     :: Bool
@@ -28,7 +42,7 @@ from Data.Map import :: Map
 	, tr_traceTime  :: !Timestamp
 	}
 
-derive class iTask TonicTrace, TraceType, TonicTune
+derive class iTask TonicTrace, TraceType, TonicTune, TonicRT
 
 :: UserTraceMap :== Map User (Map InstanceNo [TonicTrace])
 
@@ -40,8 +54,9 @@ tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
 
-tonicWrapTask :: String String [(String, Task ())] (Task a) -> Task a
+tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a
 
-tonicTune :: String String Int (Task a) -> Task a
+tonicTune :: ModuleName TaskName Int (Task a) -> Task a
 
 instance tune TonicTune
+

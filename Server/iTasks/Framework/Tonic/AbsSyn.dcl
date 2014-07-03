@@ -23,7 +23,6 @@ derive gEq
 
 :: TonicModule =
   { tm_name  :: ModuleName
-  //, tm_tasks :: Map String GinGraph
   , tm_tasks :: Map TaskName TonicTask
   }
 
