@@ -28,22 +28,17 @@ tonicSharedRT :: Shared TonicRTMap
   , trt_output       :: Maybe (Task ())
   }
 
-:: TonicTune =
-	{ tu_moduleName :: ModuleName
-	, tu_taskName   :: TaskName
-	, tu_nodeId     :: Int
-	}
-
 :: TraceType = EnterTrace | ExitTrace
 
+// TODO : Remove?
 :: TonicTrace =
 	{ tr_traceType  :: !TraceType
-	, tr_tuneInfo   :: !TonicTune
+	//, tr_tuneInfo   :: !TonicTune
 	, tr_traceUser  :: !User
 	, tr_traceTime  :: !Timestamp
 	}
 
-derive class iTask TonicTrace, TraceType, TonicTune, TonicRT
+derive class iTask TonicTrace, TraceType, TonicRT
 
 :: UserTraceMap :== Map User (Map InstanceNo [TonicTrace])
 
@@ -55,9 +50,7 @@ tonicLogin :: String -> Task Void
 
 tonicPubTask :: String -> PublishedTask
 
-tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
+tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
 
-tonicTune :: ModuleName TaskName Int (Task a) -> Task a
-
-instance tune TonicTune
+tonicWrapApp :: ModuleName TaskName Int (Task a) -> Task a
 

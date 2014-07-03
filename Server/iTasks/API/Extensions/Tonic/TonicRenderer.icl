@@ -135,37 +135,38 @@ activeUserTraces utmap activeInstanceNos = 'DM'.foldrWithKey f [] utmap
   f user instanceTraceMap traces = flatten [traces \\ Just traces <- ['DM'.get ino instanceTraceMap \\ ino <- activeInstanceNos]] ++ traces
 
 isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
-isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo} world
-  | 'DM'.empty traces = (False, world)
-  | otherwise
-      = case tracesForUserInstance user instanceNo traces of
-          [] -> (False, world)
-          xs -> (isActiveNode` xs, world)
-  where
-  isActiveNode` [] = False
-  isActiveNode` traces=:[_:_]
-    # tuneInfo = getNonBindTrace traces
-    = renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
-      renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
-      renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
-isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
-  | 'DM'.empty traces = (False, world)
-  | otherwise
-      = case activeUserTraces traces instanceNos of
-          [] -> (False, world)
-          xs -> (isActiveNode` xs, world)
-  where
-  isActiveNode` [] = False
-  isActiveNode` traces=:[_:_]
-    # tuneInfo = getNonBindTrace traces
-    = renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
-      renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
-      renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
 isActiveNode _ _ world = (False, world)
+//isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo} world
+  //| 'DM'.empty traces = (False, world)
+  //| otherwise
+      //= case tracesForUserInstance user instanceNo traces of
+          //[] -> (False, world)
+          //xs -> (isActiveNode` xs, world)
+  //where
+  //isActiveNode` [] = False
+  //isActiveNode` traces=:[_:_]
+    //# tuneInfo = getNonBindTrace traces
+    //= renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
+      //renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
+      //renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
+//isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
+  //| 'DM'.empty traces = (False, world)
+  //| otherwise
+      //= case activeUserTraces traces instanceNos of
+          //[] -> (False, world)
+          //xs -> (isActiveNode` xs, world)
+  //where
+  //isActiveNode` [] = False
+  //isActiveNode` traces=:[_:_]
+    //# tuneInfo = getNonBindTrace traces
+    //= renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
+      //renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
+      //renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
+//isActiveNode _ _ world = (False, world)
 
-getNonBindTrace []     = abort "getNonBindTrace: should not happen"
-getNonBindTrace [{tr_tuneInfo}:xs]
-  | otherwise             = tr_tuneInfo
+//getNonBindTrace []     = abort "getNonBindTrace: should not happen"
+//getNonBindTrace [{tr_tuneInfo}:xs]
+  //| otherwise             = tr_tuneInfo
 
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
@@ -509,8 +510,9 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
                                 ] rect world
   = world
 
-edgeInTraces _ _ _ [] = Nothing
-edgeInTraces fromIdx toIdx user [{tr_tuneInfo=ti=:{tu_nodeId}, tr_traceUser}:xs]
-  | tr_traceUser == user && tu_nodeId == toIdx = Just ti
-  | otherwise                                  = edgeInTraces fromIdx toIdx user xs
+edgeInTraces _ _ _ _ = Nothing
+//edgeInTraces _ _ _ [] = Nothing
+//edgeInTraces fromIdx toIdx user [{tr_tuneInfo=ti=:{tu_nodeId}, tr_traceUser}:xs]
+  //| tr_traceUser == user && tu_nodeId == toIdx = Just ti
+  //| otherwise                                  = edgeInTraces fromIdx toIdx user xs
 

@@ -57,7 +57,7 @@ derive gText
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
   StepCont, StepFilter
 
-derive class iTask TonicTrace, TraceType, TonicTune, TonicRT
+derive class iTask TonicTrace, TraceType, /* TonicTune, */ TonicRT
 
 tonicSharedRT :: Shared TonicRTMap
 tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
@@ -129,11 +129,11 @@ getModule` moduleName iworld
   err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
   throw` e iworld = (Error (dynamic e, toString e), iworld)
 
-tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a
-tonicWrapTask mn tn args TaskDict t = tonicWrapTask2 mn tn args t
+tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a
+tonicWrapTaskBody mn tn args TaskDict t = tonicWrapTaskBody` mn tn args t
 
-tonicWrapTask2 :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTask2 mn tn args (Task eval) = Task eval`
+tonicWrapTaskBody` :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody` mn tn args (Task eval) = Task eval`
   where
     eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
       = case taskIdFromTaskTree taskTree of
@@ -177,54 +177,48 @@ staticBlueprint :: ModuleName TaskName -> Task (Maybe TonicTask)
 staticBlueprint mn tn = getModule mn >>- \tm -> return (getTask tm tn)
 
 
-tonicTune :: ModuleName TaskName Int (Task a) -> Task a
-tonicTune mn tn nid ta = tune  { TonicTune
-                               | tu_moduleName  = mn
-                               , tu_taskName    = tn
-                               , tu_nodeId      = nid
-                               } ta
+tonicWrapApp :: ModuleName TaskName Int (Task a) -> Task a
+tonicWrapApp mn tn nid (Task eval) = Task eval`
+  where
+  eval` = eval
+  // Strict lets are required to ensure traces are pushed to the trace stack
+  // in the correct order.
+  //eval` event evalOpts state iworld=:{IWorld|current}
+    //# (mbTaskId, iworld) = 'DSDS'.read currentTopTask iworld
+    //= case mbTaskId of
+        //Ok (TaskId instanceNo _)
+          //#! iworld       = // trace_n ("Enter trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
+                            //(pushTrace instanceNo (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
+          //#  (tr, iworld) = eval event evalOpts state iworld
+          //#! iworld       = // trace_n ("Exit trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
+                            //(pushTrace instanceNo (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
+          //= (tr, iworld)
+        //_ = eval event evalOpts state iworld
+  //pushTrace instanceNo t shts world
+    //# (mbUserMap, world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
+    //= case mbUserMap of
+        //Ok userMap
+          //# (ts, instanceMap) = case 'DM'.get t.tr_traceUser userMap of
+                                  //Just instanceMap -> ( case 'DM'.get instanceNo instanceMap of
+                                                          //Just traces -> traces
+                                                          //_           -> []
+                                                      //, instanceMap)
+                                  //_                -> ([], 'DM'.newMap)
+          //= snd ('DSDS'.write ('DM'.put t.tr_traceUser ('DM'.put instanceNo [t:ts] instanceMap) userMap) shts world)
+        //_ = world
 
-mkTrace :: User TonicTune TraceType Timestamp -> TonicTrace
-mkTrace user tinf ttype tstamp = { TonicTrace
+mkTrace :: User /* TonicTune */ TraceType Timestamp -> TonicTrace
+mkTrace user /*tinf*/ ttype tstamp = { TonicTrace
                                  | tr_traceType = ttype
-                                 , tr_tuneInfo  = tinf
+                                 //, tr_tuneInfo  = tinf
                                  , tr_traceUser = user
                                  , tr_traceTime = tstamp }
 
 tonicTraces :: Shared UserTraceMap
 tonicTraces = sharedStore "tonicTraces" 'DM'.newMap
 
-mkUniqLbl :: TonicTune -> String
-mkUniqLbl tt = tt.tu_moduleName +++ "." +++ tt.tu_taskName +++ "." +++ toString tt.tu_nodeId
-
-instance tune TonicTune where
-  tune ttn (Task eval) = Task eval`
-  where
-    // Strict lets are required to ensure traces are pushed to the trace stack
-    // in the correct order.
-    eval` event evalOpts state iworld=:{IWorld|current}
-      # (mbTaskId, iworld) = 'DSDS'.read currentTopTask iworld
-      = case mbTaskId of
-          Ok (TaskId instanceNo _)
-            #! iworld       = trace_n ("Enter trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
-                              (pushTrace instanceNo (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
-            #  (tr, iworld) = eval event evalOpts state iworld
-            #! iworld       = trace_n ("Exit trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
-                              (pushTrace instanceNo (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
-            = (tr, iworld)
-          _ = eval event evalOpts state iworld
-    pushTrace instanceNo t shts world
-      # (mbUserMap, world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
-      = case mbUserMap of
-          Ok userMap
-            # (ts, instanceMap) = case 'DM'.get t.tr_traceUser userMap of
-                                    Just instanceMap -> ( case 'DM'.get instanceNo instanceMap of
-                                                            Just traces -> traces
-                                                            _           -> []
-                                                        , instanceMap)
-                                    _                -> ([], 'DM'.newMap)
-            = snd ('DSDS'.write ('DM'.put t.tr_traceUser ('DM'.put instanceNo [t:ts] instanceMap) userMap) shts world)
-          _ = world
+//mkUniqLbl :: TonicTune -> String
+//mkUniqLbl tt = tt.tu_moduleName +++ "." +++ tt.tu_taskName +++ "." +++ toString tt.tu_nodeId
 
 getTonicModules :: Task [String]
 getTonicModules
