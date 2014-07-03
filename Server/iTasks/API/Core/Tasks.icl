@@ -57,7 +57,7 @@ where
 					Error e = (Error e, iworld)
 					
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
-watch shared = Task Nothing eval
+watch shared = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
@@ -71,7 +71,7 @@ where
 
 interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
 			-> Task l | descr d & iTask l & iTask r & iTask v
-interact desc shared initFun refreshFun = Task Nothing eval
+interact desc shared initFun refreshFun = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -121,7 +121,7 @@ where
 
 
 tcpconnect :: !String !Int !(RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
-tcpconnect host port shared initFun commFun = Task Nothing eval
+tcpconnect host port shared initFun commFun = Task eval
 where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
         //Connect

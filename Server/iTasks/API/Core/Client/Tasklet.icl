@@ -46,7 +46,7 @@ mkTask :: (Tasklet st res) -> Task res | iTask res
 mkTask ti = mkInterfaceTask ti []
 
 mkInterfaceTask :: (Tasklet st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
-mkInterfaceTask tasklet fs = Task Nothing taskFunc
+mkInterfaceTask tasklet fs = Task taskFunc
 where
 
 	norep = TaskRep (toDef (stringDisplay "nothing")) []

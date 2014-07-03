@@ -20,13 +20,8 @@ derive gEditor			Task
 derive gEditMeta		Task
 derive gEq				Task
 
-:: TaskDefInfo =
-  { moduleName :: String
-  , taskName   :: String
-  }
-
 // Tasks
-:: Task a = Task (Maybe TaskDefInfo) !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event	= EditEvent		!EventNo !TaskId !String !JSONNode		//Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!EventNo !TaskId !String				//Progress in a step combinator: Task id, action id
@@ -69,11 +64,6 @@ from iTasks.Framework.Engine import :: ConnectionType
 
 :: ConnectionTask = ConnectionTask !(String *IWorld -> *(![String],!Bool,!Dynamic,!*IWorld)) !((Maybe String) Dynamic *IWorld -> *([String], !Bool, !Dynamic, !*IWorld)) !(Dynamic *IWorld -> *(!Dynamic, !*IWorld))
 :: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
-
-/**
-* Gets the task definition info from a task, if it exists
-*/
-reflect :: (Task a) -> Maybe TaskDefInfo
 
 /**
 * 'downgrades' an event to a refresh, but keeps the client given event number

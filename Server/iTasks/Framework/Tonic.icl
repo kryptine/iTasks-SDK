@@ -107,10 +107,10 @@ tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
   //where
   //mkTAT (Task eval) = Task eval`
     //where
-    //eval` (Just taskName) event repOpts state iworld
-      //# (tr, iworld) = eval event repOpts state iworld
+    //eval` (Just taskName) event evalOpts state iworld
+      //# (tr, iworld) = eval event evalOpts state iworld
       //= (tr, iworld)
-    //eval` _ event repOpts state iworld = eval event repOpts state iworld
+    //eval` _ event evalOpts state iworld = eval event evalOpts state iworld
 
 
 getModule` :: String *IWorld -> *(MaybeError (Dynamic, String) TonicModule, *IWorld)
@@ -129,27 +129,31 @@ getModule` moduleName iworld
 tonicWrapTask :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a
 //tonicWrapTask mn tn args=:[(_, x):_] t
   //| length args == 1 = x >>| t
-tonicWrapTask mn tn args (Task _ eval) = Task (Just {TaskDefInfo | moduleName = mn, taskName = tn}) eval` // TODO use args
+tonicWrapTask mn tn args (Task eval) = Task eval`
   where
-    eval` event repOpts state iworld
-      # (mmod, iworld) = trace_n ("tonicWrapTask. Args lenght " +++ toString (length args)) getModule` mn iworld
-      # (rep, iworld)  = eval event repOpts state iworld
-      = (rep, iworld)
-
-taskIdFromTree (TCInit                  tid _)         = Just tid
-taskIdFromTree (TCBasic                 tid _ _ _)     = Just tid
-taskIdFromTree (TCInteract              tid _ _ _ _ _) = Just tid
-taskIdFromTree (TCInteractLocal         tid _ _ _ _)   = Just tid
-taskIdFromTree (TCInteractLocalViewOnly tid _ _ _)     = Just tid
-taskIdFromTree (TCInteract1             tid _ _ _)     = Just tid
-taskIdFromTree (TCInteract2             tid _ _ _ _)   = Just tid
-taskIdFromTree (TCProject               tid _ _)       = Just tid
-taskIdFromTree (TCStep                  tid _ _)       = Just tid
-taskIdFromTree (TCParallel              tid _)         = Just tid
-taskIdFromTree (TCShared                tid _ _)       = Just tid
-taskIdFromTree (TCExposedShared         tid _ _ _)     = Just tid
-taskIdFromTree (TCStable                tid _ _)       = Just tid
-taskIdFromTree _                                       = Nothing
+    eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
+      = case taskIdFromTaskTree taskTree of
+          Just (currTaskId=:(TaskId instanceNo _))
+            # tonicRT = { trt_taskId       = currTaskId
+                        , trt_params       = args
+                        , trt_bpref        = (mn, tn)
+                        , trt_parentTaskId = TaskId instanceNo parentTaskNo
+                        , trt_output       = Nothing // TODO
+                        }
+            # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+            = case mrtMap of
+                Ok rtMap
+                  # (_, iworld)     = 'DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld
+                  # (mmod, iworld)  = trace_n ("tonicWrapTask. Args lenght " +++ toString (length args)) getModule` mn iworld
+                  # (rep, iworld)   = eval event evalOpts taskTree iworld
+                  = (rep, iworld)
+                _
+                  # (rep, iworld)   = eval event evalOpts taskTree iworld
+                  = (rep, iworld)
+          _
+            # (rep, iworld)  = eval event evalOpts taskTree iworld
+            = (rep, iworld)
+    eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
 tonicTune` :: String String Int String (Task b) -> Task b
 tonicTune` mn tn nid xstr tb = tune  { TonicTune
@@ -181,21 +185,21 @@ mkUniqLbl :: TonicTune -> String
 mkUniqLbl tt = tt.tu_moduleName +++ "." +++ tt.tu_taskName +++ "." +++ toString tt.tu_nodeId
 
 instance tune TonicTune where
-  tune ttn (Task tn eval) = Task tn eval`
+  tune ttn (Task eval) = Task eval`
   where
     // Strict lets are required to ensure traces are pushed to the trace stack
     // in the correct order.
-    eval` event repOpts state iworld=:{IWorld|current}
+    eval` event evalOpts state iworld=:{IWorld|current}
       # (mbTaskId, iworld) = 'DSDS'.read currentTopTask iworld
       = case mbTaskId of
           Ok (TaskId instanceNo _)
             #! iworld       = trace_n ("Enter trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
                               (pushTrace instanceNo (mkTrace current.user ttn EnterTrace current.timestamp) tonicTraces iworld)
-            #  (tr, iworld) = eval event repOpts state iworld
+            #  (tr, iworld) = eval event evalOpts state iworld
             #! iworld       = trace_n ("Exit trace: " +++ toString instanceNo +++ " " +++ toString current.user +++ " " +++ mkUniqLbl ttn)
                               (pushTrace instanceNo (mkTrace current.user ttn ExitTrace current.timestamp) tonicTraces iworld)
             = (tr, iworld)
-          _ = eval event repOpts state iworld
+          _ = eval event evalOpts state iworld
     pushTrace instanceNo t shts world
       # (mbUserMap, world)  = 'DSDS'.read shts world // TODO : Multi-user ACID?
       = case mbUserMap of
