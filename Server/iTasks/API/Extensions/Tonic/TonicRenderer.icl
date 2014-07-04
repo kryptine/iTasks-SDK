@@ -12,8 +12,6 @@ import iTasks.API.Extensions.Graphlet.D3
 import iTasks.API.Extensions.Graphlet.Graphlib
 import qualified Data.Map as DM
 
-derive class iTask TonicState
-
 tonicRenderer :: TonicletRenderer
 tonicRenderer =
   { TonicletRenderer
@@ -115,59 +113,6 @@ ppNodeContents (VarOrExpr expr) = expr
 ppNodeContents ArbitraryOrUnknownExpr = "?"
 ppNodeContents (Subgraph _) = "TODO PP Subgraph"
 
-tracesForUserInstance :: User InstanceNo UserTraceMap -> [TonicTrace]
-tracesForUserInstance user instanceNo userInstanceTraceMap =
-  case 'DM'.get user userInstanceTraceMap of
-    Just instanceTraceMap ->
-      case 'DM'.get instanceNo instanceTraceMap of
-        Just traces -> traces
-        _           -> []
-    _ -> []
-
-activeUserTracesMap :: UserTraceMap [InstanceNo] -> Map User [TonicTrace]
-activeUserTracesMap utmap activeInstanceNos = 'DM'.foldrWithKey f 'DM'.newMap utmap
-  where
-  f user instanceTraceMap userTraceMap = 'DM'.put user (flatten [traces \\ Just traces <- ['DM'.get ino instanceTraceMap \\ ino <- activeInstanceNos]]) userTraceMap
-
-activeUserTraces :: UserTraceMap [InstanceNo] -> [TonicTrace]
-activeUserTraces utmap activeInstanceNos = 'DM'.foldrWithKey f [] utmap
-  where
-  f user instanceTraceMap traces = flatten [traces \\ Just traces <- ['DM'.get ino instanceTraceMap \\ ino <- activeInstanceNos]] ++ traces
-
-isActiveNode :: (Maybe TonicInfo) TonicState *JSWorld -> *(Bool, *JSWorld)
-isActiveNode _ _ world = (False, world)
-//isActiveNode (Just renderingNode) {traces, renderMode=SingleUser user instanceNo} world
-  //| 'DM'.empty traces = (False, world)
-  //| otherwise
-      //= case tracesForUserInstance user instanceNo traces of
-          //[] -> (False, world)
-          //xs -> (isActiveNode` xs, world)
-  //where
-  //isActiveNode` [] = False
-  //isActiveNode` traces=:[_:_]
-    //# tuneInfo = getNonBindTrace traces
-    //= renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
-      //renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
-      //renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
-//isActiveNode (Just renderingNode) {traces, renderMode=MultiUser instanceNos} world
-  //| 'DM'.empty traces = (False, world)
-  //| otherwise
-      //= case activeUserTraces traces instanceNos of
-          //[] -> (False, world)
-          //xs -> (isActiveNode` xs, world)
-  //where
-  //isActiveNode` [] = False
-  //isActiveNode` traces=:[_:_]
-    //# tuneInfo = getNonBindTrace traces
-    //= renderingNode.tonicModuleName  == tuneInfo.tu_moduleName  &&
-      //renderingNode.tonicTaskName    == tuneInfo.tu_taskName    &&
-      //renderingNode.tonicNodeId      == tuneInfo.tu_nodeId
-//isActiveNode _ _ world = (False, world)
-
-//getNonBindTrace []     = abort "getNonBindTrace: should not happen"
-//getNonBindTrace [{tr_tuneInfo}:xs]
-  //| otherwise             = tr_tuneInfo
-
 mkCSSClasses :: Bool String -> String
 mkCSSClasses isActive cls = cls +++ if isActive " activeNode" ""
 
@@ -200,17 +145,12 @@ drawVar g expr world
                                  ] app world
   = world
 
-drawNode :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-//drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
-  //# singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
-  //= drawNode_ traces singleUserMap shape graph u root world
-//drawNode (Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
-  //= drawNode_ traces (activeUserTracesMap traces instanceNos) shape graph u root world
-drawNode _ shape graph u root world
-  = drawNode_ 'DM'.newMap 'DM'.newMap shape graph u root world
+drawNode :: GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+drawNode shape graph u root world
+  = drawNode_ shape graph u root world
 
 //drawNode_ :: TonicState GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode_ allTraces userTracesMap shape graph u root world
+drawNode_ shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
   where
@@ -476,16 +416,11 @@ getBBox root world
   # (jbbw, world) = .? (bbox .# "width") world
   = ((jsValToReal jbbh, jsValToReal jbbw), world)
 
-drawEdgeLabel :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
-//drawEdgeLabel (Just {traces, renderMode=SingleUser user instanceNo}) {edge_pattern} _ (fromIdx, toIdx) root world
-  //# singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
-  //= drawEdgeLabel` traces singleUserMap edge_pattern (fromIdx, toIdx) root world
-//drawEdgeLabel (Just {traces, renderMode=MultiUser instanceNos}) {edge_pattern} _ (fromIdx, toIdx) root world
-  //= drawEdgeLabel` traces (activeUserTracesMap traces instanceNos) edge_pattern (fromIdx, toIdx) root world
-drawEdgeLabel _ {edge_pattern} _ (fromIdx, toIdx) root world
-  = drawEdgeLabel` 'DM'.newMap 'DM'.newMap edge_pattern (fromIdx, toIdx) root world
+drawEdgeLabel :: GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+drawEdgeLabel {edge_pattern} _ (fromIdx, toIdx) root world
+  = drawEdgeLabel` edge_pattern (fromIdx, toIdx) root world
 
-drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
+drawEdgeLabel` edge_pattern (fromIdx, toIdx) root world
   # (grp, world)     = append "g" root world
   # (grp, world)     = setAttr "class" (toJSVal "edge-label") grp world
   # (rect, world)    = append (toString Rect) grp world
@@ -509,10 +444,3 @@ drawEdgeLabel` allTraces userTracesMap edge_pattern (fromIdx, toIdx) root world
                                 , ("height", toJSVal bbh)
                                 ] rect world
   = world
-
-edgeInTraces _ _ _ _ = Nothing
-//edgeInTraces _ _ _ [] = Nothing
-//edgeInTraces fromIdx toIdx user [{tr_tuneInfo=ti=:{tu_nodeId}, tr_traceUser}:xs]
-  //| tr_traceUser == user && tu_nodeId == toIdx = Just ti
-  //| otherwise                                  = edgeInTraces fromIdx toIdx user xs
-

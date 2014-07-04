@@ -57,91 +57,50 @@ derive gText
   TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
   StepCont, StepFilter
 
-derive class iTask TonicTrace, TraceType, /* TonicTune, */ TonicRT
+derive class iTask TonicRT
 
 tonicSharedRT :: Shared TonicRTMap
 tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
 
-tonicGraphs :: Shared UserGraphMap
-tonicGraphs = sharedStore "tonicGraphs" 'DM'.newMap
-
-
-
-
-// TODO
-// We assume that the compiler keeps a plain anyTask when there is a concrete
-// list it is being applied to. I.e., when we know the number of tasks anyTask
-// is applied to and their names.
-//
-// When anyTask is applied to a variable, we do not statically know the number
-// of tasks in the list or their names.
-//
-// Questions: can we determine which task it is that is being executed?
-// A problem is that a task does not know its own name, unless we transform
-// all tasks at compile time to some form where we do know the name. We need
-// a name to determine which task is being worked on. This goes for task
-// delegation as well.
-//
-// We could provide tasks with their own name as follows: after generating the
-// graph node, we tune the entire task with a TaskName type:
-//
-// :: TaskName = TaskName String String
-//
-// As an example, a task f = t in module M would become:
-//
-// f = tune (TaskName "M" "f") t
-//
-// We then need to store the task name in the task itself:
-//
-// :: Task = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
-//
-// is extended with a Maybe TaskName
-//
-// :: Task = Task (Maybe TaskName) !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
-//
-// This is not entirely unlike Typeable in Haskell.
-// This way we always know which task is being executed, except when a task is
-// truly being constructed dynamically.
-// The downside of this approach is that we also need to apply this TaskName
-// tune to core iTasks tasks. Of course this can be done automatically during
-// compilation...
-
-//tonicAnyTask mn tn euid xuid ts = mkTAT (anyTask ts)
-  //where
-  //mkTAT (Task eval) = Task eval`
-    //where
-    //eval` (Just taskName) event evalOpts state iworld
-      //# (tr, iworld) = eval event evalOpts state iworld
-      //= (tr, iworld)
-    //eval` _ event evalOpts state iworld = eval event evalOpts state iworld
-
-
-getModule` :: String *IWorld -> *(MaybeError (Dynamic, String) TonicModule, *IWorld)
-getModule` moduleName iworld
-  # (mjson, world)   = readFile (iworld.server.paths.appDirectory </> "tonic" </> (moduleName +++ ".tonic")) iworld.world
-  # iworld           = {iworld & world = world}
-  = case mjson of
-      Ok json   -> case fromJSON (fromString json) of
-                     Just gg  -> (gg, iworld)
-                     _        -> err "Failed to deserialize JSON" iworld
-      Error msg -> err (toString msg) iworld
+getModule :: String -> Task TonicModule
+getModule moduleName
+  =           getTonicDir >>-
+    \dir ->   accWorld (readFile (dir </> (moduleName +++ ".tonic"))) >>-
+    \mjson -> case mjson of
+                Ok json   -> case fromJSON (fromString json) of
+                               Just gg  -> return gg
+                               _        -> err "Failed to deserialize JSON"
+                Error msg -> err (toString msg)
   where
-  err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
-  throw` e iworld = (Error (dynamic e, toString e), iworld)
+  err msg = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
+
+//getModule` :: String *IWorld -> *(MaybeError (Dynamic, String) TonicModule, *IWorld)
+//getModule` moduleName iworld
+  //# (mjson, world)   = trace_n ("trying to read file " +++ iworld.server.paths.appDirectory </> "tonic" </> (moduleName +++ ".tonic")) readFile (iworld.server.paths.appDirectory </> "tonic" </> (moduleName +++ ".tonic")) iworld.world
+  //# iworld           = {iworld & world = world}
+  //= case mjson of
+      //Ok json   -> case fromJSON (fromString json) of
+                     //Just gg  -> (gg, iworld)
+                     //_        -> err "Failed to deserialize JSON" iworld
+      //Error msg -> err (toString msg) iworld
+  //where
+  //err msg iworld = throw` ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg) iworld
+  //throw` e iworld = (Error (dynamic e, toString e), iworld)
 
 tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a
 tonicWrapTaskBody mn tn args TaskDict t = tonicWrapTaskBody` mn tn args t
 
 tonicWrapTaskBody` :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody` mn tn args (Task eval) = Task eval`
+tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- \m -> Task (eval` m)
   where
-    eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
+    eval` mod event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
       = case taskIdFromTaskTree taskTree of
           Just (currTaskId=:(TaskId instanceNo _))
-            # (mmod, iworld)   = getModule` mn iworld
-            # bpinst           = case mmod of
-                                   Ok mod -> getTask mod tn
-                                   _      -> Nothing
+            //# (mmod, iworld)   = getModule` mn iworld
+            //# bpinst           = case mmod of
+                                   //Ok mod         -> trace_n "getModule` OK" getTask mod tn
+                                   //Error (_, str) -> trace_n ("Failed to get module for " +++ mn) Nothing
+            # bpinst = getTask mod tn
             # tonicRT          = { trt_taskId       = currTaskId
                                  , trt_params       = args
                                  , trt_bpref        = (mn, tn)
@@ -170,13 +129,9 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task eval`
                   = (tr, iworld)
                 _ = eval event evalOpts taskTree iworld
           _ = eval event evalOpts taskTree iworld
-    eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
+    eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
     tvViewInformation NoValue     = Nothing
     tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v >>| return ())
-
-staticBlueprint :: ModuleName TaskName -> Task (Maybe TonicTask)
-staticBlueprint mn tn = getModule mn >>- \tm -> return (getTask tm tn)
-
 
 tonicWrapApp :: ModuleName TaskName Int (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
@@ -197,19 +152,6 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
   eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
-mkTrace :: User /* TonicTune */ TraceType Timestamp -> TonicTrace
-mkTrace user /*tinf*/ ttype tstamp = { TonicTrace
-                                 | tr_traceType = ttype
-                                 //, tr_tuneInfo  = tinf
-                                 , tr_traceUser = user
-                                 , tr_traceTime = tstamp }
-
-tonicTraces :: Shared UserTraceMap
-tonicTraces = sharedStore "tonicTraces" 'DM'.newMap
-
-//mkUniqLbl :: TonicTune -> String
-//mkUniqLbl tt = tt.tu_moduleName +++ "." +++ tt.tu_taskName +++ "." +++ toString tt.tu_nodeId
-
 getTonicModules :: Task [String]
 getTonicModules
   =         getTonicDir >>-
@@ -227,7 +169,7 @@ getTonicDir = mkInstantTask f
     # (server, iworld) = iworld!server
     = (Ok (server.paths.appDirectory </> "tonic"), iworld)
 
-tonicLogin :: String -> Task Void
+tonicLogin :: String -> Task ()
 tonicLogin appName = tonicUI appName
 //tonicLogin :: String -> Task Void
 //tonicLogin appName = forever (
@@ -242,18 +184,6 @@ tonicLogin appName = tonicUI appName
                    //Just user -> workAs user (tonicUI appName)
                    //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 
-getModule :: String -> Task TonicModule
-getModule moduleName
-  =           getTonicDir >>-
-    \dir ->   accWorld (readFile (dir </> (moduleName +++ ".tonic"))) >>-
-    \mjson -> case mjson of
-                Ok json   -> case fromJSON (fromString json) of
-                               Just gg  -> return gg
-                               _        -> err "Failed to deserialize JSON"
-                Error msg -> err (toString msg)
-  where
-  err msg = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
-
 derive class iTask MaybeError, FileError
 
 getTasks :: TonicModule -> [String]
@@ -262,26 +192,18 @@ getTasks tm = 'DM'.keys tm.tm_tasks
 getTask :: TonicModule String -> Maybe TonicTask
 getTask tm tn = 'DM'.get tn tm.tm_tasks
 
-tonicUI :: String -> Task Void
+tonicUI :: String -> Task ()
 tonicUI appName
   = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Active Dynamic cockpit it is possible to monitor the application while it executes.") >>*
     [ OnAction (Action "Static Task Browser" []) (\_ -> Just viewStatic)
     , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just viewDynamic)
     ]
-  ////=            get currentUser >>-
-  ////\currUser -> selectModule >>=
-  ////\(mn, tm) -> selectTask tm >>=
-  ////\(tn, tt) -> viewTask currUser tn mn tt >>|
-  //>&> \sharedMaybeSelectedUser ->
-    ////watch sharedMaybeSelectedUser >>= \maybeSelectedUser ->
-    //viewSharedInformation "Selected user" [] sharedMaybeSelectedUser
-  //>>|
 
 viewStatic
   =            selectModule >>=
   \(mn, tm) -> selectTask tm >>=
   \(tn, tt) -> viewStaticTask tn mn tt >>|
-  return Void
+  return ()
 
 selectModule :: Task (String, TonicModule)
 selectModule
@@ -299,16 +221,21 @@ selectTask tm
 
 viewStaticTask tn mn tt =
       viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
-  //||- viewInformation
-        //("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
-        //(graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
+  ||- viewInformation
+        ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
+        (toniclet tonicRenderer (Just tt))
   <<@ FullScreen
 
+import StdDebug
+
 viewDynamic =
-      enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT)
-  >&> \shmtrt -> viewSharedInformation "Selected blueprint instance" [ViewWith (\mbpinst -> toniclet tonicRenderer mbpinst)]
-                    (mapRead (maybe Nothing (\trt -> trt.trt_bpinstance)) shmtrt)
-  >>| return Void
+             enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
+  \trt    -> trace_n "update" (get tonicSharedRT) >>-
+  \mp     -> return ('DM'.foldrNoKey (\v acc -> if (v.trt_parentTaskId == trt.trt_taskId) [v:acc] acc) [] mp) >>-
+  \childs -> viewSharedInformation "Selected blueprint instance"
+               [ViewWith (\_ -> trace_n ("toniclet " +++ if (isJust trt.trt_bpinstance) "Has" "Bluh :(") (toniclet tonicRenderer trt.trt_bpinstance))]
+               tonicSharedRT >>|
+             return ()
 
 //viewDynamicTask u tn mn tt =
         //viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args

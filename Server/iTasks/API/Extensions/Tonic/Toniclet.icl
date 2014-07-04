@@ -7,6 +7,7 @@ import iTasks.API.Extensions.Graphlet.DagreD3
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.Tonic.TonicRenderer
+import iTasks.Framework.Tonic
 import iTasks.Framework.Tonic.AbsSyn
 from iTasks.API.Extensions.Graphlet.Graphlib import delNode, delEdge
 import StdMisc
@@ -30,7 +31,7 @@ mkSVGId x = "svg" +++ x
 
 toniclet :: TonicletRenderer (Maybe TonicTask) -> Editlet (Maybe TonicTask) [TonicletDiff]
 toniclet renderer mtt =
-  Editlet Nothing
+  Editlet mtt
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
     , defVal  = Nothing
@@ -40,7 +41,7 @@ toniclet renderer mtt =
     { EditletClientDef
     | updateUI = updateUI
     , defVal   = { mbClientState = Nothing
-                 , tonicTask     = Nothing
+                 , tonicTask     = mtt
                  }
     , genDiff  = genClientDiff
     , appDiff  = appClientDiff
@@ -122,8 +123,8 @@ toniclet renderer mtt =
       # (_, world)       = removeElems subs world
       // End hackish solution to prevent double rerendering
       # (drend, world)   = mkRenderer world
-      # renderNodeFun    = createEditletEventHandler (drawNodeCb Nothing) cid
-      # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb Nothing) cid
+      # renderNodeFun    = createEditletEventHandler drawNodeCb cid
+      # renderEdgeLblFun = createEditletEventHandler drawEdgeLabelCb cid
       # world            = setDrawNode drend renderNodeFun world
       # world            = setDrawEdgeLabel drend renderEdgeLblFun world
       # (layout, world)  = mkLayout world
@@ -147,16 +148,16 @@ toniclet renderer mtt =
   onLibLoaded diffs cid _ clval world
     = updateUI cid diffs clval world
 
-  drawNodeCb st cid {[0] = jsgraph, [1] = u, [2] = root} clval world
+  drawNodeCb cid {[0] = jsgraph, [1] = u, [2] = root} clval world
     # graphValue = jsUnsafeCoerce jsgraph
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
     # world      = case fmap (\tt -> 'DG'.getNodeData nodeId tt.tt_graph) clval.tonicTask of
-                     (Just (Just nodeVal)) -> renderer.drawNodeCallback st nodeVal graphValue nodeId rootElem world
+                     (Just (Just nodeVal)) -> renderer.drawNodeCallback nodeVal graphValue nodeId rootElem world
                      _                     -> world
     = (clval, world)
 
-  drawEdgeLabelCb st cid {[0] = jsgraph, [1] = e, [2] = root} clval world
+  drawEdgeLabelCb cid {[0] = jsgraph, [1] = e, [2] = root} clval world
     # graphValue    = jsUnsafeCoerce jsgraph
     # edgeIdLst     = jsUnsafeCoerce e
     # (fEId, world) = jsGetObjectEl 0 edgeIdLst world
@@ -164,14 +165,14 @@ toniclet renderer mtt =
     # edgeId        = (jsValToInt fEId, jsValToInt tEId)
     # rootElem      = jsUnsafeCoerce root
     # world         = case fmap (\tt -> 'DG'.getEdgeData edgeId tt.tt_graph) clval.tonicTask of
-                        (Just (Just edgeVal)) -> renderer.drawEdgeLabelCallback st edgeVal graphValue edgeId rootElem world
+                        (Just (Just edgeVal)) -> renderer.drawEdgeLabelCallback edgeVal graphValue edgeId rootElem world
                         _                     -> world
     = (clval, world)
 
   genServerDiff (Nothing) (Just tt)  = genGraphDiff emptyGraph tt.tt_graph
   genServerDiff (Just tt) (Nothing)  = genGraphDiff tt.tt_graph emptyGraph
   genServerDiff (Just tt) (Just tt`) = genGraphDiff tt.tt_graph tt`.tt_graph
-  genServerDiff _ _ = Nothing
+  genServerDiff _         _          = Nothing
 
   genGraphDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
                                      []    -> Nothing
@@ -209,7 +210,7 @@ toniclet renderer mtt =
   genClientDiff {tonicTask=Nothing} {tonicTask=Just tt}  = genGraphDiff emptyGraph tt.tt_graph
   genClientDiff {tonicTask=Just tt} {tonicTask=Nothing}  = genGraphDiff tt.tt_graph emptyGraph
   genClientDiff {tonicTask=Just tt} {tonicTask=Just tt`} = genGraphDiff tt.tt_graph tt`.tt_graph
-  genClientDiff _ _ = Nothing
+  genClientDiff _                   _                    = Nothing
 
   appClientDiff diffs cs=:{tonicTask=(Just tt=:{tt_graph})} = {cs & tonicTask=Just {tt & tt_graph = appGraphDiff diffs tt_graph}}
   appClientDiff diffs cs                                    = cs

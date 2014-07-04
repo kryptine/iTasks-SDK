@@ -5,8 +5,6 @@ import iTasks.API.Core.Client.Editlet
 from Data.Graph import :: Graph, :: Node, :: NodeIndex, :: EdgeIndex
 from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
-from iTasks.API.Extensions.Tonic.TonicRenderer import :: TonicState
-from iTasks.Framework.Tonic import :: UserTraceMap, :: TonicTrace
 from iTasks.Framework.Tonic.AbsSyn import :: GNode, :: GEdge, :: TonicTask
 
 derive gEditor Graph, Node
@@ -24,8 +22,8 @@ derive gText Graph, Node
   |  UpdateNodes    [(GNode, NodeIndex)]
 
 :: TonicletRenderer =
-  { drawNodeCallback      :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-  , drawEdgeLabelCallback :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+  { drawNodeCallback      :: GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
 

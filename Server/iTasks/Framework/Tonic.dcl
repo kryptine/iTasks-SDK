@@ -59,25 +59,9 @@ tonicSharedRT :: Shared TonicRTMap
   , trt_output       :: Maybe (Task ())
   }
 
-:: TraceType = EnterTrace | ExitTrace
+derive class iTask TonicRT
 
-// TODO : Remove?
-:: TonicTrace =
-	{ tr_traceType  :: !TraceType
-	//, tr_tuneInfo   :: !TonicTune
-	, tr_traceUser  :: !User
-	, tr_traceTime  :: !Timestamp
-	}
-
-derive class iTask TonicTrace, TraceType, TonicRT
-
-:: UserTraceMap :== Map User (Map InstanceNo [TonicTrace])
-
-:: UserGraphMap :== Map User GinGraph
-
-tonicTraces :: Shared UserTraceMap
-
-tonicLogin :: String -> Task Void
+tonicLogin :: String -> Task ()
 
 tonicPubTask :: String -> PublishedTask
 
