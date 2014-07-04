@@ -7,9 +7,39 @@ import iTasks.Framework.Generic
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Types import :: User
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
-from iTasks.Framework.Tonic.AbsSyn import :: GinGraph, :: Graph, :: GEdge, :: GNode, :: ModuleName, :: TaskName, :: TonicTask
+import iTasks.Framework.Tonic.AbsSyn
 from System.Time import :: Timestamp
 from Data.Map import :: Map
+
+derive gEditor
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepCont, StepFilter
+
+derive gEditMeta
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepCont, StepFilter
+
+derive gDefault
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepCont, StepFilter
+
+derive gUpdate
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepCont, StepFilter
+
+derive gVerify
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepCont, StepFilter
+
+derive gText
+  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
+  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
+  StepCont, StepFilter
 
 :: TaskDict a = TaskDict & iTask a
 

@@ -7,10 +7,11 @@ import iTasks.API.Extensions.Graphlet.DagreD3
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.Tonic.TonicRenderer
+import iTasks.Framework.Tonic.AbsSyn
 from iTasks.API.Extensions.Graphlet.Graphlib import delNode, delEdge
 import StdMisc
 import StdArray
-from Data.Graph import :: Graph, :: Node{..}, :: NodeIndex, :: EdgeIndex
+from Data.Graph import :: Graph, :: Node{..}, :: NodeIndex, :: EdgeIndex, emptyGraph
 import qualified Data.Graph as DG
 import qualified Data.Map as DM
 import dynamic_string
@@ -22,34 +23,29 @@ derive gUpdate Graph, Node
 derive gVerify Graph, Node
 derive gText Graph, Node
 
-derive class iTask GraphletDiff, Graphlet
+derive class iTask TonicletDiff
 
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-graphlet :: (GraphletRenderer n e) (Graphlet n e)
-         -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e
-graphlet renderer initGraphlet =
-  Editlet initGraphlet
+toniclet :: TonicletRenderer (Maybe TonicTask) -> Editlet (Maybe TonicTask) [TonicletDiff]
+toniclet renderer mtt =
+  Editlet Nothing
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
-    , defVal  = defGraphlet
+    , defVal  = Nothing
     , genDiff = genServerDiff
     , appDiff = appServerDiff
     }
     { EditletClientDef
     | updateUI = updateUI
     , defVal   = { mbClientState = Nothing
-                 , graphlet      = defGraphlet
+                 , tonicTask     = Nothing
                  }
     , genDiff  = genClientDiff
     , appDiff  = appClientDiff
     }
   where
-  defGraphlet = { graph      = 'DG'.emptyGraph
-                , tonicState = Nothing
-                }
-
   uiDef cid
     = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"]
                                []
@@ -120,17 +116,14 @@ graphlet renderer initGraphlet =
         # world = setNodeValue graphObj (toJSVal ni) (toJSVal node) world
         = (jsgraph, world)
 
-    updateUI` cid (Just [SetTonicState ts:diffs]) clval=:{graphlet, mbClientState=Just {graphObj}} world
-      = updateUI` cid (Just diffs) {clval & graphlet={graphlet & tonicState = ts}} world
-
-    updateUI` cid (Just []) clval=:{graphlet, mbClientState=Just {graphObj, svgTarget}} world
+    updateUI` cid (Just []) clval=:{tonicTask, mbClientState=Just {graphObj, svgTarget}} world
       // Start hackish solution to prevent double rerendering
       # (subs, world)    = selectAllChildElems svgTarget "g" world
       # (_, world)       = removeElems subs world
       // End hackish solution to prevent double rerendering
       # (drend, world)   = mkRenderer world
-      # renderNodeFun    = createEditletEventHandler (drawNodeCb graphlet.tonicState) cid
-      # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb graphlet.tonicState) cid
+      # renderNodeFun    = createEditletEventHandler (drawNodeCb Nothing) cid
+      # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb Nothing) cid
       # world            = setDrawNode drend renderNodeFun world
       # world            = setDrawEdgeLabel drend renderEdgeLblFun world
       # (layout, world)  = mkLayout world
@@ -158,9 +151,9 @@ graphlet renderer initGraphlet =
     # graphValue = jsUnsafeCoerce jsgraph
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
-    # world      = case 'DG'.getNodeData nodeId clval.graphlet.graph of
-                     Just nodeVal -> renderer.drawNodeCallback st nodeVal graphValue nodeId rootElem world
-                     _            -> world
+    # world      = case fmap (\tt -> 'DG'.getNodeData nodeId tt.tt_graph) clval.tonicTask of
+                     (Just (Just nodeVal)) -> renderer.drawNodeCallback st nodeVal graphValue nodeId rootElem world
+                     _                     -> world
     = (clval, world)
 
   drawEdgeLabelCb st cid {[0] = jsgraph, [1] = e, [2] = root} clval world
@@ -170,12 +163,15 @@ graphlet renderer initGraphlet =
     # (tEId, world) = jsGetObjectEl 1 edgeIdLst world
     # edgeId        = (jsValToInt fEId, jsValToInt tEId)
     # rootElem      = jsUnsafeCoerce root
-    # world         = case 'DG'.getEdgeData edgeId clval.graphlet.graph of
-                        Just edgeVal -> renderer.drawEdgeLabelCallback st edgeVal graphValue edgeId rootElem world
-                        _            -> world
+    # world         = case fmap (\tt -> 'DG'.getEdgeData edgeId tt.tt_graph) clval.tonicTask of
+                        (Just (Just edgeVal)) -> renderer.drawEdgeLabelCallback st edgeVal graphValue edgeId rootElem world
+                        _                     -> world
     = (clval, world)
 
-  genServerDiff oldSt newSt = mappendMaybeList (genGraphDiff oldSt.graph newSt.graph) (genTonicDiff oldSt.tonicState newSt.tonicState)
+  genServerDiff (Nothing) (Just tt)  = genGraphDiff emptyGraph tt.tt_graph
+  genServerDiff (Just tt) (Nothing)  = genGraphDiff tt.tt_graph emptyGraph
+  genServerDiff (Just tt) (Just tt`) = genGraphDiff tt.tt_graph tt`.tt_graph
+  genServerDiff _ _ = Nothing
 
   genGraphDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
                                      []    -> Nothing
@@ -199,16 +195,7 @@ graphlet renderer initGraphlet =
                     [] -> []
                     xs -> [UpdateNodes xs]
 
-  genTonicDiff oldSt newSt
-    | oldSt =!= newSt = Just [SetTonicState newSt]
-    | otherwise       = Nothing
-
-  appTonicDiff diffs ts = foldr f ts diffs
-    where
-    f (SetTonicState ts) _  = ts
-    f _                  xs = xs
-
-  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph, tonicState = appTonicDiff diffs serverState.tonicState}
+  appServerDiff diffs serverState = fmap (\st -> {st & tt_graph = appGraphDiff diffs st.tt_graph}) serverState
 
   appGraphDiff diffs graph = foldl f graph diffs
     where
@@ -219,11 +206,10 @@ graphlet renderer initGraphlet =
     f graph (UpdateNodes ns) = foldr (\(n, ni) g -> 'DG'.setNodeData ni n g) graph ns
     f graph _                = graph
 
-  genClientDiff oldSt newSt = genGraphDiff oldSt.graphlet.graph newSt.graphlet.graph
+  genClientDiff {tonicTask=Nothing} {tonicTask=Just tt}  = genGraphDiff emptyGraph tt.tt_graph
+  genClientDiff {tonicTask=Just tt} {tonicTask=Nothing}  = genGraphDiff tt.tt_graph emptyGraph
+  genClientDiff {tonicTask=Just tt} {tonicTask=Just tt`} = genGraphDiff tt.tt_graph tt`.tt_graph
+  genClientDiff _ _ = Nothing
 
-  appClientDiff diffs cs=:{graphlet={graph, tonicState}} = {cs & graphlet = {graph = appGraphDiff diffs graph, tonicState=tonicState}}
-
-mappendMaybeList (Just xs) (Just ys) = Just (xs ++ ys)
-mappendMaybeList (Just xs) _         = Just xs
-mappendMaybeList _         (Just ys) = Just ys
-mappendMaybeList _         _         = Nothing
+  appClientDiff diffs cs=:{tonicTask=(Just tt=:{tt_graph})} = {cs & tonicTask=Just {tt & tt_graph = appGraphDiff diffs tt_graph}}
+  appClientDiff diffs cs                                    = cs

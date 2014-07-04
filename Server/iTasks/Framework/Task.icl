@@ -10,6 +10,19 @@ from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRules
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
+mkInstantTask` :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) (TaskValue a),!*IWorld)) -> Task a | iTask a
+mkInstantTask` iworldfun = Task (evalOnce iworldfun)
+where
+	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
+		(Ok tv,iworld)							= (ValueResult tv {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON tv)), iworld) // TODO TCStable may not be the best option here
+		(Error e, iworld)					    = (ExceptionResult e, iworld)
+
+	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+		Just tv	= (ValueResult tv {lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
+		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
+
+	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
+
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where

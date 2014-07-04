@@ -4,20 +4,15 @@ from Data.Maybe import :: Maybe
 import iTasks
 from iTasks.Framework.Tonic import :: TonicTrace, :: UserTraceMap
 from iTasks.Framework.Tonic.AbsSyn import :: GNode, :: GEdge
-from iTasks.API.Extensions.Tonic.Toniclet import :: GraphletRenderer
+from iTasks.API.Extensions.Tonic.Toniclet import :: TonicletRenderer
 
 :: TonicState =
   { traces     :: UserTraceMap
-  , renderMode :: RenderMode
   }
 
-:: RenderMode
-  =  SingleUser User InstanceNo
-  |  MultiUser [InstanceNo]
+derive class iTask TonicState
 
-derive class iTask TonicState, RenderMode
-
-tonicRenderer :: GraphletRenderer GNode GEdge
+tonicRenderer :: TonicletRenderer
 
 tracesForUserInstance :: User InstanceNo UserTraceMap -> [TonicTrace]
 

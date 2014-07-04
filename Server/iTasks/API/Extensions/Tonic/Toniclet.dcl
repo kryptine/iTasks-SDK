@@ -5,8 +5,9 @@ import iTasks.API.Core.Client.Editlet
 from Data.Graph import :: Graph, :: Node, :: NodeIndex, :: EdgeIndex
 from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
-from iTasks.API.Extensions.Tonic.TonicRenderer import :: TonicState, :: RenderMode
+from iTasks.API.Extensions.Tonic.TonicRenderer import :: TonicState
 from iTasks.Framework.Tonic import :: UserTraceMap, :: TonicTrace
+from iTasks.Framework.Tonic.AbsSyn import :: GNode, :: GEdge, :: TonicTask
 
 derive gEditor Graph, Node
 derive gEditMeta Graph, Node
@@ -15,36 +16,29 @@ derive gUpdate Graph, Node
 derive gVerify Graph, Node
 derive gText Graph, Node
 
-:: GraphletDiff n e
+:: TonicletDiff
   =  RemoveNodes    [NodeIndex]
   |  RemoveEdges    [EdgeIndex]
-  |  AddNodes       [(n, NodeIndex)]
-  |  AddEdges       [(e, EdgeIndex)]
-  |  UpdateNodes    [(n, NodeIndex)]
-  |  SetTonicState  (Maybe TonicState)
+  |  AddNodes       [(GNode, NodeIndex)]
+  |  AddEdges       [(GEdge, EdgeIndex)]
+  |  UpdateNodes    [(GNode, NodeIndex)]
 
-:: GraphletRenderer n e =
-  { drawNodeCallback      :: (Maybe TonicState) n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-  , drawEdgeLabelCallback :: (Maybe TonicState) e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+:: TonicletRenderer =
+  { drawNodeCallback      :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
 
-:: Graphlet n e =
-  { graph      :: Graph n e
-  , tonicState :: Maybe TonicState
+:: TonicletClientData =
+  { mbClientState :: Maybe TonicletClientState
+  , tonicTask     :: Maybe TonicTask
   }
 
-:: GraphletClientData n e =
-  { mbClientState :: Maybe GraphletClientState
-  , graphlet      :: Graphlet n e
-  }
-
-:: GraphletClientState =
+:: TonicletClientState =
   { graphObj  :: GLGraph
   , svgTarget :: D3
   }
 
-derive class iTask GraphletDiff, Graphlet
+derive class iTask TonicletDiff
 
-graphlet :: (GraphletRenderer n e) (Graphlet n e)
-         -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e
+toniclet :: TonicletRenderer (Maybe TonicTask) -> Editlet (Maybe TonicTask) [TonicletDiff]

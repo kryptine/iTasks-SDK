@@ -12,11 +12,11 @@ import iTasks.API.Extensions.Graphlet.D3
 import iTasks.API.Extensions.Graphlet.Graphlib
 import qualified Data.Map as DM
 
-derive class iTask TonicState, RenderMode
+derive class iTask TonicState
 
-tonicRenderer :: GraphletRenderer GNode GEdge
+tonicRenderer :: TonicletRenderer
 tonicRenderer =
-  { GraphletRenderer
+  { TonicletRenderer
   | drawNodeCallback      = drawNode
   , drawEdgeLabelCallback = drawEdgeLabel
   , styleSheets           = ["/tonic.css"]
@@ -201,11 +201,11 @@ drawVar g expr world
   = world
 
 drawNode :: (Maybe TonicState) GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
-  # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
-  = drawNode_ traces singleUserMap shape graph u root world
-drawNode (Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
-  = drawNode_ traces (activeUserTracesMap traces instanceNos) shape graph u root world
+//drawNode (Just {traces, renderMode=SingleUser user instanceNo}) shape graph u root world
+  //# singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
+  //= drawNode_ traces singleUserMap shape graph u root world
+//drawNode (Just {traces, renderMode=MultiUser instanceNos}) shape graph u root world
+  //= drawNode_ traces (activeUserTracesMap traces instanceNos) shape graph u root world
 drawNode _ shape graph u root world
   = drawNode_ 'DM'.newMap 'DM'.newMap shape graph u root world
 
@@ -477,11 +477,11 @@ getBBox root world
   = ((jsValToReal jbbh, jsValToReal jbbw), world)
 
 drawEdgeLabel :: (Maybe TonicState) GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
-drawEdgeLabel (Just {traces, renderMode=SingleUser user instanceNo}) {edge_pattern} _ (fromIdx, toIdx) root world
-  # singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
-  = drawEdgeLabel` traces singleUserMap edge_pattern (fromIdx, toIdx) root world
-drawEdgeLabel (Just {traces, renderMode=MultiUser instanceNos}) {edge_pattern} _ (fromIdx, toIdx) root world
-  = drawEdgeLabel` traces (activeUserTracesMap traces instanceNos) edge_pattern (fromIdx, toIdx) root world
+//drawEdgeLabel (Just {traces, renderMode=SingleUser user instanceNo}) {edge_pattern} _ (fromIdx, toIdx) root world
+  //# singleUserMap = 'DM'.singleton user (tracesForUserInstance user instanceNo traces)
+  //= drawEdgeLabel` traces singleUserMap edge_pattern (fromIdx, toIdx) root world
+//drawEdgeLabel (Just {traces, renderMode=MultiUser instanceNos}) {edge_pattern} _ (fromIdx, toIdx) root world
+  //= drawEdgeLabel` traces (activeUserTracesMap traces instanceNos) edge_pattern (fromIdx, toIdx) root world
 drawEdgeLabel _ {edge_pattern} _ (fromIdx, toIdx) root world
   = drawEdgeLabel` 'DM'.newMap 'DM'.newMap edge_pattern (fromIdx, toIdx) root world
 

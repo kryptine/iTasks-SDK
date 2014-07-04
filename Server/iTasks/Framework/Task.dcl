@@ -94,3 +94,8 @@ extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 * Create a task that finishes instantly
 */
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
+
+/**
+* Create a task with a specific task value that finishes instantly
+*/
+mkInstantTask` :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) (TaskValue a),!*IWorld)) -> Task a | iTask a

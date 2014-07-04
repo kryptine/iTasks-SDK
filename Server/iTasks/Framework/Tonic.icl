@@ -299,29 +299,31 @@ selectTask tm
 
 viewStaticTask tn mn tt =
       viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
-  ||- viewInformation
-        ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
-        (graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
+  //||- viewInformation
+        //("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
+        //(graphlet tonicRenderer {graph=tt.tt_graph, tonicState=Nothing})
   <<@ FullScreen
 
 viewDynamic =
-      viewSharedInformation "Active blueprint instances" [] (mapRead (map snd o 'DM'.toList) tonicSharedRT)
-      >>| return Void
+      enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT)
+  >&> \shmtrt -> viewSharedInformation "Selected blueprint instance" [ViewWith (\mbpinst -> toniclet tonicRenderer mbpinst)]
+                    (mapRead (maybe Nothing (\trt -> trt.trt_bpinstance)) shmtrt)
+  >>| return Void
 
-viewDynamicTask u tn mn tt =
-        viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
-    ||- viewSharedInformation
-          ("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'")
-          [ViewWith (\(traces, currSess) -> graphlet tonicRenderer {graph=tt.tt_graph, tonicState=mkState [no \\ {TaskListItem|taskId=tid=:(TaskId no _)} <- currSess] traces})]
-          (tonicTraces |+| currentSessions)
-    <<@ FullScreen
-  where
-  mkState nos traces =
-    Just
-    { TonicState
-    | traces     = traces
-    , renderMode = MultiUser nos
-    }
+//viewDynamicTask u tn mn tt =
+        //viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
+    //||- viewSharedInformation
+          //("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'")
+          //[ViewWith (\(traces, currSess) -> graphlet tonicRenderer {graph=tt.tt_graph, tonicState=mkState [no \\ {TaskListItem|taskId=tid=:(TaskId no _)} <- currSess] traces})]
+          //(tonicTraces |+| currentSessions)
+    //<<@ FullScreen
+  //where
+  //mkState nos traces =
+    //Just
+    //{ TonicState
+    //| traces     = traces
+    //, renderMode = MultiUser nos
+    //}
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
