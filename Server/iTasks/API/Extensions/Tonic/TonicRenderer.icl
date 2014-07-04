@@ -283,11 +283,11 @@ drawNode_ active shape graph u root world
     = world
   drawNode` {nodeType=GTransform expr} _ nid root world
     # (g, world)          = append "g" root world
-    # (g, world)          = setAttr "class" (toJSVal "tonic-return") g world
-    # (rect, world)       = append "ellipse" g world
+    # (g, world)          = setAttr "class" (toJSVal "tonic-transform") g world
+    # (rect, world)       = append "rect" g world
     # (g``, world)        = append "g" g world
     # (text, world)       = append "text" g`` world
-    # (_, world)          = setText expr text world // TODO Draw entire subgraph
+    # (_, world)          = setText expr text world
     # ((bbh, bbw), world) = getBBox root world
     # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
     # (rect, world)       = setAttrs [ ("rx", toJSVal ((bbw / 2.0) + bbh))

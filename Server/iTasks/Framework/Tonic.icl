@@ -216,9 +216,11 @@ viewDynamic =
              enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
   \trt    -> get tonicSharedRT >>-
   \mp     -> return ('DM'.foldrNoKey (\v acc -> if (v.trt_parentTaskId == trt.trt_taskId) [v:acc] acc) [] mp) >>-
-  \childs -> viewSharedInformation "Selected blueprint instance"
+  \childs -> viewInformation "Task module and name" [] trt.trt_bpref
+         ||- viewInformation "Task arguments" [] (map fst trt.trt_params)
+         ||- (viewSharedInformation "Selected blueprint instance"
                [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
-               tonicSharedRT >>|
+               tonicSharedRT) >>|
              return ()
 
 //viewDynamicTask u tn mn tt =
