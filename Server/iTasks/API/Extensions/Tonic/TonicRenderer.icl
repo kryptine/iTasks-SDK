@@ -145,12 +145,12 @@ drawVar g expr world
                                  ] app world
   = world
 
-drawNode :: GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode shape graph u root world
-  = drawNode_ shape graph u root world
+drawNode :: Bool GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+drawNode active shape graph u root world
+  = drawNode_ active shape graph u root world
 
-//drawNode_ :: TonicState GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode_ shape graph u root world
+drawNode_ :: Bool GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+drawNode_ active shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
   where
@@ -328,7 +328,7 @@ drawNode_ shape graph u root world
     // the task application and display the corresponding user name on mouse over
   drawNode` {nodeType=GTaskApp tid exprs, nodeTonicInfo}    _ _ root world
     # (g, world)        = append "g" root world
-    # (g, world)        = setAttr "class" (toJSVal "tonic-taskapplication") g world
+    # (g, world)        = setAttr "class" (toJSVal ( mkCSSClasses active "tonic-taskapplication")) g world
     # (app, world)      = append "rect" g world
     # (tg, world)       = append "g" g world
     # (task, world)     = append "text" tg world
@@ -420,6 +420,7 @@ drawEdgeLabel :: GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
 drawEdgeLabel {edge_pattern} _ (fromIdx, toIdx) root world
   = drawEdgeLabel` edge_pattern (fromIdx, toIdx) root world
 
+drawEdgeLabel` :: (Maybe String) EdgeIndex D3 *JSWorld -> *JSWorld
 drawEdgeLabel` edge_pattern (fromIdx, toIdx) root world
   # (grp, world)     = append "g" root world
   # (grp, world)     = setAttr "class" (toJSVal "edge-label") grp world

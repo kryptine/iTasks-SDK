@@ -29,8 +29,8 @@ derive class iTask TonicletDiff
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-toniclet :: TonicletRenderer (Maybe TonicTask) -> Editlet (Maybe TonicTask) [TonicletDiff]
-toniclet renderer mtt =
+toniclet :: TonicletRenderer (Maybe TonicTask) (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
+toniclet renderer mtt manid =
   Editlet mtt
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
@@ -153,7 +153,7 @@ toniclet renderer mtt =
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
     # world      = case fmap (\tt -> 'DG'.getNodeData nodeId tt.tt_graph) clval.tonicTask of
-                     (Just (Just nodeVal)) -> renderer.drawNodeCallback nodeVal graphValue nodeId rootElem world
+                     (Just (Just nodeVal)) -> renderer.drawNodeCallback (manid === Just nodeId) nodeVal graphValue nodeId rootElem world
                      _                     -> world
     = (clval, world)
 

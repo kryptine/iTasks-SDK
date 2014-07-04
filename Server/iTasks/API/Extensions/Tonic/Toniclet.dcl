@@ -22,7 +22,7 @@ derive gText Graph, Node
   |  UpdateNodes    [(GNode, NodeIndex)]
 
 :: TonicletRenderer =
-  { drawNodeCallback      :: GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+  { drawNodeCallback      :: Bool GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
   , drawEdgeLabelCallback :: GEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
@@ -39,4 +39,4 @@ derive gText Graph, Node
 
 derive class iTask TonicletDiff
 
-toniclet :: TonicletRenderer (Maybe TonicTask) -> Editlet (Maybe TonicTask) [TonicletDiff]
+toniclet :: TonicletRenderer (Maybe TonicTask) (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
