@@ -8,18 +8,18 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepCont, StepFilter,
-  GParType, NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
+  NodeContents
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepCont, StepFilter,
-  GParType, NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
+  NodeContents
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, StepElem, StepCont, StepFilter,
-  GParType, NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
+  NodeContents
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -50,14 +50,6 @@ derive gEq
 
 :: GNode =
   { nodeType      :: !GNodeType
-  , nodeTonicInfo :: Maybe TonicInfo
-  }
-
-:: TonicInfo =
-  { tonicModuleName  :: String
-  , tonicTaskName    :: String
-  , tonicNodeId      :: Int
-  , tonicValAsStr    :: Maybe String
   }
 
 mkGNode :: GNodeType -> GNode
@@ -80,6 +72,7 @@ mkGNode :: GNodeType -> GNode
   |  GStep [NodeContents]
   |  GStop
   |  GTaskApp GIdentifier ![GCleanExpression]
+  |  GTransform GCleanExpression
   |  GVar GCleanExpression
   |  GArbitraryExpression
 

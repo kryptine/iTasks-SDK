@@ -13,33 +13,33 @@ from Data.Map import :: Map
 
 derive gEditor
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepCont, StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
+  StepFilter
 
 derive gEditMeta
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepCont, StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
+  StepFilter
 
 derive gDefault
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepCont, StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
+  StepFilter
 
 derive gUpdate
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepCont, StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
+  StepFilter
 
 derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepCont, StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
+  StepFilter
 
 derive gText
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, TonicInfo, GParType, NodeContents, StepElem,
-  StepCont, StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
+  StepFilter
 
 :: TaskDict a = TaskDict & iTask a
 

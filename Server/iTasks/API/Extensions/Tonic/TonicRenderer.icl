@@ -155,15 +155,15 @@ drawNode_ active shape graph u root world
   = drawNode` shape graph u root` world
   where
   drawNode` :: GNode GLGraph Int D3 *JSWorld -> *JSWorld
-  drawNode` {nodeType=GVar expr, nodeTonicInfo} _ nid root world
+  drawNode` {nodeType=GVar expr} _ nid root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-var") g world
     = drawVar g expr world
-  drawNode` {nodeType=GArbitraryExpression, nodeTonicInfo} _ nid root world
+  drawNode` {nodeType=GArbitraryExpression} _ nid root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-arbitrary") g world
     = drawArbitrary g world
-  drawNode` {nodeType=GAssign expr, nodeTonicInfo} _ _ root world
+  drawNode` {nodeType=GAssign expr} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-assign") g world
     # (head, world) = append "circle" g world
@@ -183,7 +183,7 @@ drawNode_ active shape graph u root world
                                ] text world
     # (_, world)    = setText expr text world
     = world
-  drawNode` {nodeType=GDecision _ expr, nodeTonicInfo} _ nid root world
+  drawNode` {nodeType=GDecision _ expr} _ nid root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-decision") g world
     # (path, world)       = append "path" g world
@@ -199,7 +199,7 @@ drawNode_ active shape graph u root world
                                     , "Z"] path world
     # (g, world)          = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ ",0)")) g world
     = world
-  drawNode` {nodeType=GInit, nodeTonicInfo} _ _ root world
+  drawNode` {nodeType=GInit} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-init") g world
     # (svg, world)  = append "svg" g world
@@ -216,7 +216,7 @@ drawNode_ active shape graph u root world
                                , ("points", toJSVal "0,0 2,1 0,2 0,0")
                                ] poly world
     = world
-  drawNode` {nodeType=GLet gl, nodeTonicInfo}               _ _ root world
+  drawNode` {nodeType=GLet gl}               _ _ root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-let") g world
     # (rect, world)       = append "rect" g world
@@ -231,7 +231,7 @@ drawNode_ active shape graph u root world
                                      , ("height", toJSVal bbh)
                                      ] rect world
     = world
-  //drawNode` {nodeType=GListComprehension gl, nodeTonicInfo} _ _ root world
+  //drawNode` {nodeType=GListComprehension gl} _ _ root world
     //# (g, world)        = append "g" root world
     //# (g, world)        = setAttr "class" (toJSVal "tonic-listcomprehension") g world
     //# (app, world)      = append "rect" g world
@@ -268,7 +268,7 @@ drawNode_ active shape graph u root world
                                    //] line world
     //= world
 
-  drawNode` {nodeType=GReturn expr, nodeTonicInfo} _ nid root world
+  drawNode` {nodeType=GReturn expr} _ nid root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-return") g world
     # (rect, world)       = append "ellipse" g world
@@ -281,7 +281,20 @@ drawNode_ active shape graph u root world
                                      , ("ry", toJSVal bbh)
                                      ] rect world
     = world
-  drawNode` {nodeType=(GStep ndcs), nodeTonicInfo} _ _ root world
+  drawNode` {nodeType=GTransform expr} _ nid root world
+    # (g, world)          = append "g" root world
+    # (g, world)          = setAttr "class" (toJSVal "tonic-return") g world
+    # (rect, world)       = append "ellipse" g world
+    # (g``, world)        = append "g" g world
+    # (text, world)       = append "text" g`` world
+    # (_, world)          = setText expr text world // TODO Draw entire subgraph
+    # ((bbh, bbw), world) = getBBox root world
+    # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
+    # (rect, world)       = setAttrs [ ("rx", toJSVal ((bbw / 2.0) + bbh))
+                                     , ("ry", toJSVal bbh)
+                                     ] rect world
+    = world
+  drawNode` {nodeType=(GStep ndcs)} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-step") g world
     = foldr (drawStep g) world ndcs
@@ -315,7 +328,7 @@ drawNode_ active shape graph u root world
       drawFilter StepIfUnstable world = world
       drawFilter StepIfValue world = world
       drawFilter (StepCond str) world = world
-  drawNode` {nodeType=GStop, nodeTonicInfo} _ _ root world
+  drawNode` {nodeType=GStop} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-stop") g world
     # (stop, world) = append "rect" g world
@@ -326,7 +339,7 @@ drawNode_ active shape graph u root world
     = world
     // TODO Instead of coloring the backgroun, draw coloured squares next to
     // the task application and display the corresponding user name on mouse over
-  drawNode` {nodeType=GTaskApp tid exprs, nodeTonicInfo}    _ _ root world
+  drawNode` {nodeType=GTaskApp tid exprs}    _ _ root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal ( mkCSSClasses active "tonic-taskapplication")) g world
     # (app, world)      = append "rect" g world
@@ -363,7 +376,7 @@ drawNode_ active shape graph u root world
     # (args`, world)    = selectAllChildElems args "tspan" world
     # (args`, world)    = setAttr "x" (toJSVal (0.0 - (tw / 2.0))) args` world
     = world
-  drawNode` {nodeType=GParallel parType contents, nodeTonicInfo}    _ _ root world
+  drawNode` {nodeType=GParallel parType contents}    _ _ root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-parallel") g world
     # (app, world)      = append "rect" g world
