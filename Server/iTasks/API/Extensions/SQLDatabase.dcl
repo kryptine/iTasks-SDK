@@ -3,32 +3,39 @@ definition module iTasks.API.Extensions.SQLDatabase
 * This experimental extension provides tasks and shares
 * for interacting with a relational database.
 *
-* It provides only mimimal functionality and currently only works with MySQL...
+* It provides only mimimal functionality and currently only works with MySQL and SQLite
 */
-import iTasks, Database.SQL, Data.Error
-derive class iTask SQLValue, SQLTime, SQLDate, SQLTable, SQLColumn, SQLColumnType
+import iTasks, Database.SQL, Data.Error, System.FilePath
 
+//Type for describing database configurations
+:: SQLDatabaseDef
+    = MySQLDatabase SQLDatabase
+    | SQLiteDatabase FilePath
+
+derive class iTask SQLDatabaseDef, SQLDatabase, SQLValue, SQLTime, SQLDate, SQLTable, SQLColumn, SQLColumnType
+
+//Core access functions
 
 /**
-* Generic SQL Datbase share
+* Generic SQL Database share
 * You need to supply the read/write operations as functions using an SQL cursor
 *
 * @param The database connection details
 * @param A unique identifier for the share
 * @param The read access function
 * @param The write access function
-* 
+*
 * @return The shared data source
 */
 sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabase,p) r w
+								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabaseDef,p) r w
 
 
 
 /**
 * Perform one or multiple queries on an SQL database
 */
-sqlExecute	:: SQLDatabase [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
+sqlExecute	:: SQLDatabaseDef [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
 
 //Common helper functions for sqlExecute
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
@@ -38,7 +45,7 @@ execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Void,*cur) | SQ
 /**
 * Run a single query and fetch all results
 */
-sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
+sqlExecuteSelect :: SQLDatabaseDef SQLStatement ![SQLValue] -> Task [SQLRow]
 
 /**
 * Read only query that is run each time the share is read.
@@ -46,16 +53,16 @@ sqlExecuteSelect :: SQLDatabase SQLStatement ![SQLValue] -> Task [SQLRow]
 * Note: Although it is possible to do other queries than just selects,
 * this is a bad idea. You never know how many times the query will be executed
 */
-sqlSelectShare	:: String SQLStatement ![SQLValue] -> ROShared SQLDatabase [SQLRow]
+sqlSelectShare	:: String SQLStatement ![SQLValue] -> ROShared SQLDatabaseDef [SQLRow]
 
 /*
 * View the list of tables in a database
 */
-sqlTables :: ROShared SQLDatabase [SQLTableName]
+sqlTables :: ROShared SQLDatabaseDef [SQLTableName]
 /**
 * The structure of database table
 */
-sqlTableDefinition :: ROShared (SQLDatabase,SQLTableName) SQLTable
+sqlTableDefinition :: ROShared (SQLDatabaseDef,SQLTableName) SQLTable
 
-sqlExecuteCreateTable :: SQLDatabase SQLTable -> Task Void
-sqlExecuteDropTable :: SQLDatabase SQLTableName -> Task Void
+sqlExecuteCreateTable :: SQLDatabaseDef SQLTable -> Task Void
+sqlExecuteDropTable :: SQLDatabaseDef SQLTableName -> Task Void
