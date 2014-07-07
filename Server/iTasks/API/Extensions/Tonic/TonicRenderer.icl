@@ -289,9 +289,14 @@ drawNode_ active shape graph u root world
     # (text, world)       = append "text" g`` world
     # (_, world)          = setText expr text world
     # ((bbh, bbw), world) = getBBox root world
+    # ((th, tw), world)   = getBBox text world
     # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
-    # (rect, world)       = setAttrs [ ("rx", toJSVal ((bbw / 2.0) + bbh))
-                                     , ("ry", toJSVal bbh)
+    # (rect, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
+                                     , ("y", toJSVal (0.0 - (th / 2.0)))
+                                     , ("rx", toJSVal "5")
+                                     , ("ry", toJSVal "5")
+                                     , ("width", toJSVal tw)
+                                     , ("height", toJSVal th)
                                      ] rect world
     = world
   drawNode` {nodeType=(GStep ndcs)} _ _ root world

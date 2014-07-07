@@ -23,7 +23,6 @@ from StdMisc import undef, abort
 from StdFile import instance FileSystem World
 import qualified StdArray as SA
 from StdArray import class Array, instance Array {#} Char
-import StdDebug
 import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.Graph
 import qualified Data.Map as DM
 
@@ -80,6 +79,15 @@ tonicWrapTaskBody mn tn args TaskDict t = tonicWrapTaskBody` mn tn args t
 tonicWrapTaskBody` :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- \m -> Task (eval` m)
   where
+    eval` mod event evalOpts taskTree=:(TCDestroy tt) iworld
+      # iworld = case taskIdFromTaskTree tt of
+                   Just currTaskId=:(TaskId x y)
+                     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+                     = case mrtMap of
+                         Ok rtMap -> snd ('DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT iworld)
+                         _        -> iworld
+                   _ = iworld
+      = eval event evalOpts taskTree iworld
     eval` mod event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
       = case taskIdFromTaskTree taskTree of
           Just (currTaskId=:(TaskId instanceNo _))
@@ -95,8 +103,8 @@ tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- \m -> Task (eval` m
             # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
             = case mrtMap of
                 Ok rtMap
-                  # (_, iworld)    = 'DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld
-                  # (tr, iworld)   = eval event evalOpts taskTree iworld
+                  # (_, iworld)  = 'DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld
+                  # (tr, iworld) = eval event evalOpts taskTree iworld
                   # iworld = case tr of
                                ValueResult tv _ _ _
                                  # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
@@ -121,7 +129,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace=[parentTaskNo:_]} taskTree iworld
     = case taskIdFromTaskTree taskTree of
-        Just (currTaskId=:(TaskId instanceNo _))
+        Just currTaskId=:(TaskId instanceNo _)
           # parentTaskId = TaskId instanceNo parentTaskNo
           # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
           = case mrtMap of
@@ -215,28 +223,12 @@ viewDynamic :: Task ()
 viewDynamic =
              enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
   \trt    -> get tonicSharedRT >>-
-  \mp     -> return ('DM'.foldrNoKey (\v acc -> if (v.trt_parentTaskId == trt.trt_taskId) [v:acc] acc) [] mp) >>-
-  \childs -> viewInformation "Task module and name" [] trt.trt_bpref
+  \mp     -> viewInformation "Task module and name" [] trt.trt_bpref
          ||- viewInformation "Task arguments" [] (map fst trt.trt_params)
-         ||- (viewSharedInformation "Selected blueprint instance"
+         ||- viewSharedInformation "Selected blueprint instance"
                [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
-               tonicSharedRT) >>|
+               tonicSharedRT >>|
              return ()
-
-//viewDynamicTask u tn mn tt =
-        //viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
-    //||- viewSharedInformation
-          //("Visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'")
-          //[ViewWith (\(traces, currSess) -> graphlet tonicRenderer {graph=tt.tt_graph, tonicState=mkState [no \\ {TaskListItem|taskId=tid=:(TaskId no _)} <- currSess] traces})]
-          //(tonicTraces |+| currentSessions)
-    //<<@ FullScreen
-  //where
-  //mkState nos traces =
-    //Just
-    //{ TonicState
-    //| traces     = traces
-    //, renderMode = MultiUser nos
-    //}
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
