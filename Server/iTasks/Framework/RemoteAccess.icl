@@ -41,14 +41,14 @@ closeException s
 	= Error (dynamic e, toString e)
 
 httpRequest_server :: !HTTPMethod !URI !String !*IWorld -> *(!HTTPResponse, !*IWorld)
-httpRequest_server method uri request iworld=:{IWorld|current={taskTime},server={buildID,paths={sdkDirectory,dataDirectory}},world}
+httpRequest_server method uri request iworld=:{IWorld|current={taskTime},server={buildID,paths={dataDirectory}},world}
 		# infile  = dataDirectory </> "tmp-" +++ buildID </> (mkFileName "request")
 		# outfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName "response")
 		# hfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName "response-header")		
 		# (res,world) = writeFile infile request world
 		| isError res
 			= abort "httpRequest_server: infile creation error"
-		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
+		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" ("Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile

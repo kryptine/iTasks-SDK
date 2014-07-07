@@ -10,6 +10,23 @@ import iTasks.Framework.IWorld, iTasks.Framework.WebService, iTasks.Framework.SD
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 
+//The following modules are excluded by the SAPL -> Javascript compiler
+//because they contain functions implemented in ABC code that cannot
+//be compiled to javascript anyway. Handwritten Javascript overrides need
+//to be provided for them.
+JS_COMPILER_EXCLUDES :==
+	["iTasks.Framework.Client.Override"
+	,"dynamic_string"
+	,"graph_to_string_with_descriptors"
+	,"graph_to_sapl_string"
+	,"Text.Encodings.Base64"
+	,"Sapl.LazyLinker"
+	,"Sapl.Target.JS.CodeGeneratorJS"
+	,"System.Pointer"
+	,"System.File"
+	,"System.Directory"
+	]
+
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString, StdFunc
 import tcp
 import Internet.HTTP, System.Time, System.CommandLine, Data.Func
@@ -35,14 +52,17 @@ startEngine publishable world
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
 	# sdkOpt				= stringOpt "-sdk" opts
+	# webDirsOpt		    = stringOpt "-webpublic" opts
+	# webDirPaths 			= fmap (split ":") webDirsOpt
+	# storeOpt		    	= stringOpt "-store" opts
+	# saplOpt		    	= stringOpt "-sapl" opts
 	//If -help option is given show help and stop
 	| help					= show instructions world
 	//Check sdkpath
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
-	| isNothing mbSDKPath	= show sdkpatherror world
 	//Normal execution
 	# world					= show (running port) world
-	# iworld				= initIWorld (fromJust mbSDKPath) world
+	# iworld				= initIWorld mbSDKPath webDirPaths storeOpt saplOpt world
     //Initialize task instance index
     # iworld                = initInstanceMeta iworld
 	// mark all instance as outdated initially
@@ -58,25 +78,15 @@ where
 	instructions =
 		["Available commandline options:"
 		," -help             : Show this message and exit"
-		," -sdk <path>       : Use <path> as location of the iTasks SDK"
+		," -sdk <path>       : Use <path> as location of the iTasks SDK (optional)"
+		," -webpublic <path> : Use <path> to point to the folders that contain the application's static web content"
+	    ," -store <path> 	 : Use <path> as data store location"
+	    ," -sapl <path> 	 : Use <path> to point to the folders that hold the sapl version of the application"
 		," -port <port>      : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
 		," -keepalive <time> : Set connection keepalive time in seconds (default " +++ toString DEFAULT_KEEPALIVE_TIME +++ ")"
 		,""
 		]
-	
-	sdkpatherror :: [String]
-	sdkpatherror =
-		["Oops! Could not find the iTasks SDK."
-		,"The server needs to know the location of the SDK to serve static content"
-		,"and run its various utility programs."
-		,""
-		,"Please put the \"iTasks-SDK\" folder in one of the search locations"
-		,"or use the -sdk commandline flag to set the path."
-		,"Example: -sdk C:\\Users\\johndoe\\Desktop\\Clean2.4\\iTasks-SDK"
-		,""
-		,"Tried to find a folder named \"iTasks-SDK\" in the following search locations:"
-		:SEARCH_PATHS]
-		
+
 	running :: !Int -> [String]
 	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
 	
@@ -150,14 +160,31 @@ where
 	
 	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
 
-initIWorld :: !FilePath !*World -> *IWorld
-initIWorld sdkDir world
+initIWorld :: !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
-    # (customCSS,world)         = fileExists (appDir </> "Static"</> addExtension appName "css") world
-	# dataDir					= appDir </> appName +++ "-data"
-    # (extensionsWeb,world)     = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
+	# dataDir					= case mbStorePath of
+		Just path 				= path	
+		Nothing 				= appDir </> appName +++ "-data"
+	# (webdirPaths,world) 	 	= case mbWebdirPaths of
+		Just paths 				= (paths,world)
+		Nothing 
+			# appWebDirs = [appDir </> "WebPublic"]
+			= case mbSDKPath of 
+				Just sdkDir	//Scan extensions for public web files
+					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
+					= ([sdkDir</>"Client"] ++ appWebDirs ++ libWebDirs,world)	
+				Nothing
+					= (appWebDirs,world)
+    # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
+	# saplPath = case mbSaplPath of
+		Just path 	= path
+		Nothing 	= appDir</>"sapl"
+	# flavourPath = case mbSDKPath of
+		Just sdkPath 	= sdkPath </> "Dependencies" </> "SAPL" </>"clean.f"
+		Nothing 		= saplPath </> "clean.f"
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
@@ -170,19 +197,8 @@ initIWorld sdkDir world
 	# (_,world)					= ensureDir "tmp" tmpDir world
 	# storeDir					= dataDir </> "stores"
 	# (exists,world)			= ensureDir "stores" storeDir world
-	# ((lst, ftmap, _), world)  = generateLoaderState [appDir</>"sapl",appDir</>"sapl-override"] [] //TODO: Comment please
-										["iTasks.Framework.Client.Override"
-										,"dynamic_string"
-										,"graph_to_string_with_descriptors"
-										,"graph_to_sapl_string"
-										,"Text.Encodings.Base64"
-										,"Sapl.LazyLinker"
-										,"Sapl.Target.JS.CodeGeneratorJS"
-										,"System.Pointer"
-										,"System.File"
-										,"System.Directory"] world
-										
-	# (flavour, world)		= readFlavour sdkDir world
+	# ((lst, ftmap, _), world)  = generateLoaderState [saplPath] [] JS_COMPILER_EXCLUDES world
+	# (flavour, world)			= readFlavour flavourPath world
 	# (Timestamp seed, world)	= time world
 	= {IWorld
 	  |server =
@@ -191,11 +207,10 @@ initIWorld sdkDir world
 	    ,buildID	= build
         ,paths      =
             {appDirectory		    = appDir
-	        ,sdkDirectory		    = sdkDir
 	        ,dataDirectory		    = dataDir
-            ,publicWebDirectories   = [sdkDir </> "Client", appDir </> "Static":extensionsWeb]
+            ,publicWebDirectories   = webdirPaths 
             }
-        ,customCSS  = customCSS
+        ,customCSS  = customCSS 
         }
 	  ,config				= initialConfig
       ,clocks =
@@ -251,11 +266,10 @@ where
 		= (False,world)
 
     readFlavour :: !String !*World -> *(!Flavour, !*World)
-    readFlavour sdkPath world
-	    # flavfile 			= sdkPath </> "Dependencies" </> "SAPL" </>"clean.f"
-	    # (flavres, world) 	= readFile flavfile world
+    readFlavour flavourPath world
+	    # (flavres, world) 	= readFile flavourPath world
 	    | isError flavres
-		    = abort ("JavaScript Flavour file cannot be found at " +++ flavfile)
+		    = abort ("JavaScript Flavour file cannot be found at " +++ flavourPath)
 	    # mbFlav 			= toFlavour (fromOk flavres)
 	    | isNothing mbFlav
 		    = abort "Error in JavaScript flavour file"	
@@ -383,4 +397,11 @@ where
 		    = case mbInfo of
 			    Ok info	| info.directory	= determineWebPublicDirs path world //Continue search
                 _                           = ([],world)
-	
+
+checkCustomCSS :: !String ![FilePath] !*World -> (!Bool, !*World)
+checkCustomCSS appName [] world = (False,world)
+checkCustomCSS appName [d:ds] world 
+	# (exists,world) = fileExists (d </> addExtension appName "css") world
+	| exists 	= (True,world)
+				= checkCustomCSS appName ds world
+

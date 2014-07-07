@@ -151,14 +151,14 @@ where
 		
 	initRPC = mkInstantTask eval
 	
-	eval taskId iworld=:{IWorld|current={taskTime},server={buildID,paths={sdkDirectory,dataDirectory}},world}
+	eval taskId iworld=:{IWorld|current={taskTime},server={buildID,paths={dataDirectory}},world}
 		# infile  = dataDirectory </> "tmp-" +++ buildID </> (mkFileName taskId "request")
 		# outfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
 			# ex = RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))
 			= (Error (dynamic ex,toString ex),{IWorld|iworld & world = world})
-		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
+		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" ("Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile

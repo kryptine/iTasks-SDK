@@ -66,7 +66,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 :: SystemPaths =
     { appDirectory			:: !FilePath		// Location of the application's executable
 	, dataDirectory			:: !FilePath		// Location of the applications data files
-	, sdkDirectory			:: !FilePath		// Location of the iTasks SDK
+	//, sdkDirectory			:: !FilePath		// Location of the iTasks SDK
     , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
     }
 
