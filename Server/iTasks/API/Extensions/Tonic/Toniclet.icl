@@ -53,7 +53,7 @@ toniclet renderer mtt manid =
                                [GElt [] [TransformAttr [TranslateTransform "20" "20"]] []]
       , eventHandlers = []
       , width         = ExactSize 1024
-      , height        = ExactSize 2048
+      , height        = ExactSize 512
       }
 
   updateUI cid diffs clval=:{mbClientState=Nothing} world

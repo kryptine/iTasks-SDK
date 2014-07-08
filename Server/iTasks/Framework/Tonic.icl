@@ -227,8 +227,8 @@ viewDynamic =
          ||- viewInformation "Task arguments" [] (map fst trt.trt_params)
          ||- viewSharedInformation "Selected blueprint instance"
                [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
-               tonicSharedRT >>|
-             return ()
+               tonicSharedRT
+         >>| return ()
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)

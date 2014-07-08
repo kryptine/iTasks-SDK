@@ -131,18 +131,22 @@ drawArbitrary g world
   = world
 
 drawVar g expr world
-  # (app, world)      = append "rect" g world
-  # (tg, world)       = append "g" g world
-  # (task, world)     = append "text" tg world
-  # (task, world)     = setText expr task world
-  # (line, world)     = append "line" g world
-  # (app, world)      = setAttrs [ ("x", toJSVal (-12.5))
-                                 , ("y", toJSVal (-12.5))
-                                 , ("rx", toJSVal "5")
-                                 , ("ry", toJSVal "5")
-                                 , ("width", toJSVal 25)
-                                 , ("height", toJSVal 25)
-                                 ] app world
+  # (app, world)        = append "rect" g world
+  # (tg, world)         = append "g" g world
+  # (var, world)        = append "text" tg world
+  # (var, world)        = setText expr var world
+  # (line, world)       = append "line" g world
+  # ((bbh, bbw), world) = getBBox g world
+  # (var, world)        = setAttrs [ ("x", toJSVal (0.0 - (bbw / 2.0)))
+                                   , ("y", toJSVal (bbh / 4.0))
+                                   ] var world
+  # (app, world)        = setAttrs [ ("x", toJSVal (0.0 - (bbw / 2.0)))
+                                   , ("y", toJSVal (0.0 - (bbh / 2.0)))
+                                   , ("rx", toJSVal "5")
+                                   , ("ry", toJSVal "5")
+                                   , ("width", toJSVal bbw)
+                                   , ("height", toJSVal bbh)
+                                   ] app world
   = world
 
 drawNode :: Bool GNode GLGraph NodeIndex D3 *JSWorld -> *JSWorld
@@ -231,42 +235,6 @@ drawNode_ active shape graph u root world
                                      , ("height", toJSVal bbh)
                                      ] rect world
     = world
-  //drawNode` {nodeType=GListComprehension gl} _ _ root world
-    //# (g, world)        = append "g" root world
-    //# (g, world)        = setAttr "class" (toJSVal "tonic-listcomprehension") g world
-    //# (app, world)      = append "rect" g world
-    //# (tg, world)       = append "g" g world
-    //# (task, world)     = append "text" tg world
-    //# (args, world)     = append "text" tg world
-    //# (args, world)     = setAttrs [ ("y", toJSVal "2em")
-                                   //, ("text-anchor", toJSVal "middle")
-                                   //] args world
-    //# world             = mkTspans [ppGExpression gl.output] args world
-    //# world             = let xs = [ "for each <TODO>" // +++ gl.selector
-                                   //, "in <TODO> "] ++ // +++ ppGExpression gl.input] ++
-                                   //(case gl.guard of
-                                      //Just grd -> [grd]
-                                      //_        -> [])
-                          //in mkTspans xs task world
-    //# ((nh, nw), world) = getBBox task world
-    //# ((th, tw), world) = getBBox tg world
-    //# (line, world)     = append "line" g world
-    //# (app, world)      = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
-                                   //, ("y", toJSVal (0.0 - (th / 2.0)))
-                                   //, ("rx", toJSVal "5")
-                                   //, ("ry", toJSVal "5")
-                                   //, ("width", toJSVal tw)
-                                   //, ("height", toJSVal th)
-                                   //] app world
-    //# (task, world)     = setAttrs [ ("text-anchor", toJSVal "middle")
-                                   //, ("y", toJSVal (0.0 - (th / 4.0)))
-                                   //] task world
-    //# (line, world)     = setAttrs [ ("x1", toJSVal (0.0 - (tw / 2.0)))
-                                   //, ("y1", toJSVal (0.0 - (th / 2.0) + nh))
-                                   //, ("x2", toJSVal (tw / 2.0))
-                                   //, ("y2", toJSVal (0.0 - (th / 2.0) + nh))
-                                   //] line world
-    //= world
 
   drawNode` {nodeType=GReturn expr} _ nid root world
     # (g, world)          = append "g" root world
