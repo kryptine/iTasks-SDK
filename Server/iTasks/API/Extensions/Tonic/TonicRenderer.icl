@@ -167,7 +167,7 @@ drawNode_ active shape graph u root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal "tonic-arbitrary") g world
     = drawArbitrary g world
-  drawNode` {nodeType=GAssign expr} _ _ root world
+  drawNode` {nodeType=GAssign expr (Subgraph sub)} _ _ root world // TODO Draw subgraph
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-assign") g world
     # (head, world) = append "circle" g world

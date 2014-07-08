@@ -55,6 +55,13 @@ rect {
   stroke-dasharray: 5,5;
 }
 
+.tonic-step rect {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 0.15em;
+  stroke-dasharray: 5,5;
+}
+
 .tonic-arbitrary rect {
   fill: #fff;
   stroke: #000;

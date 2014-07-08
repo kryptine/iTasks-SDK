@@ -61,7 +61,7 @@ mkGNode :: GNodeType -> GNode
 // at runtime. We don't need to create extra nodes for that in this graph; just
 // in the rendering.
 :: GNodeType
-  =  GAssign GCleanExpression
+  =  GAssign GCleanExpression NodeContents
   |  GDecision DecisionType GCleanExpression
   |  GInit
   |  GLet GLet
