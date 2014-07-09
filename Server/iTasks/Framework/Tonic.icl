@@ -225,8 +225,8 @@ viewDynamic =
   \trt    -> case trt.trt_bpinstance of
                Just bpinst
                  ->            get tonicSharedRT >>-
-                    \mp     -> viewInformation "Task module and name" [] trt.trt_bpref
-                           ||- viewInformation "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm, argty, vi)) bpinst.tt_args trt.trt_params)
+                    \mp     -> viewInformation ((snd trt.trt_bpref) +++  " yields " +++ (aOrAn bpinst.tt_resty)) [] ()
+                           ||- viewInformation "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params)
                            ||- viewSharedInformation "Selected blueprint instance"
                                  [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
                                  tonicSharedRT
@@ -234,8 +234,8 @@ viewDynamic =
                _ -> return ()
   where
   aOrAn str
-    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ["e", "u", "i", "o", "a"] = "an"
-    | otherwise = "a"
+    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['e', 'u', 'i', 'o', 'a'] = "an " +++ str
+    | otherwise = "a " +++ str
 
 
 tonicPubTask :: String -> PublishedTask
