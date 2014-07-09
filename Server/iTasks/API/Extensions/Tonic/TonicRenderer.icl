@@ -110,7 +110,6 @@ addPath xs path world
 ppGExpression e = e 
 
 ppNodeContents (VarOrExpr expr) = expr
-ppNodeContents ArbitraryOrUnknownExpr = "?"
 ppNodeContents (Subgraph _) = "TODO PP Subgraph"
 
 mkCSSClasses :: Bool String -> String
@@ -267,40 +266,107 @@ drawNode_ active shape graph u root world
                                      , ("height", toJSVal th)
                                      ] rect world
     = world
-  drawNode` {nodeType=(GStep ndcs)} _ _ root world
-    # (g, world)    = append "g" root world
-    # (g, world)    = setAttr "class" (toJSVal "tonic-step") g world
-    = foldr (drawStep g) world ndcs
+  drawNode` {nodeType=GStepStar} _ _ root world
+    # (g, world)          = append "g" root world
+    # (g, world)          = setAttr "class" (toJSVal "tonic-step-star") g world
+    # (rect, world)       = append "rect" g world
+    # (g``, world)        = append "g" g world
+    # (text, world)       = append "text" g`` world
+    # (_, world)          = setText "*" text world
+    # ((bbh, bbw), world) = getBBox root world
+    # ((th, tw), world)   = getBBox text world
+    # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
+    # (rect, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
+                                     , ("y", toJSVal (0.0 - (th / 2.0)))
+                                     , ("rx", toJSVal "5")
+                                     , ("ry", toJSVal "5")
+                                     , ("width", toJSVal tw)
+                                     , ("height", toJSVal th)
+                                     ] rect world
+    = world
+    // TODO
+  drawNode` {nodeType=(GStepElem se)} _ _ root world
+    # (g, world)          = append "g" root world
+    # (g, world)          = setAttr "class" (toJSVal "tonic-step-cond") g world
+    # (rect, world)       = append "rect" g world
+    # (g``, world)        = append "g" g world
+    # (text, world)       = append "text" g`` world
+    # (_, world)          = setText (toStr se) text world
+    # ((bbh, bbw), world) = getBBox root world
+    # ((th, tw), world)   = getBBox text world
+    # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
+    # (rect, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
+                                     , ("y", toJSVal (0.0 - (th / 2.0)))
+                                     , ("rx", toJSVal "5")
+                                     , ("ry", toJSVal "5")
+                                     , ("width", toJSVal tw)
+                                     , ("height", toJSVal th)
+                                     ] rect world
+    = world
     where
-    drawStep g (VarOrExpr str) world = drawVar g str world
-    drawStep g ArbitraryOrUnknownExpr world = drawArbitrary g world
-    drawStep g (Subgraph _) world = world
-    drawStep g (StepElem sel) world = drawStepElem g sel world
-      where
-      drawStepElem g (StepOnValue cont) world = drawCont cont world
-      drawStepElem g (StepOnButton str cont) world
-        # (btnGrp, world)  = append "g" g world
-        # (btnRect, world) = append "rect" btnGrp world
-        # (txt, world)     = append "text" g world
-        # (_, world)       = setText str txt world
-        = drawCont cont world
-      drawStepElem g (StepOnException cont) world = drawCont cont world
-      drawCont {stepContFilter, stepContLbl, stepContNode} world
-        # world = drawFilter stepContFilter world
-        # world = case stepContLbl of
-                    Just lbl
-                      # (txt, world) = append "text" g world
-                      # (_, world)   = setText lbl txt world
-                      = world
-                    _ = world
-        = world // TODO draw stepcondnode
-      drawFilter StepAlways world = world
-      drawFilter StepNever world = world
-      drawFilter StepHasValue world = world
-      drawFilter StepIfStable world = world
-      drawFilter StepIfUnstable world = world
-      drawFilter StepIfValue world = world
-      drawFilter (StepCond str) world = world
+    toStr StepOnException = "!!"
+    toStr (StepOnAction btn sf) = btn +++ ": " +++ toStr` sf
+    toStr (StepOnValue sf) = toStr` sf
+    toStr` StepAlways     = "always"
+    toStr` StepNever     = "never"
+    toStr` StepHasValue     = "hasvalue"
+    toStr` StepIfStable     = "ifstable"
+    toStr` StepIfUnstable     = "ifunstable"
+    toStr` StepIfValue     = "ifvalue"
+    toStr` StepIfCond     = "ifcond"
+    // TODO
+  drawNode` {nodeType=(GStepCond {tifv_funName, tifv_args})} _ _ root world
+    # (g, world)          = append "g" root world
+    # (g, world)          = setAttr "class" (toJSVal "tonic-step-cond") g world
+    # (rect, world)       = append "rect" g world
+    # (g``, world)        = append "g" g world
+    # (text, world)       = append "text" g`` world
+    # (_, world)          = setText (tifv_funName +++ foldr (+++) "" tifv_args) text world
+    # ((bbh, bbw), world) = getBBox root world
+    # ((th, tw), world)   = getBBox text world
+    # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
+    # (rect, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
+                                     , ("y", toJSVal (0.0 - (th / 2.0)))
+                                     , ("rx", toJSVal "5")
+                                     , ("ry", toJSVal "5")
+                                     , ("width", toJSVal tw)
+                                     , ("height", toJSVal th)
+                                     ] rect world
+    = world
+
+  //drawNode` {nodeType=(GStep ndcs)} _ _ root world
+    //# (g, world)    = append "g" root world
+    //# (g, world)    = setAttr "class" (toJSVal "tonic-step") g world
+    //= foldr (drawStep g) world ndcs
+    //where
+    //drawStep g (VarOrExpr str) world = drawVar g str world
+    //drawStep g (Subgraph _) world = world
+    //drawStep g (StepElem sel) world = drawStepElem g sel world
+      //where
+      //drawStepElem g (StepOnValue fltr) world = drawFilter fltr world
+      //drawStepElem g (StepOnAction str cont) world
+        //# (btnGrp, world)  = append "g" g world
+        //# (btnRect, world) = append "rect" btnGrp world
+        //# (txt, world)     = append "text" g world
+        //# (_, world)       = setText str txt world
+        //= drawFilter cont world
+      //drawStepElem g StepOnException world = world
+      ////drawFilter {stepContFilter, stepContLbl} world
+        ////# world = drawFilter stepContFilter world
+        ////# world = case stepContLbl of
+                    ////Just lbl
+                      ////# (txt, world) = append "text" g world
+                      ////# (_, world)   = setText lbl txt world
+                      ////= world
+                    ////_ = world
+        ////= world // TODO draw stepcondnode
+      //drawFilter StepAlways world = world
+      //drawFilter StepNever world = world
+      //drawFilter StepHasValue world = world
+      //drawFilter StepIfStable world = world
+      //drawFilter StepIfUnstable world = world
+      //drawFilter (StepIfValue {tifv_pat, tifv_funName, tifv_args}) world = world
+      //drawFilter (StepCond str) world = world
   drawNode` {nodeType=GStop} _ _ root world
     # (g, world)    = append "g" root world
     # (g, world)    = setAttr "class" (toJSVal "tonic-stop") g world
@@ -312,19 +378,19 @@ drawNode_ active shape graph u root world
     = world
     // TODO Instead of coloring the backgroun, draw coloured squares next to
     // the task application and display the corresponding user name on mouse over
-  drawNode` {nodeType=GTaskApp tid exprs}    _ _ root world
+  drawNode` {nodeType=GTaskApp {taskApp_taskName, taskApp_args}}    _ _ root world
     # (g, world)        = append "g" root world
     # (g, world)        = setAttr "class" (toJSVal ( mkCSSClasses active "tonic-taskapplication")) g world
     # (app, world)      = append "rect" g world
     # (tg, world)       = append "g" g world
     # (task, world)     = append "text" tg world
-    # (task, world)     = setText tid task world
+    # (task, world)     = setText taskApp_taskName task world
     # ((nh, nw), world) = getBBox task world
     # (args, world)     = append "text" tg world
     # (args, world)     = setAttrs [
                                     ("y", toJSVal "0.35em")
                                    ] args world
-    # world             = mkTspans (map ppGExpression exprs) args world
+    # world             = mkTspans (map ppGExpression taskApp_args) args world
     # ((ah, aw), world) = getBBox args world
     # ((th, tw), world) = getBBox tg world
     # (line, world)     = append "line" g world

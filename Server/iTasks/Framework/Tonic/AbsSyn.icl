@@ -6,18 +6,18 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
+  NodeContents, TTaskApp, StepCond
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
+  NodeContents, TTaskApp, StepCond
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
+  NodeContents, TTaskApp, StepCond
 
 mkGNode :: GNodeType -> GNode
 mkGNode nt = {GNode|nodeType=nt}

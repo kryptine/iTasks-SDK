@@ -23,38 +23,38 @@ from StdMisc import undef, abort
 from StdFile import instance FileSystem World
 import qualified StdArray as SA
 from StdArray import class Array, instance Array {#} Char
-import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.Graph
+import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.Graph, Data.List
 import qualified Data.Map as DM
 
 derive gEditor
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
-  StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
+  StepFilter, TTaskApp, StepCond
 
 derive gEditMeta
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
-  StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
+  StepFilter, TTaskApp, StepCond
 
 derive gDefault
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
-  StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
+  StepFilter, TTaskApp, StepCond
 
 derive gUpdate
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
-  StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
+  StepFilter, TTaskApp, StepCond
 
 derive gVerify
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
-  StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
+  StepFilter, TTaskApp, StepCond
 
 derive gText
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem, StepCont,
-  StepFilter
+  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
+  StepFilter, TTaskApp, StepCond
 
 derive class iTask TonicRT
 
@@ -222,13 +222,21 @@ viewStaticTask tn mn tt =
 viewDynamic :: Task ()
 viewDynamic =
              enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
-  \trt    -> get tonicSharedRT >>-
-  \mp     -> viewInformation "Task module and name" [] trt.trt_bpref
-         ||- viewInformation "Task arguments" [] (map fst trt.trt_params)
-         ||- viewSharedInformation "Selected blueprint instance"
-               [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
-               tonicSharedRT
-         >>| return ()
+  \trt    -> case trt.trt_bpinstance of
+               Just bpinst
+                 ->            get tonicSharedRT >>-
+                    \mp     -> viewInformation "Task module and name" [] trt.trt_bpref
+                           ||- viewInformation "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm, argty, vi)) bpinst.tt_args trt.trt_params)
+                           ||- viewSharedInformation "Selected blueprint instance"
+                                 [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
+                                 tonicSharedRT
+                           >>| return ()
+               _ -> return ()
+  where
+  aOrAn str
+    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ["e", "u", "i", "o", "a"] = "an"
+    | otherwise = "a"
+
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)

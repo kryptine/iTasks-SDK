@@ -8,18 +8,18 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
+  NodeContents, TTaskApp, StepCond
 
 derive JSONDecode
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
+  NodeContents, TTaskApp, StepCond
 
 derive gEq
   TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepCont, StepFilter, GParType,
-  NodeContents
+  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
+  NodeContents, TTaskApp, StepCond
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -69,18 +69,27 @@ mkGNode :: GNodeType -> GNode
   //|  GListComprehension GListComprehension
   |  GParallel GParType [NodeContents]
   |  GReturn NodeContents
-  |  GStep [NodeContents]
   |  GStop
-  |  GTaskApp GIdentifier ![GCleanExpression]
+  |  GParSum
+  |  GParProd
+  |  GStepStar
+  |  GStepElem StepElem
+  |  GStepCond StepCond
+  |  GTaskApp TTaskApp
   |  GTransform GCleanExpression
   |  GVar GCleanExpression
   |  GArbitraryExpression
 
+:: TTaskApp =
+  { taskApp_taskName :: GIdentifier
+  , taskApp_args     :: [GCleanExpression]
+  }
+
 :: NodeContents
   = VarOrExpr GCleanExpression
-  | ArbitraryOrUnknownExpr
   | Subgraph GinGraph
   | StepElem StepElem
+  | NodeTaskApp TTaskApp
 
 :: GParType
   =  DisFirstBin
@@ -91,15 +100,13 @@ mkGNode :: GNodeType -> GNode
   |  ConPair
 
 :: StepElem
-  = StepOnValue StepCont
-  | StepOnButton String StepCont
-  | StepOnException StepCont
+  = StepOnValue StepFilter
+  | StepOnAction ButtonText StepFilter
+  | StepOnException
 
-:: StepCont =
-  { stepContFilter :: StepFilter
-  , stepContLbl    :: Maybe String
-  , stepContNode   :: GNodeType
-  }
+:: ButtonText :== String
+
+:: EdgeLabel :== String
 
 :: StepFilter
   = StepAlways
@@ -108,7 +115,12 @@ mkGNode :: GNodeType -> GNode
   | StepIfStable
   | StepIfUnstable
   | StepIfValue
-  | StepCond GCleanExpression
+  | StepIfCond
+
+:: StepCond =
+  { tifv_funName :: String
+  , tifv_args    :: [String]
+  }
 
 :: GEdge = { edge_pattern :: !Maybe GPattern }
 
