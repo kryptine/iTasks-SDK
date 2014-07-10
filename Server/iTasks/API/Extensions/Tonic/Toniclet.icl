@@ -29,8 +29,8 @@ derive class iTask TonicletDiff
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-toniclet :: TonicletRenderer (Maybe TonicTask) (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
-toniclet renderer mtt manid =
+toniclet :: (Maybe TonicTask) (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
+toniclet mtt manid =
   Editlet mtt
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
@@ -59,7 +59,7 @@ toniclet renderer mtt manid =
   updateUI cid diffs clval=:{mbClientState=Nothing} world
     # (dagre, world) = findObject "dagreD3" world
     | jsIsUndefined dagre
-        # world = foldr addCSSFromUrl world renderer.styleSheets
+        # world = foldr addCSSFromUrl world tonicRenderer.styleSheets
         # world = addJSFromUrl "/d3.v3.min.js" Nothing world
         # world = addJSFromUrl "/dagre.js" Nothing world
         # world = addJSFromUrl "/dagre-d3.js" (Just (createEditletEventHandler (onLibLoaded diffs) cid)) world
@@ -153,7 +153,7 @@ toniclet renderer mtt manid =
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
     # world      = case fmap (\tt -> 'DG'.getNodeData nodeId tt.tt_graph) clval.tonicTask of
-                     (Just (Just nodeVal)) -> renderer.drawNodeCallback (manid === Just nodeId) nodeVal graphValue nodeId rootElem world
+                     (Just (Just nodeVal)) -> tonicRenderer.drawNodeCallback (manid === Just nodeId) nodeVal graphValue nodeId rootElem world
                      _                     -> world
     = (clval, world)
 
@@ -165,7 +165,7 @@ toniclet renderer mtt manid =
     # edgeId        = (jsValToInt fEId, jsValToInt tEId)
     # rootElem      = jsUnsafeCoerce root
     # world         = case fmap (\tt -> 'DG'.getEdgeData edgeId tt.tt_graph) clval.tonicTask of
-                        (Just (Just edgeVal)) -> renderer.drawEdgeLabelCallback edgeVal graphValue edgeId rootElem world
+                        (Just (Just edgeVal)) -> tonicRenderer.drawEdgeLabelCallback edgeVal graphValue edgeId rootElem world
                         _                     -> world
     = (clval, world)
 

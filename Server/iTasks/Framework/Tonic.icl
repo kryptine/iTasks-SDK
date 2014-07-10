@@ -15,7 +15,6 @@ import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 import iTasks.API.Extensions.Tonic.Toniclet
-import iTasks.API.Extensions.Tonic.TonicRenderer
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -216,26 +215,27 @@ viewStaticTask tn mn tt =
       viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
   ||- viewInformation
         ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
-        (toniclet tonicRenderer (Just tt) Nothing)
+        (toniclet (Just tt) Nothing)
   <<@ FullScreen
 
 viewDynamic :: Task ()
 viewDynamic =
           enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
   \trt -> maybe (return ())
-            (\bpinst -> viewInformation (snd trt.trt_bpref +++  " yields " +++ aOrAn bpinst.tt_resty) [] ()
+            (\bpinst -> viewInformation (blueprintTitle trt bpinst) [] ()
                     ||- showArguments trt bpinst
                     ||- viewSharedInformation "Blueprint:"
-                          [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
+                          [ViewWith (\_ -> toniclet trt.trt_bpinstance trt.trt_activeNodeId)]
                           tonicSharedRT
                      @! ())
             trt.trt_bpinstance
   where
+  blueprintTitle trt bpinst = snd trt.trt_bpref +++ " yields " +++ aOrAn bpinst.tt_resty
   showArguments trt bpinst = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bpinst) >&> withSelection snd) <<@ ArrangeSplit Horizontal True
   collectArgs trt bpinst = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params
   aOrAn str
-    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['e', 'E', 'u', 'U', 'i', 'I', 'o', 'O', 'a', 'A'] = "an " +++ str
-    | otherwise = "a " +++ str
+    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['eEuUiIoOaA'] = "an " +++ str
+    | otherwise                                                        = "a " +++ str
 
 withSelection :: (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b
 withSelection tfun s = whileUnchanged s (maybe (viewInformation () [] "Select argument..." @? const NoValue) tfun)
