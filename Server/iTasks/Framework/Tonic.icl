@@ -230,14 +230,12 @@ viewDynamic =
             trt.trt_bpinstance
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ aOrAn bp.tt_resty
-  viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection snd) <<@ ArrangeSplit Horizontal True
+  viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
+  noSelection              = viewInformation () [] "Select argument..."
   collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bp.tt_args trt.trt_params
   aOrAn str
     | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
     | otherwise                                       = "a " +++ str
-
-withSelection :: (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b
-withSelection tfun s = whileUnchanged s (maybe (viewInformation () [] "Select argument..." @? const NoValue) tfun)
 
 tonicViewer :: String -> PublishedTask
 tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)

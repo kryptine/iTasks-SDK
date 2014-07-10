@@ -353,6 +353,13 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 */
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b
 whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+
+/**
+* Do a task when there is a Just value in the share
+* Do a default task when there is a Nothing value
+*/
+withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b & iTask c
+
 /**
 * Append a task to the set of top level tasks
 * 
