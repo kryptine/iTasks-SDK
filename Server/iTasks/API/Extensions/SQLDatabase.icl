@@ -245,7 +245,8 @@ openMySQLDB db iworld=:{IWorld|resources=Nothing}
         	# (err,mbCursor,connection)	= openCursor (fromJust mbConn)
         	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
         	= (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
-				
+openMySQLDB db iworld = openMySQLDB db (closeCurrentResource iworld)
+
 closeMySQLDB :: !*MySQLCursor !*MySQLConnection !*MySQLContext !*IWorld -> *IWorld
 closeMySQLDB cursor connection context iworld=:{IWorld|resources=Nothing}
    = {IWorld|closeCurrentResource iworld & resources=Just (MySQLResource (cursor,connection,context))}
@@ -262,6 +263,7 @@ openSQLiteDB db iworld=:{IWorld|resources=Nothing}
     # (err,mbCursor,connection)	= openCursor (fromJust mbConn)
     | isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
     = (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
+openSQLiteDB db iworld = openSQLiteDB db (closeCurrentResource iworld)
 
 closeSQLiteDB :: !*SQLiteCursor !*SQLiteConnection !*SQLiteContext !*IWorld -> *IWorld
 closeSQLiteDB cursor connection context iworld=:{IWorld|resources=Nothing}
