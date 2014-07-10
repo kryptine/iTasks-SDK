@@ -39,4 +39,4 @@ derive gText Graph, Node
 
 derive class iTask TonicletDiff
 
-toniclet :: (Maybe TonicTask) (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
+toniclet :: TonicTask (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]

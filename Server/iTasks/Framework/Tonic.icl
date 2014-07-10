@@ -214,7 +214,7 @@ viewStaticTask tn mn tt =
       viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
   ||- viewInformation
         ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
-        (toniclet (Just tt) Nothing)
+        (toniclet tt Nothing)
   <<@ FullScreen
 
 viewDynamic :: Task ()
@@ -224,7 +224,7 @@ viewDynamic =
             (\bp -> viewInformation (blueprintTitle trt bp) [] ()
                 ||- viewTaskArguments trt bp
                 ||- viewSharedInformation "Blueprint:"
-                      [ViewWith (\_ -> toniclet trt.trt_bpinstance trt.trt_activeNodeId)]
+                      [ViewWith (\_ -> toniclet bp trt.trt_activeNodeId)]
                       tonicSharedRT
                  @! ())
             trt.trt_bpinstance

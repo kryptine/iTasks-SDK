@@ -29,9 +29,9 @@ derive class iTask TonicletDiff
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-toniclet :: (Maybe TonicTask) (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
-toniclet mtt manid =
-  Editlet mtt
+toniclet :: TonicTask (Maybe Int) -> Editlet (Maybe TonicTask) [TonicletDiff]
+toniclet tt manid =
+  Editlet (Just tt)
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
     , defVal  = Nothing
@@ -41,7 +41,7 @@ toniclet mtt manid =
     { EditletClientDef
     | updateUI = updateUI
     , defVal   = { mbClientState = Nothing
-                 , tonicTask     = mtt
+                 , tonicTask     = Just tt
                  }
     , genDiff  = genClientDiff
     , appDiff  = appClientDiff
