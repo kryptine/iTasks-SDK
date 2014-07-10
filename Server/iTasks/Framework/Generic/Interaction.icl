@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.Generic.Interaction
 
 import StdList, StdBool, StdTuple, StdFunc, StdMisc
-import Data.Maybe, Data.Either, Data.Map, Data.Generic, Data.Functor, Data.Tuple
+import Data.Maybe, Data.Either, Data.Error, Data.Map, Data.Generic, Data.Functor, Data.Tuple
 import Text, Text.JSON
 import iTasks.Framework.IWorld
 import iTasks.Framework.UIDefinition
@@ -251,7 +251,7 @@ gEditor{|Void|} _ _ _ vst = (HiddenEditor,vst)
 gEditor{|HtmlTag|}	dp (val,mask,ver) meta vst
 	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},newMap)], vst)
 
-derive gEditor JSONNode, Either, (,,), (,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
+derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
 
 generic gEditMeta a :: a -> [EditMeta]
 
@@ -280,7 +280,7 @@ gEditMeta{|(,)|} fa fb _            = fa undef ++ fb undef
 gEditMeta{|(,,)|} fa fb fc _        = fa undef ++ fb undef ++ fc undef
 gEditMeta{|(,,,)|} fa fb fc fd _    = fa undef ++ fb undef ++ fc undef ++ fd undef
 
-derive gEditMeta Either, Void, Map, JSONNode, Timestamp, EditableListAdd
+derive gEditMeta Either, MaybeError, Void, Map, JSONNode, Timestamp, EditableListAdd
 
 //Generic Verify
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
@@ -334,7 +334,7 @@ gVerify{|HtmlTag|} _ mv = alwaysValid mv
 gVerify{|JSONNode|} _ mv = alwaysValid mv
 gVerify{|()|} _ mv      = alwaysValid mv
 
-derive gVerify (,), (,,), (,,,), Void, Either, Timestamp, Map
+derive gVerify (,), (,,), (,,,), Void, Either, MaybeError, Timestamp, Map
 
 //Generic updater
 generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
@@ -522,7 +522,7 @@ gUpdate{|(->)|} _ _ _ gUpdy _ _ _ _ target upd val ust = basicUpdate (\Void v ->
 gUpdate{|HtmlTag|} target upd val ust = (val,ust)
 gUpdate{|()|} target upd val ust = (val,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
+derive gUpdate Either, MaybeError, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
 
 checkMask :: !InteractionMask a -> Maybe a
 checkMask mask val

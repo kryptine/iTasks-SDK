@@ -758,9 +758,9 @@ derive gVerify			Icon
 // Generic instances for common library types
 //****************************************************************************//
 
-derive JSONEncode		(), HtmlTag, Void, Either, Timestamp
-derive JSONDecode		(), HtmlTag, Void, Either, Timestamp
-derive gEq				(), HtmlTag, Void, Either, Timestamp, JSONNode, (->), Dynamic
+derive JSONEncode		(), HtmlTag, Void, Either, MaybeError, Timestamp
+derive JSONDecode		(), HtmlTag, Void, Either, MaybeError, Timestamp
+derive gEq				(), HtmlTag, Void, Either, MaybeError, Timestamp, JSONNode, (->), Dynamic
 
 derive JSONEncode SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive JSONDecode SVGElt, SVGAttr, HtmlAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan

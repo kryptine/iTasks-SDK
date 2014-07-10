@@ -12,6 +12,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Text.HTML import :: HtmlTag
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
+from Data.Error import :: MaybeError
 from Data.Void import :: Void
 from Data.Map import :: Map
 from System.Time import :: Timestamp
@@ -32,7 +33,7 @@ derive gEditor
 	FIELD of {gfd_name} with ve1 _ _ em1 _ _
 	
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
-derive gEditor Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gEditor Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gEditor EditableList
 
 /**
@@ -50,7 +51,7 @@ derive gEditMeta
 	FIELD of {gfd_name} with fx
 	
 derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
-derive gEditMeta Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gEditMeta Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gEditMeta EditableList
 
 //Check a value to see if it is ok
@@ -58,7 +59,7 @@ generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,),(->), Dynamic
-derive gVerify Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gVerify Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
 
 //Update an existing value and its interaction mask
@@ -66,7 +67,7 @@ generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNod
 
 derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
-derive gUpdate Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gUpdate Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gUpdate EditableList
 
 //Wrapper functions for generating editors

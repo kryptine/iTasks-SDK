@@ -1466,9 +1466,9 @@ derive gVerify			Icon
 gEditor{|Icon|} _ (Icon icon,msk,ver) meta vst = (NormalEditor [(UIIcon defaultFSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,newMap)], vst)
 
 // Generic instances for common library types
-derive JSONEncode		Either, HtmlTag, HtmlAttr
-derive JSONDecode		Either, HtmlTag, HtmlAttr
-derive gEq				Either, HtmlTag, HtmlAttr, Timestamp, JSONNode
+derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr
+derive JSONDecode		Either, MaybeError, HtmlTag, HtmlAttr
+derive gEq				Either, MaybeError, HtmlTag, HtmlAttr, Timestamp, JSONNode
 
 gEq{|()|} _ _ = True
 JSONEncode{|()|} _ () = [JSONNull]

@@ -11,12 +11,13 @@ generic gDefault a :: a
 
 derive	gDefault UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive	gDefault Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
-derive	gDefault Maybe, Either, Void, Map, JSONNode, HtmlTag, Timestamp
+derive	gDefault Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 
 from Text.JSON import :: JSONNode
 from Text.HTML import :: HtmlTag
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
+from Data.Error import :: MaybeError
 from Data.Void import :: Void
 from Data.Map import :: Map
 from System.Time import :: Timestamp
