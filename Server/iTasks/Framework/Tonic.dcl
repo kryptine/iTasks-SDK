@@ -63,7 +63,7 @@ derive class iTask TonicRT
 
 tonicLogin :: String -> Task ()
 
-tonicPubTask :: String -> PublishedTask
+tonicViewer :: String -> PublishedTask
 
 tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
 

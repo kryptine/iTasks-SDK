@@ -237,7 +237,8 @@ viewDynamic =
     | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['e', 'E', 'u', 'U', 'i', 'I', 'o', 'O', 'a', 'A'] = "an " +++ str
     | otherwise = "a " +++ str
 
+withSelection :: (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b
 withSelection tfun s = whileUnchanged s (maybe (viewInformation () [] "Select argument..." @? const NoValue) tfun)
 
-tonicPubTask :: String -> PublishedTask
-tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
+tonicViewer :: String -> PublishedTask
+tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
