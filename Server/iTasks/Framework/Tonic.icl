@@ -226,17 +226,18 @@ viewDynamic =
                Just bpinst
                  ->            get tonicSharedRT >>-
                     \mp     -> viewInformation ((snd trt.trt_bpref) +++  " yields " +++ (aOrAn bpinst.tt_resty)) [] ()
-                           ||- (enterChoice "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params) >>= snd)
+                           ||- ((enterChoice "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params) >&> withSelection snd) <<@ ArrangeSplit Horizontal True)
                            ||- viewSharedInformation "Blueprint:"
                                  [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
                                  tonicSharedRT
-                           >>| return ()
+                           @! ()
                _ -> return ()
   where
   aOrAn str
-    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['e', 'u', 'i', 'o', 'a'] = "an " +++ str
+    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['e', 'E', 'u', 'U', 'i', 'I', 'o', 'O', 'a', 'A'] = "an " +++ str
     | otherwise = "a " +++ str
 
+withSelection tfun s = whileUnchanged s (maybe (viewInformation () [] "Select argument..." @? const NoValue) tfun)
 
 tonicPubTask :: String -> PublishedTask
 tonicPubTask appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
