@@ -222,17 +222,17 @@ viewDynamic :: Task ()
 viewDynamic =
           enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
   \trt -> maybe (return ())
-            (\bpinst -> viewInformation (blueprintTitle trt bpinst) [] ()
-                    ||- showArguments trt bpinst
-                    ||- viewSharedInformation "Blueprint:"
-                          [ViewWith (\_ -> toniclet trt.trt_bpinstance trt.trt_activeNodeId)]
-                          tonicSharedRT
-                     @! ())
-            trt.trt_bpinstance
+            (\bp -> viewInformation (blueprintTitle trt bp) [] ()
+                ||- showArguments trt bp
+                ||- viewSharedInformation "Blueprint:"
+                      [ViewWith (\_ -> toniclet trt.trt_bpance trt.trt_activeNodeId)]
+                      tonicSharedRT
+                 @! ())
+            trt.trt_bpance
   where
-  blueprintTitle trt bpinst = snd trt.trt_bpref +++ " yields " +++ aOrAn bpinst.tt_resty
-  showArguments trt bpinst = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bpinst) >&> withSelection snd) <<@ ArrangeSplit Horizontal True
-  collectArgs trt bpinst = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params
+  blueprintTitle trt bp = snd trt.trt_bpref +++ " yields " +++ aOrAn bp.tt_resty
+  showArguments  trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection snd) <<@ ArrangeSplit Horizontal True
+  collectArgs    trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bp.tt_args trt.trt_params
   aOrAn str
     | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['eEuUiIoOaA'] = "an " +++ str
     | otherwise                                                        = "a " +++ str
