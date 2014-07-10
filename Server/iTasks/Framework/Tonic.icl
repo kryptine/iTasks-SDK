@@ -190,23 +190,19 @@ tonicUI appName
 
 viewStatic :: Task ()
 viewStatic
-  =      selectModule >>=
-  \tm -> selectTask tm >>=
-  \tt -> viewStaticTask tm tt
-      @! ()
-
-selectModule :: Task TonicModule
-selectModule
-  =      getTonicModules >>-
-         enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)] >>=
-  \mn -> getModule mn
-
-selectTask :: TonicModule -> Task TonicTask
-selectTask tm
-  =      enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm) >>=
-  \tn -> case getTask tm tn of
-           Just tt -> return tt
-           _       -> throw "Should not happen"
+  =      (selectModule >&> withSelection noModuleSelection (
+  \mn -> getModule mn >>-
+  \tm -> (selectTask tm >&> withSelection noTaskSelection (
+  \tn -> maybe (return ())
+           (\tt -> viewStaticTask tm tt @! ())
+           (getTask tm tn)
+         )) <<@ ArrangeSplit Horizontal True
+         )) <<@ ArrangeSplit Horizontal True
+  where
+  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
+  selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
+  noModuleSelection = viewInformation () [] "Select module..."
+  noTaskSelection   = viewInformation () [] "Select task..."
 
 viewStaticTask :: TonicModule TonicTask -> Task (Editlet (Maybe TonicTask) [TonicletDiff])
 viewStaticTask {tm_name} tt =
@@ -214,7 +210,6 @@ viewStaticTask {tm_name} tt =
   ||- viewInformation
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") []
         (toniclet tt Nothing)
-  <<@ FullScreen
 
 viewDynamic :: Task ()
 viewDynamic =
