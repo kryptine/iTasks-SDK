@@ -175,7 +175,7 @@ tonicLogin appName = tonicUI appName
                    //Just user -> workAs user (tonicUI appName)
                    //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 
-derive class iTask MaybeError, FileError
+derive class iTask FileError
 
 getTasks :: TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
