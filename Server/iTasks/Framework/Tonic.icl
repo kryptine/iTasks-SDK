@@ -20,8 +20,7 @@ from StdFunc import o
 from System.FilePath import </>
 from StdMisc import undef, abort
 from StdFile import instance FileSystem World
-import qualified StdArray as SA
-from StdArray import class Array, instance Array {#} Char
+import StdArray
 import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.Graph, Data.List
 import qualified Data.Map as DM
 
@@ -150,7 +149,7 @@ getTonicModules
               Ok fs   -> return (map dropExtension (filter noDots fs))
               Error _ -> throw "Failed to read Tonic dir"
   where
-  noDots str = not ('SA'.select str 0 == '.')
+  noDots str = not (str.[0] == '.')
 
 getTonicDir :: Task String
 getTonicDir = mkInstantTask f
@@ -234,8 +233,8 @@ viewDynamic =
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection snd) <<@ ArrangeSplit Horizontal True
   collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bp.tt_args trt.trt_params
   aOrAn str
-    | 'SA'.size str > 0 && isMember ('SA'.select str 0) ['eEuUiIoOaA'] = "an " +++ str
-    | otherwise                                                        = "a " +++ str
+    | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
+    | otherwise                                       = "a " +++ str
 
 withSelection :: (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b
 withSelection tfun s = whileUnchanged s (maybe (viewInformation () [] "Select argument..." @? const NoValue) tfun)
