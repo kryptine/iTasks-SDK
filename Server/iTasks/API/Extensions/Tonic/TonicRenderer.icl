@@ -248,23 +248,43 @@ drawNode_ active shape graph u root world
                                      , ("ry", toJSVal bbh)
                                      ] rect world
     = world
-  drawNode` {nodeType=GTransform expr} _ nid root world
+  drawNode` {nodeType=GTransform expr args} _ nid root world
     # (g, world)          = append "g" root world
     # (g, world)          = setAttr "class" (toJSVal "tonic-transform") g world
-    # (rect, world)       = append "rect" g world
+    # (gch, world)         = append "g" g world
+    # (path, world)       = append "path" gch world
+    //# (rect, world)       = append "rect" g world
     # (g``, world)        = append "g" g world
     # (text, world)       = append "text" g`` world
-    # (_, world)          = setText expr text world
+    # world               = mkTspans [expr:args] text world
     # ((bbh, bbw), world) = getBBox root world
     # ((th, tw), world)   = getBBox text world
-    # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (bbw / 2.0)) +++ "," +++ toString (bbh / 4.0) +++ ")")) text world
-    # (rect, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
+    # (path, world)       = addPath [ "M" +++ "0 0"
+                                    , " L " +++ toString (tw + 20.0) +++ " 0"
+                                    , " L " +++ toString (tw + 30.0) +++ " " +++ toString (th / 2.0)
+                                    , " L " +++ toString (tw + 20.0) +++ " " +++ toString th
+                                    , " L " +++ "0 " +++ toString th
+                                    , " L " +++ "10 " +++ toString (th / 2.0)
+                                    , " L " +++ "7 " +++ toString 15.0
+                                    , " L " +++ toString (tw + 27.0) +++ " " +++ toString 15.0
+                                    , " L " +++ "7 " +++ toString 15.0
+                                    , " Z "] path world
+    # (path, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
                                      , ("y", toJSVal (0.0 - (th / 2.0)))
-                                     , ("rx", toJSVal "5")
-                                     , ("ry", toJSVal "5")
-                                     , ("width", toJSVal tw)
+                                     , ("width", toJSVal (tw + 30.0))
                                      , ("height", toJSVal th)
-                                     ] rect world
+                                     , ("fill", toJSVal "white")
+                                     , ("stroke", toJSVal "black")
+                                     ] path world
+    # (text, world)       = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (tw / 2.0)) +++ "," +++ toString (0.0 - (th / 2.0)) +++ ")")) text world
+    # (gch, world)        = setAttr "transform" (toJSVal ("translate(" +++ toString (0.0 - (tw / 2.0) - 15.0) +++ "," +++ toString (0.0 - (th / 2.0)) +++ ")")) gch world
+    //# (rect, world)       = setAttrs [ ("x", toJSVal (0.0 - (tw / 2.0)))
+                                     //, ("y", toJSVal (0.0 - (th / 2.0)))
+                                     //, ("rx", toJSVal "5")
+                                     //, ("ry", toJSVal "5")
+                                     //, ("width", toJSVal tw)
+                                     //, ("height", toJSVal th)
+                                     //] rect world
     = world
   drawNode` {nodeType=GStepStar} _ _ root world
     # (g, world)          = append "g" root world
@@ -410,7 +430,7 @@ drawNode_ active shape graph u root world
                                    , ("y2", toJSVal (0.0 - (th / 2.0) + nh))
                                    ] line world
     # (args, world)     = setAttrs [ ("text-anchor", toJSVal "left")
-                                   , ("y", toJSVal (0.0 - (th / 4.0)))
+                                   , ("y", toJSVal (0.0 - (th / 4.0) + 5.0))
                                    ] args world
     # (args`, world)    = selectAllChildElems args "tspan" world
     # (args`, world)    = setAttr "x" (toJSVal (0.0 - (tw / 2.0))) args` world

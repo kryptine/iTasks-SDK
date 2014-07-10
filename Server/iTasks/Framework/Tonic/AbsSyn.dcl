@@ -76,7 +76,7 @@ mkGNode :: GNodeType -> GNode
   |  GStepElem StepElem
   |  GStepCond StepCond
   |  GTaskApp TTaskApp
-  |  GTransform GCleanExpression
+  |  GTransform GCleanExpression [GCleanExpression]
   |  GVar GCleanExpression
   |  GArbitraryExpression
 

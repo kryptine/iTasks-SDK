@@ -227,7 +227,7 @@ viewDynamic =
                  ->            get tonicSharedRT >>-
                     \mp     -> viewInformation ((snd trt.trt_bpref) +++  " yields " +++ (aOrAn bpinst.tt_resty)) [] ()
                            ||- (enterChoice "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params) >>= snd)
-                           ||- viewSharedInformation "Selected blueprint instance"
+                           ||- viewSharedInformation "Blueprint:"
                                  [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
                                  tonicSharedRT
                            >>| return ()
