@@ -190,30 +190,29 @@ tonicUI appName
 
 viewStatic :: Task ()
 viewStatic
-  =            selectModule >>=
-  \(mn, tm) -> selectTask tm >>=
-  \(tn, tt) -> viewStaticTask tn mn tt >>|
-  return ()
+  =      selectModule >>=
+  \tm -> selectTask tm >>=
+  \tt -> viewStaticTask tm tt
+      @! ()
 
-selectModule :: Task (String, TonicModule)
+selectModule :: Task TonicModule
 selectModule
   =      getTonicModules >>-
          enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)] >>=
-  \mn -> getModule mn >>=
-  \m  -> return (mn, m)
+  \mn -> getModule mn
 
-selectTask :: TonicModule -> Task (String, TonicTask)
+selectTask :: TonicModule -> Task TonicTask
 selectTask tm
   =      enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm) >>=
   \tn -> case getTask tm tn of
-           Just tt -> return (tn, tt)
+           Just tt -> return tt
            _       -> throw "Should not happen"
 
-viewStaticTask :: String String TonicTask -> Task (Editlet (Maybe TonicTask) [TonicletDiff])
-viewStaticTask tn mn tt =
-      viewInformation ("Arguments for task '" +++ tn +++ "' in module '" +++ mn +++ "'") [] tt.tt_args
+viewStaticTask :: TonicModule TonicTask -> Task (Editlet (Maybe TonicTask) [TonicletDiff])
+viewStaticTask {tm_name} tt =
+      viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
   ||- viewInformation
-        ("Static visual task representation of task '" +++ tn +++ "' in module '" +++ mn +++ "'") []
+        ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") []
         (toniclet tt Nothing)
   <<@ FullScreen
 
