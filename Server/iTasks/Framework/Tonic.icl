@@ -226,7 +226,7 @@ viewDynamic =
                Just bpinst
                  ->            get tonicSharedRT >>-
                     \mp     -> viewInformation ((snd trt.trt_bpref) +++  " yields " +++ (aOrAn bpinst.tt_resty)) [] ()
-                           ||- ((enterChoice "Task arguments" [] (zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params) >&> withSelection snd) <<@ ArrangeSplit Horizontal True)
+                           ||- ((enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bpinst.tt_args trt.trt_params) >&> withSelection snd) <<@ ArrangeSplit Horizontal True)
                            ||- viewSharedInformation "Blueprint:"
                                  [ViewWith (\_ -> toniclet tonicRenderer trt.trt_bpinstance trt.trt_activeNodeId)]
                                  tonicSharedRT
