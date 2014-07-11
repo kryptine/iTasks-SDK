@@ -14,7 +14,7 @@ import iTasks.API.Common.TaskCombinators
 import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.API.Extensions.Tonic.Toniclet
+//import iTasks.API.Extensions.Tonic.Toniclet
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -25,34 +25,28 @@ import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, 
 import qualified Data.Map as DM
 
 derive gEditor
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gEditMeta
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gDefault
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gUpdate
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gVerify
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gText
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive class iTask TonicRT
 
@@ -204,12 +198,12 @@ viewStatic
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-viewStaticTask :: TonicModule TonicTask -> Task (Editlet (Maybe TonicTask) [TonicletDiff])
+//viewStaticTask :: TonicModule TonicTask -> Task (Editlet (Maybe TonicTask) [TonicletDiff])
 viewStaticTask {tm_name} tt =
       viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
   ||- viewInformation
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") []
-        (toniclet tt Nothing)
+        (return ()) // TODO       (toniclet tt Nothing)
 
 viewDynamic :: Task ()
 viewDynamic =
@@ -218,7 +212,8 @@ viewDynamic =
             (\bp -> viewInformation (blueprintTitle trt bp) [] ()
                 ||- viewTaskArguments trt bp
                 ||- viewSharedInformation "Blueprint:"
-                      [ViewWith (\_ -> toniclet bp trt.trt_activeNodeId)]
+                      // [ViewWith (\_ -> toniclet bp trt.trt_activeNodeId)]
+                      [] // TODO
                       tonicSharedRT
                  @! ())
             trt.trt_bpinstance

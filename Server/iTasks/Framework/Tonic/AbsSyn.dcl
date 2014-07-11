@@ -7,19 +7,16 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
-  NodeContents, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
+  TStepCont, TStepFilter
 
 derive JSONDecode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
-  NodeContents, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
+  TStepCont, TStepFilter
 
 derive gEq
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
-  NodeContents, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
+  TStepCont, TStepFilter
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -28,118 +25,70 @@ derive gEq
 
 :: ModuleName :== String
 :: VariableName :== String
-:: TypeName :== String
 :: TaskName :== String
 
 :: TonicTask =
   { tt_name  :: TaskName
   , tt_resty :: TypeName
   , tt_args  :: [(VariableName, TypeName)]
-  , tt_graph :: GinGraph
+  , tt_body  :: TExpr
   }
 
-:: GinGraph :== Graph GNode GEdge
+:: Pattern  :== String
+:: TypeName :== String
+:: VarName  :== String
+:: PPExpr   :== String
+:: SAction  :== String
+:: ExprId   :== [Int]
 
-:: GPattern :== String
+:: PPOr a
+  = PP PPExpr
+  | T a
 
-:: GLet =
-  { glet_binds :: ![(GCleanExpression, GCleanExpression)]
-  }
+:: TExpr
+  = TBind      (PPOr TExpr) (Maybe Pattern) (PPOr TExpr)
+  | TReturn    (PPOr TExpr)
+  | TTaskApp   ExprId VarName [PPExpr]
+  | TLet       [(Pattern, PPExpr)] (PPOr TExpr)
+  | TCaseOrIf  PPExpr [(Pattern, (PPOr TExpr))]
+  | TStep      (PPOr TExpr) [PPOr TStepCont]
+  | TParallel  TParallel
+  | TAssign    TUser (PPOr TExpr)
+  | TShare     TShare VarName [VarName]
+  | TTransform (PPOr TExpr) VarName [VarName]
+  | TVar       PPExpr
 
-:: DecisionType = IfDecision | CaseDecision
+:: TShare
+  = Get
+  | Set PPExpr
+  | Upd PPExpr
 
-:: GNode =
-  { nodeType      :: !GNodeType
-  }
+:: TUser
+  = TUAnyUser
+  | TUUserWithIdent String
+  | TUUserWithRole String
+  | TUSystemUser
+  | TUAnonymousUser
+  | TUAuthenticatedUser String [String]
 
-mkGNode :: GNodeType -> GNode
+:: TParallel
+  = ParSum  (PPOr ParSum)
+  | ParProd (PPOr [TExpr])
 
-:: GIdentifier :== String
+:: ParSum
+  = ParSumL (PPOr TExpr) (PPOr TExpr)
+  | ParSumR (PPOr TExpr) (PPOr TExpr)
+  | ParSumN (PPOr [TExpr])
 
-// TODO Add some sort of parallel arguments node type so we can simply replace
-// the GNode in the actual graph node. Can be used when substituting variables
-// at runtime. We don't need to create extra nodes for that in this graph; just
-// in the rendering.
-:: GNodeType
-  =  GAssign GCleanExpression NodeContents
-  |  GDecision DecisionType GCleanExpression
-  |  GInit
-  |  GLet GLet
-//  | GList [GCleanExpression]
-  //|  GListComprehension GListComprehension
-  |  GParallel GParType [NodeContents]
-  |  GReturn NodeContents
-  |  GStop
-  |  GParSum
-  |  GParProd
-  |  GStepStar
-  |  GStepElem StepElem
-  |  GStepCond StepCond
-  |  GTaskApp TTaskApp
-  |  GTransform GCleanExpression [GCleanExpression]
-  |  GVar GCleanExpression
-  |  GArbitraryExpression
+:: TStepCont
+  = StepOnValue             (PPOr TStepFilter)
+  | StepOnAction    SAction (PPOr TStepFilter)
+  | StepOnException (Maybe Pattern) TExpr
 
-:: TTaskApp =
-  { taskApp_taskName :: GIdentifier
-  , taskApp_args     :: [GCleanExpression]
-  }
-
-:: NodeContents
-  = VarOrExpr GCleanExpression
-  | Subgraph GinGraph
-  | StepElem StepElem
-  | NodeTaskApp TTaskApp
-
-:: GParType
-  =  DisFirstBin
-  |  DisFirstList
-  |  DisLeft
-  |  DisRight
-  |  ConAll
-  |  ConPair
-
-:: StepElem
-  = StepOnValue StepFilter
-  | StepOnAction ButtonText StepFilter
-  | StepOnException
-
-:: ButtonText :== String
-
-:: EdgeLabel :== String
-
-:: StepFilter
-  = StepAlways
-  | StepNever
-  | StepHasValue
-  | StepIfStable
-  | StepIfUnstable
-  | StepIfValue
-  | StepIfCond
-
-:: StepCond =
-  { tifv_funName :: String
-  , tifv_args    :: [String]
-  }
-
-:: GEdge = { edge_pattern :: !Maybe GPattern }
-
-:: GCleanExpression :== String
-
-:: GListComprehension =
-  {  output    :: GCleanExpression
-  ,  guard     :: Maybe GCleanExpression
-  ,  comprElem :: [ComprElem]
-  //,  selector  :: GPattern
-  //,  input     :: GCleanExpression
-  }
-
-:: ComprElem =
-  { cePattern :: GPattern
-  , ceType    :: CEType
-  , ceInput   :: GCleanExpression
-  }
-
-:: CEType
-  = ParComp
-  | SeqComp
+:: TStepFilter
+  = Always                                               (PPOr TExpr)
+  | HasValue                             (Maybe Pattern) (PPOr TExpr)
+  | IfStable                             (Maybe Pattern) (PPOr TExpr)
+  | IfUnstable                           (Maybe Pattern) (PPOr TExpr)
+  | IfCond     PPExpr                    (Maybe Pattern) (PPOr TExpr)
+  | IfValue    Pattern VarName [VarName] (Maybe Pattern) (PPOr TExpr)

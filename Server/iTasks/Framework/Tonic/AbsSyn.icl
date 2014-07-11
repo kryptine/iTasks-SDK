@@ -5,19 +5,13 @@ import Text.JSON
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
-  NodeContents, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
+  TStepCont, TStepFilter
 
 derive JSONDecode
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
-  NodeContents, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
+  TStepCont, TStepFilter
 
 derive gEq
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, StepElem, StepFilter, GParType,
-  NodeContents, TTaskApp, StepCond
-
-mkGNode :: GNodeType -> GNode
-mkGNode nt = {GNode|nodeType=nt}
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
+  TStepCont, TStepFilter

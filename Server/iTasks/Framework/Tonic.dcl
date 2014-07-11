@@ -12,38 +12,30 @@ from System.Time import :: Timestamp
 from Data.Map import :: Map
 
 derive gEditor
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gEditMeta
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gDefault
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gUpdate
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gVerify
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 derive gText
-  TonicModule, GLet, DecisionType, GNode, GNodeType, GEdge, GListComprehension,
-  TonicTask, ComprElem, CEType, GParType, NodeContents, StepElem,
-  StepFilter, TTaskApp, StepCond
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TParallel, TShare
 
 :: TaskDict a = TaskDict & iTask a
-
-:: VarName :== String
 
 :: TonicRTMap :== Map TaskId TonicRT
 
