@@ -10,6 +10,7 @@
 + Lens a a b b -> Lens 
 + Lens a a c d -> Access restriction
 + We build a dependency tree/graph
++ Inductively defined
 
 ### Questions ###
 

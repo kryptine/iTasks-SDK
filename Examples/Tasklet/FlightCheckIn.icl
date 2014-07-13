@@ -1,7 +1,9 @@
 module FlightCheckIn
 
 import iTasks,iTasks.API.Core.Client.Tasklet,FlightSupport
-from StdArray import class Array(uselect), instance Array {} a
+import Data.Maybe
+import StdArray
+//from StdArray import class Array(uselect), instance Array {} a
 
 maybeStable :: (Maybe a) -> (TaskValue a)
 maybeStable (Just v) = Value v True
@@ -11,7 +13,7 @@ maybeStable _        = NoValue
 :: Booking = {bookingRef :: String, firstName :: String, lastName :: String, flightNumber :: String, id :: Hidden String, seat :: Maybe Seat}
 :: Flight = {flightNumber :: String, rows :: Int, layout :: [Int], freeSeats :: [Seat]}
 
-derive class iTask BookingInfo, Booking, MaybeError, Flight
+derive class iTask BookingInfo, Booking, Flight
 
 derive gEditor Seat
 derive gEditMeta Seat
@@ -22,7 +24,8 @@ derive JSONEncode Seat
 derive JSONDecode Seat
 derive gEq Seat
 
-gVisualizeText{|Seat|} _ seat = [toString seat]
+gText{|Seat|} _ Nothing = [""]
+gText{|Seat|} _ (Just seat) = [toString seat]
 
 commitCheckIn b seat (bs, fs)
 	= (updateBooking b.id seat bs, removeSeat b.Booking.flightNumber seat fs)
@@ -71,7 +74,7 @@ task_checkin
 	>>= \mbP  -> verifyBooking mbP
 	>>= \p    -> findFlight p.Booking.flightNumber 
 	>>= \f    -> chooseSeat f
-	>>= \seat -> update (commitCheckIn p seat) (bookingStore >+< flightStore)
+	>>= \seat -> upd (commitCheckIn p seat) (bookingStore >+< flightStore)
 	>>| findBooking p.bookingRef // refresh booking record
 	>>= viewInformation "Check-in succeeded:" []
 	>>| task_checkin

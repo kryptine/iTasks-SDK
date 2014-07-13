@@ -20,12 +20,14 @@ getWorld :: *MyWorld -> *World
 :: PView p` r` w` *env
 	= 		 	Source 		(Source p` r` w` env)
 	| E.r w:	Projection 	(PView  p` r  w  env) (Lens r w r` w`)
+	// Isomorphism?!
 	| E.p:		Translation (PView  p  r` w` env) (p` -> p) 							& TC p
 	| E.p1 p2:	Split   	(PView  p1 r` w` env) (Split p2 r` w`) (p` -> (p1,p2)) 		& TC p1 & TC p2
 	| E.p1 r1 w1 p2 r2 w2:
 				Join		(PView  p1 r1 w1 env) (PView p2 r2 w2 env) (p` -> (p1,p2)) (w` -> (w1,w2)) (r1 r2 -> r`) & TC p1 & TC p2
 	| E.p1 p2:
 				Union		(PView  p1 r` w` env) (PView p2 r` w` env) (p` -> Either p1 p2) (p1 r` w` -> IFun p2) (p2 r` w` -> IFun p1) & TC p1 & TC p2
+	// Arrow?
 	| E.a r w p:
 				PSeq		(PView p` a a env) (PView p r w env) (a -> p) (w` -> (a,w)) (a r -> r`) & TC p
 	

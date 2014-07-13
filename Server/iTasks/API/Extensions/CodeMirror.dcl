@@ -1,6 +1,7 @@
 definition module iTasks.API.Extensions.CodeMirror
 
 import iTasks.API.Core.Client.Editlet
+import iTasks.API.Core.Client.Tasklet
 
 :: JSCM
 
@@ -76,3 +77,6 @@ codeMirrorEditlet :: !CodeMirror
 					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 
+codeMirrorTasklet :: !CodeMirror
+					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
+				  -> Tasklet CodeMirrorClient CodeMirror

@@ -318,7 +318,7 @@ notificateAll ns myworld=:{MyWorld|notification}
 where
 	notificate st (NEvent viewid invalidator)  
 			= foldl geninv st notification
-	where 
+	where
 		geninv (myworld,s,ds) {nreqid, target, handler, param} | target == viewid && 'Set'.notMember nreqid s
 			= case param of
 				(qr :: qr^) = case invalidator qr myworld of

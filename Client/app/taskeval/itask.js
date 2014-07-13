@@ -53,7 +53,7 @@ function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,eventvals){
 	// Send result to the client if it is changed only
 	if(!geq(tasklet.definition.lastResult, newres)){
 		tasklet.definition.lastResult = newres;
-		itwc.controller.sendEditEventDirect(tasklet.definition.taskId, "result", newres);
+		itwc.controller.sendEditEvent(tasklet.definition.taskId, "result", newres);
 	}
 }
 
