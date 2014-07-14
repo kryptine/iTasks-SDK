@@ -37,6 +37,7 @@ derive gEq
 :: Pattern  :== String
 :: TypeName :== String
 :: VarName  :== String
+:: FunName  :== String
 :: PPExpr   :== String
 :: SAction  :== String
 :: ExprId   :== [Int]
@@ -49,7 +50,7 @@ derive gEq
   = TBind      (PPOr TExpr) (Maybe Pattern) (PPOr TExpr)
   | TReturn    (PPOr TExpr)
   | TTaskApp   ExprId VarName [PPExpr]
-  | TLet       [(Pattern, PPExpr)] (PPOr TExpr)
+  | TLet       [(Pattern, PPOr TExpr)] (PPOr TExpr)
   | TCaseOrIf  PPExpr [(Pattern, (PPOr TExpr))]
   | TStep      (PPOr TExpr) [PPOr TStepCont]
   | TParallel  TParallel
@@ -91,4 +92,4 @@ derive gEq
   | IfStable                             (Maybe Pattern) (PPOr TExpr)
   | IfUnstable                           (Maybe Pattern) (PPOr TExpr)
   | IfCond     PPExpr                    (Maybe Pattern) (PPOr TExpr)
-  | IfValue    Pattern VarName [VarName] (Maybe Pattern) (PPOr TExpr)
+  | IfValue    Pattern FunName [VarName] (Maybe Pattern) (PPOr TExpr)
