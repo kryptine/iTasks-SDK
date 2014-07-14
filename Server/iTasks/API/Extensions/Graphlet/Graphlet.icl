@@ -53,8 +53,8 @@ graphlet genCustDiff appCustDiff renderer graphlet =
     = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"] []
                                [GElt [] [TransformAttr [TranslateTransform "20" "20"]] []]
       , eventHandlers = []
-      , width         = WrapSize
-      , height        = WrapSize
+      , width         = ExactSize 1920
+      , height        = ExactSize 1080
       }
 
   updateUI cid diffs clval=:{mbClientState=Nothing} world
