@@ -25,10 +25,9 @@ derive class iTask GraphletDiff, Graphlet
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-graphlet :: (s s -> Maybe [GraphletDiff s n e]) ([GraphletDiff s n e] s -> s)
-            (GraphletRenderer s n e) (Graphlet s n e)
+graphlet :: (GraphletRenderer s n e) (Graphlet s n e)
          -> Editlet (Graphlet s n e) [GraphletDiff s n e] | iTask s & iTask n & iTask e
-graphlet genCustDiff appCustDiff renderer graphlet =
+graphlet renderer graphlet =
   Editlet graphlet
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
@@ -170,7 +169,7 @@ graphlet genCustDiff appCustDiff renderer graphlet =
                         _            -> world
     = (clval, world)
 
-  genServerDiff oldSt newSt = mappendMaybeList (genGraphDiff oldSt.graph newSt.graph) (genCustDiff oldSt.customState newSt.customState)
+  genServerDiff oldSt newSt =  genGraphDiff oldSt.graph newSt.graph
 
   genGraphDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
                                      []    -> Nothing
@@ -194,7 +193,7 @@ graphlet genCustDiff appCustDiff renderer graphlet =
                     [] -> []
                     xs -> [UpdateNodes xs]
 
-  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph, customState = appCustDiff diffs serverState.customState}
+  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph, customState = serverState.customState}
 
   appGraphDiff diffs graph = foldl f graph diffs
     where
