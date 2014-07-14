@@ -7,16 +7,16 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
-  TStepCont, TStepFilter
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
+  TStepFilter
 
 derive JSONDecode
-  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
-  TStepCont, TStepFilter
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
+  TStepFilter
 
 derive gEq
-  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, ParSum,
-  TStepCont, TStepFilter
+  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
+  TStepFilter
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -73,23 +73,20 @@ derive gEq
   | TUAuthenticatedUser String [String]
 
 :: TParallel
-  = ParSum  (PPOr ParSum)
+  = ParSumL TExpr TExpr
+  | ParSumR TExpr TExpr
+  | ParSumN (PPOr [TExpr])
   | ParProd (PPOr [TExpr])
 
-:: ParSum
-  = ParSumL (PPOr TExpr) (PPOr TExpr)
-  | ParSumR (PPOr TExpr) (PPOr TExpr)
-  | ParSumN (PPOr [TExpr])
-
 :: TStepCont
-  = StepOnValue             (PPOr TStepFilter)
-  | StepOnAction    SAction (PPOr TStepFilter)
+  = StepOnValue             TStepFilter
+  | StepOnAction    SAction TStepFilter
   | StepOnException (Maybe Pattern) TExpr
 
 :: TStepFilter
-  = Always                                               (PPOr TExpr)
-  | HasValue                             (Maybe Pattern) (PPOr TExpr)
-  | IfStable                             (Maybe Pattern) (PPOr TExpr)
-  | IfUnstable                           (Maybe Pattern) (PPOr TExpr)
-  | IfCond     PPExpr                    (Maybe Pattern) (PPOr TExpr)
-  | IfValue    Pattern FunName [VarName] (Maybe Pattern) (PPOr TExpr)
+  = Always                                               TExpr
+  | HasValue                             (Maybe Pattern) TExpr
+  | IfStable                             (Maybe Pattern) TExpr
+  | IfUnstable                           (Maybe Pattern) TExpr
+  | IfCond     PPExpr                    (Maybe Pattern) TExpr
+  | IfValue    Pattern FunName [VarName] (Maybe Pattern) TExpr
