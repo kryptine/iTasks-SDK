@@ -78,5 +78,4 @@ codeMirrorEditlet :: !CodeMirror
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 
 codeMirrorTasklet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Tasklet CodeMirrorClient CodeMirror

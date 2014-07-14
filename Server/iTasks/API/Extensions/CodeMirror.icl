@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.CodeMirror
 
-import StdMisc, StdString
+import StdMisc, StdString, StdDebug
 import Data.Maybe, Data.List
 
 import iTasks.API.Core.Client.Editlet
@@ -76,27 +76,93 @@ where
 	isSetTheme (CMTheme _) = True
 	isSetTheme _ = False
 
-/*
-:: Tasklet st val = 
-	{ genUI				:: !(TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld))
-	, resultFunc		:: !(st -> TaskValue val)
-	, tweakUI 			:: !(UIControl -> UIControl)
-	}
+onInitClient hndCreator eventhandlers onLoadWrapper onLoadCont cid clval world
+	# (obj, world) = findObject "CodeMirror.defaults" world
+	| not (jsIsUndefined obj)
+	    = onLoad hndCreator eventhandlers onLoadCont cid undef clval world
+	# world = addCSSFromUrl "codemirror.css" world
+	# world = addJSFromUrl "codemirror.js" Nothing world
+	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (hndCreator onLoadWrapper cid)) world
+    = (clval,world)
 
-:: EditletServerDef sv cl d =
-	{	genUI		:: ComponentId *World -> *(!EditletHTML cl, !*World)
-	,	defVal		:: sv
-	,	genDiff		:: sv sv -> Maybe d
-	,	appDiff		:: d  sv -> sv
-	}
+onLoad hndCreator eventhandlers cont cid _ clval=:{val={source,configuration}} world
+	# (ta, world)       = getDomElement (sourcearea cid) world
+	# (co, world)       = createConfigurationObject configuration world
+    # (cmobj, world)    = findObject "CodeMirror" world
+    # (this, world)     = jsThis world
+    # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
+	# world 			= loadModulesIfNeeded configuration cm world
+	# st 				= {codeMirror = cm, systemEventHandlers = systemEvents, marks = []}
+	# world 			= manageSystemEvents "on" st world	
+	# world 			= foldl (putOnEventHandler cm) world eventhandlers
 
-:: EditletClientDef cl d =
-	{	updateUI    :: ComponentId (Maybe d) cl *JSWorld -> *(!cl, !*JSWorld)
-	,	defVal		:: cl
-	,	genDiff		:: cl cl -> Maybe d
-	,	appDiff		:: d  cl -> cl
-	}
-*/
+    # (editlets,world)  = findObject "itwc.controller.tasklets" world
+    # (cmp,world)       = .? (editlets .# cid) world
+    # (clval,world)		= onAfterShow cm cid undef clval world
+    # world             = (cmp .# "afterResize" .= (toJSVal (hndCreator (onAfterShow cm) cid))) world
+    # world             = (cmp .# "afterShow" .= (toJSVal (hndCreator (onAfterShow cm) cid))) world        
+	
+    //Call continuation to initialize the editor	
+    = cont cid {clval & mbSt = Just st} world
+where
+	// Set the size directly because CodeMirror seems that cannot work with CSS3 FlexBox stuff
+    onAfterShow cm cid _ st world
+        # (editlets, world) = findObject "itwc.controller.editlets" world
+        # (editlet,world)   = jsGetObjectAttr cid editlets world
+        # (domEl,world)     = jsGetObjectAttr "domEl" editlet world
+        # (style,world)     = callObjectMethod "getComputedStyle" [toJSArg domEl] jsWindow world
+        # (width,world)     = jsGetObjectAttr "width" style world
+        # (height,world)    = jsGetObjectAttr "height" style world
+
+        # (_,world)       	= (cm .# "setSize" .$ (width,height)) world
+	    = (st, world)
+
+	putOnEventHandler cm world (event, handler)
+		= snd (callObjectMethod "on" [toJSArg event, toJSArg (hndCreator handler cid)] cm world)
+
+	systemEvents = [("cursorActivity",	hndCreator onCursorActivity cid),
+					("change",			hndCreator onChange cid)]
+
+	isSetMode (CMMode _) = True
+	isSetMode _ = False
+
+	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world
+		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
+		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
+        = ({clval & val={clval.val & source = jsValToString newsource}}, world)
+
+	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
+		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
+
+		# (pos, world) = callObjectMethod "getCursor" [toJSArg "start"] cmdoc world
+		# (idx1, world) = indexFromPos pos cmdoc world
+		# idx1 = jsValToInt idx1
+		# val = {val & position = idx1}
+		
+		# (pos, world) = callObjectMethod "getCursor" [toJSArg "end"] cmdoc world
+		# (idx2, world) = indexFromPos pos cmdoc world		
+		# idx2 = jsValToInt idx2
+		# val = if (idx1 == idx2)
+				   {val & selection = Nothing}
+				   {val & selection = Just (idx1,idx2)}
+		
+		= ({clval & val = val}, world)
+	where
+		indexFromPos pos cmdoc world = callObjectMethod "indexFromPos" [toJSArg pos] cmdoc world
+
+manageSystemEvents direction {codeMirror, systemEventHandlers} world
+	= foldl sw world systemEventHandlers
+where
+	sw world (event, handler) = snd (callObjectMethod direction [toJSArg event, toJSArg handler] codeMirror world)
+
+posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
+
+addMark cmdoc (i1,i2) world
+	# (p1, world) = posFromIndex i1 cmdoc world
+	# (p2, world) = posFromIndex i2 cmdoc world
+	# (conf, world) = jsEmptyObject world
+	# world = (conf .# "className" .= "cm-highlight") world
+	= (cmdoc .# "markText" .$ (p1,p2,conf)) world
 
 sourcearea :: String -> String
 sourcearea id = "cm_source_" +++ id
@@ -107,78 +173,58 @@ codeMirrorUIDef cid eventHandlers
 									[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 									,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 	  , eventHandlers 	= eventHandlers
-	  , width 			= ExactSize 300
-	  , height			= ExactSize 300
+	  , width 			= FlexSize //ExactSize 300
+	  , height			= FlexSize //ExactSize 300
 	  }
 
 codeMirrorTasklet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Tasklet CodeMirrorClient CodeMirror
-codeMirrorTasklet g eventhandlers = 
+codeMirrorTasklet g = 
 				{ Tasklet 
 				| genUI      = \tid _ world -> (TaskletHTML (codeMirrorUIDef tid eventHandlers), {val = g, mbSt = Nothing}, world)
-				, resultFunc = undef
+				, resultFunc = \clval -> Value clval.val False
 				, tweakUI    = id
 				}
 where
 	eventHandlers = [ComponentEvent "tasklet" "init" onInit]
 
-	onInit taskId _ st world = undef
-	
-	/*
-	onInit taskId _ st world
-		# (obj, world) = findObject "CodeMirror.defaults" world
-		| not (jsIsUndefined obj)
-		    = onLoad mbDiffs cid undef clval world
-		# world = addCSSFromUrl "codemirror.css" world
-		# world = addJSFromUrl "codemirror.js" Nothing world
-		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
-        = (clval,world)
+	onInit taskId _ clval world
+		= onInitClient foo [] onLoadWrapper onLoadCont (toString taskId) clval world 
     where
-		handler = createEditletEventHandler (onLoad mbDiffs) cid
+		onLoadCont taskId clval world = onUpdate taskId clval world 
+		onLoadWrapper taskId obj st world = onLoad foo [] onLoadCont (toString taskId) obj st world
+		foo hnd taskId = createTaskletEventHandler (\taskId obj val st -> hnd (toString taskId) obj val st) (fromString taskId)
 
-	onLoad mbDiff cid _ clval=:{val={source,configuration}} world
-		# (ta, world)       = getDomElement (sourcearea cid) world
-		# (co, world)       = createConfigurationObject configuration world
-        # (cmobj, world)    = findObject "CodeMirror" world
-        # (this, world)     = jsThis world
-        # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
-		# world 			= loadModulesIfNeeded configuration cm world
-		# st 				= {codeMirror = cm, systemEventHandlers = systemEvents, marks = []}
-		# world 			= manageSystemEvents "on" st world	
-		# world 			= foldl (putOnEventHandler cm) world eventhandlers
-
-        # (editlets,world)  = findObject "itwc.controller.editlets" world
-        # (cmp,world)       = .? (editlets .# cid) world
-        # (clval,world)		= onAfterShow cm cid undef clval world
-        # world             = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world
-        # world             = (cmp .# "afterShow" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world        
+	onUpdate taskid clval=:{val={source,configuration,position,selection,highlighted}, mbSt=Just st=:{codeMirror,marks}} world 
+		// disable system event handlers
+		# world = manageSystemEvents "off" st world		
 	
-        //Call onUpdate to initialize the editor	
-        = onUpdate cid mbDiff {clval & mbSt = Just st} world
-	where
-		// Set the size directly because CodeMirror seems that cannot work with CSS3 FlexBox stuff
-	    onAfterShow cm cid _ st world
-            # (editlets, world) = findObject "itwc.controller.editlets" world
-            # (editlet,world)   = jsGetObjectAttr cid editlets world
-            # (domEl,world)     = jsGetObjectAttr "domEl" editlet world
-            # (style,world)     = callObjectMethod "getComputedStyle" [toJSArg domEl] jsWindow world
-            # (width,world)     = jsGetObjectAttr "width" style world
-            # (height,world)    = jsGetObjectAttr "height" style world
+		# world = setOptions configuration codeMirror world
+		# world = loadModulesIfNeeded configuration codeMirror world
+		
+		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 
-	        # (_,world)       	= (cm .# "setSize" .$ (width,height)) world
-	        = (st, world)
+		# world = snd (callObjectMethod "setValue" [toJSArg source] cmdoc world)
+			
+		# (pos, world) = posFromIndex position cmdoc world 
+		# world = snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)		
+	
+		# world = case selection of
+			Nothing	
+				= world
+			(Just (idx1,idx2))
+				# (pos1, world) = posFromIndex idx1 cmdoc world 
+				# (pos2, world) = posFromIndex idx2 cmdoc world 							
+				= snd (callObjectMethod "setSelection" [toJSArg pos1, toJSArg pos2] cmdoc world)	
 
-		putOnEventHandler cm world (event, handler)
-			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
-
-		systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
-						("change",			createEditletEventHandler onChange cid)]
-
-		isSetMode (CMMode _) = True
-		isSetMode _ = False
-*/
-
+		// Set marks	
+		# (marks, world) =
+			foldl (\(ms, world) pos -> let (m,w) = addMark cmdoc pos world in ([m:ms], w)) ([], world) highlighted	
+	
+		// enable system event handlers
+		# world = manageSystemEvents "on" st world
+					
+		= ({clval & mbSt = Just {st & marks = marks}}, world)
 
 codeMirrorEditlet :: !CodeMirror
 					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
@@ -201,16 +247,10 @@ codeMirrorEditlet g eventhandlers = Editlet g
 where	
 	// init
 	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
-		# (obj, world) = findObject "CodeMirror.defaults" world
-		| not (jsIsUndefined obj)
-		    = onLoad cont cid undef clval world
-		# world = addCSSFromUrl "codemirror.css" world
-		# world = addJSFromUrl "codemirror.js" Nothing world
-		# world = addJSFromUrl "addon/mode/loadmode.js" (Just handler) world
-        = (clval,world)
+		= onInitClient createEditletEventHandler eventhandlers onLoadWrapper onLoadCont cid clval world 
     where
-		handler = createEditletEventHandler (onLoad cont) cid
-		cont cid clval world = onUpdate cid mbDiffs clval world 
+		onLoadWrapper = onLoad createEditletEventHandler eventhandlers onLoadCont
+		onLoadCont cid clval world = onUpdate cid mbDiffs clval world 
 
 	// update
 	onUpdate cid (Just diffs) clval=:{mbSt=Just st=:{codeMirror,marks}} world	
@@ -278,91 +318,11 @@ where
 
 		isSetHighlights (SetHighlights _) = True
 		isSetHighlights _ = False
-
-		posFromIndex idx cmdoc world = callObjectMethod "posFromIndex" [toJSArg idx] cmdoc world
-
-		addMark cmdoc (i1,i2) world
-			# (p1, world) = posFromIndex i1 cmdoc world
-			# (p2, world) = posFromIndex i2 cmdoc world
-			# (conf, world) = jsEmptyObject world
-			# world = (conf .# "className" .= "cm-highlight") world
-			= (cmdoc .# "markText" .$ (p1,p2,conf)) world
 	
-	onLoad cont cid _ clval=:{val={source,configuration}} world
-		# (ta, world)       = getDomElement (sourcearea cid) world
-		# (co, world)       = createConfigurationObject configuration world
-        # (cmobj, world)    = findObject "CodeMirror" world
-        # (this, world)     = jsThis world
-        # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
-		# world 			= loadModulesIfNeeded configuration cm world
-		# st 				= {codeMirror = cm, systemEventHandlers = systemEvents, marks = []}
-		# world 			= manageSystemEvents "on" st world	
-		# world 			= foldl (putOnEventHandler cm) world eventhandlers
-
-        # (editlets,world)  = findObject "itwc.controller.editlets" world
-        # (cmp,world)       = .? (editlets .# cid) world
-        # (clval,world)		= onAfterShow cm cid undef clval world
-        # world             = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world
-        # world             = (cmp .# "afterShow" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world        
-	
-        //Call onUpdate to initialize the editor	
-        = cont cid {clval & mbSt = Just st} world
-	where
-		// Set the size directly because CodeMirror seems that cannot work with CSS3 FlexBox stuff
-	    onAfterShow cm cid _ st world
-            # (editlets, world) = findObject "itwc.controller.editlets" world
-            # (editlet,world)   = jsGetObjectAttr cid editlets world
-            # (domEl,world)     = jsGetObjectAttr "domEl" editlet world
-            # (style,world)     = callObjectMethod "getComputedStyle" [toJSArg domEl] jsWindow world
-            # (width,world)     = jsGetObjectAttr "width" style world
-            # (height,world)    = jsGetObjectAttr "height" style world
-
-	        # (_,world)       	= (cm .# "setSize" .$ (width,height)) world
-	        = (st, world)
-
-		putOnEventHandler cm world (event, handler)
-			= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
-
-		systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
-						("change",			createEditletEventHandler onChange cid)]
-
-		isSetMode (CMMode _) = True
-		isSetMode _ = False
-
-	manageSystemEvents direction {codeMirror, systemEventHandlers} world
-			= foldl sw world systemEventHandlers
-	where
-		sw world (event, handler) = snd (callObjectMethod direction [toJSArg event, toJSArg handler] codeMirror world)
-
 	unPackPosition pos world
 		# (line, world) = jsGetObjectAttr "line" pos world
 		# (ch, world) = jsGetObjectAttr "ch" pos world		
 		= ((line, ch), world)
-
-	// TODO
-	onChange cid event clval=:{val={source}, mbSt=Just {codeMirror}} world
-		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
-		# (newsource, world) = callObjectMethod "getValue" [] cmdoc world				
-        = ({clval & val={clval.val & source = jsValToString newsource}}, world)
-
-	onCursorActivity cid event clval=:{val, mbSt=Just {codeMirror}} world 
-		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
-
-		# (pos, world) = callObjectMethod "getCursor" [toJSArg "start"] cmdoc world
-		# (idx1, world) = indexFromPos pos cmdoc world
-		# idx1 = jsValToInt idx1
-		# val = {val & position = idx1}
-		
-		# (pos, world) = callObjectMethod "getCursor" [toJSArg "end"] cmdoc world
-		# (idx2, world) = indexFromPos pos cmdoc world		
-		# idx2 = jsValToInt idx2
-		# val = if (idx1 == idx2)
-				   {val & selection = Nothing}
-				   {val & selection = Just (idx1,idx2)}
-		
-		= ({clval & val = val}, world)
-	where
-		indexFromPos pos cmdoc world = callObjectMethod "indexFromPos" [toJSArg pos] cmdoc world
 
 	genDiffClient clval1 clval2 = genDiffServer clval1.val clval2.val
 	
