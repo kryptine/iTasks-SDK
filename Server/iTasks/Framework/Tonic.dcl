@@ -12,27 +12,27 @@ from System.Time import :: Timestamp
 from Data.Map import :: Map
 
 derive gEditor
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gEditMeta
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gDefault
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gUpdate
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gVerify
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gText
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 :: TaskDict a = TaskDict & iTask a

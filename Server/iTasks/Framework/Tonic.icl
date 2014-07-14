@@ -25,27 +25,27 @@ import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, 
 import qualified Data.Map as DM
 
 derive gEditor
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gEditMeta
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gDefault
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gUpdate
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gVerify
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive gText
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser, ParSum,
+  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
 derive class iTask TonicRT
