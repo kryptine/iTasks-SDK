@@ -8,9 +8,7 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 
 :: RWShared p r w
 	= 			            SDSSource		!(SDSSource p r w)
-    | E.rs ws:              SDSProjection   !(RWShared p rs ws)                         (SDSProjection rs ws r w)
-	| E.ps:		            SDSTranslation  !(RWShared ps r w)                          (SDSTranslation p ps) & TC ps
-    | E.ps pn rs ws:        SDSSplit        !(RWShared ps rs ws)                        (SDSSplit p ps pn rs ws r w) & TC ps & TC pn & gEq{|*|} ps
+    | E.ps rs ws:           SDSLens         !(RWShared ps rs ws)                        (SDSLens p r w ps rs ws) & TC ps
     | E.p1 p2:              SDSSelect       !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSSelect p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
@@ -42,33 +40,25 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
 	, write			:: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
 	}
 
-//Project maps values from a source (s) domain to a new target (t) domain
-:: SDSProjection rs ws rt wt =
-    { read         :: SDSReadProjection rs rt
-    , write        :: SDSWriteProjection rs ws wt
-    }
-
-:: SDSReadProjection rs rt
-    = SDSLensRead      (rs -> MaybeError TaskException rt)      //Read lens-like
-    | SDSConstRead     rt                               //No need to read the original source
-
-:: SDSWriteProjection rs ws wt
-    = SDSLensWrite     (rs wt   -> MaybeError TaskException (Maybe ws)) //Write lens-like
-    | SDSBlindWrite    (wt      -> MaybeError TaskException (Maybe ws)) //No-need to read the original source
-    | SDSNoWrite
-
-:: SDSTranslation p ps =
+:: SDSLens p r w ps rs ws =
     { name         :: String
     , param        :: p -> ps
+    , read         :: SDSLensRead p r rs
+    , write        :: SDSLensWrite p w rs ws
+    , notify       :: SDSLensNotify p w rs
     }
 
-//Split divides a domain into two subdomains by introducing a new parameter
-:: SDSSplit p ps pn rs ws r w =
-    { name         :: String
-    , param        :: p -> (ps,pn)
-    , read         :: pn rs -> r
-    , write        :: pn rs w -> (ws, SDSNotifyPred pn)
-    }
+:: SDSLensRead p r rs
+    = SDSRead       (p rs -> MaybeError TaskException r)  //Read original source and transform
+    | SDSReadConst  (p -> r)                              //No need to read the original source
+
+:: SDSLensWrite p w rs ws
+    = SDSWrite      (p rs w  -> MaybeError TaskException (Maybe ws)) //Read original source, and write updated version
+    | SDSWriteConst (p w     -> MaybeError TaskException (Maybe ws)) //No need to read the original source
+
+:: SDSLensNotify p w rs
+    = SDSNotify         (p rs w -> SDSNotifyPred p)
+    | SDSNotifyConst    (p w    -> SDSNotifyPred p)
 
 //Merge two sources by selecting one based on the parameter
 :: SDSSelect p p1 p2 r w =
@@ -83,8 +73,8 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
     { name         :: String
     , param         :: p -> (p1,p2)
     , read          :: (r1,r2) -> r
-    , writel        :: SDSWriteProjection r1 w1 w
-    , writer        :: SDSWriteProjection r2 w2 w
+    , writel        :: SDSLensWrite p w r1 w1
+    , writer        :: SDSLensWrite p w r2 w2
     }
 
 //Read from and write to two dependent SDS's
@@ -93,8 +83,8 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
     { name         :: String
     , param         :: p r1 -> p2
     , read          :: (r1,r2) -> r
-    , writel        :: SDSWriteProjection r1 w1 w
-    , writer        :: SDSWriteProjection r2 w2 w
+    , writel        :: SDSLensWrite p w r1 w1
+    , writer        :: SDSLensWrite p w r2 w2
     }
 
 :: BasicShareId :== String	
