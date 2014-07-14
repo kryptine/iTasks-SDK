@@ -204,8 +204,6 @@ where
 	| isError res   = (liftError res,world)
 	= (Ok (printLaTeX (moduleToTeX (fromOk res))),world)
 
-derive class iTask MaybeError
-
 dclToTeX :: ![String] !FilePath *World -> (MaybeErrorString [LaTeX], *World)
 dclToTeX idents filename world
 # (res, world) = documentDCL filename world

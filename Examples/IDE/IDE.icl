@@ -111,7 +111,8 @@ where
 
 	shareSearchResults :: Extension (SharedTaskList IDE_TaskResult) (Shared CodeMirror)  -> (Shared CodeMirror)
 	shareSearchResults ext list mirror 
-	= 				list >+> filterSearchers 
+    = mirror
+	//= 		list >+> filterSearchers //TODO Use proper share propagation to link shares
 	where
 		filterSearchers :: (TaskList IDE_TaskResult) -> (Shared CodeMirror)
 		filterSearchers {TaskList|items} 
