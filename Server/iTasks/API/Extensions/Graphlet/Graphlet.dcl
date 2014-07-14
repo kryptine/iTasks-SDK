@@ -8,7 +8,7 @@ from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
 
 derive gEditor Graph, Node
 derive gEditMeta Graph, Node
-derive gVisualizeText Graph, Node
+derive gText Graph, Node
 derive gDefault Graph, Node
 derive gUpdate Graph, Node
 derive gVerify Graph, Node

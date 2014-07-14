@@ -10,7 +10,7 @@ from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 
 :: DagreRender :== JSObj DagreRenderW
 
-mkDigraph :: *JSWorld -> *(GLGraph, *JSWorld)
+mkDagreD3Digraph :: *JSWorld -> *(GLGraph, *JSWorld)
 
 mkRenderer :: *JSWorld -> *(DagreRender, *JSWorld)
 

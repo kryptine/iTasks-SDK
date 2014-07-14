@@ -3,6 +3,7 @@ implementation module iTasks.API.Extensions.Graphlet.Graphlet
 import iTasks
 import iTasks.API.Extensions.Graphlet.D3
 import iTasks.API.Extensions.Graphlet.DagreD3
+import iTasks.API.Extensions.Graphlet.Graphlib
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 import StdMisc
@@ -14,7 +15,7 @@ import dynamic_string
 
 derive gEditor Graph, Node
 derive gEditMeta Graph, Node
-derive gVisualizeText Graph, Node
+derive gText Graph, Node
 derive gDefault Graph, Node
 derive gUpdate Graph, Node
 derive gVerify Graph, Node
@@ -26,9 +27,9 @@ mkSVGId x = "svg" +++ x
 
 graphlet :: (s s -> Maybe [GraphletDiff s n e]) ([GraphletDiff s n e] s -> s)
             (GraphletRenderer s n e) (Graphlet s n e)
-         -> Editlet (Graphlet s n e) [GraphletDiff n e] | iTask s & iTask n & iTask e
+         -> Editlet (Graphlet s n e) [GraphletDiff s n e] | iTask s & iTask n & iTask e
 graphlet genCustDiff appCustDiff renderer graphlet =
-  Editlet initGraphlet
+  Editlet graphlet
     { EditletServerDef
     | genUI   = \cid world -> (uiDef cid, world)
     , defVal  = defGraphlet
@@ -49,8 +50,8 @@ graphlet genCustDiff appCustDiff renderer graphlet =
                 }
 
   uiDef cid
-    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"]
-                               [GTag [TransformAttr "translate(20, 20)"] []]
+    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"] []
+                               [GElt [] [TransformAttr [TranslateTransform "20" "20"]] []]
       , eventHandlers = []
       , width         = WrapSize
       , height        = WrapSize

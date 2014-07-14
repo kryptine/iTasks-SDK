@@ -9,8 +9,8 @@ import iTasks.API.Extensions.Graphlet.D3
 
 :: DagreRenderW = DagreRenderW
 
-mkDigraph :: *JSWorld -> *(GLGraph, *JSWorld)
-mkDigraph world = jsNewObject "dagreD3.Digraph" [] world
+mkDagreD3Digraph :: *JSWorld -> *(GLGraph, *JSWorld)
+mkDagreD3Digraph world = jsNewObject "dagreD3.Digraph" [] world
 
 mkRenderer :: *JSWorld -> *(DagreRender, *JSWorld)
 mkRenderer world = jsNewObject "dagreD3.Renderer" [] world
