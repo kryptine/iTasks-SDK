@@ -5,8 +5,9 @@ import iTasks.API.Extensions.Graphlet.Graphlet
 import iTasks.API.Extensions.Graphlet.GraphvizRenderer
 import Data.Graph
 
-testGraphlet = viewInformation "Graphlet with Graphviz-like rendering" []
-                 (graphlet graphvizRenderer {graph = mkTestGraph}) <<@ FullScreen
+//testGraphlet = viewInformation "Graphlet with Graphviz-like rendering" []
+//                 (graphletEditlet graphvizRenderer {graph = mkTestGraph}) <<@ FullScreen
+testGraphlet = mkTask (graphletTasklet graphvizRenderer {graph = mkTestGraph})
   where
   mkTestGraph
     // Create a new, empty graph

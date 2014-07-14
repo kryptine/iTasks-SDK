@@ -5,6 +5,7 @@ import iTasks.API.Extensions.Graphlet.D3
 import iTasks.API.Extensions.Graphlet.DagreD3
 import iTasks.API.Extensions.Graphlet.Graphlib
 import iTasks.API.Core.Client.Editlet
+import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
 import StdMisc
 import StdDebug
@@ -25,48 +26,55 @@ derive class iTask GraphletDiff, Graphlet
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-graphlet :: (GraphletRenderer n e) (Graphlet n e)
+graphletTasklet :: (GraphletRenderer n e) (Graphlet n e)
+         -> Tasklet (GraphletClientData n e) Void | iTask n & iTask e
+graphletTasklet renderer graphlet =
+			{ Tasklet
+			| genUI      = \tid _ world -> (TaskletHTML (graphletUIDef (toString tid) eventHandlers), {graphlet = graphlet, mbClientState=Nothing}, world)
+			, resultFunc = const (Value Void True)
+			, tweakUI    = id
+			}
+where
+	eventHandlers = [ComponentEvent "tasklet" "init" onInit]
+	
+	diffs = genServerDiff defGraphlet graphlet
+	
+	onInit taskId _ clval world 
+		= updateUI foo renderer (toString taskId) diffs clval world
+	where
+		foo hnd taskId = createTaskletEventHandler (\taskId obj val st -> hnd (toString taskId) obj val st) (fromString taskId)
+
+graphletEditlet :: (GraphletRenderer n e) (Graphlet n e)
          -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e
-graphlet renderer graphlet =
+graphletEditlet renderer graphlet =
   Editlet graphlet
     { EditletServerDef
-    | genUI   = \cid world -> (uiDef cid, world)
+    | genUI   = \cid world -> (graphletUIDef cid [], world)
     , defVal  = defGraphlet
     , genDiff = genServerDiff
     , appDiff = appServerDiff
     }
     { EditletClientDef
-    | updateUI = updateUI
+    | updateUI = updateUI createEditletEventHandler renderer
     , defVal   = { mbClientState = Nothing
                  , graphlet      = defGraphlet
                  }
     , genDiff  = genClientDiff
     , appDiff  = appClientDiff
     }
-  where
-  defGraphlet = { graph       = 'DG'.emptyGraph
-                }
 
-  uiDef cid
-    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"] []
-                               [GElt [] [TransformAttr [TranslateTransform "20" "20"]] []]
-      , eventHandlers = []
-      , width         = ExactSize 1920
-      , height        = ExactSize 1080
-      }
-
-  updateUI cid diffs clval=:{mbClientState=Nothing} world
+updateUI hndCreater renderer cid diffs clval=:{mbClientState=Nothing} world
     # (dagre, world) = findObject "dagreD3" world
     | jsIsUndefined dagre
         # world = foldr addCSSFromUrl world renderer.styleSheets
         # world = addJSFromUrl "/d3.v3.min.js" Nothing world
         # world = addJSFromUrl "/dagre.js" Nothing world
-        # world = addJSFromUrl "/dagre-d3.js" (Just (createEditletEventHandler (onLibLoaded diffs) cid)) world
+        # world = addJSFromUrl "/dagre-d3.js" (Just (hndCreater (onLibLoaded hndCreater renderer diffs) cid)) world
         = (clval, world)
     | otherwise
-        = onLibLoaded diffs cid undef clval world
+        = onLibLoaded hndCreater renderer diffs cid undef clval world
 
-  updateUI cid (Just xs) clval=:{mbClientState=Just {graphObj}} world
+updateUI hndCreater renderer cid (Just xs) clval=:{mbClientState=Just {graphObj}} world
     = updateUI` cid (Just xs) clval world
     where
     updateUI` cid (Just [RemoveNodes rmnds:diffs]) clval=:{mbClientState=Just {graphObj}} world
@@ -122,8 +130,8 @@ graphlet renderer graphlet =
       # (_, world)       = removeElems subs world
       // End hackish solution to prevent double rerendering
       # (drend, world)   = mkRenderer world
-      # renderNodeFun    = createEditletEventHandler drawNodeCb cid
-      # renderEdgeLblFun = createEditletEventHandler drawEdgeLabelCb cid
+      # renderNodeFun    = hndCreater (drawNodeCb renderer) cid
+      # renderEdgeLblFun = hndCreater (drawEdgeLabelCb renderer) cid
       # world            = setDrawNode drend renderNodeFun world
       # world            = setDrawEdgeLabel drend renderEdgeLblFun world
       # world            = runRenderer drend graphObj svgTarget world
@@ -132,19 +140,19 @@ graphlet renderer graphlet =
     updateUI` _ _ clval world
       = (clval, world)
 
-  updateUI _ _ clval world
+updateUI _ _ _ _ clval world
     = (clval, world)
 
-  onLibLoaded diffs cid _ clval=:{mbClientState=Nothing} world
+onLibLoaded hndCreater renderer diffs cid _ clval=:{mbClientState=Nothing} world
     # (svgg, world)    = selectElem ("#" +++ mkSVGId cid) world
     # (jsgraph, world) = mkDagreD3Digraph world
     # clval            = {clval & mbClientState = Just {graphObj = jsgraph, svgTarget = svgg}}
-    = updateUI cid diffs clval world
+    = updateUI hndCreater renderer cid diffs clval world
 
-  onLibLoaded diffs cid _ clval world
-    = updateUI cid diffs clval world
+onLibLoaded hndCreater renderer diffs cid _ clval world
+    = updateUI hndCreater renderer cid diffs clval world
 
-  drawNodeCb cid {[0] = jsgraph, [1] = u, [2] = root} clval world
+drawNodeCb renderer cid {[0] = jsgraph, [1] = u, [2] = root} clval world
     # graphValue = jsUnsafeCoerce jsgraph
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
@@ -153,7 +161,7 @@ graphlet renderer graphlet =
                      _            -> world
     = (clval, world)
 
-  drawEdgeLabelCb cid {[0] = jsgraph, [1] = e, [2] = root} clval world
+drawEdgeLabelCb renderer cid {[0] = jsgraph, [1] = e, [2] = root} clval world
     # graphValue    = jsUnsafeCoerce jsgraph
     # edgeIdLst     = jsUnsafeCoerce e
     # (fEId, world) = jsGetObjectEl 0 edgeIdLst world
@@ -165,9 +173,27 @@ graphlet renderer graphlet =
                         _            -> world
     = (clval, world)
 
-  genServerDiff oldSt newSt =  genGraphDiff oldSt.graph newSt.graph
+defGraphlet = { graph       = 'DG'.emptyGraph
+              }
 
-  genGraphDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
+appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph}
+
+appGraphDiff diffs graph = foldl f graph diffs
+    where
+    f graph (RemoveNodes ns) = foldr 'DG'.removeNode graph ns
+    f graph (RemoveEdges es) = foldr 'DG'.removeEdge graph es
+    f graph (AddNodes ns)    = foldr (\(n, ni) g -> snd ('DG'.addNode n g)) graph ns
+    f graph (AddEdges es)    = foldr (\(e, ei) g -> 'DG'.addEdge e ei g) graph es
+    f graph (UpdateNodes ns) = foldr (\(n, ni) g -> 'DG'.setNodeData ni n g) graph ns
+    f graph _                = graph
+
+genClientDiff oldSt newSt = genGraphDiff oldSt.graphlet.graph newSt.graphlet.graph
+
+appClientDiff diffs cs=:{graphlet={graph}} = {cs & graphlet = {graph = appGraphDiff diffs graph}}
+
+genServerDiff oldSt newSt =  genGraphDiff oldSt.graph newSt.graph
+
+genGraphDiff oldGraph newGraph = case rmNodes ++ rmEdges ++ addNodes ++ addEdges ++ updateNodes of
                                      []    -> Nothing
                                      diffs -> Just diffs
     where
@@ -189,20 +215,13 @@ graphlet renderer graphlet =
                     [] -> []
                     xs -> [UpdateNodes xs]
 
-  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph}
-
-  appGraphDiff diffs graph = foldl f graph diffs
-    where
-    f graph (RemoveNodes ns) = foldr 'DG'.removeNode graph ns
-    f graph (RemoveEdges es) = foldr 'DG'.removeEdge graph es
-    f graph (AddNodes ns)    = foldr (\(n, ni) g -> snd ('DG'.addNode n g)) graph ns
-    f graph (AddEdges es)    = foldr (\(e, ei) g -> 'DG'.addEdge e ei g) graph es
-    f graph (UpdateNodes ns) = foldr (\(n, ni) g -> 'DG'.setNodeData ni n g) graph ns
-    f graph _                = graph
-
-  genClientDiff oldSt newSt = genGraphDiff oldSt.graphlet.graph newSt.graphlet.graph
-
-  appClientDiff diffs cs=:{graphlet={graph}} = {cs & graphlet = {graph = appGraphDiff diffs graph}}
+graphletUIDef cid eventHandlers
+    = { html          = SvgTag [IdAttr (mkSVGId cid), ClassAttr "graphletGraph"] []
+                               [GElt [] [TransformAttr [TranslateTransform "20" "20"]] []]
+      , eventHandlers = eventHandlers
+      , width         = ExactSize 1920
+      , height        = ExactSize 1080
+      }
 
 mappendMaybeList (Just xs) (Just ys) = Just (xs ++ ys)
 mappendMaybeList (Just xs) _         = Just xs

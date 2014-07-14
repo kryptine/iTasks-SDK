@@ -2,6 +2,7 @@ definition module iTasks.API.Extensions.Graphlet.Graphlet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
+import iTasks.API.Core.Client.Tasklet
 from Data.Graph import :: Graph, :: Node, :: NodeIndex, :: EdgeIndex
 from iTasks.API.Extensions.Graphlet.D3 import :: D3, :: D3W
 from iTasks.API.Extensions.Graphlet.Graphlib import :: GLGraph, :: GLGraphW
@@ -42,5 +43,8 @@ derive gVerify Graph, Node
 
 derive class iTask GraphletDiff, Graphlet
 
-graphlet :: (GraphletRenderer n e) (Graphlet n e)
+graphletTasklet :: (GraphletRenderer n e) (Graphlet n e)
+         -> Tasklet (GraphletClientData n e) Void | iTask n & iTask e
+
+graphletEditlet :: (GraphletRenderer n e) (Graphlet n e)
          -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e
