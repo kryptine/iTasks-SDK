@@ -14,6 +14,7 @@ from iTasks.Framework.TaskEval import topListShare, currentInstanceShare
 
 import qualified Data.Map as DM
 derive gEq TIType
+derive JSONEncode InstanceFilter
 
 SYSTEM_DATA_NS :== "SystemData"
 
@@ -91,7 +92,7 @@ where
 taskInstanceByNo :: RWShared InstanceNo TaskInstance TaskAttributes
 taskInstanceByNo
     = sdsProject (SDSLensRead readTIItem) (SDSLensWrite writeTIItem)
-      (sdsTranslate (\instanceNo -> {InstanceFilter|instanceNo=Just instanceNo,session=Nothing}) filteredInstanceMeta)
+      (sdsTranslate "taskInstanceByNo" (\instanceNo -> {InstanceFilter|instanceNo=Just instanceNo,session=Nothing}) filteredInstanceMeta)
 where
     readTIItem [i]    = Ok (taskInstanceFromTIMeta i)
     readTIItem _      = Error (exception "Task instance not found")

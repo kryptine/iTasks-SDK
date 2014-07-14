@@ -5,8 +5,6 @@ import Data.Error, Data.Func, Data.Tuple, Data.Void, Data.Map, System.Time, Text
 import qualified Data.Set as Set
 import iTasks.Framework.IWorld
 import iTasks.Framework.Task, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
-import dynamic_string //For fake Hash implementation
-import graph_to_sapl_string, Crypto.Hash.MD5
 
 :: SDSNotifyEvent  = E.p: SDSNotifyEvent !SDSIdentity (SDSNotifyPredIWorld p) & TC p
 
@@ -48,10 +46,16 @@ createSDS ns id read write = SDSSource
 	, write = write
 	}
 
-//Construct the identity of a potentially composed sds
+//Construct the identity of an sds
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
 sdsIdentity (SDSSource {SDSSource|name}) = name
-sdsIdentity sds = md5 (graph_to_sapl_string sds) //FIXME: Use a less hacky identity scheme
+sdsIdentity (SDSProjection sds _) = sdsIdentity sds
+sdsIdentity (SDSTranslation sds {SDSTranslation|name}) = "["+++name+++"]/" +++ sdsIdentity sds
+sdsIdentity (SDSSplit sds {SDSSplit|name}) = "("+++name+++")/" +++ sdsIdentity sds
+sdsIdentity (SDSSelect sds1 sds2 {SDSSelect|name}) = "{"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"}/"
+sdsIdentity (SDSParallel sds1 sds2 {SDSParallel|name}) = "|"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"|/"
+sdsIdentity (SDSSequence sds1 sds2 {SDSSequence|name}) = "<"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++">/"
+sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine the identity of the wrapped sds
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
@@ -74,13 +78,6 @@ read` p mbNotify sds=:(SDSSource {SDSSource|name,read}) env
     # env = mbRegister p sds mbNotify env
     = read p env
 
-read` p mbNotify (ComposedRead share cont) env = seqErrorsSt (read` p mbNotify share) (f p mbNotify cont) env
-where
-	f :: !p !(Maybe TaskId) !(x -> MaybeError TaskException (RWShared p r w)) !x !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC p
-	f p mbNotify cont x env = seqErrorsSt (\env -> (cont x, env)) (read` p mbNotify) env
-
-read` p mbNotify (ComposedWrite share _ _) env = read` p mbNotify share env
-
 read` p mbNotify (SDSProjection sds {SDSProjection|read}) env
     = case read of
         SDSLensRead proj = case (read` p mbNotify sds env) of
@@ -89,9 +86,9 @@ read` p mbNotify (SDSProjection sds {SDSProjection|read}) env
         SDSConstRead r
             = (Ok r,env)
 
-read` p mbNotify sds=:(SDSTranslation sds1 translate) env
+read` p mbNotify sds=:(SDSTranslation sds1 {SDSTranslation|param}) env
     # env = mbRegister p sds mbNotify env
-    = read` (translate p) mbNotify sds1 env
+    = read` (param p) mbNotify sds1 env
 
 read` p mbNotify sds=:(SDSSplit sds1 {SDSSplit|read,param}) env
     # env = mbRegister p sds mbNotify env
@@ -99,7 +96,7 @@ read` p mbNotify sds=:(SDSSplit sds1 {SDSSplit|read,param}) env
     # (res, env) = read` p1 mbNotify sds1 env
     = (fmap (read p2) res, env)
 
-read` p mbNotify sds=:(SDSMerge sds1 sds2 {SDSMerge|select}) env
+read` p mbNotify sds=:(SDSSelect sds1 sds2 {SDSSelect|select}) env
     # env = mbRegister p sds mbNotify env
     = case select p of
         Left p1     = read` p1 mbNotify sds1 env
@@ -147,29 +144,6 @@ write` p w sds=:(SDSSource {SDSSource|name,write}) env
             # npred = iworldNotifyPred npred
             = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred], env)
 
-write` p w (ComposedRead share _) env
-    = write` p w share env
-
-write` p w (ComposedWrite _ readCont writeOp) env
-    = case readCont w of
-        Error e = (Error e, [], env)
-        Ok sds1 = case read` p Nothing sds1 env of
-            (Error e,env) = (Error e, [], env)
-            (Ok r, env)
-                = case writeOp w r of
-                    (Error e) = (Error e, [], env)
-                    (Ok writes)
-                        = case doWrites writes env of
-                            (Error e,env) = (Error e,[],env) //Not correct, but this combinator will not be used with new notifications anyway
-                            (Ok Void,env) = (Ok npred,[],env)
-where
-    npred p env = (True, env)
-
-    doWrites [] env = (Ok Void, env)
-    doWrites [Write w sds:ws] env = case write` p w sds env of
-        (Error e,_,env) = (Error e,env)
-        (Ok _,_,env)    = doWrites ws env
-
 write` p w sds=:(SDSProjection sds1 {SDSProjection|write}) env
     = case write of
         SDSLensWrite proj = case read` p Nothing sds1 env of
@@ -189,11 +163,11 @@ write` p w sds=:(SDSProjection sds1 {SDSProjection|write}) env
         SDSNoWrite
             = (Ok (\p env -> (False,env)), [], env)
 
-write` p w sds=:(SDSTranslation sds1 translate) env
-    = case write` (translate p) w sds1 env of
+write` p w sds=:(SDSTranslation sds1 {SDSTranslation|param}) env
+    = case write` (param p) w sds1 env of
         (Error e, _, env) = (Error e, [], env)
         (Ok npred, ns, env)
-            # npred = \p env -> npred (translate p) env
+            # npred = \p env -> npred (param p) env
             = (Ok npred, [SDSNotifyEvent (sdsIdentity sds) npred:ns], env)
 
 write` p w sds=:(SDSSplit sds1 {SDSSplit|param,write}) env
@@ -213,7 +187,7 @@ where
         | p1 === p1`   = npred2 p2` env
                        = npred1 p1` env
 
-write` p w sds=:(SDSMerge sds1 sds2 {SDSMerge|select,notifyl,notifyr}) env
+write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
     = case select p of
         Left p1 = case read` p1 Nothing sds1 env of
             (Error e, env)  = (Error e, [], env)
@@ -365,10 +339,11 @@ clearShareRegistrations instanceNo iworld=:{IWorld|sdsNotifyRequests}
     = {iworld & sdsNotifyRequests = [r \\ r <- sdsNotifyRequests | r.SDSNotifyRequest.taskInstance <> instanceNo]}
 
 toJSONShared :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & TC p
-toJSONShared shared = SDSTranslation projected trans
+toJSONShared shared = SDSTranslation projected {SDSTranslation|name=name,param=param}
 where
 	// TODO: check
-	trans p = fromJust (fromJSON p)
+	param p = fromJust (fromJSON p)
+    name = "toJSONShared"
 
 	projected = SDSProjection shared {SDSProjection|read = SDSLensRead read`, write = SDSLensWrite write`}
 
@@ -380,7 +355,7 @@ where
         e = "Shared type mismatch in toJSONShared"
 
 fromJSONShared :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
-fromJSONShared shared = SDSTranslation projected toJSON
+fromJSONShared shared = SDSTranslation projected {SDSTranslation|name="fromJSONShare",param=toJSON}
 where
 	projected = SDSProjection shared {SDSProjection|read = SDSLensRead read`, write = SDSLensWrite write`}
 

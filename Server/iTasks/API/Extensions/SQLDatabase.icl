@@ -122,7 +122,7 @@ sqlExecuteSelect :: SQLDatabaseDef SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values)
 
 sqlSelectShare :: String SQLStatement ![SQLValue] -> ROShared SQLDatabaseDef [SQLRow]
-sqlSelectShare name query values = sdsTranslate (\db -> (db,Void)) (createReadWriteSDS "SQLShares" name (readFunSQL readFun) write)
+sqlSelectShare name query values = sdsTranslate "sqlSelectShare" (\db -> (db,Void)) (createReadWriteSDS "SQLShares" name (readFunSQL readFun) write)
 where
     readFun Void cur
         # (err,cur)			= execute query values cur
@@ -255,7 +255,8 @@ openSQLiteDB :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*SQLiteCursor, !*SQ
 openSQLiteDB db iworld=:{IWorld|resources=Just (SQLiteResource con)}
     = (Ok con, {IWorld|iworld & resources=Nothing})
 openSQLiteDB db iworld=:{IWorld|resources=Nothing}
-    # iworld=:{IWorld|world} = {IWorld|iworld & resources = Nothing}
+    # iworld=:{IWorld|world,server={paths={dataDirectory}}} = {IWorld|iworld & resources = Nothing}
+    # db = {db & database = dataDirectory </> db.database}
     # (err,mbContext,world) 	= openContext world
     | isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
     # (err,mbConn,context)		= openConnection db (fromJust mbContext)

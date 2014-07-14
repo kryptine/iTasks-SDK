@@ -5,6 +5,9 @@ import iTasks.API.Core.SDSs, iTasks.API.Core.SDSCombinators
 from StdFunc import o, const, flip, id
 from iTasks.Framework.Task import exception
 
+sdsFocus :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p & JSONEncode{|*|} p
+sdsFocus p sds = sdsTranslate ("("+++ toString (toJSON p)+++")/") (const p) sds
+
 mapRead :: !(r -> r`) !(RWShared p r w) -> RWShared p r` w
 mapRead read sds = mapReadError (\r -> Ok (read r)) sds
 
@@ -38,7 +41,7 @@ toReadOnly :: !(RWShared p r w) -> ROShared p r
 toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds
 
 (>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy) | TC p
-(>+<) sds1 sds2 = sdsParallel (\p -> (p,p)) id (SDSBlindWrite (Ok o Just o fst)) (SDSBlindWrite (Ok o Just o snd)) sds1 sds2
+(>+<) sds1 sds2 = sdsParallel ">+<" (\p -> (p,p)) id (SDSBlindWrite (Ok o Just o fst)) (SDSBlindWrite (Ok o Just o snd)) sds1 sds2
 
 (>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx | TC p
 (>+|) srcX srcY = mapWrite (\wx _ -> Just (wx, Void)) (srcX >+< toReadOnly srcY)
@@ -48,9 +51,6 @@ toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds
 
 (|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) Void | TC p
 (|+|) srcX srcY = toReadOnly (srcX >+< srcY)
-
-(>+>) infixl 6 :: !(RWShared p r0 w0) !(r0 -> (RWShared p r1 w1)) -> RWShared p r1 w1 | TC p
-(>+>) share shareGenF = share >!> (const (Ok share), \w1 r0 -> Ok [Write w1 (shareGenF r0)]) >?> \r0 -> Ok (shareGenF r0)
 
 symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b) | TC p
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)

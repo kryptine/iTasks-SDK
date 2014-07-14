@@ -17,8 +17,8 @@ from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynam
 from iTasks.Framework.TaskEval	        import localShare, parListShare, topListShare
 from iTasks.Framework.SDS               import write, read, readRegister
 from iTasks.API.Core.Tasks	            import return
-from iTasks.API.Core.SDSCombinators     import sdsFocus, sdsSplit
-from iTasks.API.Common.SDSCombinators   import toReadOnly, mapRead, mapReadWriteError, mapSingle
+from iTasks.API.Core.SDSCombinators     import sdsSplit
+from iTasks.API.Common.SDSCombinators   import sdsFocus, toReadOnly, mapRead, mapReadWriteError, mapSingle
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -479,7 +479,7 @@ taskListMeta :: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId
 taskListMeta tasklist = mapRead (\{TaskList|items} -> items) tasklist
 
 taskListEntryMeta :: !(SharedTaskList a) -> RWShared TaskId (TaskListItem a) TaskAttributes
-taskListEntryMeta tasklist = mapSingle (sdsSplit param read write tasklist)
+taskListEntryMeta tasklist = mapSingle (sdsSplit "taskListEntryMeta" param read write tasklist)
 where
     param p = (Void,p)
     read p {TaskList|items} = [i \\ i=:{TaskListItem|taskId} <- items | taskId == p]

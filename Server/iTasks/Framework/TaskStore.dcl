@@ -16,6 +16,7 @@ from System.Time    import :: Timestamp
     { instanceNo    :: Maybe InstanceNo
     , session       :: Maybe Bool
     }
+instance toString InstanceFilter
 
 newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
 maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)

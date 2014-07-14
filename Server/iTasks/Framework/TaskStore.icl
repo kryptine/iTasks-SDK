@@ -39,6 +39,9 @@ rep_store t		= toString t +++ "-rep"
 value_store t	= toString t +++ "-value"
 reduct_store t	= toString t +++ "-reduct"
 
+instance toString InstanceFilter where toString x = toString (toJSON x)
+derive JSONEncode InstanceFilter
+
 newInstanceNo :: !*IWorld -> (!InstanceNo,!*IWorld)
 newInstanceNo iworld
 	# (mbNewTid,iworld) = singleValueStoreRead NS_TASK_INSTANCES INCREMENT False iworld
@@ -94,7 +97,7 @@ where
         = (Ok (const True),iworld)
 
 filteredInstanceMeta :: RWShared InstanceFilter [TIMeta] [TIMeta]
-filteredInstanceMeta = sdsSplit (\p -> (Void,p)) read write fullInstanceMeta
+filteredInstanceMeta = sdsSplit "filteredInstanceMeta" (\p -> (Void,p)) read write fullInstanceMeta
 where
     read tfilter is = filter (filterFun tfilter) is
 
@@ -109,7 +112,7 @@ where
 
 //The instance meta data is stored directly in the iworld
 taskInstanceMeta :: RWShared InstanceNo TIMeta TIMeta
-taskInstanceMeta = mapSingle (sdsTranslate (\no -> {InstanceFilter|instanceNo=Just no, session = Nothing}) filteredInstanceMeta)
+taskInstanceMeta = mapSingle (sdsTranslate "taskInstanceMeta" (\no -> {InstanceFilter|instanceNo=Just no, session = Nothing}) filteredInstanceMeta)
 
 //The remaining instance parts are stored on disk
 taskInstanceReduct :: !InstanceNo -> RWShared Void TIReduct TIReduct

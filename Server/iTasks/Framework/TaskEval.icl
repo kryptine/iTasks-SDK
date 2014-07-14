@@ -11,11 +11,11 @@ import iTasks.Framework.SDSService
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map				import qualified newMap, fromList, toList, get, put
 from iTasks.Framework.SDS as SDS import qualified read, write, read, write
-from iTasks.API.Core.SDSCombinators     import sdsFocus
-from iTasks.API.Common.SDSCombinators   import >+|, mapReadWrite, mapReadWriteError
+from iTasks.API.Common.SDSCombinators   import sdsFocus, >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
 derive gEq TIMeta, TIType
+derive JSONEncode InstanceFilter
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}

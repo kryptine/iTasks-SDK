@@ -5,6 +5,10 @@ from iTasks.Framework.Task import :: TaskException
 from Data.Void import :: Void
 from Data.Maybe import :: Maybe
 from Data.Error import :: MaybeError, :: MaybeErrorString
+from Text.JSON import generic JSONEncode, :: JSONNode
+
+// Fix a focus parameter
+sdsFocus     :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p & JSONEncode{|*|} p
 
 /**
 * Maps the read type, the write type or both of a shared reference to another one using a functional mapping.
@@ -35,9 +39,6 @@ mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w)
 (>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx          | TC p
 (|+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy          | TC p
 (|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) Void        | TC p
-
-// Use the value of one share as parameter for another
-(>+>) infixl 6 :: !(RWShared p r0 w0) !(r0 -> (RWShared p r1 w1)) -> RWShared p r1 w1 | TC p
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.

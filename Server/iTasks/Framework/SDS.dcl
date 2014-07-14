@@ -8,24 +8,14 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 
 :: RWShared p r w
 	= 			            SDSSource		!(SDSSource p r w)
-    //'NEW' COMPOSITIONS
-    | E.rs ws:              SDSProjection   !(RWShared p rs ws) !(SDSProjection rs ws r w)
-	| E.ps:		            SDSTranslation  !(RWShared ps r w)  !(p -> ps) & TC ps
+    | E.rs ws:              SDSProjection   !(RWShared p rs ws)                         (SDSProjection rs ws r w)
+	| E.ps:		            SDSTranslation  !(RWShared ps r w)                          (SDSTranslation p ps) & TC ps
     | E.ps pn rs ws:        SDSSplit        !(RWShared ps rs ws)                        (SDSSplit p ps pn rs ws r w) & TC ps & TC pn & gEq{|*|} ps
-    | E.p1 p2:              SDSMerge        !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSMerge p p1 p2 r w) & TC p1 & TC p2
+    | E.p1 p2:              SDSSelect       !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSSelect p p1 p2 r w) & TC p1 & TC p2
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
     | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
 							// USE IT CAREFULLY, IT CAN BREAK NOTIFICATION!
     |						SDSDynamic		!(p *IWorld -> *(MaybeError TaskException (RWShared p r w), *IWorld))
-    //'OLD' COMPOSITIONS
-	| E.rx wy:		ComposedRead	!(RWShared p rx w) !(rx -> MaybeError TaskException (RWShared p r wy))
-	| E.r` w` w``:	ComposedWrite	!(RWShared p r w`) !(w -> MaybeError TaskException (RWShared p r` w``)) !(w r` -> MaybeError TaskException [WriteShare p])
-
-:: SDSSource p r w =
-	{ name          :: String
-    , read			:: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
-	, write			:: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
-	}
 
 //A notification is function predictate that can determine whether
 //some registered parameter of type p needs to be notified.
@@ -39,10 +29,18 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
     , sdsId         :: SDSIdentity
     , param         :: Dynamic
     }
+
 :: SDSIdentity  :== String
 
-// For debugging
+//Notification requests are identified by this identity
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
+
+//Sources provide direct access to a data source
+:: SDSSource p r w =
+	{ name          :: String
+    , read			:: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
+	, write			:: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
+	}
 
 //Project maps values from a source (s) domain to a new target (t) domain
 :: SDSProjection rs ws rt wt =
@@ -59,23 +57,31 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
     | SDSBlindWrite    (wt      -> MaybeError TaskException (Maybe ws)) //No-need to read the original source
     | SDSNoWrite
 
+:: SDSTranslation p ps =
+    { name         :: String
+    , param        :: p -> ps
+    }
+
 //Split divides a domain into two subdomains by introducing a new parameter
 :: SDSSplit p ps pn rs ws r w =
-    { param        :: p -> (ps,pn)
+    { name         :: String
+    , param        :: p -> (ps,pn)
     , read         :: pn rs -> r
     , write        :: pn rs w -> (ws, SDSNotifyPred pn)
     }
 
 //Merge two sources by selecting one based on the parameter
-:: SDSMerge p p1 p2 r w =
-    { select        :: p -> Either p1 p2
+:: SDSSelect p p1 p2 r w =
+    { name         :: String
+    , select        :: p -> Either p1 p2
     , notifyl       :: p1 r w -> SDSNotifyPred p2
     , notifyr       :: p2 r w -> SDSNotifyPred p1
     }
 
 //Read from and write to two independent SDS's
 :: SDSParallel p1 r1 w1 p2 r2 w2 p r w =
-    { param         :: p -> (p1,p2)
+    { name         :: String
+    , param         :: p -> (p1,p2)
     , read          :: (r1,r2) -> r
     , writel        :: SDSWriteProjection r1 w1 w
     , writer        :: SDSWriteProjection r2 w2 w
@@ -84,7 +90,8 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
 //Read from and write to two dependent SDS's
 //The read value from the first is used to compute the parameter for the second
 :: SDSSequence p r1 w1 p2 r2 w2 r w =
-    { param         :: p r1 -> p2
+    { name         :: String
+    , param         :: p r1 -> p2
     , read          :: (r1,r2) -> r
     , writel        :: SDSWriteProjection r1 w1 w
     , writer        :: SDSWriteProjection r2 w2 w
