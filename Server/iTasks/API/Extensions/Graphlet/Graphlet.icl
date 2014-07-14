@@ -142,7 +142,7 @@ graphlet genCustDiff appCustDiff renderer graphlet =
 
   onLibLoaded diffs cid _ clval=:{mbClientState=Nothing} world
     # (svgg, world)    = selectElem ("#" +++ mkSVGId cid) world
-    # (jsgraph, world) = mkDigraph world
+    # (jsgraph, world) = mkDagreD3Digraph world
     # clval            = {clval & mbClientState = Just {graphObj = jsgraph, svgTarget = svgg}}
     = updateUI cid diffs clval world
 
