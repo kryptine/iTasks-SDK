@@ -47,16 +47,16 @@ derive gEq
   | T a
 
 :: TExpr
-  = TBind      (PPOr TExpr) (Maybe Pattern) (PPOr TExpr)
+  = TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    (PPOr TExpr)
   | TTaskApp   ExprId VarName [PPExpr]
-  | TLet       [(Pattern, PPOr TExpr)] (PPOr TExpr)
-  | TCaseOrIf  PPExpr [(Pattern, (PPOr TExpr))]
-  | TStep      (PPOr TExpr) [PPOr TStepCont]
+  | TLet       [(Pattern, PPOr TExpr)] TExpr
+  | TCaseOrIf  PPExpr [(Pattern, TExpr)]
+  | TStep      TExpr [PPOr TStepCont]
   | TParallel  TParallel
-  | TAssign    TUser (PPOr TExpr)
+  | TAssign    TUser TExpr
   | TShare     TShare VarName [VarName]
-  | TTransform (PPOr TExpr) VarName [VarName]
+  | TTransform TExpr VarName [VarName]
   | TVar       PPExpr
 
 :: TShare
