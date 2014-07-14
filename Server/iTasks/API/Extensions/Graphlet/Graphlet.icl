@@ -25,8 +25,8 @@ derive class iTask GraphletDiff, Graphlet
 mkSVGId :: String -> String
 mkSVGId x = "svg" +++ x
 
-graphlet :: (GraphletRenderer s n e) (Graphlet s n e)
-         -> Editlet (Graphlet s n e) [GraphletDiff s n e] | iTask s & iTask n & iTask e
+graphlet :: (GraphletRenderer n e) (Graphlet n e)
+         -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e
 graphlet renderer graphlet =
   Editlet graphlet
     { EditletServerDef
@@ -45,7 +45,6 @@ graphlet renderer graphlet =
     }
   where
   defGraphlet = { graph       = 'DG'.emptyGraph
-                , customState = gDefault{|*|}
                 }
 
   uiDef cid
@@ -117,17 +116,14 @@ graphlet renderer graphlet =
         # world = setNodeValue graphObj (toJSVal ni) (toJSVal node) world
         = (jsgraph, world)
 
-    updateUI` cid (Just [SetState s:diffs]) clval=:{graphlet, mbClientState=Just {graphObj}} world
-      = updateUI` cid (Just diffs) {clval & graphlet={graphlet & customState = s}} world
-
     updateUI` cid (Just []) clval=:{graphlet, mbClientState=Just {graphObj, svgTarget}} world
       // Start hackish solution to prevent double rerendering
       # (subs, world)    = selectAllChildElems svgTarget "g" world
       # (_, world)       = removeElems subs world
       // End hackish solution to prevent double rerendering
       # (drend, world)   = mkRenderer world
-      # renderNodeFun    = createEditletEventHandler (drawNodeCb graphlet.customState) cid
-      # renderEdgeLblFun = createEditletEventHandler (drawEdgeLabelCb graphlet.customState) cid
+      # renderNodeFun    = createEditletEventHandler drawNodeCb cid
+      # renderEdgeLblFun = createEditletEventHandler drawEdgeLabelCb cid
       # world            = setDrawNode drend renderNodeFun world
       # world            = setDrawEdgeLabel drend renderEdgeLblFun world
       # world            = runRenderer drend graphObj svgTarget world
@@ -148,16 +144,16 @@ graphlet renderer graphlet =
   onLibLoaded diffs cid _ clval world
     = updateUI cid diffs clval world
 
-  drawNodeCb st cid {[0] = jsgraph, [1] = u, [2] = root} clval world
+  drawNodeCb cid {[0] = jsgraph, [1] = u, [2] = root} clval world
     # graphValue = jsUnsafeCoerce jsgraph
     # nodeId     = jsValToInt (jsUnsafeCoerce u)
     # rootElem   = jsUnsafeCoerce root
     # world      = case 'DG'.getNodeData nodeId clval.graphlet.graph of
-                     Just nodeVal -> renderer.drawNodeCallback st nodeVal graphValue nodeId rootElem world
+                     Just nodeVal -> renderer.drawNodeCallback nodeVal graphValue nodeId rootElem world
                      _            -> world
     = (clval, world)
 
-  drawEdgeLabelCb st cid {[0] = jsgraph, [1] = e, [2] = root} clval world
+  drawEdgeLabelCb cid {[0] = jsgraph, [1] = e, [2] = root} clval world
     # graphValue    = jsUnsafeCoerce jsgraph
     # edgeIdLst     = jsUnsafeCoerce e
     # (fEId, world) = jsGetObjectEl 0 edgeIdLst world
@@ -165,7 +161,7 @@ graphlet renderer graphlet =
     # edgeId        = (jsValToInt fEId, jsValToInt tEId)
     # rootElem      = jsUnsafeCoerce root
     # world         = case 'DG'.getEdgeData edgeId clval.graphlet.graph of
-                        Just edgeVal -> renderer.drawEdgeLabelCallback st edgeVal graphValue edgeId rootElem world
+                        Just edgeVal -> renderer.drawEdgeLabelCallback edgeVal graphValue edgeId rootElem world
                         _            -> world
     = (clval, world)
 
@@ -193,7 +189,7 @@ graphlet renderer graphlet =
                     [] -> []
                     xs -> [UpdateNodes xs]
 
-  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph, customState = serverState.customState}
+  appServerDiff diffs serverState = {serverState & graph = appGraphDiff diffs serverState.graph}
 
   appGraphDiff diffs graph = foldl f graph diffs
     where
@@ -206,7 +202,7 @@ graphlet renderer graphlet =
 
   genClientDiff oldSt newSt = genGraphDiff oldSt.graphlet.graph newSt.graphlet.graph
 
-  appClientDiff diffs cs=:{graphlet={graph, customState}} = {cs & graphlet = {graph = appGraphDiff diffs graph, customState=customState}}
+  appClientDiff diffs cs=:{graphlet={graph}} = {cs & graphlet = {graph = appGraphDiff diffs graph}}
 
 mappendMaybeList (Just xs) (Just ys) = Just (xs ++ ys)
 mappendMaybeList (Just xs) _         = Just xs

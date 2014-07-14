@@ -13,28 +13,26 @@ derive gDefault Graph, Node
 derive gUpdate Graph, Node
 derive gVerify Graph, Node
 
-:: GraphletDiff s n e
+:: GraphletDiff n e
   =  RemoveNodes [NodeIndex]
   |  RemoveEdges [EdgeIndex]
   |  AddNodes    [(n, NodeIndex)]
   |  AddEdges    [(e, EdgeIndex)]
   |  UpdateNodes [(n, NodeIndex)]
-  |  SetState    s
 
-:: GraphletRenderer s n e =
-  { drawNodeCallback      :: s n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-  , drawEdgeLabelCallback :: s e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+:: GraphletRenderer n e =
+  { drawNodeCallback      :: n GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+  , drawEdgeLabelCallback :: e GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
   , styleSheets           :: [String]
   }
 
-:: Graphlet s n e =
+:: Graphlet n e =
   { graph       :: Graph n e
-  , customState :: s
   }
 
-:: GraphletClientData s n e =
+:: GraphletClientData n e =
   { mbClientState :: Maybe GraphletClientState
-  , graphlet      :: Graphlet s n e
+  , graphlet      :: Graphlet n e
   }
 
 :: GraphletClientState =
@@ -44,5 +42,5 @@ derive gVerify Graph, Node
 
 derive class iTask GraphletDiff, Graphlet
 
-graphlet :: (GraphletRenderer s n e) (Graphlet s n e)
-         -> Editlet (Graphlet s n e) [GraphletDiff s n e] | iTask s & iTask n & iTask e
+graphlet :: (GraphletRenderer n e) (Graphlet n e)
+         -> Editlet (Graphlet n e) [GraphletDiff n e] | iTask n & iTask e

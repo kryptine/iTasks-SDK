@@ -8,7 +8,7 @@ import iTasks.API.Extensions.Graphlet.Graphlib
 
 derive class iTask GraphvizShape
 
-graphvizRenderer :: GraphletRenderer Void GraphvizShape GraphvizEdge
+graphvizRenderer :: GraphletRenderer GraphvizShape GraphvizEdge
 graphvizRenderer =
   { GraphletRenderer
   | drawNodeCallback      = drawNode
@@ -68,8 +68,8 @@ defaultShapeTransform = \bbh bbw d3 world -> setAttrs [ ("x", toJSVal (0 - (bbw 
                                                       , ("height", toJSVal bbh)
                                                       ] d3 world
 
-drawNode :: Void GraphvizShape GLGraph NodeIndex D3 *JSWorld -> *JSWorld
-drawNode currLoc shape graph u root world
+drawNode :: GraphvizShape GLGraph NodeIndex D3 *JSWorld -> *JSWorld
+drawNode shape graph u root world
   # (root`, world) = append "g" root world
   = drawNode` shape graph u root` world
   where
@@ -109,8 +109,8 @@ drawNode currLoc shape graph u root world
     = world
   drawNode` _                  _ _ _    world = world
 
-drawEdgeLabel :: Void GraphvizEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
-drawEdgeLabel currLoc mstrs _ _ root world
+drawEdgeLabel :: GraphvizEdge GLGraph EdgeIndex D3 *JSWorld -> *JSWorld
+drawEdgeLabel mstrs _ _ root world
   = mkNode Rect "edge-label" mstrs defaultLabelTransform
       (\bbh bbw d3 world -> setAttrs [ ("rx", toJSVal 5)
                                      , ("ry", toJSVal 5)
