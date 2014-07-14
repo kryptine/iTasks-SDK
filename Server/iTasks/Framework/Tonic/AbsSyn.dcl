@@ -58,6 +58,7 @@ derive gEq
   | TShare     TShare VarName [VarName]
   | TTransform TExpr VarName [VarName]
   | TVar       PPExpr
+  | TCleanExpr PPExpr
 
 :: TShare
   = Get
