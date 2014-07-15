@@ -61,3 +61,8 @@ tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task
 
 tonicWrapApp :: ModuleName TaskName Int (Task a) -> Task a
 
+tonicWrapAppLam1 :: ModuleName TaskName Int (a -> Task b) -> a -> Task b
+
+tonicWrapAppLam2 :: ModuleName TaskName Int (a b -> Task c) -> a b -> Task c
+
+tonicWrapAppLam3 :: ModuleName TaskName Int (a b c -> Task d) -> a b c -> Task d
