@@ -112,7 +112,7 @@ firstParent _     instanceNo [] = Nothing
 firstParent rtMap instanceNo [parentTaskNo:parentTaskNos]
   = maybe (firstParent rtMap instanceNo parentTaskNos) Just ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
 
-tonicWrapApp :: ModuleName TaskName String (Task a) -> Task a
+tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace} taskTree iworld
@@ -130,13 +130,13 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
                     (firstParent rtMap instanceNo callTrace)
         = snd ('DSDS'.write rtMap tonicSharedRT iworld)
 
-tonicWrapAppLam1 :: ModuleName TaskName String (a -> Task b) -> a -> Task b
+tonicWrapAppLam1 :: ModuleName TaskName [Int] (a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
 
-tonicWrapAppLam2 :: ModuleName TaskName String (a b -> Task c) -> a b -> Task c
+tonicWrapAppLam2 :: ModuleName TaskName [Int] (a b -> Task c) -> a b -> Task c
 tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 
-tonicWrapAppLam3 :: ModuleName TaskName String (a b c -> Task d) -> a b c -> Task d
+tonicWrapAppLam3 :: ModuleName TaskName [Int] (a b c -> Task d) -> a b c -> Task d
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 
 getTonicModules :: Task [String]
