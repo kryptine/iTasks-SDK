@@ -71,12 +71,6 @@ tonicWrapTaskBody mn tn args TaskDict t = tonicWrapTaskBody` mn tn args t
 tonicWrapTaskBody` :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- Task o eval`
   where
-    eval` mod event evalOpts taskTree=:(TCDestroy tt) iworld
-      = eval event evalOpts taskTree (maybeSt iworld attemptDel (taskIdFromTaskTree tt))
-      where
-      attemptDel currTaskId iworld
-        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-        = okSt iworld (\rtMap -> snd o 'DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT) mrtMap
     eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
@@ -87,10 +81,17 @@ tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- Task o eval`
                     , trt_bpref        = (mn, tn)
                     , trt_bpinstance   = getTask mod tn
                     , trt_activeNodeId = Nothing
-                    , trt_parentTaskId = maybe (TaskId instanceNo 0) (\rt -> rt.trt_taskId) (firstParent rtMap instanceNo callTrace)
+                    , trt_parentTaskId = maybe (TaskId instanceNo 0) (\rt -> rt.trt_taskId)
+                                           (firstParent rtMap instanceNo callTrace)
                     , trt_output       = Nothing
                     }
         = snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
+    eval` mod event evalOpts taskTree=:(TCDestroy tt) iworld
+      = eval event evalOpts taskTree (maybeSt iworld attemptDel (taskIdFromTaskTree tt))
+      where
+      attemptDel currTaskId iworld
+        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+        = okSt iworld (\rtMap -> snd o 'DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT) mrtMap
     eval` mod event evalOpts taskTree iworld
       # (tr, iworld) = eval event evalOpts taskTree iworld
       = (tr, maybeSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
@@ -110,25 +111,29 @@ tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- Task o eval`
 firstParent :: TonicRTMap Int [Int] -> Maybe TonicRT
 firstParent _     instanceNo [] = Nothing
 firstParent rtMap instanceNo [parentTaskNo:parentTaskNos]
-  = maybe (firstParent rtMap instanceNo parentTaskNos) Just ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
+  = maybe (firstParent rtMap instanceNo parentTaskNos) Just
+      ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
 
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace} taskTree iworld
+    # traceStr = foldr (\x xs -> toString x +++ " " +++ xs) "" callTrace
+    # nids = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
     = eval event evalOpts taskTree (maybeSt iworld
-                                      (\(TaskId instanceNo _) -> addTrace instanceNo callTrace)
+                                      (\(TaskId instanceNo taskNo) -> addTrace instanceNo taskNo callTrace)
                                       (taskIdFromTaskTree taskTree))
     where
-    addTrace instanceNo callTrace iworld
+    addTrace instanceNo taskNo callTrace iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = okSt iworld updRTMap mrtMap
       where
       updRTMap rtMap iworld
         # rtMap = maybe rtMap
                     (\rt -> 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
-                    (firstParent rtMap instanceNo callTrace)
+                    (firstParent rtMap instanceNo [taskNo:callTrace])
         = snd ('DSDS'.write rtMap tonicSharedRT iworld)
+  eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
 tonicWrapAppLam1 :: ModuleName TaskName [Int] (a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)

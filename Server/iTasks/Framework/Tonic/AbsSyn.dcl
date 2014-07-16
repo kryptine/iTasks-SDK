@@ -49,7 +49,7 @@ derive gEq
 :: TExpr
   = TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    TExpr
-  | TTaskApp   ExprId VarName [PPExpr]
+  | TTaskApp   ExprId VarName [TExpr]
   | TLet       [(Pattern, PPOr TExpr)] TExpr
   | TCaseOrIf  PPExpr [(Pattern, TExpr)]
   | TStep      TExpr [PPOr TStepCont]
