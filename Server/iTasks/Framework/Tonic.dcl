@@ -46,7 +46,7 @@ tonicSharedRT :: Shared TonicRTMap
   , trt_params       :: [(VarName, Task ())]
   , trt_bpref        :: (ModuleName, TaskName)
   , trt_bpinstance   :: Maybe TonicTask
-  , trt_activeNodeId :: Maybe Int
+  , trt_activeNodeId :: Maybe String
   , trt_parentTaskId :: TaskId
   , trt_output       :: Maybe (Task ())
   }
@@ -59,10 +59,10 @@ tonicViewer :: String -> PublishedTask
 
 tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
 
-tonicWrapApp :: ModuleName TaskName Int (Task a) -> Task a
+tonicWrapApp :: ModuleName TaskName String (Task a) -> Task a
 
-tonicWrapAppLam1 :: ModuleName TaskName Int (a -> Task b) -> a -> Task b
+tonicWrapAppLam1 :: ModuleName TaskName String (a -> Task b) -> a -> Task b
 
-tonicWrapAppLam2 :: ModuleName TaskName Int (a b -> Task c) -> a b -> Task c
+tonicWrapAppLam2 :: ModuleName TaskName String (a b -> Task c) -> a b -> Task c
 
-tonicWrapAppLam3 :: ModuleName TaskName Int (a b c -> Task d) -> a b c -> Task d
+tonicWrapAppLam3 :: ModuleName TaskName String (a b c -> Task d) -> a b c -> Task d
