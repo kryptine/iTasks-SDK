@@ -72,48 +72,43 @@ tonicWrapTaskBody` :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task 
 tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- Task o eval`
   where
     eval` mod event evalOpts taskTree=:(TCDestroy tt) iworld
-      # iworld = case taskIdFromTaskTree tt of
-                   Just currTaskId
-                     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-                     = case mrtMap of
-                         Ok rtMap -> snd ('DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT iworld)
-                         _        -> iworld
-                   _ = iworld
-      = eval event evalOpts taskTree iworld
+      = eval event evalOpts taskTree (maybeSt iworld attemptDel (taskIdFromTaskTree tt))
+      where
+      attemptDel currTaskId iworld
+        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+        = okSt iworld (\rtMap -> snd o 'DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT) mrtMap
     eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-      # iworld = case mrtMap of
-                   Ok rtMap
-                     # mfp = firstParent rtMap instanceNo callTrace
-                     # tonicRT = { trt_taskId       = currTaskId
-                                 , trt_params       = args
-                                 , trt_bpref        = (mn, tn)
-                                 , trt_bpinstance   = getTask mod tn
-                                 , trt_activeNodeId = Nothing
-                                 , trt_parentTaskId = maybe (TaskId instanceNo 0) (\rt -> rt.trt_taskId) (firstParent rtMap instanceNo callTrace)
-                                 , trt_output       = Nothing
-                                 }
-                     = snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
-                   _ = iworld
+      # iworld           = okSt iworld (updateInstance instanceNo) mrtMap
       = eval event evalOpts taskTree iworld
+      where
+      updateInstance instanceNo rtMap iworld
+        # mfp     = firstParent rtMap instanceNo callTrace
+        # tonicRT = { trt_taskId       = currTaskId
+                    , trt_params       = args
+                    , trt_bpref        = (mn, tn)
+                    , trt_bpinstance   = getTask mod tn
+                    , trt_activeNodeId = Nothing
+                    , trt_parentTaskId = maybe (TaskId instanceNo 0) (\rt -> rt.trt_taskId) (firstParent rtMap instanceNo callTrace)
+                    , trt_output       = Nothing
+                    }
+        = snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
     eval` mod event evalOpts=:{callTrace=[_:_]} taskTree iworld
       # (tr, iworld) = eval event evalOpts taskTree iworld
-      = case taskIdFromTaskTree taskTree of
-          Just (currTaskId=:(TaskId instanceNo _))
-            # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-            # iworld = case mrtMap of
-                         Ok rtMap
-                           -> case 'DM'.get currTaskId rtMap of
-                                Just rt -> snd ('DSDS'.write ('DM'.put currTaskId {rt & trt_output = resultToOutput tr} rtMap) tonicSharedRT iworld)
-                                _       -> iworld
-                         _ -> iworld
-            = (tr, iworld)
-          _ = (tr, iworld)
+      = (tr, maybeSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
+      where
+      readAndUpdateRTMap tr currTaskId iworld
+        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+        = okSt iworld (updateRTMap tr currTaskId) mrtMap
+      updateRTMap tr currTaskId rtMap iworld
+        = maybeSt iworld
+            (\rt -> snd o 'DSDS'.write ('DM'.put currTaskId {rt & trt_output = resultToOutput tr} rtMap) tonicSharedRT)
+            ('DM'.get currTaskId rtMap)
     eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
     resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
     resultToOutput _                      = Nothing
     tvViewInformation NoValue     = Nothing
-    tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v >>| return ())
+    tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
 firstParent :: TonicRTMap Int [Int] -> Maybe TonicRT
 firstParent _     instanceNo [] = Nothing
@@ -125,21 +120,19 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace} taskTree iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
-    # iworld = case taskIdFromTaskTree taskTree of
-                 Just currTaskId=:(TaskId instanceNo _)
-                   = addTrace instanceNo callTrace iworld
-                 _ = iworld
-    = (tr, iworld)
+    = (tr, maybeSt iworld
+             (\(TaskId instanceNo _) -> addTrace instanceNo callTrace)
+             (taskIdFromTaskTree taskTree))
     where
     addTrace instanceNo callTrace iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-      = case mrtMap of
-          Ok rtMap
-            # rtMap = case firstParent rtMap instanceNo callTrace of
-                        Just rt -> 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap
-                        _       -> rtMap
-            = snd ('DSDS'.write rtMap tonicSharedRT iworld)
-          _ = iworld
+      = okSt iworld updRTMap mrtMap
+      where
+      updRTMap rtMap iworld
+        # rtMap = maybe rtMap
+                    (\rt -> 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
+                    (firstParent rtMap instanceNo callTrace)
+        = snd ('DSDS'.write rtMap tonicSharedRT iworld)
 
 tonicWrapAppLam1 :: ModuleName TaskName Int (a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
@@ -180,7 +173,7 @@ tonicLogin appName = tonicUI appName
     //=            authenticateUser username password >>=
       //\mbUser -> case mbUser of
                    //Just user -> workAs user (tonicUI appName)
-                   //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+                   //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" @! ()
 
 derive class iTask FileError
 
