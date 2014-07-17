@@ -214,18 +214,27 @@ viewStaticTask {tm_name} tt =
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") []
         (return ()) // TODO       (toniclet tt Nothing)
 
+dynamicParent :: TaskId -> Task (Maybe TonicRT)
+dynamicParent childId
+  =       get tonicSharedRT >>-
+  \rtm -> return (maybe Nothing
+                    (\rt -> 'DM'.get rt.trt_parentTaskId rtm)
+                    ('DM'.get childId rtm))
+
 viewDynamic :: Task ()
-viewDynamic =
-          enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>=
-  \trt -> maybe (return ())
-            (\bp -> viewInformation (blueprintTitle trt bp) [] ()
-                ||- viewTaskArguments trt bp
-                ||- viewSharedInformation "Blueprint:"
-                      // [ViewWith (\_ -> toniclet bp trt.trt_activeNodeId)]
-                      [] // TODO
-                      tonicSharedRT
-                 @! ())
-            trt.trt_bpinstance
+viewDynamic = enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>= viewInstance
+
+viewInstance :: TonicRT -> Task ()
+viewInstance {trt_bpinstance = Nothing}      = return ()
+viewInstance trt=:{trt_bpinstance = Just bp} =
+             dynamicParent trt.trt_taskId >>-
+  \mbprnt -> (viewInformation (blueprintTitle trt bp) [] () ||-
+             viewTaskArguments trt bp ||- viewSharedInformation "Blueprint:"
+               // [ViewWith (\_ -> toniclet bp trt.trt_activeNodeId)]
+               [] // TODO
+               tonicSharedRT
+               @! ()) >>*
+            [OnAction (Action "Parent task" []) (\_ -> fmap viewInstance mbprnt)]
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ aOrAn bp.tt_resty
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
