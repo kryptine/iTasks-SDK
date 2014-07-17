@@ -234,7 +234,7 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
                [] // TODO
                tonicSharedRT
                @! ()) >>*
-            [OnAction (Action "Parent task" []) (\_ -> fmap viewInstance mbprnt)]
+            [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ aOrAn bp.tt_resty
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
