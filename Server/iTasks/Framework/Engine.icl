@@ -385,7 +385,7 @@ determineWebPublicDirs path world
     = case dir of
         Ok entries
             = appFst flatten (mapSt (checkEntry path) entries world)
-        _   = ([],world) //TODO pass error up instead of just returning an empty list
+        _   = ([],world)
 where
     checkEntry :: !FilePath !String !*World -> (![FilePath], !*World)
     checkEntry dir name world

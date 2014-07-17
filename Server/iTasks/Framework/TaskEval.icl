@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.TaskEval
 
-import StdList, StdBool, StdTuple, StdMisc
-import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text.JSON
+import StdList, StdBool, StdTuple, StdMisc, StdDebug
+import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.JSON
 import iTasks.Framework.IWorld, iTasks.Framework.Task, iTasks.Framework.TaskState
 import iTasks.Framework.TaskStore, iTasks.Framework.Util, iTasks.Framework.Generic
 import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
@@ -87,8 +87,9 @@ replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)
 evalTaskInstance instanceNo event iworld
-    # iworld = resetUIUpdates instanceNo event iworld
-    = evalTaskInstance` instanceNo event iworld
+    # iworld            = resetUIUpdates instanceNo event iworld
+    # (res,iworld)      = evalTaskInstance` instanceNo event iworld
+    = (res,iworld)
 where
     evalTaskInstance` instanceNo event iworld=:{current=current=:{taskTime,user,taskInstance,nextTaskNo,localShares,localLists},clocks={localDate,localTime}}
     # (oldMeta, iworld)         = 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld
@@ -127,8 +128,6 @@ where
 										, localTasks = tasks
 										, eventRoute = eventRoute
 										}}
-    //Clear the instance's registrations for share changes
-	# iworld					    = clearShareRegistrations instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event evalOpts tree iworld
     //Finalize task UI
@@ -271,10 +270,14 @@ where
 
 queueRefresh :: ![InstanceNo] !*IWorld -> *IWorld
 queueRefresh instanceNos iworld=:{refreshQueue}
+    //Clear the instance's share change registrations, we are going to evaluate anyway
+	# iworld	= foldr clearInstanceSDSRegistrations iworld instanceNos
 	= {iworld & refreshQueue = removeDup (refreshQueue ++ instanceNos)}
 
 queueUrgentRefresh :: ![InstanceNo] !*IWorld -> *IWorld
 queueUrgentRefresh instanceNos iworld=:{refreshQueue}
+    //Clear the instance's share change registrations, we are going to evaluate anyway
+	# iworld	= foldr clearInstanceSDSRegistrations iworld instanceNos
 	= {iworld & refreshQueue = removeDup (instanceNos ++ refreshQueue)}
 
 dequeueRefresh :: !*IWorld -> (!Maybe InstanceNo, !*IWorld)

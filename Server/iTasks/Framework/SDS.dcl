@@ -18,7 +18,6 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 //A notification is function predictate that can determine whether
 //some registered parameter of type p needs to be notified.
 :: SDSNotifyPred p          :== p -> Bool
-:: SDSNotifyPredIWorld p    :== p *IWorld -> *(!Bool,!*IWorld)
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
@@ -29,9 +28,6 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
     }
 
 :: SDSIdentity  :== String
-
-//Notification requests are identified by this identity
-sdsIdentity :: !(RWShared p r w) -> SDSIdentity
 
 //Sources provide direct access to a data source
 :: SDSSource p r w =
@@ -97,8 +93,6 @@ sdsIdentity :: !(RWShared p r w) -> SDSIdentity
 :: ReadOnlyShared a		:== ReadWriteShared a Void
 :: WriteOnlyShared a	:== ReadWriteShared Void a
 :: Shared a				:== ReadWriteShared a a
-
-reportSDSChange         :: !String !*IWorld -> *IWorld
 	
 createReadWriteSDS ::
 	!String
@@ -118,12 +112,29 @@ createReadOnlySDSError ::
 	->
 	ROShared p r
 
-read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
-readRegister	:: !TaskId                  !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
-write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)	
+//Normal access functions
 
-//Dependency administration
-clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
+//Just read an SDS
+read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+//Read an SDS and register a taskId to be notified when it is written
+readRegister	:: !TaskId                  !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+//Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
+write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)	
+//Force notify (queue evaluation of task instances that registered for notification)
+notify          ::                          !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)
+
+//Force notification for a specific SDS
+//TODO: REMOVE
+reportSDSChange :: !String !*IWorld -> *IWorld
+
+//Clear all registrations for a given task instance.
+//This is normally called by the queueRefresh functions, because once an instance is queued
+//for evaluation anyway, it no longer make sense to notify it again.
+clearInstanceSDSRegistrations :: !InstanceNo !*IWorld -> *IWorld
+
+//List all current registrations (for debugging purposes)
+listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
+formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 
 :: JSONShared :== RWShared JSONNode JSONNode JSONNode
 
