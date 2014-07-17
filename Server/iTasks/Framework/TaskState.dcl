@@ -22,17 +22,6 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
     , build         :: !String              //Application build version when the instance was created
 	}
 
-:: TIProgress =
-	{ value             :: !ValueStatus             //* Status of the task value
-    , issuedAt			:: !DateTime				//* When was the task created
-	, issuedBy			:: !User					//* By whom was the task created
-    , involvedUsers     :: ![User]                  //* Users currently involved in the task
-	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
-	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task	
-    , connectedTo       :: !Maybe String            //* Is there an active client connection for this task
-    , lastIO            :: !Maybe DateTime          //* When was the last input received or output sent to a client
-	}
-
 :: TIType
     = DetachedInstance                      //A detached task that is not in use
     | AttachedInstance ![TaskId] !User      //A previously detached task that has been attached to another instance
