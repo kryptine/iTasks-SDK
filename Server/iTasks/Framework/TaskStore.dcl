@@ -13,8 +13,10 @@ from Data.Error     import :: MaybeError
 from System.Time    import :: Timestamp
 
 :: InstanceFilter =
-    { instanceNo    :: Maybe InstanceNo
+    { //'Vertical' filters
+      instanceNo    :: Maybe InstanceNo
     , session       :: Maybe Bool
+      //'Horizontal' filters
     }
 instance toString InstanceFilter
 
@@ -30,7 +32,6 @@ deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
 initInstanceMeta        :: !*IWorld -> *IWorld
 
 //Task instance state is accessible as shared data sources
-//fullInstanceMeta        :: RWShared Void [TIMeta] [TIMeta]
 filteredInstanceMeta    :: RWShared InstanceFilter [TIMeta] [TIMeta]
 
 taskInstanceMeta        :: RWShared InstanceNo TIMeta TIMeta

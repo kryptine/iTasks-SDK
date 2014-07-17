@@ -245,11 +245,15 @@ where
 
 appendOnce identity task slist
     =   get (taskListMeta slist)
-    >>- \items -> if (isMember name [name \\{TaskListItem|name=Just name} <- items])
+    >>- \items -> if (checkItems name items)
         (return Void)
-	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @ const Void)
+	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @! Void)
 where
     name = toString identity
+    checkItems name [] = False
+    checkItems name [{TaskListItem|attributes}:is]
+        | maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
+                                                                = checkItems name is
 
 removeWhenStable task slist
     =   task

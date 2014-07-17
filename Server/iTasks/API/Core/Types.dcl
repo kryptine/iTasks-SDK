@@ -412,6 +412,7 @@ instance <			TaskId
     , issuedAt			:: !DateTime				//* When was the task created
 	, issuedBy			:: !User					//* By whom was the task created
     , involvedUsers     :: ![User]                  //* Users currently involved in the task
+    , attachedTo        :: !Maybe (!User,![TaskId]) //* User who attached the instance (and through which workOn's)
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task	
     , connectedTo       :: !Maybe String            //* Is there an active client connection for this task
@@ -440,7 +441,6 @@ instance toString (TaskListId s)
 :: TaskListItem a =
 	{ taskId			:: !TaskId
     , listId            :: !TaskId
-    , name              :: !Maybe String            //Optional identifier, for example for adding tasks just once
 	, value				:: !TaskValue a
 	, attributes        :: !TaskAttributes
 	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
@@ -466,7 +466,6 @@ instance toString (TaskListId s)
     , session           :: !Bool                //* Is this a session
 	, listId            :: !TaskId              //* Reference to parent tasklist
     , build             :: !String              //* Application build version when the instance was created
-    , name              :: !Maybe String        //* Unique Identifier
 	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
 	, value             :: !ValueStatus         //* Status of the task value
     , issuedAt			:: !DateTime			//* When was the task created

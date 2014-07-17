@@ -14,7 +14,7 @@ from iTasks.Framework.SDS as SDS import qualified read, write, read, write
 from iTasks.API.Common.SDSCombinators   import sdsFocus, >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
-derive gEq TIMeta, TIType
+derive gEq TIMeta
 derive JSONEncode InstanceFilter
 
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
@@ -22,8 +22,8 @@ createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},cur
 	# worker				= AnonymousUser sessionId
 	//Create the initial instance data in the store
 	# mmeta					= defaultValue
-	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
-	# meta					= createMeta instanceNo "client" True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta buildID
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],attachedTo=Nothing,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+	# meta					= createMeta instanceNo "client" True (TaskId 0 0) mmeta pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
@@ -36,33 +36,34 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# worker				= AnonymousUser instanceKey
 	# mmeta					= defaultValue
-	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
-	# meta					= createMeta instanceNo instanceKey True DetachedInstance (TaskId 0 0) Nothing mmeta pmeta buildID
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=worker,involvedUsers=[],attachedTo=Nothing,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
+	# meta					= createMeta instanceNo instanceKey True (TaskId 0 0) mmeta pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
     = (Ok (instanceNo,instanceKey),iworld)
 
-createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task mbInstanceNo name attributes issuer listId mbAttachment iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !TaskAttributes !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance task mbInstanceNo attributes issuer listId attachTemporary iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
 	# (instanceNo,iworld)	= case mbInstanceNo of
         Nothing         = newInstanceNo iworld
         Just instanceNo = (instanceNo,iworld)
     # (instanceKey,iworld)  = newInstanceKey iworld
-	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
-	# meta					= createMeta instanceNo instanceKey False (maybe DetachedInstance (\attachment -> TmpAttachedInstance [listId:attachment] issuer) mbAttachment) listId name attributes pmeta buildID
+    # attachedTo            = if attachTemporary (Just (issuer,[])) Nothing
+	# pmeta					= {ProgressMeta|value=None,issuedAt=DateTime localDate localTime,issuedBy=issuer,involvedUsers=[],attachedTo=attachedTo,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+	# meta					= createMeta instanceNo instanceKey False listId attributes pmeta buildID
 	# (_,iworld)			= 'SDS'.write meta (sdsFocus instanceNo taskInstanceMeta) iworld
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (taskInstanceReduct instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (taskInstanceRep instanceNo) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (taskInstanceValue instanceNo) iworld
-    # iworld                = if (isJust mbAttachment) (queueUrgentRefresh [instanceNo] iworld) iworld
+    # iworld                = if attachTemporary (queueUrgentRefresh [instanceNo] iworld) iworld
 	= (TaskId instanceNo 0, iworld)
 
-createMeta :: !InstanceNo !InstanceKey !Bool !TIType !TaskId !(Maybe String) !TaskAttributes !ProgressMeta !String -> TIMeta
-createMeta instanceNo instanceKey session instanceType listId name attributes pmeta buildID
-	= {TIMeta|instanceNo=instanceNo,instanceKey=instanceKey,instanceType=instanceType,session=session
-      ,listId=listId,name=name,progress=pmeta,attributes=attributes,build=buildID}
+createMeta :: !InstanceNo !InstanceKey !Bool !TaskId !TaskAttributes !ProgressMeta !String -> TIMeta
+createMeta instanceNo instanceKey session listId attributes pmeta buildID
+	= {TIMeta|instanceNo=instanceNo,instanceKey=instanceKey,session=session
+      ,listId=listId,progress=pmeta,attributes=attributes,build=buildID}
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -94,7 +95,7 @@ where
     evalTaskInstance` instanceNo event iworld=:{current=current=:{taskTime,user,taskInstance,nextTaskNo,localShares,localLists},clocks={localDate,localTime}}
     # (oldMeta, iworld)         = 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld
 	| isError oldMeta           = ((\(Error (e,msg)) -> Error msg) oldMeta, iworld)
-	# oldMeta=:{TIMeta|instanceType,instanceKey,session,listId,progress} = fromOk oldMeta
+	# oldMeta=:{TIMeta|instanceKey,session,listId,progress} = fromOk oldMeta
 	# (oldReduct, iworld)		= 'SDS'.read (taskInstanceReduct instanceNo) iworld
 	| isError oldReduct			= ((\(Error (e,msg)) -> Error msg) oldReduct, iworld)
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,shares,lists,tasks} = fromOk oldReduct
@@ -106,11 +107,11 @@ where
 		    (Ok (TIException e msg))    = (Error msg, iworld)
             (Ok _)                      = (Error "Exception no longer available", iworld)
     //Eval instance
-    # (currentUser,currentSession,currentAttachment) = case (session,instanceType) of
-        (True,_)                = (AnonymousUser instanceKey,Just instanceNo,[])
-        (_,DetachedInstance)    = (SystemUser,Nothing,[])
-        (_,AttachedInstance (attachment=:[TaskId sessionNo _:_]) worker)    = (worker,Just sessionNo,attachment)
-        (_,TmpAttachedInstance (attachment=:[TaskId sessionNo _:_]) worker) = (worker,Just sessionNo,attachment)
+    # (currentUser,currentSession,currentAttachment) = case (session,progress.ProgressMeta.attachedTo) of
+        (True,_)                                                = (AnonymousUser instanceKey,Just instanceNo,[])
+        (_,Nothing)                                             = (SystemUser,Nothing,[])
+        (_,Just (worker,[]))                                    = (worker,Nothing,[])
+        (_,Just (worker,attachment=:[TaskId sessionNo _:_]))    = (worker,Just sessionNo,attachment)
     # evalOpts					= {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=False,callTrace=[]}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
@@ -141,10 +142,7 @@ where
 	# (oldMeta,deleted,iworld) = case 'SDS'.read (sdsFocus instanceNo taskInstanceMeta) iworld of
         (Ok meta, iworld)		= (meta,False, iworld)
 		(Error e, iworld)		= (oldMeta,True, iworld) //If old meta is no longer there, it must have been removed
-    # newMeta					= case (session,instanceType) of
-       (True,_)                     = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
-       (_,TmpAttachedInstance _ _)  = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress, instanceType = DetachedInstance}
-       _                            = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
+    # newMeta = {TIMeta|oldMeta & progress = updateProgress (DateTime localDate localTime) newResult currentUser progress}
     //Store new meta data
     # (mbErr,iworld)            = if deleted (Ok Void,iworld) ('SDS'.write newMeta (sdsFocus instanceNo taskInstanceMeta) iworld)
     = case mbErr of
@@ -199,6 +197,9 @@ where
     finalizeUI session res = res
 
 	updateProgress now result currentUser progress
+        # attachedTo = case progress.ProgressMeta.attachedTo of //Release temporary attachment after first evaluation
+            (Just (_,[]))   = Nothing
+            attachment      = attachment
 		# progress = {ProgressMeta|progress & firstEvent = Just (fromMaybe now progress.ProgressMeta.firstEvent), lastEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {ProgressMeta|progress & value = Exception}
@@ -386,8 +387,8 @@ topListShare = mapReadWrite (readPrj,writePrj) (sdsFocus {InstanceFilter|instanc
 where
 	readPrj (instances, currentInstance) = {TaskList|listId = TopLevelTaskList, items = map toTaskListItem instances, selfId = TaskId currentInstance 0}
 
-    toTaskListItem {TIMeta|instanceNo,listId,name,progress,attributes}
-	    = {taskId = TaskId instanceNo 0, listId = listId, name = name, value = NoValue, progressMeta = Just progress, attributes = attributes}
+    toTaskListItem {TIMeta|instanceNo,listId,progress,attributes}
+	    = {taskId = TaskId instanceNo 0, listId = listId, value = NoValue, progressMeta = Just progress, attributes = attributes}
 
     writePrj [] instances = Nothing
     writePrj updates (instances,_) = Just (foldl applyUpdate instances updates)
@@ -430,15 +431,16 @@ where
 	toItem {TaskListEntry|entryId,name,state,lastEval=ValueResult val _ _ _}
 		= 	{taskId			= entryId
             ,listId         = listId
-            ,name           = name
 			,value			= deserialize val
 			,attributes     = attributes
 			,progressMeta	= progress
 			}
 	where
-		(progress,attributes) = case state of
-			DetachedState _ p a = (Just p,a)
-			_					= (Nothing,'Data.Map'.newMap)
+		(progress,attributes) = case (state,name) of
+			(DetachedState _ p a,Just n)    = (Just p,'Data.Map'.put "name" n a)
+			(DetachedState _ p a,Nothing)   = (Just p,a)
+			(_,Just n)					    = (Nothing,'Data.Map'.put "name" n 'Data.Map'.newMap)
+			(_,_)					        = (Nothing,'Data.Map'.newMap)
 	
 	deserialize NoValue	= NoValue
 	deserialize (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)

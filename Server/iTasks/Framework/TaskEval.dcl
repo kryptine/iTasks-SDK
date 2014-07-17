@@ -25,13 +25,13 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!InstanceNo,Inst
 * @param Management meta data
 * @param The user who issued the task
 * @param The parent instance that created the instance
-* @param If the instance needs to be evaluated immediately, the attachment of the task that created the instance
+* @param If the instance needs to be evaluated immediately, the attachment is temporarily set to the issuer
 * @param The IWorld state
 *
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !(Maybe String) !TaskAttributes !User !TaskId !(Maybe [TaskId]) !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !(Maybe InstanceNo) !TaskAttributes !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 /**
 * Replace a stored task instance in the task store.

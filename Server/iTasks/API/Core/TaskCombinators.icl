@@ -378,7 +378,7 @@ where
 addTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !(Maybe Int) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
 addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,attachmentChain},clocks={localDate,localTime}}
 	# (list,iworld) = loadTaskList taskId iworld
-	# progress = {ProgressMeta|value=None, issuedAt=DateTime localDate localTime,issuedBy=user,involvedUsers=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+	# progress = {ProgressMeta|value=None, issuedAt=DateTime localDate localTime,issuedBy=user,involvedUsers=[],attachedTo=Nothing,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
 	# (taskIda,name,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld=:{current=current=:{localTasks}})	= getNextTaskId iworld
@@ -391,12 +391,12 @@ addTaskToList taskId (parType,parTask) mbPos iworld=:{current={taskTime,user,att
 		Detached management evalDirect
             # (instanceNo,iworld)                   = newInstanceNo iworld
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
-			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) Nothing management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
+			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) management user taskId evalDirect iworld
 			= (taskIda,Nothing,DetachedState instanceNo progress management, iworld)
 	    NamedDetached name management evalDirect
             # (instanceNo,iworld)                   = newInstanceNo iworld
 			# task									= parTask (parListShare taskId (TaskId instanceNo 0))
-			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) (Just name) management user taskId (if evalDirect (Just attachmentChain) Nothing) iworld
+			# (taskIda,iworld)	                    = createDetachedTaskInstance task (Just instanceNo) ('Data.Map'.put "name" name management) user taskId evalDirect iworld
 			= (taskIda,Just name,DetachedState instanceNo progress management, iworld)
 	# lastEval	= ValueResult NoValue {TaskEvalInfo|lastEvent=taskTime,involvedUsers=[],refreshSensitive=True} NoRep (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, name = name, state = state, lastEval = lastEval, uiAttributes = 'Data.Map'.newMap, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, removed = False}
@@ -510,13 +510,13 @@ where
 								
 	append :: !(TaskListId a) !ParallelTaskType !(ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 	append TopLevelTaskList parType parTask iworld=:{current={user,attachmentChain}}
-		# (name,meta,evalDirect) = case parType of
-            (Embedded)                              = (Nothing,defaultValue,False)
-            (NamedEmbedded name)                    = (Just name,defaultValue,False)
-            (Detached meta evalDirect)              = (Nothing,meta,evalDirect)
-            (NamedDetached name meta evalDirect)    = (Just name,meta,evalDirect)
+		# (attributes,evalDirect) = case parType of
+            (Embedded)                              = (defaultValue,False)
+            (NamedEmbedded name)                    = ('Data.Map'.put "name" name defaultValue,False)
+            (Detached meta evalDirect)              = (meta,evalDirect)
+            (NamedDetached name meta evalDirect)    = ('Data.Map'.put "name" name meta,evalDirect)
 		# task						= parTask topListShare
-		= createDetachedTaskInstance task Nothing name meta user (TaskId 0 0) (if evalDirect (Just attachmentChain) Nothing) iworld
+		= createDetachedTaskInstance task Nothing attributes user (TaskId 0 0) evalDirect iworld
 	append (ParallelTaskList parId) parType parTask iworld
 	    # ({TaskListEntry|entryId},iworld) = addTaskToList parId (parType,parTask) Nothing iworld
         = (entryId,iworld)
@@ -588,7 +588,8 @@ where
 		= case meta of
 			Ok meta
                 //Just steal the instance, TODO, make stealing optional
-				# (_,iworld)	= write {TIMeta|meta & instanceType=AttachedInstance [taskId:attachmentChain] user} (sdsFocus instanceNo taskInstanceMeta) iworld
+                # progress      = {ProgressMeta|meta.TIMeta.progress & attachedTo = Just (user,[taskId:attachmentChain])}
+				# (_,iworld)	= write {TIMeta|meta & progress = progress} (sdsFocus instanceNo taskInstanceMeta) iworld
 				# iworld		= queueUrgentRefresh [instanceNo] iworld
 				= eval event evalOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
@@ -599,14 +600,14 @@ where
 		# layout			= repLayoutRules evalOpts
 		# (meta,iworld)		= readRegister taskId (sdsFocus instanceNo taskInstanceMeta) iworld
 		= case meta of
-			(Ok meta=:{TIMeta|instanceType=AttachedInstance _ worker,instanceKey,progress,build})
+			(Ok meta=:{TIMeta|progress=progress=:{ProgressMeta|attachedTo=Just (worker,_),value},instanceKey,build})
                 | build <> buildID //Check version
 				    = (ValueResult (Value WOIncompatible True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
-                | progress.ProgressMeta.value === Exception
+                | value === Exception
 				    = (ValueResult (Value WOExcepted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 				| worker == user
                     # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) meta) [])
-                    # stable    = progress.ProgressMeta.value === Stable
+                    # stable    = value === Stable
 					= (ValueResult (Value (WOAttached stable) stable) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
 					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) meta) [])
@@ -625,8 +626,8 @@ where
         */
         = (DestroyedResult,iworld)
 
-    release taskId meta=:{TIMeta|instanceType=AttachedInstance attachment worker}
-        | isMember taskId attachment    = {TIMeta|meta & instanceType = DetachedInstance}
+    release taskId meta=:{TIMeta|progress=progress=:{ProgressMeta|attachedTo=Just (worker,attachment)}}
+        | isMember taskId attachment    = {TIMeta|meta & progress = {ProgressMeta|meta.TIMeta.progress & attachedTo = Nothing}}
                                         = meta
     release taskId meta = meta
 

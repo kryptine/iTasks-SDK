@@ -11,21 +11,17 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 //Split up version of task instance information
 
 :: TIMeta =
+    //Static information
 	{ instanceNo	:: !InstanceNo			//Unique global identification
     , instanceKey   :: !InstanceKey         //Random string that a client needs to provide to access the task instance
-    , instanceType  :: !TIType
-    , session       :: !Bool                //Is this a session
 	, listId        :: !TaskId              //Reference to parent tasklist
-    , name          :: !Maybe String        //Identifier
-	, progress		:: !ProgressMeta
-	, attributes    :: !TaskAttributes      //Arbitrary meta-data
+    , session       :: !Bool                //Is this a session
     , build         :: !String              //Application build version when the instance was created
+    //Evaluation information
+	, progress		:: !ProgressMeta
+    //Identification and classification information
+	, attributes    :: !TaskAttributes      //Arbitrary meta-data
 	}
-
-:: TIType
-    = DetachedInstance                      //A detached task that is not in use
-    | AttachedInstance ![TaskId] !User      //A previously detached task that has been attached to another instance
-    | TmpAttachedInstance ![TaskId] !User   //A temporarily attached task that will automatically turn into a detached instance after evaluation
 
 :: TIReduct =
 	{ task			:: !Task JSONNode                   //Main task definition

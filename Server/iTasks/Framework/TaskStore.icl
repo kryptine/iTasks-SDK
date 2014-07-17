@@ -12,8 +12,6 @@ from iTasks.Framework.SDS as SDS import qualified read, write, createReadWriteSD
 import iTasks.Framework.Serialization
 import qualified Data.Map
 
-derive gEq TIType
-
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
