@@ -5,10 +5,6 @@ import Data.Maybe
 import StdArray
 //from StdArray import class Array(uselect), instance Array {} a
 
-maybeStable :: (Maybe a) -> (TaskValue a)
-maybeStable (Just v) = Value v True
-maybeStable _        = NoValue
-
 :: BookingInfo = BookingReference String | PassangerLastName String
 :: Booking = {bookingRef :: String, firstName :: String, lastName :: String, flightNumber :: String, id :: Hidden String, seat :: Maybe Seat}
 :: Flight = {flightNumber :: String, rows :: Int, layout :: [Int], freeSeats :: [Seat]}
@@ -101,6 +97,8 @@ where
 	chooseSeat (Just f)
 	    =   enterChoice "Please choose seat:" [] (map toString (sort f.freeSeats))
 		>>= return o fromString
+	chooseSeat Nothing
+		= throw "Flight cannot be found"		
 */
 
 chooseSeat (Just f) = mkTask seatTasklet
@@ -108,7 +106,7 @@ where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
 		{ genUI			= (\_ _ iworld -> (TaskletHTML gui, Nothing, iworld))
-		, resultFunc	= maybeStable
+		, resultFunc	= maybe NoValue (\v -> Value v True)
 		, tweakUI  		= setTitle "Seat chooser Tasklet"
 		}
 
@@ -144,7 +142,9 @@ where
 			, html   		= htmlui
 			, eventHandlers = concatMap attachHandlers f.freeSeats
 			}
-	
+
+chooseSeat Nothing
+		= throw "Flight cannot be found"		
 								 
 taskletExamples :: [Workflow]
 taskletExamples =

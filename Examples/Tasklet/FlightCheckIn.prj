@@ -768,20 +768,6 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Crypto.Hash.MD5
-		Dir:	{Application}\iTasks-SDK\Dependencies\Platform\OS-Independent
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
 		Name:	Crypto.Hash.SHA1
 		Dir:	{Application}\iTasks-SDK\Dependencies\Platform\OS-Independent
 		Compiler
