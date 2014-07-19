@@ -49,12 +49,11 @@ defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
 
 editor :: Task CodeMirror
 editor
-	= mkTask (codeMirrorTasklet defcm)
-							 
+	= mkTask (codeMirrorTasklet defcm) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))
+				 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
 	= Nothing
-
 
 ifStable (Value v True) = Just (return v)
 ifStable _				= Nothing
