@@ -81,7 +81,8 @@ tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- Task o eval`
                     , trt_bpref        = (mn, tn)
                     , trt_bpinstance   = getTask mod tn
                     , trt_activeNodeId = Nothing
-                    , trt_parentTaskId = maybe (TaskId instanceNo 0) (\rt -> rt.trt_taskId)
+                    , trt_parentTaskId = maybe (TaskId instanceNo 0)
+                                           (\rt -> rt.trt_taskId)
                                            (firstParent rtMap instanceNo callTrace)
                     , trt_output       = Nothing
                     }
@@ -121,10 +122,10 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
     # traceStr = foldr (\x xs -> toString x +++ " " +++ xs) "" callTrace
     # nids = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
     = eval event evalOpts taskTree (maybeSt iworld
-                                      (\(TaskId instanceNo taskNo) -> addTrace instanceNo taskNo callTrace)
+                                      (addTrace callTrace)
                                       (taskIdFromTaskTree taskTree))
     where
-    addTrace instanceNo taskNo callTrace iworld
+    addTrace callTrace (TaskId instanceNo _) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = okSt iworld updRTMap mrtMap
       where
