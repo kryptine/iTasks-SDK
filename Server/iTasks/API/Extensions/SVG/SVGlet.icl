@@ -7,6 +7,7 @@ import iTasks.API.Core.Client.Editlet
 from StdOrdList import minList, maxList
 import StdArray
 import StdMisc
+import GenLexOrd
 
 derive JSONEncode Image
 derive JSONDecode Image
@@ -30,10 +31,12 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign
 
+derive gLexOrd FontDef, Span, LookupSpan, ImageTag
+
 :: ClientState =
   { didInit       :: Bool
   , didDraw       :: Bool
-  , fontSpanCache :: Map (FontDef, String) Span
+  , fontSpanCache :: Map (FontDef, String) (Real, Real)
   }
 
 derive class iTask ClientState
@@ -94,18 +97,22 @@ where
 (`getBBox`)          obj args :== obj .# "getBBox"         .$ args
 
 getTextBB fontdef str svg clval world
-  # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
-  // TODO use rest of fontdef
-  # (_, world)    = (elem `setAttribute` ("font-family", fontdef.fontfamily)) world
-  # (_, world)    = (elem `setAttribute` ("x", "-10000")) world
-  # (_, world)    = (elem `setAttribute` ("y", "-10000")) world
-  # world         = (elem .# "textContent" .= str) world
-  # (_, world)    = (svg `appendChild` elem) world
-  # (bbox, world) = (elem `getBBox` ()) world
-  # (h, world)    = .? (bbox .# "height") world
-  # (w, world)    = .? (bbox .# "width") world
-  # (_, world)    = (svg `removeChild` elem) world
-  = ((jsValToReal h, jsValToReal w), (clval, world))
+  = case 'DM'.gGet (fontdef, str) clval.fontSpanCache of
+      Just wh = (wh, (clval, world))
+      Nothing
+        # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
+        // TODO use rest of fontdef
+        # (_, world)    = (elem `setAttribute` ("font-family", fontdef.fontfamily)) world
+        # (_, world)    = (elem `setAttribute` ("x", "-10000")) world
+        # (_, world)    = (elem `setAttribute` ("y", "-10000")) world
+        # world         = (elem .# "textContent" .= str) world
+        # (_, world)    = (svg `appendChild` elem) world
+        # (bbox, world) = (elem `getBBox` ()) world
+        # (h, world)    = .? (bbox .# "height") world
+        # (w, world)    = .? (bbox .# "width") world
+        # (_, world)    = (svg `removeChild` elem) world
+        # wh            = (jsValToReal h, jsValToReal w)
+        = (wh, ({clval & fontSpanCache = 'DM'.gPut (fontdef, str) wh clval.fontSpanCache}, world))
 
 toSVGImage img world = imageCata allAlgs img world
   where
