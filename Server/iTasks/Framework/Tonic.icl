@@ -125,7 +125,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
                                       (addTrace callTrace)
                                       (taskIdFromTaskTree taskTree))
     where
-    addTrace callTrace (TaskId instanceNo _) iworld
+    addTrace callTrace (TaskId instanceNo taskNo) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = okSt iworld updRTMap mrtMap
       where
