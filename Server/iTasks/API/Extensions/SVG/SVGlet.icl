@@ -6,6 +6,7 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 from StdOrdList import minList, maxList
 import StdArray
+import StdMisc
 
 derive JSONEncode Image
 derive JSONDecode Image
@@ -115,7 +116,7 @@ toSVGImage img world = imageCata allAlgs img world
     , imageAttrStrokeOpacityAttrAlg = \attr st -> (StrokeOpacityAttr (toString attr.opacity), st)
     , imageAttrFillAttrAlg          = \attr st -> (FillAttr (PaintColor attr.fill Nothing), st)
     , imageAttrFillOpacityAttrAlg   = \attr st -> (FillOpacityAttr (FillOpacity (toString attr.opacity)), st)
-    , imageAttrOnClickAttrAlg       = \attr st -> undef // (("onclick", "TODO How?"), st) // TODO
+    , imageAttrOnClickAttrAlg       = \attr st -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
     }
     where
     mkStrokeWidth attr (clval, world)
@@ -135,9 +136,9 @@ toSVGImage img world = imageCata allAlgs img world
     { imageSpanAlg = \sp1 sp2 st -> ((sp1, sp2), st)
     }
   imageTagAlgs =
-    { imageTagIntAlg    = \n    st -> (undef, st)
-    , imageTagStringAlg = \str  st -> (undef, st)
-    , imageTagSystemAlg = \n    st -> (undef, st)
+    { imageTagIntAlg    = \n    st -> (abort "imageTagIntAlg", st)
+    , imageTagStringAlg = \str  st -> (abort "imageTagStringAlg", st)
+    , imageTagSystemAlg = \n    st -> (abort "imageTagSystemAlg", st)
     }
   basicImageAlgs =
     { basicImageEmptyImageAlg   = \       st -> (\wh             imAts imTrs imTas -> GElt (mkWH wh) imAts [], st) // TODO imAts + imTrs + imTas
@@ -160,13 +161,13 @@ toSVGImage img world = imageCata allAlgs img world
     { composeImageAlg = \sps ims ho co st -> (\imAts imTrs imTas -> GElt [] [] ims, st) // TODO offsets etc
     }
   hostAlgs =
-    { hostNothingAlg = \   st -> (undef, st)
-    , hostJustAlg    = \im st -> (undef, st)
+    { hostNothingAlg = \   st -> (abort "hostNothingAlg", st)
+    , hostJustAlg    = \im st -> (abort "hostJustAlg", st)
     }
   composeAlgs =
-    { composeAsGridAlg    = \n ias st -> (undef, st)
-    , composeAsCollageAlg = \      st -> (undef, st)
-    , composeAsOverlayAlg = \ias   st -> (undef, st)
+    { composeAsGridAlg    = \n ias st -> (abort "composeAsGridAlg", st)
+    , composeAsCollageAlg = \      st -> (abort "composeAsCollageAlg", st)
+    , composeAsOverlayAlg = \ias   st -> (abort "composeAsOverlayAlg", st)
     }
 
 undef = undef
@@ -431,7 +432,6 @@ lookupCata lookupSpanAlgs imageTagAlgs (TextXSpan fd str) st
 
 (`setAttribute`)     obj args :== obj .# "setAttribute"    .$ args
 (`createElementNS`)  obj args :== obj .# "createElementNS" .$ args
-(`textContent`)      obj args :== obj .# "textContent"     .$ args
 (`appendChild`)      obj args :== obj .# "appendChild"     .$ args
 
 appendSVG :: SVGElt (JSObj r) *JSWorld -> *JSWorld
@@ -450,7 +450,7 @@ appendSVG (TextElt           htmlAttrs svgAttrs str    ) parent world
   # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
-  # (_, world)    = (elem `textContent` str) world
+  # world         = (elem .# "innerHTML" .= str) world
   = snd ((parent `appendChild` elem) world)
 
 appendSVG` parent elemName htmlAttrs svgAttrs children world
