@@ -110,24 +110,24 @@ toSVGImage img world = imageCata allAlgs img world
     , imageContentCompositeAlg = \coIm      st -> (coIm, st)
     }
   imageAttrAlgs =
-    { imageAttrImageStrokeAttrAlg   = \attr st -> (("stroke", toString attr.stroke), st)
+    { imageAttrImageStrokeAttrAlg   = \attr st -> (StrokeAttr (PaintColor attr.stroke Nothing), st)
     , imageAttrStrokeWidthAttrAlg   = mkStrokeWidth
-    , imageAttrStrokeOpacityAttrAlg = \attr st -> (("stroke-opacity", toString attr.opacity), st)
-    , imageAttrFillAttrAlg          = \attr st -> (("fill", toString attr.fill), st)
-    , imageAttrFillOpacityAttrAlg   = \attr st -> (("fill-opacity", toString attr.opacity), st)
-    , imageAttrOnClickAttrAlg       = \attr st -> (("onclick", "TODO How?"), st) // TODO
+    , imageAttrStrokeOpacityAttrAlg = \attr st -> (StrokeOpacityAttr (toString attr.opacity), st)
+    , imageAttrFillAttrAlg          = \attr st -> (FillAttr (PaintColor attr.fill Nothing), st)
+    , imageAttrFillOpacityAttrAlg   = \attr st -> (FillOpacityAttr (FillOpacity (toString attr.opacity)), st)
+    , imageAttrOnClickAttrAlg       = \attr st -> undef // (("onclick", "TODO How?"), st) // TODO
     }
     where
     mkStrokeWidth attr (clval, world)
       # (sp, world) = evalSpan attr.strokewidth world
-      = (("stroke-width", toString sp), (clval, world))
+      = (StrokeWidthAttr (StrokeWidthLength (toString sp, PX)), (clval, world))
   imageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    st -> (mkAttr "rotate" (toString imAn), st)
     , imageTransformSkewXImageAlg  = \imAn    st -> (mkAttr "skewX" (toString imAn), st)
     , imageTransformSkewYImageAlg  = \imAn    st -> (mkAttr "skewY" (toString imAn), st)
-    , imageTransformFitImageAlg    = \sp1 sp2 st -> (undef, st) // TODO
-    , imageTransformFitXImageAlg   = \sp      st -> (undef, st) // TODO
-    , imageTransformFitYImageAlg   = \sp      st -> (undef, st) // TODO
+    , imageTransformFitImageAlg    = \sp1 sp2 st -> (mkAttr "scale" "1.0", st) // TODO
+    , imageTransformFitXImageAlg   = \sp      st -> (mkAttr "scale" "1.0", st) // TODO
+    , imageTransformFitYImageAlg   = \sp      st -> (mkAttr "scale" "1.0", st) // TODO
     }
     where
     mkAttr attr val = attr +++ "(" +++ val +++ ")"
@@ -140,13 +140,13 @@ toSVGImage img world = imageCata allAlgs img world
     , imageTagSystemAlg = \n    st -> (undef, st)
     }
   basicImageAlgs =
-    { basicImageEmptyImageAlg   = \       st -> (\wh             imAts imTrs imTas -> GElt (mkWH wh) [] [], st)
-    , basicImageTextImageAlg    = \fd str st -> (\wh             imAts imTrs imTas -> TextElt [] [] str, st) // TODO
-    , basicImageLineImageAlg    = \sl     st -> (\wh             imAts imTrs imTas -> LineElt [] (mkLineAttrs sl wh), st)
-    , basicImageCircleImageAlg  = \       st -> (\(xspan, _)     imAts imTrs imTas -> CircleElt [] [RAttr (toString (xspan / 2.0), PX)], st)
-    , basicImageRectImageAlg    = \       st -> (\wh             imAts imTrs imTas -> RectElt (mkWH wh) [], st)
-    , basicImageEllipseImageAlg = \       st -> (\(xspan, yspan) imAts imTrs imTas -> EllipseElt [] [ RxAttr (toString (xspan / 2.0), PX), RyAttr (toString (yspan / 2.0), PX)
-                                                                                                    , CxAttr (toString (xspan / 2.0), PX), CyAttr (toString (yspan / 2.0), PX)], st)
+    { basicImageEmptyImageAlg   = \       st -> (\wh             imAts imTrs imTas -> GElt (mkWH wh) imAts [], st) // TODO imAts + imTrs + imTas
+    , basicImageTextImageAlg    = \fd str st -> (\wh             imAts imTrs imTas -> TextElt [] imAts str, st) // TODO // TODO imAts + imTrs + imTas
+    , basicImageLineImageAlg    = \sl     st -> (\wh             imAts imTrs imTas -> LineElt [] (imAts ++ mkLineAttrs sl wh), st) // TODO imAts + imTrs + imTas
+    , basicImageCircleImageAlg  = \       st -> (\(xspan, _)     imAts imTrs imTas -> CircleElt [] [RAttr (toString (xspan / 2.0), PX):imAts], st) // TODO imAts + imTrs + imTas
+    , basicImageRectImageAlg    = \       st -> (\wh             imAts imTrs imTas -> RectElt (mkWH wh) imAts, st) // TODO imAts + imTrs + imTas
+    , basicImageEllipseImageAlg = \       st -> (\(xspan, yspan) imAts imTrs imTas -> EllipseElt [] (imAts ++ [ RxAttr (toString (xspan / 2.0), PX), RyAttr (toString (yspan / 2.0), PX) // TODO imAts + imTrs + imTas
+                                                                                                              , CxAttr (toString (xspan / 2.0), PX), CyAttr (toString (yspan / 2.0), PX)]), st)
     }
     where
     mkWH (xspan, yspan) = [WidthAttr (toString xspan), HeightAttr (toString yspan)]
@@ -157,7 +157,7 @@ toSVGImage img world = imageCata allAlgs img world
       = [ X1Attr (toString 0.0, PX), X2Attr (toString yspan, PX)
         , Y1Attr (toString y1, PX), Y2Attr (toString y2, PX)]
   composeImageAlgs =
-    { composeImageAlg = \sps ims ho co st -> (undef, st)
+    { composeImageAlg = \sps ims ho co st -> (\imAts imTrs imTas -> GElt [] [] ims, st) // TODO offsets etc
     }
   hostAlgs =
     { hostNothingAlg = \   st -> (undef, st)
@@ -447,18 +447,20 @@ appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSV
 appendSVG (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "radialGradient" htmlAttrs svgAttrs svgElts world
 appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop" htmlAttrs svgAttrs []                world
 appendSVG (TextElt           htmlAttrs svgAttrs str    ) parent world
-  # (elem, world) = (jsDocument `createElementNS` ("http://www.w3.org/2000/svg", "text")) world
+  # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
   # (_, world)    = (elem `textContent` str) world
   = snd ((parent `appendChild` elem) world)
 
 appendSVG` parent elemName htmlAttrs svgAttrs children world
-  # (elem, world) = (jsDocument `createElementNS` ("http://www.w3.org/2000/svg", elemName)) world
+  # (elem, world) = (jsDocument `createElementNS` (svgns, elemName)) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
   # world         = foldr (\child world -> appendSVG child elem world) world children
   = snd ((parent `appendChild` elem) world)
+
+svgns :== "http://www.w3.org/2000/svg"
 
 setAttrs :: [a] (JSObj r) *JSWorld -> *JSWorld | toAttr a
 setAttrs as obj world = foldr f world as
