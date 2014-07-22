@@ -36,7 +36,7 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag
 :: ClientState =
   { didInit       :: Bool
   , didDraw       :: Bool
-  , fontSpanCache :: Map (FontDef, String) (Real, Real)
+  , fontSpanCache :: Map (FontDef, String) Real
   }
 
 derive class iTask ClientState
@@ -80,41 +80,49 @@ where
       )
 
   updateUI cid diffs clval=:{didInit = False} world
-    # world = jsTrace "updateUI didInit False" world
     = ({clval & didInit = True}, world)
 
   updateUI cid diffs clval=:{didInit = True} world
-    # world = jsTrace "updateUI didInit True" world
     # (r, (clval, world)) = toSVGImage img (clval, world)
     # (svg, world)        = getDomElement (mainSvgId cid) world
     # (elem, world)       = appendSVG r svg world
     = (clval, world)
 
-(`setAttribute`)     obj args :== obj .# "setAttribute"    .$ args
-(`createElementNS`)  obj args :== obj .# "createElementNS" .$ args
-(`appendChild`)      obj args :== obj .# "appendChild"     .$ args
-(`removeChild`)      obj args :== obj .# "removeChild"     .$ args
-(`getBBox`)          obj args :== obj .# "getBBox"         .$ args
+(`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
+(`createElementNS`)       obj args :== obj .# "createElementNS"       .$ args
+(`appendChild`)           obj args :== obj .# "appendChild"           .$ args
+(`removeChild`)           obj args :== obj .# "removeChild"           .$ args
+(`getBBox`)               obj args :== obj .# "getBBox"               .$ args
+(`getComputedTextLength`) obj args :== obj .# "getComputedTextLength" .$ args
 
-getTextBB fontdef str svg clval world
+getTextLength :: FontDef String *(ClientState, *JSWorld) -> *(Real, *(ClientState, *JSWorld))
+getTextLength fontdef str (clval, world)
   = case 'DM'.gGet (fontdef, str) clval.fontSpanCache of
       Just wh = (wh, (clval, world))
       Nothing
-        # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
-        // TODO use rest of fontdef
-        # (_, world)    = (elem `setAttribute` ("font-family", fontdef.fontfamily)) world
-        # (_, world)    = (elem `setAttribute` ("x", "-10000")) world
-        # (_, world)    = (elem `setAttribute` ("y", "-10000")) world
-        # world         = (elem .# "textContent" .= str) world
-        # (_, world)    = (svg `appendChild` elem) world
-        # (bbox, world) = (elem `getBBox` ()) world
-        # (h, world)    = .? (bbox .# "height") world
-        # (w, world)    = .? (bbox .# "width") world
-        # (_, world)    = (svg `removeChild` elem) world
-        # wh            = (jsValToReal h, jsValToReal w)
-        = (wh, ({clval & fontSpanCache = 'DM'.gPut (fontdef, str) wh clval.fontSpanCache}, world))
+        # (svg, world)   = (jsDocument `createElementNS` (svgns, "svg")) world
+        # (body, world)  = .? (jsDocument .# "body") world
+        # (_, world)     = (body `appendChild` svg) world 
+        # (elem, world)  = (jsDocument `createElementNS` (svgns, "text")) world
+        # (fntSz, (clval, world)) = evalSpan fontdef.fontyspan (clval, world)
+        # fontAttrs      = [ ("font-family",  fontdef.fontfamily)
+                           , ("font-size",    toString fntSz)
+                           , ("font-stretch", fontdef.fontstretch)
+                           , ("font-style",   fontdef.fontstyle)
+                           , ("font-variant", fontdef.fontvariant)
+                           , ("font-weight",  fontdef.fontweight)
+                           , ("x", "-10000")
+                           , ("y", "-10000") ]
+        # world          = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
+        # world          = (elem .# "textContent" .= str) world
+        # (_, world)     = (svg `appendChild` elem) world
+        # (ctl, world)   = (elem `getComputedTextLength` ()) world
+        # (_, world)     = (svg `removeChild` elem) world
+        # (_, world)     = (body `removeChild` svg) world
+        # twidth         = jsValToReal ctl
+        = (twidth, ({clval & fontSpanCache = 'DM'.gPut (fontdef, str) twidth clval.fontSpanCache}, world))
 
-toSVGImage img world = imageCata allAlgs img world
+toSVGImage img st = imageCata allAlgs img st
   where
   allAlgs =
     { imageAlgs          = imageAlgs
@@ -146,9 +154,9 @@ toSVGImage img world = imageCata allAlgs img world
     , imageAttrOnClickAttrAlg       = \attr st -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
     }
     where
-    mkStrokeWidth attr (clval, world)
-      # (sp, world) = evalSpan attr.strokewidth world
-      = (StrokeWidthAttr (StrokeWidthLength (toString sp, PX)), (clval, world))
+    mkStrokeWidth attr st
+      # (sp, st) = evalSpan attr.strokewidth st
+      = (StrokeWidthAttr (StrokeWidthLength (toString sp, PX)), st)
   imageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    st -> (mkAttr "rotate" (toString imAn), st)
     , imageTransformSkewXImageAlg  = \imAn    st -> (mkAttr "skewX" (toString imAn), st)
@@ -199,7 +207,8 @@ toSVGImage img world = imageCata allAlgs img world
 
 undef = undef
 
-evalSpan sp world = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs evalSpanImageTagAlgs sp world
+evalSpan :: Span *(ClientState, *JSWorld) -> *(Real, *(ClientState, *JSWorld))
+evalSpan sp st = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs evalSpanImageTagAlgs sp st
 
 evalSpanSpanAlgs =
   { spanPxSpanAlg     = \r   st -> (r, st)
@@ -214,12 +223,12 @@ evalSpanSpanAlgs =
   }
 evalSpanLookupSpanAlgs =
   { lookupSpanColumnXSpanAlg  = \ts n   st -> (100.0, st)
-  , lookupSpanDescentYSpanAlg = \fd     st -> (100.0, st)
-  , lookupSpanExYSpanAlg      = \fd     st -> (100.0, st)
+  , lookupSpanDescentYSpanAlg = \fd     st -> (100.0, st) // TODO Will we even use this?
+  , lookupSpanExYSpanAlg      = \fd     st -> (100.0, st) // TODO Shouldn't we simply use em instead?
   , lookupSpanImageXSpanAlg   = \ts     st -> (100.0, st)
   , lookupSpanImageYSpanAlg   = \ts     st -> (100.0, st)
   , lookupSpanRowYSpanAlg     = \ts n   st -> (100.0, st)
-  , lookupSpanTextXSpanAlg    = \fd str st -> (100.0, st)
+  , lookupSpanTextXSpanAlg    = getTextLength
   }
 evalSpanImageTagAlgs =
   { imageTagIntAlg    = \_ st -> (0.0, st)
