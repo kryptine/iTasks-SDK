@@ -84,8 +84,28 @@ where
     # world = jsTrace "updateUI didInit True" world
     # (r, (clval, world)) = toSVGImage img (clval, world)
     # (svg, world)        = getDomElement (mainSvgId cid) world
-    # world               = appendSVG r svg world
+    # (elem, world)       = appendSVG r svg world
     = (clval, world)
+
+(`setAttribute`)     obj args :== obj .# "setAttribute"    .$ args
+(`createElementNS`)  obj args :== obj .# "createElementNS" .$ args
+(`appendChild`)      obj args :== obj .# "appendChild"     .$ args
+(`removeChild`)      obj args :== obj .# "removeChild"     .$ args
+(`getBBox`)          obj args :== obj .# "getBBox"         .$ args
+
+getTextBB fontdef str svg clval world
+  # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
+  // TODO use rest of fontdef
+  # (_, world)    = (elem `setAttribute` ("font-family", fontdef.fontfamily)) world
+  # (_, world)    = (elem `setAttribute` ("x", "-10000")) world
+  # (_, world)    = (elem `setAttribute` ("y", "-10000")) world
+  # world         = (elem .# "textContent" .= str) world
+  # (_, world)    = (svg `appendChild` elem) world
+  # (bbox, world) = (elem `getBBox` ()) world
+  # (h, world)    = .? (bbox .# "height") world
+  # (w, world)    = .? (bbox .# "width") world
+  # (_, world)    = (svg `removeChild` elem) world
+  = ((jsValToReal h, jsValToReal w), (clval, world))
 
 toSVGImage img world = imageCata allAlgs img world
   where
@@ -158,7 +178,7 @@ toSVGImage img world = imageCata allAlgs img world
       = [ X1Attr (toString 0.0, PX), X2Attr (toString yspan, PX)
         , Y1Attr (toString y1, PX), Y2Attr (toString y2, PX)]
   composeImageAlgs =
-    { composeImageAlg = \sps ims ho co st -> (\imAts imTrs imTas -> GElt [] [] ims, st) // TODO offsets etc
+    { composeImageAlg = \sps ims ho co st -> (\imAts imTrs imTas -> GElt [] imAts ims, st) // TODO offsets etc
     }
   hostAlgs =
     { hostNothingAlg = \   st -> (abort "hostNothingAlg", st)
@@ -186,13 +206,13 @@ evalSpanSpanAlgs =
   , spanMaxSpanAlg    = \xs  st -> (maxList xs, st)
   }
 evalSpanLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg  = \ts n   st -> (300.0, st)
-  , lookupSpanDescentYSpanAlg = \fd     st -> (300.0, st)
-  , lookupSpanExYSpanAlg      = \fd     st -> (300.0, st)
-  , lookupSpanImageXSpanAlg   = \ts     st -> (300.0, st)
-  , lookupSpanImageYSpanAlg   = \ts     st -> (300.0, st)
-  , lookupSpanRowYSpanAlg     = \ts n   st -> (300.0, st)
-  , lookupSpanTextXSpanAlg    = \fd str st -> (300.0, st)
+  { lookupSpanColumnXSpanAlg  = \ts n   st -> (100.0, st)
+  , lookupSpanDescentYSpanAlg = \fd     st -> (100.0, st)
+  , lookupSpanExYSpanAlg      = \fd     st -> (100.0, st)
+  , lookupSpanImageXSpanAlg   = \ts     st -> (100.0, st)
+  , lookupSpanImageYSpanAlg   = \ts     st -> (100.0, st)
+  , lookupSpanRowYSpanAlg     = \ts n   st -> (100.0, st)
+  , lookupSpanTextXSpanAlg    = \fd str st -> (100.0, st)
   }
 evalSpanImageTagAlgs =
   { imageTagIntAlg    = \_ st -> (0.0, st)
@@ -430,11 +450,7 @@ lookupCata lookupSpanAlgs imageTagAlgs (TextXSpan fd str) st
   = lookupSpanAlgs.lookupSpanTextXSpanAlg fd str st
 
 
-(`setAttribute`)     obj args :== obj .# "setAttribute"    .$ args
-(`createElementNS`)  obj args :== obj .# "createElementNS" .$ args
-(`appendChild`)      obj args :== obj .# "appendChild"     .$ args
-
-appendSVG :: SVGElt (JSObj r) *JSWorld -> *JSWorld
+appendSVG :: SVGElt (JSObj r) *JSWorld -> *(JSObj s, *JSWorld)
 appendSVG (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "svg" htmlAttrs svgAttrs svgElts            world
 appendSVG (CircleElt         htmlAttrs svgAttrs        ) parent world = appendSVG` parent "circle" htmlAttrs svgAttrs []              world
 appendSVG (DefsElt           htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "defs" htmlAttrs svgAttrs svgElts           world
@@ -450,15 +466,15 @@ appendSVG (TextElt           htmlAttrs svgAttrs str    ) parent world
   # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
-  # world         = (elem .# "innerHTML" .= str) world
-  = snd ((parent `appendChild` elem) world)
+  # world         = (elem .# "textContent" .= str) world
+  = (elem, snd ((parent `appendChild` elem) world))
 
 appendSVG` parent elemName htmlAttrs svgAttrs children world
   # (elem, world) = (jsDocument `createElementNS` (svgns, elemName)) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
-  # world         = foldr (\child world -> appendSVG child elem world) world children
-  = snd ((parent `appendChild` elem) world)
+  # world         = foldr (\child world -> snd (appendSVG child elem world)) world children
+  = (elem, snd ((parent `appendChild` elem) world))
 
 svgns :== "http://www.w3.org/2000/svg"
 
