@@ -5,6 +5,7 @@ import Graphics.Scalable
 import iTasks
 import iTasks.API.Core.Client.Editlet
 from StdOrdList import minList, maxList
+import StdArray
 
 derive JSONEncode Image
 derive JSONDecode Image
@@ -66,9 +67,9 @@ where
     = ({ ComponentHTML
        | width      = ExactSize w
        , height     = ExactSize h
-       , html       = SvgTag [IdAttr (mainSvgId cid)]
-                        [ViewBoxAttr (toString minx) (toString miny) (toString w) (toString h)] []
-                        //[] []
+       , html       = SvgTag [IdAttr (mainSvgId cid), XmlnsAttr "http://www.w3.org/2000/svg"]
+                        //[ViewBoxAttr (toString minx) (toString miny) (toString w) (toString h)] []
+                        [] []
        , eventHandlers = []
        }
        , world
@@ -81,11 +82,8 @@ where
   updateUI cid diffs clval=:{didInit = True} world
     # world = jsTrace "updateUI didInit True" world
     # (r, (clval, world)) = toSVGImage img (clval, world)
-    # (p, world)          = new "DOMParser" () world
-    # (pdoc, world)       = (p .# "parseFromString" .$ (toString r, "application/xml")) world
-    # (docel, world)      = .? (pdoc .# "documentElement") world
     # (svg, world)        = getDomElement (mainSvgId cid) world
-    # (_, world)          = (svg .# "appendChild" .$ docel) world
+    # world               = appendSVG r svg world
     = (clval, world)
 
 toSVGImage img world = imageCata allAlgs img world
@@ -429,3 +427,60 @@ lookupCata lookupSpanAlgs imageTagAlgs (RowYSpan imts n) st
   = lookupSpanAlgs.lookupSpanRowYSpanAlg synsRowYSpans n st
 lookupCata lookupSpanAlgs imageTagAlgs (TextXSpan fd str) st
   = lookupSpanAlgs.lookupSpanTextXSpanAlg fd str st
+
+
+(`setAttribute`)     obj args :== obj .# "setAttribute"    .$ args
+(`createElementNS`)  obj args :== obj .# "createElementNS" .$ args
+(`textContent`)      obj args :== obj .# "textContent"     .$ args
+(`appendChild`)      obj args :== obj .# "appendChild"     .$ args
+
+appendSVG :: SVGElt (JSObj r) *JSWorld -> *JSWorld
+appendSVG (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "svg" htmlAttrs svgAttrs svgElts            world
+appendSVG (CircleElt         htmlAttrs svgAttrs        ) parent world = appendSVG` parent "circle" htmlAttrs svgAttrs []              world
+appendSVG (DefsElt           htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "defs" htmlAttrs svgAttrs svgElts           world
+appendSVG (EllipseElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "ellipse" htmlAttrs svgAttrs []             world
+appendSVG (GElt              htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "g" htmlAttrs svgAttrs svgElts              world
+appendSVG (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "image" htmlAttrs svgAttrs svgElts          world
+appendSVG (LinearGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "linearGradient" htmlAttrs svgAttrs svgElts world
+appendSVG (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "line" htmlAttrs svgAttrs []                world
+appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "rect" htmlAttrs svgAttrs []                world
+appendSVG (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "radialGradient" htmlAttrs svgAttrs svgElts world
+appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop" htmlAttrs svgAttrs []                world
+appendSVG (TextElt           htmlAttrs svgAttrs str    ) parent world
+  # (elem, world) = (jsDocument `createElementNS` ("http://www.w3.org/2000/svg", "text")) world
+  # world         = setAttrs htmlAttrs elem world
+  # world         = setAttrs svgAttrs elem world
+  # (_, world)    = (elem `textContent` str) world
+  = snd ((parent `appendChild` elem) world)
+
+appendSVG` parent elemName htmlAttrs svgAttrs children world
+  # (elem, world) = (jsDocument `createElementNS` ("http://www.w3.org/2000/svg", elemName)) world
+  # world         = setAttrs htmlAttrs elem world
+  # world         = setAttrs svgAttrs elem world
+  # world         = foldr (\child world -> appendSVG child elem world) world children
+  = snd ((parent `appendChild` elem) world)
+
+setAttrs :: [a] (JSObj r) *JSWorld -> *JSWorld | toAttr a
+setAttrs as obj world = foldr f world as
+  where
+  f attr world = snd ((obj `setAttribute` (toAttr attr)) world)
+
+class toAttr a :: a -> (String, String)
+
+// TODO This is rather hacky: rewrite serialization in Text.HTML to be able to
+// support this as well
+instance toAttr HtmlAttr where
+  toAttr attr = (e1 % (1, size e1), e2 % (1, size e2))
+    where
+    lst = fromString (fst (serializeAttr attr "" 0))
+    e1 = toString (takeWhile (\x -> x <> '=') lst)
+    e2 = toString (filter (\x -> x <> '"') (dropWhile (\x -> x <> '=') lst))
+
+// TODO This is rather hacky: rewrite serialization in Text.HTML to be able to
+// support this as well
+instance toAttr SVGAttr where
+  toAttr attr = (e1 % (1, size e1), e2 % (1, size e2))
+    where
+    lst = fromString (fst (serializeSVGAttr attr "" 0))
+    e1 = toString (takeWhile (\x -> x <> '=') lst)
+    e2 = toString (filter (\x -> x <> '"') (dropWhile (\x -> x <> '=') lst))
