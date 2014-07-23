@@ -8,6 +8,10 @@ from StdOrdList import minList, maxList
 import StdArray
 import StdMisc
 import GenLexOrd
+import Data.List
+import Data.Func
+from Data.Set import :: Set
+import qualified Data.Set as DS
 
 derive JSONEncode Image
 derive JSONDecode Image
@@ -29,9 +33,9 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, ImageSpan, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign
+  YAlign, Set
 
-derive gLexOrd FontDef, Span, LookupSpan, ImageTag
+derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set
 
 :: ClientState =
   { didInit       :: Bool
@@ -85,7 +89,7 @@ where
   updateUI cid diffs clval=:{didInit = True} world
     # (r, (clval, world)) = toSVGImage img (clval, world)
     # (svg, world)        = getDomElement (mainSvgId cid) world
-    # (elem, world)       = appendSVG r svg world
+    # (elem, world)       = appendSVG (r (0.0, 0.0)) svg world
     = (clval, world)
 
 (`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
@@ -132,59 +136,66 @@ toSVGImage img st = imageCata allAlgs img st
     , imageSpanAlgs      = imageSpanAlgs
     , imageTagAlgs       = imageTagAlgs
     , basicImageAlgs     = basicImageAlgs
-    , composeImageAlgs   = composeImageAlgs
+    , compositeImageAlgs = compositeImageAlgs
     , hostAlgs           = hostAlgs
     , composeAlgs        = composeAlgs
     , spanAlgs           = evalSpanSpanAlgs
     , lookupSpanAlgs     = evalSpanLookupSpanAlgs
     }
   imageAlgs =
-    { imageAlg = \imCo imAts imTrs imTas st -> (imCo imAts imTrs imTas, st)
+    { imageAlg = \imCo imAts imTrs imTas -> bindSt (\offset -> imCo offset (mkAttrs imAts imTrs))
     }
+    where
+    mkAttrs imAts [] = imAts
+    mkAttrs imAts xs = [TransformAttr xs:imAts]
   imageContentAlgs =
-    { imageContentBasicAlg     = \baIm imSp st -> (baIm imSp, st)
-    , imageContentCompositeAlg = \coIm      st -> (coIm, st)
+    { imageContentBasicAlg     = \baIm imSp -> bindSt (baIm imSp)
+    , imageContentCompositeAlg = \coIm      -> bindSt coIm
     }
   imageAttrAlgs =
-    { imageAttrImageStrokeAttrAlg   = \attr st -> (StrokeAttr (PaintColor attr.stroke Nothing), st)
+    { imageAttrImageStrokeAttrAlg   = \attr -> bindSt (StrokeAttr (PaintColor attr.stroke Nothing))
     , imageAttrStrokeWidthAttrAlg   = mkStrokeWidth
-    , imageAttrStrokeOpacityAttrAlg = \attr st -> (StrokeOpacityAttr (toString attr.opacity), st)
-    , imageAttrFillAttrAlg          = \attr st -> (FillAttr (PaintColor attr.fill Nothing), st)
-    , imageAttrFillOpacityAttrAlg   = \attr st -> (FillOpacityAttr (FillOpacity (toString attr.opacity)), st)
-    , imageAttrOnClickAttrAlg       = \attr st -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
+    , imageAttrStrokeOpacityAttrAlg = \attr -> bindSt (StrokeOpacityAttr (toString attr.opacity))
+    , imageAttrFillAttrAlg          = \attr -> bindSt (FillAttr (PaintColor attr.fill Nothing))
+    , imageAttrFillOpacityAttrAlg   = \attr -> bindSt (FillOpacityAttr (FillOpacity (toString attr.opacity)))
+    , imageAttrOnClickAttrAlg       = \attr -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
     }
     where
     mkStrokeWidth attr st
       # (sp, st) = evalSpan attr.strokewidth st
       = (StrokeWidthAttr (StrokeWidthLength (toString sp, PX)), st)
   imageTransformAlgs =
-    { imageTransformRotateImageAlg = \imAn    st -> (mkAttr "rotate" (toString imAn), st)
-    , imageTransformSkewXImageAlg  = \imAn    st -> (mkAttr "skewX" (toString imAn), st)
-    , imageTransformSkewYImageAlg  = \imAn    st -> (mkAttr "skewY" (toString imAn), st)
-    , imageTransformFitImageAlg    = \sp1 sp2 st -> (mkAttr "scale" "1.0", st) // TODO
-    , imageTransformFitXImageAlg   = \sp      st -> (mkAttr "scale" "1.0", st) // TODO
-    , imageTransformFitYImageAlg   = \sp      st -> (mkAttr "scale" "1.0", st) // TODO
+    { imageTransformRotateImageAlg = \imAn    -> bindSt (RotateTransform (toString imAn) Nothing)
+    , imageTransformSkewXImageAlg  = \imAn    -> bindSt (SkewXTransform (toString imAn))
+    , imageTransformSkewYImageAlg  = \imAn    -> bindSt (SkewYTransform (toString imAn))
+    , imageTransformFitImageAlg    = \sp1 sp2 -> bindSt (ScaleTransform "scale" "1.0") // TODO
+    , imageTransformFitXImageAlg   = \sp      -> bindSt (ScaleTransform "scale" "1.0") // TODO
+    , imageTransformFitYImageAlg   = \sp      -> bindSt (ScaleTransform "scale" "1.0") // TODO
     }
-    where
-    mkAttr attr val = attr +++ "(" +++ val +++ ")"
   imageSpanAlgs =
     { imageSpanAlg = \sp1 sp2 st -> ((sp1, sp2), st)
     }
   imageTagAlgs =
-    { imageTagIntAlg    = \n    st -> (abort "imageTagIntAlg", st)
-    , imageTagStringAlg = \str  st -> (abort "imageTagStringAlg", st)
-    , imageTagSystemAlg = \n    st -> (abort "imageTagSystemAlg", st)
+    { imageTagIntAlg    = \n   -> bindSt (abort "imageTagIntAlg")
+    , imageTagStringAlg = \str -> bindSt (abort "imageTagStringAlg")
+    , imageTagSystemAlg = \n   -> bindSt (abort "imageTagSystemAlg")
     }
   basicImageAlgs =
-    { basicImageEmptyImageAlg   = \       st -> (\wh             imAts imTrs imTas -> GElt (mkWH wh) imAts [], st) // TODO imAts + imTrs + imTas
-    , basicImageTextImageAlg    = \fd str st -> (\wh             imAts imTrs imTas -> TextElt [] imAts str, st) // TODO // TODO imAts + imTrs + imTas
-    , basicImageLineImageAlg    = \sl     st -> (\wh             imAts imTrs imTas -> LineElt [] (imAts ++ mkLineAttrs sl wh), st) // TODO imAts + imTrs + imTas
-    , basicImageCircleImageAlg  = \       st -> (\(xspan, _)     imAts imTrs imTas -> CircleElt [] [RAttr (toString (xspan / 2.0), PX):imAts], st) // TODO imAts + imTrs + imTas
-    , basicImageRectImageAlg    = \       st -> (\wh             imAts imTrs imTas -> RectElt (mkWH wh) imAts, st) // TODO imAts + imTrs + imTas
-    , basicImageEllipseImageAlg = \       st -> (\(xspan, yspan) imAts imTrs imTas -> EllipseElt [] (imAts ++ [ RxAttr (toString (xspan / 2.0), PX), RyAttr (toString (yspan / 2.0), PX) // TODO imAts + imTrs + imTas
-                                                                                                              , CxAttr (toString (xspan / 2.0), PX), CyAttr (toString (yspan / 2.0), PX)]), st)
+    { basicImageEmptyImageAlg   =            bindSt (mkEmptyImage   )
+    , basicImageTextImageAlg    = \fd str -> bindSt (mkTextImage str)
+    , basicImageLineImageAlg    = \sl     -> bindSt (mkLineImage sl )
+    , basicImageCircleImageAlg  =            bindSt (mkCircleImage  )
+    , basicImageRectImageAlg    =            bindSt (mkRectImage    )
+    , basicImageEllipseImageAlg =            bindSt (mkEllipseImage )
     }
     where
+    mkEmptyImage    wh offset imAts = mkTranslateGroup offset (GElt (mkWH wh) imAts [])
+    mkTextImage str wh offset imAts = mkTranslateGroup offset (TextElt [] imAts str)
+    mkLineImage sl  wh offset imAts = mkTranslateGroup offset (LineElt [] (imAts ++ mkLineAttrs sl wh))
+    mkRectImage     wh offset imAts = mkTranslateGroup offset (RectElt (mkWH wh) imAts)
+    mkCircleImage   (xsp, _)   offset imAts = mkTranslateGroup offset (CircleElt [] [RAttr (toString (xsp / 2.0), PX):imAts])
+    mkEllipseImage  (xsp, ysp) offset imAts = mkTranslateGroup offset (EllipseElt [] (imAts ++ [ RxAttr (toString (xsp / 2.0), PX), RyAttr (toString (ysp / 2.0), PX)
+                                                                                               , CxAttr (toString (xsp / 2.0), PX), CyAttr (toString (ysp / 2.0), PX)]))
     mkWH (xspan, yspan) = [WidthAttr (toString xspan), HeightAttr (toString yspan)]
     mkLineAttrs slash (xspan, yspan)
       # (y1, y2) = case slash of
@@ -192,9 +203,11 @@ toSVGImage img st = imageCata allAlgs img st
                      Backslash -> (0.0, yspan)
       = [ X1Attr (toString 0.0, PX), X2Attr (toString yspan, PX)
         , Y1Attr (toString y1, PX), Y2Attr (toString y2, PX)]
-  composeImageAlgs =
-    { composeImageAlg = \sps ims ho co st -> (\imAts imTrs imTas -> GElt [] imAts ims, st) // TODO offsets etc
+  compositeImageAlgs =
+    { compositeImageAlg = \offs conts ho co st -> (\gOffs imAts -> mkTranslateGroup gOffs (contentGroup conts offs imAts), st)
     }
+    where
+    contentGroup conts offs imAts = GElt [] imAts (zipWith ($) conts (offs ++ (repeat (0.0, 0.0))))
   hostAlgs =
     { hostNothingAlg = \   st -> (abort "hostNothingAlg", st)
     , hostJustAlg    = \im st -> (abort "hostJustAlg", st)
@@ -204,6 +217,15 @@ toSVGImage img st = imageCata allAlgs img st
     , composeAsCollageAlg = \      st -> (abort "composeAsCollageAlg", st)
     , composeAsOverlayAlg = \ias   st -> (abort "composeAsOverlayAlg", st)
     }
+
+bindSt x = \st -> (x, st)
+
+mkTranslateGroup :: (Real, Real) SVGElt -> SVGElt
+mkTranslateGroup gOffs contents = GElt [] (mkTranslateAttr gOffs) [contents]
+
+mkTranslateAttr :: (Real, Real) -> [SVGAttr]
+mkTranslateAttr (0.0,   0.0)   = []
+mkTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
 undef = undef
 
@@ -245,7 +267,7 @@ evalSpanImageTagAlgs =
   , imageSpanAlgs      :: ImageSpanAlg sp imSp st
   , imageTagAlgs       :: ImageTagAlg imTa st
   , basicImageAlgs     :: BasicImageAlg baIm st
-  , composeImageAlgs   :: ComposeImageAlg sp im ho co coIm st
+  , compositeImageAlgs :: ComposeImageAlg sp im ho co coIm st
   , hostAlgs           :: HostAlg im hoIm st
   , composeAlgs        :: ComposeAlg co st
   , spanAlgs           :: SpanAlg loSp sp st
@@ -253,7 +275,7 @@ evalSpanImageTagAlgs =
   }
 
 :: ImageAlg imCo imAt imTr imTa im st =
-  { imageAlg :: imCo [imAt] [imTr] [imTa] st -> *(im, st)
+  { imageAlg :: imCo [imAt] [imTr] (Set imTa) st -> *(im, st)
   }
 
 :: ImageContentAlg baIm imSp coIm imCo st =
@@ -299,7 +321,7 @@ evalSpanImageTagAlgs =
   }
 
 :: ComposeImageAlg sp im ho co coIm st =
-  { composeImageAlg :: [(sp, sp)] [im] ho co st -> *(coIm, st)
+  { compositeImageAlg :: [(sp, sp)] [im] ho co st -> *(coIm, st)
   }
 
 :: HostAlg im hoIm st =
@@ -326,12 +348,12 @@ evalSpanImageTagAlgs =
   }
 
 :: LookupSpanAlg imTa loSp st =
-  { lookupSpanColumnXSpanAlg  :: [imTa] Int     st -> *(loSp, st)
+  { lookupSpanColumnXSpanAlg  :: (Set imTa) Int st -> *(loSp, st)
   , lookupSpanDescentYSpanAlg :: FontDef        st -> *(loSp, st)
   , lookupSpanExYSpanAlg      :: FontDef        st -> *(loSp, st)
-  , lookupSpanImageXSpanAlg   :: [imTa]         st -> *(loSp, st)
-  , lookupSpanImageYSpanAlg   :: [imTa]         st -> *(loSp, st)
-  , lookupSpanRowYSpanAlg     :: [imTa] Int     st -> *(loSp, st)
+  , lookupSpanImageXSpanAlg   :: (Set imTa)     st -> *(loSp, st)
+  , lookupSpanImageYSpanAlg   :: (Set imTa)     st -> *(loSp, st)
+  , lookupSpanRowYSpanAlg     :: (Set imTa) Int st -> *(loSp, st)
   , lookupSpanTextXSpanAlg    :: FontDef String st -> *(loSp, st)
   }
 
@@ -341,11 +363,17 @@ foldrCata cata xs st :==
         = ([r:rs], st)
   in  foldr f ([], st) xs
 
+foldSetCata cata xs st :==
+  let f x (rs, st)
+        # (r, st) = cata x st
+        = ('DS'.insert r rs, st)
+  in  'DS'.fold f ('DS'.newSet, st) xs
+
 imageCata allAlgs { Image | content, attribs, transform, tags } st
   # (synContent, st)    = imageContentCata allAlgs content st
   # (synsAttribs, st)   = foldrCata (imageAttrCata allAlgs.imageAttrAlgs) attribs st
   # (synsTransform, st) = foldrCata (imageTransformCata allAlgs.imageTransformAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs allAlgs.imageTagAlgs) transform st
-  # (synsTags, st)      = foldrCata (imageTagCata allAlgs.imageTagAlgs) tags st
+  # (synsTags, st)      = foldSetCata (imageTagCata allAlgs.imageTagAlgs) tags st
   = allAlgs.imageAlgs.imageAlg synContent synsAttribs synsTransform synsTags st
 
 imageContentCata allAlgs (Basic bi is) st
@@ -405,7 +433,7 @@ compositeImageCata allAlgs { CompositeImage | offsets, content, host, compose } 
   # (synsContent, st)     = foldrCata (imageCata allAlgs) content st
   # (synHost, st)         = hostCata allAlgs host st
   # (synCompose, st)      = composeCata allAlgs.composeAlgs compose st
-  = allAlgs.composeImageAlgs.composeImageAlg synsImageOffset synsContent synHost synCompose st
+  = allAlgs.compositeImageAlgs.compositeImageAlg synsImageOffset synsContent synHost synCompose st
 
 hostCata allAlgs Nothing st
   = allAlgs.hostAlgs.hostNothingAlg st
@@ -447,20 +475,20 @@ spanCata spanAlgs lookupSpanAlgs imageTagAlgs (MaxSpan sps) st
   = spanAlgs.spanMaxSpanAlg synsSpans st
 
 lookupCata lookupSpanAlgs imageTagAlgs (ColumnXSpan imts n) st
-  # (synsColumXSpans, st) = foldrCata (imageTagCata imageTagAlgs) imts st
+  # (synsColumXSpans, st) = foldSetCata (imageTagCata imageTagAlgs) imts st
   = lookupSpanAlgs.lookupSpanColumnXSpanAlg synsColumXSpans n st
 lookupCata lookupSpanAlgs imageTagAlgs (DescentYSpan fd) st
   = lookupSpanAlgs.lookupSpanDescentYSpanAlg fd st
 lookupCata lookupSpanAlgs imageTagAlgs (ExYSpan fd) st
   = lookupSpanAlgs.lookupSpanExYSpanAlg fd st
 lookupCata lookupSpanAlgs imageTagAlgs (ImageXSpan imts) st
-  # (synsImageXSpans, st) = foldrCata (imageTagCata imageTagAlgs) imts st
+  # (synsImageXSpans, st) = foldSetCata (imageTagCata imageTagAlgs) imts st
   = lookupSpanAlgs.lookupSpanImageXSpanAlg synsImageXSpans st
 lookupCata lookupSpanAlgs imageTagAlgs (ImageYSpan imts) st
-  # (synsImageYSpans, st) = foldrCata (imageTagCata imageTagAlgs) imts st
+  # (synsImageYSpans, st) = foldSetCata (imageTagCata imageTagAlgs) imts st
   = lookupSpanAlgs.lookupSpanImageYSpanAlg synsImageYSpans st
 lookupCata lookupSpanAlgs imageTagAlgs (RowYSpan imts n) st
-  # (synsRowYSpans, st) = foldrCata (imageTagCata imageTagAlgs) imts st
+  # (synsRowYSpans, st) = foldSetCata (imageTagCata imageTagAlgs) imts st
   = lookupSpanAlgs.lookupSpanRowYSpanAlg synsRowYSpans n st
 lookupCata lookupSpanAlgs imageTagAlgs (TextXSpan fd str) st
   = lookupSpanAlgs.lookupSpanTextXSpanAlg fd str st
