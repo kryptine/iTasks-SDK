@@ -92,7 +92,6 @@ where
     # (svgImg`, (clval, world)) = svgImg (px 0.0, px 0.0) (clval, world)
     # (svg, world)              = getDomElement (mainSvgId cid) world
     # (elem, world)             = appendSVG svgImg` svg world
-    //# world = toString svgImg
     = (clval, world)
 
 
@@ -132,9 +131,21 @@ getTextLength fontdef str (clval, world)
 
 :: *St :== *(ClientState, *JSWorld)
 
-//toSVGImage :: (Image m) *St -> (ImageOffset *St -> *(SVGElt, *St))
+toSVGImage :: (Image a) *St -> *((ImageOffset *St -> *(SVGElt, *St)), *St)
 toSVGImage img st = imageCata allAlgs img st
   where
+  allAlgs :: Algebras m (*St -> *(ImageOffset -> [SVGAttr] -> *St -> *(SVGElt, *St), *St))
+                      (*St -> *(SVGAttr, *St))
+                      (*St -> *(SVGTransform, *St))
+                      (*St -> *(ImageOffset -> *St -> *(SVGElt, *St), *St))
+                      (ImageSpan -> ImageOffset -> [SVGAttr] -> *St -> *(SVGElt, *St))
+                      (*St -> *(ImageSpan, *St))
+                      (ImageOffset -> [SVGAttr] -> *St -> *(SVGElt, *St))
+                      Real b (*St -> *(c, *St))
+                      (*St -> *(d, *St))
+                      (*St -> *(Compose, *St))
+                      (*St -> *(Span, *St))
+                      (*St -> *(Span, *St))
   allAlgs =
     { imageAlgs          = imageAlgs
     , imageContentAlgs   = imageContentAlgs
@@ -148,6 +159,10 @@ toSVGImage img st = imageCata allAlgs img st
     , spanAlgs           = reduceSpanSpanAlgs
     , lookupSpanAlgs     = reduceSpanLookupSpanAlgs
     }
+  imageAlgs :: ImageAlg (*St -> *((ImageOffset [SVGAttr] *St -> *(SVGElt, *St)), *St))
+                        (*St -> *(SVGAttr, *St))
+                        (*St -> *(SVGTransform, *St))
+                        (*St -> *((ImageOffset *St -> *(SVGElt, *St)), *St))
   imageAlgs =
     { imageAlg = mkImage
     }
@@ -159,16 +174,27 @@ toSVGImage img st = imageCata allAlgs img st
       = ret (\offset -> imCo offset (mkAttrs imAts imTrs)) st
     mkAttrs imAts [] = imAts
     mkAttrs imAts xs = [TransformAttr xs:imAts]
+
+  imageContentAlgs :: ImageContentAlg (ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St))
+                        (*St -> *(ImageSpan, *St))
+                        ((Span, Span) [SVGAttr] *St -> *(SVGElt, *St))
+                        (*St -> *(ImageOffset [SVGAttr] -> (*St -> *(SVGElt, *St)), *St))
   imageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentCompositeAlg = mkComposite
     }
     where
+    mkBasic :: (ImageSpan ImageOffset [SVGAttr] *St -> (SVGElt, *St))
+               (*St -> *(ImageSpan, *St))
+               *St -> *(ImageOffset [SVGAttr] *St -> (SVGElt, *St), *St)
     mkBasic baIm imSp st
       # (imSp, st) = imSp st
       = ret (\offset attrs -> baIm imSp offset attrs) st
+    mkComposite :: (ImageOffset [SVGAttr] *St -> (SVGElt, *St))
+                   *St -> *(ImageOffset [SVGAttr] *St -> (SVGElt, *St), *St)
     mkComposite coIm st
       = ret (\offset attrs -> coIm offset attrs) st
+  imageAttrAlgs :: ImageAttrAlg m (*St -> *(SVGAttr, *St))
   imageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = \attr -> ret (StrokeAttr (PaintColor attr.stroke Nothing))
     , imageAttrStrokeWidthAttrAlg   = \attr -> mkStrokeWidth attr
@@ -178,9 +204,11 @@ toSVGImage img st = imageCata allAlgs img st
     , imageAttrOnClickAttrAlg       = \attr -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
     }
     where
+    mkStrokeWidth :: (StrokeWidthAttr a) *St -> *(SVGAttr, *St)
     mkStrokeWidth attr st
       # (sp, st) = evalSpan attr.strokewidth st
       = ret (StrokeWidthAttr (StrokeWidthLength (toString sp, PX))) st
+  imageTransformAlgs :: ImageTransformAlg Real (*St -> *(Span, *St)) (*St -> (SVGTransform, *St))
   imageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    -> ret (RotateTransform (toString imAn) Nothing)
     , imageTransformSkewXImageAlg  = \imAn    -> ret (SkewXTransform (toString imAn))
@@ -189,6 +217,7 @@ toSVGImage img st = imageCata allAlgs img st
     , imageTransformFitXImageAlg   = \sp      -> ret (ScaleTransform "scale" "1.0") // TODO
     , imageTransformFitYImageAlg   = \sp      -> ret (ScaleTransform "scale" "1.0") // TODO
     }
+  imageSpanAlgs :: ImageSpanAlg (*St -> *(Span, *St)) (*St -> *(ImageSpan, *St))
   imageSpanAlgs =
     { imageSpanAlg = mkImageSpan
     }
@@ -197,6 +226,7 @@ toSVGImage img st = imageCata allAlgs img st
       # (sp1, st) = sp1 st
       # (sp2, st) = sp2 st
       = ret { ImageSpan | xspan = sp1, yspan = sp2} st
+  basicImageAlgs :: BasicImageAlg (ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St))
   basicImageAlgs =
     { basicImageEmptyImageAlg   = mkEmptyImage
     , basicImageTextImageAlg    = mkTextImage
@@ -218,6 +248,12 @@ toSVGImage img st = imageCata allAlgs img st
       # (xsp, st) = evalSpan imsp.xspan st
       # (ysp, st) = evalSpan imsp.yspan st
       = mkTranslateGroup offset (LineElt [] (imAts ++ mkLineAttrs sl (xsp, ysp))) st
+      where
+      mkLineAttrs slash (xspan, yspan)
+        # (y1, y2) = case slash of
+                       Slash     -> (toString yspan, "0.0")
+                       Backslash -> ("0.0", toString yspan)
+        = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
     mkRectImage :: ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
     mkRectImage     imsp offset imAts st
       # (wh, st) = mkWH imsp st
@@ -234,15 +270,16 @@ toSVGImage img st = imageCata allAlgs img st
       # (ysp, st) = evalSpan imsp.yspan st
       = mkTranslateGroup offset (EllipseElt [] (imAts ++ [ RxAttr (toString (xsp / 2.0), PX), RyAttr (toString (ysp / 2.0), PX)
                                                          , CxAttr (toString (xsp / 2.0), PX), CyAttr (toString (ysp / 2.0), PX)])) st
+    mkWH :: ImageSpan *St -> *([HtmlAttr], *St)
     mkWH imsp st
       # (xsp, st) = evalSpan imsp.xspan st
       # (ysp, st) = evalSpan imsp.yspan st
       = ret [WidthAttr (toString xsp), HeightAttr (toString ysp)] st
-    mkLineAttrs slash (xspan, yspan)
-      # (y1, y2) = case slash of
-                     Slash     -> (toString yspan, "0.0")
-                     Backslash -> ("0.0", toString yspan)
-      = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
+  compositeImageAlgs :: CompositeImageAlg (*St -> (Span,*St))
+                          (*St -> (ImageOffset *St -> *(SVGElt, *St), *St))
+                          (*St -> *(b, *St)) // b corresponds to ho
+                          (*St -> *(Compose, *St))
+                          (ImageOffset [SVGAttr] *St -> *(SVGElt, *St))
   compositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
@@ -265,6 +302,7 @@ toSVGImage img st = imageCata allAlgs img st
       f x (xs, st)
         # (x, st) = x st
         = ([x:xs], st)
+    addCompose :: Compose [ImageOffset] -> [ImageOffset]
     addCompose (AsGrid n  ias) offs = offs
     addCompose (AsOverlay ias) offs = zipWith alignY ias (zipWith alignX ias offs)
       where
@@ -275,10 +313,12 @@ toSVGImage img st = imageCata allAlgs img st
       alignY (_, AtMiddleY) (xsp, ysp) = (xsp, ysp)
       alignY (_, AtBottom)  (xsp, ysp) = (xsp, ysp)
     addCompose _               offs = offs
+  hostAlgs :: HostAlg b (*St -> *(a, *St))
   hostAlgs =
     { hostNothingAlg = \   st -> (abort "hostNothingAlg", st)
     , hostJustAlg    = \im st -> (abort "hostJustAlg", st)
     }
+  composeAlgs :: ComposeAlg (*St -> *(Compose, *St))
   composeAlgs =
     { composeAsGridAlg    = \n ias -> ret (AsGrid n ias)
     , composeAsCollageAlg =           ret AsCollage
@@ -405,7 +445,7 @@ reduceSpanList op cons ss st
   , imageTransformAlgs :: ImageTransformAlg imAn sp imTr
   , imageSpanAlgs      :: ImageSpanAlg sp imSp
   , basicImageAlgs     :: BasicImageAlg baIm
-  , compositeImageAlgs :: ComposeImageAlg sp im ho co coIm
+  , compositeImageAlgs :: CompositeImageAlg sp im ho co coIm
   , hostAlgs           :: HostAlg im hoIm
   , composeAlgs        :: ComposeAlg co
   , spanAlgs           :: SpanAlg loSp sp
@@ -452,7 +492,7 @@ reduceSpanList op cons ss st
   , basicImageEllipseImageAlg ::                   baIm
   }
 
-:: ComposeImageAlg sp im ho co coIm =
+:: CompositeImageAlg sp im ho co coIm =
   { compositeImageAlg :: [(sp, sp)] [im] ho co -> coIm
   }
 
