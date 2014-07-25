@@ -70,11 +70,9 @@ where
       }
   genUI cid world
     = ({ ComponentHTML
-       | width      = FlexSize
-       , height     = FlexSize
-       , html       = SvgTag [IdAttr (mainSvgId cid), XmlnsAttr "http://www.w3.org/2000/svg"]
-                        //[ViewBoxAttr (toString minx) (toString miny) (toString w) (toString h)] []
-                        [] []
+       | width         = FlexSize
+       , height        = FlexSize
+       , html          = SvgTag [IdAttr (mainSvgId cid), XmlnsAttr "http://www.w3.org/2000/svg"] [] []
        , eventHandlers = []
        }
        , world
@@ -303,7 +301,7 @@ toSVGImage img st = imageCata allAlgs img st
       # (imgs, st)  = evalList conts st
       # maxXSpan    = maxSpan (map ((\x -> x.xspan) o snd) imgs)
       # maxYSpan    = maxSpan (map ((\x -> x.yspan) o snd) imgs)
-      # ((imgs, compSp), st)  = addComposition maxXSpan maxYSpan imgs ho co offs st
+      # ((imgs, compSp), st) = addComposition maxXSpan maxYSpan imgs ho co offs st
       = ret (GElt [] imAts (map fst imgs), compSp) st
     addComposition maxXSpan maxYSpan imgs mbhost (AsGrid n aligns) offs st
       // TODO
@@ -311,10 +309,10 @@ toSVGImage img st = imageCata allAlgs img st
       = ((imgs, sp), st)
     addComposition maxXSpan maxYSpan imgs mbhost (AsOverlay aligns) offs st
       # (maxXSpan, maxYSpan) = maybe (maxXSpan, maxYSpan) (\(_, sp) -> (sp.xspan, sp.yspan)) mbhost
-      # sp         = maybe (calculateComposedSpan imgs offs) snd mbhost
-      # alignOffs  = zipWith (f maxXSpan maxYSpan) imgs (aligns ++ repeat (AtLeft, AtTop))
-      # alignOffs  = zipWith g alignOffs (offs ++ repeat (px 0.0, px 0.0))
-      # (imgs, st) = zipWithSt mkTranslateGroup (alignOffs ++ [(px 0.0, px 0.0)]) (maybe imgs (\h -> imgs ++ [h]) mbhost) st
+      # sp                   = maybe (calculateComposedSpan imgs offs) snd mbhost
+      # alignOffs            = zipWith (f maxXSpan maxYSpan) imgs (aligns ++ repeat (AtLeft, AtTop))
+      # alignOffs            = zipWith g alignOffs (offs ++ repeat (px 0.0, px 0.0))
+      # (imgs, st)           = zipWithSt mkTranslateGroup (alignOffs ++ [(px 0.0, px 0.0)]) (maybe imgs (\h -> imgs ++ [h]) mbhost) st
       = ((imgs, sp), st)
       where
       f maxXSpan maxYSpan (_, imSp) (xal, yal) = (mkXAl xal, mkYAl yal)
@@ -326,10 +324,8 @@ toSVGImage img st = imageCata allAlgs img st
         mkYAl AtMiddleY = (maxYSpan /. 2.0) - (imSp.yspan /. 2.0)
         mkYAl AtBottom  = maxYSpan - imSp.yspan
       g (xal1, yal1) (xal2, yal2) = (xal1 + xal2, yal1 + yal2)
-    addComposition _ _ imgs (Just (_, sp)) _ _ st
-      = ((imgs, sp), st)
-    addComposition _ _ imgs Nothing _ offs st
-      # sp         = calculateComposedSpan imgs offs
+    addComposition _ _ imgs mbhost _ offs st
+      # sp         = maybe (calculateComposedSpan imgs offs) snd mbhost
       # (imgs, st) = zipWithSt mkTranslateGroup offs imgs st
       = ((imgs, sp), st)
     calculateComposedSpan imgs offs
