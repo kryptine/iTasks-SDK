@@ -136,19 +136,19 @@ getTextLength fontdef str (clval, world)
 toSVGImage :: (Image a) *St -> *((*St -> *(ToSVGImageSyn, *St)), *St)
 toSVGImage img st = imageCata allAlgs img st
   where
-  allAlgs :: Algebras m (*St -> *([SVGAttr] -> *St -> *(ToSVGImageSyn, *St), *St))
-                      (*St -> *(SVGAttr, *St))
-                      (*St -> *(SVGTransform, *St))
-                      (*St -> *(*St -> *(ToSVGImageSyn, *St), *St))
-                      (ImageSpan -> [SVGAttr] -> *St -> *(ToSVGImageSyn, *St))
-                      (*St -> *(ImageSpan, *St))
-                      ([SVGAttr] -> *St -> *(ToSVGImageSyn, *St))
-                      Real b
-                      (*St -> *(c, *St))
-                      (*St -> *(Maybe (*St -> *(*St -> *(ToSVGImageSyn, *St), *St)), *St))
-                      (*St -> *(Compose, *St))
-                      (*St -> *(Span, *St))
-                      (*St -> *(Span, *St))
+  //allAlgs :: Algebras m (*St -> *([SVGAttr] -> *St -> *(ToSVGImageSyn, *St), *St))
+                      //(*St -> *(SVGAttr, *St))
+                      //(*St -> *(SVGTransform, *St))
+                      //(*St -> *(*St -> *(ToSVGImageSyn, *St), *St))
+                      //(ImageSpan -> [SVGAttr] -> *St -> *(ToSVGImageSyn, *St))
+                      //(*St -> *(ImageSpan, *St))
+                      //([SVGAttr] -> *St -> *(ToSVGImageSyn, *St))
+                      //Real b
+                      ////(*St -> *(Maybe ToSVGImageSyn, *St))
+                      //(*St -> *(*St -> *(Maybe ToSVGImageSyn, *St), *St))
+                      //(*St -> *(Compose, *St))
+                      //(*St -> *(Span, *St))
+                      //(*St -> *(Span, *St))
   allAlgs =
     { imageAlgs          = imageAlgs
     , imageContentAlgs   = imageContentAlgs
@@ -180,7 +180,7 @@ toSVGImage img st = imageCata allAlgs img st
   imageContentAlgs :: ImageContentAlg (ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St))
                         (*St -> *(ImageSpan, *St))
                         ([SVGAttr] *St -> *(ToSVGImageSyn, *St))
-                        (*St -> *([SVGAttr] -> (*St -> *(ToSVGImageSyn, *St)), *St))
+                        (*St -> *([SVGAttr] *St -> *(ToSVGImageSyn, *St), *St))
   imageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentCompositeAlg = mkComposite
@@ -277,11 +277,11 @@ toSVGImage img st = imageCata allAlgs img st
       # (xsp, st) = evalSpan imSp.xspan st
       # (ysp, st) = evalSpan imSp.yspan st
       = ret [WidthAttr (toString xsp), HeightAttr (toString ysp)] st
-  compositeImageAlgs :: CompositeImageAlg (*St -> (Span, *St))
-                          (*St -> (*St -> *(ToSVGImageSyn, *St), *St))
-                          (*St -> *(b, *St)) // b corresponds to ho
-                          (*St -> *(Compose, *St))
-                          ([SVGAttr] *St -> *(ToSVGImageSyn, *St))
+  compositeImageAlgs :: CompositeImageAlg (*St -> *(Span, *St))
+                                          (*St -> *(*St -> *(ToSVGImageSyn, *St), *St))
+                                          (*St -> *(*St -> *(ToSVGImageSyn, *St), *St))
+                                          (*St -> *(Compose, *St))
+                                          ([SVGAttr] *St -> *(ToSVGImageSyn, *St))
   compositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
@@ -294,30 +294,30 @@ toSVGImage img st = imageCata allAlgs img st
                       in foldr f ([], st) offs
       # (conts, st) = mapSt id conts st
       # (ho, st)    = case ho of
-                        Just f
-                          # (x, st) = f st
-                          # (x, st) = f st
+                        Just x
+                          # (x, st) = x st
+                          # (x, st) = x st
                           = (Just x, st)
                         _ = (Nothing, st)
       # (co, st)    = co st
       # (imgs, st)  = evalList conts st
-      # allImgs     = maybe imgs (\h -> [h:imgs]) ho
-      # allImgs     = imgs
-      # maxXSpan    = maxSpan (map ((\x -> x.xspan) o snd) allImgs)
-      # maxYSpan    = maxSpan (map ((\x -> x.yspan) o snd) allImgs)
+      # maxXSpan    = maxSpan (map ((\x -> x.xspan) o snd) imgs)
+      # maxYSpan    = maxSpan (map ((\x -> x.yspan) o snd) imgs)
       # ((imgs, compSp), st)  = addComposition maxXSpan maxYSpan imgs ho co offs st
       = ret (GElt [] imAts (map fst imgs), compSp) st
     addComposition maxXSpan maxYSpan imgs mbhost (AsGrid n aligns) offs st
       // TODO
-      = ((imgs, {xspan = maxXSpan, yspan = maxYSpan}), st) // TODO spans
+      # sp         = maybe (calculateComposedSpan imgs offs) snd mbhost
+      = ((imgs, sp), st)
     addComposition maxXSpan maxYSpan imgs mbhost (AsOverlay aligns) offs st
-      # sp         = calculateComposedSpan imgs offs
-      # alignOffs  = zipWith f imgs (aligns ++ repeat (AtLeft, AtTop))
+      # (maxXSpan, maxYSpan) = maybe (maxXSpan, maxYSpan) (\(_, sp) -> (sp.xspan, sp.yspan)) mbhost
+      # sp         = maybe (calculateComposedSpan imgs offs) snd mbhost
+      # alignOffs  = zipWith (f maxXSpan maxYSpan) imgs (aligns ++ repeat (AtLeft, AtTop))
       # alignOffs  = zipWith g alignOffs (offs ++ repeat (px 0.0, px 0.0))
-      # (imgs, st) = zipWithSt mkTranslateGroup alignOffs imgs st
+      # (imgs, st) = zipWithSt mkTranslateGroup (alignOffs ++ [(px 0.0, px 0.0)]) (maybe imgs (\h -> imgs ++ [h]) mbhost) st
       = ((imgs, sp), st)
       where
-      f (_, imSp) (xal, yal) = (mkXAl xal, mkYAl yal)
+      f maxXSpan maxYSpan (_, imSp) (xal, yal) = (mkXAl xal, mkYAl yal)
         where
         mkXAl AtLeft    = px 0.0
         mkXAl AtMiddleX = (maxXSpan /. 2.0) - (imSp.xspan /. 2.0)
@@ -326,7 +326,9 @@ toSVGImage img st = imageCata allAlgs img st
         mkYAl AtMiddleY = (maxYSpan /. 2.0) - (imSp.yspan /. 2.0)
         mkYAl AtBottom  = maxYSpan - imSp.yspan
       g (xal1, yal1) (xal2, yal2) = (xal1 + xal2, yal1 + yal2)
-    addComposition _ _ imgs _ _ offs st
+    addComposition _ _ imgs (Just (_, sp)) _ _ st
+      = ((imgs, sp), st)
+    addComposition _ _ imgs Nothing _ offs st
       # sp         = calculateComposedSpan imgs offs
       # (imgs, st) = zipWithSt mkTranslateGroup offs imgs st
       = ((imgs, sp), st)
@@ -461,7 +463,7 @@ reduceSpanList op cons ss st
   reduceSpans []                         = []
 
 
-:: Algebras m imCo imAt imTr im baIm imSp coIm imAn imOf ho hoIm co sp loSp =
+:: Algebras m imCo imAt imTr im baIm imSp coIm imAn imOf ho co sp loSp =
   { imageAlgs          :: ImageAlg imCo imAt imTr im
   , imageContentAlgs   :: ImageContentAlg baIm imSp coIm imCo
   , imageAttrAlgs      :: ImageAttrAlg m imAt
