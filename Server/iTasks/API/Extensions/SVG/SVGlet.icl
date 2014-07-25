@@ -89,8 +89,8 @@ where
     # (imh, st)             = evalSpan imsp.yspan st
     # (imw, (clval, world)) = evalSpan imsp.xspan st
     # (svg, world)          = getDomElement (mainSvgId cid) world
-    # (_, world)            = (svg `setAttribute` ("height", imh + 50.0)) world // TODO Remove Real hardcoding when composed image spans can be calculated correctly
-    # (_, world)            = (svg `setAttribute` ("width", imw + 50.0)) world  // TODO Remove Real hardcoding when composed image spans can be calculated correctly
+    # (_, world)            = (svg `setAttribute` ("height", imh)) world
+    # (_, world)            = (svg `setAttribute` ("width", imw)) world
     # (elem, world)         = appendSVG img svg world
     = (clval, world)
 
@@ -305,17 +305,16 @@ toSVGImage img st = imageCata allAlgs img st
       # allImgs     = imgs
       # maxXSpan    = maxSpan (map ((\x -> x.xspan) o snd) allImgs)
       # maxYSpan    = maxSpan (map ((\x -> x.yspan) o snd) allImgs)
-      # (imgs, st)  = addComposition maxXSpan maxYSpan imgs ho co offs st
-      // TODO calculate span of composed image
-      = ret (GElt [] imAts (map fst imgs), { xspan = maxXSpan, yspan = maxYSpan }) st
+      # ((imgs, compSp), st)  = addComposition maxXSpan maxYSpan imgs ho co offs st
+      = ret (GElt [] imAts (map fst imgs), compSp) st
     addComposition maxXSpan maxYSpan imgs mbhost (AsGrid n aligns) offs st
       // TODO
-      = (imgs, st)
+      = ((imgs, {xspan = maxXSpan, yspan = maxYSpan}), st) // TODO spans
     addComposition maxXSpan maxYSpan imgs mbhost (AsOverlay aligns) offs st
       # alignOffs  = zipWith f imgs (aligns ++ repeat (AtLeft, AtTop))
       # alignOffs  = zipWith g alignOffs (offs ++ repeat (px 0.0, px 0.0))
       # (imgs, st) = zipWithSt mkTranslateGroup alignOffs imgs st
-      = (imgs, st)
+      = ((imgs, {xspan = maxXSpan, yspan = maxYSpan}), st) // TODO spans
       where
       f (_, imSp) (xal, yal) = (mkXAl xal, mkYAl yal)
         where
@@ -327,8 +326,14 @@ toSVGImage img st = imageCata allAlgs img st
         mkYAl AtBottom  = maxYSpan - imSp.yspan
       g (xal1, yal1) (xal2, yal2) = (xal1 + xal2, yal1 + yal2)
     addComposition _ _ imgs _ _ offs st
+      # (sp, st)   = foldr f ({xspan = px 0.0, yspan = px 0.0}, st) (zip2 (offs ++ repeat (px 0.0, px 0.0)) imgs)
       # (imgs, st) = zipWithSt mkTranslateGroup offs imgs st
-      = (imgs, st)
+      = ((imgs, sp), st)
+      where
+      f ((xoff, yoff), (_, imSp)) ({xspan = maxX, yspan = maxY}, st)
+        # maxX = maxSpan [maxX, xoff + imSp.xspan]
+        # maxY = maxSpan [maxY, yoff + imSp.yspan]
+        = ({xspan = maxX, yspan = maxY}, st)
     addOffsets imgs offs st
       = (imgs, st)
   composeAlgs :: ComposeAlg (*St -> *(Compose, *St))
