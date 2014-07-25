@@ -311,10 +311,11 @@ toSVGImage img st = imageCata allAlgs img st
       // TODO
       = ((imgs, {xspan = maxXSpan, yspan = maxYSpan}), st) // TODO spans
     addComposition maxXSpan maxYSpan imgs mbhost (AsOverlay aligns) offs st
+      # sp         = calculateComposedSpan imgs offs
       # alignOffs  = zipWith f imgs (aligns ++ repeat (AtLeft, AtTop))
       # alignOffs  = zipWith g alignOffs (offs ++ repeat (px 0.0, px 0.0))
       # (imgs, st) = zipWithSt mkTranslateGroup alignOffs imgs st
-      = ((imgs, {xspan = maxXSpan, yspan = maxYSpan}), st) // TODO spans
+      = ((imgs, sp), st)
       where
       f (_, imSp) (xal, yal) = (mkXAl xal, mkYAl yal)
         where
@@ -326,16 +327,16 @@ toSVGImage img st = imageCata allAlgs img st
         mkYAl AtBottom  = maxYSpan - imSp.yspan
       g (xal1, yal1) (xal2, yal2) = (xal1 + xal2, yal1 + yal2)
     addComposition _ _ imgs _ _ offs st
-      # (sp, st)   = foldr f ({xspan = px 0.0, yspan = px 0.0}, st) (zip2 (offs ++ repeat (px 0.0, px 0.0)) imgs)
+      # sp         = calculateComposedSpan imgs offs
       # (imgs, st) = zipWithSt mkTranslateGroup offs imgs st
       = ((imgs, sp), st)
+    calculateComposedSpan imgs offs
+      = foldr f {xspan = px 0.0, yspan = px 0.0} (zip2 (offs ++ repeat (px 0.0, px 0.0)) imgs)
       where
-      f ((xoff, yoff), (_, imSp)) ({xspan = maxX, yspan = maxY}, st)
+      f ((xoff, yoff), (_, imSp)) {xspan = maxX, yspan = maxY}
         # maxX = maxSpan [maxX, xoff + imSp.xspan]
         # maxY = maxSpan [maxY, yoff + imSp.yspan]
-        = ({xspan = maxX, yspan = maxY}, st)
-    addOffsets imgs offs st
-      = (imgs, st)
+        = {xspan = maxX, yspan = maxY}
   composeAlgs :: ComposeAlg (*St -> *(Compose, *St))
   composeAlgs =
     { composeAsGridAlg    = \n ias -> ret (AsGrid n ias)
