@@ -89,9 +89,9 @@ where
 
   updateUI cid diffs clval=:{didInit = True} world
     # (svgImg, (clval, world))  = toSVGImage img (clval, world)
-    # (svgImg`, (clval, world)) = svgImg (px 0.0, px 0.0) (clval, world)
+    # (svgImg`, (clval, world)) = svgImg (clval, world)
     # (svg, world)              = getDomElement (mainSvgId cid) world
-    # (elem, world)             = appendSVG svgImg` svg world
+    # (elem, world)             = appendSVG (fst svgImg`) svg world
     = (clval, world)
 
 
@@ -131,18 +131,24 @@ getTextLength fontdef str (clval, world)
 
 :: *St :== *(ClientState, *JSWorld)
 
-toSVGImage :: (Image a) *St -> *((ImageOffset *St -> *(SVGElt, *St)), *St)
+:: ToSVGImageSyn :== (SVGElt, ImageSpan)
+
+replacemespan = { xspan = px 0.0, yspan = px 0.0 }
+
+
+toSVGImage :: (Image a) *St -> *((*St -> *(ToSVGImageSyn, *St)), *St)
 toSVGImage img st = imageCata allAlgs img st
   where
-  allAlgs :: Algebras m (*St -> *(ImageOffset -> [SVGAttr] -> *St -> *(SVGElt, *St), *St))
+  allAlgs :: Algebras m (*St -> *([SVGAttr] -> *St -> *(ToSVGImageSyn, *St), *St))
                       (*St -> *(SVGAttr, *St))
                       (*St -> *(SVGTransform, *St))
-                      (*St -> *(ImageOffset -> *St -> *(SVGElt, *St), *St))
-                      (ImageSpan -> ImageOffset -> [SVGAttr] -> *St -> *(SVGElt, *St))
+                      (*St -> *(*St -> *(ToSVGImageSyn, *St), *St))
+                      (ImageSpan -> [SVGAttr] -> *St -> *(ToSVGImageSyn, *St))
                       (*St -> *(ImageSpan, *St))
-                      (ImageOffset -> [SVGAttr] -> *St -> *(SVGElt, *St))
-                      Real b (*St -> *(c, *St))
-                      (*St -> *(d, *St))
+                      ([SVGAttr] -> *St -> *(ToSVGImageSyn, *St))
+                      Real b
+                      (*St -> *(c, *St))
+                      (*St -> *(Maybe (*St -> *(*St -> *(ToSVGImageSyn, *St), *St)), *St))
                       (*St -> *(Compose, *St))
                       (*St -> *(Span, *St))
                       (*St -> *(Span, *St))
@@ -159,10 +165,10 @@ toSVGImage img st = imageCata allAlgs img st
     , spanAlgs           = reduceSpanSpanAlgs
     , lookupSpanAlgs     = reduceSpanLookupSpanAlgs
     }
-  imageAlgs :: ImageAlg (*St -> *((ImageOffset [SVGAttr] *St -> *(SVGElt, *St)), *St))
+  imageAlgs :: ImageAlg (*St -> *(([SVGAttr] *St -> *(ToSVGImageSyn, *St)), *St))
                         (*St -> *(SVGAttr, *St))
                         (*St -> *(SVGTransform, *St))
-                        (*St -> *((ImageOffset *St -> *(SVGElt, *St)), *St))
+                        (*St -> *((*St -> *(ToSVGImageSyn, *St)), *St))
   imageAlgs =
     { imageAlg = mkImage
     }
@@ -171,29 +177,29 @@ toSVGImage img st = imageCata allAlgs img st
       # (imCo, st)  = imCo st
       # (imAts, st) = mapSt id imAts st
       # (imTrs, st) = mapSt id imTrs st
-      = ret (\offset -> imCo offset (mkAttrs imAts imTrs)) st
+      = ret (imCo (mkAttrs imAts imTrs)) st
     mkAttrs imAts [] = imAts
     mkAttrs imAts xs = [TransformAttr xs:imAts]
 
-  imageContentAlgs :: ImageContentAlg (ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St))
+  imageContentAlgs :: ImageContentAlg (ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St))
                         (*St -> *(ImageSpan, *St))
-                        ((Span, Span) [SVGAttr] *St -> *(SVGElt, *St))
-                        (*St -> *(ImageOffset [SVGAttr] -> (*St -> *(SVGElt, *St)), *St))
+                        ([SVGAttr] *St -> *(ToSVGImageSyn, *St))
+                        (*St -> *([SVGAttr] -> (*St -> *(ToSVGImageSyn, *St)), *St))
   imageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentCompositeAlg = mkComposite
     }
     where
-    mkBasic :: (ImageSpan ImageOffset [SVGAttr] *St -> (SVGElt, *St))
+    mkBasic :: (ImageSpan [SVGAttr] *St -> (ToSVGImageSyn, *St))
                (*St -> *(ImageSpan, *St))
-               *St -> *(ImageOffset [SVGAttr] *St -> (SVGElt, *St), *St)
+               *St -> *([SVGAttr] *St -> (ToSVGImageSyn, *St), *St)
     mkBasic baIm imSp st
       # (imSp, st) = imSp st
-      = ret (\offset attrs -> baIm imSp offset attrs) st
-    mkComposite :: (ImageOffset [SVGAttr] *St -> (SVGElt, *St))
-                   *St -> *(ImageOffset [SVGAttr] *St -> (SVGElt, *St), *St)
+      = ret (\attrs -> baIm imSp attrs) st
+    mkComposite :: ([SVGAttr] *St -> (ToSVGImageSyn, *St))
+                   *St -> *([SVGAttr] *St -> (ToSVGImageSyn, *St), *St)
     mkComposite coIm st
-      = ret (\offset attrs -> coIm offset attrs) st
+      = ret (\attrs -> coIm attrs) st
   imageAttrAlgs :: ImageAttrAlg m (*St -> *(SVGAttr, *St))
   imageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = \attr -> ret (StrokeAttr (PaintColor attr.stroke Nothing))
@@ -226,7 +232,7 @@ toSVGImage img st = imageCata allAlgs img st
       # (sp1, st) = sp1 st
       # (sp2, st) = sp2 st
       = ret { ImageSpan | xspan = sp1, yspan = sp2} st
-  basicImageAlgs :: BasicImageAlg (ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St))
+  basicImageAlgs :: BasicImageAlg (ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St))
   basicImageAlgs =
     { basicImageEmptyImageAlg   = mkEmptyImage
     , basicImageTextImageAlg    = mkTextImage
@@ -236,55 +242,55 @@ toSVGImage img st = imageCata allAlgs img st
     , basicImageEllipseImageAlg = mkEllipseImage
     }
     where
-    mkEmptyImage :: ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
-    mkEmptyImage       imSp offset imAts st
+    mkEmptyImage :: ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St)
+    mkEmptyImage       imSp imAts st
       # (wh, st) = mkWH imSp st
-      = mkTranslateGroup offset (GElt wh imAts []) st
-    mkTextImage :: FontDef String ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
-    mkTextImage fd str imsp offset imAts st
-      = mkTranslateGroup offset (TextElt [] imAts str) st
-    mkLineImage :: Slash ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
-    mkLineImage sl  imsp offset imAts st
-      # (xsp, st) = evalSpan imsp.xspan st
-      # (ysp, st) = evalSpan imsp.yspan st
-      = mkTranslateGroup offset (LineElt [] (imAts ++ mkLineAttrs sl (xsp, ysp))) st
+      = ret (GElt wh imAts [], imSp) st
+    mkTextImage :: FontDef String ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St)
+    mkTextImage fd str imSp imAts st
+      = ret (TextElt [] imAts str, imSp) st
+    mkLineImage :: Slash ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St)
+    mkLineImage sl  imSp imAts st
+      # (xsp, st) = evalSpan imSp.xspan st
+      # (ysp, st) = evalSpan imSp.yspan st
+      = ret (LineElt [] (imAts ++ mkLineAttrs sl (xsp, ysp)), imSp) st
       where
       mkLineAttrs slash (xspan, yspan)
         # (y1, y2) = case slash of
                        Slash     -> (toString yspan, "0.0")
                        Backslash -> ("0.0", toString yspan)
         = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
-    mkRectImage :: ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
-    mkRectImage     imsp offset imAts st
-      # (wh, st) = mkWH imsp st
-      = mkTranslateGroup offset (RectElt wh imAts) st
-    mkCircleImage :: ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
-    mkCircleImage   imsp offset imAts st
-      # (xsp, st) = evalSpan imsp.xspan st
+    mkRectImage :: ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St)
+    mkRectImage     imSp imAts st
+      # (wh, st) = mkWH imSp st
+      = ret (RectElt wh imAts, imSp) st
+    mkCircleImage :: ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St)
+    mkCircleImage   imSp imAts st
+      # (xsp, st) = evalSpan imSp.xspan st
       # r         = toString (xsp / 2.0)
-      = mkTranslateGroup offset (CircleElt [] [ RAttr (r, PX), CxAttr (r, PX)
-                                              , CyAttr (r, PX) : imAts]) st // TODO Cx and Cy depend on positioning
-    mkEllipseImage :: ImageSpan ImageOffset [SVGAttr] *St -> *(SVGElt, *St)
-    mkEllipseImage imsp offset imAts st
-      # (xsp, st) = evalSpan imsp.xspan st
-      # (ysp, st) = evalSpan imsp.yspan st
-      = mkTranslateGroup offset (EllipseElt [] (imAts ++ [ RxAttr (toString (xsp / 2.0), PX), RyAttr (toString (ysp / 2.0), PX)
-                                                         , CxAttr (toString (xsp / 2.0), PX), CyAttr (toString (ysp / 2.0), PX)])) st
+      = ret (CircleElt [] [ RAttr (r, PX), CxAttr (r, PX)
+                          , CyAttr (r, PX) : imAts], imSp) st // TODO Cx and Cy depend on positioning
+    mkEllipseImage :: ImageSpan [SVGAttr] *St -> *(ToSVGImageSyn, *St)
+    mkEllipseImage imSp imAts st
+      # (xsp, st) = evalSpan imSp.xspan st
+      # (ysp, st) = evalSpan imSp.yspan st
+      = ret (EllipseElt [] (imAts ++ [ RxAttr (toString (xsp / 2.0), PX), RyAttr (toString (ysp / 2.0), PX)
+                                     , CxAttr (toString (xsp / 2.0), PX), CyAttr (toString (ysp / 2.0), PX)]), imSp) st
     mkWH :: ImageSpan *St -> *([HtmlAttr], *St)
-    mkWH imsp st
-      # (xsp, st) = evalSpan imsp.xspan st
-      # (ysp, st) = evalSpan imsp.yspan st
+    mkWH imSp st
+      # (xsp, st) = evalSpan imSp.xspan st
+      # (ysp, st) = evalSpan imSp.yspan st
       = ret [WidthAttr (toString xsp), HeightAttr (toString ysp)] st
   compositeImageAlgs :: CompositeImageAlg (*St -> (Span,*St))
-                          (*St -> (ImageOffset *St -> *(SVGElt, *St), *St))
+                          (*St -> (*St -> *(ToSVGImageSyn, *St), *St))
                           (*St -> *(b, *St)) // b corresponds to ho
                           (*St -> *(Compose, *St))
-                          (ImageOffset [SVGAttr] *St -> *(SVGElt, *St))
+                          ([SVGAttr] *St -> *(ToSVGImageSyn, *St))
   compositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
     where
-    mkCompositeImage offs conts ho co gOffs imAts st
+    mkCompositeImage offs conts ho co imAts st
       # (offs, st)  = let f (sp1, sp2) (xs, st)
                             # (sp1, st) = sp1 st
                             # (sp2, st) = sp2 st
@@ -292,31 +298,47 @@ toSVGImage img st = imageCata allAlgs img st
                       in foldr f ([], st) offs
       # (conts, st) = mapSt id conts st
       # (ho, st)    = ho st
+      //# (ho, st)    = case ho of
+                        //Just f
+                          //# (x, st) = f st
+                          //= (Just x, st)
+                        //_ = (Nothing, st)
       # (co, st)    = co st
-      # (cg, st)    = contentGroup co conts offs st
-      = ret (GElt [] imAts cg) st
-    //compositeSpan conts = maxSpan (map snd conts) // TODO Take offsets and hostinto account
-    contentGroup :: Compose [ImageOffset *St -> *(SVGElt, *St)] [ImageOffset] *St -> *([SVGElt], *St)
-    contentGroup co conts offs st = foldr f ([], st) (zipWith ($) conts (addCompose co (offs ++ (repeat (px 0.0, px 0.0))))) // TODO sps
+      # (imgs, st)  = evalList conts st
+      //# allImgs     = maybe imgs (\h -> [h:imgs]) ho
+      # allImgs     = imgs
+      # maxXSpan    = maxSpan (map ((\x -> x.xspan) o snd) allImgs)
+      # maxYSpan    = maxSpan (map ((\x -> x.yspan) o snd) allImgs)
+      # (imgs, st)  = addComposition maxXSpan maxYSpan imgs ho co offs st
+      = ret (GElt [] imAts (map fst imgs), { xspan = maxXSpan, yspan = maxYSpan }) st
+    addComposition maxXSpan maxYSpan imgs host (AsGrid n aligns) offs st
+      // TODO
+      = (imgs, st)
+    addComposition maxXSpan maxYSpan imgs host (AsOverlay aligns) offs st
+      # alignOffs  = zipWith f imgs (aligns ++ repeat (AtLeft, AtTop))
+      # alignOffs  = zipWith g alignOffs (offs ++ repeat (px 0.0, px 0.0))
+      # (imgs, st) = zipWithSt mkTranslateGroup alignOffs imgs st
+      = (imgs, st)
       where
-      f x (xs, st)
-        # (x, st) = x st
-        = ([x:xs], st)
-    addCompose :: Compose [ImageOffset] -> [ImageOffset]
-    addCompose (AsGrid n  ias) offs = offs
-    addCompose (AsOverlay ias) offs = zipWith alignY ias (zipWith alignX ias offs)
-      where
-      alignX (AtLeft, _)    (_, ysp)   = (px 0.0, ysp)
-      alignX (AtMiddleX, _) (xsp, ysp) = (xsp, ysp)
-      alignX (AtRight, _)   (xsp, ysp) = (xsp, ysp)
-      alignY (_, AtTop)     (xsp, ysp) = (xsp, px 0.0)
-      alignY (_, AtMiddleY) (xsp, ysp) = (xsp, ysp)
-      alignY (_, AtBottom)  (xsp, ysp) = (xsp, ysp)
-    addCompose _               offs = offs
-  hostAlgs :: HostAlg b (*St -> *(a, *St))
+      f (_, imSp) (xal, yal) = (mkXAl xal, mkYAl yal)
+        where
+        mkXAl AtLeft    = px 0.0
+        mkXAl AtMiddleX = (maxXSpan /. 2.0) - (imSp.xspan /. 2.0)
+        mkXAl AtRight   = maxXSpan - imSp.xspan
+        mkYAl AtTop     = px 0.0
+        mkYAl AtMiddleY = (maxYSpan /. 2.0) - (imSp.yspan /. 2.0)
+        mkYAl AtBottom  = maxYSpan - imSp.yspan
+      g (xal1, yal1) (xal2, yal2) = (xal1 + xal2, yal1 + yal2)
+    addComposition _ _ imgs _ _ offs st
+      # (imgs, st) = zipWithSt mkTranslateGroup offs imgs st
+      = (imgs, st)
+    addOffsets imgs offs st
+      = (imgs, st)
+  hostAlgs :: HostAlg (*St -> *(*St -> *(ToSVGImageSyn, *St), *St))
+                      (*St -> *(Maybe (*St -> *(*St -> *(ToSVGImageSyn, *St), *St)), *St))
   hostAlgs =
-    { hostNothingAlg = \   st -> (abort "hostNothingAlg", st)
-    , hostJustAlg    = \im st -> (abort "hostJustAlg", st)
+    { hostNothingAlg = ret Nothing
+    , hostJustAlg    = ret o Just
     }
   composeAlgs :: ComposeAlg (*St -> *(Compose, *St))
   composeAlgs =
@@ -325,15 +347,21 @@ toSVGImage img st = imageCata allAlgs img st
     , composeAsOverlayAlg = \ias   -> ret (AsOverlay ias)
     }
 
+evalList xs st :==
+  let f x (xs, st)
+        # (x, st) = x st
+        = ([x:xs], st)
+  in  foldr f ([], st) xs
+
 ret x :== \st -> (x, st)
 
 noSpan = { ImageSpan | xspan = px 0.0, yspan = px 0.0 }
 
-mkTranslateGroup :: ImageOffset SVGElt *St -> *(SVGElt, *St)
-mkTranslateGroup (xoff, yoff) contents st
+mkTranslateGroup :: ImageOffset (SVGElt, ImageSpan) *St -> *((SVGElt, ImageSpan), *St)
+mkTranslateGroup (xoff, yoff) (contents, imSp) st
    # (xsp, st) = evalSpan xoff st
    # (ysp, st) = evalSpan yoff st
-   = (GElt [] (mkTranslateAttr (xsp, ysp)) [contents], st)
+   = ret (GElt [] (mkTranslateAttr (xsp, ysp)) [contents], imSp) st
   where
   mkTranslateAttr :: (Real, Real) -> [SVGAttr]
   mkTranslateAttr (0.0,   0.0)   = []
