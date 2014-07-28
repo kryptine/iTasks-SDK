@@ -65,11 +65,11 @@ getModule moduleName
   where
   err msg = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
 
-tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a
-tonicWrapTaskBody mn tn args TaskDict t = tonicWrapTaskBody` mn tn args t
+tonicViewInformation :: String a -> Task () | iTask a
+tonicViewInformation d v = viewInformation d [] v @! ()
 
-tonicWrapTaskBody` :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody` mn tn args (Task eval) = getModule mn >>- Task o eval`
+tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
   where
     eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld

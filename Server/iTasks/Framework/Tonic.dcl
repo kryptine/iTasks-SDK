@@ -35,8 +35,6 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
-:: TaskDict a = TaskDict & iTask a
-
 :: TonicRTMap :== Map TaskId TonicRT
 
 tonicSharedRT :: Shared TonicRTMap
@@ -57,7 +55,9 @@ tonicLogin :: String -> Task ()
 
 tonicViewer :: String -> PublishedTask
 
-tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (TaskDict a) (Task a) -> Task a // | iTask a
+tonicViewInformation :: String a -> Task () | iTask a
+
+tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 
