@@ -140,7 +140,7 @@ getTextLength fontdef str (clval, world)
 
 :: ErrorMessage :== String
 
-fixSpans :: (Image m) *St -> *(*St -> *(Image m, *St), *St)
+fixSpans :: (Image m) *St -> *(Image m, *St)
 fixSpans img st = imageCata fixSpansAllAlgs img st
   where
   fixSpansAllAlgs =
@@ -155,41 +155,39 @@ fixSpans img st = imageCata fixSpansAllAlgs img st
     , spanAlgs           = fixSpansSpanAlgs
     , lookupSpanAlgs     = fixSpansLookupSpanAlgs
     }
-  fixSpansImageAlgs :: ImageAlg (*St -> *([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St), *St))
+  fixSpansImageAlgs :: ImageAlg ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
                                 (*St -> *(ImageAttr m, *St))
                                 (*St -> *(ImageTransform, *St))
-                                (*St -> *(*St -> *(Image m, *St), *St))
+                                (*St -> *(Image m, *St))
   fixSpansImageAlgs =
     { imageAlg = mkImage
     }
     where
-    mkImage :: (*St -> ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St), *St))
+    mkImage :: ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
                [*St -> *(ImageAttr m, *St)]
                [*St -> *(ImageTransform, *St)]
-               (Set ImageTag) *St -> (*St -> *(Image m, *St), *St)
+               (Set ImageTag) *St -> *(Image m, *St)
     mkImage imCo imAts imTrs imTas st
-      # (imCo, st)  = imCo st
       # (imAts, st) = mapSt id imAts st
       # (imTrs, st) = mapSt id imTrs st
-      # (co, st)    = imCo imAts imTrs imTas st
-      = ret (ret { Image | content = co, attribs = imAts, transform = imTrs, tags = imTas}) st // TODO transforms can influence size as well...
+      # (imCo, st)  = imCo imAts imTrs imTas st
+      = ret { Image | content = imCo, attribs = imAts, transform = imTrs, tags = imTas} st // TODO transforms can influence size as well...
   fixSpansImageContentAlgs :: ImageContentAlg (ImageSpan [ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
                                               (*St -> *(ImageSpan, *St))
                                               ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
-                                              (*St -> *([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St), *St))
+                                              ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
   fixSpansImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
-    , imageContentCompositeAlg = mkComposite
+    , imageContentCompositeAlg = id
     }
     where
     mkBasic :: (ImageSpan [ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
-               (*St -> *(ImageSpan, *St)) *St -> *([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St), *St)
-    mkBasic baIm imSp st
+               (*St -> (ImageSpan, *St))
+               [ImageAttr m] [ImageTransform] (Set ImageTag)
+               *St -> *(ImageContent m, *St)
+    mkBasic baIm imSp imAts imTrs imTas st
       # (imSp, st) = imSp st
-      = ret (\imAts imTrs imTas -> baIm imSp imAts imTrs imTas) st
-    mkComposite :: ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> (ImageContent m, *St)) *St -> *([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> (ImageContent m, *St), *St)
-    mkComposite coIm st
-      = ret (\imAts imTrs imTas -> coIm      imAts imTrs imTas) st
+      = baIm imSp imAts imTrs imTas st
   fixSpansImageAttrAlgs :: ImageAttrAlg m (*St -> (ImageAttr m, *St))
   fixSpansImageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = \x -> ret (ImageStrokeAttr x)
@@ -228,9 +226,9 @@ fixSpans img st = imageCata fixSpansAllAlgs img st
       # (xspan, st) = xspan st
       # (yspan, st) = yspan st
       = ret { xspan = xspan, yspan = yspan } st
-  fixSpansBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageAttr m] [ImageTransform] (Set ImageTag) -> (*St -> *(ImageContent m, *St)))
+  fixSpansBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
   fixSpansBasicImageAlgs =
-    { basicImageEmptyImageAlg   = \       imSp _ _ imTas -> mkSpan (EmptyImage)       imSp imTas
+    { basicImageEmptyImageAlg   = \       imSp _ _ imTas -> mkSpan EmptyImage         imSp imTas
     , basicImageTextImageAlg    = \fd str imSp _ _ imTas -> mkSpan (TextImage fd str) imSp imTas
     , basicImageLineImageAlg    = \sl     imSp _ _ imTas -> mkSpan (LineImage sl)     imSp imTas
     , basicImageCircleImageAlg  = \       imSp _ _ imTas -> mkSpan (CircleImage)      imSp imTas
@@ -243,9 +241,9 @@ fixSpans img st = imageCata fixSpansAllAlgs img st
       # newEnv = 'DM'.put imTas (CachedImageSpan imSp) clval.taggedSpanEnv
       = ret (Basic val imSp) ({clval & taggedSpanEnv = newEnv}, world)
   fixSpansCompositeImageAlgs :: CompositeImageAlg (*St -> *(Span, *St))
-                                                  (*St -> ((*St -> (Image m, *St)), *St))
-                                                  (*St -> (Compose m, *St))
-                                                  ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> (ImageContent m, *St))
+                                                  (*St -> *(Image m, *St))
+                                                  (*St -> *(Compose m, *St))
+                                                  ([ImageAttr m] [ImageTransform] (Set ImageTag) *St -> *(ImageContent m, *St))
   fixSpansCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
@@ -259,35 +257,31 @@ fixSpans img st = imageCata fixSpansAllAlgs img st
       # (host, st) = case host of
                        Just x
                          # (x, st) = x st
-                         # (x, st) = x st
                          = (Just x, st)
                        _ = (Nothing, st)
       # (compose, st) = compose st
       = ret (Composite {CompositeImage | offsets = offsets, host = host, compose = compose}) st
-  fixSpansComposeAlgs :: ComposeAlg (*St -> *(*St -> *(Image m, *St), *St)) (*St -> *(Compose m, *St))
+  fixSpansComposeAlgs :: ComposeAlg (*St -> *(Image m, *St)) (*St -> *(Compose m, *St))
   fixSpansComposeAlgs =
     { composeAsGridAlg    = mkGrid
     , composeAsCollageAlg = mkCollage
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: (Int, Int) [ImageAlign] [[*St -> *(*St -> *(Image m, *St), *St)]] *St -> *(Compose m, *St)
+    mkGrid :: (Int, Int) [ImageAlign] [[St -> *(Image m, *St)]] *St -> *(Compose m, *St)
     mkGrid dims ias imgss st
-      # (imgss, st) = foldr f ([], st) imgss
       # (imgss, st) = foldr f ([], st) imgss
       = ret (AsGrid dims ias imgss) st
       where
       f imgs (acc, st)
         # (imgs, st) = mapSt id imgs st
         = ([imgs:acc], st)
-    mkCollage :: [*St -> *(*St -> *(Image m, *St), *St)] *St -> *(Compose m, *St)
+    mkCollage :: [*St -> *(Image m, *St)] *St -> *(Compose m, *St)
     mkCollage imgs st
       # (imgs, st) = mapSt id imgs st
-      # (imgs, st) = mapSt id imgs st
       = ret (AsCollage imgs) st
-    mkOverlay :: [ImageAlign] [*St -> *(*St -> *(Image m, *St), *St)] *St -> *(Compose m,*St)
+    mkOverlay :: [ImageAlign] [*St -> *(Image m, *St)] *St -> *(Compose m,*St)
     mkOverlay ias imgs st
-      # (imgs, st) = mapSt id imgs st
       # (imgs, st) = mapSt id imgs st
       = ret (AsOverlay ias imgs) st
   fixSpansSpanAlgs :: SpanAlg (*St -> *(Span, *St)) (*St -> *(Span, *St))
