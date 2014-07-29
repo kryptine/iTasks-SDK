@@ -325,11 +325,11 @@ fixSpans img st
 
     lookupTags :: (Set ImageTag) *St -> *(Maybe CachedSpan, *St)
     lookupTags ts (clval, world)
-      | 'DS'.member ts clval.lookupSets = abort "lookupTags: cycle detected"
-      | otherwise
-        = case 'DM'.toList ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) clval.taggedSpanEnv) of
-            [(_, x):_] -> (Just x, ({ clval & lookupSets = 'DS'.delete ts clval.lookupSets }, world))
-            _          -> (Nothing, ({ clval & lookupSets = 'DS'.insert ts clval.lookupSets }, world))
+      = case 'DM'.toList ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) clval.taggedSpanEnv) of
+          [(_, x):_] -> (Just x, ({ clval & lookupSets = 'DS'.delete ts clval.lookupSets }, world))
+          _          -> if ('DS'.member ts clval.lookupSets)
+                           (abort "lookupTags: cycle detected")
+                           (Nothing, ({ clval & lookupSets = 'DS'.insert ts clval.lookupSets }, world))
 
     mkImageSpan :: (ImageSpan -> Span) ((Set ImageTag) -> LookupSpan) (Set ImageTag) *St -> *(Span, *St)
     mkImageSpan f c ts st
