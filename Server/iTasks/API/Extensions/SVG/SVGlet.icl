@@ -140,8 +140,11 @@ getTextLength fontdef str (clval, world)
 
 :: ErrorMessage :== String
 
-fixSpans :: (Image m) *St -> *(Image m, *St)
-fixSpans img st = imageCata fixSpansAllAlgs img st
+fixSpans :: (Image m) *St -> *(Image m, *St) | iTask m
+fixSpans img st
+  # (img`, st) = imageCata fixSpansAllAlgs img st
+  | img === img` = (img, st)
+  | otherwise    = fixSpans img st
   where
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
@@ -298,12 +301,12 @@ fixSpans img st = imageCata fixSpansAllAlgs img st
     }
   fixSpansLookupSpanAlgs :: LookupSpanAlg (*St -> *(Span,*St))
   fixSpansLookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg  = \ts n   -> undef // TODO ret (PxSpan 100.0) // TODO
-    , lookupSpanRowYSpanAlg     = \ts n   -> undef // TODO ret (PxSpan 100.0) // TODO
+    { lookupSpanColumnXSpanAlg  = \ts n   -> ret (PxSpan 100.0) // TODO
+    , lookupSpanRowYSpanAlg     = \ts n   -> ret (PxSpan 100.0) // TODO
     , lookupSpanImageXSpanAlg   = mkImageSpan (\x -> x.xspan) ImageXSpan
     , lookupSpanImageYSpanAlg   = mkImageSpan (\x -> x.yspan) ImageYSpan
-    , lookupSpanDescentYSpanAlg = \fd     -> undef // TODO ret (PxSpan 100.0) // TODO Will we even use this?
-    , lookupSpanExYSpanAlg      = \fd     -> undef // TODO ret (PxSpan 100.0) // TODO Shouldn't we simply use em instead?
+    , lookupSpanDescentYSpanAlg = \fd     -> ret (PxSpan 100.0) // TODO Will we even use this?
+    , lookupSpanExYSpanAlg      = \fd     -> ret (PxSpan 100.0) // TODO Shouldn't we simply use em instead?
     , lookupSpanTextXSpanAlg    = \fd str -> getTextLength fd str
     }
     where
