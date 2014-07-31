@@ -16,6 +16,7 @@ StdReal.toReal_13 :== toReal
 StdReal.sqrt_22 :== sqrt
 StdReal.sin_23 :== sin
 StdReal.cos_24 :== cos
+StdReal.tan_25 :== tan
 StdReal.acos_27 :== acos
 StdReal.atan_28 :== atan
 
