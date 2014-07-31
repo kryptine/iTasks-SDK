@@ -96,8 +96,10 @@ onLoad hndCreator eventhandlers cont cid _ clval=:{val={source,configuration}} w
 	# world 			= manageSystemEvents "on" st world	
 	# world 			= foldl (putOnEventHandler cm) world eventhandlers
 
-    # (editlets,world)  = findObject "itwc.controller.tasklets" world
-    # (cmp,world)       = .? (editlets .# cid) world
+    # (tasklets,world)  = findObject "itwc.controller.tasklets" world
+    # (editlets,world)  = findObject "itwc.controller.editlets" world    
+    # (cmp,world)       = .? (tasklets .# cid) world
+    # (cmp,world)       = if (jsIsUndefined cmp) (.? (editlets .# cid) world) (cmp,world)
     # (clval,world)		= onAfterShow cm cid undef clval world
     # world             = (cmp .# "afterResize" .= (toJSVal (hndCreator (onAfterShow cm) cid))) world
     # world             = (cmp .# "afterShow" .= (toJSVal (hndCreator (onAfterShow cm) cid))) world        
@@ -173,8 +175,8 @@ codeMirrorUIDef cid eventHandlers
 									[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 									,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 	  , eventHandlers 	= eventHandlers
-	  , width 			= FlexSize //ExactSize 300
-	  , height			= FlexSize //ExactSize 300
+	  , width 			= ExactSize 300
+	  , height			= ExactSize 300
 	  }
 
 codeMirrorTasklet :: !CodeMirror
