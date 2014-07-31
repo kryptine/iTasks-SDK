@@ -20,7 +20,7 @@ function __Maybe_Just(__a1) {
 };
 
 var ___predefined__Nil = [1,"_predefined._Nil"];
-var ___predefined__Unit = [1,"_predefined._Unit"];
+var ___predefined__Unit = [0,"_predefined._Unit"];
 // TO BE SURE
 
 // --------- Primitive functions -----------------------------
@@ -105,6 +105,10 @@ function _sin(a){
 
 function _cos(a){
     return Math.cos(Sapl.feval(a));
+}	
+
+function _tan(a){
+    return Math.tan(Sapl.feval(a));
 }	
 
 function _mod(a,b){
