@@ -22,19 +22,7 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, SVGletDiff
 
-:: SVGletDiff m
-  =  Redraw (Image m)
+:: SVGletDiff s
+  =  Redraw (Image s)
 
-svglet :: (Image m) -> Editlet (Image m) [SVGletDiff m] | iTask m
-
-fixSpans :: (Image m) -> SrvSt (Image m, ImageSpan) | iTask m
-:: ServerState =
-  { srvTaggedSpanEnv   :: Map (Set ImageTag) CachedSpan
-  }
-:: CachedSpan
-  = CachedGridSpan [[ImageSpan]]
-  | CachedImageSpan ImageSpan
-
-:: SrvSt a :== State ServerState a // ServerState -> (a, ServerState)
-
-:: State s a :== s -> (a, s)
+svglet :: (Image s) -> Editlet (Image s) [SVGletDiff s] | iTask s
