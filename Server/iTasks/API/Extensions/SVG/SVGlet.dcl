@@ -20,6 +20,21 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, ImageSpan, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign
+  YAlign, SVGletDiff
 
-svglet :: (Image m) -> Editlet (Image m) Int | iTask m
+:: SVGletDiff m
+  =  Redraw (Image m)
+
+svglet :: (Image m) -> Editlet (Image m) [SVGletDiff m] | iTask m
+
+fixSpans :: (Image m) -> SrvSt (Image m, ImageSpan) | iTask m
+:: ServerState =
+  { srvTaggedSpanEnv   :: Map (Set ImageTag) CachedSpan
+  }
+:: CachedSpan
+  = CachedGridSpan [[ImageSpan]]
+  | CachedImageSpan ImageSpan
+
+:: SrvSt a :== State ServerState a // ServerState -> (a, ServerState)
+
+:: State s a :== s -> (a, s)
