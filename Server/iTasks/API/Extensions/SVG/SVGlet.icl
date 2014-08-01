@@ -45,6 +45,7 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, ImageSpan
   , textYSpanEnv    :: Map FontDef (Span, Span)
   , uniqueIdCounter :: Int
   , image           :: Maybe (Image m)
+  , editletId       :: String
   }
 
 :: CachedSpan
@@ -76,6 +77,7 @@ where
                    , textYSpanEnv    = 'DM'.newMap
                    , uniqueIdCounter = 0
                    , image           = Nothing
+                   , editletId       = ""
                    }
       , genDiff  = genClientDiff
       , appDiff  = appClientDiff
@@ -97,7 +99,7 @@ where
 
   //updateUI cid diffs clval=:{didInit = True, image = Just img} world
     //# world = jsTrace "updateUI True" world
-    # ((img, imSp), st)     = toSVGImage img (clval, world)
+    # ((img, imSp), st)     = toSVGImage img ({clval & editletId = cid}, world)
     # (imh, st)             = evalSpan imSp.yspan st
     # (imw, (clval, world)) = evalSpan imSp.xspan st
     # (svg, world)          = getDomElement (mainSvgId cid) world
@@ -371,6 +373,8 @@ fixSpans img = go
 
 :: ToSVGImageSyn :== (SVGElt, ImageSpan)
 
+mkClipPathId editletId uniqId = "clipPathId-" +++ editletId +++ toString uniqId
+
 //toSVGImage :: (Image a) -> ClSt ToSVGImageSyn | iTask a
 toSVGImage img = \st -> imageCata allAlgs img st
   where
@@ -498,10 +502,11 @@ toSVGImage img = \st -> imageCata allAlgs img st
       # ((compose, composeSpan), (clval, world)) = compose offsets host imAts imTrs imTas st
       # uniqId = clval.uniqueIdCounter
       # st     = ({ clval & uniqueIdCounter = uniqId + 1 }, world)
+      # clipPathId = mkClipPathId clval.editletId uniqId
       = case host of
           Just (hostImg, hostSpan) -> let g = GElt [] [] [
-                                                ClipPathElt [IdAttr ("clipPathId" +++ toString uniqId)] [] [hostImg]
-                                              , GElt [StyleAttr ("clip-path: url(#clipPathId" +++ toString uniqId +++ ")")] [] [compose, hostImg]
+                                                ClipPathElt [IdAttr clipPathId] [] [hostImg]
+                                              , GElt [StyleAttr ("clip-path: url(#" +++ clipPathId +++ ")")] [] [compose, hostImg]
                                               ]
                                       in  ret (g, hostSpan) st
           _                        -> ret (compose, composeSpan) st
