@@ -494,12 +494,8 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       where r = imSp.xspr / 2.0
     mkEllipseImage :: ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkEllipseImage imSp imAts imTrs imTas
-      = go
-      where
-      go (clval, world)
-        # world = jsTrace imSp world
-        = ret (EllipseElt [] (mkAttrs imAts imTrs ++ [ RxAttr (toString (imSp.xspr / 2.0), PX), RyAttr (toString (imSp.yspr / 2.0), PX)
-                                                   , CxAttr (toString (imSp.xspr / 2.0), PX), CyAttr (toString (imSp.yspr / 2.0), PX)]), imSp) (clval, world)
+      = ret (EllipseElt [] (mkAttrs imAts imTrs ++ [ RxAttr (toString (imSp.xspr / 2.0), PX), RyAttr (toString (imSp.yspr / 2.0), PX)
+                                                 , CxAttr (toString (imSp.xspr / 2.0), PX), CyAttr (toString (imSp.yspr / 2.0), PX)]), imSp)
 
     mkWH :: ImageSpanReal -> ClSt s [HtmlAttr] | iTask s
     mkWH imSp = ret [WidthAttr (toString imSp.xspr), HeightAttr (toString imSp.yspr)]
@@ -567,13 +563,18 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       where
       go st
         # (imgss, st) = foldr f ([], st) imgss
-        # spanss = map (map snd) imgss
-        # yspans = map (maxList o map (\x -> x.yspr)) spanss
-        # xspans = map (maxList o map (\x -> x.xspr)) (transpose spanss)
+        # imagess = map (map fst) imgss
+        # spanss  = map (map snd) imgss
+        # yspans  = map (maxList o map (\x -> x.yspr)) spanss
+        # xspans  = map (maxList o map (\x -> x.xspr)) (transpose spanss)
         //// TODO Add offsets and host
         # (xsp, ysp) = maybe (foldr (+) 0.0 xspans, foldr (+) 0.0 yspans) (\(_, sp) -> (sp.xspr, sp.yspr)) mbhost
-        = ret ( GElt [] (mkAttrs imAts imTrs) [] // TODO
+        = ret ( GElt [] (mkAttrs imAts imTrs) (mkGridChildren xspans yspans imagess)
               , { xspr = xsp, yspr = ysp }) st
+      mkGridChildren xspans yspans imagess = (flatten o fst) (foldr (g xspans) ([], 0.0) (zip2 imagess yspans))
+        where
+        g xspans (imgs, yspan) (acc, yoff) = ([fst (foldr (h yspan yoff) ([], 0.0) (zip2 imgs xspans)) : acc], yoff + yspan)
+        h yspan yoff (img, xspan) (acc, xoff) = ([GElt [WidthAttr (toString xspan), HeightAttr (toString yspan)] [TransformAttr [TranslateTransform (toString xoff) (toString yoff)]] [img]:acc], xoff + xspan)
       f :: [ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
       f imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
     mkCollage :: [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
