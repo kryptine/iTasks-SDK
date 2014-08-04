@@ -6,7 +6,6 @@ import FindDefinitions
 from PmParse import :: IdentifierPositionList
 
 :: IDE_Status =  { codeBase		 :: CodeBase        //Cached shared structured with
-                 , codeLocations :: [FilePath]      //File locations where clean code is on disk
                  , openModules   :: [CleanModule]   //Globally tracked opened modules
 			     }
 
