@@ -572,20 +572,38 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       where
       go st
         # (imgss, st) = foldr seqImgsGrid ([], st) imgss
-        # imagess = map (map fst) imgss
-        # spanss  = map (map snd) imgss
-        # yspans  = map (maxList o map (\x -> x.yspr)) spanss
-        # xspans  = map (maxList o map (\x -> x.xspr)) (transpose spanss)
-        //// TODO Add offsets and host
+        # spanss      = map (map snd) imgss
+        # yspans      = map (maxList o map (\x -> x.yspr)) spanss
+        # xspans      = map (maxList o map (\x -> x.xspr)) (transpose spanss)
+        //// TODO Add host
         # (xsp, ysp) = maybe (foldr (+) 0.0 xspans, foldr (+) 0.0 yspans) (\(_, sp) -> (sp.xspr, sp.yspr)) mbhost
-        = ret ( GElt [] (mkAttrs imAts imTrs) (mkGridChildren xspans yspans imagess)
+        = ret ( GElt [] (mkAttrs imAts imTrs) (mkGridChildren xspans yspans imgss)
               , { xspr = xsp, yspr = ysp }) st
-      mkGridChildren xspans yspans imagess = (flatten o fst) (foldl (mkRows xspans) ([], 0.0) (zip2 imagess yspans))
+      mkGridChildren xspans yspans imgss
+        = (flatten o (\(x, _, _, _) -> x)) (foldl (mkRows xspans) ([], 0.0, aligns ++ repeat (AtLeft, AtTop), offsets ++ repeat (0.0, 0.0)) (zip2 imgss yspans))
         where
-        mkRows xspans     (acc, yoff) (imgs, yspan) = ( [fst (foldl (mkCols yspan yoff) ([], 0.0) (zip2 imgs xspans)) : acc], yoff + yspan)
-        mkCols yspan yoff (acc, xoff) (img, xspan)  = ( [GElt [WidthAttr (toString xspan), HeightAttr (toString yspan)]
-                                                              [TransformAttr [TranslateTransform (toString xoff) (toString yoff)]] [img]:acc]
-                                                      , xoff + xspan)
+        mkRows xspans     (acc, yoff, aligns, offsets) (imgs, yspan)
+          # imgsLength = length imgs
+          = ( [fst (foldl (mkCols yspan yoff) ([], 0.0) (zip4 imgs xspans (take imgsLength aligns) (take imgsLength offsets))) : acc]
+            , yoff + yspan, drop imgsLength aligns, drop imgsLength offsets)
+        mkCols yspan yoff (acc, xoff) ((img, imgSpan), xspan, align, (manxoff, manyoff))
+          # (xoff`, yoff`) = calcOffset xspan yspan imgSpan align
+          = ( [GElt [WidthAttr (toString xspan), HeightAttr (toString yspan)]
+                    [TransformAttr [TranslateTransform (toString (xoff` + xoff + manxoff)) (toString (yoff` + yoff + manyoff))]] [img]:acc]
+            , xoff + xspan)
+
+
+//calcOffset :: Real Real ImageSpanReal ImageAlign -> ImageOffsetReal
+//calcOffset mxsp mysp imSp (xal, yal) = (mkXAl xal, mkYAl yal)
+  //where
+  //mkXAl AtLeft    = 0.0
+  //mkXAl AtMiddleX = (mxsp / 2.0) - (imSp.xspr / 2.0)
+  //mkXAl AtRight   = mxsp - imSp.xspr
+  //mkYAl AtTop     = 0.0
+  //mkYAl AtMiddleY = (mysp / 2.0) - (imSp.yspr / 2.0)
+  //mkYAl AtBottom  = mysp - imSp.yspr
+
+
       seqImgsGrid :: [ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
       seqImgsGrid imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
     mkCollage :: [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
@@ -668,7 +686,6 @@ ret x :== \st -> (x, st)
 mkAttrs :: [SVGAttr] [SVGTransform] -> [SVGAttr]
 mkAttrs imAts [] = imAts
 mkAttrs imAts xs = [TransformAttr xs:imAts]
-
 
 calcOffset :: Real Real ImageSpanReal ImageAlign -> ImageOffsetReal
 calcOffset mxsp mysp imSp (xal, yal) = (mkXAl xal, mkYAl yal)
