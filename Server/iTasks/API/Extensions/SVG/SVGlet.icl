@@ -403,14 +403,11 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
   toSVGImageAlgs =
     { imageAlg = mkImage
     }
-    where
-    mkImage imCo imAts imTrs imTas = go
-      where
-      go st
-        # (imAts, st) = sequence imAts st
-        # (imTrs, st) = sequence imTrs st
-        # ((img, sp), (clval, world))  = imCo imAts imTrs imTas st
-        = ret (img, sp) (clval, world) // TODO transforms can influence size as well...
+    where // TODO transforms can influence size as well...
+    mkImage imCo imAts imTrs imTas
+      =         sequence imAts `b`
+      \imAts -> sequence imTrs `b`
+      \imTrs -> imCo imAts imTrs imTas
 
   toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            (ClSt s ImageSpanReal)
@@ -447,9 +444,9 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     { imageTransformRotateImageAlg = \imAn    -> ret (RotateTransform (toString imAn) Nothing)
     , imageTransformSkewXImageAlg  = \imAn    -> ret (SkewXTransform (toString imAn))
     , imageTransformSkewYImageAlg  = \imAn    -> ret (SkewYTransform (toString imAn))
-    , imageTransformFitImageAlg    = \sp1 sp2 -> ret (ScaleTransform "scale" "1.0") // TODO
-    , imageTransformFitXImageAlg   = \sp      -> ret (ScaleTransform "scale" "1.0") // TODO
-    , imageTransformFitYImageAlg   = \sp      -> ret (ScaleTransform "scale" "1.0") // TODO
+    , imageTransformFitImageAlg    = \sp1 sp2 -> sp1 `b` \sp1 -> sp2 `b` \sp2 -> ret (ScaleTransform (toString sp1) (toString sp2)) // TODO : These aren't really scales... for that we need to actual image dimensions
+    , imageTransformFitXImageAlg   = \sp      -> sp `b` \sp -> ret (ScaleTransform (toString sp) "1.0")                             // TODO : These aren't really scales... for that we need to actual image dimensions
+    , imageTransformFitYImageAlg   = \sp      -> sp `b` \sp -> ret (ScaleTransform "1.0" (toString sp))                             // TODO : These aren't really scales... for that we need to actual image dimensions
     }
   toSVGImageSpanAlgs :: ImageSpanAlg (ClSt s Real) (ClSt s ImageSpanReal) | iTask s
   toSVGImageSpanAlgs =
@@ -471,9 +468,21 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     }
     where
     mkEmptyImage :: ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkEmptyImage imSp imAts imTrs imTas = mkWH imSp `b` \wh -> ret (GElt wh (mkAttrs imAts imTrs) [], imSp)
+    mkEmptyImage imSp imAts imTrs imTas
+      =      mkWH imSp `b`
+      \wh -> ret (GElt wh (mkAttrs imAts imTrs) [], imSp)
     mkTextImage :: FontDef String ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkTextImage fd str imSp imAts imTrs imTas = ret (TextElt [] (mkAttrs imAts imTrs) str, imSp)
+    mkTextImage fd str imSp imAts imTrs imTas
+      =      evalSpan fd.fontyspan `b`
+      \sp -> ret (TextElt [] (mkAttrs imAts imTrs ++ fontAttrs sp) str, imSp)
+      where
+      fontAttrs fsz = [ FontFamilyAttr fd.fontfamily
+                      , FontSizeAttr (toString fsz)
+                      , FontStyleAttr fd.fontstyle
+                      , FontStretchAttr fd.fontstretch
+                      , FontVariantAttr fd.fontvariant
+                      , FontWeightAttr fd.fontweight
+                      ]
     mkLineImage :: Slash ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkLineImage sl imSp imAts imTrs imTas
       = ret (LineElt [] (mkAttrs imAts imTrs ++ mkLineAttrs sl (imSp.xspr, imSp.yspr)), imSp)
@@ -490,12 +499,12 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     mkCircleImage :: ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkCircleImage imSp imAts imTrs imTas
       =  ret ( CircleElt [] [ RAttr (toString r, PX), CxAttr (toString r, PX)
-             , CyAttr (toString r, PX) : (mkAttrs imAts imTrs) ], imSp) // TODO Cx and Cy depend on positioning
+             , CyAttr (toString r, PX) : (mkAttrs imAts imTrs) ], imSp)
       where r = imSp.xspr / 2.0
     mkEllipseImage :: ImageSpanReal [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkEllipseImage imSp imAts imTrs imTas
       = ret (EllipseElt [] (mkAttrs imAts imTrs ++ [ RxAttr (toString (imSp.xspr / 2.0), PX), RyAttr (toString (imSp.yspr / 2.0), PX)
-                                                 , CxAttr (toString (imSp.xspr / 2.0), PX), CyAttr (toString (imSp.yspr / 2.0), PX)]), imSp)
+                                                   , CxAttr (toString (imSp.xspr / 2.0), PX), CyAttr (toString (imSp.yspr / 2.0), PX)]), imSp)
 
     mkWH :: ImageSpanReal -> ClSt s [HtmlAttr] | iTask s
     mkWH imSp = ret [WidthAttr (toString imSp.xspr), HeightAttr (toString imSp.yspr)]
@@ -562,7 +571,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     mkGrid dims aligns imgss offsets mbhost imAts imTrs imTas = go
       where
       go st
-        # (imgss, st) = foldr f ([], st) imgss
+        # (imgss, st) = foldr seqImgsGrid ([], st) imgss
         # imagess = map (map fst) imgss
         # spanss  = map (map snd) imgss
         # yspans  = map (maxList o map (\x -> x.yspr)) spanss
@@ -571,17 +580,19 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
         # (xsp, ysp) = maybe (foldr (+) 0.0 xspans, foldr (+) 0.0 yspans) (\(_, sp) -> (sp.xspr, sp.yspr)) mbhost
         = ret ( GElt [] (mkAttrs imAts imTrs) (mkGridChildren xspans yspans imagess)
               , { xspr = xsp, yspr = ysp }) st
-      mkGridChildren xspans yspans imagess = (flatten o fst) (foldr (g xspans) ([], 0.0) (zip2 imagess yspans))
+      mkGridChildren xspans yspans imagess = (flatten o fst) (foldl (mkRows xspans) ([], 0.0) (zip2 imagess yspans))
         where
-        g xspans (imgs, yspan) (acc, yoff) = ([fst (foldr (h yspan yoff) ([], 0.0) (zip2 imgs xspans)) : acc], yoff + yspan)
-        h yspan yoff (img, xspan) (acc, xoff) = ([GElt [WidthAttr (toString xspan), HeightAttr (toString yspan)] [TransformAttr [TranslateTransform (toString xoff) (toString yoff)]] [img]:acc], xoff + xspan)
-      f :: [ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
-      f imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
+        mkRows xspans     (acc, yoff) (imgs, yspan) = ( [fst (foldl (mkCols yspan yoff) ([], 0.0) (zip2 imgs xspans)) : acc], yoff + yspan)
+        mkCols yspan yoff (acc, xoff) (img, xspan)  = ( [GElt [WidthAttr (toString xspan), HeightAttr (toString yspan)]
+                                                              [TransformAttr [TranslateTransform (toString xoff) (toString yoff)]] [img]:acc]
+                                                      , xoff + xspan)
+      seqImgsGrid :: [ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
+      seqImgsGrid imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
     mkCollage :: [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkCollage imgs offsets mbhost imAts imTrs imTas
       =           sequence imgs `b`
       \imgsSps -> zipWithSt mkTranslateGroup offsets imgsSps `b`
-      \trimgs  -> ret ( GElt [] (mkAttrs imAts imTrs) (map fst trimgs)
+      \trimgs  -> ret ( GElt [] (mkAttrs imAts imTrs) (map fst trimgs) // TODO Add host
                       , maybe (calculateComposedSpanReal (map snd imgsSps) offsets) snd mbhost)
     mkOverlay :: [ImageAlign] [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [SVGTransform] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkOverlay aligns imgs offsets mbhost imAts imTrs imTas = go
@@ -595,8 +606,8 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
         # (maxXSpan, maxYSpan) = maybe (maxXSpan, maxYSpan) (\(_, sp) -> (sp.xspr, sp.yspr)) mbhost
         # alignOffs            = zipWith addOffset (zipWith (calcOffset maxXSpan maxYSpan) spans (aligns ++ repeat (AtLeft, AtTop)))
                                                    (offsets ++ repeat (0.0, 0.0))
-        # (imgs, st)           = zipWithSt mkTranslateGroup (alignOffs ++ [(0.0, 0.0)]) (maybe imgsSps (\h -> imgsSps ++ [h]) mbhost) st
-        = ret ( GElt [] (mkAttrs imAts imTrs) (map fst imgs)
+        # (imgs, st)           = zipWithSt mkTranslateGroup (maybe alignOffs (\_ -> [(0.0, 0.0):alignOffs]) mbhost) (maybe imgsSps (\h -> [h:imgsSps]) mbhost) st
+        = ret ( GElt [] (mkAttrs imAts imTrs) (reverse (map fst imgs))
               , maybe (calculateComposedSpanReal spans offsets) snd mbhost) st
         where
         addOffset (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
@@ -712,12 +723,12 @@ evalSpanSpanAlgs =
   , spanMaxSpanAlg    = \xs  -> mkList maxList xs
   }
 evalSpanLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg  = \ts n   st -> abort "ColumnXSpanAlg " // ret 10.0 st
-  , lookupSpanDescentYSpanAlg = \fd     st -> abort "DescentYSpanAlg" // ret 10.0 st // TODO Will we even use this?
-  , lookupSpanExYSpanAlg      = \fd     st -> abort "ExYSpanAlg     " // ret 10.0 st // TODO Shouldn't we simply use em instead?
-  , lookupSpanImageXSpanAlg   = \ts     st -> abort "ImageXSpanAlg  " // ret 10.0 st
-  , lookupSpanImageYSpanAlg   = \ts     st -> abort "ImageYSpanAlg  " // ret 10.0 st
-  , lookupSpanRowYSpanAlg     = \ts n   st -> abort "RowYSpanAlg    " // ret 10.0 st
+  { lookupSpanColumnXSpanAlg  = \ts n   st -> ret 10.0 st // abort "ColumnXSpanAlg " // ret 10.0 st
+  , lookupSpanDescentYSpanAlg = \fd     st -> ret 10.0 st // abort "DescentYSpanAlg" // ret 10.0 st // TODO Will we even use this?
+  , lookupSpanExYSpanAlg      = \fd     st -> ret 10.0 st // abort "ExYSpanAlg     " // ret 10.0 st // TODO Shouldn't we simply use em instead?
+  , lookupSpanImageXSpanAlg   = \ts     st -> ret 10.0 st // abort "ImageXSpanAlg  " // ret 10.0 st
+  , lookupSpanImageYSpanAlg   = \ts     st -> ret 10.0 st // abort "ImageYSpanAlg  " // ret 10.0 st
+  , lookupSpanRowYSpanAlg     = \ts n   st -> ret 10.0 st // abort "RowYSpanAlg    " // ret 10.0 st
   , lookupSpanTextXSpanAlg    = getTextLength
   }
 
