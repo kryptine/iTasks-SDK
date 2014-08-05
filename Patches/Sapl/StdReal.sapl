@@ -3,6 +3,7 @@
 
 <{StdReal.+_1}> :== add
 <{StdReal.-_2}> :== sub
+<{StdReal.zero_3}> :== 0.0
 <{StdReal.*_4}> :== mult
 <{StdReal./_5}> :== divreal
 StdReal.one_6 :== 1.0
