@@ -34,9 +34,9 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, ImageSpan, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign, Set, CachedSpan, SVGletDiff
+  YAlign, Set, CachedSpan, SVGletDiff, Deg, Rad
 
-derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, ImageSpan
+derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, ImageSpan, Deg, Rad
 
 :: ClientState s =
   { didInit         :: Bool
@@ -241,7 +241,7 @@ fixSpans img = go
     , imageAttrFillOpacityAttrAlg   = ret o ImageFillOpacityAttr
     , imageAttrOnClickAttrAlg       = ret o ImageOnClickAttr
     }
-  fixSpansImageTransformAlgs :: ImageTransformAlg Real (SrvSt Span) (SrvSt ImageTransform)
+  fixSpansImageTransformAlgs :: ImageTransformAlg Deg (SrvSt Span) (SrvSt ImageTransform)
   fixSpansImageTransformAlgs =
     { imageTransformRotateImageAlg = ret o RotateImage
     , imageTransformSkewXImageAlg  = ret o SkewXImage
@@ -421,7 +421,21 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     mkImage imCo imAts imTrs imTas
       =         sequence imAts `b`
       \imAts -> sequence imTrs `b`
-      \imTrs -> imCo imAts imTrs imTas
+      \imTrs -> finishMkImage imAts imTrs
+      where
+      finishMkImage imAts imTrs st
+        # ((img, sp), st) = imCo imAts imTrs imTas st
+        # (img, st) = case compensateRotation imTrs sp of
+                        Just (xoff, yoff)
+                          # (xoff, st) = evalSpan xoff st
+                          # (yoff, st) = evalSpan yoff st
+                          = (GElt [] [TransformAttr [TranslateTransform (toString yoff) (toString xoff)]] [img], st) // TODO This is still a bit funky, with yoff and xoff switched etc... Also this might not be the desired behavior in every case. Perhaps this is only desired in grids
+                        _ = (img, st)
+        = ((img, sp), st)
+      compensateRotation :: [(SVGTransform, ImageTransform)] ImageSpanReal -> Maybe ImageOffset
+      compensateRotation [(_, RotateImage angle):_] {xspr, yspr} = Just (snd (rotatedImageSpanAndOriginOffset angle {xspan = px xspr, yspan = px yspr})) // TODO Support multiple rotations
+      compensateRotation [_:xs]                     sp = compensateRotation xs sp
+      compensateRotation _                          _  = Nothing
 
   toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            (ClSt s ImageSpanReal)
@@ -453,11 +467,11 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     mkStrokeWidth attr
       =     evalSpan attr.strokewidth `b`
       \w -> ret (StrokeWidthAttr (StrokeWidthLength (toString w, PX)))
-  toSVGImageTransformAlgs :: ImageTransformAlg Real (ClSt s Real) (ClSt s (SVGTransform, ImageTransform)) | iTask s
+  toSVGImageTransformAlgs :: ImageTransformAlg Deg (ClSt s Real) (ClSt s (SVGTransform, ImageTransform)) | iTask s
   toSVGImageTransformAlgs =
-    { imageTransformRotateImageAlg = \imAn    -> ret (RotateTransform (toString imAn) Nothing, RotateImage (degree imAn))
-    , imageTransformSkewXImageAlg  = \imAn    -> ret (SkewXTransform (toString imAn), SkewXImage (degree imAn))
-    , imageTransformSkewYImageAlg  = \imAn    -> ret (SkewYTransform (toString imAn), SkewYImage (degree imAn))
+    { imageTransformRotateImageAlg = \imAn    -> ret (RotateTransform (toString (toReal imAn)) Nothing, RotateImage imAn)
+    , imageTransformSkewXImageAlg  = \imAn    -> ret (SkewXTransform (toString (toReal imAn)), SkewXImage imAn)
+    , imageTransformSkewYImageAlg  = \imAn    -> ret (SkewYTransform (toString (toReal imAn)), SkewYImage imAn)
     , imageTransformFitImageAlg    = \sp1 sp2 -> sp1 `b` \sp1 -> sp2 `b` \sp2 -> ret (ScaleTransform (toString sp1) (toString sp2), FitImage (px sp1) (px sp2)) // TODO : These aren't really scales... for that we need to actual image dimensions
     , imageTransformFitXImageAlg   = \sp      -> sp `b` \sp -> ret (ScaleTransform (toString sp) "1.0", FitXImage (px sp))                             // TODO : These aren't really scales... for that we need to actual image dimensions
     , imageTransformFitYImageAlg   = \sp      -> sp `b` \sp -> ret (ScaleTransform "1.0" (toString sp), FitYImage (px sp))                             // TODO : These aren't really scales... for that we need to actual image dimensions
