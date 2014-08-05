@@ -18,7 +18,7 @@ derive gEditor    Image, SVGColor
 derive gUpdate    Image, SVGColor
 
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
-  ImageContent, BasicImage, ImageSpan, CompositeImage, Slash, FontDef, Compose,
+  ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, SVGletDiff
 
