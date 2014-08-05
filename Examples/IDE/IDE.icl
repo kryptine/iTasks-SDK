@@ -59,19 +59,25 @@ where
 				            ])
 				       )) @? const NoValue
 
-    openSelection list (SelSourceTree rootDir) = openSourceTreeSettings rootDir list
-    openSelection list (SelMainModule rootDir moduleName) = openEditor rootDir MainModule moduleName list
-    openSelection list (SelAuxModule rootDir moduleName) = openEditor rootDir AuxModule moduleName list
+    openSelection list (SelSourceTree rootDir) = openSourceTreeEditor rootDir list
+    openSelection list (SelMainModule moduleName moduleBase) = openModuleEditor moduleName MainModule moduleBase list
+    openSelection list (SelAuxModule moduleName moduleBase) = openModuleEditor moduleName AuxModule moduleBase list
 
     addSourceTree :: Task (Maybe SourceTree)
-    addSourceTree
-        =   enterInformation ("Add","Please specify the location of the sourcecode on your disk") []
+    addSourceTree =
+        (   (enterInformation "Please give a descriptive name for this source tree" []
+             -&&-
+             enterInformation "Please specify the location of the sourcecode on your disk" []
+             -&&-
+             enterInformation "If the source tree is consists of split into overlapping parts (for multiplatform subtrees), you can specify the subdirectories here" []
+            )
         >>* [OnAction ActionCancel (always (return Nothing))
-            ,OnAction ActionAdd (hasValue (\path -> add path @ Just))
+            ,OnAction ActionAdd (hasValue (\(name,(rootPath,subPaths)) -> add name rootPath subPaths @ Just))
             ]
+        ) <<@ Title "Add source tree"
     where
-        add location =
-            let tree =  {SourceTree|rootDir=location,modules=[],readOnly=False} in
+        add name rootPath subPaths =
+            let tree =  {SourceTree|name=name,rootPath=rootPath,subPaths=subPaths,modules=[],readOnly=False} in
                     upd (\status -> {status & codeBase = status.codeBase ++ [tree]}) IDE_Status
                 >>| updateCodeBase
                 @! tree
@@ -100,69 +106,70 @@ where
 
     updateOpenModules _ _ = Nothing
 
-openSourceTreeSettings :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
-openSourceTreeSettings base list
+openSourceTreeEditor :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
+openSourceTreeEditor base list
     =   appendTask Embedded (closableParTask (\l -> editSourceTree base l @ IDE_SourceTreeEdit)) list
     >>- \taskId -> focusTask taskId list
     @!  ()
 
 editSourceTree :: FilePath (SharedTaskList IDE_TaskResult) -> Task FilePath
 editSourceTree base list
-    = viewInformation ("Source tree settings","This is a placeholder for an editor for a source tree") [] base
-    <<@ Icon "sourcetree"
+    = viewInformation () [] "Editing source trees is not supported in this version"
+    <<@ Title "Source tree" <<@ Icon "sourcetree"
 
-openEditor :: FilePath ModuleType ModuleName (SharedTaskList IDE_TaskResult) -> Task ()
-openEditor base type name list
+openModuleEditor :: ModuleName ModuleType FilePath (SharedTaskList IDE_TaskResult) -> Task ()
+openModuleEditor name type base list
     =   appendTask Embedded (closableParTask editorTask ) list
     >>- \taskId -> focusTask taskId list
     @!  ()
 where
     editorTask = case type of
-        MainModule = (\l -> workOnCleanMainModule base name l @ IDE_ModuleEdit)
-        AuxModule = (\l -> workOnCleanAuxModule base name l @ IDE_ModuleEdit)
+        MainModule = (\l -> workOnCleanMainModule name base l @ IDE_ModuleEdit)
+        AuxModule = (\l -> workOnCleanAuxModule name base l @ IDE_ModuleEdit)
 
-workOnCleanMainModule :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
-workOnCleanMainModule base moduleName list
+workOnCleanMainModule :: ModuleName FilePath (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
+workOnCleanMainModule moduleName moduleBase list
     = viewInformation () [ViewWith moduleTitleView] moduleName
       ||-
-      (editIclFile base moduleName list
+      (editIclFile moduleBase list
        -&&-
-       buildMainModule base moduleName
+       buildMainModule moduleName moduleBase
         <<@ ArrangeWithTabs
       ) <<@ ArrangeWithSideBar 0 TopSide 35 False <<@ (Title moduleName)  <<@ Icon "mainmodule"
     @! {IDE_ModuleEdit|moduleName=moduleName}
 
-workOnCleanAuxModule :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
-workOnCleanAuxModule base moduleName list
+workOnCleanAuxModule :: ModuleName FilePath (SharedTaskList IDE_TaskResult) -> Task IDE_ModuleEdit
+workOnCleanAuxModule moduleName moduleBase list
     = viewInformation () [ViewWith moduleTitleView] moduleName
       ||-
-      (editIclFile base moduleName list
+      (editIclFile moduleBase list
        -&&-
-       editDclFile base moduleName list
+       editDclFile moduleBase list
         <<@ ArrangeWithTabs
       ) <<@ ArrangeWithSideBar 0 TopSide 35 False <<@ (Title moduleName) <<@ Icon "auxmodule"
     @! {IDE_ModuleEdit|moduleName=moduleName}
 
-editIclFile :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task ()
-editIclFile base moduleName list
-    = editCleanFile (foldl (</>) base (split "." moduleName) +++ ".icl") list <<@ Title "Implementation"
+editIclFile :: FilePath  (SharedTaskList IDE_TaskResult) -> Task ()
+editIclFile moduleBase list
+    = editCleanFile (addExtension moduleBase "icl") list <<@ Title "Implementation"
 
-editDclFile :: FilePath ModuleName (SharedTaskList IDE_TaskResult) -> Task ()
-editDclFile base moduleName list
-    = editCleanFile (foldl (</>) base (split "." moduleName) +++ ".dcl") list <<@ Title "Definition"
+editDclFile :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
+editDclFile moduleBase list
+    = editCleanFile (addExtension moduleBase "dcl") list <<@ Title "Definition"
 
 editCleanFile :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
-editCleanFile path list
-   =    importTextFile path
+editCleanFile path list = catchAll
+   (    importTextFile path
    >>- \initContent ->
         withShared (initCleanEditor False initContent)
             \mirror -> updateCleanEditor (shareSearchResults path list mirror) @! ()
+   ) (\e -> viewInformation () [] e @! ())
 
 moduleTitleView s = SpanTag [StyleAttr "font-size: 24px"] [Text s]
 
 buildMainModule :: FilePath ModuleName -> Task IDE_ModuleEdit
 buildMainModule base moduleName
-    = viewInformation () [] ("Placeholder for build task of module "+++ moduleName) <<@ Title "Build"
+    = viewInformation () [] ("Building is not supported in this version") <<@ Title "Build"
     @? const NoValue
 
 shareSearchResults :: FilePath (SharedTaskList IDE_TaskResult) (Shared CodeMirror)  -> (Shared CodeMirror)
@@ -206,7 +213,12 @@ where
         =	viewInformation (Title "Results") [] (toString what identifier +++ "has *not* been found !") @? const NoValue
     viewSearchResults what identifier found list
         =   enterChoice ("Results",toString what identifier +++ "has been found in:") [ChooseWith (ChooseFromGrid toGrid)] found
-        >^* [OnAction (Action "Open module" [ActionTrigger DoubleClick]) (hasValue (\((base,module,_),_) -> openEditor base AuxModule module list))] //TODO: Extract module type from codeBase
+        >^* [OnAction (Action "Open module" [ActionTrigger DoubleClick]) (hasValue (\((dir,module,_),_) -> openSearchResult module list))]
+
+    openSearchResult module list
+        =   (get IDE_Status @ \status -> lookupModule module status.codeBase)
+        >>- maybe (throw ("Could not find module "+++ module))
+                  (\(modName,modType,modPath) -> openModuleEditor modName modType modPath list)
 
 	toString SearchIdentifier 	  ident  = "Identifier \""        +++ ident +++ "\" "
 	toString SearchImplementation ident  = "Implementation of \"" +++ ident +++ "\" "
