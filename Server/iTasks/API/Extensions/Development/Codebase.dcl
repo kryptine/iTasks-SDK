@@ -7,16 +7,18 @@ import iTasks.API.Extensions.CodeMirror
 :: CodeBase 		:== [SourceTree]
 
 :: SourceTree =
-    { rootDir       :: DirPathName
-    , modules       :: [(ModuleName,ModuleType)]
+    { name          :: String                               //Unique name
+    , rootPath      :: FilePath                             //Root directory of the modules
+    , subPaths      :: [FilePath]                           //Optional list of subpaths (for example: OS-Indepent,OS-Windows etc)
     , readOnly      :: Bool
+    , modules       :: [(ModuleName,ModuleType,FilePath)]   //Modules found in the paths locations
     }
 :: SourceTreeSelection
-    = SelSourceTree DirPathName
-    | SelMainModule FilePath ModuleName
-    | SelAuxModule  FilePath ModuleName
+    = SelSourceTree SourceTreeName
+    | SelMainModule ModuleName FilePath
+    | SelAuxModule  ModuleName FilePath
 
-:: DirPathName		:== String								// Path name leading to a directory
+:: SourceTreeName   :== String								// Identifier
 :: FileName			:== String								// Name of file, with extension
 :: ModuleName 		:== String								// Name of module, without extension
 :: ModuleType       =   MainModule | AuxModule              // main module: (only icl) auxilary module (icl + dcl)
@@ -27,20 +29,21 @@ import iTasks.API.Extensions.CodeMirror
 :: CleanModuleName	:== (FilePath,ModuleName)				// Clean Module Name
 :: CleanModule		:== (CleanModuleName,Extension)			// Either a definition or implementation module
 
-:: CleanPath		:== DirPathName		// Directory where clean application / batchbuild is located
-:: Environment		:== [DirPathName]	// Directories where code is stored
+:: CleanPath		:== FilePath                            // Directory where clean application / batchbuild is located
 :: Identifier		:== String								// Clean identifier 
 
 derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance toString Extension
 instance == Extension
 
-// Scan directory environment and find all the modules on disk
-codeBaseFromEnvironment :: Environment -> Task CodeBase
+// Scan filesystem to find all the modules on disk
+rescanCodeBase :: CodeBase -> Task CodeBase
 
 // Browse the modules in a code base and select a Clean module
-//navigateCodebase :: CodeBase -> Task (FilePath,ModuleName,ModuleType)
 navigateCodebase :: CodeBase -> Task SourceTreeSelection
+
+// Search for the type and location of a module in the codebase
+lookupModule :: ModuleName CodeBase -> Maybe (ModuleName,ModuleType,FilePath)
 
 //List all clean files in a codebase
 listFilesInCodeBase :: CodeBase -> [CleanFile]
@@ -54,11 +57,7 @@ getModuleType :: ModuleName CodeBase -> Maybe ModuleType
 // Convert CodeBase Tree to a list
 codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
 
-//Editor for Clean Source Code
-editCleanModule     :: Bool CleanModule -> Task CodeMirror
-
 initCleanEditor     :: Bool String -> CodeMirror
-
-updateCleanEditor 	:: (Shared CodeMirror) FilePath ModuleName Extension -> Task CodeMirror
-viewCleanEditor 	:: (Shared CodeMirror) CleanModule -> Task CodeMirror
+updateCleanEditor 	:: (Shared CodeMirror) -> Task CodeMirror
+viewCleanEditor 	:: (Shared CodeMirror) -> Task CodeMirror
 
