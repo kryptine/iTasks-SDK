@@ -603,7 +603,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       =           sequence imgs `b`
       \imgsSps -> zipWithSt mkTranslateGroup offsets imgsSps `b`
       \trimgs  -> ret ( GElt [] [] (map fst trimgs)
-                      , maybe (calculateComposedSpanReal (map snd imgsSps) offsets) snd mbhost)
+                      , maybe (calculateComposedSpan (map snd imgsSps) offsets) snd mbhost)
     mkOverlay :: [ImageAlign] [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkOverlay aligns imgs offsets mbhost imAts imTrs imTas = go
       where
@@ -618,7 +618,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
                                                    (offsets ++ repeat (0.0, 0.0))
         # (imgs, st)           = zipWithSt mkTranslateGroup alignOffs imgsSps st
         = ret ( GElt [] [] (reverse (map fst imgs))
-              , maybe (calculateComposedSpanReal spans offsets) snd mbhost) st
+              , maybe (calculateComposedSpan spans offsets) snd mbhost) st
         where
         addOffset (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
@@ -698,22 +698,13 @@ calcOffset mxsp mysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
   mkYAl AtMiddleY = (mysp / 2.0) - (imYSp / 2.0)
   mkYAl AtBottom  = mysp - imYSp
 
-calculateComposedSpan :: [ImageSpan] [ImageOffset] -> ImageSpan
+calculateComposedSpan :: [(a, a)] [(a, a)] -> (a, a) | span a
 calculateComposedSpan spans offs
-  = foldr f (px 0.0, px 0.0) (zip2 (offs ++ repeat (px 0.0, px 0.0)) spans)
+  = foldr f (zero, zero) (zip2 (offs ++ repeat (zero, zero)) spans)
   where
   f ((xoff, yoff), (imXSp, imYSp)) (maxX, maxY)
-    # maxX = maxSpan [maxX, xoff + imXSp]
-    # maxY = maxSpan [maxY, yoff + imYSp]
-    = (maxX, maxY)
-
-calculateComposedSpanReal :: [ImageSpanReal] [ImageOffsetReal] -> ImageSpanReal
-calculateComposedSpanReal spans offs
-  = foldr f (0.0, 0.0) (zip2 (offs ++ repeat (0.0, 0.0)) spans)
-  where
-  f ((xoff, yoff), (imXSp, imYSp)) (maxX, maxY)
-    # maxX = maxList [maxX, xoff + imXSp]
-    # maxY = maxList [maxY, yoff + imYSp]
+    # maxX = maxOf [maxX, xoff + imXSp]
+    # maxY = maxOf [maxY, yoff + imYSp]
     = (maxX, maxY)
 
 mkTranslateGroup :: ImageOffsetReal ToSVGSyn -> ClSt s ToSVGSyn | iTask s
