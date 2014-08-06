@@ -291,6 +291,7 @@ fixSpans img
     , basicImageTextImageAlg    = \fd str imSp _ imTrs imTas -> mkSpan (TextImage fd str)    imSp imTrs imTas
     , basicImageLineImageAlg    = \sl     imSp _ imTrs imTas -> mkSpan (LineImage sl)        imSp imTrs imTas
     , basicImagePolygonImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords ->  mkSpan (PolygonImage coords) imSp imTrs imTas
+    , basicImagePolylineImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords ->  mkSpan (PolylineImage coords) imSp imTrs imTas
     , basicImageCircleImageAlg  = \       imSp _ imTrs imTas -> mkSpan CircleImage           imSp imTrs imTas
     , basicImageRectImageAlg    = \       imSp _ imTrs imTas -> mkSpan RectImage             imSp imTrs imTas
     , basicImageEllipseImageAlg = \       imSp _ imTrs imTas -> mkSpan EllipseImage          imSp imTrs imTas
@@ -538,13 +539,14 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       \sp2 -> ret (sp1, sp2)
   toSVGBasicImageAlgs :: BasicImageAlg (ClSt s Real) (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGBasicImageAlgs =
-    { basicImageEmptyImageAlg   = mkEmptyImage
-    , basicImageTextImageAlg    = mkTextImage
-    , basicImageLineImageAlg    = mkLineImage
-    , basicImagePolygonImageAlg = mkPolygonImage
-    , basicImageCircleImageAlg  = mkCircleImage
-    , basicImageRectImageAlg    = mkRectImage
-    , basicImageEllipseImageAlg = mkEllipseImage
+    { basicImageEmptyImageAlg    = mkEmptyImage
+    , basicImageTextImageAlg     = mkTextImage
+    , basicImageLineImageAlg     = mkLineImage
+    , basicImagePolygonImageAlg  = mkPolygonImage
+    , basicImagePolylineImageAlg = mkPolylineImage
+    , basicImageCircleImageAlg   = mkCircleImage
+    , basicImageRectImageAlg     = mkRectImage
+    , basicImageEllipseImageAlg  = mkEllipseImage
     }
     where
     mkEmptyImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
@@ -578,6 +580,10 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     mkPolygonImage points (imXSp, imYSp) imAts imTrs imTas
       =           evalOffsets points `b`
       \offsets -> ret (PolygonElt [] [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs], (imXSp, imYSp))
+    mkPolylineImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkPolylineImage points (imXSp, imYSp) imAts imTrs imTas
+      =           evalOffsets points `b`
+      \offsets -> ret (PolylineElt [] [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs], (imXSp, imYSp))
     mkRectImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkRectImage imSp imAts imTrs imTas
       =      mkWH imSp `b`
@@ -847,13 +853,14 @@ reduceSpanNum op cons x y
   }
 
 :: BasicImageAlg sp baIm =
-  { basicImageEmptyImageAlg   ::                   baIm
-  , basicImageTextImageAlg    :: FontDef String -> baIm
-  , basicImageLineImageAlg    :: Slash          -> baIm
-  , basicImageCircleImageAlg  ::                   baIm
-  , basicImageRectImageAlg    ::                   baIm
-  , basicImageEllipseImageAlg ::                   baIm
-  , basicImagePolygonImageAlg :: [(sp, sp)]     -> baIm
+  { basicImageEmptyImageAlg    ::                   baIm
+  , basicImageTextImageAlg     :: FontDef String -> baIm
+  , basicImageLineImageAlg     :: Slash          -> baIm
+  , basicImageCircleImageAlg   ::                   baIm
+  , basicImageRectImageAlg     ::                   baIm
+  , basicImageEllipseImageAlg  ::                   baIm
+  , basicImagePolygonImageAlg  :: [(sp, sp)]     -> baIm
+  , basicImagePolylineImageAlg :: [(sp, sp)]     -> baIm
   }
 
 :: CompositeImageAlg sp ho co coIm =
@@ -943,6 +950,9 @@ basicImageCata basicImageAlgs _ _ (LineImage sl)      = basicImageAlgs.basicImag
 basicImageCata basicImageAlgs spanAlgs lookupSpanAlgs (PolygonImage offsets)
   # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
   = basicImageAlgs.basicImagePolygonImageAlg synsImageOffset
+basicImageCata basicImageAlgs spanAlgs lookupSpanAlgs (PolylineImage offsets)
+  # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
+  = basicImageAlgs.basicImagePolylineImageAlg synsImageOffset
 basicImageCata basicImageAlgs _ _ CircleImage         = basicImageAlgs.basicImageCircleImageAlg
 basicImageCata basicImageAlgs _ _ RectImage           = basicImageAlgs.basicImageRectImageAlg
 basicImageCata basicImageAlgs _ _ EllipseImage        = basicImageAlgs.basicImageEllipseImageAlg
@@ -1024,6 +1034,7 @@ appendSVG (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSV
 appendSVG (LinearGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "linearGradient" htmlAttrs svgAttrs svgElts world
 appendSVG (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "line" htmlAttrs svgAttrs []                world
 appendSVG (PolygonElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polygon" htmlAttrs svgAttrs []             world
+appendSVG (PolylineElt       htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polyline" htmlAttrs svgAttrs []             world
 appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "rect" htmlAttrs svgAttrs []                world
 appendSVG (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "radialGradient" htmlAttrs svgAttrs svgElts world
 appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop" htmlAttrs svgAttrs []                world
