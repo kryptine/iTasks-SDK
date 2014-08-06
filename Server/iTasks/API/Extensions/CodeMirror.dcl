@@ -15,7 +15,9 @@ import iTasks.API.Core.Client.Tasklet
 		  val	:: CodeMirror
 		, mbSt	:: Maybe CodeMirrorClientSt
 		}
- 
+
+:: CodeMirrorPosition :== (Int, Int) // line, cursor position
+
 :: CodeMirrorConfiguration 
 		= CMMode !String
 		| CMTheme !String
@@ -50,18 +52,18 @@ import iTasks.API.Core.Client.Tasklet
 // TODO: CodeMirror a
 :: CodeMirror = {
 		  configuration 	:: ![CodeMirrorConfiguration]
-		, position			:: !Int // cursor position
-		, selection 		:: !Maybe (Int,Int)
-		, highlighted		:: ![(Int,Int)]
-		, source			:: String // TODO: strictness kills graph_to_sapl_string here
+		, position			:: !CodeMirrorPosition
+		, selection 		:: !Maybe (CodeMirrorPosition,CodeMirrorPosition)
+		, highlighted		:: ![(CodeMirrorPosition,CodeMirrorPosition)]
+		, source			:: ![String] // TODO: strictness kills graph_to_sapl_string here
 		}
 
 :: CodeMirrorDiff
 		= SetOption !CodeMirrorConfiguration
-		| SetPosition !Int
-		| SetSelection !(Maybe (Int,Int))
-		| SetValue !String // TODO
-		| SetHighlights ![(Int,Int)]
+		| SetPosition !CodeMirrorPosition
+		| SetSelection !(Maybe (CodeMirrorPosition,CodeMirrorPosition))
+		| ReplaceRange !(Int,Int) [String] // number of valid lines from the left/right
+		| SetHighlights ![(CodeMirrorPosition,CodeMirrorPosition)]
 
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
@@ -79,3 +81,4 @@ codeMirrorEditlet :: !CodeMirror
 
 codeMirrorTasklet :: !CodeMirror
 				  -> Tasklet CodeMirrorClient CodeMirror
+

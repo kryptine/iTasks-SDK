@@ -7,6 +7,8 @@ import iTasks.API.Extensions.CodeMirror
 import iTasks.API.Extensions.GIS.GoogleMap
 import iTasks.API.Extensions.GIS.Leaflet
 
+import StdArray
+
 import StdDebug
 
 :: TimeDelta = SetSec !Int | SetMin !Int | SetHour !Int
@@ -233,10 +235,10 @@ empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
 
 defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
-        , position = 0
+        , position = (0,0)
         , selection = Nothing
         , highlighted = []
-        , source = "Buu"}
+        , source = ["Buu1","Buu2"]}
 
 //test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet "buu")
 
@@ -249,7 +251,7 @@ test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings
 
 
         
-test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
+//test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
 
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
@@ -272,3 +274,4 @@ Start :: *World -> *World
 Start world = startEngine test5 world
 
 
+    

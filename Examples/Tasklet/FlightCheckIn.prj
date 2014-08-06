@@ -16,7 +16,6 @@ Global
 		ShowGC:	False
 		ShowStackSize:	False
 		MarkingCollector:	False
-		DisableRTSFlags:	False
 		StandardRuntimeEnv:	True
 		Profile
 			Memory:	False

@@ -1,6 +1,7 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
+	Built:	True
 	Target:	iTasks
 	Exec:	{Project}\TaskletExamples.exe
 	CodeGen

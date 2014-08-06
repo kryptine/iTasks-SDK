@@ -13,39 +13,39 @@ taskletExamples =
 	[workflow "Editor" "Editor" editor]
 
 defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
-        , position = 0
+        , position = (0,0)
         , selection = Nothing
-        , highlighted = [(1,3)]
-        , source = 
-			"definition module iTasks\n"+++
-			"\n"+++
-			"/**\n"+++
-			"* Main iTask module exporting all end user iTask modules\n"+++
-			"*/\n"+++
-			"import	iTasks.Framework.Engine				// iTasks engine\n"+++
-			"    // iTasks API\n"+++
-			"    ,   iTasks.API\n"+++
-			"	\n"+++
-			"	//	Miscellaneous machinery\n"+++
-			"	,	Text.JSON							// JSON is used for serializing/deserializing strings\n"+++
-			"	,	iTasks.Framework.Generic			// Generic foundation modules\n"+++
-			"	\n"+++
-			"	//	API extensions for user  & workflow management\n"+++
-			"	,	iTasks.API.Extensions.Admin.UserAdmin\n"+++
-			"	,	iTasks.API.Extensions.Admin.WorkflowAdmin\n"+++
-			"	\n"+++
-			"	//StdEnv modules\n"+++
-			"	,	StdInt\n"+++
-			"	,	StdBool\n"+++
-			"	,	StdString\n"+++
-			"	,	StdList\n"+++
-			"	,	StdOrdList\n"+++
-			"	,	StdTuple\n"+++
-			"	,	StdEnum\n"+++
-			"	,	StdOverloaded\n"+++
-			"\n"+++
-			"from StdFunc import id, const, o\n"+++
-			"from Data.List import instance Functor []\n"}
+        , highlighted = [((0,1),(0,3))]
+        , source = [ 
+			"definition module iTasks", 
+			"", 
+			"/**", 
+			"* Main iTask module exporting all end user iTask modules", 
+			"*/", 
+			"import	iTasks.Framework.Engine				// iTasks engine", 
+			"    // iTasks API", 
+			"    ,   iTasks.API", 
+			"	", 
+			"	//	Miscellaneous machinery", 
+			"	,	Text.JSON							// JSON is used for serializing/deserializing strings", 
+			"	,	iTasks.Framework.Generic			// Generic foundation modules", 
+			"	", 
+			"	//	API extensions for user  & workflow management", 
+			"	,	iTasks.API.Extensions.Admin.UserAdmin", 
+			"	,	iTasks.API.Extensions.Admin.WorkflowAdmin", 
+			"	", 
+			"	//StdEnv modules", 
+			"	,	StdInt", 
+			"	,	StdBool", 
+			"	,	StdString", 
+			"	,	StdList", 
+			"	,	StdOrdList", 
+			"	,	StdTuple", 
+			"	,	StdEnum", 
+			"	,	StdOverloaded", 
+			"", 
+			"from StdFunc import id, const, o", 
+			"from Data.List import instance Functor []"] }
 
 editor :: Task CodeMirror
 editor
