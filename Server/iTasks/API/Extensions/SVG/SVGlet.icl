@@ -36,7 +36,7 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, Set, CachedSpan, SVGletDiff, Deg, Rad
 
-derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad
+derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad, Maybe
 
 :: ClientState s =
   { didInit         :: Bool
@@ -48,9 +48,10 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad
   , editletId       :: String
   }
 
-:: CachedSpan
-  = CachedGridSpan [[ImageSpan]]
-  | CachedImageSpan ImageSpan
+:: CachedSpan =
+  { cachedGridSpans :: Maybe [[ImageSpan]]
+  , cachedImageSpan :: Maybe ImageSpan
+  }
 
 derive class iTask ClientState
 
@@ -175,15 +176,29 @@ runM m st = m st
 
 sequence :: [.st -> .(a, .st)] -> (.st -> .([a], .st))
 sequence ms = \st -> mapSt id ms st
+import StdDebug
+
+addCachedSpan :: (CachedSpan -> CachedSpan) (Set ImageTag) ServerState -> ServerState
+addCachedSpan f imTas st=:{srvTaggedSpanEnv}
+  | 'DS'.null imTas = st
+  | otherwise
+    # r = fromMaybe { cachedGridSpans = Nothing, cachedImageSpan = Nothing } ('DM'.get imTas srvTaggedSpanEnv)
+    = { st & srvTaggedSpanEnv = 'DM'.put imTas (f r) srvTaggedSpanEnv }
+
+cacheImageSpan :: (Set ImageTag) ImageSpan ServerState -> ServerState
+cacheImageSpan imTas sp st = addCachedSpan (\r -> {r & cachedImageSpan = Just sp}) imTas st
+
+cacheGridSpans :: (Set ImageTag) [[ImageSpan]] ServerState -> ServerState
+cacheGridSpans imTas sp st = addCachedSpan (\r -> {r & cachedGridSpans = Just sp}) imTas st
 
 // TODO : Detect divergence due to lookups and return an Either ErrorMessage (Image s), instead of just an Image s
 fixSpans :: (Image s) -> SrvSt (Image s, ImageSpan) | iTask s
-fixSpans img = go
+fixSpans img
+  =              imageCata fixSpansAllAlgs img `b`
+  \(img`, sp) -> if (img === img`)
+                   (ret (img, sp))
+                   (fixSpans img`)
   where
-  go st
-    # ((img`, sp), st) = imageCata fixSpansAllAlgs img st
-    | img === img`     = ((img, sp), st)
-    | otherwise        = fixSpans img` st
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
     , imageContentAlgs   = fixSpansImageContentAlgs
@@ -211,10 +226,10 @@ fixSpans img = go
     mkImage imCo imAts imTrs imTas = go
       where
       go st
-        # (imAts, st) = sequence imAts st
-        # (imTrs, st) = sequence imTrs st
-        # ((content, sp), st)  = imCo imAts imTrs imTas st
-        # st = { st & srvTaggedSpanEnv = 'DM'.put imTas (CachedImageSpan sp) st.srvTaggedSpanEnv }
+        # (imAts, st)         = sequence imAts st
+        # (imTrs, st)         = sequence imTrs st
+        # ((content, sp), st) = imCo imAts imTrs imTas st
+        # st                  = cacheImageSpan imTas sp st
         = ret ({ Image | content = content, attribs = imAts, transform = imTrs, tags = imTas}, sp) st
   fixSpansImageContentAlgs :: ImageContentAlg (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
                                               (SrvSt ImageSpan)
@@ -270,21 +285,22 @@ fixSpans img = go
       =         xspan `b`
       \xspan -> yspan `b`
       \yspan -> ret (xspan, yspan)
-  fixSpansBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
+  fixSpansBasicImageAlgs :: BasicImageAlg (SrvSt Span) (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
   fixSpansBasicImageAlgs =
-    { basicImageEmptyImageAlg   = \       imSp _ imTrs imTas -> mkSpan EmptyImage         imSp imTrs imTas
-    , basicImageTextImageAlg    = \fd str imSp _ imTrs imTas -> mkSpan (TextImage fd str) imSp imTrs imTas
-    , basicImageLineImageAlg    = \sl     imSp _ imTrs imTas -> mkSpan (LineImage sl)     imSp imTrs imTas
-    , basicImageCircleImageAlg  = \       imSp _ imTrs imTas -> mkSpan CircleImage        imSp imTrs imTas
-    , basicImageRectImageAlg    = \       imSp _ imTrs imTas -> mkSpan RectImage          imSp imTrs imTas
-    , basicImageEllipseImageAlg = \       imSp _ imTrs imTas -> mkSpan EllipseImage       imSp imTrs imTas
+    { basicImageEmptyImageAlg   = \       imSp _ imTrs imTas -> mkSpan EmptyImage            imSp imTrs imTas
+    , basicImageTextImageAlg    = \fd str imSp _ imTrs imTas -> mkSpan (TextImage fd str)    imSp imTrs imTas
+    , basicImageLineImageAlg    = \sl     imSp _ imTrs imTas -> mkSpan (LineImage sl)        imSp imTrs imTas
+    , basicImagePolygonImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords ->  mkSpan (PolygonImage coords) imSp imTrs imTas
+    , basicImageCircleImageAlg  = \       imSp _ imTrs imTas -> mkSpan CircleImage           imSp imTrs imTas
+    , basicImageRectImageAlg    = \       imSp _ imTrs imTas -> mkSpan RectImage             imSp imTrs imTas
+    , basicImageEllipseImageAlg = \       imSp _ imTrs imTas -> mkSpan EllipseImage          imSp imTrs imTas
     }
     where
     mkSpan :: BasicImage ImageSpan [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)
     mkSpan val imSp imTrs imTas = ret (Basic val imSp, applyTransforms imTrs imSp)
   fixSpansCompositeImageAlgs :: CompositeImageAlg (SrvSt Span)
                                                   (SrvSt (Image s, ImageSpan))
-                                                  ([ImageOffset] (Maybe (Image s, ImageSpan)) -> SrvSt (Compose s, ImageSpan))
+                                                  ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
                                                   ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
   fixSpansCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
@@ -293,40 +309,41 @@ fixSpans img = go
     mkCompositeImage offsets host compose imAts imTrs imTas st
       # (offsets, st) = evalOffsets offsets st
       # (host, st)    = evalHost host st
-      # ((compose, composeSpan), st) = compose offsets host st
+      # ((compose, composeSpan), st) = compose offsets host imTas st
       = case host of
           Just (hostImg, hostSpan) -> ret (Composite {CompositeImage | offsets = offsets, host = Just hostImg, compose = compose}, applyTransforms imTrs hostSpan) st
           _                        -> ret (Composite {CompositeImage | offsets = offsets, host = Nothing, compose = compose}, applyTransforms imTrs composeSpan) st
-  fixSpansComposeAlgs :: ComposeAlg (SrvSt (Image s, ImageSpan)) ([ImageOffset] (Maybe (Image s, ImageSpan)) -> SrvSt (Compose s, ImageSpan))
+  fixSpansComposeAlgs :: ComposeAlg (SrvSt (Image s, ImageSpan)) ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
   fixSpansComposeAlgs =
     { composeAsGridAlg    = mkGrid
     , composeAsCollageAlg = mkCollage
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: (Int, Int) [ImageAlign] [[SrvSt (Image s, ImageSpan)]] [ImageOffset] (Maybe (Image s, ImageSpan)) -> SrvSt (Compose s, ImageSpan)
-    mkGrid dims ias imgss offsets mbhost = go
+    mkGrid :: (Int, Int) [ImageAlign] [[SrvSt (Image s, ImageSpan)]] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)
+    mkGrid dims ias imgss offsets mbhost imTas = go
       where
       go st
         # (imgss, st) = foldr f ([], st) imgss
         # spanss      = map (map snd) imgss
         # yspans      = map (maxSpan o map snd) spanss
         # xspans      = map (maxSpan o map fst) (transpose spanss)
-        # infoffs     = offsets ++ repeat (px 0.0, px 0.0)
+        # infoffs     = offsets ++ repeatn (length xspans * length yspans) (px 0.0, px 0.0)
         # (xsp, ysp)  = maybe ( foldr (\(xsp, off) acc -> xsp + off + acc) (px 0.0) (zip2 xspans (map fst infoffs))
                               , foldr (\(ysp, off) acc -> ysp + off + acc) (px 0.0) (zip2 yspans (map snd infoffs))
                               )
                               snd mbhost
+        # st          = cacheGridSpans imTas ((map (\yspan -> map (\xspan -> (xspan, yspan)) xspans)) yspans) st
         = ret (AsGrid dims ias (map (map fst) imgss), (xsp, ysp)) st
       f :: [SrvSt (Image s, ImageSpan)] *([[(Image s, ImageSpan)]], ServerState) -> *([[(Image s, ImageSpan)]], ServerState)
       f imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
-    mkCollage :: [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) -> SrvSt (Compose s, ImageSpan)
-    mkCollage imgs offsets mbhost
+    mkCollage :: [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)
+    mkCollage imgs offsets mbhost imTas
       =           sequence imgs `b`
       \imgsSps -> ret ( AsCollage (map fst imgsSps)
                       , maybe (calculateComposedSpan (map snd imgsSps) offsets) snd mbhost)
-    mkOverlay :: [ImageAlign] [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) -> SrvSt (Compose s, ImageSpan)
-    mkOverlay ias imgs offsets mbhost = go
+    mkOverlay :: [ImageAlign] [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)
+    mkOverlay ias imgs offsets mbhost imTas = go
       where
       go st
         # (imgsSps, st) = sequence imgs st
@@ -345,13 +362,13 @@ fixSpans img = go
     , spanMulSpanAlg    = \x y -> reduceSpanNum (*) MulSpan x y
     , spanDivSpanAlg    = \x y -> reduceSpanNum (/) DivSpan x y
     , spanAbsSpanAlg    = \x   -> mkAbs x
-    , spanMinSpanAlg    = \xs  -> reduceSpanList min MinSpan xs
-    , spanMaxSpanAlg    = \xs  -> reduceSpanList max MaxSpan xs
+    , spanMinSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (minSpan xs)
+    , spanMaxSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (minSpan xs)
     }
   fixSpansLookupSpanAlgs :: LookupSpanAlg (SrvSt Span) // TODO : If we look something up, store it somewhere and update Span AST accordingly
   fixSpansLookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg  = mkImageGridSpan (\xss _ -> maxSpan (map fst (map hd xss))) ColumnXSpan // TODO Will fail hard if it fails
-    , lookupSpanRowYSpanAlg     = mkImageGridSpan (\xss n -> maxSpan (map snd (xss !! n))) RowYSpan      // TODO Will fail hard if it fails
+    { lookupSpanColumnXSpanAlg  = mkImageGridSpan (\xss n -> maxSpan (map fst (transpose xss !! n))) ColumnXSpan
+    , lookupSpanRowYSpanAlg     = mkImageGridSpan (\xss n -> maxSpan (map snd (xss !! n))) RowYSpan
     , lookupSpanImageXSpanAlg   = mkImageSpan fst ImageXSpan
     , lookupSpanImageYSpanAlg   = mkImageSpan snd ImageYSpan
     , lookupSpanDescentYSpanAlg = \fd -> ret (LookupSpan (DescentYSpan fd))
@@ -360,28 +377,67 @@ fixSpans img = go
     }
     where
     lookupTags :: (Set ImageTag) -> SrvSt (Maybe CachedSpan)
-    lookupTags ts = go
+    lookupTags ts
+      | 'DS'.null ts = ret Nothing
+      | otherwise    = trace_n (toString ts) go
       where
       go srv
-        = case 'DM'.toList ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
-            [(_, x):_] -> (Just x, srv)
-            _          -> (Nothing, srv)
+        = case 'DM'.elems ('DM'.filterWithKey (\k _ -> trace_n ("lookupTags k: " +++ toString k) 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
+            [x:_] -> trace_n ("fixSpans lookupTags HIT: " +++ toString x) (Just x, srv)
+            _     -> trace_n "fixSpans lookupTags NO HIT!!!"  (Nothing, srv)
 
     mkImageSpan :: (ImageSpan -> Span) ((Set ImageTag) -> LookupSpan) (Set ImageTag) -> SrvSt Span
-    mkImageSpan f c ts = go
-      where
-      go st
-        = case lookupTags ts st of
-            (Just (CachedImageSpan x), st) -> (f x, st)
-            (_                       , st) -> (LookupSpan (c ts), st)
+    mkImageSpan f c ts
+      =        lookupTags ts `b`
+      \luts -> ret (case luts of
+                      Just {cachedImageSpan=Just xs} -> f xs
+                      _                              -> LookupSpan (c ts))
 
     mkImageGridSpan :: ([[ImageSpan]] Int -> Span) ((Set ImageTag) Int -> LookupSpan) (Set ImageTag) Int -> SrvSt Span
-    mkImageGridSpan f c ts n = go
-      where
-      go st
-        = case lookupTags ts st of
-            (Just (CachedGridSpan xss), st) -> (f xss n, st)
-            (_                        , st) -> (LookupSpan (c ts n), st)
+    mkImageGridSpan f c ts n
+      =        lookupTags ts `b`
+      \luts -> ret (case luts of
+                      Just csp=:{cachedGridSpans=Just xss} -> trace_n ("mkImageGridSpan Just " +++ toString csp) f xss n
+                      _                                    -> trace_n "mkImageGridSpan Nothing" LookupSpan (c ts n))
+                      //_                                    -> trace_n "mkImageGridSpan Nothing" (px 50.0))
+
+instance toString (Set a) | toString a where
+  toString ts = "(Set " +++ 'DS'.fold (\x acc -> toString x +++ " " +++ acc) "" ts +++ ")"
+
+instance toString ImageTag where
+  toString (ImageTagInt n)    = "(ImageTagInt " +++ toString n +++ ")"
+  toString (ImageTagString s) = "(ImageTagString " +++ s +++ ")"
+  toString (ImageTagSystem n) = "(ImageTagSystem " +++ toString n +++ ")"
+
+instance toString CachedSpan where
+  toString {cachedImageSpan, cachedGridSpans} = "(CachedSpan cachedImageSpan=(" +++ ppCIS +++ ") cachedGridSpans=(" +++ ppCGS +++ "))"
+    where
+    ppCIS = case cachedImageSpan of
+              Just (l, r) -> "Just (" +++ toString l +++ ", " +++ toString r +++ ")"
+              _           -> "Nothing"
+    ppCGS = case cachedGridSpans of
+              Just gsps -> foldr (\(l, r) acc -> toString l +++ ", " +++ toString r +++ " " +++ acc) "" (flatten gsps)
+              _         -> "Nothing"
+
+instance toString Span where
+  toString (PxSpan       n)   = "(PxSpan " +++ toString n +++ ")"
+  toString (LookupSpan   lu)  = "(LookupSpan " +++ toString lu +++" )"
+  toString (AddSpan      l r) = "(AddSpan " +++ toString l +++ " " +++ toString r +++ ")"
+  toString (SubSpan      l r) = "(SubSpan " +++ toString l +++ " " +++ toString r +++ ")"
+  toString (MulSpan      l r) = "(MulSpan " +++ toString l +++ " " +++ toString r +++ ")"
+  toString (DivSpan      l r) = "(DivSpan " +++ toString l +++ " " +++ toString r +++ ")"
+  toString (AbsSpan      sp)  = "(AbsSpan " +++ toString sp +++ ")"
+  toString (MinSpan      ss)  = "(MinSpan " +++ foldr (\x acc -> toString x +++ " " +++ acc) "" ss +++ ")"
+  toString (MaxSpan      ss)  = "(MaxSpan " +++ foldr (\x acc -> toString x +++ " " +++ acc) "" ss +++ ")"
+
+instance toString LookupSpan where
+  toString (ColumnXSpan  ts n)   = "(ColumnXSpan " +++ toString ts +++ " " +++ toString n +++ ")"
+  toString (RowYSpan     ts n)   = "(RowYSpan "    +++ toString ts +++ " " +++ toString n +++ ")"
+  toString (ImageXSpan   ts)     = "(ImageXSpan "  +++ toString ts +++ ")"
+  toString (ImageYSpan   ts)     = "(ImageYSpan "  +++ toString ts +++ ")"
+  toString (DescentYSpan fd)     = "(DescentYSpan)"
+  toString (ExYSpan      fd)     = "(ExYSpan)"
+  toString (TextXSpan    fd str) = "(TextXSpan "   +++ str +++ ")"
 
 :: ImageSpanReal :== (Real, Real)
 
@@ -480,11 +536,12 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       =       sp1 `b`
       \sp1 -> sp2 `b`
       \sp2 -> ret (sp1, sp2)
-  toSVGBasicImageAlgs :: BasicImageAlg (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+  toSVGBasicImageAlgs :: BasicImageAlg (ClSt s Real) (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGBasicImageAlgs =
     { basicImageEmptyImageAlg   = mkEmptyImage
     , basicImageTextImageAlg    = mkTextImage
     , basicImageLineImageAlg    = mkLineImage
+    , basicImagePolygonImageAlg = mkPolygonImage
     , basicImageCircleImageAlg  = mkCircleImage
     , basicImageRectImageAlg    = mkRectImage
     , basicImageEllipseImageAlg = mkEllipseImage
@@ -517,6 +574,10 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
                        Slash     -> (toString yspan, "0.0")
                        Backslash -> ("0.0", toString yspan)
         = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
+    mkPolygonImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkPolygonImage points (imXSp, imYSp) imAts imTrs imTas
+      =           evalOffsets points `b`
+      \offsets -> ret (PolygonElt [] [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs], (imXSp, imYSp))
     mkRectImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkRectImage imSp imAts imTrs imTas
       =      mkWH imSp `b`
@@ -576,7 +637,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
         # spanss      = map (map snd) imgss
         # yspans      = map (maxList o map snd) spanss
         # xspans      = map (maxList o map fst) (transpose spanss)
-        # infoffs     = offsets ++ repeat (0.0, 0.0)
+        # infoffs     = offsets ++ repeatn (length xspans * length yspans) (0.0, 0.0)
         # (xsp, ysp)  = maybe ( foldr (\(xsp, off) acc -> xsp + off + acc) 0.0 (zip2 xspans (map fst infoffs))
                               , foldr (\(ysp, off) acc -> ysp + off + acc) 0.0 (zip2 yspans (map snd infoffs))
                               )
@@ -584,7 +645,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
         = ret ( GElt [] [] (mkGridChildren xspans yspans imgss infoffs)
               , maybe (xsp, ysp) snd mbhost) st
       mkGridChildren xspans yspans imgss infoffs
-        = (flatten o (\(x, _, _, _) -> x)) (foldl (mkRows xspans) ([], 0.0, aligns ++ repeat (AtLeft, AtTop), infoffs) (zip2 imgss yspans))
+        = (flatten o (\(x, _, _, _) -> x)) (foldl (mkRows xspans) ([], 0.0, aligns ++ repeatn (length xspans * length yspans) (AtLeft, AtTop), infoffs) (zip2 imgss yspans))
         where
         mkRows xspans (acc, yoff, aligns, offsets) (imgs, yspan)
           # imgsLength = length imgs
@@ -610,41 +671,18 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       go st
         # (imgsSps, st) = sequence imgs st
         # images        = map fst imgsSps
+        # numImgs       = length images
         # spans         = map snd imgsSps
         # maxXSpan      = maxList (map fst spans)
         # maxYSpan      = maxList (map snd spans)
         # (maxXSpan, maxYSpan) = maybe (maxXSpan, maxYSpan) snd mbhost
-        # alignOffs            = zipWith addOffset (zipWith (calcOffset maxXSpan maxYSpan) spans (aligns ++ repeat (AtLeft, AtTop)))
-                                                   (offsets ++ repeat (0.0, 0.0))
+        # alignOffs            = zipWith addOffset (zipWith (calcOffset maxXSpan maxYSpan) spans (aligns ++ repeatn numImgs (AtLeft, AtTop)))
+                                                   (offsets ++ repeatn numImgs (0.0, 0.0))
         # (imgs, st)           = zipWithSt mkTranslateGroup alignOffs imgsSps st
         = ret ( GElt [] [] (reverse (map fst imgs))
               , maybe (calculateComposedSpan spans offsets) snd mbhost) st
         where
         addOffset (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-
-    //mkFontYSpan :: ((Span, Span) -> Span) (FontDef -> LookupSpan) FontDef -> SrvSt Span
-    //mkFontYSpan sel c fd = go
-      //where
-      //go (clval, world)
-        //= case 'DM'.gGet fd clval.textYSpanEnv of
-            //Just x -> (sel x, (clval, world))
-            //_      -> (LookupSpan (c fd), (clval, world))
-
-    //mkImageSpan :: (ImageSpan -> Span) ((Set ImageTag) -> LookupSpan) (Set ImageTag) -> SrvSt Span
-    //mkImageSpan f c ts = go
-      //where
-      //go st
-        //= case lookupTags ts st of
-            //(Just (CachedImageSpan x), st) -> (f x, st)
-            //(_                       , st) -> (LookupSpan (c ts), st)
-
-    //mkImageGridSpan :: ([[ImageSpan]] Int -> Span) ((Set ImageTag) Int -> LookupSpan) (Set ImageTag) Int -> SrvSt Span
-    //mkImageGridSpan f c ts n = go
-      //where
-      //go st
-        //= case lookupTags ts st of
-            //(Just (CachedGridSpan xss), st) -> (f xss n, st)
-            //(_                        , st) -> (LookupSpan (c ts n), st)
 
   toSVGSpanAlgs :: SpanAlg (ClSt s Real) (ClSt s Real) | iTask s
   toSVGSpanAlgs = evalSpanSpanAlgs
@@ -661,12 +699,6 @@ applyRealTransforms ts (xspr, yspr) = go
     # (ysp, st)  = evalSpan ysp st
     = ret (xsp, ysp) st
 
-evalList xs st :==
-  let f x (xs, st)
-        # (x, st) = x st
-        = ([x:xs], st)
-  in  foldr f ([], st) xs
-
 evalOffsets :: [(.st -> .(a, .st), .st -> .(a, .st))] .st -> .([(a, a)], .st)
 evalOffsets offsets st = foldr f ([], st) offsets
   where
@@ -682,7 +714,6 @@ evalHost _        = ret Nothing
 ret x :== \st -> (x, st)
 
 (`b`) f g :== \st0 -> let (r,st1) = f st0 in g r st1
-(`b2`) f g :== \st0 -> let (r,st1) = f st0 in (let (_, st2) = g r st1 in st2)
 
 mkAttrs :: [SVGAttr] [(SVGTransform, ImageTransform)] -> [SVGAttr]
 mkAttrs imAts [] = imAts
@@ -700,7 +731,7 @@ calcOffset mxsp mysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
 
 calculateComposedSpan :: [(a, a)] [(a, a)] -> (a, a) | span a
 calculateComposedSpan spans offs
-  = foldr f (zero, zero) (zip2 (offs ++ repeat (zero, zero)) spans)
+  = foldr f (zero, zero) (zip2 (offs ++ repeatn (length spans) (zero, zero)) spans)
   where
   f ((xoff, yoff), (imXSp, imYSp)) (maxX, maxY)
     # maxX = maxOf [maxX, xoff + imXSp]
@@ -770,26 +801,14 @@ reduceSpanNum op cons x y
               PxSpan x` -> PxSpan (op x` y)
               x`        -> cons x` y)
 
-reduceSpanList :: (Real Real -> Real) ([Span] -> Span) [.st -> .(Span, .st)] -> (.st -> .(Span, .st))
-reduceSpanList op cons ss
-  =      sequence ss `b`
-  \ss -> ret (case reduceSpans ss of
-               [PxSpan x] -> PxSpan x
-               xs         -> cons xs)
-  where
-  reduceSpans [PxSpan x : PxSpan y : xs] = reduceSpans [PxSpan (op x y) : xs]
-  reduceSpans [PxSpan x : y : xs]        = [y : reduceSpans [PxSpan x : xs]]
-  reduceSpans [x : xs]                   = [x : reduceSpans xs]
-  reduceSpans []                         = []
 
-
-:: Algebras m imCo imAt imTr im baIm imSp coIm imAn imOf ho co sp loSp =
+:: Algebras m imCo imAt imTr im baIm imSp coIm imAn ho co sp loSp =
   { imageAlgs          :: ImageAlg imCo imAt imTr im
   , imageContentAlgs   :: ImageContentAlg baIm imSp coIm imCo
   , imageAttrAlgs      :: ImageAttrAlg m imAt
   , imageTransformAlgs :: ImageTransformAlg imAn sp imTr
   , imageSpanAlgs      :: ImageSpanAlg sp imSp
-  , basicImageAlgs     :: BasicImageAlg baIm
+  , basicImageAlgs     :: BasicImageAlg sp baIm
   , compositeImageAlgs :: CompositeImageAlg sp ho co coIm
   , composeAlgs        :: ComposeAlg im co
   , spanAlgs           :: SpanAlg loSp sp
@@ -827,13 +846,14 @@ reduceSpanList op cons ss
   { imageSpanAlg :: sp sp -> imSp
   }
 
-:: BasicImageAlg baIm =
+:: BasicImageAlg sp baIm =
   { basicImageEmptyImageAlg   ::                   baIm
   , basicImageTextImageAlg    :: FontDef String -> baIm
   , basicImageLineImageAlg    :: Slash          -> baIm
   , basicImageCircleImageAlg  ::                   baIm
   , basicImageRectImageAlg    ::                   baIm
   , basicImageEllipseImageAlg ::                   baIm
+  , basicImagePolygonImageAlg :: [(sp, sp)]     -> baIm
   }
 
 :: CompositeImageAlg sp ho co coIm =
@@ -872,6 +892,13 @@ foldrCata cata xs :== foldr (\x xs -> [cata x:xs]) [] xs
 
 foldSetCata cata xs :== 'DS'.fold (\x rs -> 'DS'.insert (cata x) rs) 'DS'.newSet xs
 
+foldrOffsets spanAlgs lookupSpanAlgs xs
+  :== let f (l, r) xs
+            # synr = spanCata spanAlgs lookupSpanAlgs l
+            # synl = spanCata spanAlgs lookupSpanAlgs r
+            = [(synr, synl):xs]
+      in  foldr f [] xs
+
 imageCata allAlgs { Image | content, attribs, transform, tags }
   # synContent    = imageContentCata allAlgs content
   # synsAttribs   = foldrCata (imageAttrCata allAlgs.imageAttrAlgs) attribs
@@ -879,7 +906,7 @@ imageCata allAlgs { Image | content, attribs, transform, tags }
   = allAlgs.imageAlgs.imageAlg synContent synsAttribs synsTransform tags
 
 imageContentCata allAlgs (Basic bi is)
-  # synBasicImage = basicImageCata allAlgs.basicImageAlgs bi
+  # synBasicImage = basicImageCata allAlgs.basicImageAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs bi
   # synImageSpan  = imageSpanCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs is
   = allAlgs.imageContentAlgs.imageContentBasicAlg synBasicImage synImageSpan
 imageContentCata allAlgs (Composite ci)
@@ -910,12 +937,15 @@ imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (FitYImage sp)
   # synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = imageTransformAlgs.imageTransformFitYImageAlg synSpan
 
-basicImageCata basicImageAlgs EmptyImage         = basicImageAlgs.basicImageEmptyImageAlg
-basicImageCata basicImageAlgs (TextImage fd str) = basicImageAlgs.basicImageTextImageAlg fd str
-basicImageCata basicImageAlgs (LineImage sl)     = basicImageAlgs.basicImageLineImageAlg sl
-basicImageCata basicImageAlgs CircleImage        = basicImageAlgs.basicImageCircleImageAlg
-basicImageCata basicImageAlgs RectImage          = basicImageAlgs.basicImageRectImageAlg
-basicImageCata basicImageAlgs EllipseImage       = basicImageAlgs.basicImageEllipseImageAlg
+basicImageCata basicImageAlgs _ _ EmptyImage          = basicImageAlgs.basicImageEmptyImageAlg
+basicImageCata basicImageAlgs _ _ (TextImage fd str)  = basicImageAlgs.basicImageTextImageAlg fd str
+basicImageCata basicImageAlgs _ _ (LineImage sl)      = basicImageAlgs.basicImageLineImageAlg sl
+basicImageCata basicImageAlgs spanAlgs lookupSpanAlgs (PolygonImage offsets)
+  # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
+  = basicImageAlgs.basicImagePolygonImageAlg synsImageOffset
+basicImageCata basicImageAlgs _ _ CircleImage         = basicImageAlgs.basicImageCircleImageAlg
+basicImageCata basicImageAlgs _ _ RectImage           = basicImageAlgs.basicImageRectImageAlg
+basicImageCata basicImageAlgs _ _ EllipseImage        = basicImageAlgs.basicImageEllipseImageAlg
 
 imageSpanCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
   # synSpan1 = spanCata spanAlgs lookupSpanAlgs xspan
@@ -923,11 +953,7 @@ imageSpanCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
   = imageSpanAlgs.imageSpanAlg synSpan1 synSpan2
 
 compositeImageCata allAlgs { CompositeImage | offsets, host, compose }
-  # synsImageOffset = let f (l, r) xs
-                            # synr = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs l
-                            # synl = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs r
-                            = [(synr, synl):xs]
-                      in  foldr f [] offsets
+  # synsImageOffset = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
   # synHost         = fmap (imageCata allAlgs) host
   # synCompose      = composeCata allAlgs compose
   = allAlgs.compositeImageAlgs.compositeImageAlg synsImageOffset synHost synCompose
@@ -973,16 +999,16 @@ spanCata spanAlgs lookupSpanAlgs (MaxSpan sps)
 
 lookupCata lookupSpanAlgs (ColumnXSpan imts n)
   = lookupSpanAlgs.lookupSpanColumnXSpanAlg imts n
-lookupCata lookupSpanAlgs (DescentYSpan fd)
-  = lookupSpanAlgs.lookupSpanDescentYSpanAlg fd
-lookupCata lookupSpanAlgs (ExYSpan fd)
-  = lookupSpanAlgs.lookupSpanExYSpanAlg fd
+lookupCata lookupSpanAlgs (RowYSpan imts n)
+  = lookupSpanAlgs.lookupSpanRowYSpanAlg imts n
 lookupCata lookupSpanAlgs (ImageXSpan imts)
   = lookupSpanAlgs.lookupSpanImageXSpanAlg imts
 lookupCata lookupSpanAlgs (ImageYSpan imts)
   = lookupSpanAlgs.lookupSpanImageYSpanAlg imts
-lookupCata lookupSpanAlgs (RowYSpan imts n)
-  = lookupSpanAlgs.lookupSpanRowYSpanAlg imts n
+lookupCata lookupSpanAlgs (DescentYSpan fd)
+  = lookupSpanAlgs.lookupSpanDescentYSpanAlg fd
+lookupCata lookupSpanAlgs (ExYSpan fd)
+  = lookupSpanAlgs.lookupSpanExYSpanAlg fd
 lookupCata lookupSpanAlgs (TextXSpan fd str)
   = lookupSpanAlgs.lookupSpanTextXSpanAlg fd str
 
@@ -997,6 +1023,7 @@ appendSVG (GElt              htmlAttrs svgAttrs svgElts) parent world = appendSV
 appendSVG (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "image" htmlAttrs svgAttrs svgElts          world
 appendSVG (LinearGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "linearGradient" htmlAttrs svgAttrs svgElts world
 appendSVG (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "line" htmlAttrs svgAttrs []                world
+appendSVG (PolygonElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polygon" htmlAttrs svgAttrs []             world
 appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "rect" htmlAttrs svgAttrs []                world
 appendSVG (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "radialGradient" htmlAttrs svgAttrs svgElts world
 appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop" htmlAttrs svgAttrs []                world
