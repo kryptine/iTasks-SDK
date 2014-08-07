@@ -113,8 +113,8 @@ where
 /**
 * Overrule the title attribute with the title in the task meta data
 */
-autoAccuWorkOn :: UIDef TaskAttributes -> UIDef
-autoAccuWorkOn def attributes
+autoAccuWorkOn :: UIDef TIMeta -> UIDef
+autoAccuWorkOn def {TIMeta|attributes}
     # def = uiDefSetSize FlexSize FlexSize def
 	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('Data.Map'.get "title" attributes))
 
