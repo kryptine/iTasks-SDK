@@ -226,7 +226,7 @@ viewCleanEditor :: (Shared CodeMirror) -> Task CodeMirror
 viewCleanEditor mirror
     = viewSharedInformation () [ViewWith (\cm -> codeMirrorEditlet cm [])] mirror
 
-initCleanEditor :: Bool String -> CodeMirror
+initCleanEditor :: Bool [String] -> CodeMirror
 initCleanEditor mode content
 	=   { configuration = [ CMLineNumbers True
 						  , CMMode "haskell"
@@ -234,8 +234,8 @@ initCleanEditor mode content
 		 				  , CMReadOnly mode
 		 				  , CMAutofocus True
 						  ] 			// [CodeMirrorConfiguration]
-		 , position		= 0				// cursor position
-		 , selection 	= Nothing		//!Maybe (Int,Int)
+		 , position		= (0,0)			// cursor position
+		 , selection 	= Nothing		//!Maybe ((Int,Int),(Int,Int))
 		 , highlighted	= []
 		 , source		= content
 		 }

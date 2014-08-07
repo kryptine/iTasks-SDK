@@ -4,7 +4,7 @@ import iTasks
 import iTasks.API.Extensions.Development.Codebase
 import iTasks.API.Extensions.CodeMirror, StdFile
 import qualified Data.Map
-import Text
+import Text, System.OS
 
 import FindDefinitions
 import APIDocumentation
@@ -142,9 +142,9 @@ workOnCleanAuxModule :: ModuleName FilePath (SharedTaskList IDE_TaskResult) -> T
 workOnCleanAuxModule moduleName moduleBase list
     = viewInformation () [ViewWith moduleTitleView] moduleName
       ||-
-      (editIclFile moduleBase list
+      (editDclFile moduleBase list
        -&&-
-       editDclFile moduleBase list
+       editIclFile moduleBase list
         <<@ ArrangeWithTabs
       ) <<@ ArrangeWithSideBar 0 TopSide 35 False <<@ (Title moduleName) <<@ Icon "auxmodule"
     @! {IDE_ModuleEdit|moduleName=moduleName}
@@ -159,7 +159,7 @@ editDclFile moduleBase list
 
 editCleanFile :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
 editCleanFile path list = catchAll
-   (    importTextFile path
+   (    importTextFile path @ split OS_NEWLINE
    >>- \initContent ->
         withShared (initCleanEditor False initContent)
             \mirror -> updateCleanEditor (shareSearchResults path list mirror) @! ()
@@ -252,9 +252,9 @@ derive class iTask FoundInfo, SearchWhat
 
 getSelection :: CodeMirror -> Identifier
 getSelection {position,selection=Nothing,source} =  "nothing"
-getSelection {position,selection=Just (begin,end),source}
-    | begin == end =  "zero"
-    = source%(begin,end-1)
+getSelection {position,selection=Just ((beginline,beginchar),(endline,endchar)),source}
+    | beginline == endline && beginchar == endchar =  "zero"
+    = join OS_NEWLINE (take (endline - beginline) (drop beginline source)) //TODO, ALSO SELECT CHARS
 
 closableParTask :: (ParallelTask a) -> (ParallelTask a) | iTask a
 closableParTask task = task`
