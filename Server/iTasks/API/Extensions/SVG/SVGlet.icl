@@ -699,7 +699,7 @@ calcOffset mxsp mysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
   mkYAl AtMiddleY = (mysp / 2.0) - (imYSp / 2.0)
   mkYAl AtBottom  = mysp - imYSp
 
-calculateComposedSpan :: [(a, a)] [(a, a)] -> (a, a) | span a
+calculateComposedSpan :: [(a, a)] [(a, a)] -> (a, a) | IsSpan a
 calculateComposedSpan spans offs
   = foldr f (zero, zero) (zip2 (offs ++ repeatn (length spans) (zero, zero)) spans)
   where
