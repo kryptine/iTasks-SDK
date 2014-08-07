@@ -25,19 +25,4 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
 :: SVGletDiff s
   =  Redraw (Image s)
 
-:: ServerState =
-  { srvTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
-  }
-
-:: SrvSt a :== State ServerState a
-
-
-:: State s a :== s -> *(a, s)
-fixSpans :: (Image s) -> SrvSt (Image s, ImageSpan) | iTask s
-
-:: CachedSpan =
-  { cachedGridSpans :: Maybe [[ImageSpan]]
-  , cachedImageSpan :: Maybe ImageSpan
-  }
-
 svglet :: (Image s) -> Editlet (Image s) [SVGletDiff s] | iTask s

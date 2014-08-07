@@ -34,9 +34,11 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign, Set, CachedSpan, SVGletDiff, Deg, Rad
+  YAlign, Set, CachedSpan, SVGletDiff, Deg, Rad, LineImage, Markers,
+  LineContent
 
-derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad, Maybe
+derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
+  Maybe, LineContent, Slash
 
 :: ClientState s =
   { didInit         :: Bool
@@ -205,6 +207,9 @@ fixSpans img
     , imageTransformAlgs = fixSpansImageTransformAlgs
     , imageSpanAlgs      = fixSpansImageSpanAlgs
     , basicImageAlgs     = fixSpansBasicImageAlgs
+    , lineImageAlgs      = fixSpansLineImageAlgs
+    , markersAlgs        = fixSpansMarkersAlgs
+    , lineContentAlgs    = fixSpansLineContentAlgs
     , compositeImageAlgs = fixSpansCompositeImageAlgs
     , composeAlgs        = fixSpansComposeAlgs
     , spanAlgs           = fixSpansSpanAlgs
@@ -213,7 +218,7 @@ fixSpans img
   fixSpansImageAlgs :: ImageAlg ([ImageAttr s] [ImageTransform] (Set ImageTag) -> (SrvSt (ImageContent s, ImageSpan)))
                                 (SrvSt (ImageAttr s))
                                 (SrvSt ImageTransform)
-                                (SrvSt (Image s, ImageSpan))
+                                (SrvSt (Image s, ImageSpan)) | iTask s
   fixSpansImageAlgs =
     { imageAlg = mkImage
     }
@@ -221,7 +226,7 @@ fixSpans img
     mkImage :: ([ImageAttr s] [ImageTransform] (Set ImageTag) -> (SrvSt (ImageContent s, ImageSpan)))
                [SrvSt (ImageAttr s)]
                [SrvSt ImageTransform]
-               (Set ImageTag) -> SrvSt (Image s, ImageSpan)
+               (Set ImageTag) -> SrvSt (Image s, ImageSpan) | iTask s
     mkImage imCo imAts imTrs imTas = go
       where
       go st
@@ -234,19 +239,21 @@ fixSpans img
                                               (SrvSt ImageSpan)
                                               ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
                                               ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
+                                              ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
   fixSpansImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
+    , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
     where
     mkBasic :: (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
                (SrvSt ImageSpan)
                [ImageAttr s] [ImageTransform] (Set ImageTag) ->
-               SrvSt (ImageContent s, ImageSpan)
+               SrvSt (ImageContent s, ImageSpan) | iTask s
     mkBasic baIm imSp imAts imTrs imTas
       =        imSp `b`
       \imSp -> baIm imSp imAts imTrs imTas
-  fixSpansImageAttrAlgs :: ImageAttrAlg s (SrvSt (ImageAttr s))
+  fixSpansImageAttrAlgs :: ImageAttrAlg s (SrvSt (ImageAttr s)) | iTask s
   fixSpansImageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = ret o ImageStrokeAttr
     , imageAttrStrokeWidthAttrAlg   = ret o ImageStrokeWidthAttr
@@ -284,43 +291,78 @@ fixSpans img
       =         xspan `b`
       \xspan -> yspan `b`
       \yspan -> ret (xspan, yspan)
-  fixSpansBasicImageAlgs :: BasicImageAlg (SrvSt Span) (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
+  fixSpansBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
   fixSpansBasicImageAlgs =
     { basicImageEmptyImageAlg    = \       imSp _ imTrs imTas -> mkSpan EmptyImage            imSp imTrs imTas
     , basicImageTextImageAlg     = \fd str imSp _ imTrs imTas -> mkSpan (TextImage fd str)    imSp imTrs imTas
-    , basicImageLineImageAlg     = \sl     imSp _ imTrs imTas -> mkSpan (LineImage sl)        imSp imTrs imTas
-    , basicImagePolygonImageAlg  = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords -> mkSpan (PolygonImage coords)  imSp imTrs imTas
-    , basicImagePolylineImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords -> mkSpan (PolylineImage coords) imSp imTrs imTas
     , basicImageCircleImageAlg   = \       imSp _ imTrs imTas -> mkSpan CircleImage           imSp imTrs imTas
     , basicImageRectImageAlg     = \       imSp _ imTrs imTas -> mkSpan RectImage             imSp imTrs imTas
     , basicImageEllipseImageAlg  = \       imSp _ imTrs imTas -> mkSpan EllipseImage          imSp imTrs imTas
     }
     where
-    mkSpan :: BasicImage ImageSpan [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)
+    mkSpan :: BasicImage ImageSpan [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan) | iTask s
     mkSpan val imSp imTrs imTas = ret (Basic val imSp, applyTransforms imTrs imSp)
+
+  fixSpansLineImageAlgs :: LineImageAlg (SrvSt ImageSpan)
+                                        (SrvSt (Markers s, ImageSpan))
+                                        (SrvSt LineContent)
+                                        ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
+  fixSpansLineImageAlgs =
+    { lineImageLineImageAlg = mkLine
+    }
+    where
+    mkLine imSp mmarkers liCo imAts imTrs imTas
+      =            imSp `b`
+      \imSp     -> evalMaybe mmarkers `b`
+      \mmarkers -> liCo `b`
+      \liCo     -> ret (Line { LineImage
+                             | lineSpan    = imSp
+                             , markers     = justFst mmarkers
+                             , lineContent = liCo
+                             }, applyTransforms imTrs imSp)
+  fixSpansMarkersAlgs :: MarkersAlg (SrvSt (Image s, ImageSpan)) (SrvSt (Markers s, ImageSpan)) | iTask s
+  fixSpansMarkersAlgs =
+    { markersMarkersAlg = mkMarkers
+    }
+    where
+    mkMarkers mStart mMid mEnd
+      =          evalMaybe mStart `b`
+      \mStart -> evalMaybe mMid `b`
+      \mMid   -> evalMaybe mEnd `b`
+      \mEnd   -> ret ({ markerStart = justFst mStart
+                      , markerMid   = justFst mMid
+                      , markerEnd   = justFst mEnd
+                      }
+                     , (px 0.0, px 0.0))
+  fixSpansLineContentAlgs :: LineContentAlg (SrvSt Span) (SrvSt LineContent)
+  fixSpansLineContentAlgs =
+    { lineContentSimpleLineImageAlg = \sl     -> ret (SimpleLineImage sl)
+    , lineContentPolygonImageAlg    = \coords -> evalOffsets coords `b` \coords -> ret (PolygonImage coords)
+    , lineContentPolylineImageAlg   = \coords -> evalOffsets coords `b` \coords -> ret (PolylineImage coords)
+    }
   fixSpansCompositeImageAlgs :: CompositeImageAlg (SrvSt Span)
                                                   (SrvSt (Image s, ImageSpan))
                                                   ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
-                                                  ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
+                                                  ([ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
   fixSpansCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
     where
     mkCompositeImage offsets host compose imAts imTrs imTas st
       # (offsets, st) = evalOffsets offsets st
-      # (host, st)    = evalHost host st
+      # (host, st)    = evalMaybe host st
       # ((compose, composeSpan), st) = compose offsets host imTas st
       = case host of
           Just (hostImg, hostSpan) -> ret (Composite {CompositeImage | offsets = offsets, host = Just hostImg, compose = compose}, applyTransforms imTrs hostSpan) st
           _                        -> ret (Composite {CompositeImage | offsets = offsets, host = Nothing, compose = compose}, applyTransforms imTrs composeSpan) st
-  fixSpansComposeAlgs :: ComposeAlg (SrvSt (Image s, ImageSpan)) ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
+  fixSpansComposeAlgs :: ComposeAlg (SrvSt (Image s, ImageSpan)) ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)) | iTask s
   fixSpansComposeAlgs =
     { composeAsGridAlg    = mkGrid
     , composeAsCollageAlg = mkCollage
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: (Int, Int) [ImageAlign] [[SrvSt (Image s, ImageSpan)]] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)
+    mkGrid :: (Int, Int) [ImageAlign] [[SrvSt (Image s, ImageSpan)]] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
     mkGrid dims ias imgss offsets mbhost imTas = go
       where
       go st
@@ -335,14 +377,14 @@ fixSpans img
                               snd mbhost
         # st          = cacheGridSpans imTas ((map (\yspan -> map (\xspan -> (xspan, yspan)) xspans)) yspans) st
         = ret (AsGrid dims ias (map (map fst) imgss), (xsp, ysp)) st
-      f :: [SrvSt (Image s, ImageSpan)] *([[(Image s, ImageSpan)]], ServerState) -> *([[(Image s, ImageSpan)]], ServerState)
+      f :: [SrvSt (Image s, ImageSpan)] *([[(Image s, ImageSpan)]], ServerState) -> *([[(Image s, ImageSpan)]], ServerState) | iTask s
       f imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
-    mkCollage :: [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)
+    mkCollage :: [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
     mkCollage imgs offsets mbhost imTas
       =           sequence imgs `b`
       \imgsSps -> ret ( AsCollage (map fst imgsSps)
                       , maybe (calculateComposedSpan (map snd imgsSps) offsets) snd mbhost)
-    mkOverlay :: [ImageAlign] [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)
+    mkOverlay :: [ImageAlign] [SrvSt (Image s, ImageSpan)] [ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
     mkOverlay ias imgs offsets mbhost imTas = go
       where
       go st
@@ -400,6 +442,9 @@ fixSpans img
                       Just csp=:{cachedGridSpans=Just xss} -> f xss n
                       _                                    -> LookupSpan (c ts n))
 
+justFst (Just (x, _)) = Just x
+justFst _             = Nothing
+
 :: ImageSpanReal :== (Real, Real)
 
 :: ImageOffsetReal :== (Real, Real)
@@ -408,6 +453,9 @@ fixSpans img
 
 mkClipPathId :: String Int -> String
 mkClipPathId editletId uniqId = "clipPathId-" +++ editletId +++ toString uniqId
+
+mkMarkerId :: String Int -> String
+mkMarkerId editletId uniqId = "markerId-" +++ editletId +++ toString uniqId
 
 toSVG :: (Image s) -> ClSt s ToSVGSyn | iTask s
 toSVG img = \st -> imageCata toSVGAllAlgs img st
@@ -419,6 +467,9 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     , imageTransformAlgs = toSVGImageTransformAlgs
     , imageSpanAlgs      = toSVGImageSpanAlgs
     , basicImageAlgs     = toSVGBasicImageAlgs
+    , lineImageAlgs      = toSVGLineImageAlgs
+    , markersAlgs        = toSVGMarkersAlgs
+    , lineContentAlgs    = toSVGLineContentAlgs
     , compositeImageAlgs = toSVGCompositeImageAlgs
     , composeAlgs        = toSVGComposeAlgs
     , spanAlgs           = toSVGSpanAlgs
@@ -452,9 +503,11 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
   toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            (ClSt s ImageSpanReal)
                                            ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
+                                           ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
+    , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
     where
@@ -497,13 +550,10 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       =       sp1 `b`
       \sp1 -> sp2 `b`
       \sp2 -> ret (sp1, sp2)
-  toSVGBasicImageAlgs :: BasicImageAlg (ClSt s Real) (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+  toSVGBasicImageAlgs :: BasicImageAlg (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGBasicImageAlgs =
     { basicImageEmptyImageAlg    = mkEmptyImage
     , basicImageTextImageAlg     = mkTextImage
-    , basicImageLineImageAlg     = mkLineImage
-    , basicImagePolygonImageAlg  = mkPolygonImage
-    , basicImagePolylineImageAlg = mkPolylineImage
     , basicImageCircleImageAlg   = mkCircleImage
     , basicImageRectImageAlg     = mkRectImage
     , basicImageEllipseImageAlg  = mkEllipseImage
@@ -527,23 +577,6 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
                       , FontVariantAttr fd.fontvariant
                       , FontWeightAttr fd.fontweight
                       ]
-    mkLineImage :: Slash ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkLineImage sl (imXSp, imYSp) imAts imTrs imTas
-      = ret (LineElt [] (mkAttrs imAts imTrs ++ mkLineAttrs sl (imXSp, imYSp)), (imXSp, imYSp))
-      where
-      mkLineAttrs slash (xspan, yspan)
-        # (y1, y2) = case slash of
-                       Slash     -> (toString yspan, "0.0")
-                       Backslash -> ("0.0", toString yspan)
-        = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
-    mkPolygonImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkPolygonImage points (imXSp, imYSp) imAts imTrs imTas
-      =           evalOffsets points `b`
-      \offsets -> ret (PolygonElt [] [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs], (imXSp, imYSp))
-    mkPolylineImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkPolylineImage points (imXSp, imYSp) imAts imTrs imTas
-      =           evalOffsets points `b`
-      \offsets -> ret (PolylineElt [] [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs], (imXSp, imYSp))
     mkRectImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkRectImage imSp imAts imTrs imTas
       =      mkWH imSp `b`
@@ -560,6 +593,66 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
 
     mkWH :: ImageSpanReal -> ClSt s [HtmlAttr] | iTask s
     mkWH (imXSp, imYSp) = ret [WidthAttr (toString imXSp), HeightAttr (toString imYSp)]
+
+  // TODO Type signature
+  toSVGLineImageAlgs =
+    { lineImageLineImageAlg = mkLineImage
+    }
+    where
+    mkLineImage lineSpan mmarkers lineContent imAts imTrs imTas
+      =            lineSpan `b`
+      \lineSpan -> evalMaybe mmarkers `b`
+      \mmarkers -> lineContent lineSpan mmarkers imAts imTrs imTas
+
+  toSVGMarkersAlgs :: MarkersAlg (ClSt s ToSVGSyn) (ClSt s (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) | iTask s
+  toSVGMarkersAlgs =
+    { markersMarkersAlg = \m1 m2 m3 -> evalMaybe m1 `b`
+                          \m1 ->       evalMaybe m2 `b`
+                          \m2 ->       evalMaybe m3 `b`
+                          \m3 ->       ret (m1, m2, m3)
+    }
+  toSVGLineContentAlgs :: LineContentAlg (ClSt s Real)
+                                         (ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+  toSVGLineContentAlgs =
+    { lineContentSimpleLineImageAlg = mkLineImage
+    , lineContentPolygonImageAlg    = mkPolygonImage
+    , lineContentPolylineImageAlg   = mkPolylineImage
+    }
+    where
+    mkLineImage :: Slash ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkLineImage sl sp mmarkers imAts imTrs imTas
+      = mkLine LineElt (mkAttrs imAts imTrs ++ mkLineAttrs sl sp) sp mmarkers
+      where
+      mkLineAttrs slash (xspan, yspan)
+        # (y1, y2) = case slash of
+                       Slash     -> (toString yspan, "0.0")
+                       Backslash -> ("0.0", toString yspan)
+        = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
+    mkPolygonImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkPolygonImage points sp mmarkers imAts imTrs imTas
+      =           evalOffsets points `b`
+      \offsets -> mkLine PolygonElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs] sp mmarkers
+    mkPolylineImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkPolylineImage points sp mmarkers imAts imTrs imTas
+      =           evalOffsets points `b`
+      \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs] sp mmarkers
+
+    mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) (clval, world)
+      # st   = ({ clval & uniqueIdCounter = clval.uniqueIdCounter + 3 }, world)
+      # m1Id = mkMarkerId clval.editletId clval.uniqueIdCounter
+      # m2Id = mkMarkerId clval.editletId (clval.uniqueIdCounter + 1)
+      # m3Id = mkMarkerId clval.editletId (clval.uniqueIdCounter + 2)
+      # markersAndIds = [(m, i) \\ Just (m, i) <- [mkMarkerAndId mmStart m1Id MarkerStartAttr, mkMarkerAndId mmMid m2Id MarkerMidAttr, mkMarkerAndId mmEnd m3Id MarkerEndAttr]]
+      = ret ( GElt [] [] [constr [] (map snd markersAndIds ++ atts), DefsElt [] [] (map fst markersAndIds)]
+            , spans) st
+      where
+      // TODO Marker size etc?
+      mkMarkerAndId (Just (img, _)) mid posAttr = Just ( MarkerElt [IdAttr mid] [OrientAttr "auto"] [img]
+                                                       , posAttr ("url(#" +++ mid +++ ")"))
+      mkMarkerAndId _               _   _       = Nothing
+    mkLine constr atts spans _ st
+      = ret (constr [] atts, spans) st
+
   toSVGCompositeImageAlgs :: CompositeImageAlg (ClSt s Real)
                                                (ClSt s ToSVGSyn)
                                                ([ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
@@ -571,7 +664,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     // TODO Calculate transformed image spans
     mkCompositeImage offsets host compose imAts imTrs imTas
       =           evalOffsets offsets `b`
-      \offsets -> evalHost host `b`
+      \offsets -> evalMaybe host `b`
       \host    -> compose offsets host imAts imTrs imTas `b`
       \compose -> finishMkImage host compose
       where
@@ -656,10 +749,6 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
   toSVGLookupSpanAlgs :: LookupSpanAlg (ClSt s Real) | iTask s
   toSVGLookupSpanAlgs = evalSpanLookupSpanAlgs
 
-t val (clval, jsworld)
-  # jsworld = jsTrace val jsworld
-  = (clval, jsworld)
-
 applyRealTransforms :: [ImageTransform] ImageSpanReal -> ClSt s ImageSpanReal | iTask s
 applyRealTransforms ts (xspr, yspr) = go
   where
@@ -677,9 +766,9 @@ evalOffsets offsets st = foldr f ([], st) offsets
     # (sp2, st) = sp2 st
     = ([(sp1, sp2):xs], st)
 
-evalHost :: (Maybe (State .s a)) -> State .s (Maybe a)
-evalHost (Just x) = x `b` \x -> ret (Just x)
-evalHost _        = ret Nothing
+evalMaybe :: (Maybe (State .s a)) -> State .s (Maybe a)
+evalMaybe (Just x) = x `b` \x -> ret (Just x)
+evalMaybe _        = ret Nothing
 
 ret x :== \st -> (x, st)
 
@@ -772,13 +861,16 @@ reduceSpanNum op cons x y
               x`        -> cons x` y)
 
 
-:: Algebras m imCo imAt imTr im baIm imSp coIm imAn ho co sp loSp =
+:: Algebras m imCo imAt imTr im baIm imSp coIm imAn ho co sp loSp ma liIm liCo =
   { imageAlgs          :: ImageAlg imCo imAt imTr im
-  , imageContentAlgs   :: ImageContentAlg baIm imSp coIm imCo
+  , imageContentAlgs   :: ImageContentAlg baIm imSp liIm coIm imCo
   , imageAttrAlgs      :: ImageAttrAlg m imAt
   , imageTransformAlgs :: ImageTransformAlg imAn sp imTr
   , imageSpanAlgs      :: ImageSpanAlg sp imSp
-  , basicImageAlgs     :: BasicImageAlg sp baIm
+  , basicImageAlgs     :: BasicImageAlg baIm
+  , lineImageAlgs      :: LineImageAlg imSp ma liCo liIm
+  , markersAlgs        :: MarkersAlg im ma
+  , lineContentAlgs    :: LineContentAlg sp liCo
   , compositeImageAlgs :: CompositeImageAlg sp ho co coIm
   , composeAlgs        :: ComposeAlg im co
   , spanAlgs           :: SpanAlg loSp sp
@@ -789,8 +881,9 @@ reduceSpanNum op cons x y
   { imageAlg :: imCo [imAt] [imTr] (Set ImageTag) -> im
   }
 
-:: ImageContentAlg baIm imSp coIm imCo =
+:: ImageContentAlg baIm imSp liIm coIm imCo =
   { imageContentBasicAlg     :: baIm imSp -> imCo
+  , imageContentLineAlg      :: liIm      -> imCo
   , imageContentCompositeAlg :: coIm      -> imCo
   }
 
@@ -816,15 +909,26 @@ reduceSpanNum op cons x y
   { imageSpanAlg :: sp sp -> imSp
   }
 
-:: BasicImageAlg sp baIm =
-  { basicImageEmptyImageAlg    ::                   baIm
-  , basicImageTextImageAlg     :: FontDef String -> baIm
-  , basicImageLineImageAlg     :: Slash          -> baIm
-  , basicImageCircleImageAlg   ::                   baIm
-  , basicImageRectImageAlg     ::                   baIm
-  , basicImageEllipseImageAlg  ::                   baIm
-  , basicImagePolygonImageAlg  :: [(sp, sp)]     -> baIm
-  , basicImagePolylineImageAlg :: [(sp, sp)]     -> baIm
+:: BasicImageAlg baIm =
+  { basicImageEmptyImageAlg   ::                   baIm
+  , basicImageTextImageAlg    :: FontDef String -> baIm
+  , basicImageCircleImageAlg  ::                   baIm
+  , basicImageRectImageAlg    ::                   baIm
+  , basicImageEllipseImageAlg ::                   baIm
+  }
+
+:: LineImageAlg imSp ma liCo liIm =
+  { lineImageLineImageAlg :: imSp (Maybe ma) liCo -> liIm
+  }
+
+:: LineContentAlg sp liCo =
+  { lineContentSimpleLineImageAlg :: Slash      -> liCo
+  , lineContentPolygonImageAlg    :: [(sp, sp)] -> liCo
+  , lineContentPolylineImageAlg   :: [(sp, sp)] -> liCo
+  }
+
+:: MarkersAlg im ma =
+  { markersMarkersAlg :: (Maybe im) (Maybe im) (Maybe im) -> ma
   }
 
 :: CompositeImageAlg sp ho co coIm =
@@ -877,9 +981,12 @@ imageCata allAlgs { Image | content, attribs, transform, tags }
   = allAlgs.imageAlgs.imageAlg synContent synsAttribs synsTransform tags
 
 imageContentCata allAlgs (Basic bi is)
-  # synBasicImage = basicImageCata allAlgs.basicImageAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs bi
+  # synBasicImage = basicImageCata allAlgs.basicImageAlgs bi
   # synImageSpan  = imageSpanCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs is
   = allAlgs.imageContentAlgs.imageContentBasicAlg synBasicImage synImageSpan
+imageContentCata allAlgs (Line li)
+  # synLineImage = lineImageCata allAlgs li
+  = allAlgs.imageContentAlgs.imageContentLineAlg synLineImage
 imageContentCata allAlgs (Composite ci)
   # synCompositeImage = compositeImageCata allAlgs ci
   = allAlgs.imageContentAlgs.imageContentCompositeAlg synCompositeImage
@@ -908,18 +1015,32 @@ imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (FitYImage sp)
   # synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = imageTransformAlgs.imageTransformFitYImageAlg synSpan
 
-basicImageCata basicImageAlgs _ _ EmptyImage          = basicImageAlgs.basicImageEmptyImageAlg
-basicImageCata basicImageAlgs _ _ (TextImage fd str)  = basicImageAlgs.basicImageTextImageAlg fd str
-basicImageCata basicImageAlgs _ _ (LineImage sl)      = basicImageAlgs.basicImageLineImageAlg sl
-basicImageCata basicImageAlgs spanAlgs lookupSpanAlgs (PolygonImage offsets)
+basicImageCata basicImageAlgs EmptyImage         = basicImageAlgs.basicImageEmptyImageAlg
+basicImageCata basicImageAlgs (TextImage fd str) = basicImageAlgs.basicImageTextImageAlg fd str
+basicImageCata basicImageAlgs CircleImage        = basicImageAlgs.basicImageCircleImageAlg
+basicImageCata basicImageAlgs RectImage          = basicImageAlgs.basicImageRectImageAlg
+basicImageCata basicImageAlgs EllipseImage       = basicImageAlgs.basicImageEllipseImageAlg
+
+lineImageCata allAlgs { LineImage | lineSpan, markers, lineContent }
+  # synImageSpan   = imageSpanCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineSpan
+  # synMarkers     = fmap (markersCata allAlgs) markers
+  # synLineContent = lineContentCata allAlgs.lineContentAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineContent
+  = allAlgs.lineImageAlgs.lineImageLineImageAlg synImageSpan synMarkers synLineContent
+
+markersCata allAlgs { Markers | markerStart, markerMid, markerEnd }
+  # synStart = fmap (imageCata allAlgs) markerStart
+  # synMid   = fmap (imageCata allAlgs) markerMid
+  # synEnd   = fmap (imageCata allAlgs) markerEnd
+  = allAlgs.markersAlgs.markersMarkersAlg synStart synMid synEnd
+
+lineContentCata lineContentAlgs _ _ (SimpleLineImage sl)
+  = lineContentAlgs.lineContentSimpleLineImageAlg sl
+lineContentCata lineContentAlgs spanAlgs lookupSpanAlgs (PolygonImage offsets)
   # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
-  = basicImageAlgs.basicImagePolygonImageAlg synsImageOffset
-basicImageCata basicImageAlgs spanAlgs lookupSpanAlgs (PolylineImage offsets)
+  = lineContentAlgs.lineContentPolygonImageAlg synsImageOffset
+lineContentCata lineContentAlgs spanAlgs lookupSpanAlgs (PolylineImage offsets)
   # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
-  = basicImageAlgs.basicImagePolylineImageAlg synsImageOffset
-basicImageCata basicImageAlgs _ _ CircleImage         = basicImageAlgs.basicImageCircleImageAlg
-basicImageCata basicImageAlgs _ _ RectImage           = basicImageAlgs.basicImageRectImageAlg
-basicImageCata basicImageAlgs _ _ EllipseImage        = basicImageAlgs.basicImageEllipseImageAlg
+  = lineContentAlgs.lineContentPolylineImageAlg synsImageOffset
 
 imageSpanCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
   # synSpan1 = spanCata spanAlgs lookupSpanAlgs xspan
@@ -988,20 +1109,21 @@ lookupCata lookupSpanAlgs (TextXSpan fd str)
 
 
 appendSVG :: SVGElt (JSObj r) *JSWorld -> *(JSObj s, *JSWorld)
-appendSVG (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "svg" htmlAttrs svgAttrs svgElts            world
-appendSVG (ClipPathElt       htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "clipPath" htmlAttrs svgAttrs svgElts       world
-appendSVG (CircleElt         htmlAttrs svgAttrs        ) parent world = appendSVG` parent "circle" htmlAttrs svgAttrs []              world
-appendSVG (DefsElt           htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "defs" htmlAttrs svgAttrs svgElts           world
-appendSVG (EllipseElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "ellipse" htmlAttrs svgAttrs []             world
-appendSVG (GElt              htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "g" htmlAttrs svgAttrs svgElts              world
-appendSVG (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "image" htmlAttrs svgAttrs svgElts          world
+appendSVG (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "svg"            htmlAttrs svgAttrs svgElts world
+appendSVG (ClipPathElt       htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "clipPath"       htmlAttrs svgAttrs svgElts world
+appendSVG (CircleElt         htmlAttrs svgAttrs        ) parent world = appendSVG` parent "circle"         htmlAttrs svgAttrs []      world
+appendSVG (DefsElt           htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "defs"           htmlAttrs svgAttrs svgElts world
+appendSVG (EllipseElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "ellipse"        htmlAttrs svgAttrs []      world
+appendSVG (GElt              htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "g"              htmlAttrs svgAttrs svgElts world
+appendSVG (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "image"          htmlAttrs svgAttrs svgElts world
 appendSVG (LinearGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "linearGradient" htmlAttrs svgAttrs svgElts world
-appendSVG (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "line" htmlAttrs svgAttrs []                world
-appendSVG (PolygonElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polygon" htmlAttrs svgAttrs []             world
-appendSVG (PolylineElt       htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polyline" htmlAttrs svgAttrs []             world
-appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "rect" htmlAttrs svgAttrs []                world
+appendSVG (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "line"           htmlAttrs svgAttrs []      world
+appendSVG (MarkerElt         htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "marker"         htmlAttrs svgAttrs svgElts world
+appendSVG (PolygonElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polygon"        htmlAttrs svgAttrs []      world
+appendSVG (PolylineElt       htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polyline"       htmlAttrs svgAttrs []      world
+appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "rect"           htmlAttrs svgAttrs []      world
 appendSVG (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "radialGradient" htmlAttrs svgAttrs svgElts world
-appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop" htmlAttrs svgAttrs []                world
+appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop"           htmlAttrs svgAttrs []      world
 appendSVG (TextElt           htmlAttrs svgAttrs str    ) parent world
   # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
   # world         = setAttrs htmlAttrs elem world
