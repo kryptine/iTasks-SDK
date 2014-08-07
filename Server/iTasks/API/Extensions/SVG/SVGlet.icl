@@ -176,7 +176,6 @@ runM m st = m st
 
 sequence :: [.st -> .(a, .st)] -> (.st -> .([a], .st))
 sequence ms = \st -> mapSt id ms st
-import StdDebug
 
 addCachedSpan :: (CachedSpan -> CachedSpan) (Set ImageTag) ServerState -> ServerState
 addCachedSpan f imTas st=:{srvTaggedSpanEnv}
@@ -287,14 +286,14 @@ fixSpans img
       \yspan -> ret (xspan, yspan)
   fixSpansBasicImageAlgs :: BasicImageAlg (SrvSt Span) (ImageSpan [ImageAttr s] [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
   fixSpansBasicImageAlgs =
-    { basicImageEmptyImageAlg   = \       imSp _ imTrs imTas -> mkSpan EmptyImage            imSp imTrs imTas
-    , basicImageTextImageAlg    = \fd str imSp _ imTrs imTas -> mkSpan (TextImage fd str)    imSp imTrs imTas
-    , basicImageLineImageAlg    = \sl     imSp _ imTrs imTas -> mkSpan (LineImage sl)        imSp imTrs imTas
-    , basicImagePolygonImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords ->  mkSpan (PolygonImage coords) imSp imTrs imTas
-    , basicImagePolylineImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords ->  mkSpan (PolylineImage coords) imSp imTrs imTas
-    , basicImageCircleImageAlg  = \       imSp _ imTrs imTas -> mkSpan CircleImage           imSp imTrs imTas
-    , basicImageRectImageAlg    = \       imSp _ imTrs imTas -> mkSpan RectImage             imSp imTrs imTas
-    , basicImageEllipseImageAlg = \       imSp _ imTrs imTas -> mkSpan EllipseImage          imSp imTrs imTas
+    { basicImageEmptyImageAlg    = \       imSp _ imTrs imTas -> mkSpan EmptyImage            imSp imTrs imTas
+    , basicImageTextImageAlg     = \fd str imSp _ imTrs imTas -> mkSpan (TextImage fd str)    imSp imTrs imTas
+    , basicImageLineImageAlg     = \sl     imSp _ imTrs imTas -> mkSpan (LineImage sl)        imSp imTrs imTas
+    , basicImagePolygonImageAlg  = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords -> mkSpan (PolygonImage coords)  imSp imTrs imTas
+    , basicImagePolylineImageAlg = \coords imSp _ imTrs imTas -> evalOffsets coords `b` \coords -> mkSpan (PolylineImage coords) imSp imTrs imTas
+    , basicImageCircleImageAlg   = \       imSp _ imTrs imTas -> mkSpan CircleImage           imSp imTrs imTas
+    , basicImageRectImageAlg     = \       imSp _ imTrs imTas -> mkSpan RectImage             imSp imTrs imTas
+    , basicImageEllipseImageAlg  = \       imSp _ imTrs imTas -> mkSpan EllipseImage          imSp imTrs imTas
     }
     where
     mkSpan :: BasicImage ImageSpan [ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)
@@ -364,7 +363,7 @@ fixSpans img
     , spanDivSpanAlg    = \x y -> reduceSpanNum (/) DivSpan x y
     , spanAbsSpanAlg    = \x   -> mkAbs x
     , spanMinSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (minSpan xs)
-    , spanMaxSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (minSpan xs)
+    , spanMaxSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (maxSpan xs)
     }
   fixSpansLookupSpanAlgs :: LookupSpanAlg (SrvSt Span) // TODO : If we look something up, store it somewhere and update Span AST accordingly
   fixSpansLookupSpanAlgs =
@@ -380,12 +379,12 @@ fixSpans img
     lookupTags :: (Set ImageTag) -> SrvSt (Maybe CachedSpan)
     lookupTags ts
       | 'DS'.null ts = ret Nothing
-      | otherwise    = trace_n (toString ts) go
+      | otherwise    = go
       where
       go srv
-        = case 'DM'.elems ('DM'.filterWithKey (\k _ -> trace_n ("lookupTags k: " +++ toString k) 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
-            [x:_] -> trace_n ("fixSpans lookupTags HIT: " +++ toString x) (Just x, srv)
-            _     -> trace_n "fixSpans lookupTags NO HIT!!!"  (Nothing, srv)
+        = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
+            [x:_] -> (Just x, srv)
+            _     -> (Nothing, srv)
 
     mkImageSpan :: (ImageSpan -> Span) ((Set ImageTag) -> LookupSpan) (Set ImageTag) -> SrvSt Span
     mkImageSpan f c ts
@@ -398,47 +397,8 @@ fixSpans img
     mkImageGridSpan f c ts n
       =        lookupTags ts `b`
       \luts -> ret (case luts of
-                      Just csp=:{cachedGridSpans=Just xss} -> trace_n ("mkImageGridSpan Just " +++ toString csp) f xss n
-                      _                                    -> trace_n "mkImageGridSpan Nothing" LookupSpan (c ts n))
-                      //_                                    -> trace_n "mkImageGridSpan Nothing" (px 50.0))
-
-instance toString (Set a) | toString a where
-  toString ts = "(Set " +++ 'DS'.fold (\x acc -> toString x +++ " " +++ acc) "" ts +++ ")"
-
-instance toString ImageTag where
-  toString (ImageTagInt n)    = "(ImageTagInt " +++ toString n +++ ")"
-  toString (ImageTagString s) = "(ImageTagString " +++ s +++ ")"
-  toString (ImageTagSystem n) = "(ImageTagSystem " +++ toString n +++ ")"
-
-instance toString CachedSpan where
-  toString {cachedImageSpan, cachedGridSpans} = "(CachedSpan cachedImageSpan=(" +++ ppCIS +++ ") cachedGridSpans=(" +++ ppCGS +++ "))"
-    where
-    ppCIS = case cachedImageSpan of
-              Just (l, r) -> "Just (" +++ toString l +++ ", " +++ toString r +++ ")"
-              _           -> "Nothing"
-    ppCGS = case cachedGridSpans of
-              Just gsps -> foldr (\(l, r) acc -> toString l +++ ", " +++ toString r +++ " " +++ acc) "" (flatten gsps)
-              _         -> "Nothing"
-
-instance toString Span where
-  toString (PxSpan       n)   = "(PxSpan " +++ toString n +++ ")"
-  toString (LookupSpan   lu)  = "(LookupSpan " +++ toString lu +++" )"
-  toString (AddSpan      l r) = "(AddSpan " +++ toString l +++ " " +++ toString r +++ ")"
-  toString (SubSpan      l r) = "(SubSpan " +++ toString l +++ " " +++ toString r +++ ")"
-  toString (MulSpan      l r) = "(MulSpan " +++ toString l +++ " " +++ toString r +++ ")"
-  toString (DivSpan      l r) = "(DivSpan " +++ toString l +++ " " +++ toString r +++ ")"
-  toString (AbsSpan      sp)  = "(AbsSpan " +++ toString sp +++ ")"
-  toString (MinSpan      ss)  = "(MinSpan " +++ foldr (\x acc -> toString x +++ " " +++ acc) "" ss +++ ")"
-  toString (MaxSpan      ss)  = "(MaxSpan " +++ foldr (\x acc -> toString x +++ " " +++ acc) "" ss +++ ")"
-
-instance toString LookupSpan where
-  toString (ColumnXSpan  ts n)   = "(ColumnXSpan " +++ toString ts +++ " " +++ toString n +++ ")"
-  toString (RowYSpan     ts n)   = "(RowYSpan "    +++ toString ts +++ " " +++ toString n +++ ")"
-  toString (ImageXSpan   ts)     = "(ImageXSpan "  +++ toString ts +++ ")"
-  toString (ImageYSpan   ts)     = "(ImageYSpan "  +++ toString ts +++ ")"
-  toString (DescentYSpan fd)     = "(DescentYSpan)"
-  toString (ExYSpan      fd)     = "(ExYSpan)"
-  toString (TextXSpan    fd str) = "(TextXSpan "   +++ str +++ ")"
+                      Just csp=:{cachedGridSpans=Just xss} -> f xss n
+                      _                                    -> LookupSpan (c ts n))
 
 :: ImageSpanReal :== (Real, Real)
 
@@ -696,6 +656,10 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
   toSVGLookupSpanAlgs :: LookupSpanAlg (ClSt s Real) | iTask s
   toSVGLookupSpanAlgs = evalSpanLookupSpanAlgs
 
+t val (clval, jsworld)
+  # jsworld = jsTrace val jsworld
+  = (clval, jsworld)
+
 applyRealTransforms :: [ImageTransform] ImageSpanReal -> ClSt s ImageSpanReal | iTask s
 applyRealTransforms ts (xspr, yspr) = go
   where
@@ -771,12 +735,12 @@ evalSpanSpanAlgs =
 
 // We use aborts here, because they _should_ have been rewritten away...
 evalSpanLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg  = \ts n   st -> abort "ColumnXSpanAlg " // ret 10.0 st
-  , lookupSpanDescentYSpanAlg = \fd     st -> abort "DescentYSpanAlg" // ret 10.0 st // TODO Will we even use this?
+  { lookupSpanColumnXSpanAlg  = \ts n   st -> abort "ColumnXSpanAlg "
+  , lookupSpanDescentYSpanAlg = \fd     st -> abort "DescentYSpanAlg" // TODO Will we even use this?
   , lookupSpanExYSpanAlg      = mkExYSpan
-  , lookupSpanImageXSpanAlg   = \ts     st -> abort "ImageXSpanAlg  " // ret 10.0 st
-  , lookupSpanImageYSpanAlg   = \ts     st -> abort "ImageYSpanAlg  " // ret 10.0 st
-  , lookupSpanRowYSpanAlg     = \ts n   st -> abort "RowYSpanAlg    " // ret 10.0 st
+  , lookupSpanImageXSpanAlg   = \ts     st -> abort "ImageXSpanAlg  "
+  , lookupSpanImageYSpanAlg   = \ts     st -> abort "ImageYSpanAlg  "
+  , lookupSpanRowYSpanAlg     = \ts n   st -> abort "RowYSpanAlg    "
   , lookupSpanTextXSpanAlg    = getTextLength
   }
   where
