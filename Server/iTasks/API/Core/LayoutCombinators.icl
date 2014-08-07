@@ -24,9 +24,13 @@ autoLayoutRules
 */
 autoAccuInteract :: UIAttributes UIForm -> UIForm
 autoAccuInteract prompt editor
+    //If the prompt attributes contain a hint attribute create a prompt
+    # (prompt,pcontrols) = if (isJust ('Data.Map'.get HINT_ATTRIBUTE prompt))
+        ('Data.Map'.del HINT_ATTRIBUTE prompt,[(c,'Data.Map'.newMap) \\ c <-createPrompt prompt])
+        (prompt,[])
 	= {UIForm
 		| attributes = mergeAttributes prompt editor.UIForm.attributes
-		, controls = editor.UIForm.controls
+		, controls = pcontrols ++ editor.UIForm.controls
         , size = editor.UIForm.size
 		}
 
@@ -109,8 +113,8 @@ where
 /**
 * Overrule the title attribute with the title in the task meta data
 */
-autoAccuWorkOn :: UIDef TIMeta -> UIDef
-autoAccuWorkOn def meta=:{TIMeta|attributes}
+autoAccuWorkOn :: UIDef TaskAttributes -> UIDef
+autoAccuWorkOn def attributes
     # def = uiDefSetSize FlexSize FlexSize def
 	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('Data.Map'.get "title" attributes))
 
@@ -126,14 +130,14 @@ autoLayoutSubEditor {UIForm|attributes,controls}
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
 autoLayoutForm {UIForm|attributes,controls=[(c=:UIListChoice _ _ ,_)],size}
-    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
+    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (/*createPrompt attributes ++*/ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 autoLayoutForm {UIForm|attributes,controls=[(c=:UITree _ _ _ ,_)],size}
-    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
+    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (/*createPrompt attributes ++*/ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 autoLayoutForm {UIForm|attributes,controls=[(c=:UIGrid _ _ _ ,_)],size}
-    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes ++ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
+    = {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (/*createPrompt attributes ++*/ [fill c]) & direction=Vertical},actions=[],hotkeys=[],size=size}
 //General case
 autoLayoutForm {UIForm|attributes,controls,size}
-	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (createPrompt attributes++ decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
+	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (/*createPrompt attributes ++*/ decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
 
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: [(UIControl,UIAttributes)] -> [UIControl]
