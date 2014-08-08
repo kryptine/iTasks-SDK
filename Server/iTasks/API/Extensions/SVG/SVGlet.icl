@@ -34,21 +34,20 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign, Set, CachedSpan, SVGletDiff, Deg, Rad, LineImage, Markers,
+  YAlign, Set, CachedSpan, Deg, Rad, LineImage, Markers,
   LineContent
 
 derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
   Maybe, LineContent, Slash
 
 :: ClientState s =
-  { didInit         :: Bool
-  , didDraw         :: Bool
-  , textXSpanEnv    :: Map (FontDef, String) Real
+  { textXSpanEnv    :: Map (FontDef, String) Real
   , textYSpanEnv    :: Map FontDef (Real, Real)
   , uniqueIdCounter :: Int
-  , image           :: Maybe (Image s)
   , editletId       :: String
   , onclicks        :: Map String (s -> s)
+  , currState       :: s
+  , currImage       :: Maybe (Image s)
   }
 
 :: CachedSpan =
@@ -61,28 +60,29 @@ derive class iTask ClientState
 mainSvgId :: ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
-svglet :: (Image s) -> Editlet (Image s) [SVGletDiff s] | iTask s
-svglet origImg = let ((img`, imgSpan`), _) = fixSpans origImg {srvTaggedSpanEnv = 'DM'.newMap}
-                 in  Editlet img` server client
-where
+simpleSVGlet :: (Image ()) -> Editlet () ((), Image ())
+simpleSVGlet img = statefulSVGlet () (\_ -> img)
+
+statefulSVGlet :: s (s -> Image s) -> Editlet s (s, Image s) | iTask s
+statefulSVGlet origState state2Image = Editlet origState server client
+  where
   server
     = { EditletServerDef
       | genUI    = genUI
-      , defVal   = empty (px 0.0) (px 0.0)
+      , defVal   = gDefault{|*|}
       , genDiff  = genServerDiff
       , appDiff  = appServerDiff
       }
   client
     = { EditletClientDef
       | updateUI = updateUI
-      , defVal   = { didInit         = False
-                   , didDraw         = False
-                   , textXSpanEnv    = 'DM'.newMap
+      , defVal   = { textXSpanEnv    = 'DM'.newMap
                    , textYSpanEnv    = 'DM'.newMap
                    , onclicks        = 'DM'.newMap
                    , uniqueIdCounter = 0
-                   , image           = Nothing
                    , editletId       = ""
+                   , currState       = gDefault{|*|}
+                   , currImage       = Nothing
                    }
       , genDiff  = genClientDiff
       , appDiff  = appClientDiff
@@ -97,31 +97,29 @@ where
        , world
       )
 
-  updateUI cid diffs=:(Just [Redraw img:_]) clval=:{didInit = False} world
+  updateUI cid (Just (_, img)) clval world
+    # world = jsTrace "updateUI" world
     # ((img, (imXSp, imYSp)), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
     // TODO iterate over clval.onclicks and register those eventhandlers
-    # (svg, world)          = getDomElement (mainSvgId cid) world
-    # (_, world)            = (svg `setAttribute` ("height", imYSp)) world
-    # (_, world)            = (svg `setAttribute` ("width", imXSp)) world
-    # (_, world)            = (svg `setAttribute` ("viewBox", "0 0 " +++ toString imXSp +++ " " +++ toString imYSp)) world
-    # world                 = (svg .# "innerHTML" .= "") world
-    # (elem, world)         = appendSVG img svg world
+    # (svg, world)  = getDomElement (mainSvgId cid) world
+    # (_, world)    = (svg `setAttribute` ("height", imYSp)) world
+    # (_, world)    = (svg `setAttribute` ("width", imXSp)) world
+    # (_, world)    = (svg `setAttribute` ("viewBox", "0 0 " +++ toString imXSp +++ " " +++ toString imYSp)) world
+    # world         = (svg .# "innerHTML" .= "") world
+    # (elem, world) = appendSVG img svg world
     = (clval, world)
 
-  updateUI cid diffs clval world
-    # world = jsTrace "updateUI fallthrough" world
-    = (clval, world)
+  updateUI _ _ clval world = (clval, world)
 
-  genServerDiff x y
-    | x === y   = Nothing
-    | otherwise = Just [Redraw y]
-  appServerDiff [Redraw x:_] _ = x
+  genServerDiff _ y
+    # ((img, _), _) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap}
+    = Just (y, img)
+  appServerDiff (st, _) _ = st
 
   genClientDiff x y
-    | x.image === y.image = Nothing
-    | otherwise           = fmap (\img -> [Redraw img]) y.image
-  appClientDiff [Redraw x:_] clval = {clval & image = Just x}
-
+    | x.currState === y.currState = Nothing
+    | otherwise                   = Just (y.currState, state2Image y.currState)
+  appClientDiff (st, _) clval = {clval & currState = st}
 
 (`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
 (`createElementNS`)       obj args :== obj .# "createElementNS"       .$ args
@@ -658,8 +656,8 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       where
       // TODO Marker size etc?
       mkMarkerAndId (Just (img, (w, h))) mid posAttr = Just ( MarkerElt [IdAttr mid] [OrientAttr "auto", ViewBoxAttr "0" "0" (toString w) (toString h)] [img]
-                                                       , posAttr ("url(#" +++ mid +++ ")"))
-      mkMarkerAndId _               _   _       = Nothing
+                                                            , posAttr ("url(#" +++ mid +++ ")"))
+      mkMarkerAndId _                    _   _       = Nothing
     mkLine constr atts spans _ st
       = ret (constr [] atts, spans) st
 
@@ -671,7 +669,6 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     { compositeImageAlg = mkCompositeImage
     }
     where
-    // TODO Calculate transformed image spans
     mkCompositeImage offsets host compose imAts imTrs imTas
       =           evalOffsets offsets `b`
       \offsets -> evalMaybe host `b`

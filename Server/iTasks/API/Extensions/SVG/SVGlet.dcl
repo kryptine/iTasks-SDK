@@ -20,9 +20,8 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign, SVGletDiff
+  YAlign
 
-:: SVGletDiff s
-  =  Redraw (Image s)
+simpleSVGlet :: (Image ()) -> Editlet () ((), Image ())
 
-svglet :: (Image s) -> Editlet (Image s) [SVGletDiff s] | iTask s
+statefulSVGlet :: s (s -> Image s) -> Editlet s (s, Image s) | iTask s
