@@ -17,7 +17,7 @@ import iTasks.API.Core.Client.Component
 
 :: EditletServerDef sv cl d =
 	{	genUI		:: ComponentId *World -> *(!EditletHTML cl, !*World)
-	,	defVal		:: sv
+	,	defVal		:: sv // Neutral element of server state, e.g. [] for lists, Nothing for Maybe, etc. The first value of the Editlet constructor is diffed against this value first.
 	,	genDiff		:: sv sv -> Maybe d
 	,	appDiff		:: d  sv -> sv
 	}
