@@ -42,12 +42,10 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
 
 :: ClientState s =
   { textXSpanEnv    :: Map (FontDef, String) Real
-  , textYSpanEnv    :: Map FontDef (Real, Real)
   , uniqueIdCounter :: Int
   , editletId       :: String
   , onclicks        :: Map String (s -> s)
   , currState       :: s
-  , currImage       :: Maybe (Image s)
   }
 
 :: CachedSpan =
@@ -63,6 +61,19 @@ mainSvgId cid = cid +++ "-svg"
 simpleSVGlet :: (Image ()) -> Editlet () ((), Image ())
 simpleSVGlet img = statefulSVGlet () (\_ -> img)
 
+addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorld | iTask s
+addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
+  where
+  f elemCls sttf world
+    # (elems, world)    = (svg `getElementsByClassName` elemCls) world
+    # (numElems, world) = .? (elems .# "length") world
+    | jsValToInt (numElems) < 1 = world
+    # (elem, world)     = .? (elems .# "0") world
+    # cb                = createEditletEventHandler (mkCB sttf) cid
+    # (_, world)        = (elem `addEventListener` ("click", cb)) world
+    = world
+  mkCB sttf _ _ clval world = ({clval & currState = sttf clval.currState}, world)
+
 statefulSVGlet :: s (s -> Image s) -> Editlet s (s, Image s) | iTask s
 statefulSVGlet origState state2Image = Editlet origState server client
   where
@@ -77,12 +88,10 @@ statefulSVGlet origState state2Image = Editlet origState server client
     = { EditletClientDef
       | updateUI = updateUI
       , defVal   = { textXSpanEnv    = 'DM'.newMap
-                   , textYSpanEnv    = 'DM'.newMap
                    , onclicks        = 'DM'.newMap
                    , uniqueIdCounter = 0
                    , editletId       = ""
                    , currState       = gDefault{|*|}
-                   , currImage       = Nothing
                    }
       , genDiff  = genClientDiff
       , appDiff  = appClientDiff
@@ -98,7 +107,6 @@ statefulSVGlet origState state2Image = Editlet origState server client
       )
 
   updateUI cid (Just (_, img)) clval world
-    # world = jsTrace "updateUI" world
     # ((img, (imXSp, imYSp)), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
     // TODO iterate over clval.onclicks and register those eventhandlers
     # (svg, world)  = getDomElement (mainSvgId cid) world
@@ -107,6 +115,7 @@ statefulSVGlet origState state2Image = Editlet origState server client
     # (_, world)    = (svg `setAttribute` ("viewBox", "0 0 " +++ toString imXSp +++ " " +++ toString imYSp)) world
     # world         = (svg .# "innerHTML" .= "") world
     # (elem, world) = appendSVG img svg world
+    # world         = addOnclicks cid svg clval.onclicks world
     = (clval, world)
 
   updateUI _ _ clval world = (clval, world)
@@ -121,12 +130,14 @@ statefulSVGlet origState state2Image = Editlet origState server client
     | otherwise                   = Just (y.currState, state2Image y.currState)
   appClientDiff (st, _) clval = {clval & currState = st}
 
-(`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
-(`createElementNS`)       obj args :== obj .# "createElementNS"       .$ args
-(`appendChild`)           obj args :== obj .# "appendChild"           .$ args
-(`removeChild`)           obj args :== obj .# "removeChild"           .$ args
-(`getBBox`)               obj args :== obj .# "getBBox"               .$ args
-(`getComputedTextLength`) obj args :== obj .# "getComputedTextLength" .$ args
+(`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
+(`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
+(`setAttribute`)           obj args :== obj .# "setAttribute"           .$ args
+(`createElementNS`)        obj args :== obj .# "createElementNS"        .$ args
+(`appendChild`)            obj args :== obj .# "appendChild"            .$ args
+(`removeChild`)            obj args :== obj .# "removeChild"            .$ args
+(`getBBox`)                obj args :== obj .# "getBBox"                .$ args
+(`getComputedTextLength`)  obj args :== obj .# "getComputedTextLength"  .$ args
 
 getTextLength :: FontDef String *(St m) -> *(Real, *(St m)) | iTask m
 getTextLength fontdef str (clval, world)
@@ -456,6 +467,13 @@ mkMarkerId editletId uniqId = "markerId-" +++ editletId +++ toString uniqId
 mkOnClickId :: String Int -> String
 mkOnClickId editletId uniqId = "onClickId-" +++ editletId +++ toString uniqId
 
+
+getSvgAttrs :: [Either HtmlAttr SVGAttr] -> [SVGAttr]
+getSvgAttrs as = [a \\ Right a <- as]
+
+getHtmlAttrs :: [Either HtmlAttr SVGAttr] -> [HtmlAttr]
+getHtmlAttrs as = [a \\ Left a <- as]
+
 // TODO : Do the same trick as before; build up a new Image while traversing. This way, we have the possibility to fully reduce spans to PxSpan values.
 toSVG :: (Image s) -> ClSt s ToSVGSyn | iTask s
 toSVG img = \st -> imageCata toSVGAllAlgs img st
@@ -475,8 +493,8 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     , spanAlgs           = toSVGSpanAlgs
     , lookupSpanAlgs     = toSVGLookupSpanAlgs
     }
-  toSVGImageAlgs :: ImageAlg ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> (ClSt s ToSVGSyn))
-                             (ClSt s SVGAttr)
+  toSVGImageAlgs :: ImageAlg ([Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> (ClSt s ToSVGSyn))
+                             (ClSt s (Either HtmlAttr SVGAttr))
                              (ClSt s (SVGTransform, ImageTransform))
                              (ClSt s ToSVGSyn) | iTask s
   toSVGImageAlgs =
@@ -497,49 +515,50 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
         = ((img, sp), st)
       compensateRotation :: [(SVGTransform, ImageTransform)] ImageSpanReal -> Maybe ImageOffsetReal
       compensateRotation [(_, RotateImage angle):_] (xspr, yspr) = Just (snd (rotatedImageSpanAndOriginOffset angle (xspr, yspr))) // TODO Support multiple rotations
-      compensateRotation [_:xs]                     sp = compensateRotation xs sp
-      compensateRotation _                          _  = Nothing
+      compensateRotation [_:xs]                     sp           = compensateRotation xs sp
+      compensateRotation _                          _            = Nothing
 
-  toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
+  toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            (ClSt s ImageSpanReal)
-                                           ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
-                                           ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
-                                           ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+                                           ([Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
+                                           ([Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
+                                           ([Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
     where
-    mkBasic :: (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
+    mkBasic :: (ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                (ClSt s ImageSpanReal)
-               [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) ->
+               [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) ->
                ClSt s ToSVGSyn | iTask s
     mkBasic baIm imSp imAts imTrs imTas
       =        imSp `b`
       \imSp -> baIm imSp imAts imTrs imTas
-  toSVGImageAttrAlgs :: ImageAttrAlg s (ClSt s SVGAttr) | iTask s
+  toSVGImageAttrAlgs :: ImageAttrAlg s (ClSt s (Either HtmlAttr SVGAttr)) | iTask s
   toSVGImageAttrAlgs =
-    { imageAttrImageStrokeAttrAlg   = \attr -> ret (StrokeAttr (PaintColor attr.stroke Nothing))
+    { imageAttrImageStrokeAttrAlg   = \attr -> ret (Right (StrokeAttr (PaintColor attr.stroke Nothing)))
     , imageAttrStrokeWidthAttrAlg   = \attr -> mkStrokeWidth attr
-    , imageAttrStrokeOpacityAttrAlg = \attr -> ret (StrokeOpacityAttr (toString attr.opacity))
-    , imageAttrFillAttrAlg          = \attr -> ret (FillAttr (PaintColor attr.fill Nothing))
-    , imageAttrFillOpacityAttrAlg   = \attr -> ret (FillOpacityAttr (FillOpacity (toString attr.opacity)))
-    , imageAttrOnClickAttrAlg       = mkOnClick //\attr -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
+    , imageAttrStrokeOpacityAttrAlg = \attr -> ret (Right (StrokeOpacityAttr (toString attr.opacity)))
+    , imageAttrFillAttrAlg          = \attr -> ret (Right (FillAttr (PaintColor attr.fill Nothing)))
+    , imageAttrFillOpacityAttrAlg   = \attr -> ret (Right (FillOpacityAttr (FillOpacity (toString attr.opacity))))
+    , imageAttrOnClickAttrAlg       = mkOnClick
     }
     where
-    mkStrokeWidth :: (StrokeWidthAttr s) -> ClSt s SVGAttr | iTask s
+    mkStrokeWidth :: (StrokeWidthAttr s) -> ClSt s (Either HtmlAttr SVGAttr) | iTask s
     mkStrokeWidth {strokewidth}
       =     evalSpan strokewidth `b`
-      \w -> ret (StrokeWidthAttr (StrokeWidthLength (toString w, PX)))
-    mkOnClick :: (OnClickAttr s) -> ClSt s SVGAttr | iTask s
+      \w -> ret (Right (StrokeWidthAttr (StrokeWidthLength (toString w, PX))))
+    mkOnClick :: (OnClickAttr s) -> ClSt s (Either HtmlAttr SVGAttr) | iTask s
     mkOnClick {onclick} = go
       where
       go (clval, world)
         # uniqId = clval.uniqueIdCounter
+        # ocId   = mkOnClickId clval.editletId uniqId
         # st     = ({ clval & uniqueIdCounter = uniqId + 1
-                            , onclicks = 'DM'.put (mkOnClickId clval.editletId uniqId) onclick clval.onclicks}, world)
-        = ret (ExternalResourcesRequiredAttr False) st // FIXME Hack to make things compile and not crash
+                            , onclicks = 'DM'.put ocId onclick clval.onclicks}, world)
+        = ret (Left (ClassAttr ocId)) st
   toSVGImageTransformAlgs :: ImageTransformAlg Deg (ClSt s Real) (ClSt s (SVGTransform, ImageTransform)) | iTask s
   toSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    -> ret (RotateTransform (toString (toReal imAn)) Nothing, RotateImage imAn)
@@ -558,7 +577,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
       =       sp1 `b`
       \sp1 -> sp2 `b`
       \sp2 -> ret (sp1, sp2)
-  toSVGBasicImageAlgs :: BasicImageAlg (ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+  toSVGBasicImageAlgs :: BasicImageAlg (ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGBasicImageAlgs =
     { basicImageEmptyImageAlg    = mkEmptyImage
     , basicImageTextImageAlg     = mkTextImage
@@ -567,14 +586,14 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     , basicImageEllipseImageAlg  = mkEllipseImage
     }
     where
-    mkEmptyImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkEmptyImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkEmptyImage imSp imAts imTrs imTas
       =      mkWH imSp `b`
-      \wh -> ret (GElt wh (mkAttrs imAts imTrs) [], imSp)
-    mkTextImage :: FontDef String ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+      \wh -> ret (GElt (wh ++ getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs)) [], imSp)
+    mkTextImage :: FontDef String ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkTextImage fd str imSp imAts imTrs imTas
       =      evalSpan fd.fontyspan `b`
-      \sp -> ret (TextElt [] (mkAttrs imAts imTrs ++ fontAttrs sp) str, imSp)
+      \sp -> ret (TextElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs sp) str, imSp)
       where
       fontAttrs fsz = [ AlignmentBaselineAttr "text-before-edge"
                       , DominantBaselineAttr "text-before-edge"
@@ -585,19 +604,20 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
                       , FontVariantAttr fd.fontvariant
                       , FontWeightAttr fd.fontweight
                       ]
-    mkRectImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkRectImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkRectImage imSp imAts imTrs imTas
       =      mkWH imSp `b`
-      \wh -> ret (RectElt wh (mkAttrs imAts imTrs), imSp)
-    mkCircleImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+      \wh -> ret (RectElt (wh ++ getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs)), imSp)
+    mkCircleImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkCircleImage (imXSp, imYSp) imAts imTrs imTas
-      = ret ( CircleElt [] [ RAttr (toString r, PX), CxAttr (toString r, PX)
-            , CyAttr (toString r, PX) : (mkAttrs imAts imTrs) ], (imXSp, imYSp))
+      = ret ( CircleElt (getHtmlAttrs imAts) [ RAttr (toString r, PX), CxAttr (toString r, PX)
+            , CyAttr (toString r, PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ], (imXSp, imYSp))
       where r = imXSp / 2.0
-    mkEllipseImage :: ImageSpanReal [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkEllipseImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkEllipseImage (imXSp, imYSp) imAts imTrs imTas
-      = ret (EllipseElt [] (mkAttrs imAts imTrs ++ [ RxAttr (toString (imXSp / 2.0), PX), RyAttr (toString (imYSp / 2.0), PX)
-                                                   , CxAttr (toString (imXSp / 2.0), PX), CyAttr (toString (imYSp / 2.0), PX)]), (imXSp, imYSp))
+      = ret (EllipseElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++
+              [ RxAttr (toString (imXSp / 2.0), PX), RyAttr (toString (imYSp / 2.0), PX)
+              , CxAttr (toString (imXSp / 2.0), PX), CyAttr (toString (imYSp / 2.0), PX)]), (imXSp, imYSp))
 
     mkWH :: ImageSpanReal -> ClSt s [HtmlAttr] | iTask s
     mkWH (imXSp, imYSp) = ret [WidthAttr (toString imXSp), HeightAttr (toString imYSp)]
@@ -620,30 +640,30 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
                           \m3 ->       ret (m1, m2, m3)
     }
   toSVGLineContentAlgs :: LineContentAlg (ClSt s Real)
-                                         (ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+                                         (ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGLineContentAlgs =
     { lineContentSimpleLineImageAlg = mkLineImage
     , lineContentPolygonImageAlg    = mkPolygonImage
     , lineContentPolylineImageAlg   = mkPolylineImage
     }
     where
-    mkLineImage :: Slash ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkLineImage :: Slash ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkLineImage sl sp mmarkers imAts imTrs imTas
-      = mkLine LineElt (mkAttrs imAts imTrs ++ mkLineAttrs sl sp) sp mmarkers
+      = mkLine LineElt (getSvgAttrs (mkAttrs imAts imTrs) ++ mkLineAttrs sl sp) sp mmarkers
       where
       mkLineAttrs slash (xspan, yspan)
         # (y1, y2) = case slash of
                        Slash     -> (toString yspan, "0.0")
                        Backslash -> ("0.0", toString yspan)
         = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
-    mkPolygonImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkPolygonImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkPolygonImage points sp mmarkers imAts imTrs imTas
       =           evalOffsets points `b`
-      \offsets -> mkLine PolygonElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs] sp mmarkers
-    mkPolylineImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+      \offsets -> mkLine PolygonElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
+    mkPolylineImage :: [(ClSt s Real, ClSt s Real)] ImageSpanReal (Maybe (Maybe ToSVGSyn, Maybe ToSVGSyn, Maybe ToSVGSyn)) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkPolylineImage points sp mmarkers imAts imTrs imTas
       =           evalOffsets points `b`
-      \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : mkAttrs imAts imTrs] sp mmarkers
+      \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
 
     mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) (clval, world)
       # st   = ({ clval & uniqueIdCounter = clval.uniqueIdCounter + 3 }, world)
@@ -663,8 +683,8 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
 
   toSVGCompositeImageAlgs :: CompositeImageAlg (ClSt s Real)
                                                (ClSt s ToSVGSyn)
-                                               ([ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
-                                               ([SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
+                                               ([ImageOffsetReal] (Maybe ToSVGSyn) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
+                                               ([Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
@@ -680,22 +700,22 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
         # st            = ({ clval & uniqueIdCounter = uniqId + 1 }, world)
         # clipPathId    = mkClipPathId clval.editletId uniqId
         # (hostSps, st) = applyRealTransforms (map snd imTrs) hostSpans st
-        # g             = GElt [] (mkAttrs imAts imTrs) [
+        # g             = GElt [] (getSvgAttrs (mkAttrs imAts imTrs)) [
                             ClipPathElt [IdAttr clipPathId] [] [hostImg]
                           , GElt [StyleAttr ("clip-path: url(#" +++ clipPathId +++ ")")] [] [compose, hostImg]
                           ]
         = ret (g, hostSps) st
       finishMkImage _ (compose, composeSpans) st
         # (composeSpans, st) = applyRealTransforms (map snd imTrs) composeSpans st
-        = ret (GElt [] (mkAttrs imAts imTrs) [compose], composeSpans) st
-  toSVGComposeAlgs :: ComposeAlg (ClSt s ToSVGSyn) ([ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> (ClSt s ToSVGSyn)) | iTask s
+        = ret (GElt [] (getSvgAttrs (mkAttrs imAts imTrs)) [compose], composeSpans) st
+  toSVGComposeAlgs :: ComposeAlg (ClSt s ToSVGSyn) ([ImageOffsetReal] (Maybe ToSVGSyn) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> (ClSt s ToSVGSyn)) | iTask s
   toSVGComposeAlgs =
     { composeAsGridAlg    = mkGrid
     , composeAsCollageAlg = mkCollage
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: (Int, Int) [ImageAlign] [[ClSt s ToSVGSyn]] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkGrid :: (Int, Int) [ImageAlign] [[ClSt s ToSVGSyn]] [ImageOffsetReal] (Maybe ToSVGSyn) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkGrid dims aligns imgss offsets mbhost imAts imTrs imTas = go
       where
       go st
@@ -725,13 +745,13 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
 
       seqImgsGrid :: [ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
       seqImgsGrid imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
-    mkCollage :: [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkCollage :: [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkCollage imgs offsets mbhost imAts imTrs imTas
       =           sequence imgs `b`
       \imgsSps -> zipWithSt mkTranslateGroup offsets imgsSps `b`
       \trimgs  -> ret ( GElt [] [] (map fst trimgs)
                       , maybe (calculateComposedSpan (map snd imgsSps) offsets) snd mbhost)
-    mkOverlay :: [ImageAlign] [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
+    mkOverlay :: [ImageAlign] [ClSt s ToSVGSyn] [ImageOffsetReal] (Maybe ToSVGSyn) [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkOverlay aligns imgs offsets mbhost imAts imTrs imTas = go
       where
       go st
@@ -781,9 +801,9 @@ ret x :== \st -> (x, st)
 
 (`b`) f g :== \st0 -> let (r,st1) = f st0 in g r st1
 
-mkAttrs :: [SVGAttr] [(SVGTransform, ImageTransform)] -> [SVGAttr]
+mkAttrs :: [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] -> [Either HtmlAttr SVGAttr]
 mkAttrs imAts [] = imAts
-mkAttrs imAts xs = [TransformAttr (map fst xs):imAts]
+mkAttrs imAts xs = [Right (TransformAttr (map fst xs)):imAts]
 
 calcOffset :: Real Real ImageSpanReal ImageAlign -> ImageOffsetReal
 calcOffset mxsp mysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
@@ -806,11 +826,11 @@ calculateComposedSpan spans offs
 
 mkTranslateGroup :: ImageOffsetReal ToSVGSyn -> ClSt s ToSVGSyn | iTask s
 mkTranslateGroup (xoff, yoff) (contents, imSp)
-  = ret (GElt [] (mkTranslateAttr (xoff, yoff)) [contents], imSp)
+  = ret (GElt [] (getSvgAttrs (mkTranslateAttr (xoff, yoff))) [contents], imSp)
   where
-  mkTranslateAttr :: (Real, Real) -> [SVGAttr]
+  mkTranslateAttr :: (Real, Real) -> [Either HtmlAttr SVGAttr]
   mkTranslateAttr (0.0,   0.0)   = []
-  mkTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
+  mkTranslateAttr (xGOff, yGOff) = [Right (TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)])]
 
 undef = undef
 
