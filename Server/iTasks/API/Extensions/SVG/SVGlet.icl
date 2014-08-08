@@ -48,6 +48,7 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
   , uniqueIdCounter :: Int
   , image           :: Maybe (Image s)
   , editletId       :: String
+  , onclicks        :: Map String (s -> s)
   }
 
 :: CachedSpan =
@@ -78,6 +79,7 @@ where
                    , didDraw         = False
                    , textXSpanEnv    = 'DM'.newMap
                    , textYSpanEnv    = 'DM'.newMap
+                   , onclicks        = 'DM'.newMap
                    , uniqueIdCounter = 0
                    , image           = Nothing
                    , editletId       = ""
@@ -96,16 +98,12 @@ where
       )
 
   updateUI cid diffs=:(Just [Redraw img:_]) clval=:{didInit = False} world
-    //# world = jsTrace "updateUI False" world
-    //# world = jsTrace diffs world
-    //= ({clval & didInit = True, image = Just img}, world)
-
-  //updateUI cid diffs clval=:{didInit = True, image = Just img} world
-    //# world = jsTrace "updateUI True" world
-    # ((img, (imXSp, imYSp)), (_, world))     = toSVG img ({clval & editletId = cid}, world)
+    # ((img, (imXSp, imYSp)), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
+    // TODO iterate over clval.onclicks and register those eventhandlers
     # (svg, world)          = getDomElement (mainSvgId cid) world
     # (_, world)            = (svg `setAttribute` ("height", imYSp)) world
     # (_, world)            = (svg `setAttribute` ("width", imXSp)) world
+    # (_, world)            = (svg `setAttribute` ("viewBox", "0 0 " +++ toString imXSp +++ " " +++ toString imYSp)) world
     # world                 = (svg .# "innerHTML" .= "") world
     # (elem, world)         = appendSVG img svg world
     = (clval, world)
@@ -407,7 +405,7 @@ fixSpans img
     , spanMinSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (minSpan xs)
     , spanMaxSpanAlg    = \xs  -> sequence xs `b` \xs -> ret (maxSpan xs)
     }
-  fixSpansLookupSpanAlgs :: LookupSpanAlg (SrvSt Span) // TODO : If we look something up, store it somewhere and update Span AST accordingly
+  fixSpansLookupSpanAlgs :: LookupSpanAlg (SrvSt Span)
   fixSpansLookupSpanAlgs =
     { lookupSpanColumnXSpanAlg  = mkImageGridSpan (\xss n -> maxSpan (map fst (transpose xss !! n))) ColumnXSpan
     , lookupSpanRowYSpanAlg     = mkImageGridSpan (\xss n -> maxSpan (map snd (xss !! n))) RowYSpan
@@ -457,6 +455,10 @@ mkClipPathId editletId uniqId = "clipPathId-" +++ editletId +++ toString uniqId
 mkMarkerId :: String Int -> String
 mkMarkerId editletId uniqId = "markerId-" +++ editletId +++ toString uniqId
 
+mkOnClickId :: String Int -> String
+mkOnClickId editletId uniqId = "onClickId-" +++ editletId +++ toString uniqId
+
+// TODO : Do the same trick as before; build up a new Image while traversing. This way, we have the possibility to fully reduce spans to PxSpan values.
 toSVG :: (Image s) -> ClSt s ToSVGSyn | iTask s
 toSVG img = \st -> imageCata toSVGAllAlgs img st
   where
@@ -525,13 +527,21 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
     , imageAttrStrokeOpacityAttrAlg = \attr -> ret (StrokeOpacityAttr (toString attr.opacity))
     , imageAttrFillAttrAlg          = \attr -> ret (FillAttr (PaintColor attr.fill Nothing))
     , imageAttrFillOpacityAttrAlg   = \attr -> ret (FillOpacityAttr (FillOpacity (toString attr.opacity)))
-    , imageAttrOnClickAttrAlg       = \attr -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
+    , imageAttrOnClickAttrAlg       = mkOnClick //\attr -> abort "imageAttrOnClickAttrAlg" // (("onclick", "TODO How?"), st) // TODO
     }
     where
     mkStrokeWidth :: (StrokeWidthAttr s) -> ClSt s SVGAttr | iTask s
-    mkStrokeWidth attr
-      =     evalSpan attr.strokewidth `b`
+    mkStrokeWidth {strokewidth}
+      =     evalSpan strokewidth `b`
       \w -> ret (StrokeWidthAttr (StrokeWidthLength (toString w, PX)))
+    mkOnClick :: (OnClickAttr s) -> ClSt s SVGAttr | iTask s
+    mkOnClick {onclick} = go
+      where
+      go (clval, world)
+        # uniqId = clval.uniqueIdCounter
+        # st     = ({ clval & uniqueIdCounter = uniqId + 1
+                            , onclicks = 'DM'.put (mkOnClickId clval.editletId uniqId) onclick clval.onclicks}, world)
+        = ret (ExternalResourcesRequiredAttr False) st // FIXME Hack to make things compile and not crash
   toSVGImageTransformAlgs :: ImageTransformAlg Deg (ClSt s Real) (ClSt s (SVGTransform, ImageTransform)) | iTask s
   toSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    -> ret (RotateTransform (toString (toReal imAn)) Nothing, RotateImage imAn)
@@ -647,7 +657,7 @@ toSVG img = \st -> imageCata toSVGAllAlgs img st
             , spans) st
       where
       // TODO Marker size etc?
-      mkMarkerAndId (Just (img, _)) mid posAttr = Just ( MarkerElt [IdAttr mid] [OrientAttr "auto"] [img]
+      mkMarkerAndId (Just (img, (w, h))) mid posAttr = Just ( MarkerElt [IdAttr mid] [OrientAttr "auto", ViewBoxAttr "0" "0" (toString w) (toString h)] [img]
                                                        , posAttr ("url(#" +++ mid +++ ")"))
       mkMarkerAndId _               _   _       = Nothing
     mkLine constr atts spans _ st
