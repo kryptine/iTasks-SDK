@@ -51,6 +51,7 @@ currentTopTask			:: ReadOnlyShared TaskId
 
 //Task instances
 allTaskInstances        :: ROShared Void [TaskInstance]
+detachedTaskInstances	:: ROShared Void [TaskInstance] //Exclude sessions
 taskInstanceByNo        :: RWShared InstanceNo TaskInstance TaskAttributes
 
 // Application

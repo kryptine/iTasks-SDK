@@ -88,6 +88,14 @@ allTaskInstances
 where
     readTIItems is = Ok (map taskInstanceFromTIMeta is)
 
+detachedTaskInstances :: ROShared Void [TaskInstance]
+detachedTaskInstances
+    = toReadOnly
+      (sdsProject (SDSLensRead readTIItems) SDSNoWrite
+       (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Just False} filteredInstanceMeta))
+where
+    readTIItems is = Ok (map taskInstanceFromTIMeta is)
+
 taskInstanceByNo :: RWShared InstanceNo TaskInstance TaskAttributes
 taskInstanceByNo
     = sdsProject (SDSLensRead readTIItem) (SDSLensWrite writeTIItem)
