@@ -107,7 +107,7 @@ function _cos(a){
     return Math.cos(Sapl.feval(a));
 }	
 
-function _tan(a){
+function __tan(a){
     return Math.tan(Sapl.feval(a));
 }	
 
@@ -416,3 +416,10 @@ function __getRunTimeDynamicDescriptor(a){
 	}
 }
 
+function __Text_Encodings_Base64_base64URLEncode(a) {
+  return window.btoa(Sapl.feval(a));
+}
+
+function __Text_Encodings_Base64_base64URLDecode(a) {
+  return window.atob(Sapl.feval(a));
+}
