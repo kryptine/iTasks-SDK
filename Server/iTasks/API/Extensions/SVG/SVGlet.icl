@@ -64,6 +64,7 @@ simpleSVGlet img = statefulSVGlet () (\_ -> img)
 addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorld | iTask s
 addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
   where
+  f :: String (s -> s) *JSWorld -> *JSWorld | iTask s
   f elemCls sttf world
     # (elems, world)    = (svg `getElementsByClassName` elemCls) world
     # (numElems, world) = .? (elems .# "length") world
@@ -72,6 +73,7 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
     # cb                = createEditletEventHandler (mkCB sttf) cid
     # (_, world)        = (elem `addEventListener` ("click", cb)) world
     = world
+  mkCB :: (s -> s) String {JSObj JSEvent} (ClientState s) *JSWorld -> *(ClientState s, *JSWorld) | iTask s
   mkCB sttf _ _ clval world = ({clval & currState = sttf clval.currState}, world)
 
 statefulSVGlet :: s (s -> Image s) -> Editlet s (s, Image s) | iTask s
@@ -79,10 +81,10 @@ statefulSVGlet origState state2Image = Editlet origState server client
   where
   server
     = { EditletServerDef
-      | genUI    = genUI
-      , defVal   = gDefault{|*|}
-      , genDiff  = genServerDiff
-      , appDiff  = appServerDiff
+      | genUI   = genUI
+      , defVal  = gDefault{|*|}
+      , genDiff = genServerDiff
+      , appDiff = appServerDiff
       }
   client
     = { EditletClientDef
@@ -107,6 +109,7 @@ statefulSVGlet origState state2Image = Editlet origState server client
       )
 
   updateUI cid (Just (_, img)) clval world
+    // TODO : Apply state2Image to the new state, then grab the onclick functions from the new image and use those.
     # ((img, (imXSp, imYSp)), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
     // TODO iterate over clval.onclicks and register those eventhandlers
     # (svg, world)  = getDomElement (mainSvgId cid) world
