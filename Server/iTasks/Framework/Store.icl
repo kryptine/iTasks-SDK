@@ -21,7 +21,7 @@ instance toString StoreReadError
 where
     toString StoreReadMissingError         = "Store not found"
     toString StoreReadDataError            = "Failed to read store data"
-    toString StoreReadTypeError            = "Stored data is is of incorrect type"
+    toString StoreReadTypeError            = "Stored data is of incorrect type"
     toString StoreReadBuildVersionError    = "Stored data contains functions from an older executable that can no longer be evaluated"
 
 safeName :: !String -> String
