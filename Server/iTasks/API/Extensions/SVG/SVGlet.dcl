@@ -22,6 +22,6 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign
 
-simpleSVGlet :: (Image ()) -> Editlet () ((), Image ())
+simpleSVGlet :: !(Image ()) -> Editlet () ((), Image ())
 
-statefulSVGlet :: s (s -> Image s) -> Editlet s (s, Image s) | iTask s
+statefulSVGlet :: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
