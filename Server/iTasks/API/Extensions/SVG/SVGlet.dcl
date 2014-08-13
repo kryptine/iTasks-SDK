@@ -20,7 +20,7 @@ derive gUpdate    Image, SVGColor
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign
+  YAlign, XRadiusAttr, YRadiusAttr
 
 simpleSVGlet :: !(Image ()) -> Editlet () ((), Image ())
 

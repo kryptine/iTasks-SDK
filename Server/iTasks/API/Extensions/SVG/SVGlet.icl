@@ -37,7 +37,7 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, Set, CachedSpan, Deg, Rad, LineImage, Markers,
-  LineContent
+  LineContent, XRadiusAttr, YRadiusAttr
 
 derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
   Maybe, LineContent, Slash
@@ -267,6 +267,8 @@ fixSpans img
   fixSpansImageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = ret o ImageStrokeAttr
     , imageAttrStrokeWidthAttrAlg   = ret o ImageStrokeWidthAttr
+    , imageAttrXRadiusAttrAlg       = ret o ImageXRadiusAttr
+    , imageAttrYRadiusAttrAlg       = ret o ImageYRadiusAttr
     , imageAttrStrokeOpacityAttrAlg = ret o ImageStrokeOpacityAttr
     , imageAttrFillAttrAlg          = ret o ImageFillAttr
     , imageAttrFillOpacityAttrAlg   = ret o ImageFillOpacityAttr
@@ -577,6 +579,8 @@ toSVG img = imageCata toSVGAllAlgs img
   toSVGImageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = \attr -> ret (Right (StrokeAttr (PaintColor attr.stroke Nothing)))
     , imageAttrStrokeWidthAttrAlg   = \attr -> mkStrokeWidth attr
+    , imageAttrXRadiusAttrAlg       = \attr -> evalSpan attr.xradius `b` \r -> ret (Right (RxAttr (toString r, PX)))
+    , imageAttrYRadiusAttrAlg       = \attr -> evalSpan attr.yradius `b` \r -> ret (Right (RyAttr (toString r, PX)))
     , imageAttrStrokeOpacityAttrAlg = \attr -> ret (Right (StrokeOpacityAttr (toString attr.opacity)))
     , imageAttrFillAttrAlg          = \attr -> ret (Right (FillAttr (PaintColor attr.fill Nothing)))
     , imageAttrFillOpacityAttrAlg   = \attr -> ret (Right (FillOpacityAttr (FillOpacity (toString attr.opacity))))
@@ -936,6 +940,8 @@ mkList f xs = sequence xs `b` \xs -> ret (f xs)
 :: ImageAttrAlg m imAt =
   { imageAttrImageStrokeAttrAlg   :: (StrokeAttr m)      -> imAt
   , imageAttrStrokeWidthAttrAlg   :: (StrokeWidthAttr m) -> imAt
+  , imageAttrXRadiusAttrAlg       :: (XRadiusAttr m)     -> imAt
+  , imageAttrYRadiusAttrAlg       :: (YRadiusAttr m)     -> imAt
   , imageAttrStrokeOpacityAttrAlg :: (OpacityAttr m)     -> imAt
   , imageAttrFillAttrAlg          :: (FillAttr m)        -> imAt
   , imageAttrFillOpacityAttrAlg   :: (OpacityAttr m)     -> imAt
@@ -1039,6 +1045,8 @@ imageContentCata allAlgs (Composite ci)
 
 imageAttrCata imageAttrAlgs (ImageStrokeAttr sa)         = imageAttrAlgs.imageAttrImageStrokeAttrAlg sa
 imageAttrCata imageAttrAlgs (ImageStrokeWidthAttr swa)   = imageAttrAlgs.imageAttrStrokeWidthAttrAlg swa
+imageAttrCata imageAttrAlgs (ImageXRadiusAttr r)         = imageAttrAlgs.imageAttrXRadiusAttrAlg r
+imageAttrCata imageAttrAlgs (ImageYRadiusAttr r)         = imageAttrAlgs.imageAttrYRadiusAttrAlg r
 imageAttrCata imageAttrAlgs (ImageStrokeOpacityAttr swa) = imageAttrAlgs.imageAttrStrokeOpacityAttrAlg swa
 imageAttrCata imageAttrAlgs (ImageFillAttr fa)           = imageAttrAlgs.imageAttrFillAttrAlg fa
 imageAttrCata imageAttrAlgs (ImageFillOpacityAttr swa)   = imageAttrAlgs.imageAttrFillOpacityAttrAlg swa
