@@ -114,7 +114,7 @@ svgRenderer origState state2Image = Editlet origState server client
     # (_, world)    = (svg `setAttribute` ("width", toInt imXSp)) world
     # (_, world)    = (svg `setAttribute` ("viewBox", "0 0 " +++ toString (toInt imXSp) +++ " " +++ toString (toInt imYSp))) world
     # world         = (svg .# "innerHTML" .= "") world
-    # (elem, world) = appendSVG imgs svg world
+    # (elem, world) = appendSVG (GElt [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))] [] imgs) svg world
     # world         = addOnclicks cid svg clval.onclicks world
     = (clval, world)
 
@@ -569,9 +569,7 @@ toSVG img = imageCata toSVGAllAlgs img
         # (m4, st) = m4 st
         # marginXSpan = xsp + m2 + m4
         # marginYSpan = ysp + m1 + m3
-        = (([GElt [WidthAttr (toString (toInt marginXSpan)), HeightAttr (toString (toInt marginYSpan))] []
-              (if (m1 == 0.0 && m2 == 0.0) img (mkGroup [] (mkTransformTranslateAttr m1 m2) img))
-            ], (marginXSpan, marginYSpan)), st)
+        = ((mkGroup [] (mkTransformTranslateAttr m1 m2) img, (marginXSpan, marginYSpan)), st)
       compensateRotation :: [(SVGTransform, ImageTransform)] ImageSpanReal -> Maybe ImageOffsetReal
       compensateRotation [(_, RotateImage angle):_] (xspr, yspr) = Just (snd (rotatedImageSpanAndOriginOffset angle (xspr, yspr))) // TODO Support multiple rotations
       compensateRotation [_:xs]                     sp           = compensateRotation xs sp
@@ -1204,38 +1202,34 @@ lookupCata lookupSpanAlgs (TextXSpan fd str)
   = lookupSpanAlgs.lookupSpanTextXSpanAlg fd str
 
 
-appendSVG :: [SVGElt] (JSObj r) *JSWorld -> *(JSObj r, *JSWorld)
-appendSVG []    parent world = (parent, world)
-appendSVG [x:_] parent world = appendSVG` x parent world
-
-appendSVG` :: SVGElt (JSObj r) *JSWorld -> *(JSObj s, *JSWorld)
-appendSVG` (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "svg"            htmlAttrs svgAttrs svgElts world
-appendSVG` (ClipPathElt       htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "clipPath"       htmlAttrs svgAttrs svgElts world
-appendSVG` (CircleElt         htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "circle"         htmlAttrs svgAttrs []      world
-appendSVG` (DefsElt           htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "defs"           htmlAttrs svgAttrs svgElts world
-appendSVG` (EllipseElt        htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "ellipse"        htmlAttrs svgAttrs []      world
-appendSVG` (GElt              htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "g"              htmlAttrs svgAttrs svgElts world
-appendSVG` (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "image"          htmlAttrs svgAttrs svgElts world
-appendSVG` (LinearGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "linearGradient" htmlAttrs svgAttrs svgElts world
-appendSVG` (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "line"           htmlAttrs svgAttrs []      world
-appendSVG` (MarkerElt         htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "marker"         htmlAttrs svgAttrs svgElts world
-appendSVG` (PolygonElt        htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "polygon"        htmlAttrs svgAttrs []      world
-appendSVG` (PolylineElt       htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "polyline"       htmlAttrs svgAttrs []      world
-appendSVG` (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "rect"           htmlAttrs svgAttrs []      world
-appendSVG` (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG`` parent "radialGradient" htmlAttrs svgAttrs svgElts world
-appendSVG` (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG`` parent "stop"           htmlAttrs svgAttrs []      world
-appendSVG` (TextElt           htmlAttrs svgAttrs str    ) parent world
+appendSVG :: SVGElt (JSObj r) *JSWorld -> *(JSObj s, *JSWorld)
+appendSVG (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "svg"            htmlAttrs svgAttrs svgElts world
+appendSVG (ClipPathElt       htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "clipPath"       htmlAttrs svgAttrs svgElts world
+appendSVG (CircleElt         htmlAttrs svgAttrs        ) parent world = appendSVG` parent "circle"         htmlAttrs svgAttrs []      world
+appendSVG (DefsElt           htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "defs"           htmlAttrs svgAttrs svgElts world
+appendSVG (EllipseElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "ellipse"        htmlAttrs svgAttrs []      world
+appendSVG (GElt              htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "g"              htmlAttrs svgAttrs svgElts world
+appendSVG (ImageElt          htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "image"          htmlAttrs svgAttrs svgElts world
+appendSVG (LinearGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "linearGradient" htmlAttrs svgAttrs svgElts world
+appendSVG (LineElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "line"           htmlAttrs svgAttrs []      world
+appendSVG (MarkerElt         htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "marker"         htmlAttrs svgAttrs svgElts world
+appendSVG (PolygonElt        htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polygon"        htmlAttrs svgAttrs []      world
+appendSVG (PolylineElt       htmlAttrs svgAttrs        ) parent world = appendSVG` parent "polyline"       htmlAttrs svgAttrs []      world
+appendSVG (RectElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "rect"           htmlAttrs svgAttrs []      world
+appendSVG (RadialGradientElt htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "radialGradient" htmlAttrs svgAttrs svgElts world
+appendSVG (StopElt           htmlAttrs svgAttrs        ) parent world = appendSVG` parent "stop"           htmlAttrs svgAttrs []      world
+appendSVG (TextElt           htmlAttrs svgAttrs str    ) parent world
   # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
   # world         = (elem .# "textContent" .= str) world
   = (elem, snd ((parent `appendChild` elem) world))
 
-appendSVG`` parent elemName htmlAttrs svgAttrs children world
+appendSVG` parent elemName htmlAttrs svgAttrs children world
   # (elem, world) = (jsDocument `createElementNS` (svgns, elemName)) world
   # world         = setAttrs htmlAttrs elem world
   # world         = setAttrs svgAttrs elem world
-  # world         = foldr (\child world -> snd (appendSVG` child elem world)) world children
+  # world         = foldr (\child world -> snd (appendSVG child elem world)) world children
   = (elem, snd ((parent `appendChild` elem) world))
 
 svgns :== "http://www.w3.org/2000/svg"
