@@ -104,7 +104,10 @@ statefulSVGlet origState state2Image = Editlet origState server client
     = ({ ComponentHTML
        | width         = FlexSize
        , height        = FlexSize
-       , html          = SvgTag [IdAttr (mainSvgId cid), XmlnsAttr "http://www.w3.org/2000/svg"] [] []
+       , html          = SvgTag [ IdAttr (mainSvgId cid)
+                                , XmlnsAttr "http://www.w3.org/2000/svg"
+                                , XmlnsXlinkAttr "http://www.w3.org/1999/xlink"]
+                                [VersionAttr "1.1"] []
        , eventHandlers = []
        }
        , world
@@ -740,7 +743,13 @@ toSVG img = imageCata toSVGAllAlgs img
             , spans) st
       where
       // TODO Marker size etc?
-      mkMarkerAndId (Just (img, (w, h))) mid posAttr = Just ( MarkerElt [IdAttr mid] [OrientAttr "auto", ViewBoxAttr "0" "0" (toString w) (toString h)] [img]
+      mkMarkerAndId (Just (img, (w, h))) mid posAttr = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto"
+                                                                                     , ViewBoxAttr "0" "0" (toString w) (toString h)
+                                                                                     , RefXAttr (toString w, PX)
+                                                                                     , RefYAttr (toString (h / 2.0), PX)
+                                                                                     , MarkerHeightAttr (toString h, PX)
+                                                                                     , MarkerWidthAttr (toString w, PX)
+                                                                                     ] [img]
                                                             , posAttr ("url(#" +++ mid +++ ")"))
       mkMarkerAndId _                    _   _       = Nothing
     mkLine constr atts spans _ st
