@@ -24,15 +24,6 @@ derive gText      Image, SVGColor
 derive gEditor    Image, SVGColor
 derive gUpdate    Image, SVGColor
 
-//gEditor{|Image|} fx gx dx hx jex jdx dp vv=:(image, mask, ver) meta vst
-  //= gEditor{|* -> *|} fx gx dx hx jex jdx dp (svglet image, mask, ver) meta vst
-
-//gUpdate{|Image|} gUpdx gDefx jEncx jDecx target upd (image, mask) iworld
-  //# ((Editlet state _ _, mask), iworld) = gUpdate{|* -> *|} gUpdx gDefx jEncx jDecx target upd (simpleSVGlet image, mask) iworld
-  //# ((x, _), iworld) = gUpdx target upd (gDefx, Untouched) iworld
-  //# ((Editlet value _ _, mask), iworld) = gUpdate{|*|} target upd (statefulSVGlet gDefx (\_ -> image), mask) iworld
-  //= ((image, mask), iworld)
-
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
@@ -57,11 +48,11 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
 
 derive class iTask ClientState
 
-mainSvgId :: ComponentId -> ComponentId
-mainSvgId cid = cid +++ "-svg"
+viewImage :: !d !(Image ()) -> Task () | descr d
+viewImage descr img = viewInformation descr [] (svgRenderer () (\_ -> img)) @! ()
 
-simpleSVGlet :: !(Image ()) -> Editlet () ((), Image ())
-simpleSVGlet img = statefulSVGlet () (\_ -> img)
+mainSvgId :: !ComponentId -> ComponentId
+mainSvgId cid = cid +++ "-svg"
 
 addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorld | iTask s
 addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
@@ -78,8 +69,11 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
   mkCB :: (s -> s) String {JSObj JSEvent} (ClientState s) *JSWorld -> *(ClientState s, *JSWorld) | iTask s
   mkCB sttf _ _ clval world = ({clval & currState = sttf clval.currState}, world)
 
-statefulSVGlet :: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
-statefulSVGlet origState state2Image = Editlet origState server client
+updateImageState :: !d !s !(s -> Image s) -> Task s | iTask s & descr d
+updateImageState d s f = updateInformation d [] (svgRenderer s f) @ (\(Editlet s` _ _) -> s`)
+
+svgRenderer :: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
+svgRenderer origState state2Image = Editlet origState server client
   where
   server
     = { EditletServerDef
