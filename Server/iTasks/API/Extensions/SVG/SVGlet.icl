@@ -561,7 +561,7 @@ toSVG img = imageCata toSVGAllAlgs img
         # ((img, (xsp, ysp)), st) = imCo imAts imTrs imTas st
         # (img, st) = case compensateRotation imTrs (xsp, ysp) of
                         Just (xoff, yoff)
-                          = ([GElt [] [TransformAttr [TranslateTransform (toString yoff) (toString xoff)]] img], st) // TODO This is still a bit funky, with yoff and xoff switched etc... Also this might not be the desired behavior in every case. Perhaps this is only desired in grids
+                          = (mkGroup [] (mkTransformTranslateAttr yoff xoff) img, st) // TODO This is still a bit funky, with yoff and xoff switched etc... Also this might not be the desired behavior in every case. Perhaps this is only desired in grids
                         _ = (img, st)
         # (m1, st) = m1 st
         # (m2, st) = m2 st
@@ -569,8 +569,8 @@ toSVG img = imageCata toSVGAllAlgs img
         # (m4, st) = m4 st
         # marginXSpan = xsp + m2 + m4
         # marginYSpan = ysp + m1 + m3
-        = (([GElt [WidthAttr (toString (toInt marginXSpan)), HeightAttr (toString (toInt marginYSpan))] [] 
-              (if (m1 == 0.0 && m2 == 0.0) img [GElt [] [TransformAttr [TranslateTransform (toString m2) (toString m1)]] img])
+        = (([GElt [WidthAttr (toString (toInt marginXSpan)), HeightAttr (toString (toInt marginYSpan))] []
+              (if (m1 == 0.0 && m2 == 0.0) img (mkGroup [] (mkTransformTranslateAttr m1 m2) img))
             ], (marginXSpan, marginYSpan)), st)
       compensateRotation :: [(SVGTransform, ImageTransform)] ImageSpanReal -> Maybe ImageOffsetReal
       compensateRotation [(_, RotateImage angle):_] (xspr, yspr) = Just (snd (rotatedImageSpanAndOriginOffset angle (xspr, yspr))) // TODO Support multiple rotations
@@ -811,8 +811,8 @@ toSVG img = imageCata toSVGAllAlgs img
             , yoff + yspan, drop imgsLength aligns, drop imgsLength offsets)
         mkCols yspan yoff (acc, xoff) ((img, imgSpan), xspan, align, (manxoff, manyoff))
           # (xoff`, yoff`) = calcOffset xspan yspan imgSpan align
-          = ( [GElt [WidthAttr (toString (toInt xspan)), HeightAttr (toString (toInt yspan))]
-                    [TransformAttr [TranslateTransform (toString (xoff` + xoff + manxoff)) (toString (yoff` + yoff + manyoff))]] img:acc]
+          = ( mkGroup [WidthAttr (toString (toInt xspan)), HeightAttr (toString (toInt yspan))]
+                      (mkTransformTranslateAttr (xoff` + xoff + manxoff) (yoff` + yoff + manyoff)) img ++ acc
             , xoff + xspan)
 
       seqImgsGrid :: ![ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
@@ -907,6 +907,9 @@ mkTranslateGroup (xoff, yoff) (contents, imSp)
   mkTranslateAttr :: (Real, Real) -> [Either HtmlAttr SVGAttr]
   mkTranslateAttr (0.0,   0.0)   = []
   mkTranslateAttr (xGOff, yGOff) = [Right (TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)])]
+
+mkTransformTranslateAttr 0.0   0.0   = []
+mkTransformTranslateAttr xGOff yGOff = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
 evalSpan :: !Span -> ClSt s Real | iTask s
 evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
