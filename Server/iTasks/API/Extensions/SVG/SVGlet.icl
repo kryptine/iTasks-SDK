@@ -528,6 +528,9 @@ getSvgAttrs as = [a \\ Right a <- as]
 getHtmlAttrs :: ![Either HtmlAttr SVGAttr] -> [HtmlAttr]
 getHtmlAttrs as = [a \\ Left a <- as]
 
+calcSpanOffset :: ImageSpanReal ImageSpanReal -> ImageOffsetReal
+calcSpanOffset (xsp1, ysp1) (xsp2, ysp2) = (abs (xsp2 - xsp1) / 2.0, abs (ysp2 - ysp1) / 2.0)
+
 toSVG :: !(Image s) -> ClSt s ToSVGSyn | iTask s
 toSVG img = imageCata toSVGAllAlgs img
   where
@@ -567,7 +570,7 @@ toSVG img = imageCata toSVGAllAlgs img
         # (m4, st) = m4 st
         # marginXSpan = xsp + m2 + m4
         # marginYSpan = ysp + m1 + m3
-        = ((mkGroup [] (mkTransformTranslateAttr m1 m2) img, (marginXSpan, marginYSpan)), st)
+        = ((mkGroup [] (mkTransformTranslateAttr (m1, m2)) img, (marginXSpan, marginYSpan)), st)
 
   toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            (ClSt s ImageSpanReal)
@@ -642,12 +645,14 @@ toSVG img = imageCata toSVGAllAlgs img
     where
     mkEmptyImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkEmptyImage imSp imAts imTrs imTas
-      =      mkWH imSp `b`
-      \wh -> ret (mkGroup (wh ++ getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs)) [], imSp)
+      =        mkWH imSp `b`
+      \wh   -> applyRealTransforms (map snd imTrs) imSp `b`
+      \imSp` -> ret (mkGroup [] (mkTransformTranslateAttr (calcSpanOffset imSp imSp`)) (mkGroup (wh ++ getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs)) []), imSp`)
     mkTextImage :: FontDef String ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkTextImage fd str imSp imAts imTrs imTas
-      =      evalSpan fd.fontyspan `b`
-      \sp -> ret ([TextElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs sp) str], imSp)
+      =        evalSpan fd.fontyspan `b`
+      \sp   -> applyRealTransforms (map snd imTrs) imSp `b`
+      \imSp` -> ret (mkGroup [] (mkTransformTranslateAttr (calcSpanOffset imSp imSp`)) [TextElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs sp) str], imSp`)
       where
       fontAttrs fsz = [ AlignmentBaselineAttr "text-before-edge"
                       , DominantBaselineAttr "text-before-edge"
@@ -660,18 +665,24 @@ toSVG img = imageCata toSVGAllAlgs img
                       ]
     mkRectImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkRectImage imSp imAts imTrs imTas
-      =      mkWH imSp `b`
-      \wh -> ret ([RectElt (wh ++ getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs))], imSp)
+      =         mkWH imSp `b`
+      \wh    -> applyRealTransforms (map snd imTrs) imSp `b`
+      \imSp` -> ret (mkGroup [] (mkTransformTranslateAttr (calcSpanOffset imSp imSp`))
+                             [RectElt (wh ++ getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs))], imSp`)
     mkCircleImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkCircleImage (imXSp, imYSp) imAts imTrs imTas
-      = ret ( [CircleElt (getHtmlAttrs imAts) [ RAttr (toString r, PX), CxAttr (toString r, PX)
-            , CyAttr (toString r, PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]], (imXSp, imYSp))
-      where r = imXSp / 2.0
+    mkCircleImage imSp=:(imXSp`, _) imAts imTrs imTas
+      =                  applyRealTransforms (map snd imTrs) imSp `b`
+      \(imXSp, imYSp) -> let r = imXSp` / 2.0
+                         in  ret (mkGroup [] (mkTransformTranslateAttr (calcSpanOffset imSp (imXSp, imYSp)))
+                                          [CircleElt (getHtmlAttrs imAts) [ RAttr (toString r, PX), CxAttr (toString r, PX)
+                                                                          , CyAttr (toString r, PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]], (imXSp, imYSp))
     mkEllipseImage :: ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn | iTask s
-    mkEllipseImage (imXSp, imYSp) imAts imTrs imTas
-      = ret ( [EllipseElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++
-              [ RxAttr (toString (imXSp / 2.0), PX), RyAttr (toString (imYSp / 2.0), PX)
-              , CxAttr (toString (imXSp / 2.0), PX), CyAttr (toString (imYSp / 2.0), PX)])], (imXSp, imYSp))
+    mkEllipseImage imSp=:(imXSp, imYSp) imAts imTrs imTas
+      =                    applyRealTransforms (map snd imTrs) imSp `b`
+      \(imXSp`, imYSp`) -> ret (mkGroup [] (mkTransformTranslateAttr (calcSpanOffset imSp (imXSp`, imYSp`)))
+                                        [EllipseElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++
+                                                    [ RxAttr (toString (imXSp / 2.0), PX), RyAttr (toString (imYSp / 2.0), PX)
+                                                    , CxAttr (toString (imXSp / 2.0), PX), CyAttr (toString (imYSp / 2.0), PX)])], (imXSp`, imYSp`))
 
     mkWH :: ImageSpanReal -> ClSt s [HtmlAttr] | iTask s
     mkWH (imXSp, imYSp) = ret [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))]
@@ -808,7 +819,7 @@ toSVG img = imageCata toSVGAllAlgs img
         mkCols yspan yoff (acc, xoff) ((img, imgSpan), xspan, align, (manxoff, manyoff))
           # (xoff`, yoff`) = calcOffset xspan yspan imgSpan align
           = ( mkGroup [WidthAttr (toString (toInt xspan)), HeightAttr (toString (toInt yspan))]
-                      (mkTransformTranslateAttr (xoff` + xoff + manxoff) (yoff` + yoff + manyoff)) img ++ acc
+                      (mkTransformTranslateAttr (xoff` + xoff + manxoff, yoff` + yoff + manyoff)) img ++ acc
             , xoff + xspan)
 
       seqImgsGrid :: ![ClSt m ToSVGSyn] *([[ToSVGSyn]], *(St m)) -> *([[ToSVGSyn]], *(St m)) | iTask m
@@ -904,8 +915,8 @@ mkTranslateGroup (xoff, yoff) (contents, imSp)
   mkTranslateAttr (0.0,   0.0)   = []
   mkTranslateAttr (xGOff, yGOff) = [Right (TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)])]
 
-mkTransformTranslateAttr 0.0   0.0   = []
-mkTransformTranslateAttr xGOff yGOff = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
+mkTransformTranslateAttr (0.0,   0.0)   = []
+mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
 evalSpan :: !Span -> ClSt s Real | iTask s
 evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
