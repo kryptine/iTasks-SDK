@@ -2,7 +2,7 @@ module IDE
 
 import iTasks
 import iTasks.API.Extensions.Development.Codebase
-import iTasks.API.Extensions.CodeMirror, StdFile
+import iTasks.API.Extensions.CodeMirror, StdFile, StdArray
 import qualified Data.Map
 import Text, System.OS
 
@@ -69,7 +69,7 @@ where
              -&&-
              enterInformation "Please specify the location of the sourcecode on your disk" []
              -&&-
-             enterInformation "If the source tree is consists of split into overlapping parts (for multiplatform subtrees), you can specify the subdirectories here" []
+             enterInformation "If the source tree is splitted into overlapping parts (for multiplatform subtrees), you can specify the subdirectories here" []
             )
         >>* [OnAction ActionCancel (always (return Nothing))
             ,OnAction ActionAdd (hasValue (\(name,(rootPath,subPaths)) -> add name rootPath subPaths @ Just))
@@ -119,7 +119,7 @@ editSourceTree base list
 
 openModuleEditor :: ModuleName ModuleType FilePath (SharedTaskList IDE_TaskResult) -> Task ()
 openModuleEditor name type base list
-    =   appendTask Embedded (closableParTask editorTask ) list
+    =   appendTask Embedded (closableParTask editorTask) list
     >>- \taskId -> focusTask taskId list
     @!  ()
 where
@@ -169,22 +169,32 @@ moduleTitleView s = SpanTag [StyleAttr "font-size: 24px"] [Text s]
 
 buildMainModule :: FilePath ModuleName -> Task IDE_ModuleEdit
 buildMainModule base moduleName
-    = viewInformation () [] ("Building is not supported in this version") <<@ Title "Build"
+    = viewInformation () [] /*filterSearchers*/ ("Building is not supported in this version") <<@ Title "Build"
     @? const NoValue
 
 shareSearchResults :: FilePath (SharedTaskList IDE_TaskResult) (Shared CodeMirror)  -> (Shared CodeMirror)
-shareSearchResults path list mirror = mirror
+shareSearchResults path list mirror // = mirror
 //= 		list >+> filterSearchers //TODO Use proper share propagation to link shares
+= sdsSequence ">+>"  (\p r -> p) filterSearchers 
+						(SDSWriteConst (\p w -> Ok (Just w))) 
+							(SDSWriteConst (\p w -> Ok Nothing)) 
+								mirror list //filterSearchers list //TODO Use proper share propagation to link shares
 where
-    filterSearchers :: (TaskList IDE_TaskResult) -> (Shared CodeMirror)
-    filterSearchers {TaskList|items} 
-    # highLight 		=  [ toList posList \\ {TaskListItem|value=Value (IDE_Search {results}) _} <- items
+    filterSearchers :: (CodeMirror, TaskList IDE_TaskResult) -> CodeMirror
+    filterSearchers (mirror, {TaskList|items})
+    # highLight 		=  [ toHighLight (size query) (toList posList) 
+    										\\ {TaskListItem|value=Value (IDE_Search {results,query}) _} <- items
                                             ,  ((sBase,sModule,sExt),posList) <- results
-                                            |  addExtension (sBase </> sModule) sExt == path
+                                            |  addExtension (sBase </> sModule) (toString sExt) == path
                            ]
     = case highLight of
         [] 		-> mirror
-        lights  -> mapWrite (\mw mr -> Just {mr & highlighted = flatten lights}) mirror
+        lights  -> {mirror & highlighted = flatten lights} 
+
+	toHighLight length list = map (\(line,col) -> ((line,col),(line,col+length-1))) list
+
+undef = undef
+//sdsSequence :: !String !(p r1 -> p2) !((r1,r2) -> r) !(SDSLensWrite p w r1 w1) !(SDSLensWrite p w r2 w2) !(RWShared p r1 w1) !(RWShared p2 r2 w2) -> RWShared p r w | TC p2
 
 
 openSearch :: SearchWhat String (SharedTaskList IDE_TaskResult) -> Task ()
