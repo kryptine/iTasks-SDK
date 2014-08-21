@@ -99,7 +99,7 @@ svgRenderer origState state2Image = Editlet origState server client
        | width         = FlexSize
        , height        = FlexSize
        , html          = SvgTag [ IdAttr (mainSvgId cid)
-                                , XmlnsAttr "http://www.w3.org/2000/svg"
+                                , XmlnsAttr svgns
                                 , XmlnsXlinkAttr "http://www.w3.org/1999/xlink"]
                                 [VersionAttr "1.1"] []
        , eventHandlers = []
@@ -122,7 +122,7 @@ svgRenderer origState state2Image = Editlet origState server client
 
   genServerDiff _ y
     # ((img, _), _) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap}
-    = Just (y, img)
+    = Just (y, overlay [(AtMiddleX, AtMiddleY)] [] [img] Nothing)
   appServerDiff (st, _) _ = st
 
   genClientDiff x y
@@ -332,6 +332,13 @@ fixSpans img
 
     mkSpan :: !BasicImage !ImageSpan ![ImageTransform] -> SrvSt (ImageContent s, ImageSpan) | iTask s
     mkSpan val imSp imTrs = ret (Basic val imSp, fst (applyTransforms imTrs imSp)) // TODO
+
+    rectPOI w h = [(zero, zero), (zero, h /. 2.0), (zero, h), (w /. 2.0, zero), (w /. 2.0, h), (w, zero), (w, h /. 2.0), (w, h)]
+    circlePOI r = ellipsePOI r r
+    ellipsePOI rx ry = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry)] ++ concatMap (\th -> [(rSin th ry, rCos th rx), (~(rSin th ry), rCos th rx), (rSin th ry, ~(rCos th rx)), (~(rSin th ry), ~(rCos th rx))]) [22.5, 45.0, 67.5]
+      where
+      rSin th r = r *. sin (degree th)
+      rCos th r = r *. cos (degree th)
 
   fixSpansLineImageAlgs :: LineImageAlg (SrvSt ImageSpan)
                                         (SrvSt (Markers s, ImageSpan))
@@ -685,7 +692,7 @@ toSVG img = imageCata toSVGAllAlgs img
                   -> ClSt s ToSVGSyn | iTask s
     mkCircleImage imSp=:(imXSp`, _) imAts imTrs imTas
       =                          applyRealTransforms (map snd imTrs) imSp `b`
-      \((imXSp, imYSp), offs) -> let r = imXSp` / 2.0
+      \((imXSp, imYSp), offs) -> let r   = imXSp` / 2.0
                                  in  ret ([CircleElt (getHtmlAttrs imAts) [ RAttr (toString r, PX), CxAttr (toString r, PX)
                                                                           , CyAttr (toString r, PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]], (imXSp, imYSp), offs)
     mkEllipseImage :: !ImageSpanReal ![Either HtmlAttr SVGAttr]
@@ -761,7 +768,7 @@ toSVG img = imageCata toSVGAllAlgs img
       # m3Id = mkMarkerId clval.editletId (clval.uniqueIdCounter + 2)
       # markersAndIds = [(m, i) \\ Just (m, i) <- [mkMarkerAndId mmStart m1Id MarkerStartAttr, mkMarkerAndId mmMid m2Id MarkerMidAttr, mkMarkerAndId mmEnd m3Id MarkerEndAttr]]
       = ret ( [constr [] (map snd markersAndIds ++ atts), DefsElt [] [] (map fst markersAndIds)]
-            , spans, (0.0, 0.0)) st // TODO Correct offsets? What aboud the transformations?
+            , spans, (0.0, 0.0)) st // TODO Correct offsets? What about the transformations?
       where
       // TODO Marker size etc?
       mkMarkerAndId (Just (imgs, (w, h), _)) mid posAttr = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto" // TODO Do something with offset?
