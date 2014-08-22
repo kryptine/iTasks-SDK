@@ -122,7 +122,8 @@ svgRenderer origState state2Image = Editlet origState server client
 
   genServerDiff _ y
     # ((img, _), _) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap}
-    = Just (y, overlay [(AtMiddleX, AtMiddleY)] [] [img] Nothing)
+    //= Just (y, overlay [(AtMiddleX, AtMiddleY)] [] [img] Nothing)
+    = Just (y, img)
   appServerDiff (st, _) _ = st
 
   genClientDiff x y
@@ -180,6 +181,9 @@ getTextLength fontdef str (clval, world)
 
 :: ErrorMessage :== String
 
+:: FixSpansSyn s :== (Image s, ImageSpan, [Connector])
+:: FixSpansContentSyn s :== (ImageContent s, ImageSpan, [Connector])
+
 runM :: !(State s a) s -> (a, s)
 runM m st = m st
 
@@ -199,13 +203,24 @@ cacheImageSpan imTas sp st = addCachedSpan (\r -> {r & cachedImageSpan = Just sp
 cacheGridSpans :: !(Set ImageTag) ![[ImageSpan]] !ServerState -> ServerState
 cacheGridSpans imTas sp st = addCachedSpan (\r -> {r & cachedGridSpans = Just sp}) imTas st
 
+rectAnchors :: !ImageSpan -> [Connector]
+rectAnchors (w, h) = [(zero, zero), (zero, h /. 2.0), (zero, h), (w /. 2.0, zero), (w /. 2.0, h), (w, zero), (w, h /. 2.0), (w, h)]
+
+ellipseAnchors :: !ImageSpan -> [Connector]
+ellipseAnchors (w, h) = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry)] ++ concatMap (\th -> [(rSin th ry, rCos th rx), (~(rSin th ry), rCos th rx), (rSin th ry, ~(rCos th rx)), (~(rSin th ry), ~(rCos th rx))]) [22.5, 45.0, 67.5]
+  where
+  rx        = w /. 2.0
+  ry        = h /. 2.0
+  rSin th r = r *. sin th
+  rCos th r = r *. cos th
+
 // TODO : Detect divergence due to lookups and return an Either ErrorMessage (Image s), instead of just an Image s
 fixSpans :: !(Image s) -> SrvSt (Image s, ImageSpan) | iTask s
 fixSpans img
-  =              imageCata fixSpansAllAlgs img `b`
-  \(img`, sp) -> if (img === img`)
-                   (ret (img, sp))
-                   (fixSpans img`)
+  =                 imageCata fixSpansAllAlgs img `b`
+  \(img`, sp, _) -> if (img === img`)
+                      (ret (img, sp))
+                      (fixSpans img`)
   where
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
@@ -222,27 +237,27 @@ fixSpans img
     , spanAlgs           = fixSpansSpanAlgs
     , lookupSpanAlgs     = fixSpansLookupSpanAlgs
     }
-  fixSpansImageAlgs :: ImageAlg ([ImageTransform] (Set ImageTag) -> (SrvSt (ImageContent s, ImageSpan)))
+  fixSpansImageAlgs :: ImageAlg ([ImageTransform] (Set ImageTag) -> (SrvSt (FixSpansContentSyn s)))
                                 (SrvSt (ImageAttr s))
                                 (SrvSt ImageTransform)
                                 (SrvSt Span)
-                                (SrvSt (Image s, ImageSpan)) | iTask s
+                                (SrvSt (FixSpansSyn s)) | iTask s
   fixSpansImageAlgs =
     { imageAlg = mkImage
     }
     where
-    mkImage :: !([ImageTransform] (Set ImageTag) -> (SrvSt (ImageContent s, ImageSpan)))
+    mkImage :: !([ImageTransform] (Set ImageTag) -> (SrvSt (FixSpansContentSyn s)))
                ![SrvSt (ImageAttr s)]
                ![SrvSt ImageTransform]
                !(Set ImageTag)
                !(SrvSt Span, SrvSt Span, SrvSt Span, SrvSt Span)
-            -> SrvSt (Image s, ImageSpan) | iTask s
+            -> SrvSt (FixSpansSyn s) | iTask s
     mkImage imCo imAts imTrs imTas (m1, m2, m3, m4) = go
       where
       go st
         # (imAts, st)         = sequence imAts st
         # (imTrs, st)         = sequence imTrs st
-        # ((content, (xsp, ysp)), st) = imCo imTrs imTas st
+        # ((content, (xsp, ysp), connectors), st) = imCo imTrs imTas st
         # (m1, st) = m1 st
         # (m2, st) = m2 st
         # (m3, st) = m3 st
@@ -255,23 +270,26 @@ fixSpans img
                , transform = imTrs
                , tags      = imTas
                , margin    = (m1, m2, m3, m4)
+               , offset = (zero, zero)
+               , connectors = []
                }
-              , (xsp, ysp)) st
+              , (xsp, ysp)
+              , connectors) st
 
-  fixSpansImageContentAlgs :: ImageContentAlg (ImageSpan [ImageTransform] -> SrvSt (ImageContent s, ImageSpan))
+  fixSpansImageContentAlgs :: ImageContentAlg (ImageSpan [ImageTransform] -> SrvSt (FixSpansContentSyn s))
                                               (SrvSt ImageSpan)
-                                              ([ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
-                                              ([ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan))
-                                              ([ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
+                                              ([ImageTransform] (Set ImageTag) -> SrvSt (FixSpansContentSyn s))
+                                              ([ImageTransform] (Set ImageTag) -> SrvSt (FixSpansContentSyn s))
+                                              ([ImageTransform] (Set ImageTag) -> SrvSt (FixSpansContentSyn s)) | iTask s
   fixSpansImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
     where
-    mkBasic :: !(ImageSpan [ImageTransform] -> SrvSt (ImageContent s, ImageSpan))
+    mkBasic :: !(ImageSpan [ImageTransform] -> SrvSt (FixSpansContentSyn s))
                !(SrvSt ImageSpan) ![ImageTransform] !(Set ImageTag)
-            -> SrvSt (ImageContent s, ImageSpan) | iTask s
+            -> SrvSt (FixSpansContentSyn s) | iTask s
     mkBasic baIm imSp imTrs imTas
       =        imSp `b`
       \imSp -> baIm imSp imTrs
@@ -315,7 +333,7 @@ fixSpans img
       =         xspan `b`
       \xspan -> yspan `b`
       \yspan -> ret (xspan, yspan)
-  fixSpansBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageTransform] -> SrvSt (ImageContent s, ImageSpan)) | iTask s
+  fixSpansBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageTransform] -> SrvSt (FixSpansContentSyn s)) | iTask s
   fixSpansBasicImageAlgs =
     { basicImageEmptyImageAlg    = mkEmptyImage
     , basicImageTextImageAlg     = mkTextImage
@@ -324,14 +342,14 @@ fixSpans img
     , basicImageEllipseImageAlg  = mkEllipseImage
     }
     where
-    mkEmptyImage       imSp imTrs = mkSpan EmptyImage         imSp imTrs
-    mkTextImage fd str imSp imTrs = mkSpan (TextImage fd str) imSp imTrs
-    mkCircleImage      imSp imTrs = mkSpan CircleImage        imSp imTrs
-    mkRectImage        imSp imTrs = mkSpan RectImage          imSp imTrs
-    mkEllipseImage     imSp imTrs = mkSpan EllipseImage       imSp imTrs
+    mkEmptyImage       imSp imTrs = mkSpan EmptyImage         imSp imTrs rectAnchors
+    mkTextImage fd str imSp imTrs = mkSpan (TextImage fd str) imSp imTrs rectAnchors
+    mkRectImage        imSp imTrs = mkSpan RectImage          imSp imTrs rectAnchors
+    mkCircleImage      imSp imTrs = mkSpan CircleImage        imSp imTrs ellipseAnchors
+    mkEllipseImage     imSp imTrs = mkSpan EllipseImage       imSp imTrs ellipseAnchors
 
-    mkSpan :: !BasicImage !ImageSpan ![ImageTransform] -> SrvSt (ImageContent s, ImageSpan) | iTask s
-    mkSpan val imSp imTrs = ret (Basic val imSp, fst (applyTransforms imTrs imSp)) // TODO
+    mkSpan :: !BasicImage !ImageSpan ![ImageTransform] !(ImageSpan -> [Connector]) -> SrvSt (FixSpansContentSyn s) | iTask s
+    mkSpan val imSp imTrs f = ret (Basic val imSp, fst (applyTransforms imTrs imSp) /* TODO */, f imSp)
 
     rectPOI w h = [(zero, zero), (zero, h /. 2.0), (zero, h), (w /. 2.0, zero), (w /. 2.0, h), (w, zero), (w, h /. 2.0), (w, h)]
     circlePOI r = ellipsePOI r r
@@ -343,7 +361,7 @@ fixSpans img
   fixSpansLineImageAlgs :: LineImageAlg (SrvSt ImageSpan)
                                         (SrvSt (Markers s, ImageSpan))
                                         (SrvSt LineContent)
-                                        ([ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
+                                        ([ImageTransform] (Set ImageTag) -> SrvSt (FixSpansContentSyn s)) | iTask s
   fixSpansLineImageAlgs =
     { lineImageLineImageAlg = mkLine
     }
@@ -352,7 +370,7 @@ fixSpans img
               !(Maybe (SrvSt (Markers s, ImageSpan)))
               !(SrvSt LineContent)
               ![ImageTransform] !(Set ImageTag)
-           -> SrvSt (ImageContent s, ImageSpan) | iTask s
+           -> SrvSt (FixSpansContentSyn s) | iTask s
     mkLine imSp mmarkers liCo imTrs imTas
       =            imSp `b`
       \imSp     -> evalMaybe mmarkers `b`
@@ -361,23 +379,24 @@ fixSpans img
                              | lineSpan    = imSp
                              , markers     = justFst mmarkers
                              , lineContent = liCo
-                             }, fst (applyTransforms imTrs imSp)) // TODO
-  fixSpansMarkersAlgs :: MarkersAlg (SrvSt (Image s, ImageSpan)) (SrvSt (Markers s, ImageSpan)) | iTask s
+                             }, fst (applyTransforms imTrs imSp) /* TODO */
+                             , [] /* TODO ? */)
+  fixSpansMarkersAlgs :: MarkersAlg (SrvSt (FixSpansSyn s)) (SrvSt (Markers s, ImageSpan)) | iTask s
   fixSpansMarkersAlgs =
     { markersMarkersAlg = mkMarkers
     }
     where
-    mkMarkers :: !(Maybe (SrvSt (Image s, ImageSpan)))
-                 !(Maybe (SrvSt (Image s, ImageSpan)))
-                 !(Maybe (SrvSt (Image s, ImageSpan)))
+    mkMarkers :: !(Maybe (SrvSt (FixSpansSyn s)))
+                 !(Maybe (SrvSt (FixSpansSyn s)))
+                 !(Maybe (SrvSt (FixSpansSyn s)))
               -> SrvSt (Markers s, ImageSpan) | iTask s
     mkMarkers mStart mMid mEnd
       =          evalMaybe mStart `b`
       \mStart -> evalMaybe mMid `b`
       \mMid   -> evalMaybe mEnd `b`
-      \mEnd   -> ret ({ markerStart = justFst mStart
-                      , markerMid   = justFst mMid
-                      , markerEnd   = justFst mEnd
+      \mEnd   -> ret ({ markerStart = justFst3 mStart
+                      , markerMid   = justFst3 mMid
+                      , markerEnd   = justFst3 mEnd
                       }
                      , (px 0.0, px 0.0))
   fixSpansLineContentAlgs :: LineContentAlg (SrvSt Span) (SrvSt LineContent)
@@ -387,19 +406,19 @@ fixSpans img
     , lineContentPolylineImageAlg   = \coords -> evalOffsets coords `b` \coords -> ret (PolylineImage coords)
     }
   fixSpansCompositeImageAlgs :: CompositeImageAlg (SrvSt Span)
-                                                  (SrvSt (Image s, ImageSpan))
-                                                  ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
-                                                  ([ImageTransform] (Set ImageTag) -> SrvSt (ImageContent s, ImageSpan)) | iTask s
+                                                  (SrvSt (FixSpansSyn s))
+                                                  ([ImageOffset] (Maybe (FixSpansSyn s)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
+                                                  ([ImageTransform] (Set ImageTag) -> SrvSt (FixSpansContentSyn s)) | iTask s
   fixSpansCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
     where
     mkCompositeImage :: ![(SrvSt Span, SrvSt Span)]
-                        !(Maybe (SrvSt (Image s, ImageSpan)))
-                        !([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
+                        !(Maybe (SrvSt (FixSpansSyn s)))
+                        !([ImageOffset] (Maybe (FixSpansSyn s)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan))
                         !(Set (Set ImageTag, Set ImageTag))
                         ![ImageTransform] !(Set ImageTag)
-                     -> SrvSt (ImageContent s, ImageSpan) | iTask s
+                     -> SrvSt (FixSpansContentSyn s) | iTask s
     mkCompositeImage offsets host compose edges imTrs imTas = go
       where
       go st
@@ -407,61 +426,63 @@ fixSpans img
         # (host, st)    = evalMaybe host st
         # ((compose, composeSpan), st) = compose offsets host imTas st
         = case host of
-            Just (hostImg, hostSpan) -> ret (Composite { CompositeImage
-                                                       | offsets = offsets
-                                                       , host    = Just hostImg
-                                                       , compose = compose
-                                                       , edges   = edges }
-                                            , fst (applyTransforms imTrs hostSpan)) st // TODO
+            Just (hostImg, hostSpan, conns) -> ret (Composite { CompositeImage
+                                                              | offsets = offsets
+                                                              , host    = Just hostImg
+                                                              , compose = compose
+                                                              , edges   = edges }
+                                                   , fst (applyTransforms imTrs hostSpan) /* TODO*/
+                                                   , [] /*TODO*/) st
             _                        -> ret (Composite { CompositeImage
                                                        | offsets = offsets
                                                        , host    = Nothing
                                                        , compose = compose
                                                        , edges   = edges }
-                                            , fst (applyTransforms imTrs composeSpan)) st // TODO
-  fixSpansComposeAlgs :: ComposeAlg (SrvSt (Image s, ImageSpan))
-                                    ([ImageOffset] (Maybe (Image s, ImageSpan)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)) | iTask s
+                                            , fst (applyTransforms imTrs composeSpan) /* TODO*/
+                                            , [] /*TODO*/) st
+  fixSpansComposeAlgs :: ComposeAlg (SrvSt (FixSpansSyn s))
+                                    ([ImageOffset] (Maybe (FixSpansSyn s)) (Set ImageTag) -> SrvSt (Compose s, ImageSpan)) | iTask s
   fixSpansComposeAlgs =
     { composeAsGridAlg    = mkGrid
     , composeAsCollageAlg = mkCollage
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: !(Int, Int) ![ImageAlign] ![[SrvSt (Image s, ImageSpan)]]
-              ![ImageOffset] !(Maybe (Image s, ImageSpan)) !(Set ImageTag)
+    mkGrid :: !(Int, Int) ![ImageAlign] ![[SrvSt (FixSpansSyn s)]]
+              ![ImageOffset] !(Maybe (FixSpansSyn s)) !(Set ImageTag)
            -> SrvSt (Compose s, ImageSpan) | iTask s
     mkGrid dims ias imgss offsets mbhost imTas = go
       where
       go st
         # (imgss, st) = foldr f ([], st) imgss
-        # spanss      = map (map snd) imgss
+        # spanss      = map (map snd3) imgss
         # yspans      = map (maxSpan o map snd) spanss
         # xspans      = map (maxSpan o map fst) (transpose spanss)
         # infoffs     = offsets ++ repeatn (length xspans * length yspans) (px 0.0, px 0.0)
         # (xsp, ysp)  = maybe ( foldr (\(xsp, off) acc -> xsp + off + acc) (px 0.0) (zip2 xspans (map fst infoffs))
                               , foldr (\(ysp, off) acc -> ysp + off + acc) (px 0.0) (zip2 yspans (map snd infoffs))
                               )
-                              snd mbhost
+                              snd3 mbhost
         # st          = cacheGridSpans imTas ((map (\yspan -> map (\xspan -> (xspan, yspan)) xspans)) yspans) st
-        = ret (AsGrid dims ias (map (map fst) imgss), (xsp, ysp)) st
-      f :: ![SrvSt (Image s, ImageSpan)] !*([[(Image s, ImageSpan)]], ServerState) -> *([[(Image s, ImageSpan)]], ServerState) | iTask s
+        = ret (AsGrid dims ias (map (map fst3) imgss), (xsp, ysp)) st
+      f :: ![SrvSt (FixSpansSyn s)] !*([[(FixSpansSyn s)]], ServerState) -> *([[(FixSpansSyn s)]], ServerState) | iTask s
       f imgs (acc, st) = (sequence imgs `b` \imgs -> ret [imgs:acc]) st
-    mkCollage :: ![SrvSt (Image s, ImageSpan)] ![ImageOffset] !(Maybe (Image s, ImageSpan)) !(Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
+    mkCollage :: ![SrvSt (FixSpansSyn s)] ![ImageOffset] !(Maybe (FixSpansSyn s)) !(Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
     mkCollage imgs offsets mbhost imTas
       =           sequence imgs `b`
-      \imgsSps -> ret ( AsCollage (map fst imgsSps)
-                      , maybe (calculateComposedSpan (map snd imgsSps) offsets) snd mbhost)
-    mkOverlay :: ![ImageAlign] ![SrvSt (Image s, ImageSpan)] ![ImageOffset] !(Maybe (Image s, ImageSpan)) !(Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
+      \imgsSps -> ret ( AsCollage (map fst3 imgsSps)
+                      , maybe (calculateComposedSpan (map snd3 imgsSps) offsets) snd3 mbhost)
+    mkOverlay :: ![ImageAlign] ![SrvSt (FixSpansSyn s)] ![ImageOffset] !(Maybe (FixSpansSyn s)) !(Set ImageTag) -> SrvSt (Compose s, ImageSpan) | iTask s
     mkOverlay ias imgs offsets mbhost imTas = go
       where
       go st
         # (imgsSps, st) = sequence imgs st
-        # spans         = map snd imgsSps
+        # spans         = map snd3 imgsSps
         # maxXSpan      = maxSpan (map fst spans)
         # maxYSpan      = maxSpan (map snd spans)
-        # (maxXSpan, maxYSpan) = maybe (maxXSpan, maxYSpan) snd mbhost
-        = ret ( AsOverlay ias (map fst imgsSps)
-              , maybe (calculateComposedSpan spans offsets) snd mbhost) st
+        # (maxXSpan, maxYSpan) = maybe (maxXSpan, maxYSpan) snd3 mbhost
+        = ret ( AsOverlay ias (map fst3 imgsSps)
+              , maybe (calculateComposedSpan spans offsets) snd3 mbhost) st
   fixSpansSpanAlgs :: SpanAlg (SrvSt Span) (SrvSt Span)
   fixSpansSpanAlgs =
     { spanPxSpanAlg     = \r   -> ret (PxSpan r)
@@ -512,6 +533,10 @@ fixSpans img
 justFst :: (Maybe (a, b)) -> Maybe a
 justFst (Just (x, _)) = Just x
 justFst _             = Nothing
+
+justFst3 :: (Maybe (a, b, c)) -> Maybe a
+justFst3 (Just (x, _, _)) = Just x
+justFst3 _                = Nothing
 
 :: ImageSpanReal :== (Real, Real)
 
@@ -854,8 +879,7 @@ toSVG img = imageCata toSVGAllAlgs img
     mkCollage :: ![ClSt s ToSVGSyn] ![ImageOffsetReal] !(Maybe ToSVGSyn) ![Either HtmlAttr SVGAttr] ![ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)] !(Set ImageTag) -> ClSt s ToSVGSyn | iTask s
     mkCollage imgs offsets mbhost imAts imTrs imTas
       =           sequence imgs `b`
-      \imgsSps -> zipWithSt mkTranslateGroup offsets imgsSps `b`
-      \trimgs  -> ret ( concatMap fst3 trimgs
+      \imgsSps -> ret ( flatten (zipWith mkTranslateGroup offsets (map fst3 imgsSps))
                       , maybe (calculateComposedSpan (map snd3 imgsSps) offsets) snd3 mbhost
                       , (0.0, 0.0)) // TODO Correct offsets here
     mkOverlay :: ![ImageAlign] ![ClSt s ToSVGSyn] ![ImageOffsetReal] !(Maybe ToSVGSyn) ![Either HtmlAttr SVGAttr] ![ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)] !(Set ImageTag) -> ClSt s ToSVGSyn | iTask s
@@ -873,8 +897,8 @@ toSVG img = imageCata toSVGAllAlgs img
         # alignOffs            = zipWith3 addOffset (zipWith (calcOffset maxXSpan maxYSpan) spans (aligns ++ repeatn numImgs (AtLeft, AtTop)))
                                                     (offsets ++ repeatn numImgs (0.0, 0.0))
                                                     tfOffs
-        # (imgs, st)           = zipWithSt mkTranslateGroup alignOffs imgsSps st
-        = ret ( reverse (concatMap fst3 imgs)
+        # images        = zipWith mkTranslateGroup alignOffs images
+        = ret ( reverse (flatten images)
               , maybe (calculateComposedSpan spans offsets) snd3 mbhost
               , (0.0, 0.0)) st // TODO Correct offsets here
         where
@@ -931,14 +955,14 @@ mkAttrs :: ![Either HtmlAttr SVGAttr] ![(SVGTransform, ImageTransform)] -> [Eith
 mkAttrs imAts [] = imAts
 mkAttrs imAts xs = [Right (TransformAttr (map fst xs)):imAts]
 
-calcOffset :: !Real !Real !ImageSpanReal !ImageAlign -> ImageOffsetReal
+calcOffset :: !a !a !(a, a) !ImageAlign -> (a, a) | IsSpan a
 calcOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
   where
-  mkXAl AtLeft    = 0.0
-  mkXAl AtMiddleX = (maxxsp / 2.0) - (imXSp / 2.0)
+  mkXAl AtLeft    = zero
+  mkXAl AtMiddleX = (maxxsp /. 2.0) - (imXSp /. 2.0)
   mkXAl AtRight   = maxxsp - imXSp
-  mkYAl AtTop     = 0.0
-  mkYAl AtMiddleY = (maxysp / 2.0) - (imYSp / 2.0)
+  mkYAl AtTop     = zero
+  mkYAl AtMiddleY = (maxysp /. 2.0) - (imYSp /. 2.0)
   mkYAl AtBottom  = maxysp - imYSp
 
 calculateComposedSpan :: ![(a, a)] ![(a, a)] -> (a, a) | IsSpan a
@@ -950,14 +974,17 @@ calculateComposedSpan spans offs
     # maxY = maxOf [maxY, yoff + imYSp]
     = (maxX, maxY)
 
-mkTranslateGroup :: !ImageOffsetReal !ToSVGSyn -> ClSt s ToSVGSyn | iTask s
-mkTranslateGroup (xoff, yoff) (contents, imSp, offs)
-  = ret (mkGroup [] (getSvgAttrs (mkTranslateAttr (xoff, yoff))) contents, imSp, offs)
-  where
-  mkTranslateAttr :: (Real, Real) -> [Either HtmlAttr SVGAttr]
-  mkTranslateAttr (0.0,   0.0)   = []
-  mkTranslateAttr (xGOff, yGOff) = [Right (TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)])]
+mkTranslateGroup :: !ImageOffsetReal ![SVGElt] -> [SVGElt]
+mkTranslateGroup (xoff, yoff) contents /// = ret (mkGroup [] (getSvgAttrs (mkTranslateAttr (xoff, yoff))) contents, imSp, offs)
+  = mkGroup [] (getSvgAttrs (map Right (mkTransformTranslateAttr (xoff, yoff)))) contents
+//mkTranslateGroup :: !ImageOffsetReal !ToSVGSyn -> ClSt s ToSVGSyn | iTask s
+//mkTranslateGroup (xoff, yoff) (contents, imSp, offs)
+  //where
+  //mkTranslateAttr :: (Real, Real) -> [Either HtmlAttr SVGAttr]
+  //mkTranslateAttr (0.0,   0.0)   = []
+  //mkTranslateAttr (xGOff, yGOff) = [Right (TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)])]
 
+mkTransformTranslateAttr :: (Real, Real) -> [SVGAttr]
 mkTransformTranslateAttr (0.0,   0.0)   = []
 mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
