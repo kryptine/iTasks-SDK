@@ -121,7 +121,7 @@ svgRenderer origState state2Image = Editlet origState server client
   updateUI _ _ clval world = (clval, world)
 
   genServerDiff _ y
-    # ((img, _), _) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap}
+    # ((img, _), _) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False}
     //= Just (y, overlay [(AtMiddleX, AtMiddleY)] [] [img] Nothing)
     = Just (y, img)
   appServerDiff (st, _) _ = st
@@ -175,6 +175,7 @@ getTextLength fontdef str (clval, world)
 
 :: ServerState =
   { srvTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
+  , didChange        :: Bool
   }
 
 :: State s a :== s -> *(a, s)
@@ -216,12 +217,12 @@ ellipseAnchors (w, h) = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry
 
 // TODO : Detect divergence due to lookups and return an Either ErrorMessage (Image s), instead of just an Image s
 fixSpans :: !(Image s) -> SrvSt (Image s, ImageSpan) | iTask s
-fixSpans img
-  =                 imageCata fixSpansAllAlgs img `b`
-  \(img`, sp, _) -> if (img === img`)
-                      (ret (img, sp))
-                      (fixSpans img`)
+fixSpans img = go
   where
+  go st
+    # ((img`, sp, _), st) = imageCata fixSpansAllAlgs img st
+    | st.didChange = fixSpans img` {st & didChange = False}
+    | otherwise    = ret (img, sp) st
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
     , imageContentAlgs   = fixSpansImageContentAlgs
@@ -506,7 +507,7 @@ fixSpans img
       where
       go srv
         = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
-            [x:_] -> (Just x, srv)
+            [x:_] -> (Just x, {srv & didChange = True})
             _     -> (Nothing, srv)
 
     mkImageSpan :: !(ImageSpan -> Span) !((Set ImageTag) -> LookupSpan) !(Set ImageTag) -> SrvSt Span
