@@ -40,7 +40,7 @@ examples :: Task ()
 examples = viewInformation () [] "Select an example set"
   >>* [ OnAction (Action "Various static examples" []) (always (allSVGs @! ()))
       , OnAction (Action "Static Tonic shapes" [])     (always (tonicSVGs @! ()))
-      , OnAction (Action "On-click example" [])        (always ((simpleClickExample -&&- simpleClickExample) @! ()))
+      , OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
       ]
 
 
@@ -74,9 +74,9 @@ testRect :: Image ()
 testRect = rect (textxspan ArialRegular10px "foo") (px 25.0)
 
 allSVGs = allTasks [ viewRotateGridImg @! ()
-                   //, simpleClickExample @! ()
+                    //viewLineExample @! ()
                    , viewTextGrid @! ()
-                   , viewTextGrid2 @! ()
+                   //, viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
                    , viewPolygon @! ()
                    , viewPolyline @! ()
@@ -93,6 +93,26 @@ allSVGs = allTasks [ viewRotateGridImg @! ()
                    //, viewShapes mkRects (Just rect100x60) @! ()
                    //, viewShapes mkRects (Just rect30x60) @! ()
                    ]
+allClickExamples = allTasks [ simpleClickExample @! ()
+                            , simpleClickExample @! ()
+                            , simpleClickStepExample @! ()
+                            ]
+:: ClickStepSt
+  = { bigRectClicked   :: Bool
+    , smallRectClicked :: Bool
+    }
+
+derive class iTask ClickStepSt
+
+simpleClickStepExample = updateImageState "Clickable boxes" defaultState mkBoxes >>* [OnValue doStep]
+  where
+  defaultState = { bigRectClicked = False, smallRectClicked = False }
+  mkBoxes s = beside [] [] [ rect100x60 <@< { onclick = \st -> { st & bigRectClicked = True }}
+                           , rect30x60  <@< { onclick = \st -> { st & smallRectClicked = True }}] Nothing
+  doStep (Value {bigRectClicked   = True} _) = Just (viewInformation () [] "Big rect clicked!")
+  doStep (Value {smallRectClicked = True} _) = Just (viewInformation () [] "Small rect clicked!")
+  doStep _           = Nothing
+
 
 tonicSVGs = allTasks [ viewTaskAppExample @! ()
                      , viewStartExample @! ()
@@ -103,6 +123,10 @@ tonicSVGs = allTasks [ viewTaskAppExample @! ()
 
 rect100x60 = rect (px 100.0) (px 60.0) <@< { fill = toSVGColor "red" }
 rect30x60 = rect (px 30.0) (px 60.0) <@< { fill = toSVGColor "blue" }
+
+viewLineExample = viewImage "Testing lines" mkImg
+  where
+  mkImg = overlay (repeat (AtMiddleX, AtMiddleY)) [(px 50.0, px 50.0), (px 150.0, px 150.0)] [rect100x60, rect30x60] Nothing
 
 simpleClickExample :: Task Real
 simpleClickExample = updateImageState "Simple click example" 25.0 f
@@ -350,14 +374,14 @@ viewStepStarExample = viewImage "Tonic step star symbol." img
 viewTaskDefExample :: Task ()
 viewTaskDefExample = viewImage "Tonic task-definition render." viExample
   where
-  viExample = taskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
-  eiApp = taskApp "enterInformation" ["\"Enter call information:\"", "[]"]
-  meApp = transformApp "makeEmergency" ["now", "data"]
-  startSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
-  lineArrow = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
-  stopSymb  = rect (px 16.0) (px 16.0)
-  bodyImage = grid (Rows 1) (LeftToRight, TopToBottom) (repeat (AtMiddleX, AtMiddleY)) [] [startSymb, hline, eiApp, hline, meApp, hline, stopSymb] Nothing
-  hline = xline linemarkers (px 50.0)
+  viExample   = taskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
+  eiApp       = taskApp "enterInformation" ["\"Enter call information:\"", "[]"]
+  meApp       = transformApp "makeEmergency" ["now", "data"]
+  startSymb   = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
+  lineArrow   = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
+  stopSymb    = rect (px 16.0) (px 16.0)
+  bodyImage   = grid (Rows 1) (LeftToRight, TopToBottom) (repeat (AtMiddleX, AtMiddleY)) [] [startSymb, hline, eiApp, hline, meApp, hline, stopSymb] Nothing
+  hline       = xline linemarkers (px 50.0)
   linemarkers = Just { markerStart = Nothing
                      , markerMid   = Nothing
                      , markerEnd   = Just lineArrow
