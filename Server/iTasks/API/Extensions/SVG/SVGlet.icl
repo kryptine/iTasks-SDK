@@ -110,14 +110,14 @@ svgRenderer origState state2Image = Editlet origState server client
   updateUI cid (Just (_, img)) clval world
     //# ((imgs, (imXSp, imYSp), _), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
     # (syn, (clval, world)) = toSVG img ({clval & editletId = cid}, world)
-    # (svg, world)  = getDomElement (mainSvgId cid) world
+    # (svg, world)   = getDomElement (mainSvgId cid) world
     # (imXSp, imYSp) = syn.clSyn_imageSpanReal
-    # (_, world)    = (svg `setAttribute` ("height", toInt imYSp)) world
-    # (_, world)    = (svg `setAttribute` ("width", toInt imXSp)) world
-    # (_, world)    = (svg `setAttribute` ("viewBox", "0 0 " +++ toString (toInt imXSp) +++ " " +++ toString (toInt imYSp))) world
-    # world         = (svg .# "innerHTML" .= "") world
-    # (elem, world) = appendSVG (GElt [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))] [] syn.clSyn_svgElts) svg world
-    # world         = addOnclicks cid svg clval.onclicks world
+    # (_, world)     = (svg `setAttribute` ("height", toInt imYSp)) world
+    # (_, world)     = (svg `setAttribute` ("width", toInt imXSp)) world
+    # (_, world)     = (svg `setAttribute` ("viewBox", "0 0 " +++ toString (toInt imXSp) +++ " " +++ toString (toInt imYSp))) world
+    # world          = (svg .# "innerHTML" .= "") world
+    # (elem, world)  = appendSVG (GElt [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))] [] syn.clSyn_svgElts) svg world
+    # world          = addOnclicks cid svg clval.onclicks world
     = (clval, world)
 
   updateUI _ _ clval world = (clval, world)
@@ -683,8 +683,9 @@ toSVG img = imageCata toSVGAllAlgs img
       go (clval, world)
         # uniqId = clval.uniqueIdCounter
         # ocId   = mkOnClickId clval.editletId uniqId
-        # st     = ({ clval & uniqueIdCounter = uniqId + 1
-                            , onclicks = 'DM'.put ocId onclick clval.onclicks}, world)
+        # st     = ({ clval
+                    & uniqueIdCounter = uniqId + 1
+                    , onclicks = 'DM'.put ocId onclick clval.onclicks}, world)
         = ret (Left (ClassAttr ocId)) st
   toSVGImageTransformAlgs :: ImageTransformAlg Deg (ClSt s Real) (ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)) | iTask s
   toSVGImageTransformAlgs =
@@ -865,22 +866,15 @@ toSVG img = imageCata toSVGAllAlgs img
       =           evalOffsets offsets `b`
       \offsets -> evalMaybe host `b`
       \host    -> compose offsets host edges totalSpan imAts imTrs imTas `b`
-      \compose -> finishMkImage host compose
-      where
-      finishMkImage (Just {clSyn_svgElts = hostImg, clSyn_imageSpanReal = hostSpans, clSyn_imageOffsetReal = hostOffs}) {clSyn_svgElts = compose} st // TODO Do something with hostOffs?
-        # (imTrs, (clval, world)) = sequence (map (\f -> f hostSpans) imTrs) st
-        # uniqId                  = clval.uniqueIdCounter
-        # g                       = mkGroup [] (getSvgAttrs (mkAttrs imAts imTrs)) (compose ++ hostImg)
-        = ret { mkClSyn
-              & clSyn_svgElts         = g
-              , clSyn_imageSpanReal   = hostSpans
-              , clSyn_imageOffsetReal = hostOffs} ({ clval & uniqueIdCounter = uniqId + 1 }, world)
-      finishMkImage _ {clSyn_svgElts = compose, clSyn_imageSpanReal = composeSpans, clSyn_imageOffsetReal = composeOffs} st // TODO Do something with composeOffs?
-        # (imTrs, st) = sequence (map (\f -> f composeSpans) imTrs) st
-        = ret { mkClSyn
-              & clSyn_svgElts         = mkGroup [] (getSvgAttrs (mkAttrs imAts imTrs)) compose
-              , clSyn_imageSpanReal   = composeSpans
-              , clSyn_imageOffsetReal = composeOffs} st
+      \compose -> let (elts, spans, off) = case host of
+                                             Just {clSyn_svgElts, clSyn_imageSpanReal, clSyn_imageOffsetReal} -> (compose.clSyn_svgElts ++ clSyn_svgElts, clSyn_imageSpanReal, clSyn_imageOffsetReal)
+                                             _                                                                -> (compose.clSyn_svgElts, compose.clSyn_imageSpanReal, compose.clSyn_imageOffsetReal)
+                  in  sequence (map (\f -> f spans) imTrs) `b`
+      \imTrs   -> ret { mkClSyn
+                      & clSyn_svgElts         = mkGroup [] (getSvgAttrs (mkAttrs imAts imTrs)) elts
+                      , clSyn_imageSpanReal   = spans
+                      , clSyn_imageOffsetReal = off}
+
   toSVGComposeAlgs :: ComposeAlg (ClSt s ToSVGSyn) ([ImageOffsetReal] (Maybe ToSVGSyn) (Set (Set ImageTag, Set ImageTag)) ImageSpanReal [Either HtmlAttr SVGAttr] [ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
   toSVGComposeAlgs =
     { composeAsGridAlg    = mkGrid
