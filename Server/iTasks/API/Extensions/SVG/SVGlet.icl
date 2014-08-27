@@ -273,7 +273,7 @@ ellipseAnchors (w, h) = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry
   ry        = h /. 2.0
   rSin th r = r *. sin th
   rCos th r = r *. cos th
-
+import StdDebug
 // TODO : Detect divergence due to lookups and return an Either ErrorMessage (Image s), instead of just an Image s
 fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
 fixSpans img = go
@@ -519,23 +519,22 @@ fixSpans img = go
         # spanss      = map (map (\x -> x.totalSpan)) imgss
         # maxYSpans   = map (maxSpan o map snd) spanss
         # maxXSpans   = map (maxSpan o map fst) (transpose spanss)
-        # infoffs     = offsets ++ repeat (px 0.0, px 0.0)
-        # imgss       = calculateGridOffsets maxXSpans maxYSpans imgss infoffs
-        # (xsp, ysp)  = maybe ( foldr (\(xsp, off) acc -> xsp + off + acc) (px 0.0) (zip2 maxXSpans (map fst infoffs))
-                              , foldr (\(ysp, off) acc -> ysp + off + acc) (px 0.0) (zip2 maxYSpans (map snd infoffs))
+        # imgss       = calculateGridOffsets maxXSpans maxYSpans imgss offsets
+        # gridSpan    = maybe ( foldr (\(xsp, off) acc -> xsp + off + acc) (px 0.0) (zip2 maxXSpans (map fst offsets))
+                              , foldr (\(ysp, off) acc -> ysp + off + acc) (px 0.0) (zip2 maxYSpans (map snd offsets))
                               )
                               (\x -> x.totalSpan) mbhost
         # st          = cacheGridSpans imTas ((map (\yspan -> map (\xspan -> (xspan, yspan)) maxXSpans)) maxYSpans) st
-        = ret (AsGrid dims ias imgss, (xsp, ysp)) st
+        = ret (AsGrid dims ias imgss, gridSpan) st
       calculateGridOffsets :: [Span] [Span] [[Image s]] [ImageOffset] -> [[Image s]] | iTask s
       calculateGridOffsets xspans yspans imgss infoffs
-        = let (x, _, _, _) = foldr (mkRows xspans) ([], zero, ias ++ repeat (AtLeft, AtTop), infoffs) (zip2 imgss yspans)
+        = let (x, _, _, _) = foldr (mkRows xspans) ([], px 0.0, ias, infoffs) (zip2 imgss yspans)
           in  x
         where
         mkRows :: [Span] ([Image s], Span) ([[Image s]], Span, [ImageAlign], [ImageOffset]) -> ([[Image s]], Span, [ImageAlign], [ImageOffset]) | iTask s
         mkRows xspans (imgs, yspan) (acc, yoff, aligns, offsets)
           # imgsLength = length imgs
-          = ( [fst (foldr (mkCols yspan yoff) ([], zero) (zip4 imgs xspans (take imgsLength aligns) (take imgsLength offsets))) : acc]
+          = ( [fst (foldr (mkCols yspan yoff) ([], px 0.0) (zip4 imgs xspans (take imgsLength aligns) (take imgsLength offsets))) : acc]
             , yoff + yspan, drop imgsLength aligns, drop imgsLength offsets)
         mkCols :: Span Span (Image s, Span, ImageAlign, ImageOffset) ([Image s], Span) -> ([Image s], Span) | iTask s
         mkCols yspan yoff (img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)}, xspan, align, (manxoff, manyoff)) (acc, xoff)
@@ -555,8 +554,8 @@ fixSpans img = go
         # spans      = map (\x -> x.totalSpan) imgs
         # (maxXSpan, maxYSpan) = maybe (maxSpan (map fst spans), maxSpan (map snd spans))
                                        (\x -> x.totalSpan) mbhost
-        # imgs       = zipWith3 addOffset (zipWith (calcOffset maxXSpan maxYSpan) spans (ias ++ repeat (AtLeft, AtTop)))
-                                          (offsets ++ repeat (px 0.0, px 0.0))
+        # imgs       = zipWith3 addOffset (zipWith (calcOffset maxXSpan maxYSpan) spans ias)
+                                          offsets
                                           imgs
         = ret ( AsOverlay ias imgs
               , maybe (calculateComposedSpan spans offsets) (\x -> x.totalSpan) mbhost) st
@@ -639,15 +638,11 @@ mkMarkerId editletId uniqId = "markerId-" +++ editletId +++ toString uniqId
 mkOnClickId :: !String !Int -> String
 mkOnClickId editletId uniqId = "onClickId-" +++ editletId +++ toString uniqId
 
-
 getSvgAttrs :: ![Either HtmlAttr SVGAttr] -> [SVGAttr]
 getSvgAttrs as = [a \\ Right a <- as]
 
 getHtmlAttrs :: ![Either HtmlAttr SVGAttr] -> [HtmlAttr]
 getHtmlAttrs as = [a \\ Left a <- as]
-
-calcSpanOffset :: ImageSpanReal ImageSpanReal -> ImageOffsetReal
-calcSpanOffset (xsp1, ysp1) (xsp2, ysp2) = (abs (xsp2 - xsp1) / 2.0, abs (ysp2 - ysp1) / 2.0)
 
 toSVG :: !(Image s) -> ClSt s ToSVGSyn | iTask s
 toSVG img = imageCata toSVGAllAlgs img
@@ -1018,7 +1013,7 @@ calcOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
 
 calculateComposedSpan :: ![(a, a)] ![(a, a)] -> (a, a) | IsSpan a
 calculateComposedSpan spans offs
-  = foldr f (zero, zero) (zip2 (offs ++ repeat (zero, zero)) spans)
+  = foldr f (zero, zero) (zip2 offs spans)
   where
   f ((xoff, yoff), (imXSp, imYSp)) (maxX, maxY)
     # maxX = maxOf [maxX, xoff + imXSp]
