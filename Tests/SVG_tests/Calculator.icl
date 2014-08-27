@@ -3,8 +3,6 @@ module Calculator
 import iTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 
-
-
 Start :: *World -> *World
 Start world = startTask [ workflow  "calculator" "calculator"          	      calculator
 						, workflow "Manage users"  "Manage system users..."   manageUsers
