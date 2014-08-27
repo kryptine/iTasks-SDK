@@ -8,6 +8,7 @@ import iTasks.API.Extensions.Admin.UserAdmin
 Start :: *World -> *World
 Start world = startTask [ workflow  "Tic-Tac-Toe" "Play tic-tac-toe"          tictactoe
 						, workflow "Manage users"  "Manage system users..."   manageUsers
+						, workflow "test" "test" test2
 						] world
 
 
@@ -114,7 +115,7 @@ where
 		                             }
 		                in set gameSt` sharedGameSt >>| play
 
-// showing the gameboard in SVG 
+// showing the gameboard in Html 
 
 viewBoard :: !(!Int,!Int) !TicTacToe -> HtmlTag
 viewBoard dimensions ttt
@@ -140,5 +141,109 @@ TileTag (width,height) tile
 where
 	(w,h) = (WidthAttr (toString width),HeightAttr (toString height))
 
+// SVG variant
+/*
+tictactoe_for_1` :: !Bool !User !User !(Shared TicTacToe) -> Task User
+tictactoe_for_1` my_turn me you sharedGameSt
+	= play
+where
+	play = (updateImageState "Play:" [UpdateWith (\gameSt -> {}) (\gameSt _ -> gameSt)] sharedGameSt)
+	      >>* [ OnValue (ifValue game_over declare_winner)
+              , OnValue (ifValue (on_turn my_turn)  make_a_move)
+              ]
 
+	declare_winner gameSt
+		= 	let winner = if gameSt.turn gameSt.player2 gameSt.player1 
+			in 		viewInformation "And the winner is: " [] (toString winner)
+				>>|	return winner
+	
+	make_a_move gameSt=:{board,turn}
+		=              enterChoice "Choose coordinate:" [] (free_coordinates board)
+		  >>= \new  -> let board`  = add_cell new turn board
+		                   gameSt` = {gameSt & board = board`
+		                                     , turn = ~turn
+		                             }
+		                in set gameSt` sharedGameSt >>| play
+
+*/
+import iTasks.API.Extensions.SVG.SVGlet
+
+
+
+updateSharedImageState :: !d  !(s -> Image s) (s -> s) (Shared s) -> Task s | iTask s & descr d 
+updateSharedImageState d toImage handleAction sharedState   
+	= updateSharedInformation d [UpdateWith	(\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] sharedState //@ (\(Editlet s` _ _) -> s`)
+
+
+:: TicTacToe2
+	= { board2  :: [[Maybe TicTac]]
+	  , turn2   :: Bool               // player 1 is playing
+	  , action2	:: Maybe (Int,Int) 
+	  }
+
+derive class iTask TicTacToe2
+
+initTicTacToe2 
+	= { board2 	= repeatn 3 (repeatn 3 Nothing)
+	  , turn2  	= False
+	  , action2	= Nothing
+	  }
+
+test2 :: Task (TicTacToe2,TicTacToe2)
+test2 = withShared initTicTacToe2
+			(\share ->  updateSharedImageState "test1" (mkboard False) handleAction share 
+						-&&-
+						updateSharedImageState "test2" (mkboard True)  handleAction share
+			)
+
+handleAction:: TicTacToe2 -> TicTacToe2
+handleAction ttt=:{turn2,board2,action2 = Just(i,j)} = {ttt & turn2 	= not turn2
+															, board2 	= updateBoard board2 i j (if turn2 Tic Tac)
+															, action2 	= Nothing}
+where
+	updateBoard board2 i2 j2 tictac = [[if (i==i2&&j==j2) (Just tictac) cell \\ cell <- row & j <- [0..]]
+									  \\ row <- board2 & i <- [0..]
+									  ]
+handleAction ttt  = ttt
+
+
+test =  updateImageState "test1" initTicTacToe2 (mkboard True) 
+
+mkboard :: Bool TicTacToe2 -> Image TicTacToe2
+mkboard turn ttt=:{board2,turn2} 
+			= overlay 	[(AtLeft,AtTop),(AtMiddleX,AtTop),(AtRight,AtTop)
+						,(AtLeft,AtMiddleY),(AtMiddleX,AtMiddleY),(AtRight,AtMiddleY)
+						,(AtLeft,AtBottom),(AtMiddleX,AtBottom),(AtRight,AtBottom)
+						,(AtLeft,AtTop)
+						] 
+						[(PxSpan 0.0,PxSpan 0.0), (PxSpan 30.0,PxSpan 0.0),(PxSpan 60.0,PxSpan 0.0)
+						,(PxSpan 0.0,PxSpan 30.0),(PxSpan 30.0,PxSpan 30.0),(PxSpan 60.0,PxSpan 30.0)
+						,(PxSpan 0.0,PxSpan 60.0),(PxSpan 30.0,PxSpan 60.0),(PxSpan 60.0,PxSpan 60.0)
+						,(PxSpan 0.0,PxSpan 0.0)
+						]
+						([ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..], cell <- row & j <- [0..] ]
+						++ 
+						[field])
+						Nothing 
+
+mkTile i j _ (Just Tic)   = cross
+mkTile i j _ (Just Tac)   = null
+mkTile i j False Nothing  = blanc
+mkTile i j True Nothing   = blanc <@< {onclick = \st -> {st & action2 = Just (i,j)}}
+
+cross = overlay [] []
+                 [ polyline Nothing  [(px 0.0, px 0.0),(px 30.0, px 30.0)] <@< {stroke = SVGColorText "red" }
+                 , polyline Nothing  [(px 30.0, px 0.0),(px 0.0, px 30.0)] <@< {stroke = SVGColorText "red" }
+                 ] Nothing
+null  = circle (PxSpan 30.0) <@< {fill 			= SVGColorText "lightgrey"}
+						     <@< {stroke    	= toSVGColor "green"}
+						     <@< {strokewidth 	= px 1.0 }
+blanc = empty (PxSpan 0.0) (PxSpan 30.0)
+
+field = overlay [] [] 
+				[ polyline Nothing  [(px 30.0, px 0.0),(px 30.0, px 90.0)] <@< {stroke = SVGColorText "blue" }
+               	, polyline Nothing  [(px 60.0, px 0.0),(px 60.0, px 90.0)] <@< {stroke = SVGColorText "blue" }
+				, polyline Nothing  [(px 0.0, px 30.0),(px 90.0, px 30.0)] <@< {stroke = SVGColorText "blue" }
+               	, polyline Nothing  [(px 0.0, px 60.0),(px 90.0, px 60.0)] <@< {stroke = SVGColorText "blue" }
+               	] Nothing	
 
