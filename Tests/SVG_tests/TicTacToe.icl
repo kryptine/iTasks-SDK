@@ -201,8 +201,8 @@ handleAction ttt=:{turn2,board2,action2 = Just(i,j)} = {ttt & turn2 	= not turn2
 															, board2 	= updateBoard board2 i j (if turn2 Tic Tac)
 															, action2 	= Nothing}
 where
-	updateBoard board2 i2 j2 tictac = [[if (i==i2&&j==j2) (Just tictac) cell \\ cell <- row & j <- [0..]]
-									  \\ row <- board2 & i <- [0..]
+	updateBoard board2 i2 j2 tictac = [[if (i==i2&&j==j2) (Just tictac) cell \\ cell <- row & j <- [0..2]]
+									  \\ row <- board2 & i <- [0..2]
 									  ]
 handleAction ttt  = ttt
 
@@ -221,7 +221,7 @@ mkboard turn ttt=:{board2,turn2}
 						,(PxSpan 0.0,PxSpan 60.0),(PxSpan 30.0,PxSpan 60.0),(PxSpan 60.0,PxSpan 60.0)
 						,(PxSpan 0.0,PxSpan 0.0)
 						]
-						([ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..], cell <- row & j <- [0..] ]
+						([ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..2], cell <- row & j <- [0..2] ]
 						++ 
 						[field])
 						Nothing 
