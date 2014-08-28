@@ -27,3 +27,17 @@ viewImage        :: !d !(Image ()) -> Task () | descr d
 updateImageState :: !d !s !(s -> Image s) -> Task s | iTask s & descr d
 
 svgRenderer      :: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
+
+
+fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
+:: State s a :== s -> *(a, s)
+:: SrvSt a :== State ServerState a
+
+:: ServerState =
+  { srvTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
+  , didChange        :: Bool
+  }
+:: CachedSpan =
+  { cachedGridSpans :: Maybe [[ImageSpan]]
+  , cachedImageSpan :: Maybe ImageSpan
+  }
