@@ -1047,10 +1047,29 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         if(eventname == "afterlayout") {
             me.eventAfterLayout = handler;
         }
-    },
+    },	
     afterAdd: function() {
         var me = this;
 
+		// Attach event handlers
+		if(me.definition.events){
+			for (var i=0; i<me.definition.events.length; ++i){
+				var elname = me.definition.events[i][0];
+				var eventName = me.definition.events[i][1];
+				eval("tmp = " + me.definition.events[i][2] + ";");
+				var expr = tmp;
+							
+				if(elname == "editlet"){
+					if(eventName == "init"){
+						(me.eventHandler(false,expr))(me);
+					}
+				}else{
+					var el = document.getElementById(elname);
+					el.addEventListener(eventName, me.eventHandler(true,expr));
+				}
+			}
+		}		
+		
         if(me.initDiff != null) {
 			if(me.initDiff[0]==1) {
 				me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
