@@ -3,9 +3,13 @@ module Calculator
 import iTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 
+
+
+
 Start :: *World -> *World
 Start world = startTask [ workflow  "calculator" "calculator"          	      calculator
 						, workflow "Manage users"  "Manage system users..."   manageUsers
+						, workflow "test"  "test"   calculator2
 						] world
 
 
@@ -45,6 +49,69 @@ calc st
 		[ OnAction (Action eventName []) (always (applyOperator operator st))
 		\\ (eventName,operator) <- [("+",(+)),("-",(-)),("*",(*)),("/",(/)),("=",(+))] 
 		]
+
+// 
+
+import iTasks.API.Extensions.SVG.SVGlet
+
+
+calculator2 = calc2 initState
+calc2 st 
+= 	viewInformation "Calculator" [ViewWith Display] st
+	||-
+	updateImageState "test" Nothing field 
+	>>* [ OnAction (Action (toString i) []) (always (updateDigit2 i st)) 
+		\\ i <- [0..9] 
+		]
+	>>| return 0
+
+updateDigit2 :: Int CalculatorState -> Task Int
+updateDigit2 digit st 	= calc2 {st & input = st.input*10 + digit}
+
+
+test = updateImageState "test" Nothing field
+
+
+
+field :: (Maybe String) -> Image (Maybe String)
+field _ = grid (Rows 3) (LeftToRight, TopToBottom) []// [(AtLeft, AtTop),(AtMiddleX, AtTop),(AtRight, AtTop)
+												// ,(AtLeft, AtMiddleY),(AtMiddleX, AtMiddleY),(AtRight, AtMiddleY)
+												// ,(AtLeft, AtBottom),(AtMiddleX, AtBottom),(AtRight, AtBottom)
+												// ] 
+												 [(PxSpan x, PxSpan y) \\ y <- [0.0,buttonH,2.0*buttonH]
+												 					    , x <- [0.0,buttonL,2.0*buttonL]
+												 ] 
+												 [button i \\ i <- [1..9]]
+												 Nothing
+
+button i = rect (PxSpan buttonL) (PxSpan buttonH) <@< { onclick = \_ -> Just (toString i)} 
+buttonL = 30.0
+buttonH = 15.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	
 	
