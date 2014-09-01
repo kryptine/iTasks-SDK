@@ -3,15 +3,11 @@ module Calculator
 import iTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 
-
-
-
 Start :: *World -> *World
 Start world = startTask [ workflow  "calculator" "calculator"          	      calculator
 						, workflow "Manage users"  "Manage system users..."   manageUsers
 						, workflow "test"  "test"   calculator2
 						] world
-
 
 startTask taskList world
 	= startEngine [ publish "/" (WebApp []) (\_-> browseExamples taskList)
@@ -90,14 +86,11 @@ calc2 st
 = 	(updateInformation "Calculator" [] st
 	>>* [ OnValue (ifAction isDigit    updateDigit2  calc2) 
 		, OnValue (ifAction isOperator applyOperator2 calc2)
+		, OnAction ActionContinue (hasValue (\st -> return st.ActionState.state.result))
 	    ])
-	>>| return 1
+	>>= viewInformation "result" []
 where
 	isOperator c = isMember c (map fst calcFunctions2)
-
-
-
-
 
 
 
