@@ -210,40 +210,23 @@ handleAction ttt  = ttt
 test =  updateImageState "test1" initTicTacToe2 (mkboard True) 
 
 mkboard :: Bool TicTacToe2 -> Image TicTacToe2
-mkboard turn ttt=:{board2,turn2} 
-			= overlay 	[(AtLeft,AtTop),(AtMiddleX,AtTop),(AtRight,AtTop)
-						,(AtLeft,AtMiddleY),(AtMiddleX,AtMiddleY),(AtRight,AtMiddleY)
-						,(AtLeft,AtBottom),(AtMiddleX,AtBottom),(AtRight,AtBottom)
-						,(AtLeft,AtTop)
-						] 
-						[(PxSpan 0.0,PxSpan 0.0), (PxSpan 30.0,PxSpan 0.0),(PxSpan 60.0,PxSpan 0.0)
-						,(PxSpan 0.0,PxSpan 30.0),(PxSpan 30.0,PxSpan 30.0),(PxSpan 60.0,PxSpan 30.0)
-						,(PxSpan 0.0,PxSpan 60.0),(PxSpan 30.0,PxSpan 60.0),(PxSpan 60.0,PxSpan 60.0)
-						,(PxSpan 0.0,PxSpan 0.0)
-						]
-						([ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..2], cell <- row & j <- [0..2] ]
-						++ 
-						[field])
-						Nothing 
+mkboard turn ttt=:{board2,turn2}
+	= grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
+	       [ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..2], cell <- row & j <- [0..2] ]
+	       Nothing
 
 mkTile i j _ (Just Tic)   = cross
 mkTile i j _ (Just Tac)   = null
-mkTile i j False Nothing  = blanc
-mkTile i j True Nothing   = blanc <@< {onclick = \st -> {st & action2 = Just (i,j)}}
+mkTile i j False Nothing  = blank
+mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & action2 = Just (i,j)}}
 
-cross = overlay [] []
-                 [ polyline Nothing  [(px 0.0, px 0.0),(px 30.0, px 30.0)] <@< {stroke = SVGColorText "red" }
-                 , polyline Nothing  [(px 30.0, px 0.0),(px 0.0, px 30.0)] <@< {stroke = SVGColorText "red" }
-                 ] Nothing
-null  = circle (PxSpan 30.0) <@< {fill 			= SVGColorText "lightgrey"}
-						     <@< {stroke    	= toSVGColor "green"}
-						     <@< {strokewidth 	= px 1.0 }
-blanc = empty (PxSpan 0.0) (PxSpan 30.0)
+cross = overlay [] [] [blank,bar Slash,bar Backslash] Nothing
+where
+	bar dir = line Nothing dir (px 30.0) (px 30.0) <@< {strokewidth = px 5.0} <@< {stroke = SVGColorText "red" }
 
-field = overlay [] [] 
-				[ polyline Nothing  [(px 30.0, px 0.0),(px 30.0, px 90.0)] <@< {stroke = SVGColorText "blue" }
-               	, polyline Nothing  [(px 60.0, px 0.0),(px 60.0, px 90.0)] <@< {stroke = SVGColorText "blue" }
-				, polyline Nothing  [(px 0.0, px 30.0),(px 90.0, px 30.0)] <@< {stroke = SVGColorText "blue" }
-               	, polyline Nothing  [(px 0.0, px 60.0),(px 90.0, px 60.0)] <@< {stroke = SVGColorText "blue" }
-               	] Nothing	
-
+null  = overlay [] [] [blank,naught] Nothing
+where
+	naught = circle (px 30.0) <@< {fill        = SVGColorText "none"}
+						      <@< {stroke      = toSVGColor "green"}
+						      <@< {strokewidth = px 5.0 }
+blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "none"}
