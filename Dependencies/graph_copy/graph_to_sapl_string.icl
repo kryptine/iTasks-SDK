@@ -390,6 +390,8 @@ droplast [x:xs] = [x:droplast xs]
 
 makeSaplName :: String -> String
 makeSaplName str 
+| startsWith "TD;" str 
+	= str
 # lstr           = [c\\ c <-: str]
 # revl           = reverse lstr
 # (dgs,revrest)  = span isDigit revl
