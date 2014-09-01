@@ -28,65 +28,104 @@ where
 			Just user 	= workAs user (manageWorklist taskList)
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 	
-// calculator
+// original calculator
 
-:: CalculatorState = {result :: Int, input :: Int }
+:: CalculatorState = 	{ result	:: Int
+						, digits	:: Int 
+						}
 
 derive class iTask CalculatorState
 
-initState 				= {result = 0, input = 0}
-updateDigit digit st 	= calc {st & input = st.input*10 + digit}
-applyOperator op st 	= calc {result = op st.result st.input, input = 0}
+initState 				= {result = 0, digits = 0}
+updateDigit digit st 	= {st & digits = st.digits*10 + digit}
+applyOperator op st 	= {result = op st.result st.digits, digits = 0}
 
 calculator :: Task Int
 calculator = calc initState
 
 calc st
 = 		viewInformation "Calculator" [ViewWith Display] st
-	>>* [ OnAction (Action (toString i) []) (always (updateDigit i st)) 
+	>>* [ OnAction (Action (toString i) []) (always (calc (updateDigit i st))) 
 		\\ i <- [0..9] 
 		] ++
-		[ OnAction (Action eventName []) (always (applyOperator operator st))
-		\\ (eventName,operator) <- [("+",(+)),("-",(-)),("*",(*)),("/",(/)),("=",(+))] 
+		[ OnAction (Action eventName []) (always (calc (applyOperator operator st)))
+		\\ (eventName,operator) <- calcFunctions 
 		]
 
-// 
+calcFunctions = [("+",(+)),("-",(-)),("*",(*)),("/",(/)),("=",(+))]
 
-import iTasks.API.Extensions.SVG.SVGlet
+// calculator with actions shifted into state
 
+:: ActionState a s  = 	{ state		:: s
+						, action	:: Maybe a
+						}
 
-calculator2 = calc2 initState
+derive class iTask ActionState
+
+ifAction :: (a -> Bool) (a s -> s) ((ActionState a s) -> Task b) (TaskValue (ActionState a s)) -> Maybe (Task b)
+ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _) 
+    | pred a 	= Just (stotaskb {ActionState|state = astos a s, action = Nothing})
+    | otherwise = Nothing
+ifAction _ _ _ _ = Nothing
+
+calculator2 :: Task Int
+calculator2 = calc2 initActionState
+
+initActionState :: (ActionState Char CalculatorState) 
+initActionState = {ActionState|state = initState, action = Nothing}
+
+updateDigit2 :: Char CalculatorState -> CalculatorState
+updateDigit2 digit st=:{digits} = {st & digits = digits*10 + toInt (digit - '0')}
+
+calcFunctions2 :: [(Char,Int Int -> Int)]
+calcFunctions2 = [('+',(+)),('-',(-)),('*',(*)),('/',(/)),('=',(+))]
+
+applyOperator2 :: Char CalculatorState -> CalculatorState
+applyOperator2 a st  = {result = (findOperator a) st.result st.digits, digits = 0}
+where
+	findOperator a = hd [op \\ (c,op) <- calcFunctions2 | c == a]
+
+calc2 :: (ActionState Char CalculatorState) -> Task Int
 calc2 st 
-= 	viewInformation "Calculator" [ViewWith Display] st
-	||-
-	updateImageState "test" Nothing field 
-	>>* [ OnAction (Action (toString i) []) (always (updateDigit2 i st)) 
-		\\ i <- [0..9] 
-		]
-	>>| return 0
+= 	(updateInformation "Calculator" [] st
+	>>* [ OnValue (ifAction isDigit    updateDigit2  calc2) 
+		, OnValue (ifAction isOperator applyOperator2 calc2)
+	    ])
+	>>| return 1
+where
+	isOperator c = isMember c (map fst calcFunctions2)
 
-updateDigit2 :: Int CalculatorState -> Task Int
-updateDigit2 digit st 	= calc2 {st & input = st.input*10 + digit}
+
+
+
+
+
 
 
 test = updateImageState "test" Nothing field
 
 
+/*
+mkboard :: Bool TicTacToe2 -> Image TicTacToe2
+mkboard turn ttt=:{board2,turn2}
+	= grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
+	       [ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..2], cell <- row & j <- [0..2] ]
+	       Nothing
+*/
+import iTasks.API.Extensions.SVG.SVGlet
 
 field :: (Maybe String) -> Image (Maybe String)
-field _ = grid (Rows 3) (LeftToRight, TopToBottom) []// [(AtLeft, AtTop),(AtMiddleX, AtTop),(AtRight, AtTop)
-												// ,(AtLeft, AtMiddleY),(AtMiddleX, AtMiddleY),(AtRight, AtMiddleY)
-												// ,(AtLeft, AtBottom),(AtMiddleX, AtBottom),(AtRight, AtBottom)
-												// ] 
-												 [(PxSpan x, PxSpan y) \\ y <- [0.0,buttonH,2.0*buttonH]
-												 					    , x <- [0.0,buttonL,2.0*buttonL]
-												 ] 
+field _ = grid (Rows 3) (LeftToRight, TopToBottom) [] []
+												  
 												 [button i \\ i <- [1..9]]
 												 Nothing
 
 button i = rect (PxSpan buttonL) (PxSpan buttonH) <@< { onclick = \_ -> Just (toString i)} 
-buttonL = 30.0
-buttonH = 15.0
+												  <@< {strokewidth = px 1.0} 
+												  <@< {fill = toSVGColor "none"}
+where
+	buttonL = 30.0
+	buttonH = 15.0
 
 
 
