@@ -63,3 +63,10 @@ They are divided over multiple folders as follows:
 - Examples : Example task definitions.
 
 - Tools    : Various build and code generation tools.
+
+
+=== Practical tips ===
+
+- You can use your own images in your iTasks application by creating a WebPublic
+  directory next to your exectuable. Any file and folder contained therein can
+  be accessed via hostname/fileordir.ext
