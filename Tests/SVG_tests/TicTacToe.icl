@@ -1,34 +1,16 @@
 module TicTacToe
 
 import iTasks
-import iTasks.API.Extensions.Admin.UserAdmin
+import MultiUser
 
 
 
 Start :: *World -> *World
-Start world = startTask [ workflow  "Tic-Tac-Toe" "Play tic-tac-toe"          tictactoe
-						, workflow "Manage users"  "Manage system users..."   manageUsers
-						, workflow "test" "test" test2
-						] world
+Start world = StartMultiUserTasks [ workflow  "Original Tic-Tac-Toe" "Play tic-tac-toe"  	 tictactoe
+								  , workflow  "SVG Tic-Tac-Toe"      "Play SVG tic-tac-toe"  tictactoe2
+								  ] world
 
-
-startTask taskList world
-	= startEngine [ publish "/" (WebApp []) (\_-> browseExamples taskList)
-				  ] world
-where
-	browseExamples taskList = forever (
-		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
-		>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated taskList))
-			] )
-	
-	browseAuthenticated taskList {Credentials|username,password}
-		= authenticateUser username password
-		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist taskList)
-			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
-	
 // tic-tac-toe, simplistic
-
 
 :: TicTacToe
 	= { board   :: ![[Maybe TicTac]]
@@ -168,10 +150,6 @@ where
 */
 import iTasks.API.Extensions.SVG.SVGlet
 
-
-
-
-
 :: TicTacToe2
 	= { board2  :: [[Maybe TicTac]]
 	  , turn2   :: Bool               // player 1 is playing
@@ -186,8 +164,8 @@ initTicTacToe2
 	  , action2	= Nothing
 	  }
 
-test2 :: Task (TicTacToe2,TicTacToe2)
-test2 = withShared initTicTacToe2
+tictactoe2 :: Task (TicTacToe2,TicTacToe2)
+tictactoe2 = withShared initTicTacToe2
 			(\share ->  updateSharedImageState "test1" (mkboard False) handleAction share 
 						-&&-
 						updateSharedImageState "test2" (mkboard True)  handleAction share
