@@ -24,8 +24,9 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
 
 viewImage        		:: !d 	 !(Image ()) -> Task () | descr d
 
-updateImageState 		:: !d !s !(s -> Image s) 					  -> Task s | iTask s & descr d
-updateSharedImageState 	:: !d    !(s -> Image s) (s -> s) (Shared s)  -> Task s | iTask s & descr d 
+//updateImageState 		:: !d !s !(s -> Image s) 					  -> Task s | iTask s & descr d
+updateImageState 		:: !d  !(s -> Image s) !(s -> s) !s 		 -> Task s | iTask s & descr d
+updateSharedImageState 	:: !d  !(s -> Image s) !(s -> s) (Shared s)  -> Task s | iTask s & descr d 
 
 :: ActionState a s  = 	{ state		:: s
 						, action	:: Maybe a

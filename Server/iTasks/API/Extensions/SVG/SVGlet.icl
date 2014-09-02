@@ -69,10 +69,11 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
   mkCB :: (s -> s) String {JSObj JSEvent} (ClientState s) *JSWorld -> *(ClientState s, *JSWorld) | iTask s
   mkCB sttf _ _ clval world = ({clval & currState = sttf clval.currState}, world)
 
-updateImageState :: !d !s !(s -> Image s) -> Task s | iTask s & descr d
-updateImageState d s f = updateInformation d [] (svgRenderer s f) @ (\(Editlet s` _ _) -> s`)
+updateImageState :: !d  !(s -> Image s) !(s -> s) !s -> Task s | iTask s & descr d
+updateImageState d toImage handleAction s  
+	= updateInformation d [UpdateWith (\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] s
 
-updateSharedImageState :: !d  !(s -> Image s) (s -> s) (Shared s) -> Task s | iTask s & descr d 
+updateSharedImageState :: !d  !(s -> Image s) !(s -> s) (Shared s) -> Task s | iTask s & descr d 
 updateSharedImageState d toImage handleAction sharedState   
 	= updateSharedInformation d [UpdateWith	(\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] sharedState //@ (\(Editlet s` _ _) -> s`)
 

@@ -204,7 +204,7 @@ where
 handleAction ttt  = ttt
 
 
-test =  updateImageState "test1" initTicTacToe2 (mkboard True) 
+test =  updateImageState "test1" (mkboard True) id initTicTacToe2
 
 mkboard :: Bool TicTacToe2 -> Image TicTacToe2
 mkboard turn ttt=:{board2,turn2}
