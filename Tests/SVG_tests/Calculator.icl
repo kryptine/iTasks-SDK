@@ -1,28 +1,12 @@
 module Calculator
 
 import iTasks
-import iTasks.API.Extensions.Admin.UserAdmin
+import MultiUser
 
 Start :: *World -> *World
-Start world = startTask [ workflow  "calculator" "calculator"          	      calculator
-						, workflow "Manage users"  "Manage system users..."   manageUsers
-						, workflow "test"  "test"   calculator2
-						] world
-
-startTask taskList world
-	= startEngine [ publish "/" (WebApp []) (\_-> browseExamples taskList)
-				  ] world
-where
-	browseExamples taskList = forever (
-		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
-		>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated taskList))
-			] )
-	
-	browseAuthenticated taskList {Credentials|username,password}
-		= authenticateUser username password
-		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist taskList)
-			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+Start world = StartMultiUserTasks 	[ workflow  "original calculator"  "calculator"       calculator
+		 							, workflow  "graphical calculator" "svg calculator"   calculator2
+									] world
 	
 // original calculator
 
@@ -73,7 +57,7 @@ where
 
 calc2 :: (ActionState Char CalculatorState) -> Task Int
 calc2 st 
-= 	(updateInformation "Calculator" [] st
+= 	(updateInformation "Calculator" view st
 	>>* [ OnValue (ifAction isDigit    updateDigit2  calc2) 
 		, OnValue (ifAction isOperator applyOperator2 calc2)
 		, OnAction ActionContinue (hasValue (\st -> return st.ActionState.state.result))
@@ -82,33 +66,9 @@ calc2 st
 where
 	isOperator c = isMember c (map fst calcFunctions2)
 
+view = []
 
-
-
-test = updateImageState "test" Nothing field
-
-
-/*
-mkboard :: Bool TicTacToe2 -> Image TicTacToe2
-mkboard turn ttt=:{board2,turn2}
-	= grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
-	       [ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..2], cell <- row & j <- [0..2] ]
-	       Nothing
-*/
-import iTasks.API.Extensions.SVG.SVGlet
-
-field :: (Maybe String) -> Image (Maybe String)
-field _ = grid (Rows 3) (LeftToRight, TopToBottom) [] []
-												  
-												 [button i \\ i <- [1..9]]
-												 Nothing
-
-button i = rect (PxSpan buttonL) (PxSpan buttonH) <@< { onclick = \_ -> Just (toString i)} 
-												  <@< {strokewidth = px 1.0} 
-												  <@< {fill = toSVGColor "none"}
-where
-	buttonL = 30.0
-	buttonH = 15.0
+view = [] // svg image has to be defined here 
 
 
 
