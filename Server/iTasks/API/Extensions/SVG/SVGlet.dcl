@@ -22,12 +22,21 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, XRadiusAttr, YRadiusAttr
 
-viewImage        :: !d !(Image ()) -> Task () | descr d
+viewImage        		:: !d 	 !(Image ()) -> Task () | descr d
 
-updateImageState :: !d !s !(s -> Image s) -> Task s | iTask s & descr d
+updateImageState 		:: !d !s !(s -> Image s) 					  -> Task s | iTask s & descr d
+updateSharedImageState 	:: !d    !(s -> Image s) (s -> s) (Shared s)  -> Task s | iTask s & descr d 
 
-svgRenderer      :: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
+:: ActionState a s  = 	{ state		:: s
+						, action	:: Maybe a
+						}
 
+derive class iTask ActionState
+
+ifAction 				:: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
+
+
+svgRenderer      		:: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
 
 fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
 :: State s a :== s -> *(a, s)

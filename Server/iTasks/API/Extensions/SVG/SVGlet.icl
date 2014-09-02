@@ -72,6 +72,23 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
 updateImageState :: !d !s !(s -> Image s) -> Task s | iTask s & descr d
 updateImageState d s f = updateInformation d [] (svgRenderer s f) @ (\(Editlet s` _ _) -> s`)
 
+updateSharedImageState :: !d  !(s -> Image s) (s -> s) (Shared s) -> Task s | iTask s & descr d 
+updateSharedImageState d toImage handleAction sharedState   
+	= updateSharedInformation d [UpdateWith	(\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] sharedState //@ (\(Editlet s` _ _) -> s`)
+
+:: ActionState a s  = 	{ state		:: s
+						, action	:: Maybe a
+						}
+
+derive class iTask ActionState
+
+ifAction 				:: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
+ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _) 
+    | pred a 	= Just (stotaskb {ActionState|state = astos a s, action = Nothing})
+    | otherwise = Nothing
+ifAction _ _ _ _ = Nothing
+
+
 appendSVG :: SVGElt (JSObj r) *JSWorld -> *(JSObj s, *JSWorld)
 appendSVG (SVGElt            htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "svg"            htmlAttrs svgAttrs svgElts world
 appendSVG (ClipPathElt       htmlAttrs svgAttrs svgElts) parent world = appendSVG` parent "clipPath"       htmlAttrs svgAttrs svgElts world

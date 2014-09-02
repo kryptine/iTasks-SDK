@@ -170,9 +170,6 @@ import iTasks.API.Extensions.SVG.SVGlet
 
 
 
-updateSharedImageState :: !d  !(s -> Image s) (s -> s) (Shared s) -> Task s | iTask s & descr d 
-updateSharedImageState d toImage handleAction sharedState   
-	= updateSharedInformation d [UpdateWith	(\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] sharedState //@ (\(Editlet s` _ _) -> s`)
 
 
 :: TicTacToe2
@@ -217,7 +214,7 @@ mkboard turn ttt=:{board2,turn2}
 
 mkTile i j _ (Just Tic)   = cross
 mkTile i j _ (Just Tac)   = null
-mkTile i j False Nothing  = blank
+mkTile i j False Nothing  = cross //blank
 mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & action2 = Just (i,j)}}
 
 cross = overlay [] [] [blank,bar Slash,bar Backslash] Nothing

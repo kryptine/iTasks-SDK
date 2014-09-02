@@ -52,17 +52,7 @@ calcFunctions = [("+",(+)),("-",(-)),("*",(*)),("/",(/)),("=",(+))]
 
 // calculator with actions shifted into state
 
-:: ActionState a s  = 	{ state		:: s
-						, action	:: Maybe a
-						}
-
-derive class iTask ActionState
-
-ifAction :: (a -> Bool) (a s -> s) ((ActionState a s) -> Task b) (TaskValue (ActionState a s)) -> Maybe (Task b)
-ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _) 
-    | pred a 	= Just (stotaskb {ActionState|state = astos a s, action = Nothing})
-    | otherwise = Nothing
-ifAction _ _ _ _ = Nothing
+import iTasks.API.Extensions.SVG.SVGlet
 
 calculator2 :: Task Int
 calculator2 = calc2 initActionState
