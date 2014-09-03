@@ -22,7 +22,7 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, XRadiusAttr, YRadiusAttr
 
-viewImage        		:: !d 	 !(Image ()) -> Task () | descr d
+imageView :: !(s -> Image s) -> ViewOption s | iTask s
 
 //updateImageState 		:: !d !s !(s -> Image s) 					  -> Task s | iTask s & descr d
 updateImageState 		:: !d  !(s -> Image s) !(s -> s) !s 		 -> Task s | iTask s & descr d
