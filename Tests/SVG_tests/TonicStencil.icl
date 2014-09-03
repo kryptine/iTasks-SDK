@@ -34,8 +34,8 @@ ArialItalic10px :== { fontfamily  = "Arial"
                   }
 
 //Start :: *World -> *World
-Start world = startEngine allSVGs world
-//Start world = startEngine examples world
+//Start world = startEngine allSVGs world
+Start world = startEngine examples world
 //Start = fst (fixSpans viewTaskDefExample` {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap})
 
 viewImage d image = viewInformation d [imageView (\_ -> image)] ()
@@ -93,22 +93,22 @@ viewTestRect = viewImage "Test rect" testRect
 testRect :: Image ()
 testRect = rect (textxspan ArialRegular10px "foo") (px 25.0)
 
-allSVGs = allTasks [// viewRotateGridImg @! ()
-                    //viewLineExample @! ()
-                   //, viewTextGrid @! ()
-                    viewTextGrid2 @! ()
+allSVGs = allTasks [ viewRotateGridImg @! ()
+                     //viewLineExample @! ()
+                   , viewTextGrid @! ()
+                    //viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
-                   //, viewPolygon @! ()
-                   //, viewPolyline @! ()
-                   //, viewBox @! ()
-                   //, viewGrid @! ()
-                   //, viewShapes mkCircles Nothing @! ()
-                   //, viewShapes mkCircles (Just rect100x60) @! ()
-                   //, viewShapes mkCircles (Just rect30x60) @! ()
-                   //, viewRect @! ()
-                   //, viewEllipse @! ()
-                   //, viewBesideBoxes @! ()
-                   //, viewBesideBoxes2 @! ()
+                   , viewPolygon @! ()
+                   , viewPolyline @! ()
+                   , viewBox @! ()
+                   , viewGrid @! ()
+                   , viewShapes mkCircles Nothing @! ()
+                   , viewShapes mkCircles (Just rect100x60) @! ()
+                   , viewShapes mkCircles (Just rect30x60) @! ()
+                   , viewRect @! ()
+                   , viewEllipse @! ()
+                   , viewBesideBoxes @! ()
+                   , viewBesideBoxes2 @! ()
                    //, viewShapes mkRects Nothing @! ()
                    //, viewShapes mkRects (Just rect100x60) @! ()
                    //, viewShapes mkRects (Just rect30x60) @! ()
@@ -361,7 +361,7 @@ viewTaskAppExample = viewImage "Tonic task-application render." viExample
 
 taskApp :: String [String] -> Image ()
 taskApp taskName taskArgs
-  # bgRect       = rect maxXSpan (imageyspan [imageTag "taTaskNameImg"] + imageyspan [imageTag "taTaskArgsImgs"] + imageyspan [imageTag "taTaskTextImgs"])
+  # bgRect       = rect maxXSpan (imageyspan [imageTag "taTaskNameImg"] + imageyspan [imageTag "taTaskArgsImgs"])
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }
                      <@< { strokewidth = px 1.0 }
@@ -369,11 +369,11 @@ taskApp taskName taskArgs
                      <@< { yradius     = px 5.0 }
   # taskNameImg  = tag [imageTag "taTaskNameImg"]  (margin (px 5.0) (text ArialBold10px taskName))
   # taskArgsImgs = tag [imageTag "taTaskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
-  # taskText     = tag [imageTag "taTaskTextImgs"] (above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, taskArgsImgs] Nothing)
+  # taskText     = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, taskArgsImgs] Nothing
   # taskApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
   = taskApp
   where
-  maxXSpan = maxSpan [imagexspan [imageTag "taTaskNameImg"], imagexspan [imageTag "taTaskArgsImgs"], imagexspan [imageTag "taTaskTextImgs"]]
+  maxXSpan = maxSpan [imagexspan [imageTag "taTaskNameImg"], imagexspan [imageTag "taTaskArgsImgs"]]
 
 taskApp` :: String [String] -> Image ()
 taskApp` taskName taskArgs
