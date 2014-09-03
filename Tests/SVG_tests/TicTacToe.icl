@@ -166,9 +166,9 @@ initTicTacToe2
 
 tictactoe2 :: Task (TicTacToe2,TicTacToe2)
 tictactoe2 = withShared initTicTacToe2
-			(\share ->  updateSharedImageState "test1" (mkboard False) handleAction share 
+			(\share ->  updateSharedInformation "test1" [imageViewUpdate (mkboard False) handleAction] share 
 						-&&-
-						updateSharedImageState "test2" (mkboard True)  handleAction share
+						updateSharedInformation "test2" [imageViewUpdate (mkboard True)  handleAction] share
 			)
 
 handleAction:: TicTacToe2 -> TicTacToe2
@@ -182,7 +182,7 @@ where
 handleAction ttt  = ttt
 
 
-test =  updateImageState "test1" (mkboard True) id initTicTacToe2
+test =  viewInformation "test1" [imageView (mkboard True)] initTicTacToe2
 
 mkboard :: Bool TicTacToe2 -> Image TicTacToe2
 mkboard turn ttt=:{board2,turn2}

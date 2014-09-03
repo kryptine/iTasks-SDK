@@ -38,6 +38,9 @@ Start world = startEngine allSVGs world
 //Start world = startEngine examples world
 //Start = fst (fixSpans viewTaskDefExample` {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap})
 
+viewImage d image = viewInformation d [imageView (\_ -> image)] ()
+
+
 viewTaskDefExample` = viExample
   where
   viExample   = taskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage

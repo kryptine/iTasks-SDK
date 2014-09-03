@@ -50,8 +50,6 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
 
 derive class iTask ClientState
 
-viewImage :: !d !(Image ()) -> Task () | descr d
-viewImage descr img = viewInformation descr [] (svgRenderer () (\_ -> img)) @! ()
 
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
@@ -78,6 +76,12 @@ updateImageState d toImage handleAction s
 updateSharedImageState :: !d  !(s -> Image s) !(s -> s) (Shared s) -> Task s | iTask s & descr d 
 updateSharedImageState d toImage handleAction sharedState   
 	= updateSharedInformation d [UpdateWith	(\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] sharedState //@ (\(Editlet s` _ _) -> s`)
+
+imageView :: !(s -> Image s) -> ViewOption s | iTask s
+imageView toImage = ViewWith (\s -> svgRenderer s toImage)
+
+imageViewUpdate :: !(s -> Image s) !(s -> s) -> UpdateOption s s |  iTask s
+imageViewUpdate toImage handleAction = UpdateWith (\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)
 
 :: ActionState a s  = 	{ state		:: s
 						, action	:: Maybe a
