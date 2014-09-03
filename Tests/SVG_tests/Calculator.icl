@@ -37,7 +37,6 @@ calcFunctions = [("+",(+)),("-",(-)),("*",(*)),("/",(/)),("=",(+))]
 // calculator with actions shifted into state
 
 import iTasks.API.Extensions.SVG.SVGlet
-
 calculator2 :: Task Int
 calculator2 = calc2 initActionState
 
@@ -70,14 +69,33 @@ where
 
 view = [imageViewUpdate calculatorImage id] // svg image has to be defined here 
 
-calculatorImage as = grid (Rows 3) (LeftToRight, TopToBottom) [] [] 
-						[ mkButton2 s xBox yBox \\ s <- ["7","8","9","+","4","5","6","-","1","2","3","x"]   
-						] Nothing
+
+calculatorImage :: (ActionState Char CalculatorState) -> Image (ActionState Char CalculatorState)
+calculatorImage as = grid (Rows 2) (LeftToRight, TopToBottom) [] [] 
+						[ display as.ActionState.state
+						, buttons 
+						] Nothing 
 where
+
+
+	display	{result,digits} 
+		= grid (Rows 2) (LeftToRight, TopToBottom) [] [] 
+						[ mkButton2 result (4.0*xBox) yBox
+						, mkButton2 digits (4.0*xBox) yBox
+						] Nothing 
+	buttons  = grid (Rows 4) (LeftToRight, TopToBottom) [] [] 
+						[ mkButton3 s xBox yBox \\ s <- ['7','8','9','/'
+														,'6','5','4','*'
+														,'1','2','3','-'
+														,'0','=',' ','+' 
+														]
+						] Nothing
+	
 	xBox = 30.0
 	yBox = 15.0
+	mkButton3 s x y = mkButton2 s x y <@< {onclick = (\as -> {as & ActionState.action = Just s})}  
 	mkButton2 s x y =  overlay [(AtLeft,AtTop),(AtMiddleX,AtTop)] [] 
-							[mkButton x y, mkText s] Nothing
+							[mkButton x y, mkText (toString s)] Nothing
 	mkButton x y 	=  rect (PxSpan x) (PxSpan y) <@< {stroke = toSVGColor "black"} <@< {fill = toSVGColor "white"} <@< {strokewidth = px 1.0}
 	mkText s		=  text ArialRegular10px s
 
