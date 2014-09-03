@@ -592,10 +592,8 @@ fixSpans img = go
         # maxYSpans   = map (maxSpan o map snd) spanss
         # (tag, st)   = nextNo st
         # sysTags     = 'DS'.singleton (ImageTagSystem tag)
-        // TODO This is a major gain, since the gridSpan is used in many places. For now, don't bother trying to optimize calculateGridOffsets, focus on making this work
-        # gridSpan    = maybe ((\(x, _, _) -> x) (foldr (\(offx, offy) ((accx, accy), i, j) // TODO : This is not going to work. On each row, reset the col count
-                                                                                -> (((LookupSpan (ColumnXSpan sysTags i)) + offx + accx
-                                                                                   , (LookupSpan (RowYSpan sysTags j)) + offy + accy), if (i == numcols - 1) 0 (i + 1), if (i == numcols - 1) (j + 1) j)) ((px 0.0, px 0.0), 0, 0) offsets)
+        # gridSpan    = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) [0..numcols - 1]
+                              , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) [0..numrows - 1]
                               )
                               (\x -> x.totalSpan) mbhost
         # offsets     = flatten (calculateGridOffsets maxXSpans maxYSpans imgss offsets)
