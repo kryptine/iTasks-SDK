@@ -591,47 +591,19 @@ fixSpans img = go
       go st
         # (imgss, st) = foldr seqImgsGrid ([], st) imgss
         # imgss       = reverse (map reverse imgss) // TODO This is more or less a hack... why do we need this?
-        # spanss      = map (map (\x -> x.totalSpan)) imgss
-        # maxXSpans   = map (maxSpan o map fst) (transpose spanss)
-        # maxYSpans   = map (maxSpan o map snd) spanss
         # (tag, st)   = nextNo st
         # sysTags     = 'DS'.singleton (ImageTagSystem tag)
         # gridSpan    = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) [0..numcols - 1]
                               , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) [0..numrows - 1]
                               )
                               (\x -> x.totalSpan) mbhost
-        # offsets     = flatten (calculateGridOffsets maxXSpans maxYSpans imgss offsets)
-        //# xspansArr   = {xsp \\ xsp <- maxXSpans}
-        //# yspansArr   = {ysp \\ ysp <- maxYSpans}
-        # xspansArr   = maxXSpans
-        # yspansArr   = maxYSpans
-        //# offsets     = calculateGridOffsets xspansArr yspansArr imgss offsets
-        # st          = cacheGridSpans ('DS'.union sysTags imTas) xspansArr yspansArr st
+        # offsets     = flatten (calculateGridOffsets (map (\n -> LookupSpan (ColumnXSpan sysTags n)) [0..numcols - 1])
+                                                      (map (\n -> LookupSpan (RowYSpan sysTags n)) [0..numrows - 1]) imgss offsets)
+        # spanss      = map (map (\x -> x.totalSpan)) imgss
+        # st          = cacheGridSpans ('DS'.union sysTags imTas) (map (maxSpan o map fst) (transpose spanss)) (map (maxSpan o map snd) spanss) st
         = ret ( AsCollage (flatten imgss)
               , gridSpan
               , offsets) st
-      //calculateGridOffsets xspansArr yspansArr imgss offsets
-        //= foldr f ([], px 0.0, px 0.0) (zip4 (flatten imgss) offsets ias [(c, r) \\ c <- [0 .. size xspansArr - 1], r <- [0 .. size yspansArr - 1]])
-        //where
-        //f img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)} (manXOff, manYOff) align (column, row) (acc, xoff, yoff)
-        ////f img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)} (manXOff, manYOff) align (column, row)
-          //# (alignXOff, alignYOff) = calcAlignOffset xspansArr.[column] yspansArr.[row] totalSpan align
-          ////= ( alignXOff + (LookupSpan (xoff + manXOff + tfXCorr
-              ////alignYOff + yoff + manYOff + tfYCorr)
-          //= ([( alignXOff + xoff + manXOff + tfXCorr
-            //, alignYOff + yoff + manYOff + tfYCorr):acc], xoff + xspansArr.[column], yoff + yspansArr.[row])
-
-        //= let (x, _, _, _) = foldr mkRows ([], px 0.0, ias, offsets, 0) imgss
-          //in  x
-        //where
-        //mkRows cellXSpans (imgs, cellYSpan) (acc, yoff, aligns, offsets)
-          //# imgsLength = length imgs
-          //= ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans (take imgsLength aligns) (take imgsLength offsets))) : acc]
-            //, yoff + cellYSpan, drop imgsLength aligns, drop imgsLength offsets)
-        //mkCols cellYSpan yoff (img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, align, (manXOff, manYOff)) (acc, xoff)
-          //# (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpan align
-          //= ([( alignXOff + xoff + manXOff + tfXCorr
-              //, alignYOff + yoff + manYOff + tfYCorr):acc], xoff + cellXSpan)
       calculateGridOffsets cellXSpans cellYSpans imgss offsets
         = let (x, _, _, _) = foldr (mkRows cellXSpans) ([], px 0.0, ias, offsets) (zip2 imgss cellYSpans)
           in  x
