@@ -67,7 +67,7 @@ where
 
 //view = []
 
-view = [imageViewUpdate calculatorImage id] // svg image has to be defined here 
+view = [imageViewUpdate id calculatorImage id] // svg image has to be defined here 
 
 
 calculatorImage :: (ActionState Char CalculatorState) -> Image (ActionState Char CalculatorState)

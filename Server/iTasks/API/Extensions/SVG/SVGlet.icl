@@ -80,8 +80,9 @@ updateSharedImageState d toImage handleAction sharedState
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
 imageView toImage = ViewWith (\s -> svgRenderer s toImage)
 
-imageViewUpdate :: !(s -> Image s) !(s -> s) -> UpdateOption s s |  iTask s
-imageViewUpdate toImage handleAction = UpdateWith (\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)
+imageViewUpdate :: !(s -> v) !(v -> Image v)  !(v -> s) -> UpdateOption s s |  iTask v
+imageViewUpdate toViewState toImage fromViewState 
+		= UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\_ (Editlet v _ _) -> fromViewState v)
 
 :: ActionState a s  = 	{ state		:: s
 						, action	:: Maybe a

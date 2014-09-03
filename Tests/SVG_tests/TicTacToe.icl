@@ -150,28 +150,15 @@ where
 */
 import iTasks.API.Extensions.SVG.SVGlet
 
-:: TicTacToe2
-	= { board2  :: [[Maybe TicTac]]
-	  , turn2   :: Bool               // player 1 is playing
-	  , action2	:: Maybe (Int,Int) 
-	  }
 
-derive class iTask TicTacToe2
-
-initTicTacToe2 
-	= { board2 	= repeatn 3 (repeatn 3 Nothing)
-	  , turn2  	= False
-	  , action2	= Nothing
-	  }
-
-tictactoe2 :: Task (TicTacToe2,TicTacToe2)
-tictactoe2 = withShared initTicTacToe2
+tictactoe :: Task (TicTacToe,TicTacToe)
+tictactoe = withShared initTicTacToe2
 			(\share ->  updateSharedInformation "test1" [imageViewUpdate (mkboard False) handleAction] share 
 						-&&-
 						updateSharedInformation "test2" [imageViewUpdate (mkboard True)  handleAction] share
 			)
 
-handleAction:: TicTacToe2 -> TicTacToe2
+handleAction:: TicTacToe -> TicTacToe
 handleAction ttt=:{turn2,board2,action2 = Just(i,j)} = {ttt & turn2 	= not turn2
 															, board2 	= updateBoard board2 i j (if turn2 Tic Tac)
 															, action2 	= Nothing}
