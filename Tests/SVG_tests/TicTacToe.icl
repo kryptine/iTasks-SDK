@@ -115,7 +115,7 @@ viewBoard dimensions ttt
 // shorthands for HTML:
 tr		= TrTag []
 td		= TdTag []
-text x	= TdTag [AlignAttr "center"] [Text (toString x)]
+//text x	= TdTag [AlignAttr "center"] [Text (toString x)]
 
 TileTag :: !(!Int,!Int) !String -> HtmlTag
 TileTag (width,height) tile
@@ -124,63 +124,48 @@ where
 	(w,h) = (WidthAttr (toString width),HeightAttr (toString height))
 
 // SVG variant
-/*
-tictactoe_for_1` :: !Bool !User !User !(Shared TicTacToe) -> Task User
-tictactoe_for_1` my_turn me you sharedGameSt
-	= play
-where
-	play = (updateImageState "Play:" [UpdateWith (\gameSt -> {}) (\gameSt _ -> gameSt)] sharedGameSt)
-	      >>* [ OnValue (ifValue game_over declare_winner)
-              , OnValue (ifValue (on_turn my_turn)  make_a_move)
-              ]
 
-	declare_winner gameSt
-		= 	let winner = if gameSt.turn gameSt.player2 gameSt.player1 
-			in 		viewInformation "And the winner is: " [] (toString winner)
-				>>|	return winner
-	
-	make_a_move gameSt=:{board,turn}
-		=              enterChoice "Choose coordinate:" [] (free_coordinates board)
-		  >>= \new  -> let board`  = add_cell new turn board
-		                   gameSt` = {gameSt & board = board`
-		                                     , turn = ~turn
-		                             }
-		                in set gameSt` sharedGameSt >>| play
-
-*/
 import iTasks.API.Extensions.SVG.SVGlet
 
+tictactoe2 :: Task (TicTacToe,TicTacToe)
+tictactoe2
+	=             get currentUser
+	  >>= \me  -> enterChoiceWithShared "Who do you want to play Tic-Tac-Toe with:" [] users
+	  >>= \you -> playGame2 me you {board=emptyBoard,player1=me,player2=you,turn=True}
 
-tictactoe :: Task (TicTacToe,TicTacToe)
-tictactoe = withShared initTicTacToe2
-			(\share ->  updateSharedInformation "test1" [imageViewUpdate (mkboard False) handleAction] share 
+playGame2 :: User User TicTacToe -> Task (TicTacToe,TicTacToe)
+playGame2 user1 user2 ttt = withShared ttt
+			(\share ->  updateSharedInformation "test1" [imageViewUpdate toAction (toImage False) fromAction] share 
 						-&&-
-						updateSharedInformation "test2" [imageViewUpdate (mkboard True)  handleAction] share
+						updateSharedInformation "test2" [imageViewUpdate toAction (toImage True) fromAction] share
 			)
 
-handleAction:: TicTacToe -> TicTacToe
-handleAction ttt=:{turn2,board2,action2 = Just(i,j)} = {ttt & turn2 	= not turn2
-															, board2 	= updateBoard board2 i j (if turn2 Tic Tac)
-															, action2 	= Nothing}
-where
-	updateBoard board2 i2 j2 tictac = [[if (i==i2&&j==j2) (Just tictac) cell \\ cell <- row & j <- [0..2]]
-									  \\ row <- board2 & i <- [0..2]
-									  ]
-handleAction ttt  = ttt
+toAction :: TicTacToe -> ActionState (Int,Int) TicTacToe
+toAction ttt = {ActionState | state = ttt, action = Nothing} 
 
+fromAction :: (ActionState (Int,Int) TicTacToe) -> TicTacToe 
+fromAction {ActionState|state = ttt, action = Just (i,j)} 
+	= {ttt & turn 	= not ttt.turn
+		   , board	= add_cell (i,j) ttt.turn ttt.board
+	}
+fromAction as = as.ActionState.state
 
-test =  viewInformation "test1" [imageView (mkboard True)] initTicTacToe2
-
-mkboard :: Bool TicTacToe2 -> Image TicTacToe2
-mkboard turn ttt=:{board2,turn2}
-	= grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
-	       [ mkTile i j (turn == turn2) cell \\ row <- board2 & i <- [0..2], cell <- row & j <- [0..2] ]
-	       Nothing
+toImage ::  Bool (ActionState (Int,Int) TicTacToe) -> Image (ActionState (Int,Int) TicTacToe)
+toImage turn ttt
+	= grid (Rows 2) (LeftToRight, TopToBottom) [] [] 
+		[ text ArialRegular10px (toString (if turn ttt.ActionState.state.player1 ttt.ActionState.state.player2))
+							<@< if (turn == ttt.ActionState.state.turn) {stroke = SVGColorText "green"} {stroke = SVGColorText "red"}
+		, tttBoard
+		] Nothing
+where	
+	tttBoard = grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
+	       		[ mkTile i j turn cell \\ row <- ttt.ActionState.state.board & i <- [0..2], cell <- row & j <- [0..2] 
+	      		] Nothing
 
 mkTile i j _ (Just Tic)   = cross
 mkTile i j _ (Just Tac)   = null
-mkTile i j False Nothing  = cross //blank
-mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & action2 = Just (i,j)}}
+mkTile i j False Nothing  = blank
+mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & ActionState.action = Just (i,j)}}
 
 cross = overlay [] [] [blank,bar Slash,bar Backslash] Nothing
 where
@@ -192,3 +177,11 @@ where
 						      <@< {stroke      = toSVGColor "green"}
 						      <@< {strokewidth = px 5.0 }
 blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "none"}
+
+ArialRegular10px :== { fontfamily  = "Arial"
+                     , fontyspan   = px 10.0
+                     , fontstretch = "normal"
+                     , fontstyle   = "normal"
+                     , fontvariant = "normal"
+                     , fontweight  = "normal"
+                     }
