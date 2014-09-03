@@ -66,19 +66,29 @@ calc2 st
 where
 	isOperator c = isMember c (map fst calcFunctions2)
 
-view = []
+//view = []
 
-view = [] // svg image has to be defined here 
+view = [imageViewUpdate calculatorImage id] // svg image has to be defined here 
+
+calculatorImage as = grid (Rows 3) (LeftToRight, TopToBottom) [] [] 
+						[ mkButton2 s xBox yBox \\ s <- ["7","8","9","+","4","5","6","-","1","2","3","x"]   
+						] Nothing
+where
+	xBox = 30.0
+	yBox = 15.0
+	mkButton2 s x y =  overlay [(AtLeft,AtTop),(AtMiddleX,AtTop)] [] 
+							[mkButton x y, mkText s] Nothing
+	mkButton x y 	=  rect (PxSpan x) (PxSpan y) <@< {stroke = toSVGColor "black"} <@< {fill = toSVGColor "white"} <@< {strokewidth = px 1.0}
+	mkText s		=  text ArialRegular10px s
 
 
-
-
-
-
-
-
-
-
+ArialRegular10px :== { fontfamily  = "Arial"
+                     , fontyspan   = px 10.0
+                     , fontstretch = "normal"
+                     , fontstyle   = "normal"
+                     , fontvariant = "normal"
+                     , fontweight  = "normal"
+                     }
 
 
 
