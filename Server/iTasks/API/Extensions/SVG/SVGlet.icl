@@ -5,9 +5,10 @@ import Graphics.Scalable
 import iTasks
 import iTasks.API.Core.Client.Editlet
 from StdOrdList import minList, maxList
+import StdOverloaded
 import StdArray
 import StdMisc
-import GenLexOrd
+import GenLexOrd, GenEq
 import Data.List
 import Data.Func
 from Data.Set import :: Set, instance == (Set a), instance < (Set a)
@@ -34,7 +35,8 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
   Maybe, LineContent, Slash
 
 :: ClientState s =
-  { textXSpanEnv    :: Map (FontDef, String) Real
+  { textXSpanEnv    :: Map FontDef (Map String Real)
+  , spanCache       :: Map (Set ImageTag) CachedSpan
   , uniqueIdCounter :: Int
   , editletId       :: String
   , onclicks        :: Map String (s -> s)
@@ -42,7 +44,7 @@ derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
   }
 
 :: CachedSpan =
-  { cachedGridSpans :: Maybe [[ImageSpan]]
+  { cachedGridSpans :: Maybe ([Span], [Span])
   , cachedImageSpan :: Maybe ImageSpan
   }
 
@@ -71,7 +73,7 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
 
 updateImageState :: !d  !(s -> Image s) !(s -> s) !s -> Task s | iTask s & descr d
 updateImageState d toImage handleAction s  
-	= updateInformation d [UpdateWith (\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] s
+    = updateInformation d [UpdateWith (\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] s
 
 updateSharedImageState :: !d  !(s -> Image s) !(s -> s) (Shared s) -> Task s | iTask s & descr d 
 updateSharedImageState d toImage handleAction sharedState   
@@ -147,7 +149,7 @@ instance toAttr SVGAttr where
     e1 = toString (takeWhile (\x -> x <> '=') lst)
     e2 = toString (filter (\x -> x <> '"') (dropWhile (\x -> x <> '=') lst))
 
-svgRenderer :: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
+svgRenderer :: !s !(s -> Image s) -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
 svgRenderer origState state2Image = Editlet origState server client
   where
   server
@@ -161,6 +163,7 @@ svgRenderer origState state2Image = Editlet origState server client
     = { EditletClientDef
       | updateUI = updateUI
       , defVal   = { textXSpanEnv    = 'DM'.newMap
+                   , spanCache       = 'DM'.newMap
                    , onclicks        = 'DM'.newMap
                    , uniqueIdCounter = 0
                    , editletId       = ""
@@ -182,9 +185,10 @@ svgRenderer origState state2Image = Editlet origState server client
        , world
       )
 
-  updateUI cid (Just (_, img)) clval world
+  updateUI cid (Just (_, img, fonts, spanCache)) clval world
     //# ((imgs, (imXSp, imYSp), _), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
-    # (syn, (clval, world)) = toSVG img ({clval & editletId = cid}, world)
+    # (clval, world) = calcTextLengths fonts (clval, world)
+    # (syn, (clval, world)) = toSVG img ({clval & editletId = cid, spanCache = spanCache}, world)
     # (svg, world)   = getDomElement (mainSvgId cid) world
     # (imXSp, imYSp) = syn.clSyn_imageSpanReal
     # (_, world)     = (svg `setAttribute` ("height", toInt imYSp)) world
@@ -198,16 +202,17 @@ svgRenderer origState state2Image = Editlet origState server client
   updateUI _ _ clval world = (clval, world)
 
   genServerDiff _ y
-    # (img, _) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False}
+    # (img, st) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap}
     //= Just (y, overlay [(AtMiddleX, AtMiddleY)] [] [img] Nothing)
-    = Just (y, img)
+    = Just (y, img, st.srvFonts, st.srvTaggedSpanEnv)
     //= Nothing
-  appServerDiff (st, _) _ = st
+  appServerDiff (st, _, _, _) _ = st
 
   genClientDiff x y
     | x.currState === y.currState = Nothing
-    | otherwise                   = Just (y.currState, state2Image y.currState)
-  appClientDiff (st, _) clval = {clval & currState = st}
+    //| otherwise                   = Just (y.currState, state2Image y.currState, 'DM'.newMap)
+    | otherwise                   = Just (y.currState, undef, undef, undef)
+  appClientDiff (st, _, _, _) clval = {clval & currState = st}
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
@@ -220,30 +225,62 @@ svgRenderer origState state2Image = Editlet origState server client
 
 getTextLength :: !FontDef !String !*(St m) -> *(Real, *(St m)) | iTask m
 getTextLength fontdef str (clval, world)
-  = case 'DM'.gGet (fontdef, str) clval.textXSpanEnv of
-      Just wh = (wh, (clval, world))
-      Nothing
-        # (svg, world)   = (jsDocument `createElementNS` (svgns, "svg")) world
-        # (body, world)  = .? (jsDocument .# "body") world
-        # (_, world)     = (body `appendChild` svg) world
-        # (elem, world)  = (jsDocument `createElementNS` (svgns, "text")) world
-        # (fntSz, (clval, world)) =  evalSpan fontdef.fontyspan (clval, world)
-        # fontAttrs      = [ ("font-family",  fontdef.fontfamily)
-                           , ("font-size",    toString fntSz)
-                           , ("font-stretch", fontdef.fontstretch)
-                           , ("font-style",   fontdef.fontstyle)
-                           , ("font-variant", fontdef.fontvariant)
-                           , ("font-weight",  fontdef.fontweight)
-                           , ("x", "-10000")
-                           , ("y", "-10000") ]
-        # world          = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
-        # world          = (elem .# "textContent" .= str) world
-        # (_, world)     = (svg `appendChild` elem) world
-        # (ctl, world)   = (elem `getComputedTextLength` ()) world
-        # (_, world)     = (svg `removeChild` elem) world
-        # (_, world)     = (body `removeChild` svg) world
-        # twidth         = jsValToReal ctl
-        = (twidth, ({clval & textXSpanEnv = 'DM'.gPut (fontdef, str) twidth clval.textXSpanEnv}, world))
+  = case 'DM'.gGet fontdef clval.textXSpanEnv of
+      Just strs = case 'DM'.get str strs of
+                    Just tw -> (tw, (clval, world))
+                    _       -> (0.0, (clval, world)) // TODO ?
+      Nothing   = (0.0, (clval, world)) // TODO?
+        //# (svg, world)   = (jsDocument `createElementNS` (svgns, "svg")) world
+        //# (body, world)  = .? (jsDocument .# "body") world
+        //# (_, world)     = (body `appendChild` svg) world
+        //# (elem, world)  = (jsDocument `createElementNS` (svgns, "text")) world
+        //# (fntSz, (clval, world)) =  evalSpan fontdef.fontyspan (clval, world)
+        //# fontAttrs      = [ ("font-family",  fontdef.fontfamily)
+                           //, ("font-size",    toString fntSz)
+                           //, ("font-stretch", fontdef.fontstretch)
+                           //, ("font-style",   fontdef.fontstyle)
+                           //, ("font-variant", fontdef.fontvariant)
+                           //, ("font-weight",  fontdef.fontweight)
+                           //, ("x", "-10000")
+                           //, ("y", "-10000") ]
+        //# world          = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
+        //# world          = (elem .# "textContent" .= str) world
+        //# (_, world)     = (svg `appendChild` elem) world
+        //# (ctl, world)   = (elem `getComputedTextLength` ()) world
+        //# (_, world)     = (svg `removeChild` elem) world
+        //# (_, world)     = (body `removeChild` svg) world
+        //# twidth         = jsValToReal ctl
+        //= (twidth, ({clval & textXSpanEnv = 'DM'.gPut (fontdef, str) twidth clval.textXSpanEnv}, world))
+
+calcTextLengths :: !(Map FontDef (Set String)) !*(St m) -> *(St m) | iTask m
+calcTextLengths fontdefs (clval, world)
+  # (svg, world)          = (jsDocument `createElementNS` (svgns, "svg")) world
+  # (body, world)         = .? (jsDocument .# "body") world
+  # (_, world)            = (body `appendChild` svg) world
+  # (elem, world)         = (jsDocument `createElementNS` (svgns, "text")) world
+  # (_, world)            = (svg `appendChild` elem) world
+  # (res, (clval, world)) = 'DM'.foldrWithKey (f elem) ('DM'.newMap, (clval, world)) fontdefs
+  # (_, world)            = (svg `removeChild` elem) world
+  # (_, world)            = (body `removeChild` svg) world
+  = ({clval & textXSpanEnv = res}, world)
+  where
+  f elem fontdef strs (acc, (clval, world))
+    # (fntSz, (clval, world)) = evalSpan fontdef.fontyspan (clval, world)
+    # fontAttrs   = [ ("font-family",  fontdef.fontfamily)
+                    , ("font-size",    toString fntSz)
+                    , ("font-stretch", fontdef.fontstretch)
+                    , ("font-style",   fontdef.fontstyle)
+                    , ("font-variant", fontdef.fontvariant)
+                    , ("font-weight",  fontdef.fontweight)
+                    , ("x", "-10000")
+                    , ("y", "-10000") ]
+    # world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
+    # (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
+    = ('DM'.gPut fontdef ws acc, (clval, world))
+  g elem str (acc, world)
+    # world        = (elem .# "textContent" .= str) world
+    # (ctl, world) = (elem `getComputedTextLength` ()) world
+    = ('DM'.put str (jsValToReal ctl) acc, world)
 
 :: *St m :== *(ClientState m, *JSWorld)
 
@@ -254,7 +291,17 @@ getTextLength fontdef str (clval, world)
 :: ServerState =
   { srvTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
   , didChange        :: Bool
+  , srvCounter       :: Int
+  , srvFonts         :: Map FontDef (Set String)
   }
+
+class nextNo a :: a -> (Int, a)
+
+instance nextNo (ClientState s) where
+  nextNo st = (st.uniqueIdCounter, {st & uniqueIdCounter = st.uniqueIdCounter + 1})
+
+instance nextNo ServerState where
+  nextNo st = (st.srvCounter, {st & srvCounter = st.srvCounter + 1})
 
 :: State s a :== s -> *(a, s)
 
@@ -283,8 +330,8 @@ addCachedSpan f imTas st=:{srvTaggedSpanEnv}
 cacheImageSpan :: !(Set ImageTag) !ImageSpan !ServerState -> ServerState
 cacheImageSpan imTas sp st = addCachedSpan (\r -> {r & cachedImageSpan = Just sp}) imTas st
 
-cacheGridSpans :: !(Set ImageTag) ![[ImageSpan]] !ServerState -> ServerState
-cacheGridSpans imTas sp st = addCachedSpan (\r -> {r & cachedGridSpans = Just sp}) imTas st
+//cacheGridSpans :: !(Set ImageTag) !{Span} !{Span} !ServerState -> ServerState
+cacheGridSpans imTas xsps ysps st = addCachedSpan (\r -> {r & cachedGridSpans = Just (xsps, ysps)}) imTas st
 
 rectAnchors :: !ImageSpan -> [Connector]
 rectAnchors (w, h) = [(zero, zero), (zero, h /. 2.0), (zero, h), (w /. 2.0, zero), (w /. 2.0, h), (w, zero), (w, h /. 2.0), (w, h)]
@@ -303,7 +350,7 @@ fixSpans img = go
   where
   go st
     # (img, st)    = imageCata fixSpansAllAlgs img st
-    | st.didChange = fixSpans img {st & didChange = False}
+    | st.didChange = trace_n "fix" fixSpans img {st & didChange = False}
     | otherwise    = ret img st
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
@@ -349,7 +396,9 @@ fixSpans img = go
         # (xsp, ysp)    = contSyn.contSynTotalSpan
         # (xsp, ysp)    = (xsp + m2 + m4, ysp + m1 + m3)
         # st            = cacheImageSpan imTas (xsp, ysp) st
-        = ret { Image
+        # (no, st)      = nextNo st
+        = ret (tag [ImageTagSystem no]
+              { Image
               | content             = contSyn.contSynImageContent
               , attribs             = imAts
               , transform           = imTrs
@@ -358,7 +407,7 @@ fixSpans img = go
               , margin              = (m1, m2, m3, m4)
               , transformCorrection = contSyn.contSynOffsetCorrection
               , connectors          = contSyn.contSynConnectors
-              }
+              })
               st
 
   fixSpansImageContentAlgs :: ImageContentAlg (ImageSpan [ImageTransform] -> SrvSt (FixSpansContentSyn s))
@@ -533,24 +582,54 @@ fixSpans img = go
     mkGrid :: !(Int, Int) ![ImageAlign] ![[SrvSt (Image s)]]
               ![ImageOffset] !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag)
            -> SrvSt (Compose s, ImageSpan, [ImageOffset]) | iTask s
-    mkGrid dims ias imgss offsets mbhost imTrs imTas = go
+    mkGrid (numcols, numrows) ias imgss offsets mbhost imTrs imTas = go
       where
       go st
         # (imgss, st) = foldr seqImgsGrid ([], st) imgss
         # imgss       = reverse (map reverse imgss) // TODO This is more or less a hack... why do we need this?
         # spanss      = map (map (\x -> x.totalSpan)) imgss
-        # maxYSpans   = map (maxSpan o map snd) spanss
         # maxXSpans   = map (maxSpan o map fst) (transpose spanss)
-        # gridSpan    = maybe ( foldr (\(xsp, off) acc -> xsp + off + acc) (px 0.0) (zip2 maxXSpans (map fst offsets))
-                              , foldr (\(ysp, off) acc -> ysp + off + acc) (px 0.0) (zip2 maxYSpans (map snd offsets))
+        # maxYSpans   = map (maxSpan o map snd) spanss
+        # (tag, st)   = nextNo st
+        # sysTags     = 'DS'.singleton (ImageTagSystem tag)
+        // TODO This is a major gain, since the gridSpan is used in many places. For now, don't bother trying to optimize calculateGridOffsets, focus on making this work
+        # gridSpan    = maybe ((\(x, _, _) -> x) (foldr (\(offx, offy) ((accx, accy), i, j) // TODO : This is not going to work. On each row, reset the col count
+                                                                                -> (((LookupSpan (ColumnXSpan sysTags i)) + offx + accx
+                                                                                   , (LookupSpan (RowYSpan sysTags j)) + offy + accy), if (i == numcols - 1) 0 (i + 1), if (i == numcols - 1) (j + 1) j)) ((px 0.0, px 0.0), 0, 0) offsets)
                               )
                               (\x -> x.totalSpan) mbhost
         # offsets     = flatten (calculateGridOffsets maxXSpans maxYSpans imgss offsets)
-        # st          = cacheGridSpans imTas ((map (\yspan -> map (\xspan -> (xspan, yspan)) maxXSpans)) maxYSpans) st
-        //= ret ( AsGrid dims ias imgss
+        //# xspansArr   = {xsp \\ xsp <- maxXSpans}
+        //# yspansArr   = {ysp \\ ysp <- maxYSpans}
+        # xspansArr   = maxXSpans
+        # yspansArr   = maxYSpans
+        //# offsets     = calculateGridOffsets xspansArr yspansArr imgss offsets
+        # st          = cacheGridSpans ('DS'.union sysTags imTas) xspansArr yspansArr st
         = ret ( AsCollage (flatten imgss)
               , gridSpan
               , offsets) st
+      //calculateGridOffsets xspansArr yspansArr imgss offsets
+        //= foldr f ([], px 0.0, px 0.0) (zip4 (flatten imgss) offsets ias [(c, r) \\ c <- [0 .. size xspansArr - 1], r <- [0 .. size yspansArr - 1]])
+        //where
+        //f img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)} (manXOff, manYOff) align (column, row) (acc, xoff, yoff)
+        ////f img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)} (manXOff, manYOff) align (column, row)
+          //# (alignXOff, alignYOff) = calcAlignOffset xspansArr.[column] yspansArr.[row] totalSpan align
+          ////= ( alignXOff + (LookupSpan (xoff + manXOff + tfXCorr
+              ////alignYOff + yoff + manYOff + tfYCorr)
+          //= ([( alignXOff + xoff + manXOff + tfXCorr
+            //, alignYOff + yoff + manYOff + tfYCorr):acc], xoff + xspansArr.[column], yoff + yspansArr.[row])
+
+        //= let (x, _, _, _) = foldr mkRows ([], px 0.0, ias, offsets, 0) imgss
+          //in  x
+        //where
+        //mkRows cellXSpans (imgs, cellYSpan) (acc, yoff, aligns, offsets)
+          //# imgsLength = length imgs
+          //= ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans (take imgsLength aligns) (take imgsLength offsets))) : acc]
+            //, yoff + cellYSpan, drop imgsLength aligns, drop imgsLength offsets)
+        //mkCols cellYSpan yoff (img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, align, (manXOff, manYOff)) (acc, xoff)
+          //# (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpan align
+          //= ([( alignXOff + xoff + manXOff + tfXCorr
+              //, alignYOff + yoff + manYOff + tfYCorr):acc], xoff + cellXSpan)
       calculateGridOffsets cellXSpans cellYSpans imgss offsets
         = let (x, _, _, _) = foldr (mkRows cellXSpans) ([], px 0.0, ias, offsets) (zip2 imgss cellYSpans)
           in  x
@@ -563,20 +642,6 @@ fixSpans img = go
           # (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpan align
           = ([( alignXOff + xoff + manXOff + tfXCorr
               , alignYOff + yoff + manYOff + tfYCorr):acc], xoff + cellXSpan)
-      //calculateGridOffsets :: [Span] [Span] [[Image s]] [ImageOffset] -> [[Image s]] | iTask s
-      //calculateGridOffsets xspans yspans imgss infoffs
-        //= let (x, _, _, _) = foldr (mkRows xspans) ([], px 0.0, ias, infoffs) (zip2 imgss yspans)
-          //in  x
-        //where
-        //mkRows :: [Span] ([Image s], Span) ([[Image s]], Span, [ImageAlign], [ImageOffset]) -> ([[Image s]], Span, [ImageAlign], [ImageOffset]) | iTask s
-        //mkRows xspans (imgs, yspan) (acc, yoff, aligns, offsets)
-          //# imgsLength = length imgs
-          //= ( [fst (foldr (mkCols yspan yoff) ([], px 0.0) (zip4 imgs xspans (take imgsLength aligns) (take imgsLength offsets))) : acc]
-            //, yoff + yspan, drop imgsLength aligns, drop imgsLength offsets)
-        //mkCols :: Span Span (Image s, Span, ImageAlign, ImageOffset) ([Image s], Span) -> ([Image s], Span) | iTask s
-        //mkCols yspan yoff (img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)}, xspan, align, (manxoff, manyoff)) (acc, xoff)
-          //# (xoff`, yoff`) = calcOffset xspan yspan totalSpan align
-          //= ([{img & finalOffset = (xoff` + xoff + manxoff + tfXCorr, yoff` + yoff + manyoff + tfYCorr)}:acc], xoff + xspan)
 
     mkCollage :: ![SrvSt (Image s)] ![ImageOffset] !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag) -> SrvSt (Compose s, ImageSpan, [ImageOffset]) | iTask s
     mkCollage imgs offsets mbhost imTrs imTas
@@ -595,14 +660,11 @@ fixSpans img = go
         # offsets    = zipWith3 addOffset (zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias)
                                           offsets
                                           imgs
-        //= ret ( AsOverlay ias imgs
         = ret ( AsCollage imgs
               , maybe (calculateComposedSpan spans offsets) (\x -> x.totalSpan) mbhost
               , offsets ) st
         where
-        //addOffset (x1, y1) (x2, y2) img=:{transformCorrection = (xoff, yoff)} = {img & finalOffset = (x1 + x2 + xoff, y1 + y2 + yoff)}
-        addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff) // TODO Doesn't work, but correct
-        addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x2 + xoff, y2 + yoff) // TODO Works, but not correct
+        addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff)
   fixSpansSpanAlgs :: SpanAlg (SrvSt Span) (SrvSt Span)
   fixSpansSpanAlgs =
     { spanPxSpanAlg     = \r   -> ret (PxSpan r)
@@ -617,38 +679,48 @@ fixSpans img = go
     }
   fixSpansLookupSpanAlgs :: LookupSpanAlg (SrvSt Span)
   fixSpansLookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg  = mkImageGridSpan (\xss n -> maxSpan (map fst (transpose xss !! n))) ColumnXSpan
-    , lookupSpanRowYSpanAlg     = mkImageGridSpan (\xss n -> maxSpan (map snd (xss !! n))) RowYSpan
-    , lookupSpanImageXSpanAlg   = mkImageSpan fst ImageXSpan
-    , lookupSpanImageYSpanAlg   = mkImageSpan snd ImageYSpan
+    //{ lookupSpanColumnXSpanAlg  = mkImageGridSpan (\xss n -> maxSpan (map fst (transpose xss !! n))) ColumnXSpan
+    { lookupSpanColumnXSpanAlg  = \ts n -> ret (trace_n ("ColumnXSpan " +++ toString n) LookupSpan (ColumnXSpan ts n))
+    //, lookupSpanRowYSpanAlg     = mkImageGridSpan (\xss n -> maxSpan (map snd (xss !! n))) RowYSpan
+    , lookupSpanRowYSpanAlg     = \ts n -> ret (trace_n ("RowYSpan " +++ toString n) LookupSpan (RowYSpan ts n))
+    //, lookupSpanImageXSpanAlg   = mkImageSpan fst ImageXSpan
+    , lookupSpanImageXSpanAlg   = \ts     -> ret (LookupSpan (ImageXSpan ts))
+    //, lookupSpanImageYSpanAlg   = mkImageSpan snd ImageYSpan
+    , lookupSpanImageYSpanAlg   = \ts     -> ret (LookupSpan (ImageYSpan ts))
     , lookupSpanDescentYSpanAlg = \fd     -> ret (LookupSpan (DescentYSpan fd))
     , lookupSpanExYSpanAlg      = \fd     -> ret (LookupSpan (ExYSpan fd))
-    , lookupSpanTextXSpanAlg    = \fd str -> ret (LookupSpan (TextXSpan fd str))
+    , lookupSpanTextXSpanAlg    = mkTextLU
     }
     where
-    lookupTags :: !(Set ImageTag) -> SrvSt (Maybe CachedSpan)
-    lookupTags ts
-      | 'DS'.null ts = ret Nothing
-      | otherwise    = go
-      where
-      go srv
-        = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
-            [x:_] -> (Just x, {srv & didChange = True})
-            _     -> (Nothing, srv)
+    mkTextLU fd str st
+      # strs = case 'DM'.gGet fd st.srvFonts of
+                 Just fs -> fs
+                 _       -> 'DS'.newSet
+      = ret (LookupSpan (TextXSpan fd str)) { st & srvFonts = 'DM'.gPut fd ('DS'.insert str strs) st.srvFonts }
 
-    mkImageSpan :: !(ImageSpan -> Span) !((Set ImageTag) -> LookupSpan) !(Set ImageTag) -> SrvSt Span
-    mkImageSpan f c ts
-      =        lookupTags ts `b`
-      \luts -> ret (case luts of
-                      Just {cachedImageSpan=Just xs} -> f xs
-                      _                              -> LookupSpan (c ts))
+    //lookupTags :: !(Set ImageTag) -> SrvSt (Maybe CachedSpan)
+    //lookupTags ts
+      //| 'DS'.null ts = ret Nothing
+      //| otherwise    = go
+      //where
+      //go srv
+        //= case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
+            //[x:_] -> (Just x, {srv & didChange = True})
+            //_     -> (Nothing, srv)
 
-    mkImageGridSpan :: !([[ImageSpan]] Int -> Span) !((Set ImageTag) Int -> LookupSpan) !(Set ImageTag) Int -> SrvSt Span
-    mkImageGridSpan f c ts n
-      =        lookupTags ts `b`
-      \luts -> ret (case luts of
-                      Just csp=:{cachedGridSpans=Just xss} -> f xss n
-                      _                                    -> LookupSpan (c ts n))
+    //mkImageSpan :: !(ImageSpan -> Span) !((Set ImageTag) -> LookupSpan) !(Set ImageTag) -> SrvSt Span
+    //mkImageSpan f c ts
+      //=        lookupTags ts `b`
+      //\luts -> ret (case luts of
+                      //Just {cachedImageSpan=Just xs} -> f xs
+                      //_                              -> LookupSpan (c ts))
+
+    //mkImageGridSpan :: !([[ImageSpan]] Int -> Span) !((Set ImageTag) Int -> LookupSpan) !(Set ImageTag) Int -> SrvSt Span
+    //mkImageGridSpan f c ts n
+      //=        lookupTags ts `b`
+      //\luts -> ret (case luts of
+                      //Just csp=:{cachedGridSpans=Just xss} -> f xss n
+                      //_                                    -> LookupSpan (c ts n))
 
 seqImgsGrid imgs (acc, st) :== (sequence imgs `b` \imgs -> ret [imgs:acc]) st
 
@@ -911,11 +983,11 @@ toSVG img = imageCata toSVGAllAlgs img
       // TODO Marker size etc?
       mkMarkerAndId (Just {clSyn_svgElts, clSyn_imageSpanReal = (w, h)}) mid posAttr
         = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto" // TODO Do something with offset?
-                                        , ViewBoxAttr "0" "0" (toString w) (toString h)
-                                        , RefXAttr (toString w, PX)
-                                        , RefYAttr (toString (h / 2.0), PX)
-                                        , MarkerHeightAttr (toString h, PX)
-                                        , MarkerWidthAttr (toString w, PX)
+                                        , ViewBoxAttr "0" "0" (toString (toInt w)) (toString (toInt h))
+                                        , RefXAttr (toString (toInt w), PX)
+                                        , RefYAttr (toString (toInt (h / 2.0)), PX)
+                                        , MarkerHeightAttr (toString (toInt h), PX)
+                                        , MarkerWidthAttr (toString (toInt w), PX)
                                         ] clSyn_svgElts
                , posAttr ("url(#" +++ mid +++ ")"))
       mkMarkerAndId _ _ _ = Nothing
@@ -1060,6 +1132,7 @@ mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (to
 evalSpan :: !Span -> ClSt s Real | iTask s
 evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
 
+evalSpanSpanAlgs :: SpanAlg (ClSt s Real) (ClSt s Real) | iTask s
 evalSpanSpanAlgs =
   { spanPxSpanAlg     = \r   -> ret r
   , spanLookupSpanAlg = id
@@ -1072,20 +1145,67 @@ evalSpanSpanAlgs =
   , spanMaxSpanAlg    = \xs  -> mkList maxList xs
   }
 
-// We use aborts here, because they _should_ have been rewritten away...
+evalSpanLookupSpanAlgs :: LookupSpanAlg (ClSt s Real) | iTask s
 evalSpanLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg  = \ts n   st -> abort "ColumnXSpanAlg "
+  { lookupSpanColumnXSpanAlg  = getColumnWidth
+  , lookupSpanRowYSpanAlg     = getRowHeight
   , lookupSpanDescentYSpanAlg = \fd     st -> abort "DescentYSpanAlg" // TODO Will we even use this?
   , lookupSpanExYSpanAlg      = mkExYSpan
-  , lookupSpanImageXSpanAlg   = \ts     st -> abort "ImageXSpanAlg  "
-  , lookupSpanImageYSpanAlg   = \ts     st -> abort "ImageYSpanAlg  "
-  , lookupSpanRowYSpanAlg     = \ts n   st -> abort "RowYSpanAlg    "
+  , lookupSpanImageXSpanAlg   = getImageXSpan
+  , lookupSpanImageYSpanAlg   = getImageYSpan
   , lookupSpanTextXSpanAlg    = getTextLength
   }
   where
+  getColumnWidth ts n st=:({spanCache}, world)
+    = case tagLookup ts spanCache of
+        Just {cachedGridSpans = Just (cols, _)}
+          //# st = stTrace n st
+          //# st = stTrace cols st
+          //# st = if (n < size cols) (stTrace cols.[n] st) (stTrace ("out of bounds " +++ toString n) st)
+          //# st = if (n < length cols) (stTrace (cols !! n) st) (stTrace (toString n +++ " is out of bounds. length " +++ toString (length cols)) st)
+          //= evalSpan cols.[0] st
+          //= evalSpan cols.[n] st
+          = if (n < length cols) (evalSpan (cols !! n) st) (0.0, st)
+          //= if (n < size cols) (evalSpan cols.[n] st) (0.0, st)
+        _ = (0.0, stTrace "getColumnWidth 1" st)
+  getColumnWidth _ _ st = (0.0, stTrace "getColumnWidth 2" st) // TODO ?
+
+  getRowHeight ts n st=:({spanCache}, world)
+    = case tagLookup ts spanCache of
+        Just {cachedGridSpans = Just (_, rows)}
+          //# st = stTrace n st
+          //# st = stTrace rows st
+          //# st = if (n < size rows) (stTrace rows.[n] st) (stTrace ("out of bounds " +++ toString n) st)
+          //# st = if (n < length rows) (stTrace (rows !! n) st) (stTrace (toString n +++ " is out of bounds. length " +++ toString (length rows)) st)
+          //= evalSpan rows.[0] st
+          //= evalSpan rows.[n] st
+          //= (0.0, st)
+          = if (n < length rows) (evalSpan (rows !! n) st) (0.0, st)
+          //= if (n < size rows) (evalSpan rows.[n] st) (0.0, st)
+        _ = (0.0, stTrace "getRowHeight 1" st)
+  getRowHeight _ _ st = (0.0, stTrace "getRowHeight 2" st) // TODO ?
+
+  getImageXSpan ts st=:({spanCache}, world)
+    = case tagLookup ts spanCache of
+        Just {cachedImageSpan = Just (xsp, _)}
+          = evalSpan xsp st
+        _ = (0.0, stTrace "getImageXSpan 1" st)
+  getImageXSpan _ st = (0.0, stTrace "getImageXSpan 2" st) // TODO ?
+
+  getImageYSpan ts st=:({spanCache}, world)
+    = case tagLookup ts spanCache of
+        Just {cachedImageSpan = Just (_, ysp)}
+          = evalSpan ysp st
+        _ = (0.0, stTrace "getImageYSpan 1" st)
+  getImageYSpan _ st = (0.0, stTrace "getImageYSpan 2" st) // TODO ?
+
   mkExYSpan fd
     =       evalSpan fd.fontyspan `b`
     \fys -> ret (fys / 2.0) // TODO : Can we do better?
+
+tagLookup ts mp = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) mp) of
+                    [x:_] -> Just x
+                    _     -> Nothing
 
 mkAbs x = x `b` \x -> ret (abs x)
 

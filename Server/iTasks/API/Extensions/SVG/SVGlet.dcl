@@ -28,6 +28,9 @@ viewImage        		:: !d 	 !(Image ()) -> Task () | descr d
 updateImageState 		:: !d  !(s -> Image s) !(s -> s) !s 		 -> Task s | iTask s & descr d
 updateSharedImageState 	:: !d  !(s -> Image s) !(s -> s) (Shared s)  -> Task s | iTask s & descr d 
 
+svgRenderer :: !s !(s -> Image s)
+            -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
+
 :: ActionState a s  = 	{ state		:: s
 						, action	:: Maybe a
 						}
@@ -37,7 +40,7 @@ derive class iTask ActionState
 ifAction 				:: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
 
 
-svgRenderer      		:: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
+//svgRenderer      		:: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
 
 fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
 :: State s a :== s -> *(a, s)
@@ -46,8 +49,14 @@ fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
 :: ServerState =
   { srvTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
   , didChange        :: Bool
+  , srvCounter       :: Int
+  , srvFonts         :: Map FontDef (Set String)
   }
+//:: CachedSpan =
+  //{ cachedGridSpans :: Maybe [[ImageSpan]]
+  //, cachedImageSpan :: Maybe ImageSpan
+  //}
 :: CachedSpan =
-  { cachedGridSpans :: Maybe [[ImageSpan]]
+  { cachedGridSpans :: Maybe ([Span], [Span])
   , cachedImageSpan :: Maybe ImageSpan
   }
