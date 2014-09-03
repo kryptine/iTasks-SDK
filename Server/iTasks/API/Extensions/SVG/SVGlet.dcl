@@ -22,11 +22,16 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, XRadiusAttr, YRadiusAttr
 
-imageView :: !(s -> Image s) -> ViewOption s | iTask s
-
+//imageView :: !(s -> Image s) -> ViewOption s | iTask s
 //updateImageState 		:: !d !s !(s -> Image s) 					  -> Task s | iTask s & descr d
-updateImageState 		:: !d  !(s -> Image s) !(s -> s) !s 		 -> Task s | iTask s & descr d
-updateSharedImageState 	:: !d  !(s -> Image s) !(s -> s) (Shared s)  -> Task s | iTask s & descr d 
+//updateImageState 		:: !d  !(s -> Image s) !(s -> s) !s 		 -> Task s | iTask s & descr d
+//updateSharedImageState 	:: !d  !(s -> Image s) !(s -> s) (Shared s)  -> Task s | iTask s & descr d 
+
+
+imageView 				:: !(s -> Image s) 				-> ViewOption s 	| iTask s
+
+imageViewUpdate 		:: !(s -> Image s) !(s -> s) 	-> UpdateOption s s |  iTask s
+
 
 svgRenderer :: !s !(s -> Image s)
             -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
