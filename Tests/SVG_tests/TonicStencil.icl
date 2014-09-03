@@ -33,14 +33,31 @@ ArialItalic10px :== { fontfamily  = "Arial"
                   , fontweight  = "normal"
                   }
 
-Start :: *World -> *World
-Start world = startEngine examples world
+//Start :: *World -> *World
+Start world = startEngine allSVGs world
+//Start world = startEngine examples world
+//Start = fst (fixSpans viewTaskDefExample` {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap})
+
+viewTaskDefExample` = viExample
+  where
+  viExample   = taskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
+  eiApp       = taskApp "enterInformation" ["\"Enter call information:\"", "[]"]
+  meApp       = transformApp "makeEmergency" ["now", "data"]
+  startSymb   = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
+  lineArrow   = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
+  stopSymb    = rect (px 16.0) (px 16.0)
+  bodyImage   = grid (Rows 1) (LeftToRight, TopToBottom) (repeat (AtMiddleX, AtMiddleY)) [] [startSymb, hline, eiApp, hline, meApp, hline, stopSymb] Nothing
+  hline       = xline linemarkers (px 50.0)
+  linemarkers = Just { markerStart = Nothing
+                     , markerMid   = Nothing
+                     , markerEnd   = Just lineArrow
+                     }
 
 examples :: Task ()
 examples = viewInformation () [] "Select an example set"
   >>* [ OnAction (Action "Various static examples" []) (always (allSVGs @! ()))
       , OnAction (Action "Static Tonic shapes" [])     (always (tonicSVGs @! ()))
-      , OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
+      //, OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
       ]
 
 
@@ -73,30 +90,31 @@ viewTestRect = viewImage "Test rect" testRect
 testRect :: Image ()
 testRect = rect (textxspan ArialRegular10px "foo") (px 25.0)
 
-allSVGs = allTasks [ viewRotateGridImg @! ()
+allSVGs = allTasks [// viewRotateGridImg @! ()
                     //viewLineExample @! ()
-                   , viewTextGrid @! ()
-                   //, viewTextGrid2 @! ()
+                   //, viewTextGrid @! ()
+                    viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
-                   , viewPolygon @! ()
-                   , viewPolyline @! ()
-                   , viewBox @! ()
-                   , viewGrid @! ()
-                   , viewShapes mkCircles Nothing @! ()
-                   , viewShapes mkCircles (Just rect100x60) @! ()
-                   , viewShapes mkCircles (Just rect30x60) @! ()
-                   , viewRect @! ()
-                   , viewEllipse @! ()
-                   , viewBesideBoxes @! ()
-                   , viewBesideBoxes2 @! ()
+                   //, viewPolygon @! ()
+                   //, viewPolyline @! ()
+                   //, viewBox @! ()
+                   //, viewGrid @! ()
+                   //, viewShapes mkCircles Nothing @! ()
+                   //, viewShapes mkCircles (Just rect100x60) @! ()
+                   //, viewShapes mkCircles (Just rect30x60) @! ()
+                   //, viewRect @! ()
+                   //, viewEllipse @! ()
+                   //, viewBesideBoxes @! ()
+                   //, viewBesideBoxes2 @! ()
                    //, viewShapes mkRects Nothing @! ()
                    //, viewShapes mkRects (Just rect100x60) @! ()
                    //, viewShapes mkRects (Just rect30x60) @! ()
                    ]
-allClickExamples = allTasks [ simpleClickExample @! ()
-                            , simpleClickExample @! ()
-                            , simpleClickStepExample @! ()
-                            ]
+//allClickExamples = allTasks [] 
+//[ simpleClickExample @! ()
+                            //, simpleClickExample @! ()
+                            //, simpleClickStepExample @! ()
+                            //]
 :: ClickStepSt
   = { bigRectClicked   :: Bool
     , smallRectClicked :: Bool
@@ -104,15 +122,29 @@ allClickExamples = allTasks [ simpleClickExample @! ()
 
 derive class iTask ClickStepSt
 
-simpleClickStepExample = updateImageState "Clickable boxes" defaultState mkBoxes >>* [OnValue doStep]
-  where
-  defaultState = { bigRectClicked = False, smallRectClicked = False }
-  mkBoxes s = beside [] [] [ rect100x60 <@< { onclick = \st -> { st & bigRectClicked = True }}
-                           , rect30x60  <@< { onclick = \st -> { st & smallRectClicked = True }}] Nothing
-  doStep (Value {bigRectClicked   = True} _) = Just (viewInformation () [] "Big rect clicked!")
-  doStep (Value {smallRectClicked = True} _) = Just (viewInformation () [] "Small rect clicked!")
-  doStep _           = Nothing
+//simpleClickStepExample = updateImageState "Clickable boxes" defaultState mkBoxes >>* [OnValue doStep]
+  //where
+  //defaultState = { bigRectClicked = False, smallRectClicked = False }
+  //mkBoxes s = beside [] [] [ rect100x60 <@< { onclick = \st -> { st & bigRectClicked = True }}
+                           //, rect30x60  <@< { onclick = \st -> { st & smallRectClicked = True }}] Nothing
+  //doStep (Value {bigRectClicked   = True} _) = Just (viewInformation () [] "Big rect clicked!")
+  //doStep (Value {smallRectClicked = True} _) = Just (viewInformation () [] "Small rect clicked!")
+  //doStep _           = Nothing
 
+
+//simpleClickStepExample2 = updateImageState "Clickable boxes 2" defaultState mkBoxes
+                      //>>* [ OnImageClick [imageTag "bigbox"]   (\n -> viewInformation "bigbox n"   [] n)
+                          //, OnImageClick [imageTag "smallbox"] (\n -> viewInformation "smallbox n" [] n) ]
+  //where
+  //defaultState = 42
+  //mkBoxes s = beside [] [] [ tag [imageTag "bigbox"]   rect100x60 <@< { onclick = \st -> st + 1}
+                           //, tag [imageTag "smallbox"] rect30x60  <@< { onclick = \st -> st - 1}] Nothing
+
+//OnImageClick tags f = OnValue mkOnValue
+  //where
+  //mkOnValue (Value (s, Just lastClickedTags) _)
+    //| 'DS'.isSubsetOf ('DS'.fromList tags) lastClickedTags = Just (f s)
+  //mkOnValue _ = Nothing
 
 tonicSVGs = allTasks [ viewTaskAppExample @! ()
                      , viewStartExample @! ()
@@ -128,11 +160,11 @@ viewLineExample = viewImage "Testing lines" mkImg
   where
   mkImg = overlay (repeat (AtMiddleX, AtMiddleY)) [(px 50.0, px 50.0), (px 150.0, px 150.0)] [rect100x60, rect30x60] Nothing
 
-simpleClickExample :: Task Real
-simpleClickExample = updateImageState "Simple click example" 25.0 f
-  where
-  f :: Real -> Image Real
-  f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }
+//simpleClickExample :: Task Real
+//simpleClickExample = updateImageState "Simple click example" 25.0 f
+  //where
+  //f :: Real -> Image Real
+  //f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }
 
 
 viewPolygon :: Task ()
@@ -326,6 +358,22 @@ viewTaskAppExample = viewImage "Tonic task-application render." viExample
 
 taskApp :: String [String] -> Image ()
 taskApp taskName taskArgs
+  # bgRect       = rect maxXSpan (imageyspan [imageTag "taTaskNameImg"] + imageyspan [imageTag "taTaskArgsImgs"] + imageyspan [imageTag "taTaskTextImgs"])
+                     <@< { fill        = toSVGColor "white" }
+                     <@< { stroke      = toSVGColor "black" }
+                     <@< { strokewidth = px 1.0 }
+                     <@< { xradius     = px 5.0 }
+                     <@< { yradius     = px 5.0 }
+  # taskNameImg  = tag [imageTag "taTaskNameImg"]  (margin (px 5.0) (text ArialBold10px taskName))
+  # taskArgsImgs = tag [imageTag "taTaskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
+  # taskText     = tag [imageTag "taTaskTextImgs"] (above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, taskArgsImgs] Nothing)
+  # taskApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
+  = taskApp
+  where
+  maxXSpan = maxSpan [imagexspan [imageTag "taTaskNameImg"], imagexspan [imageTag "taTaskArgsImgs"], imagexspan [imageTag "taTaskTextImgs"]]
+
+taskApp` :: String [String] -> Image ()
+taskApp` taskName taskArgs
   # bgRect       = rect containerSpan (ArialRegular10px.fontyspan *. (2.5 + toReal (length taskArgs))) <@< { fill        = toSVGColor "white" }
                                                                                                        <@< { stroke      = toSVGColor "black" }
                                                                                                        <@< { strokewidth = px 1.0 }
