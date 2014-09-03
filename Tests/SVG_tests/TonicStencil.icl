@@ -34,8 +34,8 @@ ArialItalic10px :== { fontfamily  = "Arial"
                   }
 
 //Start :: *World -> *World
-//Start world = startEngine allSVGs world
-Start world = startEngine examples world
+Start world = startEngine allSVGs world
+//Start world = startEngine examples world
 //Start = fst (fixSpans viewTaskDefExample` {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap})
 
 viewImage d image = viewInformation d [imageView (\_ -> image)] ()
@@ -93,22 +93,22 @@ viewTestRect = viewImage "Test rect" testRect
 testRect :: Image ()
 testRect = rect (textxspan ArialRegular10px "foo") (px 25.0)
 
-allSVGs = allTasks [ viewRotateGridImg @! ()
+allSVGs = allTasks [ //viewRotateGridImg @! ()
                      //viewLineExample @! ()
-                   , viewTextGrid @! ()
-                    //viewTextGrid2 @! ()
+                   //, viewTextGrid @! ()
+                    viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
-                   , viewPolygon @! ()
-                   , viewPolyline @! ()
-                   , viewBox @! ()
-                   , viewGrid @! ()
-                   , viewShapes mkCircles Nothing @! ()
-                   , viewShapes mkCircles (Just rect100x60) @! ()
-                   , viewShapes mkCircles (Just rect30x60) @! ()
-                   , viewRect @! ()
-                   , viewEllipse @! ()
-                   , viewBesideBoxes @! ()
-                   , viewBesideBoxes2 @! ()
+                   //, viewPolygon @! ()
+                   //, viewPolyline @! ()
+                   //, viewBox @! ()
+                   //, viewGrid @! ()
+                   //, viewShapes mkCircles Nothing @! ()
+                   //, viewShapes mkCircles (Just rect100x60) @! ()
+                   //, viewShapes mkCircles (Just rect30x60) @! ()
+                   //, viewRect @! ()
+                   //, viewEllipse @! ()
+                   //, viewBesideBoxes @! ()
+                   //, viewBesideBoxes2 @! ()
                    //, viewShapes mkRects Nothing @! ()
                    //, viewShapes mkRects (Just rect100x60) @! ()
                    //, viewShapes mkRects (Just rect30x60) @! ()
