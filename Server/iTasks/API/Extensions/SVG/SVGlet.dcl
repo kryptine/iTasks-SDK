@@ -30,7 +30,7 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
 
 imageView 				:: !(s -> Image s) 				-> ViewOption s 	| iTask s
 
-imageViewUpdate 		:: !(s -> Image s) !(s -> s) 	-> UpdateOption s s |  iTask s
+imageViewUpdate         :: !(s -> v) !(v -> Image v)  !(v -> s) -> UpdateOption s s |  iTask v
 
 
 svgRenderer :: !s !(s -> Image s)
