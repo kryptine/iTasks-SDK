@@ -229,32 +229,11 @@ svgRenderer origState state2Image = Editlet origState server client
 
 getTextLength :: !FontDef !String !*(St m) -> *(Real, *(St m)) | iTask m
 getTextLength fontdef str (clval, world)
-  = case 'DM'.gGet fontdef clval.textXSpanEnv of
+  = case 'DM'.get fontdef clval.textXSpanEnv of
       Just strs = case 'DM'.get str strs of
                     Just tw -> (tw, (clval, world))
                     _       -> (0.0, (clval, world)) // TODO ?
       Nothing   = (0.0, (clval, world)) // TODO?
-        //# (svg, world)   = (jsDocument `createElementNS` (svgns, "svg")) world
-        //# (body, world)  = .? (jsDocument .# "body") world
-        //# (_, world)     = (body `appendChild` svg) world
-        //# (elem, world)  = (jsDocument `createElementNS` (svgns, "text")) world
-        //# (fntSz, (clval, world)) =  evalSpan fontdef.fontyspan (clval, world)
-        //# fontAttrs      = [ ("font-family",  fontdef.fontfamily)
-                           //, ("font-size",    toString fntSz)
-                           //, ("font-stretch", fontdef.fontstretch)
-                           //, ("font-style",   fontdef.fontstyle)
-                           //, ("font-variant", fontdef.fontvariant)
-                           //, ("font-weight",  fontdef.fontweight)
-                           //, ("x", "-10000")
-                           //, ("y", "-10000") ]
-        //# world          = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
-        //# world          = (elem .# "textContent" .= str) world
-        //# (_, world)     = (svg `appendChild` elem) world
-        //# (ctl, world)   = (elem `getComputedTextLength` ()) world
-        //# (_, world)     = (svg `removeChild` elem) world
-        //# (_, world)     = (body `removeChild` svg) world
-        //# twidth         = jsValToReal ctl
-        //= (twidth, ({clval & textXSpanEnv = 'DM'.gPut (fontdef, str) twidth clval.textXSpanEnv}, world))
 
 calcTextLengths :: !(Map FontDef (Set String)) !*(St m) -> *(St m) | iTask m
 calcTextLengths fontdefs (clval, world)
@@ -280,7 +259,7 @@ calcTextLengths fontdefs (clval, world)
                     , ("y", "-10000") ]
     # world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
     # (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
-    = ('DM'.gPut fontdef ws acc, (clval, world))
+    = ('DM'.put fontdef ws acc, (clval, world))
   g elem str (acc, world)
     # world        = (elem .# "textContent" .= str) world
     # (ctl, world) = (elem `getComputedTextLength` ()) world
@@ -667,10 +646,10 @@ fixSpans img = go
     }
     where
     mkTextLU fd str st
-      # strs = case 'DM'.gGet fd st.srvFonts of
+      # strs = case 'DM'.get fd st.srvFonts of
                  Just fs -> fs
                  _       -> 'DS'.newSet
-      = ret (LookupSpan (TextXSpan fd str)) { st & srvFonts = 'DM'.gPut fd ('DS'.insert str strs) st.srvFonts }
+      = ret (LookupSpan (TextXSpan fd str)) { st & srvFonts = 'DM'.put fd ('DS'.insert str strs) st.srvFonts }
 
     //lookupTags :: !(Set ImageTag) -> SrvSt (Maybe CachedSpan)
     //lookupTags ts
