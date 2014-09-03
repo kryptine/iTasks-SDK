@@ -80,21 +80,23 @@ where
 
 	display	{result,digits} 
 		= grid (Rows 2) (LeftToRight, TopToBottom) [] [] 
-						[ mkButton2 result (4.0*xBox) yBox
-						, mkButton2 digits (4.0*xBox) yBox
+						[ mkButton2 result (3.0*xBox) yBox
+						, mkButton2 digits (3.0*xBox) yBox
 						] Nothing 
-	buttons  = grid (Rows 4) (LeftToRight, TopToBottom) [] [] 
-						[ mkButton3 s xBox yBox \\ s <- ['7','8','9','/'
-														,'6','5','4','*'
-														,'1','2','3','-'
-														,'0','=',' ','+' 
+	buttons  
+		= grid (Rows 5) (LeftToRight, TopToBottom) [] [] 
+						[ mkButton3 s xBox yBox \\ s <- ['7','8','9'
+														,'6','5','4'
+														,'1','2','3'
+														,'0','+','=' 
+														,'*','-','/' 
 														]
 						] Nothing
 	
 	xBox = 30.0
 	yBox = 15.0
 	mkButton3 s x y = mkButton2 s x y <@< {onclick = (\as -> {as & ActionState.action = Just s})}  
-	mkButton2 s x y =  overlay [(AtLeft,AtTop),(AtMiddleX,AtTop)] [] 
+	mkButton2 s x y =  overlay [(AtLeft,AtTop),(AtMiddleX,AtMiddleY)] [] 
 							[mkButton x y, mkText (toString s)] Nothing
 	mkButton x y 	=  rect (PxSpan x) (PxSpan y) <@< {stroke = toSVGColor "black"} <@< {fill = toSVGColor "white"} <@< {strokewidth = px 1.0}
 	mkText s		=  text ArialRegular10px s
