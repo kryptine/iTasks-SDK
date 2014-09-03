@@ -8,7 +8,6 @@ from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray
 import StdMisc
-import GenLexOrd, GenEq
 import Data.List
 import Data.Func
 from Data.Set import :: Set, instance == (Set a), instance < (Set a)
@@ -30,9 +29,6 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
   YAlign, Set, CachedSpan, Deg, Rad, LineImage, Markers,
   LineContent, XRadiusAttr, YRadiusAttr
-
-derive gLexOrd FontDef, Span, LookupSpan, ImageTag, Set, CachedSpan, Deg, Rad,
-  Maybe, LineContent, Slash
 
 :: ClientState s =
   { textXSpanEnv    :: Map FontDef (Map String Real)
@@ -157,10 +153,11 @@ instance toAttr SVGAttr where
 svgRenderer :: !s !(s -> Image s) -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
 svgRenderer origState state2Image = Editlet origState server client
   where
+  defVal = gDefault{|*|}
   server
     = { EditletServerDef
       | genUI   = genUI
-      , defVal  = gDefault{|*|}
+      , defVal  = defVal
       , genDiff = genServerDiff
       , appDiff = appServerDiff
       }
@@ -172,7 +169,7 @@ svgRenderer origState state2Image = Editlet origState server client
                    , onclicks        = 'DM'.newMap
                    , uniqueIdCounter = 0
                    , editletId       = ""
-                   , currState       = gDefault{|*|}
+                   , currState       = defVal
                    }
       , genDiff  = genClientDiff
       , appDiff  = appClientDiff
@@ -191,16 +188,16 @@ svgRenderer origState state2Image = Editlet origState server client
       )
 
   updateUI cid (Just (_, img, fonts, spanCache)) clval world
-    //# ((imgs, (imXSp, imYSp), _), (clval, world)) = toSVG img ({clval & editletId = cid}, world)
     # (clval, world) = calcTextLengths fonts (clval, world)
     # (syn, (clval, world)) = toSVG img ({clval & editletId = cid, spanCache = spanCache}, world)
     # (svg, world)   = getDomElement (mainSvgId cid) world
     # (imXSp, imYSp) = syn.clSyn_imageSpanReal
-    # (_, world)     = (svg `setAttribute` ("height", toInt imYSp)) world
-    # (_, world)     = (svg `setAttribute` ("width", toInt imXSp)) world
-    # (_, world)     = (svg `setAttribute` ("viewBox", "0 0 " +++ toString (toInt imXSp) +++ " " +++ toString (toInt imYSp))) world
+    # (imXSp, imYSp) = (toInt imXSp, toInt imYSp)
+    # (_, world)     = (svg `setAttribute` ("height", imYSp)) world
+    # (_, world)     = (svg `setAttribute` ("width", imXSp)) world
+    # (_, world)     = (svg `setAttribute` ("viewBox", "0 0 " +++ toString imXSp +++ " " +++ toString imYSp)) world
     # world          = (svg .# "innerHTML" .= "") world
-    # (elem, world)  = appendSVG (GElt [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))] [] syn.clSyn_svgElts) svg world
+    # (elem, world)  = appendSVG (GElt [WidthAttr (toString imXSp), HeightAttr (toString imYSp)] [] syn.clSyn_svgElts) svg world
     # world          = addOnclicks cid svg clval.onclicks world
     = (clval, world)
 
@@ -208,14 +205,12 @@ svgRenderer origState state2Image = Editlet origState server client
 
   genServerDiff _ y
     # (img, st) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap}
-    //= Just (y, overlay [(AtMiddleX, AtMiddleY)] [] [img] Nothing)
     = Just (y, img, st.srvFonts, st.srvTaggedSpanEnv)
-    //= Nothing
   appServerDiff (st, _, _, _) _ = st
 
   genClientDiff x y
     | x.currState === y.currState = Nothing
-    //| otherwise                   = Just (y.currState, state2Image y.currState, 'DM'.newMap)
+    //| otherwise                   = Just (y.currState, state2Image y.currState, 'DM'.newMap, 'DM'.newMap)
     | otherwise                   = Just (y.currState, undef, undef, undef)
   appClientDiff (st, _, _, _) clval = {clval & currState = st}
 
@@ -314,7 +309,7 @@ addCachedSpan f imTas st=:{srvTaggedSpanEnv}
 cacheImageSpan :: !(Set ImageTag) !ImageSpan !ServerState -> ServerState
 cacheImageSpan imTas sp st = addCachedSpan (\r -> {r & cachedImageSpan = Just sp}) imTas st
 
-//cacheGridSpans :: !(Set ImageTag) !{Span} !{Span} !ServerState -> ServerState
+cacheGridSpans :: !(Set ImageTag) ![Span] ![Span] !ServerState -> ServerState
 cacheGridSpans imTas xsps ysps st = addCachedSpan (\r -> {r & cachedGridSpans = Just (xsps, ysps)}) imTas st
 
 rectAnchors :: !ImageSpan -> [Connector]
@@ -327,15 +322,10 @@ ellipseAnchors (w, h) = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry
   ry        = h /. 2.0
   rSin th r = r *. sin th
   rCos th r = r *. cos th
-import StdDebug
-// TODO : Detect divergence due to lookups and return an Either ErrorMessage (Image s), instead of just an Image s
+
 fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
-fixSpans img = go
+fixSpans img = imageCata fixSpansAllAlgs img
   where
-  go st
-    # (img, st)    = imageCata fixSpansAllAlgs img st
-    | st.didChange = trace_n "fix" fixSpans img {st & didChange = False}
-    | otherwise    = ret img st
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
     , imageContentAlgs   = fixSpansImageContentAlgs
@@ -545,7 +535,7 @@ fixSpans img = go
                                   Just hostImg
                                      -> (Just hostImg, hostImg.totalSpan, hostImg.connectors)
                                   _  -> (Nothing, composeSpan
-                                        , rectAnchors composeSpan) // TODO Somehow this tends to break
+                                        , rectAnchors composeSpan)
         # (span, corr)  = applyTransforms imTrs span // TODO Transform the anchor points as well
         = ret { contSynImageContent     = Composite { CompositeImage
                                                     | offsets = offsets
@@ -633,16 +623,10 @@ fixSpans img = go
     }
   fixSpansLookupSpanAlgs :: LookupSpanAlg (SrvSt Span)
   fixSpansLookupSpanAlgs =
-    //{ lookupSpanColumnXSpanAlg  = mkImageGridSpan (\xss n -> maxSpan (map fst (transpose xss !! n))) ColumnXSpan
-    { lookupSpanColumnXSpanAlg  = \ts n -> ret (trace_n ("ColumnXSpan " +++ toString n) LookupSpan (ColumnXSpan ts n))
-    //, lookupSpanRowYSpanAlg     = mkImageGridSpan (\xss n -> maxSpan (map snd (xss !! n))) RowYSpan
-    , lookupSpanRowYSpanAlg     = \ts n -> ret (trace_n ("RowYSpan " +++ toString n) LookupSpan (RowYSpan ts n))
-    //, lookupSpanImageXSpanAlg   = mkImageSpan fst ImageXSpan
-    , lookupSpanImageXSpanAlg   = \ts     -> ret (LookupSpan (ImageXSpan ts))
-    //, lookupSpanImageYSpanAlg   = mkImageSpan snd ImageYSpan
-    , lookupSpanImageYSpanAlg   = \ts     -> ret (LookupSpan (ImageYSpan ts))
-    , lookupSpanDescentYSpanAlg = \fd     -> ret (LookupSpan (DescentYSpan fd))
-    , lookupSpanExYSpanAlg      = \fd     -> ret (LookupSpan (ExYSpan fd))
+    { lookupSpanColumnXSpanAlg  = \ts n -> ret (LookupSpan (ColumnXSpan ts n))
+    , lookupSpanRowYSpanAlg     = \ts n -> ret (LookupSpan (RowYSpan ts n))
+    , lookupSpanImageXSpanAlg   = \ts   -> ret (LookupSpan (ImageXSpan ts))
+    , lookupSpanImageYSpanAlg   = \ts   -> ret (LookupSpan (ImageYSpan ts))
     , lookupSpanTextXSpanAlg    = mkTextLU
     }
     where
@@ -651,30 +635,6 @@ fixSpans img = go
                  Just fs -> fs
                  _       -> 'DS'.newSet
       = ret (LookupSpan (TextXSpan fd str)) { st & srvFonts = 'DM'.put fd ('DS'.insert str strs) st.srvFonts }
-
-    //lookupTags :: !(Set ImageTag) -> SrvSt (Maybe CachedSpan)
-    //lookupTags ts
-      //| 'DS'.null ts = ret Nothing
-      //| otherwise    = go
-      //where
-      //go srv
-        //= case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) srv.srvTaggedSpanEnv) of
-            //[x:_] -> (Just x, {srv & didChange = True})
-            //_     -> (Nothing, srv)
-
-    //mkImageSpan :: !(ImageSpan -> Span) !((Set ImageTag) -> LookupSpan) !(Set ImageTag) -> SrvSt Span
-    //mkImageSpan f c ts
-      //=        lookupTags ts `b`
-      //\luts -> ret (case luts of
-                      //Just {cachedImageSpan=Just xs} -> f xs
-                      //_                              -> LookupSpan (c ts))
-
-    //mkImageGridSpan :: !([[ImageSpan]] Int -> Span) !((Set ImageTag) Int -> LookupSpan) !(Set ImageTag) Int -> SrvSt Span
-    //mkImageGridSpan f c ts n
-      //=        lookupTags ts `b`
-      //\luts -> ret (case luts of
-                      //Just csp=:{cachedGridSpans=Just xss} -> f xss n
-                      //_                                    -> LookupSpan (c ts n))
 
 seqImgsGrid imgs (acc, st) :== (sequence imgs `b` \imgs -> ret [imgs:acc]) st
 
@@ -1083,6 +1043,7 @@ mkTransformTranslateAttr :: (Real, Real) -> [SVGAttr]
 mkTransformTranslateAttr (0.0,   0.0)   = []
 mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
+// TODO Detect divergence
 evalSpan :: !Span -> ClSt s Real | iTask s
 evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
 
@@ -1103,8 +1064,6 @@ evalSpanLookupSpanAlgs :: LookupSpanAlg (ClSt s Real) | iTask s
 evalSpanLookupSpanAlgs =
   { lookupSpanColumnXSpanAlg  = getColumnWidth
   , lookupSpanRowYSpanAlg     = getRowHeight
-  , lookupSpanDescentYSpanAlg = \fd     st -> abort "DescentYSpanAlg" // TODO Will we even use this?
-  , lookupSpanExYSpanAlg      = mkExYSpan
   , lookupSpanImageXSpanAlg   = getImageXSpan
   , lookupSpanImageYSpanAlg   = getImageYSpan
   , lookupSpanTextXSpanAlg    = getTextLength
@@ -1113,49 +1072,30 @@ evalSpanLookupSpanAlgs =
   getColumnWidth ts n st=:({spanCache}, world)
     = case tagLookup ts spanCache of
         Just {cachedGridSpans = Just (cols, _)}
-          //# st = stTrace n st
-          //# st = stTrace cols st
-          //# st = if (n < size cols) (stTrace cols.[n] st) (stTrace ("out of bounds " +++ toString n) st)
-          //# st = if (n < length cols) (stTrace (cols !! n) st) (stTrace (toString n +++ " is out of bounds. length " +++ toString (length cols)) st)
-          //= evalSpan cols.[0] st
-          //= evalSpan cols.[n] st
           = if (n < length cols) (evalSpan (cols !! n) st) (0.0, st)
-          //= if (n < size cols) (evalSpan cols.[n] st) (0.0, st)
-        _ = (0.0, stTrace "getColumnWidth 1" st)
-  getColumnWidth _ _ st = (0.0, stTrace "getColumnWidth 2" st) // TODO ?
+        _ = (0.0, st)
+  getColumnWidth _ _ st = (0.0, st) // TODO ?
 
   getRowHeight ts n st=:({spanCache}, world)
     = case tagLookup ts spanCache of
         Just {cachedGridSpans = Just (_, rows)}
-          //# st = stTrace n st
-          //# st = stTrace rows st
-          //# st = if (n < size rows) (stTrace rows.[n] st) (stTrace ("out of bounds " +++ toString n) st)
-          //# st = if (n < length rows) (stTrace (rows !! n) st) (stTrace (toString n +++ " is out of bounds. length " +++ toString (length rows)) st)
-          //= evalSpan rows.[0] st
-          //= evalSpan rows.[n] st
-          //= (0.0, st)
           = if (n < length rows) (evalSpan (rows !! n) st) (0.0, st)
-          //= if (n < size rows) (evalSpan rows.[n] st) (0.0, st)
-        _ = (0.0, stTrace "getRowHeight 1" st)
-  getRowHeight _ _ st = (0.0, stTrace "getRowHeight 2" st) // TODO ?
+        _ = (0.0, st)
+  getRowHeight _ _ st = (0.0, st) // TODO ?
 
   getImageXSpan ts st=:({spanCache}, world)
     = case tagLookup ts spanCache of
         Just {cachedImageSpan = Just (xsp, _)}
           = evalSpan xsp st
-        _ = (0.0, stTrace "getImageXSpan 1" st)
-  getImageXSpan _ st = (0.0, stTrace "getImageXSpan 2" st) // TODO ?
+        _ = (0.0, st)
+  getImageXSpan _ st = (0.0, st) // TODO ?
 
   getImageYSpan ts st=:({spanCache}, world)
     = case tagLookup ts spanCache of
         Just {cachedImageSpan = Just (_, ysp)}
           = evalSpan ysp st
-        _ = (0.0, stTrace "getImageYSpan 1" st)
-  getImageYSpan _ st = (0.0, stTrace "getImageYSpan 2" st) // TODO ?
-
-  mkExYSpan fd
-    =       evalSpan fd.fontyspan `b`
-    \fys -> ret (fys / 2.0) // TODO : Can we do better?
+        _ = (0.0, st)
+  getImageYSpan _ st = (0.0, st) // TODO ?
 
 tagLookup ts mp = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) mp) of
                     [x:_] -> Just x
@@ -1265,8 +1205,6 @@ mkList f xs = sequence xs `b` \xs -> ret (f xs)
 
 :: LookupSpanAlg loSp =
   { lookupSpanColumnXSpanAlg  :: (Set ImageTag) Int -> loSp
-  , lookupSpanDescentYSpanAlg :: FontDef            -> loSp
-  , lookupSpanExYSpanAlg      :: FontDef            -> loSp
   , lookupSpanImageXSpanAlg   :: (Set ImageTag)     -> loSp
   , lookupSpanImageYSpanAlg   :: (Set ImageTag)     -> loSp
   , lookupSpanRowYSpanAlg     :: (Set ImageTag) Int -> loSp
@@ -1421,9 +1359,5 @@ lookupCata lookupSpanAlgs (ImageXSpan imts)
   = lookupSpanAlgs.lookupSpanImageXSpanAlg imts
 lookupCata lookupSpanAlgs (ImageYSpan imts)
   = lookupSpanAlgs.lookupSpanImageYSpanAlg imts
-lookupCata lookupSpanAlgs (DescentYSpan fd)
-  = lookupSpanAlgs.lookupSpanDescentYSpanAlg fd
-lookupCata lookupSpanAlgs (ExYSpan fd)
-  = lookupSpanAlgs.lookupSpanExYSpanAlg fd
 lookupCata lookupSpanAlgs (TextXSpan fd str)
   = lookupSpanAlgs.lookupSpanTextXSpanAlg fd str
