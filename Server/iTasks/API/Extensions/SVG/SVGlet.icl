@@ -216,8 +216,8 @@ svgRenderer origState state2Image = Editlet origState server client
 
   genClientDiff x y
     | x.currState === y.currState = Nothing
-    | otherwise                   = Just (y.currState, state2Image y.currState, 'DM'.newMap, 'DM'.newMap)
-    //| otherwise                   = Just (y.currState, undef, undef, undef)
+    | otherwise                   = Just ( y.currState
+                                         , empty zero zero, 'DM'.newMap, 'DM'.newMap) // Only the state is used, so don't bother passing over large, expensive values
   appClientDiff (st, _, _, _) clval = {clval & currState = st}
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
