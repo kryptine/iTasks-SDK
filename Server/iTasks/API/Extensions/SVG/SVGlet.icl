@@ -927,7 +927,8 @@ toSVG img = imageCata toSVGAllAlgs img
                                         Just {clSyn_svgElts, clSyn_imageSpanReal} -> (clSyn_svgElts ++ compose.clSyn_svgElts, clSyn_imageSpanReal)
                                         _                                         -> (compose.clSyn_svgElts, compose.clSyn_imageSpanReal)
                   in  sequence (map (\f -> f spans) imTrs) `b`
-      \imTrs   -> ret { mkClSyn & clSyn_svgElts = mkGroup [] (getSvgAttrs (mkAttrs imAts imTrs)) elts}
+      \imTrs   -> let attrs = mkAttrs imAts imTrs
+                  in  ret { mkClSyn & clSyn_svgElts = mkGroup (getHtmlAttrs attrs) (getSvgAttrs attrs) elts}
 
   toSVGComposeAlgs :: ComposeAlg (ClSt s ToSVGSyn)
                                  ([ImageOffsetReal] (Maybe ToSVGSyn) (Set (Set ImageTag, Set ImageTag)) ImageSpanReal [Either HtmlAttr SVGAttr] [ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
