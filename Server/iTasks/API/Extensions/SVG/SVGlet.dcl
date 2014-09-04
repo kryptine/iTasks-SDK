@@ -28,9 +28,9 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
 //updateSharedImageState 	:: !d  !(s -> Image s) !(s -> s) (Shared s)  -> Task s | iTask s & descr d 
 
 
-imageView 				:: !(s -> Image s) 				-> ViewOption s 	| iTask s
+imageView 				::           !(s -> Image s) 			  -> ViewOption s 	| iTask s
 
-imageViewUpdate         :: !(s -> v) !(v -> Image v)  !(v -> s) -> UpdateOption s s |  iTask v
+imageViewUpdate 		:: !(s -> v) !(v -> Image v)  !(s v -> s) -> UpdateOption s s |  iTask v
 
 
 svgRenderer :: !s !(s -> Image s)

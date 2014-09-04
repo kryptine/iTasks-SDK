@@ -69,6 +69,7 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
   mkCB :: (s -> s) String {JSObj JSEvent} (ClientState s) *JSWorld -> *(ClientState s, *JSWorld) | iTask s
   mkCB sttf _ _ clval world = ({clval & currState = sttf clval.currState}, world)
 
+/*
 updateImageState :: !d  !(s -> Image s) !(s -> s) !s -> Task s | iTask s & descr d
 updateImageState d toImage handleAction s  
     = updateInformation d [UpdateWith (\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] s
@@ -76,13 +77,14 @@ updateImageState d toImage handleAction s
 updateSharedImageState :: !d  !(s -> Image s) !(s -> s) (Shared s) -> Task s | iTask s & descr d 
 updateSharedImageState d toImage handleAction sharedState   
 	= updateSharedInformation d [UpdateWith	(\s -> svgRenderer s toImage) (\_ (Editlet s _ _) -> handleAction s)] sharedState //@ (\(Editlet s` _ _) -> s`)
+*/
 
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
 imageView toImage = ViewWith (\s -> svgRenderer s toImage)
 
-imageViewUpdate :: !(s -> v) !(v -> Image v)  !(v -> s) -> UpdateOption s s |  iTask v
+imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s) -> UpdateOption s s |  iTask v
 imageViewUpdate toViewState toImage fromViewState 
-		= UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\_ (Editlet v _ _) -> fromViewState v)
+		= UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s (Editlet v _ _) -> fromViewState s v)
 
 :: ActionState a s  = 	{ state		:: s
 						, action	:: Maybe a
@@ -90,7 +92,7 @@ imageViewUpdate toViewState toImage fromViewState
 
 derive class iTask ActionState
 
-ifAction 				:: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
+ifAction :: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
 ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _) 
     | pred a 	= Just (stotaskb {ActionState|state = astos a s, action = Nothing})
     | otherwise = Nothing

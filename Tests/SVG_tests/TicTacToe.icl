@@ -143,12 +143,12 @@ playGame2 user1 user2 ttt = withShared ttt
 toAction :: TicTacToe -> ActionState (Int,Int) TicTacToe
 toAction ttt = {ActionState | state = ttt, action = Nothing} 
 
-fromAction :: (ActionState (Int,Int) TicTacToe) -> TicTacToe 
-fromAction {ActionState|state = ttt, action = Just (i,j)} 
+fromAction :: TicTacToe (ActionState (Int,Int) TicTacToe) -> TicTacToe 
+fromAction _ {ActionState|state = ttt, action = Just (i,j)} 
 	= {ttt & turn 	= not ttt.turn
 		   , board	= add_cell (i,j) ttt.turn ttt.board
 	}
-fromAction as = as.ActionState.state
+fromAction _ as = as.ActionState.state
 
 toImage ::  Bool (ActionState (Int,Int) TicTacToe) -> Image (ActionState (Int,Int) TicTacToe)
 toImage turn ttt
