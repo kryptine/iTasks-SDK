@@ -33,15 +33,15 @@ imageView 				::           !(s -> Image s) 			  -> ViewOption s 	| iTask s
 imageViewUpdate 		:: !(s -> v) !(v -> Image v)  !(s v -> s) -> UpdateOption s s |  iTask v
 
 
-svgRenderer :: !s !(s -> Image s)
-            -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
+svgRenderer     :: !s !(s -> Image s)
+                -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
 
-:: ActionState a s  = 	{ state		:: s
-						, action	:: Maybe a
-						}
+:: ActionState a s = { state    :: s
+                     , action  :: Maybe a
+                     }
 
 derive class iTask ActionState
 
-ifAction 				:: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
+ifAction :: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
 
 :: CachedSpan

@@ -86,10 +86,6 @@ imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s) -> UpdateOption s s | 
 imageViewUpdate toViewState toImage fromViewState 
 		= UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s (Editlet v _ _) -> fromViewState s v)
 
-:: ActionState a s  = 	{ state		:: s
-						, action	:: Maybe a
-						}
-
 derive class iTask ActionState
 
 ifAction :: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
@@ -220,8 +216,8 @@ svgRenderer origState state2Image = Editlet origState server client
 
   genClientDiff x y
     | x.currState === y.currState = Nothing
-    //| otherwise                   = Just (y.currState, state2Image y.currState, 'DM'.newMap, 'DM'.newMap)
-    | otherwise                   = Just (y.currState, undef, undef, undef)
+    | otherwise                   = Just (y.currState, state2Image y.currState, 'DM'.newMap, 'DM'.newMap)
+    //| otherwise                   = Just (y.currState, undef, undef, undef)
   appClientDiff (st, _, _, _) clval = {clval & currState = st}
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
@@ -1087,7 +1083,7 @@ evalSpanLookupSpanAlgs =
                 # clval = {clval & gridXSpanEnv = 'DM'.put (n, ts) r gridXSpanEnv}
                 = (r, (clval, world))
               _ = (0.0, st)
-  getColumnWidth _ _ st = (0.0, st) // TODO ?
+  getColumnWidth _ _ st = (0.0, st)
 
   getRowHeight ts n st=:({spanCache, gridYSpanEnv}, world)
     = case 'DM'.get (n, ts) gridYSpanEnv of
@@ -1099,7 +1095,7 @@ evalSpanLookupSpanAlgs =
                 # clval = {clval & gridYSpanEnv = 'DM'.put (n, ts) r gridYSpanEnv}
                 = (r, (clval, world))
               _ = (0.0, st)
-  getRowHeight _ _ st = (0.0, st) // TODO ?
+  getRowHeight _ _ st = (0.0, st)
 
   getImageXSpan ts st=:({spanCache, imageXSpanEnv}, world)
     = case 'DM'.get ts imageXSpanEnv of
@@ -1111,7 +1107,7 @@ evalSpanLookupSpanAlgs =
                 # clval = {clval & imageXSpanEnv = 'DM'.put ts r imageXSpanEnv}
                 = (r, (clval, world))
               _ = (0.0, st)
-  getImageXSpan _ st = (0.0, st) // TODO ?
+  getImageXSpan _ st = (0.0, st)
 
   getImageYSpan ts st=:({spanCache, imageYSpanEnv}, world)
     = case 'DM'.get ts imageYSpanEnv of
@@ -1123,7 +1119,7 @@ evalSpanLookupSpanAlgs =
                 # clval = {clval & imageYSpanEnv = 'DM'.put ts r imageYSpanEnv}
                 = (r, (clval, world))
               _ = (0.0, st)
-  getImageYSpan _ st = (0.0, st) // TODO ?
+  getImageYSpan _ st = (0.0, st)
 
 tagLookup ts mp = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) mp) of
                     [x:_] -> Just x
