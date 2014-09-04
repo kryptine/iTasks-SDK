@@ -44,24 +44,4 @@ derive class iTask ActionState
 
 ifAction 				:: !(a -> Bool) !(a s -> s) !((ActionState a s) -> Task b) !(TaskValue (ActionState a s)) -> Maybe (Task b)
 
-
-//svgRenderer      		:: !s !(s -> Image s) -> Editlet s (s, Image s) | iTask s
-
-fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
-:: State s a :== s -> *(a, s)
-:: SrvSt a :== State ServerState a
-
-:: ServerState =
-  { srvTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
-  , didChange        :: Bool
-  , srvCounter       :: Int
-  , srvFonts         :: Map FontDef (Set String)
-  }
-//:: CachedSpan =
-  //{ cachedGridSpans :: Maybe [[ImageSpan]]
-  //, cachedImageSpan :: Maybe ImageSpan
-  //}
-:: CachedSpan =
-  { cachedGridSpans :: Maybe ([Span], [Span])
-  , cachedImageSpan :: Maybe ImageSpan
-  }
+:: CachedSpan
