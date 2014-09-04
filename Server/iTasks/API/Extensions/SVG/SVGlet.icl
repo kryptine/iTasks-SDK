@@ -32,6 +32,10 @@ derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
 
 :: ClientState s =
   { textXSpanEnv    :: Map FontDef (Map String Real)
+  , gridXSpanEnv    :: Map (Int, Set ImageTag) Real
+  , gridYSpanEnv    :: Map (Int, Set ImageTag) Real
+  , imageXSpanEnv   :: Map (Set ImageTag) Real
+  , imageYSpanEnv   :: Map (Set ImageTag) Real
   , spanCache       :: Map (Set ImageTag) CachedSpan
   , uniqueIdCounter :: Int
   , editletId       :: String
@@ -165,6 +169,10 @@ svgRenderer origState state2Image = Editlet origState server client
     = { EditletClientDef
       | updateUI = updateUI
       , defVal   = { textXSpanEnv    = 'DM'.newMap
+                   , gridXSpanEnv    = 'DM'.newMap
+                   , gridYSpanEnv    = 'DM'.newMap
+                   , imageXSpanEnv   = 'DM'.newMap
+                   , imageYSpanEnv   = 'DM'.newMap
                    , spanCache       = 'DM'.newMap
                    , onclicks        = 'DM'.newMap
                    , uniqueIdCounter = 0
@@ -1069,32 +1077,52 @@ evalSpanLookupSpanAlgs =
   , lookupSpanTextXSpanAlg    = getTextLength
   }
   where
-  getColumnWidth ts n st=:({spanCache}, world)
-    = case tagLookup ts spanCache of
-        Just {cachedGridSpans = Just (cols, _)}
-          = if (n < length cols) (evalSpan (cols !! n) st) (0.0, st)
-        _ = (0.0, st)
+  getColumnWidth ts n st=:({spanCache, gridXSpanEnv}, world)
+    = case 'DM'.get (n, ts) gridXSpanEnv of
+        Just r
+          = (r, st)
+        _ = case tagLookup ts spanCache of
+              Just {cachedGridSpans = Just (cols, _)}
+                # (r, (clval, world)) = if (n < length cols) (evalSpan (cols !! n) st) (0.0, st)
+                # clval = {clval & gridXSpanEnv = 'DM'.put (n, ts) r gridXSpanEnv}
+                = (r, (clval, world))
+              _ = (0.0, st)
   getColumnWidth _ _ st = (0.0, st) // TODO ?
 
-  getRowHeight ts n st=:({spanCache}, world)
-    = case tagLookup ts spanCache of
-        Just {cachedGridSpans = Just (_, rows)}
-          = if (n < length rows) (evalSpan (rows !! n) st) (0.0, st)
-        _ = (0.0, st)
+  getRowHeight ts n st=:({spanCache, gridYSpanEnv}, world)
+    = case 'DM'.get (n, ts) gridYSpanEnv of
+        Just r
+          = (r, st)
+        _ = case tagLookup ts spanCache of
+              Just {cachedGridSpans = Just (_, rows)}
+                # (r, (clval, world)) = if (n < length rows) (evalSpan (rows !! n) st) (0.0, st)
+                # clval = {clval & gridYSpanEnv = 'DM'.put (n, ts) r gridYSpanEnv}
+                = (r, (clval, world))
+              _ = (0.0, st)
   getRowHeight _ _ st = (0.0, st) // TODO ?
 
-  getImageXSpan ts st=:({spanCache}, world)
-    = case tagLookup ts spanCache of
-        Just {cachedImageSpan = Just (xsp, _)}
-          = evalSpan xsp st
-        _ = (0.0, st)
+  getImageXSpan ts st=:({spanCache, imageXSpanEnv}, world)
+    = case 'DM'.get ts imageXSpanEnv of
+        Just r
+          = (r, st)
+        _ = case tagLookup ts spanCache of
+              Just {cachedImageSpan = Just (xsp, _)}
+                # (r, (clval, world)) = evalSpan xsp st
+                # clval = {clval & imageXSpanEnv = 'DM'.put ts r imageXSpanEnv}
+                = (r, (clval, world))
+              _ = (0.0, st)
   getImageXSpan _ st = (0.0, st) // TODO ?
 
-  getImageYSpan ts st=:({spanCache}, world)
-    = case tagLookup ts spanCache of
-        Just {cachedImageSpan = Just (_, ysp)}
-          = evalSpan ysp st
-        _ = (0.0, st)
+  getImageYSpan ts st=:({spanCache, imageYSpanEnv}, world)
+    = case 'DM'.get ts imageYSpanEnv of
+        Just r
+          = (r, st)
+        _ = case tagLookup ts spanCache of
+              Just {cachedImageSpan = Just (_, ysp)}
+                # (r, (clval, world)) =  evalSpan ysp st
+                # clval = {clval & imageYSpanEnv = 'DM'.put ts r imageYSpanEnv}
+                = (r, (clval, world))
+              _ = (0.0, st)
   getImageYSpan _ st = (0.0, st) // TODO ?
 
 tagLookup ts mp = case 'DM'.elems ('DM'.filterWithKey (\k _ -> 'DS'.isSubsetOf ts k) mp) of
