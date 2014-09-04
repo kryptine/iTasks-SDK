@@ -764,12 +764,10 @@ toSVG img = imageCata toSVGAllAlgs img
     mkOnClick {onclick} = go
       where
       go (clval, world)
-        # uniqId = clval.uniqueIdCounter
-        # ocId   = mkOnClickId clval.editletId uniqId
-        # st     = ({ clval
-                    & uniqueIdCounter = uniqId + 1
-                    , onclicks = 'DM'.put ocId onclick clval.onclicks}, world)
-        = ret (Left (ClassAttr ocId)) st
+        # (uniqId, clval) = nextNo clval
+        # ocId            = mkOnClickId clval.editletId uniqId
+        = ret (Left (ClassAttr ocId))
+              ({ clval & onclicks = 'DM'.put ocId onclick clval.onclicks}, world)
   toSVGImageTransformAlgs :: ImageTransformAlg Deg (ClSt s Real) (ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)) | iTask s
   toSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    (xsp, ysp) -> ret (RotateTransform (toString (toReal imAn)) (Just (toString (xsp / 2.0), toString (ysp / 2.0))), RotateImage imAn)
@@ -892,15 +890,15 @@ toSVG img = imageCata toSVGAllAlgs img
       =           evalOffsets points `b`
       \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
 
-    mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) (clval, world)
-      # m1Id = mkMarkerId clval.editletId clval.uniqueIdCounter
-      # m2Id = mkMarkerId clval.editletId (clval.uniqueIdCounter + 1)
-      # m3Id = mkMarkerId clval.editletId (clval.uniqueIdCounter + 2)
-      # markersAndIds = [(m, i) \\ Just (m, i) <- [ mkMarkerAndId mmStart m1Id MarkerStartAttr
-                                                  , mkMarkerAndId mmMid m2Id MarkerMidAttr
-                                                  , mkMarkerAndId mmEnd m3Id MarkerEndAttr ]]
+    mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) (clval=:{editletId}, world)
+      # (uid1, clval) = nextNo clval
+      # (uid2, clval) = nextNo clval
+      # (uid3, clval) = nextNo clval
+      # markersAndIds = [(m, i) \\ Just (m, i) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
+                                                  , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
+                                                  , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
       = ret {mkClSyn & clSyn_svgElts = [constr [] (map snd markersAndIds ++ atts), DefsElt [] [] (map fst markersAndIds)]}
-            ({ clval & uniqueIdCounter = clval.uniqueIdCounter + 3 }, world) // TODO Correct offsets? What about the transformations?
+            (clval, world) // TODO Correct offsets? What about the transformations?
       where
       // TODO Marker size etc?
       mkMarkerAndId (Just {clSyn_svgElts, clSyn_imageSpanReal = (w, h)}) mid posAttr
