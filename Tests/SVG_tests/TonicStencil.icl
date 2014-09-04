@@ -93,10 +93,26 @@ viewTestRect = viewImage "Test rect" testRect
 testRect :: Image ()
 testRect = rect (textxspan ArialRegular10px "foo") (px 25.0)
 
-allSVGs = allTasks [ //viewRotateGridImg @! ()
+//traxtest = viewImage "Trax" (above [] [] [ve_img,ho_img,nw_img,ne_img,se_img,sw_img] Nothing)
+traxtest = allTasks [viewImage label img \\ (label,img) <- [("vertical",ve_img),("horizontal",ho_img),("northwest",nw_img),("northeast",ne_img),("southeast",se_img),("southwest",sw_img)]]
+where
+	ve_img	= overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [ xl "white", yl "red"] tile
+	ho_img	= overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [ yl "white", xl "red"] tile
+	nw_img	= overlay [] [(d /.  2, d /.  2),(d /. -2,d /. -2)] [ arc "white", arc "red" ] tile
+	ne_img	= overlay [] [(d /. -2, d /.  2),(d /.  2,d /. -2)] [ arc "white", arc "red" ] tile
+	se_img	= overlay [] [(d /. -2, d /. -2),(d /.  2,d /.  2)] [ arc "white", arc "red" ] tile
+	sw_img	= overlay [] [(d /.  2, d /. -2),(d /. -2,d /.  2)] [ arc "white", arc "red" ] tile
+	d		= px 50.0
+	tile	= Just (rect d d)
+	arc c	= circle d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
+	xl  c   = xline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
+	yl  c	= yline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
+
+allSVGs = allTasks [ viewtest @! ()
+                   //viewRotateGridImg @! ()
                      //viewLineExample @! ()
                    //, viewTextGrid @! ()
-                    viewTextGrid2 @! ()
+                   //, viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
                    //, viewPolygon @! ()
                    //, viewPolyline @! ()
