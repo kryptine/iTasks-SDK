@@ -94,7 +94,8 @@ testRect :: Image ()
 testRect = rect (textxspan ArialRegular10px "foo") (px 25.0)
 
 //traxtest = viewImage "Trax" (above [] [] [ve_img,ho_img,nw_img,ne_img,se_img,sw_img] Nothing)
-traxtest = allTasks [viewImage label img \\ (label,img) <- [("vertical",ve_img),("horizontal",ho_img),("northwest",nw_img),("northeast",ne_img),("southeast",se_img),("southwest",sw_img)]]
+traxtest = viewImage "Trax" (above [] [] [ve_img, empty (px 75.0) (px 75.0), ho_img, empty (px 75.0) (px 75.0),nw_img, empty (px 75.0) (px 75.0),ne_img, empty (px 75.0) (px 75.0),se_img, empty (px 75.0) (px 75.0),sw_img] Nothing)
+//traxtest = allTasks [viewImage label img \\ (label,img) <- [("vertical",ve_img),("horizontal",ho_img),("northwest",nw_img),("northeast",ne_img),("southeast",se_img),("southwest",sw_img)]]
 where
 	ve_img	= overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [ xl "white", yl "red"] tile
 	ho_img	= overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [ yl "white", xl "red"] tile
@@ -104,11 +105,11 @@ where
 	sw_img	= overlay [] [(d /.  2, d /. -2),(d /. -2,d /.  2)] [ arc "white", arc "red" ] tile
 	d		= px 50.0
 	tile	= Just (rect d d)
-	arc c	= circle d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
+	arc c	= circle d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5} <@< {fill = toSVGColor "none"}
 	xl  c   = xline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
 	yl  c	= yline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
 
-allSVGs = allTasks [ viewtest @! ()
+allSVGs = allTasks [ traxtest @! ()
                    //viewRotateGridImg @! ()
                      //viewLineExample @! ()
                    //, viewTextGrid @! ()
