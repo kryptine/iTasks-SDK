@@ -923,12 +923,23 @@ toSVG img = imageCata toSVGAllAlgs img
       =           evalOffsets offsets `b`
       \offsets -> evalMaybe host `b`
       \host    -> compose offsets host edges totalSpan imAts imTrs imTas `b`
-      \compose -> let (elts, spans) = case host of
-                                        Just {clSyn_svgElts, clSyn_imageSpanReal} -> (clSyn_svgElts ++ compose.clSyn_svgElts, clSyn_imageSpanReal)
-                                        _                                         -> (compose.clSyn_svgElts, compose.clSyn_imageSpanReal)
+      \compose -> withSt getCpId `b`
+      \cpId    -> let (elts, spans) = case host of
+                                        Just {clSyn_svgElts, clSyn_imageSpanReal}
+                                          # clipPath = DefsElt [] [] [
+                                                         ClipPathElt [IdAttr cpId] [] [
+                                                           RectElt [ HeightAttr (toString (toInt (snd clSyn_imageSpanReal)))
+                                                                   , WidthAttr (toString (toInt (fst clSyn_imageSpanReal)))] []
+                                                         ]
+                                                       ]
+                                          = ([clipPath, GElt [] [ClipPathAttr ("url(#" +++ cpId +++ ")")] (clSyn_svgElts ++ compose.clSyn_svgElts)], clSyn_imageSpanReal)
+                                        _ = (compose.clSyn_svgElts, compose.clSyn_imageSpanReal)
                   in  sequence (map (\f -> f spans) imTrs) `b`
       \imTrs   -> let attrs = mkAttrs imAts imTrs
                   in  ret { mkClSyn & clSyn_svgElts = mkGroup (getHtmlAttrs attrs) (getSvgAttrs attrs) elts}
+    getCpId (clval, world)
+      # (n, clval) = nextNo clval
+      = (mkClipPathId clval.editletId n, (clval, world))
 
   toSVGComposeAlgs :: ComposeAlg (ClSt s ToSVGSyn)
                                  ([ImageOffsetReal] (Maybe ToSVGSyn) (Set (Set ImageTag, Set ImageTag)) ImageSpanReal [Either HtmlAttr SVGAttr] [ImageSpanReal -> ClSt s (SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn) | iTask s
@@ -995,6 +1006,9 @@ instance + (Real, Real) where
   (+) (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
 xor x y :== not (x && y) && (x || y)
+
+withSt :: (*(St a) -> *(b, *(St a))) *(St a) -> *(b, *(St a))
+withSt f st = f st
 
 mkGroup :: ![HtmlAttr] ![SVGAttr] ![SVGElt] -> [SVGElt]
 mkGroup _   _   []   = []
