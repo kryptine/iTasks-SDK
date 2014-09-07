@@ -7,18 +7,18 @@ import StdMaybe
 import GenFDomain
 import iTasks
 
-derive class iTask LineColor, Coordinate, Trax, Tile, Edge
+derive class iTask LineColor, Coordinate, Trax, TraxTile, TileEdge
 derive bimap []
 
-:: Tile                             // a tile connects two edges:
-	= { end1 :: !Edge               //    the red line at one end and
-	  , end2 :: !Edge               //    the red line at the other end
+:: TraxTile                         // a tile connects two edges:
+	= { end1 :: !TileEdge           //    the red line at one end and
+	  , end2 :: !TileEdge           //    the red line at the other end
 	  }
-gFDomain{|Tile|} = map fromTuple [(West,East),(North,South),(North,West),(North,East),(South,East),(South,West)]
-instance fromTuple Edge Edge Tile where fromTuple (e1,e2) = {end1 = e1, end2 = e2}
-instance toTuple   Edge Edge Tile where toTuple   tile    = (tile.end1, tile.end2)
-instance == Tile where == {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
-instance toString Tile where
+gFDomain{|TraxTile|} = map fromTuple [(West,East),(North,South),(North,West),(North,East),(South,East),(South,West)]
+instance fromTuple TileEdge TileEdge TraxTile where fromTuple (e1,e2) = {end1 = e1, end2 = e2}
+instance toTuple   TileEdge TileEdge TraxTile where toTuple   tile    = (tile.end1, tile.end2)
+instance == TraxTile where == {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
+instance toString TraxTile where
 	toString tile = lookup1 tile [(horizontal,"horizontal")
 	                             ,(vertical,  "vertical"  )
 	                             ,(northwest, "northwest" )
@@ -27,44 +27,44 @@ instance toString Tile where
 	                             ,(southwest, "southwest" )
 	                             ]
 
-horizontal :: Tile
+horizontal :: TraxTile
 horizontal =: fromTuple (West,East)
 
-vertical :: Tile
+vertical :: TraxTile
 vertical =: fromTuple (North,South)
 
-northwest :: Tile
+northwest :: TraxTile
 northwest =: fromTuple (North,West)
 
-northeast :: Tile
+northeast :: TraxTile
 northeast =: fromTuple (North,East)
 
-southeast :: Tile
+southeast :: TraxTile
 southeast =: fromTuple (South,East)
 
-southwest :: Tile
+southwest :: TraxTile
 southwest =: fromTuple (South,West)
 
-other_edge :: !Tile !Edge -> Edge
+other_edge :: !TraxTile !TileEdge -> TileEdge
 other_edge tile edge = if (edge == tile.end1) tile.end2 tile.end1
 
-:: Edge                             // an edge is either at:
+:: TileEdge                         // an edge is either at:
 	= North                         //    the north side of a tile, or at
 	| East                          //    the east side of a tile, or at
 	| South                         //    the south side of a tile, or at
 	| West                          //    the west side of a tile
-derive gFDomain Edge
-instance toInt  Edge where toInt North = 0
-                           toInt East  = 1
-                           toInt South = 2
-                           toInt West  = 3
-instance ==     Edge where == e1 e2 = toInt e1 == toInt e2
-instance <      Edge where <  e1 e2 = toInt e1 < toInt e2
-instance ~      Edge where ~  e     = case e of
-                                         North = South
-                                         South = North
-                                         West  = East
-                                         East  = West
+derive gFDomain TileEdge
+instance toInt  TileEdge where toInt North = 0
+                               toInt East  = 1
+                               toInt South = 2
+                               toInt West  = 3
+instance ==     TileEdge where == e1 e2 = toInt e1 == toInt e2
+instance <      TileEdge where <  e1 e2 = toInt e1 < toInt e2
+instance ~      TileEdge where ~  e     = case e of
+                                             North = South
+                                             South = North
+                                             West  = East
+                                             East  = West
 
 :: LineColor                        // a line color is either:
 	= RedLine                       //    red, or
@@ -108,15 +108,15 @@ west coordinate = {coordinate & col = coordinate.col-1}
 east :: !Coordinate -> Coordinate
 east coordinate = {coordinate & col = coordinate.col+1}
 
-go :: !Edge -> Coordinate -> Coordinate
+go :: !TileEdge -> Coordinate -> Coordinate
 go North = north
 go East  = east
 go South = south
 go West  = west
 
 
-:: Trax                             // a collection of tiles consists of:
- = { tiles :: ![(Coordinate,Tile)]  //   tiles that are placed on a certain location
+:: Trax                                 // a collection of tiles consists of:
+ = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
    }
 instance == Trax where == t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
 instance zero Trax where zero = { tiles = [] }
@@ -125,7 +125,7 @@ instance zero Trax where zero = { tiles = [] }
 /** tiles @trax = @tiles`:
 	   @tiles` is a finite map of all current tiles of @trax.
 */
-tiles :: !Trax -> [(Coordinate,Tile)]
+tiles :: !Trax -> [(Coordinate,TraxTile)]
 tiles trax = trax.tiles
 
 
@@ -171,7 +171,7 @@ where
         then (@coordinate,@tile) is added to @trax, resulting in @trax`.
         In any other case, @trax` = @trax.
 */
-add_tile :: !Coordinate !Tile !Trax -> Trax
+add_tile :: !Coordinate !TraxTile !Trax -> Trax
 add_tile coordinate tile trax
 | nr_of_tiles trax == 0 ||
   isMember coordinate (free_coordinates trax) && linecolors_match (linecolors trax coordinate) (tilecolors tile)
@@ -184,7 +184,7 @@ add_tile coordinate tile trax
     tile_at @trax @coordinate = Just @t:
        returns tile @t which is present at @coordinate in @trax.
 */
-tile_at :: !Trax !Coordinate -> Maybe Tile
+tile_at :: !Trax !Coordinate -> Maybe TraxTile
 tile_at trax coordinate
 	= case lookup coordinate trax.tiles of
 	    [tile : _] = Just tile
@@ -219,8 +219,8 @@ free_coordinates :: !Trax -> [Coordinate]
 free_coordinates trax
 	= removeDupSortedList (sort (flatten (map (free_neighbours trax) (map fst trax.tiles))))
 
-:: LineColors                    // linecolors contains the colors of the line-endings at the edges of a coordinate:
- :== [(Edge,Maybe LineColor)]    //    at each edge, the corresponding color is determined (might be not present)
+:: LineColors                        // linecolors contains the colors of the line-endings at the edges of a coordinate:
+ :== [(TileEdge,Maybe LineColor)]    //    at each edge, the corresponding color is determined (might be not present)
 
 linecolors_match :: !LineColors !LineColors -> Bool
 linecolors_match lc1 lc2
@@ -249,7 +249,7 @@ linecolors trax coordinate
 /** tilecolors @tile = @colors:
        returns the @colors of the line-endings of this tile.
 */
-tilecolors :: !Tile -> LineColors
+tilecolors :: !TraxTile -> LineColors
 tilecolors tile
 	= [(North,Just n),(East,Just e),(South,Just s),(West,Just w)]
 where
@@ -264,14 +264,14 @@ where
 /** color_at_tile @edge @tile = @color:
        returns the @color of the given @tile at its given @edge.
 */
-color_at_tile :: !Edge !Tile -> LineColor
+color_at_tile :: !TileEdge !TraxTile -> LineColor
 color_at_tile edge tile
 	= fromJust (lookup1 edge (tilecolors tile))
 
 /** possible_tiles @colors = @trax:
        returns those @trax that match with @colors.
 */
-possible_tiles :: !LineColors -> [Tile]
+possible_tiles :: !LineColors -> [TraxTile]
 possible_tiles colors
 	= [tile \\ tile <- gFDomain{|*|} | linecolors_match colors (tilecolors tile)]
 
@@ -280,7 +280,7 @@ possible_tiles colors
        at the given @edge.
        All tiles in the computed @line have the same @color.
 */
-track :: !Trax !LineColor !Edge !Coordinate -> Line
+track :: !Trax !LineColor !TileEdge !Coordinate -> Line
 track trax color edge coordinate
 	= case tile_at trax coordinate of
 	    Nothing   = []                    // tile at coordinate does not exist
@@ -313,7 +313,7 @@ loops trax
 	      ++ 
 	  [(WhiteLine,loop) \\ loop <- color_loops trax.tiles WhiteLine]
 where
-	color_loops :: ![(Coordinate,Tile)] !LineColor -> [Line]
+	color_loops :: ![(Coordinate,TraxTile)] !LineColor -> [Line]
 	color_loops [] color	= []
 	color_loops [(coordinate,tile):tiles] color
 	| is_loop line			= [line : loops]
@@ -325,7 +325,7 @@ where
 /** start_edge @tile @color = @edge:
        determines at which @edge of @tile to start looking for a potential loop of @color.
 */
-start_edge :: !Tile !LineColor -> Edge
+start_edge :: !TraxTile !LineColor -> TileEdge
 start_edge tile color
 	= choose (lookup1 tile [(horizontal,(West, North))
 	                       ,(vertical,  (North,West ))
@@ -341,7 +341,7 @@ where
        if @color is RedLine, then @tile` = @tile (RedLine is the default view).
        if @color is WhiteLine, then @tile` gives the point of view of the white player.
 */
-perspective :: !LineColor !Tile -> Tile
+perspective :: !LineColor !TraxTile -> TraxTile
 perspective RedLine tile 
 	= tile
 perspective white tile
@@ -365,7 +365,7 @@ winning_lines trax
        returns all winning @lines that start at @edge in @trax.
        It is assumed that (nr_of_tiles @trax <> 0).
 */
-winning_lines_at :: !Trax !Edge -> [(LineColor,Line)]
+winning_lines_at :: !Trax !TileEdge -> [(LineColor,Line)]
 winning_lines_at trax edge
 | max - min + 1 < minimum_winning_line_length
 	= []

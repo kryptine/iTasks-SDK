@@ -4,40 +4,40 @@ import StdClass, StdTupleExt
 import StdMaybe
 import StdGeneric, GenEq, GenFDomain, GenLexOrd, GenMap
 
-:: Tile                             // a tile connects two edges:
-	= { end1 :: !Edge               //    the red line at one end and
-	  , end2 :: !Edge               //    the red line at the other end
+:: TraxTile                         // a tile connects two edges:
+	= { end1 :: !TileEdge           //    the red line at one end and
+	  , end2 :: !TileEdge           //    the red line at the other end
 	  }
-derive   gFDomain  Tile
-derive   gEq       Tile
-instance fromTuple Edge Edge Tile
-instance toTuple   Edge Edge Tile
-instance ==        Tile
-instance toString  Tile
+derive   gFDomain  TraxTile
+derive   gEq       TraxTile
+instance fromTuple TileEdge TileEdge TraxTile
+instance toTuple   TileEdge TileEdge TraxTile
+instance ==        TraxTile
+instance toString  TraxTile
 
-horizontal :: Tile                  // tile with a straight horizontal red line
-vertical   :: Tile                  // tile with a straight vertical   red line
-northwest  :: Tile                  // tile with an elbow red line at north-west
-northeast  :: Tile                  // tile with an elbow red line at north-east
-southeast  :: Tile                  // tile with an elbow red line at south-east
-southwest  :: Tile                  // tile with an elbow red line at south-west
+horizontal :: TraxTile              // tile with a straight horizontal red line
+vertical   :: TraxTile              // tile with a straight vertical   red line
+northwest  :: TraxTile              // tile with an elbow red line at north-west
+northeast  :: TraxTile              // tile with an elbow red line at north-east
+southeast  :: TraxTile              // tile with an elbow red line at south-east
+southwest  :: TraxTile              // tile with an elbow red line at south-west
 
 /** other_edge @tile @edge = @edge`:
         the tile connects @edge and @edge`.
 */
-other_edge :: !Tile !Edge -> Edge
+other_edge :: !TraxTile !TileEdge -> TileEdge
 
-:: Edge                             // an edge is either at:
+:: TileEdge                         // an edge is either at:
 	= North                         //    the north side of a tile, or at
 	| East                          //    the east side of a tile, or at
 	| South                         //    the south side of a tile, or at
 	| West                          //    the west side of a tile
-derive   gFDomain Edge
-derive   gLexOrd  Edge
-derive   gEq      Edge
-instance ==       Edge
-instance <        Edge
-instance ~        Edge
+derive   gFDomain TileEdge
+derive   gLexOrd  TileEdge
+derive   gEq      TileEdge
+instance ==       TileEdge
+instance <        TileEdge
+instance ~        TileEdge
 
 :: LineColor                        // a line color is either:
 	= RedLine                       //    red, or
@@ -58,8 +58,8 @@ instance zero      Coordinate
 instance fromTuple Int Int Coordinate
 instance toTuple   Int Int Coordinate
 
-:: Trax								// actually, Trax ought to be opaque
- = { tiles :: ![(Coordinate,Tile)]  //   tiles that are placed on a certain location
+:: Trax							    	// actually, Trax ought to be opaque
+ = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
    }
 derive   gEq  Trax
 instance ==   Trax
@@ -69,7 +69,7 @@ instance zero Trax
 /** tiles @trax = @tiles`:
 	   @tiles` is a finite map of all current tiles of @trax.
 */
-tiles :: !Trax -> [(Coordinate,Tile)]
+tiles :: !Trax -> [(Coordinate,TraxTile)]
 
 /** nr_of_tiles @trax = @nr_of_tiles:
         returns the current number of tiles (@nr_of_tiles) in @trax.
@@ -94,14 +94,14 @@ dimension :: !Trax -> (!Int,!Int)
         then (@coordinate,@tile) is added to @trax, resulting in @trax`.
         In any other case, @trax` = @trax.
 */
-add_tile :: !Coordinate !Tile !Trax -> Trax
+add_tile :: !Coordinate !TraxTile !Trax -> Trax
 
 /** tile_at @trax @coordinate = Nothing:
        when no tile is present at @coordinate in @trax.
     tile_at @trax @coordinate = Just @t:
        returns tile @t which is present at @coordinate in @trax.
 */
-tile_at :: !Trax !Coordinate -> Maybe Tile
+tile_at :: !Trax !Coordinate -> Maybe TraxTile
 
 /** free_coordinates @trax = @free:
        computes the coordinates in which a new tile can be placed.
@@ -120,7 +120,7 @@ linecolors :: !Trax !Coordinate -> LineColors
 /** possible_tiles @colors = @trax:
        returns those @trax that match with @colors.
 */
-possible_tiles :: !LineColors -> [Tile]
+possible_tiles :: !LineColors -> [TraxTile]
 
 :: Line
 
