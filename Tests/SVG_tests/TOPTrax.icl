@@ -170,7 +170,9 @@ freeImage :: Span Coordinate (ActionState () TraxSt) -> Image (ActionState () Tr
 freeImage d coord {ActionState | state={trax,choice}}
 | isNothing choice || coord <> choice_coord
 						= unselected <@< {onclick = setcell}
-| isNothing choice_tile	= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile tile} \\ tile <- candidates] Nothing
+//| isNothing choice_tile	= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile tile} \\ tile <- candidates] Nothing
+| isNothing choice_tile	= above [] [] [tileImage (d /. nr_of_candidates) tile \\ tile <- candidates] Nothing
+//| isNothing choice_tile	= fity d (above [] [] [tileImage d tile \\ tile <- candidates] Nothing)
 | otherwise				= tileImage d (fromJust choice_tile)
 where
 	choice_coord		= (fromJust choice).location
@@ -195,7 +197,7 @@ where
 	brick				= Just (rect d d <@< {xradius = d /. 10} <@< {yradius = d /. 10} <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
 	crossed (white,red)	= overlay (repeat (AtMiddleX,AtMiddleY)) [] [ bar white "white", bar red "red"] brick
 	bar line c			= line Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
-	curved cs			= overlay [] cs [ arc "white", arc "red" ] brick
+	curved cs			= maskWith (overlay [] cs [ arc "white", arc "red"] brick) (rect d d <@< {fill = toSVGColor "white"})
 	arc c				= circle d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5} <@< {fill = toSVGColor "none"}
 	nw					= (d /. -2, d /. -2)
 	ne					= (d /.  2, d /. -2)
