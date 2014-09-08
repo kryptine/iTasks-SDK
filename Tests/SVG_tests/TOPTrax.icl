@@ -1,12 +1,13 @@
 module TOPTrax
 
 // compile with Clean 2.4 + environment iTasks
-import StdListExt, StdMisc
+import StdMisc
 //import GenPrint
 //import trax_without_generics
 import trax
 //import game2
 import iTasks, MultiUser
+import Data.List
 
 derive class iTask TraxSt, TileChoice
 derive gEditor    Coordinate, TraxTile, TileEdge, Trax
@@ -182,13 +183,14 @@ where
 	selected			= unselected <@< {stroke = toSVGColor "grey"} <@< {strokewidth = d /. 20}
 
 tileImage :: Span TraxTile -> Image a
-tileImage d tile		= lookup1 tile [(horizontal,crossed (yline,xline))
-						               ,(vertical,  crossed (xline,yline))
-						               ,(northwest, curved [se,nw])
-						               ,(northeast, curved [sw,ne])
-						               ,(southeast, curved [nw,se])
-						               ,(southwest, curved [ne,sw])
-						               ]
+tileImage d tile		= maybe (abort "tileImage Nothing")
+                                id (lookup tile [ (horizontal,crossed (yline,xline))
+						                        , (vertical,  crossed (xline,yline))
+						                        , (northwest, curved [se,nw])
+						                        , (northeast, curved [sw,ne])
+						                        , (southeast, curved [nw,se])
+						                        , (southwest, curved [ne,sw])
+						                        ])
 where
 	brick				= Just (rect d d <@< {xradius = d /. 10} <@< {yradius = d /. 10} <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
 	crossed (white,red)	= overlay (repeat (AtMiddleX,AtMiddleY)) [] [ bar white "white", bar red "red"] brick
