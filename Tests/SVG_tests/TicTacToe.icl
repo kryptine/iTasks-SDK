@@ -84,11 +84,6 @@ where
               , OnValue (ifValue (on_turn my_turn)  make_a_move)
               ]
 
-	declare_winner gameSt
-		= 	let winner = if gameSt.turn gameSt.player2 gameSt.player1 
-			in 		viewInformation "And the winner is: " [] (toString winner)
-				>>|	return winner
-	
 	make_a_move gameSt=:{board,turn}
 		=              enterChoice "Choose coordinate:" [] (free_coordinates board)
 		  >>= \new  -> let board`  = add_cell new turn board
@@ -96,6 +91,12 @@ where
 		                                     , turn = ~turn
 		                             }
 		                in set gameSt` sharedGameSt >>| play
+
+declare_winner gameSt
+	= 	let winner = if gameSt.turn gameSt.player2 gameSt.player1 
+		in 		viewInformation "And the winner is: " [] (toString winner)
+			>>|	return winner
+
 
 // showing the gameboard in Html 
 
@@ -127,18 +128,22 @@ where
 
 import iTasks.API.Extensions.SVG.SVGlet
 
-tictactoe2 :: Task (TicTacToe,TicTacToe)
+tictactoe2 :: Task User
 tictactoe2
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Tic-Tac-Toe with:" [] users
 	  >>= \you -> playGame2 me you {board=emptyBoard,player1=me,player2=you,turn=True}
 
-playGame2 :: User User TicTacToe -> Task (TicTacToe,TicTacToe)
-playGame2 user1 user2 ttt = withShared ttt
-			(\share ->  updateSharedInformation "test1" [imageViewUpdate toAction (toImage False) fromAction] share 
-						-&&-
-						updateSharedInformation "test2" [imageViewUpdate toAction (toImage True) fromAction] share
-			)
+playGame2 :: User User TicTacToe -> Task User
+playGame2 user1 user2 ttt 
+	= withShared ttt
+		(\share ->  updateSharedInformation "On green its your turn..." [imageViewUpdate toAction (toImage False) fromAction] share 
+					-||
+					updateSharedInformation "On green its your turn..." [imageViewUpdate toAction (toImage True) fromAction] share
+		) 
+		>>* [ OnValue (ifValue game_over declare_winner)
+		  	]
+
 
 toAction :: TicTacToe -> ActionState (Int,Int) TicTacToe
 toAction ttt = {ActionState | state = ttt, action = Nothing} 
@@ -153,7 +158,7 @@ fromAction _ as = as.ActionState.state
 toImage ::  Bool (ActionState (Int,Int) TicTacToe) -> Image (ActionState (Int,Int) TicTacToe)
 toImage turn ttt
 	= grid (Rows 2) (LeftToRight, TopToBottom) [] [] 
-		[ text ArialRegular10px (toString (if turn ttt.ActionState.state.player1 ttt.ActionState.state.player2))
+		[ text ArialRegular12px (toString (if turn ttt.ActionState.state.player1 ttt.ActionState.state.player2))
 							<@< if (turn == ttt.ActionState.state.turn) {stroke = SVGColorText "green"} {stroke = SVGColorText "red"}
 		, tttBoard
 		] Nothing
@@ -178,8 +183,8 @@ where
 						      <@< {strokewidth = px 5.0 }
 blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "none"}
 
-ArialRegular10px :== { fontfamily  = "Arial"
-                     , fontyspan   = px 10.0
+ArialRegular12px :== { fontfamily  = "Arial"
+                     , fontyspan   = px 12.0
                      , fontstretch = "normal"
                      , fontstyle   = "normal"
                      , fontvariant = "normal"
