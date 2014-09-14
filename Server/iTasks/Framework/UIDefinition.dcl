@@ -8,7 +8,7 @@ from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from iTasks.Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
-from Data.Map			import :: Map(..)
+from Data.Map			import :: Map
 from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
 
 //TODO:
@@ -30,6 +30,8 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 :: UIContent
     = UIEmpty               !UIEmpty                //An empty task UI, which may still carry windows and actions
 	| UIForm 	            !UIForm                 //A set of controls from one or more interact tasks
+    //| UIHtml
+    //| E. a: UISVGImage          !Image a
 	| UIBlock 	            !UIBlock                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
     | UIBlocks              ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
 	| UIFinal				!UIViewport				//The final user interface
@@ -125,6 +127,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	| UILabel			!UIHSizeOpts	!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
 	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
     | UISplitter
+    //| UISVG             !UISizeOpts     !UISVGOpts                                      // - SVG Container for displaying (interactive) SVG
 	// Tasklet stuff
 	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
 	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
@@ -279,6 +282,11 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	{ iconCls		:: !String
 	, tooltip		:: !Maybe String
 	}
+
+//:: UISVGOpts =
+    //{ svg           :: !String
+    //, clickActions  :: ![(!String,!TaskId,!ActionID)]
+    //}
 
 :: UITaskletOpts =
 	{ taskId		 :: !String

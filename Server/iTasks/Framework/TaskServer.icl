@@ -1,7 +1,10 @@
 implementation module iTasks.Framework.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
-import Data.Maybe, Data.Functor, System.Time, Data.List, Data.Map, Text
+import Data.Maybe, Data.Functor, System.Time, Text
+from Data.Map import :: Map, :: Size
+import qualified Data.List as DL
+import qualified Data.Map as DM
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
 import iTasks.Framework.IWorld

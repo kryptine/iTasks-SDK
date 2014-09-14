@@ -1,7 +1,10 @@
 implementation module iTasks.Framework.WebService
 
 import StdList, StdBool, StdTuple, StdArray
-import Data.Maybe, Data.Functor, Data.List, Data.Map
+import Data.Maybe, Data.Functor
+from Data.Map import :: Map, :: Size
+import qualified Data.List as DL
+import qualified Data.Map as DM
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
@@ -75,7 +78,7 @@ where
 	reqFun url task defaultFormat req iworld=:{IWorld|server={serverName,customCSS},config}
 		//Check for uploads
 		| hasParam "upload" req
-			# uploads = toList req.arg_uploads
+			# uploads = 'DM'.toList req.arg_uploads
 			| length uploads == 0
 				= (jsonResponse (JSONArray []),Nothing,iworld)
 			# (documents, iworld) = createDocumentsFromUploads uploads iworld
@@ -91,8 +94,8 @@ where
 				_
 					= (notFoundResponse req,Nothing,iworld)
         //Check for WebSocket upgrade headers
-        | (get "Upgrade" req.req_headers) =:(Just "websocket") && isJust (get "Sec-WebSocket-Key" req.req_headers)
-            # secWebSocketKey       = fromJust (get "Sec-WebSocket-Key" req.req_headers)
+        | ('DM'.get "Upgrade" req.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.req_headers)
+            # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.req_headers)
             # secWebSocketAccept    = webSocketHandShake secWebSocketKey
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
@@ -359,7 +362,7 @@ where
 		| pred req.req_path	= Just h
 							= selectHandler req hs
 
-	isKeepAlive request = maybe (request.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) (get "Connection" request.req_headers)
+	isKeepAlive request = maybe (request.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.req_headers)
 
     encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
 	    # rsp_headers = addDefault rsp_headers "Server" "iTasks HTTP Server"
@@ -369,5 +372,5 @@ where
 	    					rsp_headers
 	    = toString {response & rsp_headers = rsp_headers}
     where		
-    	addDefault headers hdr val = if ((lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
+    	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 

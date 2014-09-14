@@ -1,7 +1,10 @@
 implementation module iTasks.Framework.Generic.Visualization
 
 import StdGeneric, StdList, StdMisc
-import Data.Maybe, Data.Either, Data.Void, Data.Map, Data.Functor, Data.List
+import Data.Maybe, Data.Either, Data.Void, Data.Functor
+from Data.Map import :: Map, :: Size
+import qualified Data.Map as DM
+import qualified Data.List as DL
 import Text, Text.JSON, Text.HTML
 import System.Time
 import iTasks.Framework.Util
@@ -32,7 +35,7 @@ gText{|OBJECT|} fx mode Nothing             = fx mode Nothing
 gText{|CONS of {gcd_name,gcd_type_def}|} fx mode (Just (CONS x))
     # parts = (if (gcd_type_def.gtd_num_conses > 1) [gcd_name] []) ++ fx mode (Just x)
     = case mode of
-        AsSingleLine    = intersperse " " parts
+        AsSingleLine    = 'DL'.intersperse " " parts
         _               = parts
 gText{|CONS of {gcd_name,gcd_type_def}|} fx mode Nothing = fx mode Nothing
 
@@ -49,7 +52,7 @@ gText{|Char|}			_ val				= [maybe "" toString val]
 gText{|String|}		    _ val				= [maybe "" toString val]
 gText{|Bool|}			_ val				= [maybe "" toString val]
 
-gText{|[]|} fx mode (Just val)				= [concat (["[":  flatten (intersperse [", "] [fx mode (Just x) \\ x <- val])] ++ ["]"])]
+gText{|[]|} fx mode (Just val)				= [concat (["[":  flatten ('DL'.intersperse [", "] [fx mode (Just x) \\ x <- val])] ++ ["]"])]
 gText{|[]|} fx mode Nothing                 = [""]
 gText{|Maybe|} fx mode (Just val)			= fromMaybe ["-"] (fmap (\v -> fx mode (Just v)) val)
 gText{|Maybe|} fx mode Nothing              = fx AsHeader Nothing

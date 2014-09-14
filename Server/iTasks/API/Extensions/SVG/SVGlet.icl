@@ -153,6 +153,91 @@ instance toAttr SVGAttr where
     e1 = toString (takeWhile (\x -> x <> '=') lst)
     e2 = toString (filter (\x -> x <> '"') (dropWhile (\x -> x <> '=') lst))
 
+:: SVGState s
+  = Stage0
+  | Stage1 (Map FontDef (Set String))
+  | Stage2 (s, Image s)
+
+//svgRenderer` :: !s !(s -> Image s) -> Editlet (s, SVGState s) (s, Image s) | iTask s
+//svgRenderer` origState state2Image = Editlet origState server client
+  //where
+  //defVal = (gDefault{|*|}, Stage0)
+  //server
+    //= { EditletServerDef
+      //| genUI   = genUI
+      //, defVal  = defVal
+      //, genDiff = genServerDiff
+      //, appDiff = appServerDiff
+      //}
+  //client
+    //= { EditletClientDef
+      //| updateUI = updateUI
+      //, defVal   = { textXSpanEnv    = 'DM'.newMap
+                   //, gridXSpanEnv    = 'DM'.newMap
+                   //, gridYSpanEnv    = 'DM'.newMap
+                   //, imageXSpanEnv   = 'DM'.newMap
+                   //, imageYSpanEnv   = 'DM'.newMap
+                   //, spanCache       = 'DM'.newMap
+                   //, onclicks        = 'DM'.newMap
+                   //, uniqueIdCounter = 0
+                   //, editletId       = ""
+                   //, currState       = defVal
+                   //}
+      //, genDiff  = genClientDiff
+      //, appDiff  = appClientDiff
+      //}
+  //genUI cid world
+    //= ({ ComponentHTML
+       //| width         = FlexSize
+       //, height        = FlexSize
+       //, html          = SvgTag [ IdAttr (mainSvgId cid)
+                                //, XmlnsAttr svgns
+                                //, XmlnsXlinkAttr "http://www.w3.org/1999/xlink"]
+                                //[VersionAttr "1.1"] []
+       //, eventHandlers = []
+       //}
+       //, world
+      //)
+
+  //updateUI cid (Just (Stage1 prFontMap)) clval world
+    //# (clval, world) = calcTextLengths prFontMap (clval, world)
+    //= (clval, world)
+
+  //updateUI cid (Just (Stage2 (_, rImage))) clval world
+    //# (clval, world) = calcTextLengths fonts (clval, world)
+    //# (syn, (clval, world)) = toSVG img ({clval & editletId = cid, spanCache = spanCache}, world)
+    //# (svg, world)   = getDomElement (mainSvgId cid) world
+    //# (imXSp, imYSp) = syn.clSyn_imageSpanReal
+    //# (imXSp, imYSp) = (toInt imXSp, toInt imYSp)
+    //# (_, world)     = (svg `setAttribute` ("height", imYSp)) world
+    //# (_, world)     = (svg `setAttribute` ("width", imXSp)) world
+    //# (_, world)     = (svg `setAttribute` ("viewBox", "0 0 " +++ toString imXSp +++ " " +++ toString imYSp)) world
+    //# world          = (svg .# "innerHTML" .= "") world
+    //# (elem, world)  = appendSVG (GElt [WidthAttr (toString imXSp), HeightAttr (toString imYSp)] [] syn.clSyn_svgElts) svg world
+    //# world          = addOnclicks cid svg clval.onclicks world
+    //= (clval, world)
+
+  //updateUI _ _ clval world = (clval, world)
+
+  //genServerDiff (_, Stage0) (state, _)
+    //# (fonts, st) = getFonts (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap}
+    //= (state, Stage1 {prFontMap = fonts})
+
+  //genServerDiff (_, Stage1 fonts) (state, _)
+    //# (img, st) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = fonts}
+    //= (state, Stage2 undef)
+
+  //genServerDiff (_, Stage2 st) (_, Stage2 st`)
+    //# (img, st) = fixSpans (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap}
+    //= Just (y, img, st.srvFonts, st.srvTaggedSpanEnv)
+  //appServerDiff (st, _) _ = st
+
+  //genClientDiff x y
+    //| x.currState === y.currState = Nothing
+    //| otherwise                   = Just ( y.currState
+                                         //, empty zero zero, 'DM'.newMap, 'DM'.newMap) // Only the state is used, so don't bother passing over large, expensive values
+  //appClientDiff (st, _, _, _) clval = {clval & currState = st}
+
 svgRenderer :: !s !(s -> Image s) -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
 svgRenderer origState state2Image = Editlet origState server client
   where
@@ -251,9 +336,8 @@ calcTextLengths fontdefs (clval, world)
   = ({clval & textXSpanEnv = res}, world)
   where
   f elem fontdef strs (acc, (clval, world))
-    # (fntSz, (clval, world)) = evalSpan fontdef.fontyspan (clval, world)
     # fontAttrs   = [ ("font-family",  fontdef.fontfamily)
-                    , ("font-size",    toString fntSz)
+                    , ("font-size",    toString fontdef.fontysize)
                     , ("font-stretch", fontdef.fontstretch)
                     , ("font-style",   fontdef.fontstyle)
                     , ("font-variant", fontdef.fontvariant)
@@ -329,6 +413,102 @@ ellipseAnchors (w, h) = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry
   ry        = h /. 2.0
   rSin th r = r *. sin th
   rCos th r = r *. cos th
+
+stage1 :: !(Image s) -> Map FontDef (Set String)
+stage1 img = imageCata stage1AllAlgs img
+  where
+  stage1AllAlgs =
+    { imageAlgs          = stage1ImageAlgs
+    , imageContentAlgs   = stage1ImageContentAlgs
+    , imageAttrAlgs      = stage1ImageAttrAlgs
+    , imageTransformAlgs = stage1ImageTransformAlgs
+    , imageSpanAlgs      = stage1ImageSpanAlgs
+    , basicImageAlgs     = stage1BasicImageAlgs
+    , lineImageAlgs      = stage1LineImageAlgs
+    , markersAlgs        = stage1MarkersAlgs
+    , lineContentAlgs    = stage1LineContentAlgs
+    , compositeImageAlgs = stage1CompositeImageAlgs
+    , composeAlgs        = stage1ComposeAlgs
+    , spanAlgs           = stage1SpanAlgs
+    , lookupSpanAlgs     = stage1LookupSpanAlgs
+    }
+  stage1ImageAlgs =
+    { imageAlg = undef // \imCo mask imAts imTrs imTas _ (m1, m2, m3, m4) _ _ -> unionsWith 'DS'.union [imCo, mask, imAts, imTrs, imTas, m1, m2, m3, m4]
+    }
+  stage1ImageContentAlgs =
+    { imageContentBasicAlg     = id
+    , imageContentLineAlg      = id
+    , imageContentCompositeAlg = id
+    }
+  stage1ImageAttrAlgs =
+    { imageAttrImageStrokeAttrAlg   = \_ -> 'DM'.newMap
+    , imageAttrStrokeWidthAttrAlg   = undef // id
+    , imageAttrXRadiusAttrAlg       = undef // id
+    , imageAttrYRadiusAttrAlg       = undef // id
+    , imageAttrStrokeOpacityAttrAlg = \_ -> 'DM'.newMap
+    , imageAttrFillAttrAlg          = \_ -> 'DM'.newMap
+    , imageAttrFillOpacityAttrAlg   = \_ -> 'DM'.newMap
+    , imageAttrOnClickAttrAlg       = \_ -> 'DM'.newMap
+    }
+  stage1ImageTransformAlgs =
+    { imageTransformRotateImageAlg = \_ -> 'DM'.newMap
+    , imageTransformSkewXImageAlg  = \_ -> 'DM'.newMap
+    , imageTransformSkewYImageAlg  = \_ -> 'DM'.newMap
+    , imageTransformFitImageAlg    = \x y -> unionsWith 'DS'.union [x, y]
+    , imageTransformFitXImageAlg   = id
+    , imageTransformFitYImageAlg   = id
+    }
+  stage1ImageSpanAlgs =
+    { imageSpanAlg = \x y -> unionsWith 'DS'.union [x, y]
+    }
+  stage1BasicImageAlgs =
+    { basicImageTextImageAlg    = \_ _ sp -> sp
+    , basicImageEmptyImageAlg   = id
+    , basicImageCircleImageAlg  = id
+    , basicImageRectImageAlg    = id
+    , basicImageEllipseImageAlg = id
+    }
+
+  stage1LineImageAlgs =
+    { lineImageLineImageAlg = undef // \(xsp, ysp) ms liCo -> unionsWith 'DS'.union [xsp:ysp:liCo:ms]
+    }
+  stage1MarkersAlgs =
+    { markersMarkersAlg = \m1 m2 m3 -> unionsWith 'DS'.union (concatMap maybeToList [m1, m2, m3])
+    }
+  stage1LineContentAlgs =
+    { lineContentSimpleLineImageAlg = \_ -> 'DM'.newMap
+    , lineContentPolygonImageAlg    = \coords -> unionsWith 'DS'.union (map fst coords) // TODO snd
+    , lineContentPolylineImageAlg   = undef // \coords -> unionsWith 'DS'.union coords
+    }
+  stage1CompositeImageAlgs =
+    { compositeImageAlg = \offsets host compose _ -> undef // unionsWith 'DS'.union [compose:offsets ++ maybeToList host]
+    }
+  stage1ComposeAlgs =
+    { composeAsGridAlg    = \_ ias imgss offsets mbhost -> undef // unionsWith 'DS'.union (ias ++ flatten imgss ++ offsets ++ maybeToList mbhost)
+    , composeAsCollageAlg = \       imgs offsets mbhost -> undef // unionsWith 'DS'.union [imgs ++ offsets ++ maybeToList mbhost]
+    , composeAsOverlayAlg = \ias    imgs offsets mbhost -> undef // unionsWith 'DS'.union [ias ++ imgs ++ offsets ++ maybeToList mbhost]
+    }
+  stage1SpanAlgs =
+    { spanPxSpanAlg     = \_   -> 'DM'.newMap
+    , spanLookupSpanAlg = undef // ($)
+    , spanAddSpanAlg    = \x y -> unionsWith 'DS'.union [x, y]
+    , spanSubSpanAlg    = \x y -> unionsWith 'DS'.union [x, y]
+    , spanMulSpanAlg    = \x _ -> x
+    , spanDivSpanAlg    = \x _ -> x
+    , spanAbsSpanAlg    = id
+    , spanMinSpanAlg    = \xs  -> unionsWith 'DS'.union xs
+    , spanMaxSpanAlg    = \xs  -> unionsWith 'DS'.union xs
+    }
+  stage1LookupSpanAlgs =
+    { lookupSpanColumnXSpanAlg  = \_ _ -> 'DM'.newMap
+    , lookupSpanRowYSpanAlg     = \_ _ -> 'DM'.newMap
+    , lookupSpanImageXSpanAlg   = \_   -> 'DM'.newMap
+    , lookupSpanImageYSpanAlg   = \_   -> 'DM'.newMap
+    , lookupSpanTextXSpanAlg    = \fd str -> 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
+    }
+
+unionsWith :: (v v -> v) [Map k v] -> Map k v | Ord k
+unionsWith f ms = undef
 
 fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
 fixSpans img = imageCata fixSpansAllAlgs img
@@ -681,6 +861,7 @@ getSvgAttrs as = [a \\ Right a <- as]
 getHtmlAttrs :: ![Either HtmlAttr SVGAttr] -> [HtmlAttr]
 getHtmlAttrs as = [a \\ Left a <- as]
 
+mkUrl :: String -> String
 mkUrl ref = "url(#" +++ ref +++ ")"
 
 mkWH :: !ImageSpanReal -> [HtmlAttr]
@@ -731,9 +912,8 @@ toSVG img = imageCata toSVGAllAlgs img
       \conns  -> withSt imageMaskId `b`
       \maskId -> imCo (txsp, tysp) (maybe imAts (const [Right (MaskAttr (mkUrl maskId)):imAts]) mask) imTrs imTas `b`
       \syn    -> evalMaybe mask `b`
-      \mask   -> withSt (mkElt maskId mask syn) `b`
-      \elt    -> ret { mkClSyn
-                     & clSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (m1, m2)) elt
+      \mask   -> ret { mkClSyn
+                     & clSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (m1, m2)) (mkElt maskId mask syn)
                      , clSyn_imageSpanReal = (txsp, tysp)
                      , clSyn_connectors    = conns
                      }
@@ -742,10 +922,10 @@ toSVG img = imageCata toSVGAllAlgs img
       # maskId       = mkMaskId clval.editletId uid
       = (maskId, (clval, world))
 
-    mkElt _      Nothing     syn st = (syn.clSyn_svgElts, st)
-    mkElt maskId (Just mask) syn (clval, world)
-      = ([ DefsElt [] [] [MaskElt [IdAttr maskId] [] mask.clSyn_svgElts]
-         : syn.clSyn_svgElts], (clval, world))
+    mkElt _      Nothing     syn = syn.clSyn_svgElts
+    mkElt maskId (Just mask) syn
+      = [ DefsElt [] [] [MaskElt [IdAttr maskId] [] mask.clSyn_svgElts]
+        : syn.clSyn_svgElts]
 
   toSVGImageContentAlgs :: ImageContentAlg (ImageSpanReal [Either HtmlAttr SVGAttr] [(SVGTransform, ImageTransform)] (Set ImageTag) -> ClSt s ToSVGSyn)
                                            (ClSt s ImageSpanReal)
@@ -831,8 +1011,7 @@ toSVG img = imageCata toSVGAllAlgs img
     mkTextImage :: !FontDef !String !ImageSpanReal  ![Either HtmlAttr SVGAttr] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                 -> ClSt s ToSVGSyn | iTask s
     mkTextImage fd str imSp imAts imTrs imTas
-      =      evalSpan fd.fontyspan `b`
-      \sp -> ret { mkClSyn & clSyn_svgElts = [TextElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs sp) str] }
+      = ret { mkClSyn & clSyn_svgElts = [TextElt (getHtmlAttrs imAts) (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
       where
       fontAttrs fsz = [ AlignmentBaselineAttr "text-before-edge"
                       , DominantBaselineAttr "text-before-edge"
@@ -934,7 +1113,7 @@ toSVG img = imageCata toSVGAllAlgs img
                                         , MarkerHeightAttr (toString (toInt h), PX)
                                         , MarkerWidthAttr (toString (toInt w), PX)
                                         ] clSyn_svgElts
-               , posAttr ("url(#" +++ mid +++ ")"))
+               , posAttr (mkUrl mid))
       mkMarkerAndId _ _ _ = Nothing
     mkLine constr atts spans _ st = ret { mkClSyn & clSyn_svgElts = [constr [] atts]} st
 

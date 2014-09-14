@@ -1,6 +1,9 @@
 implementation module iTasks.Framework.UIDefinition
 
-import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text, Data.Map, Data.List
+import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
+from Data.Map import :: Map, :: Size
+import qualified Data.Map as DM
+import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
 	
 emptyUI :: UIDef
@@ -309,7 +312,7 @@ getMargins ctrl
 uiDefAttributes	:: UIDef -> UIAttributes
 uiDefAttributes {UIDef|content=UIForm {UIForm|attributes}}	                = attributes
 uiDefAttributes {UIDef|content=UIBlock {UIBlock|attributes}}	            = attributes
-uiDefAttributes _													        = newMap
+uiDefAttributes _													        = 'DM'.newMap
 
 uiDefControls :: UIDef -> [UIControl]
 uiDefControls {UIDef|content=UIForm {UIForm|controls}}	                = map fst controls
@@ -319,8 +322,8 @@ uiDefControls _														    = []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
 uiDefAnnotatedControls {UIDef|content=UIForm {UIForm|controls}} = controls
-uiDefAnnotatedControls {UIDef|content=UIBlock {UIBlock|content}}	            = [(c,newMap)\\c <- content.UIItemsOpts.items]
-uiDefAnnotatedControls {UIDef|content=UIFinal (UIViewport content _)}			= [(c,newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls {UIDef|content=UIBlock {UIBlock|content}}	            = [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls {UIDef|content=UIFinal (UIViewport content _)}			= [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
 uiDefAnnotatedControls _										                = []
 
 uiDefActions :: UIDef -> [UIAction]
@@ -339,9 +342,9 @@ uiDefWindows _													= []
 
 uiDefSetAttribute :: String String UIDef -> UIDef
 uiDefSetAttribute key value {UIDef|content=UIForm stack=:{UIForm|attributes},windows}
-	= {UIDef|content=UIForm {UIForm|stack & attributes = put key value attributes},windows=windows}
+	= {UIDef|content=UIForm {UIForm|stack & attributes = 'DM'.put key value attributes},windows=windows}
 uiDefSetAttribute key value {UIDef|content=UIBlock sub=:{UIBlock|attributes},windows}
-	= {UIDef|content=UIBlock {UIBlock|sub & attributes = put key value attributes},windows=windows}
+	= {UIDef|content=UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes},windows=windows}
 uiDefSetAttribute key value def = def
 
 uiDefSetDirection :: UIDirection UIDef -> UIDef
@@ -426,6 +429,7 @@ encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sop
 encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts]
 encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts]
 encodeUIControl (UISplitter)						    = enc "itwc_splitter" []
+//encodeUIControl (UISVG sopts opts)						= enc "itwc_svg" [toJSON sopts, toJSON opts]
 encodeUIControl (UIContainer sopts iopts)			    = enc "itwc_container" [toJSON sopts, toJSON iopts]
 encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts]
 encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts]
