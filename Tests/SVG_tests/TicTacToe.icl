@@ -135,15 +135,15 @@ tictactoe2
 	  >>= \you -> playGame2 me you {board=emptyBoard,player1=me,player2=you,turn=True}
 
 playGame2 :: User User TicTacToe -> Task User
-playGame2 user1 user2 ttt 
+playGame2 me you ttt 
 	= withShared ttt
-		(\share ->  updateSharedInformation "On green its your turn..." [imageViewUpdate toAction (toImage False) fromAction] share 
+		(\share ->  updateSharedInformation (toString me) [imageViewUpdate toAction (toImage True) fromAction] share 
 					-||
-					updateSharedInformation "On green its your turn..." [imageViewUpdate toAction (toImage True) fromAction] share
+//					(you @: updateSharedInformation (toString you) [imageViewUpdate toAction (toImage False) fromAction] share)  // not working
+					updateSharedInformation (toString you) [imageViewUpdate toAction (toImage False) fromAction] share
 		) 
 		>>* [ OnValue (ifValue game_over declare_winner)
 		  	]
-
 
 toAction :: TicTacToe -> ActionState (Int,Int) TicTacToe
 toAction ttt = {ActionState | state = ttt, action = Nothing} 
@@ -157,20 +157,23 @@ fromAction _ as = as.ActionState.state
 
 toImage ::  Bool (ActionState (Int,Int) TicTacToe) -> Image (ActionState (Int,Int) TicTacToe)
 toImage turn ttt
-	= grid (Rows 2) (LeftToRight, TopToBottom) [] [] 
-		[ text ArialRegular12px (toString (if turn ttt.ActionState.state.player1 ttt.ActionState.state.player2))
-							<@< if (turn == ttt.ActionState.state.turn) {stroke = SVGColorText "green"} {stroke = SVGColorText "red"}
+	= grid (Rows 3) (LeftToRight, TopToBottom) [] [] 
+		[ text ArialRegular12px showTurn
+		, text ArialRegular12px ""
 		, tttBoard
 		] Nothing
 where	
+	myTurn 	 = turn == ttt.ActionState.state.turn 
+	showTurn = if myTurn "play: it is your turn..." "wait: it is not your turn..." 
 	tttBoard = grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
-	       		[ mkTile i j turn cell \\ row <- ttt.ActionState.state.board & i <- [0..2], cell <- row & j <- [0..2] 
+	       		[ mkTile x y myTurn cell 
+	       			\\ row <- ttt.ActionState.state.board & y <- [1..3], cell <- row & x <- [1..3] 
 	      		] Nothing
 
 mkTile i j _ (Just Tic)   = cross
 mkTile i j _ (Just Tac)   = null
-mkTile i j False Nothing  = blank
 mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & ActionState.action = Just (i,j)}}
+mkTile i j False Nothing  = blank 
 
 cross = overlay [] [] [blank,bar Slash,bar Backslash] Nothing
 where
@@ -179,7 +182,7 @@ where
 null  = overlay [] [] [blank,naught] Nothing
 where
 	naught = circle (px 30.0) <@< {fill        = SVGColorText "white"}
-						      <@< {stroke      = toSVGColor "green"}
+						      <@< {stroke      = toSVGColor "blue"}
 						      <@< {strokewidth = px 5.0 }
 blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "white"}
 
