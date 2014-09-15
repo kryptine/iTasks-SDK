@@ -184,7 +184,7 @@ where
 blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "none"}
 
 ArialRegular12px :== { fontfamily  = "Arial"
-                     , fontyspan   = 12.0
+                     , fontysize   = 12.0
                      , fontstretch = "normal"
                      , fontstyle   = "normal"
                      , fontvariant = "normal"
