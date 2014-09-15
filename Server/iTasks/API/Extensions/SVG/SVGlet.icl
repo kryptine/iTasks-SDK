@@ -155,56 +155,65 @@ instance toAttr SVGAttr where
 
 :: SVGState s
   = Stage0
-  | Stage1 (Map FontDef (Set String))
+  | Stage1 (s, Map FontDef (Set String))
   | Stage2 (s, Image s)
 
-//svgRenderer` :: !s !(s -> Image s) -> Editlet (s, SVGState s) (s, Image s) | iTask s
-//svgRenderer` origState state2Image = Editlet origState server client
-  //where
-  //defVal = (gDefault{|*|}, Stage0)
-  //server
-    //= { EditletServerDef
-      //| genUI   = genUI
-      //, defVal  = defVal
-      //, genDiff = genServerDiff
-      //, appDiff = appServerDiff
-      //}
-  //client
-    //= { EditletClientDef
-      //| updateUI = updateUI
-      //, defVal   = { textXSpanEnv    = 'DM'.newMap
-                   //, gridXSpanEnv    = 'DM'.newMap
-                   //, gridYSpanEnv    = 'DM'.newMap
-                   //, imageXSpanEnv   = 'DM'.newMap
-                   //, imageYSpanEnv   = 'DM'.newMap
-                   //, spanCache       = 'DM'.newMap
-                   //, onclicks        = 'DM'.newMap
-                   //, uniqueIdCounter = 0
-                   //, editletId       = ""
-                   //, currState       = defVal
-                   //}
-      //, genDiff  = genClientDiff
-      //, appDiff  = appClientDiff
-      //}
-  //genUI cid world
-    //= ({ ComponentHTML
-       //| width         = FlexSize
-       //, height        = FlexSize
-       //, html          = SvgTag [ IdAttr (mainSvgId cid)
-                                //, XmlnsAttr svgns
-                                //, XmlnsXlinkAttr "http://www.w3.org/1999/xlink"]
-                                //[VersionAttr "1.1"] []
-       //, eventHandlers = []
-       //}
-       //, world
-      //)
+:: SVGDiff s
+  = RequestFontXSpans (Map FontDef (Set String))
+  | RespondFontXSpans (Map FontDef (Map String Real))
+  | RequestRender     String
+  | ClientUpdateState s
+  | SetStage (SVGState s)
 
-  //updateUI cid (Just (Stage1 prFontMap)) clval world
-    //# (clval, world) = calcTextLengths prFontMap (clval, world)
-    //= (clval, world)
+derive class iTask SVGDiff, SVGState
+
+//svgRenderer` :: !s !(s -> Image s) -> Editlet (SVGState s) (SVGState s) | iTask s
+svgRenderer` :: !s !(s -> Image s) -> Editlet (SVGState s) (SVGDiff s) | iTask s
+svgRenderer` origState state2Image = Editlet (Stage1 (origState, stage1 (state2Image origState))) server client
+  where
+  defVal = Stage0
+  server
+    = { EditletServerDef
+      | genUI   = genUI
+      , defVal  = defVal
+      , genDiff = genServerDiff
+      , appDiff = appServerDiff
+      }
+  client
+    = { EditletClientDef
+      | updateUI = updateUI
+      , defVal   = { textXSpanEnv    = 'DM'.newMap
+                   , gridXSpanEnv    = 'DM'.newMap
+                   , gridYSpanEnv    = 'DM'.newMap
+                   , imageXSpanEnv   = 'DM'.newMap
+                   , imageYSpanEnv   = 'DM'.newMap
+                   , spanCache       = 'DM'.newMap
+                   , onclicks        = 'DM'.newMap
+                   , uniqueIdCounter = 0
+                   , editletId       = ""
+                   , currState       = defVal
+                   }
+      , genDiff  = genClientDiff
+      , appDiff  = appClientDiff
+      }
+  genUI cid world
+    = ({ ComponentHTML
+       | width         = FlexSize
+       , height        = FlexSize
+       , html          = SvgTag [ IdAttr (mainSvgId cid)
+                                , XmlnsAttr svgns
+                                , XmlnsXlinkAttr "http://www.w3.org/1999/xlink"]
+                                [VersionAttr "1.1"] []
+       , eventHandlers = []
+       }
+       , world
+      )
+
+  updateUI cid (Just (RequestFontXSpans fontMap)) clval world
+    # (clval, world) = calcTextLengths fontMap (clval, world)
+    = (clval, world)
 
   //updateUI cid (Just (Stage2 (_, rImage))) clval world
-    //# (clval, world) = calcTextLengths fonts (clval, world)
     //# (syn, (clval, world)) = toSVG img ({clval & editletId = cid, spanCache = spanCache}, world)
     //# (svg, world)   = getDomElement (mainSvgId cid) world
     //# (imXSp, imYSp) = syn.clSyn_imageSpanReal
@@ -217,10 +226,36 @@ instance toAttr SVGAttr where
     //# world          = addOnclicks cid svg clval.onclicks world
     //= (clval, world)
 
-  //updateUI _ _ clval world = (clval, world)
+  updateUI _ _ clval world = (clval, world)
+
+  genServerDiff Stage0 (Stage1 (_, fontMap)) = Just (RequestFontXSpans fontMap)
+
+  genServerDiff (Stage1 (oldImgSt, _)) rhs=:(Stage1 (newImgSt, fontMap))
+    | oldImgSt === newImgSt = Nothing
+    | otherwise             = Just (RequestFontXSpans fontMap)
+
+  genServerDiff (Stage2 (oldImgSt, _)) rhs=:(Stage2 (newImgSt, fontMap))
+    | oldImgSt === newImgSt = Nothing
+    //| otherwise             = Just (RequestFontXSpans fontMap)
+
+  genServerDiff (Stage1 _) rhs=:(Stage2 _) = Just (SetStage rhs)
+
+  genServerDiff _ _ = Nothing
+
+  appServerDiff (RespondFontXSpans env) (Stage1 (currSt, _))
+    //# img = drawImage env (state2Image currSt)
+    # img = undef // drawImage env (state2Image currSt)
+    = Stage2 (currSt, img)
+
+  genClientDiff oldVal newVal
+    | oldVal.currState === newVal.currState = Nothing
+    | otherwise                             = Just (RespondFontXSpans newVal.textXSpanEnv)
+
+  appClientDiff (SetStage st) clSt = { clSt & currState = st }
+  //appClientDiff (RequestFontXSpans fontMap) clSt = { clSt & currState =  }
 
   //genServerDiff (_, Stage0) (state, _)
-    //# (fonts, st) = getFonts (state2Image y) {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap}
+    //# fonts = stage1 (state2Image state)
     //= (state, Stage1 {prFontMap = fonts})
 
   //genServerDiff (_, Stage1 fonts) (state, _)
@@ -433,7 +468,7 @@ stage1 img = imageCata stage1AllAlgs img
     , lookupSpanAlgs     = stage1LookupSpanAlgs
     }
   stage1ImageAlgs =
-    { imageAlg = undef // \imCo mask imAts imTrs imTas _ (m1, m2, m3, m4) _ _ -> unionsWith 'DS'.union [imCo, mask, imAts, imTrs, imTas, m1, m2, m3, m4]
+    { imageAlg = \imCo mask imAts imTrs _ _ (m1, m2, m3, m4) _ _ -> 'DM'.unionsWith 'DS'.union [imCo : m1 : m2 : m3 : m4 : maybeToList mask ++ imAts ++ imTrs]
     }
   stage1ImageContentAlgs =
     { imageContentBasicAlg     = id
@@ -442,24 +477,24 @@ stage1 img = imageCata stage1AllAlgs img
     }
   stage1ImageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = \_ -> 'DM'.newMap
-    , imageAttrStrokeWidthAttrAlg   = undef // id
-    , imageAttrXRadiusAttrAlg       = undef // id
-    , imageAttrYRadiusAttrAlg       = undef // id
+    , imageAttrStrokeWidthAttrAlg   = \{strokewidth} -> stage1span strokewidth
+    , imageAttrXRadiusAttrAlg       = \{xradius} -> stage1span xradius
+    , imageAttrYRadiusAttrAlg       = \{yradius} -> stage1span yradius
     , imageAttrStrokeOpacityAttrAlg = \_ -> 'DM'.newMap
     , imageAttrFillAttrAlg          = \_ -> 'DM'.newMap
     , imageAttrFillOpacityAttrAlg   = \_ -> 'DM'.newMap
     , imageAttrOnClickAttrAlg       = \_ -> 'DM'.newMap
     }
   stage1ImageTransformAlgs =
-    { imageTransformRotateImageAlg = \_ -> 'DM'.newMap
-    , imageTransformSkewXImageAlg  = \_ -> 'DM'.newMap
-    , imageTransformSkewYImageAlg  = \_ -> 'DM'.newMap
-    , imageTransformFitImageAlg    = \x y -> unionsWith 'DS'.union [x, y]
+    { imageTransformRotateImageAlg = \_   -> 'DM'.newMap
+    , imageTransformSkewXImageAlg  = \_   -> 'DM'.newMap
+    , imageTransformSkewYImageAlg  = \_   -> 'DM'.newMap
+    , imageTransformFitImageAlg    = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
     , imageTransformFitXImageAlg   = id
     , imageTransformFitYImageAlg   = id
     }
   stage1ImageSpanAlgs =
-    { imageSpanAlg = \x y -> unionsWith 'DS'.union [x, y]
+    { imageSpanAlg = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
     }
   stage1BasicImageAlgs =
     { basicImageTextImageAlg    = \_ _ sp -> sp
@@ -470,45 +505,45 @@ stage1 img = imageCata stage1AllAlgs img
     }
 
   stage1LineImageAlgs =
-    { lineImageLineImageAlg = undef // \(xsp, ysp) ms liCo -> unionsWith 'DS'.union [xsp:ysp:liCo:ms]
+    { lineImageLineImageAlg = \sp ms liCo -> 'DM'.unionsWith 'DS'.union [liCo:sp:maybeToList ms]
     }
   stage1MarkersAlgs =
-    { markersMarkersAlg = \m1 m2 m3 -> unionsWith 'DS'.union (concatMap maybeToList [m1, m2, m3])
+    { markersMarkersAlg = \m1 m2 m3 -> 'DM'.unionsWith 'DS'.union (concatMap maybeToList [m1, m2, m3])
     }
   stage1LineContentAlgs =
-    { lineContentSimpleLineImageAlg = \_ -> 'DM'.newMap
-    , lineContentPolygonImageAlg    = \coords -> unionsWith 'DS'.union (map fst coords) // TODO snd
-    , lineContentPolylineImageAlg   = undef // \coords -> unionsWith 'DS'.union coords
+    { lineContentSimpleLineImageAlg = \_      -> 'DM'.newMap
+    , lineContentPolygonImageAlg    = \coords -> 'DM'.unionsWith 'DS'.union (map fst coords ++ map snd coords) // TODO refactor
+    , lineContentPolylineImageAlg   = \coords -> 'DM'.unionsWith 'DS'.union (map fst coords ++ map snd coords) // TODO refactor
     }
   stage1CompositeImageAlgs =
-    { compositeImageAlg = \offsets host compose _ -> undef // unionsWith 'DS'.union [compose:offsets ++ maybeToList host]
+    { compositeImageAlg = \offsets host compose _ -> 'DM'.unionsWith 'DS'.union [compose : map fst offsets ++ map snd offsets ++ maybeToList host] // TODO refactor
     }
   stage1ComposeAlgs =
-    { composeAsGridAlg    = \_ ias imgss offsets mbhost -> undef // unionsWith 'DS'.union (ias ++ flatten imgss ++ offsets ++ maybeToList mbhost)
-    , composeAsCollageAlg = \       imgs offsets mbhost -> undef // unionsWith 'DS'.union [imgs ++ offsets ++ maybeToList mbhost]
-    , composeAsOverlayAlg = \ias    imgs offsets mbhost -> undef // unionsWith 'DS'.union [ias ++ imgs ++ offsets ++ maybeToList mbhost]
+    { composeAsGridAlg    = \_ _ imgss -> 'DM'.unionsWith 'DS'.union (flatten imgss)
+    , composeAsCollageAlg = \    imgs  -> 'DM'.unionsWith 'DS'.union imgs
+    , composeAsOverlayAlg = \  _ imgs  -> 'DM'.unionsWith 'DS'.union imgs
     }
-  stage1SpanAlgs =
-    { spanPxSpanAlg     = \_   -> 'DM'.newMap
-    , spanLookupSpanAlg = undef // ($)
-    , spanAddSpanAlg    = \x y -> unionsWith 'DS'.union [x, y]
-    , spanSubSpanAlg    = \x y -> unionsWith 'DS'.union [x, y]
-    , spanMulSpanAlg    = \x _ -> x
-    , spanDivSpanAlg    = \x _ -> x
-    , spanAbsSpanAlg    = id
-    , spanMinSpanAlg    = \xs  -> unionsWith 'DS'.union xs
-    , spanMaxSpanAlg    = \xs  -> unionsWith 'DS'.union xs
-    }
-  stage1LookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg  = \_ _ -> 'DM'.newMap
-    , lookupSpanRowYSpanAlg     = \_ _ -> 'DM'.newMap
-    , lookupSpanImageXSpanAlg   = \_   -> 'DM'.newMap
-    , lookupSpanImageYSpanAlg   = \_   -> 'DM'.newMap
-    , lookupSpanTextXSpanAlg    = \fd str -> 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
-    }
+stage1SpanAlgs =
+  { spanPxSpanAlg     = \_   -> 'DM'.newMap
+  , spanLookupSpanAlg = id
+  , spanAddSpanAlg    = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
+  , spanSubSpanAlg    = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
+  , spanMulSpanAlg    = \x _ -> x
+  , spanDivSpanAlg    = \x _ -> x
+  , spanAbsSpanAlg    = id
+  , spanMinSpanAlg    = \xs  -> 'DM'.unionsWith 'DS'.union xs
+  , spanMaxSpanAlg    = \xs  -> 'DM'.unionsWith 'DS'.union xs
+  }
+stage1LookupSpanAlgs =
+  { lookupSpanColumnXSpanAlg  = \_ _ -> 'DM'.newMap
+  , lookupSpanRowYSpanAlg     = \_ _ -> 'DM'.newMap
+  , lookupSpanImageXSpanAlg   = \_   -> 'DM'.newMap
+  , lookupSpanImageYSpanAlg   = \_   -> 'DM'.newMap
+  , lookupSpanTextXSpanAlg    = \fd str -> 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
+  }
 
-unionsWith :: (v v -> v) [Map k v] -> Map k v | Ord k
-unionsWith f ms = undef
+stage1span :: Span -> Map FontDef (Set String)
+stage1span sp = spanCata stage1SpanAlgs stage1LookupSpanAlgs sp
 
 fixSpans :: !(Image s) -> SrvSt (Image s) | iTask s
 fixSpans img = imageCata fixSpansAllAlgs img
