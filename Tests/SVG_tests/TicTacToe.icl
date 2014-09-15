@@ -178,10 +178,10 @@ where
 
 null  = overlay [] [] [blank,naught] Nothing
 where
-	naught = circle (px 30.0) <@< {fill        = SVGColorText "none"}
+	naught = circle (px 30.0) <@< {fill        = SVGColorText "white"}
 						      <@< {stroke      = toSVGColor "green"}
 						      <@< {strokewidth = px 5.0 }
-blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "none"}
+blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "white"}
 
 ArialRegular12px :== { fontfamily  = "Arial"
                      , fontysize   = 12.0
