@@ -69,7 +69,22 @@ updateSharedInformation d [UpdateWith tof fromf:_] shared
 					(l,(v,m))
 				)
 				@> (mapval,shared)
-
+updateSharedInformation d [UpdateWithShared tof fromf conflictf:_] shared
+	= interact d (toReadOnly shared)
+				(\r -> let v = tof r in (fromf r v,(v,Touched)))
+				(\l r (v,m) rCh vCh vOk -> if vOk
+					(if rCh 
+                        (if vCh
+                            //Both the share changed and the view changed -> resolve conflict
+                            (let nv = conflictf v (tof r) in (fromf r nv,(nv,Touched)))
+                            //Only the share changed, refresh the view
+						    (let nv = tof r in (fromf r nv,(nv,Touched)))
+                        )             
+						(fromf r v,(v,m))
+					)
+					(l,(v,m))
+				)
+				@> (mapval,shared)
 updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
 	//If different types are used we can only resort to a display of type r and an enter of type w
