@@ -21,6 +21,7 @@ function __Maybe_Just(__a1) {
 
 var ___predefined__Nil = [1,"_predefined._Nil"];
 var ___predefined__Unit = [0,"_predefined._Unit"];
+var ___system__Unit = [0,"_system._Unit"];
 // TO BE SURE
 
 // --------- Primitive functions -----------------------------
