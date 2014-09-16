@@ -181,9 +181,14 @@ where
 
 null  = overlay [] [] [blank,naught] Nothing
 where
-	naught = circle (px 30.0) <@< {fill        = SVGColorText "white"}
-						      <@< {stroke      = toSVGColor "blue"}
-						      <@< {strokewidth = px 5.0 }
+	naught = maskWith (circle (px 30.0) <@< {fill        = SVGColorText "white"}
+	      								<@< {stroke      = toSVGColor "blue"}
+	      								<@< {strokewidth = px 10.0 }) 
+	      			  (circle (px 30.0)	<@< {fill = toSVGColor "white"} 
+	      								<@< {strokewidth = zero })
+
+
+
 
 emptyTile 	= rect (px 30.0) (px 30.0) <@< {fill = SVGColorText "white"}
 blank 		= emptyTile <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "white"}
