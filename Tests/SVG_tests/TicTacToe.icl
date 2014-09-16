@@ -175,7 +175,7 @@ mkTile i j _ (Just Tac)   = null
 mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & ActionState.action = Just (i,j)}}
 mkTile i j False Nothing  = blank 
 
-cross = overlay [] [] [blank,bar Slash,bar Backslash] Nothing
+cross = maskWith (overlay [] [] [blank,bar Slash,bar Backslash] Nothing) emptyTile
 where
 	bar dir = line Nothing dir (px 30.0) (px 30.0) <@< {strokewidth = px 5.0} <@< {stroke = SVGColorText "red" }
 
@@ -184,7 +184,9 @@ where
 	naught = circle (px 30.0) <@< {fill        = SVGColorText "white"}
 						      <@< {stroke      = toSVGColor "blue"}
 						      <@< {strokewidth = px 5.0 }
-blank = rect (px 30.0) (px 30.0) <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "white"}
+
+emptyTile 	= rect (px 30.0) (px 30.0) <@< {fill = SVGColorText "white"}
+blank 		= emptyTile <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "white"}
 
 ArialRegular12px :== { fontfamily  = "Arial"
                      , fontysize   = 12.0
