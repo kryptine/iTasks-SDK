@@ -33,10 +33,16 @@ imageView 				::           !(s -> Image s) 			  -> ViewOption s 	| iTask s
 imageViewUpdate 		:: !(s -> v) !(v -> Image v)  !(s v -> s) -> UpdateOption s s |  iTask v
 
 
-svgRenderer     :: !s !(s -> Image s)
-                -> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
+:: SVGState s
 
-:: ActionState a s = { state    :: s
+:: SVGDiff s
+
+derive class iTask SVGDiff, SVGState
+svgRenderer :: !s !(s -> Image s) -> Editlet (SVGState s) (SVGDiff s) | iTask s
+//svgRenderer     :: !s !(s -> Image s)
+                //-> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
+
+:: ActionState a s = { state   :: s
                      , action  :: Maybe a
                      }
 
