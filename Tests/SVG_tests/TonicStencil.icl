@@ -10,7 +10,7 @@ import iTasks
 import iTasks.API.Extensions.SVG.SVGlet
 
 ArialRegular10px :== { fontfamily  = "Arial"
-                     , fontyspan   = px 10.0
+                     , fontysize   = 10.0
                      , fontstretch = "normal"
                      , fontstyle   = "normal"
                      , fontvariant = "normal"
@@ -18,24 +18,25 @@ ArialRegular10px :== { fontfamily  = "Arial"
                      }
 
 ArialBold10px :== { fontfamily  = "Arial"
-                  , fontyspan   = px 10.0
+                  , fontysize   = 10.0
                   , fontstretch = "normal"
                   , fontstyle   = "normal"
                   , fontvariant = "normal"
                   , fontweight  = "bold"
                   }
 
-ArialItalic10px :== { fontfamily  = "Arial"
-                  , fontyspan   = px 10.0
-                  , fontstretch = "normal"
-                  , fontstyle   = "italic"
-                  , fontvariant = "normal"
-                  , fontweight  = "normal"
+ArialItalic10px :== { fontfamily = "Arial"
+                  , fontysize    = 10.0
+                  , fontstretch  = "normal"
+                  , fontstyle    = "italic"
+                  , fontvariant  = "normal"
+                  , fontweight   = "normal"
                   }
 
 //Start :: *World -> *World
-Start world = startEngine allSVGs world
-//Start world = startEngine examples world
+//Start world = startEngine allSVGs world
+Start world = startEngine examples world
+
 //Start = fst (fixSpans viewTaskDefExample` {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap})
 
 viewImage d image = viewInformation d [imageView (\_ -> image)] ()
@@ -60,7 +61,7 @@ examples :: Task ()
 examples = viewInformation () [] "Select an example set"
   >>* [ OnAction (Action "Various static examples" []) (always (allSVGs @! ()))
       , OnAction (Action "Static Tonic shapes" [])     (always (tonicSVGs @! ()))
-      //, OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
+      , OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
       ]
 
 
@@ -109,32 +110,31 @@ where
 	xl  c   = xline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
 	yl  c	= yline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
 
-allSVGs = allTasks [ traxtest @! ()
-                   //viewRotateGridImg @! ()
-                     //viewLineExample @! ()
+allSVGs = allTasks [ // traxtest @! ()
+                   viewRotateGridImg @! ()
+                   //viewLineExample @! ()
                    //, viewTextGrid @! ()
                    //, viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
                    //, viewPolygon @! ()
                    //, viewPolyline @! ()
-                   //, viewBox @! ()
+                   , viewBox @! ()
                    //, viewGrid @! ()
-                   //, viewShapes mkCircles Nothing @! ()
-                   //, viewShapes mkCircles (Just rect100x60) @! ()
-                   //, viewShapes mkCircles (Just rect30x60) @! ()
-                   //, viewRect @! ()
-                   //, viewEllipse @! ()
-                   //, viewBesideBoxes @! ()
-                   //, viewBesideBoxes2 @! ()
+                   , viewShapes mkCircles Nothing @! ()
+                   , viewShapes mkCircles (Just rect100x60) @! ()
+                   , viewShapes mkCircles (Just rect30x60) @! ()
+                   , viewRect @! ()
+                   , viewEllipse @! ()
+                   , viewBesideBoxes @! ()
+                   , viewBesideBoxes2 @! ()
                    //, viewShapes mkRects Nothing @! ()
                    //, viewShapes mkRects (Just rect100x60) @! ()
                    //, viewShapes mkRects (Just rect30x60) @! ()
                    ]
-//allClickExamples = allTasks [] 
-//[ simpleClickExample @! ()
-                            //, simpleClickExample @! ()
+allClickExamples = allTasks [ simpleClickExample @! ()
+                            //, simpleClickExample` @! ()
                             //, simpleClickStepExample @! ()
-                            //]
+                            ]
 :: ClickStepSt
   = { bigRectClicked   :: Bool
     , smallRectClicked :: Bool
@@ -180,11 +180,17 @@ viewLineExample = viewImage "Testing lines" mkImg
   where
   mkImg = overlay (repeat (AtMiddleX, AtMiddleY)) [(px 50.0, px 50.0), (px 150.0, px 150.0)] [rect100x60, rect30x60] Nothing
 
-//simpleClickExample :: Task Real
-//simpleClickExample = updateImageState "Simple click example" 25.0 f
-  //where
-  //f :: Real -> Image Real
-  //f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }
+simpleClickExample :: Task Real
+simpleClickExample = viewInformation "Simple click example" [imageView f] 25.0
+  where
+  f :: Real -> Image Real
+  f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }
+
+simpleClickExample` :: Task Real
+simpleClickExample` = updateInformation "Simple click example" [imageViewUpdate id f (\_ x -> x)] 25.0
+  where
+  f :: Real -> Image Real
+  f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }
 
 
 viewPolygon :: Task ()
@@ -257,7 +263,7 @@ textGridImg font c r
   where
   textbox font txt
     = overlay [(AtMiddleX, AtTop)] [] [text font txt <@< {stroke=toSVGColor "white"}]
-       (Just (rect (textxspan font (txt+++"MM")) font.fontyspan))
+       (Just (rect (textxspan font (txt+++"MM")) (px font.fontysize)))
 
 viewTextGrid2 :: Task ()
 viewTextGrid2 = viewImage "Grid of text. Left-most column cells rotated -90 deg." (textGridImg2 ArialRegular10px 4 2)
@@ -274,7 +280,7 @@ textGridImg2 font c r
   where
   textbox font txt
     = overlay [(AtMiddleX, AtTop)] [] [text font txt <@< {stroke=toSVGColor "white"}]
-       (Just (rect (textxspan font (txt+++"MM")) font.fontyspan))
+       (Just (rect (textxspan font (txt+++"MM")) (px font.fontysize)))
 
 viewTextGrid3 :: Task ()
 viewTextGrid3 = viewImage "Grid with cell size lookups" (textGridImg3 ArialRegular10px 4 2)
@@ -295,11 +301,11 @@ textGridImg3 font c r
   black = toSVGColor "black"
   grey  = toSVGColor "grey"
   none  = toSVGColor "none"
-  edgeCell ts (c,r) clr txt t = overlay [(AtMiddleX, AtMiddleY)] [] [textbox font txt] (Just (t (rect (textxspan font (txt+++"MM")) font.fontyspan) <@< {fill=clr}))
+  edgeCell ts (c,r) clr txt t = overlay [(AtMiddleX, AtMiddleY)] [] [textbox font txt] (Just (t (rect (textxspan font (txt+++"MM")) (px font.fontysize)) <@< {fill=clr}))
   cell     ts (c,r) clr img   = overlay [(AtMiddleX, AtMiddleY)] [] [img] (Just (rect (columnspan ts c) (rowspan ts r) <@< {fill=clr}))
   textbox font txt
     = overlay [(AtMiddleX, AtTop)] [] [text font txt <@< {stroke=toSVGColor "white"}]
-       (Just (rect (textxspan font (txt+++"MM")) font.fontyspan))
+       (Just (rect (textxspan font (txt+++"MM")) (px font.fontysize)))
 
 //viewRose :: Task (Editlet () ((), Image ()))
 //viewRose = viewInformation "Tonic SVG" [] (simpleSVGlet (fst (showRose f tree tags)))
@@ -394,15 +400,15 @@ taskApp taskName taskArgs
 
 taskApp` :: String [String] -> Image ()
 taskApp` taskName taskArgs
-  # bgRect       = rect containerSpan (ArialRegular10px.fontyspan *. (2.5 + toReal (length taskArgs))) <@< { fill        = toSVGColor "white" }
+  # bgRect       = rect containerSpan (px ArialRegular10px.fontysize *. (2.5 + toReal (length taskArgs))) <@< { fill        = toSVGColor "white" }
                                                                                                        <@< { stroke      = toSVGColor "black" }
                                                                                                        <@< { strokewidth = px 1.0 }
                                                                                                        <@< { xradius     = px 5.0 }
                                                                                                        <@< { yradius     = px 5.0 }
-  # taskNameImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (textxspan ArialRegular10px (taskName +++ "MM")) (ArialRegular10px.fontyspan + px 5.0) <@< { fill = toSVGColor "none" } <@< { stroke = toSVGColor "none"}
+  # taskNameImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (textxspan ArialRegular10px (taskName +++ "MM")) (px (ArialRegular10px.fontysize + 5.0)) <@< { fill = toSVGColor "none" } <@< { stroke = toSVGColor "none"}
                                                               , text ArialBold10px taskName
                                                               ] Nothing
-  # taskArgsImgs = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect containerSpan (ArialRegular10px.fontyspan *. (length taskArgs + 1)) <@< { fill = toSVGColor "none" } <@< { stroke = toSVGColor "none"}
+  # taskArgsImgs = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect containerSpan (px (ArialRegular10px.fontysize * toReal (length taskArgs + 1))) <@< { fill = toSVGColor "none" } <@< { stroke = toSVGColor "none"}
                                                               , above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing
                                                               ] Nothing
   # taskText     = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing containerSpan, taskArgsImgs] Nothing
