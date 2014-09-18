@@ -114,7 +114,7 @@ where
 
 
 ArialRegular10px :== { fontfamily  = "Arial"
-                     , fontyspan   = px 10.0
+                     , fontysize   = 10.0
                      , fontstretch = "normal"
                      , fontstyle   = "normal"
                      , fontvariant = "normal"
