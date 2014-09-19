@@ -170,6 +170,9 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
       | 'DM'.null fontMap = trace_n "genServerDiff 2b 'DM'.null fontMap requestRender" requestRender newSt (fixSpansForTextlessImage image)
       | otherwise         = trace_n "genServerDiff 2c otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
+  genServerDiff (SVGSrvStImage (oldSt, img)) (SVGSrvStFontStrings _)
+    = trace_n "genServerDiff 5 requestRender" requestRender oldSt img // TODO Why do we need this case? Things breaks without it, but why?
+
   genServerDiff _ (SVGSrvStFontStrings (newSt, fontMap))
     | 'DM'.null fontMap = trace_n "genServerDiff 3a 'DM'.null fontMap requestRender" requestRender newSt (imageFromState state2Image 'DM'.newMap newSt)
     | otherwise         = trace_n "genServerDiff 3b otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
@@ -178,27 +181,36 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
 
   genServerDiff _ _ = trace_n "genServerDiff fallthrough Nothing" Nothing // Can't go back to default state
 
-  appServerDiff (RespondFontXSpans env) srvSt
-    # currSt = unSrvSt srvSt
-    = trace_n "appServerDiff 1 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+  //appServerDiff (RespondFontXSpans env) (SVGSrvStDefault currSt)
+    //= trace_n "appServerDiff 2 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+
+  appServerDiff (RespondFontXSpans env) (SVGSrvStFontStrings (currSt, _))
+    = trace_n "appServerDiff 3 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+
+  appServerDiff (RespondFontXSpans env) (SVGSrvStImage (currSt, _))
+    = trace_n "appServerDiff 4 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+
+  //appServerDiff (RespondFontXSpans env) srvSt
+    //# currSt = unSrvSt srvSt
+    //= trace_n "appServerDiff 1 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
 
   appServerDiff (RespondClUpdate newSt) _ = trace_n "appServerDiff 2 imgSt2SrvSt newSt" imgSt2SrvSt newSt
 
   appServerDiff _ st = trace_n "appServerDiff fallthrough st" st
 
+  genClientDiff SVGClStDefault (SVGClStFontRealMap newRealFontMap)
+    = trace_n "genClientDiff 2 RespondFontXSpans newRealFontMap" Just (RespondFontXSpans newRealFontMap)
+
   genClientDiff (SVGClStFontRealMap oldRealFontMap) (SVGClStFontRealMap newRealFontMap)
-    | oldRealFontMap === newRealFontMap = trace_n "genClientDiff 1a oldRealFontMap === newRealFontMap Nothing" Nothing
+    | 'DM'.mapSize oldRealFontMap == 'DM'.mapSize newRealFontMap && oldRealFontMap === newRealFontMap = trace_n "genClientDiff 1a oldRealFontMap === newRealFontMap Nothing" Nothing
     | otherwise                         = trace_n "genClientDiff 1b otherwise RespondFontXSpans newRealFontMap" Just (RespondFontXSpans newRealFontMap)
 
-  genClientDiff _ (SVGClStFontRealMap newRealFontMap)
-    = trace_n "genClientDiff 2 RespondFontXSpans newRealFontMap" Just (RespondFontXSpans newRealFontMap)
+  genClientDiff (SVGClStRendered _) (SVGClStFontRealMap newRealFontMap) // TODO Do we need this cases for when the state changes and we need to calculate new fonts?
+    = trace_n "genClientDiff 6 RespondFontXSpans newRealFontMap" Just (RespondFontXSpans newRealFontMap)
 
   genClientDiff (SVGClStRendered oldSt) (SVGClStRendered newSt)
     | oldSt === newSt = trace_n "genClientDiff 3a oldSt === newSt Nothing" Nothing
     | otherwise       = trace_n "genClientDiff 3b otherwise RespondClUpdate newSt" Just (RespondClUpdate newSt)
-
-  genClientDiff _ (SVGClStRendered newSt)
-    = trace_n "genClientDiff 4 RespondClUpdate newSt" Just (RespondClUpdate newSt)
 
   genClientDiff oldVal newVal = trace_n "genClientDiff fallthrough Nothing" Nothing
 
