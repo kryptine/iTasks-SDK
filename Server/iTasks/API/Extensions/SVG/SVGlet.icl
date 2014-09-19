@@ -143,16 +143,16 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
 
   updateUI cid (Just (RequestRender s svgStr onclicks)) clval world
     # world = jsTrace "updateUI RequestRender" world
-    # svgStr          = replaceSubString editletId cid svgStr
-    # (parser, world) = new "DOMParser" () world
-    # (doc, world)    = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
-    # (childs, world) = .? (doc .# "childNodes") world
-    # (svgDoc, world) = .? (childs .# "0") world
-    # (svg, world)    = getDomElement (mainSvgId cid) world
-    # (child, world)  = .? (svg .# "firstChild") world
-    # world           = if (jsIsNull child) world (snd ((svg .# "removeChild" .$ child) world))
-    # (_, world)      = (svg `appendChild` svgDoc) world
-    # world           = addOnclicks cid svgDoc onclicks world
+    # svgStr           = replaceSubString editletId cid svgStr
+    # (parser, world)  = new "DOMParser" () world
+    # (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
+    # (newSVG, world)  = .? (doc .# "firstChild") world
+    # (svgDiv, world)  = getDomElement (mainSvgId cid) world
+    # (currSVG, world) = .? (svgDiv .# "firstChild") world
+    # (_, world)       = if (jsIsNull currSVG)
+                           ((svgDiv `appendChild` newSVG) world)
+                           ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
+    # world           = addOnclicks cid newSVG onclicks world
     = (SVGClStRendered s, world)
 
   updateUI _ _ clval world
