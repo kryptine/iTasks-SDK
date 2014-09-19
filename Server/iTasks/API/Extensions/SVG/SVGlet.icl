@@ -46,11 +46,15 @@ mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
 addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorld | iTask s
-addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
+addOnclicks cid svg onclicks world
+  # world = jsTrace "addOnClicks" world
+  # world = jsTrace onclicks world
+  = 'DM'.foldrWithKey f world onclicks
   where
   f :: String (s -> s) *JSWorld -> *JSWorld | iTask s
   f elemCls sttf world
-    # elemCls = replaceSubString editletId cid elemCls
+    # elemCls           = replaceSubString editletId cid elemCls
+    # world             = jsTrace elemCls world
     # (elems, world)    = (svg `getElementsByClassName` elemCls) world
     # (numElems, world) = .? (elems .# "length") world
     | jsValToInt (numElems) < 1 = world
@@ -60,8 +64,10 @@ addOnclicks cid svg onclicks world = 'DM'.foldrWithKey f world onclicks
     = world
   mkCB :: (s -> s) String {JSObj JSEvent} (SVGClSt s) *JSWorld -> *(SVGClSt s, *JSWorld) | iTask s
   mkCB sttf _ _ (SVGClStRendered s) world
+    # world = jsTrace "mkCB SVGClStRendered" world
     = (SVGClStRendered (sttf s), world)
   mkCB sttf _ _ clval world
+    # world = jsTrace "mkCB otherwise" world
     = (clval, world)
 
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
@@ -154,12 +160,17 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
     = (clval, world)
 
   requestRender newSt img
-    # (svgStr, onclicks) = imageToString img
-    = Just (RequestRender newSt svgStr onclicks)
+    # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
+    # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
+    # (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
+    # svgStr         = trace_n ("onclicks size: " +++ toString ('DM'.mapSize syn.genSVGSyn_onclicks)) toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                        [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                        syn.genSVGSyn_svgElts)
+    = Just (RequestRender newSt svgStr syn.genSVGSyn_onclicks)
 
   genServerDiff (SVGSrvStFontStrings (oldSt, _)) (SVGSrvStFontStrings (newSt, fontMap))
     | oldSt === newSt   = trace_n "genServerDiff 1a oldSt === newSt Nothing" Nothing
-    | 'DM'.null fontMap = trace_n "genServerDiff 1b 'DM'.null fontMap requestRender" requestRender newSt (imageFromState state2Image 'DM'.newMap newSt)
+    | 'DM'.null fontMap = trace_n "genServerDiff 1b 'DM'.null fontMap requestRender" requestRender newSt (imageFromState (state2Image newSt) 'DM'.newMap)
     | otherwise         = trace_n "genServerDiff 1c otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
   genServerDiff (SVGSrvStImage (oldSt, _)) (SVGSrvStImage (newSt, img))
@@ -167,14 +178,14 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
     | otherwise
       # image             = state2Image newSt
       # fontMap           = gatherFonts image
-      | 'DM'.null fontMap = trace_n "genServerDiff 2b 'DM'.null fontMap requestRender" requestRender newSt (fixSpansForTextlessImage image)
+      | 'DM'.null fontMap = trace_n "genServerDiff 2b 'DM'.null fontMap requestRender" requestRender newSt (imageFromState image 'DM'.newMap)
       | otherwise         = trace_n "genServerDiff 2c otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
   genServerDiff (SVGSrvStImage (oldSt, img)) (SVGSrvStFontStrings _)
     = trace_n "genServerDiff 5 requestRender" requestRender oldSt img // TODO Why do we need this case? Things breaks without it, but why?
 
   genServerDiff _ (SVGSrvStFontStrings (newSt, fontMap))
-    | 'DM'.null fontMap = trace_n "genServerDiff 3a 'DM'.null fontMap requestRender" requestRender newSt (imageFromState state2Image 'DM'.newMap newSt)
+    | 'DM'.null fontMap = trace_n "genServerDiff 3a 'DM'.null fontMap requestRender" requestRender newSt (imageFromState (state2Image newSt) 'DM'.newMap)
     | otherwise         = trace_n "genServerDiff 3b otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
   genServerDiff _ (SVGSrvStImage (newSt, img)) = trace_n "genServerDiff 4 requestRender" requestRender newSt img
@@ -182,13 +193,13 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
   genServerDiff _ _ = trace_n "genServerDiff fallthrough Nothing" Nothing // Can't go back to default state
 
   //appServerDiff (RespondFontXSpans env) (SVGSrvStDefault currSt)
-    //= trace_n "appServerDiff 2 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+    //= trace_n "appServerDiff 2 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState (state2Image currSt) env)
 
   appServerDiff (RespondFontXSpans env) (SVGSrvStFontStrings (currSt, _))
-    = trace_n "appServerDiff 3 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+    = trace_n "appServerDiff 3 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState (state2Image currSt) env)
 
   appServerDiff (RespondFontXSpans env) (SVGSrvStImage (currSt, _))
-    = trace_n "appServerDiff 4 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState state2Image env currSt)
+    = trace_n "appServerDiff 4 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState (state2Image currSt) env)
 
   //appServerDiff (RespondFontXSpans env) srvSt
     //# currSt = unSrvSt srvSt
@@ -219,31 +230,14 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
   imgSt2SrvSt newSt
     # image             = state2Image newSt
     # fontMap           = gatherFonts image
-    | 'DM'.null fontMap = SVGSrvStImage (newSt, fixSpansForTextlessImage image)
+    | 'DM'.null fontMap = SVGSrvStImage (newSt, imageFromState image 'DM'.newMap)
     | otherwise         = SVGSrvStFontStrings (newSt, fontMap)
 
-
-fixSpansForTextlessImage img
-  = fst (fixSpans img { fixSpansTaggedSpanEnv = 'DM'.newMap
-                      , fixSpansDidChange     = False
-                      , fixSpansCounter       = 0
-                      , fixSpansFonts         = 'DM'.newMap})
-
-imageFromState state2Image env currSt
-  = fst (fixSpans (state2Image currSt) { fixSpansTaggedSpanEnv = 'DM'.newMap
-                                       , fixSpansDidChange     = False
-                                       , fixSpansCounter       = 0
-                                       , fixSpansFonts         = env})
-
-imageToString img
-  # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
-  # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
-  # (imXSp, imYSp) = (toInt imXSp, toInt imYSp)
-  # svgStr         = toString (SVGElt [WidthAttr (toString imXSp), HeightAttr (toString imYSp), XmlnsAttr svgns]
-                                      [VersionAttr "1.1", ViewBoxAttr "0" "0" (toString imXSp) (toString imYSp)]
-                                      syn.genSVGSyn_svgElts)
-  = (svgStr, syn.genSVGSyn_onclicks)
-
+  imageFromState img env
+    = fst (fixSpans img { fixSpansTaggedSpanEnv = 'DM'.newMap
+                        , fixSpansDidChange     = False
+                        , fixSpansCounter       = 0
+                        , fixSpansFonts         = env})
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
@@ -889,7 +883,7 @@ genSVG img = imageCata genSVGAllAlgs img
                      & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (m1, m2)) (mkElt maskId mask syn)
                      , genSVGSyn_imageSpanReal = (txsp, tysp)
                      , genSVGSyn_connectors    = conns
-                     , genSVGSyn_onclicks      = 'DM'.unions (map snd imAts)
+                     , genSVGSyn_onclicks      = 'DM'.unions [syn.genSVGSyn_onclicks : map snd imAts]
                      }
     imageMaskId clval
       # (uid, clval) = nextNo clval
@@ -1071,14 +1065,19 @@ genSVG img = imageCata genSVGAllAlgs img
       # (uid1, clval) = nextNo clval
       # (uid2, clval) = nextNo clval
       # (uid3, clval) = nextNo clval
-      # markersAndIds = [(m, i) \\ Just (m, i) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
-                                                  , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
-                                                  , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
-      = ret {mkGenSVGSyn & genSVGSyn_svgElts = [constr [] (map snd markersAndIds ++ atts), DefsElt [] [] (map fst markersAndIds)]}
+      # markersAndIds = [(m, i, s) \\ Just (m, i, s) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
+                                                        , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
+                                                        , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
+      = ret { mkGenSVGSyn
+            & genSVGSyn_svgElts  = [ constr [] (map (\(_, x, _) -> x) markersAndIds ++ atts)
+                                   , DefsElt [] [] (map (\(x, _, _) -> x) markersAndIds)]
+            , genSVGSyn_onclicks = 'DM'.unions (map (\(_, _, x) -> x) markersAndIds)
+            }
             clval // TODO Correct offsets? What about the transformations?
       where
       // TODO Marker size etc?
-      mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h)}) mid posAttr
+      mkMarkerAndId :: (Maybe (GenSVGSyn s)) String (String -> SVGAttr) -> Maybe (SVGElt, SVGAttr, Map String (s -> s)) | iTask s
+      mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h), genSVGSyn_onclicks}) mid posAttr
         = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto" // TODO Do something with offset?
                                         , ViewBoxAttr "0" "0" (toString (toInt w)) (toString (toInt h))
                                         , RefXAttr (toString (toInt w), PX)
@@ -1086,7 +1085,8 @@ genSVG img = imageCata genSVGAllAlgs img
                                         , MarkerHeightAttr (toString (toInt h), PX)
                                         , MarkerWidthAttr (toString (toInt w), PX)
                                         ] genSVGSyn_svgElts
-               , posAttr (mkUrl mid))
+               , posAttr (mkUrl mid)
+               , genSVGSyn_onclicks)
       mkMarkerAndId _ _ _ = Nothing
     mkLine constr atts spans _ st = ret { mkGenSVGSyn & genSVGSyn_svgElts = [constr [] atts]} st
 
@@ -1103,13 +1103,16 @@ genSVG img = imageCata genSVGAllAlgs img
       \offsets -> evalMaybe host `b`
       \host    -> compose offsets host edges totalSpan imAts imTrs imTas `b`
       \compose -> withSt getCpId `b`
-      \cpId    -> let (elts, spans) = case host of
-                                        Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal}
-                                          = (genSVGSyn_svgElts ++ compose.genSVGSyn_svgElts, genSVGSyn_imageSpanReal)
-                                        _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal)
+      \cpId    -> let (elts, spans, onclicks) = case host of
+                                                  Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal, genSVGSyn_onclicks}
+                                                    = (genSVGSyn_svgElts ++ compose.genSVGSyn_svgElts, genSVGSyn_imageSpanReal, 'DM'.union genSVGSyn_onclicks compose.genSVGSyn_onclicks)
+                                                  _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal, compose.genSVGSyn_onclicks)
                   in  sequence (map (\f -> f spans) imTrs) `b`
       \imTrs   -> let attrs = mkAttrs imAts imTrs
-                  in  ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs attrs) (getSvgAttrs attrs) elts}
+                  in  ret { mkGenSVGSyn
+                          & genSVGSyn_svgElts  = mkGroup (getHtmlAttrs attrs) (getSvgAttrs attrs) elts
+                          , genSVGSyn_onclicks = onclicks
+                          }
     getCpId clval
       # (n, clval) = nextNo clval
       = (mkClipPathId editletId n, clval)
@@ -1128,7 +1131,9 @@ genSVG img = imageCata genSVGAllAlgs img
               -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkCollage imgs offsets mbhost edges totalSpan imAts imTrs imTas
       =           sequence imgs `b`
-      \imgsSps -> ret {mkGenSVGSyn & genSVGSyn_svgElts = flatten (zipWith mkTranslateGroup offsets (map (\x -> x.genSVGSyn_svgElts) imgsSps))}
+      \imgsSps -> ret { mkGenSVGSyn
+                      & genSVGSyn_svgElts  = flatten (zipWith mkTranslateGroup offsets (map (\x -> x.genSVGSyn_svgElts) imgsSps))
+                      , genSVGSyn_onclicks = 'DM'.unions (map (\x -> x.genSVGSyn_onclicks) imgsSps) }
       //where
       //go st
         //# (imgsSps, st) = sequence imgs st
