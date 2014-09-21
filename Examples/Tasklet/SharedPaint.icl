@@ -1,10 +1,15 @@
 module SharedPaint
 
+// On the client, the list of drawings is reversed for efficient appending
+// Because of this, there is the trick with reverse at appClientDiff, genClientDiff and updateUI
+
 import iTasks
 import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 from StdArray import class Array(uselect), instance Array {} a
+
+import Text
 
 :: PainterState = 	{ tool 		:: String
 					, color 	:: String
@@ -19,6 +24,15 @@ from StdArray import class Array(uselect), instance Array {} a
 		    | DrawCircle !String !Bool !Int !Int !Int !Int
 
 :: Drawing = Drawing [DrawType]
+
+instance toString DrawType
+where
+	toString (DrawLine color a b c d) = "DrawLine " +++ color +++ " " +++toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
+	toString (DrawRect color filled a b c d) = "DrawRect " +++ color +++ " " +++ toString filled +++ " " +++ toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
+	toString (DrawCircle color filled a b c d) = "DrawCircle " +++ color +++ " " +++ toString filled +++ " " +++ toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
+
+dumpDrawing :: [DrawType] -> String
+dumpDrawing drawing = join "," (map toString drawing)
 
 derive class iTask PainterState, DrawType, Drawing
 
@@ -40,7 +54,7 @@ where
 	  |  updateUI = updateUI
 	  ,  defVal   = {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
 	  ,  genDiff  = cltGenDiff
-	  ,  appDiff  = \ds cl -> {cl & draw = cl.draw ++ ds}
+	  ,  appDiff  = \ds cl -> {cl & draw = reverse ds ++ cl.draw}
 	  }
 
 	srvGenDiff (Drawing ds1) (Drawing ds2)
@@ -54,7 +68,7 @@ where
 	cltGenDiff cl1 cl2
 		| lds1 == lds2
 			= Nothing
-			= Just (drop lds1 cl2.draw)
+			= Just (reverse (take (lds2-lds1) cl2.draw))
 	where
 		lds1 = length cl1.draw
 		lds2 = length cl2.draw
@@ -253,22 +267,40 @@ where
 			
 		// Update start coordinates for pencil
 		= case state.tool of 
-				"P" = ({state & mouseDown = Just (x,y), draw=[drawType:state.draw], lastDraw = Nothing}, world)
+				"P" = ({state & mouseDown = Just (x,y), draw = [drawType:state.draw], lastDraw = Nothing}, world)
 				_   = ({state & lastDraw = Just drawType}, world)
 
 //-------------------------------------------------------------------------
+
+import StdMisc, StdDebug
 
 taskletExamples :: [Workflow]
 taskletExamples =
 	[workflow "Painter tasklet" "Simple painter tasklet" editlet2]
 
-//editlet2 :: Task Drawing
-editlet2 = withShared (painterEditlet []) (\smap -> updateSharedInformation "1" [] smap 
-																-|| 
-													updateSharedInformation "2" [] smap )
+tracelength ds1 ds2 c = trace_n ("l: "+++toString (length ds1)+++", r: "+++toString (length ds2))c
 
-editlet = updateInformation "Painter" [] (painterEditlet [DrawLine "red" 1 1 100 100])
-		>>= \ds -> viewInformation "Drawing" [] ds
+/*
+shareditlet name drawing = updateSharedInformation name 
+								[UpdateWith (\(Drawing ds) -> painterEditlet ds)
+								            (\_ (Editlet value _ _) -> value)] drawing
+
+editlet2 :: Task Drawing
+editlet2 = withShared (Drawing []) (\drawing -> shareditlet "1" drawing
+													-|| 
+									            shareditlet "2" drawing)
+*/
+
+shareditlet name editlet = updateSharedInformation name [] editlet								
+
+editlet2 :: Task (Editlet Drawing [DrawType])
+editlet2 = withShared (painterEditlet []) (\editlet -> shareditlet "1" editlet
+													-|| 
+									                   shareditlet "2" editlet)
+
+
+//editlet = updateInformation "Painter" [] (painterEditlet [DrawLine "red" 1 1 100 100])
+//		>>= \ds -> viewInformation "Drawing" [] ds
 		    
 Start :: *World -> *World
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist taskletExamples)) world
