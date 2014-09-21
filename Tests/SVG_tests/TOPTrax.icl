@@ -147,7 +147,8 @@ toImage my_turn st=:{trax,names=[me,you],turn}
 where
 	game_over					= not (isEmpty winners)
 	winners						= loops trax ++ winning_lines trax
-	winner						= if (fst (hd winners) == RedLine) me you
+	prev_player_color			= if turn WhiteLine RedLine
+	winner						= if (isMember prev_player_color (map fst winners)) (if turn you me) (if turn me you)
 	it_is_my_turn				= my_turn == turn
 	message						= if game_over ("The winner is " +++ toString winner +++ "!") 
 								 (if it_is_my_turn "Select a tile" "Wait for other player...")
@@ -155,8 +156,11 @@ where
 	free_coords					= free_coordinates trax
 	d							= px 50.0
 	board						= if (nr_of_tiles trax == zero)
-								     (grid (Rows 2) (LeftToRight,TopToBottom) [] [] 
-								           [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
+								     (if it_is_my_turn 
+								         (grid (Rows 2) (LeftToRight,TopToBottom) [] [] 
+								               [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
+								         )
+								         (voidImage d)
 								     )
 								     (grid (Rows (maxy-miny+3)) (LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
 								           [  case tile_at trax coord of
