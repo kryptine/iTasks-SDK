@@ -8,8 +8,9 @@ import trax
 //import game2
 import iTasks, MultiUser
 import Data.List
+from StdFunc import flip
 
-derive class iTask TraxSt, TileChoice
+derive class iTask TraxSt
 derive gEditor    Coordinate, TraxTile, TileEdge, Trax
 derive gEditMeta  Coordinate, TraxTile, TileEdge, Trax
 derive gUpdate    Coordinate, TraxTile, TileEdge, Trax
@@ -18,7 +19,6 @@ derive gText      Coordinate, TraxTile, TileEdge, Trax
 derive JSONEncode Coordinate, TraxTile, TileEdge, Trax
 derive JSONDecode Coordinate, TraxTile, TileEdge, Trax
 derive gDefault   Coordinate, TraxTile, TileEdge, Trax
-
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks [ /*workflow  "Original Trax" "Play trax"  	 play_trax
@@ -113,72 +113,71 @@ import iTasks.API.Extensions.SVG.SVGlet
  = { trax   :: !Trax              // the current set of placed tiles
    , names  :: ![User]            // the current two players
    , turn   :: !Bool
-   , choice :: !Maybe TileChoice
+   , choice :: !Maybe Coordinate
    }
-:: TileChoice 
-	= { location :: Coordinate
-	  , tile     :: Maybe TraxTile
-	  }
 
 play_trax2 :: Task (TraxSt,TraxSt)
 play_trax2
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Trax with:" [] users
-	  >>= \you -> playGame2 me you {trax=loop,names=[me,you],turn=True,choice=Nothing}
-
-loop = {tiles = [({col=0,row=0},southeast),({col=1,row=0},horizontal),({col=2,row=0},horizontal),({col=3,row=0},southwest)
-                ,({col=0,row=1},vertical), ({col=1,row=1},southeast), ({col=2,row=1},horizontal),({col=3,row=1},northwest),({col=4,row=1},vertical)
-                ,({col=0,row=2},northeast),({col=1,row=2},northwest), ({col=2,row=2},southeast)
-                ]
-       }
+	  >>= \you -> playGame2 me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
 
 playGame2 me you traxSt
 	= withShared traxSt
-	  (\share -> updateSharedInformation (toString me)  [imageViewUpdate toAction (toImage False) fromAction] share
+	  (\share -> updateSharedInformation (toString me)  [imageViewUpdate id (toImage True)  (flip const)] share
 	             -&&-
-	             updateSharedInformation (toString you) [imageViewUpdate toAction (toImage True)  fromAction] share
+	             updateSharedInformation (toString you) [imageViewUpdate id (toImage False) (flip const)] share
 	  )
 
-toAction :: TraxSt -> ActionState () TraxSt
-toAction traxSt = {ActionState | state = traxSt, action = Nothing}
+start_with_this :: TraxTile TraxSt -> TraxSt
+start_with_this tile st=:{trax,turn}
+	= {st & trax = add_tile zero tile trax, turn = not turn}
 
-fromAction :: TraxSt (ActionState () TraxSt) -> TraxSt
-fromAction _ {ActionState | state = st=:{choice = Just {location,tile=Just t}}}
-	= {st & trax = add_tile location t st.trax, choice = Nothing}
-fromAction _ {ActionState | state}
-	= state
+setcell :: Coordinate TraxSt -> TraxSt
+setcell coord st
+	= {st & choice = Just coord}
 
-toImage :: Bool (ActionState () TraxSt) -> Image (ActionState () TraxSt)
-toImage turn st=:{ActionState | state}
-	= grid (Rows (maxy-miny+3)) (LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
-	       [  case tile_at state.trax coord of
-	             Nothing   = if (isMember coord free_coords) (freeImage d coord st) (voidImage d)
-	             Just tile = tileImage d tile
-	       \\ row <- [miny-1..maxy+1]
-	        , col <- [minx-1..maxx+1]
-	        , let coord = fromTuple (col,row)
-	       ]  Nothing
+settile :: Coordinate TraxTile TraxSt -> TraxSt
+settile coord tile st=:{trax,turn}
+	= {st & trax = mandatory_moves (add_tile coord tile trax) coord, choice = Nothing, turn = not turn}
+
+toImage :: Bool TraxSt -> Image TraxSt
+toImage my_turn st=:{trax,names=[me,you],turn}
+	= above (repeat AtMiddleX) [] [text font message, board] Nothing
 where
-	((minx,maxx),(miny,maxy))	= bounds state.trax
-	free_coords					= free_coordinates state.trax
+	game_over					= not (isEmpty winners)
+	winners						= loops trax ++ winning_lines trax
+	winner						= if (fst (hd winners) == RedLine) me you
+	it_is_my_turn				= my_turn == turn
+	message						= if game_over ("The winner is " +++ toString winner +++ "!") 
+								 (if it_is_my_turn "Select a tile" "Wait for other player...")
+	((minx,maxx),(miny,maxy))	= bounds trax
+	free_coords					= free_coordinates trax
 	d							= px 50.0
+	board						= if (nr_of_tiles trax == zero)
+								     (grid (Rows 2) (LeftToRight,TopToBottom) [] [] 
+								           [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
+								     )
+								     (grid (Rows (maxy-miny+3)) (LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
+								           [  case tile_at trax coord of
+								                 Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
+								                 Just tile = tileImage d tile
+								           \\ row <- [miny-1..maxy+1]
+								            , col <- [minx-1..maxx+1]
+								            , let coord = fromTuple (col,row)
+								           ] Nothing
+								     )
 
 voidImage :: Span -> Image a
 voidImage d				= empty d d
 
-freeImage :: Span Coordinate (ActionState () TraxSt) -> Image (ActionState () TraxSt)
-freeImage d coord {ActionState | state={trax,choice}}
+freeImage :: Span Coordinate TraxSt -> Image TraxSt
+freeImage d coord {trax,choice}
 | isNothing choice || coord <> choice_coord
-						= unselected <@< {onclick = setcell}
-//| isNothing choice_tile	= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile tile} \\ tile <- candidates] Nothing
-| isNothing choice_tile	= above [] [] [tileImage (d /. nr_of_candidates) tile \\ tile <- candidates] Nothing
-//| isNothing choice_tile	= fity d (above [] [] [tileImage d tile \\ tile <- candidates] Nothing)
-| otherwise				= tileImage d (fromJust choice_tile)
+						= unselected <@< {onclick = setcell coord}
+| otherwise				= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile coord tile} \\ tile <- candidates] Nothing
 where
-	choice_coord		= (fromJust choice).location
-	choice_tile			= (fromJust choice).tile
-	setcell      st		= {ActionState | st & state = {st.ActionState.state & choice = Just {location = coord, tile = Nothing}}}
-	settile tile st		= {ActionState | st & state = {st.ActionState.state & choice = Just {location = coord, tile = Just tile}}}
+	choice_coord		= fromJust choice
 	candidates			= possible_tiles (linecolors trax coord)
 	nr_of_candidates	= length candidates
 	unselected			= rect d d <@< {fill = toSVGColor "lightgrey"}
@@ -203,3 +202,11 @@ where
 	ne					= (d /.  2, d /. -2)
 	se					= (d /.  2, d /.  2)
 	sw					= (d /. -2, d /.  2)
+
+font	= { fontfamily  = "Arial"
+	      , fontysize   = 14.0
+	      , fontstretch = ""
+	      , fontstyle   = ""
+	      , fontvariant = ""
+	      , fontweight  = ""
+	      }
