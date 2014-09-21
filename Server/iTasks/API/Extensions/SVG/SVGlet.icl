@@ -596,9 +596,9 @@ fixSpans img = go
       \mmarkers -> liCo `b`
       \liCo     -> let (imSp`, imOff) = applyTransforms imTrs imSp
                    in  ret { fixSpansSyn_ImageContent     = Line { LineImage
-                                                            | lineSpan    = imSp
-                                                            , markers     = mmarkers
-                                                            , lineContent = liCo }
+                                                                 | lineSpan    = imSp
+                                                                 , markers     = mmarkers
+                                                                 , lineContent = liCo }
                            , fixSpansSyn_TotalSpan        = imSp`
                            , fixSpansSyn_OffsetCorrection = imOff
                            , fixSpansSyn_Connectors       = [] /* TODO Connectors? */ }
@@ -735,8 +735,8 @@ fixSpans img = go
     , spanLookupSpanAlg = ($)
     , spanAddSpanAlg    = \x y -> x `b` \x -> y `b` \y -> ret (x + y)
     , spanSubSpanAlg    = \x y -> x `b` \x -> y `b` \y -> ret (x - y)
-    , spanMulSpanAlg    = \x y -> x `b` \x ->             ret (x *. y)
-    , spanDivSpanAlg    = \x y -> x `b` \x ->             ret (x /. y)
+    , spanMulSpanAlg    = \x y -> x `b` \x -> y `b` \y -> ret (x * y)
+    , spanDivSpanAlg    = \x y -> x `b` \x -> y `b` \y -> ret (x / y)
     , spanAbsSpanAlg    = \x   -> x `b` \x ->             ret (abs x)
     , spanMinSpanAlg    = \xs  -> sequence xs `b` \xs ->  ret (minSpan xs)
     , spanMaxSpanAlg    = \xs  -> sequence xs `b` \xs ->  ret (maxSpan xs)
@@ -1238,8 +1238,8 @@ evalSpanSpanAlgs =
   , spanLookupSpanAlg = \_   -> ret 0.0
   , spanAddSpanAlg    = \x y -> mkBin (+) x y
   , spanSubSpanAlg    = \x y -> mkBin (-) x y
-  , spanMulSpanAlg    = \x y -> mkBin` (*) x y
-  , spanDivSpanAlg    = \x y -> mkBin` (/) x y
+  , spanMulSpanAlg    = \x y -> mkBin (*) x y
+  , spanDivSpanAlg    = \x y -> mkBin (/) x y
   , spanAbsSpanAlg    = \x   -> mkAbs x
   , spanMinSpanAlg    = \xs  -> mkList minList xs
   , spanMaxSpanAlg    = \xs  -> mkList maxList xs
@@ -1345,15 +1345,15 @@ mkList f xs = sequence xs `b` \xs -> ret (f xs)
   }
 
 :: SpanAlg loSp sp =
-  { spanPxSpanAlg     :: Real    -> sp
-  , spanLookupSpanAlg :: loSp    -> sp
-  , spanAddSpanAlg    :: sp sp   -> sp
-  , spanSubSpanAlg    :: sp sp   -> sp
-  , spanMulSpanAlg    :: sp Real -> sp
-  , spanDivSpanAlg    :: sp Real -> sp
-  , spanAbsSpanAlg    :: sp      -> sp
-  , spanMinSpanAlg    :: [sp]    -> sp
-  , spanMaxSpanAlg    :: [sp]    -> sp
+  { spanPxSpanAlg     :: Real  -> sp
+  , spanLookupSpanAlg :: loSp  -> sp
+  , spanAddSpanAlg    :: sp sp -> sp
+  , spanSubSpanAlg    :: sp sp -> sp
+  , spanMulSpanAlg    :: sp sp -> sp
+  , spanDivSpanAlg    :: sp sp -> sp
+  , spanAbsSpanAlg    :: sp    -> sp
+  , spanMinSpanAlg    :: [sp]  -> sp
+  , spanMaxSpanAlg    :: [sp]  -> sp
   }
 
 :: LookupSpanAlg loSp =
@@ -1489,12 +1489,14 @@ spanCata spanAlgs lookupSpanAlgs (SubSpan sp1 sp2)
   # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
   # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
   = spanAlgs.spanSubSpanAlg synSpan1 synSpan2
-spanCata spanAlgs lookupSpanAlgs (MulSpan sp r)
-  # synSpan = spanCata spanAlgs lookupSpanAlgs sp
-  = spanAlgs.spanMulSpanAlg synSpan r
-spanCata spanAlgs lookupSpanAlgs (DivSpan sp r)
-  # synSpan = spanCata spanAlgs lookupSpanAlgs sp
-  = spanAlgs.spanDivSpanAlg synSpan r
+spanCata spanAlgs lookupSpanAlgs (MulSpan sp1 sp2)
+  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  = spanAlgs.spanMulSpanAlg synSpan1 synSpan2
+spanCata spanAlgs lookupSpanAlgs (DivSpan sp1 sp2)
+  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  = spanAlgs.spanDivSpanAlg synSpan1 synSpan2
 spanCata spanAlgs lookupSpanAlgs (AbsSpan sp)
   # synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = spanAlgs.spanAbsSpanAlg synSpan
