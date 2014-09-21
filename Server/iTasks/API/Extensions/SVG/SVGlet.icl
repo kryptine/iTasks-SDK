@@ -336,6 +336,119 @@ ellipseAnchors (w, h) = [(rx, zero), (rx *. 2.0, ry), (rx, ry *. 2.0), (zero, ry
   rSin th r = r *. sin th
   rCos th r = r *. cos th
 
+applyTransforms :: ![ImageTransform] !ImageSpan -> (ImageSpan, ImageOffset)
+applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
+  where
+  f (RotateImage th) (accSp, accOff)
+    # (imSp, offs) = rotatedImageSpan th accSp
+    = (imSp, accOff + offs)
+  f (SkewXImage th) (accSp=:(_, ysp), (xoff, yoff))
+    # (xsp, offs) = skewXImageWidth th accSp
+    = ((xsp, ysp), (xoff + offs, yoff))
+  f (SkewYImage th) (accSp=:(xsp, _), (xoff, yoff))
+    # (ysp, offs) = skewYImageHeight th accSp
+    = ((xsp, ysp), (xoff, yoff + offs))
+  f (FitImage xsp ysp) (_, accOff)
+    = ((xsp, ysp), accOff)
+  f (FitXImage sp) ((xsp, ysp), accOff)
+    = ((sp, (sp / xsp) * ysp), accOff)
+  f (FitYImage sp) ((xsp, ysp), accOff)
+    = (((sp / ysp) * xsp, sp), accOff)
+
+instance /    Span where / (PxSpan 0.0) _             = PxSpan 0.0
+                         / _            (PxSpan 0.0)  = PxSpan 0.0 // Division by zero should be undefined, but that would be impractical
+                         / l            (PxSpan 1.0)  = l // Identity
+                         / l            r             = DivSpan l r
+
+instance *    Span where * (PxSpan 0.0)           _                      = PxSpan 0.0
+                         * _                      (PxSpan 0.0)           = PxSpan 0.0
+                         * (PxSpan 1.0)           r                      = r // Identity
+                         * l                      (PxSpan 1.0)           = l // Identity
+                         * (PxSpan a)             (PxSpan b)             = PxSpan (a * b)
+                         * (PxSpan a)             (MulSpan (PxSpan b) c) = MulSpan (PxSpan (a * b)) c // Associativity
+                         * (PxSpan a)             (MulSpan b (PxSpan c)) = MulSpan (PxSpan (a * c)) b // Associativity + commutativity
+                         * (MulSpan a (PxSpan b)) (PxSpan c)             = MulSpan a (PxSpan (b * c)) // Associativity
+                         * (MulSpan (PxSpan a) b) (PxSpan c)             = MulSpan b (PxSpan (a * c)) // Associativity + commutativity
+                         * l                      r                      = MulSpan l r
+
+// Rotates a rectangle by a given angle. Currently, this function is rather
+// naive. It rotates the rectangle (usually the bounding box of a shape) around
+// its centre point. It returns the span of the entire rotated image, i.e., the
+// new bounding box of the rotated image. If you rotate a square by, e.g. 45
+// degrees, then the resulting bounding box will be larger than the original
+// square bounding box. If you rotate the square again by 45 degrees, you would
+// expect that the bounding box after the second rotation is as big as the
+// original square again. However, with this particular function, the
+// resulting bounding box is bigger still, because the new bounding box was
+// rotated.
+//
+// @param th | Angle th      angle          The angle of rotation
+// @param (a, a) | IsSpan a  (xspan, yspan) The original x and y spans of the
+//                                          non-rotated image
+// @return ((a, a), (a, a)) | IsSpan a      The span of the rotated image and
+//                                          the offset from between the old and
+//                                          new top-left corner of the bounding
+//                                          box
+rotatedImageSpan :: !th !(a, a) -> ((a, a), (a, a)) | Angle th & IsSpan a
+rotatedImageSpan angle (xspan, yspan)
+  = ( (abs (maxAllX - minAllX), abs (maxAllY - minAllY))
+    , (zero - minAllX, zero - minAllY))
+  where
+  cx        = xspan /. 2.0
+  cy        = yspan /. 2.0
+  allPoints = [ mkTransform zero  zero
+              , mkTransform xspan zero
+              , mkTransform zero  yspan
+              , mkTransform xspan yspan ]
+  allX      = map fst allPoints
+  maxAllX   = maxOf allX
+  minAllX   = minOf allX
+  allY      = map snd allPoints
+  maxAllY   = maxOf allY
+  minAllY   = minOf allY
+  angle`    = toReal (toRad angle)
+  mkTransform x y = ( cx + (x - cx) *. cos angle` + (y - cy) *. sin angle`
+                    , cy - (x - cx) *. sin angle` + (y - cy) *. cos angle`)
+
+// Skew an image by a given angle. This function is naive as well, for the same
+// reasons as the rotation function.
+// TODO : We need to calculate the difference between the original and skewed
+// top-left coordinate here as well, because we need it in grid layouts
+//
+// @param (th | Angle th)     angle          The skew angle
+// @param ((a, a) | IsSpan a) (xspan, yspan) The original x and y spans of the
+//                                           non-skewed image
+// @return ((a, a) | IsSpan a) The new width of the skewed image and possible offset
+skewXImageWidth :: !th !(a, a) -> (a, a) | Angle th & IsSpan a
+skewXImageWidth angle (xspan, yspan) = (newXSpan, mkOffset)
+  where
+  rAngle   = toReal (toRad angle)
+  newXSpan = xspan + (abs (yspan *. tan rAngle))
+  spanDiff = newXSpan - xspan
+  mkOffset
+    | rAngle <= 0.0 = zero - spanDiff
+    | otherwise     = spanDiff
+
+// Skew an image by a given angle. This function is naive as well, for the same
+// reasons as the rotation function.
+// TODO : We need to calculate the difference between the original and skewed
+// top-left coordinate here as well, because we need it in grid layouts
+//
+// @param (th | Angle th)     angle          The skew angle
+// @param ((a, a) | IsSpan a) (xspan, yspan) The original x and y spans of the
+//                                           non-skewed image
+// @return ((a, a) | IsSpan a) The new height of the skewed image and possible offset
+skewYImageHeight :: !th !(a, a) -> (a, a) | Angle th & IsSpan a
+skewYImageHeight angle (xspan, yspan) = (newYSpan, mkOffset)
+  where
+  rAngle   = toReal (toRad angle)
+  newYSpan = yspan + (abs (xspan *. tan rAngle))
+  spanDiff = newYSpan - xspan
+  mkOffset
+    | rAngle <= 0.0 = zero - spanDiff
+    | otherwise     = spanDiff
+
+
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
 gatherFonts img = imageCata gatherFontsAllAlgs img
   where
