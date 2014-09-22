@@ -20,8 +20,8 @@ Global
 		Profile
 			Memory:	False
 			MemoryMinimumHeapSize:	0
-			Time:	True
-			Stack:	True
+			Time:	False
+			Stack:	False
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
