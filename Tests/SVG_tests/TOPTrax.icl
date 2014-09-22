@@ -120,7 +120,7 @@ play_trax2 :: Task User
 play_trax2
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Trax with:" [] users
-	  >>= \you -> playGame2 me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
+	  >>= \you -> playGame2` me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
 	  >>* [OnValue (ifValue game_over game_winner)]
 
 game_over :: TraxSt -> Bool
@@ -136,6 +136,10 @@ where
 	winners				= loops trax ++ winning_lines trax
 	prev_player_color	= if turn WhiteLine RedLine
 	winner				= if (isMember prev_player_color (map fst winners)) (if turn you me) (if turn me you)
+
+playGame2` :: User user TraxSt -> Task TraxSt
+playGame2` me you traxSt
+	= updateInformation "Play Trax" [imageViewUpdate id toImage` (flip const)] traxSt
 
 playGame2 :: User User TraxSt -> Task TraxSt
 playGame2 me you traxSt
@@ -156,6 +160,13 @@ setcell coord st
 settile :: Coordinate TraxTile TraxSt -> TraxSt
 settile coord tile st=:{trax,turn}
 	= {st & trax = mandatory_moves (add_tile coord tile trax) coord, choice = Nothing, turn = not turn}
+
+toImage` :: TraxSt -> Image TraxSt
+toImage` st=:{trax,names=[me,you],turn}
+	= above (repeat AtMiddleX) [] [/*text font message,*/ board True d st] Nothing
+where
+	message						= toString (if turn me you) +++ " plays with " +++ if turn "red" "white"
+	d							= px 50.0
 
 toImage :: Bool TraxSt -> Image TraxSt
 toImage my_turn st=:{trax,names=[me,you],turn}
