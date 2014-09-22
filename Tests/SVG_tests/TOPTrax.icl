@@ -116,18 +116,34 @@ import iTasks.API.Extensions.SVG.SVGlet
    , choice :: !Maybe Coordinate
    }
 
-play_trax2 :: Task (TraxSt,TraxSt)
+play_trax2 :: Task User
 play_trax2
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Trax with:" [] users
 	  >>= \you -> playGame2 me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
+	  >>* [OnValue (ifValue game_over game_winner)]
 
+game_over :: TraxSt -> Bool
+game_over st=:{trax}
+	= not (isEmpty winners)
+where
+	winners = loops trax ++ winning_lines trax
+
+game_winner :: TraxSt -> Task User
+game_winner st=:{trax,turn,names=[me,you]}
+	= viewInformation "The winner is:" [] winner -&&- viewInformation "Final board:" [imageView (board False (px 50.0))] st @ fst
+where
+	winners				= loops trax ++ winning_lines trax
+	prev_player_color	= if turn WhiteLine RedLine
+	winner				= if (isMember prev_player_color (map fst winners)) (if turn you me) (if turn me you)
+
+playGame2 :: User User TraxSt -> Task TraxSt
 playGame2 me you traxSt
 	= withShared traxSt
-	  (\share -> updateSharedInformation (toString me)  [imageViewUpdate id (toImage True)  (flip const)] share
+	  (\share -> updateSharedInformation (toString me  +++ " plays with red")   [imageViewUpdate id (toImage True)  (flip const)] share
 	             -&&-
-	             updateSharedInformation (toString you) [imageViewUpdate id (toImage False) (flip const)] share
-	  )
+	             updateSharedInformation (toString you +++ " plays with white") [imageViewUpdate id (toImage False) (flip const)] share
+	  ) @ fst
 
 start_with_this :: TraxTile TraxSt -> TraxSt
 start_with_this tile st=:{trax,turn}
@@ -143,34 +159,29 @@ settile coord tile st=:{trax,turn}
 
 toImage :: Bool TraxSt -> Image TraxSt
 toImage my_turn st=:{trax,names=[me,you],turn}
-	= above (repeat AtMiddleX) [] [text font message, board] Nothing
+	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st] Nothing
 where
-	game_over					= not (isEmpty winners)
-	winners						= loops trax ++ winning_lines trax
-	prev_player_color			= if turn WhiteLine RedLine
-	winner						= if (isMember prev_player_color (map fst winners)) (if turn you me) (if turn me you)
 	it_is_my_turn				= my_turn == turn
-	message						= if game_over ("The winner is " +++ toString winner +++ "!") 
-								 (if it_is_my_turn "Select a tile" "Wait for other player...")
+	message						= if it_is_my_turn "Select a tile" "Wait for other player..."
+	d							= px 50.0
+
+board :: Bool Span TraxSt -> Image TraxSt
+board it_is_my_turn d st=:{trax}
+| nr_of_tiles trax == zero
+	| it_is_my_turn				= grid (Rows 2) (LeftToRight,TopToBottom) [] [] 
+							           [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
+	| otherwise					= voidImage d
+| otherwise						= grid (Rows (maxy-miny+3)) (LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
+							           [  case tile_at trax coord of
+							                 Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
+							                 Just tile = tileImage d tile
+							           \\ row <- [miny-1..maxy+1]
+							            , col <- [minx-1..maxx+1]
+							            , let coord = fromTuple (col,row)
+							           ] Nothing
+where
 	((minx,maxx),(miny,maxy))	= bounds trax
 	free_coords					= free_coordinates trax
-	d							= px 50.0
-	board						= if (nr_of_tiles trax == zero)
-								     (if it_is_my_turn 
-								         (grid (Rows 2) (LeftToRight,TopToBottom) [] [] 
-								               [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
-								         )
-								         (voidImage d)
-								     )
-								     (grid (Rows (maxy-miny+3)) (LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
-								           [  case tile_at trax coord of
-								                 Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
-								                 Just tile = tileImage d tile
-								           \\ row <- [miny-1..maxy+1]
-								            , col <- [minx-1..maxx+1]
-								            , let coord = fromTuple (col,row)
-								           ] Nothing
-								     )
 
 voidImage :: Span -> Image a
 voidImage d				= empty d d
@@ -184,28 +195,26 @@ where
 	choice_coord		= fromJust choice
 	candidates			= possible_tiles (linecolors trax coord)
 	nr_of_candidates	= length candidates
-	unselected			= rect d d <@< {fill = toSVGColor "lightgrey"}
-	selected			= unselected <@< {stroke = toSVGColor "grey"} <@< {strokewidth = d /. 20}
+	unselected			= tileShape d <@< {fill = toSVGColor "lightgrey"}
 
 tileImage :: Span TraxTile -> Image a
-tileImage d tile		= maybe (abort "tileImage Nothing")
-                                id (lookup tile [ (horizontal,crossed (yline,xline))
-						                        , (vertical,  crossed (xline,yline))
-						                        , (northwest, curved [se,nw])
-						                        , (northeast, curved [sw,ne])
-						                        , (southeast, curved [nw,se])
-						                        , (southwest, curved [ne,sw])
-						                        ])
+tileImage d tile		= fromJust (lookup tile [ (horizontal,rotate (Deg 0.0)   horizontal_tile)
+			                                    , (vertical,  rotate (Deg 90.0)  horizontal_tile)
+			                                    , (northwest, rotate (Deg 0.0)   northwest_tile)
+			                                    , (northeast, rotate (Deg 90.0 ) northwest_tile)
+			                                    , (southeast, rotate (Deg 180.0) northwest_tile)
+			                                    , (southwest, rotate (Deg 270.0) northwest_tile)
+			                                    ])
 where
-	brick				= Just (rect d d <@< {xradius = d /. 10} <@< {yradius = d /. 10} <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
-	crossed (white,red)	= overlay (repeat (AtMiddleX,AtMiddleY)) [] [ bar white "white", bar red "red"] brick
+	brick				= Just (tileShape d <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
+	horizontal_tile		= overlay (repeat (AtMiddleX,AtMiddleY)) [] [ bar yline "white", bar xline "red" ] brick
+	northwest_tile		= maskWith (overlay [] [(d /. 2, d /. 2),(d /. -2, d /. -2)] [ arc "white", arc "red" ] brick)
+	                               (tileShape d <@< {fill = toSVGColor "white"})
 	bar line c			= line Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
-	curved cs			= maskWith (overlay [] cs [ arc "white", arc "red"] brick) (rect d d <@< {fill = toSVGColor "white"})
 	arc c				= circle d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5} <@< {fill = toSVGColor "none"}
-	nw					= (d /. -2, d /. -2)
-	ne					= (d /.  2, d /. -2)
-	se					= (d /.  2, d /.  2)
-	sw					= (d /. -2, d /.  2)
+
+tileShape :: Span -> Image a
+tileShape d				= rect d d <@< {xradius = d /. 10} <@< {yradius = d /. 10}
 
 font	= { fontfamily  = "Arial"
 	      , fontysize   = 14.0
