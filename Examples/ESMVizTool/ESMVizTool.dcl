@@ -18,4 +18,4 @@ esmVizTool :: !(ESM s i o) *World -> *World
 //			| iTask, render, gEq{|*|}, Eq s & iTask, render, gEq{|*|}, ggen{|*|} i & iTask, gEq{|*|}, render o
 			| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 
-toHtmlString :: a -> String | gVisualizeText{|*|} a
+toHtmlString :: a -> String | gText{|*|} a

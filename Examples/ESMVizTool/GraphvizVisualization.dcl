@@ -3,7 +3,7 @@ definition module GraphvizVisualization
 **/
 import Data.Graphviz, iTasks
 
-derive gVisualizeText	Digraph
+derive gText	Digraph
 derive gUpdate			Digraph
 derive gVerify			Digraph
 derive JSONEncode		Digraph

@@ -344,9 +344,9 @@ allEdgesFound esm automaton
 remove_spaces :: !String -> String
 remove_spaces str = toString [ c \\ c <- fromString str | not (isSpace c)]
 
-toHtmlString :: a -> String | gVisualizeText{|*|} a
+toHtmlString :: a -> String | gText{|*|} a
 toHtmlString x
-	# string = visualizeAsText x
+	# string = toSingleLineText x
 	= toString [checkChar c \\ c <-fromString string]
 where
 	checkChar '"' = '\''

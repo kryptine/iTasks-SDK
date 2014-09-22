@@ -24,7 +24,7 @@ derive class iTask	NodeState, Arrow, ArrowShape, ClusterMode, CompassPoint, DotP
 					NodeAttribute, NodeDef, OutputMode, Pad, PageDir, Pointf, 
 					RankDir, RankType, Ratio, Rect, SelectedItem, Side, Sizef, StartStyle, StartType, ViewPort
 
-derive gVisualizeText	Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gText	Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gUpdate			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gVerify			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONEncode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle

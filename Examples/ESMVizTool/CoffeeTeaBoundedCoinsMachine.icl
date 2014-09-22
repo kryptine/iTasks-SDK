@@ -63,9 +63,9 @@ derive genShow State
 //derive gEq    State, Input, Output, Product
 derive ggen   Input, Product
 
-instance render	State	where render s	= visualizeAsText AsDisplay s
-instance render	Input	where render i	= visualizeAsText AsDisplay i
-instance render	Output	where render e	= visualizeAsText AsDisplay e
+instance render	State	where render s	= toSingleLineText s
+instance render	Input	where render i	= toSingleLineText i
+instance render	Output	where render e	= toSingleLineText e
 instance ==	State	where (==) s1 s2 = n1 < minbound && n2 < minbound || n1 > maxbound && n2 > maxbound || n1==n2
                                 	  where   n1 = toInt s1; n2 = toInt s2
 instance == Input	where (==) i1 i2 = gEq{|*|} i1 i2
