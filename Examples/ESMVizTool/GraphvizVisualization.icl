@@ -1,7 +1,7 @@
 implementation module GraphvizVisualization
 
 //import GenVisualize, GenUpdate, GenPrint, GenParse
-import iTasks.Framework.Generic
+import iTasks.Framework.Generic, iTasks.Framework.UIDefinition, iTasks.Framework.IWorld, iTasks.API.Core.Types
 //from Data.Error import :: MaybeError (..)
 import Data.Error, Data.Void
 //import Util, Error, HttpUtil, IWorld
@@ -29,7 +29,7 @@ derive gUpdate			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeS
 derive gVerify			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONEncode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONDecode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gEditor		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gEditor		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gEditMeta		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gDefault		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gEq				Digraph
@@ -46,6 +46,45 @@ mapext file				= file + ".map"
 dotext file				= file + ".dot"
 
 instance + String where (+) a b = a +++ b
+
+undef = undef
+
+gEditor{|Digraph|} _ (digraph, _, CorrectValue _) meta vst = mkControl vst
+  where
+  mkControl vst=:{VSt|iworld,taskId}
+      # (sv, iworld)    = iworld!server
+      # filename			= imgname taskId sv.serverName
+      # (mbErr, iworld)	= runGraphviz filename (printDigraph (enhanceDigraphWithLinks digraph)) iworld
+      = case mbErr of
+          Ok _
+              = (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (RawText("<img src=\"/" + (gifext filename) + "\" usemap=\"#" + filename + "\" />"))}, 'DM'.newMap)], {VSt|vst & iworld = iworld})
+          Error msg
+              = (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (Text msg)}, 'DM'.newMap)], {VSt|vst & iworld = iworld})
+
+  runGraphviz :: String [String] *IWorld -> (!MaybeErrorString Void,!*IWorld)
+  runGraphviz name dotcode iworld=:{IWorld|world}
+      # (mbExe,world)		= obtainValueFromConfig dot_exe_path_name world
+      | isNothing mbExe	= (Error ("Could not obtain " +++ dot_exe_path_name +++ " from " +++ config_file_name +++ "."), {iworld & world = world})
+      # exe				= fromJust mbExe
+      # (mbErr,world)		= ensureDirectory public world
+      | isError mbErr		= (Error ("Could not create directory " + (target "")), {iworld & world = world})
+      # (mbErr,world)		= writeFile (target (dotext name)) ('Text'.join "\n" dotcode) world
+      | isError mbErr		= (Error ("Could not write Digraph to " + target (dotext name) + "."), {iworld & world = world})
+      # (mbExit,world)	= 'SP'.callProcess exe (toGIF (target name)) Nothing world
+      | isError mbExit	= (Error ("Creation of " + gifext (target name) + " failed"), {iworld & world = world})
+      # (mbExit,world)	= 'SP'.callProcess exe (toMAP name (target name)) Nothing world
+      | isError mbExit	= (Error ("Creation of " + mapext (target name) + " failed"), {iworld & world = world})
+      # (mbMap,world)		= readFile (mapext (target name)) world	
+      = (Ok Void, {iworld & world = world})
+
+  enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
+      = Digraph name graphAtts
+          [  NodeDef nr st [ NAttURL "#" : nodeAtts ] edges 
+          \\ NodeDef nr st nodeAtts edges <- nodeDefs
+          ] selected
+
+  imgname taskId name	= (toString taskId) + "-" + name
+gEditor{|Digraph|} _ _ _ vst = (HiddenEditor, vst)
 
 //gVisualizeEditor{|Digraph|} Nothing vst			= noVisualization vst				
 //gVisualizeEditor{|Digraph|} (Just digraph) vst	= visualizeCustom mkControl vst
