@@ -37,8 +37,8 @@ derive gEq				Digraph
 config_file_name		:== "Graphviz.config"
 commentsymbol			:== '%'
 dot_exe_path_name		:== "DOT_PATH"
-public 					:== "Static"
-target file				= public + "\\" + file
+public 					:== "WebPublic"
+target file				= public + "/" + file
 toGIF file				= ["-Tgif","-o",gifext file,dotext file]
 toMAP file name			= ["-Tcmapx","-Glabel=" + name,"-o ","\"" + mapext file + "\"", "\"" + dotext file + "\""]
 gifext file				= file + ".gif"
@@ -49,7 +49,7 @@ instance + String where (+) a b = a +++ b
 
 undef = undef
 
-gEditor{|Digraph|} _ (digraph, _, CorrectValue _) meta vst = mkControl vst
+gEditor{|Digraph|} _ (digraph, _, _) meta vst = mkControl vst
   where
   mkControl vst=:{VSt|iworld,taskId}
       # (sv, iworld)    = iworld!server
@@ -84,7 +84,6 @@ gEditor{|Digraph|} _ (digraph, _, CorrectValue _) meta vst = mkControl vst
           ] selected
 
   imgname taskId name	= (toString taskId) + "-" + name
-gEditor{|Digraph|} _ _ _ vst = (HiddenEditor, vst)
 
 //gVisualizeEditor{|Digraph|} Nothing vst			= noVisualization vst				
 //gVisualizeEditor{|Digraph|} (Just digraph) vst	= visualizeCustom mkControl vst
