@@ -107,6 +107,15 @@ where
 		, firstWorkedOn	= p.InstanceProgress.firstEvent
 		, lastWorkedOn	= p.InstanceProgress.lastEvent
 		}	
+    toView _
+        = { assignedTo	= "TODO"//toSingleLineText ('DM'.get "user" attributes)
+		, issuedBy		= "TODO"  //toString p.InstanceProgress.issuedBy
+		, issuedAt		= fromString "0000-00-00"  //p.InstanceProgress.issuedAt
+		, priority		= "TODO"//toSingleLineText ('DM'.get "priority" attributes)
+		, firstWorkedOn	= Nothing //p.InstanceProgress.firstEvent
+		, lastWorkedOn	= Nothing //p.InstanceProgress.lastEvent
+		}	
+
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue
 
