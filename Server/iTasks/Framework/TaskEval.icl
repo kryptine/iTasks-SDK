@@ -23,7 +23,7 @@ evalTaskInstance instanceNo event iworld
     # (res,iworld)      = evalTaskInstance` instanceNo event iworld
     = (res,iworld)
 where
-    evalTaskInstance` instanceNo event iworld=:{clocks={localDate,localTime}}
+    evalTaskInstance` instanceNo event iworld=:{clocks={localDate,localTime},current}
     # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld
 	| isError constants         = ((\(Error (e,msg)) -> Error msg) constants, iworld)
 	# constants=:{InstanceConstants|instanceKey,session,listId} = fromOk constants
@@ -59,7 +59,7 @@ where
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
 										, user = currentUser
 										, eventRoute = eventRoute
-                                        , editletDiffs = 'DM'.newMap
+                                        , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event evalOpts tree iworld
