@@ -60,7 +60,7 @@ where
 	srvGenDiff (Drawing ds1) (Drawing ds2)
 		| lds1 == lds2
 			= Nothing
-			= Just (drop lds1 ds2)
+			= trace_n ("l: " +++ toString lds1 +++ " r: " +++ toString lds2) Just (drop lds1 ds2)
 	where
 		lds1 = length ds1
 		lds2 = length ds2
