@@ -75,9 +75,9 @@ manageWorklist iflows
 installInitialWorkflows ::[Workflow] -> Task Void
 installInitialWorkflows [] = return Void
 installInitialWorkflows iflows
-	= get workflows
+	=   try (get workflows) (\StoreReadBuildVersionError -> return [])
 	>>= \flows -> case flows of
-		[]	= addWorkflows iflows >>| return Void
+		[]	= set iflows workflows @! Void
 		_	= return Void
 
 // Application specific types
@@ -193,16 +193,16 @@ where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
 	processes = mapRead (\(procs,ownPid) -> [(p.TaskListItem.taskId,mkRow p) \\ p <- procs | show ownPid p && isActive p])  (processesForCurrentUser |+| currentTopTask)
 	where
-		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta} = taskId <> ownPid
+		show ownPid {TaskListItem|taskId,progress=Just _} = taskId <> ownPid
 		show ownPid _ = False
 		
-	isActive {progressMeta=Just {ProgressMeta|value}}	= value === None || value === Unstable
+	isActive {TaskListItem|progress=Just {InstanceProgress|value}}	= value === None || value === Unstable
 
-	mkRow {TaskListItem|taskId,progressMeta=Just pmeta,attributes} =
+	mkRow {TaskListItem|taskId,progress=Just progress,attributes} =
 		{WorklistRow
 		|title      = 'DM'.get "title" attributes
 		,priority   = 'DM'.get "priority" attributes
-		,date       = pmeta.ProgressMeta.issuedAt
+		,date       = fromString "0000-00-00" //progress.InstanceProgress.issuedAt //FIXME
 		,deadline   = 'DM'.get "completeBefore" attributes
 		}
 	

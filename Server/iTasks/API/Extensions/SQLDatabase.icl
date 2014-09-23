@@ -12,7 +12,7 @@ import qualified Data.Map
 derive class iTask SQLDatabaseDef, SQLDatabase, SQLValue, SQLTime, SQLDate, SQLTable, SQLColumn, SQLColumnType
 
 sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-                   (A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabaseDef,p) r w
+                   (A.*cur: p w *cur -> *(MaybeErrorString (), *cur) | SQLCursor cur) -> RWShared (SQLDatabaseDef,p) r w
 sqlShare name readFun writeFun = createReadWriteSDS "SQLShares" name (readFunSQL readFun) (writeFunSQL writeFun)
 
 readFunSQL :: (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur) (SQLDatabaseDef,p) *IWorld -> (!MaybeError TaskException r,!*IWorld)
@@ -39,7 +39,7 @@ readFunSQL fun (SQLiteDatabase path,p) iworld
                 (Ok v)      = (Ok v,iworld)
                 (Error e)   = (Error (exception e),iworld)
 
-writeFunSQL :: (A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) (SQLDatabaseDef,p) w *IWorld -> (!MaybeError TaskException (SDSNotifyPred (SQLDatabaseDef,p)),!*IWorld)
+writeFunSQL :: (A.*cur: p w *cur -> *(MaybeErrorString (), *cur) | SQLCursor cur) (SQLDatabaseDef,p) w *IWorld -> (!MaybeError TaskException (SDSNotifyPred (SQLDatabaseDef,p)),!*IWorld)
 writeFunSQL fun (MySQLDatabase db,p) w iworld
     # (mbOpen,iworld) = openMySQLDB db iworld
 	= case mbOpen of
@@ -112,25 +112,25 @@ execInsert query values cur
 	| isJust err		= (Error (toString (fromJust err)),cur)
 	= (Ok id,cur)
 
-execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Void,*cur) | SQLCursor cur
+execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString (),*cur) | SQLCursor cur
 execDelete query values cur
     # (err,cur) 		= execute query values cur
 	| isJust err		= (Error (toString (fromJust err)),cur)
-	= (Ok Void,cur)
+	= (Ok (),cur)
 
 sqlExecuteSelect :: SQLDatabaseDef SQLStatement ![SQLValue] -> Task [SQLRow]
 sqlExecuteSelect db query values = sqlExecute db [] (execSelect query values)
 
 sqlSelectShare :: String SQLStatement ![SQLValue] -> ROShared SQLDatabaseDef [SQLRow]
-sqlSelectShare name query values = sdsTranslate "sqlSelectShare" (\db -> (db,Void)) (createReadWriteSDS "SQLShares" name (readFunSQL readFun) write)
+sqlSelectShare name query values = sdsTranslate "sqlSelectShare" (\db -> (db,())) (createReadWriteSDS "SQLShares" name (readFunSQL readFun) write)
 where
-    readFun Void cur
+    readFun () cur
         # (err,cur)			= execute query values cur
         | isJust err		= (Error (toString (fromJust err)),cur)
 		# (err,rows,cur)	= fetchAll cur
 		| isJust err		= (Error (toString (fromJust err)),cur)
         = (Ok rows,cur)
-    write _ Void iworld = (Ok (const True),iworld)
+    write _ () iworld = (Ok (const True),iworld)
 		
 sqlTables :: ROShared SQLDatabaseDef [SQLTableName]
 sqlTables = createReadOnlySDSError read
@@ -179,7 +179,7 @@ where
 				# iworld            = closeSQLiteDB cur con cxt iworld
 				= (Ok (fromJust mbTable),iworld)
 
-sqlExecuteCreateTable :: SQLDatabaseDef SQLTable -> Task Void
+sqlExecuteCreateTable :: SQLDatabaseDef SQLTable -> Task ()
 sqlExecuteCreateTable (MySQLDatabase db) table = mkInstantTask eval
 where
 	eval _ iworld
@@ -191,7 +191,7 @@ where
 				# iworld		= closeMySQLDB cur con cxt iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
-					Nothing     = (Ok Void, iworld)
+					Nothing     = (Ok (), iworld)
 sqlExecuteCreateTable (SQLiteDatabase path) table = mkInstantTask eval
 where
 	eval _ iworld
@@ -204,9 +204,9 @@ where
 				# iworld		= closeSQLiteDB cur con cxt iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
-					Nothing     = (Ok Void, iworld)
+					Nothing     = (Ok (), iworld)
 
-sqlExecuteDropTable :: SQLDatabaseDef SQLTableName -> Task Void
+sqlExecuteDropTable :: SQLDatabaseDef SQLTableName -> Task ()
 sqlExecuteDropTable (MySQLDatabase db) tablename = mkInstantTask eval
 where
 	eval _ iworld
@@ -218,7 +218,7 @@ where
 				# iworld		= closeMySQLDB cur con cxt iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
-					Nothing     = (Ok Void, iworld)
+					Nothing     = (Ok (), iworld)
 sqlExecuteDropTable (SQLiteDatabase path) tablename = mkInstantTask eval
 where
 	eval _ iworld
@@ -231,7 +231,7 @@ where
 				# iworld		= closeSQLiteDB cur con cxt iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
-					Nothing     = (Ok Void, iworld)
+					Nothing     = (Ok (), iworld)
 
 openMySQLDB :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
 openMySQLDB db iworld=:{IWorld|resources=Just (MySQLResource con)}

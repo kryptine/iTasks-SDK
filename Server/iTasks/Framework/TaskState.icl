@@ -7,8 +7,8 @@ from iTasks					import JSONEncode, JSONDecode
 from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: EventNo
 import iTasks.API.Core.Types
 
-derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskEvalInfo
-derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskEvalInfo
+derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskRep, TaskEvalInfo
+derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskRep, TaskEvalInfo
 
 //IS ALSO DERIVED IN TASK STORE: SEEMS REDUNDANT
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
@@ -49,7 +49,7 @@ taskIdFromTaskTree (TCInteract1 taskId _ _ _) = Just taskId
 taskIdFromTaskTree (TCInteract2 taskId _ _ _ _) = Just taskId
 taskIdFromTaskTree (TCProject taskId _ _) = Just taskId
 taskIdFromTaskTree (TCStep taskId _ _) = Just taskId
-taskIdFromTaskTree (TCParallel taskId _) = Just taskId
+taskIdFromTaskTree (TCParallel taskId _ _) = Just taskId
 taskIdFromTaskTree (TCShared taskId _ _) = Just taskId
 taskIdFromTaskTree (TCExposedShared taskId _ _ _) = Just taskId
 taskIdFromTaskTree (TCStable taskId _ _) = Just taskId

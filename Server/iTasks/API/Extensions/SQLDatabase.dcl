@@ -28,7 +28,7 @@ derive class iTask SQLDatabaseDef, SQLDatabase, SQLValue, SQLTime, SQLDate, SQLT
 * @return The shared data source
 */
 sqlShare :: String (A.*cur: p *cur -> *(MaybeErrorString r,*cur) | SQLCursor cur)
-								(A.*cur: p w *cur -> *(MaybeErrorString Void, *cur) | SQLCursor cur) -> RWShared (SQLDatabaseDef,p) r w
+								(A.*cur: p w *cur -> *(MaybeErrorString (), *cur) | SQLCursor cur) -> RWShared (SQLDatabaseDef,p) r w
 
 
 
@@ -40,7 +40,7 @@ sqlExecute	:: SQLDatabaseDef [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur
 //Common helper functions for sqlExecute
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
 execInsert :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Int,*cur) | SQLCursor cur
-execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString Void,*cur) | SQLCursor cur
+execDelete :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString (),*cur) | SQLCursor cur
 
 /**
 * Run a single query and fetch all results
@@ -64,5 +64,5 @@ sqlTables :: ROShared SQLDatabaseDef [SQLTableName]
 */
 sqlTableDefinition :: ROShared (SQLDatabaseDef,SQLTableName) SQLTable
 
-sqlExecuteCreateTable :: SQLDatabaseDef SQLTable -> Task Void
-sqlExecuteDropTable :: SQLDatabaseDef SQLTableName -> Task Void
+sqlExecuteCreateTable :: SQLDatabaseDef SQLTable -> Task ()
+sqlExecuteDropTable :: SQLDatabaseDef SQLTableName -> Task ()

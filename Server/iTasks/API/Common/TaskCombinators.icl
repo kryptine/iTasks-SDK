@@ -99,13 +99,13 @@ where
 	processControl tlist
 		= viewSharedInformation (Title "Waiting for result") [ViewWith toView] (taskListMeta tlist) @? const NoValue
 					
-	toView [_,{TaskListItem|progressMeta=Just p,attributes}]=
+	toView [_,{TaskListItem|progress=Just p,attributes}]=
 		{ assignedTo	= toSingleLineText ('DM'.get "user" attributes)
-		, issuedBy		= toString p.ProgressMeta.issuedBy
-		, issuedAt		= p.ProgressMeta.issuedAt
+		, issuedBy		= "TODO"  //toString p.InstanceProgress.issuedBy
+		, issuedAt		= fromString "0000-00-00"  //p.InstanceProgress.issuedAt
 		, priority		= toSingleLineText ('DM'.get "priority" attributes)
-		, firstWorkedOn	= p.ProgressMeta.firstEvent
-		, lastWorkedOn	= p.ProgressMeta.lastEvent
+		, firstWorkedOn	= p.InstanceProgress.firstEvent
+		, lastWorkedOn	= p.InstanceProgress.lastEvent
 		}	
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue
@@ -152,14 +152,14 @@ where
 (<!) task pred
 	= parallel [(Embedded,const task),(Embedded,restarter)] [] @? res
 where
-    restarter tlist = ((watch (taskListState tlist) @ hd) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
+    restarter tlist = (watch (sdsFocus (Left 0) (taskListItemValue tlist)) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
 
     check t (Value (Value x stable) _)  = if (stable && not (pred x)) (Just t) Nothing
     check t _                           = Nothing
 	
 	restart tlist
-		=	get (taskListMeta tlist)
-		>>- \l=:[{TaskListItem|taskId=t1},{TaskListItem|taskId=t2}:_] ->
+		=   get (taskListIds tlist)
+		>>- \[t1,t2:_] ->
 		    removeTask t1 tlist
 		>>|	removeTask t2 tlist
 		>>| appendTask Embedded (const task) tlist
@@ -202,11 +202,11 @@ where
 feedForward :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 feedForward taska taskbf = parallel
 	[(Embedded, \s -> taska @ Left)
-	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
+	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @ Right)
 	] [] @? res
 where
-	prj [Value (Left a) _,_]		= Just a
-	prj _							= Nothing
+	prj (Value (Left a) _)  = Just a
+	prj _					= Nothing
 	
 	res (Value [_,(_,Value (Right b) s)] _)	= Value b s
 	res _									= NoValue
@@ -217,11 +217,11 @@ where
 feedSideways :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
 feedSideways taska taskbf = parallel
     [(Embedded, \s -> taska)
-	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @? const NoValue)
+	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @? const NoValue)
     ] [] @? res
 where
-	prj [Value a _:_]	= Just a
-	prj _				= Nothing
+	prj (Value a _)	= Just a
+	prj _			= Nothing
 
     res (Value [(_,v):_] _) = v
     res _                   = NoValue

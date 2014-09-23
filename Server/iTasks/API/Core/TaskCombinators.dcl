@@ -74,27 +74,6 @@ step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTa
 * @gin False
 */
 parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
-					
-/**
-* Get the shared state of a task list
-*/
-taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
-/**
-* Get the meta data sds of a task list
-*/
-taskListMeta	:: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,TaskAttributes)]
-/**
-* Get the meta data sds for a specific entry in a task list
-*/
-taskListEntryMeta :: !(SharedTaskList a) -> RWShared TaskId (TaskListItem a) TaskAttributes
-/*
-* Get the id of the entry in the list the current task is part of
-*/
-taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
-/**
-* Get the current tasks management meta data share
-*/
-taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 
 //Task list manipulation
 /**
@@ -159,7 +138,7 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 * @param The share to be exposed
 * @param The task which uses the shared variable
 */
-exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & JSONDecode{|*|} p & JSONEncode{|*|} p & TC p
+exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
 
 /**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,

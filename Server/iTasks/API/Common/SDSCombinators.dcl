@@ -1,13 +1,18 @@
 definition module iTasks.API.Common.SDSCombinators
 
-from iTasks.Framework.SDS import :: RWShared, :: ROShared, :: WriteShare, :: SDSNotifyPred
-from iTasks.Framework.Task import :: TaskException
-from Data.Void import :: Void
-from Data.Maybe import :: Maybe
-from Data.Error import :: MaybeError, :: MaybeErrorString
+from iTasks.Framework.SDS import :: RWShared, :: ROShared, :: WriteShare, :: SDSNotifyPred, :: Shared, :: ReadOnlyShared, :: ReadWriteShared
+from iTasks.Framework.Task import :: TaskException, :: TaskValue, :: TaskId
+from iTasks.Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gUpdate, generic gVerify, generic gEq, generic gDefault, generic gText
+from iTasks.Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
+from iTasks.Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
+from iTasks.API.Core.Types import :: TaskList, :: TaskListFilter, :: TaskListItem, :: SharedTaskList, :: TaskAttributes
 
-from Text.JSON import generic JSONEncode, :: JSONNode
-from GenEq import generic gEq
+from Data.Maybe import :: Maybe
+from Data.Either import :: Either
+from Data.Error import :: MaybeError, :: MaybeErrorString
+from Data.Map import :: Map
+
+from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
 :: SDSReadProjection rs rt
     = SDSLensRead      (rs -> MaybeError TaskException rt) //Read lens-like
@@ -19,16 +24,16 @@ from GenEq import generic gEq
     | SDSNoWrite
 
 // Fix a focus parameter
-sdsFocus     :: !p !(RWShared p r w) -> (RWShared p` r w) | TC p & JSONEncode{|*|} p
+sdsFocus     :: !p !(RWShared p r w) -> (RWShared p` r w) | iTask p
 
 // Projection of the domain with a lens
-sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(RWShared p rs ws) -> RWShared p r w | TC p
+sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(RWShared p rs ws) -> RWShared p r w | iTask p
 
 // Translate the parameter space
-sdsTranslate :: !String !(p -> ps) !(RWShared ps r w) -> RWShared p r w | TC ps
+sdsTranslate :: !String !(p -> ps) !(RWShared ps r w) -> RWShared p r w | iTask ps
 
 // Introduce a new parameter
-sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(RWShared ps rs ws) -> RWShared p r w | TC ps & TC pn & gEq{|*|} ps
+sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(RWShared ps rs ws) -> RWShared p r w | iTask ps & iTask pn
 
 /**
 * Maps the read type, the write type or both of a shared reference to another one using a functional mapping.
@@ -39,26 +44,26 @@ sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred
 * @param A reference to shared data
 * @return A reference to shared data of another type
 */
-mapRead			:: !(r -> r`)					!(RWShared p r w) -> RWShared p r` w | TC p
-mapWrite		:: !(w` r -> Maybe w)			!(RWShared p r w) -> RWShared p r w` | TC p
-mapReadWrite	:: !(!r -> r`,!w` r -> Maybe w)	!(RWShared p r w) -> RWShared p r` w` | TC p
+mapRead			:: !(r -> r`)					!(RWShared p r w) -> RWShared p r` w | iTask p
+mapWrite		:: !(w` r -> Maybe w)			!(RWShared p r w) -> RWShared p r w` | iTask p
+mapReadWrite	:: !(!r -> r`,!w` r -> Maybe w)	!(RWShared p r w) -> RWShared p r` w` | iTask p
 
-mapReadError		:: !(r -> MaybeError TaskException r`)								!(RWShared p r w) -> RWShared p r` w | TC p
-mapWriteError		:: !(w` r -> MaybeError TaskException (Maybe w))					!(RWShared p r w) -> RWShared p r w` | TC p
-mapReadWriteError	:: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w))	!(RWShared p r w) -> RWShared p r` w` | TC p
+mapReadError		:: !(r -> MaybeError TaskException r`)								!(RWShared p r w) -> RWShared p r` w | iTask p
+mapWriteError		:: !(w` r -> MaybeError TaskException (Maybe w))					!(RWShared p r w) -> RWShared p r w` | iTask p
+mapReadWriteError	:: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w))	!(RWShared p r w) -> RWShared p r` w` | iTask p
 
-toReadOnly :: !(RWShared p r w) -> ROShared p r | TC p
+toReadOnly :: !(RWShared p r w) -> ROShared p r | iTask p
 
 //Map a list SDS of one element to the element itsel
-mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w) | TC p
+mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w) | iTask p
 
 // Composition of two shared references.
 // The read type is a tuple of both types.
 // The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).
-(>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy)     | TC p
-(>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx          | TC p
-(|+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy          | TC p
-(|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) Void        | TC p
+(>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy)     | iTask p
+(>+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx          | iTask p
+(|+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy          | iTask p
+(|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) ()          | iTask p
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
@@ -70,5 +75,37 @@ mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w) | TC p
 * @param SymmetricShared b
 * @param RWShared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b) | TC p
+symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b) | iTask p
+
+//Derived versions of tasks lists
+/**
+* Get the shared state of a task list
+*/
+taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
+/**
+* Get the meta data sds of a task list
+*/
+taskListMeta	:: !(SharedTaskList a) -> ReadWriteShared [TaskListItem a] [(TaskId,TaskAttributes)]
+/**
+* Get the list of task id's in a task list
+*/
+taskListIds :: !(SharedTaskList a) -> ROShared () [TaskId]
+/**
+* Get the meta data sds for a specific entry in a task list
+*/
+taskListEntryMeta :: !(SharedTaskList a) -> RWShared TaskId (TaskListItem a) TaskAttributes
+/*
+* Get the id of the entry in the list the current task is part of
+*/
+taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId
+/**
+* Get the current tasks management meta data share
+*/
+taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
+/**
+* Get the value of a specific task in the list
+* The paramater is either the index in the list or a specific task id
+*/
+taskListItemValue :: !(SharedTaskList a) -> ROShared (Either Int TaskId) (TaskValue a)
+
 

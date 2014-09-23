@@ -13,7 +13,7 @@ userAccounts = sharedStore "UserAccounts" [ROOT_USER]
 users :: ReadOnlyShared [User]
 users = mapReadWrite (\accounts -> [AuthenticatedUser (toString a.UserAccount.credentials.Credentials.username) a.UserAccount.roles a.UserAccount.title
 									\\ a <- accounts]
-					 , \Void accounts -> Nothing) userAccounts
+					 , \() accounts -> Nothing) userAccounts
 
 usersWithRole :: !Role -> ReadOnlyShared [User]
 usersWithRole role = mapRead (filter (hasRole role)) users

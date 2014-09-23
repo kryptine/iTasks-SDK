@@ -1,17 +1,20 @@
 definition module iTasks.Framework.SDS
 
 import GenEq
-import System.FilePath, Data.Void, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
+import System.FilePath, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from iTasks.Framework.IWorld import :: IWorld
 from iTasks.Framework.Task import :: TaskException
+from iTasks.Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gUpdate, generic gVerify, generic gEq, generic gDefault, generic gText
+from iTasks.Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
+from iTasks.Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
 from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 
 :: RWShared p r w
 	= 			            SDSSource		!(SDSSource p r w)
-    | E.ps rs ws:           SDSLens         !(RWShared ps rs ws)                        (SDSLens p r w ps rs ws) & TC ps
-    | E.p1 p2:              SDSSelect       !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSSelect p p1 p2 r w) & TC p1 & TC p2
-    | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & TC p1 & TC p2
-    | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & TC p2
+    | E.ps rs ws:           SDSLens         !(RWShared ps rs ws)                        (SDSLens p r w ps rs ws) & iTask ps
+    | E.p1 p2:              SDSSelect       !(RWShared p1 r w)   !(RWShared p2 r w)     (SDSSelect p p1 p2 r w) & iTask p1 & iTask p2
+    | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(RWShared p1 r1 w1) !(RWShared p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & iTask p1 & iTask p2
+    | E.r1 w1 p2 r2 w2:     SDSSequence     !(RWShared p  r1 w1) !(RWShared p2 r2 w2)   (SDSSequence p r1 w1 p2 r2 w2 r w) & iTask p2
 							// USE IT CAREFULLY, IT CAN BREAK NOTIFICATION!
     |						SDSDynamic		!(p *IWorld -> *(MaybeError TaskException (RWShared p r w), *IWorld))
 
@@ -21,10 +24,13 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
-    { taskInstance  :: InstanceNo
-    , reqNo         :: Int
-    , sdsId         :: SDSIdentity
-    , param         :: Dynamic
+    { taskInstance  :: InstanceNo   //Task instance number which made the request and may be refreshed
+    , reqNo         :: Int          //Task number within the instance
+    , reqSDSId      :: SDSIdentity  //Id of the actual SDS used to create this request (may be a derived one)
+
+    , cmpSDSId      :: SDSIdentity  //Id of the SDS we are saving for comparison
+    , cmpParam      :: Dynamic      //Parameter we are saving for comparison
+    , cmpParamText  :: String       //String version of comparison parameter for tracing
     }
 
 :: SDSIdentity  :== String
@@ -86,12 +92,12 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 :: BasicShareId :== String	
 :: WriteShare p = E.r w: Write !w !(RWShared p r w)
 	
-:: ROShared p a 	:== RWShared p a Void
-:: WOShared p a 	:== RWShared p Void a
+:: ROShared p a 	:== RWShared p a ()
+:: WOShared p a 	:== RWShared p () a
 
-:: ReadWriteShared r w  :== RWShared Void r w
-:: ReadOnlyShared a		:== ReadWriteShared a Void
-:: WriteOnlyShared a	:== ReadWriteShared Void a
+:: ReadWriteShared r w  :== RWShared () r w
+:: ReadOnlyShared a		:== ReadWriteShared a ()
+:: WriteOnlyShared a	:== ReadWriteShared () a
 :: Shared a				:== ReadWriteShared a a
 	
 createReadWriteSDS ::
@@ -115,13 +121,15 @@ createReadOnlySDSError ::
 //Normal access functions
 
 //Just read an SDS
-read			::						    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+read			::						    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
 //Read an SDS and register a taskId to be notified when it is written
-readRegister	:: !TaskId                  !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+readRegister	:: !TaskId                  !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
-write			:: !w					    !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)	
+write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	
+//Read followed by write
+modify          :: !(r -> w)                !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 //Force notify (queue evaluation of task instances that registered for notification)
-notify          ::                          !(RWShared Void r w) !*IWorld -> (!MaybeError TaskException Void, !*IWorld)
+notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 
 //Force notification for a specific SDS
 //TODO: REMOVE
@@ -130,7 +138,7 @@ reportSDSChange :: !String !*IWorld -> *IWorld
 //Clear all registrations for a given task instance.
 //This is normally called by the queueRefresh functions, because once an instance is queued
 //for evaluation anyway, it no longer make sense to notify it again.
-clearInstanceSDSRegistrations :: !InstanceNo !*IWorld -> *IWorld
+clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
@@ -139,7 +147,7 @@ formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 :: JSONShared :== RWShared JSONNode JSONNode JSONNode
 
 //Exposing shares for external nodes
-toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & TC p
+toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & iTask p
 fromJSONShared  :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
 newURL 		    :: !*IWorld -> (!String, !*IWorld)
 getURLbyId 	    :: !String !*IWorld -> (!String, !*IWorld)

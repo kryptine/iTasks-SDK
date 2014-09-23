@@ -16,9 +16,6 @@ instance toString (Maybe a) | toString a
 
 decFormat			:: !Int -> String
 
-// Functions for accessing dates and times
-currentTimestamp		:: !*IWorld -> (!Timestamp,!*IWorld)
-currentTimestampError	:: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
 
 currentLocalDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)

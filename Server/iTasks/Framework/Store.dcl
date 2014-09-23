@@ -9,7 +9,6 @@ definition module iTasks.Framework.Store
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
 * functions) should they be used.
 */
-//import Text.JSON
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Void import :: Void
@@ -18,10 +17,16 @@ from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks.Framework.IWorld import :: IWorld
+from iTasks.Framework.Generic				import class iTask
+from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
+from iTasks.Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
+from iTasks.Framework.Generic.Defaults		import generic gDefault
+from GenEq import generic gEq
 
 :: StoreNamespace	:== String
 :: StoreName		:== String
 :: StorePrefix		:== String
+:: BuildID          :== String
 
 // Predefined namespaces
 NS_TASK_INSTANCES		:== "task-instances"
@@ -36,40 +41,56 @@ NS_JAVASCRIPT_CACHE     :== "js-cache"
     | StoreReadBuildVersionError    //When there is a stored value but it has the wrong build version
 
 instance toString StoreReadError
+derive class iTask StoreReadError
 
 /**
-* Create a shared data source for a piece of data in the store
+* Creates a store in memory. Values in this store are lost when the server shuts down.
 *
 * @param The namespace in the store
-* @param The key of the value in the  store
-* @param Check the build versions to protect against deserializing outdated functions stored by older versions
-*        of the executable (if in doubt, use True)
-* @param Automatically reset the the store if an error occurs
-* @param Optionally a default value to be used on first read. If nothing is given an error will occur when reading before writing.
-*
-* @return The shared data source
+* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
-singleValueStoreSDS :: !StoreNamespace !StoreName !Bool !Bool !(Maybe a) -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+memoryStore   :: !StoreNamespace !(Maybe a) -> RWShared StoreName a a | TC a
 
 /**
-* Load a value from the store
-* @param The namespace
-* @param The name of the store
-* @param Check the build versions to protect against deserializing outdated functions stored by older versions
-*        of the executable (if in doubt, use True)
-* @param The value to write
+* Creates a 'raw' store which keeps values in multiple files indexed by a store name
+* The application's build ID is automatically stored with the content, and returned when reading
+*
+* @param The namespace in the store
+* @param Automatically reset the the store if an error occurs
+* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
-singleValueStoreRead :: !StoreNamespace !StoreName !Bool		!*IWorld -> (!MaybeError StoreReadError a,!*IWorld)				| JSONDecode{|*|}, TC a
+fullFileStore :: !StoreNamespace !Bool !(Maybe {#Char}) -> RWShared StoreName (!BuildID,!{#Char}) {#Char}
+
 /**
-* Write a value to a store
-* @param The namespace
-* @param The name of the store
+* Extends a fullFileStore with JSON encoding/decoding such that arbitrary values can be stored.
+* It also adds optional buildID checking to make sure that JSONEncoded functions and dynamics are
+* not decoded if the versions don't match.
+*
+* @param The namespace in the store
 * @param Check the build versions to protect against deserializing outdated functions stored by older versions
-*        of the executable (if in doubt, use True)
-* @param The value to write
-* @param Write build version to enable version check
+* @param Automatically reset the the store if an error occurs
+* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
-singleValueStoreWrite :: !StoreNamespace !StoreName !Bool !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+/**
+* Optimized caching version of the jsonFileStore.
+* During the evaluation of a task instance, the shares that are read from disk are kept in memory
+* writes are applied to the in-memory version, and json encoding and writing to disk is deferred.
+*
+* @param The namespace in the store
+* @param Check the build versions to protect against deserializing outdated functions stored by older versions
+* @param Automatically reset the the store if an error occurs
+* @param Keep the value in the cache between evaluations
+* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
+*/
+cachedJSONFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+/**
+* This function is called at the very end of the evaluation of a task instance.
+* It writes all pending writes to disk and clears values that are no longer needed from memory.
+*/
+flushShareCache :: *IWorld -> *IWorld
 
 /**
 * Store a binary blob

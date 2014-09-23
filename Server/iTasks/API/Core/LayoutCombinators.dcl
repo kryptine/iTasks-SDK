@@ -13,7 +13,7 @@ from Data.Maybe import :: Maybe
 	{ accuInteract	:: UIAttributes UIForm                  -> UIForm       //Combine the prompt and editor of an interact
 	, accuStep		:: UIDef [UIAction]                     -> UIDef		//Combine current definition with the step actions
 	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		//Combine the prompt, parts of a parallel composition and possible actions
-	, accuWorkOn	:: UIDef TIMeta                         -> UIDef		//When a detached task is worked on
+	, accuWorkOn	:: UIDef TaskAttributes                 -> UIDef		//When a detached task is worked on
 
     , layoutSubEditor	:: UIForm                           -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
     , layoutForm        :: UIForm                           -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
@@ -40,7 +40,7 @@ autoLayoutRules :: LayoutRules
 autoAccuInteract        :: UIAttributes UIForm -> UIForm
 autoAccuStep            :: UIDef [UIAction]-> UIDef
 autoAccuParallel        :: [UIDef] [UIAction] -> UIDef
-autoAccuWorkOn          :: UIDef TIMeta -> UIDef
+autoAccuWorkOn          :: UIDef TaskAttributes -> UIDef
 
 autoLayoutSubEditor     :: UIForm -> [(UIControl,UIAttributes)]
 autoLayoutForm          :: UIForm -> UIBlock

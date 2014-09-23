@@ -46,9 +46,10 @@ derive gEq				Task
 
 //Additional information passed up from the tree when evaluating a task
 :: TaskEvalInfo =
-	{ lastEvent			:: !TaskTime	//When was the last edit, action or focus event in this task
-    , involvedUsers     :: ![User]      //Which user identities are involved in the task
-	, refreshSensitive	:: !Bool		//Can refresh events change the value or ui of this task (e.g. because shared data is read)
+	{ lastEvent			:: !TaskTime	        //When was the last edit, action or focus event in this task
+    , involvedUsers     :: ![User]              //Which user identities are involved in the task
+    , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
+	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
 :: TaskRep	= NoRep								//For some tasks no external representation is generated
@@ -95,7 +96,3 @@ extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 */
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 
-/**
-* Create a task with a specific task value that finishes instantly
-*/
-mkInstantTask` :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) (TaskValue a),!*IWorld)) -> Task a | iTask a

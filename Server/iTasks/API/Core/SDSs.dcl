@@ -6,7 +6,7 @@ definition module iTasks.API.Core.SDSs
 from Text.JSON import generic JSONEncode, generic JSONDecode
 import iTasks.Framework.SDS
 from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: TaskAttributes
-from iTasks.API.Core.Types	    import :: TaskListItem, :: TaskInstance, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
+from iTasks.API.Core.Types	    import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
 from Data.Void					import :: Void
 from Data.Map                   import :: Map
 from System.FilePath			import :: FilePath
@@ -44,14 +44,13 @@ currentSessions 		:: ReadOnlyShared [TaskListItem Void]
 currentProcesses		:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 
-
 // Session
 currentUser				:: ReadOnlyShared User
 currentTopTask			:: ReadOnlyShared TaskId
 
 //Task instances
-allTaskInstances        :: ROShared Void [TaskInstance]
-detachedTaskInstances	:: ROShared Void [TaskInstance] //Exclude sessions
+allTaskInstances        :: ROShared () [TaskInstance]
+detachedTaskInstances	:: ROShared () [TaskInstance] //Exclude sessions
 taskInstanceByNo        :: RWShared InstanceNo TaskInstance TaskAttributes
 
 // Application
@@ -61,11 +60,11 @@ applicationDirectory	:: ReadOnlyShared FilePath	// Directory in which the applic
 applicationConfig		:: ReadOnlyShared Config	// Server config
 
 // Generic store
-storeNamespaces         :: ROShared Void [String]   // List the namespaces in the store
+storeNamespaces         :: ROShared () [String]   // List the namespaces in the store
 storeNames              :: ROShared String [String] // List the stores in a given namespace
 
 // Random source
-randomInt				:: ReadOnlyShared Int
+randomInt				:: ROShared () Int
 
 // External file
-externalFile :: !FilePath -> Shared String
+externalFile            :: RWShared FilePath String String

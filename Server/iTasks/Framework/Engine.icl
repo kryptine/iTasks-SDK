@@ -6,6 +6,7 @@ import Data.Map, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, 
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
 import iTasks.Framework.IWorld, iTasks.Framework.WebService, iTasks.Framework.SDSService
+import iTasks.API.Common.SDSCombinators
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
@@ -63,8 +64,8 @@ startEngine publishable world
 	//Normal execution
 	# world					= show (running port) world
 	# iworld				= initIWorld mbSDKPath webDirPaths storeOpt saplOpt world
-    //Initialize task instance index
-    # iworld                = initInstanceMeta iworld
+    //Reset connectedTo for all task instances
+    # iworld                = clearConnections iworld
 	// mark all instance as outdated initially
     # iworld                = queueAllPersistent iworld
     //Start task server
@@ -119,24 +120,38 @@ where
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = (Just 100, iworld)					//Run at least 10 times a second
 
-queueAllPersistent :: !*IWorld -> *IWorld 
-queueAllPersistent iworld=:{IWorld|ti}
-    = queueRefresh [instanceNo \\ {TIMeta|instanceNo,session} <- ti | not session] iworld
+    //Read the content of the master instance index on disk to the "ti" field in the iworld
+    clearConnections :: !*IWorld -> *IWorld
+    clearConnections iworld = snd (modify clear (sdsFocus filter filteredInstanceIndex) iworld)
+    where
+        //When the server starts we make sure all have a blank connectedTo field
+        filter = {InstanceFilter|defaultValue & includeProgress = True}
+        clear index = [(n,c,Just {InstanceProgress|p & connectedTo = Nothing},a) \\(n,c,Just p,a) <-index]
+
+queueAllPersistent :: !*IWorld -> *IWorld
+queueAllPersistent iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & session=Just False} filteredInstanceIndex) iworld
+    = case mbIndex of
+        Ok index    = queueRefresh [instanceNo \\ (instanceNo,_,_,_)<- index] [] iworld
+        _           = iworld
 
 refreshTaskInstances :: !*IWorld -> *IWorld
 refreshTaskInstances iworld
 	# iworld			= updateClocks iworld
     = case dequeueRefresh iworld of
-        (Just instanceNo,iworld) = refreshTaskInstance instanceNo iworld
-        (_,iworld)               = iworld
+        (Just instanceNo,mbReason,iworld)   = refreshTaskInstance instanceNo mbReason iworld
+        (_,_,iworld)                        = iworld
 
 removeOutdatedSessions :: !*IWorld -> *IWorld
-removeOutdatedSessions iworld=:{IWorld|ti}
-    = foldr removeIfOutdated iworld [i \\ i=:{TIMeta|session=True,progress={ProgressMeta|connectedTo=Nothing}} <- ti]
+removeOutdatedSessions iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & session=Just True,includeProgress=True} filteredInstanceIndex) iworld
+    = case mbIndex of
+        Ok index    = foldr removeIfOutdated iworld index
+        _           = iworld
 where
-    removeIfOutdated {TIMeta|instanceNo,progress={ProgressMeta|lastIO}} iworld=:{clocks={localDate,localTime}}
-        | maybe True (\t -> ((DateTime localDate localTime) - t) > SESSION_TIMEOUT) lastIO
-            = deleteInstance instanceNo iworld
+    removeIfOutdated (instanceNo,_,Just {InstanceProgress|connectedTo,lastIO},_) iworld=:{clocks={localDate,localTime}}
+        | connectedTo=:Nothing && maybe True (\t -> ((DateTime localDate localTime) - t) > SESSION_TIMEOUT) lastIO
+            = deleteTaskInstance instanceNo iworld
         | otherwise
             = iworld
 
@@ -189,7 +204,6 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
 	# build						= strfTime "%Y%m%d-%H%M%S" tm
-	# (timestamp,world)			= time world
 	# (DateTime localDate localTime,world)	= currentLocalDateTimeWorld world
 	# (DateTime utcDate utcTime,world)	    = currentUTCDateTimeWorld world
 	# (_,world)					= ensureDir "data" dataDir world
@@ -222,23 +236,19 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
         }
       ,current =
 	    {TaskEvalState
-	    |timestamp			    = timestamp
-        ,taskTime				= 0
+        |taskTime				= 0
 	    ,taskInstance		    = 0
         ,sessionInstance        = Nothing
         ,attachmentChain        = []
 	    ,nextTaskNo			    = 0
 	    ,user			        = AnonymousUser ""
-	    ,localShares			= newMap
-	    ,localLists			    = newMap
-	    ,localTasks			    = newMap
         ,eventRoute			    = newMap
-	    ,readShares			    = []
         ,editletDiffs           = newMap }
       ,sdsNotifyRequests    = []
+      ,memoryShares         = newMap
+      ,cachedShares         = newMap
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
-      ,ti                   = []
       ,nextInstanceNo       = 0
 	  ,refreshQueue			= []
 	  ,uiUpdates            = newMap

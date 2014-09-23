@@ -11,7 +11,7 @@ from Text.JSON				            import :: JSONNode
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs
-from iTasks.Framework.TaskState			import :: TaskListEntry, :: TIMeta
+from iTasks.Framework.TaskState			import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
 from iTasks.Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
 from iTasks.Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared, :: JSONShared
@@ -30,6 +30,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
                     , random                :: [Int]                                    // Infinite random stream
 
                     , sdsNotifyRequests     :: ![SDSNotifyRequest]                      // Notification requests from previously read sds's
+                    , memoryShares          :: !Map (String,String) Dynamic             // Run-time memory shares
+                    , cachedShares          :: !ShareCache                              // Cached json file shares
 					, exposedShares			:: !Map String (Dynamic, JSONShared)        // Shared source
 
 					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
@@ -39,9 +41,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
 
-                    , ti                    :: ![TIMeta]                                // Task instance table
                     , nextInstanceNo        :: !InstanceNo                              // Next task instance number
-                    , refreshQueue          :: ![InstanceNo]                            // Instances that need refreshing
+                    , refreshQueue          :: ![(!InstanceNo,!Maybe String)]           // Instances that need refreshing (optionally with an explanation)
 					, uiUpdates             :: !Map InstanceNo [UIUpdate]				// (Instance output)
 
                     , io                    :: !*IOTasks                                // The low-level input/output tasks
@@ -77,19 +78,16 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     , utcTime               :: !Time
     }
 
+:: ShareCache :== Map (String,String) (Dynamic,Bool,Maybe DeferredJSON)
+
 :: TaskEvalState =
-	{ timestamp				:: !Timestamp								// The timestamp of the current request	
-    , taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
+    { taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 	, taskInstance		    :: !InstanceNo								// The current evaluated task instance
     , sessionInstance       :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
     , attachmentChain       :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
     , nextTaskNo			:: !TaskNo									// The next task number to assign
     , user			        :: !User									// The current user
-    , localShares			:: !Map TaskId JSONNode						// The set of locally shared values
-    , localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
-    , localTasks			:: !Map TaskId Dynamic						// The set of local parallel tasks
     , eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
-    , readShares			:: ![String]								// The IDs of shares from which was read
     , editletDiffs          :: !UIEditletDiffs                          // Diffs of editlets
     }
 

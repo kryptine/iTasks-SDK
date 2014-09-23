@@ -122,24 +122,20 @@ createClientIWorld serverURL currentInstance
             , utcTime =     {Time|hour = 0, min = 0, sec = 0}
             }
           ,current =
-		    {timestamp			= Timestamp 1
-            ,taskTime			= 0
+            {taskTime			= 0
 		    ,taskInstance	    = currentInstance
 		    ,sessionInstance	= Just currentInstance
 		    ,attachmentChain    = []
 		    ,nextTaskNo			= 6666
 		    ,user               = SystemUser
-		    ,localShares		= 'Data.Map'.newMap
-		    ,localLists			= 'Data.Map'.newMap
-		    ,localTasks			= 'Data.Map'.newMap
 		    ,eventRoute			= 'Data.Map'.newMap
-		    ,readShares			= []
 		    ,editletDiffs		= 'Data.Map'.newMap
           }
           ,sdsNotifyRequests    = []
+          ,memoryShares         = 'Data.Map'.newMap
+          ,cachedShares         = 'Data.Map'.newMap
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
-          ,ti                   = []
           ,nextInstanceNo       = 0
 		  ,refreshQueue			= []
 		  ,uiUpdates			= 'Data.Map'.newMap

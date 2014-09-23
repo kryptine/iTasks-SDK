@@ -407,6 +407,7 @@ uiDefSetDirection		:: UIDirection UIDef -> UIDef
 uiDefSetHalign		    :: UIHAlign	UIDef -> UIDef
 uiDefSetValign		    :: UIVAlign	UIDef -> UIDef
 uiDefSetPadding         :: Int Int Int Int UIDef -> UIDef
+uiDefSetMargins         :: Int Int Int Int UIDef -> UIDef
 uiDefSetBaseCls         :: String UIDef -> UIDef
 uiDefSetHeight		    :: UISize UIDef -> UIDef
 uiDefSetWidth           :: UISize UIDef -> UIDef

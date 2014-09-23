@@ -105,13 +105,13 @@ where
             = case defaultFormat of
 			    (WebApp	opts)
                     = case createTaskInstance (task req) iworld of
-                        (Error err, iworld)
+                        (Error (_,err), iworld)
 				            = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
 				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, iworld)
                 JSONPlain
                     = case createTaskInstance (task req) iworld of
-                        (Error err, iworld)
+                        (Error (_,err), iworld)
 				            = (errorResponse err, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
                             = case evalTaskInstance instanceNo event iworld of

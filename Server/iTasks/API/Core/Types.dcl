@@ -407,10 +407,18 @@ instance fromString	TaskId
 instance ==			TaskId
 instance <			TaskId
 
-:: ProgressMeta =
+// Instance data which does not change after creation (except when a task is replaced)
+:: InstanceConstants =
+    { instanceKey   :: !InstanceKey         //* Random string that a client needs to provide to access the task instance
+	, listId        :: !TaskId              //* Reference to parent tasklist
+    , session       :: !Bool                //* True for sessions (instances that automatically get garbage collected)
+    , build         :: !String              //* Application build version when the instance was created
+    , issuedAt		:: !DateTime			//* When was the task created
+	, issuedBy		:: !User				//* By whom was the task created
+    }
+
+:: InstanceProgress =
 	{ value             :: !ValueStatus             //* Status of the task value
-    , issuedAt			:: !DateTime				//* When was the task created
-	, issuedBy			:: !User					//* By whom was the task created
     , involvedUsers     :: ![User]                  //* Users currently involved in the task
     , attachedTo        :: !Maybe (!User,![TaskId]) //* User who attached the instance (and through which workOn's)
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
@@ -425,31 +433,33 @@ instance <			TaskId
     | Stable
     | Exception
 
-//* Representations of parallel task lists
-:: TaskListId s
-	= TopLevelTaskList			//*The top-level list of task instances
-	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
+//* Access to parallel task lists
 
-instance toString (TaskListId s)
-
-:: TaskList a =
-	{ listId	:: !(TaskListId a)
-	, items		:: ![TaskListItem a]
-    , selfId    :: !TaskId
-	}
+:: TaskList a :== (!TaskId,![TaskListItem a])
+:: SharedTaskList a	:==	RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
     , listId            :: !TaskId
+    , detached          :: !Bool
+    , self              :: !Bool
 	, value				:: !TaskValue a
 	, attributes        :: !TaskAttributes
-	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
+	, progress		    :: !Maybe InstanceProgress //Only possible for detached tasks
 	}
 
+:: TaskListFilter =
+    //Which rows to filter
+    { onlyIndex         :: !Maybe [Int]
+    , onlyTaskId        :: !Maybe [TaskId]
+    , onlySelf          :: !Bool
+    //What to include
+    , includeValue      :: !Bool
+    , includeAttributes :: !Bool
+    , includeProgress   :: !Bool
+    }
 
 :: TaskAttributes :== Map String String
-
-:: SharedTaskList a	:==	ReadWriteShared (TaskList a) [(TaskId,!TaskAttributes)]
 
 :: ParallelTaskType	
 	= Embedded                                    //Simplest embedded
@@ -466,16 +476,18 @@ instance toString (TaskListId s)
     , session           :: !Bool                //* Is this a session
 	, listId            :: !TaskId              //* Reference to parent tasklist
     , build             :: !String              //* Application build version when the instance was created
-	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
-	, value             :: !ValueStatus         //* Status of the task value
     , issuedAt			:: !DateTime			//* When was the task created
 	, issuedBy			:: !User				//* By whom was the task created
+	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
+	, value             :: !ValueStatus         //* Status of the task value
     , involvedUsers     :: ![User]              //* Users currently involved in the task
 	, firstEvent		:: !Maybe DateTime		//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime		//* When was the last event on this task	
     , connectedTo       :: !Maybe String        //* Is there an active client connection for this task
     , lastIO            :: !Maybe DateTime      //* When was the last input received or output sent to a client
 	}
+
+derive class iTask TaskListFilter
 
 /** Interaction masks contain information about a value as it is being edited
 *   in an interactive task.
@@ -659,16 +671,16 @@ ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
 alt key			:== {key=key,ctrl=False,alt=True,shift=False}
 shift key		:== {key=key,ctrl=False,alt=False,shift=True}
 
-derive JSONEncode		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
-derive gText	        TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, TaskListItem, ProgressMeta, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 

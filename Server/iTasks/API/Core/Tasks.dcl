@@ -15,7 +15,7 @@ from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErro
 * as result of the task.
 *
 * @param Value: The value to be returned
-*				@default Void
+*				@default ()
 * @return A task that will return the value defined by the parameter
 * 
 * @gin-icon return
@@ -109,17 +109,17 @@ interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,Intera
 * @param Initialization function: function that is called when the connection is established
 * @param Communication function: function that is called when data arrives, the connection is closed or the observed share changes.
 */
-tcpconnect :: !String !Int !(RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
+tcpconnect :: !String !Int !(RWShared () r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
 
 /**
 * Evaluate a "World" function that does not yield any result once.
 *
 * @param World function: The function to evaluate
-* @return A Void task that evaluates the function
+* @return A () task that evaluates the function
 * 
 * @gin False
 */
-appWorld :: !(*World -> *World)			-> Task Void
+appWorld :: !(*World -> *World)			-> Task ()
 
 /**
 * Evaluate a "World" function that also returns a value once.
@@ -137,7 +137,7 @@ accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
 * @param World function: The function to evaluate
 * @param Error function: Error transformation function
 *
-* @return A Void task that evaluates the function
+* @return A  task that evaluates the function
 * 
 * @gin False
 */
@@ -149,7 +149,7 @@ accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a
 * @param World function: The function to evaluate
 * @param Error function: Error transformation function
 *
-* @return A Void task that evaluates the function
+* @return A task that evaluates the function
 * 
 * @gin False
 */
@@ -162,4 +162,4 @@ traceValue :: a -> Task a | iTask a
 /**
 * Terminates a running task server
 */
-shutDown :: Task Void
+shutDown :: Task ()

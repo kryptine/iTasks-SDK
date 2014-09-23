@@ -2,7 +2,7 @@ implementation module iTasks.Framework.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
 import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
-from iTasks.Framework.IWorld 		import :: IWorld{current}, :: TaskEvalState{timestamp}
+from iTasks.Framework.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.API.Core.Types	        import :: Date{..}, :: Time{..}, :: DateTime(..)
 
 mb2list	:: !(Maybe [a]) -> [a]
@@ -28,12 +28,6 @@ where
 		| c == '_'			= [' ':addspace cs]
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
-
-currentTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
-currentTimestamp iworld=:{current={timestamp}} = (timestamp,iworld)
-
-currentTimestampError :: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
-currentTimestampError iworld=:{current={timestamp}} = (Ok timestamp,iworld)
 
 currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
 currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)

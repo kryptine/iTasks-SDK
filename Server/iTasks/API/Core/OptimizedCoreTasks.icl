@@ -44,7 +44,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -70,7 +70,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep)
 			(TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -105,7 +105,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
 			(TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -132,7 +132,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep)
 			(TCInteractLocalViewOnly taskId nts (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -254,7 +254,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep evalOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun r
@@ -282,7 +282,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -312,7 +312,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -341,7 +341,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent (EditEvent _ taskId name value) matchId taskTime v mask ts iworld

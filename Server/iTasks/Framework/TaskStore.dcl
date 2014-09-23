@@ -14,30 +14,88 @@ from System.Time    import :: Timestamp
 
 :: InstanceFilter =
     { //'Vertical' filters
-      instanceNo    :: Maybe InstanceNo
-    , session       :: Maybe Bool
+      instanceNo        :: !Maybe InstanceNo
+    , session           :: !Maybe Bool
       //'Horizontal' filters
+    , includeConstants  :: !Bool
+    , includeProgress   :: !Bool
+    , includeAttributes :: !Bool
     }
-instance toString InstanceFilter
+:: InstanceData :== (!InstanceNo,!Maybe InstanceConstants,!Maybe InstanceProgress,!Maybe TaskAttributes)
 
-newInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
-maxInstanceNo			:: !*IWorld -> (!InstanceNo, !*IWorld)
+derive class iTask InstanceFilter
+
+//Fresh identifier generation
+newInstanceNo           :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
-//Create and delete task instances
-deleteInstance			:: !InstanceNo !*IWorld -> *IWorld
-
-//Rebuild the task instance index in the iworld from the store content
-initInstanceMeta        :: !*IWorld -> *IWorld
-
 //Task instance state is accessible as shared data sources
-filteredInstanceMeta    :: RWShared InstanceFilter [TIMeta] [TIMeta]
+filteredInstanceIndex   :: RWShared InstanceFilter [InstanceData] [InstanceData]
 
-taskInstanceMeta        :: RWShared InstanceNo TIMeta TIMeta
-taskInstanceReduct		:: !InstanceNo -> RWShared Void TIReduct TIReduct
-taskInstanceValue       :: !InstanceNo -> RWShared Void TIValue TIValue
-taskInstanceRep         :: !InstanceNo -> RWShared Void TaskRep TaskRep
+//Filtered views on the instance index
+taskInstance            :: RWShared InstanceNo InstanceData InstanceData
+taskInstanceConstants   :: ROShared InstanceNo InstanceConstants
+taskInstanceProgress    :: RWShared InstanceNo InstanceProgress InstanceProgress
+taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
+
+topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+
+//Evaluation state of instances
+taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
+taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
+taskInstanceRep         :: RWShared InstanceNo TaskRep TaskRep
+taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+
+//Filtered views on evaluation state of instances
+localShare                          :: RWShared TaskId a a | iTask a
+
+//Core parallel task list state structure
+taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
+//Private interface used during evaluation of parallel combinator
+taskInstanceParallelTaskListItem    :: RWShared (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
+
+taskInstanceEmbeddedTask            :: RWShared TaskId (Task a) (Task a) | iTask a
+
+//Public interface used by parallel tasks
+parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
+
+//Access to remote shared data
+exposedShare 	        :: !String -> 	RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
+
+//Create and delete task instances
+
+createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
+
+//Create a task instance
+createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+
+/**
+* Create a stored task instance in the task store (lazily without evaluating it)
+* @param The task to store
+* @param The instance number for the task
+* @param Management meta data
+* @param The user who issued the task
+* @param The parallel task list to which the task belongs
+* @param If the instance needs to be evaluated immediately, the attachment is temporarily set to the issuer
+* @param The IWorld state
+*
+* @return The task id of the stored instance
+* @return The IWorld state
+*/
+createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
+
+/**
+* Replace a stored task instance in the task store.
+* The execution state is reset, but the meta-data is kept.
+* @param The instance id
+* @param The new task to store
+*
+* @param The IWorld state
+*/
+replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeErrorString (), !*IWorld) | iTask a
+
+deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

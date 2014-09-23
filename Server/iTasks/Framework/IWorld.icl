@@ -6,7 +6,6 @@ from Data.Maybe						import :: Maybe
 from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
 from iTasks.API.Core.Types	        import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
-from iTasks.Framework.TaskState		import :: TaskListEntry
 from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
@@ -24,34 +23,33 @@ import iTasks.Framework.SDS
 iworldLocalDate :: Shared Date
 iworldLocalDate = createReadWriteSDS "IWorld" "localDate" read write
 where
-    read Void iworld=:{IWorld|clocks={localDate}} = (Ok localDate,iworld)
-    write Void localDate iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & localDate=localDate}})
+    read _ iworld=:{IWorld|clocks={localDate}} = (Ok localDate,iworld)
+    write _ localDate iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & localDate=localDate}})
 
 iworldLocalTime :: Shared Time
 iworldLocalTime = createReadWriteSDS "IWorld" "localTime" read write
 where
-    read Void iworld=:{IWorld|clocks={localTime}} = (Ok localTime,iworld)
-    write Void localTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & localTime=localTime}})
+    read _ iworld=:{IWorld|clocks={localTime}} = (Ok localTime,iworld)
+    write _ localTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & localTime=localTime}})
 
 iworldUTCDate :: Shared Date
 iworldUTCDate = createReadWriteSDS "IWorld" "utcDate" read write
 where
-    read Void iworld=:{IWorld|clocks={utcDate}} = (Ok utcDate,iworld)
-    write Void utcDate iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcDate=utcDate}})
+    read _ iworld=:{IWorld|clocks={utcDate}} = (Ok utcDate,iworld)
+    write _ utcDate iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcDate=utcDate}})
 
 iworldUTCTime :: Shared Time
 iworldUTCTime = createReadWriteSDS "IWorld" "utcTime" read write
 where
-    read Void iworld=:{IWorld|clocks={utcTime}} = (Ok utcTime,iworld)
-    write Void utcTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcTime=utcTime}})
+    read _ iworld=:{IWorld|clocks={utcTime}} = (Ok utcTime,iworld)
+    write _ utcTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcTime=utcTime}})
 
 updateClocks :: !*IWorld -> *IWorld
-updateClocks iworld=:{IWorld|clocks,current,world}
-	# (timestamp,world)		= time world
+updateClocks iworld=:{IWorld|clocks,world}
     //Determine current date and time
 	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
 	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
-	# iworld = {IWorld|iworld  & current = {current & timestamp = timestamp}, world = world}
+    # iworld = {iworld & world = world}
     //Write SDS's if necessary
     # iworld = if (localDate == clocks.localDate) iworld (snd (write localDate iworldLocalDate iworld))
     # iworld = if (localTime == clocks.localTime) iworld (snd (write localTime iworldLocalTime iworld))

@@ -10,7 +10,7 @@ import iTasks.API.Core.LayoutCombinators
 from iTasks.Framework.SDS as SDS import qualified read, readRegister, write
 from iTasks.API.Core.SDSs       import topLevelTasks
 from StdFunc					import o, id
-from Data.Map					import qualified newMap, get, put, del
+from Data.Map as DM				import qualified newMap, get, put, del
 from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT
 from TCPChannels                import toByteSeq, send, class Send, instance Send TCP_SChannel_
 from TCPChannels                import :: TimeoutReport, :: Timeout, :: Port
@@ -62,7 +62,7 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True}
+			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True}
 				(finalizeRep evalOpts NoRep) (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
@@ -99,7 +99,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -116,11 +116,10 @@ where
 	visualizeView taskId evalOpts value=:(v,vmask,vver) desc iworld
 		# layout	= repLayoutRules evalOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
-		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='Data.Map'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
+		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
 		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
 
-
-tcpconnect :: !String !Int !(RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
+tcpconnect :: !String !Int !(RWShared () r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port shared initFun commFun = Task eval
 where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld=:{IWorld|io={done,todo},world}
@@ -142,18 +141,18 @@ where
                 | close
  		            # world = closeRChannel rChannel world
                     # world = closeChannel sChannel world
-                    = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
                 | otherwise
                     //Add connection task to todo queue
                     # todo = todo ++ [ConnectionInstance ip {rChannel=rChannel,sChannel=sChannel} task state]
-                    = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
+                    = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),{iworld & io = {done=done,todo=todo},world=world})
 
     eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioValues}
-        = case 'Data.Map'.get taskId ioValues of
+        = case 'DM'.get taskId ioValues of
             Nothing
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOValue (l :: l^) s)
-                = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOException e)
                 = (ExceptionResult (dynamic e,e),iworld)
             _
@@ -161,13 +160,13 @@ where
                 = (ExceptionResult (dynamic e,e),iworld)
 
     eval event evalOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioValues}
-        # iworld = {iworld & ioValues = 'Data.Map'.del taskId ioValues}
+        # iworld = {iworld & ioValues = 'DM'.del taskId ioValues}
         = (DestroyedResult,iworld)
 
     lookupErr = "Failed to lookup host "+++ host
     connectErr = "Failed to connect to host "+++ host
 
-    connTask :: !TaskId (RWShared Void r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> ConnectionTask | iTask r & iTask w & iTask l
+    connTask :: !TaskId (RWShared () r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> ConnectionTask | iTask r & iTask w & iTask l
     connTask taskId=:(TaskId instanceNo _) shared initFun commFun = ConnectionTask init eval close
     where
         init host iworld
@@ -177,13 +176,13 @@ where
                     # (mbl,mbw,sends,close) = initFun r
                     = case mbl of
                         Ok l
-                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
+                            # iworld = {iworld & ioValues = 'DM'.put taskId (IOValue (dynamic l) False) ioValues}
                             # iworld = writeShare shared mbw iworld
-                            # iworld = queueUrgentRefresh [instanceNo] iworld
+                            # iworld = queueUrgentRefresh [instanceNo] ["New TCP connection for instance "<+++instanceNo] iworld
                             = (sends, close, dynamic (r,l), iworld)
                         Error e
-                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
-                            # iworld = queueUrgentRefresh [instanceNo] iworld
+                            # iworld = {iworld & ioValues = 'DM'.put taskId (IOException e) ioValues}
+                            # iworld = queueUrgentRefresh [instanceNo] ["IO Exception for instance "<+++instanceNo] iworld
                             = (sends,True, dynamic e, iworld)
 			    Error (e,str)
                     = ([],True, dynamic str, iworld)
@@ -195,14 +194,14 @@ where
                     # (mbl,mbw,sends,close) = commFun l r [data] (r =!= prevr) False
                     = case mbl of
                         Ok l
-                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) False) ioValues}
+                            # iworld = {iworld & ioValues = 'DM'.put taskId (IOValue (dynamic l) False) ioValues}
                             # iworld = writeShare shared mbw iworld
-                            # iworld = queueUrgentRefresh [instanceNo] iworld
+                            # iworld = queueUrgentRefresh [instanceNo] ["New TCP data for instance "<+++instanceNo] iworld
                             = (sends,close,dynamic (r,l), iworld)
                         Error e
-                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
+                            # iworld = {iworld & ioValues = 'DM'.put taskId (IOException e) ioValues}
                             # iworld = writeShare shared mbw iworld
-                            # iworld = queueUrgentRefresh [instanceNo] iworld
+                            # iworld = queueUrgentRefresh [instanceNo] ["IO Exception for instance "<+++instanceNo] iworld
                             = (sends,True,dynamic e, iworld)
 			    Error (e,str)
                     = ([],True,dynamic str, iworld)
@@ -215,14 +214,14 @@ where
                     # (mbl,mbw,_,_) = commFun l r [] (r =!= prevr) True
                     = case mbl of
                         Ok l
-                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOValue (dynamic l) True) ioValues}
+                            # iworld = {iworld & ioValues = 'DM'.put taskId (IOValue (dynamic l) True) ioValues}
                             # iworld = writeShare shared mbw iworld
-                            # iworld = queueUrgentRefresh [instanceNo] iworld
+                            # iworld = queueUrgentRefresh [instanceNo] ["TCP connection closed for instance "<+++instanceNo] iworld
                             = (dynamic (r,l), iworld)
 			            Error e
-                            # iworld = {iworld & ioValues = 'Data.Map'.put taskId (IOException e) ioValues}
+                            # iworld = {iworld & ioValues = 'DM'.put taskId (IOException e) ioValues}
                             # iworld = writeShare shared mbw iworld
-                            # iworld = queueUrgentRefresh [instanceNo] iworld
+                            # iworld = queueUrgentRefresh [instanceNo] ["IO Exception for instance "<+++instanceNo] iworld
                             = (dynamic e, iworld)
 			    Error (e,str)
                     = (dynamic str, iworld)
@@ -230,11 +229,11 @@ where
         writeShare shared Nothing iworld = iworld
         writeShare shared (Just w) iworld = (snd ('SDS'.write w shared iworld)) //TODO CHECK ERROR
 
-appWorld :: !(*World -> *World) -> Task Void
+appWorld :: !(*World -> *World) -> Task ()
 appWorld fun = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|world}
-		= (Ok Void, {IWorld|iworld & world = fun world})
+		= (Ok (), {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask eval
@@ -265,5 +264,5 @@ where
        # iworld = trace_n (toSingleLineText v) iworld
        = (Ok v,iworld)
 
-shutDown :: Task Void
-shutDown = mkInstantTask (\taskId iworld -> (Ok Void, {IWorld|iworld & shutdown = True}))
+shutDown :: Task ()
+shutDown = mkInstantTask (\taskId iworld -> (Ok (), {IWorld|iworld & shutdown = True}))

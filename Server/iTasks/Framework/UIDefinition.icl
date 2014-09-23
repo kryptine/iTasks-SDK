@@ -367,6 +367,13 @@ uiDefSetPadding top right bottom left {UIDef|content=UIBlock sub,windows}
     = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}},windows=windows}
 uiDefSetPadding _ _ _ _ def = def
 
+uiDefSetMargins :: Int Int Int Int UIDef -> UIDef
+uiDefSetMargins top right bottom left {UIDef|content=UIForm stack=:{UIForm|size},windows}
+    = {UIDef|content=UIForm {UIForm|stack & size = {UISizeOpts|size & margins = Just {top = top, right = right, bottom = bottom, left = left}}},windows=windows}
+uiDefSetMargins top right bottom left {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
+    = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & margins = Just {top = top, right = right, bottom = bottom, left = left}}},windows=windows}
+uiDefSetMargins _ _ _ _ def = def
+
 uiDefSetBaseCls :: String UIDef -> UIDef
 uiDefSetBaseCls baseCls {UIDef|content=UIBlock sub,windows}
     = {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & baseCls = Just baseCls}},windows=windows}

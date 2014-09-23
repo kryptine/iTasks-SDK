@@ -17,8 +17,10 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, listId        :: !TaskId              //Reference to parent tasklist
     , session       :: !Bool                //Is this a session
     , build         :: !String              //Application build version when the instance was created
+    , issuedAt      :: !DateTime
+    , issuedBy      :: !User
     //Evaluation information
-	, progress		:: !ProgressMeta
+	, progress		:: !InstanceProgress
     //Identification and classification information
 	, attributes    :: !TaskAttributes      //Arbitrary meta-data
 	}
@@ -29,8 +31,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, nextTaskNo	:: !TaskNo                          //Local task number counter
 	, nextTaskTime	:: !TaskTime                        //Local task time (incremented at every evaluation)
     , lastEventNo   :: !EventNo                         //Last event number received from a client
-	, shares		:: !Map TaskId JSONNode				//Locally shared data
-	, lists			:: !Map TaskId [TaskListEntry]		//Parallel task lists
+    //Remove from reduct!
 	, tasks			:: !Map TaskId Dynamic				//Task functions of embedded parallel tasks
 	}
 
@@ -49,7 +50,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
 	| TCProject					!TaskId !JSONNode !TaskTree
 	| TCStep					!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
-	| TCParallel				!TaskId !TaskTime
+	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] //Subtrees of embedded tasks
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL
 	| TCStable					!TaskId !TaskTime !DeferredJSON
@@ -66,19 +67,20 @@ taskIdFromTaskTree :: TaskTree -> Maybe TaskId
 derive JSONEncode DeferredJSON
 derive JSONDecode DeferredJSON
 	
-:: TaskListEntry	=
-	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
-    , name              :: !Maybe String            //Optional name, for easy referencing
-	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
-	, lastEval          :: !TaskResult JSONNode     //Value of last evaluation
-	, uiAttributes		:: !Map String String		//Stored attributes of last evaluation
+:: ParallelTaskState =
+	{ taskId			:: !TaskId					//Identification
+    , index             :: !Int                     //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
+    , detached          :: !Bool
+    , attributes        :: !TaskAttributes
+    , value             :: !TaskValue JSONNode      //Value (only for embedded tasks)
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
     , lastFocus         :: !Maybe TaskTime          //Time the entry was last explicitly focused
 	, lastEvent			:: !TaskTime				//Last modified time
-	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
-	}												//If it is false we have determined that this is not necessary during the last computation
+	, change            :: !Maybe ParallelTaskChange //Changes like removing or replacing a parallel task are only done when the
+	}                                                //parallel is evaluated. This field is used to schedule such changes.
 
-:: TaskListEntryState
-	= EmbeddedState 										    //An embedded task
-	| DetachedState !InstanceNo !ProgressMeta !TaskAttributes	//A reference to the detached task (management and progress meta are cached copies)
+:: ParallelTaskChange
+    = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
+    | ReplaceParallelTask !Dynamic                  //Replace the task on the next evaluation
+
 
