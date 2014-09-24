@@ -187,19 +187,19 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
     | 'DM'.null fontMap = trace_n "genServerDiff 3a 'DM'.null fontMap requestRender" requestRender newSt (imageFromState (state2Image newSt) 'DM'.newMap)
     | otherwise         = trace_n "genServerDiff 3b otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
-  genServerDiff _ (SVGSrvStImage (newSt, img))
+  genServerDiff oldSrv (SVGSrvStImage (newSt, img))
     # image             = state2Image newSt
     # fontMap           = gatherFonts image
-    | 'DM'.null fontMap = trace_n "genServerDiff 4a 'DM'.null fontMap requestRender" requestRender newSt (imageFromState image 'DM'.newMap)
+    | 'DM'.null fontMap = trace_n ("genServerDiff 4a 'DM'.null fontMap requestRender (oldSt = " +++ toString (toJSON (unSrvSt oldSrv)) +++ " ; newSt = " +++ toString (toJSON newSt) +++")") requestRender newSt (imageFromState image 'DM'.newMap)
     | otherwise         = trace_n "genServerDiff 4b otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
   genServerDiff _ _ = trace_n "genServerDiff fallthrough Nothing" Nothing // Can't go back to default state
 
   appServerDiff (RespondFontXSpans env) srvSt
     # currSt = unSrvSt srvSt
-    = trace_n "appServerDiff 1 SVGSrvStImage" SVGSrvStImage (currSt, imageFromState (state2Image currSt) env)
+    = trace_n ("appServerDiff 1 SVGSrvStImage (srvSt = " +++ toString (toJSON currSt))  SVGSrvStImage (currSt, imageFromState (state2Image currSt) env)
 
-  appServerDiff (RespondClUpdate newSt) _ = trace_n "appServerDiff 2 imgSt2SrvSt newSt" imgSt2SrvSt newSt
+  appServerDiff (RespondClUpdate newSt) srvSt = trace_n ("appServerDiff 2 imgSt2SrvSt newSt (oldSt = " +++ toString (toJSON (unSrvSt srvSt)) +++ " ; newSt = " +++ toString (toJSON newSt) +++")") imgSt2SrvSt newSt
 
   appServerDiff _ st = trace_n "appServerDiff fallthrough st" st
 
