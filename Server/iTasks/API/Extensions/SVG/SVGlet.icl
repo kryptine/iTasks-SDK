@@ -176,7 +176,7 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
     | otherwise         = trace_n "genServerDiff 1c otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
 
   genServerDiff (SVGSrvStImage (oldSt, _)) (SVGSrvStImage (newSt, img))
-    | oldSt === newSt = trace_n "genServerDiff 2a oldSt === newSt Nothing" Nothing
+    | oldSt === newSt = trace_n ("genServerDiff 2a oldSt === newSt Nothing oldSt: " +++ toString (toJSON oldSt) +++ " newSt: " +++ toString (toJSON newSt)) Nothing
     | otherwise
       # image             = state2Image newSt
       # fontMap           = gatherFonts image
