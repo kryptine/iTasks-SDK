@@ -12,28 +12,23 @@ import iTasks.API.Extensions.SVG.SVGlet
 //	Make iTask infrastructure available for Ligretto model data types:
 derive class iTask Player, Color, Hand, Card, SideUp
 
-card_share = sharedStore "card" [{back=Red,front=Yellow,nr=i} \\ i <- [1..9]]
 
-play_Ligretto = //updateSharedInformation "card info" [] card_share 
-                  // -&&- 
-                viewSharedInformation "card" [imageView (pile_image Front)] card_share
-/*
-play_Ligretto :: Task Color
+play_Ligretto :: Task (Color,User)
 play_Ligretto
 	=               get currentUser
 	>>= \me      -> invite_friends 
 	>>= \friends -> set (repeatn 16 []) middle_state
 	>>|             let nr_of_players = length friends + 1 in
 	                anyTask
-	                 [  player @: game nr_of_players color
+	                 [  /*player @:*/ game nr_of_players (color,player)
 	                 \\ player <- [me:friends] & color <- colors nr_of_players
 	                 ]
 	>>= \winner  -> allTasks
-	                 [  player @: (viewInformation "The winner is:" [] winner >>= return)
+	                 [  /*player @:*/ (viewInformation "The winner is:" [] winner >>= return)
 	                 \\ player <- [me:friends]
 	                 ]
 	>>| return winner
-*/
+
 
 invite_friends :: Task [User]
 invite_friends
@@ -43,12 +38,19 @@ invite_friends
 	                   (return friends)
 
 
-game :: Int Color -> Task Color
-game nr_of_players color
-	= viewInformation "player" [] color >>= return
+game :: Int (Color,User) -> Task (Color,User)
+game nr_of_players (color,user)
+	=           get randomInt
+	  >>= \r -> let player = initial_player nr_of_players color (abs r) in
+	            set player (player_state color)
+	  >>|       viewSharedInformation (toString user) [imageView player_image] (player_state color)
+	  >>|		return (color,user)
 
 middle_state :: Shared Middle
 middle_state = sharedStore "middle" (repeatn 16 [])
+
+player_state :: Color -> Shared Player
+player_state color = sharedStore ("player " <+++ color) {color=color,row=[],ligretto=[],hand={conceal=[],discard=[]}}
 
 card c = beside [] [] [card_image Front c,empty (px 5.0) (px 5.0),card_image Back c,empty (px 5.0) (px 5.0),no_card_image] Nothing
 
@@ -82,7 +84,7 @@ card_size :: (Real,Real)
 card_size					= (58.5, 90.0)
 
 no_card_image :: Image m
-no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] host
+no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] host	// BUG: "empty" text is not aligned properly
 where
 	host					= Just (card_shape <@< {fill = toSVGColor "lightgrey"})
 
@@ -90,12 +92,27 @@ hand_image :: Hand -> Image m
 hand_image {conceal,discard}= beside [] [] [pile_image Back conceal,pile_image Front discard] Nothing
 
 pile_image :: SideUp Pile -> Image m
-pile_image side pile		= overlay [] [(px dx,zero) \\ dx <- [0.0, (h/18.0) ..]] (map (card_image side) pile) (Just no_card_image)
+pile_image side pile
+| nr_of_cards > 10			= above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
+| otherwise					= top_cards_image
 where
+	nr_of_cards				= length pile
+	top_cards				= take 10 pile
+	nr_of_top_cards			= length top_cards
+	top_cards_image			= overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..nr_of_top_cards-1]] 
+							             (map (card_image side) top_cards) (Just no_card_image)
 	(_,h)					= card_size
 
 row_image :: RowPlayer -> Image m
 row_image row				= beside [] [] (map (card_image Front) row) Nothing
+
+player_image :: Player -> Image Player
+player_image player			= beside [] [] [ row_image player.row,             empty (px w) zero
+							               , pile_image Front player.ligretto, empty (px w) zero		// BUG: only margin (px zero,px w) around pile_image does not work
+							               , hand_image player.hand
+							               ] Nothing
+where
+	(w,_)					= card_size
 
 instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Green  = toSVGColor "darkgreen"
