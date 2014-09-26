@@ -44,13 +44,13 @@ where
 
     lightId cid = cid +++ "-light"
     svgLight cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
-                          [defs,light cid,glass,flare]
+                          [defs cid,light cid,glass cid,flare cid]
 
-    defs      = DefsElt [] [] [glassgr,flaregr]
-    glassgr   = RadialGradientElt [IdAttr "glass-gradient"] [] [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "100%",StopColorAttr "white",StopOpacityAttr "0"]]
-    flaregr   = LinearGradientElt [IdAttr "flare-gradient"] [X1Attr ("0",PX),X2Attr ("0",PX),Y1Attr ("0",PX),Y2Attr ("1",PX)] [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "90%",StopColorAttr "white",StopOpacityAttr "0"]]
+    defs cid     = DefsElt [] [] [glassgr cid,flaregr cid]
+    glassgr cid  = RadialGradientElt [IdAttr (cid +++ "-glass-gradient")] [] [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "100%",StopColorAttr "white",StopOpacityAttr "0"]]
+    flaregr cid  = LinearGradientElt [IdAttr (cid +++ "-flare-gradient")] [X1Attr ("0",PX),X2Attr ("0",PX),Y1Attr ("0",PX),Y2Attr ("1",PX)] [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "90%",StopColorAttr "white",StopOpacityAttr "0"]]
     light cid = CircleElt [IdAttr (lightId cid)] [CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
-    glass     = CircleElt [StyleAttr "stroke: #000;stroke-width: 8px"] [FillAttr (PaintFuncIRI (IRI "#glass-gradient") Nothing),CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
-    flare     = EllipseElt [] [FillAttr (PaintFuncIRI (IRI "#flare-gradient") Nothing),CxAttr ("50",PX),CyAttr ("45",PX),RxAttr ("35",PX),RyAttr ("30",PX)]
+    glass cid = CircleElt [StyleAttr "stroke: #000;stroke-width: 8px"] [FillAttr (PaintFuncIRI (IRI ("#"+++cid+++"-glass-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
+    flare cid = EllipseElt [] [FillAttr (PaintFuncIRI (IRI ("#"+++cid+++ "-flare-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("45",PX),RxAttr ("35",PX),RyAttr ("30",PX)]
 
 
