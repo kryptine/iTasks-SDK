@@ -158,7 +158,7 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
 
   updateUI _ _ clval world
     # world = jsTrace "updateUI fallthrough" world
-    = (clval, world)
+    = (SVGClStDefault, world)
 
   requestRender newSt img
     # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
@@ -1078,7 +1078,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkEmptyImage :: !ImageSpanReal ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                  -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkEmptyImage imSp imAts imTrs imTas
-      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkWH imSp ++ getHtmlAttrs imAts) [] (mkGroup [] (getSvgAttrs (mkAttrs imAts imTrs)) []) }
+      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [] (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }
     mkTextImage :: !FontDef !String !ImageSpanReal  ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                 -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkTextImage fd str imSp imAts imTrs imTas
@@ -1096,7 +1096,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkRectImage :: !ImageSpanReal ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                 -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkRectImage imSp imAts imTrs imTas
-      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkWH imSp ++ getHtmlAttrs imAts) [] [RectElt [] (getSvgAttrs (mkAttrs imAts imTrs))] }
+      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [] [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }
     mkCircleImage :: !ImageSpanReal ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                   -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkCircleImage imSp=:(imXSp`, _) imAts imTrs imTas
