@@ -63,21 +63,19 @@ addOnclicks cid svg onclicks world
     # (_, world)        = (elem `addEventListener` ("click", cb, True)) world
     = world
   mkCB :: (s -> s) String {JSObj JSEvent} (SVGClSt s) *JSWorld -> *(SVGClSt s, *JSWorld) | iTask s
-  mkCB sttf _ _ {svgClSt = Just s, svgClTextWidths} world
+  mkCB sttf _ _ clSt=:{svgClSt, svgClTextWidths, svgClStrings} world
     # world = jsTrace "mkCB SVGClStRendered" world
-    = ({svgClSt = Just (sttf s), svgClTextWidths = svgClTextWidths}, world)
+    = ({clSt & svgClSt = sttf clSt.svgClSt, svgClIsDefault = False}, world)
   mkCB sttf _ _ clval world
     # world = jsTrace "mkCB otherwise" world
-    = (clval, world)
+    = ({clval & svgClIsDefault = False}, world)
 
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
 imageView toImage = ViewWith (\s -> svgRenderer s toImage)
 
 imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` |  iTask v
 imageViewUpdate toViewState toImage fromViewState
-  = UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s (Editlet v _ _) -> fromViewState s (unSrvSt v))
-  where
-  unSrvSt {svgSrvSt = Just s} = s
+  = UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s (Editlet v _ _) -> fromViewState s v.svgSrvSt)
 
 derive class iTask ActionState
 
@@ -90,49 +88,59 @@ ifAction _ _ _ _ = Nothing
 svgns :== "http://www.w3.org/2000/svg"
 
 :: SVGSrvSt s =
-  { svgSrvSt         :: Maybe s
-  //, svgSrvStrings    :: Map FontDef (Set String)
+  { svgSrvIsDefault  :: Bool
+  , svgSrvSt         :: s
+  , svgSrvStrings    :: Map FontDef (Set String)
   , svgSrvTextWidths :: Map FontDef (Map String Real)
   }
 
-defaultSrvSt :: SVGSrvSt s
-defaultSrvSt = { svgSrvSt         = Nothing
-               //, svgSrvStrings    = 'DM'.newMap
-               , svgSrvTextWidths = 'DM'.newMap
-               }
+defaultSrvSt :: s -> SVGSrvSt s
+defaultSrvSt s = { svgSrvIsDefault  = True
+                 , svgSrvSt         = s
+                 , svgSrvStrings    = 'DM'.newMap
+                 , svgSrvTextWidths = 'DM'.newMap
+                 }
 
 :: SVGClSt s =
-  { svgClSt         :: Maybe s
+  { svgClIsDefault  :: Bool
+  , svgClSt         :: s
+  , svgClStrings    :: Map FontDef (Set String)
   , svgClTextWidths :: Map FontDef (Map String Real)
+  , svgClImageStr   :: Maybe String
+  , svgClCallbacks  :: Map String (s -> s)
   }
 
-defaultClSt :: SVGClSt s
-defaultClSt = { svgClSt         = Nothing
-              , svgClTextWidths = 'DM'.newMap
-              }
+defaultClSt :: s -> SVGClSt s
+defaultClSt s = { svgClIsDefault  = True
+                , svgClSt         = s
+                , svgClStrings    = 'DM'.newMap
+                , svgClTextWidths = 'DM'.newMap
+                , svgClImageStr   = Nothing
+                , svgClCallbacks  = 'DM'.newMap
+                }
 
 :: SVGDiff s
-  = RequestFontXSpans (Map FontDef (Set String))
-  | RespondFontXSpans (Map FontDef (Map String Real))
-  | RequestRender     s String (Map String (s -> s))
-  | RespondClUpdate   s
+  = SetFontStringsMap     (Map FontDef (Set String))
+  | SetFontStringWidthMap (Map FontDef (Map String Real))
+  | SetImage              String (Map String (s -> s))
+  | SetState              s
 
 derive class iTask SVGDiff, SVGSrvSt, SVGClSt
 import StdDebug
-svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
-svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server client
+svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) [SVGDiff s] | iTask s
+svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDefault = False} server client //(imgSt2SrvSt origState) server client
   where
   server
     = { EditletServerDef
       | genUI   = genUI
-      , defVal  = defaultSrvSt
+      , defVal  = defaultSrvSt origState
       , genDiff = genServerDiff
       , appDiff = appServerDiff
       }
   client
     = { EditletClientDef
       | updateUI = updateUI
-      , defVal   = defaultClSt
+      , defVal   = defaultClSt origState
       , genDiff  = genClientDiff
       , appDiff  = appClientDiff
       }
@@ -146,13 +154,13 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
        , world
       )
 
-  updateUI cid (Just (RequestFontXSpans fontMap)) clst world
-    # world = jsTrace "updateUI RequestFontXSpans" world
+  updateUI cid (Just [SetFontStringsMap fontMap:ds]) clst world
+    # world = jsTrace "updateUI SetFontStringsMap" world
     # (realFontMap, world) = calcTextLengths fontMap world
-    = ({clst & svgClTextWidths = realFontMap}, world)
+    = updateUI cid (Just ds) {clst & svgClTextWidths = realFontMap, svgClIsDefault = False} world
 
-  updateUI cid (Just (RequestRender s svgStr onclicks)) clst world
-    # world = jsTrace "updateUI RequestRender" world
+  updateUI cid (Just [SetImage svgStr onclicks:ds]) clst world
+    # world = jsTrace "updateUI SetImage" world
     # svgStr           = replaceSubString editletId cid svgStr
     # world = jsTrace svgStr world
     # (parser, world)  = new "DOMParser" () world
@@ -164,89 +172,71 @@ svgRenderer origState state2Image = Editlet (imgSt2SrvSt origState) server clien
                            ((svgDiv `appendChild` newSVG) world)
                            ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
     # world           = addOnclicks cid newSVG onclicks world
-    = ({clst & svgClSt = Just s}, world)
+    = updateUI cid (Just ds) {clst & svgClIsDefault = False} world
 
-  updateUI _ _ clval world
-    # world = jsTrace "updateUI fallthrough" world
-    = (clval, world)
+  updateUI cid (Just [_:ds]) clst world
+    # world = jsTrace "updateUI Just [_:ds]" world
+    = updateUI cid (Just ds) {clst & svgClIsDefault = False} world
 
-  requestRender newSt img
-    # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
-    # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
-    # (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
-    # svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
-                                        [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
-                                        syn.genSVGSyn_svgElts)
-    = //trace_n ("RequestRender: " +++ svgStr)
-      Just (RequestRender newSt svgStr syn.genSVGSyn_onclicks)
+  updateUI _ (Just []) clval world
+    # world = jsTrace "updateUI Just []" world
+    = ({clval & svgClIsDefault = False}, world)
 
-  //genServerDiff oldSt newSt
-    //| oldSt.svgSrvSt =!= newSt.svgSrvSt = fmap (\st` -> requestRender st` (image)
-    //| otherwise = Nothing
-
-  //genServerDiff (SVGSrvStFontStrings (oldSt, _)) (SVGSrvStFontStrings (newSt, fontMap))
-    //| oldSt === newSt   = trace_n "genServerDiff 1a oldSt === newSt Nothing" Nothing
-    //| 'DM'.null fontMap = trace_n "genServerDiff 1b 'DM'.null fontMap requestRender" requestRender newSt (imageFromState (state2Image newSt) 'DM'.newMap)
-    //| otherwise         = trace_n "genServerDiff 1c otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
-
-  //genServerDiff (SVGSrvStImage (oldSt, _)) (SVGSrvStImage (newSt, img))
-    //| oldSt === newSt = trace_n ("genServerDiff 2a oldSt === newSt Nothing oldSt: " +++ toString (toJSON oldSt) +++ " newSt: " +++ toString (toJSON newSt)) Nothing
-    //| otherwise
-      //# image             = state2Image newSt
-      //# fontMap           = gatherFonts image
-      //| 'DM'.null fontMap = trace_n "genServerDiff 2b 'DM'.null fontMap requestRender" requestRender newSt (imageFromState image 'DM'.newMap)
-      //| otherwise         = trace_n "genServerDiff 2c otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
-
-  //genServerDiff _ (SVGSrvStFontStrings (newSt, fontMap))
-    //| 'DM'.null fontMap = trace_n "genServerDiff 3a 'DM'.null fontMap requestRender" requestRender newSt (imageFromState (state2Image newSt) 'DM'.newMap)
-    //| otherwise         = trace_n "genServerDiff 3b otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
-
-  //genServerDiff oldSrv (SVGSrvStImage (newSt, img))
-    //# image             = state2Image newSt
-    //# fontMap           = gatherFonts image
-    //| 'DM'.null fontMap = trace_n ("genServerDiff 4a 'DM'.null fontMap requestRender") requestRender newSt (imageFromState image 'DM'.newMap)
-    //| otherwise         = trace_n "genServerDiff 4b otherwise RequestFontXSpans fontMap" Just (RequestFontXSpans fontMap)
-
-  genServerDiff _ _ = trace_n "genServerDiff fallthrough Nothing" Nothing // Can't go back to default state
-
-  //appServerDiff (RespondFontXSpans env) srvSt = trace_n "appServerDiff 1 RespondFontXSpans" {srvSt & svgSrvTextWidths = env }
-
-  //appServerDiff (RespondClUpdate newSt) srvSt = trace_n ("appServerDiff 2 imgSt2SrvSt newSt (oldSt = " +++ toString (toJSON srvSt.svgSrvSt) +++ " ; newSt = " +++ toString (toJSON newSt) +++")") {srvSt & svgSrvSt = newSt}
-
-  appServerDiff _ st = trace_n "appServerDiff fallthrough st" st
-
-  genClientDiff oldClSt newClSt
-    | oldClSt.svgClSt         =!= newClSt.svgClSt         = fmap RespondClUpdate newClSt.svgClSt
-    | oldClSt.svgClTextWidths =!= newClSt.svgClTextWidths = Just (RespondFontXSpans newClSt.svgClTextWidths)
-    | otherwise                                           = Nothing
-
-  //genClientDiff (SVGClStFontRealMap oldRealFontMap) (SVGClStFontRealMap newRealFontMap)
-    //| 'DM'.mapSize oldRealFontMap == 'DM'.mapSize newRealFontMap && oldRealFontMap === newRealFontMap = trace_n "genClientDiff 1a oldRealFontMap === newRealFontMap Nothing" Nothing
-    //| otherwise                         = trace_n "genClientDiff 1b otherwise RespondFontXSpans newRealFontMap" Just (RespondFontXSpans newRealFontMap)
-
-  //genClientDiff SVGClStNeedFonts (SVGClStFontRealMap newRealFontMap) // TODO Do we need this cases for when the state changes and we need to calculate new fonts?
-    //= trace_n "genClientDiff 2 RespondFontXSpans newRealFontMap" Just (RespondFontXSpans newRealFontMap)
-
-  //genClientDiff (SVGClStRendered oldSt) (SVGClStRendered newSt)
-    //| oldSt === newSt = trace_n "genClientDiff 3a oldSt === newSt Nothing" Nothing
-    //| otherwise       = trace_n "genClientDiff 3b otherwise RespondClUpdate newSt" Just (RespondClUpdate newSt)
-
-  //genClientDiff oldVal newVal = trace_n "genClientDiff fallthrough Nothing" Nothing
-
-  appClientDiff _ cl = trace_n "appClientDiff 3" cl // TODO
-
-  imgSt2SrvSt = undef
-  //imgSt2SrvSt newSt
-    //# image             = state2Image newSt
-    //# fontMap           = gatherFonts image
-    //| 'DM'.null fontMap = trace_n "imgSt2SrvSt SVGSrvStImage" SVGSrvStImage (newSt, imageFromState image 'DM'.newMap)
-    //| otherwise         = trace_n "imgSt2SrvSt SVGSrvStFontString" SVGSrvStFontStrings (newSt, fontMap)
+  updateUI _ Nothing clval world
+    # world = jsTrace "updateUI Nothing" world
+    = ({clval & svgClIsDefault = False}, world)
 
   imageFromState img env
     = fst (fixSpans img { fixSpansTaggedSpanEnv = 'DM'.newMap
                         , fixSpansDidChange     = False
                         , fixSpansCounter       = 0
                         , fixSpansFonts         = env})
+
+  imgSt2SrvSt newSt
+    # image   = state2Image newSt
+    # fontMap = gatherFonts image
+    | 'DM'.null fontMap = requestRender (imageFromState image 'DM'.newMap)
+    | otherwise         = SetFontStringsMap fontMap
+
+  requestRender img
+    # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
+    # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
+    # (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
+    # svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                        [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                        syn.genSVGSyn_svgElts)
+    = SetImage svgStr syn.genSVGSyn_onclicks
+
+  genServerDiff oldSt newSt
+    = case (if oldSt.svgSrvIsDefault mkDefaultDiffs mkRegularDiffs) of
+        [] -> trace_n "genServerDiff Nothing" Nothing
+        xs -> trace_n "genServerDiff Just xs" Just xs
+    where
+    mkDefaultDiffs = trace_n ("genServerDiff mkDefaultDiffs\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [SetState newSt.svgSrvSt, imgSt2SrvSt newSt.svgSrvSt]
+    mkRegularDiffs
+      | oldSt.svgSrvSt === newSt.svgSrvSt
+          = if (oldSt.svgSrvTextWidths === newSt.svgSrvTextWidths)
+              (trace_n ("genServerDiff mkRegularDiffs oldSt.svgSrvTextWidths === newSt.svgSrvTextWidths\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [])
+              (trace_n ("genServerDiff mkRegularDiffs oldSt.svgSrvTextWidths =!= newSt.svgSrvTextWidths\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [requestRender (imageFromState (state2Image newSt.svgSrvSt) newSt.svgSrvTextWidths)])
+      | otherwise = trace_n ("genServerDiff mkRegularDiffs oldSt.svgSrvSt =!= newSt.svgSrvSt\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [SetState newSt.svgSrvSt, imgSt2SrvSt newSt.svgSrvSt]
+
+  appServerDiff [SetFontStringWidthMap mp:ds] srvSt = trace_n "appServerDiff SetFontStringWidthMap" appServerDiff ds {srvSt & svgSrvTextWidths = mp}
+  appServerDiff [SetState st:ds]              srvSt = trace_n "appServerDiff SetState" appServerDiff ds {srvSt & svgSrvSt = st}
+  appServerDiff [_:ds]                        srvSt = trace_n "appServerDiff [_:ds]" appServerDiff ds srvSt
+  appServerDiff _                             srvSt = trace_n "appServerDiff _" srvSt
+
+  genClientDiff oldClSt newClSt
+    # ds1 = if (oldClSt.svgClSt === newClSt.svgClSt) [] [SetState newClSt.svgClSt]
+    # ds2 = if (oldClSt.svgClTextWidths === newClSt.svgClTextWidths) [] [SetFontStringWidthMap newClSt.svgClTextWidths]
+    = case ds1 ++ ds2 of
+        [] -> trace_n ("genClientDiff Nothing\ngenClientDiff oldSt: " +++ toString (toJSON oldClSt) +++ "\ngenClientDiff newSt " +++ toString (toJSON newClSt)) Nothing
+        xs -> trace_n ("genClientDiff Just xs\ngenClientDiff oldSt: " +++ toString (toJSON oldClSt) +++ "\ngenClientDiff newSt " +++ toString (toJSON newClSt)) Just xs
+
+  appClientDiff [SetState st:ds]           clSt = trace_n "appClientDiff SetState" appClientDiff ds {clSt & svgClSt = st}
+  appClientDiff [SetFontStringsMap ss:ds]  clSt = trace_n "appClientDiff SetFontStringsMap" appClientDiff ds {clSt & svgClStrings = ss}
+  appClientDiff [SetImage str cbs:ds]      clSt = trace_n "appClientDiff SetImage" appClientDiff ds {clSt & svgClImageStr = Just str, svgClCallbacks = cbs }
+  appClientDiff [_:ds]                     clSt = trace_n "appClientDiff [_:ds]" appClientDiff ds clSt
+  appClientDiff _                          clSt = trace_n "appClientDiff _" clSt
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args

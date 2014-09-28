@@ -38,7 +38,7 @@ imageViewUpdate 		:: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s
 :: SVGDiff s
 
 derive class iTask SVGDiff, SVGSrvSt
-svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
+svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) [SVGDiff s] | iTask s
 //svgRenderer     :: !s !(s -> Image s)
                 //-> Editlet s (s, Image s, Map FontDef (Set String), Map (Set ImageTag) CachedSpan) | iTask s
 
