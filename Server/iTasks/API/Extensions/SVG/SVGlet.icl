@@ -90,6 +90,7 @@ svgns :== "http://www.w3.org/2000/svg"
 :: SVGSrvSt s =
   { svgSrvIsDefault  :: Bool
   , svgSrvHasStUpd   :: Bool
+  , svgSrvHasFontUpd :: Bool
   , svgSrvSt         :: s
   , svgSrvStrings    :: Map FontDef (Set String)
   , svgSrvTextWidths :: Map FontDef (Map String Real)
@@ -98,6 +99,7 @@ svgns :== "http://www.w3.org/2000/svg"
 defaultSrvSt :: s -> SVGSrvSt s
 defaultSrvSt s = { svgSrvIsDefault  = True
                  , svgSrvHasStUpd   = False
+                 , svgSrvHasFontUpd = False
                  , svgSrvSt         = s
                  , svgSrvStrings    = 'DM'.newMap
                  , svgSrvTextWidths = 'DM'.newMap
@@ -106,6 +108,7 @@ defaultSrvSt s = { svgSrvIsDefault  = True
 :: SVGClSt s =
   { svgClIsDefault  :: Bool
   , svgClHasStUpd   :: Bool
+  , svgClHasFontUpd :: Bool
   , svgClSt         :: s
   , svgClStrings    :: Map FontDef (Set String)
   , svgClTextWidths :: Map FontDef (Map String Real)
@@ -116,6 +119,7 @@ defaultSrvSt s = { svgSrvIsDefault  = True
 defaultClSt :: s -> SVGClSt s
 defaultClSt s = { svgClIsDefault  = True
                 , svgClHasStUpd   = False
+                , svgClHasFontUpd = False
                 , svgClSt         = s
                 , svgClStrings    = 'DM'.newMap
                 , svgClTextWidths = 'DM'.newMap
@@ -128,8 +132,10 @@ defaultClSt s = { svgClIsDefault  = True
   | SetFontStringWidthMap (Map FontDef (Map String Real))
   | SetImage              String (Map String (s -> s))
   | SetState              s
-  | SetHasUpdate
-  | SetHasNoUpdate
+  | SetHasStUpd
+  | SetHasNoStUpd
+  | SetHasFontUpd
+  | SetHasNoFontUpd
 
 derive class iTask SVGDiff, SVGSrvSt, SVGClSt
 import StdDebug
@@ -163,7 +169,7 @@ svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDe
   updateUI cid (Just [SetFontStringsMap fontMap:ds]) clst world
     # world = jsTrace "updateUI SetFontStringsMap" world
     # (realFontMap, world) = calcTextLengths fontMap world
-    = updateUI cid (Just ds) {clst & svgClTextWidths = realFontMap, svgClIsDefault = False} world
+    = updateUI cid (Just ds) {clst & svgClTextWidths = realFontMap, svgClIsDefault = False, svgClHasFontUpd = True} world
 
   updateUI cid (Just [SetImage svgStr onclicks:ds]) clst world
     # world = jsTrace "updateUI SetImage" world
@@ -184,16 +190,24 @@ svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDe
     # world = jsTrace "updateUI Just [SetFontStringWidthMap _:ds]" world
     = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClTextWidths = mp} world
 
+  updateUI cid (Just [SetHasFontUpd:ds]) clst world
+    # world = jsTrace "updateUI Just [SetHasFontUpd:ds:ds]" world
+    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasFontUpd = True} world
+
+  updateUI cid (Just [SetHasNoFontUpd:ds]) clst world
+    # world = jsTrace "updateUI Just [SetHasNoFontUpd:ds:ds]" world
+    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasFontUpd = False} world
+
   updateUI cid (Just [SetState s:ds]) clst world
     # world = jsTrace "updateUI Just [SetState s:ds]" world
     = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClSt = s} world
 
-  updateUI cid (Just [SetHasUpdate:ds]) clst world
-    # world = jsTrace "updateUI Just [SetHasUpdate:ds]" world
+  updateUI cid (Just [SetHasStUpd:ds]) clst world
+    # world = jsTrace "updateUI Just [SetHasStUpd:ds]" world
     = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasStUpd = True} world
 
-  updateUI cid (Just [SetHasNoUpdate:ds]) clst world
-    # world = jsTrace "updateUI Just [SetHasNoUpdate:ds]" world
+  updateUI cid (Just [SetHasNoStUpd:ds]) clst world
+    # world = jsTrace "updateUI Just [SetHasNoStUpd:ds]" world
     = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasStUpd = False} world
 
   updateUI _ _ clval world
@@ -224,11 +238,14 @@ svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDe
   genServerDiff oldSt newSt
     = case (if oldSt.svgSrvIsDefault mkDefaultDiffs mkRegularDiffs) of
         [] -> trace_n "genServerDiff Nothing" Nothing
-        xs -> trace_n "genServerDiff Just xs" Just xs
+        xs -> trace_n ("genServerDiff Just " +++ toString (toJSON xs)) Just xs
     where
-    mkDefaultDiffs = trace_n ("genServerDiff mkDefaultDiffs\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [SetState newSt.svgSrvSt, imgSt2SrvSt newSt.svgSrvSt]
+    mkDefaultDiffs
+      | newSt.svgSrvHasFontUpd = trace_n ("genServerDiff mkDefaultDiffs newSt.svgSrvHasFontUpd\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [SetHasNoFontUpd, requestRender (imageFromState (state2Image newSt.svgSrvSt) newSt.svgSrvTextWidths)]
+      | otherwise              = trace_n ("genServerDiff mkDefaultDiffs otherwise\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [SetState newSt.svgSrvSt, imgSt2SrvSt newSt.svgSrvSt]
     mkRegularDiffs
-      | newSt.svgSrvHasStUpd = [imgSt2SrvSt newSt.svgSrvSt, SetHasNoUpdate]
+      | newSt.svgSrvHasStUpd   = [imgSt2SrvSt newSt.svgSrvSt, SetHasNoStUpd, SetHasNoFontUpd]
+      | newSt.svgSrvHasFontUpd = [SetHasNoFontUpd, requestRender (imageFromState (state2Image newSt.svgSrvSt) newSt.svgSrvTextWidths)]
       | oldSt.svgSrvSt === newSt.svgSrvSt
           = if (oldSt.svgSrvTextWidths === newSt.svgSrvTextWidths)
               (trace_n ("genServerDiff mkRegularDiffs oldSt.svgSrvTextWidths === newSt.svgSrvTextWidths\ngenServerDiff oldSt: " +++ toString (toJSON oldSt) +++ "\ngenServerDiff newSt " +++ toString (toJSON newSt)) [])
@@ -238,26 +255,30 @@ svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDe
   appServerDiff [SetFontStringWidthMap mp:ds] srvSt = trace_n "appServerDiff SetFontStringWidthMap" appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvTextWidths = mp}
   appServerDiff [SetState st:ds]              srvSt = trace_n "appServerDiff SetState"              appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
   appServerDiff [SetFontStringsMap ss:ds]     srvSt = trace_n "appServerDiff SetFontStringsMap"     appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvStrings = ss}
-  appServerDiff [SetHasUpdate:ds]             srvSt = trace_n "appServerDiff SetHasUpdate"          appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasStUpd = True}
-  appServerDiff [SetHasNoUpdate:ds]           srvSt = trace_n "appServerDiff SetHasNoUpdate"        appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasStUpd = False}
-  appServerDiff [_:ds]                        srvSt = trace_n "appServerDiff [_:ds]"                appServerDiff ds srvSt
+  appServerDiff [SetHasStUpd:ds]              srvSt = trace_n "appServerDiff SetHasStUpd"           appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasStUpd = True}
+  appServerDiff [SetHasNoStUpd:ds]            srvSt = trace_n "appServerDiff SetHasNoStUpd"         appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasStUpd = False}
+  appServerDiff [SetHasFontUpd:ds]            srvSt = trace_n "appServerDiff SetHasFontUpd"         appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasFontUpd = True}
+  appServerDiff [SetHasNoFontUpd:ds]          srvSt = trace_n "appServerDiff SetHasNoFontUpd"       appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasFontUpd = False}
+  appServerDiff [SetImage str cbs:ds]         srvSt = trace_n ("appServerDiff SetImage: " +++ str)  appServerDiff ds {srvSt & svgSrvIsDefault = False, svgSrvHasFontUpd = False}
+  //appServerDiff [_:ds]                        srvSt = trace_n "appServerDiff [_:ds]"                appServerDiff ds {srvSt & svgSrvIsDefault = False}
   appServerDiff _                             srvSt = trace_n "appServerDiff _"                     srvSt
 
   genClientDiff oldClSt newClSt
     # ds1 = if (oldClSt.svgClSt === newClSt.svgClSt) [] [SetState newClSt.svgClSt]
     # ds2 = if (oldClSt.svgClTextWidths === newClSt.svgClTextWidths) [] [SetFontStringWidthMap newClSt.svgClTextWidths]
-    # ds3 = if newClSt.svgClHasStUpd [SetHasUpdate] []
-    = case ds1 ++ ds2 ++ ds3 of
+    # ds3 = if newClSt.svgClHasStUpd [SetHasStUpd] []
+    # ds4 = if newClSt.svgClHasFontUpd [SetHasFontUpd] []
+    = case ds1 ++ ds2 ++ ds3 ++ ds4 of
         [] -> trace_n ("genClientDiff Nothing\ngenClientDiff oldSt: " +++ toString (toJSON oldClSt) +++ "\ngenClientDiff newSt " +++ toString (toJSON newClSt)) Nothing
-        xs -> trace_n ("genClientDiff Just xs\ngenClientDiff oldSt: " +++ toString (toJSON oldClSt) +++ "\ngenClientDiff newSt " +++ toString (toJSON newClSt)) Just xs
+        xs -> trace_n ("genClientDiff Just " +++ toString (toJSON xs) +++ "\ngenClientDiff oldSt: " +++ toString (toJSON oldClSt) +++ "\ngenClientDiff newSt " +++ toString (toJSON newClSt)) Just xs
 
   appClientDiff [SetState st:ds]              clSt = trace_n "appClientDiff SetState"              appClientDiff ds {clSt & svgClIsDefault = False, svgClSt = st}
   appClientDiff [SetFontStringsMap ss:ds]     clSt = trace_n "appClientDiff SetFontStringsMap"     appClientDiff ds {clSt & svgClIsDefault = False, svgClStrings = ss}
   appClientDiff [SetImage str cbs:ds]         clSt = trace_n "appClientDiff SetImage"              appClientDiff ds {clSt & svgClIsDefault = False, svgClImageStr = Just str, svgClCallbacks = cbs }
   appClientDiff [SetFontStringWidthMap mp:ds] clSt = trace_n "appClientDiff SetFontStringWidthMap" appClientDiff ds {clSt & svgClIsDefault = False, svgClTextWidths = mp }
-  appClientDiff [SetHasUpdate:ds]             clSt = trace_n "appClientDiff SetHasUpdate"          appClientDiff ds {clSt & svgClIsDefault = False, svgClHasStUpd = True}
-  appClientDiff [SetHasNoUpdate:ds]           clSt = trace_n "appClientDiff SetHasNoUpdate"        appClientDiff ds {clSt & svgClIsDefault = False, svgClHasStUpd = False}
-  appClientDiff [_:ds]                        clSt = trace_n "appClientDiff [_:ds]"                appClientDiff ds clSt
+  appClientDiff [SetHasStUpd:ds]              clSt = trace_n "appClientDiff SetHasStUpd"           appClientDiff ds {clSt & svgClIsDefault = False, svgClHasStUpd = True}
+  appClientDiff [SetHasNoStUpd:ds]            clSt = trace_n "appClientDiff SetHasNoStUpd"         appClientDiff ds {clSt & svgClIsDefault = False, svgClHasStUpd = False}
+  appClientDiff [_:ds]                        clSt = trace_n "appClientDiff [_:ds]"                appClientDiff ds {clSt & svgClIsDefault = False}
   appClientDiff _                             clSt = trace_n "appClientDiff _"                     clSt
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
