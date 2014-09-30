@@ -120,7 +120,7 @@ play_trax2 :: Task User
 play_trax2
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Trax with:" [] users
-	  >>= \you -> playGame2` me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
+	  >>= \you -> playGame2 me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
 	  >>* [OnValue (ifValue game_over game_winner)]
 
 game_over :: TraxSt -> Bool
@@ -163,7 +163,7 @@ settile coord tile st=:{trax,turn}
 
 toImage` :: TraxSt -> Image TraxSt
 toImage` st=:{trax,names=[me,you],turn}
-	= above (repeat AtMiddleX) [] [/*text font message,*/ board True d st] Nothing
+	= above (repeat AtMiddleX) [] [text font message, board True d st] Nothing
 where
 	message						= toString (if turn me you) +++ " plays with " +++ if turn "red" "white"
 	d							= px 50.0
@@ -199,11 +199,10 @@ voidImage d				= empty d d
 
 freeImage :: Span Coordinate TraxSt -> Image TraxSt
 freeImage d coord {trax,choice}
-| isNothing choice || coord <> choice_coord
+| maybe True (\c -> coord <> c) choice
 						= unselected <@< {onclick = setcell coord}
 | otherwise				= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile coord tile} \\ tile <- candidates] Nothing
 where
-	choice_coord		= fromJust choice
 	candidates			= possible_tiles (linecolors trax coord)
 	nr_of_candidates	= length candidates
 	unselected			= tileShape d <@< {fill = toSVGColor "lightgrey"}
