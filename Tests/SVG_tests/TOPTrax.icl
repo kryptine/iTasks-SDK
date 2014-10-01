@@ -121,7 +121,7 @@ play_trax2
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Trax with:" [] users
 	  >>= \you -> playGame2 me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
-	  >>* [OnValue (ifValue game_over game_winner)]
+	  //>>* [OnValue (ifValue game_over game_winner)]
 
 game_over :: TraxSt -> Bool
 game_over st=:{trax}
@@ -141,12 +141,12 @@ playGame2` :: User user TraxSt -> Task TraxSt
 playGame2` me you traxSt
 	= updateInformation "Play Trax" [imageViewUpdate id toImage` (flip const)] traxSt
 
-playGame2 :: User User TraxSt -> Task TraxSt
+//playGame2 :: User User TraxSt -> Task TraxSt
 playGame2 me you traxSt
 	= withShared traxSt
-	  (\share -> updateSharedInformation (toString me  +++ " plays with red")   [imageViewUpdate id (toImage True)  (flip const)] share
+	  (\share -> (me @: (updateSharedInformation (toString me  +++ " plays with red")   [imageViewUpdate id (toImage True)  (flip const)] share >>* [OnValue (ifValue game_over game_winner)]))
 	             -&&-
-	             updateSharedInformation (toString you +++ " plays with white") [imageViewUpdate id (toImage False) (flip const)] share
+	             (you @: (updateSharedInformation (toString you +++ " plays with white") [imageViewUpdate id (toImage False) (flip const)] share >>* [OnValue (ifValue game_over game_winner)]))
 	  ) @ fst
 
 start_with_this :: TraxTile TraxSt -> TraxSt
