@@ -34,8 +34,10 @@ ArialItalic10px :== { fontfamily = "Arial"
                   }
 
 //Start :: *World -> *World
-//Start world = startEngine allSVGs world
 Start world = startEngine examples world
+//Start world = startEngine simpleClickExample world
+//Start world = startEngine allSVGs world
+//Start world = startEngine viewScaleExample world
 
 //Start = fst (fixSpans viewTaskDefExample` {srvTaggedSpanEnv = 'DM'.newMap, didChange = False, srvCounter = 0, srvFonts = 'DM'.newMap})
 
@@ -44,9 +46,9 @@ viewImage d image = viewInformation d [imageView (\_ -> image)] ()
 
 viewTaskDefExample` = viExample
   where
-  viExample   = taskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
-  eiApp       = taskApp "enterInformation" ["\"Enter call information:\"", "[]"]
-  meApp       = transformApp "makeEmergency" ["now", "data"]
+  viExample   = tTaskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
+  eiApp       = tTaskApp "enterInformation" ["\"Enter call information:\"", "[]"]
+  meApp       = tTransformApp "makeEmergency" ["now", "data"]
   startSymb   = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
   lineArrow   = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
   stopSymb    = rect (px 16.0) (px 16.0)
@@ -62,6 +64,7 @@ examples = viewInformation () [] "Select an example set"
   >>* [ OnAction (Action "Various static examples" []) (always (allSVGs @! ()))
       , OnAction (Action "Static Tonic shapes" [])     (always (tonicSVGs @! ()))
       , OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
+      , OnAction (Action "Hello, world!" [])           (always (helloWorldExample @! ()))
       ]
 
 
@@ -88,6 +91,8 @@ rotateGridImg
   //<rect width="50" height="50" style="fill:red;stroke:black;stroke-width:1;opacity:0.5" transform="rotate(45 25 25)" />
   //</g>
 
+helloWorldExample = viewImage "Hello, world!" (text ArialRegular10px "Hello, world!")
+
 viewTestRect :: Task ()
 viewTestRect = viewImage "Test rect" testRect
 
@@ -111,15 +116,16 @@ where
 	yl  c	= yline Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
 
 allSVGs = allTasks [ // traxtest @! ()
-                   viewRotateGridImg @! ()
-                   //viewLineExample @! ()
+                     viewRotateGridImg @! ()
+                   //, viewLineExample @! ()
+                   , viewScaleExample
                    , viewTextGrid @! ()
                    , viewTextGrid2 @! ()
                    //, viewTextGrid3 @! ()
                    , viewPolygon @! ()
                    , viewPolyline @! ()
                    , viewBox @! ()
-                   //, viewGrid @! ()
+                   , viewGrid @! ()
                    , viewShapes mkCircles Nothing @! ()
                    , viewShapes mkCircles (Just rect100x60) @! ()
                    , viewShapes mkCircles (Just rect30x60) @! ()
@@ -141,6 +147,9 @@ allClickExamples = allTasks [ simpleClickExample @! ()
     }
 
 derive class iTask ClickStepSt
+
+viewScaleExample :: Task ()
+viewScaleExample = viewImage "Scaled rect" (fitx (px 50.0) (rect (px 100.0) (px 100.0)))
 
 //simpleClickStepExample = updateImageState "Clickable boxes" defaultState mkBoxes >>* [OnValue doStep]
   //where
@@ -254,7 +263,7 @@ viewTextGrid = viewImage "Grid of text. No transformations." (textGridImg ArialR
 textGridImg :: FontDef Int Int -> Image ()
 textGridImg font c r
   = grid (Rows (r + 1)) (LeftToRight, TopToBottom) (repeat (AtLeft,AtTop)) []
-          (  [ empty zero zero : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
+          (  [ empty 0 0 : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
           ++  flatten
                 [[ (textbox font ("row " <+++ row)) : [ text font ("(" +++ toString row +++ ", " +++ toString col +++ ")") \\ col <- [1 .. c]]]
                 \\ row <- [1 .. r]
@@ -271,7 +280,7 @@ viewTextGrid2 = viewImage "Grid of text. Left-most column cells rotated -90 deg.
 textGridImg2 :: FontDef Int Int -> Image ()
 textGridImg2 font c r
   = grid (Rows (r + 1)) (LeftToRight, TopToBottom) (repeat (AtLeft,AtTop)) []
-          (  [ empty zero zero : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
+          (  [ empty 0 0 : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
           ++  flatten
                 [[ rotate (degree -90.0) (textbox font ("row " <+++ row)) : [ text font ("(" +++ toString row +++ ", " +++ toString col +++ ")") \\ col <- [1 .. c]]]
                 \\ row <- [1 .. r]
@@ -288,7 +297,7 @@ viewTextGrid3 = viewImage "Grid with cell size lookups" (textGridImg3 ArialRegul
 textGridImg3 :: FontDef Int Int -> Image ()
 textGridImg3 font c r
   = tag ts (grid (Rows (r + 1)) (LeftToRight, TopToBottom) (repeat (AtLeft, AtTop)) []
-             ([ empty zero zero : [ edgeCell ts (col + 1, 1) black ("column " <+++ col) id \\ col <- [1 .. c] ] ]
+             ([ empty 0 0 : [ edgeCell ts (col + 1, 1) black ("column " <+++ col) id \\ col <- [1 .. c] ] ]
               ++  flatten
               [ [ edgeCell ts (1, row + 1) black ("row " <+++ row) (rotate (degree -90.0))
                 : [ cell ts (col + 1, row + 1) (if (isOdd col) none grey) (textbox font (toString ("(" +++ toString row +++ ", " +++ toString col +++ ")"))) \\ col <- [1 .. c]]
@@ -380,23 +389,7 @@ box = collage [(px 30.0, zero), (zero, px 30.0), (px 200.0, px 30.0)] [r1, r2, r
 viewTaskAppExample :: Task ()
 viewTaskAppExample = viewImage "Tonic task-application render." viExample
   where
-  viExample = taskApp "viewInformation" ["\"Please draw a lovely SVG image for me!\"", "[]", "lovelyimage.svg"]
-
-taskApp :: String [String] -> Image ()
-taskApp taskName taskArgs
-  # bgRect       = rect maxXSpan (imageyspan [imageTag "taTaskNameImg"] + imageyspan [imageTag "taTaskArgsImgs"])
-                     <@< { fill        = toSVGColor "white" }
-                     <@< { stroke      = toSVGColor "black" }
-                     <@< { strokewidth = px 1.0 }
-                     <@< { xradius     = px 5.0 }
-                     <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "taTaskNameImg"]  (margin (px 5.0) (text ArialBold10px taskName))
-  # taskArgsImgs = tag [imageTag "taTaskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
-  # taskText     = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, taskArgsImgs] Nothing
-  # taskApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
-  = taskApp
-  where
-  maxXSpan = maxSpan [imagexspan [imageTag "taTaskNameImg"], imagexspan [imageTag "taTaskArgsImgs"]]
+  viExample = tTaskApp "viewInformation" ["\"Please draw a lovely SVG image for me!\"", "[]", "lovelyimage.svg"]
 
 taskApp` :: String [String] -> Image ()
 taskApp` taskName taskArgs
@@ -448,9 +441,9 @@ viewStepStarExample = viewImage "Tonic step star symbol." img
 viewTaskDefExample :: Task ()
 viewTaskDefExample = viewImage "Tonic task-definition render." viExample
   where
-  viExample   = taskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
-  eiApp       = taskApp "enterInformation" ["\"Enter call information:\"", "[]"]
-  meApp       = transformApp "makeEmergency" ["now", "data"]
+  viExample   = tTaskDef "logCall" "Emergency" [("now", "DateTime")] bodyImage
+  eiApp       = tTaskApp "enterInformation" ["\"Enter call information:\"", "[]"]
+  meApp       = tTransformApp "makeEmergency" ["now", "data"]
   startSymb   = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
   lineArrow   = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
   stopSymb    = rect (px 16.0) (px 16.0)
@@ -461,34 +454,101 @@ viewTaskDefExample = viewImage "Tonic task-definition render." viExample
                      , markerEnd   = Just lineArrow
                      }
 
-transformApp :: String [String] -> Image ()
-transformApp tffun args
-  # bgRect       = rect maxXSpan (imageyspan [imageTag "tfNameImg"] + imageyspan [imageTag "tfArgsImgs"])
-                     <@< { fill        = toSVGColor "white" }
-                     <@< { stroke      = toSVGColor "black" }
-                     <@< { strokewidth = px 1.0 }
-  # tfNameImg  = tag [imageTag "tfNameImg"]  (margin (px 5.0) (text ArialItalic10px tffun))
-  # tfArgsImgs = tag [imageTag "tfArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-  # tfContents = above (repeat AtLeft) [] [tfNameImg, xline Nothing maxXSpan, tfArgsImgs] Nothing
-  # tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-  = tfApp
-  where
-  maxXSpan = maxSpan [imagexspan [imageTag "tfNameImg"], imagexspan [imageTag "tfArgsImgs"]]
+// Actual reusable tonic stencils
 
-taskDef :: String String [(String, String)] (Image ()) -> Image ()
-taskDef taskName resultTy taskArgsAndTys tdbody
-  # bgRect       = rect maxXSpan (imageyspan [imageTag "taskNameImg"] + imageyspan [imageTag "taskArgsImgs"] + imageyspan [imageTag "taskBodyImgs"])
+tDiamond :: Image s
+tDiamond = rotate (degree 45.0) (rect 16 16)
+             <@< { fill   = toSVGColor "black" }
+             <@< { stroke = toSVGColor "none" }
+
+tStepStar :: Image s
+tStepStar = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, star] Nothing
+  where
+  star = polygon Nothing
+           [ (px 5.0, px 0.0)
+           , (px 2.0, px 10.0)
+           , (px 9.5, px 4.0)
+           , (px 0.0, px 4.0)
+           , (px 8.0, px 10.0) ] <@< { fill   = toSVGColor "white" }
+                                 <@< { stroke = toSVGColor "none" }
+
+tParSum :: Image s
+tParSum = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, plus] Nothing
+  where
+  plus = overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing
+  line f = f Nothing 10 <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
+
+tParProd :: Image s
+tParProd = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, plus] Nothing
+  where
+  plus = rotate (degree 45.0) (overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing)
+  line f = f Nothing 10 <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
+
+tStartSymb :: Image s
+tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
+
+tStopSymb :: Image s
+tStopSymb  = rect 16 16
+
+tTaskDef :: String String [(String, String)] (Image s) -> Image s
+tTaskDef taskName resultTy taskArgsAndTys tdbody
+  # bgRect       = rect maxXSpan (imageyspan [imageTag "tTaskDef_taskNameImg"] + imageyspan [imageTag "tTaskDef_taskArgsImgs"] + imageyspan [imageTag "tTaskDef_taskBodyImgs"])
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }
                      <@< { strokewidth = px 1.0 }
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "taskNameImg"]  (margin (px 5.0) (text ArialBold10px (taskName +++ " yields an " +++ resultTy)))
-  # taskArgsImgs = tag [imageTag "taskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-  # taskBodyImgs = tag [imageTag "taskBodyImgs"] (margin (px 5.0) tdbody)
-  # taskContents = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs] Nothing
-  # taskApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing
+  # taskNameImg  = tag [imageTag "tTaskDef_taskNameImg"]  (margin 5 (text ArialBold10px (taskName +++ " yields an " +++ resultTy))) // TODO a/an
+  # taskArgsImgs = tag [imageTag "tTaskDef_taskArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
+  # taskBodyImgs = tag [imageTag "tTaskDef_taskBodyImgs"] (margin 5 tdbody)
+  # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
+                                               [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
+                                               _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
+  # tTaskDef     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing
+  = tTaskDef
+  where
+  maxXSpan = maxSpan [imagexspan [imageTag "tTaskDef_taskNameImg"], imagexspan [imageTag "tTaskDef_taskArgsImgs"], imagexspan [imageTag "tTaskDef_taskBodyImgs"]]
+  mkArgAndTy (arg, ty) = arg +++ " is a " +++ ty // TODO a/an
+
+tTransformApp :: String [String] -> Image s
+tTransformApp tffun args
+  # bgRect     = rect maxXSpan (imageyspan [imageTag "tTransformApp_tfNameImg"] + imageyspan [imageTag "tTransformApp_tfArgsImgs"])
+                   <@< { fill        = toSVGColor "white" }
+                   <@< { stroke      = toSVGColor "black" }
+                   <@< { strokewidth = px 1.0 }
+  # tfNameImg  = tag [imageTag "tTransformApp_tfNameImg"]  (margin 5 (text ArialItalic10px tffun))
+  # tfArgsImgs = tag [imageTag "tTransformApp_tfArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+  # tfContents = above (repeat AtLeft) [] (case args of
+                                             [] -> [tfNameImg]
+                                             _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+  # tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
+  = tfApp
+  where
+  maxXSpan = maxSpan [imagexspan [imageTag "tTransformApp_tfNameImg"], imagexspan [imageTag "tTransformApp_tfArgsImgs"]]
+
+tTaskApp :: String [String] -> Image s
+tTaskApp taskName taskArgs
+  # bgRect       = rect maxXSpan (imageyspan [imageTag "tTaskApp_taTaskNameImg"] + imageyspan [imageTag "tTaskApp_taTaskArgsImgs"])
+                     <@< { fill        = toSVGColor "white" }
+                     <@< { stroke      = toSVGColor "black" }
+                     <@< { strokewidth = px 1.0 }
+                     <@< { xradius     = px 5.0 }
+                     <@< { yradius     = px 5.0 }
+  # taskNameImg  = tag [imageTag "tTaskApp_taTaskNameImg"]  (margin 5 (text ArialBold10px taskName))
+  # taskArgsImgs = tag [imageTag "tTaskApp_taTaskArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
+  # taskText     = above (repeat AtMiddleX) [] (case taskArgs of
+                                                  [] -> [taskNameImg]
+                                                  _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
+  # taskApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
   = taskApp
   where
-  maxXSpan = maxSpan [imagexspan [imageTag "taskNameImg"], imagexspan [imageTag "taskArgsImgs"], imagexspan [imageTag "taskBodyImgs"]]
-  mkArgAndTy (arg, ty) = arg +++ " is a " +++ ty
+  maxXSpan = maxSpan [imagexspan [imageTag "tTaskApp_taTaskNameImg"], imagexspan [imageTag "tTaskApp_taTaskArgsImgs"]]
+
+tReturn :: String -> Image s
+tReturn retval
+  # retText = text ArialRegular10px retval
+  # oval    = ellipse (textxspan ArialRegular10px retval) (px 20.0)
+                <@< { fill        = toSVGColor "white" }
+                <@< { stroke      = toSVGColor "black" }
+                <@< { strokewidth = px 1.0 }
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retText] Nothing
