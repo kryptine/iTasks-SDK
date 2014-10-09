@@ -13,7 +13,11 @@ Start world = StartMultiUserTasks [ workflow  "Life Game" "Life Game"  	 playGam
 
 derive class iTask LifeCell
 
+// test to show behaviour of shares which are updated in the view
+
 omhoog =  withShared 0 (updateSharedInformation "omhoog"  [UpdateWith id (\old _ -> old+1)])
+
+// Life Game using iTasks and SVG lib
 
 playGameOfLife :: Task Generation
 playGameOfLife 
@@ -25,6 +29,38 @@ where
 		>>|		play generation
 
 initLife = insertCell (newCell 1 1) (insertCell (newCell 1 2) (insertCell (newCell 1 3) []))
+
+// drawing of a the cells ...
+
+cellSize 	= 20.0
+lengthX		= 10	
+lengthY		= lengthX
+boardSize 	= lengthX * lengthY
+
+mkBoard active gen	
+	= grid (Rows lengthY) (LeftToRight,TopToBottom) [] [] cells Nothing
+where
+	cells = [cell i j gen \\ i <- [0..lengthX-1], j <- [0..lengthY-1]]
+
+	cell i j [] 	= showDeadCell i j
+	cell i j [[{x,y}:ys]:xs]
+	| x==i && y==j	= showLivingCell i j
+	| x<=i && y<j	= cell i j [ys:xs]
+	| x<=i       	= cell i j xs
+	| otherwise		= showDeadCell i j
+	cell i j [[]:xs] = cell i j xs
+	  
+	showLivingCell i j = whenInteractive (emptyCell <@< {fill = toSVGColor "red"})    {onclick = removeCell (newCell i j)} 
+	showDeadCell   i j = whenInteractive (emptyCell <@< {fill = toSVGColor "black"})  {onclick = insertCell (newCell i j)} 
+
+	whenInteractive image attr
+	| active		= image <@< attr
+	| otherwise		= image
+
+	emptyCell 	= rect (px cellSize) (px cellSize) 
+						<@< {strokewidth = px 1.0} 
+						<@< {stroke      = toSVGColor "white"}
+
 
 // Old LifeGame calculation
 
@@ -212,33 +248,4 @@ where
 			= (False,0)
 
 
-// drawing of a the cells ...
-
-cellSize 	= 20.0
-cellsX		= 20	
-cellsY		= 20
-boardSize 	= cellsX * cellsY
-
-mkBoard active gen	
-	= grid (Rows cellsY) (LeftToRight,TopToBottom) [] [] cells Nothing
-where
-	cells = [cell i j gen \\ i <- [0..cellsX-1], j <- [0..cellsY-1]]
-
-	cell i j [] 	
-		| active 	= emptyCell <@< {onclick = insertCell (newCell i j)} 
-		| otherwise	= emptyCell
-	cell i j [[{x,y}:ys]:xs]
-	| x==i && y==j	
-		| active 	= emptyCell <@< {fill = toSVGColor "red"}
-		| otherwise = emptyCell <@< {fill = toSVGColor "red"}  <@< {onclick = removeCell (newCell i j)} 
-	| x<=i && y<j	= cell i j [ys:xs]
-	| x<=i       	= cell i j xs
-	| active		= emptyCell <@< {onclick = insertCell (newCell i j)} 
-	| otherwise		= emptyCell
-	cell i j [[]:xs] = cell i j xs
-	  
-emptyCell 	= rect (px cellSize) (px cellSize) 
-					<@< {strokewidth = px 1.0} 
-					<@< {stroke      = toSVGColor "white"}
-					<@< {fill 		 = toSVGColor "black"}
 
