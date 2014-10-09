@@ -27,9 +27,9 @@ derive gUpdate    Image, SVGColor
 
 derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
   ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
-  OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, XAlign,
-  YAlign, Set, CachedSpan, Deg, Rad, LineImage, Markers,
-  LineContent, XRadiusAttr, YRadiusAttr
+  OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, DashAttr,
+  XAlign, YAlign, Set, CachedSpan, Deg, Rad, LineImage, Markers, LineContent,
+  XRadiusAttr, YRadiusAttr
 
 :: GenSVGStVal s =
   { uniqueIdCounter :: Int
@@ -430,6 +430,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , imageAttrFillAttrAlg          = \_ -> 'DM'.newMap
     , imageAttrFillOpacityAttrAlg   = \_ -> 'DM'.newMap
     , imageAttrOnClickAttrAlg       = \_ -> 'DM'.newMap
+    , imageAttrDashAttr             = \_ -> 'DM'.newMap
     }
   gatherFontsImageTransformAlgs =
     { imageTransformRotateImageAlg = \_   -> 'DM'.newMap
@@ -584,6 +585,7 @@ fixSpans img = go
     , imageAttrFillAttrAlg          = ret o ImageFillAttr
     , imageAttrFillOpacityAttrAlg   = ret o ImageFillOpacityAttr
     , imageAttrOnClickAttrAlg       = ret o ImageOnClickAttr
+    , imageAttrDashAttr             = ret o ImageDashAttr
     }
   fixSpansImageTransformAlgs :: ImageTransformAlg Deg (FixSpansSt Span) (FixSpansSt ImageTransform)
   fixSpansImageTransformAlgs =
@@ -983,6 +985,7 @@ genSVG img = imageCata genSVGAllAlgs img
     , imageAttrFillAttrAlg          = \attr -> ret ((Nothing, Just (FillAttr (PaintColor attr.fill Nothing))), 'DM'.newMap)
     , imageAttrFillOpacityAttrAlg   = \attr -> ret ((Nothing, Just (FillOpacityAttr (FillOpacity (toString attr.opacity)))), 'DM'.newMap)
     , imageAttrOnClickAttrAlg       = mkOnClick
+    , imageAttrDashAttr             = \attr -> ret ((Nothing, Just (StrokeDashArrayAttr (DashArray (map toString attr.dash)))), 'DM'.newMap)
     }
     where
     mkStrokeWidth :: !(StrokeWidthAttr s) -> GenSVGSt s ((Maybe HtmlAttr, Maybe SVGAttr), Map String (s -> s)) | iTask s
@@ -1356,6 +1359,7 @@ mkList f xs = sequence xs `b` \xs -> ret (f xs)
   , imageAttrFillAttrAlg          :: (FillAttr m)        -> imAt
   , imageAttrFillOpacityAttrAlg   :: (OpacityAttr m)     -> imAt
   , imageAttrOnClickAttrAlg       :: (OnClickAttr m)     -> imAt
+  , imageAttrDashAttr             :: (DashAttr m)        -> imAt
   }
 
 :: ImageTransformAlg imAn sp imTr =
@@ -1469,6 +1473,7 @@ imageAttrCata imageAttrAlgs (ImageStrokeOpacityAttr swa) = imageAttrAlgs.imageAt
 imageAttrCata imageAttrAlgs (ImageFillAttr fa)           = imageAttrAlgs.imageAttrFillAttrAlg fa
 imageAttrCata imageAttrAlgs (ImageFillOpacityAttr swa)   = imageAttrAlgs.imageAttrFillOpacityAttrAlg swa
 imageAttrCata imageAttrAlgs (ImageOnClickAttr cl)        = imageAttrAlgs.imageAttrOnClickAttrAlg cl
+imageAttrCata imageAttrAlgs (ImageDashAttr d)            = imageAttrAlgs.imageAttrDashAttr d
 
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (RotateImage ia)
   = imageTransformAlgs.imageTransformRotateImageAlg ia
