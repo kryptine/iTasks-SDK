@@ -8,23 +8,23 @@ import iTasks.API.Extensions.SVG.SVGlet
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks [ workflow  "Life Game" "Life Game"  	 playGameOfLife
+								  , workflow "omhoog" "omhoog" omhoog
 								  ] world
 
 derive class iTask LifeCell
+
+omhoog =  withShared 0 (updateSharedInformation "omhoog"  [UpdateWith id (\old _ -> old+1)])
 
 playGameOfLife :: Task Generation
 playGameOfLife 
 	= withShared initLife play
 where
 	play generation
-		=		updateSharedInformation "Enter Cells" [imageViewUpdate id (mkBoard True) (\old new -> new)] generation
+		=		updateSharedInformation "Enter Cells"     [imageViewUpdate id (mkBoard True)  (\old new -> new)]              generation
 		>>| 	updateSharedInformation "Simulating Life" [imageViewUpdate id (mkBoard False) (\old _ -> fst (LifeGame old))] generation
 		>>|		play generation
 
-
-
 initLife = insertCell (newCell 1 1) (insertCell (newCell 1 2) (insertCell (newCell 1 3) []))
-
 
 // Old LifeGame calculation
 
@@ -214,7 +214,7 @@ where
 
 // drawing of a the cells ...
 
-cellSize 	= 10.0
+cellSize 	= 20.0
 cellsX		= 20	
 cellsY		= 20
 boardSize 	= cellsX * cellsY
