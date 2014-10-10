@@ -1,8 +1,10 @@
 module TOPLigretto
 
 import ligrettoModel
-import iTasks, MultiUser
+import MultiUser
 from   StdFunc import flip
+from   StdMisc import abort
+from   Control.Monad import replicateM
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto ] world
@@ -11,25 +13,65 @@ Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" 
 import iTasks.API.Extensions.SVG.SVGlet
 
 //	Make iTask infrastructure available for Ligretto model data types:
-derive class iTask Player, Color, Hand, Card, SideUp
+derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 
+::	GameSt = { middle  :: Middle
+             , players :: [Player]
+             }
+
+player_st :: Color [Player] -> Player
+player_st color players
+	= case [player \\ player <- players | player.color === color] of
+	     [player : _] = player
+	     ouch         = abort ("Could not find player with color " <+++ color)
+
+player_upd :: Player [Player] -> [Player]
+player_upd player players
+	= [if (p.Player.color === player.Player.color) player p \\ p <- players]
+
+replicateTask :: Int (Task a) -> Task [a] | iTask a		// probably similar task combinator already exists?
+replicateTask n t
+| n <= 0		= return []
+| otherwise		= t >>= \a -> replicateTask (n-1) t >>= \as -> return [a:as]
 
 play_Ligretto :: Task (Color,User)
 play_Ligretto
 	=               get currentUser
-	>>= \me      -> invite_friends 
-	>>= \friends -> set (repeatn 16 []) middle_state
-	>>|             let nr_of_players = length friends + 1 in
-	                anyTask
-	                 [  /*player @:*/ game nr_of_players (color,player)							// BUG: @: is a partial function
-	                 \\ player <- [me:friends] & color <- colors nr_of_players
-	                 ]
-	>>= \winner  -> allTasks
-	                 [  /*player @:*/ (viewInformation "The winner is:" [] winner >>= return)
-	                 \\ player <- [me:friends]
-	                 ]
+	>>= \me      -> invite_friends
+	>>= \friends -> let nr_of_players = length friends + 1 
+	                 in replicateTask nr_of_players (get randomInt)
+	>>= \rs      -> let gameSt        = { middle  = repeatn 16 []
+	                                    , players = [initial_player nr_of_players color (abs r) \\ color <- colors nr_of_players & r <- rs]
+	                                    }
+	                 in withShared gameSt (play_game nr_of_players [me : friends])
+
+play_game :: Int [User] (Shared GameSt) -> Task (Color,User)
+play_game nr_of_players player_ids game_st
+	=               anyTask  [ player @: game nr_of_players (color,player) game_st \\ player <- player_ids & color <- colors nr_of_players ]
+	>>= \winner ->  allTasks [ player @: viewInformation "The winner is:" [] winner >>= return \\ player <- player_ids ]
 	>>| return winner
 
+game :: Int (Color,User) (Shared GameSt) -> Task (Color,User)
+game nr_of_players (color,user) game_st
+	=   updateSharedInformation (toString user) [imageViewUpdate (get_player_middle color) (game_image True) set_player_middle] game_st
+	>>* [OnValue (player_wins (color,user))]
+
+player_wins :: (Color,User) (TaskValue GameSt) -> Maybe (Task (Color,User))
+player_wins (color,user) (Value {players} _)
+| isEmpty (player_st color players).ligretto
+	= Just (return (color,user))
+player_wins _ _
+	= Nothing
+
+get_player_middle :: Color GameSt -> (Player,Middle)
+get_player_middle color game_st=:{middle,players}
+	= (player_st color players,middle)
+
+set_player_middle :: GameSt (Player,Middle) -> GameSt
+set_player_middle game_st=:{players} (player,middle)
+	= {GameSt | game_st & middle  = middle
+	                    , players = player_upd player players
+	  }
 
 invite_friends :: Task [User]
 invite_friends
@@ -37,21 +79,6 @@ invite_friends
 	>>= \friends -> if (not (isMember (length friends) [1..3]))
 	                   (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
 	                   (return friends)
-
-
-game :: Int (Color,User) -> Task (Color,User)
-game nr_of_players (color,user)
-	=           get randomInt
-	  >>= \r -> let player = initial_player nr_of_players color (abs r) in
-	            set player (player_state color)
-	  >>|       updateSharedInformation (toString user) [imageViewUpdate id (game_image True) (flip const)] (player_middle_state color)
-	  >>*		[OnValue (player_wins (color,user))]
-
-player_wins :: (Color,User) (TaskValue (Player,Middle)) -> Maybe (Task (Color,User))
-player_wins (color,user) (Value (player,middle) _)
-| isEmpty player.ligretto	= Just (return (color,user))
-| otherwise					= Nothing
-player_wins _ _				= Nothing
 
 play_concealed_pile :: Player -> Player
 play_concealed_pile player
