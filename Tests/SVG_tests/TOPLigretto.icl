@@ -44,7 +44,7 @@ game nr_of_players (color,user)
 	=           get randomInt
 	  >>= \r -> let player = initial_player nr_of_players color (abs r) in
 	            set player (player_state color)
-	  >>|       updateSharedInformation (toString user) [imageViewUpdate id game_image (flip const)] (player_middle_state color)
+	  >>|       updateSharedInformation (toString user) [imageViewUpdate id (game_image True) (flip const)] (player_middle_state color)
 	  >>*		[OnValue (player_wins (color,user))]
 
 player_wins :: (Color,User) (TaskValue (Player,Middle)) -> Maybe (Task (Color,User))
@@ -52,6 +52,32 @@ player_wins (color,user) (Value (player,middle) _)
 | isEmpty player.ligretto	= Just (return (color,user))
 | otherwise					= Nothing
 player_wins _ _				= Nothing
+
+play_concealed_pile :: Player -> Player
+play_concealed_pile player
+| isEmpty player.hand.conceal
+							= shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player	// ISSUE: random value should be obtained from randomInt SDS
+| otherwise					= swap_discards player
+
+play_hand :: (Player,Middle) -> (Player,Middle)
+play_hand (player,middle)
+| isNothing maybe_card		= (player,middle)
+| isEmpty matching_piles	= (player,middle)
+# (pilenr,pile)				= hd matching_piles
+| otherwise					= (remove_top_of_discard player,updateAt pilenr [card:pile] middle)
+where
+	maybe_card				= top_discard player
+	card					= fromJust maybe_card
+	matching_piles			= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+
+play_row_card :: Card Int (Player,Middle) -> (Player,Middle)
+play_row_card card cardnr (player,middle)
+| isEmpty matching_piles	= (player,middle)
+# (pilenr,pile)				= hd matching_piles
+| otherwise					= (move_ligretto_card_to_row cardnr player,updateAt pilenr [card:pile] middle)
+where
+	matching_piles			= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+
 
 middle_state :: Shared Middle
 middle_state				= sharedStore "middle" (repeatn 16 [])
@@ -61,6 +87,7 @@ player_state color			= sharedStore ("player " <+++ color) {color=color,row=[],li
 
 player_middle_state :: Color -> Shared (Player,Middle)
 player_middle_state color	= player_state color >+< middle_state
+
 
 card_image :: SideUp Card -> Image m
 card_image side card
@@ -95,25 +122,18 @@ no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "emp
 where
 	host					= Just (card_shape <@< {fill = toSVGColor "lightgrey"})
 
-hand_image :: Hand -> Image (Player,Middle)
-hand_image {conceal,discard}= beside [] [] [pile_image Back conceal <@< {onclick = app2 (concealed_pile,id)},pile_image Front discard <@< {onclick = play_hand}] Nothing
+hand_image :: Bool Hand -> Image (Player,Middle)
+hand_image interactive {conceal,discard}
+							= beside [] [] (if interactive [conceal_pile <@< {onclick = app2 (play_concealed_pile,id)}
+							                               ,discard_pile <@< {onclick = play_hand}
+							                               ]
+							                               [conceal_pile
+							                               ,discard_pile
+							                               ]
+							               ) Nothing
 where
-	concealed_pile :: Player -> Player
-	concealed_pile player
-	| isEmpty player.hand.conceal
-							= shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player	// ISSUE: random value should be obtained from randomInt SDS
-	| otherwise				= swap_discards player
-	
-	play_hand :: (Player,Middle) -> (Player,Middle)
-	play_hand (player,middle)
-	| isNothing maybe_card	= (player,middle)
-	| isEmpty matching_piles= (player,middle)
-	# (pilenr,pile)			= hd matching_piles
-	| otherwise				= (remove_top_of_discard player,updateAt pilenr [card:pile] middle)
-	where
-		maybe_card			= top_discard player
-		card				= fromJust maybe_card
-		matching_piles		= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+	conceal_pile			= pile_image Back  conceal
+	discard_pile			= pile_image Front discard
 
 pile_image :: SideUp Pile -> Image m
 pile_image side pile
@@ -127,24 +147,23 @@ where
 							             (map (card_image side) (reverse top_cards)) (Just no_card_image)
 	(_,h)					= card_size
 
-row_image :: RowPlayer -> Image (Player,Middle)
-row_image row				= beside [] [] [card_image Front card <@< {onclick = play_card card cardnr} \\ card <- row & cardnr <- [1..]] Nothing
-where
-	play_card :: Card Int (Player,Middle) -> (Player,Middle)
-	play_card card cardnr (player,middle)
-	| isEmpty matching_piles= (player,middle)
-	# (pilenr,pile)			= hd matching_piles
-	| otherwise				= (move_ligretto_card_to_row cardnr player,updateAt pilenr [card:pile] middle)
-	where
-		matching_piles		= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+row_image :: Bool RowPlayer -> Image (Player,Middle)
+row_image interactive row	= beside [] [] 
+							         [ let card = card_image Front row_card in
+							            if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
+							         \\ row_card <- row 
+							          & cardnr   <- [1..]
+							         ]  Nothing
 
-game_image :: (Player,Middle) -> Image (Player,Middle)
-game_image (player,middle)	= above [AtMiddleX,AtMiddleX] [] [middle_image middle,player_image player] Nothing
+game_image :: Bool (Player,Middle) -> Image (Player,Middle)
+game_image interactive (player,middle)
+							= above [AtMiddleX,AtMiddleX] [] [middle_image middle,player_image interactive player] Nothing
 
-player_image :: Player -> Image (Player,Middle)
-player_image player			= beside [] [] [ row_image player.row,             empty (px w) zero
+player_image :: Bool Player -> Image (Player,Middle)
+player_image interactive player
+							= beside [] [] [ row_image interactive player.row, empty (px w) zero
 							               , pile_image Front player.ligretto, empty (px w) zero		// BUG: only margin (px zero,px w) around pile_image does not work
-							               , hand_image player.hand
+							               , hand_image interactive player.hand
 							               ] Nothing
 where
 	(w,_)					= card_size
@@ -166,6 +185,7 @@ cardfont size
       , fontvariant = "normal"
       , fontweight  = "bold"
       }
+
 pilefont :: !Real -> FontDef
 pilefont size
 	= { fontfamily  = "Verdana"
