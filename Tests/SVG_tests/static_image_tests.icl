@@ -27,8 +27,8 @@ img_wide      = overlay [(AtMiddleX,AtMiddleY)] [] [text (font (d / 4.0)) "A" <@
 img_high      = overlay [(AtMiddleX,AtMiddleY)] [] [text (font d)         "B" <@< {stroke = toSVGColor "white"}] (Just (rect (px d) (px (d * 4.0))))
 img_square    = overlay [(AtMiddleX,AtMiddleY)] [] [text (font (d / 4.0)) "C" <@< {stroke = toSVGColor "white"}] (Just (rect (px d) (px d)))
 img_wwide     = overlay [(AtMiddleX,AtMiddleY)] [] [text (font (d / 4.0)) "D" <@< {stroke = toSVGColor "black"}] (Just (framed (rect (px (d * 5.0)) (px d))))
-img_whigh     = overlay [(AtMiddleX,AtMiddleY)] [] [text (font d)         "E" <@< {stroke = toSVGColor "black"}] (Just (framed (rect (px d) (px (d * 4.0)))))
+img_whigh     = overlay [(AtMiddleX,AtMiddleY)] [] [text (font d)         "E" <@< {stroke = toSVGColor "black"} <@< {fill = toSVGColor "none"}] (Just (framed (rect (px d) (px (d * 4.0)))))
 img_wsquare   = overlay [(AtMiddleX,AtMiddleY)] [] [text (font (d / 4.0)) "F" <@< {stroke = toSVGColor "black"}] (Just (framed (rect (px d) (px d))))
-framed img    = img <@< {fill = toSVGColor "white"} <@< {stroke = toSVGColor "black"} <@< {strokewidth = px 1.0}
+framed img    = img <@< {fill = toSVGColor "white"} <@< {stroke = toSVGColor "black"}
 
 font ys       = { fontfamily = "Verdana", fontysize = ys, fontstretch = "normal", fontstyle = "normal", fontvariant = "normal", fontweight = "normal" }

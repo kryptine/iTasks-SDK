@@ -16,6 +16,9 @@ derive class iTask LifeCell
 // test to show behaviour of shares which are updated in the view
 
 omhoog =  withShared 0 (updateSharedInformation "omhoog"  [UpdateWith id (\old _ -> old+1)])
+         >>* [OnValue (ifValue (\v -> v > 100) return)
+             ,OnAction ActionOk (hasValue (viewInformation "resultaat" []))
+             ]
 
 // Life Game using iTasks and SVG lib
 
@@ -58,8 +61,7 @@ where
 	| otherwise		= image
 
 	emptyCell 	= rect (px cellSize) (px cellSize) 
-						<@< {strokewidth = px 1.0} 
-						<@< {stroke      = toSVGColor "white"}
+						<@< {stroke = toSVGColor "white"}
 
 
 // Old LifeGame calculation

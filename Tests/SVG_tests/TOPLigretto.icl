@@ -69,14 +69,13 @@ card_image side card
 where
 	cardcolor				= if (side === Front) (toSVGColor card.front) (toSVGColor "white")
 	host					= Just back
-	back					= card_shape <@< {stroke = toSVGColor "black"} <@< {strokewidth = px 1.0} <@< {fill = cardcolor}
+	back					= card_shape <@< {fill = cardcolor}
 	nr						= margin (px 5.0)
 							  (text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
 							                                           <@< {stroke = toSVGColor (nr_stroke_color card.front)}
-							                                           <@< {strokewidth = px 1.0}
 							  )
 	ligretto				= skewy (Deg -20.0) 
-							  (text (cardfont (w / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "none"})
+							  (text (cardfont (w / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
 	(w,h)					= card_size
 	nr_stroke_color Red		= Blue
 	nr_stroke_color Green	= Red
