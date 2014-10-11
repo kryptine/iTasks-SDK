@@ -29,6 +29,10 @@ player_upd :: Player [Player] -> [Player]
 player_upd player players
 	= [if (p.Player.color === player.Player.color) player p \\ p <- players]
 
+player_expell :: Color [Player] -> [Player]
+player_expell color players
+	= [p \\ p <- players | p.Player.color =!= color]
+
 replicateTask :: Int (Task a) -> Task [a] | iTask a		// probably similar task combinator already exists?
 replicateTask n t
 | n <= 0		= return []
@@ -53,7 +57,7 @@ play_game nr_of_players player_ids game_st
 
 game :: Int (Color,User) (Shared GameSt) -> Task (Color,User)
 game nr_of_players (color,user) game_st
-	=   updateSharedInformation (toString user) [imageViewUpdate (get_player_middle color) (game_image True) set_player_middle] game_st
+	=   updateSharedInformation (toString user) [imageViewUpdate (get_player_middle color) player_perspective set_player_middle] game_st
 	>>* [OnValue (player_wins (color,user))]
 
 player_wins :: (Color,User) (TaskValue GameSt) -> Maybe (Task (Color,User))
@@ -63,12 +67,12 @@ player_wins (color,user) (Value {players} _)
 player_wins _ _
 	= Nothing
 
-get_player_middle :: Color GameSt -> (Player,Middle)
+get_player_middle :: Color GameSt -> (Player,[Player],Middle)
 get_player_middle color game_st=:{middle,players}
-	= (player_st color players,middle)
+	= (player_st color players,player_expell color players,middle)
 
-set_player_middle :: GameSt (Player,Middle) -> GameSt
-set_player_middle game_st=:{players} (player,middle)
+set_player_middle :: GameSt (Player,[Player],Middle) -> GameSt
+set_player_middle game_st=:{players} (player,_,middle)
 	= {GameSt | game_st & middle  = middle
 	                    , players = player_upd player players
 	  }
@@ -86,34 +90,24 @@ play_concealed_pile player
 							= shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player	// ISSUE: random value should be obtained from randomInt SDS
 | otherwise					= swap_discards player
 
-play_hand :: (Player,Middle) -> (Player,Middle)
-play_hand (player,middle)
-| isNothing maybe_card		= (player,middle)
-| isEmpty matching_piles	= (player,middle)
+play_hand :: (Player,[Player],Middle) -> (Player,[Player],Middle)
+play_hand (player,players,middle)
+| isNothing maybe_card		= (player,players,middle)
+| isEmpty matching_piles	= (player,players,middle)
 # (pilenr,pile)				= hd matching_piles
-| otherwise					= (remove_top_of_discard player,updateAt pilenr [card:pile] middle)
+| otherwise					= (remove_top_of_discard player,players,updateAt pilenr [card:pile] middle)
 where
 	maybe_card				= top_discard player
 	card					= fromJust maybe_card
 	matching_piles			= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
 
-play_row_card :: Card Int (Player,Middle) -> (Player,Middle)
-play_row_card card cardnr (player,middle)
-| isEmpty matching_piles	= (player,middle)
+play_row_card :: Card Int (Player,[Player],Middle) -> (Player,[Player],Middle)
+play_row_card card cardnr (player,players,middle)
+| isEmpty matching_piles	= (player,players,middle)
 # (pilenr,pile)				= hd matching_piles
-| otherwise					= (move_ligretto_card_to_row cardnr player,updateAt pilenr [card:pile] middle)
+| otherwise					= (move_ligretto_card_to_row cardnr player,players,updateAt pilenr [card:pile] middle)
 where
 	matching_piles			= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
-
-
-middle_state :: Shared Middle
-middle_state				= sharedStore "middle" (repeatn 16 [])
-
-player_state :: Color -> Shared Player
-player_state color			= sharedStore ("player " <+++ color) {color=color,row=[],ligretto=[],hand={conceal=[],discard=[]}}
-
-player_middle_state :: Color -> Shared (Player,Middle)
-player_middle_state color	= player_state color >+< middle_state
 
 
 card_image :: SideUp Card -> Image m
@@ -149,9 +143,9 @@ no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "emp
 where
 	host					= Just (card_shape <@< {fill = toSVGColor "lightgrey"})
 
-hand_image :: Bool Hand -> Image (Player,Middle)
+hand_image :: Bool Hand -> Image (Player,[Player],Middle)
 hand_image interactive {conceal,discard}
-							= beside [] [] (if interactive [conceal_pile <@< {onclick = app2 (play_concealed_pile,id)}
+							= beside [] [] (if interactive [conceal_pile <@< {onclick = app3 (play_concealed_pile,id,id)}
 							                               ,discard_pile <@< {onclick = play_hand}
 							                               ]
 							                               [conceal_pile
@@ -174,7 +168,7 @@ where
 							             (map (card_image side) (reverse top_cards)) (Just no_card_image)
 	(_,h)					= card_size
 
-row_image :: Bool RowPlayer -> Image (Player,Middle)
+row_image :: Bool RowPlayer -> Image (Player,[Player],Middle)
 row_image interactive row	= beside [] [] 
 							         [ let card = card_image Front row_card in
 							            if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
@@ -182,11 +176,7 @@ row_image interactive row	= beside [] []
 							          & cardnr   <- [1..]
 							         ]  Nothing
 
-game_image :: Bool (Player,Middle) -> Image (Player,Middle)
-game_image interactive (player,middle)
-							= above [AtMiddleX,AtMiddleX] [] [middle_image middle,player_image interactive player] Nothing
-
-player_image :: Bool Player -> Image (Player,Middle)
+player_image :: Bool Player -> Image (Player,[Player],Middle)
 player_image interactive player
 							= beside [] [] [ row_image interactive player.row, empty (px w) zero
 							               , pile_image Front player.ligretto, empty (px w) zero		// BUG: only margin (px zero,px w) around pile_image does not work
@@ -197,6 +187,24 @@ where
 
 middle_image :: Middle -> Image m
 middle_image middle			= grid (Rows 2) (LeftToRight,TopToBottom) [] [] (map (pile_image Front) middle) Nothing
+
+
+player_perspective :: (Player,[Player],Middle) -> Image (Player,[Player],Middle)
+player_perspective (player,opponents,middle)
+							= margin (h,w,h,w) 
+							  (overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [circular 300.0 [player_image True player : map (player_image False) opponents],middle_image middle] Nothing)
+where
+	(w,h)					= card_size
+
+circular :: Real [Image m] -> Image m
+circular r imgs				= overlay (repeat (AtMiddleX,AtMiddleY)) 
+							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, 1.0 ..] & img <- imgs] 
+							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, 1.0 ..] & img <- imgs] 
+							          (Just (circle (px (2.0*r)) <@< {fill=toSVGColor "none"}))		// BUG: using Nothing creates incorrect image (offset to left)where
+where
+	n     				    = length imgs
+	alpha					= 2.0 * pi / (toReal n)
+	pi						= 3.1415926
 
 instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Green  = toSVGColor "darkgreen"

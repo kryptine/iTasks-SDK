@@ -7,20 +7,19 @@ Start :: *World -> *World
 Start world = startEngine (viewInformation "test" [imageView show_it] ()) world
 where
 	show_it :: () -> Image ()
-	show_it _ = margin (px d,px d,px d,px d)
-	            (overlay (repeat (AtMiddleX,AtMiddleY)) 
-	                     [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, 1.0 ..] & img <- imgs] 
-	                     [rotate (Rad (i*alpha)) img \\ i <- [0.0, 1.0 ..] & img <- imgs] 
-	                     (Just (circle (px (r*2.0)) <@< {fill = toSVGColor "lightgrey"}))
-	            )
-	
-	r         = d * 6.0
-	n         = length imgs
-	alpha     = 2.0 * pi / (toReal n)
-	
+	show_it _ = margin (px d,px d,px d,px d) (circular (d * 6.0) imgs)
 
 d             = 50.0
-pi            = 3.1415926
+
+circular :: Real [Image m] -> Image m
+circular r imgs				= overlay (repeat (AtMiddleX,AtMiddleY)) 
+							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, 1.0 ..] & img <- imgs] 
+							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, 1.0 ..] & img <- imgs] 
+							          (Just (circle (px (2.0*r)) <@< {fill=toSVGColor "none"}))		// BUG: using Nothing creates incorrect image (offset to left)
+where
+	n     				    = length imgs
+	alpha					= 2.0 * pi / (toReal n)
+	pi						= 3.1415926
 
 imgs          = [img_wide,img_high,img_square,img_wwide,img_whigh,img_wsquare]
 img_wide      = overlay [(AtMiddleX,AtMiddleY)] [] [text (font (d / 4.0)) "A" <@< {stroke = toSVGColor "white"}] (Just (rect (px (d * 5.0)) (px d)))
