@@ -15,7 +15,7 @@ circular :: Real [Image m] -> Image m
 circular r imgs				= overlay (repeat (AtMiddleX,AtMiddleY)) 
 							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, 1.0 ..] & img <- imgs] 
 							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, 1.0 ..] & img <- imgs] 
-							          (Just (circle (px (2.0*r)) <@< {fill=toSVGColor "none"}))		// BUG: using Nothing creates incorrect image (offset to left)
+							          (Just (empty (px (2.0*r)) (px (2.0*r))))
 where
 	n     				    = length imgs
 	alpha					= 2.0 * pi / (toReal n)

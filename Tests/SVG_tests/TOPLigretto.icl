@@ -186,13 +186,13 @@ where
 	(w,_)					= card_size
 
 middle_image :: Middle -> Image m
-middle_image middle			= grid (Rows 2) (LeftToRight,TopToBottom) [] [] (map (pile_image Front) middle) Nothing
+middle_image middle			= circular 200.0 (map (pile_image Front) middle)
 
 
 player_perspective :: (Player,[Player],Middle) -> Image (Player,[Player],Middle)
 player_perspective (player,opponents,middle)
 							= margin (h,w,h,w) 
-							  (overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [circular 300.0 [player_image True player : map (player_image False) opponents],middle_image middle] Nothing)
+							  (overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [circular 310.0 [player_image True player : map (player_image False) opponents],middle_image middle] Nothing)
 where
 	(w,h)					= card_size
 
