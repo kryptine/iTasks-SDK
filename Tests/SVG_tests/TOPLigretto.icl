@@ -143,19 +143,6 @@ no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "emp
 where
 	host					= Just (card_shape <@< {fill = toSVGColor "lightgrey"})
 
-hand_image :: Bool Hand -> Image (Player,[Player],Middle)
-hand_image interactive {conceal,discard}
-							= beside [] [] (if interactive [conceal_pile <@< {onclick = app3 (play_concealed_pile,id,id)}
-							                               ,discard_pile <@< {onclick = play_hand}
-							                               ]
-							                               [conceal_pile
-							                               ,discard_pile
-							                               ]
-							               ) Nothing
-where
-	conceal_pile			= pile_image Back  conceal
-	discard_pile			= pile_image Front discard
-
 pile_image :: SideUp Pile -> Image m
 pile_image side pile
 | nr_of_cards > 10			= above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
@@ -168,43 +155,55 @@ where
 							             (map (card_image side) (reverse top_cards)) (Just no_card_image)
 	(_,h)					= card_size
 
-row_image :: Bool RowPlayer -> Image (Player,[Player],Middle)
-row_image interactive row	= beside [] [] 
-							         [ let card = card_image Front row_card in
-							            if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
-							         \\ row_card <- row 
-							          & cardnr   <- [1..]
-							         ]  Nothing
+row_images :: Bool RowPlayer -> [Image (Player,[Player],Middle)]
+row_images interactive row	= [ let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
+					          \\ row_card <- row 
+					           & cardnr   <- [1..]
+					          ]
 
-player_image :: Bool Player -> Image (Player,[Player],Middle)
-player_image interactive player
-							= beside [] [] [ row_image interactive player.row, empty (px w) zero
-							               , pile_image Front player.ligretto, empty (px w) zero		// BUG: only margin (px zero,px w) around pile_image does not work
-							               , hand_image interactive player.hand
-							               ] Nothing
+hand_images :: Bool Hand -> [Image (Player,[Player],Middle)]
+hand_images interactive {conceal,discard}
+| interactive 				= [conceal_pile <@< {onclick = app3 (play_concealed_pile,id,id)}
+							  ,discard_pile <@< {onclick = play_hand}
+							  ]
+| otherwise					= [conceal_pile
+							  ,discard_pile
+							  ]
+where
+	conceal_pile			= pile_image Back  conceal
+	discard_pile			= pile_image Front discard
+
+player_image :: Bool Real Player -> Image (Player,[Player],Middle)
+player_image interactive r player
+							= circular r (pi * 0.5) 
+							  ( row_images interactive player.row ++ [empty (px (w/2.0)) zero,pile_image Front player.ligretto,empty (px (w/2.0)) zero] ++ hand_images interactive player.hand )
 where
 	(w,_)					= card_size
 
 middle_image :: Middle -> Image m
-middle_image middle			= circular 200.0 (map (pile_image Front) middle)
-
+middle_image middle			= circular 200.0 (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: (Player,[Player],Middle) -> Image (Player,[Player],Middle)
 player_perspective (player,opponents,middle)
-							= margin (h,w,h,w) 
-							  (overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [circular 310.0 [player_image True player : map (player_image False) opponents],middle_image middle] Nothing)
+							= margin (3.0*h,3.0*w,3.0*h,3.0*w) 
+							  (overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [rotate (Rad (i*angle)) img \\ img <- [player_image True r player : map (player_image False r) opponents] & i <- [0.0, 1.0 ..]] (Just (middle_image middle)))
 where
 	(w,h)					= card_size
+	r						= 310.0
+	angle					= 2.0*pi / (toReal (1+length opponents))
 
-circular :: Real [Image m] -> Image m
-circular r imgs				= overlay (repeat (AtMiddleX,AtMiddleY)) 
-							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, 1.0 ..] & img <- imgs] 
-							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, 1.0 ..] & img <- imgs] 
-							          (Just (circle (px (2.0*r)) <@< {fill=toSVGColor "none"}))		// BUG: using Nothing creates incorrect image (offset to left)where
+circular :: Real Real [Image m] -> Image m
+circular r a imgs			= overlay (repeat (AtMiddleX,AtMiddleY)) 
+							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..] & img <- imgs] 
+							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs] 
+							          (Just (empty (px (2.0*r)) (px (2.0*r))))							// BUG: using Nothing creates incorrect image (offset to left)where
 where
 	n     				    = length imgs
-	alpha					= 2.0 * pi / (toReal n)
-	pi						= 3.1415926
+	sign_a					= toReal (sign a)
+	(Rad a`)				= normalize (Rad a)
+	alpha					= a` / (toReal n)
+
+pi =: 3.14159265359
 
 instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Green  = toSVGColor "darkgreen"
