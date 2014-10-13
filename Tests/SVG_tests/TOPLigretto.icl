@@ -15,10 +15,12 @@ import iTasks.API.Extensions.SVG.SVGlet
 //	Make iTask infrastructure available for Ligretto model data types:
 derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 
+//	Game state for an entire game of Ligretto
 ::	GameSt = { middle  :: Middle
              , players :: [Player]
              }
 
+//	Player-list access functions:
 player_st :: Color [Player] -> Player
 player_st color players
 	= case [player \\ player <- players | player.color === color] of
@@ -33,21 +35,24 @@ player_expell :: Color [Player] -> [Player]
 player_expell color players
 	= [p \\ p <- players | p.Player.color =!= color]
 
-replicateTask :: Int (Task a) -> Task [a] | iTask a		// probably similar task combinator already exists?
-replicateTask n t
-| n <= 0		= return []
-| otherwise		= t >>= \a -> replicateTask (n-1) t >>= \as -> return [a:as]
-
+//	Task description of Ligretto:
 play_Ligretto :: Task (Color,User)
 play_Ligretto
 	=               get currentUser
 	>>= \me      -> invite_friends
 	>>= \friends -> let nr_of_players = length friends + 1 
-	                 in replicateTask nr_of_players (get randomInt)
+	                 in allTasks (repeatn nr_of_players (get randomInt))
 	>>= \rs      -> let gameSt        = { middle  = repeatn 16 []
 	                                    , players = [initial_player nr_of_players color (abs r) \\ color <- colors nr_of_players & r <- rs]
 	                                    }
 	                 in withShared gameSt (play_game nr_of_players [me : friends])
+
+invite_friends :: Task [User]
+invite_friends
+	=               enterSharedMultipleChoice "Select friends to play with" [] users
+	>>= \friends -> if (not (isMember (length friends) [1..3]))
+	                   (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
+	                   (return friends)
 
 play_game :: Int [User] (Shared GameSt) -> Task (Color,User)
 play_game nr_of_players player_ids game_st
@@ -59,6 +64,16 @@ game :: Int (Color,User) (Shared GameSt) -> Task (Color,User)
 game nr_of_players (color,user) game_st
 	=   updateSharedInformation (toString user) [imageViewUpdate (get_player_middle color) player_perspective set_player_middle] game_st
 	>>* [OnValue (player_wins (color,user))]
+where
+	get_player_middle :: Color GameSt -> (Player,[Player],Middle)
+	get_player_middle color game_st=:{middle,players}
+		= (player_st color players,player_expell color players,middle)
+	
+	set_player_middle :: GameSt (Player,[Player],Middle) -> GameSt
+	set_player_middle game_st=:{players} (player,_,middle)
+		= {GameSt | game_st & middle  = middle
+		                    , players = player_upd player players
+		  }
 
 player_wins :: (Color,User) (TaskValue GameSt) -> Maybe (Task (Color,User))
 player_wins (color,user) (Value {players} _)
@@ -67,23 +82,7 @@ player_wins (color,user) (Value {players} _)
 player_wins _ _
 	= Nothing
 
-get_player_middle :: Color GameSt -> (Player,[Player],Middle)
-get_player_middle color game_st=:{middle,players}
-	= (player_st color players,player_expell color players,middle)
-
-set_player_middle :: GameSt (Player,[Player],Middle) -> GameSt
-set_player_middle game_st=:{players} (player,_,middle)
-	= {GameSt | game_st & middle  = middle
-	                    , players = player_upd player players
-	  }
-
-invite_friends :: Task [User]
-invite_friends
-	=               enterSharedMultipleChoice "Select friends to play with" [] users
-	>>= \friends -> if (not (isMember (length friends) [1..3]))
-	                   (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
-	                   (return friends)
-
+//	Ligretto model functions:
 play_concealed_pile :: Player -> Player
 play_concealed_pile player
 | isEmpty player.hand.conceal
@@ -109,6 +108,19 @@ play_row_card card cardnr (player,players,middle)
 where
 	matching_piles			= [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
 
+//	Image definitions:
+card_size :: (Real,Real)
+card_size					= (58.5, 90.0)		// these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
+
+card_shape :: Image m
+card_shape					= rect (px w) (px h) <@< {xradius = px (h / 18.0)} <@< {yradius = px (h / 18.0)}
+where
+	(w,h)					= card_size
+
+no_card_image :: Image m
+no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] host	// BUG: "empty" text is not aligned properly
+where
+	host					= Just (card_shape <@< {fill = toSVGColor "lightgrey"})
 
 card_image :: SideUp Card -> Image m
 card_image side card
@@ -129,19 +141,6 @@ where
 	nr_stroke_color Green	= Red
 	nr_stroke_color Blue	= Yellow
 	nr_stroke_color Yellow	= Green
-
-card_shape :: Image m
-card_shape					= rect (px w) (px h) <@< {xradius = px (h / 18.0)} <@< {yradius = px (h / 18.0)}
-where
-	(w,h)					= card_size
-
-card_size :: (Real,Real)
-card_size					= (58.5, 90.0)
-
-no_card_image :: Image m
-no_card_image				= overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] host	// BUG: "empty" text is not aligned properly
-where
-	host					= Just (card_shape <@< {fill = toSVGColor "lightgrey"})
 
 pile_image :: SideUp Pile -> Image m
 pile_image side pile
@@ -176,27 +175,33 @@ where
 player_image :: Bool Real Player -> Image (Player,[Player],Middle)
 player_image interactive r player
 							= circular r (pi * 0.5) 
-							  ( row_images interactive player.row ++ [empty (px (w/2.0)) zero,pile_image Front player.ligretto,empty (px (w/2.0)) zero] ++ hand_images interactive player.hand )
+							  ( row_images interactive player.row ++ [empty (px (w/4.0)) zero,pile_image Front player.ligretto,empty (px (w/4.0)) zero] ++ hand_images interactive player.hand )
 where
 	(w,_)					= card_size
 
 middle_image :: Middle -> Image m
-middle_image middle			= circular 200.0 (2.0*pi) (map (pile_image Front) middle)
+middle_image middle			= circular 180.0 (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: (Player,[Player],Middle) -> Image (Player,[Player],Middle)
 player_perspective (player,opponents,middle)
-							= margin (3.0*h,3.0*w,3.0*h,3.0*w) 
-							  (overlay [(AtMiddleX,AtMiddleY),(AtMiddleX,AtMiddleY)] [] [rotate (Rad (i*angle)) img \\ img <- [player_image True r player : map (player_image False r) opponents] & i <- [0.0, 1.0 ..]] (Just (middle_image middle)))
+							= margin (500.0,500.0,500.0,500.0)											// ISSUE: this margin is too much, should be fine-tuned
+							  (overlay (repeat (AtMiddleX,AtMiddleY)) [] 
+							           [  rotate (Rad (i*angle)) img 
+							           \\ img <- [player_image True r player : map (player_image False r) opponents] 
+							            & i   <- [0.0, 1.0 ..]
+							           ] (Just (middle_image middle))
+							  )
 where
 	(w,h)					= card_size
 	r						= 310.0
 	angle					= 2.0*pi / (toReal (1+length opponents))
 
+//	a generally useful image combinator:
 circular :: Real Real [Image m] -> Image m
 circular r a imgs			= overlay (repeat (AtMiddleX,AtMiddleY)) 
 							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..] & img <- imgs] 
 							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs] 
-							          (Just (empty (px (2.0*r)) (px (2.0*r))))							// BUG: using Nothing creates incorrect image (offset to left)where
+							          (Just (empty (px (2.0*r)) (px (2.0*r))))							// BUG: using Nothing creates incorrect image (offset to left)
 where
 	n     				    = length imgs
 	sign_a					= toReal (sign a)
