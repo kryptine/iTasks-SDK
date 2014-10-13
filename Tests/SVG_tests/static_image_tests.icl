@@ -7,9 +7,16 @@ Start :: *World -> *World
 Start world = startEngine (viewInformation "test" [imageView show_it] ()) world
 where
 	show_it :: () -> Image ()
-	show_it _ = margin (px d,px d,px d,px d) (circular (d * 6.0) imgs)
+	//show_it _ = margin (px d,px d,px d,px d) (circular (d * 6.0) imgs)
+	show_it _ = polygon Nothing [(px zero,px zero),(px (2.0 * r * cos a),px (2.0 * r * sin a)),(px (2.0 * r * cos b),px (2.0 * r * sin b))]
+	where
+		r		= 100.0
+		a		= 0.0
+		b		= 0.5 * pi
 
-d             = 50.0
+
+pi =: 3.1415926
+d  =  50.0
 
 circular :: Real [Image m] -> Image m
 circular r imgs				= overlay (repeat (AtMiddleX,AtMiddleY)) 
@@ -19,7 +26,6 @@ circular r imgs				= overlay (repeat (AtMiddleX,AtMiddleY))
 where
 	n     				    = length imgs
 	alpha					= 2.0 * pi / (toReal n)
-	pi						= 3.1415926
 
 imgs          = [img_wide,img_high,img_square,img_wwide,img_whigh,img_wsquare]
 img_wide      = overlay [(AtMiddleX,AtMiddleY)] [] [text (font (d / 4.0)) "A" <@< {stroke = toSVGColor "white"}] (Just (rect (px (d * 5.0)) (px d)))

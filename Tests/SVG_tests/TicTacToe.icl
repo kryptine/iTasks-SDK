@@ -175,17 +175,17 @@ mkTile i j _ (Just Tac)   = null
 mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & ActionState.action = Just (i,j)}}
 mkTile i j False Nothing  = blank 
 
-cross = maskWith (overlay [] [] [blank,bar Slash,bar Backslash] Nothing) emptyTile
+cross = maskWith emptyTile (overlay [] [] [blank,bar Slash,bar Backslash] Nothing)
 where
 	bar dir = line Nothing dir (px 30.0) (px 30.0) <@< {strokewidth = px 5.0} <@< {stroke = SVGColorText "red" }
 
 null  = overlay [] [] [blank,naught] Nothing
 where
-	naught = maskWith (circle (px 30.0) <@< {fill        = SVGColorText "white"}
-	      								<@< {stroke      = toSVGColor "blue"}
-	      								<@< {strokewidth = px 10.0 }) 
-	      			  (circle (px 30.0)	<@< {fill = toSVGColor "white"} 
+	naught = maskWith (circle (px 30.0)	<@< {fill = toSVGColor "white"} 
 	      								<@< {strokewidth = zero })
+	      			  (circle (px 30.0) <@< {fill        = SVGColorText "white"}
+	      								<@< {stroke      = toSVGColor "blue"}) 
+	      			 
 
 
 
