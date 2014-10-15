@@ -38,44 +38,44 @@ fontsize = 12.0 // 18.0
 	}
 
 esmVizTool :: !(ESM s i o) *World -> *World
-			| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
+			| all, Eq, genShow{|*|} s & all, genShow{|*|}, ggen{|*|} i & all o
 esmVizTool esm world
 	= startEngine (iterateTask (DiGraphFlow esm) newstate) world
 where
-	newstate = { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = 20111108}
+	newstate = { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = 15102014}
 	 
 DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o) 
-				| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
+				| all, Eq, genShow{|*|} s & all, genShow{|*|}, ggen{|*|} i & all o
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
- =	anyTask	[ selectInput
-			, state esm st @? const NoValue
-// 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
-// 			, chooseTaskComBo "go to state... " [let label = show1 node in (label, updateDig st label) \\ node <- if (isEmpty nodes) ss nodes]
-			, chooseTaskComBo ("Actions","Do one of the following actions...")
-				[("Back" , back st)
-				,("Prune", prune st)
-				,("Reset", return newState)
-				,("Clear trace", return {st & trace  = []})
-				:[let label = render node in ("go to: " + label, updateDig st node) \\ node <- nodes]
-				] >>! return
-    		, stepStateN esm st >>! return
-			, viewInformation (Title "Trace & legend") [ViewWith traceHtml] trace // <<@ traceTweak
-            >>| return st
-    		]
-    >>* [OnValue (ifStable return)]
+ = (anyTask
+	[ state esm st
+	, selectInput
+	, editChoice "go to" [] nodes Nothing
+      >>* [OnAction ActionOk (hasValue (updateDig st))]
+    , updateInformation "Multiple steps" [] n
+		>>* [OnAction ActionOk (ifValue (\n.n>0) (doStepN esm st))]
+    ]	-|| viewIssues st
+    	-||	viewInformation (Title "Trace & legend") [ViewWith traceHtml] trace
+    )
+    >>= DiGraphFlow esm
 where
 	selectInput
 		| isEmpty inputs
-			= viewInformation ("Input","no transition from current state") [] "Use another action" >>| return st
-			= updateChoice ("Input","Choose an input... ") [] trans (trans !! 0)
-				>>* [OnAction (Action "Apply selected input" []) (hasValue snd)
-					,OnAction (Action "I'm feeling lucky" []) (\_ -> Just systemInput)
+			= viewInformation "no transition from current state" [] "Use another action" >>| return st
+			=	(	enterInformation "input" []
+				>>* [ OnAction ActionYes (ifValue (\i.not (isEmpty (nextStates esm i ss))) (stepState esm st))
+					, OnAction (Action "I'm feeling lucky" []) (always systemInput)
+			    	, OnAction ActionPrevious (always (back st))
+			    	, OnAction (Action "Prune" []) (always (prune st))
+			    	, OnAction ActionNew (always (return newState))
+			    	, OnAction (Action "Clear trace" []) (always (return {st & trace  = []}))
+					])
+				-||-
+				(	viewInformation "select input" [] ""
+				>>* [	OnAction (Action (show1 inp) []) (always (stepState esm st inp))
+					\\	inp <- take 7 inputs
 					]
-
-//-				>>* [WithResult (Action "Apply selected input") (const True) (\(l,t) -> t)
-//-					,AnyTime (Action "I'm feeling lucky") (\_ -> systemInput)
-
-	where trans = sortBy (\(a,_) (b,_) -> a<b) [(render i,stepState esm st i) \\ i<-inputs]
+				)
 	
 	systemInput
 		| isEmpty newInputs
@@ -89,7 +89,7 @@ where
 	newInputs	= filter (\i.not (gisMember i usedInputs)) inputs
 	usedInputs	= [ j \\ (s,j,_,_) <- ka.trans | gisMember s ss ]
 	rn			= hd (genRandInt r)
-	nodes		= nodesOf ka
+	nodes		= toHead esm.s_0 (gremoveDup (nodesOf ka ++ ss))
 	newState 	= { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = rn}
 
 	//traceTweak	=  AfterLayout (tweakUI (\x -> appDeep [0] (fixedWidth 670 o fixedHeight 200) x)) 
@@ -111,29 +111,39 @@ chooseTask msg tasks = enterChoice msg [] [(l, Hidden t) \\ (l,t) <- tasks] >>= 
 
 chooseTaskComBo :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
 chooseTaskComBo msg tasks
- = updateChoice msg [] trans (trans !! 0) >>= \(l, Hidden t). t
- >>! return
+ =	updateChoice msg [] trans (trans !! 0)
+ 	>>= \(l, Hidden t). t
+	>>! return
 where
 	trans = [(l, Hidden t) \\ (l,t) <- tasks]
 
 prune :: !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 prune state=:{ka,ss,trace,n,r}
-	= return {state & ka = {ka &trans=[t\\t<-ka.trans|gisMember t onTraces],issues=[i\\i=:(t,_)<-ka.issues|gisMember t onTraces]}, r = rn}
+	= return	{ state
+				& ka = 	{ ka
+						& trans =	[ t
+									\\	t <- ka.trans
+									|	gisMember t onTraces
+									]
+						, issues =	[ i
+									\\	i=:(t,_) <- ka.issues
+									|	gisMember t onTraces
+									]
+						}
+//				, r = rn
+				}
 where
 	onTraces = flatten trace
 	rn		= hd (genRandInt r)
 
 state :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
-state esm st=:{ka,ss,trace,n,r}
-	| isEmpty ka.issues
-		=	digraph
-		=	digraph -|| viewIssues st 
+state esm st=:{ka,ss,trace,n,r} = digraph
 where
-	digraph = updateInformation Void [UpdateWith toView fromView] st <<@ AfterLayout (tweakUI (fixedWidth 700 o fixedHeight 300))
+	digraph = updateInformation Void [UpdateWith toView fromView] st <<@ AfterLayout (tweakUI (fixedWidth 800 o fixedHeight 350))
 	
 	//Make an editable digraph from the esm state
-	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state
-		= includeChanges (mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace)) 
+	toView st=:{ka,ss,trace}
+		= includeChanges (mkDigraph esm.esm_name (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace)) 
 	//Map changes in the diagraph back to the esm state
 	fromView st dg = st
 		
@@ -143,63 +153,94 @@ where
 mkDigraph :: String (KnownAutomaton s i o,s,[s],[s],[s],[SeenTrans s i o],[SeenTrans s i o]) -> Digraph | render, gEq{|*|}, genShow{|*|} s & render, gEq{|*|} i & render, gEq{|*|} o
 mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 	= Digraph
-		(remove_spaces name)
+		name
 		graphAttributes
+		((if	(  gisMember s_0 (init_states ++ all_nodes) // is s_0 part of the current machine state
+			//	|| isEmpty automaton.trans
+			//	&& isEmpty init_states
+			 	)
+			[ NodeDef -1 // initil black node and arrow to s_0
+				[ ]
+				[ NAttlabel		""
+				, NAttstyle		NStylefilled
+				, NAttcolor		(Color "black")
+				, NAttshape		NShapecircle
+	   			, NAttfixedsize	True
+	  			, NAttwidth		0.2
+				, NAttheight	0.2
+				, NAttmargin	(SingleMargin 0.003)
+				]
+				[( //if (gisMember s_0 init_states)
+					gIndex s_0 (all_nodes ++ init_states)
+					//(nrOf automaton s_0)
+				 ,	[ EAttcolor		(Color "black")
+					, EAttarrowsize	2.0
+					, EAttstyle		EStylebold
+					]
+				 )
+				]
+			]
+			[]
+		) ++
 		(if (isEmpty automaton.trans)
 			if (isEmpty init_states)
-				[NodeDef 0 [NStAllEdgesFound False] (nodeAttributes s_0 init_states False False) []]
-				[NodeDef i [NStAllEdgesFound False] (nodeAttributes n init_states False False) []
-				\\ n <- init_states & i <- [0..]
+				[ NodeDef 0 [NStAllEdgesFound False] (nodeAttributes s_0 init_states False False) []]
+				[ NodeDef i [NStAllEdgesFound False] (nodeAttributes n init_states False False) []
+				\\	n <- toHead s_0 init_states
+				&	i <- [0..]
 				]
-			[NodeDef (nrOf automaton n) [NStAllEdgesFound (gisMember n   finished)] (nodeAttributes n   init_states (gisMember n   finished) (gisMember n   shared))
-			         [ let (s,i,o,t) = trans in
-			           (nrOf automaton t	, [ EAttLabel (render i+++"/"+++showList ("[","]",",") o)
-			                                , EAttFontName "Helvetica"
-			                                , EAttFontSize fontsize
-			                                , EAttLabelFontName "Helvetica"
-			                                , EAttLabelFontSize fontsize
-			                                , EAttColor
+			[NodeDef (gIndex n all_nodes) //(nrOf automaton n)
+					[ NStAllEdgesFound (gisMember n finished)]
+					(nodeAttributes n init_states (gisMember n finished)
+					(gisMember n shared))
+			         [ (gIndex t all_nodes	, [ EAttlabel (render i+++"/"+++showList ("[","]",",") o)
+			                                , EAttfontname "Ariel"
+			                                , EAttfontsize fontsize
+			                                , EAttlabelfontname "Ariel"
+			                                , EAttlabelfontsize fontsize
+			                                , EAttcolor
 			                                			 (if (gisMember trans issues)
 			                                						(Color "red")
 			                                			 (if (gisMember trans trace)
 			                                						(Color "blue")
 			                                						(Color "black")))
-			                                , EAttArrowSize (if (gisMember trans trace) 2.0 1.2)
-			                             //   , EAttStyle (if (isMember trans trace) EStyle_bold EStyle_solid)
+			                                , EAttarrowsize (if (gisMember trans trace) 2.0 1.2)
+			                                , EAttstyle (if (gisMember trans trace) EStylebold EStylesolid)
 			                                ])
-			         \\ trans <- edgesFrom n automaton
+			         \\ trans=:(s,i,o,t) <- edgesFrom n automaton
 			         ]
-			\\ n <- let nodes = nodesOf automaton in if (gisMember s_0 nodes && hd nodes =!= s_0) [s_0:filter ((=!=) s_0) nodes] nodes
+			\\ n <- all_nodes
 			]
-		) Nothing
+		)) Nothing
 where
-	graphAttributes				= [ GAttRankDir  RDLR // horizontal
+	graphAttributes				= [ GAttrankdir  RDLR // horizontal
 	//graphAttributes				= [ GAttRankDir  RDTB // RD_LR
-							  	  , GAttSize     		(Sizef 7.2 3.0 False)
+							  	  , GAttsize     		(Sizef 7.2 3.0 False)
 								 // , GAttSize			(Sizef 5.0 3.0 True)
-								  , GAttFontSize		9.0 // 12.0
-								  , GAttBGColor  		(Color "white")
-								  , GAttOrdering 		"out"
-//								  , GAttOutputOrder	OMNodesFirst	// OMEdgesFirst	//  PK
-								  , GAttOutputOrder	OMNodesFirst	// OMEdgesFirst	//  PK
+								  , GAttfontsize		9.0 // 12.0
+								  , GAttbgcolor  		(Color "white")
+								  , GAttordering 		"in"			// "out"
+								  , GAttoutputorder		OMEdgesFirst	// OMBreadthFirst	// OMEdgesFirst	//  PK
 								  ]
+	all_nodes = toHead s_0 (nodesOf automaton)
 	nodeAttributes n init_states finished shared
 								= (if (gisMember n init_states)
-										(if shared	[ NAttFillColor shac_backgr, NAttFontColor shac_txt ]
-													[ NAttFillColor act_backgr, NAttFontColor act_txt ])
-								  (if finished [ NAttFillColor done_backgr,NAttFontColor done_txt]
-								  		(if shared	[ NAttFillColor shar_backgr, NAttFontColor shar_txt ]
-									              	[ NAttFillColor def_backgr, NAttFontColor def_txt ])
+										(if shared	[ NAttfillcolor shac_backgr, NAttfontcolor shac_txt ]
+													[ NAttfillcolor act_backgr, NAttfontcolor act_txt ])
+								  (if finished [ NAttfillcolor done_backgr,NAttfontcolor done_txt]
+								  		(if shared	[ NAttfillcolor shar_backgr, NAttfontcolor shar_txt ]
+									              	[ NAttfillcolor def_backgr, NAttfontcolor def_txt ])
 								  )) ++
-						          [ NAttLabel		(render n)
-						          , NAttTooltip	(show1 n)
-						          , NAttStyle		NStyleFilled
-						          , NAttShape		(if (n === s_0) NShapeDoubleCircle NShapeEllipse /*NShapeCircle*/)
-						          , NAttFontName	"Helvetica"
-						          , NAttFontSize	fontsize
-						          , NAttFixedSize	False // True
-						          , NAttWidth 1.0,	NAttHeight 1.0
-						          , NAttMargin		(SingleMargin 0.003)
+						          [ NAttlabel		(render n)
+						          , NAtttooltip		(show1 n)
+						          , NAttstyle		NStylefilled
+						          , NAttshape		NShapeellipse
+						          , NAttfontname	"Ariel"
+						          , NAttfontsize	fontsize
+						          , NAttfixedsize	False
+						          , NAttwidth 1.0
+						          ,	NAttheight 1.0
+						          , NAttmargin		(SingleMargin 0.003)
 						          ]
 	where
 		( act_backgr, act_txt)	= active_state_color (length init_states)
@@ -214,7 +255,16 @@ where
 	showList (open,close,delimit) [x] = open +++ render x +++ close
 	showList (open,close,delimit) xs  = open +++ foldr (\x str->render x+++delimit+++str) "" (init xs) +++ render (last xs) +++ close
 
+toHead :: a [a] -> [a] | gEq{|*|} a
+toHead x l | gisMember x l && hd l =!= x
+	= [x: filter ((=!=) x) l]
+	= l
 
+gIndex :: a [a] -> Int | gEq{|*|} a
+gIndex a l
+ = case [ i \\ x <- l & i <- [0..] | a === x] of
+	[i:_] = i
+	[]    = -1
 
 includeChanges :: !Digraph -> Digraph
 includeChanges dg=:(Digraph _ _ _ Nothing)		= dg
@@ -224,17 +274,17 @@ where
 	
 	includeNodeChange :: !NodeDef -> NodeDef
 	includeNodeChange (NodeDef nr st atts edges)
-		| nr==nr`								= NodeDef nr st (map replaceNodeAtt atts) edges
+		| nr == nr`								= NodeDef nr st (map replaceNodeAtt atts) edges
 		| otherwise								= NodeDef nr st (map defaultNodeAtt atts) edges
 	where
 		all_edges_found							= not (isEmpty [s \\ s=:(NStAllEdgesFound True) <- st])
 		
-		replaceNodeAtt (NAttFillColor _)		= NAttFillColor (fst (active_state_color 1))
-		replaceNodeAtt (NAttFontColor _)		= NAttFontColor (snd (active_state_color 1))
+		replaceNodeAtt (NAttfillcolor _)		= NAttfillcolor (fst (active_state_color 1))
+		replaceNodeAtt (NAttfontcolor _)		= NAttfontcolor (snd (active_state_color 1))
 		replaceNodeAtt att						= att
 		
-		defaultNodeAtt (NAttFillColor c)		= NAttFillColor (if all_edges_found (fst finished_state_color) (fst default_state_color))
-		defaultNodeAtt (NAttFontColor c)		= NAttFontColor (if all_edges_found (snd finished_state_color) (snd default_state_color))
+		defaultNodeAtt (NAttfillcolor c)		= NAttfillcolor (if all_edges_found (fst finished_state_color) (fst default_state_color))
+		defaultNodeAtt (NAttfontcolor c)		= NAttfontcolor (if all_edges_found (snd finished_state_color) (snd default_state_color))
 		defaultNodeAtt att						= att
 
 //TODO: Turn this into a (Diagraph State -> State function)
@@ -255,7 +305,7 @@ stepState esm state=:{ka,ss,trace,n,r} i
 		= let next   = nextStates esm i ss
 			  ka`    = addTransitions 1 esm ss [i] ka
 			  trace` = addStep esm ss i trace
-			  rn	 = hd (genRandInt r)
+		//	  rn	 = hd (genRandInt r)
 		  in return {state & ka = ka`, ss = next, trace = trace`}
 
 back :: (State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
@@ -267,16 +317,10 @@ back state=:{ka,ss,trace,n,r}
 			  rn	 = hd (genRandInt r)
 		  in return {state & trace = trace`, ss = next, r = rn}
 
-newKA = {trans=[],issues=[]}
+newKA = {trans = [], issues = []}
 
 iterateTask :: (a->Task a) a -> Task a | iTask a
 iterateTask task a = task a >>= iterateTask task
-
-orTaskL :: [Task a] -> Task a | iTask a
-orTaskL l = foldl1 (-||-) l
-
-foldl1 op [a]   = a
-foldl1 op [a:x] = op a (foldl1 op x)
 
 traceHtml :: (Traces a b c) -> HtmlTag | render a & render b & render c
 traceHtml trace
@@ -338,7 +382,11 @@ partTraces [trans:rest] s seen
 allEdgesFound :: (ESM s i o) (KnownAutomaton s i o) -> [s] | gEq{|*|} s & ggen{|*|} i
 allEdgesFound esm automaton
 	= [s \\ s <- nodesOf automaton
-	      | length (edgesFrom s automaton) == length [t \\ i<-enumerate,t<-nextStates esm i [s]] 
+	  | length (edgesFrom s automaton) == 
+	    length	[ t
+	    		\\	i <- enumerate
+	    		,	t <- nextStates esm i [s]
+	    		] 
 	  ]
 
 remove_spaces :: !String -> String

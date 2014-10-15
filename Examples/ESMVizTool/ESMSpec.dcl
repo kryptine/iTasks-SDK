@@ -4,10 +4,11 @@ import StdClass, StdMaybe
 import gast //gen
 
 ::	Traces		   s i o :== [[SeenTrans s i o]]
-::	ESM            s i o =   { s_0 :: s					// the initial state
-							 , d_F :: Spec s i o		// the state transition function (\delta_F)
-							 , out :: s i -> [[o]]		// outputs to be used if spec does not give them
-							 , pred:: (SeenTrans s i o)->[[String]] // consitency issues
+::	ESM            s i o =   { s_0		:: s					// the initial state
+							 , d_F		:: Spec s i o		// the state transition function (\delta_F)
+							 , out		:: s i -> [[o]]		// outputs to be used if spec does not give them
+							 , pred		:: (SeenTrans s i o)->[[String]] // consitency issues
+							 , esm_name	:: String
 							 }
 ::	KnownAutomaton s i o =   {trans :: [SeenTrans s i o]
 							 ,issues:: [(SeenTrans s i o,[String])]

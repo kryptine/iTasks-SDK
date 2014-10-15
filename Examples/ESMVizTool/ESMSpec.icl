@@ -30,7 +30,7 @@ pruneTraces :: (Traces s i o) [s] -> (Traces s i o,[s]) | gEq{|*|} s
 pruneTraces [] states = ([],states)
 pruneTraces [trans:rest] states
 	# (rest ,states) = pruneTraces rest states
-	# trans = [tr\\tr=:(s,i,o,t)<-trans|gisMember t states]
+	# trans = [tr \\ tr=:(s,i,o,t) <- trans | gisMember t states]
 	= ([trans:rest],startStates trans)
 
 addStep :: (ESM s i o) [s] i !(Traces s i o) -> Traces s i o | gEq{|*|} s

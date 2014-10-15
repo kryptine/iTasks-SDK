@@ -16,6 +16,6 @@ esmVizTool :: !(ESM s i o) *HSt -> ((Bool,String),Html,*HSt)
 //esmVizTool :: !(ESM s i o) *World -> *World | iTask, renderEq s & iTask, renderEq, Eq, ggen{|*|} i & iTask, gEq{|*|}, render o
 esmVizTool :: !(ESM s i o) *World -> *World
 //			| iTask, render, gEq{|*|}, Eq s & iTask, render, gEq{|*|}, ggen{|*|} i & iTask, gEq{|*|}, render o
-			| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
+			| all, Eq, genShow{|*|} s & all, genShow{|*|}, ggen{|*|} i & all o
 
 toHtmlString :: a -> String | gText{|*|} a

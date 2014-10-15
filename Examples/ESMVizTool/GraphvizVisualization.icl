@@ -24,14 +24,14 @@ derive class iTask	NodeState, Arrow, ArrowShape, ClusterMode, CompassPoint, DotP
 					NodeAttribute, NodeDef, OutputMode, Pad, PageDir, Pointf, 
 					RankDir, RankType, Ratio, Rect, SelectedItem, Side, Sizef, StartStyle, StartType, ViewPort
 
-derive gText	Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gText			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gUpdate			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gVerify			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONEncode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive JSONDecode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gEditor		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gEditor			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gEditMeta		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gDefault		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gDefault			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gEq				Digraph
 
 config_file_name		:== "Graphviz.config"
@@ -40,6 +40,7 @@ dot_exe_path_name		:== "DOT_PATH"
 public 					:== "WebPublic"
 target file				= public + "/" + file
 toGIF file				= ["-Tgif","-o",gifext file,dotext file]
+//toGIF file				= ["-Tgif","-O ",dotext file]
 toMAP file name			= ["-Tcmapx","-Glabel=" + name,"-o ","\"" + mapext file + "\"", "\"" + dotext file + "\""]
 gifext file				= file + ".gif"
 mapext file				= file + ".map"
@@ -53,11 +54,12 @@ gEditor{|Digraph|} _ (digraph, _, _) meta vst = mkControl vst
   where
   mkControl vst=:{VSt|iworld,taskId}
       # (sv, iworld)    = iworld!server
-      # filename			= imgname taskId sv.serverName
+      # filename		= imgname taskId sv.serverName
       # (mbErr, iworld)	= runGraphviz filename (printDigraph (enhanceDigraphWithLinks digraph)) iworld
       = case mbErr of
           Ok _
-              = (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (RawText("<img src=\"/" + (gifext filename) + "\" usemap=\"#" + filename + "\" />"))}, 'DM'.newMap)], {VSt|vst & iworld = iworld})
+              = ( NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (RawText("<img src=\"/" + (gifext filename) + "\" usemap=\"#" + filename + "\" />"))}, 'DM'.newMap)]
+              	, {VSt|vst & iworld = iworld})
           Error msg
               = (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (Text msg)}, 'DM'.newMap)], {VSt|vst & iworld = iworld})
 

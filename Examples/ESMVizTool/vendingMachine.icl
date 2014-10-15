@@ -4,7 +4,7 @@ import ESMVizTool
 import StdMisc
 
 Start :: *World -> *World
-Start world		= esmVizTool vendingESM world
+Start world	= esmVizTool vendingESM world
 
 //Start = testnm 10000 100 (pFair vSpec) // CE
 //Start = testnm 10000 100 (pProduct vSpec) // CE
@@ -20,7 +20,7 @@ Start world		= esmVizTool vendingESM world
 :: Output		= Cup Product | Return Int
 
 vendingESM :: ESM State Input Output
-vendingESM = { s_0 = Off, d_F = vSpec, out = undef, pred = healthy }
+vendingESM = { s_0 = Off, d_F = vSpec, out = undef, pred = healthy, esm_name = "Vending machine" }
 
 vSpec :: !State !Input -> [Trans Output State]
 vSpec Off SwitchOn  = [Pt [] (On 0)]
