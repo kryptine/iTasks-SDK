@@ -14,8 +14,6 @@ imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` 
 
 :: SVGDiff s
 
-derive class iTask SVGDiff, SVGSrvSt
-
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 
 :: ActionState a s = { state   :: s

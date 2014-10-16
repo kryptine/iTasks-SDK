@@ -24,8 +24,6 @@ import Text
   , cachedImageSpan :: Maybe ImageSpan
   }
 
-derive class iTask GenSVGStVal
-
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
@@ -94,7 +92,7 @@ defaultClSt s = { svgClIsDefault  = True
 :: SVGDiff s
   = SetState s
 
-derive class iTask SVGDiff, SVGSrvSt, SVGClSt
+derive class iTask SVGDiff, SVGSrvSt
 
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDefault = False} server client
