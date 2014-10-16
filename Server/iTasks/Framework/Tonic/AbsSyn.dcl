@@ -47,7 +47,9 @@ derive gEq
   | T a
 
 :: TExpr
-  = TBind      TExpr (Maybe Pattern) TExpr
+  = TVar       PPExpr
+  | TCleanExpr PPExpr
+  | TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    TExpr
   | TTaskApp   ExprId VarName [TExpr]
   | TLet       [(Pattern, PPOr TExpr)] TExpr
@@ -57,8 +59,6 @@ derive gEq
   | TAssign    TUser TExpr
   | TShare     TShare VarName [VarName]
   | TTransform TExpr VarName [VarName]
-  | TVar       PPExpr
-  | TCleanExpr PPExpr
 
 :: TShare
   = Get
