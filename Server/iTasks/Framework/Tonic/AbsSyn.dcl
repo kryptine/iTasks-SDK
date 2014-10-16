@@ -23,9 +23,9 @@ derive gEq
   , tm_tasks :: Map TaskName TonicTask
   }
 
-:: ModuleName :== String
+:: ModuleName   :== String
 :: VariableName :== String
-:: TaskName :== String
+:: TaskName     :== String
 
 :: TonicTask =
   { tt_name  :: TaskName

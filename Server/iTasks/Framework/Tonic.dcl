@@ -51,8 +51,6 @@ tonicSharedRT :: Shared TonicRTMap
 
 derive class iTask TonicRT
 
-tonicLogin :: String -> Task ()
-
 tonicViewer :: String -> PublishedTask
 
 tonicViewInformation :: String a -> Task () | iTask a
