@@ -19,7 +19,7 @@ StdInt.sign_14 !x_0 = if (eq x_0 0) 0 (if (gt 0 x_0) -1 1)
 <{StdInt.~_15}> :== neg
 StdInt.isOdd_19 !a_0 = eq (mod a_0 2) 1
 StdInt.toInt_20 :== toInt_char || char -> int
-StdInt.toInt_22 :== toInt_real
+StdInt.toInt_22 :== toInt_real || real -> int
 StdInt.toInt_23 :== toInt_str || str -> int
 StdInt.fromInt_25 :== toChar 
 StdInt.fromInt_26 !a_0 = a_0 || int -> real 
