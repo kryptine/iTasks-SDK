@@ -15,22 +15,6 @@ import qualified Data.Set as DS
 from StdFunc import `bind`
 import Text
 
-derive JSONEncode Image
-derive JSONDecode Image
-derive gEq        Image
-derive gEditMeta  Image, SVGColor
-derive gVerify    Image, SVGColor
-derive gDefault   Image, SVGColor
-derive gText      Image, SVGColor
-derive gEditor    Image, SVGColor
-derive gUpdate    Image, SVGColor
-
-derive class iTask ImageTag, ImageTransform, Span, LookupSpan, ImageAttr,
-  ImageContent, BasicImage, CompositeImage, Slash, FontDef, Compose,
-  OpacityAttr, FillAttr, StrokeWidthAttr, StrokeAttr, OnClickAttr, DashAttr,
-  XAlign, YAlign, Set, CachedSpan, Deg, Rad, LineImage, Markers, LineContent,
-  XRadiusAttr, YRadiusAttr
-
 :: GenSVGStVal s =
   { uniqueIdCounter :: Int
   }
