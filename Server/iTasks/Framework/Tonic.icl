@@ -239,13 +239,10 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
                @! ()) >>*
             [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
-  blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ aOrAn bp.tt_resty
+  blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn bp.tt_resty
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection              = viewInformation () [] "Select argument..."
-  collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ aOrAn argty, vi)) bp.tt_args trt.trt_params
-  aOrAn str
-    | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
-    | otherwise                                       = "a " +++ str
+  collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ prefixAOrAn argty, vi)) bp.tt_args trt.trt_params
 
 tonicViewer :: String -> PublishedTask
 tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
@@ -349,6 +346,11 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image TonicTask
 tStopSymb  = rect 16 16
 
+prefixAOrAn :: String -> String
+prefixAOrAn str
+  | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
+  | otherwise                                       = "a " +++ str
+
 tTaskDef :: String String [(String, String)] (Image TonicTask) -> Image TonicTask
 tTaskDef taskName resultTy taskArgsAndTys tdbody
   # bgRect       = rect maxXSpan (imageyspan [imageTag "tTaskDef_taskNameImg"] + imageyspan [imageTag "tTaskDef_taskArgsImgs"] + imageyspan [imageTag "tTaskDef_taskBodyImgs"])
@@ -357,7 +359,7 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
                      <@< { strokewidth = px 1.0 }
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "tTaskDef_taskNameImg"]  (margin 5 (text ArialBold10px (taskName +++ " yields an " +++ resultTy))) // TODO a/an
+  # taskNameImg  = tag [imageTag "tTaskDef_taskNameImg"]  (margin 5 (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy))) // TODO a/an
   # taskArgsImgs = tag [imageTag "tTaskDef_taskArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
   # taskBodyImgs = tag [imageTag "tTaskDef_taskBodyImgs"] (margin 5 tdbody)
   # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
@@ -367,7 +369,7 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
   = tTaskDef
   where
   maxXSpan = maxSpan [imagexspan [imageTag "tTaskDef_taskNameImg"], imagexspan [imageTag "tTaskDef_taskArgsImgs"], imagexspan [imageTag "tTaskDef_taskBodyImgs"]]
-  mkArgAndTy (arg, ty) = arg +++ " is a " +++ ty // TODO a/an
+  mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
 
 tTransformApp :: String [String] -> Image TonicTask
 tTransformApp tffun args
