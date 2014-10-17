@@ -52,7 +52,7 @@ derive gEq
   | TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    TExpr
   | TTaskApp   ExprId VarName [TExpr]
-  | TLet       [(Pattern, PPOr TExpr)] TExpr
+  | TLet       [(Pattern, PPExpr)] TExpr
   | TCaseOrIf  PPExpr [(Pattern, TExpr)]
   | TStep      TExpr [PPOr TStepCont]
   | TParallel  TParallel

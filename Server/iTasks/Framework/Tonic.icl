@@ -262,17 +262,36 @@ mkTaskImage tt = 'CMS'.evalState (tExpr2Image tt.tt_body `b` \tt_body` -> tTaskD
 tExpr2Image :: TExpr -> TImg
 tExpr2Image (TBind lhs mpat rhs)     = tBind lhs mpat rhs
 tExpr2Image (TReturn texpr)          = tReturn texpr
-tExpr2Image (TTaskApp eid tn targs)  = tTaskApp tn targs // TODO Use eid when we add interaction
-tExpr2Image (TLet pats bdy)          = abort "tExpr2Image TLet: not implemented"
-tExpr2Image (TCaseOrIf e pats)       = abort "tExpr2Image TCaseOrIf: not implemented"
+tExpr2Image (TTaskApp eid tn targs)  = tTaskApp eid tn targs
+tExpr2Image (TLet pats bdy)          = tLet pats bdy
+tExpr2Image (TCaseOrIf e pats)       = tCaseOrIf e pats
 tExpr2Image (TStep lexpr conts)      = tStep lexpr conts
 tExpr2Image (TParallel par)          = tParallel par
 tExpr2Image (TAssign usr t)          = tAssign usr t
-tExpr2Image (TShare ts sn args)      = abort "tExpr2Image TShare: not implemented"
-tExpr2Image (TTransform lhs vn args) = abort "tExpr2Image TTransform: not implemented"
+tExpr2Image (TShare ts sn args)      = tShare ts sn args
+tExpr2Image (TTransform lhs vn args) = tTransform lhs vn args
 tExpr2Image (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
 tExpr2Image (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
 
+tCaseOrIf :: PPExpr [(Pattern, TExpr)] -> TImg
+tCaseOrIf ppexpr pats = 'CA'.pure (rect 100 100) // TODO
+
+tShare :: TShare VarName [VarName] -> TImg
+tShare sh sn args = 'CA'.pure (rect 100 100) // TODO
+
+tTransform :: TExpr VarName [VarName] -> TImg
+tTransform texpr tfnm args = 'CA'.pure (rect 100 100) // TODO
+
+tLet :: [(Pattern, PPExpr)] TExpr -> TImg
+tLet pats expr
+  =          dispenseUniq `b`
+  \textNo -> tExpr2Image expr `b`
+             ('CA'.pure o mkLet textNo)
+  where
+  mkLet textNo t = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letText, letBox] Nothing
+    where
+    letText = tag [imageTag textNo] (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
+    letBox  = rect (imagexspan [imageTag textNo]) (px ArialRegular10px.fontysize *. length pats)
 
 tBind :: TExpr (Maybe Pattern) TExpr -> TImg
 tBind l mpat r
@@ -410,8 +429,8 @@ tTransformApp tffun args
     where
     maxXSpan = maxSpan [imagexspan [imageTag nameNo], imagexspan [imageTag argsNo]]
 
-tTaskApp :: String [TExpr] -> TImg
-tTaskApp taskName taskArgs
+tTaskApp :: ExprId VarName [TExpr] -> TImg
+tTaskApp eid taskName taskArgs
   =             'CM'.mapM tExpr2Image taskArgs `b`
   \taskArgs` -> dispenseUniq `b`
   \tnNo      -> dispenseUniq `b`
@@ -486,17 +505,64 @@ tStep lhsExpr conts
 
 tStepCont :: (PPOr TStepCont) -> TImg
 tStepCont (PP pp) = 'CA'.pure (text ArialRegular10px pp)
-tStepCont (T t)   = 'CA'.pure (tStepCont` t)
+tStepCont (T t)   = tStepCont` t
   where
-  tStepCont` (StepOnValue          sfilter) = text ArialRegular10px "tStepCont` TODO"
-  tStepCont` (StepOnAction    act  sfilter) = text ArialRegular10px "tStepCont` TODO"
-  tStepCont` (StepOnException mpat te)      = text ArialRegular10px "tStepCont` TODO"
-  tStepFilter (Always                      te) = text ArialRegular10px "tStepFilter TODO"
-  tStepFilter (HasValue               mpat te) = text ArialRegular10px "tStepFilter TODO"
-  tStepFilter (IfStable               mpat te) = text ArialRegular10px "tStepFilter TODO"
-  tStepFilter (IfUnstable             mpat te) = text ArialRegular10px "tStepFilter TODO"
-  tStepFilter (IfCond     pp          mpat te) = text ArialRegular10px "tStepFilter TODO"
-  tStepFilter (IfValue    pat fn vars mpat te) = text ArialRegular10px "tStepFilter TODO"
+  tStepCont` (StepOnValue      sfilter) = tStepFilter Nothing sfilter
+  tStepCont` (StepOnAction act sfilter) = tStepFilter (Just act) sfilter
+  tStepCont` (StepOnException mpat te)  = tExpr2Image te `b` ('CA'.pure o mkOnException)
+    where
+    // TODO mpat
+    mkOnException t = beside (repeat AtMiddleY) [] [tException, /* TODO edge */ t] Nothing
+  tStepFilter mact (Always te) = tExpr2Image te `b` ('CA'.pure o mkAlways)
+    where
+    mkAlways t = beside (repeat AtMiddleY) [] [alwaysFilter, /* TODO edge */ t] Nothing
+  tStepFilter mact (HasValue mpat te) = tExpr2Image te `b` ('CA'.pure o mkHasValue)
+    where
+    // TODO mpat
+    mkHasValue t = beside (repeat AtMiddleY) [] [hasValueFilter, /* TODO edge */ t] Nothing
+  tStepFilter mact (IfStable mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfStable)
+    where
+    // TODO mpat
+    mkIfStable t = beside (repeat AtMiddleY) [] [tStable, /* TODO edge */ t] Nothing
+  tStepFilter mact (IfUnstable mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfUnstable)
+    where
+    // TODO mpat
+    mkIfUnstable t = beside (repeat AtMiddleY) [] [tUnstable, /* TODO edge */ t] Nothing
+  tStepFilter mact (IfCond pp mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfCond)
+    where
+    // TODO mpat pp
+    mkIfCond t = beside (repeat AtMiddleY) [] [alwaysFilter, /* TODO edge and conditional */ t] Nothing
+  tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfValue)
+    where
+    // TODO mpat pat fn vars
+    mkIfValue t = beside (repeat AtMiddleY) [] [hasValueFilter, /* TODO edge and predicate */ t] Nothing
+
+alwaysFilter   = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
+hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
+
+tException :: Image TonicTask
+tException = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
+  where
+  bgRect = rect 16 16 <@< { fill   = toSVGColor "white" }
+                      <@< { stroke = toSVGColor "black" }
+
+tStable :: Image TonicTask
+tStable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "S"] Nothing
+  where
+  bgRect = rect 16 16 <@< { fill   = toSVGColor "white" }
+                      <@< { stroke = toSVGColor "black" }
+
+tUnstable :: Image TonicTask
+tUnstable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "U"] Nothing
+  where
+  bgRect = rect 16 16 <@< { fill   = toSVGColor "white" }
+                      <@< { stroke = toSVGColor "black" }
+
+tNoVal :: Image TonicTask
+tNoVal = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "N"] Nothing
+  where
+  bgRect = rect 16 16 <@< { fill   = toSVGColor "white" }
+                      <@< { stroke = toSVGColor "black" }
 
 instance toString TUser where
   toString TUAnyUser                       = "Any user"
