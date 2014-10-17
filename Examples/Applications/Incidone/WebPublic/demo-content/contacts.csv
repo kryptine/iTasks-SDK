@@ -1,0 +1,39 @@
+Name,Group,Type,Subtype,ProvidesHelp,MMSI,P2000,TEL,Notes
+WO1,Watch officers,Person,,y,,,,Demo watch officer
+WO2,Watch officers,Person,,y,,,,Demo watch officer
+WO3,Watch officers,Person,,y,,,,Demo watch officer
+WO4,Watch officers,Person,,y,,,,Demo watch officer
+WO5,Watch officers,Person,,y,,,,Demo watch officer
+Tugger,Coastguard ships,Vessel,TowingVessel,y,246911000,,,General purpose vessel
+Eagle,Coastguard ships,Vessel,PatrolVessel,y,,,,Patrol vessel
+Raven,Coastguard ships,Vessel,PatrolVessel,y,,,,Patrol vessel
+Flushing Fighter,Coastguard ships,Vessel,UnspecifiedVessel,y,,,,Fishery inspection vessel
+Texel Twelve,Coastguard ships,Vessel,UnspecifiedVessel,y,245387000,,,Maintenance vessel
+Simple Sam,Coastguard ships,Vessel,UnspecifiedVessel,y,244353000,,,Maintenance vessel
+Purple Pearl,Coastguard ships,Vessel,UnspecifiedVessel,y,245384000,,,Maintenance vessel
+Flying Dutchman,Coastguard ships,Vessel,UnspecifiedVessel,y,244579000,,,Maintenance vessel
+Sea Lion,Coastguard ships,Vessel,UnspecifiedVessel,y,,,,Maintenance vessel (lakes)
+Willy Wonka,Coastguard ships,Vessel,UnspecifiedVessel,y,244964000,,,Maintenance vessel (lakes)
+Peter Pan,Coastguard ships,Vessel,UnspecifiedVessel,y,244499000,,,Maintenance vessel (lakes)
+Hercules,Coastguard ships,Vessel,UnspecifiedVessel,y,244454000,,,Multi purpose vessel
+Archimedes,Coastguard ships,Vessel,UnspecifiedVessel,y,246096000,,,Research vessel
+FixedWing 02,Coastguard flying,Airplane,,y,,,,Patrol airplane
+FixedWing 04,Coastguard flying,Airplane,,y,,,,Patrol airplane
+PH66,Police,Helicopter,,y,,,,Police Helicopter
+P55,Police,Vessel,PatrolVessel,y,244090417,,,Police patrol vessel
+OILCO SAR,Partners,Helicopter,,y,,,,Search and Rescue Helicopter
+HMS Exodus,Navy,Vessel ,,y,,,,Navy Patrol vessel
+AF204,Airforce,Helicopter,,y,,,,Search and Rescue Helicopter
+Obi Wan,Lifeguards,Vessel,RescueVessel,y,244413000,1230001,005550001,Station Texel
+Princess Leia,Lifeguards,Vessel,RescueVessel,y,,1230004,005550004,Station Ijmuiden
+Luke Skywalker,Lifeguards,Vessel,RescueVessel,y,,1230009,005550009,Station  Scheveningen
+Han Solo,Lifeguards,Vessel,RescueVessel,y,,1230014,005550014,Station Cadzand
+Chewbacca,Lifeguards,Vessel,RescueVessel,y,,1230023,005550023,Station Enkhuizen
+C3PO,Lifeguards,Vessel,RescueVessel,y,,1230039,005550039,Station Urk
+R2D2,Lifeguards,Vessel,RescueVessel,y,,1230042,005550042,Station Hoek van Holland
+Darth Vader,Lifeguards,Vessel,RescueVessel,y,,1230069,005550069,Station Westkappelle
+Regional Dispatch North,Dispatch centers,Other,,n,,,005551001,Dispatch center for north region
+Regional Dispatch Central,Dispatch centers,Other,,n,,,005551002,Dispatch center for central region
+Regional Dispatch South,Dispatch centers,Other,,n,,,005551003,Dispatch center for south region
+RCC Belgium,Foreign RCC's,Other,,n,,,0032 123456,
+RCC Germany,Foreign RCC's,Other,,n,,,0033 123456,

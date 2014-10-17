@@ -1,0 +1,484 @@
+concept module Incidone.OP.Concepts
+
+import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, Incidone.ContactPosition, Incidone.Util.AIS
+
+//Shared value types
+$$ MMSI = Int
+$$ CapCode = String
+$$ IMONumber = Int
+$$ UTCTime = Time
+$$ UTCDateTime = DateTime
+$$ SpeedInKnots = Int
+$$ HeadingInDegrees = Int
+$$ PhoneNumber = String
+$$ CallSign = String
+$$ RadioChannel = Int
+
+$$ Temperature > Int	//Temperature in degrees celcius
+$$ Meters > Int			//Distance in meters
+$$ Feet > Int			//Distance in feet
+$$ Miles > Int			//Distance in nautic miles
+$$ Knots > Int			//Speed in knots
+$$ Degrees > Int		//Direction in degrees
+
+// Communication administration
+$$ Communication
+
+$$ CommunicationNo = ID
+$$ CommunicationType = {"Phone call" (PhoneCall),"Radio call" (RadioCall), "E-mail message" (EmailMessage),"P2000 message" (P2000Message), "DSC message" (DSCMessage)}
+$$ CommunicationDirection = {"In" (In),"Out" (Out)}
+$$ CommunicationStatus = {"Pending" (Pending), "Ringing" (Ringing), "Connected" (Connected), "Answered" (Answered), "Missed" (Missed), "Sent" (Sent)}
+$$ CallNotes = Note
+
+## communicationNo  = << !!Communication >> has << CommunicationNo >>
+## time			    = << !Communication >> started at UTCDateTime
+## type			    = << !Communication >> is of CommunicationType
+## direction        = << !Communication >> has CommunicationDirection
+## handledBy	    = << Communication >> is handled by Contact
+## status           = << Communication >> has CommunicationStatus
+// Subtypes of Communication
+
+//Phone and Radio calls
+$$ PhoneCall [Communication]
+$$ PhoneCallReference = String
+
+//Phonecall status should be total role, but this breaks with subtypes atm
+## externalNo   = << PhoneCall >> is with PhoneNumber
+## externalRef  = << PhoneCall >> is externally referenced as PhoneCallReference
+## callNotes    = << PhoneCall >> is described in CallNotes
+
+//Radiocall information
+$$ RadioCall [Communication]
+## channel      = << RadioCall >> is on RadioChannel
+## callNotes    = << RadioCall >> is described in CallNotes
+
+//Messages
+$$ Message [Communication]
+
+// Message send/received by e-mail
+//$$ EmailMessage [Message]
+//EmailMessage should be a subclass of Message, but SQL generation does not go deeper than one level yet
+$$ EmailMessage [Communication]
+
+$$ EmailRecipient = EmailAddress
+$$ EmailSender = EmailAddress
+$$ EmailSubject = String
+$$ EmailBody = Note
+
+## recipient = << !EmailMessage >> is sent to EmailRecipient
+## sender = << !EmailMessage >> is sent by EmailSender
+## subject = << !EmailMessage >> is about EmailSubject
+## body = << !EmailMessage >> has EmailBody
+
+// Message send/received
+$$ P2000Message [Communication]
+$$ P2000Body = Note
+$$ P2000Prio = Int
+
+## capCode  = << !P2000Message >> is addressed to CapCode
+## prio     = << !P2000Message >> has P2000Prio
+## body     = << !P2000Message >> has P2000Body
+
+// Message received by DSC
+$$ DSCMessage [Message]
+
+//SHOULD BE AN ENUMERATION
+$$ DSCCountry = String
+$$ DSCNumber = Int
+$$ DSCRQI = Int
+$$ DSCFormat = Int
+$$ DSCDistressId = Int
+$$ DSCNature = String
+$$ DSCWorkstation = String
+$$ DSCTeleCommand = String
+
+$$ DSCCategory = {"Safety" (DSCSafety), "Routine" (DSCRoutine), "Urgency" (DSCUrgency), "Distress" (DSCDistress), "Invalid" (DSCInvalid)}
+
+## callTime = << !DSCMessage >> was received at UTCDateTime
+## category = << !DSCMessage >> is of DSCCategory
+## fromMmsi = << !DSCMessage >> was received from vessel with MMSI
+## fromCountry = << DSCMessage >> was received from vessel registered in DSCCountry
+## no = << DSCMessage >> has DSCNumber
+## rqi = << DSCMessage >> has a DSCRQI
+## format = << DSCMessage >> is in DSCFormat
+## distressId = << DSCMessage >> contains DSCDistressId
+## nature = << DSCMessage >> contains DSCNature
+## position = << DSCMessage >> contains ContactPosition
+## workstation = << DSCMessage >> contains DSCWorkstation
+## teleCmd = << DSCMessage >> contains DSCTeleCommand
+
+// Message received via INMARSAT-C
+$$ INMARSATCMessage [Message]
+
+$$ INMARSATNumber = String
+$$ INMARSATStation = Int
+$$ INMARSATCActivation = String // E.g "DISTRESS ALERT"
+
+## inmarsatNo = << !INMARSATCMessage >> is sent by transmitter with INMARSATNumber
+## toCes = << !INMARSATCMessage >> is sent to INMARSATStation
+## position = << !INMARSATCMessage >> contains ContactPosition
+## positionUpdated = << !INMARSATCMessage >> last updated position at UTCTime 
+## course = << INMARSATCMessage >> contains HeadingInDegrees
+## speed = << INMARSATCMessage >> contains SpeedInKnots
+## activation = << !INMARSATCMessage >> indicates INMARSATCActivation as reason for activation
+## positionActivated = reported position in << INMARSATCMessage >> was at activation
+## courseSpeedActivated = reported course and speed in << INMARSATCMessage >> were at activation
+
+$$ Incident
+
+$$ IncidentNo = ID
+$$ IncidentTitle = String
+$$ IncidentSummary = Note
+
+$$ EmergencyPhase =
+	{"INCERFA" (INCERFA)
+	,"ALERFA" (ALERFA)
+	,"DETRESFA" (DETRESFA)
+	}
+
+$$ IncidentType =
+	{"Aircraft appears in difficulties" (AircraftAppearsInDifficulties)	
+	,"Aircraft collision" (AircraftCollision)
+	,"Aircraft crash" (AircraftCrash)
+	,"Aircraft ditch" (AircraftDitch)
+	,"Aircraft emergency" (AircraftEmergency)
+	,"Aircraft overdue" (AircraftOverdue)
+	,"Diver in problems" (DiverInProblems)
+	,"Diver missing" (DiverMissing)
+	,"DSC alert in NLSSR" (DSCAlertInsideNLSRR)
+	,"DSC alert outside NLSSR" (DSCAlertOutsideNLSRR)
+	,"False alert good intent" (FalseAlertGoodIntent)
+	,"False alert malicious intent" (FalseAlertMaliciousIntent)
+	,"Family message" (FamilyMessage)
+	,"Flare sighted" (FlareSighted)
+	,"INMARSAT alert in NLSRR" (INMARSATAlertInsideNLSRR)
+	,"INMARSAT alert outside NLSRR" (INMARSATAlertOutsideNLSRR)
+	,"Medevac" (Medevac)
+	,"Medical advice" (MedicalAdvice)
+	,"NRB test" (NRBTest)
+	,"Person appears in difficulties" (PersonAppearsInDifficulties)
+	,"Person body recovery" (PersonBodyRecovery)
+	,"Person in problems" (PersonsInProblems)
+	,"Person missing" (PersonsMissing)
+	,"Rig incident" (RigIncident)
+	,"Rig man overboard" (RigManOverboard)
+	,"SAR HELI unavailable" (SARHeliUnavailable)
+	,"SART alert" (SARTAlert)
+	,"Surfer appears in difficulties" (SurferAppearsInDifficulties)
+	,"Surfer in problems" (SurferInProblems)
+	,"Surfer missing" (SurferMissing)
+	,"Vessel appears in difficulties" (VesselAppearsInDifficulties)
+	,"Vessel capsized" (VesselCapsized)
+	,"Vessel collision" (VesselCollision)
+	,"Vessel engine or steering problems" (VesselEngineOrSteeringProblems)
+	,"Vessel fire or explosion" (VesselFireOrExplosion)
+	,"Vessel man overboard" (VesselManOverboard)
+	,"Vessel overdue" (VesselOverdue)
+	,"Vessel piracy or hijack" (VesselPiracyOrHijack)
+	,"Vessel sunk" (VesselSunk)
+	,"Vessel taking water" (VesselTakingWater)
+	,"Vessel unsure of position" (VesselUnsureOfPosition)
+	,"Yacht aground" (YachtAground)
+	,"Yacht appears in difficulties" (YachtAppearsInDiffulties)
+	,"Yacht capsized" (YachtCapsized)
+	,"Yacht collision" (YachtCollision)
+	,"Yacht engine problems" (YachtEngineProblems)
+	,"Yacht fire or explosion" (YachtFireOrExplosion)
+	,"Yacht gear fouled" (YachtGearFouled)
+	,"Yacht man overboard" (YachtManOverboard)
+	}
+
+## incidentNo		= << !!Incident >> has << IncidentNo >>
+## title			= << Incident >> is described by IncidentTitle
+## summary			= << Incident >> is summarized in IncidentSummary
+## type				= << Incident >> is classified as IncidentType
+## phase			= << Incident >> is in EmergencyPhase
+## weather			= << !Incident >> contains WeatherData
+## log				= Incident contains << !LogEntry >>
+/  incident			= << !LogEntry >> is about Incident
+## closed			= << Incident >> is closed
+
+//I Should use objectification here
+$$ LogEntry
+
+$$ LogMessage		= Note
+
+## eventAt			= << !LogEntry >> was about event at UTCDateTime
+## loggedAt			= << !LogEntry >> was logged at UTCDateTime
+## loggedBy			= << LogEntry >> was logged by Contact
+## message			= << !LogEntry >> contains LogMessage
+
+//HACK Weatherdata should not be a subtype of incident, but it is an ok workaround for now
+$$ WeatherData [Incident]
+
+$$ WeatherType = {"Rain" (Rain), "Drizzle" (Drizzle), "Mist" (Mist), "Fog" (Fog), "Snow" (Snow), "Hail" (Hail)
+                 ,"Sunny" (Sunny), "Haze" (Haze), "Cloudy" (Cloudy), "Showers" (Showers), "Thunderstorms" (Thunderstorms)
+                 }
+$$ WindDirection = String
+$$ WindSpeed = Knots
+$$ Visibility = Feet
+$$ SeaState =  String
+$$ SwellDirection = Degrees
+$$ WaveHeight = Meters
+$$ AirTemperature = Temperature
+$$ SeaTemperature = Temperature
+$$ CloudBase = Feet
+$$ Barometric = Int
+
+## weatherType		= << WeatherData >> contains WeatherType
+## windDirection	= << WeatherData >> contains WindDirection
+## windSpeed 		= << WeatherData >> contains WindSpeed
+## visibility		= << WeatherData >> contains Visibility
+## seaState			= << WeatherData >> contains SeaState
+## swellDirection	= << WeatherData >> contains SwellDirection
+## waveHeight		= << WeatherData >> contains WaveHeight
+## airTemp			= << WeatherData >> contains AirTemperature
+## seaTemp			= << WeatherData >> contains SeaTemperature
+## cloudBase		= << WeatherData >> contains CloudBase
+## barometric		= << WeatherData >> contains Barometric
+
+// Contacts
+$$ Contact
+
+$$ ContactNo = ID
+$$ ContactType = {"Person" (Person), "Vessel" (Vessel), "Surfer" (Surfer), "Diver" (Diver), "Airplane" (Airplane),"Helicopter" (Helicopter), "Other" (OtherContact)}
+$$ ContactName = String
+$$ ContactGroup = String
+$$ ContactHeading = Degrees
+$$ ContactNotes = Note
+$$ ContactStatus =
+    { "Alerted" (Alerted)
+    , "Briefed" (Briefed)
+    , "Proceeding" (Proceeding)
+    , "On Scene" (OnScene)
+    , "Standby On Location" (StandbyOnLocation)
+    , "On Task" (OnTask)
+    , "Standby" (StandBy)
+    , "Transfer" (Transfer)
+    , "Released" (Released)
+    , "Returned" (Returned)
+    , "Limited Availability" (LimitedAvailability)
+    , "Unavailable" (UnAvailable)
+    , "Training" (Training)
+    , "Pre-Alert" (PreAlert)
+    }
+$$ ContactAccessLevel =
+    { "Watch officer" (WOAccess)
+    , "Partner" (PartnerAccess)
+    }
+
+## contactNo		    = << !!Contact >> has << ContactNo >>
+## type				    = << Contact >> is classified as << ContactType >>
+## name				    = << Contact >> is known by ContactName
+## group                = << Contact >> belongs to ContactGroup
+## position			    = << Contact >> is at ContactPosition
+## heading			    = << Contact >> has ContactHeading
+## track                = << Contact >> has ContactTrack
+## positionUpdated      = << Contact >> position was last updated at UTCDateTime
+## needsHelp		    = << Contact >> needs help
+## providesHelp		    = << Contact >> provides help
+## communicationMeans   = << Contact has CommunicationMean >>
+## photos			    = << Contact has ContactPhoto >>
+## notes			    = << Contact >> has ContactNotes
+## account              = << Contact >> has << Credentials >>
+## access               = << Contact >> has << ContactAccessLevel >>
+## status               = << Contact >> has ContactStatus
+
+//Possibility for communication
+$$ CommunicationMean
+$$ CommunicationMeanId = ID
+$$ CommunicationMeanType = {"Telephone" (CMPhone),"VHF" (CMVHF),"E-mail" (CMEmail),"P2000" (CMP2000)}
+
+## id   = << !!CommunicationMean >> is identified by << CommunicationMeanId >>
+## type = << !CommunicationMean >> has CommunicationMeanType
+
+$$ Telephone [CommunicationMean]
+## phoneNo = << Telephone >> is identified by << PhoneNumber >>
+
+$$ VHFRadio [CommunicationMean]
+## callSign = << VHFRadio >> is called using CallSign
+## mmsi     = << VHFRadio >> is identified by MMSI
+
+$$ EmailAccount [CommunicationMean]
+## emailAddress = << EmailAccount >> is identified by EmailAddress
+
+$$ P2000Receiver [CommunicationMean]
+## capCode = << P2000Receiver >> has CapCode
+
+$$ ContactPhoto
+$$ ContactPhotoOriginal = Document
+$$ ContactPhotoThumb    = Document
+$$ ContactPhotoAvatar   = Document
+
+## original         = << !ContactPhoto >> has << ContactPhotoOriginal >>
+## thumb            = << !ContactPhoto >> has << ContactPhotoThumb >>
+## avatar           = << !ContactPhoto >> has << ContactPhotoAvatar >>
+
+// Sub types of Contact
+
+$$ Person [Contact]
+$$ PersonAge = Int
+$$ Gender = {"Male" (Male), "Female" (Female)}
+$$ Nationality = String
+$$ Injuries = Note
+$$ StateOfMind = Note
+$$ MedicalHistory = Note
+
+## age				= << Person >> has PersonAge
+## gender			= << Person >> has Gender
+## nationality		= << Person >> has Nationality
+## injuries			= << Person >> has Injuries
+## stateOfMind		= << Person >> is in StateOfMind
+## medicalHistory	= << Person >> has a MedicalHistory
+
+$$ Vessel [Contact]
+$$ VesselType =
+	{"Yacht" (Yacht)
+	,"Fishing vessel" (FishingVessel)
+	,"Cargo vessel" (CargoVessel)
+	,"Towing vessel" (TowingVessel)
+	,"Patrol vessel" (PatrolVessel)
+	,"Rescue vessel" (RescueVessel)
+	,"Other" (OtherVessel)
+	}
+$$ VesselDescription = Note
+$$ VesselPob = Int
+$$ VesselEngineType = String
+$$ VesselFuel = String
+$$ VesselDestination = String
+$$ VesselCourse = Int
+$$ VesselSpeed = Int
+$$ LastPortOfCall = String
+$$ NextPortOfCall = String
+$$ VesselRange = Miles
+
+## vesselType		= << Vessel >> is of VesselType
+## imo				= << Vessel >> has << IMONumber >>
+## inmarsatNo		= << Vessel >> has INMARSATNumber
+## description 		= << Vessel >> is described by VesselDescription
+## pob				= << Vessel >> has VesselPob persons on board
+## engineType		= << Vessel >> has VesselEngineType
+## fuel				= << Vessel >> uses VesselFuel
+## destination		= << Vessel >> is heading for VesselDestination 
+## course			= << Vessel >> is on VesselCourse
+## speed			= << Vessel >> is traveling at VesselSpeed
+## lpc				= << Vessel >> came from LastPortOfCall
+## npc				= << Vessel >> is bound for NextPortOfCall
+## range			= << Vessel >> has VesselRange
+## lseOnBoard		= << Vessel >> has life saving equipment on board
+## navaidsOnBoard	= << Vessel >> has navigational aids on board
+
+$$ Surfer [Contact]
+$$ SurfboardDescription = Note
+$$ SurfSuitDescription = Note
+
+//Duplicated from Person, because we can't do multi-level subtypes yet
+## surfboardDescription = << Surfer >> has SurfboardDescription
+## suitDescription      = << Surfer >> has SurfSuitDescription
+## age				    = << Surfer >> has PersonAge
+## gender			    = << Surfer >> has Gender
+## nationality		    = << Surfer >> has Nationality
+## injuries			    = << Surfer >> has Injuries
+## stateOfMind		    = << Surfer >> is in StateOfMind
+## medicalHistory	    = << Surfer >> has a MedicalHistory
+
+$$ Diver [Contact]
+$$ DiverDescription = Note
+## description      = << Diver >> has << DiverDescription >>
+
+$$ Airplane [Contact]
+$$ AirplaneType = String
+
+## callsign		= << Airplane >> is identified by << CallSign >>
+## planeType	= << Airplane >> is of AirplaneType
+
+$$ Helicopter [Contact]
+$$ HelicopterType = String
+
+## callsign		    = << Helicopter >> is identified by << CallSign >>
+## helicopterType	= << Helicopter >> is of HelicopterType
+
+// Facts linking entity types
+## withContact          = << Communication >> was with Contact
+ / communicationsWith	= Contact was communicated with in << Communication >>
+
+## contacts			= << Incident is related to Contact >>
+ / incidents		= << Contact is involved in Incident >>
+
+## communications	= << Incident is mentioned in Communication >>
+ / aboutIncidents	= << Communication is about Incident >>
+
+// AIS Integration
+$$ AISContact
+$$ AISPosition = AIVDMCNB
+$$ AISStaticInfo = AIVDM5
+
+## mmsi             = << !!AISContact >> is identified by << MMSI >>
+## position         = << AISContact >> has ContactPosition
+## heading          = << AISContact >> has ContactHeading
+## track            = << AISContact >> has ContactTrack
+## lastPositionMsg	= << AISContact >> last reported AISPosition
+## lastInfoMsg		= << AISContact >> last reported AISStaticInfo
+## positionUpdated  = << AISContact >> position was last updated at UTCDateTime
+## infoUpdated      = << AISContact >> info was last updated at UTCDateTime
+
+// SCHEMA FOR RELATIONAL STORAGE
+schema IncidoneDB
+where
+    ContactPosition = { _lat :: SQLTReal, _lon :: SQLTReal, _desc :: SQLTText }
+
+// CONTAINER TYPES
+
+// Full entity types
+#: EmailMessage = EmailMessage {..}
+#: P2000Message = P2000Message {..}
+#: DSCMessage   = DSCMessage {..}
+#: INMARSATCMessage = INMARSATCMessage {..}
+#: PhoneCall = PhoneCall {..,communicationNo}
+#: RadioCall = RadioCall {..,communicationNo}
+
+#: Communication = Communication {..}
+#: CommunicationDetails = Communication {..,withContact (ContactShort),handledBy (ContactShort), aboutIncidents (IncidentShort), externalNo}
+
+#: Incident = Incident {..}
+
+#: LogEntry = LogEntry {..,loggedBy (ContactAvatar)}
+#: WeatherData = WeatherData {..}
+
+#: Contact = Contact {..}
+
+#: CommunicationMean = CommunicationMean{..,phoneNo,callSign,mmsi,emailAddress,capCode}
+#: TelephoneDetails = Telephone {..}
+#: VHFRadioDetails = VHFRadio {..}
+#: EmailAccountDetails = EmailAccount {..}
+#: P2000ReceiverDetails = P2000Receiver {..}
+
+#: ContactPhoto = ContactPhoto {original,thumb,avatar}
+
+#: PersonDetails = Person {..}
+#: VesselDetails = Vessel {..}
+#: SurferDetails = Surfer {..}
+#: DiverDetails = Diver {..}
+#: AirplaneDetails = Airplane {..}
+#: HelicopterDetails = Helicopter {..}
+
+#: AISContact = AISContact {..}
+
+// Summary entity types
+#: IncidentShort = Incident {incidentNo,title}
+#: IncidentBasic = Incident {title,summary,type,phase}
+#: IncidentDetails = Incident {incidentNo,title,summary,type,phase}
+#: ContactShort = Contact {contactNo,name,type,group}
+#: ContactShortWithIncidents = Contact {contactNo,name,type,group,incidents (IncidentShort)}
+#: ContactNameTypePosition = Contact {name,type,position}
+#: ContactBasic = Contact {name,type,group,position,heading,needsHelp,providesHelp,status,notes}
+#: ContactDetails = Contact {contactNo,name,type,position,notes}
+#: ContactAvatar = Contact {contactNo,name,type,photos}
+#: ContactGeo = Contact {contactNo,name,type,group,needsHelp,providesHelp,position,heading,track,positionUpdated}
+#: ContactAccess = Contact {account,access}
+
+// Data entry types
+#: NewContact = Contact {name,type,position,needsHelp}
+#: NewIncident = Incident {title,type,summary}
+#: NewCommunicationMean = CommunicationMean{type,phoneNo,callSign,mmsi,emailAddress,capCode}
+

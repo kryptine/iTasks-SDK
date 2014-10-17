@@ -1,0 +1,309 @@
+body {
+    background: url('login-background.jpg') center center no-repeat;
+}
+.identify-app {
+	width: 300px;
+	height: 55px;
+	background: url('login-screen.png') top left no-repeat;
+
+}
+.identify-app div {
+	display: none;
+}
+.summary-bar {
+    color: #fff;
+	background: #004584 url('summary-bar.png') top left no-repeat;
+}
+.icon-incidents {
+	background-image: url('icons/incident.png');
+}
+.icon-communication {
+	background-image: url('icons/communication.png');
+}
+.icon-new {
+	background-image: url('icons/new.png');
+}
+.icon-incident {
+	background-image: url('icons/incident.png');
+}
+.icon-inbound {
+	background-image: url('icons/inbound.png');
+}
+.icon-outbound {
+	background-image: url('icons/outbound.png');
+}
+.icon-phone-call {
+	background-image: url('icons/phone-call.png');
+}
+.icon-inmarsat-call {
+	background-image: url('icons/inmarsat-call.png');
+}
+.icon-vhf-call {
+	background-image: url('icons/vhf-call.png');
+}
+.icon-dsc-message {
+	background-image: url('icons/dsc-message.png');
+}
+.icon-406mhz-message {
+	background-image: url('icons/406mhz-message.png');
+}
+.icon-p2000-message {
+	background-image: url('icons/p2000-message.png');
+}
+.icon-e-mail-message {
+	background-image: url('icons/email-message.png');
+}
+.icon-basic-information {
+	background-image: url('icons/basic-information.png');
+}
+.icon-details {
+    background-image: url('icons/details.png');
+}
+.icon-contacts {
+	background-image: url('icons/contacts.png');
+}
+.icon-contact-person {
+	background-image: url('icons/contact-person.png');
+}
+.icon-contact-vessel {
+	background-image: url('icons/contact-vessel.png');
+}
+.icon-contact-surfer {
+	background-image: url('icons/contact-surfer.png');
+}
+.icon-contact-diver {
+	background-image: url('icons/contact-diver.png');
+}
+.icon-contact-airplane {
+	background-image: url('icons/contact-airplane.png');
+}
+.icon-contact-helicopter {
+	background-image: url('icons/contact-helicopter.png');
+}
+.icon-contact-other {
+	background-image: url('icons/contact-vessel.png');
+}
+.icon-ais {
+    background-image: url('icons/ais.png');
+}
+.icon-actions {
+	background-image: url('icons/actions.png');
+}
+.icon-action-planned {
+    background-image: url('icons/action-planned.png');
+}
+.icon-action-active {
+    background-image: url('icons/action-active.png');
+}
+.icon-action-completed {
+    background-image: url('icons/action-completed.png');
+}
+.icon-action-failed {
+    background-image: url('icons/action-failed.png');
+}
+.icon-action-canceled {
+    background-image: url('icons/action-canceled.png');
+}
+.icon-action-compound {
+    background-image: url('icons/action-compound.png');
+}
+.icon-map {
+	background-image: url('icons/map.png');
+}
+.icon-weather {
+	background-image: url('icons/weather.png');
+}
+.icon-log {
+	background-image: url('icons/log.png');
+}
+.icon-photos {
+	background-image: url('icons/photos.png');
+}
+.icon-access {
+	background-image: url('icons/access.png');
+}
+.icon-share-to-wall {
+    background-image: url('icons/share-to-wall.png');
+}
+.icon-log-in {
+	background-image: url('icons/outbound.png');
+}
+.icon-dismiss {
+	background-image: url('/img/icons/cancel.png');
+}
+.icon-log-and-close {
+	background-image: url('/img/icons/accept.png');
+}
+.icon-add-predefined, .icon-add-custom, .icon-add-all, .icon-add-selected {
+	background-image: url('icons/new.png');
+}
+.incident-log {
+    width: 700px;
+}
+.incident-log-date {
+    color: #ccc;
+    margin: 0 0 5px 0;
+    text-align: center;
+    width: 700px;
+    border: #ccc dashed;
+    border-width: 0 0 1px 0;
+    clear: both;
+}
+.incident-log-entry {
+    width: 700px;
+    clear: both;
+}
+.incident-log-avatar {
+    width: 100px;
+    float: left;
+}
+.incident-log-avatar img {
+    margin: 5px 0 0 40px;
+}
+.incident-log-name {
+    font-weight: bold;
+    font-size: 12pt;
+    margin-left: 100px;
+    margin-bottom: 5px;
+}
+.incident-log-time {
+    color: #666;
+    font-weight: bold;
+    float: right;
+}
+.incident-log-message {
+    width: 600px;
+    background: #eee;
+    margin-left: 100px;
+    padding: 10px 5px 10px 5px;
+    border: #ccc solid;
+    border-width: 0 0 1px 0;
+}
+/* Wall dashboards */
+.wall-header {
+    color: #fff;
+	background: #004584 url('summary-bar.png') top left no-repeat;
+    text-align: right;
+    text-transform: uppercase;
+    font-size: 14px;
+    font-weight: bold;
+}
+.wall-incident-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.wall-incident-list li {
+    display: block;
+    border: 2px solid #000;
+    border-radius: 5px;
+    padding: 2px;
+    margin: 3px;
+    background: -moz-linear-gradient(top, #f00 0%, #f66 100%);
+    background: -webkit-linear-gradient(top, #f00 0%, #f66 100%);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.5);
+    font-size: 14px;
+}
+.wall-incident-list li span {
+    font-weight: bold;
+}
+p.wall-communication-list {
+    position: relative;
+    padding: 5px;
+    font-style: italic;
+    border: 3px solid black;
+    height: 40px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
+    margin-bottom: 17px;
+}
+p.wall-communication-list:before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    left: 25px;
+    top: 50px;
+    border: 9px solid;
+    border-color: black transparent transparent black;
+}
+p.wall-communication-list:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    left: 28px;
+    top: 50px;
+    border: 5px solid;
+    border-color: white transparent transparent white;
+}
+
+img.wall-contact-details{
+    border: 3px solid black;
+    border-radius: 10px;
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
+    margin-left: 15px;
+}
+.wall-contact-position {
+    font-weight: bold;
+    color: #fff;
+    font-size: 24px;
+    background: -moz-linear-gradient(#333, #666, #000);
+}
+.wall-contact-title {
+    color: #fff;
+    background: #666;
+    font-size: 30px;
+    text-align: center;
+    border: solid #fff;
+    border-width: 2px 0 0 0;
+    text-shadow: 0 2px 2px #000;
+}
+.wall-incident-contact {
+    position: relative;
+    border: 2px solid #000;
+    border-radius: 5px;
+    padding: 2px;
+    margin: 3px;
+    background: -moz-linear-gradient(top, #ccc, #666);
+    background: -webkit-linear-gradient(top, #ccc, #666);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.5);
+    font-size: 14px;
+}
+.needshelp {
+    background: -moz-linear-gradient(top, #fcc, #f66);
+    background: -webkit-linear-gradient(top, #fcc, #f66);
+}
+.wall-contact-name {
+    position: absolute;
+    left: 60px;
+    top: 5px;
+    font-size: 18px;
+}
+.wall-contact-group {
+    position: absolute;
+    left: 60px;
+    top: 25px;
+    font-style: italic;
+}
+.wall-contact-avatar {
+    border-radius: 2px;
+}
+.wall-log-entry {
+    position: relative;
+    border: 2px solid #000;
+    border-radius: 5px;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+.wall-log-name {
+    float: left;
+    font-weight: bold;
+}
+.wall-log-time {
+    float: right;
+}
+.wall-log-message {
+    clear: both;
+}
