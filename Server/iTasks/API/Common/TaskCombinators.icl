@@ -92,29 +92,20 @@ projectJust mba _ = Just mba
 */
 assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 assign attr task
-	=	parallel
-			[(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
+	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
 	@?	result
 where
 	processControl tlist
-		= viewSharedInformation (Title "Waiting for result") [ViewWith toView] (taskListMeta tlist) @? const NoValue
+		= viewSharedInformation () [ViewWith toView] (sdsFocus filter tlist) @? const NoValue
+    where
+        filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, onlyIndex = Just [1]
+                 ,includeValue=False,includeAttributes=True,includeProgress=True}
 					
-	toView [_,{TaskListItem|progress=Just p,attributes}]=
+	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
 		{ assignedTo	= toSingleLineText ('DM'.get "user" attributes)
-		, issuedBy		= "TODO"  //toString p.InstanceProgress.issuedBy
-		, issuedAt		= fromString "0000-00-00"  //p.InstanceProgress.issuedAt
-		, priority		= toSingleLineText ('DM'.get "priority" attributes)
 		, firstWorkedOn	= p.InstanceProgress.firstEvent
 		, lastWorkedOn	= p.InstanceProgress.lastEvent
-		}	
-    toView _
-        = { assignedTo	= "TODO"//toSingleLineText ('DM'.get "user" attributes)
-		, issuedBy		= "TODO"  //toString p.InstanceProgress.issuedBy
-		, issuedAt		= fromString "0000-00-00"  //p.InstanceProgress.issuedAt
-		, priority		= "TODO"//toSingleLineText ('DM'.get "priority" attributes)
-		, firstWorkedOn	= Nothing //p.InstanceProgress.firstEvent
-		, lastWorkedOn	= Nothing //p.InstanceProgress.lastEvent
-		}	
+        }
 
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue
@@ -126,9 +117,6 @@ where
 	toString (UserWithRole role)	= "Any user with role " +++ role
 
 :: ProcessControlView =	{ assignedTo	:: !String
-						, issuedBy		:: !String
-						, issuedAt		:: !DateTime
-						, priority		:: !String
 						, firstWorkedOn	:: !Maybe DateTime
 						, lastWorkedOn	:: !Maybe DateTime
 						}

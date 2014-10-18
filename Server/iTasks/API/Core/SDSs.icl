@@ -52,14 +52,14 @@ currentSessions ::ReadOnlyShared [TaskListItem Void]
 currentSessions
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
-    filter = {InstanceFilter|instanceNo=Nothing,session=Just True
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,onlySession=Just True
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
 currentProcesses
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
-    filter = {InstanceFilter|instanceNo=Nothing,session=Just False
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,onlySession=Just False
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 toTaskListItem :: !InstanceData -> TaskListItem a
@@ -90,7 +90,7 @@ allTaskInstances :: ROShared () [TaskInstance]
 allTaskInstances
     = toReadOnly
       (sdsProject (SDSLensRead readInstances) SDSNoWrite
-       (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
+       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
@@ -98,7 +98,7 @@ detachedTaskInstances :: ROShared () [TaskInstance]
 detachedTaskInstances
     = toReadOnly
       (sdsProject (SDSLensRead readInstances) SDSNoWrite
-       (sdsFocus {InstanceFilter|instanceNo=Nothing,session=Just False,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
+       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,onlySession=Just False,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
@@ -107,7 +107,7 @@ taskInstanceByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem)
       (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
 where
-    filter no = {InstanceFilter|instanceNo=Just no,session=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+    filter no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
 
     readItem [i]    = Ok (taskInstanceFromInstanceData i)
     readItem _      = Error (exception "Task instance not found")

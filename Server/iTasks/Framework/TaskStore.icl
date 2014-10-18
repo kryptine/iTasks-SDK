@@ -189,9 +189,9 @@ where
         # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
 
-    filterPredicate {InstanceFilter|instanceNo,session} i
-        =   (maybe True (\m -> i.TIMeta.instanceNo == m) instanceNo)
-        &&  (maybe True (\m -> i.TIMeta.session == m) session)
+    filterPredicate {InstanceFilter|onlyInstanceNo,onlySession} i
+        =   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
+        &&  (maybe True (\m -> i.TIMeta.session == m) onlySession)
 
     notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
 
@@ -199,7 +199,7 @@ where
 taskInstance :: RWShared InstanceNo InstanceData InstanceData
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|instanceNo=Just no,session=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
     read no [data]  = Ok data
     read no _       = Error (exception ("Could not find task instance "<+++ no))
     write no data   = Ok (Just [data])
@@ -208,16 +208,16 @@ where
 taskInstanceConstants :: ROShared InstanceNo InstanceConstants
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|instanceNo=Just no,session=Nothing,includeConstants=True,includeProgress=False,includeAttributes=False}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=True,includeProgress=False,includeAttributes=False}
     read no [(_,Just c,_,_)]    = Ok c
     read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
     write _ _                   = Ok Nothing
     notify _ _                  = const False
 
 taskInstanceProgress :: RWShared InstanceNo InstanceProgress InstanceProgress
-taskInstanceProgress = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
+taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|instanceNo=Just no,session=Nothing,includeConstants=False,includeProgress=True,includeAttributes=False}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=False,includeProgress=True,includeAttributes=False}
     read no [(_,_,Just p,_)]    = Ok p
     read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
     write no [(n,c,_,a)] p      = Ok (Just [(n,c,Just p,a)])
@@ -227,7 +227,7 @@ where
 taskInstanceAttributes :: RWShared InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|instanceNo=Just no,session=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
     read no [(_,_,_,Just a)]    = Ok a
     read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
     write no [(n,c,p,_)] a      = Ok (Just [(n,c,p,Just a)])
@@ -240,7 +240,7 @@ topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite wri
                      (sdsFocus filter filteredInstanceIndex >+| currentInstanceShare)
 where
     param _ = ()
-    filter = {InstanceFilter|instanceNo=Nothing,session=Just False
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,onlySession=Just False
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
     read _ (instances,curInstance) = Ok (TaskId 0 0, items)
     where
@@ -341,28 +341,46 @@ where
     notify taskId _ = (==) taskId
 
 parallelTaskList :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
-parallelTaskList = sdsLens "parallelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
+parallelTaskList
+    = sdsSequence "parallelTaskList" param2 read (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
-    param (listId,selfId,listFilter=:{TaskListFilter|onlySelf,onlyTaskId})
-        = (listId,{TaskListFilter|listFilter & onlyTaskId = if onlySelf (Just [selfId:fromMaybe [] onlyTaskId]) onlyTaskId})
-
-    read (listId,selfId,listFilter) states  = Ok (listId,items)
+    filteredTaskStates
+        = sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
     where
-        items = [{TaskListItem|taskId = taskId, listId = listId
-                 , detached = detached, self = taskId == selfId
-                 , value = decode value, progress = Nothing, attributes = 'DM'.newMap
-                 } \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- states | change =!= Just RemoveParallelTask]
+        param (listId,selfId,listFilter=:{TaskListFilter|onlySelf,onlyTaskId})
+            = (listId,{TaskListFilter|listFilter & onlyTaskId = if onlySelf (Just [selfId:fromMaybe [] onlyTaskId]) onlyTaskId})
 
-	    decode NoValue	= NoValue
-	    decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
+        read (listId,selfId,listFilter) states  = Ok (listId,items)
+        where
+            items = [{TaskListItem|taskId = taskId, listId = listId
+                     , detached = detached, self = taskId == selfId
+                     , value = decode value, progress = Nothing, attributes = attributes
+                     } \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- states | change =!= Just RemoveParallelTask]
 
-    write (listId,selfId,listFilter) states []                              = Ok Nothing
-    write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok Nothing
-    write (listId,selfId,listFilter) states [(t,a):updates]
-        # states = [if (taskId == t) {ParallelTaskState|pts & attributes = a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
-        = write (listId,selfId,listFilter) states updates
+            decode NoValue	= NoValue
+            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
 
-    notify (listId,_,_) states (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
+        write (listId,selfId,listFilter) states []                              = Ok Nothing
+        write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok Nothing
+        write (listId,selfId,listFilter) states [(t,a):updates]
+            # states = [if (taskId == t) {ParallelTaskState|pts & attributes = a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
+            = write (listId,selfId,listFilter) states updates
+
+        notify (listId,_,_) states (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
+
+
+    param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached]
+                     ,onlySession=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
+
+    read ((listId,items),detachedInstances)
+        # detachedProgress = 'DM'.fromList [(TaskId instanceNo 0,progress) \\ (instanceNo,_,Just progress,_) <- detachedInstances]
+        # detachedAttributes= 'DM'.fromList [(TaskId instanceNo 0,attributes) \\ (instanceNo,_,_,Just attributes) <- detachedInstances]
+        = (listId,[{TaskListItem|item & progress = 'DM'.get taskId detachedProgress
+                                , attributes = if detached (fromMaybe 'DM'.newMap ('DM'.get taskId detachedAttributes)) attributes}
+                  \\ item=:{TaskListItem|taskId,detached,attributes} <- items])
+
+    write1 p w = Ok (Just w)
+    write2 p w = Ok Nothing //TODO: Write attributes of detached instances
 
 exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
 exposedShare url = SDSDynamic f

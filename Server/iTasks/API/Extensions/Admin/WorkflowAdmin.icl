@@ -90,7 +90,7 @@ installInitialWorkflows iflows
 :: WorklistRow =
     { title		:: Maybe String
 	, priority	:: Maybe String
-	, date		:: DateTime
+	, date		:: Maybe String
 	, deadline	:: Maybe String
 	}
 
@@ -170,9 +170,9 @@ where
 
 startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
-	= 	get currentUser
-	>>=	\user ->
-		appendTopLevelTask ('DM'.fromList [("title",workflowTitle wf),("catalogId",wf.Workflow.path):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+	= 	get currentUser -&&- get currentDateTime
+	>>=	\(user,now) ->
+		appendTopLevelTask ('DM'.fromList [("title",workflowTitle wf),("catalogId",wf.Workflow.path),("createdAt",toString now),("priority","Normal"):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -198,11 +198,11 @@ where
 		
 	isActive {TaskListItem|progress=Just {InstanceProgress|value}}	= value === None || value === Unstable
 
-	mkRow {TaskListItem|taskId,progress=Just progress,attributes} =
+	mkRow {TaskListItem|taskId,attributes} =
 		{WorklistRow
 		|title      = 'DM'.get "title" attributes
 		,priority   = 'DM'.get "priority" attributes
-		,date       = fromString "0000-00-00" //progress.InstanceProgress.issuedAt //FIXME
+		,date       = 'DM'.get "createdAt" attributes
 		,deadline   = 'DM'.get "completeBefore" attributes
 		}
 	

@@ -137,4 +137,14 @@ where
         [v:_]   = Ok v
         _       = Error (exception "taskListItemValue: item not found")
 
+taskListItemProgress :: !(SharedTaskList a) -> ROShared (Either Int TaskId) InstanceProgress
+taskListItemProgress tasklist = mapReadError read (toReadOnly (sdsTranslate "taskListItemProgress" listFilter tasklist))
+where
+    listFilter (Left index) = {onlyIndex=Just [index],onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=True}
+    listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=True}
+
+    read (_,items) = case [p \\ {TaskListItem|progress=Just p} <- items] of
+        [p:_]   = Ok p
+        _       = Error (exception "taskListItemProgress: item not found")
+
 

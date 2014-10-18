@@ -103,7 +103,6 @@ where
     write key w = Ok (Just (toString (toJSON w),Void))
     notify key w = const True
 
-import StdDebug
 cachedJSONFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 cachedJSONFileStore namespace checkBuild resetOnError keepBetweenEvals defaultV
     = createReadWriteSDS namespace "cachedJSONFileStore" read write
@@ -143,7 +142,7 @@ where
                 # iworld = deleteValue namespace key iworld
                 = (Error (exception e), iworld)
 		    (Error e,_)
-                = trace_n ("DEZE?"+++ key) (Error (exception e),iworld)
+                = (Error (exception e),iworld)
 
 	write key value iworld=:{IWorld|onClient,cachedShares}
         | onClient //Special case for tasks running on a client

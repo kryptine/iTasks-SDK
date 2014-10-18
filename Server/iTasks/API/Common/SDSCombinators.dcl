@@ -5,7 +5,7 @@ from iTasks.Framework.Task import :: TaskException, :: TaskValue, :: TaskId
 from iTasks.Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gUpdate, generic gVerify, generic gEq, generic gDefault, generic gText
 from iTasks.Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
 from iTasks.Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
-from iTasks.API.Core.Types import :: TaskList, :: TaskListFilter, :: TaskListItem, :: SharedTaskList, :: TaskAttributes
+from iTasks.API.Core.Types import :: TaskList, :: TaskListFilter, :: TaskListItem, :: SharedTaskList, :: TaskAttributes, :: InstanceProgress
 
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
@@ -107,5 +107,10 @@ taskListSelfManagement :: !(SharedTaskList a) -> Shared TaskAttributes
 * The paramater is either the index in the list or a specific task id
 */
 taskListItemValue :: !(SharedTaskList a) -> ROShared (Either Int TaskId) (TaskValue a)
+/**
+* Get the progress of a specific task in the list
+* The paramater is either the index in the list or a specific task id
+*/
+taskListItemProgress :: !(SharedTaskList a) -> ROShared (Either Int TaskId) InstanceProgress
 
 

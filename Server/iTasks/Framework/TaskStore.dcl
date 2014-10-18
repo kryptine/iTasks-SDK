@@ -14,8 +14,8 @@ from System.Time    import :: Timestamp
 
 :: InstanceFilter =
     { //'Vertical' filters
-      instanceNo        :: !Maybe InstanceNo
-    , session           :: !Maybe Bool
+      onlyInstanceNo    :: !Maybe [InstanceNo]
+    , onlySession       :: !Maybe Bool
       //'Horizontal' filters
     , includeConstants  :: !Bool
     , includeProgress   :: !Bool
@@ -48,7 +48,7 @@ taskInstanceRep         :: RWShared InstanceNo TaskRep TaskRep
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 
 //Filtered views on evaluation state of instances
-localShare                          :: RWShared TaskId a a | iTask a
+localShare              :: RWShared TaskId a a | iTask a
 
 //Core parallel task list state structure
 taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]

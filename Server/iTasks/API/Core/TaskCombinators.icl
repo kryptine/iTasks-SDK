@@ -401,19 +401,21 @@ where
 
 //Retrieve result of detached parallel task
 evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTaskState|taskId=taskId=:(TaskId instanceNo _),detached=True}:todo] iworld
-    # (mbValue,iworld) = read (sdsFocus instanceNo taskInstanceValue) iworld
+    # (mbValue,iworld) = readRegister listId (sdsFocus instanceNo taskInstanceValue) iworld
     # result = case mbValue of
         Error e
             = ExceptionResult e
         Ok (TIException dyn msg)
             = ExceptionResult (dyn,msg)
-        Ok (TIValue val)
-            # val = case val of
-                NoValue = NoValue
-                Value enc stable = maybe NoValue (\dec -> Value dec stable) (fromJSON enc)
+        Ok (TIValue encValue)
+            //Decode value value
+            # mbValue = case encValue of
+                NoValue           = Just NoValue
+                Value json stable = fmap (\dec -> Value dec stable) (fromJSON json)
             //TODO: use global tasktime to be able to compare event times between instances
             # evalInfo = {TaskEvalInfo|lastEvent=0,involvedUsers=[],removedTasks=[],refreshSensitive=True}
-            = ValueResult val evalInfo NoRep TCNop
+            = maybe (ExceptionResult (exception "Could not decode task value of detached task"))
+                (\val -> ValueResult val evalInfo NoRep TCNop) mbValue
     = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
 
 genParallelValue :: [TaskResult a] -> TaskValue [(!TaskTime,!TaskValue a)]

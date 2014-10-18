@@ -130,7 +130,7 @@ where
 
 queueAllPersistent :: !*IWorld -> *IWorld
 queueAllPersistent iworld
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & session=Just False} filteredInstanceIndex) iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just False} filteredInstanceIndex) iworld
     = case mbIndex of
         Ok index    = queueRefresh [instanceNo \\ (instanceNo,_,_,_)<- index] [] iworld
         _           = iworld
@@ -144,7 +144,7 @@ refreshTaskInstances iworld
 
 removeOutdatedSessions :: !*IWorld -> *IWorld
 removeOutdatedSessions iworld
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & session=Just True,includeProgress=True} filteredInstanceIndex) iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True,includeProgress=True} filteredInstanceIndex) iworld
     = case mbIndex of
         Ok index    = foldr removeIfOutdated iworld index
         _           = iworld
