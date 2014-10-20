@@ -211,18 +211,25 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
 							let (ejs,js_lib`,parserstate`) = handlerr (exprGenerateJS flavour False saplhandler (Just parserstate) js_lib)
 							 in ([(id,event,ejs):os],js_lib`,parserstate`)) ([],js_lib,parserstate) sapl_eventHandlers
 
-/* For debugging:
-	# (_, world) = withFile "debug_id.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_ID file)) world
-	# (_, world) = withFile "debug_dv.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_DV file)) world
-	# (_, world) = withFile "debug_u.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_UU file)) world	
-	# (_, world) = withFile "debug_gd.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_GD file)) world
-	# (_, world) = withFile "debug_ad.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_AD file)) world		
-	# (_, world) = withFile "debug.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_lib file)) world
-	# (_, world) = withFile "debug.js" FAppendData (\file -> (Ok Void, fwrites (toString js_lib) file)) world
-*/
+    // For debugging:
+	# world = debugToFile "debug_id.sapl" sapl_ID world
+	# world = debugToFile "debug_dv.sapl" sapl_DV world
+	# world = debugToFile "debug_u.sapl"  sapl_UU world
+	# world = debugToFile "debug_gd.sapl" sapl_GD world
+	# world = debugToFile "debug_ad.sapl" sapl_AD world
+	# world = debugToFile "debug.sapl"    sapl_lib world
+	# world = debugToFile "debug.js"      (toString js_lib) world
 
 	= (toString js_lib, js_eventHandlers, js_ID, js_DV, js_UU, js_GD, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
+
+debugToFile :: String String *World -> *World
+debugToFile fileName debugOutput world
+  # (exists, world) = fileExists fileName world
+  # world           = if exists world
+                        (snd (writeFile fileName "" world))
+  # (_, world)      = withFile fileName FAppendData (\file -> (Ok Void, fwrites debugOutput file)) world
+  = world
 
 diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
 diffLinker cdf idf iworld=:{world,current={sessionInstance=Nothing}} = ("","","",iworld)
@@ -240,12 +247,11 @@ diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance}
 	# (loaderstate, ftmap, skipset) = linkerstate
 
     # sapl_lib = toString lib
-    
-/* For debugging:
-	# (_, world) = withFile "debug_diff_cdf.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_cdf file)) world
-	# (_, world) = withFile "debug_diff_idf.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_idf file)) world
-	# (_, world) = withFile "debug_diff.sapl" FAppendData (\file -> (Ok Void, fwrites sapl_lib file)) world
-*/
+
+    // For debugging:
+	//# world = debugToFile "debug_diff_cdf.sapl" sapl_cdf world
+	//# world = debugToFile "debug_diff_idf.sapl" sapl_idf world
+	//# world = debugToFile "debug_diff.sapl"     sapl_lib world
 
 	# (js_lib, mbparserstate) = case sapl_lib of
 		"" = (newAppender, mbparserstate)
