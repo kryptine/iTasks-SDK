@@ -257,21 +257,24 @@ codeMirrorEditlet :: !CodeMirror
 					 [(String, EditletEventHandlerFunc CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 			  
-codeMirrorEditlet g eventhandlers = Editlet g
-				{ EditletServerDef
-				| genUI		= \cid world -> (codeMirrorUIDef cid [], world)
-				, defVal	= {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}
-				, genDiff	= genDiffServer
-				, appDiff	= appDiffServer
-				}
-				{ EditletClientDef
-				| updateUI	= onUpdate
-				, defVal 	= {val = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}, mbSt = Nothing}
-				, genDiff	= genDiffClient
-				, appDiff	= appDiffClient
-				}
-				
-where	
+codeMirrorEditlet g eventhandlers
+  = { Editlet
+    | currVal   = g
+    , genUI     = \cid world -> (codeMirrorUIDef cid [], world)
+    , serverDef = { EditletDef
+                  | performIO = \_ _ s w -> (s, w)
+                  , defVal    = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}
+                  , genDiff   = genDiffServer
+                  , appDiff   = appDiffServer
+                  }
+    , clientDef = { EditletDef
+                  | performIO = onUpdate
+                  , defVal    = {val = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}, mbSt = Nothing}
+                  , genDiff   = genDiffClient
+                  , appDiff   = appDiffClient
+                  }
+    }
+where
 	// init
 	onUpdate cid mbDiffs clval=:{mbSt=Nothing} world
 		= onInitClient createEditletEventHandler eventhandlers onLoadWrapper onLoadCont cid clval world 
