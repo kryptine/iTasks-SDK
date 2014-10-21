@@ -17,8 +17,8 @@ gEditor{|AnalogClock|} dp vv=:(AnalogClock t,mask,ver) meta vst
     = gEditor{|*|} dp (analogClockEditlet t,mask,ver) meta vst
 
 gUpdate{|AnalogClock|} dp upd (AnalogClock t,mask) iworld
-    # ((Editlet t _ _,mask),iworld) = gUpdate{|*|} dp upd (analogClockEditlet t,mask) iworld
-    = ((AnalogClock t,mask),iworld)
+    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (analogClockEditlet t,mask) iworld
+    = ((AnalogClock editlet.currVal,mask),iworld)
 
 //SVG Based analog clock editlet
 analogClockEditlet :: Time -> Editlet Time [(Int,Int)]
