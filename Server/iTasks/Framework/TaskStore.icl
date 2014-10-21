@@ -172,10 +172,27 @@ where
             | filterPredicate p i   = write` p is [w:ws]    //If w is not the next element, it may be because it is outside the filter, if it isn't it is apparently deleted
                                     = [i:write` p is [w:ws]] //I was outside the filter, just leave it unchanged
 
-    notify _ _ _ _ = False //TODO make a precisely targeted notify function
+    notify wfilter rs ws qfilter 
+	    | not (overlappingColumns wfilter qfilter)      = False //If there are no overlapping columns, we definitely don't need to notify
+	    | overlappingRows qfilter wfilter rs            = True  //If there are records that match both filters, we need to notify
+        | matchingRows qfilter (newRows rs wfilter ws)  = True  //If there are new rows that the registered filter we need to notify
+	    | otherwise                                     = False
+    
+    overlappingColumns x y
+	    =    (x.InstanceFilter.includeConstants   && y.InstanceFilter.includeConstants)
+	    || (x.InstanceFilter.includeProgress    && y.InstanceFilter.includeProgress)
+	    || (x.InstanceFilter.includeAttributes  && y.InstanceFilter.includeAttributes)
+
+    overlappingRows qfilter wfilter rs
+	    = any (\r -> filterPredicate qfilter r && filterPredicate wfilter r) rs
+    matchingRows qfilter rs
+        = any (filterPredicate qfilter) rs
+
+    newRows rs wfilter ws =  [updateColumns wfilter defaultValue w \\ w=:(no,_,_,_) <- ws | not (isMember no existingInstances)]
+    where	
+        existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
 
     selectRows tfilter is = filter (filterPredicate tfilter) is
-
     selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceKey,listId,session,build,issuedAt,issuedBy,progress,attributes}
         # constants  = if includeConstants (Just {InstanceConstants|instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt,issuedBy=issuedBy}) Nothing
         # progress   = if includeProgress (Just progress) Nothing
