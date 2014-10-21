@@ -14,8 +14,8 @@ gEditor{|ControlLight|} dp vv=:(v,mask,ver) meta vst
     = gEditor{|*|} dp (controlLightEditlet v,mask,ver) meta vst
 
 gUpdate{|ControlLight|} dp upd (v,mask) iworld
-    # ((Editlet v _ _,mask),iworld) = gUpdate{|*|} dp upd (controlLightEditlet v,mask) iworld
-    = ((v,mask),iworld)
+    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (controlLightEditlet v, mask) iworld
+    = ((editlet.currVal,mask),iworld)
 
 //SVG Based analog clock editlet
 controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight
