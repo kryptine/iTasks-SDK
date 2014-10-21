@@ -55,20 +55,23 @@ from StdArray import class Array(uselect), instance Array {} a
 				   }
 
 googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff]
-googleMapEditlet g = Editlet g
-    { EditletServerDef
-	| genUI		= \cid world -> (uiDef cid, world)
-	, defVal 	= gDefault{|*|}
-	, genDiff	= genDiff
-	, appDiff	= appDiff
+googleMapEditlet g
+  = { Editlet
+    | currVal   = g
+    , genUI     = \cid world -> (uiDef cid, world)
+    , serverDef = { EditletDef
+	              | performIO = \_ _ s w -> (s, w)
+                  , defVal 	= gDefault{|*|}
+	              , genDiff	= genDiff
+	              , appDiff	= appDiff
+	              }
+    , clientDef = { EditletDef
+	              | performIO = updateUI
+	              , defVal 	= {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
+	              , genDiff	= genDiffClient
+	              , appDiff	= appDiffClient
+	              }
 	}
-    { EditletClientDef
-	| updateUI	= updateUI
-	, defVal 	= {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
-	, genDiff	= genDiffClient
-	, appDiff	= appDiffClient
-	}
-	
 where
 	uiDef cid
 		= { html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
@@ -365,8 +368,8 @@ gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (googleMapEditlet val,mask,ver) meta vst
 
 gUpdate{|GoogleMap|} dp upd (val,mask) iworld
-    # ((Editlet value _ _, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld
-    = ((value,mask),iworld)
+    # ((editlet, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld
+    = ((editlet.currVal,mask),iworld)
 
 //derive gUpdate GoogleMap
 gVerify{|GoogleMap|} _ mv = alwaysValid mv

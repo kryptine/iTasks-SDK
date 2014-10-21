@@ -116,18 +116,22 @@ openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	
 leafletEditlet :: LeafletMap -> Editlet LeafletMap [LeafletDiff]
-leafletEditlet map = Editlet map
-    { EditletServerDef
-    | genUI		= \cid world -> (uiDef cid, world)
-    , defVal 	= gDefault{|*|}
-    , genDiff	= genDiff
-    , appDiff	= appDiff
-    }
-    { EditletClientDef
-    | updateUI	= onUpdate
-    , defVal 	= (gDefault{|*|},Nothing)
-    , genDiff	= \(v1,_) (v2,_) -> genDiff v1 v2
-    , appDiff	= \diff (map,st) -> (appDiff diff map,st)
+leafletEditlet map
+  = { Editlet
+    | currVal   = map
+    , genUI     = \cid world -> (uiDef cid, world)
+    , serverDef = { EditletDef
+                  | performIO = \_ _ s w -> (s, w)
+                  , defVal 	= gDefault{|*|}
+                  , genDiff	= genDiff
+                  , appDiff	= appDiff
+                  }
+    , clientDef = { EditletDef
+                  | performIO	= onUpdate
+                  , defVal 	= (gDefault{|*|},Nothing)
+                  , genDiff	= \(v1,_) (v2,_) -> genDiff v1 v2
+                  , appDiff	= \diff (map,st) -> (appDiff diff map,st)
+                  }
     }
 where
     uiDef cid
@@ -393,8 +397,8 @@ gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
     = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
 
 gUpdate{|LeafletMap|} dp upd (val,mask) iworld
-    # ((Editlet value _ _,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld
-    = ((value,mask),iworld)
+    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld
+    = ((editlet.currVal,mask),iworld)
 
 gVerify{|LeafletMap|} _ vst = alwaysValid vst
 
