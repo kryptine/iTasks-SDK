@@ -39,22 +39,28 @@ derive class iTask PainterState, DrawType, Drawing
 info = "Draw something, but use the pencil _slowly_ in Chrome!" 
 
 painterEditlet :: [DrawType] -> Editlet Drawing [DrawType]
-painterEditlet ds = Editlet (Drawing ds) serverDef clientDef
+painterEditlet ds
+  = { Editlet
+    | currVal   = Drawing ds
+    , genUI     = painterGenerateGUI
+    , serverDef = serverDef
+    , clientDef = clientDef
+    }
 where
 	serverDef =
-	  {  EditletServerDef
-	  |  genUI   = painterGenerateGUI
-	  ,  defVal  = Drawing []
-	  ,  genDiff = srvGenDiff
-	  ,  appDiff = \ns (Drawing ds) -> Drawing (ds ++ ns)
+	  {  EditletDef
+	  |  performIO = \_ _ s w -> (s, w)
+      ,  defVal    = Drawing []
+	  ,  genDiff   = srvGenDiff
+	  ,  appDiff   = \ns (Drawing ds) -> Drawing (ds ++ ns)
 	  }
 
 	clientDef =
-	  {  EditletClientDef
-	  |  updateUI = updateUI
-	  ,  defVal   = {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
-	  ,  genDiff  = cltGenDiff
-	  ,  appDiff  = \ds cl -> {cl & draw = reverse ds ++ cl.draw}
+	  {  EditletDef
+	  |  performIO = updateUI
+	  ,  defVal    = {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
+	  ,  genDiff   = cltGenDiff
+	  ,  appDiff   = \ds cl -> {cl & draw = reverse ds ++ cl.draw}
 	  }
 
 	srvGenDiff (Drawing ds1) (Drawing ds2)
