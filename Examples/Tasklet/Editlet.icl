@@ -246,8 +246,8 @@ test5 :: Task CodeMirror
 test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings" [] defcm
                                                                 -|| 
                                    updateSharedInformation "CodeMirror Editor" 
-                                                   [UpdateWith (\cm -> codeMirrorEditlet cm []) 
-                                                               (\_ (Editlet value _ _) -> value)] defcm )
+                                                   [UpdateWith (\cm -> codeMirrorEditlet cm [])
+                                                               (\_ editlet -> editlet.currVal)] defcm )
 
 
         
@@ -263,7 +263,7 @@ test3 = viewSharedInformation "Clock2" [] (mapRead (\t -> (timelet t,clocklet t)
 		
 //test = viewSharedInformation "Clock" [ViewWith timeEditlet] currentTime
 
-test = updateInformation "String" [] stringlet @ (\(Editlet value _ _) -> value) >&> viewSharedInformation "DEBUG" []
+test = updateInformation "String" [] stringlet @ (\editlet -> editlet.currVal) >&> viewSharedInformation "DEBUG" []
 
 //test6 = viewInformation "JointJS" [] (jointJSEditlet JointJS)
 

@@ -1,7 +1,6 @@
 module TaskletExamples
 
 import iTasks, iTasks.API.Core.Client.Tasklet, iTasks.API.Core.Client.Interface
-from StdArray import class Array(uselect), instance Array {} a
 
 //-------------------------------------------------------------------------
 // http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
@@ -31,13 +30,13 @@ geoTaskletGUI _ _ iworld
 			
 	= (TaskletHTML gui, Nothing, iworld)
 where
-    onSuccess _ {[0]=pos} st world
+    onSuccess _ pos st world
 		# (la, world) = jsGetObjectAttr "coords.latitude" pos world
 		# (lo, world) = jsGetObjectAttr "coords.longitude" pos world
 		# world = setDomAttr "loc" "innerHTML" (toJSVal (jsValToString la +++ ", " +++ jsValToString lo)) world
     	= (Just (la,lo), world)
 
-    onFailure _ {[0]=pos} st world
+    onFailure _ msg st world
 		# world = setDomAttr "loc" "innerHTML" (toJSVal "FAILURE") world
     	= (st, world)
 
@@ -180,14 +179,14 @@ where
 		# world = foldl (\world dr = draw context dr world) world (reverse state.draw)
 		= (state, world)
 		
-	onChangeTool _ {[0]=e} state world
+	onChangeTool _ e state world
 		# (selectedIndex, world) = jsGetObjectAttr "target.selectedIndex" e world
 		# (options, world) 		 = jsGetObjectAttr "target.options" e world		
 		# (option, world) 		 = jsGetObjectEl (jsValToInt selectedIndex) options world
 		# (atool, world) 		 = jsGetObjectAttr "value" option world
 		= ({state & tool = jsValToString atool}, world)	
 
-	onSelectColor color _ {[0]=e} state world
+	onSelectColor color _ e state world
 		# world = foldl (\world el = setDomAttr el "style.borderColor" (toJSVal "white") world) world
 					["selectorYellow","selectorRed","selectorGreen","selectorBlue","selectorBlack"]
 		# (target, world) = jsGetObjectAttr "target" e world
@@ -199,7 +198,7 @@ where
 	    # (y, world) = jsGetObjectAttr "layerY" e world
 	    = ((jsValToInt x, jsValToInt y), e, world)
 
-	onMouseDown _ {[0]=e} state world
+	onMouseDown _ e state world
 	    # (coords, e, world) = getCoordinates e world
 		= ({state & mouseDown = Just coords, lastDraw = Nothing}, world)
 
@@ -218,7 +217,7 @@ where
 							[toJSArg 0, toJSArg 0, toJSArg canvasWidth, toJSArg canvasHeight] context world
 		= world
 
-	onMouseUp _ {[0]=e} state world
+	onMouseUp _ e state world
 		# (tempcanvas, world)  	= getCanvas True world
 		# (tempcontext, world) 	= getContext True world
 		# (context, world)     	= getContext False world
@@ -229,7 +228,7 @@ where
 			= ({state & mouseDown = Nothing}, world)
 
 	// generate onDrawing event
-	onMouseMove _ {[0]=e} state world
+	onMouseMove _ e state world
 		= case state.mouseDown of
 			Just coord = onDrawing coord e state world
 			_          = (state, world)
