@@ -34,8 +34,8 @@ gEditor{|MR|} dp vv=:(mr,mask,ver) meta vst
 	= gEditor{|*|} dp (imageEditlet mr,mask,ver) meta vst
 
 gUpdate{|MR|} dp upd (mr,mask) iworld
-    # ((Editlet mr` _ _, mask),iworld) = gUpdate{|*|} dp upd (imageEditlet mr,mask) iworld
-    = ((mr`,mask),iworld)
+    # ((editlet, mask),iworld) = gUpdate{|*|} dp upd (imageEditlet mr,mask) iworld
+    = ((editlet.currVal,mask),iworld)
 
 ::  ModelImage  = Line Int ModelLine | Rect Int ModelRect | Circle Int ModelCircle
 ::  ModelLine   = { pos :: !(!Int,!Int), end :: !(!Int,!Int), linew :: !Int, edge :: !String }
@@ -47,18 +47,24 @@ derive class iTask ModelImage, ModelLine, ModelRect, ModelCircle
 ::  ClientSt = Initialize | Running
 
 imageEditlet :: MR -> Editlet MR Int
-imageEditlet mr=:(MR mrs i)	= Editlet mr server client
+imageEditlet mr=:(MR mrs i)	=
+  { Editlet
+  | currVal   = mr
+  , genUI     = genUI
+  , serverDef = server
+  , clientDef = client
+  }
 where
-	server					= {EditletServerDef | genUI    = genUI
-							                    , defVal   = gDefault{|*|}
-							                    , genDiff  = genServerDiff
-							                    , appDiff  = \i` (MR mrs _) -> MR mrs i`
+	server					= {EditletDef | performIO = \_ _ s w -> (s, w)
+							              , defVal   = gDefault{|*|}
+							              , genDiff  = genServerDiff
+							              , appDiff  = \i` (MR mrs _) -> MR mrs i`
 							  }
-	client					= {EditletClientDef | updateUI = updUI mrs
-							                    , defVal   = ((Initialize,i),i)
-							                    , genDiff  = genClientDiff
-							                    , appDiff  = \i` ((cst,_),i) -> ((cst,i`),i)
-							                    }
+	client					= {EditletDef | performIO = updUI mrs
+							              , defVal   = ((Initialize,i),i)
+							              , genDiff  = genClientDiff
+							              , appDiff  = \i` ((cst,_),i) -> ((cst,i`),i)
+							              }
 	(minx,miny,maxx,maxy)	= boundingbox mrs
 	(w,h)					= (maxx-minx, maxy-miny)
 	

@@ -8,6 +8,18 @@ import qualified Data.Map as DM
 
 Start world = startEngine svg_image world
 
+:: Foo =
+  { bar :: Int
+  , baz :: Maybe String
+  , rec :: Maybe Foo
+  }
+
+derive class iTask Foo
+
+testmaybe :: Task Foo
+testmaybe = enterInformation "Update me!" []
+
+
 toCSSClass :: a -> String | TC a
 toCSSClass x = "cleanTC-" +++ { if (isAlphanum c) c (replaceChar c)
                               \\ c <-: toString (typeCodeOfDynamic (dynamic x))}
@@ -56,7 +68,7 @@ derive gEditMeta      MR
 derive gVerify        MR
 derive gEq            MR
 derive gDefault       MR
-derive gVisualizeText MR
+derive gText          MR
 
 gEditor{|MR|} dp vv=:(mr,mask,ver) meta vst
   = gEditor{|*|} dp (imageEditlet mr,mask,ver) meta vst
