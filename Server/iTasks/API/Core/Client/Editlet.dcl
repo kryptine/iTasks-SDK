@@ -13,20 +13,19 @@ import iTasks.API.Core.Client.Component
 :: EditletEvent a            :== ComponentEvent ComponentId a
 :: EditletHTML a             :== ComponentHTML ComponentId a
 
-:: Editlet sv d = E.cl: Editlet sv (EditletServerDef sv cl d) (EditletClientDef cl d)
-
-:: EditletServerDef sv cl d =
-  {  genUI   :: ComponentId *World -> *(!EditletHTML cl, !*World)
-  ,  defVal  :: sv // Neutral element of server state, e.g. [] for lists, Nothing for Maybe, etc. The first value of the Editlet constructor is diffed against this value first.
-  ,  genDiff :: sv sv -> Maybe d
-  ,  appDiff :: d  sv -> sv
+:: Editlet sv d
+  = E.cl:
+  { currVal   :: sv
+  , genUI     :: ComponentId *World -> *(!EditletHTML cl, !*World)
+  , serverDef :: EditletDef d sv *World
+  , clientDef :: EditletDef d cl *JSWorld
   }
 
-:: EditletClientDef cl d =
-  {  updateUI :: ComponentId (Maybe d) cl *JSWorld -> *(!cl, !*JSWorld)
-  ,  defVal   :: cl
-  ,  genDiff  :: cl cl -> Maybe d
-  ,  appDiff  :: d  cl -> cl
+:: EditletDef d s w =
+  {  performIO :: ComponentId (Maybe d) s w -> *(s, w)
+  ,  defVal    :: s
+  ,  genDiff   :: s s -> Maybe d
+  ,  appDiff   :: d s -> s
   }
 
 :: EditletSimpl a d = EditletSimpl a (EditletSimplDef a d)
