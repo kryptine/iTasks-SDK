@@ -29,14 +29,11 @@ mainSvgId cid = cid +++ "-svg"
 
 addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorld | iTask s
 addOnclicks cid svg onclicks world
-  # world = jsTrace "addOnClicks" world
-  # world = jsTrace onclicks world
   = 'DM'.foldrWithKey f world onclicks
   where
   f :: String (s -> s) *JSWorld -> *JSWorld | iTask s
   f elemCls sttf world
     # elemCls           = replaceSubString editletId cid elemCls
-    # world             = jsTrace elemCls world
     # (elems, world)    = (svg `getElementsByClassName` elemCls) world
     # (numElems, world) = .? (elems .# "length") world
     | jsValToInt (numElems) < 1 = world
@@ -46,10 +43,8 @@ addOnclicks cid svg onclicks world
     = world
   mkCB :: (s -> s) String {JSObj JSEvent} (SVGClSt s) *JSWorld -> *(SVGClSt s, *JSWorld) | iTask s
   mkCB sttf _ _ {svgClSt} world
-    # world = jsTrace "mkCB SVGClStRendered" world
     = ({svgClSt = sttf svgClSt, svgClIsDefault = False}, world)
   mkCB sttf _ _ clval world
-    # world = jsTrace "mkCB otherwise" world
     = ({clval & svgClIsDefault = False}, world)
 
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
@@ -57,7 +52,7 @@ imageView toImage = ViewWith (\s -> svgRenderer s toImage)
 
 imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` |  iTask v
 imageViewUpdate toViewState toImage fromViewState
-  = UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s (Editlet v _ _) -> fromViewState s v.svgSrvSt)
+  = UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s e -> fromViewState s e.Editlet.currVal.svgSrvSt)
 
 derive class iTask ActionState
 
@@ -95,21 +90,26 @@ defaultClSt s = { svgClIsDefault  = True
 derive class iTask SVGDiff, SVGSrvSt
 
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
-svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDefault = False} server client
+svgRenderer origState state2Image
+  = { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
+    , genUI     = genUI
+    , serverDef = server
+    , clientDef = client
+    }
   where
   server
-    = { EditletServerDef
-      | genUI   = genUI
-      , defVal  = defaultSrvSt origState
-      , genDiff = genServerDiff
-      , appDiff = appServerDiff
+    = { EditletDef
+      | performIO = \_ _ s w -> (s, w)
+      , defVal    = defaultSrvSt origState
+      , genDiff   = genServerDiff
+      , appDiff   = appServerDiff
       }
   client
-    = { EditletClientDef
-      | updateUI = updateUI
-      , defVal   = defaultClSt origState
-      , genDiff  = genClientDiff
-      , appDiff  = appClientDiff
+    = { EditletDef
+      | performIO = updateUI
+      , defVal    = defaultClSt origState
+      , genDiff   = genClientDiff
+      , appDiff   = appClientDiff
       }
   genUI cid world
     = ({ ComponentHTML
@@ -122,26 +122,28 @@ svgRenderer origState state2Image = Editlet {defaultSrvSt origState & svgSrvIsDe
       )
 
   updateUI cid (Just (SetState s)) clst world
-    # image   = state2Image s
-    # fontMap = gatherFonts image
-    # (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
-    # img = imageFromState image realFontMap
-    # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
-    # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
-    # (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
-    # svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
-                                        [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
-                                        syn.genSVGSyn_svgElts)
-    # svgStr           = replaceSubString editletId cid svgStr
-    # (parser, world)  = new "DOMParser" () world
-    # (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
-    # (newSVG, world)  = .? (doc .# "firstChild") world
-    # (svgDiv, world)  = getDomElement (mainSvgId cid) world
-    # (currSVG, world) = .? (svgDiv .# "firstChild") world
-    # (_, world)       = if (jsIsNull currSVG)
-                           ((svgDiv `appendChild` newSVG) world)
-                           ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
-    # world           = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
+    # image              = state2Image s
+    # fontMap            = gatherFonts image
+    # (realFonts, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
+    # (syn, clval)       = genSVG (imageFromState image realFonts) { uniqueIdCounter = 0 }
+    # world = jsTrace syn world
+    # (imXSp, imYSp)     = syn.genSVGSyn_imageSpanReal
+    # world = jsTrace (toInt imXSp) world
+    # world = jsTrace (toInt imYSp) world
+    # (imXSp, imYSp)     = (toString (toInt imXSp), toString (toInt imYSp))
+    # svgStr             = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                            [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                            syn.genSVGSyn_svgElts)
+    # svgStr             = replaceSubString editletId cid svgStr
+    # (parser, world)    = new "DOMParser" () world
+    # (doc, world)       = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
+    # (newSVG, world)    = .? (doc .# "firstChild") world
+    # (svgDiv, world)    = getDomElement (mainSvgId cid) world
+    # (currSVG, world)   = .? (svgDiv .# "firstChild") world
+    # (_, world)         = if (jsIsNull currSVG)
+                             ((svgDiv `appendChild` newSVG) world)
+                             ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
+    # world              = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
     = updateUI cid Nothing {clst & svgClIsDefault = False, svgClSt = s} world
 
   updateUI _ _ clval world
@@ -1251,12 +1253,13 @@ evalSpanLookupSpanAlgs =
   , lookupSpanTextXSpanAlg    = \_ _ -> ret 0.0
   }
 
+mkAbs :: !(GenSVGSt s Real) -> GenSVGSt s Real | iTask s
 mkAbs x = x `b` \x -> ret (abs x)
 
+mkBin :: !(Real Real -> Real) !(GenSVGSt s Real) !(GenSVGSt s Real) -> GenSVGSt s Real | iTask s
 mkBin op x y = x `b` \x -> y `b` \y -> ret (op x y)
 
-mkBin` op x y = x `b` \x -> ret (op x y)
-
+mkList :: !([Real] -> Real) ![GenSVGSt s Real] -> GenSVGSt s Real | iTask s
 mkList f xs = sequence xs `b` \xs -> ret (f xs)
 
 :: Algebras m imCo imAt imTr im baIm imSp coIm imAn ho co sp loSp ma liIm liCo =
