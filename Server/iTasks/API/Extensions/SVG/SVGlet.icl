@@ -974,6 +974,9 @@ mkUrl ref = "url(#" +++ ref +++ ")"
 mkWH :: !ImageSpanReal -> [HtmlAttr]
 mkWH (imXSp, imYSp) = [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))]
 
+to2dec :: Real -> Real
+to2dec n = toReal (toInt (n * 100.0)) / 100.0
+
 genSVG :: !(Image s) -> GenSVGSt s (GenSVGSyn s) | iTask s
 genSVG img = imageCata genSVGAllAlgs img
   where
@@ -1019,7 +1022,7 @@ genSVG img = imageCata genSVGAllAlgs img
                  in imCo (txsp, tysp) (maybe imAts` (const [(Nothing, Just (MaskAttr (mkUrl maskId))) : imAts`]) mask) imTrs imTas `b`
       \syn    -> evalMaybe mask `b`
       \mask   -> ret { mkGenSVGSyn
-                     & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (m1, m2)) (mkElt maskId mask syn)
+                     & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
                      , genSVGSyn_imageSpanReal = (txsp, tysp)
                      , genSVGSyn_onclicks      = 'DM'.unions [syn.genSVGSyn_onclicks : map snd imAts]
                      }
@@ -1338,7 +1341,7 @@ calculateComposedSpan spans offs
 
 mkTranslateGroup :: !ImageOffsetReal ![SVGElt] -> [SVGElt]
 mkTranslateGroup (xoff, yoff) contents
-  = mkGroup [] (mkTransformTranslateAttr (xoff, yoff)) contents
+  = mkGroup [] (mkTransformTranslateAttr (to2dec xoff, to2dec yoff)) contents
 
 mkTransformTranslateAttr :: (Real, Real) -> [SVGAttr]
 mkTransformTranslateAttr (0.0,   0.0)   = []
