@@ -269,7 +269,7 @@ tExpr2Image (TStep lexpr conts)      = tStep lexpr conts
 tExpr2Image (TParallel par)          = tParallel par
 tExpr2Image (TAssign usr t)          = tAssign usr t
 tExpr2Image (TShare ts sn args)      = tShare ts sn args
-tExpr2Image (TTransform lhs vn args) = tTransform lhs vn args
+tExpr2Image (TTransform lhs vn args) = tTransformApp lhs vn args
 tExpr2Image (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
 tExpr2Image (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
 
@@ -278,9 +278,6 @@ tCaseOrIf ppexpr pats = 'CA'.pure (rect 100 100) // TODO
 
 tShare :: TShare VarName [VarName] -> TImg
 tShare sh sn args = 'CA'.pure (rect 100 100) // TODO
-
-tTransform :: TExpr VarName [VarName] -> TImg
-tTransform texpr tfnm args = 'CA'.pure (rect 100 100) // TODO
 
 tLet :: [(Pattern, PPExpr)] TExpr -> TImg
 tLet pats expr
@@ -408,13 +405,14 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
     maxXSpan = maxSpan [imagexspan [imageTag nameNo], imagexspan [imageTag argsNo], imagexspan [imageTag bodyNo]]
     mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
 
-tTransformApp :: String [String] -> TImg
-tTransformApp tffun args
+tTransformApp :: TExpr VarName [VarName] -> TImg
+tTransformApp texpr tffun args
   =          dispenseUniq `b`
   \nameNo -> dispenseUniq `b`
-  \argsNo -> tTransformApp` nameNo argsNo
+  \argsNo -> tExpr2Image texpr `b`
+  \expr   -> 'CA'.pure (tTransformApp` nameNo argsNo expr)
   where
-  tTransformApp` nameNo argsNo
+  tTransformApp` nameNo argsNo expr
     # bgRect     = rect maxXSpan (imageyspan [imageTag nameNo] + imageyspan [imageTag argsNo])
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }
@@ -425,7 +423,7 @@ tTransformApp tffun args
                                                [] -> [tfNameImg]
                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
     # tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-    = 'CA'.pure tfApp
+    = beside (repeat AtMiddleY) [] [tfApp, expr] Nothing
     where
     maxXSpan = maxSpan [imagexspan [imageTag nameNo], imagexspan [imageTag argsNo]]
 
