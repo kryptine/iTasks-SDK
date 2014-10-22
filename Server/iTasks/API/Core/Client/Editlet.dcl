@@ -12,11 +12,12 @@ import iTasks.API.Core.Client.Component
 :: EditletEventHandlerFunc a :== ComponentEventHandlerFunc ComponentId a // Where :: ComponentEventHandlerFunc idtype a :== idtype {JSObj JSEvent} a *JSWorld -> *(!a, !*JSWorld)
 :: EditletEvent a            :== ComponentEvent ComponentId a
 :: EditletHTML a             :== ComponentHTML ComponentId a
+:: GenUI a                   :== ComponentId *World -> *(EditletHTML a, *World)
 
 :: Editlet sv d
   = E.cl:
   { currVal   :: sv
-  , genUI     :: ComponentId *World -> *(!EditletHTML cl, !*World)
+  , genUI     :: GenUI cl
   , serverDef :: EditletDef d sv *World
   , clientDef :: EditletDef d cl *JSWorld
   }
@@ -31,7 +32,7 @@ import iTasks.API.Core.Client.Component
 :: EditletSimpl a d = EditletSimpl a (EditletSimplDef a d)
 
 :: EditletSimplDef a d =
-  {  genUI    :: ComponentId *World -> *(!EditletHTML a, !*World)
+  {  genUI    :: GenUI a
   ,  updateUI :: ComponentId (Maybe d) a *JSWorld -> *(!a, !*JSWorld)
   ,  genDiff  :: a a -> Maybe d
   ,  appDiff  :: d a -> a

@@ -14,7 +14,7 @@ imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` 
 
 :: SVGDiff s
 
-svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
+svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) [SVGDiff s] | iTask s
 
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a
@@ -23,5 +23,3 @@ svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 derive class iTask ActionState
 
 ifAction :: !(a -> Bool) !(a s -> s) !((ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
-
-:: CachedSpan
