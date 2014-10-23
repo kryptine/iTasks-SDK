@@ -117,51 +117,43 @@ where
 
 gEditMeta{|Editlet|} fa _ editlet = fa editlet.Editlet.currVal
 
-gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (editlet, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (editlet, omask) ust=:{USt | taskId, editorId, iworld}
   # editletId = "editlet-" +++ taskId +++ "-" +++ editorId
   # serverDef = editlet.Editlet.serverDef
   = case jDecd False [jsonDiff] of
       (Just diff, _)
-        # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                     Just (jsonRef,opts,diffs)
-                       = case jDeca False [jsonRef] of
-                           (Just ref, _)
-                             # ref           = serverDef.EditletDef.appDiff diff ref
-                             # (ref`, world) = serverDef.EditletDef.performIO
-                                                 editletId (Just diff) ref iworld.world
-                             # iworld        = { iworld & world = world }
-                             # [jsonRef:_]   = jEnca False ref`
-                             # ioDiff        = serverDef.EditletDef.genDiff ref ref`
-                             # initDiff      = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
-                             # (jsScript, jsCDiff, _, iworld) = diffLinker ioDiff initDiff iworld
-                             # diffs                          = if (isJust ioDiff) [(jsCDiff,jsScript):diffs] diffs
-                             = { IWorld
-                               | iworld
-                               & current = {current & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}
-                               }
-                           _ = iworld
-                     Nothing = iworld
-        # ref = serverDef.EditletDef.appDiff diff editlet.Editlet.currVal
-
-        # (ref`, world) = serverDef.EditletDef.performIO
-                            editletId (Just diff) ref iworld.world
-        # iworld        = { iworld & world = world }
-        # ioDiff        = serverDef.EditletDef.genDiff ref ref`
-        # initDiff      = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
-        # (current, iworld) = iworld!current
-        # editletDiffs  = current.editletDiffs
-        # iworld        = { iworld & current = current }
-        # iworld        = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                            Just (jsonRef,opts,diffs)
-                              # (jsScript, jsCDiff, _, iworld) = diffLinker ioDiff initDiff iworld
-                              # diffs                          = if (isJust ioDiff) [(jsCDiff,jsScript):diffs] diffs
-                              # iworld = { iworld & current = {current & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}}
-                              = iworld
-                            Nothing
-                              = iworld
-        = (({ editlet & currVal = ref` }
-            , Touched),{USt|ust & iworld = iworld})
+        # iworld        = withEditletDiffs taskId editorId (addRefDiffs serverDef editletId diff) iworld
+        # ref           = serverDef.EditletDef.appDiff diff editlet.Editlet.currVal
+        # (ref`, world) = serverDef.EditletDef.performIO editletId (Just diff) ref iworld.world
+        # iworld        = {iworld & world = world}
+        # iworld        = withEditletDiffs taskId editorId (addCurrValDiffs serverDef ref ref`) iworld
+        = (({editlet & currVal = ref`}, Touched), {USt | ust & iworld = iworld})
       _ = ((editlet, omask), ust)
+  where
+  addRefDiffs serverDef editletId diff (jsonRef, opts, diffs) current iworld
+    = case jDeca False [jsonRef] of
+        (Just ref, _)
+          # ref           = serverDef.EditletDef.appDiff diff ref
+          # (ref`, world) = serverDef.EditletDef.performIO editletId (Just diff) ref iworld.world
+          # iworld        = {iworld & world = world}
+          # [jsonRef:_]   = jEnca False ref`
+          # ioDiff        = serverDef.EditletDef.genDiff ref ref`
+          # initDiff      = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
+          = linkDiffs (jsonRef, opts, diffs) ioDiff initDiff current iworld
+        _ = iworld
+  addCurrValDiffs serverDef ref ref` diffInfo current iworld
+    # ioDiff   = serverDef.EditletDef.genDiff ref ref`
+    # initDiff = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
+    = linkDiffs diffInfo ioDiff initDiff current iworld
+  linkDiffs (jsonRef, opts, diffs) ioDiff initDiff current iworld
+    # (jsScript, jsCDiff, _, iworld) = diffLinker ioDiff initDiff iworld
+    # diffs                          = if (isJust ioDiff) [(jsCDiff, jsScript) : diffs] diffs
+    = { iworld & current = {current & editletDiffs = put (taskId, editorId) (jsonRef, opts, diffs) current.editletDiffs}}
+  withEditletDiffs taskId editorId f iworld
+    # current = iworld.current
+    = case 'Data.Map'.get (taskId, editorId) current.editletDiffs of
+        Just x  -> f x current {iworld & current = current}
+        Nothing -> iworld
 
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
