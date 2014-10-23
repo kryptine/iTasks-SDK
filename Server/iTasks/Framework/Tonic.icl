@@ -274,7 +274,28 @@ tExpr2Image (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
 tExpr2Image (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
 
 tCaseOrIf :: PPExpr [(Pattern, TExpr)] -> TImg
-tCaseOrIf ppexpr pats = 'CA'.pure (rect 100 100) // TODO
+tCaseOrIf ppexpr pats
+  = 'CM'.mapM tExpr2Image (map snd pats) `b` ('CA'.pure o mkCaseOrIf) // TODO Edges
+  where
+  mkCaseOrIf nextTasks
+    # nextTasks` = above (repeat AtMiddleX) [] nextTasks Nothing
+    # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, text ArialRegular10px ppexpr] Nothing
+    = beside (repeat AtMiddleY) [] [diamond`, nextTasks`] Nothing
+  diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
+                   <@< { fill   = toSVGColor "white" }
+                   <@< { stroke = toSVGColor "black" }
+  leftCorner   = (px 0.0, y (px 0.0))
+  topCorner    = (centerX, ~ (y centerX))
+  rightCorner  = (centerX *. 2.0, y (px 0.0))
+  bottomCorner = (centerX, y centerX)
+  centerX      = (textWidth /. 2.0) + px margin
+  yOff         = px (textHeight / 2.0)
+  y x = x *. r
+    where
+    r = (textHeight * 1.5) / margin
+  margin       = textHeight * 2.0
+  textHeight   = ArialRegular10px.fontysize
+  textWidth    = textxspan ArialRegular10px ppexpr
 
 tShare :: TShare VarName [VarName] -> TImg
 tShare sh sn args = 'CA'.pure (rect 100 100) // TODO
@@ -285,10 +306,13 @@ tLet pats expr
   \textNo -> tExpr2Image expr `b`
              ('CA'.pure o mkLet textNo)
   where
-  mkLet textNo t = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letText, letBox] Nothing
+  mkLet textNo t = beside (repeat AtMiddleY) [] [letImg, t] Nothing
     where
+    letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
     letText = tag [imageTag textNo] (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
     letBox  = rect (imagexspan [imageTag textNo]) (px ArialRegular10px.fontysize *. length pats)
+                <@< { fill   = toSVGColor "white" }
+                <@< { stroke = toSVGColor "black" }
 
 tBind :: TExpr (Maybe Pattern) TExpr -> TImg
 tBind l mpat r
