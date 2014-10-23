@@ -137,15 +137,11 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (editlet, omask)
           # (ref`, world) = serverDef.EditletDef.performIO editletId (Just diff) ref iworld.world
           # iworld        = {iworld & world = world}
           # [jsonRef:_]   = jEnca False ref`
-          # ioDiff        = serverDef.EditletDef.genDiff ref ref`
-          # initDiff      = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
-          = linkDiffs (jsonRef, opts, diffs) ioDiff initDiff current iworld
+          = addCurrValDiffs serverDef ref ref` (jsonRef, opts, diffs) current iworld
         _ = iworld
-  addCurrValDiffs serverDef ref ref` diffInfo current iworld
-    # ioDiff   = serverDef.EditletDef.genDiff ref ref`
-    # initDiff = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
-    = linkDiffs diffInfo ioDiff initDiff current iworld
-  linkDiffs (jsonRef, opts, diffs) ioDiff initDiff current iworld
+  addCurrValDiffs serverDef ref ref` (jsonRef, opts, diffs) current iworld
+    # ioDiff                         = serverDef.EditletDef.genDiff ref ref`
+    # initDiff                       = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
     # (jsScript, jsCDiff, _, iworld) = diffLinker ioDiff initDiff iworld
     # diffs                          = if (isJust ioDiff) [(jsCDiff, jsScript) : diffs] diffs
     = { iworld & current = {current & editletDiffs = put (taskId, editorId) (jsonRef, opts, diffs) current.editletDiffs}}
