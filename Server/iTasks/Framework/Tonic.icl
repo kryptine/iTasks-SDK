@@ -275,15 +275,50 @@ tExpr2Image (TTransform lhs vn args) = tTransformApp lhs vn args
 tExpr2Image (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
 tExpr2Image (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
 
+tArrowTip :: Image TonicTask
+tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
+
+tLineMarker :: Maybe (Markers TonicTask)
+tLineMarker = Just {defaultMarkers & markerEnd = Just tArrowTip}
+
+tHorizConn :: Image TonicTask
+tHorizConn = xline Nothing (px 16.0)
+
+tHorizConnArr :: Image TonicTask
+tHorizConnArr = xline tLineMarker (px 16.0)
+
 tCaseOrIf :: PPExpr [(Pattern, TExpr)] -> TImg
 tCaseOrIf ppexpr pats
-  = 'CM'.mapM tExpr2Image (map snd pats) `b` ('CA'.pure o mkCaseOrIf) // TODO Edges
+  # patExprs = map snd pats
+  =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
+  \uniqs -> 'CM'.mapM tExpr2Image patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edges
   where
-  mkCaseOrIf nextTasks
-    # nextTasks  = map (margin (5, 0)) nextTasks
+  prepCases uniqs pats
+    # pats     = zipWith (\uniq nt -> tag (imageTag uniq) (margin (5, 0) nt)) uniqs pats
+    # maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
+    = zipWith (prepCase maxXSpan) uniqs pats
+    where
+    prepCase maxXSpan uniq pat
+      # linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+      # leftLine  = xline tLineMarker (px 16.0 + linePart)
+      # rightLine = xline Nothing (px 8.0 + linePart)
+      = beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
+  mkCaseOrIf uniqs nextTasks
+    # nextTasks  = prepCases uniqs nextTasks
+    //# nextYSpans = map (imageyspan o imageTag) uniqs
+    # vertConn   = mkVertConn uniqs
     # nextTasks` = above (repeat AtMiddleX) [] nextTasks Nothing
-    # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, text ArialRegular10px ppexpr] Nothing
-    = beside (repeat AtMiddleY) [] [diamond`, nextTasks`] Nothing
+    # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
+                                                              , text ArialRegular10px ppexpr] Nothing
+    = beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing
+  mkVertConn uniqs
+    | length uniqs < 2 = empty 0 0
+    | otherwise
+        # firstUniq  = hd uniqs
+        # lastUniq   = last uniqs
+        # restUniqs  = init (tl uniqs)
+        # nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
+        = yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
   diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
                    <@< { fill   = toSVGColor "white" }
                    <@< { stroke = toSVGColor "black" }
@@ -306,7 +341,7 @@ tLet pats expr
   \textNo -> tExpr2Image expr `b`
              ('CA'.pure o mkLet textNo)
   where
-  mkLet textNo t = beside (repeat AtMiddleY) [] [letImg, t] Nothing
+  mkLet textNo t = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing
     where
     letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
     letText = tag [imageTag textNo] (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
@@ -318,7 +353,7 @@ tBind :: TExpr (Maybe Pattern) TExpr -> TImg
 tBind l mpat r
   =      tExpr2Image l `b`
   \l` -> tExpr2Image r `b`
-  \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [l`, r`] Nothing) // TODO Add edge + label
+  \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing) // TODO Add label
 
 tParallel :: TParallel -> TImg
 tParallel (ParSumL l r)
@@ -434,7 +469,7 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
                        <@< { yradius     = px 5.0 }
     # taskNameImg  = tag [imageTag nameNo] (margin 5 (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
     # taskArgsImgs = tag [imageTag argsNo] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-    # taskBodyImgs = tag [imageTag bodyNo] (margin 5 (beside (repeat AtMiddleY) [] [tStartSymb, tdbody, tStopSymb] Nothing))
+    # taskBodyImgs = tag [imageTag bodyNo] (margin 5 (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
     # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
                                                  [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
                                                  _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
@@ -479,7 +514,7 @@ tTaskApp eid taskName taskArgs
                        <@< { strokewidth = px 1.0 }
                        <@< { xradius     = px 5.0 }
                        <@< { yradius     = px 5.0 }
-    # taskNameImg  = tag [imageTag tnNo]  (margin 5 (text ArialBold10px taskName))
+    # taskNameImg  = tag [imageTag tnNo] (margin 5 (text ArialBold10px taskName))
     # taskArgsImgs = tag [imageTag taNo] (margin 5 (above (repeat AtLeft) [] taskArgs` Nothing))
     # taskText     = above (repeat AtMiddleX) [] (case taskArgs` of
                                                     [] -> [taskNameImg]
@@ -515,7 +550,7 @@ tAssign user assignedTask
   \atNo   -> 'CA'.pure (tAssign` at userNo atNo)
   where
   tAssign` at userNo atNo
-    # taskNameImg = tag [imageTag userNo] (margin 5 (text ArialBold10px (toString user)))
+    # taskNameImg = tag [imageTag userNo] (margin 5 (text ArialBold10px (ppUser user)))
     # bgRect  = rect maxXSpan (px ArialBold10px.fontysize + imageyspan [imageTag atNo])
                   <@< { fill        = toSVGColor "white" }
                   <@< { stroke      = toSVGColor "black" }
@@ -523,12 +558,20 @@ tAssign user assignedTask
                   <@< { xradius     = px 5.0 }
                   <@< { yradius     = px 5.0 }
                   <@< { dash        = [5, 5] }
-    # at      = beside (repeat AtMiddleY) [] [tStartSymb, at, tStopSymb] Nothing
+    # at      = margin 5 (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing)
     # content = above (repeat AtMiddleX) [] [ taskNameImg, xline Nothing maxXSpan
                                             , tag [imageTag atNo] at] Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
     where
     maxXSpan = maxSpan [imagexspan [imageTag userNo], imagexspan [imageTag atNo]]
+
+ppUser :: TUser -> String
+ppUser TUAnyUser                       = "Any user"
+ppUser (TUUserWithIdent ident)         = "User " +++ ident
+ppUser (TUUserWithRole role)           = "Any user with role " +++ role
+ppUser TUSystemUser                    = "Any system user"
+ppUser TUAnonymousUser                 = "Any anonymous user"
+ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
 tStep :: TExpr [PPOr TStepCont] -> TImg
 tStep lhsExpr conts
@@ -601,14 +644,6 @@ tNoVal = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px 
   where
   bgRect = rect 16 16 <@< { fill   = toSVGColor "white" }
                       <@< { stroke = toSVGColor "black" }
-
-instance toString TUser where
-  toString TUAnyUser                       = "Any user"
-  toString (TUUserWithIdent ident)         = "User " +++ ident
-  toString (TUUserWithRole role)           = "Any user with role " +++ role
-  toString TUSystemUser                    = "Any system user"
-  toString TUAnonymousUser                 = "Any anonymous user"
-  toString (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
 tLineArrow :: Image TonicTask
 tLineArrow = polygon Nothing [ (px 0.0, px 0.0)
