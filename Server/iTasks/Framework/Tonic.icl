@@ -207,8 +207,9 @@ viewStatic
   \tn -> maybe (return ())
            (\tt -> viewStaticTask tm tt @! ())
            (getTask tm tn)
-         )) <<@ ArrangeSplit Horizontal True
-         )) <<@ ArrangeSplit Horizontal True
+         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+            <<@ FullScreen
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
   selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
@@ -252,6 +253,7 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
 tonicViewer :: String -> PublishedTask
 tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 
+// TODO Start / stop symbols
 mkTaskImage :: TonicTask -> Image TonicTask
 mkTaskImage tt = 'CMS'.evalState (tExpr2Image tt.tt_body `b` \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
 
@@ -278,6 +280,7 @@ tCaseOrIf ppexpr pats
   = 'CM'.mapM tExpr2Image (map snd pats) `b` ('CA'.pure o mkCaseOrIf) // TODO Edges
   where
   mkCaseOrIf nextTasks
+    # nextTasks  = map (margin (5, 0)) nextTasks
     # nextTasks` = above (repeat AtMiddleX) [] nextTasks Nothing
     # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, text ArialRegular10px ppexpr] Nothing
     = beside (repeat AtMiddleY) [] [diamond`, nextTasks`] Nothing
@@ -288,12 +291,9 @@ tCaseOrIf ppexpr pats
   topCorner    = (centerX, ~ (y centerX))
   rightCorner  = (centerX *. 2.0, y (px 0.0))
   bottomCorner = (centerX, y centerX)
-  centerX      = (textWidth /. 2.0) + px margin
-  yOff         = px (textHeight / 2.0)
-  y x = x *. r
-    where
-    r = (textHeight * 1.5) / margin
-  margin       = textHeight * 2.0
+  centerX      = (textWidth /. 2.0) + px edgeMargin
+  y x = x *. (textHeight / edgeMargin)
+  edgeMargin   = textHeight * 2.0
   textHeight   = ArialRegular10px.fontysize
   textWidth    = textxspan ArialRegular10px ppexpr
 
@@ -324,21 +324,34 @@ tParallel :: TParallel -> TImg
 tParallel (ParSumL l r)
   =      tExpr2Image l `b`
   \l` -> tExpr2Image r `b`
-  \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing)
+  \r` -> 'CA'.pure (mkParSumL l` r`)
+  where
+  mkParSumL l` r`
+    # l` = margin (5, 0) l`
+    # r` = margin (5, 0) r`
+    = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
 tParallel (ParSumR l r)
   =      tExpr2Image l `b`
   \l` -> tExpr2Image r `b`
-  \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing)
-tParallel (ParSumN ts)
-  =       mkParSum ts `b`
-  \ts` -> 'CA'.pure (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing)
+  \r` -> 'CA'.pure (mkParSumR l` r`)
   where
+  mkParSumR l` r`
+    # l` = margin (5, 0) l`
+    # r` = margin (5, 0) r`
+    = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
+tParallel (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
+  where
+  mkParSumN ts`
+    # ts` = map (margin (5, 0)) ts`
+    = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
   mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParSum (T xs)  = 'CM'.mapM tExpr2Image xs
 tParallel (ParProd ts)
-  =       mkParProd ts `b`
-  \ts` -> 'CA'.pure (beside (repeat AtMiddleY) [] [tParProd, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParProd] Nothing)
+  =       mkParProd ts `b` ('CA'.pure o mkParProdCases)
   where
+  mkParProdCases ts`
+    # ts` = map (margin (5, 0)) ts`
+    = beside (repeat AtMiddleY) [] [tParProd, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParProd] Nothing
   mkParProd (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParProd (T xs)  = 'CM'.mapM tExpr2Image xs
 
@@ -404,6 +417,7 @@ prefixAOrAn str
   | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
   | otherwise                                       = "a " +++ str
 
+// TODO Start / stop symbols here
 tTaskDef :: String String [(String, String)] (Image TonicTask) -> TImg
 tTaskDef taskName resultTy taskArgsAndTys tdbody
   =          dispenseUniq `b`
@@ -420,7 +434,7 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
                        <@< { yradius     = px 5.0 }
     # taskNameImg  = tag [imageTag nameNo] (margin 5 (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
     # taskArgsImgs = tag [imageTag argsNo] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-    # taskBodyImgs = tag [imageTag bodyNo] (margin 5 tdbody)
+    # taskBodyImgs = tag [imageTag bodyNo] (margin 5 (beside (repeat AtMiddleY) [] [tStartSymb, tdbody, tStopSymb] Nothing))
     # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
                                                  [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
                                                  _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
@@ -509,6 +523,7 @@ tAssign user assignedTask
                   <@< { xradius     = px 5.0 }
                   <@< { yradius     = px 5.0 }
                   <@< { dash        = [5, 5] }
+    # at      = beside (repeat AtMiddleY) [] [tStartSymb, at, tStopSymb] Nothing
     # content = above (repeat AtMiddleX) [] [ taskNameImg, xline Nothing maxXSpan
                                             , tag [imageTag atNo] at] Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
@@ -522,6 +537,7 @@ tStep lhsExpr conts
   \conts` -> 'CA'.pure (tStep` lhs conts`)
   where
   tStep` lhs conts`
+    # conts`   = map (margin (5, 0)) conts`
     # contsImg = above (repeat AtMiddleX) [] conts` Nothing
     = beside (repeat AtMiddleY) [] [lhs, /* TODO line to first star, */tStepStar, /* TODO lines to steps,*/ contsImg, /* TODO lines to last star,*/ tStepStar] Nothing
 
