@@ -282,19 +282,20 @@ tLineMarker :: Maybe (Markers TonicTask)
 tLineMarker = Just {defaultMarkers & markerEnd = Just tArrowTip}
 
 tHorizConn :: Image TonicTask
-tHorizConn = xline Nothing (px 16.0)
+tHorizConn = xline Nothing (px 8.0)
 
 tHorizConnArr :: Image TonicTask
 tHorizConnArr = xline tLineMarker (px 16.0)
 
+// TODO margin around cases
 tCaseOrIf :: PPExpr [(Pattern, TExpr)] -> TImg
 tCaseOrIf ppexpr pats
   # patExprs = map snd pats
   =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
-  \uniqs -> 'CM'.mapM tExpr2Image patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edges
+  \uniqs -> 'CM'.mapM tExpr2Image patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edge labels
   where
   prepCases uniqs pats
-    # pats     = zipWith (\uniq nt -> tag (imageTag uniq) (margin (5, 0) nt)) uniqs pats
+    # pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
     # maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
     = zipWith (prepCase maxXSpan) uniqs pats
     where
@@ -305,7 +306,6 @@ tCaseOrIf ppexpr pats
       = beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
   mkCaseOrIf uniqs nextTasks
     # nextTasks  = prepCases uniqs nextTasks
-    //# nextYSpans = map (imageyspan o imageTag) uniqs
     # vertConn   = mkVertConn uniqs
     # nextTasks` = above (repeat AtMiddleX) [] nextTasks Nothing
     # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
@@ -318,7 +318,11 @@ tCaseOrIf ppexpr pats
         # lastUniq   = last uniqs
         # restUniqs  = init (tl uniqs)
         # nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
-        = yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
+        = above (repeat AtMiddleX) []
+            [ yline Nothing (imageyspan (imageTag firstUniq) /. 2.0) <@< { stroke = toSVGColor "white" }
+            , yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
+            , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
+            Nothing
   diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
                    <@< { fill   = toSVGColor "white" }
                    <@< { stroke = toSVGColor "black" }
@@ -345,7 +349,7 @@ tLet pats expr
     where
     letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
     letText = tag [imageTag textNo] (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
-    letBox  = rect (imagexspan [imageTag textNo]) (px ArialRegular10px.fontysize *. length pats)
+    letBox  = rect (imagexspan [imageTag textNo]) (px ArialRegular10px.fontysize *. (length pats + 1))
                 <@< { fill   = toSVGColor "white" }
                 <@< { stroke = toSVGColor "black" }
 
@@ -536,11 +540,12 @@ tReturn retval
   \tagNo   -> 'CA'.pure (tReturn` retval` tagNo)
   where
   tReturn` retval` tagNo
-    # oval = ellipse (imagexspan [imageTag tagNo]) (px 20.0)
+    # retval` = tag [imageTag tagNo] retval`
+    # oval = ellipse (imagexspan [imageTag tagNo] + px 20.0) (imageyspan [imageTag tagNo] + px 10.0)
                <@< { fill        = toSVGColor "white" }
                <@< { stroke      = toSVGColor "black" }
                <@< { strokewidth = px 1.0 }
-    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, tag [imageTag tagNo] retval`] Nothing
+    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retval`] Nothing
 
 tAssign :: TUser TExpr -> TImg
 tAssign user assignedTask
