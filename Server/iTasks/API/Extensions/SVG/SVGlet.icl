@@ -22,7 +22,7 @@ derive class iTask FontDef, Set
   }
 
 :: CachedSpan =
-  { cachedGridSpans :: Maybe ([Span], [Span])
+  { cachedGridSpans :: Maybe ({Span}, {Span})
   , cachedImageSpan :: Maybe ImageSpan
   }
 
@@ -369,7 +369,7 @@ cacheImageSpan :: !(Set ImageTag) !ImageSpan !FixSpansStVal -> FixSpansStVal
 cacheImageSpan imTas sp st = addCachedSpan (\r -> {r & cachedImageSpan = Just sp}) imTas st
 
 cacheGridSpans :: !(Set ImageTag) ![Span] ![Span] !FixSpansStVal -> FixSpansStVal
-cacheGridSpans imTas xsps ysps st = addCachedSpan (\r -> {r & cachedGridSpans = Just (xsps, ysps)}) imTas st
+cacheGridSpans imTas xsps ysps st = addCachedSpan (\r -> {r & cachedGridSpans = Just ({x \\ x <- xsps}, {y \\ y <- ysps})}) imTas st
 
 applyTransforms :: ![ImageTransform] !ImageSpan -> (ImageSpan, ImageOffset)
 applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
@@ -888,8 +888,8 @@ fixSpans img = go
 
   fixSpansLookupSpanAlgs :: LookupSpanAlg (FixSpansSt Span)
   fixSpansLookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg = mkImageGridSpan (\xss n -> fst xss !! n) ColumnXSpan
-    , lookupSpanRowYSpanAlg    = mkImageGridSpan (\xss n -> snd xss !! n) RowYSpan
+    { lookupSpanColumnXSpanAlg = mkImageGridSpan (\xss n -> (fst xss).[n]) ColumnXSpan
+    , lookupSpanRowYSpanAlg    = mkImageGridSpan (\xss n -> (snd xss).[n]) RowYSpan
     , lookupSpanImageXSpanAlg  = mkImageSpan fst ImageXSpan
     , lookupSpanImageYSpanAlg  = mkImageSpan snd ImageYSpan
     , lookupSpanTextXSpanAlg   = mkTextLU
@@ -921,7 +921,7 @@ fixSpans img = go
                       Just {cachedImageSpan = Just xs} -> f xs
                       _                                -> LookupSpan (c ts))
 
-    mkImageGridSpan :: !(([Span], [Span]) Int -> Span) !((Set ImageTag) Int -> LookupSpan)
+    mkImageGridSpan :: !(({Span}, {Span}) Int -> Span) !((Set ImageTag) Int -> LookupSpan)
                        !(Set ImageTag) Int
                     -> FixSpansSt Span
     mkImageGridSpan f c ts n
