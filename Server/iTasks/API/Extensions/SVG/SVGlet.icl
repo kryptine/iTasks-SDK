@@ -1140,14 +1140,14 @@ genSVG img = imageCata genSVGAllAlgs img
     mkCircleImage imSp=:(imXSp`, _) imAts imTrs imTas
       # r = imXSp` / 2.0
       = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [] [CircleElt []
-                                          [ RAttr (toString r, PX), CxAttr (toString r, PX)
-                                          , CyAttr (toString r, PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]] }
+                                          [ RAttr (toString (to2dec r), PX), CxAttr (toString (to2dec r), PX)
+                                          , CyAttr (toString (to2dec r), PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]] }
     mkEllipseImage :: !ImageSpanReal ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                    -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkEllipseImage imSp=:(imXSp, imYSp) imAts imTrs imTas
       = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [] [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
-                                          [ RxAttr (toString (imXSp / 2.0), PX), RyAttr (toString (imYSp / 2.0), PX)
-                                          , CxAttr (toString (imXSp / 2.0), PX), CyAttr (toString (imYSp / 2.0), PX)])] }
+                                          [ RxAttr (toString (to2dec (imXSp / 2.0)), PX), RyAttr (toString (to2dec (imYSp / 2.0)), PX)
+                                          , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }
 
   // TODO Type signature
   genSVGLineImageAlgs =
@@ -1183,9 +1183,9 @@ genSVG img = imageCata genSVGAllAlgs img
       where
       mkLineAttrs slash (xspan, yspan)
         # (y1, y2) = case slash of
-                       Slash     -> (toString yspan, "0.0")
-                       Backslash -> ("0.0", toString yspan)
-        = [ X1Attr ("0.0", PX), X2Attr (toString xspan, PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
+                       Slash     -> (toString (to2dec yspan), "0.0")
+                       Backslash -> ("0.0", toString (to2dec yspan))
+        = [ X1Attr ("0.0", PX), X2Attr (toString (to2dec xspan), PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
     mkPolygonImage :: ![(GenSVGSt s Real, GenSVGSt s Real)] !ImageSpanReal
                       !(Maybe (Maybe (GenSVGSyn s), Maybe (GenSVGSyn s), Maybe (GenSVGSyn s)))
                       ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)]
@@ -1193,7 +1193,7 @@ genSVG img = imageCata genSVGAllAlgs img
                    -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkPolygonImage points sp mmarkers imAts imTrs imTas
       =           evalOffsets points `b`
-      \offsets -> mkLine PolygonElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
+      \offsets -> mkLine PolygonElt [PointsAttr (map (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
     mkPolylineImage :: ![(GenSVGSt s Real, GenSVGSt s Real)] !ImageSpanReal
                        !(Maybe (Maybe (GenSVGSyn s), Maybe (GenSVGSyn s), Maybe (GenSVGSyn s)))
                        ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)]
@@ -1201,7 +1201,7 @@ genSVG img = imageCata genSVGAllAlgs img
                     -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkPolylineImage points sp mmarkers imAts imTrs imTas
       =           evalOffsets points `b`
-      \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString x, toString y)) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
+      \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
 
     mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) clval
       # (uid1, clval) = nextNo clval
@@ -1262,8 +1262,8 @@ genSVG img = imageCata genSVGAllAlgs img
   genSVGComposeAlgs :: ComposeAlg (GenSVGSt s (GenSVGSyn s))
                                  ([ImageOffsetReal] (Maybe (GenSVGSyn s)) ImageSpanReal [(Maybe HtmlAttr, Maybe SVGAttr)] [ImageSpanReal -> GenSVGSt s (SVGTransform, ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGComposeAlgs =
-    { composeAsGridAlg    = \_ _ _ _ _ _ _ _ _ -> ret mkGenSVGSyn // These aren't used. They're translated to collages server-side. We provide them here only because we must if we don't want the evaluation to crash.
-    , composeAsOverlayAlg = \_ _ _ _ _ _ _ _   -> ret mkGenSVGSyn // These aren't used. They're translated to collages server-side. We provide them here only because we must if we don't want the evaluation to crash.
+    { composeAsGridAlg    = \_ _ _ _ _ _ _ _ _ -> ret mkGenSVGSyn // These aren't used. They're translated to collages in fixSpans. We provide them here only because we must if we don't want the evaluation to crash.
+    , composeAsOverlayAlg = \_ _ _ _ _ _ _ _   -> ret mkGenSVGSyn // These aren't used. They're translated to collages in fixSpans. We provide them here only because we must if we don't want the evaluation to crash.
     , composeAsCollageAlg = mkCollage
     }
     where
