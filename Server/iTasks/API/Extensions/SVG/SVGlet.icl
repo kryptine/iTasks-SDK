@@ -1120,10 +1120,10 @@ genSVG img = imageCata genSVGAllAlgs img
     mkTextImage :: !FontDef !String !ImageSpanReal  ![(Maybe HtmlAttr, Maybe SVGAttr)] ![(SVGTransform, ImageTransform)] !(Set ImageTag)
                 -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkTextImage fd str imSp imAts imTrs imTas
-      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [] [TextElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
+      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [TransformAttr [TranslateTransform "0" (toString fd.fontysize)]] [TextElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
       where
-      fontAttrs fsz = [ AlignmentBaselineAttr "text-before-edge"
-                      , DominantBaselineAttr "text-before-edge"
+      fontAttrs fsz = [ AlignmentBaselineAttr "auto"
+                      , DominantBaselineAttr "auto"
                       , FontFamilyAttr fd.fontfamily
                       , FontSizeAttr (toString fsz)
                       , FontStyleAttr fd.fontstyle
