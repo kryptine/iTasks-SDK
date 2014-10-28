@@ -1498,6 +1498,7 @@ foldrOffsets spanAlgs lookupSpanAlgs xs
             = [(synr, synl):xs]
       in  foldr f [] xs
 
+imageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(Image m) -> im
 imageCata allAlgs { Image | content, mask, attribs, transform, tags, totalSpan = (txsp, tysp), margin = (m1, m2, m3, m4), transformCorrection = (tfXCorr, tfYCorr) }
   # synContent    = imageContentCata allAlgs content
   # synMask       = fmap (imageCata allAlgs) mask
@@ -1513,6 +1514,7 @@ imageCata allAlgs { Image | content, mask, attribs, transform, tags, totalSpan =
   # synYCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfYCorr
   = allAlgs.imageAlgs.imageAlg synContent synMask synsAttribs synsTransform tags (synTXsp, synTYsp) (synm1, synm2, synm3, synm4) (synXCorr, synYCorr)
 
+imageContentCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(ImageContent m) -> imCo
 imageContentCata allAlgs (Basic bi is)
   # synBasicImage = basicImageCata allAlgs.basicImageAlgs bi
   # synImageSpan  = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs is
@@ -1524,6 +1526,7 @@ imageContentCata allAlgs (Composite ci)
   # synCompositeImage = compositeImageCata allAlgs ci
   = allAlgs.imageContentAlgs.imageContentCompositeAlg synCompositeImage
 
+imageAttrCata :: !(ImageAttrAlg m imAt) !(ImageAttr m) -> imAt
 imageAttrCata imageAttrAlgs (ImageStrokeAttr sa)         = imageAttrAlgs.imageAttrImageStrokeAttrAlg sa
 imageAttrCata imageAttrAlgs (ImageStrokeWidthAttr swa)   = imageAttrAlgs.imageAttrStrokeWidthAttrAlg swa
 imageAttrCata imageAttrAlgs (ImageXRadiusAttr r)         = imageAttrAlgs.imageAttrXRadiusAttrAlg r
@@ -1534,6 +1537,7 @@ imageAttrCata imageAttrAlgs (ImageFillOpacityAttr swa)   = imageAttrAlgs.imageAt
 imageAttrCata imageAttrAlgs (ImageOnClickAttr cl)        = imageAttrAlgs.imageAttrOnClickAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageDashAttr d)            = imageAttrAlgs.imageAttrDashAttr d
 
+imageTransformCata :: !(ImageTransformAlg Deg sp imTr) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !ImageTransform -> imTr
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (RotateImage ia)
   = imageTransformAlgs.imageTransformRotateImageAlg ia
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (SkewXImage ia)
@@ -1551,24 +1555,28 @@ imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (FitYImage sp)
   # synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = imageTransformAlgs.imageTransformFitYImageAlg synSpan
 
+basicImageCata :: !(BasicImageAlg baIm) !BasicImage -> baIm
 basicImageCata basicImageAlgs EmptyImage         = basicImageAlgs.basicImageEmptyImageAlg
 basicImageCata basicImageAlgs (TextImage fd str) = basicImageAlgs.basicImageTextImageAlg fd str
 basicImageCata basicImageAlgs CircleImage        = basicImageAlgs.basicImageCircleImageAlg
 basicImageCata basicImageAlgs RectImage          = basicImageAlgs.basicImageRectImageAlg
 basicImageCata basicImageAlgs EllipseImage       = basicImageAlgs.basicImageEllipseImageAlg
 
+lineImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(LineImage m) -> liIm
 lineImageCata allAlgs { LineImage | lineSpan, markers, lineContent }
   # synImageSpan   = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineSpan
   # synMarkers     = fmap (markersCata allAlgs) markers
   # synLineContent = lineContentCata allAlgs.lineContentAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineContent
   = allAlgs.lineImageAlgs.lineImageLineImageAlg synImageSpan synMarkers synLineContent
 
+markersCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(Markers m) -> ma
 markersCata allAlgs { Markers | markerStart, markerMid, markerEnd }
   # synStart = fmap (imageCata allAlgs) markerStart
   # synMid   = fmap (imageCata allAlgs) markerMid
   # synEnd   = fmap (imageCata allAlgs) markerEnd
   = allAlgs.markersAlgs.markersMarkersAlg synStart synMid synEnd
 
+lineContentCata :: !(LineContentAlg sp liCo) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !LineContent -> liCo
 lineContentCata lineContentAlgs _ _ (SimpleLineImage sl)
   = lineContentAlgs.lineContentSimpleLineImageAlg sl
 lineContentCata lineContentAlgs spanAlgs lookupSpanAlgs (PolygonImage offsets)
@@ -1578,17 +1586,20 @@ lineContentCata lineContentAlgs spanAlgs lookupSpanAlgs (PolylineImage offsets)
   # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
   = lineContentAlgs.lineContentPolylineImageAlg synsImageOffset
 
+span2TupleCata :: !(ImageSpanAlg sp imSp) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !(Span, Span) -> imSp
 span2TupleCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
   # synSpan1 = spanCata spanAlgs lookupSpanAlgs xspan
   # synSpan2 = spanCata spanAlgs lookupSpanAlgs yspan
   = imageSpanAlgs.imageSpanAlg synSpan1 synSpan2
 
+compositeImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(CompositeImage m) -> coIm
 compositeImageCata allAlgs { CompositeImage | offsets, host, compose }
   # synsImageOffset = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
   # synHost         = fmap (imageCata allAlgs) host
   # synCompose      = composeCata allAlgs compose
   = allAlgs.compositeImageAlgs.compositeImageAlg synsImageOffset synHost synCompose
 
+composeCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(Compose m) -> co
 composeCata allAlgs (AsGrid n ias imgss)
   # synsContent = foldr (\xs xss -> [foldrCata (imageCata allAlgs) xs:xss]) [] imgss
   = allAlgs.composeAlgs.composeAsGridAlg n ias synsContent
@@ -1599,6 +1610,7 @@ composeCata allAlgs (AsOverlay ias imgs)
   # synsContent = foldrCata (imageCata allAlgs) imgs
   = allAlgs.composeAlgs.composeAsOverlayAlg ias synsContent
 
+spanCata :: !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !Span -> sp
 spanCata spanAlgs lookupSpanAlgs (PxSpan rl)
   = spanAlgs.spanPxSpanAlg rl
 spanCata spanAlgs lookupSpanAlgs (LookupSpan lu)
@@ -1630,6 +1642,7 @@ spanCata spanAlgs lookupSpanAlgs (MaxSpan sps)
   # synsSpans = foldrCata (spanCata spanAlgs lookupSpanAlgs) sps
   = spanAlgs.spanMaxSpanAlg synsSpans
 
+lookupCata :: !(LookupSpanAlg loSp) !LookupSpan -> loSp
 lookupCata lookupSpanAlgs (ColumnXSpan imts n)
   = lookupSpanAlgs.lookupSpanColumnXSpanAlg imts n
 lookupCata lookupSpanAlgs (RowYSpan imts n)
