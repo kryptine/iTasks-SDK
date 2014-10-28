@@ -18,18 +18,18 @@ import Text
 derive class iTask FontDef, Set
 
 :: GenSVGStVal s =
-  { uniqueIdCounter :: Int
+  { uniqueIdCounter :: !Int
   }
 
 :: CachedSpan =
-  { cachedGridSpans :: Maybe ({Span}, {Span})
-  , cachedImageSpan :: Maybe ImageSpan
+  { cachedGridSpans :: !Maybe ({!Span}, {!Span})
+  , cachedImageSpan :: !Maybe ImageSpan
   }
 
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
-addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorld | iTask s
+addOnclicks :: !ComponentId !(JSObj svg) !(Map String (s -> s)) !*JSWorld -> *JSWorld | iTask s
 addOnclicks cid svg onclicks world
   = 'DM'.foldrWithKey f world onclicks
   where
@@ -68,13 +68,13 @@ ifAction _ _ _ _ = Nothing
 svgns :== "http://www.w3.org/2000/svg"
 
 :: SVGSrvSt s =
-  { svgSrvIsDefault  :: Bool
-  , svgSrvHasStUpd   :: Bool
-  , svgSrvHasFontUpd :: Bool
-  , svgSrvFontRender :: Bool
-  , svgSrvSt         :: s
-  , svgSrvStrings    :: Map FontDef (Set String)
-  , svgSrvTextWidths :: Map FontDef (Map String Real)
+  { svgSrvIsDefault  :: !Bool
+  , svgSrvHasStUpd   :: !Bool
+  , svgSrvHasFontUpd :: !Bool
+  , svgSrvFontRender :: !Bool
+  , svgSrvSt         :: !s
+  , svgSrvStrings    :: !Map FontDef (Set String)
+  , svgSrvTextWidths :: !Map FontDef (Map String Real)
   }
 
 defaultSrvSt :: !s -> SVGSrvSt s
@@ -88,14 +88,14 @@ defaultSrvSt s = { svgSrvIsDefault  = True
                  }
 
 :: SVGClSt s =
-  { svgClIsDefault  :: Bool
-  , svgClHasStUpd   :: Bool
-  , svgClHasFontUpd :: Bool
-  , svgClSt         :: s
-  , svgClStrings    :: Map FontDef (Set String)
-  , svgClTextWidths :: Map FontDef (Map String Real)
-  , svgClCallbacks  :: Map String (s -> s)
-  , svgClImageStr   :: Maybe String
+  { svgClIsDefault  :: !Bool
+  , svgClHasStUpd   :: !Bool
+  , svgClHasFontUpd :: !Bool
+  , svgClSt         :: !s
+  , svgClStrings    :: !Map FontDef (Set String)
+  , svgClTextWidths :: !Map FontDef (Map String Real)
+  , svgClCallbacks  :: !Map String (s -> s)
+  , svgClImageStr   :: !Maybe String
   }
 
 defaultClSt :: !s -> SVGClSt s
@@ -110,10 +110,10 @@ defaultClSt s = { svgClIsDefault  = True
                 }
 
 :: SVGDiff s
-  = SetState s
-  | SetImage       String (Map String (s -> s))
-  | SetFontStringsMap     (Map FontDef (Set String))
-  | SetFontStringWidthMap (Map FontDef (Map String Real))
+  = SetState       !s
+  | SetImage       !String !(Map String (s -> s))
+  | SetFontStringsMap      !(Map FontDef (Set String))
+  | SetFontStringWidthMap  !(Map FontDef (Map String Real))
   | SetHasStUpd
   | SetHasNoStUpd
   | SetHasFontUpd
@@ -228,12 +228,14 @@ svgRenderer origState state2Image
                                         syn.genSVGSyn_svgElts)
     = (svgStr, syn.genSVGSyn_onclicks)
 
+  fixImageSpans :: !(Image s) !(Map FontDef (Map String Real)) -> Image s | iTask s
   fixImageSpans img env
     = fst (fixSpans img { fixSpansTaggedSpanEnv = 'DM'.newMap
                         , fixSpansDidChange     = False
                         , fixSpansCounter       = 0
                         , fixSpansFonts         = env})
 
+  //diffFromImgState :: !(SVGSrvSt s) -> [SVGDiff s] | iTask s
   diffFromImgState srvSt
     # image   = state2Image srvSt.svgSrvSt
     # fontMap = gatherFonts image
@@ -245,6 +247,7 @@ svgRenderer origState state2Image
       # (svgStr, onClicks) = renderSVG (fixImageSpans image mp)
       = trace_n svgStr [SetImage svgStr onClicks, SetHasNoFontUpd]
 
+  //genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe [SVGDiff s] | iTask s
   genServerDiff oldSrvSt newSrvSt
     | newSrvSt.svgSrvFontRender = trace_n ("\ngenServerDiff newSrvSt.svgSrvFontRender\n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetHasNoFontRender : diffFromImgState newSrvSt]
     | oldSrvSt.svgSrvIsDefault  = trace_n ("\ngenServerDiff oldSrvSt.svgSrvIsDefault \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetState newSrvSt.svgSrvSt : diffFromImgState newSrvSt]
@@ -252,6 +255,7 @@ svgRenderer origState state2Image
     | newSrvSt.svgSrvHasStUpd   = trace_n ("\ngenServerDiff newSrvSt.svgSrvHasStUpd  \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetHasNoStUpd : diffFromImgState newSrvSt]
     | otherwise                 = trace_n ("\ngenServerDiff otherwise                \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Nothing
 
+  appServerDiff :: ![SVGDiff s] !(SVGSrvSt s) -> SVGSrvSt s | iTask s
   appServerDiff ds srvSt = appServerDiff` ds {srvSt & svgSrvIsDefault = False}
     where
     appServerDiff` [SetState st : ds]               srvSt
@@ -266,6 +270,7 @@ svgRenderer origState state2Image
     appServerDiff` [_ : ds]                         srvSt = trace_n "appServerDiff` [_ : ds]" appServerDiff` ds srvSt
     appServerDiff` _                                srvSt = trace_n "appServerDiff` _" srvSt
 
+  genClientDiff :: !(SVGClSt s) !(SVGClSt s) -> Maybe [SVGDiff s] | iTask s
   genClientDiff oldClSt newClSt
     # ds1 = if (oldClSt.svgClSt === newClSt.svgClSt) [] [SetState newClSt.svgClSt]
     # ds2 = if (oldClSt.svgClTextWidths === newClSt.svgClTextWidths) [] [SetFontStringWidthMap newClSt.svgClTextWidths]
@@ -275,6 +280,7 @@ svgRenderer origState state2Image
         [] -> trace_n "genClientDiff []" Nothing
         xs -> trace_n ("genClientDiff xs: " +++ toString (toJSON xs)) Just xs
 
+  appClientDiff :: ![SVGDiff s] !(SVGClSt s) -> SVGClSt s | iTask s
   appClientDiff ds clSt = appClientDiff` ds {clSt & svgClIsDefault = False}
     where
     appClientDiff` [SetState st:ds]              clSt = appClientDiff ds {clSt & svgClSt = st}
@@ -306,6 +312,7 @@ calcTextLengths fontdefs world
   # (_, world)    = (body `removeChild` svg) world
   = (res, world)
   where
+  f :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!Map FontDef (Map String Real), !*JSWorld) -> *(Map FontDef (Map String Real), *JSWorld)
   f elem fontdef strs (acc, world)
     # fontAttrs   = [ ("font-family",  fontdef.fontfamily)
                     , ("font-size",    toString fontdef.fontysize)
@@ -318,6 +325,7 @@ calcTextLengths fontdefs world
     # world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
     # (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
     = ('DM'.put fontdef ws acc, world)
+  g :: !(JSVal (JSObject a)) !String !*(!Map String Real, !*JSWorld) -> *(Map String Real, *JSWorld)
   g elem str (acc, world)
     # world        = (elem .# "textContent" .= str) world
     # (ctl, world) = (elem `getComputedTextLength` ()) world
@@ -328,10 +336,10 @@ calcTextLengths fontdefs world
 :: FixSpansSt a :== State FixSpansStVal a
 
 :: FixSpansStVal =
-  { fixSpansTaggedSpanEnv :: Map (Set ImageTag) CachedSpan
-  , fixSpansCounter       :: Int
-  , fixSpansDidChange     :: Bool
-  , fixSpansFonts         :: Map FontDef (Map String Real)
+  { fixSpansTaggedSpanEnv :: !Map (Set ImageTag) CachedSpan
+  , fixSpansCounter       :: !Int
+  , fixSpansDidChange     :: !Bool
+  , fixSpansFonts         :: !Map FontDef (Map String Real)
   }
 
 class nextNo a :: a -> (Int, a)
@@ -347,9 +355,9 @@ instance nextNo FixSpansStVal where
 :: ErrorMessage :== String
 
 :: FixSpansSyn s =
-  { fixSpansSyn_ImageContent     :: ImageContent s
-  , fixSpansSyn_TotalSpan        :: ImageSpan
-  , fixSpansSyn_OffsetCorrection :: ImageOffset
+  { fixSpansSyn_ImageContent     :: !ImageContent s
+  , fixSpansSyn_TotalSpan        :: !ImageSpan
+  , fixSpansSyn_OffsetCorrection :: !ImageOffset
   }
 
 runM :: !(State s a) s -> (a, s)
@@ -924,7 +932,7 @@ fixSpans img = go
                       Just {cachedImageSpan = Just xs} -> f xs
                       _                                -> LookupSpan (c ts))
 
-    mkImageGridSpan :: !(({Span}, {Span}) Int -> Span) !((Set ImageTag) Int -> LookupSpan)
+    mkImageGridSpan :: !(({!Span}, {!Span}) Int -> Span) !((Set ImageTag) Int -> LookupSpan)
                        !(Set ImageTag) Int
                     -> FixSpansSt Span
     mkImageGridSpan f c ts n
