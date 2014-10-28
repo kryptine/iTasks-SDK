@@ -33,7 +33,7 @@ addOnclicks :: ComponentId (JSObj svg) (Map String (s -> s)) *JSWorld -> *JSWorl
 addOnclicks cid svg onclicks world
   = 'DM'.foldrWithKey f world onclicks
   where
-  f :: String (s -> s) *JSWorld -> *JSWorld | iTask s
+  f :: !String !(s -> s) !*JSWorld -> *JSWorld | iTask s
   f elemCls sttf world
     # elemCls           = replaceSubString editletId cid elemCls
     # (elems, world)    = (svg `getElementsByClassName` elemCls) world
@@ -43,7 +43,7 @@ addOnclicks cid svg onclicks world
     # cb                = createEditletEventHandler (mkCB sttf) cid
     # (_, world)        = (elem `addEventListener` ("click", cb, True)) world
     = world
-  mkCB :: (s -> s) String {JSObj JSEvent} (SVGClSt s) *JSWorld -> *(SVGClSt s, *JSWorld) | iTask s
+  mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(SVGClSt s, *JSWorld) | iTask s
   mkCB sttf _ _ clval=:{svgClSt} world
     # newSt = sttf svgClSt
     = ({clval & svgClSt = newSt, svgClIsDefault = False, svgClHasStUpd = not (newSt === svgClSt)}, world)
@@ -77,7 +77,7 @@ svgns :== "http://www.w3.org/2000/svg"
   , svgSrvTextWidths :: Map FontDef (Map String Real)
   }
 
-defaultSrvSt :: s -> SVGSrvSt s
+defaultSrvSt :: !s -> SVGSrvSt s
 defaultSrvSt s = { svgSrvIsDefault  = True
                  , svgSrvHasStUpd   = False
                  , svgSrvHasFontUpd = False
@@ -98,7 +98,7 @@ defaultSrvSt s = { svgSrvIsDefault  = True
   , svgClImageStr   :: Maybe String
   }
 
-defaultClSt :: s -> SVGClSt s
+defaultClSt :: !s -> SVGClSt s
 defaultClSt s = { svgClIsDefault  = True
                 , svgClHasStUpd   = False
                 , svgClHasFontUpd = False
@@ -218,7 +218,7 @@ svgRenderer origState state2Image
   // In this function we assume that all spans have already been reduced to
   // pixels. If there still are unresolved lookups, they will be defaulted to
   // 0px.
-  renderSVG :: (Image s) -> (String, Map String (s -> s)) | iTask s
+  renderSVG :: !(Image s) -> (String, Map String (s -> s)) | iTask s
   renderSVG img
     # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
     # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
@@ -294,7 +294,7 @@ svgRenderer origState state2Image
 (`removeChild`)            obj args :== obj .# "removeChild"            .$ args
 (`getComputedTextLength`)  obj args :== obj .# "getComputedTextLength"  .$ args
 
-calcTextLengths :: !(Map FontDef (Set String)) *JSWorld -> *(Map FontDef (Map String Real), *JSWorld)
+calcTextLengths :: !(Map FontDef (Set String)) !*JSWorld -> *(Map FontDef (Map String Real), *JSWorld)
 calcTextLengths fontdefs world
   # (svg, world)  = (jsDocument `createElementNS` (svgns, "svg")) world
   # (body, world) = .? (jsDocument .# "body") world
@@ -512,9 +512,9 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     }
   gatherFontsImageAttrAlgs =
     { imageAttrImageStrokeAttrAlg   = \_ -> 'DM'.newMap
-    , imageAttrStrokeWidthAttrAlg   = \{strokewidth} -> gatherFontsspan strokewidth
-    , imageAttrXRadiusAttrAlg       = \{xradius} -> gatherFontsspan xradius
-    , imageAttrYRadiusAttrAlg       = \{yradius} -> gatherFontsspan yradius
+    , imageAttrStrokeWidthAttrAlg   = \{strokewidth} -> gatherFontsSpan strokewidth
+    , imageAttrXRadiusAttrAlg       = \{xradius} -> gatherFontsSpan xradius
+    , imageAttrYRadiusAttrAlg       = \{yradius} -> gatherFontsSpan yradius
     , imageAttrStrokeOpacityAttrAlg = \_ -> 'DM'.newMap
     , imageAttrFillAttrAlg          = \_ -> 'DM'.newMap
     , imageAttrFillOpacityAttrAlg   = \_ -> 'DM'.newMap
@@ -578,8 +578,8 @@ gatherFontsLookupSpanAlgs =
   , lookupSpanTextXSpanAlg    = \fd str -> 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
   }
 
-gatherFontsspan :: Span -> Map FontDef (Set String)
-gatherFontsspan sp = spanCata gatherFontsSpanAlgs gatherFontsLookupSpanAlgs sp
+gatherFontsSpan :: !Span -> Map FontDef (Set String)
+gatherFontsSpan sp = spanCata gatherFontsSpanAlgs gatherFontsLookupSpanAlgs sp
 
 fixSpans :: !(Image s) -> FixSpansSt (Image s) | iTask s
 fixSpans img = go
@@ -895,13 +895,16 @@ fixSpans img = go
     , lookupSpanTextXSpanAlg   = mkTextLU
     }
     where
-    mkTextLU fd str st
-      # sw = case 'DM'.get fd st.fixSpansFonts of
-               Just fs -> case 'DM'.get str fs of
-                            Just sw -> sw
-                            _       -> 0.0
-               _       -> 0.0
-      = ret (PxSpan sw) st
+    mkTextLU :: !FontDef !String -> FixSpansSt Span
+    mkTextLU fd str = go
+      where
+      go st
+        # sw = case 'DM'.get fd st.fixSpansFonts of
+                 Just fs -> case 'DM'.get str fs of
+                              Just sw -> sw
+                              _       -> 0.0
+                 _       -> 0.0
+        = ret (PxSpan sw) st
 
     lookupTags :: !(Set ImageTag) -> FixSpansSt (Maybe CachedSpan)
     lookupTags ts
@@ -947,7 +950,6 @@ mkGenSVGSyn = { genSVGSyn_svgElts       = []
               , genSVGSyn_onclicks      = 'DM'.newMap
               }
 
-
 editletId = "__INTERNAL_editletId_PLACEHOLDER__"
 
 mkMaskId :: !String !Int -> String
@@ -968,13 +970,13 @@ getSvgAttrs as = [a \\ (_, Just a) <- as]
 getHtmlAttrs :: ![(Maybe HtmlAttr, Maybe SVGAttr)] -> [HtmlAttr]
 getHtmlAttrs as = [a \\ (Just a, _) <- as]
 
-mkUrl :: String -> String
+mkUrl :: !String -> String
 mkUrl ref = "url(#" +++ ref +++ ")"
 
 mkWH :: !ImageSpanReal -> [HtmlAttr]
 mkWH (imXSp, imYSp) = [WidthAttr (toString (toInt imXSp)), HeightAttr (toString (toInt imYSp))]
 
-to2dec :: Real -> Real
+to2dec :: !Real -> Real
 to2dec n = toReal (toInt (n * 100.0)) / 100.0
 
 genSVG :: !(Image s) -> GenSVGSt s (GenSVGSyn s) | iTask s
@@ -1220,7 +1222,7 @@ genSVG img = imageCata genSVGAllAlgs img
             clval // TODO Correct offsets? What about the transformations?
       where
       // TODO Marker size etc?
-      mkMarkerAndId :: (Maybe (GenSVGSyn s)) String (String -> SVGAttr) -> Maybe (SVGElt, SVGAttr, Map String (s -> s)) | iTask s
+      mkMarkerAndId :: !(Maybe (GenSVGSyn s)) !String !(String -> SVGAttr) -> Maybe (SVGElt, SVGAttr, Map String (s -> s)) | iTask s
       mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h), genSVGSyn_onclicks}) mid posAttr
         = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto" // TODO Do something with offset?
                                         , ViewBoxAttr "0" "0" (toString (toInt w)) (toString (toInt h))
@@ -1285,6 +1287,7 @@ genSVG img = imageCata genSVGAllAlgs img
   genSVGLookupSpanAlgs :: LookupSpanAlg (GenSVGSt s Real) | iTask s
   genSVGLookupSpanAlgs = evalSpanLookupSpanAlgs
 
+stTrace :: !a !*(cl, *JSWorld) -> *(cl, *JSWorld)
 stTrace x (clval, world)
   # world = jsTrace x world
   = (clval, world)
@@ -1295,7 +1298,7 @@ instance + (Real, Real) where
 xor x y :== not (x && y) && (x || y)
 
 //withSt :: (*(St a) -> *(b, *(St a))) *(St a) -> *(b, *(St a))
-withSt f st = f st
+withSt f st :== f st
 
 mkGroup :: ![HtmlAttr] ![SVGAttr] ![SVGElt] -> [SVGElt]
 mkGroup _   _   []   = []
@@ -1345,7 +1348,7 @@ mkTranslateGroup :: !ImageOffsetReal ![SVGElt] -> [SVGElt]
 mkTranslateGroup (xoff, yoff) contents
   = mkGroup [] (mkTransformTranslateAttr (to2dec xoff, to2dec yoff)) contents
 
-mkTransformTranslateAttr :: (Real, Real) -> [SVGAttr]
+mkTransformTranslateAttr :: !(Real, Real) -> [SVGAttr]
 mkTransformTranslateAttr (0.0,   0.0)   = []
 mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
