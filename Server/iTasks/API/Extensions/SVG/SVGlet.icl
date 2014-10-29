@@ -12,7 +12,7 @@ import Data.List
 import Data.Func
 from Data.Set import :: Set, instance == (Set a), instance < (Set a)
 import qualified Data.Set as DS
-from StdFunc import `bind`
+from StdFunc import `bind`, flip
 import Text
 
 derive class iTask FontDef, Set
@@ -493,10 +493,10 @@ skewYImageHeight angle (xspan, yspan) = (newYSpan, mkOffset)
     | rAngle <= 0.0 = zero - spanDiff
     | otherwise     = spanDiff
 
-
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
 gatherFonts img = imageCata gatherFontsAllAlgs img
   where
+  gatherFontsAllAlgs :: Algebras s (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) ((Map FontDef (Set String)) -> Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsAllAlgs =
     { imageAlgs          = gatherFontsImageAlgs
     , imageContentAlgs   = gatherFontsImageContentAlgs
@@ -512,81 +512,117 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , spanAlgs           = gatherFontsSpanAlgs
     , lookupSpanAlgs     = gatherFontsLookupSpanAlgs
     }
+  gatherFontsImageAlgs :: ImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageAlgs =
-    { imageAlg = \imCo mask imAts imTrs _ _ (m1, m2, m3, m4) _ -> 'DM'.unionsWith 'DS'.union [imCo : m1 : m2 : m3 : m4 : maybeToList mask ++ imAts ++ imTrs]
+    { imageAlg = mkImage
     }
+    where
+    mkImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) ![Map FontDef (Set String)] ![Map FontDef (Set String)] a b !(!Map FontDef (Set String), !Map FontDef (Set String), !Map FontDef (Set String), !Map FontDef (Set String)) c -> Map FontDef (Set String)
+    mkImage imCo mask imAts imTrs _ _ (m1, m2, m3, m4) _ = gatherFontsUnions [imCo : m1 : m2 : m3 : m4 : maybeToList mask ++ imAts ++ imTrs]
+  gatherFontsImageContentAlgs :: ImageContentAlg (s -> Map FontDef (Set String)) s (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageContentAlgs =
     { imageContentBasicAlg     = id
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
+  gatherFontsImageAttrAlgs :: ImageAttrAlg s (Map FontDef (Set String))
   gatherFontsImageAttrAlgs =
-    { imageAttrImageStrokeAttrAlg   = \_ -> 'DM'.newMap
+    { imageAttrImageStrokeAttrAlg   = const 'DM'.newMap
     , imageAttrStrokeWidthAttrAlg   = \{strokewidth} -> gatherFontsSpan strokewidth
     , imageAttrXRadiusAttrAlg       = \{xradius} -> gatherFontsSpan xradius
     , imageAttrYRadiusAttrAlg       = \{yradius} -> gatherFontsSpan yradius
-    , imageAttrStrokeOpacityAttrAlg = \_ -> 'DM'.newMap
-    , imageAttrFillAttrAlg          = \_ -> 'DM'.newMap
-    , imageAttrFillOpacityAttrAlg   = \_ -> 'DM'.newMap
-    , imageAttrOnClickAttrAlg       = \_ -> 'DM'.newMap
-    , imageAttrDashAttr             = \_ -> 'DM'.newMap
+    , imageAttrStrokeOpacityAttrAlg = const 'DM'.newMap
+    , imageAttrFillAttrAlg          = const 'DM'.newMap
+    , imageAttrFillOpacityAttrAlg   = const 'DM'.newMap
+    , imageAttrOnClickAttrAlg       = const 'DM'.newMap
+    , imageAttrDashAttr             = const 'DM'.newMap
     }
+  gatherFontsImageTransformAlgs :: ImageTransformAlg (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageTransformAlgs =
-    { imageTransformRotateImageAlg = \_   -> 'DM'.newMap
-    , imageTransformSkewXImageAlg  = \_   -> 'DM'.newMap
-    , imageTransformSkewYImageAlg  = \_   -> 'DM'.newMap
-    , imageTransformFitImageAlg    = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
+    { imageTransformRotateImageAlg = const 'DM'.newMap
+    , imageTransformSkewXImageAlg  = const 'DM'.newMap
+    , imageTransformSkewYImageAlg  = const 'DM'.newMap
+    , imageTransformFitImageAlg    = binUnion
     , imageTransformFitXImageAlg   = id
     , imageTransformFitYImageAlg   = id
     }
+  gatherFontsImageSpanAlgs :: ImageSpanAlg (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageSpanAlgs =
-    { imageSpanAlg = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
+    { imageSpanAlg = binUnion
     }
+  gatherFontsBasicImageAlgs :: BasicImageAlg ((Map FontDef (Set String)) -> Map FontDef (Set String))
   gatherFontsBasicImageAlgs =
-    { basicImageTextImageAlg    = \_ _ sp -> sp
+    { basicImageTextImageAlg    = const2 id
     , basicImageEmptyImageAlg   = id
     , basicImageCircleImageAlg  = id
     , basicImageRectImageAlg    = id
     , basicImageEllipseImageAlg = id
     }
-
+  gatherFontsLineImageAlgs :: LineImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsLineImageAlgs =
-    { lineImageLineImageAlg = \sp ms liCo -> 'DM'.unionsWith 'DS'.union [liCo:sp:maybeToList ms]
+    { lineImageLineImageAlg = mkLineImage
     }
+    where
+    mkLineImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) !(Map FontDef (Set String)) -> Map FontDef (Set String)
+    mkLineImage sp ms liCo = gatherFontsUnions [liCo:sp:maybeToList ms]
+  gatherFontsMarkersAlgs :: MarkersAlg (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsMarkersAlgs =
-    { markersMarkersAlg = \m1 m2 m3 -> 'DM'.unionsWith 'DS'.union (concatMap maybeToList [m1, m2, m3])
+    { markersMarkersAlg = mkMarkers
     }
+    where
+    mkMarkers :: !(Maybe (Map FontDef (Set String))) !(Maybe (Map FontDef (Set String))) !(Maybe (Map FontDef (Set String))) -> Map FontDef (Set String)
+    mkMarkers m1 m2 m3 = gatherFontsUnions (concatMap maybeToList [m1, m2, m3])
+  gatherFontsLineContentAlgs :: LineContentAlg (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsLineContentAlgs =
-    { lineContentSimpleLineImageAlg = \_      -> 'DM'.newMap
-    , lineContentPolygonImageAlg    = \coords -> 'DM'.unionsWith 'DS'.union (map fst coords ++ map snd coords) // TODO refactor
-    , lineContentPolylineImageAlg   = \coords -> 'DM'.unionsWith 'DS'.union (map fst coords ++ map snd coords) // TODO refactor
+    { lineContentSimpleLineImageAlg = const 'DM'.newMap
+    , lineContentPolygonImageAlg    = gatherFontsUnions o (foldr (\(x, y) acc -> [x:y:acc]) [])
+    , lineContentPolylineImageAlg   = gatherFontsUnions o (foldr (\(x, y) acc -> [x:y:acc]) [])
     }
+  gatherFontsCompositeImageAlgs :: CompositeImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsCompositeImageAlgs =
-    { compositeImageAlg = \offsets host compose -> 'DM'.unionsWith 'DS'.union [compose : map fst offsets ++ map snd offsets ++ maybeToList host] // TODO refactor
+    { compositeImageAlg = mkCompositeImage
     }
+    where
+    mkCompositeImage :: ![(!Map FontDef (Set String), !Map FontDef (Set String))] !(Maybe (Map FontDef (Set String))) !(Map FontDef (Set String)) -> Map FontDef (Set String)
+    mkCompositeImage offsets host compose = gatherFontsUnions [compose : ((foldr (\(x, y) acc -> [x:y:acc]) []) offsets) ++ maybeToList host]
+  gatherFontsComposeAlgs :: ComposeAlg (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsComposeAlgs =
-    { composeAsGridAlg    = \_ _ imgss -> 'DM'.unionsWith 'DS'.union (flatten imgss)
-    , composeAsCollageAlg = \    imgs  -> 'DM'.unionsWith 'DS'.union imgs
-    , composeAsOverlayAlg = \  _ imgs  -> 'DM'.unionsWith 'DS'.union imgs
+    { composeAsGridAlg    = const2 (gatherFontsUnions o flatten)
+    , composeAsCollageAlg = gatherFontsUnions
+    , composeAsOverlayAlg = const gatherFontsUnions
     }
+gatherFontsSpanAlgs :: SpanAlg (Map FontDef (Set String)) (Map FontDef (Set String))
 gatherFontsSpanAlgs =
-  { spanPxSpanAlg     = \_   -> 'DM'.newMap
+  { spanPxSpanAlg     = const 'DM'.newMap
   , spanLookupSpanAlg = id
-  , spanAddSpanAlg    = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
-  , spanSubSpanAlg    = \x y -> 'DM'.unionsWith 'DS'.union [x, y]
-  , spanMulSpanAlg    = \x _ -> x
-  , spanDivSpanAlg    = \x _ -> x
+  , spanAddSpanAlg    = binUnion
+  , spanSubSpanAlg    = binUnion
+  , spanMulSpanAlg    = flip (const id)
+  , spanDivSpanAlg    = flip (const id)
   , spanAbsSpanAlg    = id
-  , spanMinSpanAlg    = \xs  -> 'DM'.unionsWith 'DS'.union xs
-  , spanMaxSpanAlg    = \xs  -> 'DM'.unionsWith 'DS'.union xs
+  , spanMinSpanAlg    = gatherFontsUnions
+  , spanMaxSpanAlg    = gatherFontsUnions
   }
+gatherFontsLookupSpanAlgs :: LookupSpanAlg (Map FontDef (Set String))
 gatherFontsLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg  = \_ _ -> 'DM'.newMap
-  , lookupSpanRowYSpanAlg     = \_ _ -> 'DM'.newMap
-  , lookupSpanImageXSpanAlg   = \_   -> 'DM'.newMap
-  , lookupSpanImageYSpanAlg   = \_   -> 'DM'.newMap
-  , lookupSpanTextXSpanAlg    = \fd str -> 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
+  { lookupSpanColumnXSpanAlg  = const2 'DM'.newMap
+  , lookupSpanRowYSpanAlg     = const2 'DM'.newMap
+  , lookupSpanImageXSpanAlg   = const 'DM'.newMap
+  , lookupSpanImageYSpanAlg   = const 'DM'.newMap
+  , lookupSpanTextXSpanAlg    = mkTextXSpan
   }
+  where
+  mkTextXSpan :: !FontDef !String -> Map FontDef (Set String)
+  mkTextXSpan fd str = 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
+
+binUnion :: !(Map FontDef (Set String)) !(Map FontDef (Set String)) -> Map FontDef (Set String)
+binUnion x y = gatherFontsUnions [x, y]
+
+const2 :: !a b c -> a
+const2 x _ _ = x
+
+gatherFontsUnions :: ![Map FontDef (Set String)] -> Map FontDef (Set String)
+gatherFontsUnions m = 'DM'.unionsWith 'DS'.union m
 
 gatherFontsSpan :: !Span -> Map FontDef (Set String)
 gatherFontsSpan sp = spanCata gatherFontsSpanAlgs gatherFontsLookupSpanAlgs sp
@@ -685,7 +721,7 @@ fixSpans img = go
     , imageAttrOnClickAttrAlg       = ret o ImageOnClickAttr
     , imageAttrDashAttr             = ret o ImageDashAttr
     }
-  fixSpansImageTransformAlgs :: ImageTransformAlg Deg (FixSpansSt Span) (FixSpansSt ImageTransform)
+  fixSpansImageTransformAlgs :: ImageTransformAlg (FixSpansSt Span) (FixSpansSt ImageTransform)
   fixSpansImageTransformAlgs =
     { imageTransformRotateImageAlg = ret o RotateImage
     , imageTransformSkewXImageAlg  = ret o SkewXImage
@@ -1095,7 +1131,7 @@ genSVG img = imageCata genSVGAllAlgs img
         # (uniqId, clval) = nextNo clval
         # ocId            = mkOnClickId editletId uniqId
         = ret ((Just (ClassAttr ocId), Nothing), 'DM'.singleton ocId onclick) clval
-  genSVGImageTransformAlgs :: ImageTransformAlg Deg (GenSVGSt s Real) (ImageSpanReal -> GenSVGSt s (!SVGTransform, !ImageTransform)) | iTask s
+  genSVGImageTransformAlgs :: ImageTransformAlg (GenSVGSt s Real) (ImageSpanReal -> GenSVGSt s (!SVGTransform, !ImageTransform)) | iTask s
   genSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = \imAn    (xsp, ysp) -> ret (RotateTransform (toString (toReal imAn)) (Just (toString (xsp / 2.0), toString (ysp / 2.0))), RotateImage imAn)
     , imageTransformSkewXImageAlg  = \imAn    (xsp, _)   -> ret (SkewXTransform (toString (toReal imAn)), SkewXImage imAn)
@@ -1401,11 +1437,11 @@ mkBin op x y = x `b` \x -> y `b` \y -> ret (op x y)
 mkList :: !([Real] -> Real) ![GenSVGSt s Real] -> GenSVGSt s Real | iTask s
 mkList f xs = sequence xs `b` \xs -> ret (f xs)
 
-:: Algebras m imCo imAt imTr im baIm imSp coIm imAn ho co sp loSp ma liIm liCo =
+:: Algebras m imCo imAt imTr im baIm imSp coIm ho co sp loSp ma liIm liCo =
   { imageAlgs          :: !ImageAlg imCo imAt imTr sp im
   , imageContentAlgs   :: !ImageContentAlg baIm imSp liIm coIm imCo
   , imageAttrAlgs      :: !ImageAttrAlg m imAt
-  , imageTransformAlgs :: !ImageTransformAlg imAn sp imTr
+  , imageTransformAlgs :: !ImageTransformAlg sp imTr
   , imageSpanAlgs      :: !ImageSpanAlg sp imSp
   , basicImageAlgs     :: !BasicImageAlg baIm
   , lineImageAlgs      :: !LineImageAlg imSp ma liCo liIm
@@ -1439,10 +1475,10 @@ mkList f xs = sequence xs `b` \xs -> ret (f xs)
   , imageAttrDashAttr             :: !(DashAttr m)        -> imAt
   }
 
-:: ImageTransformAlg imAn sp imTr =
-  { imageTransformRotateImageAlg :: !imAn  -> imTr
-  , imageTransformSkewXImageAlg  :: !imAn  -> imTr
-  , imageTransformSkewYImageAlg  :: !imAn  -> imTr
+:: ImageTransformAlg sp imTr =
+  { imageTransformRotateImageAlg :: !Deg   -> imTr
+  , imageTransformSkewXImageAlg  :: !Deg   -> imTr
+  , imageTransformSkewYImageAlg  :: !Deg   -> imTr
   , imageTransformFitImageAlg    :: !sp sp -> imTr
   , imageTransformFitXImageAlg   :: !sp    -> imTr
   , imageTransformFitYImageAlg   :: !sp    -> imTr
@@ -1515,7 +1551,7 @@ foldrOffsets spanAlgs lookupSpanAlgs xs
             = [(synr, synl):xs]
       in  foldr f [] xs
 
-imageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(Image m) -> im
+imageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Image m) -> im
 imageCata allAlgs { Image | content, mask, attribs, transform, tags, totalSpan = (txsp, tysp), margin = (m1, m2, m3, m4), transformCorrection = (tfXCorr, tfYCorr) }
   # synContent    = imageContentCata allAlgs content
   # synMask       = fmap (imageCata allAlgs) mask
@@ -1531,7 +1567,7 @@ imageCata allAlgs { Image | content, mask, attribs, transform, tags, totalSpan =
   # synYCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfYCorr
   = allAlgs.imageAlgs.imageAlg synContent synMask synsAttribs synsTransform tags (synTXsp, synTYsp) (synm1, synm2, synm3, synm4) (synXCorr, synYCorr)
 
-imageContentCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(ImageContent m) -> imCo
+imageContentCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(ImageContent m) -> imCo
 imageContentCata allAlgs (Basic bi is)
   # synBasicImage = basicImageCata allAlgs.basicImageAlgs bi
   # synImageSpan  = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs is
@@ -1554,7 +1590,7 @@ imageAttrCata imageAttrAlgs (ImageFillOpacityAttr swa)   = imageAttrAlgs.imageAt
 imageAttrCata imageAttrAlgs (ImageOnClickAttr cl)        = imageAttrAlgs.imageAttrOnClickAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageDashAttr d)            = imageAttrAlgs.imageAttrDashAttr d
 
-imageTransformCata :: !(ImageTransformAlg Deg sp imTr) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !ImageTransform -> imTr
+imageTransformCata :: !(ImageTransformAlg sp imTr) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !ImageTransform -> imTr
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (RotateImage ia)
   = imageTransformAlgs.imageTransformRotateImageAlg ia
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (SkewXImage ia)
@@ -1579,14 +1615,14 @@ basicImageCata basicImageAlgs CircleImage        = basicImageAlgs.basicImageCirc
 basicImageCata basicImageAlgs RectImage          = basicImageAlgs.basicImageRectImageAlg
 basicImageCata basicImageAlgs EllipseImage       = basicImageAlgs.basicImageEllipseImageAlg
 
-lineImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(LineImage m) -> liIm
+lineImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(LineImage m) -> liIm
 lineImageCata allAlgs { LineImage | lineSpan, markers, lineContent }
   # synImageSpan   = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineSpan
   # synMarkers     = fmap (markersCata allAlgs) markers
   # synLineContent = lineContentCata allAlgs.lineContentAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineContent
   = allAlgs.lineImageAlgs.lineImageLineImageAlg synImageSpan synMarkers synLineContent
 
-markersCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(Markers m) -> ma
+markersCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Markers m) -> ma
 markersCata allAlgs { Markers | markerStart, markerMid, markerEnd }
   # synStart = fmap (imageCata allAlgs) markerStart
   # synMid   = fmap (imageCata allAlgs) markerMid
@@ -1609,14 +1645,14 @@ span2TupleCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
   # synSpan2 = spanCata spanAlgs lookupSpanAlgs yspan
   = imageSpanAlgs.imageSpanAlg synSpan1 synSpan2
 
-compositeImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(CompositeImage m) -> coIm
+compositeImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(CompositeImage m) -> coIm
 compositeImageCata allAlgs { CompositeImage | offsets, host, compose }
   # synsImageOffset = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
   # synHost         = fmap (imageCata allAlgs) host
   # synCompose      = composeCata allAlgs compose
   = allAlgs.compositeImageAlgs.compositeImageAlg synsImageOffset synHost synCompose
 
-composeCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm Deg im co sp loSp ma liIm liCo) !(Compose m) -> co
+composeCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Compose m) -> co
 composeCata allAlgs (AsGrid n ias imgss)
   # synsContent = foldr (\xs xss -> [foldrCata (imageCata allAlgs) xs:xss]) [] imgss
   = allAlgs.composeAlgs.composeAsGridAlg n ias synsContent
