@@ -47,7 +47,7 @@ jsDeleteObjectAttr :: !String !(JSObj o) !*JSWorld -> *JSWorld
 jsDeleteObjectAttr value obj world = undef
 
 class JSObjAttr a where
-  jsSetter :: !a !(JSVal v) !(JSObj o) !*JSWorld -> !*JSWorld
+  jsSetter :: !a !(JSVal v) !(JSObj o) !*JSWorld -> *JSWorld
   jsGetter :: !a            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
 
 instance JSObjAttr String where
@@ -58,13 +58,13 @@ instance JSObjAttr Int where
   jsSetter idx val obj world = jsSetObjectEl idx val obj world
   jsGetter idx     obj world = jsGetObjectEl idx obj world
 
-(.#) infixl 3 :: !(JSObj a) !t -> !(JSObj a, t) | JSObjAttr t
+(.#) infixl 3 :: !(JSObj a) !t -> (JSObj a, t) | JSObjAttr t
 (.#) a b = (a, b)
 
-.? :: !(!JSObj o, !t) !*JSWorld -> !*(!JSVal r, !*JSWorld) | JSObjAttr t
+.? :: !(!JSObj o, !t) !*JSWorld -> *(!JSVal r, !*JSWorld) | JSObjAttr t
 .? (obj, attr) world = jsGetter attr obj world
 
-(.=) infixl 2 :: !(!JSObj o, !t) !v -> !*(!*JSWorld -> !*JSWorld) | JSObjAttr t
+(.=) infixl 2 :: !(!JSObj o, !t) !v -> *(*JSWorld -> *JSWorld) | JSObjAttr t
 (.=) (obj, attr) val = \world -> jsSetter attr (toJSVal val) obj world
 
 new :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
@@ -222,6 +222,8 @@ instance JSCall String where
 instance JSCall (JSObj o, String) where
   (.$) (obj, fun) args = \world -> callObjectMethod fun (toArgs args) obj world
 
+(.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | JSCall o & ToArgs a
+(.$!) a b = snd o (a .$ b)
 
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 callObjectMethod method args obj world

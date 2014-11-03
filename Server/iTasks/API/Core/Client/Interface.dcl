@@ -146,6 +146,8 @@ instance ToArgs a
 class JSCall o where
   (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
 
+(.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | JSCall o & ToArgs a
+
 instance JSCall String
 
 instance JSCall (JSObj o, String)
