@@ -2,6 +2,9 @@ definition module iTasks.API.Core.Client.Interface
 
 import StdString, StdGeneric, Data.Void, Data.Maybe
 
+import Control.Applicative
+from Control.Monad import class Monad
+
 :: DomElementId	:== String
 
 /**
@@ -9,7 +12,13 @@ import StdString, StdGeneric, Data.Void, Data.Maybe
 * where all the client side objects of which the iTask world live.
 */
 
-:: JSWorld
+:: JSIO a = JSIO (*JSWorld -> *(a, *JSWorld))
+
+instance Applicative JSIO
+instance Functor JSIO
+instance Monad JSIO
+
+:: *JSWorld
 :: JSVal a		//Pointer to a javascript value
 :: JSObj a :== JSVal (JSObject a)
 :: JSFun a :== JSObj (JSFunction a)
@@ -45,12 +54,25 @@ class JSObjAttr a where
   jsGetter :: !a            !(JSObj o) !*JSWorld -> *(!JSVal b, !*JSWorld)
 
 instance JSObjAttr String
-
 instance JSObjAttr Int
 
-(.#) infixl 3       :: !(JSObj a)  !t -> (JSObj a, t) | JSObjAttr t
-.?                  :: !(!JSObj o, !t) !*JSWorld -> *(!JSVal r, !*JSWorld) | JSObjAttr t
-(.=) infixl 2       :: !(!JSObj o, !t) !v -> *(*JSWorld -> *JSWorld) | JSObjAttr t
+:: JSObjSelector
+
+class (.#) infixl 3 s :: !s !t -> JSObjSelector | JSObjAttr t 
+instance .# (JSVal o)
+instance .# JSObjSelector
+
+getElementById :: !String -> JSObjSelector
+
+.? :: !JSObjSelector !*JSWorld -> *(!JSVal r, !*JSWorld)
+(.=) infixl 2 :: !JSObjSelector !v -> *(*JSWorld -> *JSWorld)
+
+class (.$) infixl 1 o :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
+instance .$ String
+instance .$ JSObjSelector
+
+(.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | .$ o & ToArgs a
+
 new                 :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
 
 //Calling js functions
@@ -80,11 +102,14 @@ jsArrayReverse      :: !(JSArr a)                 !*JSWorld -> *(!JSArr a, !*JSW
 toJSArray           :: ![a]                       !*JSWorld -> *(!JSArr a, !*JSWorld)
 fromJSArray         :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
 
-jsIsUndefined :: !(JSVal a) -> Bool
+jsIsUndefined 		:: !(JSVal a) -> Bool
 
+/*
+getElementById 		:: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
 getDomElement		:: !DomElementId					!*JSWorld -> *(!JSObj a, !*JSWorld)
 getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
 setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
+*/
 
 //Call a method on a javascript object. Object can be (JSVal null)
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
@@ -142,15 +167,6 @@ instance ToArgs (a, b, c, d, e)
 instance ToArgs (a, b, c, d, e, f)
 
 instance ToArgs a
-
-class JSCall o where
-  (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
-
-(.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | JSCall o & ToArgs a
-
-instance JSCall String
-
-instance JSCall (JSObj o, String)
 
 callFunction :: !String ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
 

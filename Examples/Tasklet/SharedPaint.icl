@@ -3,7 +3,7 @@ module SharedPaint
 // On the client, the list of drawings is reversed for efficient appending
 // Because of this, there is the trick with reverse at appClientDiff, genClientDiff and updateUI
 
-import iTasks
+//import iTasks
 import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
@@ -58,7 +58,7 @@ where
 	clientDef =
 	  {  EditletDef
 	  |  performIO = updateUI
-	  ,  defVal    = {tool = "P", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
+	  ,  defVal    = {tool = "L", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
 	  ,  genDiff   = cltGenDiff
 	  ,  appDiff   = \ds cl -> {cl & draw = reverse ds ++ cl.draw}
 	  }
@@ -87,58 +87,58 @@ where
 
 getCanvas cid temp world
 	= case temp of
-		True = getDomElement ("tempcanvas_"+++cid) world
-		_	 = getDomElement ("canvas_"+++cid) world
+		True = .? (getElementById ("tempcanvas_"+++cid)) world
+		_	 = .? (getElementById ("canvas_"+++cid)) world
 
 getContext cid temp world
  	# (canvas, world) = getCanvas cid temp world
-	# (context, world) = callObjectMethod "getContext" [toJSArg "2d"] canvas world // not "2D" !
+	# (context, world) = (canvas .# "getContext" .$ ("2d")) world // not "2D" !
 	= (context, world)
 
 clearContext context world
-	# (_, world) = callObjectMethod "clearRect" 
-						[toJSArg 0, toJSArg 0, toJSArg canvasWidth, toJSArg canvasHeight] context world
-	= world
+	= (context .# "clearRect" .$! (0, 0, canvasWidth, canvasHeight)) world
 			
 drawLine context color x1 y1 x2 y2 world
-	# (_, world) = callObjectMethod "beginPath" [] context world
-	# world	     = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
-	# (_, world) = callObjectMethod "moveTo" [toJSArg x1, toJSArg y1] context world
-	# (_, world) = callObjectMethod "lineTo" [toJSArg x2, toJSArg y2] context world
-	# (_, world) = callObjectMethod "stroke" [] context world
+	# world = (context .# "beginPath" .$! ()     ) world
+	# world = (context .# "strokeStyle" .= color ) world
+	# world = (context .# "moveTo" .$! (x1, y1)  ) world
+	# world = (context .# "lineTo" .$! (x2, y2)  ) world
+	# world = (context .# "stroke" .$! ()        ) world
 	= world
 
+(.>>.) infixl 9 // ::  u:(.a -> .b) u:(.c -> .a) -> u:(.c -> .b) // Function composition
+(.>>.) f g :== \ x -> g (f x)
+
 drawRect context color x1 y1 x2 y2 world
-	# world		 = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
-	# (_, world) = callObjectMethod "strokeRect" 
-					[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
-					context world
+//	= context .# "strokeStyle" .= color >>= \v ->
+//	  context .# "strokeRect" .$ (x1, y1, x2 - x1, y2 - y1)
+
+	# world = (context .# "strokeStyle" .= color                     ) world
+	# world = (context .# "strokeRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
 	= world
 
 drawFilledRect context color x1 y1 x2 y2 world
-	# world   	 = jsSetObjectAttr "fillStyle" (toJSVal color) context world
-	# (_, world) = callObjectMethod "fillRect"
-						[toJSArg x1, toJSArg y1, toJSArg (x2 - x1), toJSArg (y2 - y1)]
-						context world
+	# world = (context .# "fillStyle" .= color) world
+	# world = (context .# "fillRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
 	= world
 
 drawCircle context fill color x1 y1 x2 y2 world
-	# (_, world) = callObjectMethod "beginPath" [] context world
-	# world		 = jsSetObjectAttr "strokeStyle" (toJSVal color) context world
-	# world		 = jsSetObjectAttr "fillStyle" (toJSVal color) context world
+	# world = (context .# "beginPath" .$! ()      ) world
+	# world = (context .# "strokeStyle" .= color  ) world
+	# world = (context .# "fillStyle" .= color    ) world
 	
-	# (_, world) = callObjectMethod "arc"
-						[toJSArg (center x1 x2), toJSArg (center y1 y2)
-						,toJSArg (toInt ((distance x1 y1 x2 y2)/2.0))
-						,toJSArg 0, toJSArg (3.14159265*2.0), toJSArg True]
-						context world
+	# world = (context .# "arc" .$! (center x1 x2, 
+									 center y1 y2, 
+									 toInt ((distance x1 y1 x2 y2)/2.0),
+									 0, 
+									 3.14159265*2.0, 
+									 True)) world
 							
-	# (_, world) = case fill of 
-					True = callObjectMethod "fill" [] context world
-					_	 = callObjectMethod "stroke" [] context world
+	# world  = case fill of 
+					True = (context .# "fill" .$! ()) world
+					_	 = (context .# "stroke" .$! ()) world
 
-	# (_, world) = callObjectMethod "closePath" [] context world
-	= world
+	= (context .# "closePath" .$! ()) world
 where
 	center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
 	distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
@@ -156,6 +156,7 @@ canvasWidth :== 300
 canvasHeight :== 300
 
 // TODO: http://jaspervdj.be/blaze/tutorial.html
+// http://stackoverflow.com/questions/18201257/drawing-a-rectangle-without-clearing-the-canvas-eventlisteners
 
 painterGenerateGUI cid world  
 
@@ -177,16 +178,15 @@ painterGenerateGUI cid world
 					DivTag [IdAttr ("selectorBlack_"+++cid), StyleAttr "border-style:solid; border-color:pink; background-color:black; width: 40px; height: 40px; margin: 5px;"] []
 					],
 			DivTag [StyleAttr "clear: both"] [],
-			DivTag [] ([
+			DivTag [] [
 					Text "Tool: ",
 					SelectTag [IdAttr ("selecttool_"+++cid)] [
-						OptionTag [ValueAttr "P"] [Text "Pencil"],
 						OptionTag [ValueAttr "L"] [Text "Line"],
 						OptionTag [ValueAttr "R"] [Text "Rectangle"],
 						OptionTag [ValueAttr "r"] [Text "Rectangle (filled)"],
 						OptionTag [ValueAttr "C"] [Text "Circle"],
 						OptionTag [ValueAttr "c"] [Text "Circle (filled)"]]
-					])
+					]
 			]
 					
 	# html = DivTag [StyleAttr "width: 360px; margin-right: auto;"] [canvas:editor]		
@@ -214,22 +214,25 @@ painterGenerateGUI cid world
 	= (gui, world)
 where
 	onChangeTool _ {[0]=e} state world
-		# (selectedIndex, world) = jsGetObjectAttr "target.selectedIndex" e world
-		# (options, world) 		 = jsGetObjectAttr "target.options" e world		
-		# (option, world) 		 = jsGetObjectEl (jsValToInt selectedIndex) options world
-		# (atool, world) 		 = jsGetObjectAttr "value" option world
+		# (selectedIndex, world) = .? (e .# "target.selectedIndex") world
+		# (options, world) 		 = .? (e .# "target.options") world		
+		# (option, world) 		 = .? (options .# (jsValToInt selectedIndex)) world
+		# (atool, world) 		 = .? (option .# "value") world
 		= ({state & tool = jsValToString atool}, world)	
 
 	onSelectColor color _ {[0]=e} state world
-		# world = foldl (\world el = setDomAttr el "style.borderColor" (toJSVal "white") world) world
+		# world = foldl clearBorder world
 					["selectorYellow_"+++cid,"selectorRed_"+++cid,"selectorGreen_"+++cid,"selectorBlue_"+++cid,"selectorBlack_"+++cid]
-		# (target, world) = jsGetObjectAttr "target" e world
-		# world = jsSetObjectAttr "style.borderColor" (toJSVal "pink") target world
+		# world = (e .# "target" .# "style.borderColor" .= "pink") world
 		= ({state & color = color}, world)
+	where
+		clearBorder world el
+			# (obj, world) = .? (getElementById el) world
+			= (obj .# "style.borderColor" .= "white") world
 
 	getCoordinates e world
-	    # (x, world) = jsGetObjectAttr "layerX" e world
-	    # (y, world) = jsGetObjectAttr "layerY" e world
+	    # (x, world) = .? (e .# "layerX") world
+	    # (y, world) = .? (e .# "layerY") world
 	    = ((jsValToInt x, jsValToInt y), e, world)
 
 	onMouseDown _ {[0]=e} state world
@@ -240,7 +243,7 @@ where
 		# (tempcanvas, world)  	= getCanvas cid True world
 		# (tempcontext, world) 	= getContext cid True world
 		# (context, world)     	= getContext cid False world
-		# (_, world)  		  	= callObjectMethod "drawImage" [toJSArg tempcanvas, toJSArg 0, toJSArg 0] context world
+		# world  		  		= (context .# "drawImage" .$! (tempcanvas, 0, 0)) world
 		# world 			   	= clearContext tempcontext world
 		| isJust state.lastDraw
 			= ({state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing}, world)
@@ -256,13 +259,9 @@ where
     	# ((x, y), e, world) = getCoordinates e world
 		# (tempcontext, world) = getContext cid True world
 			
-		// Don't clear for pencil
-		# world = case state.tool of 
-				"P" = world
-				    = clearContext tempcontext world
+		# world = clearContext tempcontext world
 
 		# drawType = case state.tool of	
-				"P" = DrawLine state.color dx dy x y
 				"L"	= DrawLine state.color dx dy x y
 				"R"	= DrawRect state.color False dx dy x y
 				"r"	= DrawRect state.color True dx dy x y
@@ -271,10 +270,7 @@ where
 
 		# world = draw tempcontext drawType world
 			
-		// Update start coordinates for pencil
-		= case state.tool of 
-				"P" = ({state & mouseDown = Just (x,y), draw = [drawType:state.draw], lastDraw = Nothing}, world)
-				_   = ({state & lastDraw = Just drawType}, world)
+		= ({state & lastDraw = Just drawType}, world)
 
 //-------------------------------------------------------------------------
 

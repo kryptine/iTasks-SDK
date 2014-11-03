@@ -1,8 +1,12 @@
 implementation module iTasks.API.Core.Client.Interface
 
-import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
+import StdGeneric, StdString, StdMisc, StdBool, StdFunc, StdEnum, StdTuple, StdList
+import Data.Void, Data.Maybe, Text
 
-:: JSWorld  = JSWorld
+import Control.Applicative
+from Control.Monad import class Monad, >>=
+
+:: *JSWorld = JSWorld
 :: JSVal a  = JSVal !a
 
 // It describes what is the goal, but the actual wrapping doesn't happen,
@@ -15,6 +19,21 @@ import StdEnv, StdGeneric, Data.Void, Data.Maybe, Text
 :: JSArray    a = JSArray
 :: JSObject   a = JSObject
 :: JSEvent      = JSEvent
+
+instance Applicative JSIO where
+  pure x     =JSIO (\s -> (x, s))
+  (<*>) f g  = liftA2 id f g
+
+instance Functor JSIO where
+  fmap f x = x >>= (lift o f)
+
+instance Monad JSIO where
+  bind (JSIO f) a2mb = JSIO run
+    where
+      run world
+        # (x, world) = f world
+        # (JSIO g)     = a2mb x
+        = g world
 
 jsNull :: JSVal a
 jsNull = undef
@@ -58,14 +77,59 @@ instance JSObjAttr Int where
   jsSetter idx val obj world = jsSetObjectEl idx val obj world
   jsGetter idx     obj world = jsGetObjectEl idx obj world
 
-(.#) infixl 3 :: !(JSObj a) !t -> (JSObj a, t) | JSObjAttr t
-(.#) a b = (a, b)
+:: JSObjSelector = E.o.t: SObj (JSObj o) t & JSObjAttr t
+                 | E.t: SDomId String
+                 | E.t: SRec JSObjSelector t & JSObjAttr t
 
-.? :: !(!JSObj o, !t) !*JSWorld -> *(!JSVal r, !*JSWorld) | JSObjAttr t
-.? (obj, attr) world = jsGetter attr obj world
+getObject :: !JSObjSelector !*JSWorld -> *(!JSVal v, !*JSWorld)
+getObject (SObj obj attr) world = jsGetter attr obj world
+getObject (SDomId elemId) world = callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
+getObject (SRec sel attr) world
+	# (obj, world) = getObject sel world
+	= jsGetter attr obj world
 
-(.=) infixl 2 :: !(!JSObj o, !t) !v -> *(*JSWorld -> *JSWorld) | JSObjAttr t
-(.=) (obj, attr) val = \world -> jsSetter attr (toJSVal val) obj world
+setObject :: !JSObjSelector !(JSVal v) !*JSWorld -> *JSWorld
+setObject (SObj obj attr) val world = jsSetter attr val obj world
+setObject (SRec sel attr) val world
+	# (obj, world) = getObject sel world
+	= jsSetter attr val obj world
+
+callObject :: !JSObjSelector ![JSArg] !*JSWorld -> *(!JSVal r, !*JSWorld)
+callObject (SObj obj method) args world
+	# (fun, world) = jsGetter method obj world
+	= jsApply fun obj args world
+callObject (SRec sel method) args world
+	# (obj, world) = getObject sel world
+	# (fun, world) = jsGetter method obj world
+	= jsApply fun obj args world
+
+class (.#) infixl 3 s :: !s !t -> JSObjSelector | JSObjAttr t 
+
+instance .# (JSVal o) where
+	(.#) a b = SObj (jsUnsafeObjCoerce a) b
+
+instance .# JSObjSelector where
+	(.#) a b = SRec a b  
+
+getElementById :: !String -> JSObjSelector
+getElementById elemId = SDomId elemId
+
+.? :: !JSObjSelector !*JSWorld -> *(!JSVal r, !*JSWorld)
+.? sel world = getObject sel world
+
+(.=) infixl 2 :: !JSObjSelector !v -> *(*JSWorld -> *JSWorld)
+(.=) sel val = \world -> setObject sel (toJSVal val) world
+
+class (.$) infixl 1 o :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
+
+instance .$ String where
+  (.$) fun args = \world -> callFunction fun (toArgs args) world
+
+instance .$ JSObjSelector where
+  (.$) sel args = \world -> callObject sel (toArgs args) world
+
+(.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | .$ o & ToArgs a
+(.$!) a b = snd o (a .$ b)
 
 new :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
 new objNm args = jsNewObject objNm (toArgs args)
@@ -135,7 +199,12 @@ fromJSArray arr f world
 
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined obj = jsTypeof obj == "undefined"
-	
+
+/*	
+getElementById :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
+getElementById elemId world
+	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
+
 getDomElement :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
 getDomElement elemId world
 	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
@@ -149,6 +218,7 @@ setDomAttr :: !DomElementId !String !(JSVal a) !*JSWorld -> *JSWorld
 setDomAttr elemId attr value world
 	# (elem, world)	= getDomElement elemId world
 	= jsSetObjectAttr attr value elem world
+*/
 
 findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 findObject query world
@@ -212,18 +282,6 @@ instance ToArgs (a, b, c, d, e, f) where
 
 instance ToArgs a where
   toArgs x = [toJSArg x]
-
-class JSCall o where
-  (.$) infixl 1 :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
-
-instance JSCall String where
-  (.$) fun args = \world -> callFunction fun (toArgs args) world
-
-instance JSCall (JSObj o, String) where
-  (.$) (obj, fun) args = \world -> callObjectMethod fun (toArgs args) obj world
-
-(.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | JSCall o & ToArgs a
-(.$!) a b = snd o (a .$ b)
 
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 callObjectMethod method args obj world
