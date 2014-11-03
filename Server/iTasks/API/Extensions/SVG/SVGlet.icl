@@ -46,7 +46,8 @@ addOnclicks cid svg onclicks world
   mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
   mkCB sttf _ _ clval=:{svgClSt} world
     # newSt = sttf svgClSt
-    = ({clval & svgClSt = newSt, svgClIsDefault = False, svgClHasStUpd = not (newSt === svgClSt)}, world)
+    //= ({clval & svgClSt = newSt, svgClIsDefault = False, svgClHasStUpd = not (newSt === svgClSt)}, world)
+    = ({clval & svgClSt = newSt, svgClIsDefault = False}, world)
   mkCB sttf _ _ clval world
     = ({clval & svgClIsDefault = False}, world)
 
@@ -69,64 +70,31 @@ svgns :== "http://www.w3.org/2000/svg"
 
 :: SVGSrvSt s =
   { svgSrvIsDefault  :: !Bool
-  , svgSrvHasStUpd   :: !Bool
-  , svgSrvHasFontUpd :: !Bool
-  , svgSrvFontRender :: !Bool
   , svgSrvSt         :: !s
-  , svgSrvStrings    :: !Map FontDef (Set String)
-  , svgSrvTextWidths :: !Map FontDef (Map String Real)
   }
 
 defaultSrvSt :: !s -> SVGSrvSt s
 defaultSrvSt s = { svgSrvIsDefault  = True
-                 , svgSrvHasStUpd   = False
-                 , svgSrvHasFontUpd = False
-                 , svgSrvFontRender = False
                  , svgSrvSt         = s
-                 , svgSrvStrings    = 'DM'.newMap
-                 , svgSrvTextWidths = 'DM'.newMap
                  }
 
 :: SVGClSt s =
   { svgClIsDefault  :: !Bool
-  , svgClHasStUpd   :: !Bool
-  , svgClHasFontUpd :: !Bool
   , svgClSt         :: !s
-  , svgClStrings    :: !Map FontDef (Set String)
-  , svgClTextWidths :: !Map FontDef (Map String Real)
-  , svgClCallbacks  :: !Map String (s -> s)
-  , svgClImageStr   :: !Maybe String
   }
 
 defaultClSt :: !s -> SVGClSt s
 defaultClSt s = { svgClIsDefault  = True
-                , svgClHasStUpd   = False
-                , svgClHasFontUpd = False
                 , svgClSt         = s
-                , svgClStrings    = 'DM'.newMap
-                , svgClTextWidths = 'DM'.newMap
-                , svgClCallbacks  = 'DM'.newMap
-                , svgClImageStr   = Nothing
                 }
 
 :: SVGDiff s
-  = SetState       !s
-  | SetImage       !String !(Map String (s -> s))
-  | SetFontStringsMap      !(Map FontDef (Set String))
-  | SetFontStringWidthMap  !(Map FontDef (Map String Real))
-  | SetHasStUpd
-  | SetHasNoStUpd
-  | SetHasFontUpd
-  | SetHasNoFontUpd
-  | SetHasNoFontRender
+  = SetState s
 
 derive class iTask SVGDiff, SVGSrvSt
 
-import StdDebug
-
-// TODO : Immediately render if no fonts are detected
-svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) [SVGDiff s] | iTask s
-svgRenderer origState state2Image
+svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
+svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvIsDefault = False} server client
   = { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
     , genUI     = genUI
     , serverDef = server
@@ -135,7 +103,7 @@ svgRenderer origState state2Image
   where
   server
     = { EditletDef
-      | performIO = serverIO
+      | performIO = \_ _ s w -> (s, w)
       , defVal    = defaultSrvSt origState
       , genDiff   = genServerDiff
       , appDiff   = appServerDiff
@@ -157,142 +125,278 @@ svgRenderer origState state2Image
        , world
       )
 
-  serverIO :: q w !(SVGSrvSt s) !*World -> *(!SVGSrvSt s, !*World) | iTask s
-  serverIO _ _ s=:{svgSrvHasFontUpd = True} w
-    = ({s & svgSrvFontRender = True}, trace_n "Server performIO svgSrvHasFontUpd" w)
-
-  serverIO _ _ s w
-    = (s, trace_n "Server performIO fallthrough" w)
-
-  updateUI :: !String !(Maybe [SVGDiff s]) !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
-  updateUI cid (Just [SetFontStringsMap fontMap : ds]) clst world
-    # world = jsTrace "updateUI Just [SetFontStringsMap fontMap : ds]" world
-    # (realFontMap, world) = calcTextLengths fontMap world
-    = updateUI cid (Just ds) {clst & svgClTextWidths = realFontMap, svgClIsDefault = False, svgClHasFontUpd = True} world
-
-  updateUI cid (Just [SetImage svgStr onclicks:ds]) clst world
-    # world = jsTrace "updateUI Just [SetImage svgStr onclicks:ds]" world
-    # svgStr           = replaceSubString editletId cid svgStr
-    # world = jsTrace svgStr world
-    # (parser, world)  = new "DOMParser" () world
-    # (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
-    # (newSVG, world)  = .? (doc .# "firstChild") world
-    # (svgDiv, world)  = getDomElement (mainSvgId cid) world
-    # (currSVG, world) = .? (svgDiv .# "firstChild") world
-    # (_, world)       = if (jsIsNull currSVG)
-                           ((svgDiv `appendChild` newSVG) world)
-                           ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
-    # world           = addOnclicks cid newSVG onclicks world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False} world
-
-  updateUI cid (Just [SetFontStringWidthMap mp:ds]) clst world
-    # world = jsTrace "updateUI Just [SetFontStringWidthMap _:ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClTextWidths = mp} world
-
-  updateUI cid (Just [SetHasFontUpd:ds]) clst world
-    # world = jsTrace "updateUI Just [SetHasFontUpd:ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasFontUpd = True} world
-
-  updateUI cid (Just [SetHasNoFontUpd:ds]) clst world
-    # world = jsTrace "updateUI Just [SetHasNoFontUpd:ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasFontUpd = False} world
-
-  updateUI cid (Just [SetState s:ds]) clst world
-    # world = jsTrace "updateUI Just [SetState s:ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClSt = s} world
-
-  updateUI cid (Just [SetHasStUpd:ds]) clst world
-    # world = jsTrace "updateUI Just [SetHasStUpd:ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasStUpd = True} world
-
-  updateUI cid (Just [SetHasNoStUpd:ds]) clst world
-    # world = jsTrace "updateUI Just [SetHasNoStUpd:ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasStUpd = False} world
-
-  updateUI cid (Just [_ : ds]) clst world
-    # world = jsTrace "updateUI Just [_ : ds]" world
-    = updateUI cid (Just ds) {clst & svgClIsDefault = False} world
+  updateUI cid (Just (SetState s)) clst world
+    #! image   = state2Image s
+    #! fontMap = gatherFonts image
+    #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
+    #! img = imageFromState image realFontMap
+    #! (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
+    #! (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
+    #! (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
+    #! svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                         [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                         syn.genSVGSyn_svgElts)
+    #! svgStr           = replaceSubString editletId cid svgStr
+    #! (parser, world)  = new "DOMParser" () world
+    #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
+    #! (newSVG, world)  = .? (doc .# "firstChild") world
+    #! (svgDiv, world)  = getDomElement (mainSvgId cid) world
+    #! (currSVG, world) = .? (svgDiv .# "firstChild") world
+    #! (_, world)       = if (jsIsNull currSVG)
+                            ((svgDiv `appendChild` newSVG) world)
+                            ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
+    #! world           = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
+    = updateUI cid Nothing {clst & svgClIsDefault = False, svgClSt = s} world
 
   updateUI _ _ clval world
-    # world = jsTrace "updateUI fallthrough" world
+    #! world = jsTrace "updateUI fallthrough" world
     = ({clval & svgClIsDefault = False}, world)
 
-  // In this function we assume that all spans have already been reduced to
-  // pixels. If there still are unresolved lookups, they will be defaulted to
-  // 0px.
-  renderSVG :: !(Image s) -> (!String, !Map String (s -> s)) | iTask s
-  renderSVG img
-    # (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
-    # (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
-    # (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
-    # svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
-                                        [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
-                                        syn.genSVGSyn_svgElts)
-    = (svgStr, syn.genSVGSyn_onclicks)
-
-  fixImageSpans :: !(Image s) !(Map FontDef (Map String Real)) -> Image s | iTask s
-  fixImageSpans img env
+  imageFromState img env
     = fst (fixSpans img { fixSpansTaggedSpanEnv = 'DM'.newMap
                         , fixSpansDidChange     = False
                         , fixSpansCounter       = 0
                         , fixSpansFonts         = env})
 
-  //diffFromImgState :: !(SVGSrvSt s) -> [SVGDiff s] | iTask s
-  diffFromImgState srvSt
-    # image   = state2Image srvSt.svgSrvSt
-    # fontMap = gatherFonts image
-    | 'DM'.null fontMap      = mkSetImageDiff image 'DM'.newMap
-    | srvSt.svgSrvHasFontUpd = mkSetImageDiff image srvSt.svgSrvTextWidths
-    | otherwise              = [SetFontStringsMap fontMap]
-    where
-    mkSetImageDiff image mp
-      # (svgStr, onClicks) = renderSVG (fixImageSpans image mp)
-      = trace_n svgStr [SetImage svgStr onClicks, SetHasNoFontUpd]
+  genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
 
-  //genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe [SVGDiff s] | iTask s
-  genServerDiff oldSrvSt newSrvSt
-    | newSrvSt.svgSrvFontRender = trace_n ("\ngenServerDiff newSrvSt.svgSrvFontRender\n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetHasNoFontRender : diffFromImgState newSrvSt]
-    | oldSrvSt.svgSrvIsDefault  = trace_n ("\ngenServerDiff oldSrvSt.svgSrvIsDefault \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetState newSrvSt.svgSrvSt : diffFromImgState newSrvSt]
-    | newSrvSt.svgSrvHasFontUpd = trace_n ("\ngenServerDiff newSrvSt.svgSrvHasFontUpd\n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just (diffFromImgState newSrvSt)
-    | newSrvSt.svgSrvHasStUpd   = trace_n ("\ngenServerDiff newSrvSt.svgSrvHasStUpd  \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetHasNoStUpd : diffFromImgState newSrvSt]
-    | otherwise                 = trace_n ("\ngenServerDiff otherwise                \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Nothing
+  appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
+  appServerDiff _             srvSt = srvSt
 
-  appServerDiff :: ![SVGDiff s] !(SVGSrvSt s) -> SVGSrvSt s | iTask s
-  appServerDiff ds srvSt = appServerDiff` ds {srvSt & svgSrvIsDefault = False}
-    where
-    appServerDiff` [SetState st : ds]               srvSt
-      | st === srvSt.svgSrvSt = trace_n "appServerDiff` [SetState st : ds] st === srvSt.svgSrvSt" appServerDiff` ds {srvSt & svgSrvHasStUpd = False}
-      | otherwise             = trace_n "appServerDiff` [SetState st : ds] otherwise" appServerDiff` ds {srvSt & svgSrvHasStUpd = True, svgSrvSt = st}
-    appServerDiff` [SetFontStringWidthMap swm : ds] srvSt = trace_n "appServerDiff` [SetFontStringWidthMap swm : ds]" appServerDiff` ds {srvSt & svgSrvHasFontUpd = True, svgSrvTextWidths = swm}
-    appServerDiff` [SetHasFontUpd : ds]             srvSt = trace_n "appServerDiff` [SetHasFontUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasFontUpd = True}
-    appServerDiff` [SetHasNoFontUpd : ds]           srvSt = trace_n "appServerDiff` [SetHasNoFontUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasFontUpd = False}
-    appServerDiff` [SetHasStUpd : ds]               srvSt = trace_n "appServerDiff` [SetHasStUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasStUpd = True}
-    appServerDiff` [SetHasNoStUpd : ds]             srvSt = trace_n "appServerDiff` [SetHasNoStUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasStUpd = False}
-    appServerDiff` [SetHasNoFontRender : ds]        srvSt = trace_n "appServerDiff` [SetHasNoFontRender : ds]" appServerDiff` ds {srvSt & svgSrvFontRender = False}
-    appServerDiff` [_ : ds]                         srvSt = trace_n "appServerDiff` [_ : ds]" appServerDiff` ds srvSt
-    appServerDiff` _                                srvSt = trace_n "appServerDiff` _" srvSt
-
-  genClientDiff :: !(SVGClSt s) !(SVGClSt s) -> Maybe [SVGDiff s] | iTask s
   genClientDiff oldClSt newClSt
-    # ds1 = if (oldClSt.svgClSt === newClSt.svgClSt) [] [SetState newClSt.svgClSt]
-    # ds2 = if (oldClSt.svgClTextWidths === newClSt.svgClTextWidths) [] [SetFontStringWidthMap newClSt.svgClTextWidths]
-    # ds3 = if newClSt.svgClHasStUpd [SetHasStUpd] []
-    # ds4 = if newClSt.svgClHasFontUpd [SetHasFontUpd] []
-    = case ds1 ++ ds2 ++ ds3 ++ ds4 of
-        [] -> trace_n "genClientDiff []" Nothing
-        xs -> trace_n ("genClientDiff xs: " +++ toString (toJSON xs)) Just xs
+    | oldClSt.svgClIsDefault              = Just (SetState newClSt.svgClSt)
+    | oldClSt.svgClSt === newClSt.svgClSt = Nothing
+    | otherwise                           = Just (SetState newClSt.svgClSt)
 
-  appClientDiff :: ![SVGDiff s] !(SVGClSt s) -> SVGClSt s | iTask s
-  appClientDiff ds clSt = appClientDiff` ds {clSt & svgClIsDefault = False}
-    where
-    appClientDiff` [SetState st:ds]              clSt = appClientDiff ds {clSt & svgClSt = st}
-    appClientDiff` [SetFontStringsMap ss:ds]     clSt = appClientDiff ds {clSt & svgClStrings = ss}
-    appClientDiff` [SetImage str cbs:ds]         clSt = appClientDiff ds {clSt & svgClImageStr = Just str, svgClCallbacks = cbs }
-    appClientDiff` [SetFontStringWidthMap mp:ds] clSt = appClientDiff ds {clSt & svgClTextWidths = mp }
-    appClientDiff` [SetHasStUpd:ds]              clSt = appClientDiff ds {clSt & svgClHasStUpd = True}
-    appClientDiff` [SetHasNoStUpd:ds]            clSt = appClientDiff ds {clSt & svgClHasStUpd = False}
-    appClientDiff` [_:ds]                        clSt = appClientDiff ds clSt
-    appClientDiff` _                             clSt = clSt
+  appClientDiff (SetState st) clSt = {clSt & svgClIsDefault = False, svgClSt = st}
+  appClientDiff _             clSt = clSt
+
+//:: SVGSrvSt s =
+  //{ svgSrvIsDefault  :: !Bool
+  //, svgSrvHasStUpd   :: !Bool
+  //, svgSrvHasFontUpd :: !Bool
+  //, svgSrvFontRender :: !Bool
+  //, svgSrvSt         :: !s
+  //, svgSrvStrings    :: !Map FontDef (Set String)
+  //, svgSrvTextWidths :: !Map FontDef (Map String Real)
+  //}
+
+//defaultSrvSt :: !s -> SVGSrvSt s
+//defaultSrvSt s = { svgSrvIsDefault  = True
+                 //, svgSrvHasStUpd   = False
+                 //, svgSrvHasFontUpd = False
+                 //, svgSrvFontRender = False
+                 //, svgSrvSt         = s
+                 //, svgSrvStrings    = 'DM'.newMap
+                 //, svgSrvTextWidths = 'DM'.newMap
+                 //}
+
+//:: SVGClSt s =
+  //{ svgClIsDefault  :: !Bool
+  //, svgClHasStUpd   :: !Bool
+  //, svgClHasFontUpd :: !Bool
+  //, svgClSt         :: !s
+  //, svgClStrings    :: !Map FontDef (Set String)
+  //, svgClTextWidths :: !Map FontDef (Map String Real)
+  //, svgClCallbacks  :: !Map String (s -> s)
+  //, svgClImageStr   :: !Maybe String
+  //}
+
+//defaultClSt :: !s -> SVGClSt s
+//defaultClSt s = { svgClIsDefault  = True
+                //, svgClHasStUpd   = False
+                //, svgClHasFontUpd = False
+                //, svgClSt         = s
+                //, svgClStrings    = 'DM'.newMap
+                //, svgClTextWidths = 'DM'.newMap
+                //, svgClCallbacks  = 'DM'.newMap
+                //, svgClImageStr   = Nothing
+                //}
+
+//:: SVGDiff s
+  //= SetState       !s
+  //| SetImage       !String !(Map String (s -> s))
+  //| SetFontStringsMap      !(Map FontDef (Set String))
+  //| SetFontStringWidthMap  !(Map FontDef (Map String Real))
+  //| SetHasStUpd
+  //| SetHasNoStUpd
+  //| SetHasFontUpd
+  //| SetHasNoFontUpd
+  //| SetHasNoFontRender
+
+//derive class iTask SVGDiff, SVGSrvSt
+
+//import StdDebug
+
+//// TODO : Immediately render if no fonts are detected
+//svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) [SVGDiff s] | iTask s
+//svgRenderer origState state2Image
+  //= { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
+    //, genUI     = genUI
+    //, serverDef = server
+    //, clientDef = client
+    //}
+  //where
+  //server
+    //= { EditletDef
+      //| performIO = serverIO
+      //, defVal    = defaultSrvSt origState
+      //, genDiff   = genServerDiff
+      //, appDiff   = appServerDiff
+      //}
+  //client
+    //= { EditletDef
+      //| performIO = updateUI
+      //, defVal    = defaultClSt origState
+      //, genDiff   = genClientDiff
+      //, appDiff   = appClientDiff
+      //}
+  //genUI cid world
+    //= ({ ComponentHTML
+       //| width         = FlexSize
+       //, height        = FlexSize
+       //, html          = DivTag [IdAttr (mainSvgId cid)] []
+       //, eventHandlers = []
+       //}
+       //, world
+      //)
+
+  //serverIO :: q w !(SVGSrvSt s) !*World -> *(!SVGSrvSt s, !*World) | iTask s
+  //serverIO _ _ s=:{svgSrvHasFontUpd = True} w
+    //= ({s & svgSrvFontRender = True}, trace_n "Server performIO svgSrvHasFontUpd" w)
+
+  //serverIO _ _ s w
+    //= (s, trace_n "Server performIO fallthrough" w)
+
+  //updateUI :: !String !(Maybe [SVGDiff s]) !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
+  //updateUI cid (Just [SetFontStringsMap fontMap : ds]) clst world
+    //# world = jsTrace "updateUI Just [SetFontStringsMap fontMap : ds]" world
+    //# (realFontMap, world) = calcTextLengths fontMap world
+    //= updateUI cid (Just ds) {clst & svgClTextWidths = realFontMap, svgClIsDefault = False, svgClHasFontUpd = True} world
+
+  //updateUI cid (Just [SetImage svgStr onclicks:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetImage svgStr onclicks:ds]" world
+    //# svgStr           = replaceSubString editletId cid svgStr
+    //# world = jsTrace svgStr world
+    //# (parser, world)  = new "DOMParser" () world
+    //# (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
+    //# (newSVG, world)  = .? (doc .# "firstChild") world
+    //# (svgDiv, world)  = getDomElement (mainSvgId cid) world
+    //# (currSVG, world) = .? (svgDiv .# "firstChild") world
+    //# (_, world)       = if (jsIsNull currSVG)
+                           //((svgDiv `appendChild` newSVG) world)
+                           //((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
+    //# world           = addOnclicks cid newSVG onclicks world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False} world
+
+  //updateUI cid (Just [SetFontStringWidthMap mp:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetFontStringWidthMap _:ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClTextWidths = mp} world
+
+  //updateUI cid (Just [SetHasFontUpd:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetHasFontUpd:ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasFontUpd = True} world
+
+  //updateUI cid (Just [SetHasNoFontUpd:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetHasNoFontUpd:ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasFontUpd = False} world
+
+  //updateUI cid (Just [SetState s:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetState s:ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClSt = s} world
+
+  //updateUI cid (Just [SetHasStUpd:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetHasStUpd:ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasStUpd = True} world
+
+  //updateUI cid (Just [SetHasNoStUpd:ds]) clst world
+    //# world = jsTrace "updateUI Just [SetHasNoStUpd:ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False, svgClHasStUpd = False} world
+
+  //updateUI cid (Just [_ : ds]) clst world
+    //# world = jsTrace "updateUI Just [_ : ds]" world
+    //= updateUI cid (Just ds) {clst & svgClIsDefault = False} world
+
+  //updateUI _ _ clval world
+    //# world = jsTrace "updateUI fallthrough" world
+    //= ({clval & svgClIsDefault = False}, world)
+
+  //// In this function we assume that all spans have already been reduced to
+  //// pixels. If there still are unresolved lookups, they will be defaulted to
+  //// 0px.
+  //renderSVG :: !(Image s) -> (!String, !Map String (s -> s)) | iTask s
+  //renderSVG img
+    //# (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
+    //# (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
+    //# (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
+    //# svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                        //[VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                        //syn.genSVGSyn_svgElts)
+    //= (svgStr, syn.genSVGSyn_onclicks)
+
+  //fixImageSpans :: !(Image s) !(Map FontDef (Map String Real)) -> Image s | iTask s
+  //fixImageSpans img env
+    //= fst (fixSpans img { fixSpansTaggedSpanEnv = 'DM'.newMap
+                        //, fixSpansDidChange     = False
+                        //, fixSpansCounter       = 0
+                        //, fixSpansFonts         = env})
+
+  ////diffFromImgState :: !(SVGSrvSt s) -> [SVGDiff s] | iTask s
+  //diffFromImgState srvSt
+    //# image   = state2Image srvSt.svgSrvSt
+    //# fontMap = gatherFonts image
+    //| 'DM'.null fontMap      = mkSetImageDiff image 'DM'.newMap
+    //| srvSt.svgSrvHasFontUpd = mkSetImageDiff image srvSt.svgSrvTextWidths
+    //| otherwise              = [SetFontStringsMap fontMap]
+    //where
+    //mkSetImageDiff image mp
+      //# (svgStr, onClicks) = renderSVG (fixImageSpans image mp)
+      //= trace_n svgStr [SetImage svgStr onClicks, SetHasNoFontUpd]
+
+  ////genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe [SVGDiff s] | iTask s
+  //genServerDiff oldSrvSt newSrvSt
+    //| newSrvSt.svgSrvFontRender = trace_n ("\ngenServerDiff newSrvSt.svgSrvFontRender\n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetHasNoFontRender : diffFromImgState newSrvSt]
+    //| oldSrvSt.svgSrvIsDefault  = trace_n ("\ngenServerDiff oldSrvSt.svgSrvIsDefault \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetState newSrvSt.svgSrvSt : diffFromImgState newSrvSt]
+    //| newSrvSt.svgSrvHasFontUpd = trace_n ("\ngenServerDiff newSrvSt.svgSrvHasFontUpd\n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just (diffFromImgState newSrvSt)
+    //| newSrvSt.svgSrvHasStUpd   = trace_n ("\ngenServerDiff newSrvSt.svgSrvHasStUpd  \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Just [SetHasNoStUpd : diffFromImgState newSrvSt]
+    //| otherwise                 = trace_n ("\ngenServerDiff otherwise                \n\toldSt: " +++ toString (toJSON oldSrvSt) +++ "\n\tnewSt: " +++ toString (toJSON newSrvSt)) Nothing
+
+  //appServerDiff :: ![SVGDiff s] !(SVGSrvSt s) -> SVGSrvSt s | iTask s
+  //appServerDiff ds srvSt = appServerDiff` ds {srvSt & svgSrvIsDefault = False}
+    //where
+    //appServerDiff` [SetState st : ds]               srvSt
+      //| st === srvSt.svgSrvSt = trace_n "appServerDiff` [SetState st : ds] st === srvSt.svgSrvSt" appServerDiff` ds {srvSt & svgSrvHasStUpd = False}
+      //| otherwise             = trace_n "appServerDiff` [SetState st : ds] otherwise" appServerDiff` ds {srvSt & svgSrvHasStUpd = True, svgSrvSt = st}
+    //appServerDiff` [SetFontStringWidthMap swm : ds] srvSt = trace_n "appServerDiff` [SetFontStringWidthMap swm : ds]" appServerDiff` ds {srvSt & svgSrvHasFontUpd = True, svgSrvTextWidths = swm}
+    //appServerDiff` [SetHasFontUpd : ds]             srvSt = trace_n "appServerDiff` [SetHasFontUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasFontUpd = True}
+    //appServerDiff` [SetHasNoFontUpd : ds]           srvSt = trace_n "appServerDiff` [SetHasNoFontUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasFontUpd = False}
+    //appServerDiff` [SetHasStUpd : ds]               srvSt = trace_n "appServerDiff` [SetHasStUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasStUpd = True}
+    //appServerDiff` [SetHasNoStUpd : ds]             srvSt = trace_n "appServerDiff` [SetHasNoStUpd : ds]" appServerDiff` ds {srvSt & svgSrvHasStUpd = False}
+    //appServerDiff` [SetHasNoFontRender : ds]        srvSt = trace_n "appServerDiff` [SetHasNoFontRender : ds]" appServerDiff` ds {srvSt & svgSrvFontRender = False}
+    //appServerDiff` [_ : ds]                         srvSt = trace_n "appServerDiff` [_ : ds]" appServerDiff` ds srvSt
+    //appServerDiff` _                                srvSt = trace_n "appServerDiff` _" srvSt
+
+  //genClientDiff :: !(SVGClSt s) !(SVGClSt s) -> Maybe [SVGDiff s] | iTask s
+  //genClientDiff oldClSt newClSt
+    //# ds1 = if (oldClSt.svgClSt === newClSt.svgClSt) [] [SetState newClSt.svgClSt]
+    //# ds2 = if (oldClSt.svgClTextWidths === newClSt.svgClTextWidths) [] [SetFontStringWidthMap newClSt.svgClTextWidths]
+    //# ds3 = if newClSt.svgClHasStUpd [SetHasStUpd] []
+    //# ds4 = if newClSt.svgClHasFontUpd [SetHasFontUpd] []
+    //= case ds1 ++ ds2 ++ ds3 ++ ds4 of
+        //[] -> trace_n "genClientDiff []" Nothing
+        //xs -> trace_n ("genClientDiff xs: " +++ toString (toJSON xs)) Just xs
+
+  //appClientDiff :: ![SVGDiff s] !(SVGClSt s) -> SVGClSt s | iTask s
+  //appClientDiff ds clSt = appClientDiff` ds {clSt & svgClIsDefault = False}
+    //where
+    //appClientDiff` [SetState st:ds]              clSt = appClientDiff ds {clSt & svgClSt = st}
+    //appClientDiff` [SetFontStringsMap ss:ds]     clSt = appClientDiff ds {clSt & svgClStrings = ss}
+    //appClientDiff` [SetImage str cbs:ds]         clSt = appClientDiff ds {clSt & svgClImageStr = Just str, svgClCallbacks = cbs }
+    //appClientDiff` [SetFontStringWidthMap mp:ds] clSt = appClientDiff ds {clSt & svgClTextWidths = mp }
+    //appClientDiff` [SetHasStUpd:ds]              clSt = appClientDiff ds {clSt & svgClHasStUpd = True}
+    //appClientDiff` [SetHasNoStUpd:ds]            clSt = appClientDiff ds {clSt & svgClHasStUpd = False}
+    //appClientDiff` [_:ds]                        clSt = appClientDiff ds clSt
+    //appClientDiff` _                             clSt = clSt
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
@@ -304,33 +408,33 @@ svgRenderer origState state2Image
 
 calcTextLengths :: !(Map FontDef (Set String)) !*JSWorld -> *(!Map FontDef (Map String Real), !*JSWorld)
 calcTextLengths fontdefs world
-  # (svg, world)  = (jsDocument `createElementNS` (svgns, "svg")) world
-  # (body, world) = .? (jsDocument .# "body") world
-  # (_, world)    = (body `appendChild` svg) world
-  # (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
-  # (_, world)    = (svg `appendChild` elem) world
-  # (res, world)  = 'DM'.foldrWithKey (f elem) ('DM'.newMap, world) fontdefs
-  # (_, world)    = (svg `removeChild` elem) world
-  # (_, world)    = (body `removeChild` svg) world
+  #! (svg, world)  = (jsDocument `createElementNS` (svgns, "svg")) world
+  #! (body, world) = .? (jsDocument .# "body") world
+  #! (_, world)    = (body `appendChild` svg) world
+  #! (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
+  #! (_, world)    = (svg `appendChild` elem) world
+  #! (res, world)  = 'DM'.foldrWithKey (f elem) ('DM'.newMap, world) fontdefs
+  #! (_, world)    = (svg `removeChild` elem) world
+  #! (_, world)    = (body `removeChild` svg) world
   = (res, world)
   where
   f :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!Map FontDef (Map String Real), !*JSWorld) -> *(!Map FontDef (Map String Real), !*JSWorld)
   f elem fontdef strs (acc, world)
-    # fontAttrs   = [ ("font-family",  fontdef.fontfamily)
-                    , ("font-size",    toString fontdef.fontysize)
-                    , ("font-stretch", fontdef.fontstretch)
-                    , ("font-style",   fontdef.fontstyle)
-                    , ("font-variant", fontdef.fontvariant)
-                    , ("font-weight",  fontdef.fontweight)
-                    , ("x", "-10000")
-                    , ("y", "-10000") ]
-    # world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
-    # (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
+    #! fontAttrs   = [ ("font-family",  fontdef.fontfamily)
+                     , ("font-size",    toString fontdef.fontysize)
+                     , ("font-stretch", fontdef.fontstretch)
+                     , ("font-style",   fontdef.fontstyle)
+                     , ("font-variant", fontdef.fontvariant)
+                     , ("font-weight",  fontdef.fontweight)
+                     , ("x", "-10000")
+                     , ("y", "-10000") ]
+    #! world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
+    #! (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
     = ('DM'.put fontdef ws acc, world)
   g :: !(JSVal (JSObject a)) !String !*(!Map String Real, !*JSWorld) -> *(!Map String Real, !*JSWorld)
   g elem str (acc, world)
-    # world        = (elem .# "textContent" .= str) world
-    # (ctl, world) = (elem `getComputedTextLength` ()) world
+    #! world        = (elem .# "textContent" .= str) world
+    #! (ctl, world) = (elem `getComputedTextLength` ()) world
     = ('DM'.put str (jsValToReal ctl) acc, world)
 
 :: GenSVGSt m a :== State (GenSVGStVal m) a
@@ -372,7 +476,7 @@ addCachedSpan :: !(CachedSpan -> CachedSpan) !(Set ImageTag) !FixSpansStVal -> F
 addCachedSpan f imTas st=:{fixSpansTaggedSpanEnv}
   | 'DS'.null imTas = st
   | otherwise
-    # r = fromMaybe { cachedGridSpans = Nothing, cachedImageSpan = Nothing } ('DM'.get imTas fixSpansTaggedSpanEnv)
+    #! r = fromMaybe { cachedGridSpans = Nothing, cachedImageSpan = Nothing } ('DM'.get imTas fixSpansTaggedSpanEnv)
     = { st & fixSpansTaggedSpanEnv = 'DM'.put imTas (f r) fixSpansTaggedSpanEnv }
 
 cacheImageSpan :: !(Set ImageTag) !ImageSpan !FixSpansStVal -> FixSpansStVal
@@ -384,14 +488,15 @@ cacheGridSpans imTas xsps ysps st = addCachedSpan (\r -> {r & cachedGridSpans = 
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
 applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
   where
+  f :: !ImageTransform !(!(!Span, !Span), !(!Span, !Span)) -> (!(!Span, !Span), !(!Span, !Span))
   f (RotateImage th) (accSp, accOff)
-    # (imSp, offs) = rotatedImageSpan th accSp
+    #! (imSp, offs) = rotatedImageSpan th accSp
     = (imSp, accOff + offs)
   f (SkewXImage th) (accSp=:(_, ysp), (xoff, yoff))
-    # (xsp, offs) = skewXImageWidth th accSp
+    #! (xsp, offs) = skewXImageWidth th accSp
     = ((xsp, ysp), (xoff + offs, yoff))
   f (SkewYImage th) (accSp=:(xsp, _), (xoff, yoff))
-    # (ysp, offs) = skewYImageHeight th accSp
+    #! (ysp, offs) = skewYImageHeight th accSp
     = ((xsp, ysp), (xoff, yoff + offs))
   f (FitImage xsp ysp) (_, accOff)
     = ((xsp, ysp), accOff)
@@ -667,18 +772,18 @@ fixSpans img = go
     mkImage imCo mask imAts imTrs imTas _ (m1, m2, m3, m4) _ = go
       where
       go st
-        # (mask, st)       = evalMaybe mask st
-        # (imAts, st)      = sequence imAts st
-        # (imTrs, st)      = sequence imTrs st
-        # (fixSpansSyn, st) = imCo imTrs imTas st
-        # (m1, st)         = m1 st
-        # (m2, st)         = m2 st
-        # (m3, st)         = m3 st
-        # (m4, st)         = m4 st
-        # (xsp, ysp)       = fixSpansSyn.fixSpansSyn_TotalSpan
-        # (xsp, ysp)       = (xsp + m2 + m4, ysp + m1 + m3)
-        # st               = cacheImageSpan imTas (xsp, ysp) st
-        # (no, st)         = nextNo st
+        #! (mask, st)       = evalMaybe mask st
+        #! (imAts, st)      = sequence imAts st
+        #! (imTrs, st)      = sequence imTrs st
+        #! (fixSpansSyn, st) = imCo imTrs imTas st
+        #! (m1, st)         = m1 st
+        #! (m2, st)         = m2 st
+        #! (m3, st)         = m3 st
+        #! (m4, st)         = m4 st
+        #! (xsp, ysp)       = fixSpansSyn.fixSpansSyn_TotalSpan
+        #! (xsp, ysp)       = (xsp + m2 + m4, ysp + m1 + m3)
+        #! st               = cacheImageSpan imTas (xsp, ysp) st
+        #! (no, st)         = nextNo st
         = ret (tag [ImageTagSystem no]
               { Image
               | content             = fixSpansSyn.fixSpansSyn_ImageContent
@@ -759,11 +864,20 @@ fixSpans img = go
     , basicImageEllipseImageAlg = mkEllipseImage
     }
     where
-    mkEmptyImage       imSp imTrs = mkSpan EmptyImage         imSp imTrs
-    mkRectImage        imSp imTrs = mkSpan RectImage          imSp imTrs
+    mkEmptyImage :: !ImageSpan ![ImageTransform] -> FixSpansSt (FixSpansSyn s) | iTask s
+    mkEmptyImage imSp imTrs = mkSpan EmptyImage imSp imTrs
+
+    mkRectImage :: !ImageSpan ![ImageTransform] -> FixSpansSt (FixSpansSyn s) | iTask s
+    mkRectImage imSp imTrs = mkSpan RectImage imSp imTrs
+
+    mkTextImage :: !FontDef !String !ImageSpan ![ImageTransform] -> FixSpansSt (FixSpansSyn s) | iTask s
     mkTextImage fd str imSp imTrs = mkSpan (TextImage fd str) imSp imTrs
-    mkCircleImage      imSp imTrs = mkSpan CircleImage        imSp imTrs
-    mkEllipseImage     imSp imTrs = mkSpan EllipseImage       imSp imTrs
+
+    mkCircleImage :: !ImageSpan ![ImageTransform] -> FixSpansSt (FixSpansSyn s) | iTask s
+    mkCircleImage imSp imTrs = mkSpan CircleImage imSp imTrs
+
+    mkEllipseImage :: !ImageSpan ![ImageTransform] -> FixSpansSt (FixSpansSyn s) | iTask s
+    mkEllipseImage imSp imTrs = mkSpan EllipseImage imSp imTrs
 
     mkSpan :: !BasicImage !ImageSpan ![ImageTransform]
            -> FixSpansSt (FixSpansSyn s) | iTask s
@@ -835,14 +949,14 @@ fixSpans img = go
     mkCompositeImage offsets host compose imTrs imTas = go
       where
       go st
-        # (offsets, st) = evalOffsets offsets st
-        # (host, st)    = evalMaybe host st
-        # ((compose, composeSpan, offsets), st) = compose offsets host imTrs imTas st
-        # (host, span) = case host of
-                           Just hostImg
-                              -> (Just hostImg, hostImg.totalSpan)
-                           _  -> (Nothing, composeSpan)
-        # (span, corr)  = applyTransforms imTrs span
+        #! (offsets, st) = evalOffsets offsets st
+        #! (host, st)    = evalMaybe host st
+        #! ((compose, composeSpan, offsets), st) = compose offsets host imTrs imTas st
+        #! (host, span) = case host of
+                            Just hostImg
+                               -> (Just hostImg, hostImg.totalSpan)
+                            _  -> (Nothing, composeSpan)
+        #! (span, corr)  = applyTransforms imTrs span
         = ret { fixSpansSyn_ImageContent     = Composite { CompositeImage
                                                          | offsets = offsets
                                                          , host    = host
@@ -864,18 +978,18 @@ fixSpans img = go
     mkGrid (numcols, numrows) ias imgss offsets mbhost imTrs imTas = go
       where
       go st
-        # (imgss, st) = foldr seqImgsGrid ([], st) imgss
-        # imgss       = reverse (map reverse imgss) // TODO This is more or less a hack... why do we need this?
-        # (tag, st)   = nextNo st
-        # sysTags     = 'DS'.singleton (ImageTagSystem tag)
-        # gridSpan    = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) [0..numcols - 1]
-                              , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) [0..numrows - 1]
-                              )
-                              (\x -> x.totalSpan) mbhost
-        # offsets     = flatten (calculateGridOffsets (map (\n -> LookupSpan (ColumnXSpan sysTags n)) [0..numcols - 1])
+        #! (imgss, st) = foldr seqImgsGrid ([], st) imgss
+        #! imgss       = reverse (map reverse imgss) // TODO This is more or less a hack... why do we need this?
+        #! (tag, st)   = nextNo st
+        #! sysTags     = 'DS'.singleton (ImageTagSystem tag)
+        #! gridSpan    = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) [0..numcols - 1]
+                               , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) [0..numrows - 1]
+                               )
+                               (\x -> x.totalSpan) mbhost
+        #! offsets     = flatten (calculateGridOffsets (map (\n -> LookupSpan (ColumnXSpan sysTags n)) [0..numcols - 1])
                                                       (map (\n -> LookupSpan (RowYSpan sysTags n)) [0..numrows - 1]) imgss offsets)
-        # spanss      = map (map (\x -> x.totalSpan)) imgss
-        # st          = cacheGridSpans ('DS'.union sysTags imTas) (map (maxSpan o map fst) (transpose spanss)) (map (maxSpan o map snd) spanss) st
+        #! spanss      = map (map (\x -> x.totalSpan)) imgss
+        #! st          = cacheGridSpans ('DS'.union sysTags imTas) (map (maxSpan o map fst) (transpose spanss)) (map (maxSpan o map snd) spanss) st
         = ret ( AsCollage (flatten imgss)
               , gridSpan
               , offsets) { st & fixSpansDidChange = True }
@@ -887,12 +1001,12 @@ fixSpans img = go
         mkRows :: ![Span] !(![Image s], !Span) !(![[(!Span, !Span)]], !Span, ![(!XAlign, !YAlign)], ![(!Span, !Span)])
                -> (![[(!Span, !Span)]], !Span, ![(!XAlign, !YAlign)], ![(!Span, !Span)])
         mkRows cellXSpans (imgs, cellYSpan) (acc, yoff, aligns, offsets)
-          # imgsLength = length imgs
+          #! imgsLength = length imgs
           = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans (take imgsLength aligns) (take imgsLength offsets))) : acc]
             , yoff + cellYSpan, drop imgsLength aligns, drop imgsLength offsets)
         mkCols :: !Span !Span !(Image s, !Span, !(!XAlign, !YAlign), !(!Span, !Span)) !(![(!Span, !Span)], !Span) -> (![(!Span, !Span)], !Span)
         mkCols cellYSpan yoff (img=:{totalSpan, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, align, (manXOff, manYOff)) (acc, xoff)
-          # (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpan align
+          #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpan align
           = ([( alignXOff + xoff + manXOff + tfXCorr
               , alignYOff + yoff + manYOff + tfYCorr):acc], xoff + cellXSpan)
 
@@ -910,17 +1024,18 @@ fixSpans img = go
     mkOverlay ias imgs offsets mbhost imTrs imTas = go
       where
       go st
-        # (imgs, st) = sequence imgs st
-        # spans      = map (\x -> x.totalSpan) imgs
-        # (maxXSpan, maxYSpan) = maybe (maxSpan (map fst spans), maxSpan (map snd spans))
+        #! (imgs, st) = sequence imgs st
+        #! spans      = map (\x -> x.totalSpan) imgs
+        #! (maxXSpan, maxYSpan) = maybe (maxSpan (map fst spans), maxSpan (map snd spans))
                                        (\x -> x.totalSpan) mbhost
-        # offsets    = zipWith3 addOffset (zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias)
+        #! offsets    = zipWith3 addOffset (zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias)
                                           offsets
                                           imgs
         = ret ( AsCollage imgs
               , maybe (calculateComposedSpan spans offsets) (\x -> x.totalSpan) mbhost
               , offsets ) { st & fixSpansDidChange = True }
         where
+        addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
         addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff)
 
   fixSpansSpanAlgs :: SpanAlg (FixSpansSt Span) (FixSpansSt Span)
@@ -949,11 +1064,11 @@ fixSpans img = go
     mkTextLU fd str = go
       where
       go st
-        # sw = case 'DM'.get fd st.fixSpansFonts of
-                 Just fs -> case 'DM'.get str fs of
-                              Just sw -> sw
-                              _       -> 0.0
-                 _       -> 0.0
+        #! sw = case 'DM'.get fd st.fixSpansFonts of
+                  Just fs -> case 'DM'.get str fs of
+                               Just sw -> sw
+                               _       -> 0.0
+                  _       -> 0.0
         = ret (PxSpan sw) st
 
     lookupTags :: !(Set ImageTag) -> FixSpansSt (Maybe CachedSpan)
@@ -974,7 +1089,7 @@ fixSpans img = go
                       Just {cachedImageSpan = Just xs} -> f xs
                       _                                -> LookupSpan (c ts))
 
-    mkImageGridSpan :: !(({!Span}, {!Span}) Int -> Span) !((Set ImageTag) Int -> LookupSpan)
+    mkImageGridSpan :: !((!{!Span}, !{!Span}) Int -> Span) !((Set ImageTag) Int -> LookupSpan)
                        !(Set ImageTag) Int
                     -> FixSpansSt Span
     mkImageGridSpan f c ts n
@@ -985,9 +1100,9 @@ fixSpans img = go
 
 seqImgsGrid imgs (acc, st) :== (sequence imgs `b` \imgs -> ret [imgs:acc]) st
 
-:: ImageSpanReal :== (Real, Real)
+:: ImageSpanReal :== (!Real, !Real)
 
-:: ImageOffsetReal :== (Real, Real)
+:: ImageOffsetReal :== (!Real, !Real)
 
 :: GenSVGSyn s =
   { genSVGSyn_svgElts       :: ![SVGElt]
@@ -1236,9 +1351,9 @@ genSVG img = imageCata genSVGAllAlgs img
       = mkLine LineElt (getSvgAttrs (mkAttrs imAts imTrs) ++ mkLineAttrs sl sp) sp mmarkers
       where
       mkLineAttrs slash (xspan, yspan)
-        # (y1, y2) = case slash of
-                       Slash     -> (toString (to2dec yspan), "0.0")
-                       Backslash -> ("0.0", toString (to2dec yspan))
+        #! (y1, y2) = case slash of
+                        Slash     -> (toString (to2dec yspan), "0.0")
+                        Backslash -> ("0.0", toString (to2dec yspan))
         = [ X1Attr ("0.0", PX), X2Attr (toString (to2dec xspan), PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
     mkPolygonImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)] !ImageSpanReal
                       !(Maybe (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s)))
@@ -1258,12 +1373,12 @@ genSVG img = imageCata genSVGAllAlgs img
       \offsets -> mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
 
     mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) clval
-      # (uid1, clval) = nextNo clval
-      # (uid2, clval) = nextNo clval
-      # (uid3, clval) = nextNo clval
-      # markersAndIds = [(m, i, s) \\ Just (m, i, s) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
-                                                        , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
-                                                        , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
+      #! (uid1, clval) = nextNo clval
+      #! (uid2, clval) = nextNo clval
+      #! (uid3, clval) = nextNo clval
+      #! markersAndIds = [(m, i, s) \\ Just (m, i, s) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
+                                                         , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
+                                                         , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
       = ret { mkGenSVGSyn
             & genSVGSyn_svgElts  = [ constr [] (map (\(_, x, _) -> x) markersAndIds ++ atts)
                                    , DefsElt [] [] (map (\(x, _, _) -> x) markersAndIds)]
@@ -1294,6 +1409,14 @@ genSVG img = imageCata genSVGAllAlgs img
     { compositeImageAlg = mkCompositeImage
     }
     where
+    mkCompositeImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)]
+                        !(Maybe (GenSVGSt s (GenSVGSyn s)))
+                        !([ImageSpanReal] (Maybe (GenSVGSyn s)) ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
+                        !ImageSpanReal
+                        ![(!Maybe HtmlAttr, !Maybe SVGAttr)]
+                        ![ImageSpanReal -> GenSVGSt s (!SVGTransform, !ImageTransform)]
+                        !(Set ImageTag)
+                     -> GenSVGSt s (GenSVGSyn s) | iTask s
     mkCompositeImage offsets host compose totalSpan imAts imTrs imTas
       =           evalOffsets offsets `b`
       \offsets -> evalMaybe host `b`
@@ -1309,6 +1432,7 @@ genSVG img = imageCata genSVGAllAlgs img
                           & genSVGSyn_svgElts  = mkGroup (getHtmlAttrs attrs) [] (mkGroup [] (getSvgAttrs attrs) elts)
                           , genSVGSyn_onclicks = onclicks
                           }
+    getCpId :: !(GenSVGStVal s) -> (!String, !GenSVGStVal s) | iTask s
     getCpId clval
       # (n, clval) = nextNo clval
       = (mkClipPathId editletId n, clval)
@@ -1339,7 +1463,7 @@ genSVG img = imageCata genSVGAllAlgs img
 
 stTrace :: !a !*(!cl, !*JSWorld) -> *(cl, *JSWorld)
 stTrace x (clval, world)
-  # world = jsTrace x world
+  #! world = jsTrace x world
   = (clval, world)
 
 instance + (Real, Real) where
@@ -1358,40 +1482,51 @@ mkGroup has sas elts = [GElt has sas elts]
 evalOffsets :: ![(!State .st a, !State .st a)] -> State .st [(!a, !a)]
 evalOffsets offsets = \st -> foldr f ([], st) offsets
   where
+  f :: !(!.a -> (!b, !.c), !.c -> .(!d, !.e)) !(![(!b, !d)], !.a) -> ([(b, d)], .e)
   f (sp1, sp2) (xs, st)
-    # (sp1, st) = sp1 st
-    # (sp2, st) = sp2 st
+    #! (sp1, st) = sp1 st
+    #! (sp2, st) = sp2 st
     = ([(sp1, sp2):xs], st)
 
 evalMaybe :: !(Maybe (State .s a)) -> State .s (Maybe a)
 evalMaybe (Just x) = x `b` \x -> ret (Just x)
 evalMaybe _        = ret Nothing
 
-ret x :== \st -> (x, st)
+//ret x :== \st -> (x, st)
+ret :: !a !.s -> (!a, !.s)
+ret x st = (x, st)
 
-(`b`) f g :== f `bind` g
+//(`b`) f g :== f `bind` g
+(`b`) :: !(.a -> (!.b, !.c)) !(.b .c -> .d) !.a -> .d
+(`b`) f g st0
+  #! (r, st1) = f st0
+  = g r st1
 
 mkAttrs :: ![(!Maybe HtmlAttr, !Maybe SVGAttr)] ![(!SVGTransform, !ImageTransform)] -> [(!Maybe HtmlAttr, !Maybe SVGAttr)]
 mkAttrs imAts [] = imAts
 mkAttrs imAts xs = [(Nothing, Just (TransformAttr (map fst xs))):imAts]
 
 calcAlignOffset :: !a !a !(!a, !a) !ImageAlign -> (!a, !a) | IsSpan a
-calcAlignOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl xal, mkYAl yal)
+calcAlignOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl maxxsp imXSp xal, mkYAl maxysp imYSp yal)
   where
-  mkXAl AtLeft    = zero
-  mkXAl AtMiddleX = (maxxsp /. 2.0) - (imXSp /. 2.0)
-  mkXAl AtRight   = maxxsp - imXSp
-  mkYAl AtTop     = zero
-  mkYAl AtMiddleY = (maxysp /. 2.0) - (imYSp /. 2.0)
-  mkYAl AtBottom  = maxysp - imYSp
+  mkXAl :: !a !a !XAlign -> a | IsSpan a
+  mkXAl maxxsp imXSp AtLeft    = zero
+  mkXAl maxxsp imXSp AtMiddleX = (maxxsp /. 2.0) - (imXSp /. 2.0)
+  mkXAl maxxsp imXSp AtRight   = maxxsp - imXSp
+
+  mkYAl :: !a !a !YAlign -> a | IsSpan a
+  mkYAl maxysp imYSp AtTop     = zero
+  mkYAl maxysp imYSp AtMiddleY = (maxysp /. 2.0) - (imYSp /. 2.0)
+  mkYAl maxysp imYSp AtBottom  = maxysp - imYSp
 
 calculateComposedSpan :: ![(!a, !a)] ![(!a, !a)] -> (!a, !a) | IsSpan a
 calculateComposedSpan spans offs
   = foldr f (zero, zero) (zip2 offs spans)
   where
+  f :: !(!(!a, !a), !(!a, !a)) !(!a, !a) -> (!a, !a) | IsSpan a
   f ((xoff, yoff), (imXSp, imYSp)) (maxX, maxY)
-    # maxX = maxOf [maxX, xoff + imXSp]
-    # maxY = maxOf [maxY, yoff + imYSp]
+    #! maxX = maxOf [maxX, xoff + imXSp]
+    #! maxY = maxOf [maxY, yoff + imYSp]
     = (maxX, maxY)
 
 mkTranslateGroup :: !ImageOffsetReal ![SVGElt] -> [SVGElt]
@@ -1408,24 +1543,24 @@ evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
 
 evalSpanSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real) | iTask s
 evalSpanSpanAlgs =
-  { spanPxSpanAlg     = \r   -> ret r
-  , spanLookupSpanAlg = \_   -> ret 0.0
-  , spanAddSpanAlg    = \x y -> mkBin (+) x y
-  , spanSubSpanAlg    = \x y -> mkBin (-) x y
-  , spanMulSpanAlg    = \x y -> mkBin (*) x y
-  , spanDivSpanAlg    = \x y -> mkBin (/) x y
-  , spanAbsSpanAlg    = \x   -> mkAbs x
-  , spanMinSpanAlg    = \xs  -> mkList minList xs
-  , spanMaxSpanAlg    = \xs  -> mkList maxList xs
+  { spanPxSpanAlg     = ret
+  , spanLookupSpanAlg = const (ret 0.0)
+  , spanAddSpanAlg    = mkBin (+)
+  , spanSubSpanAlg    = mkBin (-)
+  , spanMulSpanAlg    = mkBin (*)
+  , spanDivSpanAlg    = mkBin (/)
+  , spanAbsSpanAlg    = mkAbs
+  , spanMinSpanAlg    = mkList minList
+  , spanMaxSpanAlg    = mkList maxList
   }
 
 evalSpanLookupSpanAlgs :: LookupSpanAlg (GenSVGSt s Real) | iTask s
 evalSpanLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg  = \_ _ -> ret 0.0
-  , lookupSpanRowYSpanAlg     = \_ _ -> ret 0.0
-  , lookupSpanImageXSpanAlg   = \_   -> ret 0.0
-  , lookupSpanImageYSpanAlg   = \_   -> ret 0.0
-  , lookupSpanTextXSpanAlg    = \_ _ -> ret 0.0
+  { lookupSpanColumnXSpanAlg  = const2 (ret 0.0)
+  , lookupSpanRowYSpanAlg     = const2 (ret 0.0)
+  , lookupSpanImageXSpanAlg   = const (ret 0.0)
+  , lookupSpanImageYSpanAlg   = const (ret 0.0)
+  , lookupSpanTextXSpanAlg    = const2 (ret 0.0)
   }
 
 mkAbs :: !(GenSVGSt s Real) -> GenSVGSt s Real | iTask s
@@ -1540,43 +1675,53 @@ mkList f xs = sequence xs `b` \xs -> ret (f xs)
   , lookupSpanTextXSpanAlg    :: !FontDef String     -> loSp
   }
 
-foldrCata cata xs :== foldr (\x xs -> [cata x:xs]) [] xs
+foldrCata :: !(a -> b) ![a] -> [b]
+foldrCata cata xs = foldr (f cata) [] xs
+  where
+  f :: !(a -> b) !a ![b] -> [b]
+  f cata x xs = [cata x : xs]
 
-foldSetCata cata xs :== 'DS'.fold (\x rs -> 'DS'.insert (cata x) rs) 'DS'.newSet xs
+foldSetCata :: !(a -> b) !(Set a) -> Set b | < a & == a & < b & == b
+foldSetCata cata xs = 'DS'.fold (f cata) 'DS'.newSet xs
+  where
+  f :: !(a -> b) !a !(Set b) -> Set b | < a & == a & < b & == b
+  f cata x rs = 'DS'.insert (cata x) rs
 
-foldrOffsets spanAlgs lookupSpanAlgs xs
-  :== let f (l, r) xs
-            # synr = spanCata spanAlgs lookupSpanAlgs l
-            # synl = spanCata spanAlgs lookupSpanAlgs r
-            = [(synr, synl):xs]
-      in  foldr f [] xs
+foldrOffsets :: !(SpanAlg a b) !(LookupSpanAlg a) ![(!Span, !Span)] -> [(!b, !b)]
+foldrOffsets spanAlgs lookupSpanAlgs xs = foldr (f spanAlgs lookupSpanAlgs) [] xs
+  where
+  f :: !(SpanAlg a b) !(LookupSpanAlg a) !(!Span, !Span) ![(!b, !b)] -> [(!b, !b)]
+  f spanAlgs lookupSpanAlgs (l, r) xs
+    #! synr = spanCata spanAlgs lookupSpanAlgs l
+    #! synl = spanCata spanAlgs lookupSpanAlgs r
+    = [(synr, synl):xs]
 
 imageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Image m) -> im
 imageCata allAlgs { Image | content, mask, attribs, transform, tags, totalSpan = (txsp, tysp), margin = (m1, m2, m3, m4), transformCorrection = (tfXCorr, tfYCorr) }
-  # synContent    = imageContentCata allAlgs content
-  # synMask       = fmap (imageCata allAlgs) mask
-  # synsAttribs   = foldrCata (imageAttrCata allAlgs.imageAttrAlgs) ('DS'.toList attribs)
-  # synsTransform = foldrCata (imageTransformCata allAlgs.imageTransformAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs) transform
-  # synTXsp       = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs txsp
-  # synTYsp       = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tysp
-  # synm1         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m1
-  # synm2         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m2
-  # synm3         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m3
-  # synm4         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m4
-  # synXCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfXCorr
-  # synYCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfYCorr
+  #! synContent    = imageContentCata allAlgs content
+  #! synMask       = fmap (imageCata allAlgs) mask
+  #! synsAttribs   = foldrCata (imageAttrCata allAlgs.imageAttrAlgs) ('DS'.toList attribs)
+  #! synsTransform = foldrCata (imageTransformCata allAlgs.imageTransformAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs) transform
+  #! synTXsp       = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs txsp
+  #! synTYsp       = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tysp
+  #! synm1         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m1
+  #! synm2         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m2
+  #! synm3         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m3
+  #! synm4         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m4
+  #! synXCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfXCorr
+  #! synYCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfYCorr
   = allAlgs.imageAlgs.imageAlg synContent synMask synsAttribs synsTransform tags (synTXsp, synTYsp) (synm1, synm2, synm3, synm4) (synXCorr, synYCorr)
 
 imageContentCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(ImageContent m) -> imCo
 imageContentCata allAlgs (Basic bi is)
-  # synBasicImage = basicImageCata allAlgs.basicImageAlgs bi
-  # synImageSpan  = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs is
+  #! synBasicImage = basicImageCata allAlgs.basicImageAlgs bi
+  #! synImageSpan  = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs is
   = allAlgs.imageContentAlgs.imageContentBasicAlg synBasicImage synImageSpan
 imageContentCata allAlgs (Line li)
-  # synLineImage = lineImageCata allAlgs li
+  #! synLineImage = lineImageCata allAlgs li
   = allAlgs.imageContentAlgs.imageContentLineAlg synLineImage
 imageContentCata allAlgs (Composite ci)
-  # synCompositeImage = compositeImageCata allAlgs ci
+  #! synCompositeImage = compositeImageCata allAlgs ci
   = allAlgs.imageContentAlgs.imageContentCompositeAlg synCompositeImage
 
 imageAttrCata :: !(ImageAttrAlg m imAt) !(ImageAttr m) -> imAt
@@ -1598,14 +1743,14 @@ imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (SkewXImage ia)
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (SkewYImage ia)
   = imageTransformAlgs.imageTransformSkewYImageAlg ia
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (FitImage sp1 sp2)
-  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
-  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  #! synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  #! synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
   = imageTransformAlgs.imageTransformFitImageAlg synSpan1 synSpan2
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (FitXImage sp)
-  # synSpan = spanCata spanAlgs lookupSpanAlgs sp
+  #! synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = imageTransformAlgs.imageTransformFitXImageAlg synSpan
 imageTransformCata imageTransformAlgs spanAlgs lookupSpanAlgs (FitYImage sp)
-  # synSpan = spanCata spanAlgs lookupSpanAlgs sp
+  #! synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = imageTransformAlgs.imageTransformFitYImageAlg synSpan
 
 basicImageCata :: !(BasicImageAlg baIm) !BasicImage -> baIm
@@ -1617,82 +1762,82 @@ basicImageCata basicImageAlgs EllipseImage       = basicImageAlgs.basicImageElli
 
 lineImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(LineImage m) -> liIm
 lineImageCata allAlgs { LineImage | lineSpan, markers, lineContent }
-  # synImageSpan   = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineSpan
-  # synMarkers     = fmap (markersCata allAlgs) markers
-  # synLineContent = lineContentCata allAlgs.lineContentAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineContent
+  #! synImageSpan   = span2TupleCata allAlgs.imageSpanAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineSpan
+  #! synMarkers     = fmap (markersCata allAlgs) markers
+  #! synLineContent = lineContentCata allAlgs.lineContentAlgs allAlgs.spanAlgs allAlgs.lookupSpanAlgs lineContent
   = allAlgs.lineImageAlgs.lineImageLineImageAlg synImageSpan synMarkers synLineContent
 
 markersCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Markers m) -> ma
 markersCata allAlgs { Markers | markerStart, markerMid, markerEnd }
-  # synStart = fmap (imageCata allAlgs) markerStart
-  # synMid   = fmap (imageCata allAlgs) markerMid
-  # synEnd   = fmap (imageCata allAlgs) markerEnd
+  #! synStart = fmap (imageCata allAlgs) markerStart
+  #! synMid   = fmap (imageCata allAlgs) markerMid
+  #! synEnd   = fmap (imageCata allAlgs) markerEnd
   = allAlgs.markersAlgs.markersMarkersAlg synStart synMid synEnd
 
 lineContentCata :: !(LineContentAlg sp liCo) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !LineContent -> liCo
 lineContentCata lineContentAlgs _ _ (SimpleLineImage sl)
   = lineContentAlgs.lineContentSimpleLineImageAlg sl
 lineContentCata lineContentAlgs spanAlgs lookupSpanAlgs (PolygonImage offsets)
-  # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
+  #! synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
   = lineContentAlgs.lineContentPolygonImageAlg synsImageOffset
 lineContentCata lineContentAlgs spanAlgs lookupSpanAlgs (PolylineImage offsets)
-  # synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
+  #! synsImageOffset = foldrOffsets spanAlgs lookupSpanAlgs offsets
   = lineContentAlgs.lineContentPolylineImageAlg synsImageOffset
 
 span2TupleCata :: !(ImageSpanAlg sp imSp) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !(Span, Span) -> imSp
 span2TupleCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
-  # synSpan1 = spanCata spanAlgs lookupSpanAlgs xspan
-  # synSpan2 = spanCata spanAlgs lookupSpanAlgs yspan
+  #! synSpan1 = spanCata spanAlgs lookupSpanAlgs xspan
+  #! synSpan2 = spanCata spanAlgs lookupSpanAlgs yspan
   = imageSpanAlgs.imageSpanAlg synSpan1 synSpan2
 
 compositeImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(CompositeImage m) -> coIm
 compositeImageCata allAlgs { CompositeImage | offsets, host, compose }
-  # synsImageOffset = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
-  # synHost         = fmap (imageCata allAlgs) host
-  # synCompose      = composeCata allAlgs compose
+  #! synsImageOffset = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
+  #! synHost         = fmap (imageCata allAlgs) host
+  #! synCompose      = composeCata allAlgs compose
   = allAlgs.compositeImageAlgs.compositeImageAlg synsImageOffset synHost synCompose
 
 composeCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Compose m) -> co
 composeCata allAlgs (AsGrid n ias imgss)
-  # synsContent = foldr (\xs xss -> [foldrCata (imageCata allAlgs) xs:xss]) [] imgss
+  #! synsContent = foldr (\xs xss -> [foldrCata (imageCata allAlgs) xs:xss]) [] imgss
   = allAlgs.composeAlgs.composeAsGridAlg n ias synsContent
 composeCata allAlgs (AsCollage imgs)
-  # synsContent = foldrCata (imageCata allAlgs) imgs
+  #! synsContent = foldrCata (imageCata allAlgs) imgs
   = allAlgs.composeAlgs.composeAsCollageAlg synsContent
 composeCata allAlgs (AsOverlay ias imgs)
-  # synsContent = foldrCata (imageCata allAlgs) imgs
+  #! synsContent = foldrCata (imageCata allAlgs) imgs
   = allAlgs.composeAlgs.composeAsOverlayAlg ias synsContent
 
 spanCata :: !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !Span -> sp
 spanCata spanAlgs lookupSpanAlgs (PxSpan rl)
   = spanAlgs.spanPxSpanAlg rl
 spanCata spanAlgs lookupSpanAlgs (LookupSpan lu)
-  # synLookup = lookupCata lookupSpanAlgs lu
+  #! synLookup = lookupCata lookupSpanAlgs lu
   = spanAlgs.spanLookupSpanAlg synLookup
 spanCata spanAlgs lookupSpanAlgs (AddSpan sp1 sp2)
-  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
-  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  #! synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  #! synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
   = spanAlgs.spanAddSpanAlg synSpan1 synSpan2
 spanCata spanAlgs lookupSpanAlgs (SubSpan sp1 sp2)
-  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
-  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  #! synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  #! synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
   = spanAlgs.spanSubSpanAlg synSpan1 synSpan2
 spanCata spanAlgs lookupSpanAlgs (MulSpan sp1 sp2)
-  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
-  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  #! synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  #! synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
   = spanAlgs.spanMulSpanAlg synSpan1 synSpan2
 spanCata spanAlgs lookupSpanAlgs (DivSpan sp1 sp2)
-  # synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
-  # synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
+  #! synSpan1 = spanCata spanAlgs lookupSpanAlgs sp1
+  #! synSpan2 = spanCata spanAlgs lookupSpanAlgs sp2
   = spanAlgs.spanDivSpanAlg synSpan1 synSpan2
 spanCata spanAlgs lookupSpanAlgs (AbsSpan sp)
-  # synSpan = spanCata spanAlgs lookupSpanAlgs sp
+  #! synSpan = spanCata spanAlgs lookupSpanAlgs sp
   = spanAlgs.spanAbsSpanAlg synSpan
 spanCata spanAlgs lookupSpanAlgs (MinSpan sps)
-  # synsSpans = foldrCata (spanCata spanAlgs lookupSpanAlgs) sps
+  #! synsSpans = foldrCata (spanCata spanAlgs lookupSpanAlgs) sps
   = spanAlgs.spanMinSpanAlg synsSpans
 spanCata spanAlgs lookupSpanAlgs (MaxSpan sps)
-  # synsSpans = foldrCata (spanCata spanAlgs lookupSpanAlgs) sps
+  #! synsSpans = foldrCata (spanCata spanAlgs lookupSpanAlgs) sps
   = spanAlgs.spanMaxSpanAlg synsSpans
 
 lookupCata :: !(LookupSpanAlg loSp) !LookupSpan -> loSp
