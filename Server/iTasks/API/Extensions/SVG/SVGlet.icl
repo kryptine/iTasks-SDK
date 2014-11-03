@@ -163,7 +163,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
   appServerDiff _             srvSt = srvSt
 
-  genClientDiff oldClSt newClSt
+  genClientDiff oldClSt newClSt // = Just (SetState newClSt.svgClSt)
     | oldClSt.svgClIsDefault              = Just (SetState newClSt.svgClSt)
     | oldClSt.svgClSt === newClSt.svgClSt = Nothing
     | otherwise                           = Just (SetState newClSt.svgClSt)
@@ -736,9 +736,22 @@ fixSpans :: !(Image s) -> FixSpansSt (Image s) | iTask s
 fixSpans img = go
   where
   go st
-    # (img`, st)      = imageCata fixSpansAllAlgs img st
+    #! (img`, st)          = imageCata fixSpansAllAlgs img st
     | st.fixSpansDidChange = fixSpans img` {st & fixSpansDidChange = False}
-    | otherwise       = ret img` st
+    | otherwise            = ret img` st
+  fixSpansAllAlgs :: Algebras s
+                     ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s))
+                     (FixSpansSt (ImageAttr s))
+                     (FixSpansSt ImageTransform)
+                     (FixSpansSt (Image s))
+                     ((!Span, !Span) [ImageTransform] -> FixSpansSt (FixSpansSyn s))
+                     (FixSpansSt (!Span, !Span))
+                     ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s))
+                     (FixSpansSt (Image s))
+                     ([(!Span, !Span)] (Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !(!Span, !Span), [(!Span, !Span)]))
+                     (FixSpansSt Span) (FixSpansSt Span) (FixSpansSt (Markers s))
+                     ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s))
+                     (FixSpansSt LineContent) | iTask s
   fixSpansAllAlgs =
     { imageAlgs          = fixSpansImageAlgs
     , imageContentAlgs   = fixSpansImageContentAlgs
@@ -882,7 +895,7 @@ fixSpans img = go
     mkSpan :: !BasicImage !ImageSpan ![ImageTransform]
            -> FixSpansSt (FixSpansSyn s) | iTask s
     mkSpan ctor imSp imTrs
-      # (imSp`, imOff) = applyTransforms imTrs imSp
+      #! (imSp`, imOff) = applyTransforms imTrs imSp
       = ret { fixSpansSyn_ImageContent     = Basic ctor imSp
             , fixSpansSyn_TotalSpan        = imSp`
             , fixSpansSyn_OffsetCorrection = imOff }
