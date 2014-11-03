@@ -16,7 +16,6 @@ import Text
 					, mouseDown :: Maybe (Int, Int)
 					, lastDraw  :: Maybe DrawType
 					, draw		:: ![DrawType]
-					, finished  :: Bool				
 					}
 
 :: DrawType = DrawLine !String !Int !Int !Int !Int
@@ -58,7 +57,7 @@ where
 	clientDef =
 	  {  EditletDef
 	  |  performIO = updateUI
-	  ,  defVal    = {tool = "L", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing, finished = False}
+	  ,  defVal    = {tool = "L", color = "black", mouseDown = Nothing, draw = [], lastDraw = Nothing}
 	  ,  genDiff   = cltGenDiff
 	  ,  appDiff   = \ds cl -> {cl & draw = reverse ds ++ cl.draw}
 	  }
@@ -85,19 +84,27 @@ where
 		# world = foldl (\world dr = draw context dr world) world (reverse cl.draw)
 		= (cl, world)	
 
-getCanvas cid temp world
-	= case temp of
-		True = .? (getElementById ("tempcanvas_"+++cid)) world
-		_	 = .? (getElementById ("canvas_"+++cid)) world
+:: JSCanvas = JSCanvas
+:: JSCanvasContext = JSCanvasContext
+:: Canvas :== JSVal JSCanvas
+:: Context :== JSVal JSCanvasContext
 
+:: Color :== String
+
+getCanvas :: ComponentId Bool *JSWorld -> *(Canvas, *JSWorld)
+getCanvas cid True  world = .? (getElementById ("tempcanvas_"+++cid)) world
+getCanvas cid False world = .? (getElementById ("canvas_"+++cid)) world
+
+getContext :: ComponentId Bool *JSWorld -> *(Context, *JSWorld)
 getContext cid temp world
  	# (canvas, world) = getCanvas cid temp world
-	# (context, world) = (canvas .# "getContext" .$ ("2d")) world // not "2D" !
-	= (context, world)
+	= (canvas .# "getContext" .$ ("2d")) world // not "2D" !
 
-clearContext context world
+clearCanvas :: Context *JSWorld -> *JSWorld
+clearCanvas context world
 	= (context .# "clearRect" .$! (0, 0, canvasWidth, canvasHeight)) world
 			
+drawLine :: Context Color Int Int Int Int *JSWorld -> *JSWorld			
 drawLine context color x1 y1 x2 y2 world
 	# world = (context .# "beginPath" .$! ()     ) world
 	# world = (context .# "strokeStyle" .= color ) world
@@ -106,22 +113,19 @@ drawLine context color x1 y1 x2 y2 world
 	# world = (context .# "stroke" .$! ()        ) world
 	= world
 
-(.>>.) infixl 9 // ::  u:(.a -> .b) u:(.c -> .a) -> u:(.c -> .b) // Function composition
-(.>>.) f g :== \ x -> g (f x)
-
+drawRect :: Context Color Int Int Int Int *JSWorld -> *JSWorld
 drawRect context color x1 y1 x2 y2 world
-//	= context .# "strokeStyle" .= color >>= \v ->
-//	  context .# "strokeRect" .$ (x1, y1, x2 - x1, y2 - y1)
-
 	# world = (context .# "strokeStyle" .= color                     ) world
 	# world = (context .# "strokeRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
 	= world
 
+drawFilledRect :: Context Color Int Int Int Int *JSWorld -> *JSWorld
 drawFilledRect context color x1 y1 x2 y2 world
 	# world = (context .# "fillStyle" .= color) world
 	# world = (context .# "fillRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
 	= world
 
+drawCircle :: Context Bool Color Int Int Int Int *JSWorld -> *JSWorld
 drawCircle context fill color x1 y1 x2 y2 world
 	# world = (context .# "beginPath" .$! ()      ) world
 	# world = (context .# "strokeStyle" .= color  ) world
@@ -143,6 +147,7 @@ where
 	center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
 	distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
 				
+draw :: Context DrawType *JSWorld -> *JSWorld
 draw context (DrawLine color x1 y1 x2 y2) world
 	= drawLine context color x1 y1 x2 y2 world
 draw context (DrawRect color False x1 y1 x2 y2) world
@@ -213,22 +218,22 @@ painterGenerateGUI cid world
 			
 	= (gui, world)
 where
+	onChangeTool :: ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !*JSWorld)
 	onChangeTool _ {[0]=e} state world
-		# (selectedIndex, world) = .? (e .# "target.selectedIndex") world
-		# (options, world) 		 = .? (e .# "target.options") world		
-		# (option, world) 		 = .? (options .# (jsValToInt selectedIndex)) world
-		# (atool, world) 		 = .? (option .# "value") world
-		= ({state & tool = jsValToString atool}, world)	
+		# (selectedIndex, world) = .? (e .# "target" .# "selectedIndex") world
+		# (options, world) 		 = .? (e .# "target" .# "options") world		
+		# (tool, world) 		 = .? (options .# jsValToInt selectedIndex .# "value") world
+		= ({state & tool = jsValToString tool}, world)	
 
+	onSelectColor :: Color ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !*JSWorld)
 	onSelectColor color _ {[0]=e} state world
-		# world = foldl clearBorder world
+		# world = foldr clearBorder world
 					["selectorYellow_"+++cid,"selectorRed_"+++cid,"selectorGreen_"+++cid,"selectorBlue_"+++cid,"selectorBlack_"+++cid]
-		# world = (e .# "target" .# "style.borderColor" .= "pink") world
+		# world = (e .# "target" .# "style" .# "borderColor" .= "pink") world
 		= ({state & color = color}, world)
 	where
-		clearBorder world el
-			# (obj, world) = .? (getElementById el) world
-			= (obj .# "style.borderColor" .= "white") world
+		clearBorder el world
+			= (getElementById el .# "style" .# "borderColor" .= "white") world
 
 	getCoordinates e world
 	    # (x, world) = .? (e .# "layerX") world
@@ -244,7 +249,7 @@ where
 		# (tempcontext, world) 	= getContext cid True world
 		# (context, world)     	= getContext cid False world
 		# world  		  		= (context .# "drawImage" .$! (tempcanvas, 0, 0)) world
-		# world 			   	= clearContext tempcontext world
+		# world 			   	= clearCanvas tempcontext world
 		| isJust state.lastDraw
 			= ({state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing}, world)
 			= ({state & mouseDown = Nothing}, world)
@@ -259,7 +264,7 @@ where
     	# ((x, y), e, world) = getCoordinates e world
 		# (tempcontext, world) = getContext cid True world
 			
-		# world = clearContext tempcontext world
+		# world = clearCanvas tempcontext world
 
 		# drawType = case state.tool of	
 				"L"	= DrawLine state.color dx dy x y
