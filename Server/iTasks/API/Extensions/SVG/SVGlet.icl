@@ -31,10 +31,10 @@ mainSvgId cid = cid +++ "-svg"
 
 addOnclicks :: !ComponentId !(JSObj svg) !(Map String (s -> s)) !*JSWorld -> *JSWorld | iTask s
 addOnclicks cid svg onclicks world
-  = 'DM'.foldrWithKey f world onclicks
+  = 'DM'.foldrWithKey (f cid svg) world onclicks
   where
-  f :: !String !(s -> s) !*JSWorld -> *JSWorld | iTask s
-  f elemCls sttf world
+  f :: !ComponentId !(JSObj svg) !String !(s -> s) !*JSWorld -> *JSWorld | iTask s
+  f cid svg elemCls sttf world
     # elemCls           = replaceSubString editletId cid elemCls
     # (elems, world)    = (svg `getElementsByClassName` elemCls) world
     # (numElems, world) = .? (elems .# "length") world
@@ -140,7 +140,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
     #! (parser, world)  = new "DOMParser" () world
     #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
     #! (newSVG, world)  = .? (doc .# "firstChild") world
-    #! (svgDiv, world)  = getDomElement (mainSvgId cid) world
+    #! svgDiv = getElementById (mainSvgId cid)
     #! (currSVG, world) = .? (svgDiv .# "firstChild") world
     #! (_, world)       = if (jsIsNull currSVG)
                             ((svgDiv `appendChild` newSVG) world)
