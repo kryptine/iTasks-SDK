@@ -1,6 +1,6 @@
 definition module iTasks.API.Extensions.SVG.SVGlet
 
-import Graphics.Scalable
+import Graphics.Scalable 
 from Text.JSON import generic JSONEncode, generic JSONDecode
 from GenEq import generic gEq
 import iTasks

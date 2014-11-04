@@ -2,8 +2,9 @@ definition module iTasks.API.Core.Client.Interface
 
 import StdString, StdGeneric, Data.Void, Data.Maybe
 
-import Control.Applicative
-from Control.Monad import class Monad
+from Control.Applicative import class Applicative
+from Data.Functor        import class Functor
+from Control.Monad       import class Monad
 
 :: DomElementId	:== String
 
