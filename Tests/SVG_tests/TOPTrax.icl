@@ -235,8 +235,7 @@ tileImage d tile		= fromJust (lookup tile [ (horizontal,rotate (Deg 0.0)   horiz
 where
 	brick				= Just (tileShape d <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
 	horizontal_tile		= overlay (repeat (AtMiddleX,AtMiddleY)) [] [ bar yline "white", bar xline "red" ] brick
-	northwest_tile		= maskWith (tileShape d <@< {fill = toSVGColor "white"})
-						           (overlay [] [(d /. 2, d /. 2),(d /. -2, d /. -2)] [ arc "white", arc "red" ] brick)
+	northwest_tile		= (overlay [] [(d /. 2, d /. 2),(d /. -2, d /. -2)] [ arc "white", arc "red" ] brick) <@< { MaskAttr | mask = tileShape d <@< {fill = toSVGColor "white"}}
 	bar line c			= line Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
 	arc c				= circle d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5} <@< {fill = toSVGColor "none"}
 
