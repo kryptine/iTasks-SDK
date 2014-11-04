@@ -6,7 +6,7 @@ import graph_to_sapl_string
 
 from StdOverloaded import class <
 from StdClass import class Ord, class Eq
-from Data.Map import :: Map, newMap, get, put, toList
+from Data.Map import :: Map, newMap, get, put, toList, toAscList, foldrWithKey
 from Data.Set import :: Set, newSet
 
 from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSEvent, :: JSObj, :: JSObject
@@ -249,13 +249,14 @@ diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance}
     # sapl_lib = toString lib
 
     // For debugging:
-	//# world = debugToFile "debug_diff_cdf.sapl" sapl_cdf world
-	//# world = debugToFile "debug_diff_idf.sapl" sapl_idf world
-	//# world = debugToFile "debug_diff.sapl"     sapl_lib world
+    //# world = debugToFile "debug_diff_cdf.sapl" sapl_cdf world
+    //# world = debugToFile "debug_diff_idf.sapl" sapl_idf world
+    //# world = debugToFile "debug_diff.sapl"     sapl_lib world
 
 	# (js_lib, mbparserstate) = case sapl_lib of
 		"" = (newAppender, mbparserstate)
 		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib mbparserstate) in (script, Just pst)
+
 	# (js_cdf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_cdf mbparserstate js_lib)
 	# (js_idf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_idf (Just parserstate) js_lib)
     = (toString js_lib,	js_cdf, js_idf, {iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
