@@ -35,19 +35,19 @@ addOnclicks cid svg onclicks world
   where
   f :: !ComponentId !(JSObj svg) !String !(s -> s) !*JSWorld -> *JSWorld | iTask s
   f cid svg elemCls sttf world
-    # elemCls           = replaceSubString editletId cid elemCls
-    # (elems, world)    = (svg `getElementsByClassName` elemCls) world
-    # (numElems, world) = .? (elems .# "length") world
+    #! elemCls           = replaceSubString editletId cid elemCls
+    #! (elems, world)    = (svg `getElementsByClassName` elemCls) world
+    #! (numElems, world) = .? (elems .# "length") world
     | jsValToInt (numElems) < 1 = world
-    # (elem, world)     = .? (elems .# "0") world
-    # cb                = createEditletEventHandler (mkCB sttf) cid
-    # (_, world)        = (elem `addEventListener` ("click", cb, True)) world
+    #! (elem, world)     = .? (elems .# "0") world
+    #! cb                = createEditletEventHandler (mkCB sttf) cid
+    #! (_, world)        = (elem `addEventListener` ("click", cb, True)) world
     = world
   mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
   mkCB sttf _ _ clval=:{svgClSt} world
-    # newSt = sttf svgClSt
+    //#! newSt = sttf svgClSt
     //= ({clval & svgClSt = newSt, svgClIsDefault = False, svgClHasStUpd = not (newSt === svgClSt)}, world)
-    = ({clval & svgClSt = newSt, svgClIsDefault = False}, world)
+    = ({clval & svgClSt = sttf svgClSt, svgClIsDefault = False}, world)
   mkCB sttf _ _ clval world
     = ({clval & svgClIsDefault = False}, world)
 
