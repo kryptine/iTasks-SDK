@@ -1093,22 +1093,6 @@ fixSpans img = go
     mkPxSpan :: !Real !FixSpansStVal -> .(!Span, !FixSpansStVal)
     mkPxSpan r st = (PxSpan r, st)
 
-    mkAbs :: !(FixSpansSt Span) !FixSpansStVal -> .(!Span, !FixSpansStVal)
-    mkAbs x st
-      #! (x, st) = x st
-      = (abs x, st)
-
-    mkBin :: !(Span Span -> Span) !(FixSpansSt Span) !(FixSpansSt Span) !FixSpansStVal -> .(!Span, !FixSpansStVal)
-    mkBin op x y st
-      #! (x, st) = x st
-      #! (y, st) = y st
-      = (op x y, st)
-
-    mkList :: !([Span] -> Span) ![FixSpansSt Span] !FixSpansStVal -> .(!Span, !FixSpansStVal)
-    mkList f xs st
-      #! (xs, st) = sequence xs st
-      = (f xs, st)
-
   fixSpansLookupSpanAlgs :: LookupSpanAlg (FixSpansSt Span)
   fixSpansLookupSpanAlgs =
     { lookupSpanColumnXSpanAlg = mkImageGridSpan (\(xs, _) n -> xs.[n]) ColumnXSpan
@@ -1655,18 +1639,18 @@ evalSpanLookupSpanAlgs =
   , lookupSpanTextXSpanAlg    = const2 (ret 0.0)
   }
 
-mkAbs :: !(GenSVGSt s Real) !(GenSVGStVal s) -> .(!Real, GenSVGStVal s) | iTask s
+// TODO Type signature
 mkAbs x st
   #! (x, st) = x st
   = (abs x, st)
 
-mkBin :: !(Real Real -> Real) !(GenSVGSt s Real) !(GenSVGSt s Real) !(GenSVGStVal s) -> .(!Real, GenSVGStVal s) | iTask s
+mkBin :: !(a b -> c) !(d -> .(!a, !e)) !(e -> .(!b, !f)) !d -> .(!c, !f)
 mkBin op x y st
   #! (x, st) = x st
   #! (y, st) = y st
   = (op x y, st)
 
-mkList :: !([Real] -> Real) ![GenSVGSt s Real] !(GenSVGStVal s) -> .(!Real, GenSVGStVal s) | iTask s
+mkList :: !([a] -> b) ![c -> .(!a, !c)] !c -> .(!b, !c)
 mkList f xs st
   #! (xs, st) = sequence xs st
   = (f xs, st)
