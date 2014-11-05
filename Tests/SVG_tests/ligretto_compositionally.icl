@@ -47,8 +47,8 @@ where
                   ], nr
 	       ,lines ["upside_nr = rotate (Deg 180.0) nr"
                   ], upside_nr
-           ,lines ["overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
-                  ,"             (Just (card_shape <@< {fill = toSVGColor card.front}) )"
+           ,lines ["front_card = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
+                  ,"                 (Just (card_shape <@< {fill = toSVGColor card.front}) )"
                   ], front_card
            ,lines ["pile = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
                   ,"             (repeatn 10 front_card) Nothing"
@@ -63,13 +63,14 @@ cardfont size = normalFontDef "Verdana" size
 pilefont size = normalFontDef "Verdana" size
 card          = {back = Red, front = Green, nr = 7}
 
-card_size     = (58.5, 90.0)
-card_rect     = rect (px w) (px h) where (w,h) = card_size
-card_shape    = card_rect <@< {xradius=px (h/18.0)} <@< {yradius=px (h/18.0)} where (w,h) = card_size
+w             = 58.5
+h             = 90.0
+card_size     = (w, h)
+card_rect     = rect (px w) (px h)
+card_shape    = card_rect <@< {xradius=px (h/18.0)} <@< {yradius=px (h/18.0)}
 empty_card    = card_shape <@< {fill = toSVGColor "lightgrey"}
 no_card_image = overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just empty_card)
 ligretto      = text (cardfont (w / 5.0)) "Ligretto"  <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"}
-where (w,h)   = card_size
 back_text     = skewy (Deg -20.0) ligretto
 back_card     = overlay [(AtLeft,AtBottom)] [] [back_text] (Just (card_shape <@< {fill = toSVGColor "white"}))
 nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
@@ -77,7 +78,7 @@ nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "
 upside_nr     = margin 30 (rotate (Deg 180.0) nr)
 front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
-pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) Nothing where (w,h) = card_size
+pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) Nothing
 indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) "10",pile] Nothing
 rotate_pile   = rotate (Deg 15.0) indexed_pile
 

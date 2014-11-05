@@ -139,7 +139,7 @@ where
 	(w,h)					= card_size
 	nr_stroke_color Red		= Blue
 	nr_stroke_color Green	= Red
-	nr_stroke_color Blue	= Yellow
+	nr_stroke_color Blue	= Green//Yellow
 	nr_stroke_color Yellow	= Green
 
 pile_image :: SideUp Pile -> Image m
@@ -216,21 +216,7 @@ instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Yellow = toSVGColor "gold"
 
 cardfont :: !Real -> FontDef
-cardfont size
-	= { fontfamily  = "Verdana"
-      , fontysize   = size
-      , fontstretch = "normal"
-      , fontstyle   = "normal"
-      , fontvariant = "normal"
-      , fontweight  = "bold"
-      }
+cardfont size = normalFontDef "Verdana" size
 
 pilefont :: !Real -> FontDef
-pilefont size
-	= { fontfamily  = "Verdana"
-      , fontysize   = size
-      , fontstretch = "normal"
-      , fontstyle   = "normal"
-      , fontvariant = "normal"
-      , fontweight  = "normal"
-      }
+pilefont size = normalFontDef "Verdana" size
