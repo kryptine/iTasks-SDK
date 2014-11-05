@@ -212,13 +212,13 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
 							 in ([(id,event,ejs):os],js_lib`,parserstate`)) ([],js_lib,parserstate) sapl_eventHandlers
 
     // For debugging:
-	# world = debugToFile "debug_id.sapl" sapl_ID world
-	# world = debugToFile "debug_dv.sapl" sapl_DV world
-	# world = debugToFile "debug_u.sapl"  sapl_UU world
-	# world = debugToFile "debug_gd.sapl" sapl_GD world
-	# world = debugToFile "debug_ad.sapl" sapl_AD world
-	# world = debugToFile "debug.sapl"    sapl_lib world
-	# world = debugToFile "debug.js"      (toString js_lib) world
+	//# world = debugToFile "debug_id.sapl" sapl_ID world
+	//# world = debugToFile "debug_dv.sapl" sapl_DV world
+	//# world = debugToFile "debug_u.sapl"  sapl_UU world
+	//# world = debugToFile "debug_gd.sapl" sapl_GD world
+	//# world = debugToFile "debug_ad.sapl" sapl_AD world
+	//# world = debugToFile "debug.sapl"    sapl_lib world
+	//# world = debugToFile "debug.js"      (toString js_lib) world
 
 	= (toString js_lib, js_eventHandlers, js_ID, js_DV, js_UU, js_GD, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
