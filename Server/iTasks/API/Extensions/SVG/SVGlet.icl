@@ -1302,7 +1302,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkTextImage fd str imSp imAts imTrs imTas
     // TODO Currently we manually translate text by fontysize pixels to compensate for the "auto" baseline. The result look OK, but a bit off compare to the old approach where we forced the origin to be the top-left corner (which didn't work with zooming)
     // We need to offset by the font's descent height, but that's not easy to calculate currently (there are no JS APIs for that yet). Current heuristic: we assume that the ex-height is half of the font height. We assume that the descent height is half of the ex-height. Therefore, we multiply by 0.75
-      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [TransformAttr [TranslateTransform "0" (toString (fd.fontysize * 0.75))]] [TextElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
+      = ret { mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [TransformAttr [TranslateTransform "0" (toString (fd.fontysize * 0.75))]] [TextElt [XmlspaceAttr "preserve"] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
       where
       fontAttrs fsz = [ AlignmentBaselineAttr "auto"
                       , DominantBaselineAttr "auto"
