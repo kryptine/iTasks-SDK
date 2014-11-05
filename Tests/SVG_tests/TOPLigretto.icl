@@ -184,7 +184,7 @@ middle_image middle			= circular 180.0 (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: (Player,[Player],Middle) -> Image (Player,[Player],Middle)
 player_perspective (player,opponents,middle)
-							= margin (500.0,500.0,500.0,500.0)											// ISSUE: this margin is too much, should be fine-tuned
+							= margin (px 500.0, px 500.0, px 500.0, px 500.0)											// ISSUE: this margin is too much, should be fine-tuned
 							  (overlay (repeat (AtMiddleX,AtMiddleY)) [] 
 							           [  rotate (Rad (i*angle)) img 
 							           \\ img <- [player_image True r player : map (player_image False r) opponents] 
@@ -205,7 +205,7 @@ circular r a imgs			= overlay (repeat (AtMiddleX,AtMiddleY))
 where
 	n     				    = length imgs
 	sign_a					= toReal (sign a)
-	(Rad a`)				= normalize (Rad a)
+	(Rad a`)				= normalize (rad a)
 	alpha					= a` / (toReal n)
 
 pi =: 3.14159265359

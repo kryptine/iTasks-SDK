@@ -16,12 +16,13 @@ Global
 		ShowGC:	False
 		ShowStackSize:	False
 		MarkingCollector:	False
+		DisableRTSFlags:	False
 		StandardRuntimeEnv:	True
 		Profile
-			Memory:	False
+			Memory:	True
 			MemoryMinimumHeapSize:	0
-			Time:	False
-			Stack:	False
+			Time:	True
+			Stack:	True
 		Output
 			Output:	ShowConstructors
 			Font:	Monaco
