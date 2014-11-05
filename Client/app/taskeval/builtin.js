@@ -206,6 +206,10 @@ function _shiftright(a,b){
     return Sapl.feval(a) >>> Sapl.feval(b);
 }
 
+function _entier(a){
+    return Math.floor(Sapl.feval(a));
+}
+
 // ----------------------------------------------------------------
 // Arrays
 
