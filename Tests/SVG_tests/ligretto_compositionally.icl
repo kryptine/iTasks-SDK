@@ -77,7 +77,7 @@ back_text     = skewy (Deg -20.0) ligretto
 back_card     = overlay [(AtLeft,AtBottom)] [] [back_text] (Just (card_shape <@< {fill = toSVGColor "white"}))
 nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
 			  			                              <@< {stroke = toSVGColor (nr_stroke_color card.front)}
-upside_nr     = margin 30 (rotate (Deg 180.0) nr)
+upside_nr     = margin (toSpan 30) (rotate (Deg 180.0) nr)
 front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
 pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) Nothing
