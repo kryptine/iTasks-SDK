@@ -18,43 +18,45 @@ where
 	              ,"pilefont size = normalFontDef \"Verdana\" size"
 	              ,"card          = {back = Red, front = Green, nr = 7}"
 	              ], empty (px zero) (px zero)
-	       ,text font "card_rect = rect (px w) (px h)"
-	               , card_rect
-	       ,lines ["card_shape = card_rect"
-	              ,"              <@< {xradius=px (h/18.0)}"
-	              ,"              <@< {yradius=px (h/18.0)}"
+	       ,lines ["card_rect     = rect (px w) (px h)"
+	              ], card_rect
+	       ,lines ["card_shape    = card_rect"
+	              ,"                   <@< {xradius=px (h/18.0)}"
+	              ,"                   <@< {yradius=px (h/18.0)}"
 	              ], card_shape
-	       ,lines ["empty_card = card_shape"
-	              ,"              <@< {fill = toSVGColor \"lightgrey\"}"
+	       ,lines ["empty_card    = card_shape"
+	              ,"                   <@< {fill = toSVGColor \"lightgrey\"}"
 	              ], empty_card
 	       ,lines ["no_card_image = overlay [(AtMiddleX,AtMiddleY)]"
 	              ,"                        []"
 	              ,"                        [text (pilefont 12.0) \"empty\"]"
 	              ,"                        (Just empty_card)"
 	              ], no_card_image
-	       ,lines ["ligretto = text (cardfont (w / 5.0)) \"Ligretto\""
-	              ,"              <@< {stroke = toSVGColor card.back}"
-	              ,"              <@< {fill = toSVGColor \"none\"}"
+	       ,lines ["ligretto      = text (cardfont (w / 5.0)) \"Ligretto\""
+	              ,"                   <@< {stroke = toSVGColor card.back}"
+	              ,"                   <@< {fill = toSVGColor \"none\"}"
 	              ], ligretto
-	       ,text font "back_text = skewy (Deg -20.0) ligretto"
-	               , back_text
-	       ,lines ["back_card = overlay [(AtLeft,AtBottom)] [] [back_text]"
-	              ,"              (Just (card_shape <@< {fill = toSVGColor \"white\"}))"]
-	               , back_card
-	       ,lines ["nr = text (cardfont 20.0) (toString card.nr)"
-	              ,"              <@< {fill = toSVGColor \"white\"}"
-                  ,"              <@< {stroke = toSVGColor (nr_stroke_color card.front)}"
+	       ,lines ["back_text     = skewy (Deg -20.0) ligretto"
+	              ], back_text
+	       ,lines ["back_card     = overlay [(AtLeft,AtBottom)] [] [back_text]"
+	              ,"                   (Just (card_shape <@< {fill = toSVGColor \"white\"}))"
+	              ], back_card
+	       ,lines ["nr            = text (cardfont 20.0) (toString card.nr)"
+	              ,"                   <@< {fill = toSVGColor \"white\"}"
+                  ,"                   <@< {stroke = toSVGColor (nr_stroke_color card.front)}"
                   ], nr
-	       ,lines ["upside_nr = rotate (Deg 180.0) nr"
+	       ,lines ["upside_nr     = rotate (Deg 180.0) nr"
                   ], upside_nr
-           ,lines ["front_card = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
-                  ,"                 (Just (card_shape <@< {fill = toSVGColor card.front}) )"
+           ,lines ["front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
+                  ,"                   (Just (card_shape <@< {fill = toSVGColor card.front}) )"
                   ], front_card
-           ,lines ["pile = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
-                  ,"             (repeatn 10 front_card) Nothing"
+           ,lines ["pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
+                  ,"                   (repeatn 10 front_card) Nothing"
                   ], pile
-           ,text font "indexed_pile = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing",indexed_pile
-           ,text font "rotate_pile = rotate (Deg 15.0) indexed_pile",rotate_pile
+           ,lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing"
+                  ],indexed_pile
+           ,lines ["rotate_pile   = rotate (Deg 15.0) indexed_pile"
+                  ],rotate_pile
 	       ]
 
 hspace        = px 2.0
