@@ -234,13 +234,13 @@ viewPolyline = viewImage "Stair-shaped polyline" mkpolyline
 viewBesideBoxes :: Task ()
 viewBesideBoxes = viewImage "Two boxes besides eachother" boxes
   where
-  boxes = beside [] [] [tag [imageTag "foo"] rect100x60, rect30x60] Nothing
+  boxes = beside [] [] [tag (imageTag "foo") rect100x60, rect30x60] Nothing
 
 viewBesideBoxes2 :: Task ()
 viewBesideBoxes2 = viewImage "Two boxes besides eachother. Second box looks up spans of the first"  besideBoxes2
 
 besideBoxes2 :: Image ()
-besideBoxes2 = beside [] [] [tag [imageTag "foo"] rect100x60, rect (imagexspan [imageTag "foo"]) (imageyspan [imageTag "foo"])] Nothing
+besideBoxes2 = beside [] [] [tag (imageTag "foo") rect100x60, rect (imagexspan (imageTag "foo")) (imageyspan (imageTag "foo"))] Nothing
 
 viewGrid :: Task ()
 viewGrid = viewImage "Grid with text, besides composition, above composition and variouse alignments" gridImg
@@ -306,7 +306,7 @@ textGridImg3 font c r
               ]
              ) Nothing)
   where
-  ts    = [imageTag "table"]
+  ts    = imageTag "table"
   black = toSVGColor "black"
   grey  = toSVGColor "grey"
   none  = toSVGColor "none"
@@ -492,7 +492,7 @@ tStopSymb  = rect (px 16.0) (px 16.0)
 
 tTaskDef :: String String [(String, String)] (Image s) -> Image s
 tTaskDef taskName resultTy taskArgsAndTys tdbody
-  # bgRect       = rect maxXSpan (imageyspan [imageTag "tTaskDef_taskNameImg"] + imageyspan [imageTag "tTaskDef_taskArgsImgs"] + imageyspan [imageTag "tTaskDef_taskBodyImgs"])
+  # bgRect       = rect maxXSpan (imageyspan (imageTag "tTaskDef_taskNameImg") + imageyspan (imageTag "tTaskDef_taskArgsImgs") + imageyspan (imageTag "tTaskDef_taskBodyImgs"))
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }
                      <@< { strokewidth = px 1.0 }
@@ -507,12 +507,12 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
   # tTaskDef     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing
   = tTaskDef
   where
-  maxXSpan = maxSpan [imagexspan [imageTag "tTaskDef_taskNameImg"], imagexspan [imageTag "tTaskDef_taskArgsImgs"], imagexspan [imageTag "tTaskDef_taskBodyImgs"]]
+  maxXSpan = maxSpan [imagexspan (imageTag "tTaskDef_taskNameImg"), imagexspan (imageTag "tTaskDef_taskArgsImgs"), imagexspan (imageTag "tTaskDef_taskBodyImgs")]
   mkArgAndTy (arg, ty) = arg +++ " is a " +++ ty // TODO a/an
 
 tTransformApp :: String [String] -> Image s
 tTransformApp tffun args
-  # bgRect     = rect maxXSpan (imageyspan [imageTag "tTransformApp_tfNameImg"] + imageyspan [imageTag "tTransformApp_tfArgsImgs"])
+  # bgRect     = rect maxXSpan (imageyspan (imageTag "tTransformApp_tfNameImg") + imageyspan (imageTag "tTransformApp_tfArgsImgs"))
                    <@< { fill        = toSVGColor "white" }
                    <@< { stroke      = toSVGColor "black" }
                    <@< { strokewidth = px 1.0 }
@@ -524,25 +524,25 @@ tTransformApp tffun args
   # tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
   = tfApp
   where
-  maxXSpan = maxSpan [imagexspan [imageTag "tTransformApp_tfNameImg"], imagexspan [imageTag "tTransformApp_tfArgsImgs"]]
+  maxXSpan = maxSpan [imagexspan (imageTag "tTransformApp_tfNameImg"), imagexspan (imageTag "tTransformApp_tfArgsImgs")]
 
 tTaskApp :: String [String] -> Image s
 tTaskApp taskName taskArgs
-  # bgRect       = rect maxXSpan (imageyspan [imageTag "tTaskApp_taTaskNameImg"] + imageyspan [imageTag "tTaskApp_taTaskArgsImgs"])
+  # bgRect       = rect maxXSpan (imageyspan (imageTag "tTaskApp_taTaskNameImg") + imageyspan (imageTag "tTaskApp_taTaskArgsImgs"))
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }
                      <@< { strokewidth = px 1.0 }
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "tTaskApp_taTaskNameImg"]  (margin (px 5.0) (text ArialBold10px taskName))
-  # taskArgsImgs = tag [imageTag "tTaskApp_taTaskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
+  # taskNameImg  = tag (imageTag "tTaskApp_taTaskNameImg")  (margin (px 5.0) (text ArialBold10px taskName))
+  # taskArgsImgs = tag (imageTag "tTaskApp_taTaskArgsImgs") (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
   # taskText     = above (repeat AtMiddleX) [] (case taskArgs of
                                                   [] -> [taskNameImg]
                                                   _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
   # taskApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
   = taskApp
   where
-  maxXSpan = maxSpan [imagexspan [imageTag "tTaskApp_taTaskNameImg"], imagexspan [imageTag "tTaskApp_taTaskArgsImgs"]]
+  maxXSpan = maxSpan [imagexspan (imageTag "tTaskApp_taTaskNameImg"), imagexspan (imageTag "tTaskApp_taTaskArgsImgs")]
 
 tReturn :: String -> Image s
 tReturn retval
