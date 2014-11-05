@@ -71,8 +71,8 @@ examples = viewInformation () [] "Select an example set"
 // TODO : bounding boxes of rotated images aren't calculated correctly yet
 viewRotateGridImg = viewImage "Rotate test" rotateGridImg
 rotateGridImg
-  # rect1 = rotate (degree 45.0) (rect (px 50.0) (px 50.0) <@< { fill = toSVGColor "red" })
-  # rect2 = rotate (degree 45.0) (rect (px 50.0) (px 50.0) <@< { fill = toSVGColor "red" })
+  # rect1 = rotate (deg 45.0) (rect (px 50.0) (px 50.0) <@< { fill = toSVGColor "red" })
+  # rect2 = rotate (deg 45.0) (rect (px 50.0) (px 50.0) <@< { fill = toSVGColor "red" })
   = collage ([(px n, px m) \\ n <- [0.0, 50.0, 100.0], m <- [0.0, 50.0, 100.0]] ++ [(px 0.0, px 0.0), (px 50.0, px 50.0)]) (repeatn 9 (rect (px 5.0) (px 5.0)) ++ [rect1, rect2]) Nothing
 
   //<rect width="5" height="5" transform="translate(0, 0)" />
@@ -263,7 +263,7 @@ viewTextGrid = viewImage "Grid of text. No transformations." (textGridImg ArialR
 textGridImg :: FontDef Int Int -> Image ()
 textGridImg font c r
   = grid (Rows (r + 1)) (LeftToRight, TopToBottom) (repeat (AtLeft,AtTop)) []
-          (  [ empty 0 0 : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
+          (  [ empty (px 0.0) (px 0.0) : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
           ++  flatten
                 [[ (textbox font ("row " <+++ row)) : [ text font ("(" +++ toString row +++ ", " +++ toString col +++ ")") \\ col <- [1 .. c]]]
                 \\ row <- [1 .. r]
@@ -280,9 +280,9 @@ viewTextGrid2 = viewImage "Grid of text. Left-most column cells rotated -90 deg.
 textGridImg2 :: FontDef Int Int -> Image ()
 textGridImg2 font c r
   = grid (Rows (r + 1)) (LeftToRight, TopToBottom) (repeat (AtLeft,AtTop)) []
-          (  [ empty 0 0 : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
+          (  [ empty (px 0.0) (px 0.0) : [ textbox font ("column " <+++ col) \\ col <- [1 .. c] ] ]
           ++  flatten
-                [[ rotate (degree -90.0) (textbox font ("row " <+++ row)) : [ text font ("(" +++ toString row +++ ", " +++ toString col +++ ")") \\ col <- [1 .. c]]]
+                [[ rotate (deg -90.0) (textbox font ("row " <+++ row)) : [ text font ("(" +++ toString row +++ ", " +++ toString col +++ ")") \\ col <- [1 .. c]]]
                 \\ row <- [1 .. r]
                 ]
           ) Nothing
@@ -297,9 +297,9 @@ viewTextGrid3 = viewImage "Grid with cell size lookups" (textGridImg3 ArialRegul
 textGridImg3 :: FontDef Int Int -> Image ()
 textGridImg3 font c r
   = tag ts (grid (Rows (r + 1)) (LeftToRight, TopToBottom) (repeat (AtLeft, AtTop)) []
-             ([ empty 0 0 : [ edgeCell ts (col + 1, 1) black ("column " <+++ col) id \\ col <- [1 .. c] ] ]
+             ([ empty (px 0.0) (px 0.0) : [ edgeCell ts (col + 1, 1) black ("column " <+++ col) id \\ col <- [1 .. c] ] ]
               ++  flatten
-              [ [ edgeCell ts (1, row + 1) black ("row " <+++ row) (rotate (degree -90.0))
+              [ [ edgeCell ts (1, row + 1) black ("row " <+++ row) (rotate (deg -90.0))
                 : [ cell ts (col + 1, row + 1) (if (isOdd col) none grey) (textbox font (toString ("(" +++ toString row +++ ", " +++ toString col +++ ")"))) \\ col <- [1 .. c]]
                 ]
               \\ row <- [1 .. r]
@@ -378,10 +378,10 @@ mkCircles (xalign, yalign) host = overlay (repeat (xalign, yalign)) [] cs host
   cs = [ circle (px (toReal ((d+1)*10))) <@< {fill = toSVGColor {zero & g = 135 + d * 30}}
        \\ d <- [4,3 .. 0]]
 
-r1 = skewx (degree -45.0) (rect (px 200.0) (px 30.0))
+r1 = skewx (deg -45.0) (rect (px 200.0) (px 30.0))
 r2 = rect (px 200.0) (px 100.0) <@< { fill   = toSVGColor "slategrey" }
                                 <@< { stroke = toSVGColor "none" }
-r3 = skewy (degree -45.0) (rect (px 30.0) (px 100.0) <@< { fill   = toSVGColor "darkslategrey" }
+r3 = skewy (deg -45.0) (rect (px 30.0) (px 100.0) <@< { fill   = toSVGColor "darkslategrey" }
                                                      <@< { stroke = toSVGColor "none" })
 box :: Image ()
 box = collage [(px 30.0, zero), (zero, px 30.0), (px 200.0, px 30.0)] [r1, r2, r3] Nothing
@@ -427,7 +427,7 @@ viewStepStarExample :: Task ()
 viewStepStarExample = viewImage "Tonic step star symbol." img
   where
   img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, star] Nothing
-  diamond = rotate (degree 45.0) (rect (px 16.0) (px 16.0)
+  diamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0)
               <@< { fill   = toSVGColor "black" }
               <@< { stroke = toSVGColor "none" })
   star = polygon Nothing
@@ -457,7 +457,7 @@ viewTaskDefExample = viewImage "Tonic task-definition render." viExample
 // Actual reusable tonic stencils
 
 tDiamond :: Image s
-tDiamond = rotate (degree 45.0) (rect 16 16)
+tDiamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0))
              <@< { fill   = toSVGColor "black" }
              <@< { stroke = toSVGColor "none" }
 
@@ -476,19 +476,19 @@ tParSum :: Image s
 tParSum = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, plus] Nothing
   where
   plus = overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing
-  line f = f Nothing 10 <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
+  line f = f Nothing (px 10.0) <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
 
 tParProd :: Image s
 tParProd = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, plus] Nothing
   where
-  plus = rotate (degree 45.0) (overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing)
-  line f = f Nothing 10 <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
+  plus = rotate (deg 45.0) (overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing)
+  line f = f Nothing (px 10.0) <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
 
 tStartSymb :: Image s
 tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
 
 tStopSymb :: Image s
-tStopSymb  = rect 16 16
+tStopSymb  = rect (px 16.0) (px 16.0)
 
 tTaskDef :: String String [(String, String)] (Image s) -> Image s
 tTaskDef taskName resultTy taskArgsAndTys tdbody
@@ -498,9 +498,9 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
                      <@< { strokewidth = px 1.0 }
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "tTaskDef_taskNameImg"]  (margin 5 (text ArialBold10px (taskName +++ " yields an " +++ resultTy))) // TODO a/an
-  # taskArgsImgs = tag [imageTag "tTaskDef_taskArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-  # taskBodyImgs = tag [imageTag "tTaskDef_taskBodyImgs"] (margin 5 tdbody)
+  # taskNameImg  = tag [imageTag "tTaskDef_taskNameImg"]  (margin (px 5.0) (text ArialBold10px (taskName +++ " yields an " +++ resultTy))) // TODO a/an
+  # taskArgsImgs = tag [imageTag "tTaskDef_taskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
+  # taskBodyImgs = tag [imageTag "tTaskDef_taskBodyImgs"] (margin (px 5.0) tdbody)
   # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
                                                [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
                                                _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
@@ -516,8 +516,8 @@ tTransformApp tffun args
                    <@< { fill        = toSVGColor "white" }
                    <@< { stroke      = toSVGColor "black" }
                    <@< { strokewidth = px 1.0 }
-  # tfNameImg  = tag [imageTag "tTransformApp_tfNameImg"]  (margin 5 (text ArialItalic10px tffun))
-  # tfArgsImgs = tag [imageTag "tTransformApp_tfArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+  # tfNameImg  = tag [imageTag "tTransformApp_tfNameImg"]  (margin (px 5.0) (text ArialItalic10px tffun))
+  # tfArgsImgs = tag [imageTag "tTransformApp_tfArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
   # tfContents = above (repeat AtLeft) [] (case args of
                                              [] -> [tfNameImg]
                                              _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
@@ -534,8 +534,8 @@ tTaskApp taskName taskArgs
                      <@< { strokewidth = px 1.0 }
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "tTaskApp_taTaskNameImg"]  (margin 5 (text ArialBold10px taskName))
-  # taskArgsImgs = tag [imageTag "tTaskApp_taTaskArgsImgs"] (margin 5 (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
+  # taskNameImg  = tag [imageTag "tTaskApp_taTaskNameImg"]  (margin (px 5.0) (text ArialBold10px taskName))
+  # taskArgsImgs = tag [imageTag "tTaskApp_taTaskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px) taskArgs) Nothing))
   # taskText     = above (repeat AtMiddleX) [] (case taskArgs of
                                                   [] -> [taskNameImg]
                                                   _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
