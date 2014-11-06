@@ -423,7 +423,8 @@ calcTextLengths fontdefs world
                      , ("font-variant", fontdef.fontvariant)
                      , ("font-weight",  fontdef.fontweight)
                      , ("x", "-10000")
-                     , ("y", "-10000") ]
+                     , ("y", "-10000")
+                     , ("xml:space", "preserve") ]
     #! world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
     #! (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
     = ('DM'.put fontdef ws acc, world)
@@ -1132,7 +1133,6 @@ fixSpans img = go
       = case 'DM'.get t st.fixSpansGridSpanEnv of
           Just sps -> (f sps n, {st & fixSpansDidChange = True})
           _        -> (LookupSpan (c t n), st)
-
 
 :: ImageSpanReal :== (!Real, !Real)
 
