@@ -36,7 +36,7 @@ where
 	              ,"                   <@< {stroke = toSVGColor card.back}"
 	              ,"                   <@< {fill = toSVGColor \"none\"}"
 	              ], ligretto
-	       ,lines ["back_text     = skewy (Deg -20.0) ligretto"
+	       ,lines ["back_text     = skewy (deg -20.0) ligretto"
 	              ], back_text
 	       ,lines ["back_card     = overlay [(AtLeft,AtBottom)] [] [back_text]"
 	              ,"                   (Just (card_shape <@< {fill = toSVGColor \"white\"}))"
@@ -45,7 +45,7 @@ where
 	              ,"                   <@< {fill = toSVGColor \"white\"}"
                   ,"                   <@< {stroke = toSVGColor (nr_stroke_color card.front)}"
                   ], nr
-	       ,lines ["upside_nr     = rotate (Deg 180.0) nr"
+	       ,lines ["upside_nr     = rotate (deg 180.0) nr"
                   ], upside_nr
            ,lines ["front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
                   ,"                   (Just (card_shape <@< {fill = toSVGColor card.front}) )"
@@ -55,7 +55,7 @@ where
                   ], pile
            ,lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing"
                   ],indexed_pile
-           ,lines ["rotate_pile   = rotate (Deg 15.0) indexed_pile"
+           ,lines ["rotate_pile   = rotate (deg 15.0) indexed_pile"
                   ],rotate_pile
            ,lines ["rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) []"
                   ,"                        [rotate (deg (toReal (i*30))) front_card \\ i <- [0..3]] Nothing"
@@ -81,7 +81,7 @@ back_text     = skewy (deg -20.0) ligretto
 back_card     = overlay [(AtLeft,AtBottom)] [] [back_text] (Just (card_shape <@< {fill = toSVGColor "white"}))
 nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
 			  			                              <@< {stroke = toSVGColor (nr_stroke_color card.front)}
-upside_nr     = margin (toSpan 30) (rotate (deg 180.0) nr)
+upside_nr     = rotate (deg 180.0) nr
 front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
 pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) Nothing
