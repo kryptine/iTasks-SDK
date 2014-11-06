@@ -206,7 +206,7 @@ function _shiftright(a,b){
     return Sapl.feval(a) >>> Sapl.feval(b);
 }
 
-function _entier(a){
+function __entier(a){
     return Math.floor(Sapl.feval(a));
 }
 
