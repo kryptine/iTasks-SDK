@@ -418,8 +418,6 @@ calcTextLengths fontdefs world
   where
   f :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!Map FontDef (Map String Real), !*JSWorld) -> *(!Map FontDef (Map String Real), !*JSWorld)
   f elem fontdef strs (acc, world)
-    #! world = jsTrace fontdef.fontfamily world
-    #! world = jsTrace fontdef.fontysize world
     #! fontAttrs   = [ ("font-family",  fontdef.fontfamily)
                      , ("font-size",    toString fontdef.fontysize)
                      , ("font-stretch", fontdef.fontstretch)
@@ -438,8 +436,6 @@ calcTextLengths fontdefs world
   g elem str (acc, world)
     #! world        = (elem .# "textContent" .= str) world
     #! (ctl, world) = (elem `getComputedTextLength` ()) world
-    #! (bb, world) = (elem .# "getBBox" .$ ()) world
-    #! world = jsTrace (str +++ " ==> " +++ toString (jsValToReal ctl)) world
     = ('DM'.put str (jsValToReal ctl) acc, world)
 
 :: GenSVGSt m a :== State (GenSVGStVal m) a
