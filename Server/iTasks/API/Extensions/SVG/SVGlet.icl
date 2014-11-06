@@ -397,6 +397,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
 (`setAttribute`)           obj args :== obj .# "setAttribute"           .$ args
+(`setAttributeNS`)         obj args :== obj .# "setAttributeNS"         .$ args
 (`createElementNS`)        obj args :== obj .# "createElementNS"        .$ args
 (`appendChild`)            obj args :== obj .# "appendChild"            .$ args
 (`removeChild`)            obj args :== obj .# "removeChild"            .$ args
@@ -424,8 +425,9 @@ calcTextLengths fontdefs world
                      , ("font-weight",  fontdef.fontweight)
                      , ("x", "-10000")
                      , ("y", "-10000")
-                     , ("xml:space", "preserve") ]
+                     ]
     #! world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
+    #! (_, world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
     #! (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
     = ('DM'.put fontdef ws acc, world)
   g :: !(JSVal (JSObject a)) !String !*(!Map String Real, !*JSWorld) -> *(!Map String Real, !*JSWorld)
