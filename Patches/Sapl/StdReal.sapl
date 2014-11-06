@@ -21,7 +21,7 @@ StdReal.cos_24 :== cos
 StdReal.tan_25 :== tan
 StdReal.acos_27 :== acos
 StdReal.atan_28 :== atan
-StdReal.entier :== floor
+StdReal.entier :== entier
 
 
 
