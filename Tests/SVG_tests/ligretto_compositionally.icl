@@ -57,8 +57,12 @@ where
                   ],indexed_pile
            ,lines ["rotate_pile   = rotate (Deg 15.0) indexed_pile"
                   ],rotate_pile
+           ,lines ["rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) []"
+                  ,"                        [rotate (deg (toReal (i*30))) front_card \\ i <- [0..3]] Nothing"
+                  ],rotate_cards
 	       ]
 
+// all definitions below originate from or are specializations of TOPLigretto:
 hspace        = px 2.0
 font          = normalFontDef "Courier New" 9.0
 cardfont size = normalFontDef "Verdana" size
@@ -73,16 +77,17 @@ card_shape    = card_rect <@< {xradius=px (h/18.0)} <@< {yradius=px (h/18.0)}
 empty_card    = card_shape <@< {fill = toSVGColor "lightgrey"}
 no_card_image = overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just empty_card)
 ligretto      = text (cardfont (w / 5.0)) "Ligretto"  <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"}
-back_text     = skewy (Deg -20.0) ligretto
+back_text     = skewy (deg -20.0) ligretto
 back_card     = overlay [(AtLeft,AtBottom)] [] [back_text] (Just (card_shape <@< {fill = toSVGColor "white"}))
 nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
 			  			                              <@< {stroke = toSVGColor (nr_stroke_color card.front)}
-upside_nr     = margin (toSpan 30) (rotate (Deg 180.0) nr)
+upside_nr     = margin (toSpan 30) (rotate (deg 180.0) nr)
 front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
 pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) Nothing
 indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) "10",pile] Nothing
-rotate_pile   = rotate (Deg 15.0) indexed_pile
+rotate_pile   = rotate (deg 15.0) indexed_pile
+rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) [] [rotate (deg (toReal (i*60))) front_card \\ i <- [0..2]] Nothing
 
 instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Green  = toSVGColor "darkgreen"

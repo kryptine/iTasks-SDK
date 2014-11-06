@@ -124,7 +124,7 @@ where
 
 card_image :: SideUp Card -> Image m
 card_image side card
-| side === Front			= overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr, rotate (Deg 180.0) nr] host
+| side === Front			= overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr, rotate (deg 180.0) nr] host
 | otherwise					= overlay [(AtLeft,AtBottom)] [] [ligretto] host
 where
 	cardcolor				= if (side === Front) (toSVGColor card.front) (toSVGColor "white")
@@ -134,7 +134,7 @@ where
 							  (text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
 							                                           <@< {stroke = toSVGColor (nr_stroke_color card.front)}
 							  )
-	ligretto				= skewy (Deg -20.0) 
+	ligretto				= skewy (deg -20.0) 
 							  (text (cardfont (w / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
 	(w,h)					= card_size
 	nr_stroke_color Red		= Blue
@@ -186,7 +186,7 @@ player_perspective :: (Player,[Player],Middle) -> Image (Player,[Player],Middle)
 player_perspective (player,opponents,middle)
 							= margin (px 500.0, px 500.0, px 500.0, px 500.0)											// ISSUE: this margin is too much, should be fine-tuned
 							  (overlay (repeat (AtMiddleX,AtMiddleY)) [] 
-							           [  rotate (Rad (i*angle)) img 
+							           [  rotate (rad (i*angle)) img 
 							           \\ img <- [player_image True r player : map (player_image False r) opponents] 
 							            & i   <- [0.0, 1.0 ..]
 							           ] (Just (middle_image middle))
@@ -200,13 +200,13 @@ where
 circular :: Real Real [Image m] -> Image m
 circular r a imgs			= overlay (repeat (AtMiddleX,AtMiddleY)) 
 							          [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..] & img <- imgs] 
-							          [rotate (Rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs] 
+							          [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs] 
 							          (Just (empty (px (2.0*r)) (px (2.0*r))))							// BUG: using Nothing creates incorrect image (offset to left)
 where
 	n     				    = length imgs
 	sign_a					= toReal (sign a)
-	(Rad a`)				= normalize (rad a)
-	alpha					= a` / (toReal n)
+	a`						= normalize (rad a)
+	alpha					= (toRad a`) / (toReal n)
 
 pi =: 3.14159265359
 
