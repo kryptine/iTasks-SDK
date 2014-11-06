@@ -409,6 +409,7 @@ calcTextLengths fontdefs world
   #! (body, world) = .? (jsDocument .# "body") world
   #! (_, world)    = (body `appendChild` svg) world
   #! (elem, world) = (jsDocument `createElementNS` (svgns, "text")) world
+  #! (_, world)    = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
   #! (_, world)    = (svg `appendChild` elem) world
   #! (res, world)  = 'DM'.foldrWithKey (f elem) ('DM'.newMap, world) fontdefs
   #! (_, world)    = (svg `removeChild` elem) world
@@ -417,23 +418,28 @@ calcTextLengths fontdefs world
   where
   f :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!Map FontDef (Map String Real), !*JSWorld) -> *(!Map FontDef (Map String Real), !*JSWorld)
   f elem fontdef strs (acc, world)
+    #! world = jsTrace fontdef.fontfamily world
+    #! world = jsTrace fontdef.fontysize world
     #! fontAttrs   = [ ("font-family",  fontdef.fontfamily)
                      , ("font-size",    toString fontdef.fontysize)
                      , ("font-stretch", fontdef.fontstretch)
                      , ("font-style",   fontdef.fontstyle)
                      , ("font-variant", fontdef.fontvariant)
                      , ("font-weight",  fontdef.fontweight)
+                     , ("alignment-baseline", "auto")
+                     , ("dominant-baseline", "auto")
                      , ("x", "-10000")
                      , ("y", "-10000")
                      ]
     #! world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
-    #! (_, world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
     #! (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
     = ('DM'.put fontdef ws acc, world)
   g :: !(JSVal (JSObject a)) !String !*(!Map String Real, !*JSWorld) -> *(!Map String Real, !*JSWorld)
   g elem str (acc, world)
     #! world        = (elem .# "textContent" .= str) world
     #! (ctl, world) = (elem `getComputedTextLength` ()) world
+    #! (bb, world) = (elem .# "getBBox" .$ ()) world
+    #! world = jsTrace (str +++ " ==> " +++ toString (jsValToReal ctl)) world
     = ('DM'.put str (jsValToReal ctl) acc, world)
 
 :: GenSVGSt m a :== State (GenSVGStVal m) a
@@ -609,7 +615,7 @@ skewYImageHeight angle (xspan, yspan)
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
 gatherFonts img = imageCata gatherFontsAllAlgs img
   where
-  gatherFontsAllAlgs :: Algebras s (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) ((Map FontDef (Set String)) -> Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
+  gatherFontsAllAlgs :: Algebras s (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsAllAlgs =
     { imageAlgs          = gatherFontsImageAlgs
     , imageContentAlgs   = gatherFontsImageContentAlgs
@@ -632,9 +638,9 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     where
     mkImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) ![Map FontDef (Set String)] ![Map FontDef (Set String)] a b !(!Map FontDef (Set String), !Map FontDef (Set String), !Map FontDef (Set String), !Map FontDef (Set String)) c -> Map FontDef (Set String)
     mkImage imCo mask imAts imTrs _ _ (m1, m2, m3, m4) _ = gatherFontsUnions [imCo : m1 : m2 : m3 : m4 : maybeToList mask ++ imAts ++ imTrs]
-  gatherFontsImageContentAlgs :: ImageContentAlg (s -> Map FontDef (Set String)) s (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
+  gatherFontsImageContentAlgs :: ImageContentAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageContentAlgs =
-    { imageContentBasicAlg     = id
+    { imageContentBasicAlg     = binUnion
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
@@ -663,14 +669,17 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
   gatherFontsImageSpanAlgs =
     { imageSpanAlg = binUnion
     }
-  gatherFontsBasicImageAlgs :: BasicImageAlg ((Map FontDef (Set String)) -> Map FontDef (Set String))
+  gatherFontsBasicImageAlgs :: BasicImageAlg (Map FontDef (Set String))
   gatherFontsBasicImageAlgs =
-    { basicImageTextImageAlg    = const2 id
-    , basicImageEmptyImageAlg   = id
-    , basicImageCircleImageAlg  = id
-    , basicImageRectImageAlg    = id
-    , basicImageEllipseImageAlg = id
+    { basicImageTextImageAlg    = mkTextXSpan
+    , basicImageEmptyImageAlg   = 'DM'.newMap
+    , basicImageCircleImageAlg  = 'DM'.newMap
+    , basicImageRectImageAlg    = 'DM'.newMap
+    , basicImageEllipseImageAlg = 'DM'.newMap
     }
+    where
+    mkTextXSpan :: !FontDef !String -> Map FontDef (Set String)
+    mkTextXSpan fd str = 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
   gatherFontsLineImageAlgs :: LineImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsLineImageAlgs =
     { lineImageLineImageAlg = mkLineImage
