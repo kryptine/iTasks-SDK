@@ -123,32 +123,34 @@ no_card_image
 
 card_image :: !SideUp !Card -> Image m
 card_image side card
-| side === Front			= overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr, rotate (deg 180.0) nr] host
-| otherwise					= overlay [(AtLeft,AtBottom)] [] [ligretto] host
-where
-	cardcolor				= if (side === Front) (toSVGColor card.front) (toSVGColor "white")
-	host					= Just back
-	back					= card_shape <@< {fill = cardcolor}
-	nr						= margin (px 5.0)
-							  (text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
-							                                           <@< {stroke = toSVGColor (nr_stroke_color card.front)}
-							  )
-	ligretto				= skewy (deg -20.0) 
-							  (text (cardfont (w / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
-	(w,h)					= card_size
-	nr_stroke_color Red		= Blue
-	nr_stroke_color Green	= Red
-	nr_stroke_color Blue	= Green//Yellow
-	nr_stroke_color Yellow	= Green
+  #! host = Just (card_shape <@< {fill = if (side === Front)
+                                            (toSVGColor card.front)
+                                            (toSVGColor "white")})
+  | side === Front
+     #! nr = margin (px 5.0)
+               (text (cardfont 20.0) (toString card.nr) <@< {fill   = toSVGColor "white"}
+                                                        <@< {stroke = toSVGColor (nr_stroke_color card.front)}
+               )
+     = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr, rotate (deg 180.0) nr] host
+  | otherwise
+     #! (w,h)    = card_size
+     #! ligretto = skewy (deg -20.0) (text (cardfont (w / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
+     = overlay [(AtLeft,AtBottom)] [] [ligretto] host
+  where
+  nr_stroke_color :: !Color -> Color
+  nr_stroke_color Red    = Blue
+  nr_stroke_color Green  = Red
+  nr_stroke_color Blue   = Green//Yellow
+  nr_stroke_color Yellow = Green
 
 pile_image :: !SideUp !Pile -> Image m
 pile_image side pile
-  #! (_,h)           = card_size
+  #! (_, h)          = card_size
   #! nr_of_cards     = length pile
   #! top_cards       = take 10 pile
   #! nr_of_top_cards = length top_cards
-  #! top_cards_image = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..nr_of_top_cards-1]] 
-                                           (map (card_image side) (reverse top_cards)) (Just no_card_image)
+  #! top_cards_image = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..nr_of_top_cards-1]]
+                               (map (card_image side) (reverse top_cards)) (Just no_card_image)
   | nr_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
@@ -182,7 +184,7 @@ player_perspective (player,opponents,middle)
   #! (w,h) = card_size
   #! r     = 310.0
   #! angle = 2.0*pi / (toReal (1+length opponents))
-  = margin (px 500.0, px 500.0, px 500.0, px 500.0)                      // ISSUE: this margin is too much, should be fine-tuned
+  = margin (px 250.0, px 250.0, px 250.0, px 250.0)                      // ISSUE: this margin is too much, should be fine-tuned
     (overlay (repeat (AtMiddleX,AtMiddleY)) [] 
              [  rotate (rad (i*angle)) img 
              \\ img <- [player_image True r player : map (player_image False r) opponents] 
