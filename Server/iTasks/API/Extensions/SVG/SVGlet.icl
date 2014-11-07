@@ -1184,7 +1184,7 @@ mkWH (imXSp, imYSp) = [WidthAttr (toString (toInt imXSp)), HeightAttr (toString 
 
 to2dec :: !Real -> Real
 to2dec n = toReal (toInt (n * 100.0)) / 100.0
-import StdDebug
+
 genSVG :: !(Image s) -> GenSVGSt s (GenSVGSyn s) | iTask s
 genSVG img = imageCata genSVGAllAlgs img
   where
@@ -1268,7 +1268,6 @@ genSVG img = imageCata genSVGAllAlgs img
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
     mkBasic baIm imSp totalSpanPreTrans totalSpanPostTrans imAts imTrs _ st
       #! (imSp, st)        = imSp st
-      #! st = trace_n (let (x, y) = imSp in "mkBasic x: " +++ toString x +++ " y: " +++ toString y) st
       #! ((_, isText), st) = baIm imSp [] [] st
       #! (imTrs, st)       = sequence (map (\f -> f imSp isText) imTrs) st
       #! ((syn, _), st)    = baIm imSp imAts imTrs st
@@ -1319,7 +1318,7 @@ genSVG img = imageCata genSVGAllAlgs img
     }
     where
     mkRotateTransform imAn (xsp, ysp) isText
-      #! yoff = trace_n ("rotateTransform: xsp: " +++ toString xsp +++ " ysp: " +++ toString ysp) if isText (~ (ysp / 4.0)) (ysp / 2.0)
+      #! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
       = ret (RotateTransform (toString (toDeg imAn)) (Just (toString (xsp / 2.0), toString yoff)), RotateImage imAn)
 
     mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(!SVGTransform, !ImageTransform), !GenSVGStVal s)
@@ -1370,7 +1369,6 @@ genSVG img = imageCata genSVGAllAlgs img
                    !(GenSVGStVal s)
                 -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
     mkTextImage fd str imSp imAts imTrs st
-      # st = trace_n (let (x, y) = imSp in "mkTextImage x: " +++ toString x +++ " y: " +++ toString y) st
     // TODO Currently we manually translate text by fontysize pixels to compensate for the "auto" baseline. The result look OK, but a bit off compare to the old approach where we forced the origin to be the top-left corner (which didn't work with zooming)
     // We need to offset by the font's descent height, but that's not easy to calculate currently (there are no JS APIs for that yet). Current heuristic: we assume that the ex-height is half of the font height. We assume that the descent height is half of the ex-height. Therefore, we multiply by 0.75
       = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (getHtmlAttrs imAts) [TransformAttr [TranslateTransform "0" (toString (fd.fontysize * 0.75))]]
@@ -1551,9 +1549,9 @@ genSVG img = imageCata genSVGAllAlgs img
     mkCollage imgs offsets mbhost totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
       #! (imgsSps, st) = sequence imgs st
       = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts  = flatten (zipWith mkTranslateGroup offsets (map (\x -> x.genSVGSyn_svgElts) imgsSps))
-         , genSVGSyn_onclicks = 'DM'.unions (map (\x -> x.genSVGSyn_onclicks) imgsSps)
-         , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st)
+         & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (map (\x -> x.genSVGSyn_svgElts) imgsSps))
+         , genSVGSyn_onclicks      = 'DM'.unions (map (\x -> x.genSVGSyn_onclicks) imgsSps)
+         , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st) // TODO Setting genSVGSyn_imageSpanReal is required here. It seems that totalSpanPreTrans is the correct value. Why isn't it totalSpanPostTrans?
 
   genSVGSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real) | iTask s
   genSVGSpanAlgs = evalSpanSpanAlgs
