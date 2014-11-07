@@ -85,9 +85,9 @@ player_wins _ _
 //	Ligretto model functions:
 play_concealed_pile :: !Player -> Player
 play_concealed_pile player
-| isEmpty player.hand.conceal
-							= shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player	// ISSUE: random value should be obtained from randomInt SDS
-| otherwise					= swap_discards player
+  = case player.hand.conceal of
+      [] -> shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
+      _  -> swap_discards player
 
 play_hand :: !(!Player, ![Player], !Middle) -> (!Player, ![Player], !Middle)
 play_hand (player,players,middle)
@@ -109,17 +109,15 @@ play_row_card card cardnr (player,players,middle)
 
 //	Image definitions:
 //card_size :: (Real,Real)
-card_size :== (58.5, 90.0)		// these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
+//card_size :== (58.5, 90.0)		// these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
+card_width  :== 58.5
+card_height :== 90.0
 
-card_shape :: Image m
-card_shape
-  #! (w,h) = card_size
-  = rect (px w) (px h) <@< {xradius = px (h / 18.0)} <@< {yradius = px (h / 18.0)}
+//card_shape :: Image m
+card_shape :== rect (px card_width) (px card_height) <@< {xradius = px (card_height / 18.0)} <@< {yradius = px (card_height / 18.0)}
 
-no_card_image :: Image m
-no_card_image
-  #! host = Just (card_shape <@< {fill = toSVGColor "lightgrey"})
-  = overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] host	// BUG: "empty" text is not aligned properly
+//no_card_image :: Image m
+no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"})) // BUG: "empty" text is not aligned properly
 
 card_image :: !SideUp !Card -> Image m
 card_image side card
@@ -133,8 +131,7 @@ card_image side card
                )
      = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr, rotate (deg 180.0) nr] host
   | otherwise
-     #! (w,h)    = card_size
-     #! ligretto = skewy (deg -20.0) (text (cardfont (w / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
+     #! ligretto = skewy (deg -20.0) (text (cardfont (card_width / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
      = overlay [(AtLeft,AtBottom)] [] [ligretto] host
   where
   nr_stroke_color :: !Color -> Color
@@ -145,20 +142,19 @@ card_image side card
 
 pile_image :: !SideUp !Pile -> Image m
 pile_image side pile
-  #! (_, h)          = card_size
   #! nr_of_cards     = length pile
   #! top_cards       = take 10 pile
   #! nr_of_top_cards = length top_cards
-  #! top_cards_image = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..nr_of_top_cards-1]]
+  #! top_cards_image = overlay [] [(zero,px ((toReal dx) * card_height /18.0)) \\ dx <- [0..nr_of_top_cards-1]]
                                (map (card_image side) (reverse top_cards)) (Just no_card_image)
   | nr_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
 row_images :: !Bool !RowPlayer -> [Image (!Player, ![Player], !Middle)]
-row_images interactive row	= [ let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
-					          \\ row_card <- row 
+row_images interactive row = [ let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
+					           \\ row_card <- row 
 					           & cardnr   <- [1..]
-					          ]
+					           ]
 
 hand_images :: !Bool !Hand -> [Image (!Player, ![Player], !Middle)]
 hand_images interactive {conceal,discard}
@@ -173,21 +169,19 @@ hand_images interactive {conceal,discard}
 
 player_image :: !Bool !Real !Player -> Image (!Player, ![Player], !Middle)
 player_image interactive r player
-  #! (w,_) = card_size
-  = circular r (pi * 0.5) (row_images interactive player.row ++ [empty (px (w/4.0)) zero,pile_image Front player.ligretto,empty (px (w/4.0)) zero] ++ hand_images interactive player.hand )
+  = circular r (pi * 0.5) (row_images interactive player.row ++ [empty (px (card_width/4.0)) zero,pile_image Front player.ligretto,empty (px (card_width/4.0)) zero] ++ hand_images interactive player.hand )
 
-middle_image :: !Middle -> Image m
-middle_image middle = circular 180.0 (2.0*pi) (map (pile_image Front) middle)
+//middle_image :: !Middle -> Image m
+middle_image middle :== circular 180.0 (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: !(!Player, ![Player], !Middle) -> Image (!Player, ![Player], !Middle)
 player_perspective (player,opponents,middle)
-  #! (w,h) = card_size
   #! r     = 310.0
   #! angle = 2.0*pi / (toReal (1+length opponents))
-  = margin (px 250.0, px 250.0, px 250.0, px 250.0)                      // ISSUE: this margin is too much, should be fine-tuned
-    (overlay (repeat (AtMiddleX,AtMiddleY)) [] 
+  = margin (px 250.0) // ISSUE: this margin is too much, should be fine-tuned
+    (overlay (repeat (AtMiddleX,AtMiddleY)) []
              [  rotate (rad (i*angle)) img 
-             \\ img <- [player_image True r player : map (player_image False r) opponents] 
+             \\ img <- [player_image True r player : map (player_image False r) opponents]
               & i   <- [0.0, 1.0 ..]
              ] (Just (middle_image middle))
     )
@@ -211,8 +205,8 @@ instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Blue   = toSVGColor "midnightblue"
                                 toSVGColor Yellow = toSVGColor "gold"
 
-cardfont :: !Real -> FontDef
-cardfont size = normalFontDef "Verdana" size
+//cardfont :: !Real -> FontDef
+cardfont size :== normalFontDef "Verdana" size
 
-pilefont :: !Real -> FontDef
-pilefont size = normalFontDef "Verdana" size
+//pilefont :: !Real -> FontDef
+pilefont size :== normalFontDef "Verdana" size
