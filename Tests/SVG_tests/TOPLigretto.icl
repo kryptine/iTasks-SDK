@@ -107,9 +107,8 @@ play_row_card card cardnr (player,players,middle)
       []                 -> (player,players,middle)
       [(pilenr, pile):_] -> (move_ligretto_card_to_row cardnr player,players,updateAt pilenr [card:pile] middle)
 
-//	Image definitions:
-//card_size :: (Real,Real)
-//card_size :== (58.5, 90.0)		// these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
+// Image definitions:
+// these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
 card_width  :== 58.5
 card_height :== 90.0
 
@@ -146,7 +145,7 @@ pile_image side pile
   #! top_cards       = take 10 pile
   #! nr_of_top_cards = length top_cards
   #! top_cards_image = overlay [] [(zero,px ((toReal dx) * card_height /18.0)) \\ dx <- [0..nr_of_top_cards-1]]
-                               (map (card_image side) (reverse top_cards)) (Just no_card_image)
+                                  (map (card_image side) (reverse top_cards)) (Just no_card_image)
   | nr_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
@@ -156,20 +155,24 @@ row_images interactive row = [ let card = card_image Front row_card in if intera
 					           & cardnr   <- [1..]
 					           ]
 
+stack_whitespace :== empty (px (card_width/4.0)) zero
+
 hand_images :: !Bool !Hand -> [Image (!Player, ![Player], !Middle)]
 hand_images interactive {conceal,discard}
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
-  | interactive   = [conceal_pile <@< {onclick = app3 (play_concealed_pile,id,id)}
-                    ,discard_pile <@< {onclick = play_hand}
+  | interactive   = [ conceal_pile <@< {onclick = app3 (play_concealed_pile,id,id)}
+                    , stack_whitespace
+                    , discard_pile <@< {onclick = play_hand}
                     ]
-  | otherwise     = [conceal_pile
-                    ,discard_pile
+  | otherwise     = [ conceal_pile
+                    , stack_whitespace
+                    , discard_pile
                     ]
 
 player_image :: !Bool !Real !Player -> Image (!Player, ![Player], !Middle)
 player_image interactive r player
-  = circular r (pi * 0.5) (row_images interactive player.row ++ [empty (px (card_width/4.0)) zero,pile_image Front player.ligretto,empty (px (card_width/4.0)) zero] ++ hand_images interactive player.hand )
+  = circular r (pi * 0.5) (row_images interactive player.row ++ [stack_whitespace, pile_image Front player.ligretto, stack_whitespace] ++ hand_images interactive player.hand )
 
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular 180.0 (2.0*pi) (map (pile_image Front) middle)
@@ -180,7 +183,7 @@ player_perspective (player,opponents,middle)
   #! angle = 2.0*pi / (toReal (1+length opponents))
   = margin (px 250.0) // ISSUE: this margin is too much, should be fine-tuned
     (overlay (repeat (AtMiddleX,AtMiddleY)) []
-             [  rotate (rad (i*angle)) img 
+             [  rotate (rad (i*angle)) img
              \\ img <- [player_image True r player : map (player_image False r) opponents]
               & i   <- [0.0, 1.0 ..]
              ] (Just (middle_image middle))
@@ -193,9 +196,9 @@ circular r a imgs
   #! sign_a = toReal (sign a)
   #! a`     = normalize (rad a)
   #! alpha  = (toRad a`) / (toReal n)
-  = overlay (repeat (AtMiddleX,AtMiddleY)) 
-                    [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..] & img <- imgs] 
-                    [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs] 
+  = overlay (repeat (AtMiddleX,AtMiddleY))
+                    [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..] & img <- imgs]
+                    [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs]
                     (Just (empty (px (2.0*r)) (px (2.0*r))))              // BUG: using Nothing creates incorrect image (offset to left)
 
 pi =: 3.14159265359
