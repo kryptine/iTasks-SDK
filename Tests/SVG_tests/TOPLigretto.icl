@@ -16,8 +16,8 @@ import iTasks.API.Extensions.SVG.SVGlet
 derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 
 //	Game state for an entire game of Ligretto
-::	GameSt = { middle  :: Middle
-             , players :: [Player]
+::	GameSt = { middle  :: !Middle
+             , players :: ![Player]
              }
 
 //	Player-list access functions:
@@ -30,10 +30,6 @@ player_st color players
 player_upd :: !Player ![Player] -> [Player]
 player_upd player players
 	= [if (p.Player.color === player.Player.color) player p \\ p <- players]
-
-player_expell :: !Color ![Player] -> [Player]
-player_expell color players
-	= [p \\ p <- players | p.Player.color =!= color]
 
 //	Task description of Ligretto:
 play_Ligretto :: Task (!Color, !User)
@@ -62,18 +58,8 @@ play_game nr_of_players player_ids game_st
 
 game :: !Int !(!Color, !User) !(Shared GameSt) -> Task (!Color, !User)
 game nr_of_players (color,user) game_st
-	=   updateSharedInformation (toString user) [imageViewUpdate (get_player_middle color) player_perspective set_player_middle] game_st
+	=   updateSharedInformation (toString user) [imageViewUpdate id (player_perspective (color,user)) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins (color,user))]
-where
-	get_player_middle :: !Color !GameSt -> (!Player, ![Player], !Middle)
-	get_player_middle color game_st=:{middle,players}
-		= (player_st color players,player_expell color players,middle)
-	
-	set_player_middle :: !GameSt !(!Player, ![Player], !Middle) -> GameSt
-	set_player_middle game_st=:{players} (player,_,middle)
-		= {GameSt | game_st & middle  = middle
-		                    , players = player_upd player players
-		  }
 
 player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (!Color, !User))
 player_wins (color,user) (Value {players} _)
@@ -83,29 +69,40 @@ player_wins _ _
 	= Nothing
 
 //	Ligretto model functions:
-play_concealed_pile :: !Player -> Player
-play_concealed_pile player
-  = case player.hand.conceal of
-      [] -> shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
-      _  -> swap_discards player
+play_concealed_pile :: !Color !GameSt -> GameSt
+play_concealed_pile color gameSt=:{players}
+  = {gameSt & players = player_upd player` players}
+where
+	player	= player_st color players
+	player` = case player.hand.conceal of
+				[] -> shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
+				_  -> swap_discards player
 
-play_hand :: !(!Player, ![Player], !Middle) -> (!Player, ![Player], !Middle)
-play_hand (player,players,middle)
-  = case top_discard player of
+play_hand :: !Color !GameSt -> GameSt
+play_hand color gameSt=:{middle,players}
+#! player = player_st color players
+= case top_discard player of
       Nothing
-        = (player,players,middle)
+        = gameSt
       (Just card)
         #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
         = case matching_piles of
-            []                 -> (player,players,middle)
-            [(pilenr, pile):_] -> (remove_top_of_discard player,players,updateAt pilenr [card:pile] middle)
+            []                 -> gameSt
+            [(pilenr, pile):_] -> let player` = remove_top_of_discard player
+                                      middle` = updateAt pilenr [card:pile] middle
+                                   in {gameSt & middle = middle`, players = player_upd player` players}
 
-play_row_card :: !Card !Int !(!Player, ![Player], !Middle) -> (!Player, ![Player], !Middle)
-play_row_card card cardnr (player,players,middle)
+play_row_card :: !Color !Card !Int !GameSt -> GameSt
+play_row_card color card cardnr gameSt=:{players,middle}
+  #! player         = player_st color players
   #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
   = case matching_piles of
-      []                 -> (player,players,middle)
-      [(pilenr, pile):_] -> (move_ligretto_card_to_row cardnr player,players,updateAt pilenr [card:pile] middle)
+      []                 -> gameSt
+      [(pilenr, pile):_] -> let player` = move_ligretto_card_to_row cardnr player
+                                middle` = updateAt pilenr [card:pile] middle
+                             in {gameSt & middle  = middle`
+                                        , players = player_upd player` players
+                                }
 
 // Image definitions:
 // these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
@@ -149,44 +146,49 @@ pile_image side pile
   | nr_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
-row_images :: !Bool !RowPlayer -> [Image (!Player, ![Player], !Middle)]
-row_images interactive row = [ let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card row_card cardnr}) card
-					           \\ row_card <- row 
-					           & cardnr   <- [1..]
-					           ]
+row_images :: !Bool !RowPlayer !Color -> [Image GameSt]
+row_images interactive row color
+  = [  let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card color row_card cardnr}) card
+	\\ row_card <- row 
+	 & cardnr   <- [1..]
+	]
 
 stack_whitespace :== empty (px (card_width/4.0)) zero
 
-hand_images :: !Bool !Hand -> [Image (!Player, ![Player], !Middle)]
-hand_images interactive {conceal,discard}
+hand_images :: !Bool !Hand !Color -> [Image GameSt]
+hand_images interactive {conceal,discard} color
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
-  | interactive   = [ conceal_pile <@< {onclick = app3 (play_concealed_pile,id,id)}
+  | interactive   = [ conceal_pile <@< {onclick = play_concealed_pile color}
                     , stack_whitespace
-                    , discard_pile <@< {onclick = play_hand}
+                    , discard_pile <@< {onclick = play_hand color}
                     ]
   | otherwise     = [ conceal_pile
                     , stack_whitespace
                     , discard_pile
                     ]
 
-player_image :: !Bool !Real !Player -> Image (!Player, ![Player], !Middle)
+player_image :: !Bool !Real !Player -> Image GameSt
 player_image interactive r player
-  = circular r (pi * 0.5) (row_images interactive player.row ++ [stack_whitespace, pile_image Front player.ligretto, stack_whitespace] ++ hand_images interactive player.hand )
+  = circular r (pi * 0.5) 
+               (  row_images interactive player.row player.color
+               ++ [stack_whitespace, pile_image Front player.ligretto, stack_whitespace]
+               ++ hand_images interactive player.hand player.color
+               )
 
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular 180.0 (2.0*pi) (map (pile_image Front) middle)
 
-player_perspective :: !(!Player, ![Player], !Middle) -> Image (!Player, ![Player], !Middle)
-player_perspective (player,opponents,middle)
+player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
+player_perspective (color,user) gameSt
   #! r     = 310.0
-  #! angle = 2.0*pi / (toReal (1+length opponents))
+  #! angle = 2.0*pi / (toReal (length gameSt.players))
   = margin (px 250.0) // ISSUE: this margin is too much, should be fine-tuned
     (overlay (repeat (AtMiddleX,AtMiddleY)) []
              [  rotate (rad (i*angle)) img
-             \\ img <- [player_image True r player : map (player_image False r) opponents]
+             \\ img <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i   <- [0.0, 1.0 ..]
-             ] (Just (middle_image middle))
+             ] (Just (middle_image gameSt.middle))
     )
 
 //	a generally useful image combinator:
