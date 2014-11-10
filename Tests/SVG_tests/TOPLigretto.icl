@@ -181,9 +181,10 @@ player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
 player_perspective (color,user) gameSt
   #! r     = 310.0
   #! angle = 2.0*pi / (toReal (length gameSt.players))
+  #! my_nr = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
   = margin (px 250.0) // ISSUE: this margin is too much, should be fine-tuned
     (overlay (repeat (AtMiddleX,AtMiddleY)) []
-             [  rotate (rad (i*angle)) img
+             [  rotate (rad (i*angle-0.25*pi-(toReal my_nr*angle))) img
              \\ img <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i   <- [0.0, 1.0 ..]
              ] (Just (middle_image gameSt.middle))
