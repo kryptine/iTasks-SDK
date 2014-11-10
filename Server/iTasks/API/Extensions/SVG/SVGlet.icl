@@ -1274,15 +1274,15 @@ genSVG img = imageCata genSVGAllAlgs img
       = (syn, st)
   genSVGImageAttrAlgs :: ImageAttrAlg s (GenSVGSt s (!(!Maybe HtmlAttr, !Maybe SVGAttr), !Map String (s -> s))) | iTask s
   genSVGImageAttrAlgs =
-    { imageAttrImageStrokeAttrAlg   = \attr -> ret ((Nothing, Just (StrokeAttr (PaintColor attr.stroke Nothing))), 'DM'.newMap)
+    { imageAttrImageStrokeAttrAlg   = \attr s -> (((Nothing, Just (StrokeAttr (PaintColor attr.stroke Nothing))), 'DM'.newMap), s)
     , imageAttrStrokeWidthAttrAlg   = mkStrokeWidth
     , imageAttrXRadiusAttrAlg       = mkXRadius
     , imageAttrYRadiusAttrAlg       = mkYRadius
-    , imageAttrStrokeOpacityAttrAlg = \attr -> ret ((Nothing, Just (StrokeOpacityAttr (toString attr.opacity))), 'DM'.newMap)
-    , imageAttrFillAttrAlg          = \attr -> ret ((Nothing, Just (FillAttr (PaintColor attr.fill Nothing))), 'DM'.newMap)
-    , imageAttrFillOpacityAttrAlg   = \attr -> ret ((Nothing, Just (FillOpacityAttr (FillOpacity (toString attr.opacity)))), 'DM'.newMap)
+    , imageAttrStrokeOpacityAttrAlg = \attr s -> (((Nothing, Just (StrokeOpacityAttr (toString attr.opacity))), 'DM'.newMap), s)
+    , imageAttrFillAttrAlg          = \attr s -> (((Nothing, Just (FillAttr (PaintColor attr.fill Nothing))), 'DM'.newMap), s)
+    , imageAttrFillOpacityAttrAlg   = \attr s -> (((Nothing, Just (FillOpacityAttr (FillOpacity (toString attr.opacity)))), 'DM'.newMap), s)
     , imageAttrOnClickAttrAlg       = mkOnClick
-    , imageAttrDashAttr             = \attr -> ret ((Nothing, Just (StrokeDashArrayAttr (DashArray (map toString attr.dash)))), 'DM'.newMap)
+    , imageAttrDashAttr             = \attr s -> (((Nothing, Just (StrokeDashArrayAttr (DashArray (map toString attr.dash)))), 'DM'.newMap), s)
     }
     where
     mkStrokeWidth :: !(StrokeWidthAttr s) !(GenSVGStVal s)
@@ -1310,16 +1310,17 @@ genSVG img = imageCata genSVGAllAlgs img
   genSVGImageTransformAlgs :: ImageTransformAlg (GenSVGSt s Real) (ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)) | iTask s
   genSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = mkRotateTransform
-    , imageTransformSkewXImageAlg  = \imAn _ _ -> ret (SkewXTransform (toString (toDeg imAn)), SkewXImage imAn)
-    , imageTransformSkewYImageAlg  = \imAn _ _ -> ret (SkewYTransform (toString (toDeg imAn)), SkewYImage imAn)
+    , imageTransformSkewXImageAlg  = \imAn _ _ s -> ((SkewXTransform (toString (toDeg imAn)), SkewXImage imAn), s)
+    , imageTransformSkewYImageAlg  = \imAn _ _ s -> ((SkewYTransform (toString (toDeg imAn)), SkewYImage imAn), s)
     , imageTransformFitImageAlg    = mkFitImage
     , imageTransformFitXImageAlg   = mkFitXImage
     , imageTransformFitYImageAlg   = mkFitYImage
     }
     where
-    mkRotateTransform imAn (xsp, ysp) isText
+    mkRotateTransform imAn (xsp, ysp) isText s
+      // FIXME: We currently devide ysp by 4.0 as an approximation of the text descent height. Text is transformed from the baseline, not top-left. The actual offset for text would be ~((fontyspan / 2) - descent), but we currently don't know the descent.
       #! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
-      = ret (RotateTransform (toString (toDeg imAn)) (Just (toString (xsp / 2.0), toString yoff)), RotateImage imAn)
+      = ((RotateTransform (toString (toDeg imAn)) (Just (toString (xsp / 2.0), toString yoff)), RotateImage imAn), s)
 
     mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(!SVGTransform, !ImageTransform), !GenSVGStVal s)
     mkFitImage sp1 sp2 (xsp, ysp) _ st
@@ -1409,12 +1410,14 @@ genSVG img = imageCata genSVGAllAlgs img
                                           , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }, False), st)
 
   // TODO Type signature
+  genSVGLineImageAlgs :: LineImageAlg (s -> (b, s)) (s -> *(d, s)) (b (Maybe d) e [f] g s -> .h) (a0 b0 e [b Bool s -> (f, s)] g s -> .h)
   genSVGLineImageAlgs =
     { lineImageLineImageAlg = mkLineImage
     }
     where
     // TODO type signature
-    mkLineImage lineSpan mmarkers lineContent totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
+    mkLineImage :: !(.c -> .(b, .c)) !(Maybe (.c -> *(d, .c))) !(b (Maybe d) e [f] g .c -> .h) a0 b0 !e ![b Bool .c -> .(f,.c)] !g !.c -> .h
+    mkLineImage lineSpan mmarkers lineContent _ _ imAts imTrs imTas st
       #! (lineSpan, st) = lineSpan st
       #! (mmarkers, st) = evalMaybe mmarkers st
       #! (imTrs, st)    = sequence (map (\f -> f lineSpan False) imTrs) st
@@ -1485,7 +1488,7 @@ genSVG img = imageCata genSVGAllAlgs img
       // TODO Marker size etc?
       mkMarkerAndId :: !(Maybe (GenSVGSyn s)) !String !(String -> SVGAttr) -> Maybe (!SVGElt, !SVGAttr, !Map String (s -> s)) | iTask s
       mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h), genSVGSyn_onclicks}) mid posAttr
-        = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto" // TODO Do something with offset?
+        = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto"
                                         , ViewBoxAttr "0" "0" (toString (toInt w)) (toString (toInt h))
                                         , RefXAttr (toString (toInt w), PX)
                                         , RefYAttr (toString (toInt (h / 2.0)), PX)
@@ -1551,7 +1554,7 @@ genSVG img = imageCata genSVGAllAlgs img
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (map (\x -> x.genSVGSyn_svgElts) imgsSps))
          , genSVGSyn_onclicks      = 'DM'.unions (map (\x -> x.genSVGSyn_onclicks) imgsSps)
-         , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st) // TODO Setting genSVGSyn_imageSpanReal is required here. It seems that totalSpanPreTrans is the correct value. Why isn't it totalSpanPostTrans?
+         , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st) // Setting genSVGSyn_imageSpanReal is required here. It needs to be totalSpanPreTrans, because transforms will be calculated just after this.
 
   genSVGSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real) | iTask s
   genSVGSpanAlgs = evalSpanSpanAlgs
@@ -1566,11 +1569,6 @@ stTrace x (clval, world)
 
 instance + (Real, Real) where
   (+) (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-
-xor x y :== not (x && y) && (x || y)
-
-//withSt :: (*(St a) -> *(b, *(St a))) *(St a) -> *(b, *(St a))
-withSt f st :== f st
 
 mkGroup :: ![HtmlAttr] ![SVGAttr] ![SVGElt] -> [SVGElt]
 mkGroup _   _   []   = []
@@ -1592,9 +1590,6 @@ evalMaybe (Just x) st
   = (Just x, st)
 evalMaybe _ st = (Nothing, st)
 
-//GenSVGStVal m
-
-//ret x :== \st -> (x, st)
 ret :: !a !.s -> (!a, !.s)
 ret x st = (x, st)
 
@@ -1630,7 +1625,6 @@ mkTransformTranslateAttr :: !(!Real, !Real) -> [SVGAttr]
 mkTransformTranslateAttr (0.0,   0.0)   = []
 mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
-// TODO Detect divergence
 evalSpan :: !Span -> GenSVGSt s Real | iTask s
 evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
 
@@ -1656,7 +1650,7 @@ evalSpanLookupSpanAlgs =
   , lookupSpanTextXSpanAlg    = const2 (ret 0.0)
   }
 
-// TODO Type signature
+mkAbs :: !(a -> (!b, !c)) !a -> .(!b, !c) | abs b
 mkAbs x st
   #! (x, st) = x st
   = (abs x, st)
