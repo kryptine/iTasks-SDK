@@ -51,14 +51,14 @@ where
                   ,"                   (Just (card_shape <@< {fill = toSVGColor card.front}) )"
                   ], front_card
            ,lines ["pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
-                  ,"                   (repeatn 10 front_card) Nothing"
+                  ,"                   (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))"
                   ], pile
            ,lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing"
                   ],indexed_pile
            ,lines ["rotate_pile   = rotate (deg 15.0) indexed_pile"
                   ],rotate_pile
            ,lines ["rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) []"
-                  ,"                        [rotate (deg (toReal (i*30))) front_card \\ i <- [0..3]] Nothing"
+                  ,"                        [rotate (deg (toReal (i*60))) front_card \\ i <- [0..2]] Nothing"
                   ],rotate_cards
 	       ]
 
@@ -84,7 +84,7 @@ nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "
 upside_nr     = rotate (deg 180.0) nr
 front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
-pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) Nothing
+pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))
 indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) "10",pile] Nothing
 rotate_pile   = rotate (deg 15.0) indexed_pile
 rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) [] [rotate (deg (toReal (i*60))) front_card \\ i <- [0..2]] Nothing
