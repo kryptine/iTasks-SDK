@@ -175,14 +175,14 @@ player_image interactive r player
                )
 
 //middle_image :: !Middle -> Image m
-middle_image middle :== circular 180.0 (2.0*pi) (map (pile_image Front) middle)
+middle_image middle :== circular (2.0*card_height) (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
 player_perspective (color,user) gameSt
-  #! r     = 310.0
+  #! r     = 4.0*card_height
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_nr = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
-  = margin (px 250.0) // ISSUE: this margin is too much, should be fine-tuned
+  = margin (px (3.0*card_height))
     (overlay (repeat (AtMiddleX,AtMiddleY)) []
              [  rotate (rad (i*angle-0.25*pi-(toReal my_nr*angle))) img
              \\ img <- [player_image (player.color === color) r player \\ player <- gameSt.players]
