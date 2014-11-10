@@ -20,16 +20,50 @@ derive class iTask GameSt, Player, Color, Hand, Card, SideUp
              , players :: ![Player]
              }
 
-//	Player-list access functions:
-player_st :: !Color ![Player] -> Player
-player_st color players
+//	Game state functions:
+play_concealed_pile :: !Color !GameSt -> GameSt
+play_concealed_pile color gameSt
+  = set_player player` gameSt
+where
+	player	= get_player color gameSt
+	player` = case player.hand.conceal of
+				[] -> shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
+				_  -> swap_discards player
+
+play_hand :: !Color !GameSt -> GameSt
+play_hand color gameSt=:{GameSt | middle}
+#! player = get_player color gameSt
+= case top_discard player of
+      Nothing
+        = gameSt
+      (Just card)
+        #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+        = case matching_piles of
+            []                 -> gameSt
+            [(pilenr, pile):_] -> let player` = remove_top_of_discard player
+                                      middle` = updateAt pilenr [card:pile] middle
+                                   in set_player player` {GameSt | gameSt & middle = middle`}
+
+play_row_card :: !Color !Card !Int !GameSt -> GameSt
+play_row_card color card cardnr gameSt=:{GameSt | middle}
+  #! player         = get_player color gameSt
+  #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+  = case matching_piles of
+      []                 -> gameSt
+      [(pilenr, pile):_] -> let player` = move_ligretto_card_to_row cardnr player
+                                middle` = updateAt pilenr [card:pile] middle
+                             in set_player player` {GameSt | gameSt & middle  = middle`}
+
+get_player :: !Color !GameSt -> Player
+get_player color gameSt=:{GameSt | players}
 	= case [player \\ player <- players | player.color === color] of
 	     [player : _] = player
 	     ouch         = abort ("Could not find player with color " <+++ color)
 
-player_upd :: !Player ![Player] -> [Player]
-player_upd player players
-	= [if (p.Player.color === player.Player.color) player p \\ p <- players]
+set_player :: !Player !GameSt -> GameSt
+set_player player gameSt=:{GameSt | players}
+#! players` = [if (p.Player.color === player.Player.color) player p \\ p <- players]
+= {GameSt | gameSt & players = players`}
 
 //	Task description of Ligretto:
 play_Ligretto :: Task (!Color, !User)
@@ -62,47 +96,11 @@ game nr_of_players (color,user) game_st
 	>>* [OnValue (player_wins (color,user))]
 
 player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (!Color, !User))
-player_wins (color,user) (Value {players} _)
-| isEmpty (player_st color players).ligretto
+player_wins (color,user) (Value gameSt _)
+| isEmpty (get_player color gameSt).ligretto
 	= Just (return (color,user))
 player_wins _ _
 	= Nothing
-
-//	Ligretto model functions:
-play_concealed_pile :: !Color !GameSt -> GameSt
-play_concealed_pile color gameSt=:{players}
-  = {gameSt & players = player_upd player` players}
-where
-	player	= player_st color players
-	player` = case player.hand.conceal of
-				[] -> shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
-				_  -> swap_discards player
-
-play_hand :: !Color !GameSt -> GameSt
-play_hand color gameSt=:{middle,players}
-#! player = player_st color players
-= case top_discard player of
-      Nothing
-        = gameSt
-      (Just card)
-        #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
-        = case matching_piles of
-            []                 -> gameSt
-            [(pilenr, pile):_] -> let player` = remove_top_of_discard player
-                                      middle` = updateAt pilenr [card:pile] middle
-                                   in {gameSt & middle = middle`, players = player_upd player` players}
-
-play_row_card :: !Color !Card !Int !GameSt -> GameSt
-play_row_card color card cardnr gameSt=:{players,middle}
-  #! player         = player_st color players
-  #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
-  = case matching_piles of
-      []                 -> gameSt
-      [(pilenr, pile):_] -> let player` = move_ligretto_card_to_row cardnr player
-                                middle` = updateAt pilenr [card:pile] middle
-                             in {gameSt & middle  = middle`
-                                        , players = player_upd player` players
-                                }
 
 // Image definitions:
 // these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
