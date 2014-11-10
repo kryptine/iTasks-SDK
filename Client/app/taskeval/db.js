@@ -1,4 +1,6 @@
-DB = new function () {
+"use strict";
+
+var DB = new function () {
 	
 	this.saveValue = function(taskId, name, val){
 		if(val){

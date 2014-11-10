@@ -1,4 +1,6 @@
-Sapl = new function () {
+"use strict";
+
+var Sapl = new function () {
 
 	this.variable_prefix = "__";
 
@@ -208,7 +210,7 @@ Sapl = new function () {
 				// Very important! Do NOT use splice here! 	
 				var args = expr.slice(2, expr.length);
 				var consfunc = eval(this.escapeName(consname));
-				record = isArray(consfunc.$f);
+				var record = isArray(consfunc.$f);
 				
 				if (record) {
 					var res = {};

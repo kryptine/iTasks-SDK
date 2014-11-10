@@ -1,3 +1,5 @@
+"use strict";
+
 // TO BE SURE
 function ___Tuple3(_1, _2, _3) {
 	return [0, '_Tuple3', _1, _2, _3];

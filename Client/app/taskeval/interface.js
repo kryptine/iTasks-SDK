@@ -1,3 +1,6 @@
+//
+"use strict";
+//
 //Small versions
 
 function ___wrapJS(val){

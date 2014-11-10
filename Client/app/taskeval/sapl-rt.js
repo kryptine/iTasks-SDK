@@ -52,7 +52,8 @@
 //}
 
 // Optimized by the Clojure compiler
-_feval = function(a) {
+"use strict";
+var _feval = function(a) {
   for (var b, c;;) {
     if ("object" === typeof a) {
       if (1 === a.length) {
@@ -89,7 +90,7 @@ _feval = function(a) {
   }
 };
 
-_fapp = function(a, b) {
+var _fapp = function(a, b) {
   for (;;) {
     if ("function" === typeof a) {
       if (a.length === b.length) {

@@ -1,3 +1,5 @@
+"use strict";
+
 var _iworld;
 var _itask_background_interval;
 

@@ -1,32 +1,34 @@
-isArray = function(o){
+"use strict";
+
+var isArray = function(o){
 	return (o instanceof Array);
 }
 
-isNumber = function(o){
+var isNumber = function(o){
 	return (typeof o == "number");
 }
 
-isFloat = function(n){
+var isFloat = function(n){
   return n===+n && n!==(n|0);
 }
 
-isInteger = function(n){
+var isInteger = function(n){
   return n===+n && n===(n|0);
 }
 
-isString = function(o){
+var isString = function(o){
 	return (typeof o == "string");
 }
 
-isBoolean = function(o){
+var isBoolean = function(o){
 	return (typeof o == "boolean");
 }
 
-isFunction = function(o){
+var isFunction = function(o){
 	return (typeof o == "function");
 }
 
-isObject = function(o){
+var isObject = function(o){
 	return (typeof (o) == "object");
 }
 
@@ -188,6 +190,7 @@ if (!Array.prototype.any){
   };
 }
 
+var evalScript;
 (evalScript = function(e){
 	var	h = evalScript.node,
 		s = document.createElement("script");

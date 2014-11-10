@@ -1,3 +1,4 @@
+"use strict";
 // TO BE SURE	
 var ___SystemDynamic_TC_Char = [0, '_SystemDynamic.TC_Char'];
 var ___SystemDynamic_TC_Real = [0, '_SystemDynamic.TC_Real'];
