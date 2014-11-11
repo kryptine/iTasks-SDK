@@ -1320,24 +1320,24 @@ genSVG img = imageCata genSVGAllAlgs img
     mkRotateTransform imAn (xsp, ysp) isText s
       // FIXME: We currently devide ysp by 4.0 as an approximation of the text descent height. Text is transformed from the baseline, not top-left. The actual offset for text would be ~((fontyspan / 2) - descent), but we currently don't know the descent.
       #! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
-      = ((RotateTransform (toString (toDeg imAn)) (Just (toString (xsp / 2.0), toString yoff)), RotateImage imAn), s)
+      = ((RotateTransform (toString (to2dec (toDeg imAn))) (Just (toString (to2dec (xsp / 2.0)), toString (to2dec yoff))), RotateImage imAn), s)
 
     mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(!SVGTransform, !ImageTransform), !GenSVGStVal s)
     mkFitImage sp1 sp2 (xsp, ysp) _ st
       #! (sp1, st) = sp1 st
       #! (sp2, st) = sp2 st
-      = ((ScaleTransform (toString (sp1 / xsp)) (toString (sp2 / ysp)), FitImage (px sp1) (px sp2)), st)
+      = ((ScaleTransform (toString (to2dec (sp1 / xsp))) (toString (to2dec (sp2 / ysp))), FitImage (px sp1) (px sp2)), st)
 
     mkFitXImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(!SVGTransform, !ImageTransform), !GenSVGStVal s)
     mkFitXImage sp (xsp, _) _ st
       #! (sp, st) = sp st
-      #! scale    = if (xsp > 0.0) (toString (sp / xsp)) "1.0"
+      #! scale    = if (xsp > 0.0) (toString (to2dec (sp / xsp))) "1.0"
       = ((ScaleTransform scale scale, FitXImage (px sp)), st)
 
     mkFitYImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(!SVGTransform, !ImageTransform), !GenSVGStVal s)
     mkFitYImage sp (_, ysp) _ st
       #! (sp, st) = sp st
-      #! scale    = if (ysp > 0.0) (toString (sp / ysp)) "1.0"
+      #! scale    = if (ysp > 0.0) (toString (to2dec (sp / ysp))) "1.0"
       = ((ScaleTransform scale scale, FitYImage (px sp)), st)
   genSVGImageSpanAlgs :: ImageSpanAlg (GenSVGSt s Real) (GenSVGSt s ImageSpanReal) | iTask s
   genSVGImageSpanAlgs =
