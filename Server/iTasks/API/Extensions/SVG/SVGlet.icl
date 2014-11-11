@@ -1573,6 +1573,7 @@ instance + (Real, Real) where
 mkGroup :: ![HtmlAttr] ![SVGAttr] ![SVGElt] -> [SVGElt]
 mkGroup _   _   []   = []
 mkGroup []  []  xs   = xs
+mkGroup []  [TransformAttr [TranslateTransform x y]] [GElt [] [TransformAttr [TranslateTransform x` y`]] elts] = [GElt [] [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))]] elts]
 mkGroup has sas elts = [GElt has sas elts]
 
 evalOffsets :: ![(!State .st a, !State .st a)] .st -> .(![(!a, !a)], !.st)
