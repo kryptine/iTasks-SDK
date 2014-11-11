@@ -1576,7 +1576,7 @@ mkGroup []  []  xs   = xs
 mkGroup []  [TransformAttr [TranslateTransform x y]] [GElt [] [TransformAttr [TranslateTransform x` y`]] elts] = [GElt [] [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))]] elts]
 mkGroup has sas elts = [GElt has sas elts]
 
-evalOffsets :: ![(!State .st a, !State .st a)] .st -> .(![(!a, !a)], !.st)
+evalOffsets :: ![(!State .st a, !State .st a)] !.st -> .(![(!a, !a)], !.st)
 evalOffsets offsets st = foldr f ([], st) offsets
   where
   f :: !(!.a -> (!b, !.c), !.c -> .(!d, !.e)) !(![(!b, !d)], !.a) -> (![(!b, !d)], !.e)
@@ -1656,7 +1656,7 @@ mkAbs x st
   #! (x, st) = x st
   = (abs x, st)
 
-mkBin :: !(a b -> c) !(d -> .(!a, !e)) !(e -> .(!b, !f)) !d -> .(!c, !f)
+mkBin :: !(a b -> c) !(d -> .(!a, !d)) !(d -> .(!b, !d)) !d -> .(!c, !d)
 mkBin op x y st
   #! (x, st) = x st
   #! (y, st) = y st
