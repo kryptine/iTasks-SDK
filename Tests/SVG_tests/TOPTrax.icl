@@ -225,12 +225,12 @@ where
 	unselected			= tileShape d <@< {fill = toSVGColor "lightgrey"}
 
 tileImage :: Span TraxTile -> Image a
-tileImage d tile		= fromJust (lookup tile [ (horizontal,rotate (Deg 0.0)   horizontal_tile)
-			                                    , (vertical,  rotate (Deg 90.0)  horizontal_tile)
-			                                    , (northwest, rotate (Deg 0.0)   northwest_tile)
-			                                    , (northeast, rotate (Deg 90.0 ) northwest_tile)
-			                                    , (southeast, rotate (Deg 180.0) northwest_tile)
-			                                    , (southwest, rotate (Deg 270.0) northwest_tile)
+tileImage d tile		= fromJust (lookup tile [ (horizontal,rotate (deg 0.0)   horizontal_tile)
+			                                    , (vertical,  rotate (deg 90.0)  horizontal_tile)
+			                                    , (northwest, rotate (deg 0.0)   northwest_tile)
+			                                    , (northeast, rotate (deg 90.0 ) northwest_tile)
+			                                    , (southeast, rotate (deg 180.0) northwest_tile)
+			                                    , (southwest, rotate (deg 270.0) northwest_tile)
 			                                    ])
 where
 	brick				= Just (tileShape d <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
