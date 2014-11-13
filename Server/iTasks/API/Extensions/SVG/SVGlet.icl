@@ -1384,6 +1384,7 @@ genSVG img = imageCata genSVGAllAlgs img
                       , FontStretchAttr fd.fontstretch
                       , FontVariantAttr fd.fontvariant
                       , FontWeightAttr fd.fontweight
+                      , TextRenderingAttr "geometricPrecision"
                       ]
     mkRectImage :: !ImageSpanReal ![(!Maybe HtmlAttr, !Maybe SVGAttr)]
                    ![(!SVGTransform, !ImageTransform)]
