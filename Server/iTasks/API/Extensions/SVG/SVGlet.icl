@@ -125,6 +125,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
     #! fontMap = gatherFonts image
     #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
     #! img = imageFromState image realFontMap
+    //#! world = jsTrace img world
     #! (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
     #! (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
     #! (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
@@ -522,6 +523,7 @@ applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
 instance /    Span where / (PxSpan 0.0) _             = PxSpan 0.0
                          / _            (PxSpan 0.0)  = PxSpan 0.0 // Division by zero should be undefined, but that would be impractical
                          / l            (PxSpan 1.0)  = l // Identity
+                         / (PxSpan l)   (PxSpan r)    = PxSpan (l / r)
                          / l            r             = DivSpan l r
 
 instance *    Span where * (PxSpan 0.0)           _                      = PxSpan 0.0
