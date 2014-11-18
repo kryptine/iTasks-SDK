@@ -49,7 +49,7 @@ itwc.Component.prototype = {
 
         //Parse margins
         if(definition.margins) {
-            me.margins = definition.margins.split(' ').map(function(m) { return parseInt(m)});
+            me.margins = definition.margins.split(' ').map(function(m) { return (m | 0) });
         } else {
             me.margins = me.defaultMargins;
         }
@@ -785,7 +785,7 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
             } else if(me.invalidValue(e.target.value)) {
                 value = e.target.value;
             } else {
-                value = me.allowDecimal ? parseFloat(e.target.value) : parseInt(e.target.value);
+                value = me.allowDecimal ? parseFloat(e.target.value) : (e.target.value | 0);
             }
             me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value,true);
         });
@@ -892,7 +892,7 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
         el.value = me.definition.cur;
 
         el.addEventListener('change',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,parseInt(e.target.value),true);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId, (e.target.value | 0),true);
         });
     },
     setValue: function(value) {
@@ -1646,8 +1646,8 @@ itwc.component.itwc_splitter = itwc.extend(itwc.Component, {
 
         sizePrev = document.defaultView.getComputedStyle(me.prev,'').getPropertyValue(vertical ? 'height':'width');
         sizeNext = document.defaultView.getComputedStyle(me.next,'').getPropertyValue(vertical ? 'height':'width');
-        sizePrev = parseInt(sizePrev,10) + sizeDiff;
-        sizeNext = parseInt(sizeNext,10) - sizeDiff;
+        sizePrev = ((sizePrev,10) + sizeDiff) | 0;
+        sizeNext = ((sizeNext,10) - sizeDiff) | 0;
         me.prev.style[vertical ? 'height' : 'width'] = sizePrev + 'px';
         me.next.style[vertical ? 'height' : 'width'] = sizeNext + 'px';
 
@@ -1684,7 +1684,7 @@ itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
         },me);
 
         el.addEventListener('change',function(e) {
-            var value = parseInt(e.target.value);
+            var value = e.target.value | 0;
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value,false);
         });
     },
@@ -2143,18 +2143,18 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     },
 	sendEditEvent: function(taskId, editorId, value, replace) {
 		var me = this,
-            instanceNo = parseInt(taskId.split("-")[0]);
+            instanceNo = (taskId.split("-")[0] | 0);
 
 		return me.queueTaskEvent(instanceNo,{editEvent: JSON.stringify([taskId,editorId,value])}, replace ? editorId : null );
 	},
 	sendActionEvent: function(taskId, actionId) {
 		var me = this,
-            instanceNo = parseInt(taskId.split("-")[0]);
+            instanceNo = (taskId.split("-")[0] | 0);
 		return me.queueTaskEvent(instanceNo,{actionEvent: JSON.stringify([taskId,actionId])});
     },
     sendFocusEvent: function(taskId) {
         var me = this,
-            instanceNo = parseInt(taskId.split("-")[0]);
+            instanceNo = (taskId.split("-")[0] | 0);
         return me.queueTaskEvent(instanceNo,{focusEvent: JSON.stringify(taskId)});
     }
 });

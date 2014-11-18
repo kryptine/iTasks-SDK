@@ -31,7 +31,7 @@ var Sapl = new function () {
 	}
 
 	this.print_ident = function (name) {
-		if (typeof name == "string") {
+		if (typeof name === "string") {
 			var a = name.trim();
 			a = a.substring(Sapl.variable_prefix.length);
 			a = a.replace(/\$/g, '%');
@@ -44,8 +44,7 @@ var Sapl = new function () {
 
 	this.print_consname = function (name) {
 		var a = name.trim();
-		var dot = a.lastIndexOf(".");
-		if(dot>0){
+		if(a.lastIndexOf(".") > 0){
 			a = a.substring(dot+1);
 		}
 		return a;
@@ -66,16 +65,14 @@ var Sapl = new function () {
 				var args = expr.slice(2, expr.length);
 				var consname = expr[1];
 				var consfunc = eval(this.escapeName(consname));				
-				record = isArray(consfunc.$f);
 
-				if (record) {
+				if (isArray(consfunc.$f)) {
 					var res = "{";					
-					var fieldnames = consfunc.$f;
 					
 					for (var i = 0; i < args.length; i++) {
 						var aarg = this.toString(this.feval(args[i]));
 						if (i > 0) res += ", ";
-						res += this.print_consname(fieldnames[i]) + ": ";
+						res += this.print_consname(consfunc.$f[i]) + ": ";
 						res += this.isCompound(aarg) ? "(" + aarg + ")" : aarg;
 					}
 
@@ -128,19 +125,19 @@ var Sapl = new function () {
 	}
 
 	this.isJust = function (consname){
-		return consname == "StdMaybe.Just" || consname == "Data.Maybe.Just";
+		return consname === "StdMaybe.Just" || consname === "Data.Maybe.Just";
 	}
 
 	this.isNothing = function (consname){
-		return consname == "StdMaybe.Nothing" || consname == "Data.Maybe.Nothing";
+		return consname === "StdMaybe.Nothing" || consname === "Data.Maybe.Nothing";
 	}
 
 	this.isCons = function (consname){
-		return consname == "_predefined._Cons" || consname == "cons";
+		return consname === "_predefined._Cons" || consname === "cons";
 	}
 
 	this.isNil = function (consname){
-		return consname == "_predefined._Nil" || consname == "nil";
+		return consname === "_predefined._Nil" || consname === "nil";
 	}
 	
 	this.toTuple = function (arr){
@@ -151,7 +148,7 @@ var Sapl = new function () {
 	}
 
 	this.toList = function (arr){	
-		if(arr.length == 0){
+		if(arr.length === 0){
 			return [1,'_predefined._Nil'];
 		}else{
 			var e = arr[0];
@@ -175,9 +172,9 @@ var Sapl = new function () {
 				var consname = expr[1];			
 			
 				// No feval! It's strict in its argument
-				if(consname == "JSVal"){
+				if(consname === "JSVal"){
 					return expr[2]; 
-				}else if(consname  == "ARRAY"){
+				}else if(consname  === "ARRAY"){
 					var ret = [];
 					for(var i=2; i<expr.length; i++){
 						ret.push(this.toJS(expr[i]));
@@ -186,40 +183,37 @@ var Sapl = new function () {
 				}
 
 				// SPECIALIZED OVERRIDES!!!
-				if(consname == "iTasks.API.Core.SystemTypes.Username" || consname == "iTasks.API.Core.SystemTypes.Password"){
+				if(consname === "iTasks.API.Core.SystemTypes.Username" || consname === "iTasks.API.Core.SystemTypes.Password"){
 					return Sapl.feval(expr[2]);
-				}else if(consname == "iTasks.API.Core.SystemTypes._Date"){
+				}else if(consname === "iTasks.API.Core.SystemTypes._Date"){
 					var year = this.feval(expr[4]),
 					    month = this.feval(expr[3]),
 						day = this.feval(expr[2]);
 					return year.toString().lpad("0",4)+"-"+month.toString().lpad("0",2)+"-"+day.toString().lpad("0",2);
-				}else if(consname == "iTasks.API.Core.SystemTypes._Time"){
+				}else if(consname === "iTasks.API.Core.SystemTypes._Time"){
 					var hour = this.feval(expr[2]),
 					    min = this.feval(expr[3]),
 						sec = this.feval(expr[4]);
 					return hour.toString().lpad("0",2)+":"+min.toString().lpad("0",2)+":"+sec.toString().lpad("0",2);
-				}else if(consname == "iTasks.API.Core.SystemTypes.DateTime"){
+				}else if(consname === "iTasks.API.Core.SystemTypes.DateTime"){
 					var date = this.feval(expr[2]);
 					var time = this.feval(expr[3]);
 					return this.toJS(date) + " " + this.toJS(time);
-				}else if(consname == "_SystemDynamic._DynamicTemp"){
+				}else if(consname === "_SystemDynamic._DynamicTemp"){
 					// Do not do anything
 					return expr;
 				}
 			
 				// Very important! Do NOT use splice here! 	
-				var args = expr.slice(2, expr.length);
 				var consfunc = eval(this.escapeName(consname));
-				var record = isArray(consfunc.$f);
-				
-				if (record) {
+				if (isArray(consfunc.$f)) {
+				    var args = expr.slice(2, expr.length);
 					var res = {};
-					var fieldnames = consfunc.$f;
 
 					for (var i = 0; i < args.length; i++) {
 						var aarg = this.toJS(this.feval(args[i]));
 						if(aarg != null)
-							res[this.print_consname(fieldnames[i])] = aarg;
+							res[this.print_consname(consfunc.$f[i])] = aarg;
 					}
 
 					return res;
@@ -238,11 +232,11 @@ var Sapl = new function () {
 
 					if (arraycons) {
 						while(this.isCons(expr[1])){
-							var f = this.toJS(this.feval(expr[2]));
-							res.push(f);
+							res.push(this.toJS(this.feval(expr[2])));
 							expr = this.feval(expr[3]);
 						}
 					} else {
+				        var args = expr.slice(2, expr.length);
 						for (var i = 0; i < args.length; i++) {
 							var aarg = this.toJS(this.feval(args[i]));
 							res.push(aarg);
@@ -251,7 +245,6 @@ var Sapl = new function () {
 
 					return res;
 				}
-
 			}
 
 			// It's an application

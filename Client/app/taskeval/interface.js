@@ -61,7 +61,7 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 
 	try{	
 		
-		if(obj == null){
+		if(obj === null){
 			obj = window;	
 		}
 		while(step =path.shift()) {
@@ -71,7 +71,7 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 	}catch(err){
 		value = undefined;
 	}
-    if(typeof value	== 'undefined') {
+    if(typeof value	=== 'undefined') {
         console.warn("jsGetObjectAttr: accessed undefined attribute: "+attr);
     }
 	return ___Tuple2(___wrapJS(value), world);
@@ -140,10 +140,10 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
 	scope = ___unwrapJS(Sapl.feval(scope));
 	args = Sapl.toJS(Sapl.feval(args)); 
 
-    if(typeof fun == 'undefined') {
+    if(typeof fun === 'undefined') {
         console.warn("jsApply: Evaluating undefined function");
     }
-    if(typeof scope == 'undefined') {
+    if(typeof scope === 'undefined') {
         console.warn("jsApply: Evaluating function with undefined scope");
     }
 	
@@ -163,7 +163,7 @@ function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
 	
 		var ys = Sapl.fapp(fun,[args,"JSWorld"]), ret;
 
-        if(typeof ys == 'undefined') {
+        if(typeof ys === 'undefined') {
             console.warn('jsWrapFun: evaluation of wrapped function returned undefined',fun);
         }
         Sapl.feval(ys[3]);
@@ -174,8 +174,7 @@ function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
 
 //jsTypeof :: !(JSVal a) -> !String
 function __iTasks_API_Core_Client_Interface_jsTypeof(obj) {
-	obj = ___unwrapJS(Sapl.feval(obj));
-	return (typeof obj);
+	return (typeof ___unwrapJS(Sapl.feval(obj)));
 }
 function __iTasks_API_Core_Client_Interface_jsAbort(obj) {
     console.log(obj);
@@ -185,8 +184,7 @@ function __iTasks_API_Core_Client_Interface_jsAbort(obj) {
 
 //jsIsNull :: !(JSVal a) -> !Bool
 function __iTasks_API_Core_Client_Interface_jsIsNull(val) {
-  val = ___unwrapJS(Sapl.feval(val));
-  return (val === null);
+  return (___unwrapJS(Sapl.feval(val)) === null);
 }
 
 // newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
@@ -226,7 +224,7 @@ function __iTasks_API_Core_Client_Interface_toJSArg(val){
 
 	val = Sapl.feval(val);
 
-    if(typeof val == 'undefined') {
+    if(typeof val === 'undefined') {
         console.warn('toJSArg: toJSArg of undefined value',val);
     }	
 

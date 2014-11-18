@@ -61,8 +61,8 @@ var DB = new function () {
 		o.tui = JSON.parse(this.loadValue(taskId, "tui"));
 		o.controllerFunc = this.loadValue(taskId, "controllerFunc");
 		o.instanceNo = this.loadValue(taskId, "instanceNo");
-		o.width = parseInt(this.loadValue(taskId, "width"));
-		o.height = parseInt(this.loadValue(taskId, "height"));
+		o.width = this.loadValue(taskId, "width") | 0;
+		o.height = this.loadValue(taskId, "height") | 0;
 	}
 	
 	this.updateTasklet = function(tasklet, html, tuistr){

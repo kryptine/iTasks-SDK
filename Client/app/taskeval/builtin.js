@@ -156,8 +156,7 @@ function _toInt_char(chr){
 }
 
 function _toInt_str(str){
-    var nstr = Sapl.feval(str);
-    return parseInt(nstr);
+    return (Sapl.feval(str) | 0);
 }
 
 function _toInt_real(r){
