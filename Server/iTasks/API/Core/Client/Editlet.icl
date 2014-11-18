@@ -4,7 +4,7 @@ import iTasks.Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks.Framework.IWorld
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
-import StdMisc
+import StdMisc, StdDebug
 
 toEditlet :: (EditletSimpl a d) -> (Editlet a d) | iTask a
 toEditlet (EditletSimpl a {EditletSimplDef|genUI,updateUI,genDiff,appDiff})
@@ -51,7 +51,7 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
       //Only diff with previous value
       Just (prevValue,opts,diffs)
         # currentDiff                        = diffWithPrevValue prevValue currVal
-        # (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff initDiff iworld
+        # (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff "" iworld
         // Store diffs
         # diffs                              = if (isJust currentDiff) [(jsCDiff,jsScript):diffs] diffs
         # iworld                             = setEditletDiffs currVal opts diffs iworld
@@ -117,40 +117,20 @@ where
 
 gEditMeta{|Editlet|} fa _ editlet = fa editlet.Editlet.currVal
 
-gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (editlet, omask) ust=:{USt | taskId, editorId, iworld}
-  # editletId = "editlet-" +++ taskId +++ "-" +++ editorId
-  # serverDef = editlet.Editlet.serverDef
-  = case jDecd False [jsonDiff] of
-      (Just diff, _)
-        # iworld        = withEditletDiffs taskId editorId (addRefDiffs serverDef editletId diff) iworld
-        # ref           = serverDef.EditletDef.appDiff diff editlet.Editlet.currVal
-        # (ref`, world) = serverDef.EditletDef.performIO editletId (Just diff) ref iworld.world
-        # iworld        = {iworld & world = world}
-        # iworld        = withEditletDiffs taskId editorId (addCurrValDiffs serverDef ref ref`) iworld
-        = (({editlet & currVal = ref`}, Touched), {USt | ust & iworld = iworld})
-      _ = ((editlet, omask), ust)
-  where
-  addRefDiffs serverDef editletId diff (jsonRef, opts, diffs) current iworld
-    = case jDeca False [jsonRef] of
-        (Just ref, _)
-          # ref           = serverDef.EditletDef.appDiff diff ref
-          # (ref`, world) = serverDef.EditletDef.performIO editletId (Just diff) ref iworld.world
-          # iworld        = {iworld & world = world}
-          # [jsonRef:_]   = jEnca False ref`
-          = addCurrValDiffs serverDef ref ref` (jsonRef, opts, diffs) current iworld
-        _ = iworld
-  addCurrValDiffs serverDef ref ref` (jsonRef, opts, diffs) current iworld
-    # ioDiff                         = serverDef.EditletDef.genDiff ref ref`
-    # initDiff                       = serverDef.EditletDef.genDiff serverDef.EditletDef.defVal ref`
-    # (jsScript, jsCDiff, _, iworld) = diffLinker ioDiff initDiff iworld
-    # diffs                          = if (isJust ioDiff) [(jsCDiff, jsScript) : diffs] diffs
-    = { iworld & current = {current & editletDiffs = put (taskId, editorId) (jsonRef, opts, diffs) current.editletDiffs}}
-  withEditletDiffs taskId editorId f iworld
-    # current = iworld.current
-    = case 'Data.Map'.get (taskId, editorId) current.editletDiffs of
-        Just x  -> f x current {iworld & current = current}
-        Nothing -> iworld
-
+gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+	= case jDecd False [jsonDiff] of
+		(Just diff,_)
+            # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
+                Just (jsonRef,opts,diffs) = case jDeca False [jsonRef] of
+                    (Just ref,_)
+                        # ref = ov.Editlet.serverDef.EditletDef.appDiff diff ref
+                        # [jsonRef:_] = jEnca False ref
+                        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}}
+                    _ = iworld
+                Nothing = iworld
+            = (({ ov & currVal = ov.Editlet.serverDef.EditletDef.appDiff diff ov.Editlet.currVal }
+                , Touched),{USt|ust & iworld = iworld})
+		_	= ((ov,omask),ust)
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
 
