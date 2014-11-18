@@ -89,18 +89,12 @@ where
 		# world = foldl (\world dr = draw context dr world) world (reverse cl.shapes)
 		= (cl, world)	
 
-:: JSCanvas = JSCanvas
 :: JSCanvasContext = JSCanvasContext
-:: Canvas :== JSVal JSCanvas
 :: Context :== JSVal JSCanvasContext
-
-getCanvas :: ComponentId Bool *JSWorld -> *(Canvas, *JSWorld)
-getCanvas cid True  world = .? (getElementById ("tcanvas_"+++cid)) world
-getCanvas cid False world = .? (getElementById ("pcanvas_"+++cid)) world
 
 getContext :: ComponentId Bool *JSWorld -> *(Context, *JSWorld)
 getContext cid temp world
- 	# (canvas, world) = getCanvas cid temp world
+ 	# canvas = getElementById ((if temp "tcanvas" "pcanvas") +++ "_" +++ cid)
 	= (canvas .# "getContext" .$ ("2d")) world // not "2D" !
 
 clearCanvas :: Context *JSWorld -> *JSWorld
@@ -184,11 +178,8 @@ painterGUI cid world
 	# html = DivTag [StyleAttr "width: 360px; margin-right: auto;"] [canvas:editor]		
 
 	# eventHandlers = selectorEvents ++ [
-			ComponentEvent ("pcanvas_"+++cid) "mousedown" onMouseDown,
 			ComponentEvent ("tcanvas_"+++cid) "mousedown" onMouseDown,			
-			ComponentEvent ("pcanvas_"+++cid) "mouseup" onMouseUp,
 			ComponentEvent ("tcanvas_"+++cid) "mouseup" onMouseUp,			
-			ComponentEvent ("cpanvas_"+++cid) "mousemove" onMouseMove,
 			ComponentEvent ("tcanvas_"+++cid) "mousemove" onMouseMove,
 			ComponentEvent ("tool_"+++cid) "change" onChangeTool]
 
@@ -200,16 +191,16 @@ painterGUI cid world
 			
 	= (gui, world)
 where
-	optionTags = map (\(id,label) -> OptionTag [ValueAttr id] [Text label])
-		[("L","Line"), ("R","Rectangle"), ("r","Rectangle (filled)"), ("C","Circle"), ("c","Circle (filled)")]
-
-	selectors = map (\color -> DivTag [IdAttr (mkSelector color), 
+	optionTags = map (\(id,label) -> OptionTag [ValueAttr id] [Text label]) tools
+		
+	selectors = map (\color -> DivTag [IdAttr (mkId color), 
 			StyleAttr ("border-style:solid; border-color:white; background-color:" +++ color +++ "; width: 40px; height:40px; margin: 5px;")] []) colors
 
-	selectorEvents = map (\color -> ComponentEvent (mkSelector color) "click" (onSelectColor color)) colors
+	selectorEvents = map (\color -> ComponentEvent (mkId color) "click" (onSelectColor color)) colors
 
+	tools  = [("L","Line"), ("R","Rectangle"), ("r","Rectangle (filled)"), ("C","Circle"), ("c","Circle (filled)")]
 	colors = ["yellow", "red", "green", "blue", "black"]
-	mkSelector color = "sel_" +++ color +++ "_" +++ cid
+	mkId color = "sel_" +++ color +++ "_" +++ cid
 	
 	onChangeTool :: ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !*JSWorld)
 	onChangeTool _ {[0]=e} state world
@@ -220,50 +211,52 @@ where
 
 	onSelectColor :: Color ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !*JSWorld)
 	onSelectColor color _ {[0]=e} state world
-		# world = foldr clearBorder world (map mkSelector colors)
-		# world = (e .# "target" .# "style" .# "borderColor" .= "pink") world
+		# world = foldr (setBorder "white") world allBoxes
+		# world = setBorder "pink" (e .# "target") world
 		= ({state & selectedColor = color}, world)
 	where
-		clearBorder el world
-			= (getElementById el .# "style" .# "borderColor" .= "white") world
-
+		allBoxes = map (getElementById  o mkId) colors
+		setBorder color el world
+			= (el .# "style" .# "borderColor" .= color) world
+			
 	getCoordinates e world
 	    # (x, world) = .? (e .# "layerX") world
 	    # (y, world) = .? (e .# "layerY") world
-	    = ((jsValToInt x, jsValToInt y), e, world)
+	    = ((jsValToInt x, jsValToInt y), world)
 
 	onMouseDown _ {[0]=e} state world
-	    # (coords, e, world) = getCoordinates e world
-		= ({state & currentOrigin = Just coords, currentShape = Nothing}, world)
+	    # (coordinates, world) = getCoordinates e world
+		= ({state & currentOrigin = Just coordinates}, world)
 
 	onMouseUp _ {[0]=e} state world
-		# (tempcanvas, world)  	= getCanvas cid True world
-		# (tempcontext, world) 	= getContext cid True world
-		# (context, world)     	= getContext cid False world
-		# world  		  		= (context .# "drawImage" .$! (tempcanvas, 0, 0)) world
+		# (tempcontext, world) 	= getContext cid True world	
 		# world 			   	= clearCanvas tempcontext world
-		| isJust state.currentShape
-			= ({state & currentOrigin = Nothing, shapes = [fromJust state.currentShape:state.shapes], currentShape = Nothing}, world)
-			= ({state & currentOrigin = Nothing}, world)
-
+		
+		= case state.currentShape of
+			Just shape 
+				# (context, world) 	= getContext cid False world
+				# world = draw context shape world
+				= ({state & currentOrigin = Nothing, shapes = [shape:state.shapes], currentShape = Nothing}, world)
+				= ({state & currentOrigin = Nothing}, world)
+				
 	// generate onDrawing event
 	onMouseMove _ {[0]=e} state world
 		= case state.currentOrigin of
-			Just coord = onDrawing coord e state world
-			_          = (state, world)
+			Just coordinates = onDrawing coordinates e state world
+			_                = (state, world)
 
-	onDrawing (dx,dy) e state world
-    	# ((x, y), e, world) = getCoordinates e world
+	onDrawing (ox, oy) e state world
+    	# ((x, y), world) = getCoordinates e world
 		# (tempcontext, world) = getContext cid True world
 			
 		# world = clearCanvas tempcontext world
 
 		# currentShape = case state.selectedTool of	
-				"L"	= Line state.selectedColor dx dy x y
-				"R"	= Rect state.selectedColor False dx dy x y
-				"r"	= Rect state.selectedColor True dx dy x y
-				"C"	= Circle state.selectedColor False dx dy x y
-				"c"	= Circle state.selectedColor True dx dy x y
+				"L"	= Line state.selectedColor ox oy x y
+				"R"	= Rect state.selectedColor False ox oy x y
+				"r"	= Rect state.selectedColor True ox oy x y
+				"C"	= Circle state.selectedColor False ox oy x y
+				"c"	= Circle state.selectedColor True ox oy x y
 
 		# world = draw tempcontext currentShape world
 			
@@ -283,6 +276,13 @@ tracelength ds1 ds2 c = trace_n ("l: "+++toString (length ds1)+++", r: "+++toStr
 shareditlet name drawing = updateSharedInformation name 
 								[UpdateWith (\(Drawing ds) -> painterEditlet ds)
 								            (\_ (Editlet value _ _) -> value)] drawing
+
+gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
+    = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
+
+gUpdate{|LeafletMap|} dp upd (val,mask) iworld
+    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld
+    = ((editlet.currVal,mask),iworld) 
 
 editlet2 :: Task Drawing
 editlet2 = withShared (Drawing []) (\drawing -> shareditlet "1" drawing
