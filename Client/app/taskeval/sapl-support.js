@@ -44,7 +44,8 @@ var Sapl = new function () {
 
 	this.print_consname = function (name) {
 		var a = name.trim();
-		if(a.lastIndexOf(".") > 0){
+        var dot = a.lastIndexOf(".");
+		if(dot > 0){
 			a = a.substring(dot+1);
 		}
 		return a;
