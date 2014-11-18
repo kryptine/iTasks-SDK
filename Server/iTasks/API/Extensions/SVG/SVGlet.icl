@@ -40,8 +40,6 @@ addOnclicks cid svg onclicks world
     = world
   mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
   mkCB sttf _ _ clval=:{svgClSt} world
-    //#! newSt = sttf svgClSt
-    //= ({clval & svgClSt = newSt, svgClIsDefault = False, svgClHasStUpd = not (newSt === svgClSt)}, world)
     = ({clval & svgClSt = sttf svgClSt, svgClIsDefault = False}, world)
   mkCB sttf _ _ clval world
     = ({clval & svgClIsDefault = False}, world)
@@ -243,25 +241,32 @@ instance nextNo FixSpansStVal where
   , fixSpansSyn_OffsetCorrection    :: !ImageOffset
   }
 
-/*runM :: !(State s a) s -> (!a, !s)*/
+strictTRMapRev :: !(a -> b) ![a] -> [b]
+strictTRMapRev f xs = strictTRMapAcc f xs []
+
+strictTRMapAcc :: !(a -> b) ![a] ![b] -> [b]
+strictTRMapAcc f []     acc = acc
+strictTRMapAcc f [x:xs] acc = strictTRMapAcc f xs [f x : acc]
+
+strictTRMap :: !(a -> b) ![a] -> [b]
+strictTRMap f xs = reverseTR (strictTRMapAcc f xs [])
+
+reverseTR :: ![a] -> [a]
+reverseTR xs = rev` xs []
+  where
+  rev` :: ![a] ![a] -> [a]
+  rev` [] acc = acc
+  rev` [x:xs] acc = rev` xs [x:acc]
+
 runM m st :== m st
 
-/*sequence :: ![.st -> .(!a, !.st)] -> (.st -> .(![a], !.st))*/
 sequence ms :== mapSt id ms
-
-//addCachedSpan :: !(CachedSpan -> CachedSpan) !(Set ImageTag) !FixSpansStVal -> FixSpansStVal
-//addCachedSpan f imTas st=:{fixSpansTaggedSpanEnv}
-  //| 'DS'.null imTas = st
-  //| otherwise
-    //#! r = fromMaybe { cachedGridSpans = Nothing, cachedImageSpan = Nothing } ('DM'.get imTas fixSpansTaggedSpanEnv)
-    //= { st & fixSpansTaggedSpanEnv = 'DM'.put imTas (f r) fixSpansTaggedSpanEnv }
 
 cacheImageSpan :: !(Set ImageTag) !ImageSpan !FixSpansStVal -> FixSpansStVal
 cacheImageSpan imTas sp st = 'DS'.fold f st imTas
   where
   f :: !ImageTag !FixSpansStVal -> FixSpansStVal
   f t st = { st & fixSpansImageSpanEnv = 'DM'.put t sp st.fixSpansImageSpanEnv }
- //= addCachedSpan (\r -> {r & cachedImageSpan = Just sp}) imTas st
 
 cacheGridSpans :: !(Set ImageTag) ![Span] ![Span] !FixSpansStVal -> FixSpansStVal
 cacheGridSpans imTas xsps ysps st
@@ -271,7 +276,6 @@ cacheGridSpans imTas xsps ysps st
   where
   f :: !{!Span} !{!Span} !ImageTag !FixSpansStVal -> FixSpansStVal
   f xsps` ysps` t st = { st & fixSpansGridSpanEnv = 'DM'.put t (xsps`, ysps`) st.fixSpansGridSpanEnv }
-//cacheGridSpans imTas xsps ysps st = addCachedSpan (\r -> {r & cachedGridSpans = Just ({x \\ x <- xsps}, {y \\ y <- ysps})}) imTas st
 
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
 applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
@@ -293,13 +297,15 @@ applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
   f (FitYImage sp) ((xsp, ysp), accOff)
     = (((sp / ysp) * xsp, sp), accOff)
 
-instance / Span where / (PxSpan 0.0)           _            = PxSpan 0.0
-                      / _                      (PxSpan 0.0) = PxSpan 0.0 // Division by zero should be undefined, but that would be impractical
-                      / l                      (PxSpan 1.0) = l // Identity
-                      / (PxSpan l)             (PxSpan r)   = PxSpan (l / r)
-                      / (MulSpan a (PxSpan l)) (PxSpan r)   = MulSpan a (PxSpan (l / r))
-                      / (DivSpan a (PxSpan l)) (PxSpan r)   = DivSpan a (PxSpan (l * r))
-                      / l                      r            = DivSpan l r
+instance / Span where / (PxSpan 0.0)           _             = PxSpan 0.0
+                      / _                      (PxSpan 0.0)  = PxSpan 0.0 // Division by zero should be undefined, but that would be impractical
+                      / l                      (PxSpan 1.0)  = l // Identity
+                      / (PxSpan l)             (PxSpan r)    = PxSpan (l / r)
+                      / (MulSpan a (PxSpan l)) (PxSpan r)    = MulSpan a (PxSpan (l / r))
+                      / (DivSpan a (PxSpan l)) (PxSpan r)    = DivSpan a (PxSpan (l * r))
+                      / (MaxSpan xs)           r=:(PxSpan _) = MaxSpan (strictTRMap (\x -> x / r) xs)
+                      / (MinSpan xs)           r=:(PxSpan _) = MinSpan (strictTRMap (\x -> x / r) xs)
+                      / l                      r             = DivSpan l r
 
 instance * Span where * (PxSpan 0.0)           _                      = PxSpan 0.0
                       * _                      (PxSpan 0.0)           = PxSpan 0.0
@@ -311,6 +317,10 @@ instance * Span where * (PxSpan 0.0)           _                      = PxSpan 0
                       * (MulSpan a (PxSpan b)) (PxSpan c)             = MulSpan a (PxSpan (b * c)) // Associativity
                       * (MulSpan (PxSpan a) b) (PxSpan c)             = MulSpan b (PxSpan (a * c)) // Associativity + commutativity
                       * (DivSpan a b)          (DivSpan c d)          = DivSpan (a * c) (b * d)
+                      * (MaxSpan xs)           r=:(PxSpan _)          = MaxSpan (strictTRMap (\x -> x * r) xs)
+                      * (MinSpan xs)           r=:(PxSpan _)          = MinSpan (strictTRMap (\x -> x * r) xs)
+                      * l=:(PxSpan _)          (MaxSpan xs)           = MaxSpan (strictTRMap (\x -> x * l) xs)
+                      * l=:(PxSpan _)          (MinSpan xs)           = MinSpan (strictTRMap (\x -> x * l) xs)
                       * l                      r                      = MulSpan l r
 
 // Rotates a rectangle by a given angle. Currently, this function is rather
@@ -340,13 +350,11 @@ rotatedImageSpan angle (xspan, yspan)
                  , mkTransform angle` cx cy xspan zero
                  , mkTransform angle` cx cy zero  yspan
                  , mkTransform angle` cx cy xspan yspan ]
-  #! allX      = map fst allPoints
-  #! allY      = map snd allPoints
-  #! maxAllX   = maxSpan allX
+  #! allX      = strictTRMap fst allPoints
+  #! allY      = strictTRMap snd allPoints
   #! minAllX   = minSpan allX
-  #! maxAllY   = maxSpan allY
   #! minAllY   = minSpan allY
-  = ( (abs (maxAllX - minAllX), abs (maxAllY - minAllY))
+  = ( (abs (maxSpan allX - minAllX), abs (maxSpan allY - minAllY))
     , (zero - minAllX, zero - minAllY))
   where
   mkTransform :: !Real !Span !Span !Span !Span -> (!Span, !Span)
@@ -805,7 +813,7 @@ fixSpans img = go
            -> .(!(!Compose s, !ImageSpan, ![ImageOffset]), !FixSpansStVal) | iTask s
     mkGrid (numcols, numrows) ias imgss offsets mbhost imTrs imTas st
       #! (imgss, st) = foldr seqImgsGrid ([], st) imgss
-      #! imgss       = reverse (map reverse imgss) // TODO This is more or less a hack... why do we need this?
+      #! imgss       = strictTRMapRev reverseTR imgss // TODO This is more or less a hack... why do we need this?
       #! (tag, st)   = nextNo st
       #! sysTags     = ImageTagSystem tag
       #! colIndices  = [0..numcols - 1]
@@ -814,10 +822,10 @@ fixSpans img = go
                              , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) rowIndices
                              )
                              (\x -> x.totalSpanPostTrans) mbhost
-      #! spanss      = map (map (\x -> x.totalSpanPostTrans)) imgss
-      #! st          = cacheGridSpans ('DS'.insert sysTags imTas) (map (maxSpan o map fst) (transpose spanss)) (map (maxSpan o map snd) spanss) st
-      #! offsets`    = flatten (calculateGridOffsets (map (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
-                                                     (map (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) imgss offsets)
+      #! spanss      = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
+      #! st          = cacheGridSpans ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
+      #! offsets`    = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
+                                                     (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) imgss offsets)
       = (( AsCollage (flatten imgss)
          , gridSpan
          , offsets`), { st & fixSpansDidChange = True })
@@ -850,7 +858,7 @@ fixSpans img = go
     mkCollage imgs offsets mbhost imTrs imTas st
       #! (imgs, st) = sequence imgs st
       = (( AsCollage imgs
-         , maybe (calculateComposedSpan (map (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) mbhost
+         , maybe (calculateComposedSpan (strictTRMap (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) mbhost
          , offsets), st)
     mkOverlay :: ![ImageAlign] ![FixSpansSt (Image s)] ![ImageOffset]
                  !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag)
@@ -858,8 +866,8 @@ fixSpans img = go
               -> .(!(!Compose s, !ImageSpan, ![ImageOffset]), !FixSpansStVal) | iTask s
     mkOverlay ias imgs offsets mbhost imTrs imTas st
       #! (imgs, st)           = sequence imgs st
-      #! spans                = map (\x -> x.totalSpanPostTrans) imgs
-      #! (maxXSpan, maxYSpan) = maybe (maxSpan (map fst spans), maxSpan (map snd spans))
+      #! spans                = strictTRMap (\x -> x.totalSpanPostTrans) imgs
+      #! (maxXSpan, maxYSpan) = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
                                       (\x -> x.totalSpanPostTrans) mbhost
       #! alignOffsets         = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets       = zipWith3 addOffset alignOffsets offsets imgs
@@ -1008,13 +1016,13 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (m1, st)     = m1 st
       #! (m2, st)     = m2 st
       #! (maskId, st) = imageMaskId st
-      #! imAts`       = map fst imAts
+      #! imAts`       = strictTRMap fst imAts
       #! (syn, st)    = imCo (txsp, tysp) (txsp`, tysp`) (maybe imAts` (const [(Nothing, Just (MaskAttr (mkUrl maskId))) : imAts`]) mask) imTrs imTas st
       #! (mask, st)   = evalMaybe mask st
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
          , genSVGSyn_imageSpanReal = (txsp`, tysp`)
-         , genSVGSyn_onclicks      = 'DM'.unions [syn.genSVGSyn_onclicks : map snd imAts]
+         , genSVGSyn_onclicks      = 'DM'.unions [syn.genSVGSyn_onclicks : strictTRMap snd imAts]
          }, st)
 
     imageMaskId :: !a -> (!String, !a) | nextNo a
@@ -1047,7 +1055,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkBasic baIm imSp totalSpanPreTrans totalSpanPostTrans imAts imTrs _ st
       #! (imSp, st)        = imSp st
       #! ((_, isText), st) = baIm imSp [] [] st
-      #! (imTrs, st)       = sequence (map (\f -> f imSp isText) imTrs) st
+      #! (imTrs, st)       = sequence (strictTRMap (\f -> f imSp isText) imTrs) st
       #! ((syn, _), st)    = baIm imSp imAts imTrs st
       = (syn, st)
   genSVGImageAttrAlgs :: ImageAttrAlg s (GenSVGSt s (!(!Maybe HtmlAttr, !Maybe SVGAttr), !Map String (s -> s))) | iTask s
@@ -1060,7 +1068,7 @@ genSVG img = imageCata genSVGAllAlgs img
     , imageAttrFillAttrAlg          = \attr s -> (((Nothing, Just (FillAttr (PaintColor attr.fill Nothing))), 'DM'.newMap), s)
     , imageAttrFillOpacityAttrAlg   = \attr s -> (((Nothing, Just (FillOpacityAttr (FillOpacity (toString attr.opacity)))), 'DM'.newMap), s)
     , imageAttrOnClickAttrAlg       = mkOnClick
-    , imageAttrDashAttr             = \attr s -> (((Nothing, Just (StrokeDashArrayAttr (DashArray (map toString attr.dash)))), 'DM'.newMap), s)
+    , imageAttrDashAttr             = \attr s -> (((Nothing, Just (StrokeDashArrayAttr (DashArray (strictTRMap toString attr.dash)))), 'DM'.newMap), s)
     }
     where
     mkStrokeWidth :: !(StrokeWidthAttr s) !(GenSVGStVal s)
@@ -1199,7 +1207,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkLineImage lineSpan mmarkers lineContent _ _ imAts imTrs imTas st
       #! (lineSpan, st) = lineSpan st
       #! (mmarkers, st) = evalMaybe mmarkers st
-      #! (imTrs, st)    = sequence (map (\f -> f lineSpan False) imTrs) st
+      #! (imTrs, st)    = sequence (strictTRMap (\f -> f lineSpan False) imTrs) st
       = lineContent lineSpan mmarkers imAts imTrs imTas st
 
   genSVGMarkersAlgs :: MarkersAlg (GenSVGSt s (GenSVGSyn s)) (GenSVGSt s (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s))) | iTask s
@@ -1240,7 +1248,7 @@ genSVG img = imageCata genSVGAllAlgs img
                    -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
     mkPolygonImage points sp mmarkers imAts imTrs imTas st
       #! (offsets, st) = evalOffsets points st
-      = mkLine PolygonElt [PointsAttr (map (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers st
+      = mkLine PolygonElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers st
     mkPolylineImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)] !ImageSpanReal
                        !(Maybe (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s)))
                        ![(!Maybe HtmlAttr, !Maybe SVGAttr)] ![(!SVGTransform, !ImageTransform)]
@@ -1248,7 +1256,7 @@ genSVG img = imageCata genSVGAllAlgs img
                     -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
     mkPolylineImage points sp mmarkers imAts imTrs imTas st
       #! (offsets, st) = evalOffsets points st
-      = mkLine PolylineElt [PointsAttr (map (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers st
+      = mkLine PolylineElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers st
 
     mkLine :: !([HtmlAttr] [SVGAttr] -> SVGElt) ![SVGAttr] !ImageSpanReal !(Maybe (Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s))) !(GenSVGStVal s) -> .(!GenSVGSyn s, !GenSVGStVal s) | iTask s
     mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) clval
@@ -1259,9 +1267,9 @@ genSVG img = imageCata genSVGAllAlgs img
                                                          , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
                                                          , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
       = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts  = [ constr [] (map (\(_, x, _) -> x) markersAndIds ++ atts)
-                                , DefsElt [] [] (map (\(x, _, _) -> x) markersAndIds)]
-         , genSVGSyn_onclicks = 'DM'.unions (map (\(_, _, x) -> x) markersAndIds)
+         & genSVGSyn_svgElts  = [ constr [] (strictTRMap (\(_, x, _) -> x) markersAndIds ++ atts)
+                                , DefsElt [] [] (strictTRMap (\(x, _, _) -> x) markersAndIds)]
+         , genSVGSyn_onclicks = 'DM'.unions (strictTRMap (\(_, _, x) -> x) markersAndIds)
          }, clval) // TODO Correct offsets? What about the transformations?
       where
       // TODO Marker size etc?
@@ -1304,7 +1312,7 @@ genSVG img = imageCata genSVGAllAlgs img
                                      Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal, genSVGSyn_onclicks}
                                        = (genSVGSyn_svgElts ++ compose.genSVGSyn_svgElts, genSVGSyn_imageSpanReal, 'DM'.union genSVGSyn_onclicks compose.genSVGSyn_onclicks)
                                      _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal, compose.genSVGSyn_onclicks)
-      #! (imTrs, st) = sequence (map (\f -> f spans False) imTrs) st
+      #! (imTrs, st) = sequence (strictTRMap (\f -> f spans False) imTrs) st
       #! attrs = mkAttrs imAts imTrs
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts  = mkGroup (getHtmlAttrs attrs) [] (mkGroup [] (getSvgAttrs attrs) elts)
@@ -1331,8 +1339,8 @@ genSVG img = imageCata genSVGAllAlgs img
     mkCollage imgs offsets mbhost totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
       #! (imgsSps, st) = sequence imgs st
       = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (map (\x -> x.genSVGSyn_svgElts) imgsSps))
-         , genSVGSyn_onclicks      = 'DM'.unions (map (\x -> x.genSVGSyn_onclicks) imgsSps)
+         & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
+         , genSVGSyn_onclicks      = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_onclicks) imgsSps)
          , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st) // Setting genSVGSyn_imageSpanReal is required here. It needs to be totalSpanPreTrans, because transforms will be calculated just after this.
 
   genSVGSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real) | iTask s
@@ -1375,7 +1383,7 @@ ret x st = (x, st)
 
 mkAttrs :: ![(!Maybe HtmlAttr, !Maybe SVGAttr)] ![(!SVGTransform, !ImageTransform)] -> [(!Maybe HtmlAttr, !Maybe SVGAttr)]
 mkAttrs imAts [] = imAts
-mkAttrs imAts xs = [(Nothing, Just (TransformAttr (map fst xs))):imAts]
+mkAttrs imAts xs = [(Nothing, Just (TransformAttr (strictTRMap fst xs))):imAts]
 
 calcAlignOffset :: !Span !Span !(!Span, !Span) !ImageAlign -> (!Span, !Span)
 calcAlignOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl maxxsp imXSp xal, mkYAl maxysp imYSp yal)
