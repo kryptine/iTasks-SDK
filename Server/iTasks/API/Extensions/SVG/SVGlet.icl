@@ -316,6 +316,10 @@ instance * Span where * (PxSpan 0.0)           _                      = PxSpan 0
                       * (PxSpan a)             (MulSpan b (PxSpan c)) = MulSpan (PxSpan (a * c)) b // Associativity + commutativity
                       * (MulSpan a (PxSpan b)) (PxSpan c)             = MulSpan a (PxSpan (b * c)) // Associativity
                       * (MulSpan (PxSpan a) b) (PxSpan c)             = MulSpan b (PxSpan (a * c)) // Associativity + commutativity
+                      * (DivSpan (PxSpan a) b) (PxSpan c)             = DivSpan (PxSpan (a * c)) b
+                      * (DivSpan a (PxSpan b)) (PxSpan c)             = MulSpan a (PxSpan (c / b))
+                      * (PxSpan c)             (DivSpan (PxSpan a) b) = DivSpan (PxSpan (a * c)) b
+                      * (PxSpan c)             (DivSpan a (PxSpan b)) = MulSpan a (PxSpan (c / b))
                       * (DivSpan a b)          (DivSpan c d)          = DivSpan (a * c) (b * d)
                       * (MaxSpan xs)           r=:(PxSpan _)          = MaxSpan (strictTRMap (\x -> x * r) xs)
                       * (MinSpan xs)           r=:(PxSpan _)          = MinSpan (strictTRMap (\x -> x * r) xs)
