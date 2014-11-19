@@ -1004,6 +1004,8 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         var me = this,
             el = me.domEl, tmp;
 
+		me.dataVersion = -1;
+			
         me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
 		itwc.controller.editlets[me.htmlId] = me;
 
@@ -1071,8 +1073,8 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		}		
 		
         if(me.initDiff != null) {
-			if(me.initDiff[0]==1) {
-				me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
+			if(me.initDiff[0]==1) /* Just */ {
+				me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.initDiff[3],me.value]]);
             }	
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
@@ -1121,10 +1123,13 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		};
 		return h;
 	},
-    applyDiff: function(saplDiff,extraJS) {
+    applyDiff: function(dataVersion,saplDiff,extraJS) {
 
         var me = this,
             tmp;
+			
+		me.dataVersion = dataVersion;
+					
         if(extraJS != "") {
             evalScript(extraJS);
         }

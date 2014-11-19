@@ -35,7 +35,7 @@ diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {
     ++  diffMenus [] event editletDiffs opts1.UIViewportOpts.menu opts2.UIViewportOpts.menu
     , removeEditletDiffs (findEditletsInViewport vp2 ++ findEditletsInWindows w2 []) editletDiffs)
 
-removeEditletDiffs removeIds editletDiffs = fromList [(editletId,(value,opts,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(value,opts,diffs)) <- toList editletDiffs]
+removeEditletDiffs removeIds editletDiffs = fromList [(editletId,(ver,value,opts,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(ver,value,opts,diffs)) <- toList editletDiffs]
 
 //Compare controls
 diffControls :: !UIPath !Event !UIEditletDiffs !UIControl !UIControl -> DiffResult
@@ -147,9 +147,9 @@ diffEditletOpts path editletDiffs opts1 opts2
 	//Check if we have a local diff function for this editor...
     | opts1.UIEditletOpts.taskId == opts2.UIEditletOpts.taskId && opts1.UIEditletOpts.editorId == opts2.UIEditletOpts.editorId
         = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
-            Just (_,_,[])       = DiffPossible []
-            Just (_,_,diffs)    = DiffPossible [UIUpdate path [("applyDiff",[JSONString diff,JSONString script]) \\ (diff,script) <- diffs]]
-            _                   = DiffImpossible
+            Just (_,_,_,[])      = DiffPossible []
+            Just (ver,_,_,diffs) = DiffPossible [UIUpdate path [("applyDiff",[JSONInt ver,JSONString diff,JSONString script]) \\ (diff,script) <- diffs]]
+            _                    = DiffImpossible
 	| otherwise
         = DiffImpossible
 

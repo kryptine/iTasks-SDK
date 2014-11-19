@@ -6,7 +6,10 @@ from iTasks.Framework.Task import :: Event
 :: UIUpdate = UIUpdate !UIPath ![UIUpdateOperation]
 :: UIUpdateOperation :== (String,[JSONNode])
 
-:: UIEditletDiffs   :== Map (!String,!String) (!JSONNode,!UIEditletOpts,![(String,String)])
+:: ReferenceVersion :== Int
+
+// (taskId, editletId) -> (reference version, reference value, editlet opts, diffs)
+:: UIEditletDiffs   :== Map (!String,!String) (!ReferenceVersion,!JSONNode,!UIEditletOpts,![(String,String)])
 
 :: UIPath :== [UIStep]
 :: UIStep

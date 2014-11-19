@@ -11,7 +11,7 @@ import iTasks.Framework.SDS
 
 from iTasks.Framework.IWorld		import :: IWorld {onClient,server,memoryShares,cachedShares,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource, :: ShareCache(..)
 from iTasks.Framework.UIDefinition	import :: UIDef, :: UIControl, :: UIEditletOpts
-from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs
+from iTasks.Framework.UIDiff		import :: UIUpdate, :: UIEditletDiffs, :: ReferenceVersion
 from iTasks.Framework.Task		    import exception
 from iTasks.Framework.TaskState		import :: DeferredJSON(..)
 from iTasks.Framework.Generic				import class iTask

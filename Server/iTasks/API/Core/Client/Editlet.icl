@@ -14,14 +14,14 @@ toEditlet (EditletSimpl a {EditletSimplDef|genUI,updateUI,genDiff,appDiff})
     , serverDef = {EditletDef | performIO = \_ _ s w -> (s, w), defVal = gDefault{|*|}, genDiff = genDiff, appDiff = appDiff}
     , clientDef = {EditletDef | performIO = updateUI, defVal = gDefault{|*|}, genDiff = genDiff, appDiff = appDiff}
     }
-
+ 
 //* Client-side types
 JSONEncode{|Editlet|} _ _ _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Editlet|} _ _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ _ c = (Nothing,c)
-
+ 
 gDefault{|Editlet|} fa _
-  = { Editlet
+  = { Editlet 
     | currVal   = fa
     , genUI     = \_ world -> ({html = RawText "", eventHandlers = [], height = FlexSize, width = FlexSize}, world)
     , serverDef = { EditletDef
@@ -49,12 +49,14 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
   # iworld                = {iworld & world = world}
   = case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
       //Only diff with previous value
-      Just (prevValue,opts,diffs)
+      Just (ver,prevValue,opts,diffs)
         # currentDiff                        = diffWithPrevValue prevValue currVal
-        # (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff "" iworld
+        # (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff Nothing iworld
         // Store diffs
         # diffs                              = if (isJust currentDiff) [(jsCDiff,jsScript):diffs] diffs
-        # iworld                             = setEditletDiffs currVal opts diffs iworld
+		// Increase version number if there is a difference between the reference and the new value
+        # ver                                = if (isJust currentDiff) (ver + 1) ver
+        # iworld                             = setEditletDiffs ver currVal opts diffs iworld
         = (NormalEditor [(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}, newMap)],{VSt|vst & iworld = iworld})
       //Create editlet definition and store reference value for future diffs
       Nothing
@@ -62,7 +64,7 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
             = editletLinker [(cid, event, f) \\ ComponentEvent cid event f <- uiDef.eventHandlers]
                 initDiff defValueFun clientUpdateUI clientGenDiff clientAppDiff iworld
         # opts = editletOpts jsScript jsEvents jsID jsDV jsUU jsGD jsAD uiDef
-        # iworld = setEditletDiffs currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
+        # iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
         = (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})
 where
     htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
@@ -112,8 +114,8 @@ where
 
 	clientUpdateUI = clientDef.EditletDef.performIO
 
-    setEditletDiffs value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
-        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (toJSONA value,opts,diffs) editletDiffs}}
+    setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
+        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
 
 gEditMeta{|Editlet|} fa _ editlet = fa editlet.Editlet.currVal
 
@@ -121,11 +123,12 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=
 	= case jDecd False [jsonDiff] of
 		(Just diff,_)
             # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                Just (jsonRef,opts,diffs) = case jDeca False [jsonRef] of
+                Just (ver,jsonRef,opts,diffs) = case jDeca False [jsonRef] of
                     (Just ref,_)
                         # ref = ov.Editlet.serverDef.EditletDef.appDiff diff ref
                         # [jsonRef:_] = jEnca False ref
-                        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId) (jsonRef,opts,diffs) editletDiffs}}
+                        // If the refenerce value is changed by its client, keep the version number
+                        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,diffs) editletDiffs}}
                     _ = iworld
                 Nothing = iworld
             = (({ ov & currVal = ov.Editlet.serverDef.EditletDef.appDiff diff ov.Editlet.currVal }
