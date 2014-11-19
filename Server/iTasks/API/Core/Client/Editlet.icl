@@ -120,11 +120,19 @@ where
 gEditMeta{|Editlet|} fa _ editlet = fa editlet.Editlet.currVal
 
 gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+
+	// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
+	# (ver, jsonDiff) = case jsonDiff of
+			JSONArray [ver, diff] = (maybe -1 id (fromJSON ver), diff)
+								  = (-1, JSONNull)
+	
 	= case jDecd False [jsonDiff] of
 		(Just diff,_)
             # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                Just (ver,jsonRef,opts,diffs) = case jDeca False [jsonRef] of
+                Just (refver,jsonRef,opts,diffs) = case jDeca False [jsonRef] of
                     (Just ref,_)
+                    	| ver <> refver
+                    		= abort "CONFLICT"
                         # ref = ov.Editlet.serverDef.EditletDef.appDiff diff ref
                         # [jsonRef:_] = jEnca False ref
                         // If the refenerce value is changed by its client, keep the version number

@@ -1004,7 +1004,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         var me = this,
             el = me.domEl, tmp;
 
-		me.dataVersion = -1;
+		me.dataVersion = 1;
 			
         me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
 		itwc.controller.editlets[me.htmlId] = me;
@@ -1118,7 +1118,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			me.value = ys[2];
 			//Synchronize
 			if(diff !== null) {
-				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,diff,false);
+				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diff],false);
 			}
 		};
 		return h;
