@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.SVG.SVGlet
 
 import qualified Data.Map as DM
 import Graphics.Scalable
+import Graphics.Scalable.Internal
 import iTasks
 import iTasks.API.Core.Client.Editlet
 from StdOrdList import minList, maxList
@@ -241,23 +242,6 @@ instance nextNo FixSpansStVal where
   , fixSpansSyn_OffsetCorrection    :: !ImageOffset
   }
 
-strictTRMapRev :: !(a -> b) ![a] -> [b]
-strictTRMapRev f xs = strictTRMapAcc f xs []
-
-strictTRMapAcc :: !(a -> b) ![a] ![b] -> [b]
-strictTRMapAcc f []     acc = acc
-strictTRMapAcc f [x:xs] acc = strictTRMapAcc f xs [f x : acc]
-
-strictTRMap :: !(a -> b) ![a] -> [b]
-strictTRMap f xs = reverseTR (strictTRMapAcc f xs [])
-
-reverseTR :: ![a] -> [a]
-reverseTR xs = rev` xs []
-  where
-  rev` :: ![a] ![a] -> [a]
-  rev` [] acc = acc
-  rev` [x:xs] acc = rev` xs [x:acc]
-
 runM m st :== m st
 
 sequence ms :== mapSt id ms
@@ -296,36 +280,6 @@ applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
     = ((sp, (sp / xsp) * ysp), accOff)
   f (FitYImage sp) ((xsp, ysp), accOff)
     = (((sp / ysp) * xsp, sp), accOff)
-
-instance / Span where / (PxSpan 0.0)           _             = PxSpan 0.0
-                      / _                      (PxSpan 0.0)  = PxSpan 0.0 // Division by zero should be undefined, but that would be impractical
-                      / l                      (PxSpan 1.0)  = l // Identity
-                      / (PxSpan l)             (PxSpan r)    = PxSpan (l / r)
-                      / (MulSpan a (PxSpan l)) (PxSpan r)    = MulSpan a (PxSpan (l / r))
-                      / (DivSpan a (PxSpan l)) (PxSpan r)    = DivSpan a (PxSpan (l * r))
-                      / (MaxSpan xs)           r=:(PxSpan _) = MaxSpan (strictTRMap (\x -> x / r) xs)
-                      / (MinSpan xs)           r=:(PxSpan _) = MinSpan (strictTRMap (\x -> x / r) xs)
-                      / l                      r             = DivSpan l r
-
-instance * Span where * (PxSpan 0.0)           _                      = PxSpan 0.0
-                      * _                      (PxSpan 0.0)           = PxSpan 0.0
-                      * (PxSpan 1.0)           r                      = r // Identity
-                      * l                      (PxSpan 1.0)           = l // Identity
-                      * (PxSpan a)             (PxSpan b)             = PxSpan (a * b)
-                      * (PxSpan a)             (MulSpan (PxSpan b) c) = MulSpan (PxSpan (a * b)) c // Associativity
-                      * (PxSpan a)             (MulSpan b (PxSpan c)) = MulSpan (PxSpan (a * c)) b // Associativity + commutativity
-                      * (MulSpan a (PxSpan b)) (PxSpan c)             = MulSpan a (PxSpan (b * c)) // Associativity
-                      * (MulSpan (PxSpan a) b) (PxSpan c)             = MulSpan b (PxSpan (a * c)) // Associativity + commutativity
-                      * (DivSpan (PxSpan a) b) (PxSpan c)             = DivSpan (PxSpan (a * c)) b
-                      * (DivSpan a (PxSpan b)) (PxSpan c)             = MulSpan a (PxSpan (c / b))
-                      * (PxSpan c)             (DivSpan (PxSpan a) b) = DivSpan (PxSpan (a * c)) b
-                      * (PxSpan c)             (DivSpan a (PxSpan b)) = MulSpan a (PxSpan (c / b))
-                      * (DivSpan a b)          (DivSpan c d)          = DivSpan (a * c) (b * d)
-                      * (MaxSpan xs)           r=:(PxSpan _)          = MaxSpan (strictTRMap (\x -> x * r) xs)
-                      * (MinSpan xs)           r=:(PxSpan _)          = MinSpan (strictTRMap (\x -> x * r) xs)
-                      * l=:(PxSpan _)          (MaxSpan xs)           = MaxSpan (strictTRMap (\x -> x * l) xs)
-                      * l=:(PxSpan _)          (MinSpan xs)           = MinSpan (strictTRMap (\x -> x * l) xs)
-                      * l                      r                      = MulSpan l r
 
 // Rotates a rectangle by a given angle. Currently, this function is rather
 // naive. It rotates the rectangle (usually the bounding box of a shape) around
