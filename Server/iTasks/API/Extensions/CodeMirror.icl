@@ -96,7 +96,7 @@ onInitClient hndCreator eventhandlers onLoadWrapper onLoadCont cid clval world
     = (clval,world)
 
 onLoad hndCreator eventhandlers cont cid _ clval=:{val={source,configuration}} world
-	# (ta, world)       = getDomElement (sourcearea cid) world
+	# (ta, world)       = .? (getElementById (sourcearea cid)) world
 	# (co, world)       = createConfigurationObject configuration world
     # (cmobj, world)    = findObject "CodeMirror" world
     # (this, world)     = jsThis world

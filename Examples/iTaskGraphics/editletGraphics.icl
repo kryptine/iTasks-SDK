@@ -83,7 +83,7 @@ where
 		= diffUI i i`
 	
 	updUI mrs cid mi ((Initialize,i`),i) env
-	# (svg,env)				= getDomElement (main_svg_id cid) env
+	# (svg,env)				= .? (getElementById (main_svg_id cid)) env
 	# env					= foldl (add_image svg cid) env mrs
 	= updUI mrs cid mi ((Running,i`),i) env
 	updUI _ cid mi ((running,_),i) env
@@ -170,7 +170,7 @@ toMouseEvent svg_id elt_id event env
 # (screenX,env)		= .? (event .# "screenX") env
 # (screenY,env)		= .? (event .# "screenY") env
 # (button, env)		= .? (event .# "button")  env
-# (svg,env)			= getDomElement svg_id env
+# (svg,env)			= .? (getElementById svg_id) env
 # (pt, env)			= (svg .# "createSVGPoint" .$ Void) env
 # env				= (pt .# "x" .= clientX) env
 # env				= (pt .# "y" .= clientY) env

@@ -38,7 +38,7 @@ where
 		= (val,world)
 
     updateHand (id,degrees) world
-        # (hand,world) = getDomElement id world
+        # (hand,world) = .? (getElementById id) world
         # (_,world)    = callObjectMethod "setAttribute" [toJSArg "transform",toJSArg ("rotate("+++toString (degrees - 90)+++" 50 50)")] hand world
         = world
 	

@@ -52,12 +52,12 @@ where
 
 	onUpdate :: ComponentId (Maybe [String]) String *JSWorld -> (!String, !*JSWorld)
 	onUpdate id _ val world
-		# world	= setDomAttr id "value" (toJSVal val) world
+		# world	= (getElementById id .# "value" .= val) world
 		= (val,world)
 	
 	onChange  :: ComponentId {JSObj JSEvent} String *JSWorld -> (!String, !*JSWorld)
 	onChange id _ val world
-		= let (val, w) = getDomAttr id "value" world in (jsValToString val, w)
+		= let (val, w) = .? (getElementById id .# "value") world in (jsValToString val, w)
 		
 timelet :: Time -> Editlet Time [TimeDelta]
 timelet t =	toEditlet simpl
@@ -78,8 +78,8 @@ where
 
 	onUpdate ::  ComponentId (Maybe [TimeDelta]) Time *JSWorld -> (!Time,!*JSWorld)
 	onUpdate id _ val world
-		# world = setDomAttr id "innerHTML" (toJSVal (toString val)) world
-		# world	= setDomAttr id "style.color" (toJSVal (colors !! (val.Time.sec rem (length colors)))) world
+		# world = (getElementById id .# "innerHTML" .= (toString val)) world
+		# world	= (getElementById id .# "style" .# "color" .= (colors !! (val.Time.sec rem (length colors)))) world
 		= (val,world)
 		
 	colors = ["#f0f","#00f","#f00","#30f","#ff0","#66f"]
@@ -198,7 +198,7 @@ where
 		= (state, redraw "tictactoe" state world)
 		
 	redraw	:: !String !(TicTacToe,TicTac) *JSWorld -> *JSWorld
-	redraw editorId state world = setDomAttr editorId "innerHTML" (toJSVal (toString (init_board editorId state))) world
+	redraw editorId state world = (getElementById editorId .# "innerHTML" .= (toString (init_board editorId state))) world
 	
 	init_board :: !String !(TicTacToe,TicTac) -> HtmlTag
 	init_board editorId (board,turn)

@@ -84,8 +84,8 @@ where
     mapcanvasid cid = "map_canvas_" +++ cid
 
     initEditlet cid _ clval=:{val} world
-	    # world = setDomAttr (mapdomid cid) "innerHTML" (toJSVal ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
-	    # (mapdiv, world) = getDomElement (mapcanvasid cid) world
+	    # world = (getElementById (mapdomid cid).# "innerHTML" .= ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
+	    # (mapdiv, world) = .? (getElementById (mapcanvasid cid)) world
 	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (val.perspective.GoogleMapPerspective.type)) world
 	    # (center, world) = jsNewObject "google.maps.LatLng"
 	    				[toJSArg val.perspective.GoogleMapPerspective.center.lat

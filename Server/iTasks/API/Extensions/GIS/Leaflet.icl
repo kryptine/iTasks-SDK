@@ -377,7 +377,7 @@ where
         # (editlets,env)    = findObject "itwc.controller.editlets" env
         # (cmp,env)         = .? (editlets .# cid) env
         # (cmpDiv,env)      = .? (cmp .# "domEl") env
-        # (mapDiv,env)      = getDomElement (mapdivid cid) env
+        # (mapDiv,env)      = .? (getElementById (mapdivid cid)) env
         # (divSize,env)     = measureDomEl cmpDiv env
         = sizeDomEl divSize mapDiv env
 
