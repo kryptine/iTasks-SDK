@@ -1074,7 +1074,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		
         if(me.initDiff != null) {
 			if(me.initDiff[0]==1) /* Just */ {
-				me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.initDiff[3],me.value]]);
+                me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
             }	
 		    me.fireUpdateEvent(me.initDiff);
 		} else {
