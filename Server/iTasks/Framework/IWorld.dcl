@@ -10,7 +10,7 @@ from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
-from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs, :: ReferenceVersion
+from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs, :: ReferenceVersion, :: MessageType
 from iTasks.Framework.TaskState			import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks.Framework.Task              import :: TaskValue, :: ConnectionTask, :: BackgroundTask
 from iTasks.Framework.SDS import :: SDSNotifyRequest, :: BasicShareId

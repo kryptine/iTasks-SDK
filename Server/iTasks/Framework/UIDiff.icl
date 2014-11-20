@@ -148,10 +148,14 @@ diffEditletOpts path editletDiffs opts1 opts2
     | opts1.UIEditletOpts.taskId == opts2.UIEditletOpts.taskId && opts1.UIEditletOpts.editorId == opts2.UIEditletOpts.editorId
         = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
             Just (_,_,_,[])      = DiffPossible []
-            Just (ver,_,_,diffs) = DiffPossible [UIUpdate path [("applyDiff",[JSONInt ver,JSONString diff,JSONString script]) \\ (diff,script) <- diffs]]
+            Just (ver,_,_,diffs) = DiffPossible [UIUpdate path (map (toUpdFunc ver) diffs)]
             _                    = DiffImpossible
 	| otherwise
         = DiffImpossible
+where
+	toUpdFunc ver (MDiff (diff,script)) = ("applyDiff",[JSONInt ver,JSONString diff,JSONString script])
+	toUpdFunc ver (MRollback diffId) = ("rollbackDiff",[JSONInt diffId])
+	toUpdFunc ver (MCommit diffId) = ("commitDiff",[JSONInt diffId])
 
 diffChoiceOpts :: UIPath (UIChoiceOpts a) (UIChoiceOpts a) -> DiffResult | gEq{|*|} a & JSONEncode{|*|} a
 diffChoiceOpts path opts1 opts2

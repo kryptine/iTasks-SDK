@@ -8,8 +8,10 @@ from iTasks.Framework.Task import :: Event
 
 :: ReferenceVersion :== Int
 
+:: MessageType = MDiff (String,String) | MRollback Int | MCommit Int
+
 // (taskId, editletId) -> (reference version, reference value, editlet opts, diffs)
-:: UIEditletDiffs   :== Map (!String,!String) (!ReferenceVersion,!JSONNode,!UIEditletOpts,![(String,String)])
+:: UIEditletDiffs   :== Map (!String,!String) (!ReferenceVersion,!JSONNode,!UIEditletOpts,![MessageType])
 
 :: UIPath :== [UIStep]
 :: UIStep

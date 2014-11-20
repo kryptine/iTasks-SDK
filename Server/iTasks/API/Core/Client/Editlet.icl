@@ -2,9 +2,10 @@ implementation module iTasks.API.Core.Client.Editlet
 
 import iTasks.Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks.Framework.IWorld
+from iTasks.Framework.UIDiff import :: MessageType (MDiff,MRollback,MCommit)
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
-import StdMisc, StdDebug
+import StdMisc
 
 toEditlet :: (EditletSimpl a d) -> (Editlet a d) | iTask a
 toEditlet (EditletSimpl a {EditletSimplDef|genUI,updateUI,genDiff,appDiff})
@@ -53,7 +54,7 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
         # currentDiff                        = diffWithPrevValue prevValue currVal
         # (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff Nothing iworld
         // Store diffs
-        # diffs                              = if (isJust currentDiff) [(jsCDiff,jsScript):diffs] diffs
+        # diffs                              = if (isJust currentDiff) [MDiff (jsCDiff,jsScript):diffs] diffs
 		// Increase version number if there is a difference between the reference and the new value
         # ver                                = if (isJust currentDiff) (ver + 1) ver
         # iworld                             = setEditletDiffs ver currVal opts diffs iworld
@@ -122,9 +123,9 @@ gEditMeta{|Editlet|} fa _ editlet = fa editlet.Editlet.currVal
 gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 
 	// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
-	# (ver, jsonDiff) = case jsonDiff of
-			JSONArray [ver, diff] = (maybe -1 id (fromJSON ver), diff)
-								  = (-1, JSONNull)
+	# (ver, diffId, jsonDiff) = case jsonDiff of
+			JSONArray [ver, diffId, diff] = (maybe -1 id (fromJSON ver), maybe -1 id (fromJSON diffId), diff)
+								  = (-1, -1, JSONNull)
 	
 	= case jDecd False [jsonDiff] of
 		(Just diff,_)
@@ -132,11 +133,15 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=
                 Just (refver,jsonRef,opts,diffs) = case jDeca False [jsonRef] of
                     (Just ref,_)
                     	| ver <> refver
-                    		= abort "CONFLICT"
+                    		= {IWorld|iworld & current = {current & 
+                    				editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MRollback diffId:diffs]) editletDiffs}}
+                    				
                         # ref = ov.Editlet.serverDef.EditletDef.appDiff diff ref
                         # [jsonRef:_] = jEnca False ref
                         // If the refenerce value is changed by its client, keep the version number
-                        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,diffs) editletDiffs}}
+                        = {IWorld|iworld & current = {current &
+                        			editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MCommit diffId:diffs]) editletDiffs}}
+                        			
                     _ = iworld
                 Nothing = iworld
             = (({ ov & currVal = ov.Editlet.serverDef.EditletDef.appDiff diff ov.Editlet.currVal }

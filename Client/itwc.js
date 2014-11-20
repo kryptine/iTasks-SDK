@@ -1118,11 +1118,29 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			me.value = ys[2];
 			//Synchronize
 			if(diff !== null) {
-				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diff],false);
+			
+				// TODO
+				var diffId = 123;
+			
+				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);
 			}
 		};
 		return h;
 	},
+    rollbackDiff: function(diffId) {
+
+        var me = this;
+		
+		console.log("rollback: ", diffId);
+		
+    },
+    commitDiff: function(diffId) {
+
+        var me = this;
+		
+		console.log("commit: ", diffId);
+		
+    },		
     applyDiff: function(dataVersion,saplDiff,extraJS) {
 
         var me = this,
