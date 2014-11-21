@@ -131,11 +131,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
                             ((svgDiv `appendChild` newSVG) world)
                             ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
     #! world           = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
-    = updateUI cid Nothing {clst & svgClIsDefault = False, svgClSt = s} world
-
-  updateUI _ _ clval world
-    #! world = jsTrace "updateUI fallthrough" world
-    = ({clval & svgClIsDefault = False}, world)
+    = ({clst & svgClIsDefault = False, svgClSt = s}, world)
 
   imageFromState img env
     = fst (fixSpans img { fixSpansImageSpanEnv = 'DM'.newMap
