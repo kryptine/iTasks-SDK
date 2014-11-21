@@ -10,7 +10,7 @@ from Data.Map import :: Map, newMap, get, put, toList, toAscList, foldrWithKey
 from Data.Set import :: Set, newSet
 
 from iTasks.API.Core.Client.Interface import :: JSWorld, :: JSEvent, :: JSObj, :: JSObject
-from iTasks.API.Core.Client.Component import :: ComponentEventHandlerFunc, :: ComponentEvent
+from iTasks.API.Core.Client.Component import :: ComponentEventHandlerFunc, :: ComponentEvent, :: ComponentDiff
 from iTasks.API.Core.Client.Editlet import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
 
 from iTasks.Framework.Client.RunOnClient import createClientIWorld, getUIUpdates
@@ -147,11 +147,9 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put taskInstance skipset skipmap)})
 
 editletLinker :: 
-	![(!String, !String, EditletEventHandlerFunc a)]	// event handlers
+	![(!String, !String, EditletEventHandlerFunc d a)]	// event handlers
 	!idf												// initDiff function
 	!dvf												// defVal function
-	!uui												// updateUI function
-	!gdf												// gendiff function
 	!adf												// adddiff function
 	!*IWorld
 	->
@@ -159,14 +157,12 @@ editletLinker ::
 	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
 	 ,!String									// JS code of the initDiff
 	 ,!String									// JS code of the defVal function
-	 ,!String									// JS code of the updateUI function
-	 ,!String									// JS code of the gendiff function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)
 
-editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
-						iworld=:{world,current={sessionInstance=Nothing}} = ("",[],"","","","","",iworld)
-editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiffFunc
+editletLinker eventHandlers initDiff defValFunc appDiffFunc
+						iworld=:{world,current={sessionInstance=Nothing}} = ("",[],"","","",iworld)
+editletLinker eventHandlers initDiff defValFunc appDiffFunc
 						iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState}
 
 	// unpack "compiler state"
@@ -177,8 +173,6 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
 	# (linkerstate, lib, sapl_DV, world) = linkByExpr linkerstate lib (graph_to_sapl_string defValFunc) world
-	# (linkerstate, lib, sapl_UU, world) = linkByExpr linkerstate lib (graph_to_sapl_string updateUIFunc) world
-	# (linkerstate, lib, sapl_GD, world) = linkByExpr linkerstate lib (graph_to_sapl_string genDiffFunc) world
 	# (linkerstate, lib, sapl_AD, world) = linkByExpr linkerstate lib (graph_to_sapl_string appDiffFunc) world
 
 	// link functions indicated by event handlers
@@ -202,8 +196,6 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
 
 	# (js_ID, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ID mbparserstate js_lib)
 	# (js_DV, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_DV (Just parserstate) js_lib)
-	# (js_UU, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_UU (Just parserstate) js_lib)
-	# (js_GD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_GD (Just parserstate) js_lib)
 	# (js_AD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_AD (Just parserstate) js_lib)
 
 	# (js_eventHandlers, js_lib, parserstate)
@@ -214,13 +206,11 @@ editletLinker eventHandlers initDiff defValFunc updateUIFunc genDiffFunc appDiff
     // For debugging:
 	//# world = debugToFile "debug_id.sapl" sapl_ID world
 	//# world = debugToFile "debug_dv.sapl" sapl_DV world
-	//# world = debugToFile "debug_u.sapl"  sapl_UU world
-	//# world = debugToFile "debug_gd.sapl" sapl_GD world
 	//# world = debugToFile "debug_ad.sapl" sapl_AD world
 	//# world = debugToFile "debug.sapl"    sapl_lib world
 	//# world = debugToFile "debug.js"      (toString js_lib) world
 
-	= (toString js_lib, js_eventHandlers, js_ID, js_DV, js_UU, js_GD, js_AD, 
+	= (toString js_lib, js_eventHandlers, js_ID, js_DV, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 debugToFile :: String String *World -> *World

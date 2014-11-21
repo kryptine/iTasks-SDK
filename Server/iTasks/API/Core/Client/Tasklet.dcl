@@ -9,9 +9,16 @@ from iTasks.Framework.UIDiff import :: UIUpdate
 
 :: JSONString :== String
 
-:: TaskletEventHandlerFunc a 	:== ComponentEventHandlerFunc TaskId a
-:: TaskletEvent a 				:== ComponentEvent TaskId a
-:: TaskletHTML a 				:== ComponentHTML TaskId a
+:: TaskletEventHandlerFunc a :==
+		TaskId {JSObj JSEvent} a *JSWorld -> *(!a, !*JSWorld)
+
+:: TaskletEvent a = TaskletEvent !ComponentId !ComponentEventName (TaskletEventHandlerFunc a)
+:: TaskletHTML st = 
+	{ width 			:: !UISize
+	, height			:: !UISize
+	, html				:: !HtmlTag
+	, eventHandlers		:: ![TaskletEvent st] 
+	} 
 
 createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> JSFun b
 

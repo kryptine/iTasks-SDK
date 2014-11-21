@@ -121,7 +121,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 				# (state_js, script_js, events_js, intfcs_js, rf_js, _, iworld) 
 						= taskletLinker state
 							 (map (interfaceWrapper taskId) []) 
-							 (map (eventHandlerWrapper taskId) gui.eventHandlers)
+							 (map (eventHandlerWrapper taskId) gui.TaskletHTML.eventHandlers)
 							 tasklet.Tasklet.resultFunc
 						     Nothing
 						     iworld
@@ -185,7 +185,7 @@ where
 					, instanceNo	 = mb_ino
 					, controllerFunc = mb_cf_js})
 
-	tHTMLToTasklet {ComponentHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js 
+	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js 
 		= toDef (setSize width height
 				(UITasklet defaultSizeOpts
 					 {UITaskletOpts
@@ -219,7 +219,7 @@ controllerWrapper cf strTaskID st eventNo mbEventName mbEventHandler iworld
 	= (fmap (toString o encodeUIUpdates) mbTUI, st, iworld)
 
 // it uses the 2. layer (handleJSEvent), because it's created on the server
-eventHandlerWrapper taskId (ComponentEvent id event f) 
+eventHandlerWrapper taskId (TaskletEvent id event f) 
 	= (id, event, handleJSEvent f taskId)
 
 interfaceWrapper taskId (InterfaceFun fn f) = (fn, handleInterfaceCall f (toString taskId))

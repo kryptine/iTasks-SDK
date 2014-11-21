@@ -5,12 +5,18 @@ import iTasks.Framework.UIDefinition
 
 :: ComponentId :== String
 :: ComponentEventName :== String
-:: ComponentEvent idtype a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc idtype a)
-:: ComponentEventHandlerFunc idtype a :== idtype {JSObj JSEvent} a *JSWorld -> *(!a, !*JSWorld)
+:: ComponentEvent d a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc d a)
+:: ComponentEventHandlerFunc d a
+	:== ComponentId {JSObj JSEvent} a *JSWorld -> *(!a, !ComponentDiff d a, !*JSWorld)
 
-:: ComponentHTML idtype st = 
+:: Conflict :== Bool
+
+:: ComponentDiff diff state = NoDiff | Diff diff 
+                   (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
+                   
+:: ComponentHTML diff st = 
 	{ width 			:: !UISize
 	, height			:: !UISize
 	, html				:: !HtmlTag
-	, eventHandlers		:: ![ComponentEvent idtype st] 
+	, eventHandlers		:: ![ComponentEvent diff st] 
 	} 

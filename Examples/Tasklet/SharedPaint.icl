@@ -4,7 +4,6 @@ module SharedPaint
 // Because of this, there is the trick with reverse at appClientDiff, genClientDiff and updateUI
 
 //import iTasks
-import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 from StdArray import class Array(uselect), instance Array {} a
@@ -46,27 +45,16 @@ painterEditlet :: [Shape] -> Editlet Drawing [Shape]
 painterEditlet ds
   = { Editlet
     | currVal   = Drawing ds
+    , defValSrv = Drawing []
+    , defValClt = {selectedTool = "L", selectedColor = "black", currentOrigin = Nothing, shapes = [], currentShape = Nothing}  
+    
     , genUI     = painterGUI
-    , serverDef = serverDef
-    , clientDef = clientDef
+
+	, appDiffClt = updateUI    
+	, genDiffSrv = srvGenDiff
+	, appDiffSrv = \ns (Drawing ds) -> Drawing (ds ++ ns)
     }
 where
-	serverDef =
-	  {  EditletDef
-	  |  performIO = \_ _ s w -> (s, w)
-      ,  defVal    = Drawing []
-	  ,  genDiff   = srvGenDiff
-	  ,  appDiff   = \ns (Drawing ds) -> Drawing (ds ++ ns)
-	  }
-
-	clientDef =
-	  {  EditletDef
-	  |  performIO = updateUI
-	  ,  defVal    = {selectedTool = "L", selectedColor = "black", currentOrigin = Nothing, shapes = [], currentShape = Nothing}
-	  ,  genDiff   = cltGenDiff
-	  ,  appDiff   = \ds cl -> {cl & shapes = reverse ds ++ cl.shapes}
-	  }
-
 	srvGenDiff (Drawing ds1) (Drawing ds2)
 		| lds1 == lds2
 			= Nothing
@@ -75,19 +63,10 @@ where
 		lds1 = length ds1
 		lds2 = length ds2
 
-	cltGenDiff cl1 cl2
-		| lds1 == lds2
-			= Nothing
-			= Just (reverse (take (lds2-lds1) cl2.shapes))
-	where
-		lds1 = length cl1.shapes
-		lds2 = length cl2.shapes
-
-	updateUI cid Nothing cl world = (cl, world)
-	updateUI cid (Just ds) cl world
+	updateUI cid ds cl world
 		# (context, world) = getContext cid False world
-		# world = foldl (\world dr = draw context dr world) world (reverse cl.shapes)
-		= (cl, world)	
+		# world = foldl (\world dr = draw context dr world) world ds
+		= ({cl & shapes = reverse ds ++ cl.shapes}, world)
 
 :: JSCanvasContext = JSCanvasContext
 :: Context :== JSVal JSCanvasContext
@@ -157,7 +136,7 @@ canvasHeight :== 300
 // TODO: http://jaspervdj.be/blaze/tutorial.html
 // http://stackoverflow.com/questions/18201257/drawing-a-rectangle-without-clearing-the-canvas-eventlisteners
 
-painterGUI :: ComponentId *World -> *(EditletHTML PainterState, *World)
+painterGUI :: ComponentId *World -> *(EditletHTML [Shape] PainterState, *World)
 painterGUI cid world  
 
 	# ws = toString canvasWidth
@@ -183,7 +162,8 @@ painterGUI cid world
 			ComponentEvent ("tcanvas_"+++cid) "mousemove" onMouseMove,
 			ComponentEvent ("tool_"+++cid) "change" onChangeTool]
 
-	# gui = { width  		= ExactSize (canvasWidth + 70)
+	# gui = {ComponentHTML
+			| width  		= ExactSize (canvasWidth + 70)
 			, height 		= ExactSize (canvasHeight + 50)
 			, html   		= html
 			, eventHandlers = eventHandlers
@@ -202,18 +182,18 @@ where
 	colors = ["yellow", "red", "green", "blue", "black"]
 	mkId color = "sel_" +++ color +++ "_" +++ cid
 	
-	onChangeTool :: ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !*JSWorld)
+	onChangeTool :: ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
 	onChangeTool _ {[0]=e} state world
 		# (selectedIndex, world) = .? (e .# "target" .# "selectedIndex") world
 		# (options, world) 		 = .? (e .# "target" .# "options") world		
 		# (tool, world) 		 = .? (options .# jsValToInt selectedIndex .# "value") world
-		= ({state & selectedTool = jsValToString tool}, world)	
+		= ({state & selectedTool = jsValToString tool}, NoDiff, world)	
 
-	onSelectColor :: Color ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !*JSWorld)
+	onSelectColor :: Color ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
 	onSelectColor color _ {[0]=e} state world
 		# world = foldr (setBorder "white") world allBoxes
 		# world = setBorder "pink" (e .# "target") world
-		= ({state & selectedColor = color}, world)
+		= ({state & selectedColor = color}, NoDiff, world)
 	where
 		allBoxes = map (getElementById  o mkId) colors
 		setBorder color el world
@@ -226,7 +206,7 @@ where
 
 	onMouseDown _ {[0]=e} state world
 	    # (coordinates, world) = getCoordinates e world
-		= ({state & currentOrigin = Just coordinates}, world)
+		= ({state & currentOrigin = Just coordinates}, NoDiff, world)
 
 	onMouseUp _ {[0]=e} state world
 		# (tempcontext, world) 	= getContext cid True world	
@@ -236,14 +216,23 @@ where
 			Just shape 
 				# (context, world) 	= getContext cid False world
 				# world = draw context shape world
-				= ({state & currentOrigin = Nothing, shapes = [shape:state.shapes], currentShape = Nothing}, world)
-				= ({state & currentOrigin = Nothing}, world)
-				
+				= ({state & currentOrigin = Nothing, currentShape = Nothing}, 
+						addShape shape, world)
+				= ({state & currentOrigin = Nothing}, NoDiff, world)
+	
+	addShape shape = Diff [shape] callback
+	where
+		callback True state world = (state, addShape shape, world)
+		callback False state world 
+			# (context, world) 	= getContext cid False world
+			# world = draw context shape world		
+			= ({state & shapes = [shape:state.shapes]}, NoDiff, world)
+	
 	// generate onDrawing event
 	onMouseMove _ {[0]=e} state world
 		= case state.currentOrigin of
 			Just coordinates = onDrawing coordinates e state world
-			_                = (state, world)
+			_                = (state, NoDiff, world)
 
 	onDrawing (ox, oy) e state world
     	# ((x, y), world) = getCoordinates e world
@@ -260,7 +249,7 @@ where
 
 		# world = draw tempcontext currentShape world
 			
-		= ({state & currentShape = Just currentShape}, world)
+		= ({state & currentShape = Just currentShape}, NoDiff, world)
 
 //-------------------------------------------------------------------------
 

@@ -1005,7 +1005,8 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             el = me.domEl, tmp;
 
 		me.dataVersion = 1;
-			
+		me.generatedDiffs = {};
+		
         me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
 		itwc.controller.editlets[me.htmlId] = me;
 
@@ -1019,7 +1020,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         }
         if(me.definition.defVal != null) {
             eval("tmp = " + me.definition.defVal + ";");
-            me.value = Sapl.feval([tmp,[0]]); // the actual argument doesnt matter
+            me.value = Sapl.feval([tmp,[0]]); // the actual argument doesn't matter
             delete me.definition.defVal;
         }
         if(me.definition.appDiff != null) {
@@ -1027,20 +1028,10 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
             me.appDiff = tmp;
             delete me.definition.appDiff;
         }
-        if(me.definition.genDiff != null) {
-            eval("tmp = " + me.definition.genDiff + ";");
-            me.genDiff = tmp;
-            delete me.definition.genDiff;
-        }
         if(me.definition.initDiff != null) {
             eval("tmp = " + me.definition.initDiff + ";");
             me.initDiff = tmp;
             delete me.definition.initDiff;
-        }
-        if(me.definition.updateUI != null) {
-            eval("tmp = " + me.definition.updateUI + ";");
-            me.updateUI = tmp;
-            delete me.definition.updateUI;
         }
 	},
     addManagedListener: function(obj,eventname,handler,thisObj) {
@@ -1072,14 +1063,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			}
 		}		
 		
-        if(me.initDiff != null) {
-			if(me.initDiff[0]==1) /* Just */ {
-                me.value = Sapl.feval([me.appDiff,[me.initDiff[2],me.value]]);
-            }	
-		    me.fireUpdateEvent(me.initDiff);
-		} else {
-			me.fireUpdateEvent(__Data_Maybe_Nothing);
-		}
+		if(me.initDiff != null && me.initDiff[0]==1) /* Just */ {
+			me.applyDiff(me.dataVersion, me.initDiff[2], "");
+		}	
 
         //TEMPORARY FOR EXTJS STUFF
         if(me.eventAfterLayout) {
@@ -1087,10 +1073,6 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         }
     },
     afterShow: function() {},
-    fireUpdateEvent: function (mbDiff) {
-		var me = this;
-		(me.eventHandler(false,me.updateUI))(mbDiff);		
-	},
 	// Creating a closure
 	eventHandler: function(jsevent,expr){
 		var me = this;
@@ -1110,37 +1092,54 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
                 console.warn('eventHandler: evaluating expression yielded undefined',expr);
             }
 			//Strict evaluation of all the fields in the result tuple
-			Sapl.feval(ys[2]);
-			Sapl.feval(ys[3]);
-			//Determine diff before overwriting me.value (using superstrict evaluation)
-			var diff = me.jsFromSaplJSONNode(Sapl.heval([me.genDiff,[me.value,ys[2]]]));
+			me.value = Sapl.feval(ys[2]);
+			diffing = Sapl.feval(ys[3]);
+			Sapl.feval(ys[4]); // world
+			
+			if(diffing[0] == 1){ // Diff
 
-			me.value = ys[2];
-			//Synchronize
-			if(diff !== null) {
-			
-				// TODO
-				var diffId = 123;
-			
-				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);
+				var diff = Sapl.toJS(diffing[2]);
+				var callback = Sapl.feval(diffing[3]);			
+				var diffId = Date.now() | 0;
+
+				me.generatedDiffs[diffId] = callback;
+
+				itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
 			}
+			
 		};
 		return h;
 	},
-    rollbackDiff: function(diffId) {
-
+	diffCallback: function(conflict, diffId){
         var me = this;
 		
-		console.log("rollback: ", diffId);
+		var callback = me.generatedDiffs[diffId];
+		delete me.generatedDiffs[diffId];	
 		
+		var ys = Sapl.feval([callback,[conflict,me.value,"JSWorld"]]);
+		
+		//Strict evaluation of all the fields in the result tuple
+		me.value = Sapl.feval(ys[2]);
+		diffing = Sapl.feval(ys[3]);
+		Sapl.feval(ys[4]); // world
+		
+		if(diffing[0] == 1){ // Diff
+
+			var diff = Sapl.toJS(diffing[2]);
+			var callback = Sapl.feval(diffing[3]);			
+			var diffId = Date.now() | 0;
+
+			me.generatedDiffs[diffId] = callback;
+
+			itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
+		}		
+	},
+    rollbackDiff: function(diffId) {
+		this.diffCallback(true, diffId);
     },
     commitDiff: function(diffId) {
-
-        var me = this;
-		
-		console.log("commit: ", diffId);
-		
-    },		
+		this.diffCallback(false, diffId);
+	},		
     applyDiff: function(dataVersion,saplDiff,extraJS) {
 
         var me = this,
@@ -1153,10 +1152,14 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         }
         eval("tmp = " + saplDiff + ";");
 
-		if(tmp[0]==1) {
-		    me.value = Sapl.feval([me.appDiff,[tmp[2],me.value]]);
-        }	
-        me.fireUpdateEvent(tmp);
+		var ys = Sapl.feval([me.appDiff,[me.htmlId,tmp[2],me.value,"JSWorld"]]);
+
+		//Strict evaluation of all the fields in the result tuple
+		Sapl.feval(ys[2]);
+		Sapl.feval(ys[3]);
+
+		// save state return by appDiff
+		me.value = ys[2];				
     },
 	jsFromSaplJSONNode: function (sapl) {
 		switch(sapl[0]) {

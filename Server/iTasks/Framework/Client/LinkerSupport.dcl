@@ -23,11 +23,9 @@ taskletLinker :: !st 							// state
 	 ,!*IWorld)
 
 editletLinker ::
-	![(!String, !String, EditletEventHandlerFunc a)]	// event handlers
+	![(!String, !String, EditletEventHandlerFunc d a)]	// event handlers
 	!idf												// initDiff function
 	!dvf												// defVal function
-	!uui												// updateUI function
-	!gdf												// gendiff function
 	!adf												// adddiff function
 	!*IWorld
 	->
@@ -35,8 +33,6 @@ editletLinker ::
 	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
 	 ,!String									// JS code of the initDiff function
 	 ,!String									// JS code of the defVal function
-	 ,!String									// JS code of the updateUI function
-	 ,!String									// JS code of the gendiff function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)
 

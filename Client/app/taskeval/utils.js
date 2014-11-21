@@ -190,6 +190,10 @@ if (!Array.prototype.any){
   };
 }
 
+if (!Date.now) {
+    Date.now = function() { return new Date().getTime(); };
+}
+
 var evalScript;
 (evalScript = function(e){
 	var	h = evalScript.node,

@@ -9,38 +9,25 @@ import iTasks.API.Core.Client.Component
 // that are defined server-side but run client-side
 //****************************************************************************//
 
-:: EditletEventHandlerFunc a :== ComponentEventHandlerFunc ComponentId a // Where :: ComponentEventHandlerFunc idtype a :== idtype {JSObj JSEvent} a *JSWorld -> *(!a, !*JSWorld)
-:: EditletEvent a            :== ComponentEvent ComponentId a
-:: EditletHTML a             :== ComponentHTML ComponentId a
-:: GenUI a                   :== ComponentId *World -> *(EditletHTML a, *World)
+:: EditletEventHandlerFunc d a :== ComponentEventHandlerFunc d a
+:: EditletEvent d a            :== ComponentEvent d a
+:: EditletHTML d a             :== ComponentHTML d a
+:: GenUI d a                   :== ComponentId *World -> *(EditletHTML d a, *World)
 
 :: Editlet sv d
   = E.cl:
   { currVal   :: sv
-  , genUI     :: GenUI cl
-  , serverDef :: EditletDef d sv *World
-  , clientDef :: EditletDef d cl *JSWorld
+  , defValSrv :: sv
+  , defValClt :: cl
+    
+  , genUI     :: GenUI d cl
+  
+  , appDiffClt :: ComponentId d cl *JSWorld -> *(cl, *JSWorld)
+  , genDiffSrv :: sv sv -> Maybe d
+  , appDiffSrv :: d  sv -> sv
   }
 
-:: EditletDef d s w =
-  {  performIO :: ComponentId (Maybe d) s w -> *(s, w)
-  ,  defVal    :: s
-  ,  genDiff   :: s s -> Maybe d
-  ,  appDiff   :: d s -> s
-  }
-
-:: EditletSimpl a d = EditletSimpl a (EditletSimplDef a d)
-
-:: EditletSimplDef a d =
-  {  genUI    :: GenUI a
-  ,  updateUI :: ComponentId (Maybe d) a *JSWorld -> *(!a, !*JSWorld)
-  ,  genDiff  :: a a -> Maybe d
-  ,  appDiff  :: d a -> a
-  }
-
-toEditlet :: (EditletSimpl a d) -> (Editlet a d) | iTask a
-
-createEditletEventHandler :: (EditletEventHandlerFunc a) !ComponentId -> JSFun b
+createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 
 derive JSONEncode Editlet
 derive JSONDecode Editlet

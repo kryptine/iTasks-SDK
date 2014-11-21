@@ -310,8 +310,6 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	, events		:: ![(!String,!String,!String)]
 	, defVal		:: !String	
 	, initDiff		:: !String
-	, updateUI		:: !String
-	, genDiff		:: !String
 	, appDiff		:: !String
 	}
 
