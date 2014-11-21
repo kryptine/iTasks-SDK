@@ -39,9 +39,10 @@ addOnclicks cid svg onclicks world
     #! cb                = createEditletEventHandler (mkCB sttf) cid
     #! (_, world)        = (elem `addEventListener` ("click", cb, True)) world
     = world
-  mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !ComponentDiff d (SVGClSt s), !*JSWorld) | iTask s
+  mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
   mkCB sttf _ _ clval=:{svgClSt} world
-    = ({clval & svgClSt = sttf svgClSt, svgClIsDefault = False}, NoDiff, world)
+    #! st` = sttf svgClSt
+    = ({clval & svgClSt = st`, svgClIsDefault = False}, Diff (SetState st`) (\_ s w -> (s, NoDiff, w)), world)
   mkCB sttf _ _ clval world
     = ({clval & svgClIsDefault = False}, NoDiff, world)
 
@@ -125,7 +126,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
     #! (parser, world)  = new "DOMParser" () world
     #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
     #! (newSVG, world)  = .? (doc .# "firstChild") world
-    #! svgDiv = getElementById (mainSvgId cid)
+    #! svgDiv           = getElementById (mainSvgId cid)
     #! (currSVG, world) = .? (svgDiv .# "firstChild") world
     #! (_, world)       = if (jsIsNull currSVG)
                             ((svgDiv `appendChild` newSVG) world)
@@ -144,14 +145,6 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
 
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
   appServerDiff _             srvSt = srvSt
-
-  genClientDiff oldClSt newClSt
-    | oldClSt.svgClIsDefault              = Just (SetState newClSt.svgClSt)
-    | oldClSt.svgClSt === newClSt.svgClSt = Nothing
-    | otherwise                           = Just (SetState newClSt.svgClSt)
-
-  //appClientDiff (SetState st) clSt = {clSt & svgClIsDefault = False, svgClSt = st}
-  //appClientDiff _             clSt = clSt
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
