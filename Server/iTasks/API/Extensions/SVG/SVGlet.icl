@@ -39,11 +39,11 @@ addOnclicks cid svg onclicks world
     #! cb                = createEditletEventHandler (mkCB sttf) cid
     #! (_, world)        = (elem `addEventListener` ("click", cb, True)) world
     = world
-  mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
+  mkCB :: !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !ComponentDiff d (SVGClSt s), !*JSWorld) | iTask s
   mkCB sttf _ _ clval=:{svgClSt} world
-    = ({clval & svgClSt = sttf svgClSt, svgClIsDefault = False}, world)
+    = ({clval & svgClSt = sttf svgClSt, svgClIsDefault = False}, NoDiff, world)
   mkCB sttf _ _ clval world
-    = ({clval & svgClIsDefault = False}, world)
+    = ({clval & svgClIsDefault = False}, NoDiff, world)
 
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
 imageView toImage = ViewWith (\s -> svgRenderer s toImage)
@@ -90,25 +90,14 @@ derive class iTask SVGDiff, SVGSrvSt
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvIsDefault = False} server client
   = { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
+    , defValSrv = defaultSrvSt origState
+    , defValClt = defaultClSt origState
     , genUI     = genUI
-    , serverDef = server
-    , clientDef = client
+    , appDiffClt = appClientDiff
+    , genDiffSrv = genServerDiff
+    , appDiffSrv = appServerDiff
     }
   where
-  server
-    = { EditletDef
-      | performIO = \_ _ s w -> (s, w)
-      , defVal    = defaultSrvSt origState
-      , genDiff   = genServerDiff
-      , appDiff   = appServerDiff
-      }
-  client
-    = { EditletDef
-      | performIO = updateUI
-      , defVal    = defaultClSt origState
-      , genDiff   = genClientDiff
-      , appDiff   = appClientDiff
-      }
   genUI cid world
     = ({ ComponentHTML
        | width         = FlexSize
@@ -119,7 +108,8 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
        , world
       )
 
-  updateUI cid (Just (SetState s)) clst world
+  appClientDiff cid (SetState s) clst world
+    #! clst    = {clst & svgClIsDefault = False, svgClSt = s}
     #! image   = state2Image s
     #! fontMap = gatherFonts image
     #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
@@ -164,8 +154,8 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
     | oldClSt.svgClSt === newClSt.svgClSt = Nothing
     | otherwise                           = Just (SetState newClSt.svgClSt)
 
-  appClientDiff (SetState st) clSt = {clSt & svgClIsDefault = False, svgClSt = st}
-  appClientDiff _             clSt = clSt
+  //appClientDiff (SetState st) clSt = {clSt & svgClIsDefault = False, svgClSt = st}
+  //appClientDiff _             clSt = clSt
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
