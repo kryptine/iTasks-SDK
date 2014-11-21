@@ -17,7 +17,6 @@ import Text
 					, selectedColor :: Color
 					, currentOrigin :: Maybe (Int, Int)
 					, currentShape  :: Maybe Shape
-					, shapes	    :: ![Shape]
 					}
 
 :: Filled :== Bool
@@ -46,7 +45,7 @@ painterEditlet ds
   = { Editlet
     | currVal   = Drawing ds
     , defValSrv = Drawing []
-    , defValClt = {selectedTool = "L", selectedColor = "black", currentOrigin = Nothing, shapes = [], currentShape = Nothing}  
+    , defValClt = {selectedTool = "L", selectedColor = "black", currentOrigin = Nothing, currentShape = Nothing}  
     
     , genUI     = painterGUI
 
@@ -65,8 +64,7 @@ where
 
 	updateUI cid ds cl world
 		# (context, world) = getContext cid False world
-		# world = foldl (\world dr = draw context dr world) world ds
-		= ({cl & shapes = reverse ds ++ cl.shapes}, world)
+		= (cl, foldl (\world dr = draw context dr world) world ds)
 
 :: JSCanvasContext = JSCanvasContext
 :: Context :== JSVal JSCanvasContext
@@ -212,21 +210,22 @@ where
 		# (tempcontext, world) 	= getContext cid True world	
 		# world 			   	= clearCanvas tempcontext world
 		
-		= case state.currentShape of
+		# (diff, world) = case state.currentShape of
 			Just shape 
-				# (context, world) 	= getContext cid False world
-				# world = draw context shape world
-				= ({state & currentOrigin = Nothing, currentShape = Nothing}, 
-						addShape shape, world)
-				= ({state & currentOrigin = Nothing}, NoDiff, world)
+				# (context, world) = getContext cid False world
+				= (addShape shape, draw context shape world)
+			Nothing
+				= (NoDiff, world)
+				
+		= ({state & currentOrigin = Nothing, currentShape = Nothing}, diff, world)
 	
 	addShape shape = Diff [shape] callback
 	where
-		callback True state world = (state, addShape shape, world)
-		callback False state world 
+		callback True state world 
 			# (context, world) 	= getContext cid False world
-			# world = draw context shape world		
-			= ({state & shapes = [shape:state.shapes]}, NoDiff, world)
+			= (state, addShape shape, draw context shape world)
+		callback False state world 
+			= (state, NoDiff, world)
 	
 	// generate onDrawing event
 	onMouseMove _ {[0]=e} state world
