@@ -55,23 +55,20 @@ painterEditlet ds
     }
 where
 	srvGenDiff (Drawing ds1) (Drawing ds2)
-		| lds1 == lds2
-			= Nothing
-			= trace_n ("l: " +++ toString lds1 +++ " r: " +++ toString lds2) Just (drop lds1 ds2)
-	where
-		lds1 = length ds1
-		lds2 = length ds2
+		= case drop (length ds1) ds2 of
+			[] = Nothing
+			shapes = Just shapes
 
 	updateUI cid ds cl world
-		# (context, world) = getContext cid False world
+		# (context, world) = getContext cid "pcanvas" world
 		= (cl, foldl (\world dr = draw context dr world) world ds)
 
 :: JSCanvasContext = JSCanvasContext
 :: Context :== JSVal JSCanvasContext
 
-getContext :: ComponentId Bool *JSWorld -> *(Context, *JSWorld)
-getContext cid temp world
- 	# canvas = getElementById ((if temp "tcanvas" "pcanvas") +++ "_" +++ cid)
+getContext :: ComponentId String *JSWorld -> *(Context, *JSWorld)
+getContext cid canvasId world
+ 	# canvas = getElementById (canvasId +++ "_" +++ cid)
 	= (canvas .# "getContext" .$ ("2d")) world // not "2D" !
 
 clearCanvas :: Context *JSWorld -> *JSWorld
@@ -207,12 +204,12 @@ where
 		= ({state & currentOrigin = Just coordinates}, NoDiff, world)
 
 	onMouseUp _ {[0]=e} state world
-		# (tempcontext, world) 	= getContext cid True world	
+		# (tempcontext, world) 	= getContext cid "tcanvas" world	
 		# world 			   	= clearCanvas tempcontext world
 		
 		# (diff, world) = case state.currentShape of
 			Just shape 
-				# (context, world) = getContext cid False world
+				# (context, world) = getContext cid "pcanvas" world
 				= (addShape shape, draw context shape world)
 			Nothing
 				= (NoDiff, world)
@@ -222,7 +219,7 @@ where
 	addShape shape = Diff [shape] callback
 	where
 		callback True state world 
-			# (context, world) 	= getContext cid False world
+			# (context, world) 	= getContext cid "pcanvas" world
 			= (state, addShape shape, draw context shape world)
 		callback False state world 
 			= (state, NoDiff, world)
@@ -235,7 +232,7 @@ where
 
 	onDrawing (ox, oy) e state world
     	# ((x, y), world) = getCoordinates e world
-		# (tempcontext, world) = getContext cid True world
+		# (tempcontext, world) = getContext cid "tcanvas" world
 			
 		# world = clearCanvas tempcontext world
 
