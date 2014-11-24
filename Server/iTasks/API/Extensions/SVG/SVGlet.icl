@@ -87,19 +87,21 @@ defaultClSt s = { svgClIsDefault  = True
   = SetState s
 
 derive class iTask SVGDiff, SVGSrvSt
-import StdDebug
+
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 svgRenderer origState state2Image
-  = { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
-    , defValSrv = defaultSrvSt origState
+  #! dst = defaultSrvSt origState
+  = { currVal   = {dst & svgSrvIsDefault = False}
+    , defValSrv = dst
     , defValClt = defaultClSt origState
     , genUI     = genUI
-    , appDiffClt = appClientDiff
+    , appDiffClt = appClientDiff state2Image
     , genDiffSrv = genServerDiff
     , appDiffSrv = appServerDiff
     }
   where
-  genUI cid world
+  genUI :: GenUI (SVGDiff s) (SVGClSt s)
+  genUI = \cid world
     = ({ ComponentHTML
        | width         = FlexSize
        , height        = FlexSize
@@ -109,7 +111,8 @@ svgRenderer origState state2Image
        , world
       )
 
-  appClientDiff cid (SetState s) clst world
+  appClientDiff :: !(s -> Image s) !String !(SVGDiff s) !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
+  appClientDiff state2Image cid (SetState s) clst world
     #! image   = state2Image s
     #! fontMap = gatherFonts image
     #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
@@ -133,6 +136,7 @@ svgRenderer origState state2Image
     #! world            = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
     = ({clst & svgClIsDefault = False, svgClSt = s}, world)
 
+  imageFromState :: !(Image s) !(Map FontDef (Map String Real)) -> Image s | iTask s
   imageFromState img env
     = fst (fixSpans img { fixSpansImageSpanEnv = 'DM'.newMap
                         , fixSpansGridSpanEnv  = 'DM'.newMap
@@ -140,8 +144,10 @@ svgRenderer origState state2Image
                         , fixSpansCounter      = 0
                         , fixSpansFonts        = env})
 
+  genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s)
   genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
 
+  appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
