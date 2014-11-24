@@ -61,7 +61,7 @@ ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _)
   | otherwise = Nothing
 ifAction _ _ _ _ = Nothing
 
-svgns :== "http://www.w3.org/2000/svg"
+svgns =: "http://www.w3.org/2000/svg"
 
 :: SVGSrvSt s =
   { svgSrvIsDefault  :: !Bool
@@ -89,7 +89,7 @@ defaultClSt s = { svgClIsDefault  = True
 derive class iTask SVGDiff, SVGSrvSt
 
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
-svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvIsDefault = False} server client
+svgRenderer origState state2Image
   = { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
     , defValSrv = defaultSrvSt origState
     , defValClt = defaultClSt origState
@@ -116,12 +116,12 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
     #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
     #! img = imageFromState image realFontMap
     //#! world = jsTrace img.totalSpanPreTrans world
-    #! (syn, clval)   = genSVG img { uniqueIdCounter = 0 }
-    #! (imXSp, imYSp) = syn.genSVGSyn_imageSpanReal
-    #! (imXSp, imYSp) = (toString (toInt imXSp), toString (toInt imYSp))
-    #! svgStr         = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
-                                         [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
-                                         syn.genSVGSyn_svgElts)
+    #! (syn, clval)     = genSVG img { uniqueIdCounter = 0 }
+    #! (imXSp, imYSp)   = syn.genSVGSyn_imageSpanReal
+    #! (imXSp, imYSp)   = (toString (toInt imXSp), toString (toInt imYSp))
+    #! svgStr           = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                           [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                           syn.genSVGSyn_svgElts)
     #! svgStr           = replaceSubString editletId cid svgStr
     #! (parser, world)  = new "DOMParser" () world
     #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
@@ -131,7 +131,7 @@ svgRenderer origState state2Image // = Editlet {defaultSrvSt origState & svgSrvI
     #! (_, world)       = if (jsIsNull currSVG)
                             ((svgDiv `appendChild` newSVG) world)
                             ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
-    #! world           = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
+    #! world            = addOnclicks cid newSVG syn.genSVGSyn_onclicks world
     = ({clst & svgClIsDefault = False, svgClSt = s}, world)
 
   imageFromState img env
@@ -220,8 +220,6 @@ instance nextNo FixSpansStVal where
   , fixSpansSyn_TotalSpan_PostTrans :: !ImageSpan
   , fixSpansSyn_OffsetCorrection    :: !ImageOffset
   }
-
-runM m st :== m st
 
 sequence ms :== mapSt id ms
 
@@ -434,7 +432,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , composeAsOverlayAlg = const gatherFontsUnions
     }
 gatherFontsSpanAlgs :: SpanAlg (Map FontDef (Set String)) (Map FontDef (Set String))
-gatherFontsSpanAlgs =
+gatherFontsSpanAlgs =:
   { spanPxSpanAlg     = const 'DM'.newMap
   , spanLookupSpanAlg = id
   , spanAddSpanAlg    = binUnion
@@ -446,7 +444,7 @@ gatherFontsSpanAlgs =
   , spanMaxSpanAlg    = gatherFontsUnions
   }
 gatherFontsLookupSpanAlgs :: LookupSpanAlg (Map FontDef (Set String))
-gatherFontsLookupSpanAlgs =
+gatherFontsLookupSpanAlgs =:
   { lookupSpanColumnXSpanAlg  = const2 'DM'.newMap
   , lookupSpanRowYSpanAlg     = const2 'DM'.newMap
   , lookupSpanImageXSpanAlg   = const 'DM'.newMap
@@ -874,12 +872,12 @@ fixSpans img = go
   , genSVGSyn_onclicks      :: !Map String (s -> s)
   }
 
-mkGenSVGSyn = { genSVGSyn_svgElts       = []
-              , genSVGSyn_imageSpanReal = (0.0, 0.0)
-              , genSVGSyn_onclicks      = 'DM'.newMap
-              }
+mkGenSVGSyn =: { genSVGSyn_svgElts       = []
+               , genSVGSyn_imageSpanReal = (0.0, 0.0)
+               , genSVGSyn_onclicks      = 'DM'.newMap
+               }
 
-editletId = "__INTERNAL_editletId_PLACEHOLDER__"
+editletId =: "__INTERNAL_editletId_PLACEHOLDER__"
 
 mkMaskId :: !String !Int -> String
 mkMaskId editletId uniqId = "maskId-" +++ editletId +++ toString uniqId
@@ -1353,8 +1351,8 @@ mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (to
 evalSpan :: !Span -> GenSVGSt s Real | iTask s
 evalSpan sp = spanCata evalSpanSpanAlgs evalSpanLookupSpanAlgs sp
 
-evalSpanSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real) | iTask s
-evalSpanSpanAlgs =
+evalSpanSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real)
+evalSpanSpanAlgs =:
   { spanPxSpanAlg     = ret
   , spanLookupSpanAlg = const (ret 0.0)
   , spanAddSpanAlg    = mkBin (+)
@@ -1366,8 +1364,8 @@ evalSpanSpanAlgs =
   , spanMaxSpanAlg    = mkList maxList
   }
 
-evalSpanLookupSpanAlgs :: LookupSpanAlg (GenSVGSt s Real) | iTask s
-evalSpanLookupSpanAlgs =
+evalSpanLookupSpanAlgs :: LookupSpanAlg (GenSVGSt s Real)
+evalSpanLookupSpanAlgs =:
   { lookupSpanColumnXSpanAlg  = const2 (ret 0.0)
   , lookupSpanRowYSpanAlg     = const2 (ret 0.0)
   , lookupSpanImageXSpanAlg   = const  (ret 0.0)
