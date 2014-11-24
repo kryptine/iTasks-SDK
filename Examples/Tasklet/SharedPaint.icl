@@ -42,17 +42,26 @@ derive gEditMeta Drawing
 derive JSONEncode Drawing
 derive JSONDecode Drawing
 
-gEditor{|Drawing|} dp vv=:(val,mask,ver) meta vst
-    = gEditor{|*|} dp (painterEditlet val,mask,ver) meta vst
+withEditlet editlet dp (val,mask,ver) meta vst
+	= gEditor{|*|} dp ({editlet & currVal = val},mask,ver) meta vst
 
-gUpdate{|Drawing|} dp upd (val,mask) iworld
-    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (painterEditlet val,mask) iworld
-    = ((editlet.currVal,mask),iworld) 
+// :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
 
-painterEditlet :: Drawing -> Editlet Drawing [Shape]
-painterEditlet (Drawing ds)
+gEditor{|Drawing|} dp vv meta env = withEditlet painterEditlet dp vv meta env
+//gEditor{|Drawing|} = withEditlet painterEditlet
+
+withEditlet2 editlet dp upd (val,mask) env
+    # ((editlet,mask),env) = gUpdate{|*|} dp upd ({editlet & currVal = val},mask) env
+    = ((editlet.currVal,mask),env) 
+
+// :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
+
+gUpdate{|Drawing|} dp upd vv iworld = withEditlet2 painterEditlet dp upd vv iworld
+
+painterEditlet :: Editlet Drawing [Shape]
+painterEditlet
   = { Editlet
-    | currVal   = Drawing ds
+    | currVal   = Drawing []
     , defValSrv = Drawing []
     , defValClt = {selectedTool = "L", selectedColor = "black", currentOrigin = Nothing, currentShape = Nothing}  
     
