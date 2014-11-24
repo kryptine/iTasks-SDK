@@ -1,9 +1,5 @@
 module SharedPaint
 
-// On the client, the list of drawings is reversed for efficient appending
-// Because of this, there is the trick with reverse at appClientDiff, genClientDiff and updateUI
-
-//import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Interface
 from StdArray import class Array(uselect), instance Array {} a
@@ -36,12 +32,25 @@ where
 dumpDrawing :: [Shape] -> String
 dumpDrawing drawing = join "," (map toString drawing)
 
-derive class iTask PainterState, Shape, Drawing
+derive class iTask PainterState, Shape
 
-info = "Draw something, but use the pencil _slowly_ in Chrome!" 
+derive gDefault Drawing
+derive gText Drawing
+derive gEq Drawing
+derive gVerify Drawing
+derive gEditMeta Drawing
+derive JSONEncode Drawing
+derive JSONDecode Drawing
 
-painterEditlet :: [Shape] -> Editlet Drawing [Shape]
-painterEditlet ds
+gEditor{|Drawing|} dp vv=:(val,mask,ver) meta vst
+    = gEditor{|*|} dp (painterEditlet val,mask,ver) meta vst
+
+gUpdate{|Drawing|} dp upd (val,mask) iworld
+    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (painterEditlet val,mask) iworld
+    = ((editlet.currVal,mask),iworld) 
+
+painterEditlet :: Drawing -> Editlet Drawing [Shape]
+painterEditlet (Drawing ds)
   = { Editlet
     | currVal   = Drawing ds
     , defValSrv = Drawing []
@@ -249,41 +258,16 @@ where
 
 //-------------------------------------------------------------------------
 
-import StdMisc, StdDebug
+import StdMisc
 
-taskletExamples :: [Workflow]
-taskletExamples =
-	[workflow "Painter tasklet" "Simple painter tasklet" editlet2]
+editletExamples :: [Workflow]
+editletExamples =
+	[workflow "Painter tasklet" "Simple painter tasklet" painter]
 
-tracelength ds1 ds2 c = trace_n ("l: "+++toString (length ds1)+++", r: "+++toString (length ds2))c
-
-/*
-shareditlet name drawing = updateSharedInformation name 
-								[UpdateWith (\(Drawing ds) -> painterEditlet ds)
-								            (\_ (Editlet value _ _) -> value)] drawing
-
-gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
-    = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
-
-gUpdate{|LeafletMap|} dp upd (val,mask) iworld
-    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld
-    = ((editlet.currVal,mask),iworld) 
-
-editlet2 :: Task Drawing
-editlet2 = withShared (Drawing []) (\drawing -> shareditlet "1" drawing
+painter :: Task Drawing
+painter = withShared (Drawing []) (\drawing -> updateSharedInformation "1" [] drawing
 													-|| 
-									            shareditlet "2" drawing)
-*/
-
-shareditlet name editlet = updateSharedInformation name [] editlet								
-
-editlet2 :: Task (Editlet Drawing [Shape])
-editlet2 = withShared (painterEditlet []) (\editlet -> shareditlet "1" editlet
-													-|| 
-									                   shareditlet "2" editlet)
- 
-//editlet = updateInformation "Painter" [] (painterEditlet [DrawLine "red" 1 1 100 100])
-//		>>= \ds -> viewInformation "Drawing" [] ds
+									           updateSharedInformation "1" [] drawing)
 		    
 Start :: *World -> *World
-Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist taskletExamples)) world
+Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist editletExamples)) world
