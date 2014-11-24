@@ -16,12 +16,10 @@ import iTasks.API.Core.Client.Component
 
 :: Editlet sv d
   = E.cl:
-  { currVal   :: sv
-  , defValSrv :: sv
-  , defValClt :: cl
-    
-  , genUI     :: GenUI d cl
-  
+  { currVal    :: sv
+  , defValSrv  :: sv
+  , defValClt  :: cl
+  , genUI      :: GenUI d cl
   , appDiffClt :: ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv

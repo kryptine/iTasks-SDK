@@ -87,7 +87,7 @@ defaultClSt s = { svgClIsDefault  = True
   = SetState s
 
 derive class iTask SVGDiff, SVGSrvSt
-
+import StdDebug
 svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 svgRenderer origState state2Image
   = { currVal   = {defaultSrvSt origState & svgSrvIsDefault = False}
@@ -110,7 +110,6 @@ svgRenderer origState state2Image
       )
 
   appClientDiff cid (SetState s) clst world
-    #! clst    = {clst & svgClIsDefault = False, svgClSt = s}
     #! image   = state2Image s
     #! fontMap = gatherFonts image
     #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
@@ -144,7 +143,6 @@ svgRenderer origState state2Image
   genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
 
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
-  appServerDiff _             srvSt = srvSt
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
