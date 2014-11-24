@@ -1064,7 +1064,14 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		}		
 		
 		if(me.initDiff != null && me.initDiff[0]==1) /* Just */ {
-			me.applyDiff(me.dataVersion, me.initDiff[2], "");
+			var ys = Sapl.feval([me.appDiff,[me.htmlId,me.initDiff[2],me.value,"JSWorld"]]);
+
+			//Strict evaluation of all the fields in the result tuple
+			Sapl.feval(ys[2]);
+			Sapl.feval(ys[3]);
+
+			// save state return by appDiff
+			me.value = ys[2];	
 		}	
 
         //TEMPORARY FOR EXTJS STUFF
