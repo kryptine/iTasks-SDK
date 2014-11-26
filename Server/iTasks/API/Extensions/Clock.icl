@@ -22,8 +22,16 @@ gUpdate{|AnalogClock|} dp upd (AnalogClock t,mask) iworld
 
 //SVG Based analog clock editlet
 analogClockEditlet :: Time -> Editlet Time [(Int,Int)]
-analogClockEditlet t
-    = toEditlet (EditletSimpl t {EditletSimplDef| genUI = genUI, updateUI = updateUI, genDiff = genTimeDiff, appDiff= appTimeDiff})
+analogClockEditlet t 
+    = {Editlet
+      |currVal      = t
+      ,defValSrv    = gDefault{|*|}
+      ,defValClt    = ()
+      ,genUI        = genUI
+      ,appDiffClt   = appDiffClt
+      ,genDiffSrv   = genTimeDiff
+      ,appDiffSrv   = appTimeDiff
+      }
 where
 	genUI cid world
 		  =({ html 			= svgClock cid
@@ -31,16 +39,6 @@ where
 		  	, width 		= ExactSize 100
 		  	, height 		= ExactSize 100
 		  	},world)
-
-	updateUI cid _ val=:{Time|sec,min,hour}world
-        //Update hands
-        # world = foldr updateHand world [(cid+++"-sec-hand",6*sec),(cid+++"-min-hand",6*min),(cid+++"-hour-hand",30*hour)]
-		= (val,world)
-
-    updateHand (id,degrees) world
-        # (hand,world) = .? (getElementById id) world
-        # (_,world)    = callObjectMethod "setAttribute" [toJSArg "transform",toJSArg ("rotate("+++toString (degrees - 90)+++" 50 50)")] hand world
-        = world
 	
     svgClock cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
                           (face ++
@@ -55,7 +53,17 @@ where
     hand id len color
         = RectElt [WidthAttr (toString len +++"px"),HeightAttr "2px",IdAttr id,StyleAttr ("fill: "+++color)]
                   [XAttr ("50",PX),YAttr ("50",PX)]
-	
+    
+    appDiffClt cid [] () world = ((),world)
+    appDiffClt cid [(0,s):upd] () world = appDiffClt cid upd () (updateHand (cid+++"-sec-hand", 6 * s) world)
+    appDiffClt cid [(1,m):upd] () world = appDiffClt cid upd () (updateHand (cid+++"-min-hand", 6 * m) world)
+    appDiffClt cid [(2,h):upd] () world = appDiffClt cid upd () (updateHand (cid+++"-hour-hand", 30 * h) world)
+        
+    updateHand (id,degrees) world
+        # (hand,world) = .? (getElementById id) world
+        # (_,world)    = callObjectMethod "setAttribute" [toJSArg "transform",toJSArg ("rotate("+++toString (degrees - 90)+++" 50 50)")] hand world
+        = world
+
 genTimeDiff :: Time Time -> Maybe [(Int,Int)]
 genTimeDiff t1 t2 = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
