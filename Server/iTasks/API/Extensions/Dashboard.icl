@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Dashboard
 import iTasks
 import iTasks.API.Core.Client.Editlet
+import iTasks.API.Core.Client.Interface
 
 derive JSONEncode ControlLight
 derive JSONDecode ControlLight
@@ -17,13 +18,18 @@ gUpdate{|ControlLight|} dp upd (v,mask) iworld
     # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (controlLightEditlet v, mask) iworld
     = ((editlet.currVal,mask),iworld)
 
-//SVG Based analog clock editlet
+//SVG Based fake control light
 controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight
 controlLightEditlet t
-    = toEditlet (EditletSimpl t {EditletSimplDef| genUI = genUI, updateUI = updateUI
-                                , genDiff = \a b -> if (a===b) Nothing (Just b)
-                                , appDiff= \a _ -> a
-                                })
+    = {Editlet
+      |currVal = t
+      ,defValSrv = gDefault{|*|}
+      ,defValClt = ()
+      ,genUI = genUI
+      ,appDiffClt = updateUI
+      ,genDiffSrv = \a b -> if (a===b) Nothing (Just b)
+      ,appDiffSrv = \a _ -> a
+      }
 where
 	genUI cid world
 		  =({ html 			= svgLight cid
@@ -32,10 +38,10 @@ where
 		  	, height 		= ExactSize 20
 		  	},world)
 
-	updateUI cid _ val world
-        # (light,world) = getDomElement (lightId cid) world
+	updateUI cid val () world
+        # (light,world) = .? (getElementById (lightId cid)) world
         # (_,world)     = callObjectMethod "setAttribute" [toJSArg "fill",toJSArg (color val)] light world
-		= (val,world)
+		= ((),world)
 
     color LightOnGreen  = "green"
     color LightOnRed    = "red"
