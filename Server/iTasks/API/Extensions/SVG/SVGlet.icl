@@ -124,6 +124,7 @@ svgRenderer origState state2Image
     #! svgStr           = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
                                            [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
                                            syn.genSVGSyn_svgElts)
+    //#! world = jsTrace svgStr world
     #! svgStr           = replaceSubString editletId cid svgStr
     #! (parser, world)  = new "DOMParser" () world
     #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
@@ -1394,7 +1395,7 @@ mkList f xs st
   = (f xs, st)
 
 :: Algebras m imCo imAt imTr im baIm imSp coIm ho co sp loSp ma liIm liCo =
-  { imageAlgs          :: !ImageAlg imCo imAt imTr sp im
+  !{ imageAlgs          :: !ImageAlg imCo imAt imTr sp im
   , imageContentAlgs   :: !ImageContentAlg baIm imSp liIm coIm imCo
   , imageAttrAlgs      :: !ImageAttrAlg m imAt
   , imageTransformAlgs :: !ImageTransformAlg sp imTr
@@ -1410,17 +1411,17 @@ mkList f xs st
   }
 
 :: ImageAlg imCo imAt imTr sp im =
-  { imageAlg :: !imCo (Maybe im) [imAt] [imTr] (Set ImageTag) (!sp, !sp) (!sp, !sp) (!sp, !sp, !sp, !sp) (!sp, !sp) -> im
+  !{ imageAlg :: !imCo (Maybe im) [imAt] [imTr] (Set ImageTag) (!sp, !sp) (!sp, !sp) (!sp, !sp, !sp, !sp) (!sp, !sp) -> im
   }
 
 :: ImageContentAlg baIm imSp liIm coIm imCo =
-  { imageContentBasicAlg     :: !baIm imSp -> imCo
+  !{ imageContentBasicAlg     :: !baIm imSp -> imCo
   , imageContentLineAlg      :: !liIm      -> imCo
   , imageContentCompositeAlg :: !coIm      -> imCo
   }
 
 :: ImageAttrAlg m imAt =
-  { imageAttrImageStrokeAttrAlg   :: !(StrokeAttr m)      -> imAt
+  !{ imageAttrImageStrokeAttrAlg   :: !(StrokeAttr m)      -> imAt
   , imageAttrStrokeWidthAttrAlg   :: !(StrokeWidthAttr m) -> imAt
   , imageAttrXRadiusAttrAlg       :: !(XRadiusAttr m)     -> imAt
   , imageAttrYRadiusAttrAlg       :: !(YRadiusAttr m)     -> imAt
@@ -1432,7 +1433,7 @@ mkList f xs st
   }
 
 :: ImageTransformAlg sp imTr =
-  { imageTransformRotateImageAlg :: !Angle -> imTr
+  !{ imageTransformRotateImageAlg :: !Angle -> imTr
   , imageTransformSkewXImageAlg  :: !Angle -> imTr
   , imageTransformSkewYImageAlg  :: !Angle -> imTr
   , imageTransformFitImageAlg    :: !sp sp -> imTr
@@ -1441,11 +1442,11 @@ mkList f xs st
   }
 
 :: ImageSpanAlg sp imSp =
-  { imageSpanAlg :: !sp sp -> imSp
+  !{ imageSpanAlg :: !sp sp -> imSp
   }
 
 :: BasicImageAlg baIm =
-  { basicImageEmptyImageAlg   :: !                  baIm
+  !{ basicImageEmptyImageAlg   :: !                  baIm
   , basicImageTextImageAlg    :: !FontDef String -> baIm
   , basicImageCircleImageAlg  :: !                  baIm
   , basicImageRectImageAlg    :: !                  baIm
@@ -1453,31 +1454,31 @@ mkList f xs st
   }
 
 :: LineImageAlg imSp ma liCo liIm =
-  { lineImageLineImageAlg :: !imSp (Maybe ma) liCo -> liIm
+  !{ lineImageLineImageAlg :: !imSp (Maybe ma) liCo -> liIm
   }
 
 :: LineContentAlg sp liCo =
-  { lineContentSimpleLineImageAlg :: !Slash        -> liCo
+  !{ lineContentSimpleLineImageAlg :: !Slash        -> liCo
   , lineContentPolygonImageAlg    :: ![(!sp, !sp)] -> liCo
   , lineContentPolylineImageAlg   :: ![(!sp, !sp)] -> liCo
   }
 
 :: MarkersAlg im ma =
-  { markersMarkersAlg :: !(Maybe im) (Maybe im) (Maybe im) -> ma
+  !{ markersMarkersAlg :: !(Maybe im) (Maybe im) (Maybe im) -> ma
   }
 
 :: CompositeImageAlg sp ho co coIm =
-  { compositeImageAlg :: ![(!sp, !sp)] (Maybe ho) co -> coIm
+  !{ compositeImageAlg :: ![(!sp, !sp)] (Maybe ho) co -> coIm
   }
 
 :: ComposeAlg im co =
-  { composeAsGridAlg    :: !(!Int, !Int) [ImageAlign] [[im]] -> co
+  !{ composeAsGridAlg    :: !(!Int, !Int) [ImageAlign] [[im]] -> co
   , composeAsCollageAlg :: !                          [im]   -> co
   , composeAsOverlayAlg :: !             [ImageAlign] [im]   -> co
   }
 
 :: SpanAlg loSp sp =
-  { spanPxSpanAlg     :: !Real  -> sp
+  !{ spanPxSpanAlg     :: !Real  -> sp
   , spanLookupSpanAlg :: !loSp  -> sp
   , spanAddSpanAlg    :: !sp sp -> sp
   , spanSubSpanAlg    :: !sp sp -> sp
@@ -1489,7 +1490,7 @@ mkList f xs st
   }
 
 :: LookupSpanAlg loSp =
-  { lookupSpanColumnXSpanAlg  :: !ImageTag Int -> loSp
+  !{ lookupSpanColumnXSpanAlg  :: !ImageTag Int -> loSp
   , lookupSpanImageXSpanAlg   :: !ImageTag     -> loSp
   , lookupSpanImageYSpanAlg   :: !ImageTag     -> loSp
   , lookupSpanRowYSpanAlg     :: !ImageTag Int -> loSp
