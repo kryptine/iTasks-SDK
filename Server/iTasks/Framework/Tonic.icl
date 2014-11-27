@@ -287,6 +287,15 @@ tHorizConn = xline Nothing (px 8.0)
 tHorizConnArr :: Image TonicTask
 tHorizConnArr = xline tLineMarker (px 16.0)
 
+tVertDownConnArr :: Image TonicTask
+tVertDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip)}) (px 16.0)
+
+tVertUpConnArr :: Image TonicTask
+tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just tArrowTip}) (px 16.0)
+
+tVertUpDownConnArr :: Image TonicTask
+tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
+
 // TODO margin around cases
 tCaseOrIf :: PPExpr [(Pattern, TExpr)] -> TImg
 tCaseOrIf ppexpr pats
@@ -338,7 +347,33 @@ mkVertConn uniqs
           Nothing
 
 tShare :: TShare VarName [VarName] -> TImg
-tShare sh sn args = 'CA'.pure (rect (px 100.0) (px 100.0)) // TODO
+tShare sh sn args
+  # boxTxt  = case sh of
+                Get          -> "    "
+                (Set ppexpr) -> ppexpr
+                (Upd ppexpr) -> ppexpr
+  # boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                <@< { fill   = toSVGColor "white" }
+                <@< { stroke = toSVGColor "black" }
+  # boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
+  # arr  = case sh of
+             Get          -> tVertDownConnArr
+             (Set ppexpr) -> tVertUpConnArr
+             (Upd ppexpr) -> tVertUpDownConnArr
+  = 'CA'.pure (above (repeat AtMiddleX) [] [mkShare, arr, boxImg] Nothing)
+  where
+  mkShare
+    # box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                   <@< { fill   = toSVGColor "white" }
+                   <@< { stroke = toSVGColor "black" }
+    # box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
+    # box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
+    # numArgs  = length args
+    # box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
+                   <@< { fill   = toSVGColor "white" }
+                   <@< { stroke = toSVGColor "black" }
+    # box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
+    = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
 tLet :: [(Pattern, PPExpr)] TExpr -> TImg
 tLet pats expr
@@ -504,7 +539,7 @@ tTransformApp texpr tffun args
                                                [] -> [tfNameImg]
                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
     # tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-    = beside (repeat AtMiddleY) [] [tfApp, expr] Nothing
+    = beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing
     where
     maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
 
