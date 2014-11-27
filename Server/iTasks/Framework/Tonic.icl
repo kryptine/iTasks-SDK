@@ -349,7 +349,7 @@ tLet pats expr
   mkLet textNo t = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing
     where
     letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-    letText = tag [imageTag textNo] (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
+    letText = tag (imageTag textNo) (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
     letBox  = rect (imagexspan (imageTag textNo)) (px ArialRegular10px.fontysize *. (length pats + 1))
                 <@< { fill   = toSVGColor "white" }
                 <@< { stroke = toSVGColor "black" }
@@ -475,9 +475,9 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
                        <@< { strokewidth = px 1.0 }
                        <@< { xradius     = px 5.0 }
                        <@< { yradius     = px 5.0 }
-    # taskNameImg  = tag [imageTag nameNo] (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
-    # taskArgsImgs = tag [imageTag argsNo] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-    # taskBodyImgs = tag [imageTag bodyNo] (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
+    # taskNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
+    # taskArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
+    # taskBodyImgs = tag (imageTag bodyNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
     # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
                                                  [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
                                                  _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
@@ -498,8 +498,8 @@ tTransformApp texpr tffun args
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }
                      <@< { strokewidth = px 1.0 }
-    # tfNameImg  = tag [imageTag nameNo] (margin (px 5.0) (text ArialItalic10px tffun))
-    # tfArgsImgs = tag [imageTag argsNo] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+    # tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
+    # tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
     # tfContents = above (repeat AtLeft) [] (case args of
                                                [] -> [tfNameImg]
                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
@@ -522,8 +522,8 @@ tTaskApp eid taskName taskArgs
                        <@< { strokewidth = px 1.0 }
                        <@< { xradius     = px 5.0 }
                        <@< { yradius     = px 5.0 }
-    # taskNameImg  = tag [imageTag tnNo] (margin (px 5.0) (text ArialBold10px taskName))
-    # taskArgsImgs = tag [imageTag taNo] (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
+    # taskNameImg  = tag (imageTag tnNo) (margin (px 5.0) (text ArialBold10px taskName))
+    # taskArgsImgs = tag (imageTag taNo) (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
     # taskText     = above (repeat AtMiddleX) [] (case taskArgs` of
                                                     [] -> [taskNameImg]
                                                     _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
@@ -544,7 +544,7 @@ tReturn retval
   \tagNo   -> 'CA'.pure (tReturn` retval` tagNo)
   where
   tReturn` retval` tagNo
-    # retval` = tag [imageTag tagNo] retval`
+    # retval` = tag (imageTag tagNo) retval`
     # oval = ellipse (imagexspan (imageTag tagNo) + px 20.0) (imageyspan (imageTag tagNo) + px 10.0)
                <@< { fill        = toSVGColor "white" }
                <@< { stroke      = toSVGColor "black" }
@@ -559,7 +559,7 @@ tAssign user assignedTask
   \atNo   -> 'CA'.pure (tAssign` at userNo atNo)
   where
   tAssign` at userNo atNo
-    # taskNameImg = tag [imageTag userNo] (margin (px 5.0) (text ArialBold10px (ppUser user)))
+    # taskNameImg = tag (imageTag userNo) (margin (px 5.0) (text ArialBold10px (ppUser user)))
     # bgRect  = rect maxXSpan (imageyspan (imageTag userNo) + imageyspan (imageTag atNo))
                   <@< { fill        = toSVGColor "white" }
                   <@< { stroke      = toSVGColor "black" }
@@ -567,7 +567,7 @@ tAssign user assignedTask
                   <@< { xradius     = px 5.0 }
                   <@< { yradius     = px 5.0 }
                   <@< { dash        = [5, 5] }
-    # at      = tag [imageTag atNo] (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
+    # at      = tag (imageTag atNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
     # content = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, at] Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
     where
