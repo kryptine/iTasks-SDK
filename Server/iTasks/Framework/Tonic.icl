@@ -294,16 +294,16 @@ tCaseOrIf ppexpr pats
   =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
   \uniqs -> 'CM'.mapM tExpr2Image patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edge labels
   where
-  prepCases uniqs pats
-    # pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
-    # maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
-    = zipWith (prepCase maxXSpan) uniqs pats
-    where
-    prepCase maxXSpan uniq pat
-      # linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
-      # leftLine  = xline tLineMarker (px 16.0 + linePart)
-      # rightLine = xline Nothing (px 8.0 + linePart)
-      = beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
+  //prepCases uniqs pats
+    //# pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
+    //# maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
+    //= zipWith (prepCase maxXSpan) uniqs pats
+    //where
+    //prepCase maxXSpan uniq pat
+      //# linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+      //# leftLine  = xline tLineMarker (px 16.0 + linePart)
+      //# rightLine = xline Nothing (px 8.0 + linePart)
+      //= beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
   mkCaseOrIf uniqs nextTasks
     # nextTasks  = prepCases uniqs nextTasks
     # vertConn   = mkVertConn uniqs
@@ -311,18 +311,6 @@ tCaseOrIf ppexpr pats
     # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
                                                               , text ArialRegular10px ppexpr] Nothing
     = beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing
-  mkVertConn uniqs
-    | length uniqs < 2 = empty (px 0.0) (px 0.0)
-    | otherwise
-        # firstUniq  = hd uniqs
-        # lastUniq   = last uniqs
-        # restUniqs  = init (tl uniqs)
-        # nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
-        = above (repeat AtMiddleX) []
-            [ yline Nothing (imageyspan (imageTag firstUniq) /. 2.0) <@< { stroke = toSVGColor "white" }
-            , yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
-            , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
-            Nothing
   diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
                    <@< { fill   = toSVGColor "white" }
                    <@< { stroke = toSVGColor "black" }
@@ -335,6 +323,19 @@ tCaseOrIf ppexpr pats
   edgeMargin   = textHeight * 2.0
   textHeight   = ArialRegular10px.fontysize
   textWidth    = textxspan ArialRegular10px ppexpr
+
+mkVertConn uniqs
+  | length uniqs < 2 = empty (px 0.0) (px 0.0)
+  | otherwise
+      # firstUniq  = hd uniqs
+      # lastUniq   = last uniqs
+      # restUniqs  = init (tl uniqs)
+      # nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
+      = above (repeat AtMiddleX) []
+          [ yline Nothing (imageyspan (imageTag firstUniq) /. 2.0) <@< { stroke = toSVGColor "white" }
+          , yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
+          , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
+          Nothing
 
 tShare :: TShare VarName [VarName] -> TImg
 tShare sh sn args = 'CA'.pure (rect (px 100.0) (px 100.0)) // TODO
@@ -386,11 +387,14 @@ tParallel (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
   mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParSum (T xs)  = 'CM'.mapM tExpr2Image xs
 tParallel (ParProd ts)
-  =       mkParProd ts `b` ('CA'.pure o mkParProdCases)
+  =         mkParProd ts `b`
+  \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
+  \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
   where
-  mkParProdCases ts`
-    # ts` = map (margin (px 5.0, px 5.0)) ts`
-    = beside (repeat AtMiddleY) [] [tParProd, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParProd] Nothing
+  mkParProdCases uniqs ts`
+    # ts`      = prepCases uniqs ts`
+    # vertConn = mkVertConn uniqs
+    = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
   mkParProd (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParProd (T xs)  = 'CM'.mapM tExpr2Image xs
 
@@ -556,16 +560,15 @@ tAssign user assignedTask
   where
   tAssign` at userNo atNo
     # taskNameImg = tag [imageTag userNo] (margin (px 5.0) (text ArialBold10px (ppUser user)))
-    # bgRect  = rect maxXSpan (px ArialBold10px.fontysize + imageyspan (imageTag atNo))
+    # bgRect  = rect maxXSpan (imageyspan (imageTag userNo) + imageyspan (imageTag atNo))
                   <@< { fill        = toSVGColor "white" }
                   <@< { stroke      = toSVGColor "black" }
                   <@< { strokewidth = px 1.0 }
                   <@< { xradius     = px 5.0 }
                   <@< { yradius     = px 5.0 }
                   <@< { dash        = [5, 5] }
-    # at      = margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing)
-    # content = above (repeat AtMiddleX) [] [ taskNameImg, xline Nothing maxXSpan
-                                            , tag [imageTag atNo] at] Nothing
+    # at      = tag [imageTag atNo] (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
+    # content = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, at] Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
     where
     maxXSpan = maxSpan [imagexspan (imageTag userNo), imagexspan (imageTag atNo)]
@@ -580,14 +583,27 @@ ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ 
 
 tStep :: TExpr [PPOr TStepCont] -> TImg
 tStep lhsExpr conts
-  =          tExpr2Image lhsExpr `b`
+  =          'CM'.mapM (\_ -> dispenseUniq) conts `b`
+  \uniqs  -> tExpr2Image lhsExpr `b`
   \lhs    -> 'CM'.mapM tStepCont conts `b`
-  \conts` -> 'CA'.pure (tStep` lhs conts`)
+  \conts` -> 'CA'.pure (tStep` lhs conts` uniqs)
   where
-  tStep` lhs conts`
-    # conts`   = map (margin (px 5.0, px 5.0)) conts`
+  tStep` lhs conts` uniqs
+    # conts`   = prepCases uniqs conts`
+    # vertConn = mkVertConn uniqs
     # contsImg = above (repeat AtMiddleX) [] conts` Nothing
-    = beside (repeat AtMiddleY) [] [lhs, /* TODO line to first star, */tStepStar, /* TODO lines to steps,*/ contsImg, /* TODO lines to last star,*/ tStepStar] Nothing
+    = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
+
+prepCases uniqs pats
+  # pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
+  # maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
+  = zipWith (prepCase maxXSpan) uniqs pats
+  where
+  prepCase maxXSpan uniq pat
+    # linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+    # leftLine  = xline tLineMarker (px 16.0 + linePart)
+    # rightLine = xline Nothing (px 8.0 + linePart)
+    = beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
 
 tStepCont :: (PPOr TStepCont) -> TImg
 tStepCont (PP pp) = 'CA'.pure (text ArialRegular10px pp)
