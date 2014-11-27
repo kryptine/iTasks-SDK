@@ -539,7 +539,7 @@ fixSpans img = go
       #! (xsp`, ysp`)     = (xsp` + m2 + m4, ysp` + m1 + m3)
       #! st               = cacheImageSpan imTas (xsp`, ysp`) st
       #! (no, st)         = nextNo st
-      = ((tag [ImageTagSystem no]
+      = ((tag (ImageTagSystem no)
          { Image
          | content             = fixSpansSyn.fixSpansSyn_ImageContent
          , mask                = mask
