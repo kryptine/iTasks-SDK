@@ -5,62 +5,70 @@ import iTasks.API.Extensions.SVG.SVGlet
 import ligrettoModel
 
 Start :: *World -> *World
-Start world = startEngine (viewInformation "Ligretto step by step" [imageView steps] ()) world
+Start world = startEngine viewAll world
 
-steps :: () -> Image ()
-steps _
-	= grid (Rows (length imgs / 2)) (LeftToRight,TopToBottom) (repeat (AtLeft,AtTop)) []
-	     (map (margin hspace) imgs) Nothing
-where
-	imgs = [lines ["card_size     = (58.5, 90.0)"
-	              ,"(w,h)         = card_size"
-	              ,"cardfont size = normalFontDef \"Verdana\" size"
-	              ,"pilefont size = normalFontDef \"Verdana\" size"
-	              ,"card          = {back = Red, front = Green, nr = 7}"
-	              ], empty (px zero) (px zero)
-	       ,lines ["card_rect     = rect (px w) (px h)"
-	              ], card_rect
-	       ,lines ["card_shape    = card_rect"
-	              ,"                   <@< {xradius=px (h/18.0)}"
-	              ,"                   <@< {yradius=px (h/18.0)}"
-	              ], card_shape
-	       ,lines ["empty_card    = card_shape"
-	              ,"                   <@< {fill = toSVGColor \"lightgrey\"}"
-	              ], empty_card
-	       ,lines ["no_card_image = overlay [(AtMiddleX,AtMiddleY)]"
-	              ,"                        []"
-	              ,"                        [text (pilefont 12.0) \"empty\"]"
-	              ,"                        (Just empty_card)"
-	              ], no_card_image
-	       ,lines ["ligretto      = text (cardfont (w / 5.0)) \"Ligretto\""
-	              ,"                   <@< {stroke = toSVGColor card.back}"
-	              ,"                   <@< {fill = toSVGColor \"none\"}"
-	              ], ligretto
-	       ,lines ["back_text     = skewy (deg -20.0) ligretto"
-	              ], back_text
-	       ,lines ["back_card     = overlay [(AtLeft,AtBottom)] [] [back_text]"
-	              ,"                   (Just (card_shape <@< {fill = toSVGColor \"white\"}))"
-	              ], back_card
-	       ,lines ["nr            = text (cardfont 20.0) (toString card.nr)"
-	              ,"                   <@< {fill = toSVGColor \"white\"}"
-                  ,"                   <@< {stroke = toSVGColor (nr_stroke_color card.front)}"
-                  ], nr
-	       ,lines ["upside_nr     = rotate (deg 180.0) nr"
-                  ], upside_nr
-           ,lines ["front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
-                  ,"                   (Just (card_shape <@< {fill = toSVGColor card.front}) )"
-                  ], front_card
-           ,lines ["pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
-                  ,"                   (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))"
-                  ], pile
-           ,lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing"
-                  ],indexed_pile
-           ,lines ["rotate_pile   = rotate (deg 15.0) indexed_pile"
-                  ],rotate_pile
-           ,lines ["rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) []"
-                  ,"                        [rotate (deg (toReal (i*60))) front_card \\ i <- [0..2]] Nothing"
-                  ],rotate_cards
-	       ]
+// (viewInformation "Ligretto step by step" [imageView steps] ()) world
+viewAll :: Task [((), ())]
+viewAll = allTasks (map f imgs)
+  where
+  f :: (Image (), Image ()) -> Task ((), ())
+  f (txt, img) = viewInformation "Code" [imageView (const txt)] () -&&- viewInformation "Image" [imageView (const img)] ()
+
+//steps :: () -> Image ()
+//steps _
+	//= grid (Rows (length imgs / 2)) (LeftToRight,TopToBottom) (repeat (AtLeft,AtTop)) []
+		 //(map (margin hspace) imgs) Nothing
+
+imgs :: [(Image (), Image ())]
+imgs = [(lines ["card_size     = (58.5, 90.0)"
+              ,"(w,h)         = card_size"
+              ,"cardfont size = normalFontDef \"Verdana\" size"
+              ,"pilefont size = normalFontDef \"Verdana\" size"
+              ,"card          = {back = Red, front = Green, nr = 7}"
+              ], empty (px zero) (px zero))
+       ,(lines ["card_rect     = rect (px w) (px h)"
+              ], card_rect)
+       ,(lines ["card_shape    = card_rect"
+              ,"                   <@< {xradius=px (h/18.0)}"
+              ,"                   <@< {yradius=px (h/18.0)}"
+              ], card_shape)
+       ,(lines ["empty_card    = card_shape"
+              ,"                   <@< {fill = toSVGColor \"lightgrey\"}"
+              ], empty_card)
+       ,(lines ["no_card_image = overlay [(AtMiddleX,AtMiddleY)]"
+              ,"                        []"
+              ,"                        [text (pilefont 12.0) \"empty\"]"
+              ,"                        (Just empty_card)"
+              ], no_card_image)
+       ,(lines ["ligretto      = text (cardfont (w / 5.0)) \"Ligretto\""
+              ,"                   <@< {stroke = toSVGColor card.back}"
+              ,"                   <@< {fill = toSVGColor \"none\"}"
+              ], ligretto)
+       ,(lines ["back_text     = skewy (deg -20.0) ligretto"
+              ], back_text)
+       ,(lines ["back_card     = overlay [(AtLeft,AtBottom)] [] [back_text]"
+              ,"                   (Just (card_shape <@< {fill = toSVGColor \"white\"}))"
+              ], back_card)
+       ,(lines ["nr            = text (cardfont 20.0) (toString card.nr)"
+              ,"                   <@< {fill = toSVGColor \"white\"}"
+              ,"                   <@< {stroke = toSVGColor (nr_stroke_color card.front)}"
+              ], nr)
+       ,(lines ["upside_nr     = rotate (deg 180.0) nr"
+              ], upside_nr)
+       ,(lines ["front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
+              ,"                   (Just (card_shape <@< {fill = toSVGColor card.front}) )"
+              ], front_card)
+       ,(lines ["pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
+              ,"                   (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))"
+              ], pile)
+       ,(lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing"
+              ],indexed_pile)
+       ,(lines ["rotate_pile   = rotate (deg 15.0) indexed_pile"
+              ],rotate_pile)
+       ,(lines ["rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) []"
+              ,"                        [rotate (deg (toReal (i*60))) front_card \\ i <- [0..2]] Nothing"
+              ],rotate_cards)
+       ]
 
 // all definitions below originate from or are specializations of TOPLigretto:
 hspace        = px 2.0
