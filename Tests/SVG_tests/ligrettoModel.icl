@@ -8,7 +8,7 @@ import iTasks.Framework.Generic.Visualization
 
 derive gEq Card, SideUp, Color
 
-no_of_cards_in_row :: !NrOfPlayers -> Int
+no_of_cards_in_row :: !NoOfPlayers -> Int
 no_of_cards_in_row 2 = 5
 no_of_cards_in_row 3 = 4
 no_of_cards_in_row 4 = 3
@@ -17,10 +17,10 @@ no_of_cards_in_row n = abort ("ligretto.no_of_cards_in_row: illegal integer argu
 all_colors :: [Color]
 all_colors = [Red,Green,Blue,Yellow]
 
-colors :: !NrOfPlayers -> [Color]
+colors :: !NoOfPlayers -> [Color]
 colors no_of_players = take no_of_players all_colors
 
-initial_player_cards :: !NrOfPlayers !Color -> Pile
+initial_player_cards :: !NoOfPlayers !Color -> Pile
 initial_player_cards no_of_players back
 	= [{back=back,front=color,no=no} \\ color <- all_colors, no <- [1..10]]
 
@@ -28,7 +28,7 @@ shuffle :: ![a] !Int -> [a]
 shuffle xs seed
 	= fst (unzip (sortBy (\(_,r1) (_,r2) -> (r1 < r2)) (zip2 xs (genRandInt (abs seed)))))
 
-initial_player :: !NrOfPlayers !Color !Int -> Player
+initial_player :: !NoOfPlayers !Color !Int -> Player
 initial_player no_of_players back seed
 	= { color = back, row = row, ligretto = ligretto, hand = { conceal = hand, discard = [] } }
 where

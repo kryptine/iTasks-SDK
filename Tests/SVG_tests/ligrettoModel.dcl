@@ -4,7 +4,7 @@ import Data.Maybe
 
 /** A model for the game of Ligretto.
 */
-:: NrOfPlayers :== Int                            // 2 upto 4 players
+:: NoOfPlayers :== Int                            // 2 upto 4 players
 :: Middle      :== [Pile]                         // 0 upto 16 piles
 :: Pile        :== [Card]                         // 0 upto 10 cards of same front color
 :: Card          = { back     :: Color            // the backside color (belonging to player)
@@ -27,20 +27,20 @@ import Data.Maybe
         @n is the number of cards that a row should have.
         @no_of_players should be one of: 2, 3, 4.
 */
-no_of_cards_in_row   :: !NrOfPlayers -> Int
+no_of_cards_in_row   :: !NoOfPlayers -> Int
 
 /** colors no_of_players = player_colors:
         @player_colors are the colors in a game consisting of @no_of_players players.
         @no_of_players should be one of: 2, 3, 4.
 */
-colors               :: !NrOfPlayers -> [Color]
+colors               :: !NoOfPlayers -> [Color]
 
 /** initial_player no_of_players color n = player:
         @player is a player with all cards shuffled and distributed to the @player.row, @player.ligretto, and @player.hand.
         @no_of_players should be one of: 2, 3, 4.
         @color should be one of: (colors @no_ofplayers).
 */
-initial_player       :: !NrOfPlayers !Color !Int -> Player
+initial_player       :: !NoOfPlayers !Color !Int -> Player
 
 /** row_card row_no player = card:
 		@card is the card at @row_no in the current @player.row (counted as 1..(no_of_cards_in_row no_of_players)).
