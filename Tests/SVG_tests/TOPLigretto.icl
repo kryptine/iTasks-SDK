@@ -113,6 +113,12 @@ card_shape :== rect (px card_width) (px card_height) <@< {xradius = px (card_hei
 //no_card_image :: Image m
 no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"})) // BUG: "empty" text is not aligned properly
 
+big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = toSVGColor "white"}
+                                                        <@< {stroke = toSVGColor colour}
+ligretto  colour :== text (cardfont (card_width / 5.0)) "Ligretto"
+                                                        <@< {stroke = toSVGColor colour}
+                                                        <@< {fill   = toSVGColor "none"}
+
 card_image :: !SideUp !Card -> Image m
 card_image side card
   #! host = Just (card_shape <@< {fill = if (side === Front)
@@ -120,27 +126,27 @@ card_image side card
                                             (toSVGColor "white")})
   | side === Front
      #! no = margin (px 5.0)
-               (text (cardfont 20.0) (toString card.no) <@< {fill   = toSVGColor "white"}
-                                                        <@< {stroke = toSVGColor (no_stroke_color card.front)}
-               )
+               (big_no card.no (no_stroke_color card.front))
      = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [no, rotate (deg 180.0) no] host
   | otherwise
-     #! ligretto = skewy (deg -20.0) (text (cardfont (card_width / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
-     = overlay [(AtLeft,AtBottom)] [] [ligretto] host
+     = overlay [(AtLeft,AtBottom)] [] [skewy (deg -20.0) (ligretto card.back)] host
   where
   no_stroke_color :: !Color -> Color
   no_stroke_color Red    = Blue
   no_stroke_color Green  = Red
-  no_stroke_color Blue   = Green//Yellow
+  no_stroke_color Blue   = Yellow // Green gives better visual results, but yellow is 'official'
   no_stroke_color Yellow = Green
+
+pile_of_cards :: !SideUp !Pile -> Image m
+pile_of_cards side pile
+  = overlay [] [(zero,px dy) \\ dy <- [0.0, card_height / 18.0 ..]]
+               (map (card_image side) (reverse pile)) (Just no_card_image)
 
 pile_image :: !SideUp !Pile -> Image m
 pile_image side pile
   #! no_of_cards     = length pile
   #! top_cards       = take 10 pile
-  #! no_of_top_cards = length top_cards
-  #! top_cards_image = overlay [] [(zero,px ((toReal dx) * card_height /18.0)) \\ dx <- [0..no_of_top_cards-1]]
-                                  (map (card_image side) (reverse top_cards)) (Just no_card_image)
+  #! top_cards_image = pile_of_cards side top_cards
   | no_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
@@ -198,7 +204,7 @@ circular r a imgs
   #! a`     = normalize (rad a)
   #! alpha  = (toRad a`) / (toReal n)
   = overlay (repeat (AtMiddleX,AtMiddleY))
-                    [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..] & img <- imgs]
+                    [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..]]
                     [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs]
                     (Just (empty (px (2.0*r)) (px (2.0*r))))              // BUG: using Nothing creates incorrect image (offset to left)
 
