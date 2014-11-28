@@ -6,69 +6,51 @@ import StdEnv
 import Data.Maybe, GenEq
 import iTasks.Framework.Generic.Visualization
 
-:: NrOfPlayers :== Int                            // 2 upto 4 players
-:: Card          = { back     :: Color            // the backside color (belonging to player)
-                   , front    :: Color            // the frontside color (for playing)
-                   , nr       :: Int              // 1 upto 10
-                   }
-:: SideUp        = Front | Back                   // the side of the card that faces upwards
-:: Color         = Red | Green | Blue | Yellow    // the four player / card colors
-:: Player        = { color     :: Color           // the backside color of this player's cards
-                   , row       :: RowPlayer       // the row of the player (nr_of_cards_in_row nr_of_players)
-                   , ligretto  :: Pile            // the ligretto pile: 10 upto 0 (win) cards
-                   , hand      :: Hand            // the hand cards
-                   }
-:: Pile        :== [Card]                         // a pile of cards
-:: RowPLayer   :== [Card]                         // a row of (nr_of_cards_in_row nr_of_players) cards
-:: Hand          = { conceal   :: Pile            // the concealed pile
-                   , discard   :: Pile            // the discarded pile
-                   }
-
 derive gEq Card, SideUp, Color
 
-nr_of_cards_in_row :: !NrOfPlayers -> Int
-nr_of_cards_in_row 2 = 5
-nr_of_cards_in_row 3 = 4
-nr_of_cards_in_row 4 = 3
-nr_of_cards_in_row n = abort ("ligretto.nr_of_cards_in_row: illegal integer argument (" +++ toString n +++ ").\n")
+no_of_cards_in_row :: !NrOfPlayers -> Int
+no_of_cards_in_row 2 = 5
+no_of_cards_in_row 3 = 4
+no_of_cards_in_row 4 = 3
+no_of_cards_in_row n = abort ("ligretto.no_of_cards_in_row: illegal integer argument (" +++ toString n +++ ").\n")
 
 all_colors :: [Color]
 all_colors = [Red,Green,Blue,Yellow]
 
 colors :: !NrOfPlayers -> [Color]
-colors nr_of_players = take nr_of_players all_colors
+colors no_of_players = take no_of_players all_colors
 
 initial_player_cards :: !NrOfPlayers !Color -> Pile
-initial_player_cards nr_of_players back
-	= [{back=back,front=color,nr=nr} \\ color <- all_colors, nr <- [1..10]]
+initial_player_cards no_of_players back
+	= [{back=back,front=color,no=no} \\ color <- all_colors, no <- [1..10]]
 
 shuffle :: ![a] !Int -> [a]
 shuffle xs seed
 	= fst (unzip (sortBy (\(_,r1) (_,r2) -> (r1 < r2)) (zip2 xs (genRandInt (abs seed)))))
 
 initial_player :: !NrOfPlayers !Color !Int -> Player
-initial_player nr_of_players back seed
+initial_player no_of_players back seed
 	= { color = back, row = row, ligretto = ligretto, hand = { conceal = hand, discard = [] } }
 where
-	cards           = shuffle (initial_player_cards nr_of_players back) seed
-	(row,rest)      = splitAt (nr_of_cards_in_row nr_of_players) cards
+	cards           = shuffle (initial_player_cards no_of_players back) seed
+	(row,rest)      = splitAt (no_of_cards_in_row no_of_players) cards
 	(ligretto,hand) = splitAt 10 rest
 
 row_card :: !Int !Player -> Card
-row_card row_nr player=:{row}
-| row_nr <= 0 || row_nr > length row
-	= abort ("ligretto.row_card: illegal integer argument (" <+++ row_nr <+++ ").\n")
+row_card row_no player=:{row}
+| row_no <= 0 || row_no > length row
+	= abort ("ligretto.row_card: illegal integer argument (" <+++ row_no <+++ ").\n")
 | otherwise
-	= row !! (row_nr-1)
+	= row !! (row_no-1)
 
 move_ligretto_card_to_row :: !Int !Player -> Player
-move_ligretto_card_to_row row_nr player=:{row,ligretto}
-| row_nr <= 0 || row_nr > length row
-	= abort ("ligretto.move_ligretto_card_to_row: illegal integer argument (" <+++ row_nr <+++ ").\n")
+move_ligretto_card_to_row row_no player=:{row,ligretto}
+| row_no <= 0 || row_no > length row
+	= abort ("ligretto.move_ligretto_card_to_row: illegal integer argument (" <+++ row_no <+++ ").\n")
 | isEmpty ligretto
 	= abort "ligretto.move_ligretto_card_to_row: trying to take card from empty ligretto.\n"
 | otherwise
-	= {player & row = updateAt (row_nr-1) (hd ligretto) row, ligretto = tl ligretto}
+	= {player & row = updateAt (row_no-1) (hd ligretto) row, ligretto = tl ligretto}
 
 top_discard :: !Player -> Maybe Card
 top_discard {hand={discard}}
@@ -98,6 +80,6 @@ where
 
 card_matches_top_of_pile :: !Card !Pile -> Bool
 card_matches_top_of_pile card pile
-| isEmpty pile			= card.nr == 1
+| isEmpty pile			= card.no == 1
 | otherwise				= let top_card = hd pile in
-						  card.front === top_card.front && card.nr == top_card.nr+1
+						  card.front === top_card.front && card.no == top_card.no+1

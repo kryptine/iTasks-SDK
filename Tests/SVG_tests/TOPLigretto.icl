@@ -37,21 +37,21 @@ play_hand color gameSt=:{GameSt | middle}
       Nothing
         = gameSt
       (Just card)
-        #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+        #! matching_piles = [(pileno,pile) \\ pile <- middle & pileno <- [0..] | card_matches_top_of_pile card pile]
         = case matching_piles of
             []                 -> gameSt
-            [(pilenr, pile):_] -> let player` = remove_top_of_discard player
-                                      middle` = updateAt pilenr [card:pile] middle
+            [(pileno, pile):_] -> let player` = remove_top_of_discard player
+                                      middle` = updateAt pileno [card:pile] middle
                                    in set_player player` {GameSt | gameSt & middle = middle`}
 
 play_row_card :: !Color !Card !Int !GameSt -> GameSt
-play_row_card color card cardnr gameSt=:{GameSt | middle}
+play_row_card color card cardno gameSt=:{GameSt | middle}
   #! player         = get_player color gameSt
-  #! matching_piles = [(pilenr,pile) \\ pile <- middle & pilenr <- [0..] | card_matches_top_of_pile card pile]
+  #! matching_piles = [(pileno,pile) \\ pile <- middle & pileno <- [0..] | card_matches_top_of_pile card pile]
   = case matching_piles of
       []                 -> gameSt
-      [(pilenr, pile):_] -> let player` = move_ligretto_card_to_row cardnr player
-                                middle` = updateAt pilenr [card:pile] middle
+      [(pileno, pile):_] -> let player` = move_ligretto_card_to_row cardno player
+                                middle` = updateAt pileno [card:pile] middle
                              in set_player player` {GameSt | gameSt & middle  = middle`}
 
 get_player :: !Color !GameSt -> Player
@@ -70,12 +70,12 @@ play_Ligretto :: Task (!Color, !User)
 play_Ligretto
 	=               get currentUser
 	>>= \me      -> invite_friends
-	>>= \friends -> let nr_of_players = length friends + 1 
-	                in allTasks (repeatn nr_of_players (get randomInt))
+	>>= \friends -> let no_of_players = length friends + 1 
+	                in allTasks (repeatn no_of_players (get randomInt))
 	>>= \rs      -> let gameSt        = { middle  = repeatn 16 []
-	                                    , players = [initial_player nr_of_players color (abs r) \\ color <- colors nr_of_players & r <- rs]
+	                                    , players = [initial_player no_of_players color (abs r) \\ color <- colors no_of_players & r <- rs]
 	                                    }
-	                in withShared gameSt (play_game nr_of_players [me : friends])
+	                in withShared gameSt (play_game no_of_players [me : friends])
 
 invite_friends :: Task [User]
 invite_friends
@@ -85,13 +85,13 @@ invite_friends
 	                   (return friends)
 
 play_game :: !Int ![User] !(Shared GameSt) -> Task (!Color, !User)
-play_game nr_of_players player_ids game_st
-	=               anyTask  [ player @: game nr_of_players (color,player) game_st \\ player <- player_ids & color <- colors nr_of_players ]
+play_game no_of_players player_ids game_st
+	=               anyTask  [ player @: game no_of_players (color,player) game_st \\ player <- player_ids & color <- colors no_of_players ]
 	>>= \winner ->  allTasks [ player @: viewInformation "The winner is:" [] winner >>= return \\ player <- player_ids ]
 	>>| return winner
 
 game :: !Int !(!Color, !User) !(Shared GameSt) -> Task (!Color, !User)
-game nr_of_players (color,user) game_st
+game no_of_players (color,user) game_st
 	=   updateSharedInformation (toString user) [imageViewUpdate id (player_perspective (color,user)) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins (color,user))]
 
@@ -119,36 +119,36 @@ card_image side card
                                             (toSVGColor card.front)
                                             (toSVGColor "white")})
   | side === Front
-     #! nr = margin (px 5.0)
-               (text (cardfont 20.0) (toString card.nr) <@< {fill   = toSVGColor "white"}
-                                                        <@< {stroke = toSVGColor (nr_stroke_color card.front)}
+     #! no = margin (px 5.0)
+               (text (cardfont 20.0) (toString card.no) <@< {fill   = toSVGColor "white"}
+                                                        <@< {stroke = toSVGColor (no_stroke_color card.front)}
                )
-     = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr, rotate (deg 180.0) nr] host
+     = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [no, rotate (deg 180.0) no] host
   | otherwise
      #! ligretto = skewy (deg -20.0) (text (cardfont (card_width / 5.0)) "Ligretto" <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"})
      = overlay [(AtLeft,AtBottom)] [] [ligretto] host
   where
-  nr_stroke_color :: !Color -> Color
-  nr_stroke_color Red    = Blue
-  nr_stroke_color Green  = Red
-  nr_stroke_color Blue   = Green//Yellow
-  nr_stroke_color Yellow = Green
+  no_stroke_color :: !Color -> Color
+  no_stroke_color Red    = Blue
+  no_stroke_color Green  = Red
+  no_stroke_color Blue   = Green//Yellow
+  no_stroke_color Yellow = Green
 
 pile_image :: !SideUp !Pile -> Image m
 pile_image side pile
-  #! nr_of_cards     = length pile
+  #! no_of_cards     = length pile
   #! top_cards       = take 10 pile
-  #! nr_of_top_cards = length top_cards
-  #! top_cards_image = overlay [] [(zero,px ((toReal dx) * card_height /18.0)) \\ dx <- [0..nr_of_top_cards-1]]
+  #! no_of_top_cards = length top_cards
+  #! top_cards_image = overlay [] [(zero,px ((toReal dx) * card_height /18.0)) \\ dx <- [0..no_of_top_cards-1]]
                                   (map (card_image side) (reverse top_cards)) (Just no_card_image)
-  | nr_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString nr_of_cards),top_cards_image] Nothing
+  | no_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
 row_images :: !Bool !RowPlayer !Color -> [Image GameSt]
 row_images interactive row color
-  = [  let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card color row_card cardnr}) card
+  = [  let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card color row_card cardno}) card
 	\\ row_card <- row 
-	 & cardnr   <- [1..]
+	 & cardno   <- [1..]
 	]
 
 stack_whitespace :== empty (px (card_width/4.0)) zero
@@ -181,10 +181,10 @@ player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
 player_perspective (color,user) gameSt
   #! r     = 4.0*card_height
   #! angle = 2.0*pi / (toReal (length gameSt.players))
-  #! my_nr = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
+  #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
   = margin (px (3.0*card_height))
     (overlay (repeat (AtMiddleX,AtMiddleY)) []
-             [  rotate (rad (i*angle-0.25*pi-(toReal my_nr*angle))) img
+             [  rotate (rad (i*angle-0.25*pi-(toReal my_no*angle))) img
              \\ img <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i   <- [0.0, 1.0 ..]
              ] (Just (middle_image gameSt.middle))

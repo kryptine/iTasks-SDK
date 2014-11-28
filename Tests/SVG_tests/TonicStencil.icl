@@ -65,8 +65,21 @@ examples = viewInformation () [] "Select an example set"
       , OnAction (Action "Static Tonic shapes" [])     (always (tonicSVGs @! ()))
       , OnAction (Action "On-click example" [])        (always (allClickExamples @! ()))
       , OnAction (Action "Hello, world!" [])           (always (helloWorldExample @! ()))
+      , OnAction (Action "Grid layout + offsets" [])   (always (gridLayoutPlusOffsets @! ()))
+      , OnAction (Action "above test" [])   (always (aboveTest @! ()))
       ]
 
+aboveTest = viewImage "no wrap" imgNoWrap -&&- viewImage "wrap" imgWrap
+  where
+  img = rect (px 100.0) (px 100.0)
+  imgNoWrap = overlay (repeat (AtMiddleX, AtMiddleY)) [] [img] Nothing
+  imgWrap = overlay (repeat (AtMiddleX, AtMiddleY)) [] [(above [AtMiddleX] [] [img] Nothing)] Nothing
+
+gridLayoutPlusOffsets = viewImage "Grid layout + offsets" offsetImg
+  where
+  offsetImg = beside (repeat AtTop) [(px 0.0, px -10.0), (px 10.0, px 0.0)] [imgA, imgB] Nothing
+  imgA = rect (px 50.0) (px 50.0)
+  imgB = rect (px 100.0) (px 100.0)
 
 // TODO : bounding boxes of rotated images aren't calculated correctly yet
 viewRotateGridImg = viewImage "Rotate test" rotateGridImg

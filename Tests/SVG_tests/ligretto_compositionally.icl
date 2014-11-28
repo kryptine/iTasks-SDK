@@ -24,7 +24,7 @@ imgs = [(lines ["card_size     = (58.5, 90.0)"
               ,"(w,h)         = card_size"
               ,"cardfont size = normalFontDef \"Verdana\" size"
               ,"pilefont size = normalFontDef \"Verdana\" size"
-              ,"card          = {back = Red, front = Green, nr = 7}"
+              ,"card          = {back = Red, front = Green, no = 7}"
               ], mkImg (empty (px zero) (px zero)))
        ,(lines ["card_rect     = rect (px w) (px h)"
               ], mkImg card_rect)
@@ -49,13 +49,13 @@ imgs = [(lines ["card_size     = (58.5, 90.0)"
        ,(lines ["back_card     = overlay [(AtLeft,AtBottom)] [] [back_text]"
               ,"                   (Just (card_shape <@< {fill = toSVGColor \"white\"}))"
               ], mkImg back_card)
-       ,(lines ["nr            = text (cardfont 20.0) (toString card.nr)"
+       ,(lines ["no            = text (cardfont 20.0) (toString card.no)"
               ,"                   <@< {fill = toSVGColor \"white\"}"
-              ,"                   <@< {stroke = toSVGColor (nr_stroke_color card.front)}"
-              ], mkImg nr)
-       ,(lines ["upside_nr     = rotate (deg 180.0) nr"
-              ], mkImg upside_nr)
-       ,(lines ["front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr]"
+              ,"                   <@< {stroke = toSVGColor (no_stroke_color card.front)}"
+              ], mkImg no)
+       ,(lines ["upside_no     = rotate (deg 180.0) no"
+              ], mkImg upside_no)
+       ,(lines ["front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [no,upside_no]"
               ,"                   (Just (card_shape <@< {fill = toSVGColor card.front}) )"
               ], mkImg front_card)
        ,(lines ["pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
@@ -75,7 +75,7 @@ hspace        = px 2.0
 font          = normalFontDef "Courier New" 9.0
 cardfont size = normalFontDef "Verdana" size
 pilefont size = normalFontDef "Verdana" size
-card          = {back = Red, front = Green, nr = 7}
+card          = {back = Red, front = Green, no = 7}
 
 w             = 58.5
 h             = 90.0
@@ -87,10 +87,10 @@ no_card_image = overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"
 ligretto      = text (cardfont (w / 5.0)) "Ligretto"  <@< {stroke = toSVGColor card.back} <@< {fill = toSVGColor "none"}
 back_text     = skewy (deg -20.0) ligretto
 back_card     = overlay [(AtLeft,AtBottom)] [] [back_text] (Just (card_shape <@< {fill = toSVGColor "white"}))
-nr            = text (cardfont 20.0) (toString card.nr) <@< {fill = toSVGColor "white"}
-			  			                              <@< {stroke = toSVGColor (nr_stroke_color card.front)}
-upside_nr     = rotate (deg 180.0) nr
-front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [nr,upside_nr] 
+no            = text (cardfont 20.0) (toString card.no) <@< {fill = toSVGColor "white"}
+			  			                              <@< {stroke = toSVGColor (no_stroke_color card.front)}
+upside_no     = rotate (deg 180.0) no
+front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [no,upside_no] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
 pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))
 indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) "10",pile] Nothing
@@ -101,10 +101,10 @@ instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Green  = toSVGColor "darkgreen"
                                 toSVGColor Blue   = toSVGColor "midnightblue"
                                 toSVGColor Yellow = toSVGColor "gold"
-nr_stroke_color Red		= Blue
-nr_stroke_color Green	= Red
-nr_stroke_color Blue	= Yellow
-nr_stroke_color Yellow	= Green
+no_stroke_color Red		= Blue
+no_stroke_color Green	= Red
+no_stroke_color Blue	= Yellow
+no_stroke_color Yellow	= Green
 
 mkImg img = above (repeat AtLeft) [] [img] Nothing
 
