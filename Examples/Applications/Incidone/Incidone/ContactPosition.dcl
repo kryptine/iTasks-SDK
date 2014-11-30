@@ -1,7 +1,6 @@
 definition module Incidone.ContactPosition
 //This module provides a type for representing geographic positions of contacts
 import iTasks
-import iTasks.API.Extensions.GIS.GoogleMap
 import iTasks.API.Extensions.GIS.Leaflet
 
 from Incidone.OP.Concepts import :: Contact, :: ContactGeo
