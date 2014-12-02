@@ -20,16 +20,15 @@ play_Ligretto :: Task (!Color, !User)
 play_Ligretto
 	=           get currentUser
 	>>= \me  -> invite_friends
-	>>= \you -> let us = [me : you]
-	                no = length us
-	             in allTasks (repeatn no (get randomInt))
+	>>= \you -> let us = zip2 (colors (1+length you)) [me : you]
+	             in allTasks (repeatn (length us) (get randomInt))
 	>>= \rs  -> let gameSt = { middle  = repeatn 16 []
-	                         , players = [  initial_player no color (abs r) 
-	                                     \\ color <- colors no 
+	                         , players = [  initial_player (length us) c (abs r) 
+	                                     \\ (c,_) <- us
 	                                      & r     <- rs
 	                                     ]
 	                         }
-	             in withShared gameSt (all_players no us)
+	             in withShared gameSt (play_game us)
 
 invite_friends :: Task [User]
 invite_friends
@@ -38,23 +37,25 @@ invite_friends
 	               (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
 	               (return you)
 
-all_players :: !NoOfPlayers ![User] !(Shared GameSt) -> Task (!Color, !User)
-all_players no_of_players users game_st
-	=               anyTask  [ user @: play (color,user) game_st \\ user <- users & color <- colors no_of_players ]
-	>>= \winner ->  allTasks [ user @: viewInformation "The winner is:" [] winner >>= return \\ user <- users ]
-	>>| return winner
+play_game :: ![(Color,User)] !(Shared GameSt) -> Task (Color,User)
+play_game users game_st
+	=         anyTask  [ u @: play        (c,u) game_st \\ (c,u) <- users ]
+	>>= \w -> allTasks [ u @: accolades w (c,u) game_st \\ (c,u) <- users ]
+	>>| return w
 
-play :: !(!Color, !User) !(Shared GameSt) -> Task (!Color, !User)
-play (color,user) game_st
-	=   updateSharedInformation (toString user) [imageViewUpdate id (player_perspective (color,user)) (\_ st -> st)] game_st
-	>>* [OnValue (player_wins (color,user))]
+play :: !(!Color, !User) !(Shared GameSt) -> Task (Color,User)
+play player=:(_,u) game_st
+	=   updateSharedInformation (toString u) [imageViewUpdate id (player_perspective player) (\_ st -> st)] game_st
+	>>* [OnValue (player_wins player)]
 
-player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (!Color, !User))
-player_wins (color,user) (Value gameSt _)
-| isEmpty (get_player color gameSt).ligretto
-	= Just (return (color,user))
-player_wins _ _
-	= Nothing
+player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (Color,User))
+player_wins player=:(c,_) (Value gameSt _)
+| isEmpty (get_player c gameSt).ligretto	= Just (return player)
+player_wins _ _								= Nothing
+
+accolades :: !(!Color, !User) !(!Color, !User) !(Shared GameSt) -> Task GameSt
+accolades w player game_st
+	= viewSharedInformation ("The winner is " <+++ w) [imageView (player_perspective player)] game_st
 
 // Image definitions:
 // these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
