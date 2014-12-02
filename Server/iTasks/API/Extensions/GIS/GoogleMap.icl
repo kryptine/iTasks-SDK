@@ -55,33 +55,48 @@ from StdArray import class Array(uselect), instance Array {} a
 				   }
 
 googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff]
-googleMapEditlet g
-  = { Editlet
-    | currVal   = g
-    , genUI     = \cid world -> (uiDef cid, world)
-    , serverDef = { EditletDef
-	              | performIO = \_ _ s w -> (s, w)
-                  , defVal 	= gDefault{|*|}
-	              , genDiff	= genDiff
-	              , appDiff	= appDiff
-	              }
-    , clientDef = { EditletDef
-	              | performIO = updateUI
-	              , defVal 	= {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
-	              , genDiff	= genDiffClient
-	              , appDiff	= appDiffClient
-	              }
-	}
+googleMapEditlet g 
+    = { Editlet
+      | currVal     = g
+      , defValSrv   = gDefault{|*|}
+      , defValClt   = {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
+      , genUI       = uiDef 
+      , appDiffClt  = appDiffClt
+      , genDiffSrv  = genDiff 
+      , appDiffSrv  = appDiff
+      }
 where
-	uiDef cid
-		= { html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
-		  , eventHandlers	= []
+	uiDef cid world
+		= ({ html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
+		  , eventHandlers	= [ComponentEvent "editlet" "init" onInit]
 		  , width 			= ExactSize 600
 		  , height			= ExactSize 300
-		  }
+		  },world)
 		
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
+
+	onInit cid updates clval world 
+        # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
+        | jsIsUndefined gmaps_loaded
+            //Check if another editlet has already loaded the javascript
+            # (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
+            | jsIsUndefined gmaps_callbacks
+                //Setup first callback and load google maps
+                # (gmaps_callbacks,world) = jsEmptyObject world
+                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
+                # world = jsSetObjectAttr "googlemaps_callbacks" gmaps_callbacks jsWindow world
+                # (cb,world)
+                        = jsWrapFun onScriptLoad world
+                # world = jsSetObjectAttr "googlemaps_callback" cb jsWindow world
+                # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=googlemaps_callback" Nothing world
+		        = (clval, NoDiff, world)
+            | otherwise
+                //Just add a callback to the existing set of callbacks
+                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
+		        = (clval, NoDiff, world)
+        | otherwise
+            = initEditlet cid updates clval world
 
     initEditlet cid _ clval=:{val} world
 	    # world = (getElementById (mapdomid cid).# "innerHTML" .= ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
@@ -114,7 +129,7 @@ where
         //Place initial markers
 		# (markerMap, world) = jsNewMap world
 		# world             = foldl (putOnMarker mapobj markerMap) world val.GoogleMap.markers
-        = ({clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}},world)
+        = ({clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}},NoDiff,world)
 	where
 		onChange t              = createEditletEventHandler (onUpdatePerspective t) cid
 		onClick                 = createEditletEventHandler addMarker cid
@@ -122,30 +137,10 @@ where
         afterShow               = createEditletEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
 
-    //Initial setup of UI
-	updateUI cid _ clval=:{mbSt=Nothing} world
-        # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
-        | jsIsUndefined gmaps_loaded
-            //Check if another editlet has already loaded the javascript
-            # (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
-            | jsIsUndefined gmaps_callbacks
-                //Setup first callback and load google maps
-                # (gmaps_callbacks,world) = jsEmptyObject world
-                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
-                # world = jsSetObjectAttr "googlemaps_callbacks" gmaps_callbacks jsWindow world
-                # (cb,world)
-                        = jsWrapFun onScriptLoad world
-                # world = jsSetObjectAttr "googlemaps_callback" cb jsWindow world
-                # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=googlemaps_callback" Nothing world
-		        = (clval, world)
-            | otherwise
-                //Just add a callback to the existing set of callbacks
-                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
-		        = (clval, world)
-        | otherwise
-		    = initEditlet cid undef clval world
+	appDiffClt cid diffs clval world
+		= updateUI cid diffs {clval & val = appDiff diffs clval.val} world
 
-	updateUI cid (Just [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates]) clval=:{mbSt=Just {mapobj}} world //Update the map perspective
+	updateUI cid [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates] clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
         # (_, world)        = callObjectMethod "setMapTypeId" [toJSArg mapTypeId] mapobj world
@@ -154,50 +149,51 @@ where
         # (_, world)        = callObjectMethod "setCenter" [toJSArg latlng] mapobj world
         //Update zoom
         # (_, world)        = callObjectMethod "setZoom" [toJSArg zoom] mapobj world
-        = updateUI cid (Just updates) clval world
+        = updateUI cid updates clval world
 
-    updateUI cid (Just [AddMarkers markers:updates]) clval=:{val,mbSt=Just {mapobj,markerMap}} world
+    updateUI cid [AddMarkers markers:updates] clval=:{val,mbSt=Just {mapobj,markerMap}} world
         # world = foldl (\w m -> createMarker cid mapobj markerMap m w) world markers
-        = updateUI cid (Just updates) clval world
-    updateUI cid (Just [RemoveMarkers markers:updates]) clval=:{mbSt=Just {markerMap}} world
+        = updateUI cid updates clval world
+    updateUI cid [RemoveMarkers markers:updates] clval=:{mbSt=Just {markerMap}} world
 	    # world = foldl (\w m -> removeMarker markerMap m w) world markers
-        = updateUI cid (Just updates) clval world
-    updateUI cid (Just [UpdateMarkers markers:updates]) clval=:{mbSt=Just {mapobj,markerMap}} world
+        = updateUI cid updates clval world
+    updateUI cid [UpdateMarkers markers:updates] clval=:{mbSt=Just {mapobj,markerMap}} world
         //Simply remove and add a marker
         # world = foldl (\w m -> updateMarker cid mapobj markerMap m w) world markers
-        = updateUI cid (Just updates) clval world
-    updateUI id (Just []) clval world
+        = updateUI cid updates clval world
+    updateUI id [] clval world
         = (clval, world)	
 	updateUI id diff clval world //Catchall
         = (clval, world)
 
 	onUpdatePerspective "zoom" _ _ clval=:{val,mbSt=Just st=:{mapobj}} world
 		# (zoom, world) = callObjectMethod "getZoom" [] mapobj world
-		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & zoom = jsValToInt zoom}}}, world)
+		# perspective = {GoogleMapPerspective | val.perspective & zoom = jsValToInt zoom}
+		= ({clval & val={val&perspective=perspective}}, Diff [SetPerspective perspective] ignoreConflict, world)
 	onUpdatePerspective "maptype" _ _ clval=:{val,mbSt=Just {mapobj}} world
 		# (maptypeid, world) = callObjectMethod "getMapTypeId" [] mapobj world
-		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & type = fromString (toUpperCase (jsValToString maptypeid))}}}, world)
+		# perspective = {GoogleMapPerspective | val.perspective & type = fromString (toUpperCase (jsValToString maptypeid))}
+		= ({clval & val={val&perspective=perspective}}, Diff [SetPerspective perspective] ignoreConflict, world)
 	onUpdatePerspective "dragend" _ _ clval=:{val,mbSt=Nothing} world
         # world = jsTrace "WRONG DRAGEND..." world
-        = (clval,world)
+        = (clval, NoDiff, world)
 	onUpdatePerspective "dragend" _ _ clval=:{val,mbSt=Just {mapobj}} world 
 		# (center, world) 	  	= callObjectMethod "getCenter" [] mapobj world
 		# ((lat, lng), world) 	= getPos center world
-		= ({clval & val={val&perspective={GoogleMapPerspective | val.perspective & center = {lat = lat, lng = lng}}}}, world)
+		# perspective 			= {GoogleMapPerspective | val.perspective & center = {lat = lat, lng = lng}}
+		= ({clval & val={val&perspective=perspective}}, Diff [SetPerspective perspective] ignoreConflict, world)
     onUpdatePerspective e _ _ clval world
         # world = jsTrace "CATCHALL" world
         # world = jsTrace e world
-        = (clval,world) //Catchall
+        = (clval, NoDiff, world) //Catchall
 			
 	addMarker cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
 		# (latlng, world)     = jsGetObjectAttr "latLng" event world
 		# ((lat, lng), world) = getPos latlng world
-		
 		# markrec 	= createMarkerRecord markerId lat lng Nothing
 		# markers 	= [markrec: markers]
 		# world 	= createMarker cid mapobj markerMap markrec world
-						
-		= ({clval&val={clval.val&markers=markers}, mbSt=Just {st&nextMarkerId=nextMarkerId+1}}, world)
+		= ({clval&val={clval.val&markers=markers}, mbSt=Just {st&nextMarkerId=nextMarkerId+1}}, Diff [AddMarkers [markrec]] ignoreConflict, world)
 	where
 		markerId = cid +++ "_" +++ toString nextMarkerId
 
@@ -208,7 +204,7 @@ where
         //Correct center
         # (latlng, world)   = jsNewObject "google.maps.LatLng" [toJSArg center.lat,toJSArg center.lng] world	
         # (_, world)        = callObjectMethod "setCenter" [toJSArg latlng] mapobj world
-        = (clval, world)
+        = (clval, NoDiff, world)
 
 	getPos obj world
 		# (lat, world) = callObjectMethod "lat" [] obj world
@@ -270,14 +266,14 @@ where
         onMarkerClick cid _ clval=:{val={markers}} world
             //Toggle selection
             # markers = [{GoogleMapMarker|m & selected = (m.GoogleMapMarker.markerId == markerId)} \\ m <- markers]
-			= ({clval&val={clval.val&markers=markers}}, world)
+			= ({clval&val={clval.val&markers=markers}}, Diff [UpdateMarkers markers] ignoreConflict, world)
 
 		onDrag = createEditletEventHandler onMarkerDrag cid	
 		onMarkerDrag cid {[0]=event} clval=:{val={markers}} world
 			# (latlng, world)      = jsGetObjectAttr "latLng" event world
 			# ((lat, lng), world)  = getPos latlng world
             # markers = [if (m.GoogleMapMarker.markerId == markerId) {GoogleMapMarker|m & position= {GoogleMapPosition | lat = lat, lng = lng}} m \\ m <- markers]
-			= ({clval&val={clval.val&markers=markers}}, world)
+			= ({clval&val={clval.val&markers=markers}}, Diff [UpdateMarkers markers] ignoreConflict, world)
 
     removeMarker markerMap markerId world
         # (mbMarker,world) = jsGet markerId markerMap world
@@ -306,8 +302,7 @@ where
             # (_,world) = jsApply cb jsWindow [] world
             = world
 
-    genDiffClient :: GoogleMapClient GoogleMapClient -> Maybe [GoogleMapDiff]
-	genDiffClient clval1 clval2 = genDiff clval1.val clval2.val
+    ignoreConflict conflict state env = (state, NoDiff, env)
 
     genDiff :: GoogleMap GoogleMap -> Maybe [GoogleMapDiff]
 	genDiff g1 g2 = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
