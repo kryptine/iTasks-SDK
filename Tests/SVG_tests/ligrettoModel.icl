@@ -7,6 +7,51 @@ import Data.Maybe, GenEq
 import iTasks.Framework.Generic.Visualization
 
 derive gEq Card, SideUp, Color
+derive gText Color
+
+play_concealed_pile :: !Color !GameSt -> GameSt
+play_concealed_pile color gameSt
+  = set_player player` gameSt
+where
+	player	= get_player color gameSt
+	player` = case player.hand.conceal of
+				[] = shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
+				_  = swap_discards player
+
+play_hand_card :: !Color !GameSt -> GameSt
+play_hand_card color gameSt=:{GameSt | middle}
+= case top_discard player of
+      Nothing
+        = gameSt
+      (Just card)
+        = case matching_piles card middle of
+            []                 = gameSt
+            [(pileno, pile):_] = let player` = remove_top_of_discard player
+                                     middle` = updateAt pileno [card:pile] middle
+                                  in set_player player` {GameSt | gameSt & middle = middle`}
+where
+	player = get_player color gameSt
+
+play_row_card :: !Color !Int !GameSt -> GameSt
+play_row_card color cardno gameSt=:{GameSt | middle}
+  = case matching_piles card middle of
+      []                 = gameSt
+      [(pileno, pile):_] = let player` = move_ligretto_card_to_row cardno player
+                               middle` = updateAt pileno [card:pile] middle
+                            in set_player player` {GameSt | gameSt & middle  = middle`}
+where
+	player	= get_player color gameSt
+	card    = row_card cardno player
+
+get_player :: !Color !GameSt -> Player
+get_player color gameSt=:{GameSt | players}
+	= case [player \\ player <- players | player.color === color] of
+	     [player : _] = player
+	     ouch         = abort ("Could not find player with color " <+++ color)
+
+set_player :: !Player !GameSt -> GameSt
+set_player player gameSt=:{GameSt | players}
+	= {GameSt | gameSt & players = [if (p.Player.color === player.Player.color) player p \\ p <- players]}
 
 no_of_cards_in_row :: !NoOfPlayers -> Int
 no_of_cards_in_row 2 = 5
@@ -83,3 +128,7 @@ card_matches_top_of_pile card pile
 | isEmpty pile			= card.no == 1
 | otherwise				= let top_card = hd pile in
 						  card.front === top_card.front && card.no == top_card.no+1
+
+matching_piles :: !Card !Middle -> [(Int,Pile)]
+matching_piles card middle
+	= [(pileno,pile) \\ pile <- middle & pileno <- [0..] | card_matches_top_of_pile card pile]

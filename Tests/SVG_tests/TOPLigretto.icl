@@ -15,56 +15,6 @@ import iTasks.API.Extensions.SVG.SVGlet
 //	Make iTask infrastructure available for Ligretto model data types:
 derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 
-//	Game state for an entire game of Ligretto
-::	GameSt = { middle  :: !Middle
-             , players :: ![Player]
-             }
-
-//	Game state functions:
-play_concealed_pile :: !Color !GameSt -> GameSt
-play_concealed_pile color gameSt
-  = set_player player` gameSt
-where
-	player	= get_player color gameSt
-	player` = case player.hand.conceal of
-				[] -> shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
-				_  -> swap_discards player
-
-play_hand :: !Color !GameSt -> GameSt
-play_hand color gameSt=:{GameSt | middle}
-#! player = get_player color gameSt
-= case top_discard player of
-      Nothing
-        = gameSt
-      (Just card)
-        #! matching_piles = [(pileno,pile) \\ pile <- middle & pileno <- [0..] | card_matches_top_of_pile card pile]
-        = case matching_piles of
-            []                 -> gameSt
-            [(pileno, pile):_] -> let player` = remove_top_of_discard player
-                                      middle` = updateAt pileno [card:pile] middle
-                                   in set_player player` {GameSt | gameSt & middle = middle`}
-
-play_row_card :: !Color !Card !Int !GameSt -> GameSt
-play_row_card color card cardno gameSt=:{GameSt | middle}
-  #! player         = get_player color gameSt
-  #! matching_piles = [(pileno,pile) \\ pile <- middle & pileno <- [0..] | card_matches_top_of_pile card pile]
-  = case matching_piles of
-      []                 -> gameSt
-      [(pileno, pile):_] -> let player` = move_ligretto_card_to_row cardno player
-                                middle` = updateAt pileno [card:pile] middle
-                             in set_player player` {GameSt | gameSt & middle  = middle`}
-
-get_player :: !Color !GameSt -> Player
-get_player color gameSt=:{GameSt | players}
-	= case [player \\ player <- players | player.color === color] of
-	     [player : _] = player
-	     ouch         = abort ("Could not find player with color " <+++ color)
-
-set_player :: !Player !GameSt -> GameSt
-set_player player gameSt=:{GameSt | players}
-#! players` = [if (p.Player.color === player.Player.color) player p \\ p <- players]
-= {GameSt | gameSt & players = players`}
-
 //	Task description of Ligretto:
 play_Ligretto :: Task (!Color, !User)
 play_Ligretto
@@ -150,11 +100,11 @@ pile_image side pile
   | no_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] Nothing
   | otherwise        = top_cards_image
 
-row_images :: !Bool !RowPlayer !Color -> [Image GameSt]
-row_images interactive row color
-  = [  let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card color row_card cardno}) card
+row_images :: !Bool !RowPlayer -> [Image GameSt]
+row_images interactive row
+  = [  let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card row_card.back no}) card
 	\\ row_card <- row 
-	 & cardno   <- [1..]
+	 & no       <- [1..]
 	]
 
 stack_whitespace :== empty (px (card_width/4.0)) zero
@@ -165,7 +115,7 @@ hand_images interactive {conceal,discard} color
   #! discard_pile = pile_image Front discard
   | interactive   = [ conceal_pile <@< {onclick = play_concealed_pile color}
                     , stack_whitespace
-                    , discard_pile <@< {onclick = play_hand color}
+                    , discard_pile <@< {onclick = play_hand_card color}
                     ]
   | otherwise     = [ conceal_pile
                     , stack_whitespace
@@ -175,7 +125,7 @@ hand_images interactive {conceal,discard} color
 player_image :: !Bool !Real !Player -> Image GameSt
 player_image interactive r player
   = circular r (pi * 0.5) 
-               (  row_images interactive player.row player.color
+               (  row_images interactive player.row
                ++ [stack_whitespace, pile_image Front player.ligretto, stack_whitespace]
                ++ hand_images interactive player.hand player.color
                )
@@ -185,16 +135,19 @@ middle_image middle :== circular (2.0*card_height) (2.0*pi) (map (pile_image Fro
 
 player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
 player_perspective (color,user) gameSt
-  #! r     = 4.0*card_height
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
-  = margin (px (3.0*card_height))
-    (overlay (repeat (AtMiddleX,AtMiddleY)) []
-             [  rotate (rad (i*angle-0.25*pi-(toReal my_no*angle))) img
+  = margin (px (3.0*card_height)) (rotate (rad (~(toReal my_no*angle))) (game_image (color,user) gameSt))
+
+game_image :: !(!Color, !User) !GameSt -> Image GameSt
+game_image (color,user) gameSt
+  #! r     = 4.0*card_height
+  #! angle = 2.0*pi / (toReal (length gameSt.players))
+  = overlay (repeat (AtMiddleX,AtMiddleY)) []
+             [  rotate (rad (i*angle-0.25*pi)) img
              \\ img <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i   <- [0.0, 1.0 ..]
              ] (Just (middle_image gameSt.middle))
-    )
 
 //	a generally useful image combinator:
 circular :: !Real !Real ![Image m] -> Image m
