@@ -15,7 +15,7 @@ play_concealed_pile color gameSt
 where
 	player	= get_player color gameSt
 	player` = case player.hand.conceal of
-				[] = shuffle_hand (sum [1,length player.ligretto,length player.hand.discard]) player // ISSUE: random value should be obtained from randomInt SDS
+				[] = shuffle_hand  player
 				_  = swap_discards player
 
 play_hand_card :: !Color !GameSt -> GameSt
@@ -75,7 +75,7 @@ shuffle xs seed
 
 initial_player :: !NoOfPlayers !Color !Int -> Player
 initial_player no_of_players back seed
-	= { color = back, row = row, ligretto = ligretto, hand = { conceal = hand, discard = [] } }
+	= { color = back, row = row, ligretto = ligretto, hand = { conceal = hand, discard = [] }, seed = seed }
 where
 	cards           = shuffle (initial_player_cards no_of_players back) seed
 	(row,rest)      = splitAt (no_of_cards_in_row no_of_players) cards
@@ -102,12 +102,16 @@ top_discard {hand={discard}}
 | isEmpty discard   = Nothing
 | otherwise         = Just (hd discard)
 
-shuffle_hand :: !Int !Player -> Player
-shuffle_hand seed player=:{hand=hand=:{conceal,discard}}
-| isEmpty conceal   = {player & hand = { hand & conceal = shuffle discard seed
+shuffle_hand :: !Player -> Player
+shuffle_hand player=:{hand=hand=:{conceal,discard},seed}
+| isEmpty conceal   = {player & hand = { hand & conceal = shuffle discard r1
                                               , discard = []
-                      }                }
+                                       }
+                              , seed = r2
+                      }
 | otherwise         = abort ("ligretto.shuffle_hand: not allowed to shuffle non-empty concealed pile.\n")
+where
+	[r1,r2:_]		= genRandInt (abs seed)
 
 remove_top_of_discard :: !Player -> Player
 remove_top_of_discard player=:{hand=hand=:{conceal,discard}}

@@ -17,6 +17,7 @@ import Data.Maybe
                    , row       :: RowPlayer       // the row of the player (no_of_cards_in_row no_of_players)
                    , ligretto  :: Pile            // the ligretto pile: 10 upto 0 (win) cards
                    , hand      :: Hand            // the hand cards
+                   , seed      :: Int             // the random seed necessary for shuffling cards
                    }
 :: RowPlayer   :== [Card]                         // no_of_cards_in_row no_of_players cards
 :: Hand          = { conceal   :: Pile            // the concealed pile

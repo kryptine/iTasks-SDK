@@ -18,30 +18,34 @@ derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 //	Task description of Ligretto:
 play_Ligretto :: Task (!Color, !User)
 play_Ligretto
-	=               get currentUser
-	>>= \me      -> invite_friends
-	>>= \friends -> let no_of_players = length friends + 1 
-	                in allTasks (repeatn no_of_players (get randomInt))
-	>>= \rs      -> let gameSt        = { middle  = repeatn 16 []
-	                                    , players = [initial_player no_of_players color (abs r) \\ color <- colors no_of_players & r <- rs]
-	                                    }
-	                in withShared gameSt (play_game no_of_players [me : friends])
+	=           get currentUser
+	>>= \me  -> invite_friends
+	>>= \you -> let us = [me : you]
+	                no = length us
+	             in allTasks (repeatn no (get randomInt))
+	>>= \rs  -> let gameSt = { middle  = repeatn 16 []
+	                         , players = [  initial_player no color (abs r) 
+	                                     \\ color <- colors no 
+	                                      & r     <- rs
+	                                     ]
+	                         }
+	             in withShared gameSt (all_players no us)
 
 invite_friends :: Task [User]
 invite_friends
-	=               enterSharedMultipleChoice "Select friends to play with" [] users
-	>>= \friends -> if (not (isMember (length friends) [1..3]))
-	                   (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
-	                   (return friends)
+	=           enterSharedMultipleChoice "Select friends to play with" [] users
+	>>= \you -> if (not (isMember (length you) [1..3]))
+	               (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
+	               (return you)
 
-play_game :: !Int ![User] !(Shared GameSt) -> Task (!Color, !User)
-play_game no_of_players player_ids game_st
-	=               anyTask  [ player @: game no_of_players (color,player) game_st \\ player <- player_ids & color <- colors no_of_players ]
-	>>= \winner ->  allTasks [ player @: viewInformation "The winner is:" [] winner >>= return \\ player <- player_ids ]
+all_players :: !NoOfPlayers ![User] !(Shared GameSt) -> Task (!Color, !User)
+all_players no_of_players users game_st
+	=               anyTask  [ user @: play (color,user) game_st \\ user <- users & color <- colors no_of_players ]
+	>>= \winner ->  allTasks [ user @: viewInformation "The winner is:" [] winner >>= return \\ user <- users ]
 	>>| return winner
 
-game :: !Int !(!Color, !User) !(Shared GameSt) -> Task (!Color, !User)
-game no_of_players (color,user) game_st
+play :: !(!Color, !User) !(Shared GameSt) -> Task (!Color, !User)
+play (color,user) game_st
 	=   updateSharedInformation (toString user) [imageViewUpdate id (player_perspective (color,user)) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins (color,user))]
 
