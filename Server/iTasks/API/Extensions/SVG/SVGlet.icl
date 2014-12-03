@@ -773,32 +773,14 @@ fixSpans img = go
       seqImgsGrid imgs (acc, st)
         #! (imgs, st) = sequence imgs st
         = ([imgs:acc], st)
-      //calculateGridOffsets :: ![Span] ![Span] ![[Image s]] ![(!Span, !Span)] -> [[(!Span, !Span)]]
-      //calculateGridOffsets cellXSpans cellYSpans imgss offsets
-        //=
-          //[ let (maxX, maxY) = getMaxSpans images
-                //allSpans     = getAllSpans images
-             //in [  ( getXAlign maxX xspan xalign
-                   //, getYAlign maxY yspan yalign)
-                //\\ cellXSpan          <- cellXSpans
-                 //& (xalign, yalign)   <- aligns
-                 //& (offsetX, offsetY) <- offsets
-                 //& (xspan, yspan)     <- allSpans
-                 //& image              <- images ]
-          //\\ cellYSpan <- cellYSpans
-           //& aligns    <- alignss
-           //& offsets   <- offsetss
-           //& images    <- imagess ]
 
       calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
       calculateGridOffsets cellXSpans cellYSpans iass imgss offsetss
-        = let (x, _) = foldr (mkRows cellXSpans) ([], px 0.0) (zip4 imgss iass cellYSpans offsetss)
-          in  x
+        = fst (foldr (mkRows cellXSpans) ([], px 0.0) (zip4 iass imgss cellYSpans offsetss))
         where
-        mkRows :: ![Span] !(![Image s], ![(!XAlign, !YAlign)], !Span, ![(!Span, !Span)]) !(![[(!Span, !Span)]], !Span)
+        mkRows :: ![Span] !(![(!XAlign, !YAlign)], ![Image s], !Span, ![(!Span, !Span)]) !(![[(!Span, !Span)]], !Span)
                -> (![[(!Span, !Span)]], !Span)
-        mkRows cellXSpans (imgs, aligns, cellYSpan, offsets) (acc, yoff)
-          #! imgsLength = length imgs
+        mkRows cellXSpans (aligns, imgs, cellYSpan, offsets) (acc, yoff)
           = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans aligns offsets)) : acc]
             , yoff + cellYSpan)
         mkCols :: !Span !Span !(Image s, !Span, !(!XAlign, !YAlign), !(!Span, !Span)) !(![(!Span, !Span)], !Span) -> (![(!Span, !Span)], !Span)
