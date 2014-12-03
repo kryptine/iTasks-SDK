@@ -41,11 +41,19 @@ function __iTasks_API_Core_Client_Interface_jsEmptyObject(world) {
 function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
     world = Sapl.feval(world);
 	cons_name = Sapl.feval(cons_name);
-	args = Sapl.toJS(Sapl.feval(args)); 
+	args = Sapl.toJS(Sapl.feval(args));
 
-	args = [null].concat(args);
-    var factoryFunction = Object.prototype.constructor.bind.apply(eval(cons_name), args);
-    return ___Tuple2(___wrapJS(new factoryFunction()), world);
+    var evalStr = "new " + cons_name + "(";
+    var argsArr = [];
+
+    for (var i = 0; i < args.length; i++) {
+      argsArr[i] = "args[" + i + "]";
+    }
+
+    evalStr += argsArr.join(",") + ");";
+
+    var obj = eval(evalStr);
+    return ___Tuple2(___wrapJS(obj), world);
 }
 
 //jsGetObjectAttr :: !String !(JSVal a) !*JSWorld -> *(!JSVal b, !*JSWorld)
