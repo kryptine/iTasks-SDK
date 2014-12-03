@@ -428,13 +428,13 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     { compositeImageAlg = mkCompositeImage
     }
     where
-    mkCompositeImage :: ![(!Map FontDef (Set String), !Map FontDef (Set String))] !(Maybe (Map FontDef (Set String))) !(Map FontDef (Set String)) -> Map FontDef (Set String)
-    mkCompositeImage offsets host compose = gatherFontsUnions [compose : ((foldr (\(x, y) acc -> [x:y:acc]) []) offsets) ++ maybeToList host]
-  gatherFontsComposeAlgs :: ComposeAlg (Map FontDef (Set String)) (Map FontDef (Set String))
+    mkCompositeImage :: !(Maybe (Map FontDef (Set String))) !(Map FontDef (Set String)) -> Map FontDef (Set String)
+    mkCompositeImage host compose = gatherFontsUnions [compose : maybeToList host]
+  gatherFontsComposeAlgs :: ComposeAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsComposeAlgs =
-    { composeAsGridAlg    = const2 (gatherFontsUnions o flatten)
-    , composeAsCollageAlg = gatherFontsUnions
-    , composeAsOverlayAlg = const gatherFontsUnions
+    { composeAsGridAlg    = \_ offss _ imgss -> gatherFontsUnions (flatten imgss ++ (foldr (\(x, y) acc -> [x:y:acc]) [] (flatten offss)))
+    , composeAsCollageAlg = \  offs    imgs  -> gatherFontsUnions (imgs ++ foldr (\(x, y) acc -> [x:y:acc]) [] offs)
+    , composeAsOverlayAlg = \  offs  _ imgs  -> gatherFontsUnions (imgs ++ foldr (\(x, y) acc -> [x:y:acc]) [] offs)
     }
 gatherFontsSpanAlgs :: SpanAlg (Map FontDef (Set String)) (Map FontDef (Set String))
 gatherFontsSpanAlgs =:
@@ -488,7 +488,7 @@ fixSpans img = go
                      (FixSpansSt (!Span, !Span))
                      ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s))
                      (FixSpansSt (Image s))
-                     ([(!Span, !Span)] (Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !(!Span, !Span), [(!Span, !Span)]))
+                     ((Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !(!Span, !Span)))
                      (FixSpansSt Span) (FixSpansSt Span) (FixSpansSt (Markers s))
                      ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s))
                      (FixSpansSt LineContent) | iTask s
@@ -710,65 +710,64 @@ fixSpans img = go
       = (PolylineImage coords, st)
   fixSpansCompositeImageAlgs :: CompositeImageAlg (FixSpansSt Span)
                                                   (FixSpansSt (Image s))
-                                                  ([ImageOffset] (Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !ImageSpan, ![ImageOffset]))
+                                                  ((Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !ImageSpan))
                                                   ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s)) | iTask s
   fixSpansCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
     where
-    mkCompositeImage :: ![(FixSpansSt Span, FixSpansSt Span)]
-                        !(Maybe (FixSpansSt (Image s)))
-                        !([ImageOffset] (Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !ImageSpan, ![ImageOffset]))
+    mkCompositeImage :: !(Maybe (FixSpansSt (Image s)))
+                        !((Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !ImageSpan))
                         ![ImageTransform] !(Set ImageTag)
                         !FixSpansStVal
                     -> .(!FixSpansSyn s, !FixSpansStVal) | iTask s
-    mkCompositeImage offsets host compose imTrs imTas st
-      #! (offsets, st) = evalOffsets offsets st
+    mkCompositeImage host compose imTrs imTas st
+      //#! (offsets, st) = evalOffsets offsets st
       #! (host, st)    = evalMaybe host st
-      #! ((compose, composeSpan, offsets), st) = compose offsets host imTrs imTas st
+      #! ((compose, composeSpan), st) = compose host imTrs imTas st
       #! (host, span)  = case host of
                           Just hostImg
                              -> (Just hostImg, hostImg.totalSpanPostTrans)
                           _  -> (Nothing, composeSpan)
       #! (span`, corr) = applyTransforms imTrs span
       = ({ fixSpansSyn_ImageContent     = Composite { CompositeImage
-                                                    | offsets = offsets
-                                                    , host    = host
+                                                    | host    = host
                                                     , compose = compose
                                                     }
          , fixSpansSyn_TotalSpan_PreTrans  = span
          , fixSpansSyn_TotalSpan_PostTrans = span`
          , fixSpansSyn_OffsetCorrection = corr }, st)
-  fixSpansComposeAlgs :: ComposeAlg (FixSpansSt (Image s))
-                                    ([ImageOffset] (Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !ImageSpan, ![ImageOffset])) | iTask s
+  fixSpansComposeAlgs :: ComposeAlg (FixSpansSt Span) (FixSpansSt (Image s))
+                                    ((Maybe (Image s)) [ImageTransform] (Set ImageTag) -> FixSpansSt (!Compose s, !ImageSpan)) | iTask s
   fixSpansComposeAlgs =
     { composeAsGridAlg    = mkGrid
     , composeAsCollageAlg = mkCollage
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: !(Int, Int) ![[ImageAlign]] ![[FixSpansSt (Image s)]]
-              ![ImageOffset] !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag)
+    mkGrid :: !(Int, Int) ![[(FixSpansSt Span, FixSpansSt Span)]]
+              ![[ImageAlign]] ![[FixSpansSt (Image s)]]
+              !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag)
               !FixSpansStVal
-           -> .(!(!Compose s, !ImageSpan, ![ImageOffset]), !FixSpansStVal) | iTask s
-    mkGrid (numcols, numrows) ias imgss offsets mbhost imTrs imTas st
-      #! (imgss, st) = foldr seqImgsGrid ([], st) imgss
-      #! imgss       = strictTRMapRev reverseTR imgss // TODO This is more or less a hack... why do we need this?
-      #! (tag, st)   = nextNo st
-      #! sysTags     = ImageTagSystem tag
-      #! colIndices  = [0..numcols - 1]
-      #! rowIndices  = [0..numrows - 1]
-      #! gridSpan    = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
-                             , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) rowIndices
-                             )
-                             (\x -> x.totalSpanPostTrans) mbhost
-      #! spanss      = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
-      #! st          = cacheGridSpans ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
-      #! offsets`    = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
-                                                     (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) ias imgss offsets)
-      = (( AsCollage (flatten imgss)
-         , gridSpan
-         , offsets`), { st & fixSpansDidChange = True })
+           -> .(!(!Compose s, !ImageSpan), !FixSpansStVal) | iTask s
+    mkGrid (numcols, numrows) offsetss iass imgss mbhost imTrs imTas st
+      #! (offsetss, st) = mapSt evalOffsets offsetss st
+      #! (imgss, st)    = foldr seqImgsGrid ([], st) imgss
+      #! imgss          = strictTRMapRev reverseTR imgss // TODO This is more or less a hack... why do we need this?
+      #! (tag, st)      = nextNo st
+      #! sysTags        = ImageTagSystem tag
+      #! colIndices     = [0..numcols - 1]
+      #! rowIndices     = [0..numrows - 1]
+      #! gridSpan       = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
+                                , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) rowIndices
+                                )
+                                (\x -> x.totalSpanPostTrans) mbhost
+      #! spanss         = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
+      #! st             = cacheGridSpans ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
+      #! offsets`       = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
+                                                        (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) iass imgss offsetss)
+      = (( AsCollage offsets` (flatten imgss)
+         , gridSpan), { st & fixSpansDidChange = True })
       where
       seqImgsGrid :: ![a -> .(!b, !a)] !(![[b]], !a) -> (![[b]], !a)
       seqImgsGrid imgs (acc, st)
@@ -791,46 +790,48 @@ fixSpans img = go
            //& offsets   <- offsetss
            //& images    <- imagess ]
 
-      calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![(!Span, !Span)] -> [[(!Span, !Span)]]
-      calculateGridOffsets cellXSpans cellYSpans iass imgss offsets
-        = let (x, _, _) = foldr (mkRows cellXSpans) ([], px 0.0, offsets) (zip3 imgss iass cellYSpans)
+      calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
+      calculateGridOffsets cellXSpans cellYSpans iass imgss offsetss
+        = let (x, _) = foldr (mkRows cellXSpans) ([], px 0.0) (zip4 imgss iass cellYSpans offsetss)
           in  x
         where
-        mkRows :: ![Span] !(![Image s], ![(!XAlign, !YAlign)], !Span) !(![[(!Span, !Span)]], !Span, ![(!Span, !Span)])
-               -> (![[(!Span, !Span)]], !Span, ![(!Span, !Span)])
-        mkRows cellXSpans (imgs, aligns, cellYSpan) (acc, yoff, offsets)
+        mkRows :: ![Span] !(![Image s], ![(!XAlign, !YAlign)], !Span, ![(!Span, !Span)]) !(![[(!Span, !Span)]], !Span)
+               -> (![[(!Span, !Span)]], !Span)
+        mkRows cellXSpans (imgs, aligns, cellYSpan, offsets) (acc, yoff)
           #! imgsLength = length imgs
-          = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans aligns (take imgsLength offsets))) : acc]
-            , yoff + cellYSpan, drop imgsLength offsets)
+          = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans aligns offsets)) : acc]
+            , yoff + cellYSpan)
         mkCols :: !Span !Span !(Image s, !Span, !(!XAlign, !YAlign), !(!Span, !Span)) !(![(!Span, !Span)], !Span) -> (![(!Span, !Span)], !Span)
         mkCols cellYSpan yoff (img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, align, (manXOff, manYOff)) (acc, xoff)
           #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
           = ([( alignXOff + xoff + manXOff + tfXCorr
               , alignYOff + yoff + manYOff + tfYCorr):acc], xoff + cellXSpan)
 
-    mkCollage :: ![FixSpansSt (Image s)] ![ImageOffset] !(Maybe (Image s))
+    mkCollage :: ![(FixSpansSt Span, FixSpansSt Span)]
+                 ![FixSpansSt (Image s)] !(Maybe (Image s))
                  ![ImageTransform] !(Set ImageTag)
                  !FixSpansStVal
-              -> .(!(!Compose s, !ImageSpan, ![ImageOffset]), !FixSpansStVal) | iTask s
-    mkCollage imgs offsets mbhost imTrs imTas st
+              -> .(!(!Compose s, !ImageSpan), !FixSpansStVal) | iTask s
+    mkCollage offsets imgs mbhost imTrs imTas st
+      #! (offsets, st) = evalOffsets offsets st
       #! (imgs, st) = sequence imgs st
-      = (( AsCollage imgs
-         , maybe (calculateComposedSpan (strictTRMap (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) mbhost
-         , offsets), st)
-    mkOverlay :: ![ImageAlign] ![FixSpansSt (Image s)] ![ImageOffset]
+      = (( AsCollage offsets imgs
+         , maybe (calculateComposedSpan (strictTRMap (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) mbhost), st)
+    mkOverlay :: ![(FixSpansSt Span, FixSpansSt Span)]
+                 ![ImageAlign] ![FixSpansSt (Image s)]
                  !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag)
                  !FixSpansStVal
-              -> .(!(!Compose s, !ImageSpan, ![ImageOffset]), !FixSpansStVal) | iTask s
-    mkOverlay ias imgs offsets mbhost imTrs imTas st
+              -> .(!(!Compose s, !ImageSpan), !FixSpansStVal) | iTask s
+    mkOverlay offsets ias imgs mbhost imTrs imTas st
+      #! (offsets, st) = evalOffsets offsets st
       #! (imgs, st)           = sequence imgs st
       #! spans                = strictTRMap (\x -> x.totalSpanPostTrans) imgs
       #! (maxXSpan, maxYSpan) = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
                                       (\x -> x.totalSpanPreTrans) mbhost
       #! alignOffsets         = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets       = zipWith3 addOffset alignOffsets offsets imgs
-      = (( AsCollage imgs
-         , maybe (calculateComposedSpan spans alignOffsets) (\x -> x.totalSpanPostTrans) mbhost
-         , placingOffsets ), { st & fixSpansDidChange = True })
+      = (( AsCollage placingOffsets imgs
+         , maybe (calculateComposedSpan spans alignOffsets) (\x -> x.totalSpanPostTrans) mbhost), { st & fixSpansDidChange = True })
       where
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
       addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff)
@@ -1246,24 +1247,22 @@ genSVG img = imageCata genSVGAllAlgs img
 
   genSVGCompositeImageAlgs :: CompositeImageAlg (GenSVGSt s Real)
                                                (GenSVGSt s (GenSVGSyn s))
-                                               ([ImageOffsetReal] (Maybe (GenSVGSyn s)) ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
+                                               ((Maybe (GenSVGSyn s)) ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
                                                (ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
     where
-    mkCompositeImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)]
-                        !(Maybe (GenSVGSt s (GenSVGSyn s)))
-                        !([ImageSpanReal] (Maybe (GenSVGSyn s)) ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
+    mkCompositeImage :: !(Maybe (GenSVGSt s (GenSVGSyn s)))
+                        !((Maybe (GenSVGSyn s)) ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
                         !ImageSpanReal !ImageSpanReal
                         ![(!Maybe HtmlAttr, !Maybe SVGAttr)]
                         ![ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)]
                         !(Set ImageTag) !(GenSVGStVal s)
                      -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkCompositeImage offsets host compose totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
-      #! (offsets, st) = evalOffsets offsets st
+    mkCompositeImage host compose totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
       #! (host, st)    = evalMaybe host st
-      #! (compose, st) = compose offsets host totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
+      #! (compose, st) = compose host totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
       #! (cpId, st)    = getCpId st
       #! (elts, spans, onclicks) = case host of
                                      Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal, genSVGSyn_onclicks}
@@ -1280,20 +1279,22 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (n, clval) = nextNo clval
       = (mkClipPathId editletId n, clval)
 
-  genSVGComposeAlgs :: ComposeAlg (GenSVGSt s (GenSVGSyn s))
-                                 ([ImageOffsetReal] (Maybe (GenSVGSyn s)) ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s)) | iTask s
+  genSVGComposeAlgs :: ComposeAlg (GenSVGSt s Real) (GenSVGSt s (GenSVGSyn s))
+                                 ((Maybe (GenSVGSyn s)) ImageSpanReal ImageSpanReal [(!Maybe HtmlAttr, !Maybe SVGAttr)] [ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGComposeAlgs =
     { composeAsGridAlg    = \_ _ _ _ _ _ _ _ _ _ -> ret mkGenSVGSyn // These aren't used. They're translated to collages in fixSpans. We provide them here only because we must if we don't want the evaluation to crash.
     , composeAsOverlayAlg = \_ _ _ _ _ _ _ _ _   -> ret mkGenSVGSyn // These aren't used. They're translated to collages in fixSpans. We provide them here only because we must if we don't want the evaluation to crash.
     , composeAsCollageAlg = mkCollage
     }
     where
-    mkCollage :: ![GenSVGSt s (GenSVGSyn s)] ![ImageOffsetReal] !(Maybe (GenSVGSyn s))
+    mkCollage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)]
+                 ![GenSVGSt s (GenSVGSyn s)] !(Maybe (GenSVGSyn s))
                  !ImageSpanReal !ImageSpanReal ![(!Maybe HtmlAttr, !Maybe SVGAttr)]
                  ![ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] !(Set ImageTag)
                  !(GenSVGStVal s)
               -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkCollage imgs offsets _ totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
+    mkCollage offsets imgs _ totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
+      #! (offsets, st) = evalOffsets offsets st
       #! (imgsSps, st) = sequence imgs st
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
@@ -1422,7 +1423,7 @@ mkList f xs st
   , markersAlgs        :: !MarkersAlg im ma
   , lineContentAlgs    :: !LineContentAlg sp liCo
   , compositeImageAlgs :: !CompositeImageAlg sp ho co coIm
-  , composeAlgs        :: !ComposeAlg im co
+  , composeAlgs        :: !ComposeAlg sp im co
   , spanAlgs           :: !SpanAlg loSp sp
   , lookupSpanAlgs     :: !LookupSpanAlg loSp
   }
@@ -1485,13 +1486,13 @@ mkList f xs st
   }
 
 :: CompositeImageAlg sp ho co coIm =
-  { compositeImageAlg :: ![(!sp, !sp)] (Maybe ho) co -> coIm
+  { compositeImageAlg :: (Maybe ho) co -> coIm
   }
 
-:: ComposeAlg im co =
-  { composeAsGridAlg    :: !(!Int, !Int) [[ImageAlign]] [[im]] -> co
-  , composeAsCollageAlg :: !                            [im]   -> co
-  , composeAsOverlayAlg :: !             [ImageAlign]   [im]   -> co
+:: ComposeAlg sp im co =
+  { composeAsGridAlg    :: !(!Int, !Int) [[(!sp, !sp)]] [[ImageAlign]] [[im]] -> co
+  , composeAsCollageAlg :: !             [(!sp, !sp)]                  [im]   -> co
+  , composeAsOverlayAlg :: !             [(!sp, !sp)]   [ImageAlign]   [im]   -> co
   }
 
 :: SpanAlg loSp sp =
@@ -1632,22 +1633,24 @@ span2TupleCata imageSpanAlgs spanAlgs lookupSpanAlgs (xspan, yspan)
   = imageSpanAlgs.imageSpanAlg synSpan1 synSpan2
 
 compositeImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(CompositeImage m) -> coIm
-compositeImageCata allAlgs { CompositeImage | offsets, host, compose }
-  #! synsImageOffset = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
+compositeImageCata allAlgs { CompositeImage | host, compose }
   #! synHost         = fmap (imageCata allAlgs) host
   #! synCompose      = composeCata allAlgs compose
-  = allAlgs.compositeImageAlgs.compositeImageAlg synsImageOffset synHost synCompose
+  = allAlgs.compositeImageAlgs.compositeImageAlg synHost synCompose
 
 composeCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Compose m) -> co
-composeCata allAlgs (AsGrid n ias imgss)
+composeCata allAlgs (AsGrid n offsetss ias imgss)
+  #! synsImageOffsetss = foldr (\xs xss -> [foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs xs:xss]) [] offsetss
   #! synsContent = foldr (\xs xss -> [foldrCata (imageCata allAlgs) xs:xss]) [] imgss
-  = allAlgs.composeAlgs.composeAsGridAlg n ias synsContent
-composeCata allAlgs (AsCollage imgs)
+  = allAlgs.composeAlgs.composeAsGridAlg n synsImageOffsetss ias synsContent
+composeCata allAlgs (AsCollage offsets imgs)
+  #! synsImageOffsets = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
   #! synsContent = foldrCata (imageCata allAlgs) imgs
-  = allAlgs.composeAlgs.composeAsCollageAlg synsContent
-composeCata allAlgs (AsOverlay ias imgs)
+  = allAlgs.composeAlgs.composeAsCollageAlg synsImageOffsets synsContent
+composeCata allAlgs (AsOverlay offsets ias imgs)
+  #! synsImageOffsets = foldrOffsets allAlgs.spanAlgs allAlgs.lookupSpanAlgs offsets
   #! synsContent = foldrCata (imageCata allAlgs) imgs
-  = allAlgs.composeAlgs.composeAsOverlayAlg ias synsContent
+  = allAlgs.composeAlgs.composeAsOverlayAlg synsImageOffsets ias synsContent
 
 spanCata :: !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !Span -> sp
 spanCata spanAlgs lookupSpanAlgs (PxSpan rl)
