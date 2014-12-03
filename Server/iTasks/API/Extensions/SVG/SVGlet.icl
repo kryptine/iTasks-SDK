@@ -747,7 +747,7 @@ fixSpans img = go
     , composeAsOverlayAlg = mkOverlay
     }
     where
-    mkGrid :: !(Int, Int) ![ImageAlign] ![[FixSpansSt (Image s)]]
+    mkGrid :: !(Int, Int) ![[ImageAlign]] ![[FixSpansSt (Image s)]]
               ![ImageOffset] !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag)
               !FixSpansStVal
            -> .(!(!Compose s, !ImageSpan, ![ImageOffset]), !FixSpansStVal) | iTask s
@@ -765,7 +765,7 @@ fixSpans img = go
       #! spanss      = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
       #! st          = cacheGridSpans ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
       #! offsets`    = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
-                                                     (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) imgss offsets)
+                                                     (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) ias imgss offsets)
       = (( AsCollage (flatten imgss)
          , gridSpan
          , offsets`), { st & fixSpansDidChange = True })
@@ -774,17 +774,34 @@ fixSpans img = go
       seqImgsGrid imgs (acc, st)
         #! (imgs, st) = sequence imgs st
         = ([imgs:acc], st)
-      calculateGridOffsets :: ![Span] ![Span] ![[Image s]] ![(!Span, !Span)] -> [[(!Span, !Span)]]
-      calculateGridOffsets cellXSpans cellYSpans imgss offsets
-        = let (x, _, _, _) = foldr (mkRows cellXSpans) ([], px 0.0, ias, offsets) (zip2 imgss cellYSpans)
+      //calculateGridOffsets :: ![Span] ![Span] ![[Image s]] ![(!Span, !Span)] -> [[(!Span, !Span)]]
+      //calculateGridOffsets cellXSpans cellYSpans imgss offsets
+        //=
+          //[ let (maxX, maxY) = getMaxSpans images
+                //allSpans     = getAllSpans images
+             //in [  ( getXAlign maxX xspan xalign
+                   //, getYAlign maxY yspan yalign)
+                //\\ cellXSpan          <- cellXSpans
+                 //& (xalign, yalign)   <- aligns
+                 //& (offsetX, offsetY) <- offsets
+                 //& (xspan, yspan)     <- allSpans
+                 //& image              <- images ]
+          //\\ cellYSpan <- cellYSpans
+           //& aligns    <- alignss
+           //& offsets   <- offsetss
+           //& images    <- imagess ]
+
+      calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![(!Span, !Span)] -> [[(!Span, !Span)]]
+      calculateGridOffsets cellXSpans cellYSpans iass imgss offsets
+        = let (x, _, _) = foldr (mkRows cellXSpans) ([], px 0.0, offsets) (zip3 imgss iass cellYSpans)
           in  x
         where
-        mkRows :: ![Span] !(![Image s], !Span) !(![[(!Span, !Span)]], !Span, ![(!XAlign, !YAlign)], ![(!Span, !Span)])
-               -> (![[(!Span, !Span)]], !Span, ![(!XAlign, !YAlign)], ![(!Span, !Span)])
-        mkRows cellXSpans (imgs, cellYSpan) (acc, yoff, aligns, offsets)
+        mkRows :: ![Span] !(![Image s], ![(!XAlign, !YAlign)], !Span) !(![[(!Span, !Span)]], !Span, ![(!Span, !Span)])
+               -> (![[(!Span, !Span)]], !Span, ![(!Span, !Span)])
+        mkRows cellXSpans (imgs, aligns, cellYSpan) (acc, yoff, offsets)
           #! imgsLength = length imgs
-          = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans (take imgsLength aligns) (take imgsLength offsets))) : acc]
-            , yoff + cellYSpan, drop imgsLength aligns, drop imgsLength offsets)
+          = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 imgs cellXSpans aligns (take imgsLength offsets))) : acc]
+            , yoff + cellYSpan, drop imgsLength offsets)
         mkCols :: !Span !Span !(Image s, !Span, !(!XAlign, !YAlign), !(!Span, !Span)) !(![(!Span, !Span)], !Span) -> (![(!Span, !Span)], !Span)
         mkCols cellYSpan yoff (img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, align, (manXOff, manYOff)) (acc, xoff)
           #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
@@ -808,7 +825,7 @@ fixSpans img = go
       #! (imgs, st)           = sequence imgs st
       #! spans                = strictTRMap (\x -> x.totalSpanPostTrans) imgs
       #! (maxXSpan, maxYSpan) = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
-                                      (\x -> x.totalSpanPostTrans) mbhost
+                                      (\x -> x.totalSpanPreTrans) mbhost
       #! alignOffsets         = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets       = zipWith3 addOffset alignOffsets offsets imgs
       = (( AsCollage imgs
@@ -1276,7 +1293,7 @@ genSVG img = imageCata genSVGAllAlgs img
                  ![ImageSpanReal Bool -> GenSVGSt s (!SVGTransform, !ImageTransform)] !(Set ImageTag)
                  !(GenSVGStVal s)
               -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkCollage imgs offsets mbhost totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
+    mkCollage imgs offsets _ totalSpanPreTrans totalSpanPostTrans imAts imTrs imTas st
       #! (imgsSps, st) = sequence imgs st
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
@@ -1395,7 +1412,7 @@ mkList f xs st
   = (f xs, st)
 
 :: Algebras m imCo imAt imTr im baIm imSp coIm ho co sp loSp ma liIm liCo =
-  !{ imageAlgs          :: !ImageAlg imCo imAt imTr sp im
+  { imageAlgs          :: !ImageAlg imCo imAt imTr sp im
   , imageContentAlgs   :: !ImageContentAlg baIm imSp liIm coIm imCo
   , imageAttrAlgs      :: !ImageAttrAlg m imAt
   , imageTransformAlgs :: !ImageTransformAlg sp imTr
@@ -1411,17 +1428,17 @@ mkList f xs st
   }
 
 :: ImageAlg imCo imAt imTr sp im =
-  !{ imageAlg :: !imCo (Maybe im) [imAt] [imTr] (Set ImageTag) (!sp, !sp) (!sp, !sp) (!sp, !sp, !sp, !sp) (!sp, !sp) -> im
+  { imageAlg :: !imCo (Maybe im) [imAt] [imTr] (Set ImageTag) (!sp, !sp) (!sp, !sp) (!sp, !sp, !sp, !sp) (!sp, !sp) -> im
   }
 
 :: ImageContentAlg baIm imSp liIm coIm imCo =
-  !{ imageContentBasicAlg     :: !baIm imSp -> imCo
+  { imageContentBasicAlg     :: !baIm imSp -> imCo
   , imageContentLineAlg      :: !liIm      -> imCo
   , imageContentCompositeAlg :: !coIm      -> imCo
   }
 
 :: ImageAttrAlg m imAt =
-  !{ imageAttrImageStrokeAttrAlg   :: !(StrokeAttr m)      -> imAt
+  { imageAttrImageStrokeAttrAlg   :: !(StrokeAttr m)      -> imAt
   , imageAttrStrokeWidthAttrAlg   :: !(StrokeWidthAttr m) -> imAt
   , imageAttrXRadiusAttrAlg       :: !(XRadiusAttr m)     -> imAt
   , imageAttrYRadiusAttrAlg       :: !(YRadiusAttr m)     -> imAt
@@ -1433,7 +1450,7 @@ mkList f xs st
   }
 
 :: ImageTransformAlg sp imTr =
-  !{ imageTransformRotateImageAlg :: !Angle -> imTr
+  { imageTransformRotateImageAlg :: !Angle -> imTr
   , imageTransformSkewXImageAlg  :: !Angle -> imTr
   , imageTransformSkewYImageAlg  :: !Angle -> imTr
   , imageTransformFitImageAlg    :: !sp sp -> imTr
@@ -1442,11 +1459,11 @@ mkList f xs st
   }
 
 :: ImageSpanAlg sp imSp =
-  !{ imageSpanAlg :: !sp sp -> imSp
+  { imageSpanAlg :: !sp sp -> imSp
   }
 
 :: BasicImageAlg baIm =
-  !{ basicImageEmptyImageAlg   :: !                  baIm
+  { basicImageEmptyImageAlg   :: !                  baIm
   , basicImageTextImageAlg    :: !FontDef String -> baIm
   , basicImageCircleImageAlg  :: !                  baIm
   , basicImageRectImageAlg    :: !                  baIm
@@ -1454,31 +1471,31 @@ mkList f xs st
   }
 
 :: LineImageAlg imSp ma liCo liIm =
-  !{ lineImageLineImageAlg :: !imSp (Maybe ma) liCo -> liIm
+  { lineImageLineImageAlg :: !imSp (Maybe ma) liCo -> liIm
   }
 
 :: LineContentAlg sp liCo =
-  !{ lineContentSimpleLineImageAlg :: !Slash        -> liCo
+  { lineContentSimpleLineImageAlg :: !Slash        -> liCo
   , lineContentPolygonImageAlg    :: ![(!sp, !sp)] -> liCo
   , lineContentPolylineImageAlg   :: ![(!sp, !sp)] -> liCo
   }
 
 :: MarkersAlg im ma =
-  !{ markersMarkersAlg :: !(Maybe im) (Maybe im) (Maybe im) -> ma
+  { markersMarkersAlg :: !(Maybe im) (Maybe im) (Maybe im) -> ma
   }
 
 :: CompositeImageAlg sp ho co coIm =
-  !{ compositeImageAlg :: ![(!sp, !sp)] (Maybe ho) co -> coIm
+  { compositeImageAlg :: ![(!sp, !sp)] (Maybe ho) co -> coIm
   }
 
 :: ComposeAlg im co =
-  !{ composeAsGridAlg    :: !(!Int, !Int) [ImageAlign] [[im]] -> co
-  , composeAsCollageAlg :: !                          [im]   -> co
-  , composeAsOverlayAlg :: !             [ImageAlign] [im]   -> co
+  { composeAsGridAlg    :: !(!Int, !Int) [[ImageAlign]] [[im]] -> co
+  , composeAsCollageAlg :: !                            [im]   -> co
+  , composeAsOverlayAlg :: !             [ImageAlign]   [im]   -> co
   }
 
 :: SpanAlg loSp sp =
-  !{ spanPxSpanAlg     :: !Real  -> sp
+  { spanPxSpanAlg     :: !Real  -> sp
   , spanLookupSpanAlg :: !loSp  -> sp
   , spanAddSpanAlg    :: !sp sp -> sp
   , spanSubSpanAlg    :: !sp sp -> sp
@@ -1490,7 +1507,7 @@ mkList f xs st
   }
 
 :: LookupSpanAlg loSp =
-  !{ lookupSpanColumnXSpanAlg  :: !ImageTag Int -> loSp
+  { lookupSpanColumnXSpanAlg  :: !ImageTag Int -> loSp
   , lookupSpanImageXSpanAlg   :: !ImageTag     -> loSp
   , lookupSpanImageYSpanAlg   :: !ImageTag     -> loSp
   , lookupSpanRowYSpanAlg     :: !ImageTag Int -> loSp
