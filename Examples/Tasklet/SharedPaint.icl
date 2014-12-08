@@ -6,8 +6,33 @@ from StdArray import class Array(uselect), instance Array {} a
 
 import Text
 
-:: Tool   :== String
-:: Color  :== String
+:: Tool = TLine | TRect | TRectF | TCircle | TCircleF
+
+:: Color = Yellow | Red | Green | Blue | Black
+
+instance toString Color
+where
+  toString Yellow = "yellow"
+  toString Red = "red"  
+  toString Green = "green"    
+  toString Blue = "blue"
+  toString Black = "black"      
+
+instance toString Tool
+where
+  toString TLine = "Line"
+  toString TRect = "Rectangle"  
+  toString TRectF = "Rectangle (filled)"    
+  toString TCircle = "Circle"
+  toString TCircleF = "Circle (filled)"     
+
+instance fromString Tool
+where
+  fromString "Line" = TLine
+  fromString "Rectangle" = TRect
+  fromString "Rectangle (filled)" = TRectF    
+  fromString "Circle" = TCircle  
+  fromString "Circle (filled)" = TCircleF
 
 :: PainterState = 	{ selectedTool  :: Tool
 					, selectedColor :: Color
@@ -25,14 +50,14 @@ import Text
 
 instance toString Shape
 where
-	toString (Line color a b c d) = "DrawLine " +++ color +++ " " +++toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
-	toString (Rect color filled a b c d) = "DrawRect " +++ color +++ " " +++ toString filled +++ " " +++ toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
-	toString (Circle color filled a b c d) = "DrawCircle " +++ color +++ " " +++ toString filled +++ " " +++ toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
+	toString (Line color a b c d) = "DrawLine " +++ toString color +++ " " +++toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
+	toString (Rect color filled a b c d) = "DrawRect " +++ toString color +++ " " +++ toString filled +++ " " +++ toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
+	toString (Circle color filled a b c d) = "DrawCircle " +++ toString color +++ " " +++ toString filled +++ " " +++ toString a +++ " " +++ toString b +++ " " +++ toString c +++ " " +++ toString d 
 
 dumpDrawing :: [Shape] -> String
 dumpDrawing drawing = join "," (map toString drawing)
 
-derive class iTask PainterState, Shape
+derive class iTask PainterState, Shape, Color, Tool
 
 derive gDefault Drawing
 derive gText Drawing
@@ -63,7 +88,7 @@ painterEditlet
   = { Editlet
     | currVal   = Drawing []
     , defValSrv = Drawing []
-    , defValClt = {selectedTool = "L", selectedColor = "black", currentOrigin = Nothing, currentShape = Nothing}  
+    , defValClt = {selectedTool = TLine, selectedColor = Black, currentOrigin = Nothing, currentShape = Nothing}  
     
     , genUI     = painterGUI
 
@@ -184,23 +209,23 @@ painterGUI cid world
 			
 	= (gui, world)
 where
-	optionTags = map (\(id,label) -> OptionTag [ValueAttr id] [Text label]) tools
+	optionTags = map (\tool -> let label = toString tool in OptionTag [ValueAttr label] [Text label]) tools
 		
 	selectors = map (\color -> DivTag [IdAttr (mkId color), 
-			StyleAttr ("border-style:solid; border-color:white; background-color:" +++ color +++ "; width: 40px; height:40px; margin: 5px;")] []) colors
+			StyleAttr ("border-style:solid; border-color:white; background-color:" +++ toString color +++ "; width: 40px; height:40px; margin: 5px;")] []) colors
 
 	selectorEvents = map (\color -> ComponentEvent (mkId color) "click" (onSelectColor color)) colors
 
-	tools  = [("L","Line"), ("R","Rectangle"), ("r","Rectangle (filled)"), ("C","Circle"), ("c","Circle (filled)")]
-	colors = ["yellow", "red", "green", "blue", "black"]
-	mkId color = "sel_" +++ color +++ "_" +++ cid
+	tools  = [TLine, TRect, TRectF, TCircle, TCircleF]
+	colors = [Yellow, Red, Green, Blue, Black]
+	mkId color = "sel_" +++ toString color +++ "_" +++ cid
 	
 	onChangeTool :: ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
 	onChangeTool _ {[0]=e} state world
 		# (selectedIndex, world) = .? (e .# "target" .# "selectedIndex") world
 		# (options, world) 		 = .? (e .# "target" .# "options") world		
 		# (tool, world) 		 = .? (options .# jsValToInt selectedIndex .# "value") world
-		= ({state & selectedTool = jsValToString tool}, NoDiff, world)	
+		= ({state & selectedTool = fromString (jsValToString tool)}, NoDiff, world)	
 
 	onSelectColor :: Color ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
 	onSelectColor color _ {[0]=e} state world
@@ -255,11 +280,11 @@ where
 		# world = clearCanvas tempcontext world
 
 		# currentShape = case state.selectedTool of	
-				"L"	= Line state.selectedColor ox oy x y
-				"R"	= Rect state.selectedColor False ox oy x y
-				"r"	= Rect state.selectedColor True ox oy x y
-				"C"	= Circle state.selectedColor False ox oy x y
-				"c"	= Circle state.selectedColor True ox oy x y
+			TLine	 = Line state.selectedColor ox oy x y
+			TRect	 = Rect state.selectedColor False ox oy x y
+			TRectF	 = Rect state.selectedColor True ox oy x y
+			TCircle	 = Circle state.selectedColor False ox oy x y
+			TCircleF = Circle state.selectedColor True ox oy x y
 
 		# world = draw tempcontext currentShape world
 			
