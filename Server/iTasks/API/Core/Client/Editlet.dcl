@@ -16,9 +16,13 @@ import iTasks.API.Core.Client.Component
 
 :: Editlet sv d
   = E.cl:
-  { currVal    :: sv
+  { currVal    :: sv // TODO: implementation detail, remove it
+
+  // These fields are unnecessary, gDefault could be used instead of them
+  // However, Jurrien like them, so why not to be here :)
   , defValSrv  :: sv
   , defValClt  :: cl
+
   , genUI      :: GenUI d cl
   , appDiffClt :: ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
