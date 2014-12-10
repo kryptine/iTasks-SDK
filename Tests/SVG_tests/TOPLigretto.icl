@@ -118,14 +118,10 @@ hand_images :: !Bool !Hand !Color -> [Image GameSt]
 hand_images interactive {conceal,discard} color
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
-  | interactive   = [ conceal_pile <@< {onclick = play_concealed_pile color}
-                    , stack_whitespace
-                    , discard_pile <@< {onclick = play_hand_card color}
-                    ]
-  | otherwise     = [ conceal_pile
-                    , stack_whitespace
-                    , discard_pile
-                    ]
+  = [ tuneIf interactive conceal_pile {onclick = play_concealed_pile color}
+    , stack_whitespace
+    , tuneIf interactive discard_pile {onclick = play_hand_card color}
+    ]
 
 player_image :: !Bool !Real !Player -> Image GameSt
 player_image interactive r player
