@@ -22,6 +22,25 @@ derive class iTask FontDef, Set
   { uniqueIdCounter :: !Int
   }
 
+import StdDebug
+
+gridToString xss = "[" +++ foldr (\x acc -> rowToString x +++ "; " +++ acc) "" xss
+rowToString [] = "[]"
+rowToString [x:xs] = toString x +++ ", " +++ rowToString xs
+
+instance toString ImageAlign where
+  toString (xa, ya) = "(" +++ toString xa +++ ", " +++ toString ya +++ ")"
+
+instance toString XAlign where
+  toString AtLeft = "AtLeft"
+  toString AtMiddleX = "AtMiddleX"
+  toString AtRight = "AtRight"
+
+instance toString YAlign where
+  toString AtTop = "AtTop"
+  toString AtMiddleY = "AtMiddleY"
+  toString AtBottom = "AtBottom"
+
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
@@ -761,12 +780,14 @@ fixSpans img = go
       #! (offsetss, st) = mapSt evalOffsets offsetss st
       #! (imgss, st)    = foldr seqImgsGrid ([], st) imgss
       #! imgss          = strictTRMapRev reverseTR imgss // TODO This is more or less a hack... why do we need this?
+      #! offsetss       = strictTRMapRev reverseTR offsetss // TODO This is more or less a hack... why do we need this?
+      #! iass           = strictTRMapRev reverseTR iass // TODO This is more or less a hack... why do we need this?
       #! (tag, st)      = nextNo st
       #! sysTags        = ImageTagSystem tag
       #! colIndices     = [0 .. numcols - 1]
       #! rowIndices     = [0 .. numrows - 1]
       #! gridSpan       = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
-                                , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc) (px 0.0) rowIndices
+                                , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc)    (px 0.0) rowIndices
                                 )
                                 (\x -> x.totalSpanPostTrans) mbhost
       #! spanss         = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
@@ -782,8 +803,8 @@ fixSpans img = go
         = ([imgs : acc], st)
 
       calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
-      calculateGridOffsets cellXSpans cellYSpans iass imgss offsetss
-        = fst (foldr (mkRows cellXSpans) ([], px 0.0) (zip4 iass imgss cellYSpans offsetss))
+      calculateGridOffsets cellXSpans cellYSpans alignss imagess offsetss
+        = fst (foldr (mkRows cellXSpans) ([], px 0.0) (zip4 alignss imagess cellYSpans offsetss))
         where
         mkRows :: ![Span] !(![(!XAlign, !YAlign)], ![Image s], !Span, ![(!Span, !Span)]) !(![[(!Span, !Span)]], !Span)
                -> (![[(!Span, !Span)]], !Span)
