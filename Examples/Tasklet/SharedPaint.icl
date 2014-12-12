@@ -70,8 +70,6 @@ derive JSONDecode Drawing
 withEditlet editlet dp (val,mask,ver) meta vst
 	= gEditor{|*|} dp ({editlet & currVal = val},mask,ver) meta vst
 
-// :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
-
 gEditor{|Drawing|} dp vv meta env = withEditlet painterEditlet dp vv meta env
 //gEditor{|Drawing|} = withEditlet painterEditlet
 
@@ -79,9 +77,8 @@ withEditlet2 editlet dp upd (val,mask) env
     # ((editlet,mask),env) = gUpdate{|*|} dp upd ({editlet & currVal = val},mask) env
     = ((editlet.currVal,mask),env) 
 
-// :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
-
 gUpdate{|Drawing|} dp upd vv iworld = withEditlet2 painterEditlet dp upd vv iworld
+//gUpdate{|Drawing|} = withEditlet2 painterEditlet
 
 painterEditlet :: Editlet Drawing [Shape]
 painterEditlet
@@ -173,6 +170,8 @@ canvasHeight :== 300
 
 // TODO: http://jaspervdj.be/blaze/tutorial.html
 // http://stackoverflow.com/questions/18201257/drawing-a-rectangle-without-clearing-the-canvas-eventlisteners
+
+:: PainterEventHand :== ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
 
 painterGUI :: ComponentId *World -> *(EditletHTML [Shape] PainterState, *World)
 painterGUI cid world  
