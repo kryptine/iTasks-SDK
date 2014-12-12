@@ -768,13 +768,13 @@ fixSpans img = go
       #! colIndices     = [0 .. numcols - 1]
       #! rowIndices     = [0 .. numrows - 1]
       #! gridSpan       = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
-                                , foldr (\n acc -> LookupSpan (RowYSpan sysTags n) + acc)    (px 0.0) rowIndices
+                                , foldr (\n acc -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
                                 )
                                 (\x -> x.totalSpanPostTrans) mbhost
       #! spanss         = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
       #! st             = cacheGridSpans ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
       #! offsets`       = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
-                                                        (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n)) rowIndices) iass imgss offsetss)
+                                                        (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss)
       = (( AsCollage offsets` (flatten imgss)
          , gridSpan), { st & fixSpansDidChange = True })
       where
@@ -792,7 +792,8 @@ fixSpans img = go
         mkRows cellXSpans (aligns, imgs, cellYSpan, offsets) (acc, yoff)
           = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (zip4 aligns imgs cellXSpans offsets)) : acc]
             , yoff + cellYSpan)
-        mkCols :: !Span !Span !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span)) !(![(!Span, !Span)], !Span) -> (![(!Span, !Span)], !Span)
+        mkCols :: !Span !Span !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span)) !(![(!Span, !Span)], !Span)
+               -> (![(!Span, !Span)], !Span)
         mkCols cellYSpan yoff (align, img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff)) (acc, xoff)
           #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
           = ([( alignXOff + xoff + manXOff + tfXCorr
@@ -815,15 +816,17 @@ fixSpans img = go
                  !FixSpansStVal
               -> .(!(!Compose s, !ImageSpan), !FixSpansStVal) | iTask s
     mkOverlay offsets ias imgs mbhost imTrs imTas st
-      #! (offsets, st) = evalOffsets offsets st
-      #! (imgs, st)           = sequence imgs st
-      #! spans                = strictTRMap (\x -> x.totalSpanPostTrans) imgs
-      #! (maxXSpan, maxYSpan) = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
-                                      (\x -> x.totalSpanPreTrans) mbhost
-      #! alignOffsets         = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
-      #! placingOffsets       = zipWith3 addOffset alignOffsets offsets imgs
-      = (( AsCollage placingOffsets imgs
-         , maybe (calculateComposedSpan spans alignOffsets) (\x -> x.totalSpanPostTrans) mbhost), { st & fixSpansDidChange = True })
+      #! (offsets, st)  = evalOffsets offsets st
+      #! (imgs, st)     = sequence imgs st
+      #! spans          = strictTRMap (\x -> x.totalSpanPostTrans) imgs
+      #! (  maxXSpan
+          , maxYSpan)   = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
+                                (\x -> x.totalSpanPreTrans) mbhost
+      #! alignOffsets   = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
+      #! placingOffsets = zipWith3 addOffset alignOffsets offsets imgs
+      = ( ( AsCollage placingOffsets imgs
+          , maybe (calculateComposedSpan spans alignOffsets) (\x -> x.totalSpanPostTrans) mbhost)
+        , { st & fixSpansDidChange = True })
       where
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
       addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff)
@@ -1055,6 +1058,7 @@ genSVG img = imageCata genSVGAllAlgs img
     , imageTransformFlipYImageAlg  = mkFlipYImage
     }
     where
+    mkRotateTransform :: !Angle !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkRotateTransform imAn (xsp, ysp) isText s
       // FIXME: We currently devide ysp by 4.0 as an approximation of the text descent height. Text is transformed from the baseline, not top-left. The actual offset for text would be ~((fontyspan / 2) - descent), but we currently don't know the descent.
       #! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
@@ -1122,6 +1126,7 @@ genSVG img = imageCata genSVGAllAlgs img
                                                                            [TextElt [XmlspaceAttr "preserve"] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
          , True), st)
       where
+      fontAttrs :: !Real -> [SVGAttr]
       fontAttrs fsz = [ AlignmentBaselineAttr "auto"
                       , DominantBaselineAttr "auto"
                       , FontFamilyAttr fd.fontfamily
@@ -1156,14 +1161,23 @@ genSVG img = imageCata genSVGAllAlgs img
                                           [ RxAttr (toString (to2dec (imXSp / 2.0)), PX), RyAttr (toString (to2dec (imYSp / 2.0)), PX)
                                           , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }, False), st)
 
-  // TODO Type signature
-  genSVGLineImageAlgs :: LineImageAlg (s -> (b, s)) (s -> *(d, s)) (b (Maybe d) e [f] g s -> .h) (a0 b0 e [b Bool s -> (f, s)] g s -> .h)
+  genSVGLineImageAlgs :: LineImageAlg (GenSVGSt s (!Real, !Real))
+                                      (GenSVGSt s b)
+                                      ((!Real, !Real) (Maybe b) [(!Maybe HtmlAttr, !Maybe SVGAttr)] [(![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
+                                      (c d [(!Maybe HtmlAttr, !Maybe SVGAttr)] [(!Real, !Real) Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
   genSVGLineImageAlgs =
     { lineImageLineImageAlg = mkLineImage
     }
     where
-    // TODO type signature
-    mkLineImage :: !(.c -> .(b, .c)) !(Maybe (.c -> *(d, .c))) !(b (Maybe d) e [f] g .c -> .h) a0 b0 !e ![b Bool .c -> .(f,.c)] !g !.c -> .h
+    mkLineImage :: !(GenSVGSt s ImageSpanReal)
+                   !(Maybe (GenSVGSt s b))
+                   !(ImageSpanReal (Maybe b) [(!Maybe HtmlAttr, !Maybe SVGAttr)] [(![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
+                   !c !d
+                   ![(Maybe HtmlAttr, Maybe SVGAttr)]
+                   ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
+                   !(Set ImageTag)
+                   !(GenSVGStVal s)
+                -> .(!GenSVGSyn s, !GenSVGStVal s)
     mkLineImage lineSpan mmarkers lineContent _ _ imAts imTrs imTas st
       #! (lineSpan, st) = lineSpan st
       #! (mmarkers, st) = evalMaybe mmarkers st
@@ -1490,7 +1504,7 @@ mkList f xs st
   }
 
 :: CompositeImageAlg sp ho co coIm =
-  { compositeImageAlg :: (Maybe ho) co -> coIm
+  { compositeImageAlg :: !(Maybe ho) co -> coIm
   }
 
 :: ComposeAlg sp im co =
