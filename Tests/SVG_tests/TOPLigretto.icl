@@ -107,7 +107,8 @@ pile_image side pile
 
 row_images :: !Bool !RowPlayer -> [Image GameSt]
 row_images interactive row
-  = [  let card = card_image Front row_card in if interactive (card <@< {onclick = play_row_card row_card.back no}) card
+  = [  tuneIf interactive (card_image Front row_card)
+              {onclick = play_row_card row_card.back no}
 	\\ row_card <- row 
 	 & no       <- [1..]
 	]

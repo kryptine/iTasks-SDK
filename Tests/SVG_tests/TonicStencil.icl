@@ -511,9 +511,9 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
                      <@< { strokewidth = px 1.0 }
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
-  # taskNameImg  = tag [imageTag "tTaskDef_taskNameImg"]  (margin (px 5.0) (text ArialBold10px (taskName +++ " yields an " +++ resultTy))) // TODO a/an
-  # taskArgsImgs = tag [imageTag "tTaskDef_taskArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-  # taskBodyImgs = tag [imageTag "tTaskDef_taskBodyImgs"] (margin (px 5.0) tdbody)
+  # taskNameImg  = tag (imageTag "tTaskDef_taskNameImg")  (margin (px 5.0) (text ArialBold10px (taskName +++ " yields an " +++ resultTy))) // TODO a/an
+  # taskArgsImgs = tag (imageTag "tTaskDef_taskArgsImgs") (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
+  # taskBodyImgs = tag (imageTag "tTaskDef_taskBodyImgs") (margin (px 5.0) tdbody)
   # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
                                                [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
                                                _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
@@ -529,8 +529,8 @@ tTransformApp tffun args
                    <@< { fill        = toSVGColor "white" }
                    <@< { stroke      = toSVGColor "black" }
                    <@< { strokewidth = px 1.0 }
-  # tfNameImg  = tag [imageTag "tTransformApp_tfNameImg"]  (margin (px 5.0) (text ArialItalic10px tffun))
-  # tfArgsImgs = tag [imageTag "tTransformApp_tfArgsImgs"] (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+  # tfNameImg  = tag (imageTag "tTransformApp_tfNameImg")  (margin (px 5.0) (text ArialItalic10px tffun))
+  # tfArgsImgs = tag (imageTag "tTransformApp_tfArgsImgs") (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
   # tfContents = above (repeat AtLeft) [] (case args of
                                              [] -> [tfNameImg]
                                              _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
