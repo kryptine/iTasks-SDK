@@ -22,25 +22,6 @@ derive class iTask FontDef, Set
   { uniqueIdCounter :: !Int
   }
 
-import StdDebug
-
-gridToString xss = "[" +++ foldr (\x acc -> rowToString x +++ "; " +++ acc) "" xss
-rowToString [] = "[]"
-rowToString [x:xs] = toString x +++ ", " +++ rowToString xs
-
-instance toString ImageAlign where
-  toString (xa, ya) = "(" +++ toString xa +++ ", " +++ toString ya +++ ")"
-
-instance toString XAlign where
-  toString AtLeft = "AtLeft"
-  toString AtMiddleX = "AtMiddleX"
-  toString AtRight = "AtRight"
-
-instance toString YAlign where
-  toString AtTop = "AtTop"
-  toString AtMiddleY = "AtMiddleY"
-  toString AtBottom = "AtBottom"
-
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
@@ -1555,9 +1536,9 @@ foldrOffsets spanAlgs lookupSpanAlgs xs = foldr (f spanAlgs lookupSpanAlgs) [] x
   where
   f :: !(SpanAlg a b) !(LookupSpanAlg a) !(!Span, !Span) ![(!b, !b)] -> [(!b, !b)]
   f spanAlgs lookupSpanAlgs (l, r) xs
-    #! synr = spanCata spanAlgs lookupSpanAlgs l
-    #! synl = spanCata spanAlgs lookupSpanAlgs r
-    = [(synr, synl):xs]
+    #! synl = spanCata spanAlgs lookupSpanAlgs l
+    #! synr = spanCata spanAlgs lookupSpanAlgs r
+    = [(synl, synr):xs]
 
 imageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Image m) -> im
 imageCata allAlgs { Image | content, mask, attribs, transform, tags, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`), margin = (m1, m2, m3, m4), transformCorrection = (tfXCorr, tfYCorr) }
