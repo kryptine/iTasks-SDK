@@ -1,4 +1,4 @@
-module TOPLigretto
+module TOPLigretto2
 
 import ligrettoModel
 import MultiUser
@@ -59,19 +59,18 @@ accolades w player game_st
 
 // Image definitions:
 // these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
-card_width  :== 58.5
-card_height :== 90.0
+card_width  :== px 58.5
+card_height :== px 90.0
 
 //card_shape :: Image m
-card_shape :== rect (px card_width) (px card_height) <@< {xradius = px (card_height / 18.0)} <@< {yradius = px (card_height / 18.0)}
+card_shape :== rect card_width card_height <@< {xradius = card_height /. 18} <@< {yradius = card_height /. 18}
 
 //no_card_image :: Image m
 no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"})) // BUG: "empty" text is not aligned properly
 
 big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = toSVGColor "white"}
                                                         <@< {stroke = toSVGColor colour}
-ligretto  colour :== text (cardfont (card_width / 5.0)) "Ligretto"
-                                                        <@< {stroke = toSVGColor colour}
+ligretto  colour :== text (cardfont 12.0) "Ligretto"    <@< {stroke = toSVGColor colour}
                                                         <@< {fill   = toSVGColor "none"}
 
 card_image :: !SideUp !Card -> Image m
@@ -94,7 +93,7 @@ card_image side card
 
 pile_of_cards :: !SideUp !Pile -> Image m
 pile_of_cards side pile
-  = overlay [] [(zero,px dy) \\ dy <- [0.0, card_height / 18.0 ..]]
+  = overlay [] [(zero,card_height /. 18 *. dy) \\ dy <- [0 .. ]]
                (map (card_image side) (reverse pile)) (Just no_card_image)
 
 pile_image :: !SideUp !Pile -> Image m
@@ -113,7 +112,7 @@ row_images interactive row
 	 & no       <- [1..]
 	]
 
-stack_whitespace :== empty (px (card_width/4.0)) zero
+stack_whitespace :== empty (card_width /. 4) zero
 
 hand_images :: !Bool !Hand !Color -> [Image GameSt]
 hand_images interactive {conceal,discard} color
@@ -124,7 +123,7 @@ hand_images interactive {conceal,discard} color
     , tuneIf interactive discard_pile {onclick = play_hand_card color}
     ]
 
-player_image :: !Bool !Real !Player -> Image GameSt
+player_image :: !Bool !Span !Player -> Image GameSt
 player_image interactive r player
   = circular r (pi * 0.5) 
                (  row_images interactive player.row
@@ -133,17 +132,17 @@ player_image interactive r player
                )
 
 //middle_image :: !Middle -> Image m
-middle_image middle :== circular (2.0*card_height) (2.0*pi) (map (pile_image Front) middle)
+middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
 player_perspective (color,user) gameSt
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
-  = margin (px (3.0*card_height)) (rotate (rad (~(toReal my_no*angle))) (game_image (color,user) gameSt))
+  = margin (card_height *. 3) (rotate (rad (~(toReal my_no*angle))) (game_image (color,user) gameSt))
 
 game_image :: !(!Color, !User) !GameSt -> Image GameSt
 game_image (color,user) gameSt
-  #! r     = 4.0*card_height
+  #! r     = card_height *. 4
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
              [  rotate (rad (i*angle-0.25*pi)) img
@@ -152,16 +151,16 @@ game_image (color,user) gameSt
              ] (Just (middle_image gameSt.middle))
 
 //	a generally useful image combinator:
-circular :: !Real !Real ![Image m] -> Image m
+circular :: !Span !Real ![Image m] -> Image m
 circular r a imgs
   #! n      = length imgs
   #! sign_a = toReal (sign a)
   #! a`     = normalize (rad a)
   #! alpha  = (toRad a`) / (toReal n)
   = overlay (repeat (AtMiddleX,AtMiddleY))
-                    [(px (~r * cos (i*alpha - pi/2.0)),px (~r * sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..]]
+                    [(~r *. (cos (i*alpha - pi/2.0)),~r *. (sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..]]
                     [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs]
-                    (Just (empty (px (2.0*r)) (px (2.0*r))))              // BUG: using Nothing creates incorrect image (offset to left)
+                    (Just (empty (r *. 2) (r *. 2)))              // BUG: using Nothing creates incorrect image (offset to left)
 
 pi =: 3.14159265359
 
