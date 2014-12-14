@@ -112,14 +112,14 @@ row_images interactive row
 	 & no       <- [1..]
 	]
 
-stack_whitespace :== empty (card_width /. 4) zero
+space :== empty (card_width /. 4) zero
 
 hand_images :: !Bool !Hand !Color -> [Image GameSt]
 hand_images interactive {conceal,discard} color
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
   = [ tuneIf interactive conceal_pile {onclick = play_concealed_pile color}
-    , stack_whitespace
+    , space
     , tuneIf interactive discard_pile {onclick = play_hand_card color}
     ]
 
@@ -127,7 +127,7 @@ player_image :: !Bool !Span !Player -> Image GameSt
 player_image interactive r player
   = circular r (pi * 0.5) 
                (  row_images interactive player.row
-               ++ [stack_whitespace, pile_image Front player.ligretto, stack_whitespace]
+               ++ [space, pile_image Front player.ligretto, space]
                ++ hand_images interactive player.hand player.color
                )
 
