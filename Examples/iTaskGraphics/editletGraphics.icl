@@ -47,27 +47,21 @@ derive class iTask ModelImage, ModelLine, ModelRect, ModelCircle
 ::  ClientSt = Initialize | Running
 
 imageEditlet :: MR -> Editlet MR Int
-imageEditlet mr=:(MR mrs i)	=
-  { Editlet
-  | currVal   = mr
-  , genUI     = genUI
-  , serverDef = server
-  , clientDef = client
-  }
+imageEditlet mr=:(MR mrs i)
+ = {Editlet
+   |currVal = mr
+   ,defValSrv = gDefault{|*|}
+   ,defValClt = ((Initialize,i),i)
+   ,genUI = genUI
+   ,appDiffClt = updUI mrs
+   ,genDiffSrv = genDiffServer
+   ,appDiffSrv = \i` (MR mrs _) -> MR mrs i
+   }
 where
-	server					= {EditletDef | performIO = \_ _ s w -> (s, w)
-							              , defVal   = gDefault{|*|}
-							              , genDiff  = genServerDiff
-							              , appDiff  = \i` (MR mrs _) -> MR mrs i`
-							  }
-	client					= {EditletDef | performIO = updUI mrs
-							              , defVal   = ((Initialize,i),i)
-							              , genDiff  = genClientDiff
-							              , appDiff  = \i` ((cst,_),i) -> ((cst,i`),i)
-							              }
+
 	(minx,miny,maxx,maxy)	= boundingbox mrs
 	(w,h)					= (maxx-minx, maxy-miny)
-	
+
 	genUI cid env			= ({ComponentHTML | width      = ExactSize (maxx-minx)
 							                  , height     = ExactSize (maxy-miny)
 							                  , html       = DivTag [IdAttr (main_id cid)] 
@@ -78,22 +72,16 @@ where
 							   }
 							  ,env
 							  )
-	
-	genServerDiff (MR _ i) (MR _ i`)
-		= diffUI i i`
-	
-	updUI mrs cid mi ((Initialize,i`),i) env
+	updUI mrs cid _ ((Initialize,i`),i) env
 	# (svg,env)				= .? (getElementById (main_svg_id cid)) env
 	# env					= foldl (add_image svg cid) env mrs
-	= updUI mrs cid mi ((Running,i`),i) env
-	updUI _ cid mi ((running,_),i) env
+	= updUI mrs cid i` ((Running,i`),i) env
+	updUI _ cid i` ((running,_),i) env
 	= (((running,i`),i`),env)
-	where
-		i`					= fromMaybe i mi
 	
-	genClientDiff ((_,i),_) ((_,i`),_)
+	genDiffServer (MR _ i) (MR _ i`)
 		= diffUI i i`
-	
+
 	diffUI i i`
 	| i <> i`				= Just i`
 	| otherwise				= Nothing
@@ -139,9 +127,9 @@ add_image svg cid env (Circle i mc)
 # (_,env)			= (svg  .# "appendChild"  .$ [toJSArg rect]) env
 = env
 
-select_elt :: m ComponentId {JSObj JSEvent} ((ClientSt,m),m) *JSWorld -> *(!(!(!ClientSt,!m),!m), !*JSWorld)
+//select_elt :: m ComponentId {JSObj JSEvent} ((ClientSt,m),m) *JSWorld -> *(!(!(!ClientSt,!m),!m), !*JSWorld)
 select_elt i` cid _ ((cst,_),i) env
-= (((cst,i`),i`),env)
+= (((cst,i`),i`),NoDiff,env)
 
 main_id :: ComponentId -> ComponentId
 main_id cid = cid
