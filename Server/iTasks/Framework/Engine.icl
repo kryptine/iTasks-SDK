@@ -69,7 +69,7 @@ startEngine publishable world
 	// mark all instance as outdated initially
     # iworld                = queueAllPersistent iworld
     //Start task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable)) [BackgroundTask removeOutdatedSessions,BackgroundTask refreshTaskInstances] timeout iworld
+	# iworld				= serve port (httpServer port keepalive (engine publishable) taskOutput) [BackgroundTask removeOutdatedSessions,BackgroundTask refreshTaskInstances] timeout iworld
 	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
@@ -162,9 +162,9 @@ background iworld = removeOutdatedSessions (refreshTaskInstances iworld)
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-					  ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-					  ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
+					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> *IWorld)
 					  )] | Publishable publish
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
@@ -251,10 +251,9 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
       ,nextInstanceNo       = 0
 	  ,refreshQueue			= []
-	  ,uiUpdates            = newMap
 	  ,shutdown				= False
-      ,io                   = {done = [], todo = []}
-      ,ioValues             = newMap
+      ,ioTasks              = {done = [], todo = []}
+      ,ioStates             = newMap
 	  ,world				= world
       ,resources            = Nothing
       ,random               = genRandInt seed
@@ -316,17 +315,17 @@ where
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
 	->
-	(!(String -> Bool),!Bool,!(HTTPRequest *IWorld -> (HTTPResponse, Maybe loc,*IWorld))
-							,!(HTTPRequest (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, !*IWorld))
-							,!(HTTPRequest loc *IWorld -> *IWorld))
+	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (HTTPResponse, Maybe loc,*IWorld))
+							,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, !*IWorld))
+							,!(HTTPRequest (Map InstanceNo [UIUpdate]) loc *IWorld -> *IWorld))
 simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
 where
-	initFun req env
+	initFun req _ env
 		# (rsp,env) = responseFun req env
 		= (rsp,Nothing,env)
 		
-	dataFun _ _ s env = ([],True,s,env)
-	lostFun _ s env = env
+	dataFun _ _ _ s env = ([],True,s,env)
+	lostFun _ _ s env = env
 
 
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a

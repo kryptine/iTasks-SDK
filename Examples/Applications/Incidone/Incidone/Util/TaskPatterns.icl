@@ -196,16 +196,20 @@ where
 
 syncNetworkChannel :: String Int String (String -> m) (m -> String) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m
 syncNetworkChannel server port msgSeparator decodeFun encodeFun channel
-    = tcpconnect server port channel onConnect onData @! ()
+    = tcpconnect server port channel {ConnectionHandlers|onConnect=onConnect,whileConnected=whileConnected,onDisconnect=onDisconnect} @! ()
 where
-    onConnect (received,receiveStopped,send,sendStopped)
+    onConnect _ (received,receiveStopped,send,sendStopped) 
         = (Ok "",if (not (isEmpty send)) (Just (received,False,[],sendStopped)) Nothing, map encodeFun send,False)
-    onData acc (received,receiveStopped,send,sendStopped) newData channelChanged connectionClosed
-        # [acc:msgs]    = reverse (split msgSeparator (concat [acc:newData]))
-        # write         = if (not (isEmpty msgs && isEmpty send) || connectionClosed)
-            (Just (received ++ map decodeFun (reverse msgs),connectionClosed,[],sendStopped))
+
+	whileConnected (Just newData) acc (received,receiveStopped,send,sendStopped)
+        # [acc:msgs]    = reverse (split msgSeparator (concat [acc,newData]))
+		# write         = if (not (isEmpty msgs && isEmpty send))
+            (Just (received ++ map decodeFun (reverse msgs),receiveStopped,[],sendStopped))
             Nothing
         = (Ok acc,write,map encodeFun send,False)
+
+    onDisconnect l (received,receiveStopped,send,sendStopped) 
+		= (Ok l,Just (received,True,send,sendStopped))
 
 consumeNetworkStream :: ([m] -> Task ()) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m
 consumeNetworkStream processTask channel

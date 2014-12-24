@@ -6,9 +6,17 @@ from TCPIP				import class ChannelEnv, :: IPAddress, :: Timeout
 from Internet.HTTP		import :: HTTPRequest, :: HTTPResponse
 
 from System.Time				import :: Timestamp
+from Data.Error                 import :: MaybeError
+from iTasks.API.Core.Types      import :: TaskId
 from iTasks.Framework.IWorld	import :: IWorld
-from iTasks.Framework.Task      import :: ConnectionTask, :: BackgroundTask
+from iTasks.Framework.Task      import :: ConnectionTask, :: BackgroundTask, :: TaskException
 from iTasks.Framework.Engine    import :: ConnectionType
 
 //Core task server loop
 serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+
+//Dynamically add a listener
+addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+
+//Dynamically add a connection
+addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)

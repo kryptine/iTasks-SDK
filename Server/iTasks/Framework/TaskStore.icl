@@ -4,7 +4,7 @@ import StdEnv
 import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
-import iTasks.Framework.TaskEval, iTasks.Framework.Util, iTasks.Framework.UIDefinition
+import iTasks.Framework.TaskEval, iTasks.Framework.Util, iTasks.Framework.UIDefinition, iTasks.Framework.UIDiff
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 import qualified iTasks.Framework.SDS as SDS
@@ -22,6 +22,7 @@ derive JSONEncode UIEmpty, UIForm, UIBlock
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIWindowType,  UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
+derive JSONEncode UIUpdate, UIStep
 
 derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
@@ -30,6 +31,7 @@ derive JSONDecode UIEmpty, UIForm, UIBlock
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
+derive JSONDecode UIUpdate, UIStep
 
 derive gDefault TIMeta
 derive gEq ParallelTaskChange
@@ -62,6 +64,10 @@ taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
 taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+
+//Output of task instances
+taskOutput :: RWShared () (Map InstanceNo [UIUpdate]) (Map InstanceNo [UIUpdate])
+taskOutput = sdsFocus "output" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 'DM'.newMap))
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld

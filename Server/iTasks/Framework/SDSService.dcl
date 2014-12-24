@@ -4,7 +4,8 @@ from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks.Framework.IWorld		import :: IWorld
 from iTasks.Framework.Engine	    import :: ConnectionType
 from iTasks.Framework.SDS			import :: RWShared
-from iTasks.Framework.Task			import :: Task
+from iTasks.Framework.Task			import :: Task, :: InstanceNo
+from iTasks.Framework.UIDiff 		import :: UIUpdate
 
 import iTasks.Framework.Generic
 
@@ -12,9 +13,9 @@ import Data.Maybe, Data.Void, Data.Error, Text.JSON
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
+                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> *IWorld)
 				 )
 
 readRemoteSDS  ::           !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)

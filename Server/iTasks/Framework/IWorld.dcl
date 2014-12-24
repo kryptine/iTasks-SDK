@@ -43,10 +43,9 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
                     , nextInstanceNo        :: !InstanceNo                              // Next task instance number
                     , refreshQueue          :: ![(!InstanceNo,!Maybe String)]           // Instances that need refreshing (optionally with an explanation)
-					, uiUpdates             :: !Map InstanceNo [UIUpdate]				// (Instance output)
 
-                    , io                    :: !*IOTasks                                // The low-level input/output tasks
-                    , ioValues              :: !Map TaskId IOTaskValue                  // Task values of low-level tasks, indexed by the high-level taskid that it is linked to
+                    , ioTasks                :: !*IOTasks                                // The low-level input/output tasks
+                    , ioStates               :: !IOStates                                // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
 
 					, world					:: !*World									// The outside world
 
@@ -67,7 +66,6 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 :: SystemPaths =
     { appDirectory			:: !FilePath		// Location of the application's executable
 	, dataDirectory			:: !FilePath		// Location of the applications data files
-	//, sdkDirectory			:: !FilePath		// Location of the iTasks SDK
     , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
     }
 
@@ -97,13 +95,37 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     }
 
 :: *IOTaskInstance
-    = ListenerInstance !Int !*TCP_Listener !ConnectionTask
-    | ConnectionInstance !IPAddress !*TCP_DuplexChannel !ConnectionTask !Dynamic
+    = ListenerInstance !ListenerInstanceOpts !*TCP_Listener
+    | ConnectionInstance !ConnectionInstanceOpts !*TCP_DuplexChannel
     | BackgroundInstance !BackgroundTask
 
-:: IOTaskValue
-    = IOValue !Dynamic !Bool
-    | IOException !String
+:: ListenerInstanceOpts =
+    { taskId                :: !TaskId          //Reference to the task that created the listener
+    , nextConnectionId      :: !ConnectionId    
+    , port                  :: !Int
+    , connectionTask        :: !ConnectionTask
+    , removeOnClose         :: !Bool            //If this flag is set, states of connections accepted by this listener are removed when the connection is closed
+    }
+
+:: ConnectionInstanceOpts =
+    { taskId                :: !TaskId          //Reference to the task that created the connection
+    , connectionId          :: !ConnectionId    //Unique connection id (per listener/outgoing connection)
+    , remoteHost            :: !IPAddress      
+    , connectionTask        :: !ConnectionTask  //The io task definition that defines how the connection is handled
+    , removeOnClose         :: !Bool            //If this flag is set, the connection state is removed when the connection is closed
+    }
+
+:: ConnectionId             :== Int
+
+:: IOStates :== Map TaskId IOState
+:: IOState
+    = IOActive      !(Map ConnectionId (!Dynamic,!Bool))
+    | IODestroyed   !(Map ConnectionId (!Dynamic,!Bool))
+    | IOException   !String
+:: IOConnectionState =
+    { connectionTaskState   :: !Dynamic //The persisted local state of the connection task that handles the connection
+    , closed                :: !Bool
+    }
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
@@ -118,8 +140,10 @@ updateClocks    :: !*IWorld -> *IWorld
 
 getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
 
+/*
 addUIUpdates    :: !InstanceNo ![UIUpdate]  !*IWorld -> *IWorld
 popUIUpdates    :: ![InstanceNo]            !*IWorld -> (![(!InstanceNo,![UIUpdate])],!*IWorld)
 clearUIUpdates  :: !InstanceNo              !*IWorld -> *IWorld
+*/
 
 instance FileSystem IWorld

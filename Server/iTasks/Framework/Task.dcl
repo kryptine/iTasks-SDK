@@ -59,11 +59,25 @@ derive gEq				Task
 :: TaskServiceRep	:== [TaskPart]
 :: TaskPart			:== (!String, !JSONNode)		//Task id, value
 
-//Low level specific tasks that handle network connections
-from Internet.HTTP import :: HTTPRequest
-from iTasks.Framework.Engine import :: ConnectionType
+//Low-level tasks that handle network connections
+:: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
 
-:: ConnectionTask = ConnectionTask !(String *IWorld -> *(![String],!Bool,!Dynamic,!*IWorld)) !((Maybe String) Dynamic *IWorld -> *([String], !Bool, !Dynamic, !*IWorld)) !(Dynamic *IWorld -> *(!Dynamic, !*IWorld))
+//Definition of low-level network interaction
+
+:: ConnectionHandlers l r w = 
+    { onConnect         :: !(String r           -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
+    , whileConnected    :: !((Maybe String) l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
+    , onDisconnect      :: !(               l r -> (!MaybeErrorString l, Maybe w                  ))
+	}
+
+//Version of connection handlers with IWorld side-effects that is still necessary for built-in framework handlers
+:: ConnectionHandlersIWorld l r w =
+    { onConnect         :: !(String r           *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    , whileConnected    :: !((Maybe String) l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    , onDisconnect      :: !(               l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
+    }
+
+//Background computation tasks
 :: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
 
 /**
@@ -90,6 +104,12 @@ finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
 * Extend the call trace with the current task number
 */
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
+
+/**
+* Wraps a set of connection handlers and a shared source as a connection task
+*/
+wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
+wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 
 /**
 * Create a task that finishes instantly

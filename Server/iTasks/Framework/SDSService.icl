@@ -5,12 +5,14 @@ import iTasks
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
 from iTasks.Framework.IWorld		import :: IWorld {exposedShares}
 from iTasks.Framework.Engine	    import :: ConnectionType
+from iTasks.Framework.UIDiff 		import :: UIUpdate
 
 import iTasks.Framework.HtmlUtil, iTasks.Framework.DynamicUtil
 import iTasks.Framework.RemoteAccess
 from iTasks.Framework.SDS as SDS import qualified read, write, :: Shared, :: JSONShared
 from iTasks.Framework.SDS import getURLbyId
-from iTasks.API.Core.IntegrationTasks import callHTTP2
+from iTasks.API.Core.Types import :: InstanceNo
+from iTasks.API.Core.IntegrationTasks import callHTTP
 
 from StdFunc import o
 import StdString, StdList
@@ -22,9 +24,9 @@ import StdMisc, graph_to_sapl_string
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-				 ,!(HTTPRequest ConnectionType *IWorld -> *IWorld)
+                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> *IWorld)
 				 )
 
 sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
@@ -34,10 +36,10 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld)
-	reqFun req iworld | hasParam "client_session_id" req
+	reqFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld)
+	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
-	reqFun req iworld=:{exposedShares} | hasParam "focus" req
+	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
 				Nothing = (notFoundResponse req,Nothing,iworld) 
@@ -60,7 +62,7 @@ where
 				(Ok _)          = (okResponse, Nothing, iworld)
 				(Error (e,msg)) = (errorResponse msg, Nothing, iworld)			
 	
-	reqFun req iworld=:{exposedShares}
+	reqFun req _ iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
 			Nothing = (notFoundResponse req,Nothing,iworld) 
@@ -72,11 +74,11 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld)
-    dataFun req mbData instanceNo iworld = ([], True, instanceNo, iworld)
+	dataFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld)
+    dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, iworld)
 
-    disconnectFun :: !HTTPRequest !ConnectionType !*IWorld -> *IWorld
-	disconnectFun _ _ iworld = iworld
+    disconnectFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !ConnectionType !*IWorld -> *IWorld
+	disconnectFun _ _ _ iworld = iworld
 
 readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
 readRemoteSDS p url iworld=:{exposedShares}
@@ -138,7 +140,7 @@ openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask
 openRemoteSDS url cont 
 	= case convertURL url Nothing of
 			(Error e) = throw e
-			(Ok uri)  = callHTTP2 HTTP_GET uri "" conv >>= \ty -> if (check ty) (cont (Just f)) (throw "Type check failed")
+			(Ok uri)  = callHTTP HTTP_GET uri "" conv >>= \ty -> if (check ty) (cont (Just f)) (throw "Type check failed")
 where
 	conv rsp = Ok rsp.rsp_data
 	check srvty = clnty == srvty

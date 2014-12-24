@@ -19,7 +19,7 @@ LEAFLET_CSS :== "leaflet-0.7.2/leaflet.css"
     ,mapLayers      :: !JSArr (JSObject JSLM)
     ,mapIcons       :: !JSArr (JSObject JSLM)
     ,mapCursor      :: !Maybe (JSObj JSLM)
-    ,mapObjects     :: !JSMap Int (JSArr JSLM)
+    ,mapObjects     :: !JSMap Int (JSArr JSLM) //For every object layer we keep an index of the objects in this layer
     }
 :: IconOptions =
     { iconUrl   :: !String
@@ -181,8 +181,9 @@ where
 	onUpdate cid [LDUpdateIcon idx icon:diffs] (map,Just st) env
 		//TODO
 		= onUpdate cid diffs (map, Just st) env
-	onUpdate cid [LDRemoveIcons idx:diffs] (map,Just st) env
-		//TODO
+	onUpdate cid [LDRemoveIcons idx:diffs] (map,Just st=:{mapIcons}) env
+        # (removeRefs,env)  = (mapIcons .# "splice" .$ idx) env 
+		//Icons don't need to be explicitly destroyed
 		= onUpdate cid diffs (map, Just st) env
     onUpdate cid [LDAddLayers []:diffs] (map,st) env
         = onUpdate cid diffs (map,st) env
@@ -267,6 +268,7 @@ where
         # env               = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler onAfterShow cid))) env
         = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
 
+	createIcon :: !LeafletIcon !(JSObj JSLM) !(JSArr (JSObject b)) !*JSWorld -> *JSWorld
     createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapIcons env
         # (icon,env)    = (l .# "icon" .$ (toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]})) env
         # (_,env)       = jsArrayPush icon mapIcons env
@@ -383,7 +385,7 @@ where
         # (_,env)           = (layer .# "removeLayer" .$ (toJSArg ref)) env
         = removeObjects removeRefs layer env
 
-    syncMapDivSize :: !String !*JSWorld -> *JSWorld
+	syncMapDivSize :: !String !*JSWorld -> *JSWorld
     syncMapDivSize cid env
         # (editlets,env)    = findObject "itwc.controller.editlets" env
         # (cmp,env)         = .? (editlets .# cid) env

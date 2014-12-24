@@ -5,7 +5,7 @@ definition module iTasks.API.Core.Tasks
 
 import iTasks.Framework.Generic
 import iTasks.Framework.SDS
-from iTasks.Framework.Task			import :: Task
+from iTasks.Framework.Task			import :: Task, :: ConnectionHandlers
 from iTasks.API.Core.Types	    import class descr
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
@@ -102,14 +102,22 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask))) -> Task l | descr d & iTask l & iTask r & iTask v
 
 /**
-* Core tcp network task. Using this core task automated interactions with external systems can be programmed.
+* Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname
 * @param Port
-* @param ReadOnlyShared: A reference to shared data the task has access to
-* @param Initialization function: function that is called when the connection is established
+* @param A reference to shared data the task has access to
+* @param The event handler functions
+*/
+tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
+/**
+* Listen for connections from external systems using TCP.
+* @param Port
+* @param Remove closed connections. If this is true, closed connections are removed from the task value, if not they are kept in the list
+* @param A reference to shared data the task has access to
+* @param Initialization function: function that is called when a new connection is established
 * @param Communication function: function that is called when data arrives, the connection is closed or the observed share changes.
 */
-tcpconnect :: !String !Int !(RWShared () r w) (r -> (MaybeErrorString l,Maybe w,[String],Bool)) (l r [String] Bool Bool -> (MaybeErrorString l,Maybe w,[String],Bool)) -> Task l | iTask l & iTask r & iTask w
+tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 
 /**
 * Evaluate a "World" function that does not yield any result once.

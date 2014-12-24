@@ -60,7 +60,6 @@ callInstantProcess :: !FilePath ![String] !(Maybe FilePath)-> Task Int
 * @gin-title Call web service
 * @gin-icon webservice
 */
-callHTTP2   :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a	
 callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
 

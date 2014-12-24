@@ -67,6 +67,7 @@ getResponseExpiry :: !InstanceNo !*IWorld -> (!Maybe Int, !*IWorld)
 getResponseExpiry instanceNo iworld=:{refreshQueue=[]} = (Just REGULAR_EXPIRY,iworld)
 getResponseExpiry instanceNo iworld=:{refreshQueue} = (Just FAST_EXPIRY,iworld)
 
+/*
 addUIUpdates :: !InstanceNo ![UIUpdate] !*IWorld -> *IWorld
 addUIUpdates instanceNo [] iworld = iworld
 addUIUpdates instanceNo updates iworld=:{uiUpdates}
@@ -82,7 +83,7 @@ popUIUpdates instances iworld=:{uiUpdates}
 clearUIUpdates :: !InstanceNo !*IWorld -> *IWorld
 clearUIUpdates instanceNo iworld=:{uiUpdates}
     = {iworld & uiUpdates = del instanceNo uiUpdates}
-
+*/
 //Wrapper instance for file access
 instance FileSystem IWorld
 where

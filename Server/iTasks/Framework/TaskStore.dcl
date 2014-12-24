@@ -5,7 +5,7 @@ definition module iTasks.Framework.TaskStore
 * Session instances: temporary tasks for each interactive session between a user and the server. 
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
-import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition, iTasks.Framework.SDS
+import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDefinition, iTasks.Framework.UIDiff, iTasks.Framework.SDS
 import iTasks.API.Core.Types
 
 from Data.Maybe     import :: Maybe
@@ -47,9 +47,10 @@ taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
 taskInstanceRep         :: RWShared InstanceNo TaskRep TaskRep
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 
-//Filtered views on evaluation state of instances
-localShare              :: RWShared TaskId a a | iTask a
+//Filtered views on evaluation state of instances:
 
+//Shared source 
+localShare              :: RWShared TaskId a a | iTask a
 //Core parallel task list state structure
 taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 //Private interface used during evaluation of parallel combinator
@@ -57,19 +58,23 @@ taskInstanceParallelTaskListItem    :: RWShared (TaskId,TaskId,Bool) ParallelTas
 
 taskInstanceEmbeddedTask            :: RWShared TaskId (Task a) (Task a) | iTask a
 
+//Task input and output
+//taskEvents                          :: RWShared () (Map InstanceNo [Event]) (Map InstanceNo [Event])
+taskOutput                          :: RWShared () (Map InstanceNo [UIUpdate]) (Map InstanceNo [UIUpdate])
+//taskInstanceEvents                  :: RWShared InstanceNo [Event] [Event]
+//taskInstanceOutput                  :: RWShared InstanceNo [UIUpdate] [UIUpdate]
+
 //Public interface used by parallel tasks
 parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 
 //Access to remote shared data
 exposedShare 	        :: !String -> 	RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
 
-//Create and delete task instances
-
+// Create and delete task instances:
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
 
 //Create a task instance
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-
 /**
 * Create a stored task instance in the task store (lazily without evaluating it)
 * @param The task to store

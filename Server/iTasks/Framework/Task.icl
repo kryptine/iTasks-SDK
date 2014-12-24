@@ -8,20 +8,8 @@ import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction
 
 from iTasks.Framework.TaskState			import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRules
+from iTasks.API.Common.SDSCombinators	import toDynamic 
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-
-mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
-mkInstantTask iworldfun = Task (evalOnce iworldfun)
-where
-	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
-		(Error e, iworld)					    = (ExceptionResult e, iworld)
-
-	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
-		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
-
-	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
@@ -70,4 +58,73 @@ finalizeRep repOpts rep = rep
 
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 extendCallTrace (TaskId _ taskNo) repOpts=:{TaskEvalOpts|callTrace} = {repOpts & callTrace = [taskNo:callTrace]}
+
+wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
+wrapConnectionTask {ConnectionHandlers|onConnect,whileConnected,onDisconnect} sds
+    = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,whileConnected=whileConnected`,onDisconnect=onDisconnect`} (toDynamic sds)
+where
+    onConnect` host (r :: r^) env = case onConnect host r of
+        (Ok l, mbw, out, close) = case mbw of
+            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
+            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
+        (Error e, mbw, out, close) = case mbw of
+            Just w  = (Error e, Just (dynamic w :: w^), out, close, env)
+            Nothing = (Error e, Nothing, out, close, env)
+
+    whileConnected` mbIn (l :: l^) (r :: r^) env = case whileConnected mbIn l r of
+        (Ok l, mbw, out, close) = case mbw of
+            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
+            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
+        (Error e, mbw, out, close) = case mbw of
+            Just w = (Error e, Just (dynamic w :: w^), out, close, env)
+            Nothing = (Error e, Nothing, out, close, env)
+
+    onDisconnect` (l :: l^) (r :: r^) env = case onDisconnect l r of
+        (Ok l, mbw) = case mbw of
+            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), env)
+            Nothing = (Ok (dynamic l :: l^), Nothing, env)
+        (Error e, mbw) = case mbw of
+            Just w  = (Error e, Just (dynamic w :: w^), env)
+            Nothing = (Error e, Nothing, env)
+
+wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
+wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect,whileConnected,onDisconnect} sds
+    = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,whileConnected=whileConnected`,onDisconnect=onDisconnect`} (toDynamic sds)
+where
+    onConnect` host (r :: r^) env = case onConnect host r env of
+        (Ok l, mbw, out, close, env) = case mbw of
+            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
+            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
+        (Error e, mbw, out, close, env) = case mbw of
+            Just w  = (Error e, Just (dynamic w :: w^), out, close, env)
+            Nothing = (Error e, Nothing, out, close, env)
+
+    whileConnected` mbIn (l :: l^) (r :: r^) env = case whileConnected mbIn l r env of
+        (Ok l, mbw, out, close, env) = case mbw of
+            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
+            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
+        (Error e, mbw, out, close, env) = case mbw of
+            Just w = (Error e, Just (dynamic w :: w^), out, close, env)
+            Nothing = (Error e, Nothing, out, close, env)
+
+    onDisconnect` (l :: l^) (r :: r^) env = case onDisconnect l r env of
+        (Ok l, mbw, env) = case mbw of
+            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), env)
+            Nothing = (Ok (dynamic l :: l^), Nothing, env)
+        (Error e, mbw, env) = case mbw of
+            Just w  = (Error e, Just (dynamic w :: w^), env)
+            Nothing = (Error e, Nothing, env)
+
+mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
+mkInstantTask iworldfun = Task (evalOnce iworldfun)
+where
+	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Error e, iworld)					    = (ExceptionResult e, iworld)
+
+	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
+		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
+
+	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 

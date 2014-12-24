@@ -64,6 +64,9 @@ where
 toReadOnly :: !(RWShared p r w) -> ROShared p r | iTask p
 toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds
 
+toDynamic :: !(RWShared p r w) -> (RWShared p Dynamic Dynamic) | iTask p & TC r & TC w //FIXME: Use 1 lens directly
+toDynamic sds = mapRead (\r -> (dynamic r :: r^)) (mapWrite (\(w :: w^) _ -> Just w) sds) 
+
 (>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy) | iTask p
 (>+<) sds1 sds2 = sdsParallel ">+<" (\p -> (p,p)) id (SDSWriteConst write1) (SDSWriteConst write2) sds1 sds2
 where

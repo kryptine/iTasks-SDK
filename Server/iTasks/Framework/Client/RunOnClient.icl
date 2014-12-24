@@ -7,6 +7,7 @@ import iTasks.Framework.TaskEval
 import iTasks.Framework.IWorld
 import iTasks.API.Core.Client.Tasklet
 import iTasks.Framework.UIDiff
+import qualified iTasks.Framework.SDS as SDS
 
 from Data.Map import qualified newMap, toList, get
 from Data.List import find
@@ -93,12 +94,17 @@ newWorld :: *World
 newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
-getUIUpdates iworld=:{uiUpdates}
-		= case 'Data.Map'.toList uiUpdates of
-			[]   = (Nothing, iworld)		
-			msgs = (Just (map getUpdates msgs), {iworld & uiUpdates = 'Data.Map'.newMap})
+getUIUpdates iworld
+	= case 'SDS'.read taskOutput iworld of
+		(Ok uiUpdates,iworld)
+			= case 'Data.Map'.toList uiUpdates of
+				[]   = (Nothing, iworld)		
+				msgs 
+					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap taskOutput iworld
+					= (Just (map getUpdates msgs), iworld)
+		(_,iworld)
+			= (Nothing, iworld)
 where
-
 	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIUpdates upds)])
 
 createClientIWorld :: !String !InstanceNo -> *IWorld
@@ -138,11 +144,10 @@ createClientIWorld serverURL currentInstance
 		  ,jsCompilerState		= locundef "jsCompilerState"
           ,nextInstanceNo       = 0
 		  ,refreshQueue			= []
-		  ,uiUpdates			= 'Data.Map'.newMap
 		  ,shutdown				= False
           ,random               = genRandInt seed
-          ,io                   = {done=[],todo=[]}
-		  ,ioValues             = 'Data.Map'.newMap
+          ,ioTasks              = {done=[],todo=[]}
+		  ,ioStates             = 'Data.Map'.newMap
 		  ,world				= world
 		  ,resources			= Nothing
 		  ,onClient				= True

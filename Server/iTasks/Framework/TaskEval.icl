@@ -9,7 +9,7 @@ import iTasks.Framework.UIDiff
 import iTasks.Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
-from Data.Map as DM				        import qualified newMap, fromList, toList, get, put
+from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del
 from iTasks.Framework.SDS as SDS        import qualified read, write, modify
 from iTasks.API.Common.SDSCombinators   import sdsFocus, >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
@@ -140,7 +140,9 @@ where
 	lastEventNo (RefreshEvent (Just eventNo)) = eventNo
 	lastEventNo _ = 0
 
-    resetUIUpdates instanceNo ResetEvent iworld = clearUIUpdates instanceNo iworld
+    resetUIUpdates instanceNo ResetEvent iworld 
+		# (_,iworld) = 'SDS'.modify (\output -> 'DM'.del instanceNo output) taskOutput iworld
+		= iworld
     resetUIUpdates _ _ iworld = iworld
 
 //Evaluate a task instance, just to refresh its state
@@ -149,14 +151,18 @@ refreshTaskInstance instanceNo mbReason iworld
     //# iworld            = trace_n ("Evaluating "<+++ instanceNo <+++ ": " <+++ mbReason) iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
 	= case mbResult of
-		(Ok (_,_,updates)) = addUIUpdates instanceNo updates iworld
-		_	               = iworld
+		(Ok (_,_,updates)) 
+			# (_,iworld) = 'SDS'.modify (\output -> 'DM'.put instanceNo (maybe updates (\u -> u ++ updates) ('DM'.get instanceNo output)) output) taskOutput iworld
+			= iworld	
+		_	= iworld
 
 resetTaskInstance :: !InstanceNo !*IWorld -> *IWorld
 resetTaskInstance instanceNo iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo ResetEvent iworld
     = case mbResult of
-		(Ok (_,_,updates)) = addUIUpdates instanceNo updates iworld
+		(Ok (_,_,updates))
+			# (_,iworld) = 'SDS'.modify (\output -> 'DM'.put instanceNo (maybe updates (\u -> u ++ updates) ('DM'.get instanceNo output)) output) taskOutput iworld
+			= iworld	
         _                  = iworld
 
 /*

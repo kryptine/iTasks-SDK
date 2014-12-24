@@ -54,6 +54,8 @@ mapReadWriteError	:: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError Tas
 
 toReadOnly :: !(RWShared p r w) -> ROShared p r | iTask p
 
+toDynamic :: !(RWShared p r w) -> (RWShared p Dynamic Dynamic) | iTask p & TC r & TC w
+
 //Map a list SDS of one element to the element itsel
 mapSingle :: !(RWShared p [r] [w]) -> (RWShared p r w) | iTask p
 

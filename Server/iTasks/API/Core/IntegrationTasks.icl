@@ -101,81 +101,39 @@ where
 				= (Error (dynamic ex,toString ex), {IWorld|iworld & world = world})
 			Ok i	= (Ok i, {IWorld|iworld & world = world})
 
-import StdMisc
-
-callHTTP2 :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
-callHTTP2 method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
-    =   tcpconnect uriRegName port (constShare Void) onConnect onData
+callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
+callHTTP method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
+    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,whileConnected=whileConnected,onDisconnect=onDisconnect}
     @?  taskResult
 where
     port = fromMaybe 80 uriPort
     path = uriPath +++ maybe "" (\q -> ("?"+++q)) uriQuery +++ maybe "" (\f -> ("#"+++f)) uriFragment
-    //VERY SIMPLE HTTP 1.0 Request
-    req = toString method +++ " " +++ path +++ " HTTP/1.0\r\n\r\n"+++data
+    //VERY SIMPLE HTTP 1.1 Request
+    req = toString method +++ " " +++ path +++ " HTTP/1.1\r\nHost:"+++uriRegName+++"\r\nConnection: close\r\n\r\n"+++data
 
-    onConnect _ = (Ok (Left []),Nothing,[req],False)
-    onData (Left acc) _ events shareChanged connectionClosed
-        | connectionClosed
-        	= case parseResponse (concat (acc ++ events)) of
-				Nothing    = (Error "Invalid response",Nothing,[],True)
-        		(Just rsp) = case parseFun rsp of
- 				               	Ok a    = (Ok (Right a),Nothing,[],True)
-                				Error e = (Error e,Nothing,[],True)
-        | otherwise
-            = (Ok (Left (acc ++ events)),Nothing,[],False)
+    onConnect _ _
+        = (Ok (Left []),Nothing,[req],False)
+    whileConnected (Just data) (Left acc) _ 
+        = (Ok (Left (acc ++ [data])),Nothing,[],False)
+    whileConnected Nothing acc _ 
+        = (Ok acc,Nothing,[],False)
+
+    onDisconnect (Left acc) _
+        = case parseResponse (concat acc) of
+			Nothing    = (Error "Invalid response",Nothing)
+            (Just rsp) = case parseFun rsp of
+ 				               	Ok a    = (Ok (Right a),Nothing)
+                				Error e = (Error e,Nothing)
 
     taskResult (Value (Right a) _)  = Value a True
     taskResult _                    = NoValue
 
-callHTTP2 _ url _ _
+callHTTP _ url _ _
     = throw ("Invalid url: " +++ toString url)
-
-//TODO: Add proper cleanup
-callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a	
-callHTTP method uri request parseFun =
-		initRPC
-	>>- \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) [] cmd args Nothing
-	>>- \(CompletedProcess exitCode) -> if (exitCode > 0)
-		(throw (RPCException (curlError exitCode)))
-		(importTextFile outfile >>- \result -> case parseFun {rsp_code = 200, rsp_reason = "OK", rsp_headers = [], rsp_data = result} of
-			Ok res	= return res
-			Error e = throw (RPCException e)
-		)
-where
-	url = toString uri
-
-	options	= case method of
-		HTTP_GET	= "--get"
-		HTTP_POST 	= ""
-		HTTP_PUT	= "-XPUT"
-		
-	initRPC = mkInstantTask eval
-	
-	eval taskId iworld=:{IWorld|current={taskTime},server={buildID,paths={dataDirectory}},world}
-		# infile  = dataDirectory </> "tmp-" +++ buildID </> (mkFileName taskId "request")
-		# outfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName taskId "response")
-		# (res,world) = writeFile infile request world
-		| isError res
-			# ex = RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))
-			= (Error (dynamic ex,toString ex),{IWorld|iworld & world = world})
-		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" ("Tools" </> "Curl" </> "curl.exe" )
-		# args	=	[ options
-						, "--data-binary"
-						, "@" +++ infile
-						, "-s"
-						, "-o"
-						, outfile
-						, url
-						]
-		= (Ok (cmd,args,outfile), {IWorld|iworld & world = world})
-	
-	mkFileName :: !TaskId !String -> String
-	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
 
 callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
 	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
-
 
 curlError :: Int -> String
 curlError exitCode = 
