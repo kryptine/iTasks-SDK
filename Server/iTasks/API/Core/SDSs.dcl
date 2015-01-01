@@ -37,6 +37,9 @@ currentUTCDateTime      :: ReadOnlyShared DateTime
 currentUTCTime          :: ReadOnlyShared Time
 currentUTCDate          :: ReadOnlyShared Date
 
+//Unix timestamp
+currentTimestamp 		:: ReadOnlyShared Timestamp
+
 // Processes
 topLevelTasks 			:: SharedTaskList Void
 

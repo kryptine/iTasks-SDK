@@ -48,6 +48,10 @@ dateToTimestamp :: !Date -> Timestamp
 dateToTimestamp {Date|day,mon,year}
 	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
 
+datetimeToTimestamp :: !DateTime -> Timestamp
+datetimeToTimestamp (DateTime {Date|day,mon,year} {Time|hour,min,sec})
+	= mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
+
 instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""

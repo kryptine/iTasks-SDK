@@ -44,6 +44,9 @@ currentUTCTime = toReadOnly iworldUTCTime
 currentUTCDate :: ReadOnlyShared Date
 currentUTCDate = toReadOnly iworldUTCDate
 
+currentTimestamp :: ReadOnlyShared Timestamp
+currentTimestamp = mapRead datetimeToTimestamp currentUTCDateTime
+
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
 topLevelTasks = topLevelTaskList

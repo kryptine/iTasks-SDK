@@ -22,6 +22,7 @@ currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)
 
 timestampToGmDateTime	:: !Timestamp -> DateTime
 dateToTimestamp			:: !Date -> Timestamp
+datetimeToTimestamp 	:: !DateTime -> Timestamp
 
 //Path conversion
 toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)
