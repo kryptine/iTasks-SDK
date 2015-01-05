@@ -31,6 +31,11 @@ registerSVGEvents cid svg onclicks world
   where
   registerEvent :: !ComponentId !(JSObj svg) !String !(ImageAttr s) !*JSWorld -> *JSWorld | iTask s
   registerEvent cid svg elemCls (ImageOnClickAttr     {onclick})     world = actuallyRegister cid svg elemCls "click"     onclick     world
+  registerEvent cid svg elemCls (ImageOnMouseDownAttr {onmousedown}) world = actuallyRegister cid svg elemCls "mousedown" onmousedown world
+  registerEvent cid svg elemCls (ImageOnMouseUpAttr   {onmouseup})   world = actuallyRegister cid svg elemCls "mouseup"   onmouseup   world
+  registerEvent cid svg elemCls (ImageOnMouseOverAttr {onmouseover}) world = actuallyRegister cid svg elemCls "mouseover" onmouseover world
+  registerEvent cid svg elemCls (ImageOnMouseMoveAttr {onmousemove}) world = actuallyRegister cid svg elemCls "mousemove" onmousemove world
+  registerEvent cid svg elemCls (ImageOnMouseOutAttr  {onmouseout})  world = actuallyRegister cid svg elemCls "mouseout"  onmouseout  world
   registerEvent cid svg elemCls (ImageOnDragStartAttr {ondragstart}) world = actuallyRegister cid svg elemCls "dragstart" ondragstart world
   registerEvent cid svg elemCls (ImageOnDragEndAttr   {ondragend})   world = actuallyRegister cid svg elemCls "dragend"   ondragend   world
   registerEvent cid svg elemCls (ImageOnDragEnterAttr {ondragenter}) world = actuallyRegister cid svg elemCls "dragenter" ondragenter world
