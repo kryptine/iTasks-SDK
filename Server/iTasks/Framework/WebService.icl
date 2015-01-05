@@ -1,10 +1,12 @@
 implementation module iTasks.Framework.WebService
 
 import StdList, StdBool, StdTuple, StdArray
+from StdFunc import o
 import Data.Maybe, Data.Functor
 from Data.Map import :: Map, :: Size
 import qualified Data.List as DL
 import qualified Data.Map as DM
+import qualified iTasks.Framework.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval, iTasks.Framework.TaskStore
@@ -125,6 +127,7 @@ where
                     //Stream messages for multiple instances
                     # iworld            = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = popOutput instances output //TODO: Check keys
+                    # (_,iworld) = 'SDS'.write output taskOutput iworld //QUICK FIX!!! Please handle correctly
                     = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
                 [instanceNo,instanceKey]
                     = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, iworld)
@@ -192,10 +195,11 @@ where
         = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req output _ (EventSourceConnection instances) iworld
 		# (messages,output) = popOutput instances output
-		= case messages of
+		= case filter (not o isEmpty o snd) messages of //Ignore empty updates
 			[]	= ([],False,(EventSourceConnection instances),iworld)
-			_	
+            messages	
                 # iworld = updateInstanceLastIO instances iworld
+                # (_,iworld) = 'SDS'.write output taskOutput iworld //QUICK FIX!!! Please handle correctly
                 = ([formatMessageEvents messages],False,(EventSourceConnection instances),iworld)
 
 	disconnectFun _ _ (EventSourceConnection instances) iworld    = updateInstanceDisconnect instances iworld
