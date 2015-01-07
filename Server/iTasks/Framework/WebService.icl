@@ -56,9 +56,9 @@ derive JSONEncode ServiceResponsePart
 // unauthorized downloading of documents and DDOS uploading.
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
-                         ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> *IWorld)
+                         ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
 where
@@ -81,9 +81,9 @@ where
 		| hasParam "upload" req
 			# uploads = 'DM'.toList req.arg_uploads
 			| length uploads == 0
-				= (jsonResponse (JSONArray []),Nothing,iworld)
+				= (jsonResponse (JSONArray []),Nothing,Nothing,iworld)
 			# (documents, iworld) = createDocumentsFromUploads uploads iworld
-			= (jsonResponse (toJSON documents),Nothing,iworld)
+			= (jsonResponse (toJSON documents),Nothing,Nothing,iworld)
 		//Check for downloads
 		| hasParam "download" req
 			# (mbContent, iworld)	= loadDocumentContent downloadParam iworld
@@ -91,9 +91,9 @@ where
 			= case (mbContent,mbMeta) of
 				(Just content,Just {Document|name,mime,size})
 					# headers	= [("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
-					= ({okResponse & rsp_headers = headers, rsp_data = content},Nothing,iworld)
+					= ({okResponse & rsp_headers = headers, rsp_data = content},Nothing,Nothing,iworld)
 				_
-					= (notFoundResponse req,Nothing,iworld)
+					= (notFoundResponse req,Nothing,Nothing,iworld)
         //Check for WebSocket upgrade headers
         | ('DM'.get "Upgrade" req.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.req_headers)
             # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.req_headers)
@@ -101,36 +101,35 @@ where
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),iworld)
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),Nothing,iworld)
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
                     = case createTaskInstance (task req) iworld of
                         (Error (_,err), iworld)
-				            = (errorResponse err, Nothing, iworld)
+				            = (errorResponse err, Nothing, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, iworld)
+				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, Nothing, iworld)
                 JSONPlain
                     = case createTaskInstance (task req) iworld of
                         (Error (_,err), iworld)
-				            = (errorResponse err, Nothing, iworld)
+				            = (errorResponse err, Nothing, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
                             = case evalTaskInstance instanceNo event iworld of
-                                (Error err,iworld)            = (errorResponse err, Nothing, iworld)
-					            (Ok (_,Value val _,_),iworld) = (jsonResponse val, Nothing, iworld)
-					            (Ok (_,NoValue,_),iworld)     = (jsonResponse JSONNull, Nothing, iworld)
+                                (Error err,iworld)            = (errorResponse err, Nothing, Nothing, iworld)
+					            (Ok (_,Value val _,_),iworld) = (jsonResponse val, Nothing, Nothing, iworld)
+					            (Ok (_,NoValue,_),iworld)     = (jsonResponse JSONNull, Nothing, Nothing, iworld)
 			    _
-				    = (jsonResponse (JSONString "Unknown service format"), Nothing, iworld)
+				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
                 ["gui-stream"]
                     //Stream messages for multiple instances
                     # iworld            = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = popOutput instances output //TODO: Check keys
-                    # (_,iworld) = 'SDS'.write output taskOutput iworld //QUICK FIX!!! Please handle correctly
-                    = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
+                    = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
                 [instanceNo,instanceKey]
-                    = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, iworld)
+                    = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
@@ -150,15 +149,15 @@ where
                             = (json,iworld)
                         _
 					        = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
-                    = (jsonResponse json, Nothing, iworld)
+                    = (jsonResponse json, Nothing, Nothing, iworld)
                 //Stream messages for a specific instance
                 [instanceNo,instanceKey,"gui-stream"]
                     # instances         = [toInt instanceNo]
                     # iworld            = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = popOutput instances output
-                    = (eventsResponse messages, Just (EventSourceConnection instances), iworld)
+                    = (eventsResponse messages, Just (EventSourceConnection instances), Nothing, iworld)
                 _
-				    = (errorResponse "Requested service format not available for this task", Nothing, iworld)
+				    = (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 	    where
             urlSpec             = req.req_path % (size url,size req.req_path)
 
@@ -192,18 +191,17 @@ where
             (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
     dataFun req output mbData (WebSocketConnection instances) iworld
-        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),iworld) //TEMPORARY ECHO WEBSOCKET
+        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),Nothing,iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req output _ (EventSourceConnection instances) iworld
 		# (messages,output) = popOutput instances output
 		= case filter (not o isEmpty o snd) messages of //Ignore empty updates
-			[]	= ([],False,(EventSourceConnection instances),iworld)
+			[]	= ([],False,(EventSourceConnection instances),Nothing,iworld)
             messages	
                 # iworld = updateInstanceLastIO instances iworld
-                # (_,iworld) = 'SDS'.write output taskOutput iworld //QUICK FIX!!! Please handle correctly
-                = ([formatMessageEvents messages],False,(EventSourceConnection instances),iworld)
+                = ([formatMessageEvents messages],False,(EventSourceConnection instances),Just output, iworld)
 
-	disconnectFun _ _ (EventSourceConnection instances) iworld    = updateInstanceDisconnect instances iworld
-	disconnectFun _ _ _ iworld                                    = iworld
+	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
+	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
 	popOutput :: ![InstanceNo] (Map InstanceNo [UIUpdate]) -> (![(!InstanceNo,![UIUpdate])],(Map InstanceNo [UIUpdate]))
 	popOutput instances taskOutput
@@ -279,9 +277,9 @@ where
 
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
-				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-				,!(HTTPRequest r (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-				,!(HTTPRequest r ConnectionType *IWorld -> *IWorld)
+				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe w, !*IWorld))
+				,!(HTTPRequest r (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe w, !*IWorld))
+				,!(HTTPRequest r ConnectionType *IWorld -> (!Maybe w, !*IWorld))
 				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
  = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, whileConnected=whileConnected, onDisconnect=onDisconnect} sds
@@ -294,12 +292,12 @@ where
 		//Select handler based on request path
 		= case selectHandler request requestProcessHandlers of
 			Just (_,_,_,handler,_)
-				# (mbData,done,localState,env=:{IWorld|world}) = handler request r mbData localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world}) = handler request r mbData localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
 					# (now,world)       = time world
-					= (Ok (NTIdle request.client_name now), Nothing, mbData, False,{IWorld|env & world = world})
+					= (Ok (NTIdle request.client_name now), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
-					= (Ok (NTProcessingRequest request localState), Nothing, mbData,done,{IWorld|env & world = world})
+					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
 
@@ -333,7 +331,7 @@ where
 					//Determine if a  persistent connection was requested
 					# keepalive	= isKeepAlive request
 					// Create a response
-					# (response,mbLocalState,env)	= newReqHandler request r env
+					# (response,mbLocalState,mbW,env)	= newReqHandler request r env
 					//Add keep alive header if necessary
 					# response	= if keepalive {response & rsp_headers = [("Connection","Keep-Alive"):response.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
@@ -343,11 +341,11 @@ where
 							| keepalive
                                 # env=:{IWorld|world} = env
 								# (now,world)       = time world
-								= (Ok (NTIdle rstate.HttpReqState.request.client_name now), Nothing, [reply], False, {IWorld|env & world=world})
+								= (Ok (NTIdle rstate.HttpReqState.request.client_name now), mbW, [reply], False, {IWorld|env & world=world})
 							| otherwise
-								= (Ok connState, Nothing, [reply], True, env)
+								= (Ok connState, mbW, [reply], True, env)
 						Just localState	
-							= (Ok (NTProcessingRequest request localState), Nothing, [(encodeResponse False response)], False, env)
+							= (Ok (NTProcessingRequest request localState), mbW, [(encodeResponse False response)], False, env)
 				| otherwise
 					= (Ok (NTReadingRequest rstate), Nothing, [], False, env)		
 
@@ -361,10 +359,13 @@ where
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up
+
     onDisconnect connState=:(NTProcessingRequest request localState) r env
 		= case selectHandler request requestProcessHandlers of
 			Nothing	                        = (Ok connState, Nothing, env)
-			Just (_,_,_,_,connLostHandler)  = (Ok connState, Nothing, connLostHandler request r localState env)
+			Just (_,_,_,_,connLostHandler)  
+				# (mbW, env) = connLostHandler request r localState env
+				= (Ok connState, mbW, env)
     onDisconnect connState r env = (Ok connState, Nothing, env)
 
 	selectHandler req [] = Nothing

@@ -24,9 +24,9 @@ import StdMisc, graph_to_sapl_string
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> *IWorld)
+                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
 				 )
 
 sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
@@ -36,37 +36,37 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !*IWorld)
+	reqFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld)
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
-				Nothing = (notFoundResponse req,Nothing,iworld) 
+				Nothing = (notFoundResponse req,Nothing,Nothing,iworld) 
 				(Just (_, shared)) = case req.req_method of
 									HTTP_GET = readit shared iworld
 									HTTP_PUT = writeit shared iworld
-											 = (badRequestResponse "Invalid method",Nothing,iworld)
+											 = (badRequestResponse "Invalid method",Nothing,Nothing,iworld)
 	where
 		focus = fromString (paramValue "focus" req)
 	
 		readit shared iworld
 			# (res, iworld) = 'SDS'.read (sdsFocus focus shared) iworld
 			= case res of
-				(Ok json)       = (jsonResponse json, Nothing, iworld)
-				(Error (e,msg)) = (errorResponse msg, Nothing, iworld)			
+				(Ok json)       = (jsonResponse json, Nothing, Nothing, iworld)
+				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			
 			
 		writeit shared iworld
 			# (res, iworld) = 'SDS'.write (fromString req.req_data) (sdsFocus focus shared) iworld
 			= case res of
-				(Ok _)          = (okResponse, Nothing, iworld)
-				(Error (e,msg)) = (errorResponse msg, Nothing, iworld)			
+				(Ok _)          = (okResponse, Nothing, Nothing, iworld)
+				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			
 	
 	reqFun req _ iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
-			Nothing = (notFoundResponse req,Nothing,iworld) 
-			(Just (dyn, _)) = (plainResponse (toString (unpackType dyn)), Nothing, iworld)
+			Nothing = (notFoundResponse req,Nothing,Nothing, iworld) 
+			(Just (dyn, _)) = (plainResponse (toString (unpackType dyn)), Nothing, Nothing, iworld)
 	
 	jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json")], rsp_data = toString json}			
@@ -74,11 +74,11 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld)
-    dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, iworld)
+	dataFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType,!Maybe (Map InstanceNo [UIUpdate]), !*IWorld)
+    dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
-    disconnectFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !ConnectionType !*IWorld -> *IWorld
-	disconnectFun _ _ _ iworld = iworld
+    disconnectFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !ConnectionType !*IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld)
+	disconnectFun _ _ _ iworld = (Nothing,iworld)
 
 readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
 readRemoteSDS p url iworld=:{exposedShares}

@@ -162,9 +162,9 @@ background iworld = removeOutdatedSessions (refreshTaskInstances iworld)
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> *IWorld)
+					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
 					  )] | Publishable publish
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
@@ -315,17 +315,17 @@ where
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
 	->
-	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (HTTPResponse, Maybe loc,*IWorld))
-							,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, !*IWorld))
-							,!(HTTPRequest (Map InstanceNo [UIUpdate]) loc *IWorld -> *IWorld))
+	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (HTTPResponse, Maybe loc, Maybe (Map InstanceNo [UIUpdate]) ,*IWorld))
+							,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe (Map InstanceNo [UIUpdate]) ,!*IWorld))
+							,!(HTTPRequest (Map InstanceNo [UIUpdate]) loc *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]),!*IWorld)))
 simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
 where
 	initFun req _ env
 		# (rsp,env) = responseFun req env
-		= (rsp,Nothing,env)
+		= (rsp,Nothing,Nothing,env)
 		
-	dataFun _ _ _ s env = ([],True,s,env)
-	lostFun _ _ s env = env
+	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+	lostFun _ _ s env = (Nothing,env)
 
 
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
