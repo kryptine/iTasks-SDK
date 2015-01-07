@@ -64,7 +64,7 @@ imgs = [(lines ["card_size     = (58.5, 90.0)"
        ,(lines ["pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]]"
               ,"                   (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))"
               ], mkImg pile)
-       ,(lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"10\",pile] Nothing"
+       ,(lines ["indexed_pile  = above [AtMiddleX] [] [text (pilefont 10.0) \"16\",pile] Nothing"
               ], mkImg indexed_pile)
        ,(lines ["rotate_pile   = rotate (deg 15.0) indexed_pile"
               ], mkImg rotate_pile)
@@ -75,6 +75,7 @@ imgs = [(lines ["card_size     = (58.5, 90.0)"
                ,"                         (2.0*pi) "
 			   ,"                         (map (pile_image Front) middle)"], mkImg (margin (px (h/2.0)) middle_image))
        ,(lines ["south_player"], mkImg (margin (px h) (player_image False (4.0*h) south_player)))
+       ,(lines ["a middle"], mkImg (margin (px h) a_middle_image))
        ]
 
 south_player  = { color    = Red
@@ -109,13 +110,19 @@ no            = margin (px 5.0) (
 upside_no     = rotate (deg 180.0) no
 front_card    = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [no,upside_no] 
                                                            (Just (card_shape <@< {fill = toSVGColor card.front}) )
-pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] (repeatn 10 front_card) (Just (empty (px w) (px (h*1.5))))
-indexed_pile  = above [AtMiddleX,AtMiddleX] [] [text (pilefont 10.0) "10",pile] Nothing
+pile          = overlay [] [(zero,px ((toReal dx)*h/18.0)) \\ dx <- [0..9]] 
+                //           (repeatn 10 front_card) 
+                           [card_image Front {back=Red,front=fromInt i,no=i+1} \\ i <- [0..9]]
+                           (Just (empty (px w) (px (h*1.5))))
+indexed_pile  = above [AtMiddleX,AtMiddleX] [] [text (pilefont 10.0) "16",pile] Nothing
 rotate_pile   = rotate (deg 15.0) indexed_pile
 rotate_cards  = overlay (repeat (AtMiddleX,AtMiddleY)) [] [rotate (deg (toReal (i*60))) front_card \\ i <- [0..2]] Nothing
 middle_image  = circular (2.0*h)
                          (2.0*pi) 
 						 (map (pile_image Front) (repeatn 16 []))
+
+instance fromInt Color where
+	fromInt n = [Red,Green,Blue,Yellow] !! ((abs n) rem 4)
 
 pile_image :: !SideUp !Pile -> Image m
 pile_image side pile
@@ -146,11 +153,11 @@ where
                              <@< {stroke = toSVGColor colour}
                              <@< {fill   = toSVGColor "none"}
 
-big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = toSVGColor "white"}
+big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill = toSVGColor "white"} <@< {stroke = toSVGColor colour}
 
 player_image :: !Bool !Real !Player -> Image m
 player_image interactive r player
-  = circular r (pi * 0.5) 
+  = circular r (pi * 0.4) 
                (  row_images interactive player.row player.color
                ++ [stack_whitespace, pile_image Front player.ligretto, stack_whitespace]
                ++ hand_images interactive player.hand player.color
@@ -174,7 +181,7 @@ instance toSVGColor Color where toSVGColor Red    = toSVGColor "darkred"
                                 toSVGColor Yellow = toSVGColor "gold"
 no_stroke_color Red		= Blue
 no_stroke_color Green	= Red
-no_stroke_color Blue	= Yellow
+no_stroke_color Blue	= Green//Yellow is the official color, but looks less good on screen
 no_stroke_color Yellow	= Green
 
 mkImg img = above (repeat AtLeft) [] [img] Nothing
@@ -193,3 +200,15 @@ circular r a imgs
             (Just (empty (px (2.0*r)) (px (2.0*r))))              // BUG: using Nothing creates incorrect image (offset to left)
 
 pi =: 3.14159265359
+
+a_middle = [[card i Green Green \\ i <- reverse [1..4]]
+           ,[card i Green Red   \\ i <- reverse [1..3]]
+           ,[card i Green Yellow\\ i <- reverse [1..5]]
+           ,[card i Green Red   \\ i <- reverse [1..2]]
+           ,[card i Green Green \\ i <- reverse [1]]
+           ] 
+           ++
+           (repeatn 11 [])
+where
+	card x b f= {back=b,front=f,no=x}
+a_middle_image  = circular (2.0*h) (2.0*pi) (map (pile_image Front) a_middle)

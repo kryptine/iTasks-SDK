@@ -1,4 +1,4 @@
-module TOPLigretto2
+module TOPLigretto
 
 import ligrettoModel
 import MultiUser
