@@ -52,12 +52,8 @@ derive gEq				Task
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
-:: TaskRep	= NoRep								//For some tasks no external representation is generated
-			| TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
-					
-//Task representation for web service format
-:: TaskServiceRep	:== [TaskPart]
-:: TaskPart			:== (!String, !JSONNode)		//Task id, value
+:: TaskRep	= NoRep				//For some tasks no external representation is generated
+			| TaskRep !UIDef 	//Compute both the UI and the raw service representation simultaneously
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)

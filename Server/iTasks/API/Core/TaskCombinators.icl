@@ -142,9 +142,9 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts NoRep val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) [])
-	doStepLayout taskId evalOpts (TaskRep def parts) val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)) parts)
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)))
+	doStepLayout taskId evalOpts (TaskRep def) val
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)))
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -351,12 +351,12 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
                 //parallel layouts such as a set of tabs
                 # rep = case rep of
                     NoRep = NoRep
-                    TaskRep def sparts
+                    TaskRep def
                         # def = uiDefSetAttribute TASK_ATTRIBUTE (toString taskId) def
                         # def = uiDefSetAttribute CREATED_AT_ATTRIBUTE (toString createdAt) def
                         # def = uiDefSetAttribute LAST_EVENT_ATTRIBUTE (toString lastEvent) def
                         # def = maybe def (\f -> uiDefSetAttribute LAST_FOCUS_ATTRIBUTE (toString f) def) lastFocus
-                        = TaskRep def sparts
+                        = TaskRep def
                 # result = ValueResult val evalInfo rep tree
                 //Check if the value changed
                 # newValue = encode val
@@ -423,7 +423,7 @@ genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalIn
 
 genParallelRep :: !TaskEvalOpts [UIAction] [TaskResult a] -> TaskRep
 genParallelRep evalOpts actions results
-	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel [def \\ ValueResult _ _ (TaskRep def _) _ <- results] actions) []
+	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel [def \\ ValueResult _ _ (TaskRep def) _ <- results] actions)
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
 genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,involvedUsers=[],removedTasks=[],refreshSensitive=False} results
@@ -590,11 +590,11 @@ where
                 | value === Exception
 				    = (ValueResult (Value WOExcepted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 				| worker == user
-                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes) [])
+                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes))
                     # stable    = value === Stable
 					= (ValueResult (Value (WOAttached stable) stable) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) attributes) [])
+					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) attributes))
 					= (ValueResult (Value (WOInUse worker) False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value WODeleted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
@@ -729,8 +729,8 @@ where
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
             (res,iworld) = (res,iworld)
 
-        updRep NoRep               = TaskRep (f {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]}) []
-        updRep (TaskRep def parts) = TaskRep (f def) parts
+        updRep NoRep          = TaskRep (f {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]})
+        updRep (TaskRep def)  = TaskRep (f def)
 		
 instance tune ModifyLayout
 where

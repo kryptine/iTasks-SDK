@@ -117,7 +117,7 @@ where
 		# layout	= repLayoutRules evalOpts
 		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
 		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
-		= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
+		= (TaskRep uidef, iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval
@@ -148,7 +148,7 @@ where
 
     rep port = TaskRep {UIDef|content=UIForm {UIForm|attributes ='DM'.newMap
                        ,controls= [(stringDisplay ("Listening for connections on port "<+++ port),'DM'.newMap)]
-                       ,size=defaultSizeOpts},windows = []} []
+                       ,size=defaultSizeOpts},windows = []}
 
 tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port sds handlers = Task eval

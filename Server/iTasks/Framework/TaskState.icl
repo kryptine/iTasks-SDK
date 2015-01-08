@@ -4,7 +4,7 @@ import Text.JSON
 import iTasks.Framework.UIDefinition
 
 from iTasks					import JSONEncode, JSONDecode
-from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: EventNo
+from iTasks.Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), :: TaskRep(..), :: EventNo
 import iTasks.API.Core.Types
 
 derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskRep, TaskEvalInfo

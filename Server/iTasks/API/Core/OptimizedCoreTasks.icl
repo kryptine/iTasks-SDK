@@ -359,4 +359,4 @@ visualizeView taskId evalOpts (v,mask,ver) desc iworld
 	# layout	= repLayoutRules evalOpts
 	# (controls,iworld) = visualizeAsEditor (v,mask,ver) taskId layout iworld
 	# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes=newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
-	= (TaskRep uidef [(toString taskId,toJSON v)], iworld)
+	= (TaskRep uidef, iworld)

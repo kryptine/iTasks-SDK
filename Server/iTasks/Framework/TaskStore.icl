@@ -97,7 +97,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},cur
     # constants             = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=worker}
 	# (e,iworld)			= 'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
 	# (e,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-	# (e,iworld)			= 'SDS'.write (TaskRep emptyUI []) (sdsFocus instanceNo taskInstanceRep) iworld
+	# (e,iworld)			= 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
 	# (e,iworld)			= 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
 	= (TaskId instanceNo 0, iworld)	//TODO Check errors
 
@@ -111,7 +111,7 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=worker}
 	# (e,iworld)			= 'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
 	# (e,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-	# (e,iworld)			= 'SDS'.write (TaskRep emptyUI []) (sdsFocus instanceNo taskInstanceRep) iworld
+	# (e,iworld)			= 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
 	# (e,iworld)			= 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
     = (Ok (instanceNo,instanceKey),iworld) //TODO Check errors
 
@@ -123,7 +123,7 @@ createDetachedTaskInstance task instanceNo attributes issuer listId attachTempor
     # constants             = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=issuer}
 	# (e,iworld)			= 'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
 	# (e,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-	# (e,iworld)			= 'SDS'.write (TaskRep emptyUI []) (sdsFocus instanceNo taskInstanceRep) iworld
+	# (e,iworld)			= 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
 	# (e,iworld)			= 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
     # iworld                = if attachTemporary (queueUrgentRefresh [instanceNo] ["First refresh of detached instance "<+++ instanceNo] iworld) iworld
 	= (TaskId instanceNo 0, iworld) //TODO Check errors
@@ -143,7 +143,7 @@ replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}
     # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
 	| isError meta          = ((\(Error (e,msg)) -> Error msg) meta, iworld)
 	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI []) (sdsFocus instanceNo taskInstanceRep) iworld
+	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
 	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
     # (_,Just constants,progress,attributes) = fromOk meta
     # (_,iworld)            = 'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld

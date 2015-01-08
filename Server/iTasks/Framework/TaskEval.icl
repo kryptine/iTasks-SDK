@@ -94,8 +94,8 @@ where
                     (ValueResult value _ newRep _)	
                         = case 'SDS'.read (sdsFocus instanceNo taskInstanceRep) iworld of
                             (Ok oldRep, iworld)
-                                # oldUI = case oldRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
-                                # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
+                                # oldUI = case oldRep of (TaskRep oldUI) = oldUI; _ = emptyUI
+                                # newUI = case newRep of (TaskRep newUI) = newUI; _ = emptyUI
                                 //Editlets compute their own diffs we pass to the diff algorithm
                                 # (editletDiffs,iworld)		= getEditletDiffs iworld
                                 # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
@@ -116,9 +116,9 @@ where
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
-    finalizeUI session (ValueResult value info (TaskRep ui parts) tree)
+    finalizeUI session (ValueResult value info (TaskRep ui) tree)
         # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal ui) parts) tree)
+        = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree)
     finalizeUI session res = res
 
 	updateProgress now result currentUser progress
