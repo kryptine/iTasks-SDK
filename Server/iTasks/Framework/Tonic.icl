@@ -239,9 +239,12 @@ viewInstance {trt_bpinstance = Nothing}      = return ()
 viewInstance trt=:{trt_bpinstance = Just bp} =
              dynamicParent trt.trt_taskId >>-
   \mbprnt -> (viewInformation (blueprintTitle trt bp) [] () ||-
-             viewTaskArguments trt bp ||- viewSharedInformation "Blueprint:"
-               [] // TODO
-               tonicSharedRT
+             viewTaskArguments trt bp ||- viewInformation "Blueprint:"
+               [imageView mkTaskImage]
+               bp
+             //viewTaskArguments trt bp ||- viewSharedInformation "Blueprint:"
+               //[imageView mkTaskImage] // TODO
+               //tonicSharedRT
                @! ()) >>*
             [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
@@ -347,33 +350,38 @@ mkVertConn uniqs
           Nothing
 
 tShare :: TShare VarName [VarName] -> TImg
-tShare sh sn args
-  # boxTxt  = case sh of
-                Get          -> "    "
-                (Set ppexpr) -> ppexpr
-                (Upd ppexpr) -> ppexpr
-  # boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                <@< { fill   = toSVGColor "white" }
-                <@< { stroke = toSVGColor "black" }
-  # boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
-  # arr  = case sh of
-             Get          -> tVertDownConnArr
-             (Set ppexpr) -> tVertUpConnArr
-             (Upd ppexpr) -> tVertUpDownConnArr
-  = 'CA'.pure (above (repeat AtMiddleX) [] [mkShare, arr, boxImg] Nothing)
+tShare sh sn args = dispenseUniq `b` mkShareImg
   where
-  mkShare
-    # box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                   <@< { fill   = toSVGColor "white" }
-                   <@< { stroke = toSVGColor "black" }
-    # box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
-    # box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
-    # numArgs  = length args
-    # box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
-                   <@< { fill   = toSVGColor "white" }
-                   <@< { stroke = toSVGColor "black" }
-    # box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
-    = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
+  mkShareImg uniq
+    # boxTxt  = case sh of
+                  Get          -> "    "
+                  (Set ppexpr) -> ppexpr
+                  (Upd ppexpr) -> ppexpr
+    # boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                  <@< { fill   = toSVGColor "white" }
+                  <@< { stroke = toSVGColor "black" }
+    # boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
+    # arr  = case sh of
+               Get          -> tVertDownConnArr
+               (Set ppexpr) -> tVertUpConnArr
+               (Upd ppexpr) -> tVertUpDownConnArr
+    # shareArr = tag (imageTag uniq) (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
+    # emptyImg = empty zero (imageyspan (imageTag uniq))
+    // TODO Add arrows to/from box if the box is smaller than the share
+    = 'CA'.pure (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing)
+    where
+    mkShare
+      # box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                     <@< { fill   = toSVGColor "white" }
+                     <@< { stroke = toSVGColor "black" }
+      # box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
+      # box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
+      # numArgs  = length args
+      # box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
+                     <@< { fill   = toSVGColor "white" }
+                     <@< { stroke = toSVGColor "black" }
+      # box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
+      = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
 tLet :: [(Pattern, PPExpr)] TExpr -> TImg
 tLet pats expr
