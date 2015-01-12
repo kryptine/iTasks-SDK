@@ -54,7 +54,7 @@
 // Optimized by the Clojure compiler
 "use strict";
 var _feval = function(a) {
-  for (var b, c;;) {
+  for (var b, c, lb, lc;;) {
     if ("object" === typeof a) {
       if (1 === a.length) {
         return a[0];
@@ -62,11 +62,12 @@ var _feval = function(a) {
       if ("function" === typeof a[0]) {
         b = a[0];
         c = a[1];
-        if (b.length === c.length) {
+        lb = b.length;
+        lc = c.length;
+        if (lb === lc) {
           return b = b.apply(this, c), a[0] = b, a.length = 1, b;
-        }
-        if (b.length < c.length) {
-          b = b.apply(this, c.splice(0, b.length)), a[0] = b;
+        } else if (lb < lc) {
+          b = b.apply(this, c.splice(0, lb)), a[0] = b;
         } else {
           return a;
         }
@@ -91,13 +92,15 @@ var _feval = function(a) {
 };
 
 var _fapp = function(a, b) {
-  for (;;) {
+  for (var la, lb;;) {
     if ("function" === typeof a) {
-      if (a.length === b.length) {
+      la = a.length;
+      lb = b.length;
+      if (la === lb) {
         return a.apply(this, b);
       }
-      if (a.length < b.length) {
-        a = a.apply(this, b.splice(0, a.length));
+      if (la < lb) {
+        a = a.apply(this, b.splice(0, la));
       } else {
         return[a, b];
       }
