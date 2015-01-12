@@ -36,11 +36,6 @@ registerSVGEvents cid svg onclicks world
   registerEvent cid svg elemCls (ImageOnMouseOverAttr {onmouseover}) world = actuallyRegister cid svg elemCls "mouseover" onmouseover world
   registerEvent cid svg elemCls (ImageOnMouseMoveAttr {onmousemove}) world = actuallyRegister cid svg elemCls "mousemove" onmousemove world
   registerEvent cid svg elemCls (ImageOnMouseOutAttr  {onmouseout})  world = actuallyRegister cid svg elemCls "mouseout"  onmouseout  world
-  registerEvent cid svg elemCls (ImageOnDragStartAttr {ondragstart}) world = actuallyRegister cid svg elemCls "dragstart" ondragstart world
-  registerEvent cid svg elemCls (ImageOnDragEndAttr   {ondragend})   world = actuallyRegister cid svg elemCls "dragend"   ondragend   world
-  registerEvent cid svg elemCls (ImageOnDragEnterAttr {ondragenter}) world = actuallyRegister cid svg elemCls "dragenter" ondragenter world
-  registerEvent cid svg elemCls (ImageOnDragLeaveAttr {ondragleave}) world = actuallyRegister cid svg elemCls "dragleave" ondragleave world
-  registerEvent cid svg elemCls (ImageOnDragOverAttr  {ondragover})  world = actuallyRegister cid svg elemCls "dragover"  ondragover  world
 
   actuallyRegister cid svg elemCls evt sttf world
     #! elemCls           = replaceSubString editletId cid elemCls
@@ -398,11 +393,6 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , imageAttrOnMouseOverAttrAlg   = const 'DM'.newMap
     , imageAttrOnMouseMoveAttrAlg   = const 'DM'.newMap
     , imageAttrOnMouseOutAttrAlg    = const 'DM'.newMap
-    , imageAttrOnDragStartAttrAlg   = const 'DM'.newMap
-    , imageAttrOnDragEndAttrAlg     = const 'DM'.newMap
-    , imageAttrOnDragEnterAttrAlg   = const 'DM'.newMap
-    , imageAttrOnDragLeaveAttrAlg   = const 'DM'.newMap
-    , imageAttrOnDragOverAttrAlg    = const 'DM'.newMap
     , imageAttrDashAttr             = const 'DM'.newMap
     }
   gatherFontsImageTransformAlgs :: ImageTransformAlg (Map FontDef (Set String)) (Map FontDef (Set String))
@@ -613,11 +603,6 @@ fixSpans img = go
     , imageAttrOnMouseOverAttrAlg   = ret o ImageOnMouseOverAttr
     , imageAttrOnMouseMoveAttrAlg   = ret o ImageOnMouseMoveAttr
     , imageAttrOnMouseOutAttrAlg    = ret o ImageOnMouseOutAttr
-    , imageAttrOnDragStartAttrAlg   = ret o ImageOnDragStartAttr
-    , imageAttrOnDragEndAttrAlg     = ret o ImageOnDragEndAttr
-    , imageAttrOnDragEnterAttrAlg   = ret o ImageOnDragEnterAttr
-    , imageAttrOnDragLeaveAttrAlg   = ret o ImageOnDragLeaveAttr
-    , imageAttrOnDragOverAttrAlg    = ret o ImageOnDragOverAttr
     , imageAttrDashAttr             = ret o ImageDashAttr
     }
   fixSpansImageTransformAlgs :: ImageTransformAlg (FixSpansSt Span) (FixSpansSt ImageTransform)
@@ -938,12 +923,6 @@ mkClipPathId editletId uniqId = "clipPathId-" +++ editletId +++ toString uniqId
 mkMarkerId :: !String !Int -> String
 mkMarkerId editletId uniqId = "markerId-" +++ editletId +++ toString uniqId
 
-mkOnDragStartId editletId uniqId = "onDragStartId-" +++ editletId +++ toString uniqId
-mkOnDragEndId   editletId uniqId = "onDragEndId-" +++ editletId +++ toString uniqId
-mkOnDragEnterId editletId uniqId = "onDragEnterId-" +++ editletId +++ toString uniqId
-mkOnDragLeaveId editletId uniqId = "onDragLeaveId-" +++ editletId +++ toString uniqId
-mkOnDragOverId  editletId uniqId = "onDragOverId-" +++ editletId +++ toString uniqId
-
 mkOnClickId :: !String !Int -> String
 mkOnClickId editletId uniqId = "onClickId-" +++ editletId +++ toString uniqId
 
@@ -1080,11 +1059,6 @@ genSVG img = imageCata genSVGAllAlgs img
     , imageAttrOnMouseOverAttrAlg   = mkOnMouseOver
     , imageAttrOnMouseMoveAttrAlg   = mkOnMouseMove
     , imageAttrOnMouseOutAttrAlg    = mkOnMouseOut
-    , imageAttrOnDragStartAttrAlg   = mkOnDragStart
-    , imageAttrOnDragEndAttrAlg     = mkOnDragEnd
-    , imageAttrOnDragEnterAttrAlg   = mkOnDragEnter
-    , imageAttrOnDragLeaveAttrAlg   = mkOnDragLeave
-    , imageAttrOnDragOverAttrAlg    = mkOnDragOver
     , imageAttrDashAttr             = \attr s -> ((([], Just (StrokeDashArrayAttr (DashArray (strictTRMap toString attr.dash)))), 'DM'.newMap), s)
     }
     where
@@ -1127,26 +1101,6 @@ genSVG img = imageCata genSVGAllAlgs img
     mkOnMouseOut :: !(OnMouseOutAttr s) !(GenSVGStVal s)
                  -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
     mkOnMouseOut attr clval = mkEvent mkOnMouseOutId (ImageOnMouseOutAttr attr) clval
-
-    mkOnDragStart :: !(OnDragStartAttr s) !(GenSVGStVal s)
-                  -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
-    mkOnDragStart attr clval = mkEvent mkOnDragStartId (ImageOnDragStartAttr attr) clval
-
-    mkOnDragEnd :: !(OnDragEndAttr s) !(GenSVGStVal s)
-                -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
-    mkOnDragEnd attr clval = mkEvent mkOnDragEndId (ImageOnDragEndAttr attr) clval
-
-    mkOnDragEnter :: !(OnDragEnterAttr s) !(GenSVGStVal s)
-                  -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
-    mkOnDragEnter attr clval = mkEvent mkOnDragEnterId (ImageOnDragEnterAttr attr) clval
-
-    mkOnDragLeave :: !(OnDragLeaveAttr s) !(GenSVGStVal s)
-                  -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
-    mkOnDragLeave attr clval = mkEvent mkOnDragLeaveId (ImageOnDragLeaveAttr attr) clval
-
-    mkOnDragOver :: !(OnDragOverAttr s) !(GenSVGStVal s)
-                 -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
-    mkOnDragOver attr clval = mkEvent mkOnDragOverId (ImageOnDragOverAttr attr) clval
 
     mkEvent mkIdFun attr clval
       #! (uniqId, clval) = nextNo clval
@@ -1574,11 +1528,6 @@ mkList f xs st
   , imageAttrOnMouseOverAttrAlg   :: !(OnMouseOverAttr m) -> imAt
   , imageAttrOnMouseMoveAttrAlg   :: !(OnMouseMoveAttr m) -> imAt
   , imageAttrOnMouseOutAttrAlg    :: !(OnMouseOutAttr m)  -> imAt
-  , imageAttrOnDragStartAttrAlg   :: !(OnDragStartAttr m) -> imAt
-  , imageAttrOnDragEndAttrAlg     :: !(OnDragEndAttr m)   -> imAt
-  , imageAttrOnDragEnterAttrAlg   :: !(OnDragEnterAttr m) -> imAt
-  , imageAttrOnDragLeaveAttrAlg   :: !(OnDragLeaveAttr m) -> imAt
-  , imageAttrOnDragOverAttrAlg    :: !(OnDragOverAttr m)  -> imAt
   , imageAttrDashAttr             :: !(DashAttr m)        -> imAt
   }
 
@@ -1714,11 +1663,6 @@ imageAttrCata imageAttrAlgs (ImageOnMouseUpAttr cl)      = imageAttrAlgs.imageAt
 imageAttrCata imageAttrAlgs (ImageOnMouseOverAttr cl)    = imageAttrAlgs.imageAttrOnMouseOverAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageOnMouseMoveAttr cl)    = imageAttrAlgs.imageAttrOnMouseMoveAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageOnMouseOutAttr cl)     = imageAttrAlgs.imageAttrOnMouseOutAttrAlg cl
-imageAttrCata imageAttrAlgs (ImageOnDragStartAttr cl)    = imageAttrAlgs.imageAttrOnDragStartAttrAlg cl
-imageAttrCata imageAttrAlgs (ImageOnDragEndAttr   cl)    = imageAttrAlgs.imageAttrOnDragEndAttrAlg cl
-imageAttrCata imageAttrAlgs (ImageOnDragEnterAttr cl)    = imageAttrAlgs.imageAttrOnDragEnterAttrAlg cl
-imageAttrCata imageAttrAlgs (ImageOnDragLeaveAttr cl)    = imageAttrAlgs.imageAttrOnDragLeaveAttrAlg cl
-imageAttrCata imageAttrAlgs (ImageOnDragOverAttr  cl)    = imageAttrAlgs.imageAttrOnDragOverAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageDashAttr d)            = imageAttrAlgs.imageAttrDashAttr d
 
 imageTransformCata :: !(ImageTransformAlg sp imTr) !(SpanAlg loSp sp) !(LookupSpanAlg loSp) !ImageTransform -> imTr
