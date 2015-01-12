@@ -239,7 +239,9 @@ cacheImageSpan :: !(Set ImageTag) !ImageSpan !FixSpansStVal -> FixSpansStVal
 cacheImageSpan imTas sp st = 'DS'.fold f st imTas
   where
   f :: !ImageTag !FixSpansStVal -> FixSpansStVal
-  f t st = { st & fixSpansImageSpanEnv = 'DM'.put t sp st.fixSpansImageSpanEnv }
+  f t st
+    | 'DM'.member t st.fixSpansImageSpanEnv = st
+    | otherwise                             = { st & fixSpansImageSpanEnv = 'DM'.put t sp st.fixSpansImageSpanEnv }
 
 cacheGridSpans :: !(Set ImageTag) ![Span] ![Span] !FixSpansStVal -> FixSpansStVal
 cacheGridSpans imTas xsps ysps st
@@ -1008,7 +1010,7 @@ genSVG img = imageCata genSVGAllAlgs img
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
          , genSVGSyn_imageSpanReal = (txsp`, tysp`)
-         , genSVGSyn_events      = 'DM'.unions [syn.genSVGSyn_events : strictTRMap snd imAts]
+         , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : strictTRMap snd imAts]
          }, st)
 
     imageMaskId :: !a -> (!String, !a) | nextNo a
