@@ -131,7 +131,6 @@ svgRenderer origState state2Image
     #! svgStr           = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
                                            [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
                                            syn.genSVGSyn_svgElts)
-    //#! world = jsTrace svgStr world
     #! svgStr           = replaceSubString editletId cid svgStr
     #! (parser, world)  = new "DOMParser" () world
     #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
@@ -556,7 +555,8 @@ fixSpans img = go
       #! (m4, st)         = m4 st
       #! (xsp, ysp)       = fixSpansSyn.fixSpansSyn_TotalSpan_PreTrans
       #! (xsp`, ysp`)     = fixSpansSyn.fixSpansSyn_TotalSpan_PostTrans
-      #! (xsp`, ysp`)     = (xsp` + m2 + m4, ysp` + m1 + m3)
+      #! xsp`             = xsp` + m2 + m4
+      #! ysp`             = ysp` + m1 + m3
       #! st               = cacheImageSpan imTas (xsp`, ysp`) st
       #! (no, st)         = nextNo st
       = ((tag (ImageTagSystem no)
@@ -850,54 +850,67 @@ fixSpans img = go
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
       addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff)
 
-  fixSpansSpanAlgs :: SpanAlg (FixSpansSt Span) (FixSpansSt Span)
-  fixSpansSpanAlgs =
-    { spanPxSpanAlg     = mkPxSpan
-    , spanLookupSpanAlg = ($)
-    , spanAddSpanAlg    = mkBin (+)
-    , spanSubSpanAlg    = mkBin (-)
-    , spanMulSpanAlg    = mkBin (*)
-    , spanDivSpanAlg    = mkBin (/)
-    , spanAbsSpanAlg    = mkAbs
-    , spanMinSpanAlg    = mkList minSpan
-    , spanMaxSpanAlg    = mkList maxSpan
-    }
-    where
-    mkPxSpan :: !Real !FixSpansStVal -> .(!Span, !FixSpansStVal)
-    mkPxSpan r st = (PxSpan r, st)
+fixSpansSpanAlgs :: SpanAlg (FixSpansSt Span) (FixSpansSt Span)
+fixSpansSpanAlgs =
+  { spanPxSpanAlg     = mkPxSpan
+  , spanLookupSpanAlg = ($)
+  , spanAddSpanAlg    = mkBin (+)
+  , spanSubSpanAlg    = mkBin (-)
+  , spanMulSpanAlg    = mkBin (*)
+  , spanDivSpanAlg    = mkBin (/)
+  , spanAbsSpanAlg    = mkAbs
+  , spanMinSpanAlg    = mkList minSpan
+  , spanMaxSpanAlg    = mkList maxSpan
+  }
+  where
+  mkPxSpan :: !Real !FixSpansStVal -> .(!Span, !FixSpansStVal)
+  mkPxSpan r st = (PxSpan r, st)
 
-  fixSpansLookupSpanAlgs :: LookupSpanAlg (FixSpansSt Span)
-  fixSpansLookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg = mkImageGridSpan (\(xs, _) n -> xs.[n]) ColumnXSpan
-    , lookupSpanRowYSpanAlg    = mkImageGridSpan (\(_, xs) n -> xs.[n]) RowYSpan
-    , lookupSpanImageXSpanAlg  = mkImageSpan fst ImageXSpan
-    , lookupSpanImageYSpanAlg  = mkImageSpan snd ImageYSpan
-    , lookupSpanTextXSpanAlg   = mkTextLU
-    }
-    where
-    mkTextLU :: !FontDef !String !FixSpansStVal -> *(!Span, !FixSpansStVal)
-    mkTextLU fd str st
-        #! sw = case 'DM'.get fd st.fixSpansFonts of
-                  Just fs -> case 'DM'.get str fs of
-                               Just sw -> sw
-                               _       -> 0.0
-                  _       -> 0.0
-        = (PxSpan sw, st)
+fixSpansLookupSpanAlgs :: LookupSpanAlg (FixSpansSt Span)
+fixSpansLookupSpanAlgs =
+  { lookupSpanColumnXSpanAlg = mkImageGridColSpan
+  , lookupSpanRowYSpanAlg    = mkImageGridRowSpan
+  , lookupSpanImageXSpanAlg  = mkImageXSpan
+  , lookupSpanImageYSpanAlg  = mkImageYSpan
+  , lookupSpanTextXSpanAlg   = mkTextLU
+  }
+  where
+  mkTextLU :: !FontDef !String !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  mkTextLU fd str st
+      #! sw = case 'DM'.get fd st.fixSpansFonts of
+                Just fs -> case 'DM'.get str fs of
+                             Just sw -> sw
+                             _       -> 0.0
+                _       -> 0.0
+      = (PxSpan sw, st)
 
-    mkImageSpan :: !(ImageSpan -> Span) !(ImageTag -> LookupSpan) !ImageTag
-                   !FixSpansStVal -> *(!Span, !FixSpansStVal)
-    mkImageSpan f c t st
-      = case 'DM'.get t st.fixSpansImageSpanEnv of
-          Just sp -> (f sp, {st & fixSpansDidChange = True})
-          _       -> (LookupSpan (c t), st)
+  mkImageXSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  mkImageXSpan t st
+    = case 'DM'.get t st.fixSpansImageSpanEnv of
+        Just (xsp, _)
+          = (xsp, {st & fixSpansDidChange = True})
+        _ = (LookupSpan (ImageXSpan t), st)
 
-    mkImageGridSpan :: !((!{!Span}, !{!Span}) Int -> Span) !(ImageTag Int -> LookupSpan)
-                       !ImageTag !Int
-                       !FixSpansStVal -> *(!Span, !FixSpansStVal)
-    mkImageGridSpan f c t n st
-      = case 'DM'.get t st.fixSpansGridSpanEnv of
-          Just sps -> (f sps n, {st & fixSpansDidChange = True})
-          _        -> (LookupSpan (c t n), st)
+  mkImageYSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  mkImageYSpan t st
+    = case 'DM'.get t st.fixSpansImageSpanEnv of
+        Just (_, ysp)
+          = (ysp, {st & fixSpansDidChange = True})
+        _ = (LookupSpan (ImageYSpan t), st)
+
+  mkImageGridColSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  mkImageGridColSpan t n st
+    = case 'DM'.get t st.fixSpansGridSpanEnv of
+        Just (xs, _)
+          = (xs.[n], {st & fixSpansDidChange = True})
+        _ = (LookupSpan (ColumnXSpan t n), st)
+
+  mkImageGridRowSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  mkImageGridRowSpan t n st
+    = case 'DM'.get t st.fixSpansGridSpanEnv of
+        Just (_, xs)
+          = (xs.[n], {st & fixSpansDidChange = True})
+        _ = (LookupSpan (RowYSpan t n), st)
 
 :: ImageSpanReal :== (!Real, !Real)
 
