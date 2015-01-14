@@ -241,7 +241,7 @@ derive class iTask DynamicView
 viewDynamic :: Task ()
 viewDynamic = enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead 'DM'.elems tonicSharedRT) >>= viewInstance
   where
-  customView rt = { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
+  customView rt = rt // { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
 
 viewInstance :: TonicRT -> Task ()
 viewInstance trt=:{trt_bpinstance = Just bp} =
@@ -264,7 +264,9 @@ tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 
 // TODO Start / stop symbols
 mkTaskImage :: (Maybe [Int]) TonicTask -> Image TonicTask
-mkTaskImage activeNodeId tt = 'CMS'.evalState (tExpr2Image activeNodeId tt.tt_body `b` \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
+mkTaskImage activeNodeId tt
+             = 'CMS'.evalState (tExpr2Image activeNodeId tt.tt_body `b`
+  \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
 
 :: TImg :== State Int (Image TonicTask)
 
@@ -308,9 +310,11 @@ tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (d
 // TODO margin around cases
 tCaseOrIf :: (Maybe [Int]) PPExpr [(Pattern, TExpr)] -> TImg
 tCaseOrIf activeNodeId ppexpr pats
+  # patStrs  = map fst pats
   # patExprs = map snd pats
   =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
-  \uniqs -> 'CM'.mapM (tExpr2Image activeNodeId) patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edge labels
+  \uniqs -> 'CM'.mapM (tExpr2Image activeNodeId) patExprs `b`
+            ('CA'.pure o mkCaseOrIf patStrs uniqs) // TODO Edge labels
   where
   //prepCases uniqs pats
     //# pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
@@ -322,8 +326,8 @@ tCaseOrIf activeNodeId ppexpr pats
       //# leftLine  = xline tLineMarker (px 16.0 + linePart)
       //# rightLine = xline Nothing (px 8.0 + linePart)
       //= beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
-  mkCaseOrIf uniqs nextTasks
-    # nextTasks  = prepCases uniqs nextTasks
+  mkCaseOrIf patStrs uniqs nextTasks
+    # nextTasks  = prepCases patStrs uniqs nextTasks
     # vertConn   = mkVertConn uniqs
     # nextTasks` = above (repeat AtMiddleX) [] nextTasks Nothing
     # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
@@ -441,7 +445,7 @@ tParallel activeNodeId (ParProd ts)
   \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
   where
   mkParProdCases uniqs ts`
-    # ts`      = prepCases uniqs ts`
+    # ts`      = prepCases [] uniqs ts`
     # vertConn = mkVertConn uniqs
     = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
   mkParProd (PP pp) = 'CA'.pure [text ArialRegular10px pp]
@@ -638,24 +642,24 @@ tStep activeNodeId lhsExpr conts
   \conts` -> 'CA'.pure (tStep` lhs conts` uniqs)
   where
   tStep` lhs conts` uniqs
-    # conts`   = prepCases uniqs conts`
+    # conts`   = prepCases [] uniqs conts`
     # vertConn = mkVertConn uniqs
     # contsImg = above (repeat AtMiddleX) [] conts` Nothing
     = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
 
-prepCases uniqs pats
+prepCases patStrs uniqs pats
   # pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
   # maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
-  = zipWith (prepCase maxXSpan) uniqs pats
+  = zipWith3 (prepCase maxXSpan) uniqs pats (patStrs ++ repeat "")
   where
-  prepCase maxXSpan uniq pat
+  prepCase maxXSpan uniq pat patStr
     # linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
     # leftLine  = xline tLineMarker (px 16.0 + linePart)
     # rightLine = xline Nothing (px 8.0 + linePart)
-    = beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
+    = beside (repeat AtMiddleY) [] [text ArialRegular10px patStr, leftLine, pat, rightLine] Nothing
 
 tStepCont :: (Maybe [Int]) (PPOr TStepCont) -> TImg
-tStepCont _ (PP pp) = 'CA'.pure (text ArialRegular10px pp)
+tStepCont _            (PP pp) = 'CA'.pure (text ArialRegular10px pp)
 tStepCont activeNodeId (T t)   = tStepCont` t
   where
   tStepCont` (StepOnValue      sfilter) = tStepFilter Nothing sfilter
