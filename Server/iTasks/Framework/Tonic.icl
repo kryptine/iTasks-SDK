@@ -656,7 +656,7 @@ prepCases patStrs uniqs pats
     # linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
     # leftLine  = xline tLineMarker (px 16.0 + linePart)
     # rightLine = xline Nothing (px 8.0 + linePart)
-    = beside (repeat AtMiddleY) [] [text ArialRegular10px patStr, leftLine, pat, rightLine] Nothing
+    = beside (repeat AtMiddleY) [] [text ArialRegular10px patStr, leftLine, margin (px 5.0, px 0.0) pat, rightLine] Nothing
 
 tStepCont :: (Maybe [Int]) (PPOr TStepCont) -> TImg
 tStepCont _            (PP pp) = 'CA'.pure (text ArialRegular10px pp)
