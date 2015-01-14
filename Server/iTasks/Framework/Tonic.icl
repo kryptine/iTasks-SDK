@@ -667,33 +667,52 @@ tStepCont activeNodeId (T t)   = tStepCont` t
   tStepCont` (StepOnException mpat te)  = tExpr2Image activeNodeId te `b` ('CA'.pure o mkOnException)
     where
     // TODO mpat
-    mkOnException t = beside (repeat AtMiddleY) [] [tException, /* TODO edge */ t] Nothing
+    mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways)
     where
-    mkAlways t = beside (repeat AtMiddleY) [] [alwaysFilter, /* TODO edge */ t] Nothing
+    mkAlways t = beside (repeat AtMiddleY) [] [alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue)
     where
     // TODO mpat
-    mkHasValue t = beside (repeat AtMiddleY) [] [hasValueFilter, /* TODO edge */ t] Nothing
+    mkHasValue t = beside (repeat AtMiddleY) [] [hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable)
     where
     // TODO mpat
-    mkIfStable t = beside (repeat AtMiddleY) [] [tStable, /* TODO edge */ t] Nothing
+    mkIfStable t = beside (repeat AtMiddleY) [] [tStable, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable)
     where
     // TODO mpat
-    mkIfUnstable t = beside (repeat AtMiddleY) [] [tUnstable, /* TODO edge */ t] Nothing
+    mkIfUnstable t = beside (repeat AtMiddleY) [] [tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond)
     where
     // TODO mpat pp
-    mkIfCond t = beside (repeat AtMiddleY) [] [alwaysFilter, /* TODO edge and conditional */ t] Nothing
-  tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfValue)
+    mkIfCond t = beside (repeat AtMiddleY) [] [alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
+  tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue t)
     where
-    // TODO mpat pat fn vars
-    mkIfValue t = beside (repeat AtMiddleY) [] [hasValueFilter, /* TODO edge and predicate */ t] Nothing
+    mkIfValue t c = beside (repeat AtMiddleY) [] [hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
 
 alwaysFilter   = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
+
+tIfValue :: VarName [VarName] -> TImg
+tIfValue tffun args
+  =          dispenseUniq `b`
+  \nameNo -> dispenseUniq `b`
+  \argsNo -> 'CA'.pure (tIfValue` nameNo argsNo)
+  where
+  tIfValue` nameNo argsNo
+    # bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
+                     <@< { fill        = toSVGColor "white" }
+                     <@< { stroke      = toSVGColor "black" }
+                     <@< { strokewidth = px 1.0 }
+    # tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
+    # tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+    # tfContents = above (repeat AtLeft) [] (case args of
+                                               [] -> [tfNameImg]
+                                               _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
+    where
+    maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
 
 tException :: Image TonicTask
 tException = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
