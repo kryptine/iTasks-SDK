@@ -221,7 +221,7 @@ viewStaticTask {tm_name} tt =
       viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
   ||- viewInformation
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'")
-        [imageView mkTaskImage]
+        [imageView (mkTaskImage Nothing)]
         tt @! ()
 
 dynamicParent :: TaskId -> Task (Maybe TonicRT)
@@ -231,20 +231,25 @@ dynamicParent childId
                     (\rt -> 'DM'.get rt.trt_parentTaskId rtm)
                     ('DM'.get childId rtm))
 
+:: DynamicView =
+  { moduleName :: String
+  , taskName   :: String
+  }
+
+derive class iTask DynamicView
+
 viewDynamic :: Task ()
-viewDynamic = enterChoiceWithShared "Active blueprint instances" [] (mapRead 'DM'.elems tonicSharedRT) >>= viewInstance
+viewDynamic = enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead 'DM'.elems tonicSharedRT) >>= viewInstance
+  where
+  customView rt = { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
 
 viewInstance :: TonicRT -> Task ()
-viewInstance {trt_bpinstance = Nothing}      = return ()
 viewInstance trt=:{trt_bpinstance = Just bp} =
              dynamicParent trt.trt_taskId >>-
   \mbprnt -> (viewInformation (blueprintTitle trt bp) [] () ||-
              viewTaskArguments trt bp ||- viewInformation "Blueprint:"
-               [imageView mkTaskImage]
+               [imageView (mkTaskImage trt.trt_activeNodeId)]
                bp
-             //viewTaskArguments trt bp ||- viewSharedInformation "Blueprint:"
-               //[imageView mkTaskImage] // TODO
-               //tonicSharedRT
                @! ()) >>*
             [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
@@ -252,31 +257,32 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection              = viewInformation () [] "Select argument..."
   collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ prefixAOrAn argty, vi)) bp.tt_args trt.trt_params
+viewInstance _ = return ()
 
 tonicViewer :: String -> PublishedTask
 tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 
 // TODO Start / stop symbols
-mkTaskImage :: TonicTask -> Image TonicTask
-mkTaskImage tt = 'CMS'.evalState (tExpr2Image tt.tt_body `b` \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
+mkTaskImage :: (Maybe [Int]) TonicTask -> Image TonicTask
+mkTaskImage activeNodeId tt = 'CMS'.evalState (tExpr2Image activeNodeId tt.tt_body `b` \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
 
 :: TImg :== State Int (Image TonicTask)
 
 (`b`) ma a2mb :== bind ma a2mb
 
-tExpr2Image :: TExpr -> TImg
-tExpr2Image (TBind lhs mpat rhs)     = tBind lhs mpat rhs
-tExpr2Image (TReturn texpr)          = tReturn texpr
-tExpr2Image (TTaskApp eid tn targs)  = tTaskApp eid tn targs
-tExpr2Image (TLet pats bdy)          = tLet pats bdy
-tExpr2Image (TCaseOrIf e pats)       = tCaseOrIf e pats
-tExpr2Image (TStep lexpr conts)      = tStep lexpr conts
-tExpr2Image (TParallel par)          = tParallel par
-tExpr2Image (TAssign usr t)          = tAssign usr t
-tExpr2Image (TShare ts sn args)      = tShare ts sn args
-tExpr2Image (TTransform lhs vn args) = tTransformApp lhs vn args
-tExpr2Image (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
-tExpr2Image (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image :: (Maybe [Int]) TExpr -> TImg
+tExpr2Image activeNodeId (TBind lhs mpat rhs)     = tBind         activeNodeId lhs mpat rhs
+tExpr2Image activeNodeId (TReturn texpr)          = tReturn       activeNodeId texpr
+tExpr2Image activeNodeId (TTaskApp eid tn targs)  = tTaskApp      activeNodeId eid tn targs
+tExpr2Image activeNodeId (TLet pats bdy)          = tLet          activeNodeId pats bdy
+tExpr2Image activeNodeId (TCaseOrIf e pats)       = tCaseOrIf     activeNodeId e pats
+tExpr2Image activeNodeId (TStep lexpr conts)      = tStep         activeNodeId lexpr conts
+tExpr2Image activeNodeId (TParallel par)          = tParallel     activeNodeId par
+tExpr2Image activeNodeId (TAssign usr t)          = tAssign       activeNodeId usr t
+tExpr2Image activeNodeId (TShare ts sn args)      = tShare        activeNodeId ts sn args
+tExpr2Image activeNodeId (TTransform lhs vn args) = tTransformApp activeNodeId lhs vn args
+tExpr2Image activeNodeId (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image activeNodeId (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
 
 tArrowTip :: Image TonicTask
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -300,11 +306,11 @@ tVertUpDownConnArr :: Image TonicTask
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
 // TODO margin around cases
-tCaseOrIf :: PPExpr [(Pattern, TExpr)] -> TImg
-tCaseOrIf ppexpr pats
+tCaseOrIf :: (Maybe [Int]) PPExpr [(Pattern, TExpr)] -> TImg
+tCaseOrIf activeNodeId ppexpr pats
   # patExprs = map snd pats
   =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
-  \uniqs -> 'CM'.mapM tExpr2Image patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edge labels
+  \uniqs -> 'CM'.mapM (tExpr2Image activeNodeId) patExprs `b` ('CA'.pure o mkCaseOrIf uniqs) // TODO Edge labels
   where
   //prepCases uniqs pats
     //# pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
@@ -349,8 +355,8 @@ mkVertConn uniqs
           , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
           Nothing
 
-tShare :: TShare VarName [VarName] -> TImg
-tShare sh sn args = dispenseUniq `b` mkShareImg
+tShare :: (Maybe [Int]) TShare VarName [VarName] -> TImg
+tShare activeNodeId sh sn args = dispenseUniq `b` mkShareImg
   where
   mkShareImg uniq
     # boxTxt  = case sh of
@@ -383,10 +389,10 @@ tShare sh sn args = dispenseUniq `b` mkShareImg
       # box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
       = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
-tLet :: [(Pattern, PPExpr)] TExpr -> TImg
-tLet pats expr
+tLet :: (Maybe [Int]) [(Pattern, PPExpr)] TExpr -> TImg
+tLet activeNodeId pats expr
   =          dispenseUniq `b`
-  \textNo -> tExpr2Image expr `b`
+  \textNo -> tExpr2Image activeNodeId expr `b`
              ('CA'.pure o mkLet textNo)
   where
   mkLet textNo t = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing
@@ -397,39 +403,39 @@ tLet pats expr
                 <@< { fill   = toSVGColor "white" }
                 <@< { stroke = toSVGColor "black" }
 
-tBind :: TExpr (Maybe Pattern) TExpr -> TImg
-tBind l mpat r
-  =      tExpr2Image l `b`
-  \l` -> tExpr2Image r `b`
+tBind :: (Maybe [Int]) TExpr (Maybe Pattern) TExpr -> TImg
+tBind activeNodeId l mpat r
+  =      tExpr2Image activeNodeId l `b`
+  \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing) // TODO Add label
 
-tParallel :: TParallel -> TImg
-tParallel (ParSumL l r)
-  =      tExpr2Image l `b`
-  \l` -> tExpr2Image r `b`
+tParallel :: (Maybe [Int]) TParallel -> TImg
+tParallel activeNodeId (ParSumL l r)
+  =      tExpr2Image activeNodeId l `b`
+  \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (mkParSumL l` r`)
   where
   mkParSumL l` r`
     # l` = margin (px 5.0, px 5.0) l`
     # r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel (ParSumR l r)
-  =      tExpr2Image l `b`
-  \l` -> tExpr2Image r `b`
+tParallel activeNodeId (ParSumR l r)
+  =      tExpr2Image activeNodeId l `b`
+  \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (mkParSumR l` r`)
   where
   mkParSumR l` r`
     # l` = margin (px 5.0, px 5.0) l`
     # r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
+tParallel activeNodeId (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
   where
   mkParSumN ts`
     # ts` = map (margin (px 5.0, px 5.0)) ts`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
   mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
-  mkParSum (T xs)  = 'CM'.mapM tExpr2Image xs
-tParallel (ParProd ts)
+  mkParSum (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
+tParallel activeNodeId (ParProd ts)
   =         mkParProd ts `b`
   \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
   \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
@@ -439,7 +445,7 @@ tParallel (ParProd ts)
     # vertConn = mkVertConn uniqs
     = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
   mkParProd (PP pp) = 'CA'.pure [text ArialRegular10px pp]
-  mkParProd (T xs)  = 'CM'.mapM tExpr2Image xs
+  mkParProd (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
 
 ArialRegular10px :== { fontfamily  = "Arial"
                      , fontysize   = 10.0
@@ -529,11 +535,11 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody
     maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo), imagexspan (imageTag bodyNo)]
     mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
 
-tTransformApp :: TExpr VarName [VarName] -> TImg
-tTransformApp texpr tffun args
+tTransformApp :: (Maybe [Int]) TExpr VarName [VarName] -> TImg
+tTransformApp activeNodeId texpr tffun args
   =          dispenseUniq `b`
   \nameNo -> dispenseUniq `b`
-  \argsNo -> tExpr2Image texpr `b`
+  \argsNo -> tExpr2Image activeNodeId texpr `b`
   \expr   -> 'CA'.pure (tTransformApp` nameNo argsNo expr)
   where
   tTransformApp` nameNo argsNo expr
@@ -551,16 +557,16 @@ tTransformApp texpr tffun args
     where
     maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
 
-tTaskApp :: ExprId VarName [TExpr] -> TImg
-tTaskApp eid taskName taskArgs
-  =             'CM'.mapM tExpr2Image taskArgs `b`
+tTaskApp :: (Maybe [Int]) ExprId VarName [TExpr] -> TImg
+tTaskApp activeNodeId eid taskName taskArgs
+  =             'CM'.mapM (tExpr2Image activeNodeId) taskArgs `b`
   \taskArgs` -> dispenseUniq `b`
   \tnNo      -> dispenseUniq `b`
   \taNo      -> 'CA'.pure (tTaskApp` taskArgs` tnNo taNo)
   where
   tTaskApp` taskArgs` tnNo taNo
     # bgRect       = rect maxXSpan (imageyspan (imageTag tnNo) + imageyspan (imageTag taNo))
-                       <@< { fill        = toSVGColor "white" }
+                       <@< { fill        = if (Just eid == activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
                        <@< { stroke      = toSVGColor "black" }
                        <@< { strokewidth = px 1.0 }
                        <@< { xradius     = px 5.0 }
@@ -580,9 +586,9 @@ dispenseUniq
   \s -> 'CMS'.put (s + 1) `b`
   \_ -> 'CA'.pure s
 
-tReturn :: TExpr -> TImg
-tReturn retval
-  =           tExpr2Image retval `b`
+tReturn :: (Maybe [Int]) TExpr -> TImg
+tReturn activeNodeId retval
+  =           tExpr2Image activeNodeId retval `b`
   \retval` -> dispenseUniq `b`
   \tagNo   -> 'CA'.pure (tReturn` retval` tagNo)
   where
@@ -594,9 +600,9 @@ tReturn retval
                <@< { strokewidth = px 1.0 }
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retval`] Nothing
 
-tAssign :: TUser TExpr -> TImg
-tAssign user assignedTask
-  =          tExpr2Image assignedTask `b`
+tAssign :: (Maybe [Int]) TUser TExpr -> TImg
+tAssign activeNodeId user assignedTask
+  =          tExpr2Image activeNodeId assignedTask `b`
   \at     -> dispenseUniq `b`
   \userNo -> dispenseUniq `b`
   \atNo   -> 'CA'.pure (tAssign` at userNo atNo)
@@ -624,11 +630,11 @@ ppUser TUSystemUser                    = "Any system user"
 ppUser TUAnonymousUser                 = "Any anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
-tStep :: TExpr [PPOr TStepCont] -> TImg
-tStep lhsExpr conts
+tStep :: (Maybe [Int]) TExpr [PPOr TStepCont] -> TImg
+tStep activeNodeId lhsExpr conts
   =          'CM'.mapM (\_ -> dispenseUniq) conts `b`
-  \uniqs  -> tExpr2Image lhsExpr `b`
-  \lhs    -> 'CM'.mapM tStepCont conts `b`
+  \uniqs  -> tExpr2Image activeNodeId lhsExpr `b`
+  \lhs    -> 'CM'.mapM (tStepCont activeNodeId) conts `b`
   \conts` -> 'CA'.pure (tStep` lhs conts` uniqs)
   where
   tStep` lhs conts` uniqs
@@ -648,36 +654,36 @@ prepCases uniqs pats
     # rightLine = xline Nothing (px 8.0 + linePart)
     = beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
 
-tStepCont :: (PPOr TStepCont) -> TImg
-tStepCont (PP pp) = 'CA'.pure (text ArialRegular10px pp)
-tStepCont (T t)   = tStepCont` t
+tStepCont :: (Maybe [Int]) (PPOr TStepCont) -> TImg
+tStepCont _ (PP pp) = 'CA'.pure (text ArialRegular10px pp)
+tStepCont activeNodeId (T t)   = tStepCont` t
   where
   tStepCont` (StepOnValue      sfilter) = tStepFilter Nothing sfilter
   tStepCont` (StepOnAction act sfilter) = tStepFilter (Just act) sfilter
-  tStepCont` (StepOnException mpat te)  = tExpr2Image te `b` ('CA'.pure o mkOnException)
+  tStepCont` (StepOnException mpat te)  = tExpr2Image activeNodeId te `b` ('CA'.pure o mkOnException)
     where
     // TODO mpat
     mkOnException t = beside (repeat AtMiddleY) [] [tException, /* TODO edge */ t] Nothing
-  tStepFilter mact (Always te) = tExpr2Image te `b` ('CA'.pure o mkAlways)
+  tStepFilter mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways)
     where
     mkAlways t = beside (repeat AtMiddleY) [] [alwaysFilter, /* TODO edge */ t] Nothing
-  tStepFilter mact (HasValue mpat te) = tExpr2Image te `b` ('CA'.pure o mkHasValue)
+  tStepFilter mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue)
     where
     // TODO mpat
     mkHasValue t = beside (repeat AtMiddleY) [] [hasValueFilter, /* TODO edge */ t] Nothing
-  tStepFilter mact (IfStable mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfStable)
+  tStepFilter mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable)
     where
     // TODO mpat
     mkIfStable t = beside (repeat AtMiddleY) [] [tStable, /* TODO edge */ t] Nothing
-  tStepFilter mact (IfUnstable mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfUnstable)
+  tStepFilter mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable)
     where
     // TODO mpat
     mkIfUnstable t = beside (repeat AtMiddleY) [] [tUnstable, /* TODO edge */ t] Nothing
-  tStepFilter mact (IfCond pp mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfCond)
+  tStepFilter mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond)
     where
     // TODO mpat pp
     mkIfCond t = beside (repeat AtMiddleY) [] [alwaysFilter, /* TODO edge and conditional */ t] Nothing
-  tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image te `b` ('CA'.pure o mkIfValue)
+  tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfValue)
     where
     // TODO mpat pat fn vars
     mkIfValue t = beside (repeat AtMiddleY) [] [hasValueFilter, /* TODO edge and predicate */ t] Nothing
