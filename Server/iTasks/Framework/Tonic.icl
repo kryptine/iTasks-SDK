@@ -670,29 +670,32 @@ tStepCont activeNodeId (T t)   = tStepCont` t
     mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways)
     where
-    mkAlways t = beside (repeat AtMiddleY) [] [alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
+    mkAlways t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue)
     where
     // TODO mpat
-    mkHasValue t = beside (repeat AtMiddleY) [] [hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
+    mkHasValue t = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable)
     where
     // TODO mpat
-    mkIfStable t = beside (repeat AtMiddleY) [] [tStable, tHorizConnArr, /* TODO edge */ t] Nothing
+    mkIfStable t = beside (repeat AtMiddleY) [] [addAction mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable)
     where
     // TODO mpat
-    mkIfUnstable t = beside (repeat AtMiddleY) [] [tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
+    mkIfUnstable t = beside (repeat AtMiddleY) [] [addAction mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond)
     where
     // TODO mpat pp
-    mkIfCond t = beside (repeat AtMiddleY) [] [alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
+    mkIfCond t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
   tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue t)
     where
-    mkIfValue t c = beside (repeat AtMiddleY) [] [hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
+    mkIfValue t c = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
 
 alwaysFilter   = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
+
+addAction (Just action) img = above (repeat AtMiddleX) [] [text ArialBold10px action, img] Nothing // TODO Draw little figure
+addAction _             img = img
 
 tIfValue :: VarName [VarName] -> TImg
 tIfValue tffun args
@@ -721,19 +724,19 @@ tException = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold1
                       <@< { stroke = toSVGColor "black" }
 
 tStable :: Image TonicTask
-tStable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "S"] Nothing
+tStable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, rect (px 8.0) (px 8.0) <@< { fill = toSVGColor "black" }] Nothing
   where
   bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                       <@< { stroke = toSVGColor "black" }
 
 tUnstable :: Image TonicTask
-tUnstable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "U"] Nothing
+tUnstable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "W"] Nothing
   where
   bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                       <@< { stroke = toSVGColor "black" }
 
 tNoVal :: Image TonicTask
-tNoVal = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "N"] Nothing
+tNoVal = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "X"] Nothing
   where
   bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                       <@< { stroke = toSVGColor "black" }
