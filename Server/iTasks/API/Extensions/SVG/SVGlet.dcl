@@ -10,10 +10,6 @@ imageView       ::           !(s -> Image s)               -> ViewOption s      
 
 imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` | iTask v
 
-:: SVGSrvSt s
-
-:: SVGDiff s
-
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a
                      }
