@@ -263,7 +263,7 @@ tonicViewer :: String -> PublishedTask
 tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
 
 // TODO Start / stop symbols
-mkTaskImage :: (Maybe [Int]) TonicTask -> Image TonicTask
+mkTaskImage :: !(Maybe [Int]) !TonicTask -> Image TonicTask
 mkTaskImage activeNodeId tt
              = 'CMS'.evalState (tExpr2Image activeNodeId tt.tt_body `b`
   \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
@@ -272,7 +272,7 @@ mkTaskImage activeNodeId tt
 
 (`b`) ma a2mb :== bind ma a2mb
 
-tExpr2Image :: (Maybe [Int]) TExpr -> TImg
+tExpr2Image :: !(Maybe [Int]) !TExpr -> TImg
 tExpr2Image activeNodeId (TBind lhs mpat rhs)     = tBind         activeNodeId lhs mpat rhs
 tExpr2Image activeNodeId (TReturn texpr)          = tReturn       activeNodeId texpr
 tExpr2Image activeNodeId (TTaskApp eid tn targs)  = tTaskApp      activeNodeId eid tn targs
@@ -308,134 +308,129 @@ tVertUpDownConnArr :: Image TonicTask
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
 // TODO margin around cases
-tCaseOrIf :: (Maybe [Int]) PPExpr [(Pattern, TExpr)] -> TImg
+tCaseOrIf :: !(Maybe [Int]) !PPExpr ![(!Pattern, !TExpr)] -> TImg
 tCaseOrIf activeNodeId ppexpr pats
-  # patStrs  = map fst pats
-  # patExprs = map snd pats
+  #! patStrs  = map fst pats
+  #! patExprs = map snd pats
   =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
   \uniqs -> 'CM'.mapM (tExpr2Image activeNodeId) patExprs `b`
-            ('CA'.pure o mkCaseOrIf patStrs uniqs) // TODO Edge labels
+            ('CA'.pure o mkCaseOrIf patStrs uniqs)
   where
-  //prepCases uniqs pats
-    //# pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
-    //# maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
-    //= zipWith (prepCase maxXSpan) uniqs pats
-    //where
-    //prepCase maxXSpan uniq pat
-      //# linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
-      //# leftLine  = xline tLineMarker (px 16.0 + linePart)
-      //# rightLine = xline Nothing (px 8.0 + linePart)
-      //= beside (repeat AtMiddleY) [] [leftLine, pat, rightLine] Nothing
   mkCaseOrIf patStrs uniqs nextTasks
-    # nextTasks  = prepCases patStrs uniqs nextTasks
-    # vertConn   = mkVertConn uniqs
-    # nextTasks` = above (repeat AtMiddleX) [] nextTasks Nothing
-    # diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
-                                                              , text ArialRegular10px ppexpr] Nothing
+    #! nextTasks    = prepCases patStrs uniqs nextTasks
+    #! vertConn     = mkVertConn uniqs
+    #! nextTasks`   = above (repeat AtMiddleX) [] nextTasks Nothing
+    #! textHeight   = ArialRegular10px.fontysize
+    #! textWidth    = textxspan ArialRegular10px ppexpr
+    #! edgeMargin   = textHeight * 2.0
+    #! centerX      = (textWidth /. 2.0) + px edgeMargin
+    #! leftCorner   = (px 0.0, y textHeight edgeMargin (px 0.0))
+    #! topCorner    = (centerX, ~ (y textHeight edgeMargin centerX))
+    #! rightCorner  = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
+    #! bottomCorner = (centerX, y textHeight edgeMargin centerX)
+    #! diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
+                        <@< { fill   = toSVGColor "white" }
+                        <@< { stroke = toSVGColor "black" }
+    #! diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
+                                                               , text ArialRegular10px ppexpr] Nothing
     = beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing
-  diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
-                   <@< { fill   = toSVGColor "white" }
-                   <@< { stroke = toSVGColor "black" }
-  leftCorner   = (px 0.0, y (px 0.0))
-  topCorner    = (centerX, ~ (y centerX))
-  rightCorner  = (centerX *. 2.0, y (px 0.0))
-  bottomCorner = (centerX, y centerX)
-  centerX      = (textWidth /. 2.0) + px edgeMargin
-  y x = x *. (textHeight / edgeMargin)
-  edgeMargin   = textHeight * 2.0
-  textHeight   = ArialRegular10px.fontysize
-  textWidth    = textxspan ArialRegular10px ppexpr
+  y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
 mkVertConn uniqs
   | length uniqs < 2 = empty (px 0.0) (px 0.0)
   | otherwise
-      # firstUniq  = hd uniqs
-      # lastUniq   = last uniqs
-      # restUniqs  = init (tl uniqs)
-      # nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
+      #! firstUniq  = hd uniqs
+      #! lastUniq   = last uniqs
+      #! restUniqs  = init (tl uniqs)
+      #! nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
       = above (repeat AtMiddleX) []
           [ yline Nothing (imageyspan (imageTag firstUniq) /. 2.0) <@< { stroke = toSVGColor "white" }
           , yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
           , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
           Nothing
 
-tShare :: (Maybe [Int]) TShare VarName [VarName] -> TImg
-tShare activeNodeId sh sn args = dispenseUniq `b` mkShareImg
+tShare :: !(Maybe [Int]) !TShare !VarName ![VarName] -> TImg
+tShare activeNodeId sh sn args = dispenseUniq `b` (mkShareImg sh sn args)
   where
-  mkShareImg uniq
-    # boxTxt  = case sh of
-                  Get          -> "    "
-                  (Set ppexpr) -> ppexpr
-                  (Upd ppexpr) -> ppexpr
-    # boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                  <@< { fill   = toSVGColor "white" }
-                  <@< { stroke = toSVGColor "black" }
-    # boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
-    # arr  = case sh of
-               Get          -> tVertDownConnArr
-               (Set ppexpr) -> tVertUpConnArr
-               (Upd ppexpr) -> tVertUpDownConnArr
-    # shareArr = tag (imageTag uniq) (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
-    # emptyImg = empty zero (imageyspan (imageTag uniq))
+  mkShareImg :: !TShare !VarName ![VarName] !Int -> TImg
+  mkShareImg sh sn args uniq
+    #! boxTxt  = case sh of
+                   Get          -> "    "
+                   (Set ppexpr) -> ppexpr
+                   (Upd ppexpr) -> ppexpr
+    #! boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                   <@< { fill   = toSVGColor "white" }
+                   <@< { stroke = toSVGColor "black" }
+    #! boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
+    #! arr     = case sh of
+                   Get        -> tVertDownConnArr
+                   Set ppexpr -> tVertUpConnArr
+                   Upd ppexpr -> tVertUpDownConnArr
+    #! shareArr = tag (imageTag uniq) (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
+    #! emptyImg = empty zero (imageyspan (imageTag uniq))
     // TODO Add arrows to/from box if the box is smaller than the share
     = 'CA'.pure (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing)
-    where
-    mkShare
-      # box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                     <@< { fill   = toSVGColor "white" }
-                     <@< { stroke = toSVGColor "black" }
-      # box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
-      # box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
-      # numArgs  = length args
-      # box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
-                     <@< { fill   = toSVGColor "white" }
-                     <@< { stroke = toSVGColor "black" }
-      # box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
-      = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
+  mkShare :: Image TonicTask
+  mkShare
+    #! box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                    <@< { fill   = toSVGColor "white" }
+                    <@< { stroke = toSVGColor "black" }
+    #! box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
+    #! box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
+    #! numArgs  = length args
+    #! box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
+                    <@< { fill   = toSVGColor "white" }
+                    <@< { stroke = toSVGColor "black" }
+    #! box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
+    = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
-tLet :: (Maybe [Int]) [(Pattern, PPExpr)] TExpr -> TImg
+tLet :: !(Maybe [Int]) ![(!Pattern, !PPExpr)] !TExpr -> TImg
 tLet activeNodeId pats expr
   =          dispenseUniq `b`
   \textNo -> tExpr2Image activeNodeId expr `b`
-             ('CA'.pure o mkLet textNo)
+             ('CA'.pure o mkLet pats textNo)
   where
-  mkLet textNo t = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing
-    where
-    letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-    letText = tag (imageTag textNo) (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
-    letBox  = rect (imagexspan (imageTag textNo)) (px ArialRegular10px.fontysize *. (length pats + 1))
-                <@< { fill   = toSVGColor "white" }
-                <@< { stroke = toSVGColor "black" }
+  mkLet :: ![(!String, !String)] !Int !(Image TonicTask) -> Image TonicTask
+  mkLet pats textNo t
+    #! letText = tag (imageTag textNo) (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
+    #! letBox  = rect (imagexspan (imageTag textNo)) (px ArialRegular10px.fontysize *. (length pats + 1))
+                   <@< { fill   = toSVGColor "white" }
+                   <@< { stroke = toSVGColor "black" }
+    #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+    = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing
 
-tBind :: (Maybe [Int]) TExpr (Maybe Pattern) TExpr -> TImg
+tBind :: !(Maybe [Int]) !TExpr !(Maybe Pattern) !TExpr -> TImg
 tBind activeNodeId l mpat r
   =      tExpr2Image activeNodeId l `b`
   \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing) // TODO Add label
 
-tParallel :: (Maybe [Int]) TParallel -> TImg
+tParallel :: !(Maybe [Int]) !TParallel -> TImg
 tParallel activeNodeId (ParSumL l r)
   =      tExpr2Image activeNodeId l `b`
   \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (mkParSumL l` r`)
   where
+  mkParSumL :: !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
   mkParSumL l` r`
-    # l` = margin (px 5.0, px 5.0) l`
-    # r` = margin (px 5.0, px 5.0) r`
+    #! l` = margin (px 5.0, px 5.0) l`
+    #! r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
 tParallel activeNodeId (ParSumR l r)
   =      tExpr2Image activeNodeId l `b`
   \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (mkParSumR l` r`)
   where
+  mkParSumR :: !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
   mkParSumR l` r`
-    # l` = margin (px 5.0, px 5.0) l`
-    # r` = margin (px 5.0, px 5.0) r`
+    #! l` = margin (px 5.0, px 5.0) l`
+    #! r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
 tParallel activeNodeId (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
   where
+  mkParSumN :: ![Image TonicTask] -> Image TonicTask
   mkParSumN ts`
-    # ts` = map (margin (px 5.0, px 5.0)) ts`
+    #! ts` = map (margin (px 5.0, px 5.0)) ts`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
   mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParSum (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
@@ -445,8 +440,8 @@ tParallel activeNodeId (ParProd ts)
   \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
   where
   mkParProdCases uniqs ts`
-    # ts`      = prepCases [] uniqs ts`
-    # vertConn = mkVertConn uniqs
+    #! ts`      = prepCases [] uniqs ts`
+    #! vertConn = mkVertConn uniqs
     = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
   mkParProd (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParProd (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
@@ -498,7 +493,8 @@ tParProd :: Image TonicTask
 tParProd = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, rotate (deg 45.0) tPlus] Nothing
 
 tPlus :: Image TonicTask
-tPlus = overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing
+tPlus
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing
   where
   line f = f Nothing (px 10.0) <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
 
@@ -508,81 +504,83 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image TonicTask
 tStopSymb  = rect (px 16.0) (px 16.0)
 
-prefixAOrAn :: String -> String
+prefixAOrAn :: !String -> String
 prefixAOrAn str
+  | str == "Unit"                                   = "nothing"
   | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
   | otherwise                                       = "a " +++ str
 
 // TODO Start / stop symbols here
-tTaskDef :: String String [(String, String)] (Image TonicTask) -> TImg
+tTaskDef :: !String !String ![(!String, !String)] !(Image TonicTask) -> TImg
 tTaskDef taskName resultTy taskArgsAndTys tdbody
   =          dispenseUniq `b`
   \nameNo -> dispenseUniq `b`
   \argsNo -> dispenseUniq `b`
-  \bodyNo -> 'CA'.pure (tTaskDef` nameNo argsNo bodyNo)
+  \bodyNo -> 'CA'.pure (tTaskDef` taskName resultTy taskArgsAndTys tdbody nameNo argsNo bodyNo)
   where
-  tTaskDef` nameNo argsNo bodyNo
-    # bgRect       = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo) + imageyspan (imageTag bodyNo))
-                       <@< { fill        = toSVGColor "white" }
-                       <@< { stroke      = toSVGColor "black" }
-                       <@< { strokewidth = px 1.0 }
-                       <@< { xradius     = px 5.0 }
-                       <@< { yradius     = px 5.0 }
-    # taskNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
-    # taskArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-    # taskBodyImgs = tag (imageTag bodyNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
-    # taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
+  tTaskDef` :: !String !String ![(!String, !String)] !(Image TonicTask) !Int !Int !Int -> Image TonicTask
+  tTaskDef` taskName resultTy taskArgsAndTys tdbody nameNo argsNo bodyNo
+    #! maxXSpan     = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo), imagexspan (imageTag bodyNo)]
+    #! bgRect       = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo) + imageyspan (imageTag bodyNo))
+                        <@< { fill        = toSVGColor "white" }
+                        <@< { stroke      = toSVGColor "black" }
+                        <@< { strokewidth = px 1.0 }
+                        <@< { xradius     = px 5.0 }
+                        <@< { yradius     = px 5.0 }
+    #! taskNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
+    #! taskArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
+    #! taskBodyImgs = tag (imageTag bodyNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
+    #! taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
                                                  [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
                                                  _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing
     where
-    maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo), imagexspan (imageTag bodyNo)]
     mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
 
-tTransformApp :: (Maybe [Int]) TExpr VarName [VarName] -> TImg
+tTransformApp :: !(Maybe [Int]) !TExpr !VarName ![VarName] -> TImg
 tTransformApp activeNodeId texpr tffun args
   =          dispenseUniq `b`
   \nameNo -> dispenseUniq `b`
   \argsNo -> tExpr2Image activeNodeId texpr `b`
-  \expr   -> 'CA'.pure (tTransformApp` nameNo argsNo expr)
+  \expr   -> 'CA'.pure (tTransformApp` activeNodeId tffun args nameNo argsNo expr)
   where
-  tTransformApp` nameNo argsNo expr
-    # bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
-                     <@< { fill        = toSVGColor "white" }
-                     <@< { stroke      = toSVGColor "black" }
-                     <@< { strokewidth = px 1.0 }
-    # tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
-    # tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-    # tfContents = above (repeat AtLeft) [] (case args of
-                                               [] -> [tfNameImg]
-                                               _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
-    # tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
+  tTransformApp` :: !(Maybe [Int]) !VarName ![VarName] !Int !Int !(Image TonicTask) -> Image TonicTask
+  tTransformApp` activeNodeId tffun args nameNo argsNo expr
+    #! maxXSpan   = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
+    #! bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
+                      <@< { fill        = toSVGColor "white" }
+                      <@< { stroke      = toSVGColor "black" }
+                      <@< { strokewidth = px 1.0 }
+    #! tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
+    #! tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+    #! tfContents = above (repeat AtLeft) [] (case args of
+                                                [] -> [tfNameImg]
+                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+    #! tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
     = beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing
-    where
-    maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
 
-tTaskApp :: (Maybe [Int]) ExprId VarName [TExpr] -> TImg
+tTaskApp :: !(Maybe [Int]) !ExprId !VarName ![TExpr] -> TImg
 tTaskApp activeNodeId eid taskName taskArgs
   =             'CM'.mapM (tExpr2Image activeNodeId) taskArgs `b`
   \taskArgs` -> dispenseUniq `b`
   \tnNo      -> dispenseUniq `b`
-  \taNo      -> 'CA'.pure (tTaskApp` taskArgs` tnNo taNo)
+  \taNo      -> 'CA'.pure (tTaskApp` activeNodeId eid taskName taskArgs` tnNo taNo)
   where
-  tTaskApp` taskArgs` tnNo taNo
-    # bgRect       = rect maxXSpan (imageyspan (imageTag tnNo) + imageyspan (imageTag taNo))
-                       <@< { fill        = if (Just eid == activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
-                       <@< { stroke      = toSVGColor "black" }
-                       <@< { strokewidth = px 1.0 }
-                       <@< { xradius     = px 5.0 }
-                       <@< { yradius     = px 5.0 }
-    # taskNameImg  = tag (imageTag tnNo) (margin (px 5.0) (text ArialBold10px taskName))
-    # taskArgsImgs = tag (imageTag taNo) (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
-    # taskText     = above (repeat AtMiddleX) [] (case taskArgs` of
+  tTaskApp` :: !(Maybe [Int]) !ExprId !VarName ![Image TonicTask] !Int !Int -> Image TonicTask
+  tTaskApp` activeNodeId eid taskName taskArgs` tnNo taNo
+    #! maxXSpan     = maxSpan [imagexspan (imageTag tnNo), imagexspan (imageTag taNo)]
+    #! bgRect       = rect maxXSpan (imageyspan (imageTag tnNo) + imageyspan (imageTag taNo))
+                        <@< { fill        = if (Just eid == activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
+                        <@< { stroke      = toSVGColor "black" }
+                        <@< { strokewidth = px 1.0 }
+                        <@< { xradius     = px 5.0 }
+                        <@< { yradius     = px 5.0 }
+    #! taskNameImg  = tag (imageTag tnNo) (margin (px 5.0) (text ArialBold10px taskName))
+    #! taskArgsImgs = tag (imageTag taNo) (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
+    #! taskText     = above (repeat AtMiddleX) [] (case taskArgs` of
                                                     [] -> [taskNameImg]
                                                     _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
-    where
-    maxXSpan = maxSpan [imagexspan (imageTag tnNo), imagexspan (imageTag taNo)]
 
 dispenseUniq :: State Int Int
 dispenseUniq
@@ -590,43 +588,44 @@ dispenseUniq
   \s -> 'CMS'.put (s + 1) `b`
   \_ -> 'CA'.pure s
 
-tReturn :: (Maybe [Int]) TExpr -> TImg
+tReturn :: !(Maybe [Int]) !TExpr -> TImg
 tReturn activeNodeId retval
   =           tExpr2Image activeNodeId retval `b`
   \retval` -> dispenseUniq `b`
   \tagNo   -> 'CA'.pure (tReturn` retval` tagNo)
   where
+  tReturn` :: !(Image TonicTask) !Int -> Image TonicTask
   tReturn` retval` tagNo
-    # retval` = tag (imageTag tagNo) retval`
-    # oval = ellipse (imagexspan (imageTag tagNo) + px 20.0) (imageyspan (imageTag tagNo) + px 10.0)
-               <@< { fill        = toSVGColor "white" }
-               <@< { stroke      = toSVGColor "black" }
-               <@< { strokewidth = px 1.0 }
+    #! retval` = tag (imageTag tagNo) retval`
+    #! oval    = ellipse (imagexspan (imageTag tagNo) + px 20.0) (imageyspan (imageTag tagNo) + px 10.0)
+                   <@< { fill        = toSVGColor "white" }
+                   <@< { stroke      = toSVGColor "black" }
+                   <@< { strokewidth = px 1.0 }
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retval`] Nothing
 
-tAssign :: (Maybe [Int]) TUser TExpr -> TImg
+tAssign :: !(Maybe [Int]) !TUser !TExpr -> TImg
 tAssign activeNodeId user assignedTask
   =          tExpr2Image activeNodeId assignedTask `b`
   \at     -> dispenseUniq `b`
   \userNo -> dispenseUniq `b`
   \atNo   -> 'CA'.pure (tAssign` at userNo atNo)
   where
+  tAssign` :: !(Image TonicTask) !Int !Int -> Image TonicTask
   tAssign` at userNo atNo
-    # taskNameImg = tag (imageTag userNo) (margin (px 5.0) (text ArialBold10px (ppUser user)))
-    # bgRect  = rect maxXSpan (imageyspan (imageTag userNo) + imageyspan (imageTag atNo))
+    #! maxXSpan = maxSpan [imagexspan (imageTag userNo), imagexspan (imageTag atNo)]
+    #! taskNameImg = tag (imageTag userNo) (margin (px 5.0) (text ArialBold10px (ppUser user)))
+    #! bgRect  = rect maxXSpan (imageyspan (imageTag userNo) + imageyspan (imageTag atNo))
                   <@< { fill        = toSVGColor "white" }
                   <@< { stroke      = toSVGColor "black" }
                   <@< { strokewidth = px 1.0 }
                   <@< { xradius     = px 5.0 }
                   <@< { yradius     = px 5.0 }
                   <@< { dash        = [5, 5] }
-    # at      = tag (imageTag atNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
-    # content = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, at] Nothing
+    #! at      = tag (imageTag atNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
+    #! content = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, at] Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
-    where
-    maxXSpan = maxSpan [imagexspan (imageTag userNo), imagexspan (imageTag atNo)]
 
-ppUser :: TUser -> String
+ppUser :: !TUser -> String
 ppUser TUAnyUser                       = "Any user"
 ppUser (TUUserWithIdent ident)         = "User " +++ ident
 ppUser (TUUserWithRole role)           = "Any user with role " +++ role
@@ -634,112 +633,124 @@ ppUser TUSystemUser                    = "Any system user"
 ppUser TUAnonymousUser                 = "Any anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
-tStep :: (Maybe [Int]) TExpr [PPOr TStepCont] -> TImg
+tStep :: !(Maybe [Int]) !TExpr ![PPOr TStepCont] -> TImg
 tStep activeNodeId lhsExpr conts
   =          'CM'.mapM (\_ -> dispenseUniq) conts `b`
   \uniqs  -> tExpr2Image activeNodeId lhsExpr `b`
   \lhs    -> 'CM'.mapM (tStepCont activeNodeId) conts `b`
   \conts` -> 'CA'.pure (tStep` lhs conts` uniqs)
   where
+  tStep` :: !(Image TonicTask) ![Image TonicTask] ![Int] -> Image TonicTask
   tStep` lhs conts` uniqs
-    # conts`   = prepCases [] uniqs conts`
-    # vertConn = mkVertConn uniqs
-    # contsImg = above (repeat AtMiddleX) [] conts` Nothing
+    #! conts`   = prepCases [] uniqs conts`
+    #! vertConn = mkVertConn uniqs
+    #! contsImg = above (repeat AtMiddleX) [] conts` Nothing
     = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
 
+prepCases :: ![String] ![Int] ![Image TonicTask] -> [Image TonicTask]
 prepCases patStrs uniqs pats
-  # pats     = zipWith (\uniq pat -> tag (imageTag uniq) pat) uniqs pats
-  # maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
+  #! pats     = zipWith (\uniq pat -> pat) uniqs pats
+  #! maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
   = zipWith3 (prepCase maxXSpan) uniqs pats (patStrs ++ repeat "")
   where
+  prepCase :: !Span !Int !(Image TonicTask) !String -> Image TonicTask
   prepCase maxXSpan uniq pat patStr
-    # linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
-    # leftLine  = xline tLineMarker (px 16.0 + linePart)
-    # rightLine = xline Nothing (px 8.0 + linePart)
-    = beside (repeat AtMiddleY) [] [text ArialRegular10px patStr, leftLine, margin (px 5.0, px 0.0) pat, rightLine] Nothing
+    #! linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+    #! leftLine  = xline tLineMarker (px 16.0 + linePart)
+    #! rightLine = xline Nothing (px 8.0 + linePart)
+    = beside (repeat AtMiddleY) [] [text ArialRegular10px patStr, leftLine, pat, rightLine] Nothing
 
-tStepCont :: (Maybe [Int]) (PPOr TStepCont) -> TImg
+tStepCont :: !(Maybe [Int]) !(PPOr TStepCont) -> TImg
 tStepCont _            (PP pp) = 'CA'.pure (text ArialRegular10px pp)
-tStepCont activeNodeId (T t)   = tStepCont` t
+tStepCont activeNodeId (T t)   = tStepCont` activeNodeId t
   where
-  tStepCont` (StepOnValue      sfilter) = tStepFilter Nothing sfilter
-  tStepCont` (StepOnAction act sfilter) = tStepFilter (Just act) sfilter
-  tStepCont` (StepOnException mpat te)  = tExpr2Image activeNodeId te `b` ('CA'.pure o mkOnException)
+  tStepCont` :: !(Maybe [Int]) !TStepCont -> TImg
+  tStepCont` activeNodeId (StepOnValue      sfilter) = tStepFilter activeNodeId Nothing sfilter
+  tStepCont` activeNodeId (StepOnAction act sfilter) = tStepFilter activeNodeId (Just act) sfilter
+  tStepCont` activeNodeId (StepOnException mpat te)  = tExpr2Image activeNodeId te `b` ('CA'.pure o mkOnException)
     where
     // TODO mpat
     mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways)
+  tStepFilter :: !(Maybe [Int]) !(Maybe String) !TStepFilter -> TImg
+  tStepFilter activeNodeId mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways)
     where
     mkAlways t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue)
+  tStepFilter activeNodeId mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue)
     where
     // TODO mpat
     mkHasValue t = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable)
+  tStepFilter activeNodeId mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable)
     where
     // TODO mpat
     mkIfStable t = beside (repeat AtMiddleY) [] [addAction mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable)
+  tStepFilter activeNodeId mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable)
     where
     // TODO mpat
     mkIfUnstable t = beside (repeat AtMiddleY) [] [addAction mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond)
+  tStepFilter activeNodeId mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond)
     where
     // TODO mpat pp
     mkIfCond t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
-  tStepFilter mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue t)
+  tStepFilter activeNodeId mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue t)
     where
     mkIfValue t c = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
 
+alwaysFilter :: Image TonicTask
 alwaysFilter   = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
+
+hasValueFilter :: Image TonicTask
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
 
-addAction (Just action) img = above (repeat AtMiddleX) [] [text ArialBold10px action, img] Nothing // TODO Draw little figure
-addAction _             img = img
+addAction :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
+addAction mact img
+  #! arrowedImg = beside (repeat AtMiddleY) [] [tHorizConnArr, img, tHorizConn] Nothing
+  = case mact of
+      Just action -> above (repeat AtMiddleX) [] [text ArialBold10px action, arrowedImg] Nothing // TODO Draw little figure
+      _           -> arrowedImg
 
-tIfValue :: VarName [VarName] -> TImg
+tIfValue :: !VarName ![VarName] -> TImg
 tIfValue tffun args
   =          dispenseUniq `b`
   \nameNo -> dispenseUniq `b`
   \argsNo -> 'CA'.pure (tIfValue` nameNo argsNo)
   where
+  tIfValue` :: !Int !Int -> Image TonicTask
   tIfValue` nameNo argsNo
-    # bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
-                     <@< { fill        = toSVGColor "white" }
-                     <@< { stroke      = toSVGColor "black" }
-                     <@< { strokewidth = px 1.0 }
-    # tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
-    # tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-    # tfContents = above (repeat AtLeft) [] (case args of
-                                               [] -> [tfNameImg]
-                                               _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+    #! maxXSpan   = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
+    #! bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
+                      <@< { fill        = toSVGColor "white" }
+                      <@< { stroke      = toSVGColor "black" }
+                      <@< { strokewidth = px 1.0 }
+    #! tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
+    #! tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+    #! tfContents = above (repeat AtLeft) [] (case args of
+                                                [] -> [tfNameImg]
+                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-    where
-    maxXSpan = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
 
 tException :: Image TonicTask
-tException = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
-  where
-  bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                      <@< { stroke = toSVGColor "black" }
+tException
+  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
+                                       <@< { stroke = toSVGColor "black" }
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
 
 tStable :: Image TonicTask
-tStable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, rect (px 8.0) (px 8.0) <@< { fill = toSVGColor "black" }] Nothing
-  where
-  bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                      <@< { stroke = toSVGColor "black" }
+tStable
+  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
+                                       <@< { stroke = toSVGColor "black" }
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, rect (px 8.0) (px 8.0) <@< { fill = toSVGColor "black" }] Nothing
 
 tUnstable :: Image TonicTask
-tUnstable = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "W"] Nothing
-  where
-  bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                      <@< { stroke = toSVGColor "black" }
+tUnstable
+  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
+                                       <@< { stroke = toSVGColor "black" }
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "W"] Nothing
 
 tNoVal :: Image TonicTask
-tNoVal = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "X"] Nothing
-  where
-  bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                      <@< { stroke = toSVGColor "black" }
+tNoVal
+  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
+                                       <@< { stroke = toSVGColor "black" }
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "X"] Nothing
 
 tLineArrow :: Image TonicTask
 tLineArrow = polygon Nothing [ (px 0.0, px 0.0)
