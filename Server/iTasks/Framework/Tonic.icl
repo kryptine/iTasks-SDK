@@ -316,6 +316,7 @@ tCaseOrIf activeNodeId ppexpr pats
   \uniqs -> 'CM'.mapM (tExpr2Image activeNodeId) patExprs `b`
             ('CA'.pure o mkCaseOrIf patStrs uniqs)
   where
+  mkCaseOrIf :: ![String] ![Int] ![Image TonicTask] -> Image TonicTask
   mkCaseOrIf patStrs uniqs nextTasks
     #! nextTasks    = prepCases patStrs uniqs nextTasks
     #! vertConn     = mkVertConn uniqs
@@ -334,8 +335,10 @@ tCaseOrIf activeNodeId ppexpr pats
     #! diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
                                                                , text ArialRegular10px ppexpr] Nothing
     = beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing
+  y :: !Real !Real !Span -> Span
   y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
+mkVertConn :: ![Int] -> Image TonicTask
 mkVertConn uniqs
   | length uniqs < 2 = empty (px 0.0) (px 0.0)
   | otherwise
@@ -432,6 +435,7 @@ tParallel activeNodeId (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
   mkParSumN ts`
     #! ts` = map (margin (px 5.0, px 5.0)) ts`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
+  mkParSum :: !(PPOr [TExpr]) -> State Int [Image TonicTask]
   mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParSum (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
 tParallel activeNodeId (ParProd ts)
@@ -439,10 +443,12 @@ tParallel activeNodeId (ParProd ts)
   \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
   \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
   where
+  mkParProdCases :: ![Int] ![Image TonicTask] -> Image TonicTask
   mkParProdCases uniqs ts`
     #! ts`      = prepCases [] uniqs ts`
     #! vertConn = mkVertConn uniqs
     = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
+  mkParProd :: !(PPOr [TExpr]) -> State Int [Image TonicTask]
   mkParProd (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParProd (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
 
@@ -670,33 +676,40 @@ tStepCont activeNodeId (T t)   = tStepCont` activeNodeId t
   tStepCont` activeNodeId (StepOnException mpat te)  = tExpr2Image activeNodeId te `b` ('CA'.pure o mkOnException)
     where
     // TODO mpat
+    mkOnException :: !(Image TonicTask) -> Image TonicTask
     mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter :: !(Maybe [Int]) !(Maybe String) !TStepFilter -> TImg
-  tStepFilter activeNodeId mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways)
+  tStepFilter activeNodeId mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways mact)
     where
-    mkAlways t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue)
-    where
-    // TODO mpat
-    mkHasValue t = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable)
+    mkAlways :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkAlways mact t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter activeNodeId mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue mact)
     where
     // TODO mpat
-    mkIfStable t = beside (repeat AtMiddleY) [] [addAction mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable)
+    mkHasValue :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkHasValue mact t = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter activeNodeId mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable mact)
     where
     // TODO mpat
-    mkIfUnstable t = beside (repeat AtMiddleY) [] [addAction mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond)
+    mkIfStable :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfStable mact t = beside (repeat AtMiddleY) [] [addAction mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter activeNodeId mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable mact)
+    where
+    // TODO mpat
+    mkIfUnstable :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfUnstable mact t = beside (repeat AtMiddleY) [] [addAction mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter activeNodeId mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond mact)
     where
     // TODO mpat pp
-    mkIfCond t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
-  tStepFilter activeNodeId mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue t)
+    mkIfCond :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfCond mact t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
+  tStepFilter activeNodeId mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue pat mact t)
     where
-    mkIfValue t c = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
+    mkIfValue :: !String !(Maybe String) !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
+    mkIfValue pat mact t c = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
 
 alwaysFilter :: Image TonicTask
-alwaysFilter   = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
+alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
 
 hasValueFilter :: Image TonicTask
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
