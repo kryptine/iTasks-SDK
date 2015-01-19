@@ -249,7 +249,9 @@ cacheGridSpans imTas xsps ysps st
   = 'DS'.fold (f xsps` ysps`) st imTas
   where
   f :: !{!Span} !{!Span} !ImageTag !FixSpansStVal -> FixSpansStVal
-  f xsps` ysps` t st = { st & fixSpansGridSpanEnv = 'DM'.put t (xsps`, ysps`) st.fixSpansGridSpanEnv }
+  f xsps` ysps` t st
+    | 'DM'.member t st.fixSpansGridSpanEnv = st
+    | otherwise                            = { st & fixSpansGridSpanEnv = 'DM'.put t (xsps`, ysps`) st.fixSpansGridSpanEnv }
 
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
 applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
@@ -543,8 +545,9 @@ fixSpans img = go
                !(!FixSpansSt Span, !FixSpansSt Span, !FixSpansSt Span, !FixSpansSt Span)
                !(!FixSpansSt Span, !FixSpansSt Span)
                !FixSpansStVal
-            -> .(!Image s, !FixSpansStVal) | iTask s
-    mkImage imCo mask imAts imTrs imTas _ _ (m1, m2, m3, m4) _ st
+            -> .(!Image s, !FixSpansStVal) | iTask s         	
+    mkImage imCo mask imAts imTrs imTas _ _ (m1, m2, m3, m4) _ st	
+      #! st = trace "mkImage" st	
       #! (mask, st)       = evalMaybe mask st
       #! (imAts, st)      = sequence imAts st
       #! (imTrs, st)      = sequence imTrs st
