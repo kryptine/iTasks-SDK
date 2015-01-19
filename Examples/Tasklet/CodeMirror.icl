@@ -2,7 +2,7 @@ module CodeMirror
 
 import iTasks, iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
-import iTasks.API.Extensions.CodeMirror
+import iTasks.API.Extensions.CodeMirrorTasklet
 
 from StdArray import class Array(uselect), instance Array {} a
 
@@ -50,7 +50,7 @@ defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
 editor :: Task CodeMirror
 editor
 	= mkTask (codeMirrorTasklet defcm) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))
-				 							 
+		                                                  				 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
 	= Nothing

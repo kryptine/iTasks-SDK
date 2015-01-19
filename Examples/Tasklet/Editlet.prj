@@ -795,6 +795,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	Data.Foldable
+		Dir:	{Application}\iTasks-SDK\Dependencies\Platform\OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	Data.Func
 		Dir:	{Application}\iTasks-SDK\Dependencies\Platform\OS-Independent
 		Compiler
@@ -880,6 +894,20 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Set
+		Dir:	{Application}\iTasks-SDK\Dependencies\Platform\OS-Independent
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Data.Traversable
 		Dir:	{Application}\iTasks-SDK\Dependencies\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
@@ -1516,6 +1544,20 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
+		Name:	Sapl.Transform.AddSelectors
+		Dir:	{Application}\iTasks-SDK\Dependencies\SAPL
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
 		Name:	Sapl.Transform.Let
 		Dir:	{Application}\iTasks-SDK\Dependencies\SAPL
 		Compiler
@@ -1609,20 +1651,6 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GenEq
-		Dir:	{Application}\iTasks-SDK\Patches\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GenLexOrd
 		Dir:	{Application}\iTasks-SDK\Patches\Generics
 		Compiler
 			NeverMemoryProfile:	False

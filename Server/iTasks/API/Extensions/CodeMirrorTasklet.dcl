@@ -1,7 +1,9 @@
-definition module iTasks.API.Extensions.CodeMirror
+definition module iTasks.API.Extensions.CodeMirrorTasklet
 
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Tasklet
+
+// OBSOLETE CodeMirror Tasklet 
 
 :: JSCM
 
@@ -75,7 +77,6 @@ derive gEditMeta        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gVerify	        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 
-codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
-				  -> Editlet CodeMirror [CodeMirrorDiff]
+codeMirrorTasklet :: !CodeMirror
+				  -> Tasklet CodeMirrorClient CodeMirror
 

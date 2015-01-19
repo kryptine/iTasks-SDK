@@ -14,6 +14,7 @@ import StdDebug
 :: TimeDelta = SetSec !Int | SetMin !Int | SetHour !Int
 derive class iTask TimeDelta
 
+/*
 buienLet :: Editlet String Void
 buienLet = toEditlet simpl
 where
@@ -233,6 +234,7 @@ where
 
 empty_board :: TicTacToe
 empty_board = repeatn 3 (repeatn 3 Clear)
+*/
 
 defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
         , position = (0,0)
@@ -253,6 +255,7 @@ test5 = withShared defcm (\defcm -> updateSharedInformation "CodeMirror Settings
         
 //test5 = updateInformation "CodeMirror" [] (codeMirrorEditlet gDefault{|*|} [])
 
+/*
 test4 = updateInformation "Tic tac toe" [] (tictactoelet (empty_board,Tic))
 	
 test2 = updateInformation "Test" [] (timelet (fromString "13:00:00"))
@@ -269,6 +272,7 @@ test = updateInformation "String" [] stringlet @ (\editlet -> editlet.currVal) >
 
 //test7 :: Task LeafletMap
 //test7 = enterInformation "Test" [] 
+*/
 
 Start :: *World -> *World
 Start world = startEngine test5 world

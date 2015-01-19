@@ -1,4 +1,4 @@
-implementation module iTasks.API.Extensions.CodeMirror
+implementation module iTasks.API.Extensions.CodeMirrorTasklet
 
 import StdMisc, StdString, StdArray, StdDebug
 import Data.Maybe, Data.List, Text
@@ -6,8 +6,6 @@ import Data.Maybe, Data.List, Text
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
-
-import StdDebug
 
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
@@ -88,16 +86,16 @@ where
 	isSetTheme (CMTheme _) = True
 	isSetTheme _ = False
 
-onInitClient eventhandlers onLoadWrapper onLoadCont cid clval world
+onInitClient hndCreator eventhandlers onLoadWrapper onLoadCont cid clval world
 	# (obj, world) = findObject "CodeMirror.defaults" world
 	| not (jsIsUndefined obj)
-	    = onLoad eventhandlers onLoadCont cid undef clval world
+	    = onLoad hndCreator eventhandlers onLoadCont cid undef clval world
 	# world = addCSSFromUrl "codemirror.css" world
 	# world = addJSFromUrl "codemirror.js" Nothing world
-	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (createEditletEventHandler onLoadWrapper cid)) world
-    = (clval, NoDiff, world)
+	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (hndCreator onLoadWrapper cid)) world
+    = (clval,world)
 
-onLoad eventhandlers cont cid _ clval=:{val={source,configuration}} world
+onLoad hndCreator eventhandlers cont cid _ clval=:{val={source,configuration}} world
 	# (ta, world)       = .? (getElementById (sourcearea cid)) world
 	# (co, world)       = createConfigurationObject configuration world
     # (cmobj, world)    = findObject "CodeMirror" world
@@ -108,11 +106,13 @@ onLoad eventhandlers cont cid _ clval=:{val={source,configuration}} world
 	# world 			= manageSystemEvents "on" st world	
 	# world 			= foldl (putOnEventHandler cm) world eventhandlers
 
+    # (tasklets,world)  = findObject "itwc.controller.tasklets" world
     # (editlets,world)  = findObject "itwc.controller.editlets" world    
-    # (cmp,world)       = .? (editlets .# cid) world
-    # (clval,dff,world) = onAfterShow cm cid undef clval world
-    # world             = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world
-    # world             = (cmp .# "afterShow" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world        
+    # (cmp,world)       = .? (tasklets .# cid) world
+    # (cmp,world)       = if (jsIsUndefined cmp) (.? (editlets .# cid) world) (cmp,world)
+    # (clval,world)		= onAfterShow cm cid undef clval world
+    # world             = (cmp .# "afterResize" .= (toJSVal (hndCreator (onAfterShow cm) cid))) world
+    # world             = (cmp .# "afterShow" .= (toJSVal (hndCreator (onAfterShow cm) cid))) world        
 	
     //Call continuation to initialize the editor	
     = cont cid {clval & mbSt = Just st} world
@@ -127,13 +127,13 @@ where
         # (height,world)    = jsGetObjectAttr "height" style world
 
         # (_,world)       	= (cm .# "setSize" .$ (width,height)) world
-	    = (st, NoDiff, world)
+	    = (st, world)
 
 	putOnEventHandler cm world (event, handler)
-		= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
+		= snd (callObjectMethod "on" [toJSArg event, toJSArg (hndCreator handler cid)] cm world)
 
-	systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
-					("change",			createEditletEventHandler onChange cid)]
+	systemEvents = [("cursorActivity",	hndCreator onCursorActivity cid),
+					("change",			hndCreator onChange cid)]
 
 	isSetMode (CMMode _) = True
 	isSetMode _ = False
@@ -147,9 +147,7 @@ where
 
 		# (world, lines) = foldl (\(w,res) i -> let (line, w2) = readLine cmdoc i w in (w2, [line: res])) (world, []) (reverse [0..nrlines-1])
 
-        = ({clval & val={clval.val & source = lines}}, 
-        	Diff (genDiffServer clval.val {clval.val & source = lines}) (\_ st world -> (st, NoDiff, world)), 
-        	world)
+        = ({clval & val={clval.val & source = lines}}, world)
 	where
 		readLine cmdoc n world
 			# (line, world) = callObjectMethod "getLine" [toJSArg n] cmdoc world
@@ -168,9 +166,7 @@ where
 				   {val & selection = Nothing}
 				   {val & selection = Just (idx1,idx2)}
 		
-		= ({clval & val = val}, 
-			Diff (genDiffServer clval.val val) (\_ st world -> (st, NoDiff, world)), 
-			world)
+		= ({clval & val = val}, world)
 
 manageSystemEvents direction {codeMirror, systemEventHandlers} world
 	= foldl sw world systemEventHandlers
@@ -198,138 +194,65 @@ addMark cmdoc (i1,i2) world
 sourcearea :: String -> String
 sourcearea id = "cm_source_" +++ id
 
-codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
-				  -> Editlet CodeMirror [CodeMirrorDiff]
-		  
-codeMirrorEditlet g eventhandlers
-  = { Editlet
-    | currVal    = g
-    
-    , defValSrv  = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}
-    , defValClt  = {val = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}, mbSt = Nothing}
-    
-    , genUI      = \cid world -> (editletUIDef cid, world)
-    , appDiffClt = appDiffClient
-    , genDiffSrv = genDiffServer
-    , appDiffSrv = appDiffServer
-    }
+codeMirrorUIDef :: a [TaskletEvent b] -> TaskletHTML b | toString a
+codeMirrorUIDef cid eventHandlers
+	= { TaskletHTML
+	  | html 			= DivTag [] 
+									[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
+									,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
+	  , eventHandlers 	= eventHandlers
+	  , width 			= ExactSize 300
+	  , height			= ExactSize 300
+	  }
+
+codeMirrorTasklet :: !CodeMirror
+				  -> Tasklet CodeMirrorClient CodeMirror
+codeMirrorTasklet g = 
+				{ Tasklet 
+				| genUI      = \tid _ world -> (TaskletHTML (codeMirrorUIDef tid eventHandlers), {val = g, mbSt = Nothing}, world)
+				, resultFunc = \clval -> Value clval.val False
+				, tweakUI    = id
+				}
 where
-	editletUIDef :: a -> ComponentHTML [CodeMirrorDiff] CodeMirrorClient | toString a
-	editletUIDef cid
-		= { ComponentHTML
-		  | html 			= DivTag [] 
-								[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
-								,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
-								
-		  , eventHandlers 	= [ComponentEvent "editlet" "init" onInit]
-		  , width 			= ExactSize 300
-		  , height			= ExactSize 300
-		  }
+	eventHandlers = [TaskletEvent "tasklet" "init" onInit]
 
-	// init
-	onInit cid event clval world	
-		= onInitClient eventhandlers onLoadWrapper onLoadCont cid clval world 
+	onInit taskId _ clval world
+		= onInitClient foo [] onLoadWrapper onLoadCont (toString taskId) clval world 
     where
-		onLoadWrapper = onLoad eventhandlers onLoadCont
-		onLoadCont cid clval world = let (a,c) = onUpdate cid [] clval world in (a,NoDiff,c)
+		onLoadCont taskId clval world = onUpdate taskId clval world 
+		onLoadWrapper taskId obj st world = onLoad foo [] onLoadCont (toString taskId) obj st world
+		foo hnd taskId = createTaskletEventHandler (\taskId obj val st -> hnd (toString taskId) obj val st) (fromString taskId)
 
-	// update
-	onUpdate cid diffs clval=:{mbSt=Nothing} world		
-		= (clval, world)
-	
-	onUpdate cid diffs clval=:{mbSt=Just st=:{codeMirror,marks}} world	
+	onUpdate taskid clval=:{val={source,configuration,position,selection,highlighted}, mbSt=Just st=:{codeMirror,marks}} world 
 		// disable system event handlers
 		# world = manageSystemEvents "off" st world		
 	
-		# world = setOptions opts codeMirror world
-		# world = loadModulesIfNeeded opts codeMirror world
+		# world = setOptions configuration codeMirror world
+		# world = loadModulesIfNeeded configuration codeMirror world
 		
 		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
 
-		# world = case find isSetPos nopts of
-			Nothing    	= world
-			(Just (SetPosition idx))	
-						# (pos, world) = tupleToPos idx world 
-						= snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)
+		# world = applyDiffClient cmdoc 0 0 source world
+			
+		# (pos, world) = tupleToPos position world 
+		# world = snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)		
+	
+		# world = case selection of
+			Nothing	
+				= world
+			(Just (idx1,idx2))
+				# (pos1, world) = tupleToPos idx1 world 
+				# (pos2, world) = tupleToPos idx2 world 							
+				= snd (callObjectMethod "setSelection" [toJSArg pos1, toJSArg pos2] cmdoc world)	
 
-		# world = case find isSetSel nopts of
-			Nothing    		= world
-			(Just (SetSelection Nothing))
-						// Clear the selection
-						# (pos, world) = callObjectMethod "getCursor" [] cmdoc world
-						= snd (callObjectMethod "setSelection" [toJSArg pos, toJSArg pos] cmdoc world)
-			(Just (SetSelection (Just (idx1,idx2)))) 	
-						# (pos1, world) = tupleToPos idx1 world 
-						# (pos2, world) = tupleToPos idx2 world 							
-						= snd (callObjectMethod "setSelection" [toJSArg pos1, toJSArg pos2] cmdoc world)
-
-		# world = case find isReplaceRange nopts of
-			Nothing    	= world
-			(Just (ReplaceRange (flines,llines) diff)) = applyDiffClient cmdoc flines llines diff world
-
-		# (marks, world) = case find isSetHighlights nopts of
-			Nothing    	= (marks, world)
-			(Just (SetHighlights newmarks)) 	
-
-						// Clear all marks
-						//# (marks, world) = (cmdoc .# "getAllMarks" .$ ()) world
-						//# (marks, world) = fromJSArray marks id world
-						# world = foldl (\world m -> snd ((m .# "clear" .$ ()) world)) world marks
-
-						// Set marks
-						= foldl (\(ms, world) pos -> let (m,w) = addMark cmdoc pos world in ([m:ms], w)) ([], world) newmarks
-
+		// Set marks	
+		# (marks, world) =
+			foldl (\(ms, world) pos -> let (m,w) = addMark cmdoc pos world in ([m:ms], w)) ([], world) highlighted	
+	
 		// enable system event handlers
 		# world = manageSystemEvents "on" st world
 					
-		= ({clval & mbSt = Just {st & marks = marks}}, world)
-	where
-		(opts`, nopts) = splitWith isSetOpt diffs
-		opts = map (\(SetOption opt) -> opt) opts`
-	
-		isSetPos (SetPosition _) = True
-		isSetPos _ = False
-
-		isSetSel (SetSelection _) = True
-		isSetSel _ = False
-
-		isSetOpt (SetOption _) = True
-		isSetOpt _ = False
-
-		isReplaceRange (ReplaceRange _ _) = True
-		isReplaceRange _ = False
-
-		isSetHighlights (SetHighlights _) = True
-		isSetHighlights _ = False
-	
-	unPackPosition pos world
-		# (line, world) = jsGetObjectAttr "line" pos world
-		# (ch, world) = jsGetObjectAttr "ch" pos world		
-		= ((line, ch), world)
-	
-	appDiffClient cid diffs clval world
-		= onUpdate cid diffs {clval & val = appDiffServer diffs clval.val} world
-		
-	appDiffServer diffs val = foldl upd val diffs
-	where
-		upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
-		upd val=:{position} (SetPosition pos) = {val & position = pos}
-		upd val=:{selection} (SetSelection sel) = {val & selection = sel}	
-		upd val=:{source} (ReplaceRange (flines,llines) diff) = {val & source = applyDiffServer source flines llines diff}
-		upd val=:{highlighted} (SetHighlights hs) = {val & highlighted = hs}					
-
-genDiffServer val1 val2 = case ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
-						   ++
-						   if (val1.position == val2.position) [] [SetPosition val2.position]
-						   ++
-						   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
-						   ++
-						   maybe [] (\(flines,llines,diff) -> [ReplaceRange (flines,llines) diff]) (genDiffRange val1.source val2.source)
-						   ++ 
-						   [SetHighlights val2.highlighted]) of
-       []      = Nothing
-       diffs   = Just diffs
+		= ({clval & mbSt = Just {st & marks = marks}}, world)				
 
 applyDiffClient cmdoc flines llines diff world
 	# (nrlines, world) = callObjectMethod "lineCount" [] cmdoc world
