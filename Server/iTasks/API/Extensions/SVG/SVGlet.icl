@@ -149,7 +149,8 @@ svgRenderer origState state2Image
                         , fixSpansGridSpanEnv  = 'DM'.newMap
                         , fixSpansDidChange    = False
                         , fixSpansCounter      = 0
-                        , fixSpansFonts        = env})
+                        , fixSpansFonts        = env
+                        , fixSpansNumIter      = 0})
 
   genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s)
   genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
@@ -211,6 +212,7 @@ calcTextLengths fontdefs world
   , fixSpansCounter       :: !Int
   , fixSpansDidChange     :: !Bool
   , fixSpansFonts         :: !Map FontDef (Map String Real)
+  , fixSpansNumIter       :: !Int
   }
 
 class nextNo a :: !a -> (!Int, !a)
@@ -498,7 +500,7 @@ fixSpans img = go
   where
   go st
     #! (img`, st)          = imageCata fixSpansAllAlgs img st
-    | st.fixSpansDidChange = fixSpans img` {st & fixSpansDidChange = False}
+    | st.fixSpansDidChange = fixSpans img` {st & fixSpansDidChange = False, fixSpansNumIter = st.fixSpansNumIter + 1}
     | otherwise            = ret img` st
   fixSpansAllAlgs :: Algebras s
                      ([ImageTransform] (Set ImageTag) -> FixSpansSt (FixSpansSyn s))
@@ -545,9 +547,8 @@ fixSpans img = go
                !(!FixSpansSt Span, !FixSpansSt Span, !FixSpansSt Span, !FixSpansSt Span)
                !(!FixSpansSt Span, !FixSpansSt Span)
                !FixSpansStVal
-            -> .(!Image s, !FixSpansStVal) | iTask s         	
-    mkImage imCo mask imAts imTrs imTas _ _ (m1, m2, m3, m4) _ st	
-      #! st = trace "mkImage" st	
+            -> .(!Image s, !FixSpansStVal) | iTask s
+    mkImage imCo mask imAts imTrs imTas _ _ (m1, m2, m3, m4) _ st
       #! (mask, st)       = evalMaybe mask st
       #! (imAts, st)      = sequence imAts st
       #! (imTrs, st)      = sequence imTrs st
@@ -560,19 +561,22 @@ fixSpans img = go
       #! xsp`             = xsp` + m2 + m4
       #! ysp`             = ysp` + m1 + m3
       #! st               = cacheImageSpan imTas (xsp`, ysp`) st
-      #! (no, st)         = nextNo st
-      = ((tag (ImageTagSystem no)
-         { Image
-         | content             = fixSpansSyn.fixSpansSyn_ImageContent
-         , mask                = mask
-         , attribs             = 'DS'.fromList imAts
-         , transform           = imTrs
-         , tags                = imTas
-         , totalSpanPreTrans   = fixSpansSyn.fixSpansSyn_TotalSpan_PreTrans
-         , totalSpanPostTrans  = (xsp`, ysp`)
-         , margin              = (m1, m2, m3, m4)
-         , transformCorrection = fixSpansSyn.fixSpansSyn_OffsetCorrection
-         }), st)
+      #! img              = { Image
+                            | content             = fixSpansSyn.fixSpansSyn_ImageContent
+                            , mask                = mask
+                            , attribs             = 'DS'.fromList imAts
+                            , transform           = imTrs
+                            , tags                = imTas
+                            , totalSpanPreTrans   = fixSpansSyn.fixSpansSyn_TotalSpan_PreTrans
+                            , totalSpanPostTrans  = (xsp`, ysp`)
+                            , margin              = (m1, m2, m3, m4)
+                            , transformCorrection = fixSpansSyn.fixSpansSyn_OffsetCorrection
+                            }
+      = case st.fixSpansNumIter of
+          0
+            #! (no, st) = nextNo st
+            = ((tag (ImageTagSystem no) img), st)
+          _ = (img, st)
 
   fixSpansImageContentAlgs :: ImageContentAlg (ImageSpan [ImageTransform] -> FixSpansSt (FixSpansSyn s))
                                               (FixSpansSt ImageSpan)
