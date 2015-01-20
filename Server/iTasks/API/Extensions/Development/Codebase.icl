@@ -218,7 +218,7 @@ openEditor False (path,fileName)
 updateCleanEditor :: (Shared CodeMirror) -> Task CodeMirror
 updateCleanEditor mirror
 	= updateSharedInformation () [UpdateWith  (\cm -> codeMirrorEditlet cm [])
-													  (\_ (Editlet value _ _) -> value)
+													  (\_ e -> e.Editlet.currVal)
 										 ] mirror
     <<@ ForceLayout <<@ AfterLayout (tweakUI fill)
 
