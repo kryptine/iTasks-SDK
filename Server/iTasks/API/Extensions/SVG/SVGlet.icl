@@ -131,7 +131,7 @@ svgRenderer origState state2Image
     #! (syn, clval)     = genSVG img { uniqueIdCounter = 0, genStates = fixVal.fixSpansSpanEnvs }
     #! (imXSp, imYSp)   = syn.genSVGSyn_imageSpanReal
     #! (imXSp, imYSp)   = (toString (toInt imXSp), toString (toInt imYSp))
-    #! svgStr           = toString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+    #! svgStr           = browserFriendlySVGEltToString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
                                            [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
                                            syn.genSVGSyn_svgElts)
     #! svgStr           = replaceSubString editletId cid svgStr
