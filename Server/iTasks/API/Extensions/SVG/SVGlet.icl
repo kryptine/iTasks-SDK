@@ -216,11 +216,11 @@ calcTextLengths fontdefs world
 
 :: SpanEnvs =
   { spanEnvImageTagPreTrans   :: !Map ImageTag Int
-  , spanEnvImageSpanPreTrans  :: !IntMap ImageSpan // TODO This should be an array, or at least a specialized IntMap
+  , spanEnvImageSpanPreTrans  :: !IntMap ImageSpan
   , spanEnvImageTagPostTrans  :: !Map ImageTag Int
-  , spanEnvImageSpanPostTrans :: !IntMap ImageSpan // TODO This should be an array, or at least a specialized IntMap
+  , spanEnvImageSpanPostTrans :: !IntMap ImageSpan
   , spanEnvGridTag            :: !Map ImageTag Int
-  , spanEnvGridSpan           :: !IntMap (!{!Span}, !{!Span}) // TODO This should be an array, or at least a specialized IntMap
+  , spanEnvGridSpan           :: !IntMap (!{!Span}, !{!Span})
   , spanEnvFonts              :: !Map FontDef (Map String Real)
   }
 
@@ -944,7 +944,7 @@ desugarAndTag img = go
       = case 'DM'.get t st.desugarAndTagSpanEnvs.spanEnvImageTagPostTrans of
           Just n
             = case 'DIS'.get n st.desugarAndTagSpanEnvs.spanEnvImageSpanPostTrans of
-                Just (xsp, _)
+                Just (xsp=:(PxSpan _), _)
                   = (xsp, st)
                 _ = (LookupSpan (ImageXSpan t), st)
           _ = (LookupSpan (ImageXSpan t), st)
@@ -954,7 +954,7 @@ desugarAndTag img = go
       = case 'DM'.get t st.desugarAndTagSpanEnvs.spanEnvImageTagPostTrans of
           Just n
             = case 'DIS'.get n st.desugarAndTagSpanEnvs.spanEnvImageSpanPostTrans of
-                Just (_, ysp)
+                Just (_, ysp=:(PxSpan _))
                   = (ysp, st)
                 _ = (LookupSpan (ImageYSpan t), st)
           _ = (LookupSpan (ImageYSpan t), st)
@@ -965,7 +965,9 @@ desugarAndTag img = go
           Just cacheIdx
             = case 'DIS'.get cacheIdx st.desugarAndTagSpanEnvs.spanEnvGridSpan of
                 Just (xs, _)
-                  = (xs.[n], st)
+                  = case xs.[n] of
+                      xsn=:(PxSpan _) -> (xsn, st)
+                      _               -> (LookupSpan (ColumnXSpan t n), st)
                 _ = (LookupSpan (ColumnXSpan t n), st)
           _ = (LookupSpan (ColumnXSpan t n), st)
 
@@ -975,7 +977,9 @@ desugarAndTag img = go
           Just cacheIdx
             = case 'DIS'.get cacheIdx st.desugarAndTagSpanEnvs.spanEnvGridSpan of
                 Just (_, xs)
-                  = (xs.[n], st)
+                  = case xs.[n] of
+                      xsn=:(PxSpan _) -> (xsn, st)
+                      _               -> (LookupSpan (RowYSpan t n), st)
                 _ = (LookupSpan (RowYSpan t n), st)
           _ = (LookupSpan (RowYSpan t n), st)
 
@@ -1095,7 +1099,7 @@ fixSpansLookupSpanAlgs =
     = case 'DM'.get t st.fixSpansSpanEnvs.spanEnvImageTagPostTrans of
         Just n
           = case 'DIS'.get n st.fixSpansSpanEnvs.spanEnvImageSpanPostTrans of
-              Just (xsp, _)
+              Just (xsp=:(PxSpan _), _)
                 = (xsp, {st & fixSpansDidChange = True})
               _ = (LookupSpan (ImageXSpan t), st)
         _ = (LookupSpan (ImageXSpan t), st)
@@ -1105,7 +1109,7 @@ fixSpansLookupSpanAlgs =
     = case 'DM'.get t st.fixSpansSpanEnvs.spanEnvImageTagPostTrans of
         Just n
           = case 'DIS'.get n st.fixSpansSpanEnvs.spanEnvImageSpanPostTrans of
-              Just (_, ysp)
+              Just (_, ysp=:(PxSpan _))
                 = (ysp, {st & fixSpansDidChange = True})
               _ = (LookupSpan (ImageYSpan t), st)
         _ = (LookupSpan (ImageYSpan t), st)
