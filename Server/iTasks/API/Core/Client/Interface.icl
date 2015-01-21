@@ -21,7 +21,7 @@ from Control.Monad import class Monad, >>=
 :: JSEvent      = JSEvent
 
 instance Applicative JSIO where
-  pure x     =JSIO (\s -> (x, s))
+  pure x     = JSIO (\s -> (x, s))
   (<*>) f g  = liftA2 id f g
 
 instance Functor JSIO where
@@ -31,8 +31,8 @@ instance Monad JSIO where
   bind (JSIO f) a2mb = JSIO run
     where
       run world
-        # (x, world) = f world
-        # (JSIO g)     = a2mb x
+        #! (x, world) = f world
+        #! (JSIO g)     = a2mb x
         = g world
 
 jsNull :: JSVal a
@@ -77,30 +77,30 @@ instance JSObjAttr Int where
   jsSetter idx val obj world = jsSetObjectEl idx val obj world
   jsGetter idx     obj world = jsGetObjectEl idx obj world
 
-:: JSObjSelector = E.o.t: SObj (JSObj o) t & JSObjAttr t
-                 | E.t: SDomId String
-                 | E.t: SRec JSObjSelector t & JSObjAttr t
+:: JSObjSelector = E.o.t: SObj !(JSObj o) !t & JSObjAttr t
+                 | E.t: SDomId !String
+                 | E.t: SRec !JSObjSelector !t & JSObjAttr t
 
 getObject :: !JSObjSelector !*JSWorld -> *(!JSVal v, !*JSWorld)
 getObject (SObj obj attr) world = jsGetter attr obj world
 getObject (SDomId elemId) world = callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
 getObject (SRec sel attr) world
-	# (obj, world) = getObject sel world
+	#! (obj, world) = getObject sel world
 	= jsGetter attr obj world
 
 setObject :: !JSObjSelector !(JSVal v) !*JSWorld -> *JSWorld
 setObject (SObj obj attr) val world = jsSetter attr val obj world
 setObject (SRec sel attr) val world
-	# (obj, world) = getObject sel world
+	#! (obj, world) = getObject sel world
 	= jsSetter attr val obj world
 
 callObject :: !JSObjSelector ![JSArg] !*JSWorld -> *(!JSVal r, !*JSWorld)
 callObject (SObj obj method) args world
-	# (fun, world) = jsGetter method obj world
+	#! (fun, world) = jsGetter method obj world
 	= jsApply fun obj args world
 callObject (SRec sel method) args world
-	# (obj, world) = getObject sel world
-	# (fun, world) = jsGetter method obj world
+	#! (obj, world) = getObject sel world
+	#! (fun, world) = jsGetter method obj world
 	= jsApply fun obj args world
 
 class (.#) infixl 3 s :: !s !t -> JSObjSelector | JSObjAttr t 
@@ -120,7 +120,7 @@ getElementById elemId = SDomId elemId
 (.=) infixl 2 :: !JSObjSelector !v -> *(*JSWorld -> *JSWorld)
 (.=) sel val = \world -> setObject sel (toJSVal val) world
 
-class (.$) infixl 1 o :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
+class (.$) infixl 1 o :: !o !a -> *(*JSWorld -> *(!JSVal r, !*JSWorld)) | ToArgs a
 
 instance .$ String where
   (.$) fun args = \world -> callFunction fun (toArgs args) world
@@ -131,7 +131,7 @@ instance .$ JSObjSelector where
 (.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | .$ o & ToArgs a
 (.$!) a b = snd o (a .$ b)
 
-new :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
+new :: !String !a -> (*JSWorld -> *(!JSObj o, !*JSWorld)) | ToArgs a
 new objNm args = jsNewObject objNm (toArgs args)
 
 jsApply	:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -180,21 +180,24 @@ jsArrayReverse arr world = callObjectMethod "reverse" [] arr world
 
 toJSArray :: ![a] !*JSWorld -> *(!JSArr a, !*JSWorld)
 toJSArray xs world
-  # (arr, world) = newJSArray world
-  # world = foldl (op arr) world (zip2 [0..] xs)
+  #! (arr, world) = newJSArray world
+  #! world = foldl (op arr) world (zip2 [0..] xs)
   = (arr, world)
-  where op arr world (i, arg) = jsSetObjectEl i (toJSVal arg) arr world
-
-fromJSArray :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
-fromJSArray arr f world
-  # (l, world) = jsGetObjectAttr "length" arr world
-  = fromJSArray` 0 (jsValToInt l) arr world
   where
-  fromJSArray` n l arr world
+  op :: !(JSArr a) !*JSWorld !(!Int, !a) -> *JSWorld
+  op arr world (i, arg) = jsSetObjectEl i (toJSVal arg) arr world
+
+fromJSArray :: !(JSArr a) !((JSVal b) -> c) !*JSWorld -> *(![c], !*JSWorld)
+fromJSArray arr f world
+  #! (l, world) = jsGetObjectAttr "length" arr world
+  = fromJSArray` f 0 (jsValToInt l) arr world
+  where
+  fromJSArray` :: !((JSVal b) -> c) !Int !Int !(JSArr a) !*JSWorld -> *(![c], !*JSWorld)
+  fromJSArray` f n l arr world
     | n == l         = ([], world)
     | otherwise
-      # (x, world)   = jsGetObjectEl n arr world
-      # (xs`, world) = fromJSArray` (n + 1) l arr world
+      #! (x, world)   = jsGetObjectEl n arr world
+      #! (xs`, world) = fromJSArray` f (n + 1) l arr world
       = ([f x : xs`], world)
 
 jsIsUndefined :: !(JSVal a) -> Bool
@@ -222,18 +225,19 @@ setDomAttr elemId attr value world
 
 findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 findObject query world
-  # (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
+  #! (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
   = case attrs of
       []  = (obj,world)
           = foldl op (obj,world) attrs
   where
     [attr:attrs] = split "." query
+    op :: !(!JSVal a, !*JSWorld) !String -> (!JSVal a, !JSWorld)
     op (obj, world) attr = ifObj obj
                              (\obj -> jsGetObjectAttr attr obj)
                              obj world
 
 class ToArgs a where
-  toArgs :: a -> [JSArg]
+  toArgs :: !a -> [JSArg]
 
 instance ToArgs Int where
   toArgs n = [toJSArg n]
@@ -285,42 +289,42 @@ instance ToArgs a where
 
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 callObjectMethod method args obj world
-	# (fun, world) = jsGetObjectAttr method obj world
+	#! (fun, world) = jsGetObjectAttr method obj world
 	= jsApply fun obj args world
 
 addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
 addJSFromUrl url mbCallback world
 	//Create script tag
-	# (script,world)	= callObjectMethod "createElement" [toJSArg "script"] jsDocument world
-	# world				= jsSetObjectAttr "src" (toJSVal url) script world
-	# world				= jsSetObjectAttr "type" (toJSVal "text/javascript") script world
-	# world				= jsSetObjectAttr "async" (toJSVal False) script world
-	# world				= case mbCallback of
+	#! (script,world)	= callObjectMethod "createElement" [toJSArg "script"] jsDocument world
+	#! world				= jsSetObjectAttr "src" (toJSVal url) script world
+	#! world				= jsSetObjectAttr "type" (toJSVal "text/javascript") script world
+	#! world				= jsSetObjectAttr "async" (toJSVal False) script world
+	#! world				= case mbCallback of
 		Nothing			= world
 		Just callback	= jsSetObjectAttr "onload" callback script world
 	//Inject into the document head
-	# (head,world)		= callObjectMethod "getElementsByTagName" [toJSArg "head"] jsDocument world
-	# (head,world)		= jsGetObjectEl 0 head world
-	# (_,world)			= callObjectMethod "appendChild" [toJSArg script] head world
+	#! (head,world)		= callObjectMethod "getElementsByTagName" [toJSArg "head"] jsDocument world
+	#! (head,world)		= jsGetObjectEl 0 head world
+	#! (_,world)			= callObjectMethod "appendChild" [toJSArg script] head world
 	= world
 
 addCSSFromUrl :: !String !*JSWorld -> *JSWorld
 addCSSFromUrl url world
-    # (link,world)      = callObjectMethod "createElement" [toJSArg "link"] jsDocument world
-	# world				= jsSetObjectAttr "rel" (toJSVal "stylesheet") link world
-	# world				= jsSetObjectAttr "type" (toJSVal "text/css") link world
-	# world				= jsSetObjectAttr "href" (toJSVal url) link world
-	# world				= jsSetObjectAttr "async" (toJSVal True) link world
+    #! (link,world)      = callObjectMethod "createElement" [toJSArg "link"] jsDocument world
+	#! world				= jsSetObjectAttr "rel" (toJSVal "stylesheet") link world
+	#! world				= jsSetObjectAttr "type" (toJSVal "text/css") link world
+	#! world				= jsSetObjectAttr "href" (toJSVal url) link world
+	#! world				= jsSetObjectAttr "async" (toJSVal True) link world
 	//Inject into the document head
-	# (head,world)		= callObjectMethod "getElementsByTagName" [toJSArg "head"] jsDocument world
-	# (head,world)		= jsGetObjectEl 0 head world
-	# (_,world)			= callObjectMethod "appendChild" [toJSArg link] head world
+	#! (head,world)		= callObjectMethod "getElementsByTagName" [toJSArg "head"] jsDocument world
+	#! (head,world)		= jsGetObjectEl 0 head world
+	#! (_,world)			= callObjectMethod "appendChild" [toJSArg link] head world
 	= world
 
-jsTrace :: a *JSWorld -> *JSWorld
+jsTrace :: !a !*JSWorld -> *JSWorld
 jsTrace val world
-	# (console,world)	= findObject "console" world
-	# (_,world)			= callObjectMethod "log" [toJSArg val] console world
+	#! (console,world)	= findObject "console" world
+	#! (_,world)			= callObjectMethod "log" [toJSArg val] console world
 	= world
 
 jsValToString :: !(JSVal a) -> String
@@ -372,13 +376,13 @@ jsUnsafeFunCoerce x = undef
 
 ifObj :: !(JSVal a) !((JSObj b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 ifObj val f def world
+  #! t = jsTypeof val
   | t == "object" || t == "string" = f (jsUnsafeObjCoerce val) world
   | otherwise                      = (def, world)
-  where t = jsTypeof val
 
 ifArr :: !(JSVal a) !((JSArr b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*JSWorld -> *(!JSVal c, !*JSWorld)
 ifArr val f def world
-  # (isArr, world) = jsIsArray val world
+  #! (isArr, world) = jsIsArray val world
   | isArr     = f (jsUnsafeArrCoerce val) world
   | otherwise = (def, world)
 
@@ -389,8 +393,8 @@ ifFun val f def world
 
 jsIsArray :: !(JSVal a) !*JSWorld -> *(!Bool, !*JSWorld)
 jsIsArray x world
-  # (arr, world) = findObject "Array" world
-  # (jb, world)  = callObjectMethod "isArray" [] arr world
+  #! (arr, world) = findObject "Array" world
+  #! (jb, world)  = callObjectMethod "isArray" [] arr world
   = (jsValToBool jb, world)
 
 jsIsNull :: !(JSVal a) -> Bool

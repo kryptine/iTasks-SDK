@@ -68,13 +68,13 @@ getElementById :: !String -> JSObjSelector
 .? :: !JSObjSelector !*JSWorld -> *(!JSVal r, !*JSWorld)
 (.=) infixl 2 :: !JSObjSelector !v -> *(*JSWorld -> *JSWorld)
 
-class (.$) infixl 1 o :: !o !a -> *(*JSWorld -> *(JSVal r, !*JSWorld)) | ToArgs a
+class (.$) infixl 1 o :: !o !a -> *(*JSWorld -> *(!JSVal r, !*JSWorld)) | ToArgs a
 instance .$ String
 instance .$ JSObjSelector
 
 (.$!) infixl 1 :: !o !a -> *(*JSWorld -> *JSWorld) | .$ o & ToArgs a
 
-new                 :: String a -> (*JSWorld -> *(JSObj o, *JSWorld)) | ToArgs a
+new                 :: !String !a -> (*JSWorld -> *(!JSObj o, !*JSWorld)) | ToArgs a
 
 //Calling js functions
 jsApply				:: !(JSFun f) !(JSObj scope) ![JSArg] !*JSWorld -> *(!JSVal a, !*JSWorld)
@@ -101,7 +101,7 @@ jsArrayPush         :: !(JSVal a) !(JSArr a)      !*JSWorld -> *(!JSArr a, !*JSW
 jsArrayPop          :: !(JSArr a)                 !*JSWorld -> *(!JSVal a, !*JSWorld)
 jsArrayReverse      :: !(JSArr a)                 !*JSWorld -> *(!JSArr a, !*JSWorld)
 toJSArray           :: ![a]                       !*JSWorld -> *(!JSArr a, !*JSWorld)
-fromJSArray         :: (JSArr a) ((JSVal b) -> c) !*JSWorld -> *([c], !*JSWorld)
+fromJSArray         :: !(JSArr a) !((JSVal b) -> c) !*JSWorld -> *(![c], !*JSWorld)
 
 jsIsUndefined 		:: !(JSVal a) -> Bool
 
@@ -125,7 +125,7 @@ addJSFromUrl		:: !String !(Maybe (JSFun f)) !*JSWorld -> *JSWorld
 //Loaf external CSS stylesheet by its URL
 addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 
-jsTrace :: a *JSWorld -> *JSWorld
+jsTrace :: !a !*JSWorld -> *JSWorld
 
 jsValToString :: !(JSVal a) -> String
 jsValToReal   :: !(JSVal a) -> Real
@@ -135,7 +135,7 @@ jsValToBool   :: !(JSVal a) -> Bool
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
 class ToArgs a where
-  toArgs :: a -> [JSArg]
+  toArgs :: !a -> [JSArg]
 
 instance ToArgs Int
 
