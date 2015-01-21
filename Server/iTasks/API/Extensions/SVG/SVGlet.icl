@@ -967,12 +967,12 @@ fixEnvs st = fixEnvs` {st & fixSpansDidChange = False} True
     f :: !Int !(!Span, !Span) !FixSpansStVal -> FixSpansStVal
     f k (PxSpan _, PxSpan _) st = st
     f k (w=:(PxSpan _), h) st
-      #! (h`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs h st
+      #! (h`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs h {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
           {st` & fixSpansSpanEnvs = {st`.fixSpansSpanEnvs & spanEnvImageSpanPreTrans = 'DIS'.put k (w, h`) st`.fixSpansSpanEnvs.spanEnvImageSpanPreTrans}}
           st`
     f k (w, h=:(PxSpan _)) st
-      #! (w`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs w st
+      #! (w`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs w {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
           {st` & fixSpansSpanEnvs = {st`.fixSpansSpanEnvs & spanEnvImageSpanPreTrans = 'DIS'.put k (w`, h) st`.fixSpansSpanEnvs.spanEnvImageSpanPreTrans}}
           st`
@@ -988,12 +988,12 @@ fixEnvs st = fixEnvs` {st & fixSpansDidChange = False} True
     f :: !Int !(!Span, !Span) !FixSpansStVal -> FixSpansStVal
     f k (PxSpan _, PxSpan _) st = st
     f k (w=:(PxSpan _), h) st
-      #! (h`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs h st
+      #! (h`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs h {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
           {st` & fixSpansSpanEnvs = {st`.fixSpansSpanEnvs & spanEnvImageSpanPostTrans = 'DIS'.put k (w, h`) st`.fixSpansSpanEnvs.spanEnvImageSpanPostTrans}}
           st`
     f k (w, h=:(PxSpan _)) st
-      #! (w`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs w st
+      #! (w`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs w {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
           {st` & fixSpansSpanEnvs = {st`.fixSpansSpanEnvs & spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h) st`.fixSpansSpanEnvs.spanEnvImageSpanPostTrans}}
           st`
@@ -1064,7 +1064,7 @@ fixSpansLookupSpanAlgs =
               Just (xsp=:(PxSpan _), _)
                 = (xsp, {st & fixSpansDidChange = True})
               _ = (LookupSpan (ImageXSpan t), st)
-        _ = (LookupSpan (ImageXSpan t), st)
+        _ = (PxSpan 0.0, st)
 
   mkImageYSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
   mkImageYSpan t st
@@ -1074,7 +1074,7 @@ fixSpansLookupSpanAlgs =
               Just (_, ysp=:(PxSpan _))
                 = (ysp, {st & fixSpansDidChange = True})
               _ = (LookupSpan (ImageYSpan t), st)
-        _ = (LookupSpan (ImageYSpan t), st)
+        _ = (PxSpan 0.0, st)
 
   mkImageGridColSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
   mkImageGridColSpan t n st
@@ -1085,8 +1085,8 @@ fixSpansLookupSpanAlgs =
                 = case xs.[n] of
                     xsn=:(PxSpan _) -> (xsn, {st & fixSpansDidChange = True})
                     _               -> (LookupSpan (ColumnXSpan t n), st)
-              _ = (LookupSpan (ColumnXSpan t n), st)
-        _ = (LookupSpan (ColumnXSpan t n), st)
+              _ = (PxSpan 0.0, st)
+        _ = (PxSpan 0.0, st)
 
   mkImageGridRowSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
   mkImageGridRowSpan t n st
@@ -1097,8 +1097,8 @@ fixSpansLookupSpanAlgs =
                 = case xs.[n] of
                     xsn=:(PxSpan _) -> (xsn, {st & fixSpansDidChange = True})
                     _               -> (LookupSpan (RowYSpan t n), st)
-              _ = (LookupSpan (RowYSpan t n), st)
-        _ = (LookupSpan (RowYSpan t n), st)
+              _ = (PxSpan 0.0, st)
+        _ = (PxSpan 0.0, st)
 
 :: ImageSpanReal :== (!Real, !Real)
 
