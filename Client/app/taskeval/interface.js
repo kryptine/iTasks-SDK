@@ -148,13 +148,9 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
 	scope = ___unwrapJS(Sapl.feval(scope));
 	args = Sapl.toJS(Sapl.feval(args)); 
 
-    if(typeof fun === 'undefined') {
-        console.warn("jsApply: Evaluating undefined function");
-    }
-    if(typeof scope === 'undefined') {
-        console.warn("jsApply: Evaluating function with undefined scope");
-    }
-	
+    "undefined" === typeof fun && console.warn("jsApply: Evaluating undefined function");
+    "undefined" === typeof scope && console.warn("jsApply: Evaluating function with undefined scope");
+
 	return ___Tuple2(___wrapJS(fun.apply(scope,args)), world);
 }
 //jsWrapFun :: !([JSArg] *JSWorld -> (!*JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f)), !*JSWorld)
