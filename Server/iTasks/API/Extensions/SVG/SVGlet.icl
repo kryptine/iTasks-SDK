@@ -273,9 +273,7 @@ cacheImageSpanPreTrans n imTas sp st
   = {st & desugarAndTagSpanEnvs = spanEnvs}
   where
   f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
-  f n t env
-    | 'DM'.member t env = env
-    | otherwise         = 'DM'.put t n env
+  f n t env = 'DM'.put t n env
 
 cacheImageSpanPostTrans :: !Int !(Set ImageTag) !ImageSpan !DesugarAndTagStVal -> DesugarAndTagStVal
 cacheImageSpanPostTrans n imTas sp st
@@ -286,9 +284,7 @@ cacheImageSpanPostTrans n imTas sp st
   = {st & desugarAndTagSpanEnvs = spanEnvs}
   where
   f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
-  f n t env
-    | 'DM'.member t env = env
-    | otherwise         = 'DM'.put t n env
+  f n t env = 'DM'.put t n env
 
 cacheGridSpans :: !Int !(Set ImageTag) ![Span] ![Span] !DesugarAndTagStVal -> DesugarAndTagStVal
 cacheGridSpans n imTas xsps ysps st
@@ -301,9 +297,7 @@ cacheGridSpans n imTas xsps ysps st
   = {st & desugarAndTagSpanEnvs = spanEnvs}
   where
   f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
-  f n t env
-    | 'DM'.member t env = env
-    | otherwise         = 'DM'.put t n env
+  f n t env = 'DM'.put t n env
 
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
 applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
