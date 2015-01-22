@@ -1145,8 +1145,11 @@ mkOnMouseOutId editletId uniqId = "onMouseOutId-" +++ editletId +++ toString uni
 getSvgAttrs :: ![(![String], !Maybe SVGAttr)] -> [SVGAttr]
 getSvgAttrs as = [a \\ (_, Just a) <- as]
 
-mkClassAttr :: ![(![String], !Maybe SVGAttr)] -> HtmlAttr
-mkClassAttr xs = ClassAttr (foldr (\x xs -> x +++ " " +++ xs) "" (concatMap fst xs))
+mkClassAttr :: ![(![String], !Maybe SVGAttr)] -> [HtmlAttr]
+mkClassAttr xs =
+  case concatMap fst xs of
+    []  -> []
+    xs` -> [ClassAttr (foldr (\x xs -> x +++ " " +++ xs) "" xs`)]
 
 mkUrl :: !String -> String
 mkUrl ref = "url(#" +++ ref +++ ")"
@@ -1374,7 +1377,7 @@ genSVG img = imageCata genSVGAllAlgs img
                     !(GenSVGStVal s)
                  -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
     mkEmptyImage imSp imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [mkClassAttr imAts] [] (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }, False), st)
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkClassAttr imAts) [] (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }, False), st)
     mkTextImage :: !FontDef !String !ImageSpanReal
                    ![(![String], !Maybe SVGAttr)]
                    ![(![SVGTransform], !ImageTransform)]
@@ -1383,7 +1386,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkTextImage fd str imSp imAts imTrs st
     // TODO Currently we manually translate text by fontysize pixels to compensate for the "auto" baseline. The result look OK, but a bit off compare to the old approach where we forced the origin to be the top-left corner (which didn't work with zooming)
     // We need to offset by the font's descent height, but that's not easy to calculate currently (there are no JS APIs for that yet). Current heuristic: we assume that the ex-height is half of the font height. We assume that the descent height is half of the ex-height. Therefore, we multiply by 0.75
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [mkClassAttr imAts] [TransformAttr [TranslateTransform "0" (toString (fd.fontysize * 0.75))]]
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkClassAttr imAts) [TransformAttr [TranslateTransform "0" (toString (fd.fontysize * 0.75))]]
                                                                           [TextElt [XmlspaceAttr "preserve"] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
          , True), st)
       where
@@ -1403,14 +1406,14 @@ genSVG img = imageCata genSVGAllAlgs img
                    !(GenSVGStVal s)
                 -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
     mkRectImage imSp imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [mkClassAttr imAts] [] [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkClassAttr imAts) [] [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
     mkCircleImage :: !ImageSpanReal ![(![String], !Maybe SVGAttr)]
                      ![(![SVGTransform], !ImageTransform)]
                      !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
     mkCircleImage imSp=:(imXSp`, _) imAts imTrs st
       #! r = imXSp` / 2.0
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [mkClassAttr imAts] [] [CircleElt []
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkClassAttr imAts) [] [CircleElt []
                                           [ RAttr (toString (to2dec r), PX), CxAttr (toString (to2dec r), PX)
                                           , CyAttr (toString (to2dec r), PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]] }, False), st)
     mkEllipseImage :: !ImageSpanReal ![(![String], !Maybe SVGAttr)]
@@ -1418,7 +1421,7 @@ genSVG img = imageCata genSVGAllAlgs img
                       !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
     mkEllipseImage imSp=:(imXSp, imYSp) imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [mkClassAttr imAts] [] [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup (mkClassAttr imAts) [] [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
                                           [ RxAttr (toString (to2dec (imXSp / 2.0)), PX), RyAttr (toString (to2dec (imYSp / 2.0)), PX)
                                           , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }, False), st)
 
@@ -1548,7 +1551,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (imTrs, st) = sequence (strictTRMap (\f -> f spans False) imTrs) st
       #! attrs = mkAttrs imAts imTrs
       = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts = mkGroup [mkClassAttr attrs] [] (mkGroup [] (getSvgAttrs attrs) elts)
+         & genSVGSyn_svgElts = mkGroup (mkClassAttr attrs) [] (mkGroup [] (getSvgAttrs attrs) elts)
          , genSVGSyn_events  = onclicks
          }, st)
     getCpId :: !(GenSVGStVal s) -> (!String, !GenSVGStVal s) | iTask s
