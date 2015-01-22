@@ -679,34 +679,38 @@ tStepCont activeNodeId (T t)   = tStepCont` activeNodeId t
     mkOnException :: !(Image TonicTask) -> Image TonicTask
     mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter :: !(Maybe [Int]) !(Maybe String) !TStepFilter -> TImg
-  tStepFilter activeNodeId mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways mact)
+  tStepFilter activeNodeId mact sfilter
+    =        dispenseUniq `b`
+    \uniq -> tStepFilter` activeNodeId uniq mact sfilter
+  tStepFilter` :: !(Maybe [Int]) !Int !(Maybe String) !TStepFilter -> TImg
+  tStepFilter` activeNodeId uniq mact (Always te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkAlways uniq mact)
     where
-    mkAlways :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
-    mkAlways mact t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue mact)
-    where
-    // TODO mpat
-    mkHasValue :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
-    mkHasValue mact t = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable mact)
-    where
-    // TODO mpat
-    mkIfStable :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
-    mkIfStable mact t = beside (repeat AtMiddleY) [] [addAction mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable mact)
+    mkAlways :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkAlways uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter` activeNodeId uniq mact (HasValue mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkHasValue uniq mact)
     where
     // TODO mpat
-    mkIfUnstable :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
-    mkIfUnstable mact t = beside (repeat AtMiddleY) [] [addAction mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter activeNodeId mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond mact)
+    mkHasValue :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkHasValue uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter` activeNodeId uniq mact (IfStable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfStable uniq mact)
+    where
+    // TODO mpat
+    mkIfStable :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfStable uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter` activeNodeId uniq mact (IfUnstable mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfUnstable uniq mact)
+    where
+    // TODO mpat
+    mkIfUnstable :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfUnstable uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
+  tStepFilter` activeNodeId uniq mact (IfCond pp mpat te) = tExpr2Image activeNodeId te `b` ('CA'.pure o mkIfCond uniq mact)
     where
     // TODO mpat pp
-    mkIfCond :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
-    mkIfCond mact t = beside (repeat AtMiddleY) [] [addAction mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
-  tStepFilter activeNodeId mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue pat mact t)
+    mkIfCond :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfCond uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
+  tStepFilter` activeNodeId uniq mact (IfValue pat fn vars mpat te) = tExpr2Image activeNodeId te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue pat uniq mact t)
     where
-    mkIfValue :: !String !(Maybe String) !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
-    mkIfValue pat mact t c = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
+    mkIfValue :: !String !Int !(Maybe String) !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
+    mkIfValue pat uniq mact t c = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
 
 alwaysFilter :: Image TonicTask
 alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
@@ -714,12 +718,15 @@ alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
 hasValueFilter :: Image TonicTask
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
 
-addAction :: !(Maybe String) !(Image TonicTask) -> Image TonicTask
-addAction mact img
-  #! arrowedImg = beside (repeat AtMiddleY) [] [tHorizConnArr, img, tHorizConn] Nothing
+addAction :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+addAction uniq mact img
   = case mact of
-      Just action -> above (repeat AtMiddleX) [] [text ArialBold10px action, arrowedImg] Nothing // TODO Draw little figure
-      _           -> arrowedImg
+      Just action
+        #! imgtag = imageTag uniq
+        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+                                                     , tag imgtag (above (repeat AtMiddleX) [] [text ArialBold10px action, img] Nothing) // TODO Draw little figure
+                                                     ] Nothing
+      _ = img
 
 tIfValue :: !VarName ![VarName] -> TImg
 tIfValue tffun args
