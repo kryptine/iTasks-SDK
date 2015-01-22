@@ -628,7 +628,7 @@ tAssign activeNodeId user assignedTask
                   <@< { yradius     = px 5.0 }
                   <@< { dash        = [5, 5] }
     #! at      = tag (imageTag atNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
-    #! content = above (repeat AtMiddleX) [] [taskNameImg, xline Nothing maxXSpan, at] Nothing
+    #! content = above (repeat AtMiddleX) [] [beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing, xline Nothing maxXSpan, at] Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
 
 ppUser :: !TUser -> String
@@ -719,14 +719,17 @@ hasValueFilter :: Image TonicTask
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
 
 addAction :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
-addAction uniq mact img
-  = case mact of
-      Just action
-        #! imgtag = imageTag uniq
-        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
-                                                     , tag imgtag (above (repeat AtMiddleX) [] [text ArialBold10px action, img] Nothing) // TODO Draw little figure
-                                                     ] Nothing
-      _ = img
+addAction uniq (Just action) img
+  #! imgtag    = imageTag uniq
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+                                               , tag imgtag (above (repeat AtMiddleX) [] [ beside (repeat AtMiddleY) [] [littleman, text ArialBold10px action] Nothing
+                                                                                         , img] Nothing)
+                                               ] Nothing
+addAction _ _ img = img
+
+littleman :: Image a
+littleman = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}
+                                                              , circle (px 10.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}] Nothing) <@< {mask = rect (px 16.0) (px 16.0) <@< {fill = toSVGColor "white"}}
 
 tIfValue :: !VarName ![VarName] -> TImg
 tIfValue tffun args
