@@ -60,7 +60,7 @@ derive class iTask TonicRT
 tonicSharedRT :: Shared TonicRTMap
 tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
 
-getModule :: String -> Task TonicModule
+getModule :: !String -> Task TonicModule
 getModule moduleName
   =           getTonicDir >>-
     \dir ->   accWorld (readFile (dir </> (moduleName +++ ".tonic"))) >>-
@@ -72,10 +72,10 @@ getModule moduleName
   where
   err msg = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
 
-tonicViewInformation :: String a -> Task () | iTask a
+tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
-tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
   where
     eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
@@ -117,7 +117,7 @@ tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
     tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
 firstParent :: TonicRTMap Int [Int] -> Maybe TonicRT
-firstParent _     instanceNo [] = Nothing
+firstParent _     _          [] = Nothing
 firstParent rtMap instanceNo [parentTaskNo:parentTaskNos]
   = maybe (firstParent rtMap instanceNo parentTaskNos) Just
       ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
@@ -127,7 +127,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace} taskTree iworld
     # traceStr = foldr (\x xs -> toString x +++ " " +++ xs) "" callTrace
-    # nids = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
+    # nids     = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
     = eval event evalOpts taskTree (maybeSt iworld
                                       (addTrace callTrace)
                                       (taskIdFromTaskTree taskTree))
@@ -186,10 +186,10 @@ tonicLogin appName = tonicUI appName
 
 derive class iTask FileError
 
-getTasks :: TonicModule -> [String]
+getTasks :: !TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
 
-getTask :: TonicModule String -> Maybe TonicTask
+getTask :: !TonicModule !String -> Maybe TonicTask
 getTask tm tn = 'DM'.get tn tm.tm_tasks
 
 tonicUI :: String -> Task ()

@@ -53,9 +53,9 @@ derive class iTask TonicRT
 
 tonicViewer :: String -> PublishedTask
 
-tonicViewInformation :: String a -> Task () | iTask a
+tonicViewInformation :: !String !a -> Task () | iTask a
 
-tonicWrapTaskBody :: ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 
