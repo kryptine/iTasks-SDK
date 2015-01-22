@@ -53,59 +53,59 @@
 
 // Optimized by the Clojure compiler
 "use strict";
-var _feval = function(a) {
-  for (var b, c, lb, lc;;) {
-    if ("object" === typeof a) {
-      if (1 === a.length) {
-        return a[0];
+var _feval = function(expr) {
+  for (var f, args, lengthfun, lengthargs;;) {
+    if ("object" === typeof expr) {
+      if (1 === expr.length) {
+        return expr[0];
       }
-      if ("function" === typeof a[0]) {
-        b = a[0];
-        c = a[1];
-        lb = b.length;
-        lc = c.length;
-        if (lb === lc) {
-          return b = b.apply(this, c), a[0] = b, a.length = 1, b;
-        } else if (lb < lc) {
-          b = b.apply(this, c.splice(0, lb)), a[0] = b;
+      if ("function" === typeof expr[0]) {
+        f    = expr[0];
+        args = expr[1];
+        lengthfun  = f.length;
+        lengthargs = args.length;
+        if (lengthfun === lengthargs) {
+          return f = f.apply(this, args), expr[0] = f, expr.length = 1, f;
+        } else if (lengthfun < lengthargs) {
+          f = f.apply(this, args.splice(0, lengthfun)), expr[0] = f;
         } else {
-          return a;
+          return expr;
         }
       } else {
-        if ("object" === typeof a[0]) {
-          b = a[0], a[0] = b[0], a[1] = b[1].concat(a[1]);
+        if ("object" === typeof expr[0]) {
+          f = expr[0], expr[0] = f[0], expr[1] = f[1].concat(expr[1]);
         } else {
-          return a;
+          return expr;
         }
       }
     } else {
-      if ("function" === typeof a) {
-        if (0 === a.length) {
-          return a.apply(this, []);
+      if ("function" === typeof expr) {
+        if (0 === expr.length) {
+          return expr.apply(this, []);
         }
-        a = [a, []];
+        expr = [expr, []];
       } else {
-        return a;
+        return expr;
       }
     }
   }
 };
 
-var _fapp = function(a, b) {
-  for (var la, lb;;) {
-    if ("function" === typeof a) {
-      la = a.length;
-      lb = b.length;
-      if (la === lb) {
-        return a.apply(this, b);
+var _fapp = function(f, args) {
+  for (var lengthfun, lengthargs;;) {
+    if ("function" === typeof f) {
+      lengthfun  = f.length;
+      lengthargs = args.length;
+      if (lengthfun === lengthargs) {
+        return f.apply(this, args);
       }
-      if (la < lb) {
-        a = a.apply(this, b.splice(0, la));
+      if (lengthfun < lengthargs) {
+        f = f.apply(this, args.splice(0, lengthfun));
       } else {
-        return[a, b];
+        return[f, args];
       }
     } else {
-      b = a[1].concat(b), a = a[0];
+      args = f[1].concat(args), f = f[0];
     }
   }
 };
