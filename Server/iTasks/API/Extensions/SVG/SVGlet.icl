@@ -1057,7 +1057,9 @@ fixSpansLookupSpanAlgs =
           = case 'DIS'.get n st.fixSpansSpanEnvs.spanEnvImageSpanPostTrans of
               Just (xsp=:(PxSpan _), _)
                 = (xsp, {st & fixSpansDidChange = True})
-              _ = (LookupSpan (ImageXSpan t), st)
+              Just _
+                = (LookupSpan (ImageXSpan t), st)
+              _ = (PxSpan 0.0, st)
         _ = (PxSpan 0.0, st)
 
   mkImageYSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
@@ -1067,7 +1069,9 @@ fixSpansLookupSpanAlgs =
           = case 'DIS'.get n st.fixSpansSpanEnvs.spanEnvImageSpanPostTrans of
               Just (_, ysp=:(PxSpan _))
                 = (ysp, {st & fixSpansDidChange = True})
-              _ = (LookupSpan (ImageYSpan t), st)
+              Just _
+                = (LookupSpan (ImageYSpan t), st)
+              _ = (PxSpan 0.0, st)
         _ = (PxSpan 0.0, st)
 
   mkImageGridColSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
