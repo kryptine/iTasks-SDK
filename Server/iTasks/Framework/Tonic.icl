@@ -342,13 +342,12 @@ mkVertConn :: ![Int] -> Image TonicTask
 mkVertConn uniqs
   | length uniqs < 2 = empty (px 0.0) (px 0.0)
   | otherwise
-      #! firstUniq  = hd uniqs
-      #! lastUniq   = last uniqs
-      #! restUniqs  = init (tl uniqs)
-      #! nextYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) restUniqs
+      #! firstUniq = hd uniqs
+      #! lastUniq  = last uniqs
+      #! allYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) uniqs
       = above (repeat AtMiddleX) []
           [ yline Nothing (imageyspan (imageTag firstUniq) /. 2.0) <@< { stroke = toSVGColor "white" }
-          , yline Nothing (nextYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0))
+          , yline Nothing (allYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0)) <@< { stroke = toSVGColor "black" }
           , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
           Nothing
 
@@ -639,6 +638,8 @@ ppUser TUSystemUser                    = "Any system user"
 ppUser TUAnonymousUser                 = "Any anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
+import StdDebug
+
 tStep :: !(Maybe [Int]) !TExpr ![PPOr TStepCont] -> TImg
 tStep activeNodeId lhsExpr conts
   =          'CM'.mapM (\_ -> dispenseUniq) conts `b`
@@ -649,7 +650,7 @@ tStep activeNodeId lhsExpr conts
   tStep` :: !(Image TonicTask) ![Image TonicTask] ![Int] -> Image TonicTask
   tStep` lhs conts` uniqs
     #! conts`   = prepCases [] uniqs conts`
-    #! vertConn = mkVertConn uniqs
+    #! vertConn = trace (foldr (\x xs -> toString x +++ " " +++ xs) "" uniqs) mkVertConn uniqs
     #! contsImg = above (repeat AtMiddleX) [] conts` Nothing
     = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
 
@@ -661,6 +662,7 @@ prepCases patStrs uniqs pats
   where
   prepCase :: !Span !Int !(Image TonicTask) !String -> Image TonicTask
   prepCase maxXSpan uniq pat patStr
+    #! pat = tag (imageTag uniq) pat
     #! linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
     #! leftLine  = xline tLineMarker (px 16.0 + linePart)
     #! rightLine = xline Nothing (px 8.0 + linePart)
