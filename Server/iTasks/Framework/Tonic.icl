@@ -638,8 +638,6 @@ ppUser TUSystemUser                    = "Any system user"
 ppUser TUAnonymousUser                 = "Any anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
-import StdDebug
-
 tStep :: !(Maybe [Int]) !TExpr ![PPOr TStepCont] -> TImg
 tStep activeNodeId lhsExpr conts
   =          'CM'.mapM (\_ -> dispenseUniq) conts `b`
@@ -650,7 +648,7 @@ tStep activeNodeId lhsExpr conts
   tStep` :: !(Image TonicTask) ![Image TonicTask] ![Int] -> Image TonicTask
   tStep` lhs conts` uniqs
     #! conts`   = prepCases [] uniqs conts`
-    #! vertConn = trace (foldr (\x xs -> toString x +++ " " +++ xs) "" uniqs) mkVertConn uniqs
+    #! vertConn = mkVertConn uniqs
     #! contsImg = above (repeat AtMiddleX) [] conts` Nothing
     = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
 
@@ -662,11 +660,11 @@ prepCases patStrs uniqs pats
   where
   prepCase :: !Span !Int !(Image TonicTask) !String -> Image TonicTask
   prepCase maxXSpan uniq pat patStr
-    #! pat = tag (imageTag uniq) pat
-    #! linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+    #! pat       = tag (imageTag uniq) pat
+    #! linePart  = (maxXSpan - imagexspan (imageTag uniq) - textxspan ArialRegular10px patStr) /. 2.0
     #! leftLine  = xline tLineMarker (px 16.0 + linePart)
     #! rightLine = xline Nothing (px 8.0 + linePart)
-    = beside (repeat AtMiddleY) [] [text ArialRegular10px patStr, leftLine, pat, rightLine] Nothing
+    = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), text ArialRegular10px patStr, leftLine, pat, rightLine] Nothing
 
 tStepCont :: !(Maybe [Int]) !(PPOr TStepCont) -> TImg
 tStepCont _            (PP pp) = 'CA'.pure (text ArialRegular10px pp)
