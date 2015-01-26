@@ -917,15 +917,15 @@ desugarAndTag img = go
 
   desugarAndTagLookupSpanAlgs :: LookupSpanAlg (DesugarAndTagSt Span)
   desugarAndTagLookupSpanAlgs =
-    { lookupSpanColumnXSpanAlg = mkImageGridColSpan
-    , lookupSpanRowYSpanAlg    = mkImageGridRowSpan
-    , lookupSpanImageXSpanAlg  = mkImageXSpan
-    , lookupSpanImageYSpanAlg  = mkImageYSpan
-    , lookupSpanTextXSpanAlg   = mkTextLU
+    { lookupSpanColumnXSpanAlg = desugarAndTagMkImageGridColSpan
+    , lookupSpanRowYSpanAlg    = desugarAndTagMkImageGridRowSpan
+    , lookupSpanImageXSpanAlg  = desugarAndTagMkImageXSpan
+    , lookupSpanImageYSpanAlg  = desugarAndTagMkImageYSpan
+    , lookupSpanTextXSpanAlg   = desugarAndTagMkTextLU
     }
     where
-    mkTextLU :: !FontDef !String !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
-    mkTextLU fd str st
+    desugarAndTagMkTextLU :: !FontDef !String !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
+    desugarAndTagMkTextLU fd str st
         #! sw = case 'DM'.get fd st.desugarAndTagSpanEnvs.spanEnvFonts of
                   Just fs -> case 'DM'.get str fs of
                                Just sw -> sw
@@ -933,17 +933,17 @@ desugarAndTag img = go
                   _       -> 0.0
         = (PxSpan sw, st)
 
-    mkImageXSpan :: !ImageTag !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
-    mkImageXSpan t st = (LookupSpan (ImageXSpan t), st)
+    desugarAndTagMkImageXSpan :: !ImageTag !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
+    desugarAndTagMkImageXSpan t st = (LookupSpan (ImageXSpan t), st)
 
-    mkImageYSpan :: !ImageTag !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
-    mkImageYSpan t st = (LookupSpan (ImageYSpan t), st)
+    desugarAndTagMkImageYSpan :: !ImageTag !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
+    desugarAndTagMkImageYSpan t st = (LookupSpan (ImageYSpan t), st)
 
-    mkImageGridColSpan :: !ImageTag !Int !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
-    mkImageGridColSpan t n st = (LookupSpan (ColumnXSpan t n), st)
+    desugarAndTagMkImageGridColSpan :: !ImageTag !Int !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
+    desugarAndTagMkImageGridColSpan t n st = (LookupSpan (ColumnXSpan t n), st)
 
-    mkImageGridRowSpan :: !ImageTag !Int !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
-    mkImageGridRowSpan t n st = (LookupSpan (RowYSpan t n), st)
+    desugarAndTagMkImageGridRowSpan :: !ImageTag !Int !DesugarAndTagStVal -> *(!Span, !DesugarAndTagStVal)
+    desugarAndTagMkImageGridRowSpan t n st = (LookupSpan (RowYSpan t n), st)
 
 fixEnvs :: !FixSpansStVal -> FixSpansStVal
 fixEnvs st = fixEnvs` {st & fixSpansDidChange = False} True
@@ -1040,18 +1040,18 @@ fixSpansSpanAlgs =
 
 fixSpansLookupSpanAlgs :: LookupSpanAlg (FixSpansSt Span)
 fixSpansLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg = mkImageGridColSpan
-  , lookupSpanRowYSpanAlg    = mkImageGridRowSpan
-  , lookupSpanImageXSpanAlg  = mkImageXSpan
-  , lookupSpanImageYSpanAlg  = mkImageYSpan
-  , lookupSpanTextXSpanAlg   = mkTextLU
+  { lookupSpanColumnXSpanAlg = fixSpansMkImageGridColSpan
+  , lookupSpanRowYSpanAlg    = fixSpansMkImageGridRowSpan
+  , lookupSpanImageXSpanAlg  = fixSpansMkImageXSpan
+  , lookupSpanImageYSpanAlg  = fixSpansMkImageYSpan
+  , lookupSpanTextXSpanAlg   = fixSpansMkTextLU
   }
   where
-  mkTextLU :: !FontDef !String !FixSpansStVal -> *(!Span, !FixSpansStVal)
-  mkTextLU fd str st = (PxSpan 0.0, st)
+  fixSpansMkTextLU :: !FontDef !String !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  fixSpansMkTextLU fd str st = (PxSpan 0.0, st)
 
-  mkImageXSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
-  mkImageXSpan t st
+  fixSpansMkImageXSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  fixSpansMkImageXSpan t st
     = case 'DM'.get t st.fixSpansSpanEnvs.spanEnvImageTagPostTrans of
         Just n
           = case 'DIS'.get n st.fixSpansSpanEnvs.spanEnvImageSpanPostTrans of
@@ -1062,8 +1062,8 @@ fixSpansLookupSpanAlgs =
               _ = (PxSpan 0.0, st)
         _ = (PxSpan 0.0, st)
 
-  mkImageYSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
-  mkImageYSpan t st
+  fixSpansMkImageYSpan :: !ImageTag !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  fixSpansMkImageYSpan t st
     = case 'DM'.get t st.fixSpansSpanEnvs.spanEnvImageTagPostTrans of
         Just n
           = case 'DIS'.get n st.fixSpansSpanEnvs.spanEnvImageSpanPostTrans of
@@ -1074,8 +1074,8 @@ fixSpansLookupSpanAlgs =
               _ = (PxSpan 0.0, st)
         _ = (PxSpan 0.0, st)
 
-  mkImageGridColSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
-  mkImageGridColSpan t n st
+  fixSpansMkImageGridColSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  fixSpansMkImageGridColSpan t n st
     = case 'DM'.get t st.fixSpansSpanEnvs.spanEnvGridTag of
         Just cacheIdx
           = case 'DIS'.get cacheIdx st.fixSpansSpanEnvs.spanEnvGridSpan of
@@ -1086,8 +1086,8 @@ fixSpansLookupSpanAlgs =
               _ = (PxSpan 0.0, st)
         _ = (PxSpan 0.0, st)
 
-  mkImageGridRowSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
-  mkImageGridRowSpan t n st
+  fixSpansMkImageGridRowSpan :: !ImageTag !Int !FixSpansStVal -> *(!Span, !FixSpansStVal)
+  fixSpansMkImageGridRowSpan t n st
     = case 'DM'.get t st.fixSpansSpanEnvs.spanEnvGridTag of
         Just cacheIdx
           = case 'DIS'.get cacheIdx st.fixSpansSpanEnvs.spanEnvGridSpan of
@@ -1669,18 +1669,18 @@ evalSpanSpanAlgs =:
 
 evalSpanLookupSpanAlgs :: LookupSpanAlg (GenSVGSt s Real) | iTask s
 evalSpanLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg = mkImageGridColSpan
-  , lookupSpanRowYSpanAlg    = mkImageGridRowSpan
-  , lookupSpanImageXSpanAlg  = mkImageXSpan
-  , lookupSpanImageYSpanAlg  = mkImageYSpan
-  , lookupSpanTextXSpanAlg   = mkTextLU
+  { lookupSpanColumnXSpanAlg = evalSpanMkImageGridColSpan
+  , lookupSpanRowYSpanAlg    = evalSpanMkImageGridRowSpan
+  , lookupSpanImageXSpanAlg  = evalSpanMkImageXSpan
+  , lookupSpanImageYSpanAlg  = evalSpanMkImageYSpan
+  , lookupSpanTextXSpanAlg   = evalSpanMkTextLU
   }
   where
-  mkTextLU :: !FontDef !String !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
-  mkTextLU fd str st = (0.0, st)
+  evalSpanMkTextLU :: !FontDef !String !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
+  evalSpanMkTextLU fd str st = (0.0, st)
 
-  mkImageXSpan :: !ImageTag !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
-  mkImageXSpan t st
+  evalSpanMkImageXSpan :: !ImageTag !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
+  evalSpanMkImageXSpan t st
     = case 'DM'.get t st.genStates.spanEnvImageTagPostTrans of
         Just n
           = case 'DIS'.get n st.genStates.spanEnvImageSpanPostTrans of
@@ -1689,8 +1689,8 @@ evalSpanLookupSpanAlgs =
               _ = (0.0, st)
         _ = (0.0, st)
 
-  mkImageYSpan :: !ImageTag !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
-  mkImageYSpan t st
+  evalSpanMkImageYSpan :: !ImageTag !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
+  evalSpanMkImageYSpan t st
     = case 'DM'.get t st.genStates.spanEnvImageTagPostTrans of
         Just n
           = case 'DIS'.get n st.genStates.spanEnvImageSpanPostTrans of
@@ -1699,8 +1699,8 @@ evalSpanLookupSpanAlgs =
               _ = (0.0, st)
         _ = (0.0, st)
 
-  mkImageGridColSpan :: !ImageTag !Int !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
-  mkImageGridColSpan t colIdx st
+  evalSpanMkImageGridColSpan :: !ImageTag !Int !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
+  evalSpanMkImageGridColSpan t colIdx st
     = case 'DM'.get t st.genStates.spanEnvGridTag of
         Just cacheIdx
           = case 'DIS'.get cacheIdx st.genStates.spanEnvGridSpan of
@@ -1709,8 +1709,8 @@ evalSpanLookupSpanAlgs =
               _ = (0.0, st)
         _ = (0.0, st)
 
-  mkImageGridRowSpan :: !ImageTag !Int !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
-  mkImageGridRowSpan t rowIdx st
+  evalSpanMkImageGridRowSpan :: !ImageTag !Int !(GenSVGStVal s) -> *(!Real, !(GenSVGStVal s)) | iTask s
+  evalSpanMkImageGridRowSpan t rowIdx st
     = case 'DM'.get t st.genStates.spanEnvGridTag of
         Just cacheIdx
           = case 'DIS'.get cacheIdx st.genStates.spanEnvGridSpan of
