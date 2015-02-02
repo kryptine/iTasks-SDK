@@ -24,6 +24,8 @@ from StdFile import instance FileSystem World
 import StdArray
 import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.List
 import qualified Data.Map as DM
+from Data.IntMap.Strict import :: IntMap
+import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
 from Control.Monad.State import :: State, :: StateT, :: Identity, instance Monad StateT, instance Applicative StateT, instance Functor StateT
 from Control.Monad.Identity import instance Monad Identity, instance Applicative Identity, instance Functor Identity
@@ -139,7 +141,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         # nids     = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
         //# iworld = trace_n (mn +++ "." +++ tn +++ " traceStr: " +++ traceStr +++ " nids: " +++ nids) iworld
         # rtMap = maybe rtMap // TODO 0 0 2 isn't traced here. parent not found somehow?
-                    (\rt -> trace_n (toString rt.trt_taskId +++ " " +++ nids)   'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
+                    (\rt -> trace_n (toString rt.trt_taskId +++ " " +++ nids) 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
                     (firstParent rtMap instanceNo [taskNo:callTrace])
         = snd ('DSDS'.write rtMap tonicSharedRT iworld)
   eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
@@ -153,8 +155,29 @@ tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 tonicWrapAppLam3 :: ModuleName TaskName [Int] (a b c -> Task d) -> a b c -> Task d
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 
+tonicSharedListOfTask :: Shared (Map (ModuleName, TaskName, [Int]) (IntMap TaskId))
+tonicSharedListOfTask = sharedStore "tonicSharedListOfTask" 'DM'.newMap
+
 tonicWrapListOfTask :: ModuleName TaskName [Int] [Task a] -> [Task a]
-tonicWrapListOfTask mn tn nid ts = ts
+tonicWrapListOfTask mn tn nid ts = zipWith registerTask [0..] ts
+  where
+  registerTask :: Int (Task a) -> Task a
+  registerTask n (Task eval) = Task eval`
+    where
+    eval` event evalOpts taskTree iworld
+      # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
+      # iworld         = case taskIdFromTaskTree taskTree of
+                           Just tid -> okSt iworld (updLoT tid) mlot
+                           _        -> iworld
+      = eval event evalOpts taskTree iworld
+    updLoT tid mlot iworld
+      # k      = (mn, tn, nid)
+      # tidMap = case 'DM'.get k mlot of
+                    Just tidMap -> tidMap
+                    _           -> 'DIS'.newMap
+      # tidMap = 'DIS'.put n tid tidMap
+      # mlot   = 'DM'.put k tidMap mlot
+      = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
 
 getTonicModules :: Task [String]
 getTonicModules
