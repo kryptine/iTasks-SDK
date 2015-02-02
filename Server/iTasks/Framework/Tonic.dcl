@@ -57,6 +57,8 @@ tonicViewInformation :: !String !a -> Task () | iTask a
 
 tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 
+tonicWrapListOfTask :: ModuleName TaskName [Int] [Task a] -> [Task a]
+
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 
 tonicWrapAppLam1 :: ModuleName TaskName [Int] (a -> Task b) -> a -> Task b

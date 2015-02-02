@@ -121,13 +121,11 @@ firstParent _     _          [] = Nothing
 firstParent rtMap instanceNo [parentTaskNo:parentTaskNos]
   = maybe (firstParent rtMap instanceNo parentTaskNos) Just
       ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
-
+import StdDebug
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace} taskTree iworld
-    # traceStr = foldr (\x xs -> toString x +++ " " +++ xs) "" callTrace
-    # nids     = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
     = eval event evalOpts taskTree (maybeSt iworld
                                       (addTrace callTrace)
                                       (taskIdFromTaskTree taskTree))
@@ -137,8 +135,11 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
       = okSt iworld updRTMap mrtMap
       where
       updRTMap rtMap iworld
-        # rtMap = maybe rtMap
-                    (\rt -> 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
+        //# traceStr = foldr (\x xs -> toString x +++ " " +++ xs) "" callTrace
+        # nids     = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
+        //# iworld = trace_n (mn +++ "." +++ tn +++ " traceStr: " +++ traceStr +++ " nids: " +++ nids) iworld
+        # rtMap = maybe rtMap // TODO 0 0 2 isn't traced here. parent not found somehow?
+                    (\rt -> trace_n (toString rt.trt_taskId +++ " " +++ nids)   'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
                     (firstParent rtMap instanceNo [taskNo:callTrace])
         = snd ('DSDS'.write rtMap tonicSharedRT iworld)
   eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
@@ -151,6 +152,9 @@ tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 
 tonicWrapAppLam3 :: ModuleName TaskName [Int] (a b c -> Task d) -> a b c -> Task d
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
+
+tonicWrapListOfTask :: ModuleName TaskName [Int] [Task a] -> [Task a]
+tonicWrapListOfTask mn tn nid ts = ts
 
 getTonicModules :: Task [String]
 getTonicModules
@@ -279,12 +283,12 @@ tExpr2Image activeNodeId (TTaskApp eid tn targs)  = tTaskApp      activeNodeId e
 tExpr2Image activeNodeId (TLet pats bdy)          = tLet          activeNodeId pats bdy
 tExpr2Image activeNodeId (TCaseOrIf e pats)       = tCaseOrIf     activeNodeId e pats
 tExpr2Image activeNodeId (TStep lexpr conts)      = tStep         activeNodeId lexpr conts
-tExpr2Image activeNodeId (TParallel par)          = tParallel     activeNodeId par
+tExpr2Image activeNodeId (TParallel eid par)      = tParallel     activeNodeId eid par
 tExpr2Image activeNodeId (TAssign usr t)          = tAssign       activeNodeId usr t
 tExpr2Image activeNodeId (TShare ts sn args)      = tShare        activeNodeId ts sn args
 tExpr2Image activeNodeId (TTransform lhs vn args) = tTransformApp activeNodeId lhs vn args
-tExpr2Image activeNodeId (TVar pp)                = 'CA'.pure (text ArialRegular10px pp)
-tExpr2Image activeNodeId (TCleanExpr pp)          = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image activeNodeId (TVar _ pp)              = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image activeNodeId (TCleanExpr _ pp)        = 'CA'.pure (text ArialRegular10px pp)
 
 tArrowTip :: Image TonicTask
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -407,8 +411,8 @@ tBind activeNodeId l mpat r
   \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing) // TODO Add label
 
-tParallel :: !(Maybe [Int]) !TParallel -> TImg
-tParallel activeNodeId (ParSumL l r)
+tParallel :: !(Maybe [Int]) ![Int] !TParallel -> TImg
+tParallel activeNodeId eid (ParSumL l r)
   =      tExpr2Image activeNodeId l `b`
   \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (mkParSumL l` r`)
@@ -418,7 +422,7 @@ tParallel activeNodeId (ParSumL l r)
     #! l` = margin (px 5.0, px 5.0) l`
     #! r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel activeNodeId (ParSumR l r)
+tParallel activeNodeId eid (ParSumR l r)
   =      tExpr2Image activeNodeId l `b`
   \l` -> tExpr2Image activeNodeId r `b`
   \r` -> 'CA'.pure (mkParSumR l` r`)
@@ -428,7 +432,7 @@ tParallel activeNodeId (ParSumR l r)
     #! l` = margin (px 5.0, px 5.0) l`
     #! r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel activeNodeId (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
+tParallel activeNodeId eid (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
   where
   mkParSumN :: ![Image TonicTask] -> Image TonicTask
   mkParSumN ts`
@@ -437,7 +441,7 @@ tParallel activeNodeId (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
   mkParSum :: !(PPOr [TExpr]) -> State Int [Image TonicTask]
   mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
   mkParSum (T xs)  = 'CM'.mapM (tExpr2Image activeNodeId) xs
-tParallel activeNodeId (ParProd ts)
+tParallel activeNodeId eid (ParProd ts)
   =         mkParProd ts `b`
   \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
   \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
@@ -661,10 +665,19 @@ prepCases patStrs uniqs pats
   prepCase :: !Span !Int !(Image TonicTask) !String -> Image TonicTask
   prepCase maxXSpan uniq pat patStr
     #! pat       = tag (imageTag uniq) pat
-    #! linePart  = (maxXSpan - imagexspan (imageTag uniq) - textxspan ArialRegular10px patStr) /. 2.0
-    #! leftLine  = xline tLineMarker (px 16.0 + linePart)
-    #! rightLine = xline Nothing (px 8.0 + linePart)
-    = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), text ArialRegular10px patStr, leftLine, pat, rightLine] Nothing
+    = case patStr of
+        ""
+          #! linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+          #! leftLine  = xline tLineMarker (px 16.0 + linePart)
+          #! rightLine = xline Nothing (px 8.0 + linePart)
+          = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), leftLine, pat, rightLine] Nothing
+        patStr
+          #! textWidth = textxspan ArialRegular10px patStr + px 10.0
+          #! linePart  = (maxXSpan - imagexspan (imageTag uniq) - textWidth) /. 2.0
+          #! leftLine  = xline tLineMarker (px 16.0 + linePart)
+          #! rightLine = xline Nothing (px 8.0 + linePart)
+          #! textBox   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (ArialRegular10px.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text ArialRegular10px patStr] Nothing
+          = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), textBox, leftLine, pat, rightLine] Nothing
 
 tStepCont :: !(Maybe [Int]) !(PPOr TStepCont) -> TImg
 tStepCont _            (PP pp) = 'CA'.pure (text ArialRegular10px pp)
