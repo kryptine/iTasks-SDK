@@ -517,15 +517,19 @@ tParallel inh eid (ParSumR l r)
     #! l` = margin (px 5.0, px 5.0) l`
     #! r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel inh eid (ParSumN ts) = mkParSum ts `b` ('CA'.pure o mkParSumN)
+tParallel inh eid (ParSumN ts) = mkParSum inh eid ts `b` ('CA'.pure o mkParSumN)
   where
   mkParSumN :: ![Image TonicTask] -> Image TonicTask
   mkParSumN ts`
     #! ts` = map (margin (px 5.0, px 5.0)) ts`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
-  mkParSum :: !(PPOr [TExpr]) -> State Int [Image TonicTask]
-  mkParSum (PP pp) = 'CA'.pure [text ArialRegular10px pp]
-  mkParSum (T xs)  = 'CM'.mapM (tExpr2Image inh) xs
+  mkParSum :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image TonicTask]
+  mkParSum inh eid (PP pp)
+    = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
+        Just mptids
+          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
+        _ -> 'CA'.pure [text ArialRegular10px pp]
+  mkParSum _ _ (T xs) = 'CM'.mapM (tExpr2Image inh) xs
 tParallel inh eid (ParProd ts)
   =         mkParProd inh eid ts `b`
   \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
