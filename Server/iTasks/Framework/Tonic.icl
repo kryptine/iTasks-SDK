@@ -304,13 +304,12 @@ viewDynamic = enterChoiceWithShared "Active blueprint instances" [ChooseWith (Ch
 // Same for tonicSharedListOfTask
 viewInstance :: TonicRT -> Task ()
 viewInstance trt=:{trt_bpinstance = Just bp} =
-             dynamicParent trt.trt_taskId >>-
-  \mbprnt -> (viewInformation (blueprintTitle trt bp) [] () ||-
-             viewTaskArguments trt bp ||-
-             (watch tonicSharedListOfTask >>-
-  \maplot -> watch tonicSharedRT >>-
-  \rtmap  -> viewInformation "Blueprint:" [imageView (mkTaskImage trt maplot rtmap)] bp @! ())) >>*
-             [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
+                      dynamicParent trt.trt_taskId >>-
+  \mbprnt ->          (viewInformation (blueprintTitle trt bp) [] () ||-
+                      viewTaskArguments trt bp ||-
+                      (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
+  \(maplot, rtmap) -> viewInformation "Blueprint:" [imageView (mkTaskImage trt maplot rtmap)] bp @! ())) >>*
+                      [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn bp.tt_resty
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
@@ -799,6 +798,7 @@ tStepCont inh (T t)   = tStepCont` inh.inh_trt t
     where
     mkIfValue :: !String !Int !(Maybe String) !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
     mkIfValue pat uniq mact t c = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
+  tStepFilter` trt uniq mact (CustomFilter pp) = 'CA'.pure (text ArialRegular10px pp)
 
 alwaysFilter :: Image TonicTask
 alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing

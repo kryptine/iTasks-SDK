@@ -91,3 +91,4 @@ derive gEq
   | IfUnstable                           (Maybe Pattern) TExpr
   | IfCond     PPExpr                    (Maybe Pattern) TExpr
   | IfValue    Pattern FunName [VarName] (Maybe Pattern) TExpr
+  | CustomFilter PPExpr
