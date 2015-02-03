@@ -250,6 +250,7 @@ where
 gEditor{|Void|} _ _ _ vst = (HiddenEditor,vst)
 gEditor{|HtmlTag|}	dp (val,mask,ver) meta vst
 	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},newMap)], vst)
+gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst = (HiddenEditor,vst)
 
 derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
 
@@ -279,6 +280,7 @@ gEditMeta{|()|} _                   = []
 gEditMeta{|(,)|} fa fb _            = fa undef ++ fb undef
 gEditMeta{|(,,)|} fa fb fc _        = fa undef ++ fb undef ++ fc undef
 gEditMeta{|(,,,)|} fa fb fc fd _    = fa undef ++ fb undef ++ fc undef ++ fd undef
+gEditMeta{|RWShared|} _ _ _ _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 
 derive gEditMeta Either, MaybeError, Void, Map, JSONNode, Timestamp, EditableListAdd
 
@@ -333,6 +335,7 @@ gVerify{|Dynamic|}	_ mv	= alwaysValid mv
 gVerify{|HtmlTag|} _ mv = alwaysValid mv
 gVerify{|JSONNode|} _ mv = alwaysValid mv
 gVerify{|()|} _ mv      = alwaysValid mv
+gVerify{|RWShared|} _ _ _ _ mv = alwaysValid mv
 
 derive gVerify (,), (,,), (,,,), Void, Either, MaybeError, Timestamp, Map
 
@@ -521,6 +524,7 @@ gUpdate{|(->)|} _ _ _ gUpdy _ _ _ _ target upd val ust = basicUpdate (\Void v ->
 
 gUpdate{|HtmlTag|} target upd val ust = (val,ust)
 gUpdate{|()|} target upd val ust = (val,ust)
+gUpdate{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ val ust = (val,ust)
 
 derive gUpdate Either, MaybeError, (,), (,,), (,,,), JSONNode, Void, Timestamp, Map
 

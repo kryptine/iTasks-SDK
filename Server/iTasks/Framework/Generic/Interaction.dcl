@@ -16,6 +16,7 @@ from Data.Error import :: MaybeError
 from Data.Void import :: Void
 from Data.Map import :: Map
 from System.Time import :: Timestamp
+from iTasks.Framework.SDS import :: RWShared
 
 /**
 * Main eneric editor function
@@ -35,6 +36,7 @@ derive gEditor
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
 derive gEditor Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gEditor EditableList
+derive gEditor RWShared
 
 /**
 * Type-dependent meta data useful for generating editors
@@ -53,6 +55,7 @@ derive gEditMeta
 derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
 derive gEditMeta Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gEditMeta EditableList
+derive gEditMeta RWShared
 
 //Check a value to see if it is ok
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
@@ -61,6 +64,7 @@ derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_a
 derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,),(->), Dynamic
 derive gVerify Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
+derive gVerify RWShared
 
 //Update an existing value and its interaction mask
 generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
@@ -69,6 +73,7 @@ derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS o
 derive gUpdate Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
 derive gUpdate Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gUpdate EditableList
+derive gUpdate RWShared
 
 //Wrapper functions for generating editors
 visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a

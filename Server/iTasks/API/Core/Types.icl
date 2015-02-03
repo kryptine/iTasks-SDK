@@ -15,9 +15,19 @@ import iTasks.Framework.Serialization
 import iTasks.Framework.IWorld
 
 import System.Time, System.File, System.FilePath
-
+import iTasks.Framework.SDS
 from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIContent(..), :: UIForm, :: UIActions, :: UIDirection(..), :: UIBlock, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from iTasks.API.Core.LayoutCombinators import mergeAttributes, setMargins
+
+
+JSONEncode{|RWShared|} _ _ _ _ s = []
+JSONDecode{|RWShared|} _ _ _ _ s = (Nothing, s)
+gEq{|RWShared|} _ _ _ _ _ = False
+gDefault{|RWShared|} _ _ _ = SDSSource { SDSSource
+                                       | name  = "gDefault RWShared"
+                                       , read  = \_ w -> (Error (dynamic "", "No gDefault RWShared implementation"), w)
+                                       , write = \_ _ w -> (Error (dynamic "", "No gDefault RWShared implementation"), w)}
+undef = undef
 
 //* EmailAddress
 derive JSONEncode		EmailAddress

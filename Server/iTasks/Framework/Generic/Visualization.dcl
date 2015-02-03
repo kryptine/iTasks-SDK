@@ -9,6 +9,7 @@ from Data.Error import :: MaybeError
 from Data.Void import :: Void
 from Data.Map import :: Map
 from System.Time import :: Timestamp
+from iTasks.Framework.SDS import :: RWShared
 
 :: TextFormat
 	= AsSingleLine		//A single line of text	
@@ -23,7 +24,7 @@ generic gText a :: !TextFormat (Maybe a) -> [String]
 //Default available instances
 derive gText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD, FIELD of {gfd_name}
 derive gText Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
-derive gText Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gText Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp, RWShared
 
 //Wrapper functions for visualization
 toSingleLineText        :: !a -> String		| gText{|*|} a
