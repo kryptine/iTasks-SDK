@@ -155,11 +155,21 @@ tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 tonicWrapAppLam3 :: ModuleName TaskName [Int] (a b c -> Task d) -> a b c -> Task d
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 
-tonicSharedListOfTask :: Shared (Map (ModuleName, TaskName, [Int]) (IntMap TaskId))
+tonicSharedListOfTask :: Shared (Map ((ModuleName, TaskName), [Int], TaskId) (IntMap TaskId))
 tonicSharedListOfTask = sharedStore "tonicSharedListOfTask" 'DM'.newMap
 
-tonicWrapListOfTask :: ModuleName TaskName [Int] [Task a] -> [Task a]
-tonicWrapListOfTask mn tn nid ts = zipWith registerTask [0..] ts
+tonicWrapParallel :: ModuleName TaskName [Int] ([Task a] -> Task b) [Task a] -> Task b
+tonicWrapParallel mn tn nid f ts = Task eval
+  where
+  eval event evalOpts taskTree iworld
+    # ts = case taskIdFromTaskTree taskTree of
+             Just tid -> tonicWrapListOfTask mn tn nid tid ts
+             _        -> ts
+    = case f ts of
+        Task eval` -> eval` event evalOpts taskTree iworld
+
+tonicWrapListOfTask :: ModuleName TaskName [Int] TaskId [Task a] -> [Task a]
+tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
   where
   registerTask :: Int (Task a) -> Task a
   registerTask n (Task eval) = Task eval`
@@ -171,7 +181,7 @@ tonicWrapListOfTask mn tn nid ts = zipWith registerTask [0..] ts
                            _        -> iworld
       = eval event evalOpts taskTree iworld
     updLoT tid mlot iworld
-      # k      = (mn, tn, nid)
+      # k      = ((mn, tn), nid, parentId)
       # tidMap = case 'DM'.get k mlot of
                     Just tidMap -> tidMap
                     _           -> 'DIS'.newMap
