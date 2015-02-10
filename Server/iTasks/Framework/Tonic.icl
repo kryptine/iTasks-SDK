@@ -24,6 +24,8 @@ from StdFile import instance FileSystem World
 import StdArray
 import Data.Either, System.Directory, System.FilePath, Data.Func, Data.Functor, Data.List
 import qualified Data.Map as DM
+from Data.Set import :: Set
+import qualified Data.Set as DS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
@@ -296,12 +298,16 @@ dynamicParent childId
 derive class iTask DynamicView
 
 viewDynamic :: Task ()
-viewDynamic = enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead 'DM'.elems tonicSharedRT) >>= viewInstance
-  where
-  customView rt = rt // { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
+viewDynamic
+  = (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead 'DM'.elems tonicSharedRT) >&>
+    withSelection noBlueprintSelection viewInstance) <<@ ArrangeWithSideBar 0 LeftSide 340 True
+                                                     <<@ FullScreen
 
-// TODO Monitor tonicSharedRT for changes and update the blueprint
-// Same for tonicSharedListOfTask
+  where
+  customView rt = { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
+  //customView rt = rt
+  noBlueprintSelection = viewInformation () [] "Select blueprint instance"
+
 viewInstance :: TonicRT -> Task ()
 viewInstance trt=:{trt_bpinstance = Just bp} =
                       dynamicParent trt.trt_taskId >>-
@@ -319,6 +325,51 @@ viewInstance _ = return ()
 
 tonicViewer :: String -> PublishedTask
 tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
+
+outgoingTaskEdges :: TonicRT -> Set (ModuleName, TaskName)
+outgoingTaskEdges trt = outgoingTaskEdges` trt 'DM'.newMap
+  where
+  outgoingTaskEdges` trt acc
+    //# entry = case 'DM'.get trt.trt_bpref acc of
+                //Just m -> m
+                //_      -> []
+    # succs = fmap (\tt -> successors tt.tt_body) trt.trt_bpinstance
+    = case succs of
+        Just ss -> ss
+        _       -> 'DS'.newSet
+
+  successors :: !TExpr -> Set (ModuleName, TaskName)
+  successors (TBind lhs _ rhs)    = 'DS'.union (successors lhs) (successors rhs)
+  successors (TReturn texpr)      = successors texpr
+  successors (TTaskApp _ mn tn _) = 'DS'.singleton (mn, tn)
+  successors (TLet _ bdy)         = successors bdy
+  successors (TCaseOrIf _ pats)   = 'DS'.unions (map (successors o snd) pats)
+  successors (TStep lexpr conts)  = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
+  successors (TParallel _ par)    = succPar par
+  successors (TAssign _ t)        = successors t
+  successors (TShare ts sn args)  = 'DS'.newSet
+  successors (TTransform lhs _ _) = successors lhs
+  successors (TVar _ pp)          = 'DS'.newSet
+  successors (TCleanExpr _ pp)    = 'DS'.newSet
+
+  succStepCont (StepOnValue    sf)   = succStepCont` sf
+  succStepCont (StepOnAction _ sf)   = succStepCont` sf
+  succStepCont (StepOnException _ e) = successors e
+
+  succStepCont` (Always     e)         = successors e
+  succStepCont` (HasValue   _ e)       = successors e
+  succStepCont` (IfStable   _ e)       = successors e
+  succStepCont` (IfUnstable _ e)       = successors e
+  succStepCont` (IfCond     _ _ e)     = successors e
+  succStepCont` (IfValue    _ _ _ _ e) = successors e
+  succStepCont` (CustomFilter _)       = 'DS'.newSet
+
+  succPar (ParSumL e1 e2)  = 'DS'.union (successors e1) (successors e2)
+  succPar (ParSumR e1 e2)  = 'DS'.union (successors e1) (successors e2)
+  succPar (ParSumN (T es)) = 'DS'.unions (map successors es)
+  succPar (ParProd (T es)) = 'DS'.unions (map successors es)
+  succPar _                = 'DS'.newSet
+
 
 ArialRegular10px :== { fontfamily  = "Arial"
                      , fontysize   = 10.0
@@ -361,18 +412,18 @@ mkTaskImage trt maplot rtmap tt
 (`b`) ma a2mb :== bind ma a2mb
 
 tExpr2Image :: !MkImageInh !TExpr -> TImg
-tExpr2Image inh (TBind lhs mpat rhs)     = tBind         inh lhs mpat rhs
-tExpr2Image inh (TReturn texpr)          = tReturn       inh texpr
-tExpr2Image inh (TTaskApp eid tn targs)  = tTaskApp      inh eid tn targs
-tExpr2Image inh (TLet pats bdy)          = tLet          inh pats bdy
-tExpr2Image inh (TCaseOrIf e pats)       = tCaseOrIf     inh e pats
-tExpr2Image inh (TStep lexpr conts)      = tStep         inh lexpr conts
-tExpr2Image inh (TParallel eid par)      = tParallel     inh eid par
-tExpr2Image inh (TAssign usr t)          = tAssign       inh usr t
-tExpr2Image inh (TShare ts sn args)      = tShare        inh ts sn args
-tExpr2Image inh (TTransform lhs vn args) = tTransformApp inh lhs vn args
-tExpr2Image inh (TVar _ pp)              = 'CA'.pure (text ArialRegular10px pp)
-tExpr2Image inh (TCleanExpr _ pp)        = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image inh (TBind lhs mpat rhs)       = tBind         inh lhs mpat rhs
+tExpr2Image inh (TReturn texpr)            = tReturn       inh texpr
+tExpr2Image inh (TTaskApp eid mn tn targs) = tTaskApp      inh eid mn tn targs
+tExpr2Image inh (TLet pats bdy)            = tLet          inh pats bdy
+tExpr2Image inh (TCaseOrIf e pats)         = tCaseOrIf     inh e pats
+tExpr2Image inh (TStep lexpr conts)        = tStep         inh lexpr conts
+tExpr2Image inh (TParallel eid par)        = tParallel     inh eid par
+tExpr2Image inh (TAssign usr t)            = tAssign       inh usr t
+tExpr2Image inh (TShare ts sn args)        = tShare        inh ts sn args
+tExpr2Image inh (TTransform lhs vn args)   = tTransformApp inh lhs vn args
+tExpr2Image inh (TVar _ pp)                = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image inh (TCleanExpr _ pp)          = 'CA'.pure (text ArialRegular10px pp)
 
 tArrowTip :: Image TonicTask
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -526,7 +577,7 @@ tParallel inh eid (ParSumN ts) = mkParSum inh eid ts `b` ('CA'.pure o mkParSumN)
   mkParSum inh eid (PP pp)
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
+          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
         _ -> 'CA'.pure [text ArialRegular10px pp]
   mkParSum _ _ (T xs) = 'CM'.mapM (tExpr2Image inh) xs
 tParallel inh eid (ParProd ts)
@@ -543,7 +594,7 @@ tParallel inh eid (ParProd ts)
   mkParProd inh eid (PP pp)
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
+          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
         _ -> 'CA'.pure [text ArialRegular10px pp]
   mkParProd _ _ (T xs)  = 'CM'.mapM (tExpr2Image inh) xs
 
@@ -642,8 +693,8 @@ tTransformApp inh texpr tffun args
     #! tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
     = beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing
 
-tTaskApp :: !MkImageInh !ExprId !VarName ![TExpr] -> TImg
-tTaskApp inh eid taskName taskArgs
+tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] -> TImg
+tTaskApp inh eid modName taskName taskArgs
   =             'CM'.mapM (tExpr2Image inh) taskArgs `b`
   \taskArgs` -> dispenseUniq `b`
   \tnNo      -> dispenseUniq `b`

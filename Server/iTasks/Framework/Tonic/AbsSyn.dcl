@@ -51,7 +51,7 @@ derive gEq
   | TCleanExpr ExprId PPExpr
   | TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    TExpr
-  | TTaskApp   ExprId VarName [TExpr]
+  | TTaskApp   ExprId ModuleName VarName [TExpr]
   | TLet       [(Pattern, PPExpr)] TExpr
   | TCaseOrIf  PPExpr [(Pattern, TExpr)]
   | TStep      TExpr [PPOr TStepCont]
