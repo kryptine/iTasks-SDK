@@ -7,7 +7,7 @@ import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
 //import ligrettoTOP
-import iTaskGraphics, editletGraphics, edgehog
+//import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
 
 /**
@@ -75,9 +75,9 @@ basicAPIExamples =
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	,workflow "Manage server" 							 	"Manage itask server..." 			manageServer
 	,workflow "Manage store" 							 	"Manage itask store..." 			manageStore
-	,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
-	,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
-	,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
+	//,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
+	//,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
+	//,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
 	]
 
