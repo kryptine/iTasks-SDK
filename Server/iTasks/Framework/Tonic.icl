@@ -267,11 +267,15 @@ viewStatic
 viewStaticTask :: TonicModule TonicTask -> Task ()
 viewStaticTask {tm_name} tt =
       viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
-  ||- viewInformation
+  ||- updateInformation
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'")
-        [imageView (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap)]
-        tt @! ()
+        [imageUpdate id (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
+        {ActionState | state = tt, action = Nothing} >>*
+        [OnValue (doAction navigate)] @! ()
   where
+  navigate (mn, tn) _
+    =      getModule mn >>-
+    \tm -> maybe (return ()) (\tt -> viewStaticTask tm tt @! ()) (getTask tm tn)
   defaultTRT tt
     = { trt_taskId       = TaskId -1 -1
       , trt_params       = []
@@ -314,7 +318,7 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
   \mbprnt ->          (viewInformation (blueprintTitle trt bp) [] () ||-
                       viewTaskArguments trt bp ||-
                       (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
-  \(maplot, rtmap) -> viewInformation "Blueprint:" [imageView (mkTaskImage trt maplot rtmap)] bp @! ())) >>*
+  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} @! ())) >>*
                       [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn bp.tt_resty
@@ -401,13 +405,15 @@ ArialItalic10px :== { fontfamily = "Arial"
   , inh_rtmap  :: !TonicRTMap
   }
 
-mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !TonicTask -> Image TonicTask
-mkTaskImage trt maplot rtmap tt
+mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy -> Image ModelTy
+mkTaskImage trt maplot rtmap {ActionState | state = tt}
              #! inh = { inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap }
              =  'CMS'.evalState (tExpr2Image inh tt.tt_body `b`
   \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
 
-:: TImg :== State Int (Image TonicTask)
+:: ModelTy :== ActionState (ModuleName, TaskName) TonicTask
+
+:: TImg :== State Int (Image ModelTy)
 
 (`b`) ma a2mb :== bind ma a2mb
 
@@ -425,25 +431,25 @@ tExpr2Image inh (TTransform lhs vn args)   = tTransformApp inh lhs vn args
 tExpr2Image inh (TVar _ pp)                = 'CA'.pure (text ArialRegular10px pp)
 tExpr2Image inh (TCleanExpr _ pp)          = 'CA'.pure (text ArialRegular10px pp)
 
-tArrowTip :: Image TonicTask
+tArrowTip :: Image ModelTy
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
 
-tLineMarker :: Maybe (Markers TonicTask)
+tLineMarker :: Maybe (Markers ModelTy)
 tLineMarker = Just {defaultMarkers & markerEnd = Just tArrowTip}
 
-tHorizConn :: Image TonicTask
+tHorizConn :: Image ModelTy
 tHorizConn = xline Nothing (px 8.0)
 
-tHorizConnArr :: Image TonicTask
+tHorizConnArr :: Image ModelTy
 tHorizConnArr = xline tLineMarker (px 16.0)
 
-tVertDownConnArr :: Image TonicTask
+tVertDownConnArr :: Image ModelTy
 tVertDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip)}) (px 16.0)
 
-tVertUpConnArr :: Image TonicTask
+tVertUpConnArr :: Image ModelTy
 tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just tArrowTip}) (px 16.0)
 
-tVertUpDownConnArr :: Image TonicTask
+tVertUpDownConnArr :: Image ModelTy
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
 // TODO margin around cases
@@ -455,7 +461,7 @@ tCaseOrIf inh ppexpr pats
   \uniqs -> 'CM'.mapM (tExpr2Image inh) patExprs `b`
             ('CA'.pure o mkCaseOrIf patStrs uniqs)
   where
-  mkCaseOrIf :: ![String] ![Int] ![Image TonicTask] -> Image TonicTask
+  mkCaseOrIf :: ![String] ![Int] ![Image ModelTy] -> Image ModelTy
   mkCaseOrIf patStrs uniqs nextTasks
     #! nextTasks    = prepCases patStrs uniqs nextTasks
     #! vertConn     = mkVertConn uniqs
@@ -477,7 +483,7 @@ tCaseOrIf inh ppexpr pats
   y :: !Real !Real !Span -> Span
   y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
-mkVertConn :: ![Int] -> Image TonicTask
+mkVertConn :: ![Int] -> Image ModelTy
 mkVertConn uniqs
   | length uniqs < 2 = empty (px 0.0) (px 0.0)
   | otherwise
@@ -511,7 +517,7 @@ tShare inh sh sn args = dispenseUniq `b` (mkShareImg sh sn args)
     #! emptyImg = empty zero (imageyspan (imageTag uniq))
     // TODO Add arrows to/from box if the box is smaller than the share
     = 'CA'.pure (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing)
-  mkShare :: Image TonicTask
+  mkShare :: Image ModelTy
   mkShare
     #! box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
                     <@< { fill   = toSVGColor "white" }
@@ -531,7 +537,7 @@ tLet inh pats expr
   \textNo -> tExpr2Image inh expr `b`
              ('CA'.pure o mkLet pats textNo)
   where
-  mkLet :: ![(!String, !String)] !Int !(Image TonicTask) -> Image TonicTask
+  mkLet :: ![(!String, !String)] !Int !(Image ModelTy) -> Image ModelTy
   mkLet pats textNo t
     #! letText = tag (imageTag textNo) (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
     #! letBox  = rect (imagexspan (imageTag textNo)) (px ArialRegular10px.fontysize *. (length pats + 1))
@@ -552,7 +558,7 @@ tParallel inh eid (ParSumL l r)
   \l` -> tExpr2Image inh r `b`
   \r` -> 'CA'.pure (mkParSumL l` r`)
   where
-  mkParSumL :: !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
+  mkParSumL :: !(Image ModelTy) !(Image ModelTy) -> Image ModelTy
   mkParSumL l` r`
     #! l` = margin (px 5.0, px 5.0) l`
     #! r` = margin (px 5.0, px 5.0) r`
@@ -562,18 +568,18 @@ tParallel inh eid (ParSumR l r)
   \l` -> tExpr2Image inh r `b`
   \r` -> 'CA'.pure (mkParSumR l` r`)
   where
-  mkParSumR :: !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
+  mkParSumR :: !(Image ModelTy) !(Image ModelTy) -> Image ModelTy
   mkParSumR l` r`
     #! l` = margin (px 5.0, px 5.0) l`
     #! r` = margin (px 5.0, px 5.0) r`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
 tParallel inh eid (ParSumN ts) = mkParSum inh eid ts `b` ('CA'.pure o mkParSumN)
   where
-  mkParSumN :: ![Image TonicTask] -> Image TonicTask
+  mkParSumN :: ![Image ModelTy] -> Image ModelTy
   mkParSumN ts`
     #! ts` = map (margin (px 5.0, px 5.0)) ts`
     = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
-  mkParSum :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image TonicTask]
+  mkParSum :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image ModelTy]
   mkParSum inh eid (PP pp)
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
@@ -585,12 +591,12 @@ tParallel inh eid (ParProd ts)
   \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
   \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
   where
-  mkParProdCases :: ![Int] ![Image TonicTask] -> Image TonicTask
+  mkParProdCases :: ![Int] ![Image ModelTy] -> Image ModelTy
   mkParProdCases uniqs ts`
     #! ts`      = prepCases [] uniqs ts`
     #! vertConn = mkVertConn uniqs
     = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
-  mkParProd :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image TonicTask]
+  mkParProd :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image ModelTy]
   mkParProd inh eid (PP pp)
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
@@ -604,12 +610,12 @@ moduleTaskNameForTaskId trtmap tid
       Just trt -> Just trt.trt_bpref
       _        -> Nothing
 
-tDiamond :: Image TonicTask
+tDiamond :: Image ModelTy
 tDiamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0))
              <@< { fill   = toSVGColor "black" }
              <@< { stroke = toSVGColor "none" }
 
-tStepStar :: Image TonicTask
+tStepStar :: Image ModelTy
 tStepStar = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, star] Nothing
   where
   star = polygon Nothing
@@ -620,22 +626,22 @@ tStepStar = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, star] Nothing
            , (px 8.0, px 10.0) ] <@< { fill   = toSVGColor "white" }
                                  <@< { stroke = toSVGColor "none" }
 
-tParSum :: Image TonicTask
+tParSum :: Image ModelTy
 tParSum = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, tPlus] Nothing
 
-tParProd :: Image TonicTask
+tParProd :: Image ModelTy
 tParProd = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, rotate (deg 45.0) tPlus] Nothing
 
-tPlus :: Image TonicTask
+tPlus :: Image ModelTy
 tPlus
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing
   where
   line f = f Nothing (px 10.0) <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
 
-tStartSymb :: Image TonicTask
+tStartSymb :: Image ModelTy
 tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
 
-tStopSymb :: Image TonicTask
+tStopSymb :: Image ModelTy
 tStopSymb  = rect (px 16.0) (px 16.0)
 
 prefixAOrAn :: !String -> String
@@ -645,14 +651,14 @@ prefixAOrAn str
   | otherwise                                       = "a " +++ str
 
 // TODO Start / stop symbols here
-tTaskDef :: !String !String ![(!String, !String)] !(Image TonicTask) -> TImg
+tTaskDef :: !String !String ![(!String, !String)] !(Image ModelTy) -> TImg
 tTaskDef taskName resultTy taskArgsAndTys tdbody
   =          dispenseUniq `b`
   \nameNo -> dispenseUniq `b`
   \argsNo -> dispenseUniq `b`
   \bodyNo -> 'CA'.pure (tTaskDef` taskName resultTy taskArgsAndTys tdbody nameNo argsNo bodyNo)
   where
-  tTaskDef` :: !String !String ![(!String, !String)] !(Image TonicTask) !Int !Int !Int -> Image TonicTask
+  tTaskDef` :: !String !String ![(!String, !String)] !(Image ModelTy) !Int !Int !Int -> Image ModelTy
   tTaskDef` taskName resultTy taskArgsAndTys tdbody nameNo argsNo bodyNo
     #! maxXSpan     = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo), imagexspan (imageTag bodyNo)]
     #! bgRect       = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo) + imageyspan (imageTag bodyNo))
@@ -678,7 +684,7 @@ tTransformApp inh texpr tffun args
   \argsNo -> tExpr2Image inh texpr `b`
   \expr   -> 'CA'.pure (tTransformApp` inh.inh_trt tffun args nameNo argsNo expr)
   where
-  tTransformApp` :: !TonicRT !VarName ![VarName] !Int !Int !(Image TonicTask) -> Image TonicTask
+  tTransformApp` :: !TonicRT !VarName ![VarName] !Int !Int !(Image ModelTy) -> Image ModelTy
   tTransformApp` trt tffun args nameNo argsNo expr
     #! maxXSpan   = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
     #! bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
@@ -698,10 +704,10 @@ tTaskApp inh eid modName taskName taskArgs
   =             'CM'.mapM (tExpr2Image inh) taskArgs `b`
   \taskArgs` -> dispenseUniq `b`
   \tnNo      -> dispenseUniq `b`
-  \taNo      -> 'CA'.pure (tTaskApp` inh.inh_trt eid taskName taskArgs` tnNo taNo)
+  \taNo      -> 'CA'.pure (tTaskApp` inh.inh_trt eid modName taskName taskArgs` tnNo taNo)
   where
-  tTaskApp` :: !TonicRT !ExprId !VarName ![Image TonicTask] !Int !Int -> Image TonicTask
-  tTaskApp` trt eid taskName taskArgs` tnNo taNo
+  tTaskApp` :: !TonicRT !ExprId !ModuleName !VarName ![Image ModelTy] !Int !Int -> Image ModelTy
+  tTaskApp` trt eid modName taskName taskArgs` tnNo taNo
     #! maxXSpan     = maxSpan [imagexspan (imageTag tnNo), imagexspan (imageTag taNo)]
     #! bgRect       = rect maxXSpan (imageyspan (imageTag tnNo) + imageyspan (imageTag taNo))
                         <@< { fill        = if (Just eid == trt.trt_activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
@@ -715,6 +721,7 @@ tTaskApp inh eid modName taskName taskArgs
                                                     [] -> [taskNameImg]
                                                     _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
+        <@< { onclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
 
 dispenseUniq :: State Int Int
 dispenseUniq
@@ -728,7 +735,7 @@ tReturn inh retval
   \retval` -> dispenseUniq `b`
   \tagNo   -> 'CA'.pure (tReturn` retval` tagNo)
   where
-  tReturn` :: !(Image TonicTask) !Int -> Image TonicTask
+  tReturn` :: !(Image ModelTy) !Int -> Image ModelTy
   tReturn` retval` tagNo
     #! retval` = tag (imageTag tagNo) retval`
     #! oval    = ellipse (imagexspan (imageTag tagNo) + px 20.0) (imageyspan (imageTag tagNo) + px 10.0)
@@ -744,7 +751,7 @@ tAssign inh user assignedTask
   \userNo -> dispenseUniq `b`
   \atNo   -> 'CA'.pure (tAssign` at userNo atNo)
   where
-  tAssign` :: !(Image TonicTask) !Int !Int -> Image TonicTask
+  tAssign` :: !(Image ModelTy) !Int !Int -> Image ModelTy
   tAssign` at userNo atNo
     #! maxXSpan = maxSpan [imagexspan (imageTag userNo), imagexspan (imageTag atNo)]
     #! taskNameImg = tag (imageTag userNo) (margin (px 5.0) (text ArialBold10px (ppUser user)))
@@ -774,20 +781,20 @@ tStep inh lhsExpr conts
   \lhs    -> 'CM'.mapM (tStepCont inh) conts `b`
   \conts` -> 'CA'.pure (tStep` lhs conts` uniqs)
   where
-  tStep` :: !(Image TonicTask) ![Image TonicTask] ![Int] -> Image TonicTask
+  tStep` :: !(Image ModelTy) ![Image ModelTy] ![Int] -> Image ModelTy
   tStep` lhs conts` uniqs
     #! conts`   = prepCases [] uniqs conts`
     #! vertConn = mkVertConn uniqs
     #! contsImg = above (repeat AtMiddleX) [] conts` Nothing
     = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
 
-prepCases :: ![String] ![Int] ![Image TonicTask] -> [Image TonicTask]
+prepCases :: ![String] ![Int] ![Image ModelTy] -> [Image ModelTy]
 prepCases patStrs uniqs pats
   #! pats     = zipWith (\uniq pat -> pat) uniqs pats
   #! maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
   = zipWith3 (prepCase maxXSpan) uniqs pats (patStrs ++ repeat "")
   where
-  prepCase :: !Span !Int !(Image TonicTask) !String -> Image TonicTask
+  prepCase :: !Span !Int !(Image ModelTy) !String -> Image ModelTy
   prepCase maxXSpan uniq pat patStr
     #! pat       = tag (imageTag uniq) pat
     = case patStr of
@@ -814,7 +821,7 @@ tStepCont inh (T t)   = tStepCont` inh.inh_trt t
   tStepCont` trt (StepOnException mpat te)  = tExpr2Image inh te `b` ('CA'.pure o mkOnException)
     where
     // TODO mpat
-    mkOnException :: !(Image TonicTask) -> Image TonicTask
+    mkOnException :: !(Image ModelTy) -> Image ModelTy
     mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter :: !TonicRT !(Maybe String) !TStepFilter -> TImg
   tStepFilter trt mact sfilter
@@ -823,41 +830,41 @@ tStepCont inh (T t)   = tStepCont` inh.inh_trt t
   tStepFilter` :: !TonicRT !Int !(Maybe String) !TStepFilter -> TImg
   tStepFilter` trt uniq mact (Always te) = tExpr2Image inh te `b` ('CA'.pure o mkAlways uniq mact)
     where
-    mkAlways :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkAlways :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
     mkAlways uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter` trt uniq mact (HasValue mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkHasValue uniq mact)
     where
     // TODO mpat
-    mkHasValue :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkHasValue :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
     mkHasValue uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter` trt uniq mact (IfStable mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkIfStable uniq mact)
     where
     // TODO mpat
-    mkIfStable :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfStable :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
     mkIfStable uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter` trt uniq mact (IfUnstable mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkIfUnstable uniq mact)
     where
     // TODO mpat
-    mkIfUnstable :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfUnstable :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
     mkIfUnstable uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
   tStepFilter` trt uniq mact (IfCond pp mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkIfCond uniq mact)
     where
     // TODO mpat pp
-    mkIfCond :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+    mkIfCond :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
     mkIfCond uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
   tStepFilter` trt uniq mact (IfValue pat fn vars mpat te) = tExpr2Image inh te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue pat uniq mact t)
     where
-    mkIfValue :: !String !Int !(Maybe String) !(Image TonicTask) !(Image TonicTask) -> Image TonicTask
+    mkIfValue :: !String !Int !(Maybe String) !(Image ModelTy) !(Image ModelTy) -> Image ModelTy
     mkIfValue pat uniq mact t c = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
   tStepFilter` trt uniq mact (CustomFilter pp) = 'CA'.pure (text ArialRegular10px pp)
 
-alwaysFilter :: Image TonicTask
+alwaysFilter :: Image ModelTy
 alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
 
-hasValueFilter :: Image TonicTask
+hasValueFilter :: Image ModelTy
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
 
-addAction :: !Int !(Maybe String) !(Image TonicTask) -> Image TonicTask
+addAction :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
 addAction uniq (Just action) img
   #! imgtag    = imageTag uniq
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
@@ -876,7 +883,7 @@ tIfValue tffun args
   \nameNo -> dispenseUniq `b`
   \argsNo -> 'CA'.pure (tIfValue` nameNo argsNo)
   where
-  tIfValue` :: !Int !Int -> Image TonicTask
+  tIfValue` :: !Int !Int -> Image ModelTy
   tIfValue` nameNo argsNo
     #! maxXSpan   = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
     #! bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
@@ -890,41 +897,41 @@ tIfValue tffun args
                                                 _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
 
-tException :: Image TonicTask
+tException :: Image ModelTy
 tException
   #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                                        <@< { stroke = toSVGColor "black" }
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
 
-tStable :: Image TonicTask
+tStable :: Image ModelTy
 tStable
   #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                                        <@< { stroke = toSVGColor "black" }
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, rect (px 8.0) (px 8.0) <@< { fill = toSVGColor "black" }] Nothing
 
-tUnstable :: Image TonicTask
+tUnstable :: Image ModelTy
 tUnstable
   #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                                        <@< { stroke = toSVGColor "black" }
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "W"] Nothing
 
-tNoVal :: Image TonicTask
+tNoVal :: Image ModelTy
 tNoVal
   #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
                                        <@< { stroke = toSVGColor "black" }
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "X"] Nothing
 
-tLineArrow :: Image TonicTask
+tLineArrow :: Image ModelTy
 tLineArrow = polygon Nothing [ (px 0.0, px 0.0)
                              , (px 8.0, px 4.0)
                              , (px 0.0, px 8.0) ]
 
-uniDirLineMarkers :: Maybe (Markers TonicTask)
+uniDirLineMarkers :: Maybe (Markers ModelTy)
 uniDirLineMarkers = Just { markerStart = Nothing
                          , markerMid   = Nothing
                          , markerEnd   = Just tLineArrow }
 
-biDirLineMarkers :: Maybe (Markers TonicTask)
+biDirLineMarkers :: Maybe (Markers ModelTy)
 biDirLineMarkers = Just { markerStart = Just tLineArrow
                         , markerMid   = Nothing
                         , markerEnd   = Just tLineArrow }

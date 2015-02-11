@@ -16,4 +16,6 @@ imageUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` | iT
 
 derive class iTask ActionState
 
-ifAction :: !(a -> Bool) !(a s -> s) !((ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
+doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
+
+ifAction :: !(a -> Bool) !(a s -> s) !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b

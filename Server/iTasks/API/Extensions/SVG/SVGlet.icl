@@ -65,9 +65,12 @@ imageUpdate toViewState toImage fromViewState
 
 derive class iTask ActionState
 
-ifAction :: !(a -> Bool) !(a s -> s) !((ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
+doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
+doAction astos stotaskb = ifAction (const True) (const id) astos stotaskb
+
+ifAction :: !(a -> Bool) !(a s -> s) !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
 ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _)
-  | pred a    = Just (stotaskb {ActionState|state = astos a s, action = Nothing})
+  | pred a    = Just (stotaskb a {ActionState|state = astos a s, action = Nothing})
   | otherwise = Nothing
 ifAction _ _ _ _ = Nothing
 
