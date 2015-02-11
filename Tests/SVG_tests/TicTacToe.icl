@@ -137,10 +137,10 @@ tictactoe2
 playGame2 :: User User TicTacToe -> Task User
 playGame2 me you ttt 
 	= withShared ttt
-		(\share ->  updateSharedInformation (toString me) [imageViewUpdate toAction (toImage True) fromAction] share 
+		(\share ->  updateSharedInformation (toString me) [imageUpdate toAction (toImage True) fromAction] share 
 					-||
-//					(you @: updateSharedInformation (toString you) [imageViewUpdate toAction (toImage False) fromAction] share)  // not working
-					updateSharedInformation (toString you) [imageViewUpdate toAction (toImage False) fromAction] share
+//					(you @: updateSharedInformation (toString you) [imageUpdate toAction (toImage False) fromAction] share)  // not working
+					updateSharedInformation (toString you) [imageUpdate toAction (toImage False) fromAction] share
 		) 
 		>>* [ OnValue (ifValue game_over declare_winner)
 		  	]

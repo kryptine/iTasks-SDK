@@ -27,8 +27,8 @@ playGameOfLife
 	= withShared initLife play
 where
 	play generation
-		=		updateSharedInformation "Enter Cells"     [imageViewUpdate id (mkBoard True)  (\old new -> new)]              generation
-		>>| 	updateSharedInformation "Simulating Life" [imageViewUpdate id (mkBoard False) (\old _ -> fst (LifeGame old))] generation
+		=		updateSharedInformation "Enter Cells"     [imageUpdate id (mkBoard True)  (\old new -> new)]              generation
+		>>| 	updateSharedInformation "Simulating Life" [imageUpdate id (mkBoard False) (\old _ -> fst (LifeGame old))] generation
 		>>|		play generation
 
 initLife = insertCell (newCell 1 1) (insertCell (newCell 1 2) (insertCell (newCell 1 3) []))

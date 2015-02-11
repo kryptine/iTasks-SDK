@@ -209,7 +209,7 @@ simpleClickExample = viewInformation "Simple click example" [imageView f] 25.0
   f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }
 
 simpleClickExample` :: Task Real
-simpleClickExample` = updateInformation "Simple click example" [imageViewUpdate id f (\_ x -> x)] 25.0
+simpleClickExample` = updateInformation "Simple click example" [imageUpdate id f (\_ x -> x)] 25.0
   where
   f :: Real -> Image Real
   f n = rect (px n) (px n) <@< { onclick = \r -> r + 25.0 }

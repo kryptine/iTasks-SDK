@@ -139,18 +139,18 @@ where
 
 playGame2` :: User User TraxSt -> Task TraxSt
 playGame2` me you traxSt
-	= updateInformation "Play Trax" [imageViewUpdate id toImage` (flip const)] traxSt
+	= updateInformation "Play Trax" [imageUpdate id toImage` (flip const)] traxSt
 
 playGame2 :: User User TraxSt -> Task User
 playGame2 me you traxSt
 	= withShared traxSt
 	  (\share -> (me @: (   updateSharedInformation (toString me  +++ " plays with red")   
-	                                             [imageViewUpdate id (toImage True)  (flip const)] share
+	                                             [imageUpdate id (toImage True)  (flip const)] share
 	                    >>* [OnValue (ifValue game_over game_winner)]
 	             ))
 	             -&&-
 	             (you @:(   updateSharedInformation (toString you +++ " plays with white")
-	                                             [imageViewUpdate id (toImage False) (flip const)] share
+	                                             [imageUpdate id (toImage False) (flip const)] share
 	                    >>* [OnValue (ifValue game_over game_winner)]
 	             ))
 	  ) @ fst
@@ -163,7 +163,7 @@ playGame2`` me you traxSt
 playGame :: User Bool LineColor (Shared TraxSt) -> Task User
 playGame player even_turn color share
 	=     updateSharedInformation (player +++> (" plays with " <+++ color))
-	                              [imageViewUpdate id (toImage even_turn) (flip const)] share
+	                              [imageUpdate id (toImage even_turn) (flip const)] share
 	  >>* [OnValue (ifValue game_over game_winner)]
 
 start_with_this :: TraxTile TraxSt -> TraxSt

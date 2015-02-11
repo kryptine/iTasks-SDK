@@ -5,9 +5,29 @@ import MultiUser
 from   StdFunc import flip
 from   StdMisc import abort
 from   Control.Monad import replicateM
+import iTasks.Framework.Tonic
 
 Start :: *World -> *World
-Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto ] world
+Start world = startEngine [ publish "/" (WebApp []) (\_-> browseExamples [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto])
+                          , tonicViewer "TOP Ligretto"] world
+where
+	browseExamples taskList = forever (
+		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
+		>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated taskList))
+			] )
+	
+	browseAuthenticated taskList {Credentials|username,password}
+		= authenticateUser username password
+		>>= \mbUser -> case mbUser of
+			Just user 	= workAs user (manageWorklist taskList)
+			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+	
+
+
+
+
+
+
 
 //	SVG version of Ligretto
 import iTasks.API.Extensions.SVG.SVGlet
@@ -45,7 +65,7 @@ play_game users game_st
 
 play :: !(!Color, !User) !(Shared GameSt) -> Task (Color,User)
 play player=:(_,u) game_st
-	=   updateSharedInformation (toString u) [imageViewUpdate id (player_perspective player) (\_ st -> st)] game_st
+	=   updateSharedInformation (toString u) [imageUpdate id (player_perspective player) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins player)]
 
 player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (Color,User))

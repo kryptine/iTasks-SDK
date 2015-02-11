@@ -59,8 +59,8 @@ registerSVGEvents cid svg onclicks world
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
 imageView toImage = ViewWith (\s -> svgRenderer s toImage)
 
-imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` |  iTask v
-imageViewUpdate toViewState toImage fromViewState
+imageUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` |  iTask v
+imageUpdate toViewState toImage fromViewState
   = UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s e -> fromViewState s e.Editlet.currVal.svgSrvSt)
 
 derive class iTask ActionState

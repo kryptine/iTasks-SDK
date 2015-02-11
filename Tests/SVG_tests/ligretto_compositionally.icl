@@ -7,7 +7,7 @@ import ligrettoModel
 derive class iTask SideUp
 
 Start :: *World -> *World
-Start world = startEngine viewAll world
+Start world = startEngine dragTest world
 
 // (viewInformation "Ligretto step by step" [imageView steps] ()) world
 viewAll :: Task [((), ())]
@@ -93,6 +93,45 @@ font          = normalFontDef "Courier New" 9.0
 cardfont size = normalFontDef "Verdana" size
 pilefont size = normalFontDef "Verdana" size
 card          = {back = Red, front = Green, no = 7}
+
+
+
+
+
+
+
+
+
+dragTest = updateInformation "test" [imageUpdate id (\st -> pict st) (\st v -> v)] NoClick
+where
+  pict st = beside [AtTop,AtTop] [] [clicks (showDrag st card_shape) , showDrag st card_shape] Nothing
+
+derive class iTask DragStatus
+
+:: DragStatus = NoClick | Clicked | DragStart | DragEnd | DragEnter | DragOver
+
+showDrag DragStart image      = image <@< {fill = toSVGColor Red}
+showDrag DragEnd image      = image <@< {fill = toSVGColor Green}
+showDrag DragEnter image      = image <@< {fill = toSVGColor Blue}
+showDrag DragOver image      = image <@< {fill = toSVGColor Yellow}
+showDrag Clicked image        = image <@< {fill = toSVGColor "darkgrey"}
+showDrag _ image              = image <@< {fill = toSVGColor "grey"}
+
+
+clicks image = image <@< {onclick         = (\st -> Clicked)}
+                   <@< {ondragstart     = (\st -> DragStart)}
+//                     <@< {ondragend     = (\st -> DragEnd)}
+//                     <@< {ondragenter     = (\st -> DragEnter)}
+//                     <@< {ondragover     = (\st -> DragOver)}
+
+
+
+
+
+
+
+
+
 
 w             = 58.5
 h             = 90.0

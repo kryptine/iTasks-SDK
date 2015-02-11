@@ -8,7 +8,7 @@ import iTasks.API.Core.Client.Editlet
 
 imageView       ::           !(s -> Image s)               -> ViewOption s      | iTask s
 
-imageViewUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` | iTask v
+imageUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` | iTask v
 
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a
