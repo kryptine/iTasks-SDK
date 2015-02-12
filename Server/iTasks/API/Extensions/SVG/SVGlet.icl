@@ -34,6 +34,7 @@ registerSVGEvents cid svg onclicks world
   where
   registerEvent :: !ComponentId !(JSObj svg) !String !(ImageAttr s) !*JSWorld -> *JSWorld | iTask s
   registerEvent cid svg elemCls (ImageOnClickAttr     {onclick})     world = actuallyRegister cid svg elemCls "click"     onclick     world
+  registerEvent cid svg elemCls (ImageOnDblClickAttr  {ondblclick})  world = registerNClick   cid svg elemCls 2           ondblclick  world
   registerEvent cid svg elemCls (ImageOnMouseDownAttr {onmousedown}) world = actuallyRegister cid svg elemCls "mousedown" onmousedown world
   registerEvent cid svg elemCls (ImageOnMouseUpAttr   {onmouseup})   world = actuallyRegister cid svg elemCls "mouseup"   onmouseup   world
   registerEvent cid svg elemCls (ImageOnMouseOverAttr {onmouseover}) world = actuallyRegister cid svg elemCls "mouseover" onmouseover world
@@ -54,6 +55,26 @@ registerSVGEvents cid svg onclicks world
     #! st` = sttf svgClSt
     = ({clval & svgClSt = st`, svgClIsDefault = False}, Diff (SetState st`) (\_ s w -> (s, NoDiff, w)), world)
   mkCB sttf _ _ clval world
+    = ({clval & svgClIsDefault = False}, NoDiff, world)
+  registerNClick cid svg elemCls n sttf world
+    #! elemCls           = replaceSubString editletId cid elemCls
+    #! (elems, world)    = (svg `getElementsByClassName` elemCls) world
+    #! (numElems, world) = .? (elems .# "length") world
+    | jsValToInt (numElems) < 1 = world
+    #! (elem, world)     = .? (elems .# "0") world
+    #! cb                = createEditletEventHandler (mkNClickCB n sttf) cid
+    #! (_, world)        = (elem `addEventListener` ("click", cb, True)) world
+    = world
+  mkNClickCB :: !Int !(s -> s) !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
+  mkNClickCB targetN sttf _ args clval=:{svgClSt} world
+    #! (det, world) = .? (args.[0] .# "detail") world
+    #! det = jsValToInt det
+    = case targetN == det of
+        True
+          #! st` = sttf svgClSt
+          = ({clval & svgClSt = st`, svgClIsDefault = False}, Diff (SetState st`) (\_ s w -> (s, NoDiff, w)), world)
+        _ = ({clval & svgClIsDefault = False}, NoDiff, world)
+  mkNClickCB _ sttf _ _ clval world
     = ({clval & svgClIsDefault = False}, NoDiff, world)
 
 imageView :: !(s -> Image s) -> ViewOption s | iTask s
@@ -440,6 +461,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , imageAttrFillAttrAlg          = const 'DM'.newMap
     , imageAttrFillOpacityAttrAlg   = const 'DM'.newMap
     , imageAttrOnClickAttrAlg       = const 'DM'.newMap
+    , imageAttrOnDblClickAttrAlg    = const 'DM'.newMap
     , imageAttrOnMouseDownAttrAlg   = const 'DM'.newMap
     , imageAttrOnMouseUpAttrAlg     = const 'DM'.newMap
     , imageAttrOnMouseOverAttrAlg   = const 'DM'.newMap
@@ -652,6 +674,7 @@ desugarAndTag img = go
     , imageAttrFillAttrAlg          = ret o ImageFillAttr
     , imageAttrFillOpacityAttrAlg   = ret o ImageFillOpacityAttr
     , imageAttrOnClickAttrAlg       = ret o ImageOnClickAttr
+    , imageAttrOnDblClickAttrAlg    = ret o ImageOnDblClickAttr
     , imageAttrOnMouseDownAttrAlg   = ret o ImageOnMouseDownAttr
     , imageAttrOnMouseUpAttrAlg     = ret o ImageOnMouseUpAttr
     , imageAttrOnMouseOverAttrAlg   = ret o ImageOnMouseOverAttr
@@ -1157,6 +1180,9 @@ mkMarkerId editletId uniqId = "markerId-" +++ editletId +++ toString uniqId
 mkOnClickId :: !String !Int -> String
 mkOnClickId editletId uniqId = "onClickId-" +++ editletId +++ toString uniqId
 
+mkOnDblClickId :: !String !Int -> String
+mkOnDblClickId editletId uniqId = "onDblClickId-" +++ editletId +++ toString uniqId
+
 mkOnMouseDownId :: !String !Int -> String
 mkOnMouseDownId editletId uniqId = "onMouseDownId-" +++ editletId +++ toString uniqId
 
@@ -1288,6 +1314,7 @@ genSVG img = imageCata genSVGAllAlgs img
     , imageAttrFillAttrAlg          = \attr s -> ((([], Just (FillAttr (PaintColor attr.fill Nothing))), 'DM'.newMap), s)
     , imageAttrFillOpacityAttrAlg   = \attr s -> ((([], Just (FillOpacityAttr (FillOpacity (toString attr.opacity)))), 'DM'.newMap), s)
     , imageAttrOnClickAttrAlg       = mkOnClick
+    , imageAttrOnDblClickAttrAlg    = mkOnDblClick
     , imageAttrOnMouseDownAttrAlg   = mkOnMouseDown
     , imageAttrOnMouseUpAttrAlg     = mkOnMouseUp
     , imageAttrOnMouseOverAttrAlg   = mkOnMouseOver
@@ -1315,6 +1342,10 @@ genSVG img = imageCata genSVGAllAlgs img
     mkOnClick :: !(OnClickAttr s) !(GenSVGStVal s)
               -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
     mkOnClick attr clval = mkEvent mkOnClickId (ImageOnClickAttr attr) clval
+
+    mkOnDblClick :: !(OnDblClickAttr s) !(GenSVGStVal s)
+              -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
+    mkOnDblClick attr clval = mkEvent mkOnDblClickId (ImageOnDblClickAttr attr) clval
 
     mkOnMouseDown :: !(OnMouseDownAttr s) !(GenSVGStVal s)
                   -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
@@ -1808,6 +1839,7 @@ mkList f xs st
   , imageAttrFillAttrAlg          :: !(FillAttr m)        -> imAt
   , imageAttrFillOpacityAttrAlg   :: !(OpacityAttr m)     -> imAt
   , imageAttrOnClickAttrAlg       :: !(OnClickAttr m)     -> imAt
+  , imageAttrOnDblClickAttrAlg    :: !(OnDblClickAttr m)  -> imAt
   , imageAttrOnMouseDownAttrAlg   :: !(OnMouseDownAttr m) -> imAt
   , imageAttrOnMouseUpAttrAlg     :: !(OnMouseUpAttr m)   -> imAt
   , imageAttrOnMouseOverAttrAlg   :: !(OnMouseOverAttr m) -> imAt
@@ -1943,6 +1975,7 @@ imageAttrCata imageAttrAlgs (ImageStrokeOpacityAttr swa) = imageAttrAlgs.imageAt
 imageAttrCata imageAttrAlgs (ImageFillAttr fa)           = imageAttrAlgs.imageAttrFillAttrAlg fa
 imageAttrCata imageAttrAlgs (ImageFillOpacityAttr swa)   = imageAttrAlgs.imageAttrFillOpacityAttrAlg swa
 imageAttrCata imageAttrAlgs (ImageOnClickAttr cl)        = imageAttrAlgs.imageAttrOnClickAttrAlg cl
+imageAttrCata imageAttrAlgs (ImageOnDblClickAttr cl)     = imageAttrAlgs.imageAttrOnDblClickAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageOnMouseDownAttr cl)    = imageAttrAlgs.imageAttrOnMouseDownAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageOnMouseUpAttr cl)      = imageAttrAlgs.imageAttrOnMouseUpAttrAlg cl
 imageAttrCata imageAttrAlgs (ImageOnMouseOverAttr cl)    = imageAttrAlgs.imageAttrOnMouseOverAttrAlg cl
