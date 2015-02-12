@@ -6,7 +6,7 @@ from GenEq import generic gEq
 import iTasks
 import iTasks.API.Core.Client.Editlet
 
-imageView       ::           !(s -> Image s)               -> ViewOption s      | iTask s
+imageView   ::           !(s -> Image s)               -> ViewOption s      | iTask s
 
 imageUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` | iTask v
 
