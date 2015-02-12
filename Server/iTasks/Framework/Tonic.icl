@@ -253,7 +253,7 @@ viewStatic
   \mn -> getModule mn >>-
   \tm -> (selectTask tm >&> withSelection noTaskSelection (
   \tn -> maybe (return ())
-           (\tt -> viewStaticTask tm tt @! ())
+           (\tt -> viewStaticTask [] tm tt @! ())
            (getTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
@@ -264,18 +264,27 @@ viewStatic
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-viewStaticTask :: TonicModule TonicTask -> Task ()
-viewStaticTask {tm_name} tt =
+viewStaticTask :: [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
+viewStaticTask navstack {tm_name} tt =
       viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
   ||- updateInformation
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'")
         [imageUpdate id (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
         {ActionState | state = tt, action = Nothing} >>*
-        [OnValue (doAction navigate)] @! ()
+        [ OnValue (doAction (navigate (Just (tm_name, tt.tt_name))))
+        , OnAction (Action "Back" []) (back navstack)] @! ()
   where
-  navigate (mn, tn) _
-    =      getModule mn >>-
-    \tm -> maybe (return ()) (\tt -> viewStaticTask tm tt @! ()) (getTask tm tn)
+  back []           _ = Nothing
+  back [prev:stack] _ = Just (navigate` Nothing prev)
+  navigate mparent (mn, tn) _ = navigate` mparent (mn, tn)
+  navigate` mparent (mn, tn)
+    = getModule mn >>*
+      [ OnValue onNavVal
+      , OnAllExceptions (const (return ()))
+      ]
+    where
+    onNavVal (Value tm _) = fmap (\tt -> viewStaticTask (maybe navstack (\parent -> [parent:navstack]) mparent) tm tt @! ()) (getTask tm tn)
+    onNavVal _            = Nothing
   defaultTRT tt
     = { trt_taskId       = TaskId -1 -1
       , trt_params       = []
@@ -721,7 +730,7 @@ tTaskApp inh eid modName taskName taskArgs
                                                     [] -> [taskNameImg]
                                                     _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
-        <@< { onclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
+        <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
 
 dispenseUniq :: State Int Int
 dispenseUniq
