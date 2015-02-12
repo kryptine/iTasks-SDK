@@ -265,26 +265,26 @@ viewStatic
   noTaskSelection   = viewInformation () [] "Select task..."
 
 viewStaticTask :: [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
-viewStaticTask navstack {tm_name} tt =
+viewStaticTask navstack tm=:{tm_name} tt =
       viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
   ||- updateInformation
         ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'")
         [imageUpdate id (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
         {ActionState | state = tt, action = Nothing} >>*
-        [ OnValue (doAction (navigate (Just (tm_name, tt.tt_name))))
-        , OnAction (Action "Back" []) (back navstack)] @! ()
+        [ OnValue (doAction (navigate tm tt))
+        , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
   where
-  back []           _ = Nothing
-  back [prev:stack] _ = Just (navigate` Nothing prev)
-  navigate mparent (mn, tn) _ = navigate` mparent (mn, tn)
-  navigate` mparent (mn, tn)
+  back _  _  []           _ = Nothing
+  back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
+  navigate tm tt next _     = nav` (\ns -> [(tm.tm_name, tt.tt_name):navstack]) tm tt next navstack
+  nav` mkNavStack tm tt (mn, tn) navstack
     = getModule mn >>*
       [ OnValue onNavVal
-      , OnAllExceptions (const (return ()))
+      , OnAllExceptions (const (viewStaticTask navstack tm tt))
       ]
     where
-    onNavVal (Value tm _) = fmap (\tt -> viewStaticTask (maybe navstack (\parent -> [parent:navstack]) mparent) tm tt @! ()) (getTask tm tn)
-    onNavVal _            = Nothing
+    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
+    onNavVal _             = Nothing
   defaultTRT tt
     = { trt_taskId       = TaskId -1 -1
       , trt_params       = []
