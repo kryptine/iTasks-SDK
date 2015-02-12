@@ -6,9 +6,9 @@ from GenEq import generic gEq
 import iTasks
 import iTasks.API.Core.Client.Editlet
 
-imageView   ::           !(s -> Image s)               -> ViewOption s      | iTask s
+imageView   ::           !(s [(*ImageTag,ImageTag)] -> Image s)               -> ViewOption s      | iTask s
 
-imageUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` | iTask v
+imageUpdate :: !(s -> v) !(v [(*ImageTag,ImageTag)] -> Image v)  !(s v -> s`) -> UpdateOption s s` | iTask v
 
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a

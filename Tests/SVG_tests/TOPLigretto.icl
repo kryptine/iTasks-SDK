@@ -154,8 +154,8 @@ player_image interactive r player
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
 
-player_perspective :: !(!Color, !User) !GameSt -> Image GameSt
-player_perspective (color,user) gameSt
+player_perspective :: !(!Color, !User) !GameSt [(*ImageTag,ImageTag)] -> Image GameSt
+player_perspective (color,user) gameSt _
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
   = margin (card_height *. 3) (rotate (rad (~(toReal my_no*angle))) (game_image (color,user) gameSt))

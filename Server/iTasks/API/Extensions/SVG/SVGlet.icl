@@ -77,10 +77,10 @@ registerSVGEvents cid svg onclicks world
   mkNClickCB _ sttf _ _ clval world
     = ({clval & svgClIsDefault = False}, NoDiff, world)
 
-imageView :: !(s -> Image s) -> ViewOption s | iTask s
+imageView :: !(s [(*ImageTag,ImageTag)] -> Image s) -> ViewOption s | iTask s
 imageView toImage = ViewWith (\s -> svgRenderer s toImage)
 
-imageUpdate :: !(s -> v) !(v -> Image v)  !(s v -> s`) -> UpdateOption s s` |  iTask v
+imageUpdate :: !(s -> v) !(v [(*ImageTag,ImageTag)] -> Image v)  !(s v -> s`) -> UpdateOption s s` |  iTask v
 imageUpdate toViewState toImage fromViewState
   = UpdateWith (\s -> svgRenderer (toViewState s) toImage) (\s e -> fromViewState s e.Editlet.currVal.svgSrvSt)
 
@@ -122,7 +122,7 @@ defaultClSt s = { svgClIsDefault  = True
 
 derive class iTask SVGDiff, SVGSrvSt
 
-svgRenderer :: !s !(s -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
+svgRenderer :: !s !(s [(*ImageTag,ImageTag)] -> Image s) -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
 svgRenderer origState state2Image
   #! dst = defaultSrvSt origState
   = { currVal    = {dst & svgSrvIsDefault = False}
@@ -145,9 +145,9 @@ svgRenderer origState state2Image
        , world
       )
 
-  appClientDiff :: !(s -> Image s) !String !(SVGDiff s) !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
+  appClientDiff :: !(s [(*ImageTag,ImageTag)] -> Image s) !String !(SVGDiff s) !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !*JSWorld) | iTask s
   appClientDiff state2Image cid (SetState s) clst world
-    #! image            = state2Image s
+    #! image            = state2Image s [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
     #! fontMap          = gatherFonts image
     #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
     #! (img, spanEnvs)  = imageFromState image realFontMap

@@ -421,8 +421,8 @@ ArialItalic10px :== { fontfamily = "Arial"
   , inh_rtmap  :: !TonicRTMap
   }
 
-mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy -> Image ModelTy
-mkTaskImage trt maplot rtmap {ActionState | state = tt}
+mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy [(*ImageTag,ImageTag)] -> Image ModelTy
+mkTaskImage trt maplot rtmap {ActionState | state = tt} _
              #! inh = { inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap }
              =  'CMS'.evalState (tExpr2Image inh tt.tt_body `b`
   \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
@@ -882,8 +882,8 @@ hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
 
 addAction :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
 addAction uniq (Just action) img
-  #! imgtag    = imageTag uniq
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+  #! (imgtag,imgtag`) = (imageTag uniq,imageTag uniq)
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag` + px 5.0) (imageyspan imgtag` + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
                                                , tag imgtag (above (repeat AtMiddleX) [] [ beside (repeat AtMiddleY) [] [littleman, text ArialBold10px action] Nothing
                                                                                          , img] Nothing)
                                                ] Nothing
