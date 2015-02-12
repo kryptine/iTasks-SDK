@@ -10,6 +10,7 @@ from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 import iTasks.Framework.Tonic.AbsSyn
 from System.Time import :: Timestamp
 from Data.Map import :: Map
+from Data.Set import :: Set
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -40,13 +41,14 @@ derive gText
 tonicSharedRT :: Shared TonicRTMap
 
 :: TonicRT =
-  { trt_taskId       :: TaskId
-  , trt_params       :: [(VarName, Task ())]
-  , trt_bpref        :: (ModuleName, TaskName)
-  , trt_bpinstance   :: Maybe TonicTask
-  , trt_activeNodeId :: Maybe [Int]
-  , trt_parentTaskId :: TaskId
-  , trt_output       :: Maybe (Task ())
+  { trt_taskId        :: TaskId
+  , trt_params        :: [(VarName, Task ())]
+  , trt_bpref         :: (ModuleName, TaskName)
+  , trt_bpinstance    :: Maybe TonicTask
+  , trt_activeNodeId  :: Maybe [Int]
+  , trt_parentTaskId  :: TaskId
+  , trt_involvedUsers :: [User]
+  , trt_output        :: Maybe (Task ())
   }
 
 derive class iTask TonicRT

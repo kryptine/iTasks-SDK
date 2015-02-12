@@ -87,15 +87,17 @@ tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
       = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
       where
       updateInstance instanceNo rtMap iworld
-        # tonicRT = { trt_taskId       = currTaskId
-                    , trt_params       = args
-                    , trt_bpref        = (mn, tn)
-                    , trt_bpinstance   = getTask mod tn
-                    , trt_activeNodeId = Nothing
-                    , trt_parentTaskId = maybe (TaskId instanceNo 0)
-                                           (\rt -> rt.trt_taskId)
-                                           (firstParent rtMap instanceNo callTrace)
-                    , trt_output       = Nothing
+        # (curr, iworld) = iworld!current
+        # tonicRT = { trt_taskId        = currTaskId
+                    , trt_params        = args
+                    , trt_bpref         = (mn, tn)
+                    , trt_bpinstance    = getTask mod tn
+                    , trt_activeNodeId  = Nothing
+                    , trt_parentTaskId  = maybe (TaskId instanceNo 0)
+                                            (\rt -> rt.trt_taskId)
+                                            (firstParent rtMap instanceNo callTrace)
+                    , trt_involvedUsers = [curr.user]
+                    , trt_output        = Nothing
                     }
         = snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
     eval` mod event evalOpts taskTree=:(TCDestroy tt) iworld
@@ -112,11 +114,15 @@ tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
         # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
         = okSt iworld (updateRTMap tr currTaskId) mrtMap
       updateRTMap tr currTaskId rtMap iworld
+        # (curr, iworld) = iworld!current
         = maybeSt iworld
-            (\rt -> snd o 'DSDS'.write ('DM'.put currTaskId {rt & trt_output = resultToOutput tr} rtMap) tonicSharedRT)
+            (\rt -> snd o 'DSDS'.write ('DM'.put currTaskId {rt & trt_output        = resultToOutput tr
+                                                                , trt_involvedUsers = [curr.user : resultUsers tr]} rtMap) tonicSharedRT)
             ('DM'.get currTaskId rtMap)
     resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
     resultToOutput _                      = Nothing
+    resultUsers (ValueResult _ te _ _) = te.TaskEvalInfo.involvedUsers
+    resultUsers _                      = []
     tvViewInformation NoValue     = Nothing
     tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
@@ -286,13 +292,14 @@ viewStaticTask navstack tm=:{tm_name} tt =
     onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
   defaultTRT tt
-    = { trt_taskId       = TaskId -1 -1
-      , trt_params       = []
-      , trt_bpref        = (tm_name, tt.tt_name)
-      , trt_bpinstance   = Just tt
-      , trt_activeNodeId = Nothing
-      , trt_parentTaskId = TaskId -2 -2
-      , trt_output       = Nothing
+    = { trt_taskId        = TaskId -1 -1
+      , trt_params        = []
+      , trt_bpref         = (tm_name, tt.tt_name)
+      , trt_bpinstance    = Just tt
+      , trt_activeNodeId  = Nothing
+      , trt_parentTaskId  = TaskId -2 -2
+      , trt_involvedUsers = []
+      , trt_output        = Nothing
       }
 
 
@@ -313,12 +320,12 @@ derive class iTask DynamicView
 viewDynamic :: Task ()
 viewDynamic
   = (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead 'DM'.elems tonicSharedRT) >&>
-    withSelection noBlueprintSelection viewInstance) <<@ ArrangeWithSideBar 0 LeftSide 340 True
+    withSelection noBlueprintSelection viewInstance) <<@ ArrangeWithSideBar 0 LeftSide 700 True
                                                      <<@ FullScreen
 
   where
-  customView rt = { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
-  //customView rt = rt
+  //customView rt = { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
+  customView rt = rt
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
 
 viewInstance :: TonicRT -> Task ()
