@@ -1,5 +1,7 @@
 implementation module iTasks.Framework.Tonic
 
+from Graphics.Scalable.Internal import imageTag
+
 import iTasks.Framework.Engine
 import iTasks.Framework.SDS
 import qualified iTasks.Framework.SDS as DSDS
