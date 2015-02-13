@@ -36,6 +36,7 @@ from Control.Monad.Identity import instance Monad Identity, instance Applicative
 import qualified Control.Applicative as CA
 import qualified Control.Monad as CM
 import qualified Control.Monad.State as CMS
+import Text
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -319,13 +320,36 @@ dynamicParent childId
 
 derive class iTask DynamicView
 
+enterQuery :: Task (Maybe BlueprintQuery)
+enterQuery = enterInformation "Enter filter query" []
+
+:: BlueprintQuery
+  = ModuleName String
+  | TaskName String
+  | UserInvolved String
+  | AndQuery BlueprintQuery BlueprintQuery
+  | OrQuery BlueprintQuery BlueprintQuery
+
+derive class iTask BlueprintQuery
+
 viewDynamic :: Task ()
-viewDynamic
-  = (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead 'DM'.elems tonicSharedRT) >&>
+viewDynamic = enterQuery >&> withSelection (viewDynamic` Nothing) viewDynamic`
+
+viewDynamic` q =
+    (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) >&>
     withSelection noBlueprintSelection viewInstance) <<@ ArrangeWithSideBar 0 LeftSide 700 True
                                                      <<@ FullScreen
 
   where
+  filterActiveTasks Nothing tasks = tasks
+  filterActiveTasks (Just q) tasks
+    = [t \\ t <- tasks | doFilter t q ]
+    where
+    doFilter trt (ModuleName mn)   = mn == "" || indexOf mn (fst trt.trt_bpref) >= 0
+    doFilter trt (TaskName tn)     = tn == "" || indexOf tn (snd trt.trt_bpref) >= 0
+    doFilter trt (UserInvolved un) = un == "" || indexOf un (toString (toJSON trt.trt_involvedUsers)) >= 0
+    doFilter trt (AndQuery l r)    = doFilter trt l && doFilter trt r
+    doFilter trt (OrQuery l r)     = doFilter trt l || doFilter trt r
   //customView rt = { DynamicView | moduleName = fst rt.trt_bpref, taskName = snd rt.trt_bpref }
   customView rt = rt
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
