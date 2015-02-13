@@ -1,7 +1,5 @@
 implementation module iTasks.Framework.Tonic
 
-from Graphics.Scalable.Internal import imageTag
-
 import iTasks.Framework.Engine
 import iTasks.Framework.SDS
 import qualified iTasks.Framework.SDS as DSDS
@@ -31,11 +29,11 @@ import qualified Data.Set as DS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
-from Control.Monad.State import :: State, :: StateT, :: Identity, instance Monad StateT, instance Applicative StateT, instance Functor StateT
-from Control.Monad.Identity import instance Monad Identity, instance Applicative Identity, instance Functor Identity
-import qualified Control.Applicative as CA
-import qualified Control.Monad as CM
-import qualified Control.Monad.State as CMS
+//from Control.Monad.State import :: State, :: StateT, :: Identity, instance Monad StateT, instance Applicative StateT, instance Functor StateT
+//from Control.Monad.Identity import instance Monad Identity, instance Applicative Identity, instance Functor Identity
+//import qualified Control.Applicative as CA
+//import qualified Control.Monad as CM
+//import qualified Control.Monad.State as CMS
 import Text
 
 derive gEditor
@@ -447,31 +445,28 @@ ArialItalic10px :== { fontfamily = "Arial"
   , inh_rtmap  :: !TonicRTMap
   }
 
-mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy [(*ImageTag,ImageTag)] -> Image ModelTy
-mkTaskImage trt maplot rtmap {ActionState | state = tt} _
-             #! inh = { inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap }
-             =  'CMS'.evalState (tExpr2Image inh tt.tt_body `b`
-  \tt_body` -> tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body`) 0
+mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy *TagSource -> Image ModelTy
+mkTaskImage trt maplot rtmap {ActionState | state = tt} tsrc
+  #! inh              = { inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap }
+  #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
+  #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
+  = img
 
 :: ModelTy :== ActionState (ModuleName, TaskName) TonicTask
 
-:: TImg :== State Int (Image ModelTy)
-
-(`b`) ma a2mb :== bind ma a2mb
-
-tExpr2Image :: !MkImageInh !TExpr -> TImg
-tExpr2Image inh (TBind lhs mpat rhs)       = tBind         inh lhs mpat rhs
-tExpr2Image inh (TReturn texpr)            = tReturn       inh texpr
-tExpr2Image inh (TTaskApp eid mn tn targs) = tTaskApp      inh eid mn tn targs
-tExpr2Image inh (TLet pats bdy)            = tLet          inh pats bdy
-tExpr2Image inh (TCaseOrIf e pats)         = tCaseOrIf     inh e pats
-tExpr2Image inh (TStep lexpr conts)        = tStep         inh lexpr conts
-tExpr2Image inh (TParallel eid par)        = tParallel     inh eid par
-tExpr2Image inh (TAssign usr t)            = tAssign       inh usr t
-tExpr2Image inh (TShare ts sn args)        = tShare        inh ts sn args
-tExpr2Image inh (TTransform lhs vn args)   = tTransformApp inh lhs vn args
-tExpr2Image inh (TVar _ pp)                = 'CA'.pure (text ArialRegular10px pp)
-tExpr2Image inh (TCleanExpr _ pp)          = 'CA'.pure (text ArialRegular10px pp)
+tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tExpr2Image inh (TBind lhs mpat rhs)       tsrc = tBind         inh lhs mpat rhs tsrc
+tExpr2Image inh (TReturn texpr)            tsrc = tReturn       inh texpr tsrc
+tExpr2Image inh (TTaskApp eid mn tn targs) tsrc = tTaskApp      inh eid mn tn targs tsrc
+tExpr2Image inh (TLet pats bdy)            tsrc = tLet          inh pats bdy tsrc
+tExpr2Image inh (TCaseOrIf e pats)         tsrc = tCaseOrIf     inh e pats tsrc
+tExpr2Image inh (TStep lexpr conts)        tsrc = tStep         inh lexpr conts tsrc
+tExpr2Image inh (TParallel eid par)        tsrc = tParallel     inh eid par tsrc
+tExpr2Image inh (TAssign usr t)            tsrc = tAssign       inh usr t tsrc
+tExpr2Image inh (TShare ts sn args)        tsrc = tShare        inh ts sn args tsrc
+tExpr2Image inh (TTransform lhs vn args)   tsrc = tTransformApp inh lhs vn args tsrc
+tExpr2Image inh (TVar _ pp)                tsrc = (text ArialRegular10px pp, tsrc)
+tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px pp, tsrc)
 
 tArrowTip :: Image ModelTy
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -494,71 +489,77 @@ tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just tArrowTip}) (px 
 tVertUpDownConnArr :: Image ModelTy
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
+refsForList :: [a] !*TagSource -> *(!*[*TagRef], !*TagSource)
+refsForList [] tsrc = ([], tsrc)
+refsForList [_:xs] tsrc
+  #! (rs, tsrc) = refsForList xs tsrc
+  #! (r, tsrc)  = mkTagRef tsrc
+  = ([r:rs], tsrc)
+
 // TODO margin around cases
-tCaseOrIf :: !MkImageInh !PPExpr ![(!Pattern, !TExpr)] -> TImg
-tCaseOrIf inh ppexpr pats
+tCaseOrIf :: !MkImageInh !PPExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tCaseOrIf inh ppexpr pats tsrc
   #! patStrs  = map fst pats
   #! patExprs = map snd pats
-  =         'CM'.mapM (\_ -> dispenseUniq) patExprs `b`
-  \uniqs -> 'CM'.mapM (tExpr2Image inh) patExprs `b`
-            ('CA'.pure o mkCaseOrIf patStrs uniqs)
+  #! (nextTasks, tsrc) = mapSt (tExpr2Image inh) patExprs tsrc
+  #! (refs, tsrc) = refsForList patExprs tsrc
+  #! (nextTasks, refs) = prepCases patStrs nextTasks refs
+  #! (vertConn, refs)  = mkVertConn refs
+  #! nextTasks`   = above (repeat AtMiddleX) [] nextTasks Nothing
+  #! textHeight   = ArialRegular10px.fontysize
+  #! textWidth    = textxspan ArialRegular10px ppexpr
+  #! edgeMargin   = textHeight * 2.0
+  #! centerX      = (textWidth /. 2.0) + px edgeMargin
+  #! leftCorner   = (px 0.0, y textHeight edgeMargin (px 0.0))
+  #! topCorner    = (centerX, ~ (y textHeight edgeMargin centerX))
+  #! rightCorner  = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
+  #! bottomCorner = (centerX, y textHeight edgeMargin centerX)
+  #! diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
+                      <@< { fill   = toSVGColor "white" }
+                      <@< { stroke = toSVGColor "black" }
+  #! diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
+                                                             , text ArialRegular10px ppexpr] Nothing
+  = (beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing, tsrc)
   where
-  mkCaseOrIf :: ![String] ![Int] ![Image ModelTy] -> Image ModelTy
-  mkCaseOrIf patStrs uniqs nextTasks
-    #! nextTasks    = prepCases patStrs uniqs nextTasks
-    #! vertConn     = mkVertConn uniqs
-    #! nextTasks`   = above (repeat AtMiddleX) [] nextTasks Nothing
-    #! textHeight   = ArialRegular10px.fontysize
-    #! textWidth    = textxspan ArialRegular10px ppexpr
-    #! edgeMargin   = textHeight * 2.0
-    #! centerX      = (textWidth /. 2.0) + px edgeMargin
-    #! leftCorner   = (px 0.0, y textHeight edgeMargin (px 0.0))
-    #! topCorner    = (centerX, ~ (y textHeight edgeMargin centerX))
-    #! rightCorner  = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
-    #! bottomCorner = (centerX, y textHeight edgeMargin centerX)
-    #! diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
-                        <@< { fill   = toSVGColor "white" }
-                        <@< { stroke = toSVGColor "black" }
-    #! diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
-                                                               , text ArialRegular10px ppexpr] Nothing
-    = beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing
   y :: !Real !Real !Span -> Span
   y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
-mkVertConn :: ![Int] -> Image ModelTy
-mkVertConn uniqs
-  | length uniqs < 2 = empty (px 0.0) (px 0.0)
+// TODO
+mkVertConn :: !*[*TagRef] -> *(!Image ModelTy, !*[*TagRef])
+mkVertConn refs
+  | length refs < 2 = (empty (px 0.0) (px 0.0), refs)
   | otherwise
-      #! firstUniq = hd uniqs
-      #! lastUniq  = last uniqs
-      #! allYSpans = foldr (\x acc -> imageyspan (imageTag x) + acc) (px 0.0) uniqs
-      = above (repeat AtMiddleX) []
-          [ yline Nothing (imageyspan (imageTag firstUniq) /. 2.0) <@< { stroke = toSVGColor "white" }
-          , yline Nothing (allYSpans - (imageyspan (imageTag firstUniq) /. 2.0) - (imageyspan (imageTag lastUniq) /. 2.0)) <@< { stroke = toSVGColor "black" }
-          , yline Nothing (imageyspan (imageTag lastUniq) /. 2.0) <@< { stroke = toSVGColor "white" } ]
-          Nothing
+      #! (ts, refs) = extractTags refs
+      #! firstTag  = hd ts
+      #! lastTag   = last ts
+      #! allYSpans = foldr (\x acc -> imageyspan x + acc) (px 0.0) ts
+      = (above (repeat AtMiddleX) []
+           [ yline Nothing (imageyspan firstTag /. 2.0) <@< { stroke = toSVGColor "white" }
+           , yline Nothing (allYSpans - (imageyspan firstTag /. 2.0) - (imageyspan lastTag /. 2.0)) <@< { stroke = toSVGColor "black" }
+           , yline Nothing (imageyspan lastTag /. 2.0) <@< { stroke = toSVGColor "white" } ]
+           Nothing
+        , refs)
 
-tShare :: !MkImageInh !TShare !VarName ![VarName] -> TImg
-tShare inh sh sn args = dispenseUniq `b` (mkShareImg sh sn args)
+tShare :: !MkImageInh !TShare !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tShare inh sh sn args tsrc
+  #! boxTxt  = case sh of
+                 Get          -> "    "
+                 (Set ppexpr) -> ppexpr
+                 (Upd ppexpr) -> ppexpr
+  #! boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                 <@< { fill   = toSVGColor "white" }
+                 <@< { stroke = toSVGColor "black" }
+  #! boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
+  #! arr     = case sh of
+                 Get        -> tVertDownConnArr
+                 Set ppexpr -> tVertUpConnArr
+                 Upd ppexpr -> tVertUpDownConnArr
+  #! (shareArr, shareref, tsrc) = tagWithSrc tsrc (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
+  #! (sharetag, shareref) = tagFromRef shareref
+  #! emptyImg = empty zero (imageyspan sharetag)
+  // TODO Add arrows to/from box if the box is smaller than the share
+  = (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing, tsrc)
   where
-  mkShareImg :: !TShare !VarName ![VarName] !Int -> TImg
-  mkShareImg sh sn args uniq
-    #! boxTxt  = case sh of
-                   Get          -> "    "
-                   (Set ppexpr) -> ppexpr
-                   (Upd ppexpr) -> ppexpr
-    #! boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                   <@< { fill   = toSVGColor "white" }
-                   <@< { stroke = toSVGColor "black" }
-    #! boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
-    #! arr     = case sh of
-                   Get        -> tVertDownConnArr
-                   Set ppexpr -> tVertUpConnArr
-                   Upd ppexpr -> tVertUpDownConnArr
-    #! shareArr = tag (imageTag uniq) (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
-    #! emptyImg = empty zero (imageyspan (imageTag uniq))
-    // TODO Add arrows to/from box if the box is smaller than the share
-    = 'CA'.pure (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing)
   mkShare :: Image ModelTy
   mkShare
     #! box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
@@ -573,78 +574,64 @@ tShare inh sh sn args = dispenseUniq `b` (mkShareImg sh sn args)
     #! box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
     = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
-tLet :: !MkImageInh ![(!Pattern, !PPExpr)] !TExpr -> TImg
-tLet inh pats expr
-  =          dispenseUniq `b`
-  \textNo -> tExpr2Image inh expr `b`
-             ('CA'.pure o mkLet pats textNo)
-  where
-  mkLet :: ![(!String, !String)] !Int !(Image ModelTy) -> Image ModelTy
-  mkLet pats textNo t
-    #! letText = tag (imageTag textNo) (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
-    #! letBox  = rect (imagexspan (imageTag textNo)) (px ArialRegular10px.fontysize *. (length pats + 1))
-                   <@< { fill   = toSVGColor "white" }
-                   <@< { stroke = toSVGColor "black" }
-    #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-    = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing
+tLet :: !MkImageInh ![(!Pattern, !PPExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
+tLet inh pats expr tsrc
+  #! (t, tsrc) = tExpr2Image inh expr tsrc
+  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
+  #! (txttag, txtref) = tagFromRef txtref
+  #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
+                 <@< { fill   = toSVGColor "white" }
+                 <@< { stroke = toSVGColor "black" }
+  #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+  = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
 
-tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr -> TImg
-tBind inh l mpat r
-  =      tExpr2Image inh l `b`
-  \l` -> tExpr2Image inh r `b`
-  \r` -> 'CA'.pure (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing) // TODO Add label
+tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tBind inh l mpat r tsrc
+  #! (l`, tsrc) = tExpr2Image inh l tsrc
+  #! (r`, tsrc) = tExpr2Image inh r tsrc
+  = (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing, tsrc) // TODO Add label
 
-tParallel :: !MkImageInh ![Int] !TParallel -> TImg
-tParallel inh eid (ParSumL l r)
-  =      tExpr2Image inh l `b`
-  \l` -> tExpr2Image inh r `b`
-  \r` -> 'CA'.pure (mkParSumL l` r`)
+tParallel :: !MkImageInh ![Int] !TParallel !*TagSource -> *(!Image ModelTy, !*TagSource)
+tParallel inh eid (ParSumL l r) tsrc
+  #! (l`, tsrc) = tExpr2Image inh l tsrc
+  #! (r`, tsrc) = tExpr2Image inh r tsrc
+  #! l` = margin (px 5.0, px 5.0) l`
+  #! r` = margin (px 5.0, px 5.0) r`
+  = (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing, tsrc)
+tParallel inh eid (ParSumR l r) tsrc
+  #! (l`, tsrc) = tExpr2Image inh l tsrc
+  #! (r`, tsrc) = tExpr2Image inh r tsrc
+  #! l` = margin (px 5.0, px 5.0) l`
+  #! r` = margin (px 5.0, px 5.0) r`
+  = (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing, tsrc)
+tParallel inh eid (ParSumN ts) tsrc
+  #! (ts`, tsrc) = mkParSum inh eid ts tsrc
+  #! ts` = map (margin (px 5.0, px 5.0)) ts`
+  = ( beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
+    , tsrc)
   where
-  mkParSumL :: !(Image ModelTy) !(Image ModelTy) -> Image ModelTy
-  mkParSumL l` r`
-    #! l` = margin (px 5.0, px 5.0) l`
-    #! r` = margin (px 5.0, px 5.0) r`
-    = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel inh eid (ParSumR l r)
-  =      tExpr2Image inh l `b`
-  \l` -> tExpr2Image inh r `b`
-  \r` -> 'CA'.pure (mkParSumR l` r`)
-  where
-  mkParSumR :: !(Image ModelTy) !(Image ModelTy) -> Image ModelTy
-  mkParSumR l` r`
-    #! l` = margin (px 5.0, px 5.0) l`
-    #! r` = margin (px 5.0, px 5.0) r`
-    = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing
-tParallel inh eid (ParSumN ts) = mkParSum inh eid ts `b` ('CA'.pure o mkParSumN)
-  where
-  mkParSumN :: ![Image ModelTy] -> Image ModelTy
-  mkParSumN ts`
-    #! ts` = map (margin (px 5.0, px 5.0)) ts`
-    = beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
-  mkParSum :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image ModelTy]
-  mkParSum inh eid (PP pp)
+  mkParSum :: !MkImageInh ![Int] !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
+  mkParSum inh eid (PP pp) tsrc
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
-        _ -> 'CA'.pure [text ArialRegular10px pp]
-  mkParSum _ _ (T xs) = 'CM'.mapM (tExpr2Image inh) xs
-tParallel inh eid (ParProd ts)
-  =         mkParProd inh eid ts `b`
-  \imgs  -> 'CM'.mapM (\_ -> dispenseUniq) imgs `b`
-  \uniqs -> 'CA'.pure (mkParProdCases uniqs imgs)
+          -> mapSt (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+        _ -> ([text ArialRegular10px pp], tsrc)
+  mkParSum _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
+tParallel inh eid (ParProd ts) tsrc
+  #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
+  #! (refs, tsrc)     = refsForList imgs tsrc
+  #! (ts, refs)       = prepCases [] imgs refs
+  #! (vertConn, refs) = mkVertConn refs
+  = ( beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
+    , tsrc)
   where
-  mkParProdCases :: ![Int] ![Image ModelTy] -> Image ModelTy
-  mkParProdCases uniqs ts`
-    #! ts`      = prepCases [] uniqs ts`
-    #! vertConn = mkVertConn uniqs
-    = beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts` Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
-  mkParProd :: !MkImageInh ![Int] !(PPOr [TExpr]) -> State Int [Image ModelTy]
-  mkParProd inh eid (PP pp)
+  mkParProd :: !MkImageInh ![Int] !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
+  mkParProd inh eid (PP pp) tsrc
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          -> 'CM'.mapM (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)]
-        _ -> 'CA'.pure [text ArialRegular10px pp]
-  mkParProd _ _ (T xs)  = 'CM'.mapM (tExpr2Image inh) xs
+          -> mapSt (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+        _ -> ([text ArialRegular10px pp], tsrc)
+  mkParProd _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
 
 moduleTaskNameForTaskId :: TonicRTMap TaskId -> Maybe (ModuleName, TaskName)
 moduleTaskNameForTaskId trtmap tid
@@ -693,120 +680,98 @@ prefixAOrAn str
   | otherwise                                       = "a " +++ str
 
 // TODO Start / stop symbols here
-tTaskDef :: !String !String ![(!String, !String)] !(Image ModelTy) -> TImg
-tTaskDef taskName resultTy taskArgsAndTys tdbody
-  =          dispenseUniq `b`
-  \nameNo -> dispenseUniq `b`
-  \argsNo -> dispenseUniq `b`
-  \bodyNo -> 'CA'.pure (tTaskDef` taskName resultTy taskArgsAndTys tdbody nameNo argsNo bodyNo)
-  where
-  tTaskDef` :: !String !String ![(!String, !String)] !(Image ModelTy) !Int !Int !Int -> Image ModelTy
-  tTaskDef` taskName resultTy taskArgsAndTys tdbody nameNo argsNo bodyNo
-    #! maxXSpan     = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo), imagexspan (imageTag bodyNo)]
-    #! bgRect       = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo) + imageyspan (imageTag bodyNo))
-                        <@< { fill        = toSVGColor "white" }
-                        <@< { stroke      = toSVGColor "black" }
-                        <@< { strokewidth = px 1.0 }
-                        <@< { xradius     = px 5.0 }
-                        <@< { yradius     = px 5.0 }
-    #! taskNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
-    #! taskArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-    #! taskBodyImgs = tag (imageTag bodyNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
-    #! taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
-                                                 [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
-                                                 _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
-    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing
-    where
-    mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
-
-tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] -> TImg
-tTransformApp inh texpr tffun args
-  =          dispenseUniq `b`
-  \nameNo -> dispenseUniq `b`
-  \argsNo -> tExpr2Image inh texpr `b`
-  \expr   -> 'CA'.pure (tTransformApp` inh.inh_trt tffun args nameNo argsNo expr)
-  where
-  tTransformApp` :: !TonicRT !VarName ![VarName] !Int !Int !(Image ModelTy) -> Image ModelTy
-  tTransformApp` trt tffun args nameNo argsNo expr
-    #! maxXSpan   = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
-    #! bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
+tTaskDef :: !String !String ![(!String, !String)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef taskName resultTy taskArgsAndTys tdbody tsrc
+  #! (taskNameImg,  nmref,   tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
+  #! (taskArgsImgs, argsref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
+  #! (taskBodyImgs, bdyref,  tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
+  #! (nmtag, nmref) = tagFromRef nmref
+  #! (argstag, argsref) = tagFromRef argsref
+  #! (bdytag, bdyref) = tagFromRef bdyref
+  #! maxXSpan     = maxSpan [imagexspan nmtag, imagexspan argstag, imagexspan bdytag]
+  #! bgRect       = rect maxXSpan (imageyspan nmtag + imageyspan argstag + imageyspan bdytag)
                       <@< { fill        = toSVGColor "white" }
                       <@< { stroke      = toSVGColor "black" }
                       <@< { strokewidth = px 1.0 }
-    #! tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
-    #! tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-    #! tfContents = above (repeat AtLeft) [] (case args of
-                                                [] -> [tfNameImg]
-                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
-    #! tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-    = beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing
-
-tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] -> TImg
-tTaskApp inh eid modName taskName taskArgs
-  =             'CM'.mapM (tExpr2Image inh) taskArgs `b`
-  \taskArgs` -> dispenseUniq `b`
-  \tnNo      -> dispenseUniq `b`
-  \taNo      -> 'CA'.pure (tTaskApp` inh.inh_trt eid modName taskName taskArgs` tnNo taNo)
+                      <@< { xradius     = px 5.0 }
+                      <@< { yradius     = px 5.0 }
+  #! taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
+                                                [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
+                                                _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing, tsrc)
   where
-  tTaskApp` :: !TonicRT !ExprId !ModuleName !VarName ![Image ModelTy] !Int !Int -> Image ModelTy
-  tTaskApp` trt eid modName taskName taskArgs` tnNo taNo
-    #! maxXSpan     = maxSpan [imagexspan (imageTag tnNo), imagexspan (imageTag taNo)]
-    #! bgRect       = rect maxXSpan (imageyspan (imageTag tnNo) + imageyspan (imageTag taNo))
-                        <@< { fill        = if (Just eid == trt.trt_activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
+  mkArgAndTy :: !(!String, !String) -> String
+  mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
+
+tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTransformApp inh texpr tffun args tsrc
+  #! (tfNameImg,  nmref, tsrc)   = tagWithSrc tsrc (margin (px 5.0) (text ArialItalic10px tffun))
+  #! (tfArgsImgs, argsref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+  #! (nmtag, nmref)   = tagFromRef nmref
+  #! (argstag, argsref) = tagFromRef argsref
+  #! (expr, tsrc) = tExpr2Image inh texpr tsrc
+  #! maxXSpan   = maxSpan [imagexspan nmtag, imagexspan argstag]
+  #! bgRect     = rect maxXSpan (imageyspan nmtag + imageyspan argstag)
+                    <@< { fill        = toSVGColor "white" }
+                    <@< { stroke      = toSVGColor "black" }
+                    <@< { strokewidth = px 1.0 }
+  #! tfContents = above (repeat AtLeft) [] (case args of
+                                              [] -> [tfNameImg]
+                                              _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+  #! tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
+  = (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
+
+tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskApp inh eid modName taskName taskArgs tsrc
+  #! (taskArgs`, tsrc)           = mapSt (tExpr2Image inh) taskArgs tsrc
+  #! (taskNameImg,  tnref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px taskName))
+  #! (taskArgsImgs, taref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
+  #! (tntag, tnref) = tagFromRef tnref
+  #! (tatag, taref) = tagFromRef taref
+  #! maxXSpan       = maxSpan [imagexspan tntag, imagexspan tatag]
+  #! bgRect         = rect maxXSpan (imageyspan tntag + imageyspan tatag)
+                        <@< { fill        = if (Just eid == inh.inh_trt.trt_activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
                         <@< { stroke      = toSVGColor "black" }
                         <@< { strokewidth = px 1.0 }
                         <@< { xradius     = px 5.0 }
                         <@< { yradius     = px 5.0 }
-    #! taskNameImg  = tag (imageTag tnNo) (margin (px 5.0) (text ArialBold10px taskName))
-    #! taskArgsImgs = tag (imageTag taNo) (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
-    #! taskText     = above (repeat AtMiddleX) [] (case taskArgs` of
-                                                    [] -> [taskNameImg]
-                                                    _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
-    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
-        <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
+  #! taskText       = above (repeat AtMiddleX) [] (case taskArgs` of
+                                                     [] -> [taskNameImg]
+                                                     _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
+      <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
+    , tsrc)
 
-dispenseUniq :: State Int Int
-dispenseUniq
-  =     'CMS'.gets id `b`
-  \s -> 'CMS'.put (s + 1) `b`
-  \_ -> 'CA'.pure s
+tReturn :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tReturn inh retval tsrc
+  #! (retval`, tsrc)      = tExpr2Image inh retval tsrc
+  #! (retval`, ref, tsrc) = tagWithSrc tsrc retval`
+  #! (tag, ref)           = tagFromRef ref
+  #! oval                 = ellipse (imagexspan tag + px 20.0) (imageyspan tag + px 10.0)
+                              <@< { fill        = toSVGColor "white" }
+                              <@< { stroke      = toSVGColor "black" }
+                              <@< { strokewidth = px 1.0 }
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retval`] Nothing, tsrc)
 
-tReturn :: !MkImageInh !TExpr -> TImg
-tReturn inh retval
-  =           tExpr2Image inh retval `b`
-  \retval` -> dispenseUniq `b`
-  \tagNo   -> 'CA'.pure (tReturn` retval` tagNo)
-  where
-  tReturn` :: !(Image ModelTy) !Int -> Image ModelTy
-  tReturn` retval` tagNo
-    #! retval` = tag (imageTag tagNo) retval`
-    #! oval    = ellipse (imagexspan (imageTag tagNo) + px 20.0) (imageyspan (imageTag tagNo) + px 10.0)
-                   <@< { fill        = toSVGColor "white" }
-                   <@< { stroke      = toSVGColor "black" }
-                   <@< { strokewidth = px 1.0 }
-    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retval`] Nothing
-
-tAssign :: !MkImageInh !TUser !TExpr -> TImg
-tAssign inh user assignedTask
-  =          tExpr2Image inh assignedTask `b`
-  \at     -> dispenseUniq `b`
-  \userNo -> dispenseUniq `b`
-  \atNo   -> 'CA'.pure (tAssign` at userNo atNo)
-  where
-  tAssign` :: !(Image ModelTy) !Int !Int -> Image ModelTy
-  tAssign` at userNo atNo
-    #! maxXSpan = maxSpan [imagexspan (imageTag userNo), imagexspan (imageTag atNo)]
-    #! taskNameImg = tag (imageTag userNo) (margin (px 5.0) (text ArialBold10px (ppUser user)))
-    #! bgRect  = rect maxXSpan (imageyspan (imageTag userNo) + imageyspan (imageTag atNo))
-                  <@< { fill        = toSVGColor "white" }
-                  <@< { stroke      = toSVGColor "black" }
-                  <@< { strokewidth = px 1.0 }
-                  <@< { xradius     = px 5.0 }
-                  <@< { yradius     = px 5.0 }
-                  <@< { dash        = [5, 5] }
-    #! at      = tag (imageTag atNo) (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
-    #! content = above (repeat AtMiddleX) [] [beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing, xline Nothing maxXSpan, at] Nothing
-    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
+tAssign :: !MkImageInh !TUser !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tAssign inh user assignedTask tsrc
+  #! (at, tsrc)  = tExpr2Image inh assignedTask tsrc
+  #! (atr, tsrc) = mkTagRef tsrc
+  #! (atag, atr) = tagFromRef atr
+  #! (utr, tsrc) = mkTagRef tsrc
+  #! (utag, utr) = tagFromRef utr
+  #! maxXSpan    = maxSpan [imagexspan utag, imagexspan atag]
+  #! (taskNameImg, utr) = tagWithRef utr (margin (px 5.0) (text ArialBold10px (ppUser user)))
+  #! bgRect      = rect maxXSpan (imageyspan utag + imageyspan atag)
+                     <@< { fill        = toSVGColor "white" }
+                     <@< { stroke      = toSVGColor "black" }
+                     <@< { strokewidth = px 1.0 }
+                     <@< { xradius     = px 5.0 }
+                     <@< { yradius     = px 5.0 }
+                     <@< { dash        = [5, 5] }
+  #! (at, atr)   = tagWithRef atr (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
+  #! content     = above (repeat AtMiddleX) [] [beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing, xline Nothing maxXSpan, at] Nothing
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
 ppUser :: !TUser -> String
 ppUser TUAnyUser                       = "Any user"
@@ -816,89 +781,97 @@ ppUser TUSystemUser                    = "Any system user"
 ppUser TUAnonymousUser                 = "Any anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
 
-tStep :: !MkImageInh !TExpr ![PPOr TStepCont] -> TImg
-tStep inh lhsExpr conts
-  =          'CM'.mapM (\_ -> dispenseUniq) conts `b`
-  \uniqs  -> tExpr2Image inh lhsExpr `b`
-  \lhs    -> 'CM'.mapM (tStepCont inh) conts `b`
-  \conts` -> 'CA'.pure (tStep` lhs conts` uniqs)
-  where
-  tStep` :: !(Image ModelTy) ![Image ModelTy] ![Int] -> Image ModelTy
-  tStep` lhs conts` uniqs
-    #! conts`   = prepCases [] uniqs conts`
-    #! vertConn = mkVertConn uniqs
-    #! contsImg = above (repeat AtMiddleX) [] conts` Nothing
-    = beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
+tStep :: !MkImageInh !TExpr ![PPOr TStepCont] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tStep inh lhsExpr conts tsrc
+  #! (lhs, tsrc)      = tExpr2Image inh lhsExpr tsrc
+  #! (refs, tsrc)     = refsForList conts tsrc
+  #! (conts`, tsrc)   = mapSt (tStepCont inh) conts tsrc
+  #! (conts`, refs)   = prepCases [] conts` refs
+  #! (vertConn, refs) = mkVertConn refs
+  #! contsImg = above (repeat AtMiddleX) [] conts` Nothing
+  = (beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
+    , tsrc)
 
-prepCases :: ![String] ![Int] ![Image ModelTy] -> [Image ModelTy]
-prepCases patStrs uniqs pats
-  #! pats     = zipWith (\uniq pat -> pat) uniqs pats
-  #! maxXSpan = maxSpan (map (imagexspan o imageTag) uniqs)
-  = zipWith3 (prepCase maxXSpan) uniqs pats (patStrs ++ repeat "")
+extractTags :: !*[*TagRef] -> *(![ImageTag], !*[*TagRef])
+extractTags [] = ([], [])
+extractTags [x:xs]
+  #! (ts, rs) = extractTags xs
+  #! (t, r) = tagFromRef x
+  = ([t:ts], [r:rs])
+
+prepCases :: ![String] ![Image ModelTy] !*[*TagRef] -> *(![Image ModelTy], !*[*TagRef])
+prepCases patStrs pats refs
+  #! (tags, refs) = extractTags refs
+  #! pats     = zipWith (\_ pat -> pat) tags pats // To sync lengths
+  #! maxXSpan = maxSpan (map imagexspan tags)
+  = (zipWith3 (prepCase maxXSpan) pats (patStrs ++ repeat "") tags, refs)
   where
-  prepCase :: !Span !Int !(Image ModelTy) !String -> Image ModelTy
-  prepCase maxXSpan uniq pat patStr
-    #! pat       = tag (imageTag uniq) pat
+  prepCase :: !Span !(Image ModelTy) !String !ImageTag -> Image ModelTy
+  prepCase maxXSpan pat patStr tag
     = case patStr of
         ""
-          #! linePart  = (maxXSpan - imagexspan (imageTag uniq)) /. 2.0
+          #! linePart  = (maxXSpan - imagexspan tag) /. 2.0
           #! leftLine  = xline tLineMarker (px 16.0 + linePart)
           #! rightLine = xline Nothing (px 8.0 + linePart)
           = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), leftLine, pat, rightLine] Nothing
         patStr
           #! textWidth = textxspan ArialRegular10px patStr + px 10.0
-          #! linePart  = (maxXSpan - imagexspan (imageTag uniq) - textWidth) /. 2.0
+          #! linePart  = (maxXSpan - imagexspan tag - textWidth) /. 2.0
           #! leftLine  = xline tLineMarker (px 16.0 + linePart)
           #! rightLine = xline Nothing (px 8.0 + linePart)
           #! textBox   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (ArialRegular10px.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text ArialRegular10px patStr] Nothing
           = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), textBox, leftLine, pat, rightLine] Nothing
 
-tStepCont :: !MkImageInh !(PPOr TStepCont) -> TImg
-tStepCont _   (PP pp) = 'CA'.pure (text ArialRegular10px pp)
-tStepCont inh (T t)   = tStepCont` inh.inh_trt t
+tStepCont :: !MkImageInh !(PPOr TStepCont) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tStepCont _   (PP pp) tsrc = (text ArialRegular10px pp, tsrc)
+tStepCont inh (T t)   tsrc = tStepCont` inh.inh_trt t tsrc
   where
-  tStepCont` :: !TonicRT !TStepCont -> TImg
-  tStepCont` trt (StepOnValue      sfilter) = tStepFilter trt Nothing sfilter
-  tStepCont` trt (StepOnAction act sfilter) = tStepFilter trt (Just act) sfilter
-  tStepCont` trt (StepOnException mpat te)  = tExpr2Image inh te `b` ('CA'.pure o mkOnException)
-    where
+  tStepCont` :: !TonicRT !TStepCont !*TagSource -> *(!Image ModelTy, !*TagSource)
+  tStepCont` trt (StepOnValue      sfilter) tsrc = tStepFilter trt Nothing sfilter tsrc
+  tStepCont` trt (StepOnAction act sfilter) tsrc = tStepFilter trt (Just act) sfilter tsrc
+  tStepCont` trt (StepOnException mpat te)  tsrc
+    #! (img, tsrc) = tExpr2Image inh te tsrc
     // TODO mpat
-    mkOnException :: !(Image ModelTy) -> Image ModelTy
-    mkOnException t = beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter :: !TonicRT !(Maybe String) !TStepFilter -> TImg
-  tStepFilter trt mact sfilter
-    =        dispenseUniq `b`
-    \uniq -> tStepFilter` trt uniq mact sfilter
-  tStepFilter` :: !TonicRT !Int !(Maybe String) !TStepFilter -> TImg
-  tStepFilter` trt uniq mact (Always te) = tExpr2Image inh te `b` ('CA'.pure o mkAlways uniq mact)
-    where
-    mkAlways :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
-    mkAlways uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact alwaysFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter` trt uniq mact (HasValue mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkHasValue uniq mact)
-    where
-    // TODO mpat
-    mkHasValue :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
-    mkHasValue uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter` trt uniq mact (IfStable mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkIfStable uniq mact)
-    where
-    // TODO mpat
-    mkIfStable :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
-    mkIfStable uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact tStable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter` trt uniq mact (IfUnstable mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkIfUnstable uniq mact)
-    where
-    // TODO mpat
-    mkIfUnstable :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
-    mkIfUnstable uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact tUnstable, tHorizConnArr, /* TODO edge */ t] Nothing
-  tStepFilter` trt uniq mact (IfCond pp mpat te) = tExpr2Image inh te `b` ('CA'.pure o mkIfCond uniq mact)
-    where
-    // TODO mpat pp
-    mkIfCond :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
-    mkIfCond uniq mact t = beside (repeat AtMiddleY) [] [addAction uniq mact alwaysFilter, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
-  tStepFilter` trt uniq mact (IfValue pat fn vars mpat te) = tExpr2Image inh te `b` \t -> tIfValue fn vars `b` ('CA'.pure o mkIfValue pat uniq mact t)
-    where
-    mkIfValue :: !String !Int !(Maybe String) !(Image ModelTy) !(Image ModelTy) -> Image ModelTy
-    mkIfValue pat uniq mact t c = beside (repeat AtMiddleY) [] [addAction uniq mact hasValueFilter, tHorizConn, text ArialRegular10px pat, tHorizConnArr, c, tHorizConnArr, /* TODO mpat */ t] Nothing
-  tStepFilter` trt uniq mact (CustomFilter pp) = 'CA'.pure (text ArialRegular10px pp)
+    = (beside (repeat AtMiddleY) [] [tException, tHorizConnArr, /* TODO edge */ img] Nothing, tsrc)
+  tStepFilter :: !TonicRT !(Maybe String) !TStepFilter !*TagSource -> *(!Image ModelTy, !*TagSource)
+  tStepFilter trt mact sfilter tsrc
+    #! (ref, tsrc) = mkTagRef tsrc
+    = tStepFilter` trt mact sfilter ref tsrc
+  tStepFilter` :: !TonicRT !(Maybe String) !TStepFilter !*TagRef !*TagSource -> *(!Image ModelTy, !*TagSource)
+  tStepFilter` trt mact (Always te) ref tsrc
+    #! (t, tsrc) = tExpr2Image inh te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (HasValue mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image inh te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /* TODO edge */ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (IfStable mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image inh te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (IfUnstable mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image inh te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (IfCond pp mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image inh te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge and conditional */ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (IfValue pat fn vars mpat te) ref tsrc
+    #! (t, tsrc)   = tExpr2Image inh te tsrc
+    #! (ifv, tsrc) = tIfValue fn vars tsrc
+    #! img         = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, text ArialRegular10px pat, tHorizConnArr, ifv, tHorizConnArr, /* TODO mpat */ t] Nothing
+    = (img, tsrc)
+  tStepFilter` trt mact (CustomFilter pp) ref tsrc = (text ArialRegular10px pp, tsrc)
+  addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy
+  addAction (Just action) img ref
+    #! l = above (repeat AtMiddleX) [] [ beside (repeat AtMiddleY) [] [littleman, text ArialBold10px action] Nothing
+                                       , img] Nothing
+    #! (imgtag, ref) = tagFromRef ref
+    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+                                                 , l] Nothing
+  addAction _ img _ = img
 
 alwaysFilter :: Image ModelTy
 alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
@@ -906,38 +879,28 @@ alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
 hasValueFilter :: Image ModelTy
 hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
 
-addAction :: !Int !(Maybe String) !(Image ModelTy) -> Image ModelTy
-addAction uniq (Just action) img
-  #! (imgtag,imgtag`) = (imageTag uniq,imageTag uniq)
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag` + px 5.0) (imageyspan imgtag` + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
-                                               , tag imgtag (above (repeat AtMiddleX) [] [ beside (repeat AtMiddleY) [] [littleman, text ArialBold10px action] Nothing
-                                                                                         , img] Nothing)
-                                               ] Nothing
-addAction _ _ img = img
 
 littleman :: Image a
 littleman = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}
                                                               , circle (px 10.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}] Nothing) <@< {mask = rect (px 16.0) (px 16.0) <@< {fill = toSVGColor "white"}}
 
-tIfValue :: !VarName ![VarName] -> TImg
-tIfValue tffun args
-  =          dispenseUniq `b`
-  \nameNo -> dispenseUniq `b`
-  \argsNo -> 'CA'.pure (tIfValue` nameNo argsNo)
-  where
-  tIfValue` :: !Int !Int -> Image ModelTy
-  tIfValue` nameNo argsNo
-    #! maxXSpan   = maxSpan [imagexspan (imageTag nameNo), imagexspan (imageTag argsNo)]
-    #! bgRect     = rect maxXSpan (imageyspan (imageTag nameNo) + imageyspan (imageTag argsNo))
-                      <@< { fill        = toSVGColor "white" }
-                      <@< { stroke      = toSVGColor "black" }
-                      <@< { strokewidth = px 1.0 }
-    #! tfNameImg  = tag (imageTag nameNo) (margin (px 5.0) (text ArialItalic10px tffun))
-    #! tfArgsImgs = tag (imageTag argsNo) (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-    #! tfContents = above (repeat AtLeft) [] (case args of
-                                                [] -> [tfNameImg]
-                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
-    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
+tIfValue :: !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tIfValue tffun args tsrc
+  #! (nameref, tsrc)    = mkTagRef tsrc
+  #! (nametag, nameref) = tagFromRef nameref
+  #! (argsref, tsrc)    = mkTagRef tsrc
+  #! (argstag, argsref) = tagFromRef argsref
+  #! maxXSpan   = maxSpan [imagexspan nametag, imagexspan argstag]
+  #! bgRect     = rect maxXSpan (imageyspan nametag + imageyspan argstag)
+                    <@< { fill        = toSVGColor "white" }
+                    <@< { stroke      = toSVGColor "black" }
+                    <@< { strokewidth = px 1.0 }
+  #! (tfNameImg, nameref) = tagWithRef nameref (margin (px 5.0) (text ArialItalic10px tffun))
+  #! (tfArgsImgs, argsref) = tagWithRef argsref (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+  #! tfContents = above (repeat AtLeft) [] (case args of
+                                              [] -> [tfNameImg]
+                                              _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing, tsrc)
 
 tException :: Image ModelTy
 tException
