@@ -524,22 +524,6 @@ tCaseOrIf inh ppexpr pats tsrc
   y :: !Real !Real !Span -> Span
   y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
-// TODO
-mkVertConn :: !*[*TagRef] -> *(!Image ModelTy, !*[*TagRef])
-mkVertConn refs
-  | length refs < 2 = (empty (px 0.0) (px 0.0), refs)
-  | otherwise
-      #! (ts, refs) = extractTags refs
-      #! firstTag  = hd ts
-      #! lastTag   = last ts
-      #! allYSpans = foldr (\x acc -> imageyspan x + acc) (px 0.0) ts
-      = (above (repeat AtMiddleX) []
-           [ yline Nothing (imageyspan firstTag /. 2.0) <@< { stroke = toSVGColor "white" }
-           , yline Nothing (allYSpans - (imageyspan firstTag /. 2.0) - (imageyspan lastTag /. 2.0)) <@< { stroke = toSVGColor "black" }
-           , yline Nothing (imageyspan lastTag /. 2.0) <@< { stroke = toSVGColor "white" } ]
-           Nothing
-        , refs)
-
 tShare :: !MkImageInh !TShare !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tShare inh sh sn args tsrc
   #! boxTxt  = case sh of
@@ -799,8 +783,16 @@ extractTags [x:xs]
   #! (t, r) = tagFromRef x
   = ([t:ts], [r:rs])
 
+tagImgs :: ![Image ModelTy] !*[*TagRef] -> *(![Image ModelTy], !*[*TagRef])
+tagImgs [] [] = ([], [])
+tagImgs [i:is] [r:rs]
+  #! (is, rs) = tagImgs is rs
+  #! (i, r) = tagWithRef r i
+  = ([i:is], [r:rs])
+
 prepCases :: ![String] ![Image ModelTy] !*[*TagRef] -> *(![Image ModelTy], !*[*TagRef])
 prepCases patStrs pats refs
+  #! (pats, refs) = tagImgs pats refs
   #! (tags, refs) = extractTags refs
   #! pats     = zipWith (\_ pat -> pat) tags pats // To sync lengths
   #! maxXSpan = maxSpan (map imagexspan tags)
@@ -821,6 +813,21 @@ prepCases patStrs pats refs
           #! rightLine = xline Nothing (px 8.0 + linePart)
           #! textBox   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (ArialRegular10px.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text ArialRegular10px patStr] Nothing
           = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), textBox, leftLine, pat, rightLine] Nothing
+
+mkVertConn :: !*[*TagRef] -> *(!Image ModelTy, !*[*TagRef])
+mkVertConn refs
+  | length refs < 2 = (empty (px 0.0) (px 0.0), refs)
+  | otherwise
+      #! (ts, refs) = extractTags refs
+      #! firstTag  = hd ts
+      #! lastTag   = last ts
+      #! allYSpans = foldr (\x acc -> imageyspan x + acc) (px 0.0) ts
+      = (above (repeat AtMiddleX) []
+           [ yline Nothing (imageyspan firstTag /. 2.0) <@< { stroke = toSVGColor "white" }
+           , yline Nothing (allYSpans - (imageyspan firstTag /. 2.0) - (imageyspan lastTag /. 2.0)) <@< { stroke = toSVGColor "black" }
+           , yline Nothing (imageyspan lastTag /. 2.0) <@< { stroke = toSVGColor "white" } ]
+           Nothing
+        , refs)
 
 tStepCont :: !MkImageInh !(PPOr TStepCont) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStepCont _   (PP pp) tsrc = (text ArialRegular10px pp, tsrc)
@@ -869,6 +876,7 @@ tStepCont inh (T t)   tsrc = tStepCont` inh.inh_trt t tsrc
     #! l = above (repeat AtMiddleX) [] [ beside (repeat AtMiddleY) [] [littleman, text ArialBold10px action] Nothing
                                        , img] Nothing
     #! (imgtag, ref) = tagFromRef ref
+    #! (l, ref) = tagWithRef ref l
     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan imgtag + px 5.0) (imageyspan imgtag + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
                                                  , l] Nothing
   addAction _ img _ = img
