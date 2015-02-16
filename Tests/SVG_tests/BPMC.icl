@@ -2,8 +2,6 @@ module BPMC
 
 import iTasks
 import MultiUser
-from Email import :: Email{..}
-derive class iTask Email
 from iTasks.API.Core.IntegrationTasks import sendEmail
 
 // Types obtained from use case
@@ -23,46 +21,55 @@ derive class iTask  BusinessDepartment, EmployeeId, Document`, ClientId, Account
 // additional types
 
 :: Name 			  :== String
-:: Client 			  = { name 			:: Name
+:: EmailAddr  		  :== String
+:: Client 			  = { user 			:: User
 						, id			:: ClientId
-						, email			:: String
+						, email			:: EmailAddr
 					    , accounts  	:: [Account]
 					    }
-:: Employee			  = { name 			:: Name
-						, department	:: BusinessDepartment
+:: Employee			  = { user 			:: User
 						, id 			:: EmployeeId
+						, department	:: BusinessDepartment
+						, email			:: EmailAddr
 						}  
-:: ClientRequest	  = { name			:: Name
+:: ClientRequest	  = { user			:: Name
 					    , id			:: ClientId
-					    , email			:: String
+					    , email			:: EmailAddr
 					    , request		:: Note
 					    }
+:: Email		      =	{ email_from	:: EmailAddr
+						, email_to		:: EmailAddr
+						, email_subject	:: String
+						, email_body	:: Note
+						}
 
-derive class iTask  Client, Employee, ClientRequest
 
-// stored db information simulation... 
+derive class iTask  Client, Employee, ClientRequest, Email
+
+// we assume that there is some information stored in a database ...
+// we don't know the actual type of all this ...
 	
 ourClients :: [Client]
-ourClients 		= 	[ {name = "Rinus",  id = Cd 1, email = "rinus@cs.ru.nl",  accounts = [Ac 1, Ac 2]}
-			 		, {name = "Pieter", id = Cd 2, email = "pieter@cs.ru.nl", accounts = [Ac 3, Ac 4, Ac 5]}
+ourClients 		= 	[ {user = AuthenticatedUser "Cd 1" [] (Just "Rinus" ), id = Cd 1, email = "rinus@cs.ru.nl",  accounts = [Ac 1, Ac 2]}
+			 		, {user = AuthenticatedUser "Cd 2" [] (Just "Pieter"), id = Cd 2, email = "pieter@cs.ru.nl", accounts = [Ac 3, Ac 4, Ac 5]}
 			 		]
 
 ourEmployees :: [Employee]
-ourEmployees 	= 	[ {Employee | name = "alice", department = Bd 1, id = Ec 26}
-					, {Employee | name = "bob",   department = Bd 2, id = Ec 27}
-					, {Employee | name = "carol", department = Bd 3, id = Ec 28}
+ourEmployees 	= 	[ {Employee | user = AuthenticatedUser "alice" [] Nothing, department = Bd 1, id = Ec 26, email = "alice@ing.nl"}
+					, {Employee | user = AuthenticatedUser "bob"   [] Nothing, department = Bd 2, id = Ec 27, email = "bob@ing.nl"}
+					, {Employee | user = AuthenticatedUser "carol" [] Nothing, department = Bd 3, id = Ec 28, email = "carol@ing.nl"}
 					]			 
 
-// access functions on db info are also required...
+// crud functions on such db info is also required ...
 
-getClient :: Name ClientId -> Maybe Client
-getClient cname cid 
-# clients = [client \\ client=:{Client|name,id} <- ourClients | cname === name && cid === id]
+getClient :: ClientId -> Maybe Client
+getClient cid 
+# clients = [client \\ client=:{Client|id} <- ourClients | cid === id]
 = if (isEmpty clients) Nothing (Just (hd clients))
 
 getEmployee :: BusinessDepartment EmployeeId -> Maybe Employee
-getEmployee dep eid 
-# employees = [employee \\ employee=:{name,department,id} <- ourEmployees | department === dep && eid === id]
+getEmployee  bdid eid 
+# employees = [employee \\ employee=:{Employee|id,department} <- ourEmployees | eid === id && bdid === department]
 = if (isEmpty employees) Nothing (Just (hd employees))
 
 // here the task description starts...
@@ -72,35 +79,44 @@ Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a
 									] world
 caseA :: Task ()
 caseA 
-	= 							  serviceRequest						// request issued by client
-	 >>= \request ->	foName @: handleRequest request					// tasks of front office 
-	 >>| return ()
+	= 				    			get currentUser 							// get credentials of client logged in
+	 >>= \clientUser ->				create "Submit Service Request"				// client creates service request 
+	 >>= \request ->	foUser @: 	handleRequest foUser clientUser request		// front office handles request client
+	 >>| 							return ()
 where
-	frontOfficeEmployee = (fromJust (getEmployee (Bd 1) (Ec 26)))		// lets assume this employee indeed exists...
-	foName 				= frontOfficeEmployee.Employee.name	 			// name of employee
+	handleRequest :: User User ClientRequest -> Task () 
+	handleRequest foUser clientUser request
+	=	 				receive foUser clientUser "The following Service Request has been received..." request				// step 1a
+	 >>|				modify ("Info received:",request) ("Handle Service Request:",document)								// step 1b																			// step 1
+	 >>= \document -> 	verify ("Verify:",("Request :",request), ("Client Info: ", clientAdmin))							// step 2
+	 >>= \ok  	   -> 	if (not ok) (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 3  
+								    (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 4
+	 >>| 				return ()
+	where 
+		document		= {Document`|type = 34, content = 14}				// id and type of document to be filled in...
+		clientEmail		= request.ClientRequest.email						// email address filled in request
+		clientAdmin		= getClient request.ClientRequest.id				// search for client information in database 	
 
-	handleRequest :: ClientRequest -> Task () 
-	handleRequest request
-	# client = getClient request.ClientRequest.name request.ClientRequest.id 	
-	=	 				modify request document												// step 1
-	 >>= \document -> 	verify ("Request :",request, "Client Info: ", client) 				// step 2
-	 >>= \ok  	   -> 	if (not ok) (inform request.ClientRequest.email foName "your request" (toMultiLineText request))				// step 3  
-								    (inform request.ClientRequest.email foName "your request" (toMultiLineText request))				// step 4
-	 >>| return ()
+	frontOfficeEmployee = fromJust (getEmployee (Bd 1) (Ec 26))			// lets assume employee (Bd 1) (Ec 26) indeed is administrated
+	foUser 				= frontOfficeEmployee.Employee.user	 			// employee
+	foEmail				= frontOfficeEmployee.Employee.email			// email address of employee
 
-	document = {Document`|type = 34, content = 14}
+// Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
-// Here follows an attempt to define the generic 19 ones, as far as they are used above...
+create :: String -> Task a | iTask a								// Create ...
+create info 
+	= 				enterInformation info []		
 
-serviceRequest :: Task a | iTask a									// not one of the 19 ??
-serviceRequest = enterInformation "Please type in your request" []		
+receive :: User User String a -> Task () | iTask a					// Acknowledge toUser that fromUser has been received the indicated information
+receive fromUser toUser prompt response 
+	=	appendTopLevelTaskFor toUser False (viewInformation (fromUser +++> " confirms: "+++> prompt) [] response)
+	>>| return ()							
 
-
-modify :: a b -> Task b | iTask a & iTask b
-modify request response
-	=	(viewInformation "Info received:" [] request 				// show the request received 
+modify :: (String,a) (String,b) -> Task b | iTask a & iTask b
+modify (info,document) (prompt,response)
+	=	(viewInformation info [] document 							// show the request received 
 	  	||-
-	  	updateInformation "Handle Service Reques:" [] response)		// and fill in the response the context needs
+	  	updateInformation prompt [] response)						// and fill in the response the context needs
 
 verify :: a -> Task Bool | iTask a
 verify info 
@@ -109,14 +125,14 @@ verify info
 		, OnAction ActionNo  (always (return False))				// and   "No"  to decline
 		]
 
-inform :: String String String String -> Task () 
-inform toUser fromUser subject body 
+inform :: EmailAddr EmailAddr String String -> Task () 
+inform fromUser toUser subject body 
 	= 				updateInformation "Compose an email" [] 	{ email_from 	= fromUser
 															  	, email_to 		= toUser
 																, email_subject = subject
-																, email_body 	= toString body
+																, email_body 	= Note (toString body)
 																}
-	 >>= \mail -> 	sendEmail mail.email_subject (Note mail.email_body) mail.email_from [mail.email_to]
+	 >>= \mail -> 	sendEmail mail.email_subject mail.email_body mail.email_from [mail.email_to]
 	 >>| 			return () 
 	 
 	 
