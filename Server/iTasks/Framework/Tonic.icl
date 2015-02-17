@@ -81,8 +81,14 @@ tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
 tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
+tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>*
+  [ OnValue onModule
+  , OnAllExceptions onException
+  ]
   where
+    onModule (Value mod _) = Just (Task (eval` (Just mod)))
+    onModule _             = Nothing
+    onException _ = Task (eval` Nothing)
     eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
@@ -92,7 +98,9 @@ tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>- Task o eval`
         # tonicRT = { trt_taskId        = currTaskId
                     , trt_params        = args
                     , trt_bpref         = (mn, tn)
-                    , trt_bpinstance    = getTask mod tn
+                    , trt_bpinstance    = case mod of
+                                            Just mod -> getTask mod tn
+                                            _        -> Nothing
                     , trt_activeNodeId  = Nothing
                     , trt_parentTaskId  = maybe (TaskId instanceNo 0)
                                             (\rt -> rt.trt_taskId)
