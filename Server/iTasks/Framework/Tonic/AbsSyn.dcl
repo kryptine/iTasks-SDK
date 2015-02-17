@@ -72,6 +72,7 @@ derive gEq
   | TUSystemUser
   | TUAnonymousUser
   | TUAuthenticatedUser String [String]
+  | TUVariableUser String
 
 :: TParallel
   = ParSumL TExpr TExpr

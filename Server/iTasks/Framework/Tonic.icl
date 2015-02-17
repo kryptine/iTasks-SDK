@@ -767,6 +767,7 @@ ppUser (TUUserWithRole role)           = "Any user with role " +++ role
 ppUser TUSystemUser                    = "Any system user"
 ppUser TUAnonymousUser                 = "Any anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
+ppUser (TUVariableUser usr)            = "User referred to by variable " +++ usr
 
 tStep :: !MkImageInh !TExpr ![PPOr TStepCont] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh lhsExpr conts tsrc
