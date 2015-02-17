@@ -83,7 +83,9 @@ buildID :: RWShared p BuildID Void
 buildID = createReadWriteSDS "system" "buildID" read write
 where
     read _ iworld=:{server={buildID}} = (Ok buildID,iworld)
-    write _ _ iworld = (Ok (const False),iworld)
+    write _ _ iworld = (Ok (const True),iworld) 
+	//FIXME: Should be const False, because it is a constant, but currently not possible because of
+	//the parallel sds combination is broken
 
 //Convenient derived store which checks version
 jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
