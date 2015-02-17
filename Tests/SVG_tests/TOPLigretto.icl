@@ -9,7 +9,7 @@ import iTasks.Framework.Tonic
 
 Start :: *World -> *World
 Start world = startEngine [ publish "/" (WebApp []) (\_-> browseExamples [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto])
-                          , tonicViewer "TOP Ligretto"] world
+                          , tonicViewer] world
 where
 	browseExamples taskList = forever (
 		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
@@ -154,7 +154,7 @@ player_image interactive r player
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
 
-player_perspective :: !(!Color, !User) !GameSt [(*ImageTag,ImageTag)] -> Image GameSt
+player_perspective :: !(!Color, !User) !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
 player_perspective (color,user) gameSt _
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]

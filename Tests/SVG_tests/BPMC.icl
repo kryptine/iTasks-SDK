@@ -3,6 +3,7 @@ module BPMC
 import iTasks
 import MultiUser
 from iTasks.API.Core.IntegrationTasks import sendEmail
+import iTasks.Framework.Tonic
 
 // Types obtained from use case
 
@@ -76,6 +77,7 @@ getEmployee  bdid eid
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA
+                                    , workflow "Tonic" "Tonic viewer" tonicWorkflow
 									] world
 caseA :: Task ()
 caseA 
