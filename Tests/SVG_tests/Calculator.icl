@@ -109,7 +109,7 @@ where
 	mkButton3 s x y = mkButton2 s x y <@< {onclick = (\as -> {as & ActionState.action = Just s})}  
 	mkButton2 s x y =  overlay [(AtLeft,AtTop),(AtMiddleX,AtMiddleY)] [] 
 							[mkButton x y, mkText (toString s)] Nothing
-	mkButton x y 	=  rect (PxSpan x) (PxSpan y) <@< {stroke = toSVGColor "black"} <@< {fill = toSVGColor "white"} <@< {strokewidth = px 1.0}
+	mkButton x y 	=  rect (px x) (px y) <@< {stroke = toSVGColor "black"} <@< {fill = toSVGColor "white"} <@< {strokewidth = px 1.0}
 	mkText s		=  text ArialRegular10px s
 
 
