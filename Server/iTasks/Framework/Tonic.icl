@@ -224,10 +224,10 @@ getTonicDir = mkInstantTask f
     # (server, iworld) = iworld!server
     = (Ok (server.paths.appDirectory </> "tonic"), iworld)
 
-tonicLogin :: String -> Task ()
-tonicLogin appName = tonicUI appName
-//tonicLogin :: String -> Task Void
-//tonicLogin appName = forever (
+tonicLogin :: Task ()
+tonicLogin = tonicUI
+//tonicLogin :: Task Void
+//tonicLogin = forever (
       //(viewTitle "Tonic"
   //||- enterInformation ("Login", "Enter your credentials and login") [])
   //>>* [ OnAction (Action "Login" [ActionIcon "login", ActionKey (unmodified KEY_ENTER)]) (hasValue authenticatedTonic)
@@ -236,7 +236,7 @@ tonicLogin appName = tonicUI appName
   //authenticatedTonic {Credentials|username, password}
     //=            authenticateUser username password >>=
       //\mbUser -> case mbUser of
-                   //Just user -> workAs user (tonicUI appName)
+                   //Just user -> workAs user tonicUI
                    //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" @! ()
 
 derive class iTask FileError
@@ -247,8 +247,8 @@ getTasks tm = 'DM'.keys tm.tm_tasks
 getTask :: !TonicModule !String -> Maybe TonicTask
 getTask tm tn = 'DM'.get tn tm.tm_tasks
 
-tonicUI :: String -> Task ()
-tonicUI appName
+tonicUI :: Task ()
+tonicUI
   = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Dynamic Task Instance Browser it is possible to monitor the application while it executes.") >>*
     [ OnAction (Action "Static Task Browser" []) (\_ -> Just viewStatic)
     , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just viewDynamic)
@@ -367,8 +367,11 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
   collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ prefixAOrAn argty, vi)) bp.tt_args trt.trt_params
 viewInstance _ = return ()
 
-tonicViewer :: String -> PublishedTask
-tonicViewer appName = publish "/tonic" (WebApp []) (\_ -> tonicLogin appName)
+tonicViewer :: PublishedTask
+tonicViewer = publish "/tonic" (WebApp []) (\_ -> tonicLogin)
+
+tonicWorkflow :: Task ()
+tonicWorkflow = tonicLogin
 
 outgoingTaskEdges :: TonicRT -> Set (ModuleName, TaskName)
 outgoingTaskEdges trt = outgoingTaskEdges` trt 'DM'.newMap
