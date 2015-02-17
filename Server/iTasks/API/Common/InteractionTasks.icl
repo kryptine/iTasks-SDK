@@ -11,6 +11,7 @@ import StdBool, StdList, StdMisc, StdTuple, Data.Functor
 import iTasks.API.Core.Tasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Core.TaskCombinators
 import iTasks.API.Common.TaskCombinators, iTasks.API.Core.LayoutCombinators, iTasks.API.Core.SDSs
 import iTasks.Framework.Generic.Interaction, iTasks.API.Common.SDSCombinators
+import iTasks.Framework.Tonic
 
 /*
 editInformation :: !d ![UpdateOption m m] (Maybe m) -> Task m | descr d & iTask m
