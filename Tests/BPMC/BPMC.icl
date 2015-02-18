@@ -51,15 +51,17 @@ derive class iTask  Client, Employee, ClientRequest, Email
 // we don't know the actual type of all this ...
 	
 ourClients :: [Client]
-ourClients 		= 	[ {user = AuthenticatedUser "Cd 1" [] (Just "Rinus" ), id = Cd 1, email = "rinus@cs.ru.nl",  accounts = [Ac 1, Ac 2]}
-			 		, {user = AuthenticatedUser "Cd 2" [] (Just "Pieter"), id = Cd 2, email = "pieter@cs.ru.nl", accounts = [Ac 3, Ac 4, Ac 5]}
+ourClients 		= 	[ {user = knownUser "Rinus" , id = Cd 1, email = "rinus@cs.ru.nl",  accounts = [Ac 1, Ac 2]}
+			 		, {user = knownUser "Pieter", id = Cd 2, email = "pieter@cs.ru.nl", accounts = [Ac 3, Ac 4, Ac 5]}
 			 		]
 
 ourEmployees :: [Employee]
-ourEmployees 	= 	[ {Employee | user = AuthenticatedUser "alice" [] Nothing, department = Bd 1, id = Ec 26, email = "alice@ing.nl"}
-					, {Employee | user = AuthenticatedUser "bob"   [] Nothing, department = Bd 2, id = Ec 27, email = "bob@ing.nl"}
-					, {Employee | user = AuthenticatedUser "carol" [] Nothing, department = Bd 3, id = Ec 28, email = "carol@ing.nl"}
+ourEmployees 	= 	[ {Employee | user = knownUser "alice", department = Bd 1, id = Ec 26, email = "alice@ing.nl"}
+					, {Employee | user = knownUser "bob"  , department = Bd 2, id = Ec 27, email = "bob@ing.nl"}
+					, {Employee | user = knownUser "carol", department = Bd 3, id = Ec 28, email = "carol@ing.nl"}
 					]			 
+
+knownUser name = AuthenticatedUser name [] Nothing
 
 // crud functions on such db info is also required ...
 
@@ -95,9 +97,9 @@ where
 								    (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 4
 	 >>| 				return ()
 	where 
-		document		= {Document`|type = 34, content = 14}				// id and type of document to be filled in...
-		clientEmail		= request.ClientRequest.email						// email address filled in request
-		clientAdmin		= getClient request.ClientRequest.id				// search for client information in database 	
+		document		= {Document`|type = 34, content = 14}			// id and type of document to be filled in...
+		clientEmail		= request.ClientRequest.email					// email address filled in request
+		clientAdmin		= getClient request.ClientRequest.id			// search for client information in database 	
 
 	frontOfficeEmployee = fromJust (getEmployee (Bd 1) (Ec 26))			// lets assume employee (Bd 1) (Ec 26) indeed is administrated
 	foUser 				= frontOfficeEmployee.Employee.user	 			// employee
@@ -105,29 +107,29 @@ where
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
-create :: String -> Task a | iTask a								// Create ...
+create :: String -> Task a | iTask a									// Create ...
 create info 
 	= 				enterInformation info []		
 
-receive :: User User String a -> Task () | iTask a					// Acknowledge toUser that fromUser has been received the indicated information
+receive :: User User String a -> Task () | iTask a						// Acknowledge toUser that fromUser has been received the indicated information
 receive fromUser toUser prompt response 
 	=	appendTopLevelTaskFor toUser False (viewInformation (fromUser +++> " confirms: "+++> prompt) [] response)
 	>>| return ()							
 
 modify :: (String,a) (String,b) -> Task b | iTask a & iTask b
 modify (info,document) (prompt,response)
-	=	(viewInformation info [] document 							// show the request received 
+	=	(viewInformation info [] document 								// show the request received 
 	  	||-
-	  	updateInformation prompt [] response)						// and fill in the response the context needs
+	  	updateInformation prompt [] response)							// and fill in the response the context needs
 
 verify :: a -> Task Bool | iTask a
 verify info 
-	= 	viewInformation "Is this Information Correct?" [] info		// show the information to judge
-	>>* [ OnAction ActionYes (always (return True))					// press "Yes" to confirm
-		, OnAction ActionNo  (always (return False))				// and   "No"  to decline
+	= 	viewInformation "Is this Information Correct?" [] info			// show the information to judge
+	>>* [ OnAction ActionYes (always (return True))						// press "Yes" to confirm
+		, OnAction ActionNo  (always (return False))					// and   "No"  to decline
 		]
 
-inform :: EmailAddr EmailAddr String String -> Task () 
+inform :: EmailAddr EmailAddr String String -> Task () 					// create an email to inform and send it off...
 inform fromUser toUser subject body 
 	= 				updateInformation "Compose an email" [] 	{ email_from 	= fromUser
 															  	, email_to 		= toUser
