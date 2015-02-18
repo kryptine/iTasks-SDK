@@ -501,10 +501,11 @@ ppTCleanExprList [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
 ppTCleanExprTuple :: ![TCleanExpr] -> String
 ppTCleanExprTuple []  = ""
 ppTCleanExprTuple [x] = ppTCleanExpr x
-ppTCleanExprTuple [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
+ppTCleanExprTuple [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprTuple xs
 
-sugarPP "_Unit" = "nothing"
-sugarPP "_Nil"  = "[]"
+sugarPP "_Unit"   = "nothing"
+sugarPP "_Nil"    = "[]"
+sugarPP "_String" = "String"
 sugarPP pp = pp
 
 tArrowTip :: Image ModelTy
@@ -698,7 +699,6 @@ tStopSymb  = rect (px 16.0) (px 16.0)
 
 prefixAOrAn :: !String -> String
 prefixAOrAn str
-  | str == "Unit"                                   = "nothing"
   | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
   | otherwise                                       = "a " +++ str
 
