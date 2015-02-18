@@ -482,14 +482,26 @@ tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px (ppTCle
 ppTCleanExpr :: !TCleanExpr -> String
 ppTCleanExpr (PPCleanExpr pp)     = sugarPP pp
 ppTCleanExpr (AppCleanExpr pp []) = sugarPP pp
-ppTCleanExpr (AppCleanExpr "_Tuple2" [e1, e2]) = "(" +++ ppTCleanExpr e1 +++ ", " +++ ppTCleanExpr e2 +++ ")"
-ppTCleanExpr (AppCleanExpr "_Tuple3" [e1, e2, e3]) = "(" +++ ppTCleanExpr e1 +++ ", " +++ ppTCleanExpr e2 +++ ppTCleanExpr e3 +++ ")"
+ppTCleanExpr (AppCleanExpr "_Cons" xs)   = "[" +++ ppTCleanExprList xs +++ "]"
+ppTCleanExpr (AppCleanExpr "_Tuple2" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
+ppTCleanExpr (AppCleanExpr "_Tuple3" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
+ppTCleanExpr (AppCleanExpr "_Tuple4" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
 ppTCleanExpr (AppCleanExpr pp xs) = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
   where
   ppTCleanExpr` :: !TCleanExpr -> String
   ppTCleanExpr` (PPCleanExpr pp)     = sugarPP pp
   ppTCleanExpr` (AppCleanExpr pp []) = sugarPP pp
   ppTCleanExpr` (AppCleanExpr pp xs) = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
+
+ppTCleanExprList :: ![TCleanExpr] -> String
+ppTCleanExprList []  = ""
+ppTCleanExprList [x : PPCleanExpr "_Nil" : _] = ppTCleanExpr x
+ppTCleanExprList [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
+
+ppTCleanExprTuple :: ![TCleanExpr] -> String
+ppTCleanExprTuple []  = ""
+ppTCleanExprTuple [x] = ppTCleanExpr x
+ppTCleanExprTuple [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
 
 sugarPP "_Unit" = "nothing"
 sugarPP "_Nil"  = "[]"
