@@ -38,27 +38,27 @@ import Text
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap
+  TParallel, TShare, IntMap, TCleanExpr
 
 derive gEditMeta
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap
+  TParallel, TShare, IntMap, TCleanExpr
 
 derive gDefault
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap
+  TParallel, TShare, IntMap, TCleanExpr
 
 derive gUpdate
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap
+  TParallel, TShare, IntMap, TCleanExpr
 
 derive gVerify
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap
+  TParallel, TShare, IntMap, TCleanExpr
 
 derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap
+  TParallel, TShare, IntMap, TCleanExpr
 
 derive class iTask TonicRT
 
@@ -366,7 +366,7 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
   \mbprnt ->          (viewInformation (blueprintTitle trt bp) [] () ||-
                       viewTaskArguments trt bp ||-
                       (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
-  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} @! ())) >>*
+  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} )) >>*
                       [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn bp.tt_resty
@@ -477,7 +477,17 @@ tExpr2Image inh (TAssign usr t)            tsrc = tAssign       inh usr t tsrc
 tExpr2Image inh (TShare ts sn args)        tsrc = tShare        inh ts sn args tsrc
 tExpr2Image inh (TTransform lhs vn args)   tsrc = tTransformApp inh lhs vn args tsrc
 tExpr2Image inh (TVar _ pp)                tsrc = (text ArialRegular10px pp, tsrc)
-tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px pp, tsrc)
+tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px (ppTCleanExpr pp), tsrc)
+
+ppTCleanExpr :: !TCleanExpr -> String
+ppTCleanExpr (PPCleanExpr pp)     = pp
+ppTCleanExpr (AppCleanExpr pp []) = pp
+ppTCleanExpr (AppCleanExpr pp xs) = pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
+  where
+  ppTCleanExpr` :: !TCleanExpr -> String
+  ppTCleanExpr` (PPCleanExpr pp)     = pp
+  ppTCleanExpr` (AppCleanExpr pp []) = pp
+  ppTCleanExpr` (AppCleanExpr pp xs) = "(" +++ pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
 
 tArrowTip :: Image ModelTy
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -571,9 +581,9 @@ tShare inh sh sn args tsrc
 
 tLet :: !MkImageInh ![(!Pattern, !PPExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
 tLet inh pats expr tsrc
-  #! (t, tsrc) = tExpr2Image inh expr tsrc
-  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtMiddleX)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
-  #! (txttag, txtref) = tagFromRef txtref
+  #! (t, tsrc)               = tExpr2Image inh expr tsrc
+  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
+  #! (txttag, txtref)        = tagFromRef txtref
   #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
                  <@< { fill   = toSVGColor "white" }
                  <@< { stroke = toSVGColor "black" }

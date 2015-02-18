@@ -6,12 +6,12 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter
+  TStepFilter, TCleanExpr
 
 derive JSONDecode
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter
+  TStepFilter, TCleanExpr
 
 derive gEq
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter
+  TStepFilter, TCleanExpr
