@@ -486,16 +486,16 @@ ppTCleanExpr (AppCleanExpr _ "_Cons" xs)   = "[" +++ ppTCleanExprList xs +++ "]"
 ppTCleanExpr (AppCleanExpr _ "_Tuple2" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
 ppTCleanExpr (AppCleanExpr _ "_Tuple3" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
 ppTCleanExpr (AppCleanExpr _ "_Tuple4" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr TLeftAssoc  pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
-ppTCleanExpr (AppCleanExpr TRightAssoc pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
-ppTCleanExpr (AppCleanExpr _           pp xs) = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
+ppTCleanExpr (AppCleanExpr (TLeftAssoc  n) pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
+ppTCleanExpr (AppCleanExpr (TRightAssoc n) pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
+ppTCleanExpr (AppCleanExpr _               pp xs)     = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
 
 ppTCleanExpr` :: !TCleanExpr -> String
 ppTCleanExpr` (PPCleanExpr pp)       = sugarPP pp
 ppTCleanExpr` (AppCleanExpr _ pp []) = sugarPP pp
-ppTCleanExpr` (AppCleanExpr TLeftAssoc  pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
-ppTCleanExpr` (AppCleanExpr TRightAssoc pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
-ppTCleanExpr` (AppCleanExpr _           pp xs)     = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
+ppTCleanExpr` (AppCleanExpr (TLeftAssoc  n) pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
+ppTCleanExpr` (AppCleanExpr (TRightAssoc n) pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
+ppTCleanExpr` (AppCleanExpr _               pp xs)     = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
 
 ppTCleanExprList :: ![TCleanExpr] -> String
 ppTCleanExprList []  = ""

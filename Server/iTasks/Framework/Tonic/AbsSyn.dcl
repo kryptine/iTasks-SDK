@@ -65,8 +65,8 @@ derive gEq
   | PPCleanExpr PPExpr
 
 :: TAssoc
-  = TLeftAssoc
-  | TRightAssoc
+  = TLeftAssoc Int
+  | TRightAssoc Int
   | TNonAssoc
 
 :: TShare
