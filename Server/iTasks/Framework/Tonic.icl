@@ -15,7 +15,7 @@ import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 import iTasks.API.Extensions.SVG.SVGlet
-//import iTasks.API.Extensions.Tonic.Toniclet
+import iTasks.API.Extensions.Admin.WorkflowAdmin
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -29,11 +29,6 @@ import qualified Data.Set as DS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
-//from Control.Monad.State import :: State, :: StateT, :: Identity, instance Monad StateT, instance Applicative StateT, instance Functor StateT
-//from Control.Monad.Identity import instance Monad Identity, instance Applicative Identity, instance Functor Identity
-//import qualified Control.Applicative as CA
-//import qualified Control.Monad as CM
-//import qualified Control.Monad.State as CMS
 import Text
 
 derive gEditor
@@ -258,12 +253,18 @@ getTask tm tn = 'DM'.get tn tm.tm_tasks
 tonicUI :: Task ()
 tonicUI
   = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Dynamic Task Instance Browser it is possible to monitor the application while it executes.") >>*
-    [ OnAction (Action "Static Task Browser" []) (\_ -> Just viewStatic)
-    , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just viewDynamic)
+    [ OnAction (Action "Static Task Browser" []) (\_ -> Just tonicStaticBrowser)
+    , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just tonicDynamicBrowser)
     ]
 
-viewStatic :: Task ()
-viewStatic
+tonicStaticWorkflow :: Workflow
+tonicStaticWorkflow = workflow "Tonic Static Browser" "Tonic Static Browser" tonicStaticBrowser
+
+tonicDynamicWorkflow :: Workflow
+tonicDynamicWorkflow = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browser" tonicDynamicBrowser
+
+tonicStaticBrowser :: Task ()
+tonicStaticBrowser
   =      (selectModule >&> withSelection noModuleSelection (
   \mn -> getModule mn >>-
   \tm -> (selectTask tm >&> withSelection noTaskSelection (
@@ -338,10 +339,10 @@ enterQuery = enterInformation "Enter filter query" []
 
 derive class iTask BlueprintQuery
 
-viewDynamic :: Task ()
-viewDynamic = enterQuery >&> withSelection (viewDynamic` Nothing) viewDynamic`
+tonicDynamicBrowser :: Task ()
+tonicDynamicBrowser = enterQuery >&> withSelection (tonicDynamicBrowser` Nothing) tonicDynamicBrowser`
 
-viewDynamic` q =
+tonicDynamicBrowser` q =
     (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) >&>
     withSelection noBlueprintSelection viewInstance) <<@ ArrangeWithSideBar 0 LeftSide 700 True
                                                      <<@ FullScreen
@@ -377,9 +378,6 @@ viewInstance _ = return ()
 
 tonicViewer :: PublishedTask
 tonicViewer = publish "/tonic" (WebApp []) (\_ -> tonicLogin)
-
-tonicWorkflow :: Task ()
-tonicWorkflow = tonicLogin
 
 outgoingTaskEdges :: TonicRT -> Set (ModuleName, TaskName)
 outgoingTaskEdges trt = outgoingTaskEdges` trt 'DM'.newMap

@@ -8,6 +8,7 @@ from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Types import :: User
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 import iTasks.Framework.Tonic.AbsSyn
+from iTasks.API.Extensions.Admin.WorkflowAdmin import :: Workflow
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
@@ -55,7 +56,13 @@ derive class iTask TonicRT
 
 tonicViewer :: PublishedTask
 
-tonicWorkflow :: Task ()
+tonicStaticBrowser :: Task ()
+
+tonicStaticWorkflow :: Workflow
+
+tonicDynamicBrowser :: Task ()
+
+tonicDynamicWorkflow :: Workflow
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 
