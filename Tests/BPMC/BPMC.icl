@@ -62,28 +62,28 @@ getClient cid
 # clients = [client \\ client=:{Client|id} <- ourClients | cid === id]
 = if (isEmpty clients) Nothing (Just (hd clients))
 
-getEmployee :: BusinessDepartment EmployeeCode -> Maybe Employee
-getEmployee  bdid eid 
-# employees = [employee \\ employee=:{Employee|id,department} <- ourEmployees | eid === id && bdid === department]
+getEmployee :: EmployeeCode -> Maybe Employee
+getEmployee empCode 
+# employees = [employee \\ employee=:{Employee|id,department} <- ourEmployees | empCode === id]
 = if (isEmpty employees) Nothing (Just (hd employees))
 
 // some constants and db infor assigned here to do the work
 
 frontOffice 			= Bd 1
 foIc					= Ec 26													// i.e. alice											
-frontOfficeEmployee 	= fromJust (getEmployee frontOffice foIc)				// lets assume this employee is indeed administrated
+frontOfficeEmployee 	= fromJust (getEmployee foIc)							// lets assume this employee is indeed administrated
 foUser 					= frontOfficeEmployee.Employee.user	 					// used for assigning tasks to employee
 foEmail					= frontOfficeEmployee.Employee.email					// email address of employee
 
 commercialServiceAdmin	= Bd 2
 csaIc					= Ec 27													// i.e. bob
-csaEmployee 			= fromJust (getEmployee commercialServiceAdmin csaIc)	// lets assume this employee is indeed administrated
+csaEmployee 			= fromJust (getEmployee csaIc)							// lets assume this employee is indeed administrated
 csaUser 				= csaEmployee.Employee.user	 							// used for assigning tasks to employee
 csaEmail				= csaEmployee.Employee.email							// email address of employee
 
 backOffice			    = Bd 3
 boIc					= Ec 22													// i.e. carol
-boEmployee 				= fromJust (getEmployee commercialServiceAdmin boIc)	// lets assume this employee is indeed administrated
+boEmployee 				= fromJust (getEmployee boIc)							// lets assume this employee is indeed administrated
 boUser 					= boEmployee.Employee.user	 							// used for assigning tasks to employee
 boEmail					= boEmployee.Employee.email								// email address of employee
 
@@ -95,7 +95,7 @@ serviceReqLog			= { Document`	| type 		= Display (Do 35)			// service doc to log
 										, index		= Display (Cd 15)
 										, content	= Note ""
 						  }				
-case346					= Display (Cs 346)
+case346					= Display (Cs 346)										// case number to handle
 
 // Some types used for filling in forms
 
@@ -139,27 +139,24 @@ where
 	clientEmail		= request.ClientRequest.email								// email address filled in request
 	clientAdmin		= getClient request.ClientRequest.id						// search for client information in database 	
 
-handleLogService :: User User (Display Case,Document`)  -> Task () 						// this task is performed by the commercial service administration
+handleLogService :: User User (Display Case,Document`)  -> Task () 				// this task is performed by the commercial service administration
 handleLogService foUser csaUser (case346,serviceReqDoc) 
-	= 					modify "Handle Log Service Request" ("Document Received",serviceReqDoc)	("Document to log",serviceReqLog) // step 4, prpare doc to store
+	= 					modify "Handle Log Service Request" ("Document Received",serviceReqDoc)	("Document to log",serviceReqLog) // step 4, prepare doc to store
 	>>= \regLog ->		log (case346,regLog) database062																		// step 5, store casenumber and document
 	>>|					boUser @: handleCase csaUser boUser case346																// bo has to do step 6 and further 
 
-handleCase :: User User (Display Case) -> Task ()
+handleCase :: User User (Display Case) -> Task ()								// this task is performed by the backoffice
 handleCase csaUser boUser case346
-	=					receive csaUser boUser "The Request to handle the case has been received..." case346					// step 6a, notify sender
+	=					open case346 database062								// step 6, fetch case stored in database
+	>>= \mbDoc ->		verify mbDoc											// step 7, 
+	>>| return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
 create :: String -> Task a | iTask a									// Create ...
 create info 
 	= 				enterInformation info []		
-
-receive :: User User String a -> Task () | iTask a						// Acknowledge toUser that fromUser has received the indicated information
-receive fromUser toUser prompt response 
-	=	appendTopLevelTaskFor toUser False (viewInformation (fromUser +++> " confirms: "+++> prompt) [] response)
-	>>| return ()							
-
+	
 modify :: String (String,a) (String,b) -> Task b | iTask a & iTask b
 modify prompt (inPrompt,input) (outPrompt,output)
 	=	(viewInformation (prompt,inPrompt) [] input 					// tell what has to be done, show input received
@@ -173,12 +170,19 @@ verify info
 		, OnAction ActionNo  (always (return False))					// and   "No"  to decline
 		]
 
-//log :: User User a (Shared [a])  -> Task () | iTask a
+log :: a (Shared [a])  -> Task [a] | iTask a
 log value sharedDb
-//	=		 upd storeDoc sharedDb										// append document in database
-	= return ()
+	=		 		upd storeDoc sharedDb								// append document in database
 where
 	storeDoc db = [value:db]
+	
+open :: key (Shared [(key,value)]) -> Task (Maybe (key,value))	| iTask key & iTask value				// search in databse for item with a certain key
+open index sharedDb
+	=				get sharedDb										// read from database
+	>>= \content -> case [(idx,doc) \\ (idx,doc) <- content | idx === index ] of
+						[] 		-> return Nothing
+						[found] -> return (Just found)
+
 
 inform :: EmailAddr EmailAddr String String -> Task () 					// create an email to inform and send it off...
 inform fromUser toUser subject body 
