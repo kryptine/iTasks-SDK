@@ -87,23 +87,23 @@ caseA
 	 >>= \clientUser ->				create "Submit Service Request"				// client creates service request 
 	 >>= \request ->	foUser @: 	handleRequest foUser clientUser request		// front office handles request client
 	 >>| 							return ()
-where
-	handleRequest :: User User ClientRequest -> Task () 
-	handleRequest foUser clientUser request
-	=	 				receive foUser clientUser "The following Service Request has been received..." request				// step 1a
-	 >>|				modify ("Info received:",request) ("Handle Service Request:",document)								// step 1b																			// step 1
-	 >>= \document -> 	verify ("Verify:",("Request :",request), ("Client Info: ", clientAdmin))							// step 2
-	 >>= \ok  	   -> 	if (not ok) (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 3  
-								    (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 4
-	 >>| 				return ()
-	where 
-		document		= {Document`|type = 34, content = 14}			// id and type of document to be filled in...
-		clientEmail		= request.ClientRequest.email					// email address filled in request
-		clientAdmin		= getClient request.ClientRequest.id			// search for client information in database 	
+     
+handleRequest :: User User ClientRequest -> Task () 
+handleRequest foUser clientUser request
+=	 				receive foUser clientUser "The following Service Request has been received..." request				// step 1a
+ >>|				modify ("Info received:",request) ("Handle Service Request:",document)								// step 1b																			// step 1
+ >>= \document -> 	verify ("Verify:",("Request :",request), ("Client Info: ", clientAdmin))							// step 2
+ >>= \ok  	   -> 	if (not ok) (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 3  
+							    (inform foEmail clientEmail  "your request" (toMultiLineText request))					// step 4
+ >>| 				return ()
+where 
+	document		= {Document`|type = 34, content = 14}			// id and type of document to be filled in...
+	clientEmail		= request.ClientRequest.email					// email address filled in request
+	clientAdmin		= getClient request.ClientRequest.id			// search for client information in database 	
 
-	frontOfficeEmployee = fromJust (getEmployee (Bd 1) (Ec 26))			// lets assume employee (Bd 1) (Ec 26) indeed is administrated
-	foUser 				= frontOfficeEmployee.Employee.user	 			// employee
-	foEmail				= frontOfficeEmployee.Employee.email			// email address of employee
+frontOfficeEmployee = fromJust (getEmployee (Bd 1) (Ec 26))			// lets assume employee (Bd 1) (Ec 26) indeed is administrated
+foUser 				= frontOfficeEmployee.Employee.user	 			// employee
+foEmail				= frontOfficeEmployee.Employee.email			// email address of employee
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
