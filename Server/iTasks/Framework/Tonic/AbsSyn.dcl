@@ -8,15 +8,15 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr
+  TStepFilter, TCleanExpr, TAssoc
 
 derive JSONDecode
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr
+  TStepFilter, TCleanExpr, TAssoc
 
 derive gEq
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr
+  TStepFilter, TCleanExpr, TAssoc
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -61,8 +61,13 @@ derive gEq
   | TTransform TExpr VarName [VarName]
 
 :: TCleanExpr
-  = AppCleanExpr PPExpr [TCleanExpr]
+  = AppCleanExpr TAssoc PPExpr [TCleanExpr]
   | PPCleanExpr PPExpr
+
+:: TAssoc
+  = TLeftAssoc
+  | TRightAssoc
+  | TNonAssoc
 
 :: TShare
   = Get

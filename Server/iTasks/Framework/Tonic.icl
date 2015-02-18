@@ -38,27 +38,27 @@ import Text
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc
 
 derive gEditMeta
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc
 
 derive gDefault
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc
 
 derive gUpdate
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc
 
 derive gVerify
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc
 
 derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc
 
 derive class iTask TonicRT
 
@@ -480,18 +480,22 @@ tExpr2Image inh (TVar _ pp)                tsrc = (text ArialRegular10px pp, tsr
 tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px (ppTCleanExpr pp), tsrc)
 
 ppTCleanExpr :: !TCleanExpr -> String
-ppTCleanExpr (PPCleanExpr pp)     = sugarPP pp
-ppTCleanExpr (AppCleanExpr pp []) = sugarPP pp
-ppTCleanExpr (AppCleanExpr "_Cons" xs)   = "[" +++ ppTCleanExprList xs +++ "]"
-ppTCleanExpr (AppCleanExpr "_Tuple2" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr "_Tuple3" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr "_Tuple4" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr pp xs) = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
-  where
-  ppTCleanExpr` :: !TCleanExpr -> String
-  ppTCleanExpr` (PPCleanExpr pp)     = sugarPP pp
-  ppTCleanExpr` (AppCleanExpr pp []) = sugarPP pp
-  ppTCleanExpr` (AppCleanExpr pp xs) = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
+ppTCleanExpr (PPCleanExpr pp)       = sugarPP pp
+ppTCleanExpr (AppCleanExpr _ pp []) = sugarPP pp
+ppTCleanExpr (AppCleanExpr _ "_Cons" xs)   = "[" +++ ppTCleanExprList xs +++ "]"
+ppTCleanExpr (AppCleanExpr _ "_Tuple2" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
+ppTCleanExpr (AppCleanExpr _ "_Tuple3" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
+ppTCleanExpr (AppCleanExpr _ "_Tuple4" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
+ppTCleanExpr (AppCleanExpr TLeftAssoc  pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
+ppTCleanExpr (AppCleanExpr TRightAssoc pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
+ppTCleanExpr (AppCleanExpr _           pp xs) = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
+
+ppTCleanExpr` :: !TCleanExpr -> String
+ppTCleanExpr` (PPCleanExpr pp)       = sugarPP pp
+ppTCleanExpr` (AppCleanExpr _ pp []) = sugarPP pp
+ppTCleanExpr` (AppCleanExpr TLeftAssoc  pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
+ppTCleanExpr` (AppCleanExpr TRightAssoc pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
+ppTCleanExpr` (AppCleanExpr _           pp xs)     = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
 
 ppTCleanExprList :: ![TCleanExpr] -> String
 ppTCleanExprList []  = ""
