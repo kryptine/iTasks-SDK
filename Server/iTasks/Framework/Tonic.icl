@@ -369,10 +369,10 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
   \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} )) >>*
                       [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
   where
-  blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn bp.tt_resty
+  blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection              = viewInformation () [] "Select argument..."
-  collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ prefixAOrAn argty, vi)) bp.tt_args trt.trt_params
+  collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) bp.tt_args trt.trt_params
 viewInstance _ = return ()
 
 tonicViewer :: PublishedTask
@@ -703,9 +703,9 @@ prefixAOrAn str
   | otherwise                                       = "a " +++ str
 
 // TODO Start / stop symbols here
-tTaskDef :: !String !String ![(!String, !String)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef :: !String !TCleanExpr ![(!String, !TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskDef taskName resultTy taskArgsAndTys tdbody tsrc
-  #! (taskNameImg,  nmref,   tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn resultTy)))
+  #! (taskNameImg,  nmref,   tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr resultTy))))
   #! (taskArgsImgs, argsref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
   #! (taskBodyImgs, bdyref,  tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
   #! (nmtag, nmref) = tagFromRef nmref
@@ -723,8 +723,8 @@ tTaskDef taskName resultTy taskArgsAndTys tdbody tsrc
                                                 _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing, tsrc)
   where
-  mkArgAndTy :: !(!String, !String) -> String
-  mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn ty
+  mkArgAndTy :: !(!String, !TCleanExpr) -> String
+  mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)
 
 tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTransformApp inh texpr tffun args tsrc
