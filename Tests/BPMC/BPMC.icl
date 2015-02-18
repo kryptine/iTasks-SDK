@@ -143,13 +143,17 @@ handleLogService :: User User (Display Case,Document`)  -> Task () 				// this t
 handleLogService foUser csaUser (case346,serviceReqDoc) 
 	= 					modify "Handle Log Service Request" ("Document Received",serviceReqDoc)	("Document to log",serviceReqLog) // step 4, prepare doc to store
 	>>= \regLog ->		log (case346,regLog) database062																		// step 5, store casenumber and document
-	>>|					boUser @: handleCase csaUser boUser case346																// bo has to do step 6 and further 
+	>>|					boUser @: handleCase foUser boUser case346																// bo has to do step 6 and further 
 
 handleCase :: User User (Display Case) -> Task ()								// this task is performed by the backoffice
-handleCase csaUser boUser case346
-	=					open case346 database062								// step 6, fetch case stored in database
-	>>= \mbDoc ->		verify mbDoc											// step 7, 
-	>>| return ()
+handleCase foUser boUser case346
+	=					open case346 database062								// step 6 +7, fetch case stored in database
+	>>= \mbDoc ->		verify mbDoc											// step 7, appearantly one can only approve
+	>>| 				foUser @: resolvePassword boUser (fromJust mbDoc)		// csa will handle step 8 and further
+	
+resolvePassword ::  User (Display Case,Document`) -> Task ()
+resolvePassword boUser thisCase 
+	= return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
