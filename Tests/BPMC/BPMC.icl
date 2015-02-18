@@ -9,19 +9,20 @@ import iTasks.Framework.Tonic
 
 :: BusinessDepartment = Bd Int
 :: EmployeeCode		  = Ec Int
-:: Document` 		  = { type 		:: DocType
-						, content 	:: DocContent
+:: Document` 		  = { type 			:: Display DocType
+						, index 		:: Display DocIndex
+						, content		:: Note  
 						}
 :: DocType			  = Do Int
-:: DocContent		  = Cd Int
+:: DocIndex		  	  = Cd Int
 :: ClientId			  = Cl Int
 :: Account			  = Ac Int
 :: Case				  = Cs Int
 :: Database			  = Db Int
 
-derive class iTask  BusinessDepartment, EmployeeCode, Document`, DocType,ClientId, DocContent, Account, Case, Database
+derive class iTask  BusinessDepartment, EmployeeCode, Document`, DocType, DocIndex, ClientId, Account, Case, Database
 
-database062 :: Shared [Document`]
+database062 :: Shared [(Display Case,Document`)]
 database062 = sharedStore "Db 062" []
 
 // additional types
@@ -54,7 +55,6 @@ ourEmployees 	= 	[ {Employee | user = knownUser "alice", department = frontOffic
 					]			 
 knownUser name = AuthenticatedUser name [] Nothing
 
-
 // some crud functions on the db info is also assumed ...
 
 getClient :: ClientId -> Maybe Client
@@ -78,18 +78,24 @@ foEmail					= frontOfficeEmployee.Employee.email					// email address of employe
 commercialServiceAdmin	= Bd 2
 csaIc					= Ec 27													// i.e. bob
 csaEmployee 			= fromJust (getEmployee commercialServiceAdmin csaIc)	// lets assume this employee is indeed administrated
-csaUser 				= frontOfficeEmployee.Employee.user	 					// used for assigning tasks to employee
-csaEmail				= frontOfficeEmployee.Employee.email					// email address of employee
+csaUser 				= csaEmployee.Employee.user	 							// used for assigning tasks to employee
+csaEmail				= csaEmployee.Employee.email							// email address of employee
 
 backOffice			    = Bd 3
 boIc					= Ec 22													// i.e. carol
 boEmployee 				= fromJust (getEmployee commercialServiceAdmin boIc)	// lets assume this employee is indeed administrated
-boUser 					= frontOfficeEmployee.Employee.user	 					// used for assigning tasks to employee
-boEmail					= frontOfficeEmployee.Employee.email					// email address of employee
+boUser 					= boEmployee.Employee.user	 							// used for assigning tasks to employee
+boEmail					= boEmployee.Employee.email								// email address of employee
 
-serviceReqDoc			= {Document`|type = Do 34, content = Cd 14}				// service request document to be filled in...
-serviceReqLog			= {Document`|type = Do 35, content = Cd 15}				// service doc to logg in database
-
+serviceReqDoc			= { Document`	| type 		= Display (Do 34)			// service request document to be filled in..
+						  				, index 	= Display (Cd 14)
+						  				, content	= Note ""
+						  }				
+serviceReqLog			= { Document`	| type 		= Display (Do 35)			// service doc to logg in database
+										, index		= Display (Cd 15)
+										, content	= Note ""
+						  }				
+case346					= Display (Cs 346)
 
 // Some types used for filling in forms
 
@@ -121,29 +127,27 @@ caseA :: Task ()																// this task is performed by some client
 caseA 
 	= 				    			get currentUser 							// get credentials of client logged in
 	 >>= \clientUser ->				create "Submit Service Request"				// client creates service request 
-	 >>= \request ->	foUser @: 	handleRequest foUser clientUser request	// front office will handle request client
+	 >>= \request ->	foUser @: 	handleRequest foUser clientUser request		// front office will handle request client
 
 handleRequest :: User User ClientRequest -> Task () 							// this task is performed by the front office
 handleRequest foUser clientUser request
-	=	 				receive foUser clientUser "The following Service Request has been received..." request					// step 1a
- 	>>|					modify "Handle Service Request" ("Request received:",request) ("Document to fill in:",serviceReqDoc)	// step 1b							// step 1b																			// step 1
- 	>>= \document -> 	verify ("Verify:",("Request :",request), ("Client Info: ", clientAdmin))								// step 2
- 	>>= \ok  	  -> 	if (not ok) (inform foEmail clientEmail  "your request" (toMultiLineText request))						// step 3 no  
-							    (								create  "Log Service Request"									// step 3 yes
-								 >>= \case346 -> csaUser @:	handleLogService foUser csaUser case346								// step 4 and further
-								)
- >>| 				return ()
+	=					modify "Handle Service Request" ("Request received:",request) ("Document to fill in:",serviceReqDoc)	// step 1, modify input							// step 1b																			// step 1
+ 	>>= \document -> 	verify ("Verify:",("Request :",request), ("Client Info: ", clientAdmin))								// step 2, verify client data
+ 	>>= \ok  	  -> 	if (not ok) (inform foEmail clientEmail  "your request" (toMultiLineText request))						// step 3, no, mail client  
+							   		(csaUser @:	handleLogService foUser csaUser (case346,document))								// step 3, yes, csa has to do step 4 and further
 where 
 	clientEmail		= request.ClientRequest.email								// email address filled in request
 	clientAdmin		= getClient request.ClientRequest.id						// search for client information in database 	
 
-
-handleLogService :: User User (Case,Document`)  -> Task () 											// this task is performed by the commercial service administration
+handleLogService :: User User (Display Case,Document`)  -> Task () 						// this task is performed by the commercial service administration
 handleLogService foUser csaUser (case346,serviceReqDoc) 
-	= 					receive foUser csaUser "The following Service Request has been received..." case346
-	>>|					modify "Handle Log Service Request" ("Document Received",serviceReqDoc)	("Document to log",serviceReqLog)
-	>>= \regLog ->		log csaUser boUser regLog database062
-	>>| return ()
+	= 					modify "Handle Log Service Request" ("Document Received",serviceReqDoc)	("Document to log",serviceReqLog) // step 4, prpare doc to store
+	>>= \regLog ->		log (case346,regLog) database062																		// step 5, store casenumber and document
+	>>|					boUser @: handleCase csaUser boUser case346																// bo has to do step 6 and further 
+
+handleCase :: User User (Display Case) -> Task ()
+handleCase csaUser boUser case346
+	=					receive csaUser boUser "The Request to handle the case has been received..." case346					// step 6a, notify sender
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
@@ -169,13 +173,12 @@ verify info
 		, OnAction ActionNo  (always (return False))					// and   "No"  to decline
 		]
 
-
-log :: User User a (Shared [a])  -> Task a | iTask a
-log fromUser toUser  value database
-	=	undef //mapWrite (update value) databse
-
-undef = undef
-
+//log :: User User a (Shared [a])  -> Task () | iTask a
+log value sharedDb
+//	=		 upd storeDoc sharedDb										// append document in database
+	= return ()
+where
+	storeDoc db = [value:db]
 
 inform :: EmailAddr EmailAddr String String -> Task () 					// create an email to inform and send it off...
 inform fromUser toUser subject body 
