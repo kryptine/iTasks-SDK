@@ -615,7 +615,10 @@ tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!Image Mode
 tBind inh l mpat r tsrc
   #! (l`, tsrc) = tExpr2Image inh l tsrc
   #! (r`, tsrc) = tExpr2Image inh r tsrc
-  = (beside (repeat AtMiddleY) [] [l`, tHorizConnArr, r`] Nothing, tsrc) // TODO Add label
+  #! linePart   = case mpat of
+                    Just pat -> [l`, tHorizConn, tTextWithGreyBackground ArialRegular10px (ppTCleanExpr pat), tHorizConnArr, r`]
+                    _        -> [l`, tHorizConnArr, r`]
+  = (beside (repeat AtMiddleY) [] linePart Nothing, tsrc)
 
 tParallel :: !MkImageInh ![Int] !TParallel !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParallel inh eid (ParSumL l r) tsrc
@@ -853,8 +856,12 @@ prepCases patStrs pats refs
           #! linePart  = (maxXSpan - imagexspan tag - textWidth) /. 2.0
           #! leftLine  = xline tLineMarker (px 16.0 + linePart)
           #! rightLine = xline Nothing (px 8.0 + linePart)
-          #! textBox   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (ArialRegular10px.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text ArialRegular10px patStr] Nothing
+          #! textBox   = tTextWithGreyBackground ArialRegular10px patStr
           = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), textBox, leftLine, pat, rightLine] Nothing
+
+tTextWithGreyBackground font txt
+  #! textWidth = textxspan font txt + px 10.0
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (font.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text font txt] Nothing
 
 mkVertConn :: !*[*TagRef] -> *(!Image ModelTy, !*[*TagRef])
 mkVertConn refs
