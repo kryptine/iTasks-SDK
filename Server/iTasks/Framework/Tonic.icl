@@ -480,14 +480,20 @@ tExpr2Image inh (TVar _ pp)                tsrc = (text ArialRegular10px pp, tsr
 tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px (ppTCleanExpr pp), tsrc)
 
 ppTCleanExpr :: !TCleanExpr -> String
-ppTCleanExpr (PPCleanExpr pp)     = pp
-ppTCleanExpr (AppCleanExpr pp []) = pp
-ppTCleanExpr (AppCleanExpr pp xs) = pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
+ppTCleanExpr (PPCleanExpr pp)     = sugarPP pp
+ppTCleanExpr (AppCleanExpr pp []) = sugarPP pp
+ppTCleanExpr (AppCleanExpr "_Tuple2" [e1, e2]) = "(" +++ ppTCleanExpr e1 +++ ", " +++ ppTCleanExpr e2 +++ ")"
+ppTCleanExpr (AppCleanExpr "_Tuple3" [e1, e2, e3]) = "(" +++ ppTCleanExpr e1 +++ ", " +++ ppTCleanExpr e2 +++ ppTCleanExpr e3 +++ ")"
+ppTCleanExpr (AppCleanExpr pp xs) = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
   where
   ppTCleanExpr` :: !TCleanExpr -> String
-  ppTCleanExpr` (PPCleanExpr pp)     = pp
-  ppTCleanExpr` (AppCleanExpr pp []) = pp
-  ppTCleanExpr` (AppCleanExpr pp xs) = "(" +++ pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
+  ppTCleanExpr` (PPCleanExpr pp)     = sugarPP pp
+  ppTCleanExpr` (AppCleanExpr pp []) = sugarPP pp
+  ppTCleanExpr` (AppCleanExpr pp xs) = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
+
+sugarPP "_Unit" = "nothing"
+sugarPP "_Nil"  = "[]"
+sugarPP pp = pp
 
 tArrowTip :: Image ModelTy
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -520,7 +526,7 @@ refsForList [_:xs] tsrc
 // TODO margin around cases
 tCaseOrIf :: !MkImageInh !PPExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseOrIf inh ppexpr pats tsrc
-  #! patStrs  = map fst pats
+  #! patStrs  = map (ppTCleanExpr o fst) pats
   #! patExprs = map snd pats
   #! (nextTasks, tsrc) = mapSt (tExpr2Image inh) patExprs tsrc
   #! (refs, tsrc) = refsForList patExprs tsrc
@@ -582,7 +588,7 @@ tShare inh sh sn args tsrc
 tLet :: !MkImageInh ![(!Pattern, !PPExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
 tLet inh pats expr tsrc
   #! (t, tsrc)               = tExpr2Image inh expr tsrc
-  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (var +++ " = " +++ expr)) pats) Nothing)
+  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ expr)) pats) Nothing)
   #! (txttag, txtref)        = tagFromRef txtref
   #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
                  <@< { fill   = toSVGColor "white" }
@@ -890,7 +896,7 @@ tStepCont inh (T t)   tsrc = tStepCont` inh.inh_trt t tsrc
   tStepFilter` trt mact (IfValue pat fn vars mpat te) ref tsrc
     #! (t, tsrc)   = tExpr2Image inh te tsrc
     #! (ifv, tsrc) = tIfValue fn vars tsrc
-    #! img         = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, text ArialRegular10px pat, tHorizConnArr, ifv, tHorizConnArr, /* TODO mpat */ t] Nothing
+    #! img         = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, text ArialRegular10px (ppTCleanExpr pat), tHorizConnArr, ifv, tHorizConnArr, /* TODO mpat */ t] Nothing
     = (img, tsrc)
   tStepFilter` trt mact (CustomFilter pp) ref tsrc = (text ArialRegular10px pp, tsrc)
   addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy

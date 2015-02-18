@@ -34,7 +34,7 @@ derive gEq
   , tt_body  :: TExpr
   }
 
-:: Pattern  :== String
+:: Pattern  :== TCleanExpr
 :: TypeName :== String
 :: VarName  :== String
 :: FunName  :== String
