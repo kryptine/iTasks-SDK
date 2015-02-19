@@ -931,10 +931,10 @@ tStepCont inh (T t)   tsrc = tStepCont` inh.inh_trt t tsrc
   addAction _ img _ = img
 
 alwaysFilter :: Image ModelTy
-alwaysFilter = above (repeat AtMiddleX) [] [tStable, tUnstable, tNoVal] Nothing
+alwaysFilter = beside (repeat AtMiddleY) [] [tStable, tUnstable, tNoVal] Nothing
 
 hasValueFilter :: Image ModelTy
-hasValueFilter = above (repeat AtMiddleX) [] [tStable, tUnstable] Nothing
+hasValueFilter = beside (repeat AtMiddleY) [] [tStable, tUnstable] Nothing
 
 
 littleman :: Image a
@@ -966,22 +966,13 @@ tException
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
 
 tStable :: Image ModelTy
-tStable
-  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                                       <@< { stroke = toSVGColor "black" }
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, rect (px 8.0) (px 8.0) <@< { fill = toSVGColor "black" }] Nothing
+tStable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor { RGB | r = 44, g = 160, b = 44} }
 
 tUnstable :: Image ModelTy
-tUnstable
-  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                                       <@< { stroke = toSVGColor "black" }
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "W"] Nothing
+tUnstable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor { RGB | r = 255, g = 127, b = 14} }
 
 tNoVal :: Image ModelTy
-tNoVal
-  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
-                                       <@< { stroke = toSVGColor "black" }
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "X"] Nothing
+tNoVal = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor { RGB | r = 214, g = 39, b = 40} }
 
 tLineArrow :: Image ModelTy
 tLineArrow = polygon Nothing [ (px 0.0, px 0.0)
