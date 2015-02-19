@@ -280,11 +280,17 @@ tonicStaticBrowser
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
+viewTitle` :: !a -> Task a | iTask a
+viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
+  where
+  title = toSingleLineText a
+  view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
+
 viewStaticTask :: [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask navstack tm=:{tm_name} tt =
-      viewInformation ("Arguments for task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'") [] tt.tt_args
-  ||- updateInformation
-        ("Static visual task representation of task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "'")
+      viewTitle` ("Task " +++ tt.tt_name +++ " in module " +++ tm_name +++ ", which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
+  ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
+  ||- updateInformation ()
         [imageUpdate id (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
         {ActionState | state = tt, action = Nothing} >>*
         [ OnValue (doAction (navigate tm tt))
@@ -710,23 +716,15 @@ prefixAOrAn str
 // TODO Start / stop symbols here
 tTaskDef :: !String !TCleanExpr ![(!String, !TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskDef taskName resultTy taskArgsAndTys tdbody tsrc
-  #! (taskNameImg,  nmref,   tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px (taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr resultTy))))
-  #! (taskArgsImgs, argsref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialRegular10px o mkArgAndTy) taskArgsAndTys) Nothing))
-  #! (taskBodyImgs, bdyref,  tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
-  #! (nmtag, nmref) = tagFromRef nmref
-  #! (argstag, argsref) = tagFromRef argsref
+  #! (taskBodyImgs, bdyref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
   #! (bdytag, bdyref) = tagFromRef bdyref
-  #! maxXSpan     = maxSpan [imagexspan nmtag, imagexspan argstag, imagexspan bdytag]
-  #! bgRect       = rect maxXSpan (imageyspan nmtag + imageyspan argstag + imageyspan bdytag)
-                      <@< { fill        = toSVGColor "white" }
-                      <@< { stroke      = toSVGColor "black" }
-                      <@< { strokewidth = px 1.0 }
-                      <@< { xradius     = px 5.0 }
-                      <@< { yradius     = px 5.0 }
-  #! taskContents = above (repeat AtLeft) [] (case taskArgsAndTys of
-                                                [] -> [taskNameImg, xline Nothing maxXSpan, taskBodyImgs]
-                                                _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs, xline Nothing maxXSpan, taskBodyImgs]) Nothing
-  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskContents] Nothing, tsrc)
+  #! bgRect           = rect (imagexspan bdytag) (imageyspan bdytag)
+                          <@< { fill        = toSVGColor "white" }
+                          <@< { stroke      = toSVGColor "black" }
+                          <@< { strokewidth = px 1.0 }
+                          <@< { xradius     = px 5.0 }
+                          <@< { yradius     = px 5.0 }
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskBodyImgs] Nothing, tsrc)
   where
   mkArgAndTy :: !(!String, !TCleanExpr) -> String
   mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)
