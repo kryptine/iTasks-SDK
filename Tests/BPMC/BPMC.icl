@@ -118,7 +118,8 @@ derive class iTask ClientRequest, Email
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA	// this is the case
-                                    , workflow "Tonic" "Tonic viewer" tonicWorkflow			// ability to inspect the definitions and behaviour
+                                    , tonicStaticWorkflow
+                                    , tonicDynamicWorkflow
 									] world
 
 // here finally the task description starts...
