@@ -30,7 +30,7 @@ derive gEq
 :: TonicTask =
   { tt_name  :: TaskName
   , tt_resty :: TCleanExpr
-  , tt_args  :: [(VariableName, TCleanExpr)]
+  , tt_args  :: [(TCleanExpr, TCleanExpr)]
   , tt_body  :: TExpr
   }
 

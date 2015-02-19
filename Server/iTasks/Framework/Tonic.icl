@@ -288,8 +288,8 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 
 viewStaticTask :: [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask navstack tm=:{tm_name} tt =
-      viewTitle` ("Task " +++ tt.tt_name +++ " in module " +++ tm_name +++ ", which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
-  ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
+      viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
+  ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
   ||- updateInformation ()
         [imageUpdate id (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
         {ActionState | state = tt, action = Nothing} >>*
@@ -379,7 +379,7 @@ viewInstance trt=:{trt_bpinstance = Just bp} =
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection              = viewInformation () [] "Select argument..."
-  collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) bp.tt_args trt.trt_params
+  collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) bp.tt_args trt.trt_params
 viewInstance _ = return ()
 
 tonicViewer :: PublishedTask
@@ -714,8 +714,8 @@ prefixAOrAn str
   | otherwise                                       = "a " +++ str
 
 // TODO Start / stop symbols here
-tTaskDef :: !String !TCleanExpr ![(!String, !TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTaskDef taskName resultTy taskArgsAndTys tdbody tsrc
+tTaskDef :: !String !TCleanExpr ![(!TCleanExpr, !TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef taskName resultTy _ tdbody tsrc
   #! (taskBodyImgs, bdyref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
   #! (bdytag, bdyref) = tagFromRef bdyref
   #! bgRect           = rect (imagexspan bdytag) (imageyspan bdytag)
