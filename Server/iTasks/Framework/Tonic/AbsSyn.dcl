@@ -8,15 +8,15 @@ from GenEq import generic gEq
 
 derive JSONEncode
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr, TAssoc
+  TStepFilter, TCleanExpr, TAssoc, TGen
 
 derive JSONDecode
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr, TAssoc
+  TStepFilter, TCleanExpr, TAssoc, TGen
 
 derive gEq
   TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr, TAssoc
+  TStepFilter, TCleanExpr, TAssoc, TGen
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -49,16 +49,21 @@ derive gEq
 :: TExpr
   = TVar       ExprId PPExpr
   | TCleanExpr ExprId TCleanExpr
+  | TListCompr TExpr [TGen] TCleanExpr
   | TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    TExpr
   | TTaskApp   ExprId ModuleName VarName [TExpr]
-  | TLet       [(Pattern, PPExpr)] TExpr
-  | TCaseOrIf  PPExpr [(Pattern, TExpr)]
+  | TLet       [(Pattern, TExpr)] TExpr
+  | TCaseOrIf  TExpr [(Pattern, TExpr)]
   | TStep      TExpr [PPOr TStepCont]
   | TParallel  ExprId TParallel
   | TAssign    TUser TExpr
   | TShare     TShare VarName [VarName]
   | TTransform TExpr VarName [VarName]
+
+:: TGen
+  = TGenTogether TCleanExpr TCleanExpr
+  | TGenAfter TCleanExpr TCleanExpr
 
 :: TCleanExpr
   = AppCleanExpr TAssoc PPExpr [TCleanExpr]

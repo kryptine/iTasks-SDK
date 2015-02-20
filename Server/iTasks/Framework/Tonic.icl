@@ -33,27 +33,27 @@ import Text
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gEditMeta
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gDefault
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gUpdate
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gVerify
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc
+  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
 derive class iTask TonicRT
 
@@ -545,8 +545,11 @@ refsForList [_:xs] tsrc
   = ([r:rs], tsrc)
 
 // TODO margin around cases
-tCaseOrIf :: !MkImageInh !PPExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tCaseOrIf inh ppexpr pats tsrc
+tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tCaseOrIf inh texpr pats tsrc
+  #! ppexpr = case texpr of
+                TCleanExpr _ (PPCleanExpr x) -> x
+                _                            -> "TODO RENDER GRAPH"
   #! patStrs  = map (ppTCleanExpr o fst) pats
   #! patExprs = map snd pats
   #! (nextTasks, tsrc) = mapSt (tExpr2Image inh) patExprs tsrc
@@ -606,10 +609,12 @@ tShare inh sh sn args tsrc
     #! box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
     = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
-tLet :: !MkImageInh ![(!Pattern, !PPExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
+tLet :: !MkImageInh ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
 tLet inh pats expr tsrc
   #! (t, tsrc)               = tExpr2Image inh expr tsrc
-  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ expr)) pats) Nothing)
+  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ case expr of
+                                                                                                                                                         TCleanExpr _ (PPCleanExpr x) -> x
+                                                                                                                                                         _                            -> "TODO tLet")) pats) Nothing)
   #! (txttag, txtref)        = tagFromRef txtref
   #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
                  <@< { fill   = toSVGColor "white" }
