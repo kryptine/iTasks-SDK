@@ -632,22 +632,36 @@ tBind inh l mpat r tsrc
   = (beside (repeat AtMiddleY) [] linePart Nothing, tsrc)
 
 tParallel :: !MkImageInh ![Int] !TParallel !*TagSource -> *(!Image ModelTy, !*TagSource)
-tParallel inh eid (ParSumL l r) tsrc
+tParallel inh eid (ParSumL l r) tsrc // TODO This is actually not correct yet... first image shouldn't have lines
   #! (l`, tsrc) = tExpr2Image inh l tsrc
   #! (r`, tsrc) = tExpr2Image inh r tsrc
-  #! l` = margin (px 5.0, px 5.0) l`
-  #! r` = margin (px 5.0, px 5.0) r`
-  = (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing, tsrc)
-tParallel inh eid (ParSumR l r) tsrc
+  #! l` = margin (px 5.0, px 0.0) l`
+  #! r` = margin (px 5.0, px 0.0) r`
+  #! (l`, lref, tsrc) = tagWithSrc tsrc l`
+  #! (r`, rref, tsrc) = tagWithSrc tsrc r`
+  #! (conts`, refs)   = prepCases [] [l`, r`] [lref, rref]
+  #! (vertConn, refs) = mkVertConn refs
+  #! parImg           = above (repeat AtMiddleX) [] conts` Nothing
+  = (beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn,  parImg, vertConn, tHorizConn, tParSum] Nothing, tsrc)
+tParallel inh eid (ParSumR l r) tsrc // TODO This is actually not correct yet... second image shouldn't have lines
   #! (l`, tsrc) = tExpr2Image inh l tsrc
   #! (r`, tsrc) = tExpr2Image inh r tsrc
-  #! l` = margin (px 5.0, px 5.0) l`
-  #! r` = margin (px 5.0, px 5.0) r`
-  = (beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ l`, r`, /* TODO lines to last delim,*/ tParSum] Nothing, tsrc)
+  #! l` = margin (px 5.0, px 0.0) l`
+  #! r` = margin (px 5.0, px 0.0) r`
+  #! (l`, lref, tsrc) = tagWithSrc tsrc l`
+  #! (r`, rref, tsrc) = tagWithSrc tsrc r`
+  #! (conts`, refs)   = prepCases [] [l`, r`] [lref, rref]
+  #! (vertConn, refs) = mkVertConn refs
+  #! parImg           = above (repeat AtMiddleX) [] conts` Nothing
+  = (beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn,  parImg, vertConn, tHorizConnArr, tParSum] Nothing, tsrc)
 tParallel inh eid (ParSumN ts) tsrc
   #! (ts`, tsrc) = mkParSum inh eid ts tsrc
-  #! ts` = map (margin (px 5.0, px 5.0)) ts`
-  = ( beside (repeat AtMiddleY) [] [tParSum, /* TODO lines to tasks,*/ above (repeat AtMiddleX) [] ts` Nothing, /* TODO lines to last delim,*/ tParSum] Nothing
+  #! ts` = map (margin (px 5.0, px 0.0)) ts`
+  #! (refs, tsrc)     = refsForList ts` tsrc
+  #! (ts`, refs)      = prepCases [] ts` refs
+  #! (vertConn, refs) = mkVertConn refs
+  #! contsImg         = above (repeat AtMiddleX) [] ts` Nothing
+  = ( beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tParSum] Nothing
     , tsrc)
   where
   mkParSum :: !MkImageInh ![Int] !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
