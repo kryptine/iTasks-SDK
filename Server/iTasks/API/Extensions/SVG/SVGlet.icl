@@ -878,7 +878,7 @@ desugarAndTag img = go
               -> .(!(!Compose s, !ImageSpan), !DesugarAndTagStVal) | iTask s
     mkCollage offsets imgs mbhost imTrs imTas st
       #! (offsets, st) = evalOffsets offsets st
-      #! (imgs, st) = sequence imgs st
+      #! (imgs, st)    = sequence imgs st
       = (( AsCollage offsets imgs
          , maybe (calculateComposedSpan (strictTRMap (\x -> addMargin x.margin x.totalSpanPostTrans) imgs) offsets) (\x -> addMargin x.margin x.totalSpanPostTrans) mbhost), st)
 
@@ -1122,7 +1122,7 @@ fixSpansLookupSpanAlgs =
 
 mkGenSVGSyn =: { genSVGSyn_svgElts       = []
                , genSVGSyn_imageSpanReal = (0.0, 0.0)
-               , genSVGSyn_events      = 'DM'.newMap
+               , genSVGSyn_events        = 'DM'.newMap
                }
 
 editletId =: "__INTERNAL_editletId_PLACEHOLDER__"
@@ -1209,7 +1209,7 @@ genSVG img = imageCata genSVGAllAlgs img
                !(Set ImageTag)
                !(!GenSVGSt s Real, !GenSVGSt s Real)
                !(!GenSVGSt s Real, !GenSVGSt s Real)
-               !(!GenSVGSt s Real, !GenSVGSt s Real, !GenSVGSt s Real, !GenSVGSt s Real)
+               !(!GenSVGSt s Real, !GenSVGSt s Real, GenSVGSt s Real /* Not used */, GenSVGSt s Real /* Not used */)
                !(!GenSVGSt s Real, !GenSVGSt s Real)
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
     mkImage imCo mask imAts imTrs imTas (txsp, tysp) (txsp`, tysp`) (m1, m2, _, _) _ st
@@ -1254,10 +1254,13 @@ genSVG img = imageCata genSVGAllAlgs img
     }
     where
     mkBasic :: !(ImageSpanReal [(![String], !Maybe SVGAttr)] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
-               !(GenSVGSt s ImageSpanReal) !ImageSpanReal ![(![String], !Maybe SVGAttr)]
-               ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] !(Set ImageTag)
+               !(GenSVGSt s ImageSpanReal)
+               ImageSpanReal // Not used
+               ![(![String], !Maybe SVGAttr)]
+               ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
+               (Set ImageTag) // Not used
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkBasic baIm imSp totalSpanPreTrans imAts imTrs _ st
+    mkBasic baIm imSp _ imAts imTrs _ st
       #! (imSp, st)        = imSp st
       #! ((_, isText), st) = baIm imSp [] [] st
       #! (imTrs, st)       = sequence (strictTRMap (\f -> f imSp isText) imTrs) st
@@ -1348,29 +1351,48 @@ genSVG img = imageCata genSVGAllAlgs img
       #! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
       = (([RotateTransform (toString (to2dec (toDeg imAn))) (Just (toString (to2dec (xsp / 2.0)), toString (to2dec yoff)))], RotateImage imAn), s)
 
-    mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
+                  !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
+                  !(!Real, !Real)
+                  Bool // Not used
+                  !(GenSVGStVal s)
+               -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFitImage sp1 sp2 (xsp, ysp) _ st
       #! (sp1, st) = sp1 st
       #! (sp2, st) = sp2 st
       = (([ScaleTransform (toString (to2dec (sp1 / xsp))) (toString (to2dec (sp2 / ysp)))], FitImage (px sp1) (px sp2)), st)
 
-    mkFitXImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkFitXImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
+                   !(!Real, Real /* Not used*/)
+                   Bool // Not used
+                   !(GenSVGStVal s)
+                -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFitXImage sp (xsp, _) _ st
       #! (sp, st) = sp st
       #! scale    = if (xsp > 0.0) (toString (to2dec (sp / xsp))) "1.0"
       = (([ScaleTransform scale scale], FitXImage (px sp)), st)
 
-    mkFitYImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s)) !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkFitYImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
+                   !(Real /* Not used */, !Real)
+                   Bool // Not used
+                   !(GenSVGStVal s)
+                -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFitYImage sp (_, ysp) _ st
       #! (sp, st) = sp st
       #! scale    = if (ysp > 0.0) (toString (to2dec (sp / ysp))) "1.0"
       = (([ScaleTransform scale scale], FitYImage (px sp)), st)
 
-    mkFlipXImage :: !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkFlipXImage :: !(!Real, Real /* Not used */) 
+                    Bool /* Not used */
+                    !(GenSVGStVal s)
+                 -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFlipXImage (xsp, _) _ st
       = (([TranslateTransform (toString xsp) "0", ScaleTransform "-1" "1"], FlipXImage), st)
 
-    mkFlipYImage :: !(!Real, !Real) !Bool !(GenSVGStVal s) -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkFlipYImage :: !(Real /* Not used */, !Real)
+                    Bool // Not used
+                    !(GenSVGStVal s)
+                 -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFlipYImage (_, ysp) _ st
       = (([TranslateTransform "0" (toString ysp), ScaleTransform "1" "-1"], FlipYImage), st)
   genSVGImageSpanAlgs :: ImageSpanAlg (GenSVGSt s Real) (GenSVGSt s ImageSpanReal) | iTask s
@@ -1456,7 +1478,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkLineImage :: !(GenSVGSt s ImageSpanReal)
                    !(Maybe (GenSVGSt s b))
                    !(ImageSpanReal (Maybe b) [(![String], !Maybe SVGAttr)] [(![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
-                   c
+                   c // Not used
                    ![([String], Maybe SVGAttr)]
                    ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
                    !(Set ImageTag)
@@ -1588,7 +1610,8 @@ genSVG img = imageCata genSVGAllAlgs img
     }
     where
     mkCollage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)]
-                 ![GenSVGSt s (GenSVGSyn s)] !(Maybe (GenSVGSyn s))
+                 ![GenSVGSt s (GenSVGSyn s)]
+                 (Maybe (GenSVGSyn s)) // Not used
                  !ImageSpanReal ![(![String], !Maybe SVGAttr)]
                  ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] !(Set ImageTag)
                  !(GenSVGStVal s)
