@@ -19,7 +19,6 @@ import iTasks.Framework.Tonic
 :: Case				  = Cs Int
 :: Database			  = Db Int
 
-
 serviceReqDoc	= { ING_Doc	| typeIdx 		= Do 34						// service request document to be filled in..
 							, contentIdx 	= Cd 14
 						  	}				
@@ -48,6 +47,7 @@ database062 = sharedStore "Db 062" []
 						, department	:: BusinessDepartment
 						, email			:: EmailAddr
 						}  
+:: Name 			  :== String
 :: EmailAddr  		  :== String
 
 derive class iTask  Client, Employee
@@ -88,11 +88,7 @@ foName 					= frontOfficeEmployee.Employee.name	 					// used for assigning task
 foEmail					= frontOfficeEmployee.Employee.email					// email address of employee
 
 csaName 				= csaEmployee.Employee.name	 							// used for assigning tasks to employee
-csaEmail				= csaEmployee.Employee.email							// email address of employee
-
-boUser 					= boEmployee.Employee.name	 							// used for assigning tasks to employee
-boEmail					= boEmployee.Employee.email								// email address of employee
-
+boName 					= boEmployee.Employee.name	 							// used for assigning tasks to employee
 
 // Some types used for filling in forms
 
@@ -102,7 +98,6 @@ boEmail					= boEmployee.Employee.email								// email address of employee
 					      	, email			:: EmailAddr
 					      	, request		:: Note
 					      	}
-:: Name 			  	:== String
 :: Log a				=	{ about			:: String
 							, received_from	:: Name
 							, intended_for	:: Name
@@ -148,8 +143,8 @@ handleRequest requestForm
 									(inform foEmail clientEmail  "your request" (toMultiLineText request))		// step 3, no, mail client  
 where 
 	request 		= requestForm.Log.content
-	clientEmail		= request.ClientRequest.email								// email address filled in request
-	clientAdmin		= getClient request.ClientRequest.id						// search for client information in database 	
+	clientEmail		= request.ClientRequest.email										// email address filled in request
+	clientAdmin		= getClient request.ClientRequest.id								// search for client information in database 	
 
 
 // tasks performed by the commercial service administration
@@ -157,20 +152,20 @@ where
 handleLogService :: Name Name (Case,Form ING_Doc Note)  -> Task () 				
 handleLogService foName csaName (case346,serviceReqDoc) 
 	= 					modify "Handle Log Service Request" serviceReqDoc (form serviceReqLog (Note ""))		// step 4, prepare doc to store
-	>>= \regLog ->		log (case346,regLog) database062														// step 5, store casenumber and document
-	>>|					boUser @: handleCase foName boUser case346												// bo has to do step 6 and further 
+	>>= \toLog ->		log (case346,toLog) database062 														// step 5, store casenumber and document
+	>>|					boName @: handleCase foName boName case346												// bo has to do step 6 and further 
 
 
 // tasks performed by the backoffice
 
 handleCase :: Name Name Case -> Task ()								
-handleCase foName boUser case346
+handleCase foName boName case346
 	=					open case346 database062																// step 6 +7, fetch case stored in database
 	>>= \mbLog ->		verify "Can it be handled by frontoffice" mbLog											// step 7, appearantly one can only approve
-	>>| 				foName @: resolvePassword boUser (fromJust mbLog)										// csa will handle step 8 and further
+	>>| 				foName @: resolvePassword boName (fromJust mbLog)										// csa will handle step 8 and further
 	
 resolvePassword ::  Name (Case,Form ING_Doc Note) -> Task ()
-resolvePassword boUser thisCase 
+resolvePassword boName thisCase 
 	= return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
@@ -194,19 +189,23 @@ verify prompt info
 		, OnAction ActionNo  (always (return False))								// and   "No"  to decline
 		]
 
-log :: a (Shared [a])  -> Task [a] | iTask a
+log :: a (Shared [a])  -> Task () | iTask a
 log value sharedDb
-	=		 	//	enterInformation 
-					upd storeLog sharedDb											// append document in database
+	=		 		viewInformation "Information that will be stored:" [] value		// show information that will be stored
+	>>|				upd storeLog sharedDb											// store document in database
+	>>|				viewInformation "Information has been stored" [] ()				// inform that information has been stored
 where
 	storeLog db = [value:db]
 	
-open :: key (Shared [(key,value)]) -> Task (Maybe (key,value))	| iTask key & iTask value				// search in databse for item with a certain key
+open :: key (Shared [(key,value)]) -> Task (Maybe (key,value))	| iTask key & iTask value	// search in databse for item with a certain key
 open index sharedDb
-	=				get sharedDb													// read from database
+	=				viewInformation "Retrieving from database:" [] index		// inform that database will be accessed
+	>>|				get sharedDb															// read from database
 	>>= \content -> case [(idx,doc) \\ (idx,doc) <- content | idx === index ] of
-						[] 		-> return Nothing
-						[found] -> return (Just found)
+						[] 		-> 		viewInformation "Information could not be found" [] ()
+									>>| return Nothing
+						[found] -> 		viewInformation "Found:" [] found
+									>>|	return (Just found)
 
 inform :: Name Name String String -> Task () 										// create an email to inform and send it off...
 inform fromName toName subject body 
@@ -219,4 +218,6 @@ inform fromName toName subject body
 	 >>| 			return () 
 where
 	sendAnEmail doc = sendEmail doc.Log.about doc.Log.content doc.Log.received_from [toName]
+	
+
 
