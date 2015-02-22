@@ -7,7 +7,7 @@ import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Framework.Util
 from StdFunc			import id, const, o
 from iTasks.API.Core.Types		    import :: User(..), :: Note(..)
-from iTasks.API.Core.SDSs           import randomInt, topLevelTasks
+from iTasks.API.Core.SDSs           import randomInt, topLevelTasks, currentUser, currentDateTime
 from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 import qualified Data.Map as DM
 
@@ -122,15 +122,16 @@ where
 						}
 derive class iTask ProcessControlView
 
-workerAttributes :: worker -> TaskAttributes | toUserConstraint worker
-workerAttributes worker = case toUserConstraint worker of
+workerAttributes :: worker [(String,String)] -> TaskAttributes | toUserConstraint worker
+workerAttributes worker attr = case toUserConstraint worker of
     AnyUser = 'DM'.newMap
-    UserWithId uid = 'DM'.fromList [("user",uid)]
-    UserWithRole role = 'DM'.fromList [("role",role)]
-
+    UserWithId uid = 'DM'.fromList [("user",uid):attr]
+    UserWithRole role = 'DM'.fromList [("role",role):attr]
 
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-(@:) worker task = assign (workerAttributes worker) task
+(@:) worker task 
+	= 					get currentUser -&&- get currentDateTime
+	>>= \(me,now) -> 	assign (workerAttributes worker [("createdBy",toString me),("createdAt",toString now),("priority","Normal")]) task
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
@@ -292,7 +293,7 @@ appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const Void) topLevelTasks
 
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
-appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask (workerAttributes worker) evalDirect task
+appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask (workerAttributes worker []) evalDirect task
 			
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing
