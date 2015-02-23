@@ -227,8 +227,8 @@ getTonicDir = mkInstantTask f
     # (server, iworld) = iworld!server
     = (Ok (server.paths.appDirectory </> "tonic"), iworld)
 
-tonicLogin :: Task ()
-tonicLogin = tonicUI
+tonicLogin :: [TaskAppRenderer] -> Task ()
+tonicLogin rs = tonicUI rs
 //tonicLogin :: Task Void
 //tonicLogin = forever (
       //(viewTitle "Tonic"
@@ -250,26 +250,26 @@ getTasks tm = 'DM'.keys tm.tm_tasks
 getTask :: !TonicModule !String -> Maybe TonicTask
 getTask tm tn = 'DM'.get tn tm.tm_tasks
 
-tonicUI :: Task ()
-tonicUI
+tonicUI :: [TaskAppRenderer] -> Task ()
+tonicUI rs
   = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Dynamic Task Instance Browser it is possible to monitor the application while it executes.") >>*
-    [ OnAction (Action "Static Task Browser" []) (\_ -> Just tonicStaticBrowser)
-    , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just tonicDynamicBrowser)
+    [ OnAction (Action "Static Task Browser" []) (\_ -> Just (tonicStaticBrowser rs))
+    , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just (tonicDynamicBrowser rs))
     ]
 
-tonicStaticWorkflow :: Workflow
-tonicStaticWorkflow = workflow "Tonic Static Browser" "Tonic Static Browser" tonicStaticBrowser
+tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
+tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" (tonicStaticBrowser rs)
 
-tonicDynamicWorkflow :: Workflow
-tonicDynamicWorkflow = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browser" tonicDynamicBrowser
+tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
+tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browser" (tonicDynamicBrowser rs)
 
-tonicStaticBrowser :: Task ()
-tonicStaticBrowser
+tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
+tonicStaticBrowser rs
   =      (selectModule >&> withSelection noModuleSelection (
   \mn -> getModule mn >>-
   \tm -> (selectTask tm >&> withSelection noTaskSelection (
   \tn -> maybe (return ())
-           (\tt -> viewStaticTask [] tm tt @! ())
+           (\tt -> viewStaticTask rs [] tm tt @! ())
            (getTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
@@ -286,12 +286,12 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
-viewStaticTask :: [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
-viewStaticTask navstack tm=:{tm_name} tt =
+viewStaticTask :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
+viewStaticTask rs navstack tm=:{tm_name} tt =
       viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
   ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
   ||- updateInformation ()
-        [imageUpdate id (mkTaskImage (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
+        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
         {ActionState | state = tt, action = Nothing} >>*
         [ OnValue (doAction (navigate tm tt))
         , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
@@ -302,10 +302,10 @@ viewStaticTask navstack tm=:{tm_name} tt =
   nav` mkNavStack tm tt (mn, tn) navstack
     = getModule mn >>*
       [ OnValue onNavVal
-      , OnAllExceptions (const (viewStaticTask navstack tm tt))
+      , OnAllExceptions (const (viewStaticTask rs navstack tm tt))
       ]
     where
-    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
+    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
   defaultTRT tt
     = { trt_taskId        = TaskId -1 -1
@@ -345,12 +345,12 @@ enterQuery = enterInformation "Enter filter query" []
 
 derive class iTask BlueprintQuery
 
-tonicDynamicBrowser :: Task ()
-tonicDynamicBrowser = enterQuery >&> withSelection (tonicDynamicBrowser` Nothing) tonicDynamicBrowser`
+tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
+tonicDynamicBrowser rs = enterQuery >&> withSelection (tonicDynamicBrowser` rs Nothing) (tonicDynamicBrowser` rs)
 
-tonicDynamicBrowser` q =
+tonicDynamicBrowser` rs q =
     (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) >&>
-    withSelection noBlueprintSelection viewInstance) <<@ ArrangeWithSideBar 0 LeftSide 700 True
+    withSelection noBlueprintSelection (viewInstance rs)) <<@ ArrangeWithSideBar 0 LeftSide 700 True
                                                      <<@ FullScreen
 
   where
@@ -367,23 +367,23 @@ tonicDynamicBrowser` q =
   customView rt = rt
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
 
-viewInstance :: TonicRT -> Task ()
-viewInstance trt=:{trt_bpinstance = Just bp} =
+viewInstance :: [TaskAppRenderer] TonicRT -> Task ()
+viewInstance rs trt=:{trt_bpinstance = Just bp} =
                       dynamicParent trt.trt_taskId >>-
   \mbprnt ->          (viewInformation (blueprintTitle trt bp) [] () ||-
                       viewTaskArguments trt bp ||-
                       (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
-  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} )) >>*
-                      [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap viewInstance mbprnt)]
+  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage rs trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} )) >>*
+                      [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection              = viewInformation () [] "Select argument..."
   collectArgs       trt bp = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) bp.tt_args trt.trt_params
-viewInstance _ = return ()
+viewInstance _ _ = return ()
 
-tonicViewer :: PublishedTask
-tonicViewer = publish "/tonic" (WebApp []) (\_ -> tonicLogin)
+tonicViewer :: [TaskAppRenderer] -> PublishedTask
+tonicViewer rs = publish "/tonic" (WebApp []) (\_ -> tonicLogin rs)
 
 outgoingTaskEdges :: TonicRT -> Set (ModuleName, TaskName)
 outgoingTaskEdges trt = outgoingTaskEdges` trt 'DM'.newMap
@@ -455,14 +455,15 @@ ArialItalic10px :== { fontfamily = "Arial"
                   }
 
 :: MkImageInh =
-  { inh_trt    :: !TonicRT
-  , inh_maplot :: !(Map (!TaskId, ![Int]) (IntMap TaskId))
-  , inh_rtmap  :: !TonicRTMap
+  { inh_trt       :: !TonicRT
+  , inh_maplot    :: !(Map (!TaskId, ![Int]) (IntMap TaskId))
+  , inh_rtmap     :: !TonicRTMap
+  , inh_task_apps :: ![TaskAppRenderer]
   }
 
-mkTaskImage :: !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy *TagSource -> Image ModelTy
-mkTaskImage trt maplot rtmap {ActionState | state = tt} tsrc
-  #! inh              = { inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap }
+mkTaskImage :: ![TaskAppRenderer] !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy *TagSource -> Image ModelTy
+mkTaskImage rs trt maplot rtmap {ActionState | state = tt} tsrc
+  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap, inh_task_apps = rs }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
   = img
@@ -484,22 +485,21 @@ tExpr2Image inh (TVar _ pp)                tsrc = (text ArialRegular10px pp, tsr
 tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px (ppTCleanExpr pp), tsrc)
 
 ppTCleanExpr :: !TCleanExpr -> String
-ppTCleanExpr (PPCleanExpr pp)       = sugarPP pp
-ppTCleanExpr (AppCleanExpr _ pp []) = sugarPP pp
-ppTCleanExpr (AppCleanExpr _ "_Cons" xs)   = "[" +++ ppTCleanExprList xs +++ "]"
-ppTCleanExpr (AppCleanExpr _ "_Tuple2" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr _ "_Tuple3" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr _ "_Tuple4" xs) = "(" +++ ppTCleanExprTuple xs +++ ")"
-ppTCleanExpr (AppCleanExpr (TLeftAssoc  n) pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
-ppTCleanExpr (AppCleanExpr (TRightAssoc n) pp [l, r]) = ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r
-ppTCleanExpr (AppCleanExpr _               pp xs)     = sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs)
-
-ppTCleanExpr` :: !TCleanExpr -> String
-ppTCleanExpr` (PPCleanExpr pp)       = sugarPP pp
-ppTCleanExpr` (AppCleanExpr _ pp []) = sugarPP pp
-ppTCleanExpr` (AppCleanExpr (TLeftAssoc  n) pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
-ppTCleanExpr` (AppCleanExpr (TRightAssoc n) pp [l, r]) = "(" +++ ppTCleanExpr` l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` r +++ ")"
-ppTCleanExpr` (AppCleanExpr _               pp xs)     = "(" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map ppTCleanExpr` xs) +++ ")"
+ppTCleanExpr tcexpr = ppTCleanExpr` 0 tcexpr
+  where
+  ppTCleanExpr` :: !Int !TCleanExpr -> String
+  ppTCleanExpr` _ (PPCleanExpr pp)       = sugarPP pp
+  ppTCleanExpr` _ (AppCleanExpr _ pp []) = sugarPP pp
+  ppTCleanExpr` _ (AppCleanExpr _ "_List" [x:_]) = "[" +++ ppTCleanExpr x +++ "]"
+  ppTCleanExpr` _ (AppCleanExpr _ "_Cons" xs)    = "[" +++ ppTCleanExprList xs +++ "]"
+  ppTCleanExpr` _ (AppCleanExpr _ "_Tuple2" xs)  = "(" +++ ppTCleanExprTuple xs +++ ")"
+  ppTCleanExpr` _ (AppCleanExpr _ "_Tuple3" xs)  = "(" +++ ppTCleanExprTuple xs +++ ")"
+  ppTCleanExpr` _ (AppCleanExpr _ "_Tuple4" xs)  = "(" +++ ppTCleanExprTuple xs +++ ")"
+  ppTCleanExpr` _ (AppCleanExpr _ pp [x:xs])
+    | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " + ppTCleanExprTuple xs +++ " }"
+  ppTCleanExpr` d (AppCleanExpr (TLeftAssoc  n) pp [l, r]) = if (d > 0) "(" "" +++ ppTCleanExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` (d + 1) r +++ if (d > 0) ")" ""
+  ppTCleanExpr` d (AppCleanExpr (TRightAssoc n) pp [l, r]) = if (d > 0) "(" "" +++ ppTCleanExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTCleanExpr` (d + 1) r +++ if (d > 0) ")" ""
+  ppTCleanExpr` d (AppCleanExpr _               pp xs)     = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTCleanExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
 
 ppTCleanExprList :: ![TCleanExpr] -> String
 ppTCleanExprList []  = ""
@@ -768,24 +768,32 @@ tTransformApp inh texpr tffun args tsrc
 
 tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskApp inh eid modName taskName taskArgs tsrc
-  #! (taskArgs`, tsrc)           = mapSt (tExpr2Image inh) taskArgs tsrc
+  #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
+  #! isActive           = Just eid == inh.inh_trt.trt_activeNodeId
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta isActive modName taskName taskArgs`) inh.inh_task_apps tsrc
+  #! (taskApp, tsrc)    = case renderOpts of
+                            [Just x:_] -> (x, tsrc)
+                            _          -> tDefaultTaskApp isActive modName taskName taskArgs` tsrc
+  = ( taskApp <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
+    , tsrc)
+
+tDefaultTaskApp :: !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp isActive modName taskName taskArgs tsrc
   #! (taskNameImg,  tnref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px taskName))
-  #! (taskArgsImgs, taref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs` Nothing))
+  #! (taskArgsImgs, taref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
   #! (tntag, tnref) = tagFromRef tnref
   #! (tatag, taref) = tagFromRef taref
   #! maxXSpan       = maxSpan [imagexspan tntag, imagexspan tatag]
   #! bgRect         = rect maxXSpan (imageyspan tntag + imageyspan tatag)
-                        <@< { fill        = if (Just eid == inh.inh_trt.trt_activeNodeId) (toSVGColor "lightgreen") (toSVGColor "white") }
+                        <@< { fill        = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
                         <@< { stroke      = toSVGColor "black" }
                         <@< { strokewidth = px 1.0 }
                         <@< { xradius     = px 5.0 }
                         <@< { yradius     = px 5.0 }
-  #! taskText       = above (repeat AtMiddleX) [] (case taskArgs` of
+  #! taskText       = above (repeat AtMiddleX) [] (case taskArgs of
                                                      [] -> [taskNameImg]
                                                      _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
-  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing
-      <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
-    , tsrc)
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing, tsrc)
 
 tReturn :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tReturn inh retval tsrc

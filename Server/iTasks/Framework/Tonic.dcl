@@ -12,6 +12,7 @@ from iTasks.API.Extensions.Admin.WorkflowAdmin import :: Workflow
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
+from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -39,6 +40,10 @@ derive gText
 
 :: TonicRTMap :== Map TaskId TonicRT
 
+:: TaskAppRenderer :== Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
+
+:: ModelTy
+
 tonicSharedRT :: Shared TonicRTMap
 
 :: TonicRT =
@@ -54,15 +59,15 @@ tonicSharedRT :: Shared TonicRTMap
 
 derive class iTask TonicRT
 
-tonicViewer :: PublishedTask
+tonicViewer :: [TaskAppRenderer] -> PublishedTask
 
-tonicStaticBrowser :: Task ()
+tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
 
-tonicStaticWorkflow :: Workflow
+tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
 
-tonicDynamicBrowser :: Task ()
+tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 
-tonicDynamicWorkflow :: Workflow
+tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 
