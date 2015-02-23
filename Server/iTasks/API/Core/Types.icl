@@ -599,7 +599,7 @@ gText{|Scale|}	_ (Just {Scale|cur}) = [toString cur]
 gText{|Scale|}	_ _                  = [""]
 
 gEditor{|Scale|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	# sliderOpts	= {UISliderOpts|minValue=(\{Scale|min} -> min) val,maxValue=(\{Scale|max} -> max) val}
+	# sliderOpts	= {UISliderOpts|minValue=val.Scale.min, maxValue=val.Scale.max, value = val.cur}
 	| disabled
 		# val = checkMask mask val							
 		# viewOpts = {UIViewOpts|value = fmap curVal val}  

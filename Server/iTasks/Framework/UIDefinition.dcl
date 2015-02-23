@@ -233,6 +233,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 :: UISliderOpts =
 	{ minValue		:: !Int
 	, maxValue		:: !Int
+    , value         :: !Int
 	}
 	
 :: UIProgressOpts = 
