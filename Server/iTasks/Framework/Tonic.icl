@@ -291,10 +291,11 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 viewStaticTask :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask rs navstack tm=:{tm_name} tt =
       viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
-  ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
+  ||- updateInformation "Compact view?" [] False >&> withSelection (return ()) (
+  \compact -> (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
   ||- updateInformation ()
-        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
-        {ActionState | state = tt, action = Nothing} >>*
+        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
+        {ActionState | state = tt, action = Nothing}) >>*
         [ OnValue (doAction (navigate tm tt))
         , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
   where
@@ -374,9 +375,10 @@ viewInstance rs trt=:{trt_bpinstance = Just bp} =
                       dynamicParent trt.trt_taskId >>-
   \mbprnt ->          (viewInformation (blueprintTitle trt bp) [] () ||-
                       viewTaskArguments trt bp ||-
-                      (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
-  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage rs trt maplot rtmap) (const id)] {ActionState | state = bp, action = Nothing} )) >>*
-                      [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]
+                      updateInformation "Compact view?" [] False >&> withSelection (return ()) (
+  \compact ->         (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
+  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (const id)] {ActionState | state = bp, action = Nothing} ) >>*
+                      [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]))
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
@@ -493,16 +495,17 @@ expandTExpr _ _ n texpr = texpr
 
 viewSingleApp :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewSingleApp rs navstack tm=:{tm_name} tt =
-           updateInformation "Select view depth" [] 0 >&> withSelection (viewInformation () [] "Enter depth...") (
-  \depth ->
+            updateInformation "Select view depth" [] 0 >&> withSelection (viewInformation () [] "Enter depth...") (
+  \depth -> updateInformation "Compact view?" [] False >&> withSelection (viewInformation () [] "Compact view?") (
+  \compact -> (
       viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
   ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
   ||- allBlueprints >>-
   \allbps -> updateInformation ()
-        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
+        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
         {ActionState | state = expandTask allbps depth tt, action = Nothing} >>*
         [ OnValue (doAction (navigate tm tt))
-        , OnAction (Action "Back" []) (back tm tt navstack)] @! ())
+        , OnAction (Action "Back" []) (back tm tt navstack)] @! ())))
   where
   back _  _  []           _ = Nothing
   back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
@@ -627,11 +630,12 @@ ArialItalic10px :== { fontfamily = "Arial"
   , inh_maplot    :: !(Map (!TaskId, ![Int]) (IntMap TaskId))
   , inh_rtmap     :: !TonicRTMap
   , inh_task_apps :: ![TaskAppRenderer]
+  , inh_compact   :: !Bool
   }
 
-mkTaskImage :: ![TaskAppRenderer] !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs trt maplot rtmap {ActionState | state = tt} tsrc
-  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap, inh_task_apps = rs }
+mkTaskImage :: ![TaskAppRenderer] !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !Bool !ModelTy *TagSource -> Image ModelTy
+mkTaskImage rs trt maplot rtmap compact {ActionState | state = tt} tsrc
+  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap, inh_task_apps = rs, inh_compact = compact }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
   = img
@@ -642,7 +646,9 @@ tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpr2Image inh (TBind lhs mpat rhs)       tsrc = tBind         inh lhs mpat rhs tsrc
 tExpr2Image inh (TReturn texpr)            tsrc = tReturn       inh texpr tsrc
 tExpr2Image inh (TTaskApp eid mn tn targs) tsrc = tTaskApp      inh eid mn tn targs tsrc
-tExpr2Image inh (TLet pats bdy)            tsrc = tLet          inh pats bdy tsrc
+tExpr2Image inh (TLet pats bdy)            tsrc
+  | inh.inh_compact = tExpr2Image inh bdy tsrc
+  | otherwise       = tLet inh pats bdy tsrc
 tExpr2Image inh (TCaseOrIf e pats)         tsrc = tCaseOrIf     inh e pats tsrc
 tExpr2Image inh (TStep lexpr conts)        tsrc = tStep         inh lexpr conts tsrc
 tExpr2Image inh (TParallel eid par)        tsrc = tParallel     inh eid par tsrc
@@ -920,7 +926,7 @@ tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image 
 tTransformApp inh texpr tffun args tsrc
   #! (tfNameImg,  nmref, tsrc)   = tagWithSrc tsrc (margin (px 5.0) (text ArialItalic10px tffun))
   #! (tfArgsImgs, argsref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-  #! (nmtag, nmref)   = tagFromRef nmref
+  #! (nmtag, nmref)     = tagFromRef nmref
   #! (argstag, argsref) = tagFromRef argsref
   #! (expr, tsrc) = tExpr2Image inh texpr tsrc
   #! maxXSpan   = maxSpan [imagexspan nmtag, imagexspan argstag]
@@ -938,29 +944,34 @@ tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] !*TagSource -> *(!
 tTaskApp inh eid modName taskName taskArgs tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
   #! isActive           = Just eid == inh.inh_trt.trt_activeNodeId
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta isActive modName taskName taskArgs`) inh.inh_task_apps tsrc
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultTaskApp isActive modName taskName taskArgs` tsrc
+                            _          -> tDefaultTaskApp inh.inh_compact isActive modName taskName taskArgs` tsrc
   = ( taskApp <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
     , tsrc)
 
-tDefaultTaskApp :: !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tDefaultTaskApp isActive modName taskName taskArgs tsrc
+tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp isCompact isActive modName taskName taskArgs tsrc
   #! (taskNameImg,  tnref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px taskName))
-  #! (taskArgsImgs, taref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
   #! (tntag, tnref) = tagFromRef tnref
+  #! (taskArgsImgs, taref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
   #! (tatag, taref) = tagFromRef taref
-  #! maxXSpan       = maxSpan [imagexspan tntag, imagexspan tatag]
-  #! bgRect         = rect maxXSpan (imageyspan tntag + imageyspan tatag)
+  #! maxXSpan       = if (isEmpty taskArgs || isCompact)
+                        (imagexspan tntag)
+                        (maxSpan [imagexspan tntag, imagexspan tatag])
+  #! yspan          = if (isEmpty taskArgs || isCompact)
+                        (imageyspan tntag)
+                        (imageyspan tntag + imageyspan tatag)
+  #! bgRect         = rect maxXSpan yspan
                         <@< { fill        = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
                         <@< { stroke      = toSVGColor "black" }
                         <@< { strokewidth = px 1.0 }
                         <@< { xradius     = px 5.0 }
                         <@< { yradius     = px 5.0 }
-  #! taskText       = above (repeat AtMiddleX) [] (case taskArgs of
-                                                     [] -> [taskNameImg]
-                                                     _  -> [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
+  #! taskText       = above (repeat AtMiddleX) [] (if (isEmpty taskArgs || isCompact)
+                                                     [taskNameImg]
+                                                     [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing, tsrc)
 
 tReturn :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -1000,11 +1011,11 @@ tAssign inh user assignedTask tsrc
 ppUser :: !TUser -> String
 ppUser TUAnyUser                       = "Any user"
 ppUser (TUUserWithIdent ident)         = "User " +++ ident
-ppUser (TUUserWithRole role)           = "Any user with role " +++ role
-ppUser TUSystemUser                    = "Any system user"
-ppUser TUAnonymousUser                 = "Any anonymous user"
+ppUser (TUUserWithRole role)           = "User with role " +++ role
+ppUser TUSystemUser                    = "System user"
+ppUser TUAnonymousUser                 = "Anonymous user"
 ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
-ppUser (TUVariableUser usr)            = "User referred to by variable " +++ usr
+ppUser (TUVariableUser usr)            = "User " +++ usr
 
 tStep :: !MkImageInh !TExpr ![PPOr TStepCont] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh lhsExpr conts tsrc

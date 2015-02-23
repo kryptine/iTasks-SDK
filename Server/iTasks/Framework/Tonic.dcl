@@ -40,7 +40,7 @@ derive gText
 
 :: TonicRTMap :== Map TaskId TonicRT
 
-:: TaskAppRenderer :== Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
+:: TaskAppRenderer :== Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
 
 :: ModelTy
 
