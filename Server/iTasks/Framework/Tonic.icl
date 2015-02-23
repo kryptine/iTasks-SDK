@@ -30,6 +30,8 @@ from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
 import Text
+import GenLexOrd
+import qualified Data.Graph as DG
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -385,22 +387,164 @@ viewInstance _ _ = return ()
 tonicViewer :: [TaskAppRenderer] -> PublishedTask
 tonicViewer rs = publish "/tonic" (WebApp []) (\_ -> tonicLogin rs)
 
-outgoingTaskEdges :: TonicRT -> Set (ModuleName, TaskName)
-outgoingTaskEdges trt = outgoingTaskEdges` trt 'DM'.newMap
-  where
-  outgoingTaskEdges` trt acc
-    //# entry = case 'DM'.get trt.trt_bpref acc of
-                //Just m -> m
-                //_      -> []
-    # succs = fmap (\tt -> successors tt.tt_body) trt.trt_bpinstance
-    = case succs of
-        Just ss -> ss
-        _       -> 'DS'.newSet
+:: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
-  successors :: !TExpr -> Set (ModuleName, TaskName)
+allBlueprints :: Task AllBlueprints
+allBlueprints
+            = getTonicModules >>-
+  \modnms  -> allTasks (map getModule modnms) >>-
+  \modules -> return (foldr f 'DM'.newMap modules)
+  where
+  f mod acc
+    = case 'DM'.get mod.tm_name acc of
+        Just _ -> acc
+        _      -> 'DM'.put mod.tm_name mod.tm_tasks acc
+
+reifyTonicTask :: !ModuleName !TaskName !AllBlueprints -> Maybe TonicTask
+reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
+                                Just mod -> 'DM'.get tn mod
+                                _        -> Nothing
+
+tonicSingleAppWorkflow :: [TaskAppRenderer] -> Workflow
+tonicSingleAppWorkflow rs = workflow "Tonic Single App Browser" "Tonic SingleApp Browser" (tonicSingleAppBrowser rs)
+
+tonicSingleAppBrowser :: [TaskAppRenderer] -> Task ()
+tonicSingleAppBrowser rs
+  =      (selectModule >&> withSelection noModuleSelection (
+  \mn -> getModule mn >>-
+  \tm -> (selectTask tm >&> withSelection noTaskSelection (
+  \tn -> maybe (return ())
+           (\tt -> viewSingleApp rs [] tm tt @! ())
+           (getTask tm tn)
+         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+            <<@ FullScreen
+  where
+  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
+  selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
+  noModuleSelection = viewInformation () [] "Select module..."
+  noTaskSelection   = viewInformation () [] "Select task..."
+
+expandTask allbps n tt
+  | n >= 0    = {tt & tt_body = expandTExpr allbps n tt.tt_body}
+  | otherwise = tt
+
+// TODO: alpha-renaming where necessary
+expandTExpr _ 0 texpr = texpr
+expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
+  = case reifyTonicTask mn tn allbps of
+      Just tt -> expandTExpr allbps (n - 1) tt.tt_body
+      _       -> texpr
+expandTExpr allbps n (TBind lhs pat rhs)
+  = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
+expandTExpr allbps n (TReturn e)
+  = TReturn (expandTExpr allbps n e)
+expandTExpr allbps n (TLet pats bdy)
+  = TLet (map f pats) (expandTExpr allbps n bdy)
+  where
+  f (pat, rhs) = (pat, expandTExpr allbps n rhs)
+expandTExpr allbps n (TCaseOrIf e pats)
+  = TCaseOrIf (expandTExpr allbps n e) (map f pats)
+  where
+  f (pat, rhs) = (pat, expandTExpr allbps n rhs)
+expandTExpr allbps n (TStep lhs conts)
+  = TStep (expandTExpr allbps n lhs) (map f conts)
+  where
+  f (T (StepOnValue      fil))  = T (StepOnValue      (g fil))
+  f (T (StepOnAction act fil))  = T (StepOnAction act (g fil))
+  f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr allbps n e))
+  f x = x
+  g (Always                    e) = Always (expandTExpr allbps n e)
+  g (HasValue              pat e) = HasValue pat (expandTExpr allbps n e)
+  g (IfStable              pat e) = IfStable pat (expandTExpr allbps n e)
+  g (IfUnstable            pat e) = IfUnstable pat (expandTExpr allbps n e)
+  g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr allbps n e)
+  g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr allbps n e)
+  g e = e
+expandTExpr allbps n (TParallel eid par)
+  = TParallel eid (expandPar par)
+  where
+  expandPar (ParSumL l r) = ParSumL (expandTExpr allbps n l) (expandTExpr allbps n r)
+  expandPar (ParSumR l r) = ParSumR (expandTExpr allbps n l) (expandTExpr allbps n r)
+  expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
+  expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
+  expandPar p = p
+expandTExpr allbps n (TAssign usr e)
+  = TAssign usr (expandTExpr allbps n e)
+expandTExpr allbps n (TTransform e vn args)
+  = TTransform (expandTExpr allbps n e) vn args
+//expandTExpr allbps n (TListCompr TExpr [TGen] TCleanExpr) =  // TODO
+expandTExpr _ n texpr = texpr
+
+viewSingleApp :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
+viewSingleApp rs navstack tm=:{tm_name} tt =
+           updateInformation "Select view depth" [] 0 >&> withSelection (viewInformation () [] "Enter depth...") (
+  \depth ->
+      viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
+  ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
+  ||- allBlueprints >>-
+  \allbps -> updateInformation ()
+        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap) (const id)]
+        {ActionState | state = expandTask allbps depth tt, action = Nothing} >>*
+        [ OnValue (doAction (navigate tm tt))
+        , OnAction (Action "Back" []) (back tm tt navstack)] @! ())
+  where
+  back _  _  []           _ = Nothing
+  back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
+  navigate tm tt next _     = nav` (\ns -> [(tm.tm_name, tt.tt_name):navstack]) tm tt next navstack
+  nav` mkNavStack tm tt (mn, tn) navstack
+    = getModule mn >>*
+      [ OnValue onNavVal
+      , OnAllExceptions (const (viewSingleApp rs navstack tm tt))
+      ]
+    where
+    onNavVal (Value tm` _) = fmap (\tt` -> viewSingleApp rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
+    onNavVal _             = Nothing
+  defaultTRT tt
+    = { trt_taskId        = TaskId -1 -1
+      , trt_params        = []
+      , trt_bpref         = (tm_name, tt.tt_name)
+      , trt_bpinstance    = Just tt
+      , trt_activeNodeId  = Nothing
+      , trt_parentTaskId  = TaskId -2 -2
+      , trt_involvedUsers = []
+      , trt_output        = Nothing
+      }
+
+
+instance == TonicTask where
+  (==) t1 t2 = t1 === t2
+
+instance < TonicTask where
+  (<) t1 t2 = case t1 =?= t2 of
+                LT -> True
+                _  -> False
+
+derive gLexOrd TonicTask, TExpr, TGen, TCleanExpr, TShare, TParallel, PPOr,
+               TUser, TStepCont, Maybe, TAssoc, TStepFilter
+
+//mkConnectedGraph :: !AllBlueprints -> Graph TonicTask ()
+//mkConnectedGraph allbps = mkConnectedGraph` allbps 'DG'.emptyGraph
+  //where
+  //mkConnectedGraph` allbps g
+    //# (ns, g) = 'DM'.foldrWithKey (\_ m acc -> 'DM'.foldrWithKey (\_ tt (nids, g) -> let (nid, g) = 'DG'.addNode tt g
+                                                                                     //in  ([(nid, tt):nids], g)) acc m) ([], g) allbps
+    //# g = foldr (\(nid, tt) -> ) g ns
+    //= g
+
+
+connectedTasks :: !AllBlueprints !TonicTask -> Set TonicTask
+connectedTasks allbps tt = successors tt.tt_body
+  where
+  successors :: !TExpr -> Set TonicTask
   successors (TBind lhs _ rhs)    = 'DS'.union (successors lhs) (successors rhs)
   successors (TReturn texpr)      = successors texpr
-  successors (TTaskApp _ mn tn _) = 'DS'.singleton (mn, tn)
+  successors (TTaskApp _ mn tn _)
+    = case 'DM'.get mn allbps of
+        Just mod -> case 'DM'.get tn mod of
+                      Just tt -> 'DS'.singleton tt
+                      _       -> 'DS'.newSet
+        _ -> 'DS'.newSet
   successors (TLet _ bdy)         = successors bdy
   successors (TCaseOrIf _ pats)   = 'DS'.unions (map (successors o snd) pats)
   successors (TStep lexpr conts)  = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
@@ -428,7 +572,6 @@ outgoingTaskEdges trt = outgoingTaskEdges` trt 'DM'.newMap
   succPar (ParSumN (T es)) = 'DS'.unions (map successors es)
   succPar (ParProd (T es)) = 'DS'.unions (map successors es)
   succPar _                = 'DS'.newSet
-
 
 ArialRegular10px :== { fontfamily  = "Arial"
                      , fontysize   = 10.0
@@ -733,7 +876,7 @@ prefixAOrAn str
   | otherwise                                       = "a " +++ str
 
 // TODO Start / stop symbols here
-tTaskDef :: !String !TCleanExpr ![(!TCleanExpr, !TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef :: !String !TCleanExpr [(TCleanExpr, TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskDef taskName resultTy _ tdbody tsrc
   #! (taskBodyImgs, bdyref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
   #! (bdytag, bdyref) = tagFromRef bdyref
