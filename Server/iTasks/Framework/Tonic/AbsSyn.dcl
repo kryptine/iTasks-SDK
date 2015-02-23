@@ -28,10 +28,11 @@ derive gEq
 :: TaskName     :== String
 
 :: TonicTask =
-  { tt_name  :: TaskName
-  , tt_resty :: TCleanExpr
-  , tt_args  :: [(TCleanExpr, TCleanExpr)]
-  , tt_body  :: TExpr
+  { tt_module :: !ModuleName
+  , tt_name   :: !TaskName
+  , tt_resty  :: !TCleanExpr
+  , tt_args   :: ![(TCleanExpr, TCleanExpr)]
+  , tt_body   :: !TExpr
   }
 
 :: Pattern  :== TCleanExpr
