@@ -4,6 +4,7 @@ import iTasks
 import MultiUser
 from iTasks.API.Core.IntegrationTasks import sendEmail
 import iTasks.Framework.Tonic
+import Graphics.Scalable
 
 // Types obtained from use case
 
@@ -118,9 +119,15 @@ derive class iTask ClientRequest, Log, Form
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA	// this is the case
-                                    , tonicStaticWorkflow
-                                    , tonicDynamicWorkflow
+                                    , tonicStaticWorkflow []
+                                    , tonicDynamicWorkflow []
+                                    , tonicSingleAppWorkflow []
 									] world
+
+//bpmcBlueprints = [createBlueprint]
+  //where
+  //createBlueprint _ _ "BPMC" "create" _ ts = (Just (rect (px 50.0) (px 50.0)), ts)
+  //createBlueprint _ _ _      _        _ ts = (Nothing, ts)
 
 // here finally the task description starts...
 
