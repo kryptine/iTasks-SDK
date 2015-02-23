@@ -426,55 +426,70 @@ tonicSingleAppBrowser rs
   noTaskSelection   = viewInformation () [] "Select task..."
 
 expandTask allbps n tt
-  | n >= 0    = {tt & tt_body = expandTExpr allbps n tt.tt_body}
+  | n >= 0    = {tt & tt_body = expandTExpr 'DM'.newMap allbps n tt.tt_body}
   | otherwise = tt
 
-// TODO: alpha-renaming where necessary
-expandTExpr _ 0 texpr = texpr
-expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
+// TODO: alpha-renaming where necessary, both in TExpr and TCleanExpr
+expandTExpr :: (Map TExpr TExpr) AllBlueprints Int TExpr -> TExpr
+expandTExpr varenv allbps 0 (TTaskApp eid mn tn args)
+  = TTaskApp eid mn tn (map aren args)
+  where
+  aren arg = case 'DM'.get arg varenv of
+               Just e -> e
+               _      -> arg
+expandTExpr _      _      0 texpr = texpr
+expandTExpr varenv allbps n texpr=:(TTaskApp eid mn tn args)
   = case reifyTonicTask mn tn allbps of
-      Just tt -> expandTExpr allbps (n - 1) tt.tt_body
-      _       -> texpr
-expandTExpr allbps n (TBind lhs pat rhs)
-  = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
-expandTExpr allbps n (TReturn e)
-  = TReturn (expandTExpr allbps n e)
-expandTExpr allbps n (TLet pats bdy)
-  = TLet (map f pats) (expandTExpr allbps n bdy)
+      Just tt
+        # varenv = foldr (\((old, _), new) varenv -> 'DM'.put (TCleanExpr [] old) new varenv) varenv (zip2 tt.tt_args args)
+        = expandTExpr varenv allbps (n - 1) tt.tt_body
+      _
+        = texpr
+expandTExpr varenv allbps n (TBind lhs pat rhs)
+  = TBind (expandTExpr varenv allbps n lhs) pat (expandTExpr varenv allbps n rhs)
+expandTExpr varenv allbps n (TReturn e)
+  = TReturn (expandTExpr varenv allbps n e)
+expandTExpr varenv allbps n (TLet pats bdy)
+  # varenv = foldr (\(pat, rhs) varenv -> 'DM'.put (TCleanExpr [] pat) rhs varenv) varenv pats
+  = TLet (map f pats) (expandTExpr varenv allbps n bdy)
   where
-  f (pat, rhs) = (pat, expandTExpr allbps n rhs)
-expandTExpr allbps n (TCaseOrIf e pats)
-  = TCaseOrIf (expandTExpr allbps n e) (map f pats)
+  f (pat, rhs) = (pat, expandTExpr varenv allbps n rhs)
+expandTExpr varenv allbps n (TCaseOrIf e pats)
+  = TCaseOrIf (expandTExpr varenv allbps n e) (map f pats)
   where
-  f (pat, rhs) = (pat, expandTExpr allbps n rhs)
-expandTExpr allbps n (TStep lhs conts)
-  = TStep (expandTExpr allbps n lhs) (map f conts)
+  f (pat, rhs) = (pat, expandTExpr varenv allbps n rhs)
+expandTExpr varenv allbps n (TStep lhs conts)
+  = TStep (expandTExpr varenv allbps n lhs) (map f conts)
   where
   f (T (StepOnValue      fil))  = T (StepOnValue      (g fil))
   f (T (StepOnAction act fil))  = T (StepOnAction act (g fil))
-  f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr allbps n e))
+  f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr varenv allbps n e))
   f x = x
-  g (Always                    e) = Always (expandTExpr allbps n e)
-  g (HasValue              pat e) = HasValue pat (expandTExpr allbps n e)
-  g (IfStable              pat e) = IfStable pat (expandTExpr allbps n e)
-  g (IfUnstable            pat e) = IfUnstable pat (expandTExpr allbps n e)
-  g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr allbps n e)
-  g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr allbps n e)
+  g (Always                    e) = Always (expandTExpr varenv allbps n e)
+  g (HasValue              pat e) = HasValue pat (expandTExpr varenv allbps n e)
+  g (IfStable              pat e) = IfStable pat (expandTExpr varenv allbps n e)
+  g (IfUnstable            pat e) = IfUnstable pat (expandTExpr varenv allbps n e)
+  g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr varenv allbps n e)
+  g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr varenv allbps n e)
   g e = e
-expandTExpr allbps n (TParallel eid par)
+expandTExpr varenv allbps n (TParallel eid par)
   = TParallel eid (expandPar par)
   where
-  expandPar (ParSumL l r) = ParSumL (expandTExpr allbps n l) (expandTExpr allbps n r)
-  expandPar (ParSumR l r) = ParSumR (expandTExpr allbps n l) (expandTExpr allbps n r)
-  expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
-  expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
+  expandPar (ParSumL l r) = ParSumL (expandTExpr varenv allbps n l) (expandTExpr varenv allbps n r)
+  expandPar (ParSumR l r) = ParSumR (expandTExpr varenv allbps n l) (expandTExpr varenv allbps n r)
+  expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr varenv allbps n) es))
+  expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr varenv allbps n) es))
   expandPar p = p
-expandTExpr allbps n (TAssign usr e)
-  = TAssign usr (expandTExpr allbps n e)
-expandTExpr allbps n (TTransform e vn args)
-  = TTransform (expandTExpr allbps n e) vn args
-//expandTExpr allbps n (TListCompr TExpr [TGen] TCleanExpr) =  // TODO
-expandTExpr _ n texpr = texpr
+expandTExpr varenv allbps n (TAssign usr e)
+  = TAssign usr (expandTExpr varenv allbps n e)
+expandTExpr varenv allbps n (TTransform e vn args)
+  = TTransform (expandTExpr varenv allbps n e) vn args
+//expandTExpr varenv allbps n (TListCompr TExpr [TGen] TCleanExpr) =  // TODO
+expandTExpr varenv _ _ (TVar eid pp)
+  = case 'DM'.get (TCleanExpr [] (PPCleanExpr pp)) varenv of
+      Just e -> e
+      _      -> TVar eid pp
+expandTExpr _ _ n texpr = texpr
 
 viewSingleApp :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewSingleApp rs navstack tm=:{tm_name} tt =
@@ -516,6 +531,16 @@ instance == TonicTask where
   (==) t1 t2 = t1 === t2
 
 instance < TonicTask where
+  (<) t1 t2 = case t1 =?= t2 of
+                LT -> True
+                _  -> False
+
+instance < TCleanExpr where
+  (<) t1 t2 = case t1 =?= t2 of
+                LT -> True
+                _  -> False
+
+instance < TExpr where
   (<) t1 t2 = case t1 =?= t2 of
                 LT -> True
                 _  -> False
@@ -878,7 +903,7 @@ prefixAOrAn str
 // TODO Start / stop symbols here
 tTaskDef :: !String !TCleanExpr [(TCleanExpr, TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskDef taskName resultTy _ tdbody tsrc
-  #! (taskBodyImgs, bdyref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, tdbody, tHorizConnArr, tStopSymb] Nothing))
+  #! (taskBodyImgs, bdyref, tsrc) = tagWithSrc tsrc (margin (px 5.0) tdbody)
   #! (bdytag, bdyref) = tagFromRef bdyref
   #! bgRect           = rect (imagexspan bdytag) (imageyspan bdytag)
                           <@< { fill        = toSVGColor "white" }
@@ -965,7 +990,7 @@ tAssign inh user assignedTask tsrc
                      <@< { xradius     = px 5.0 }
                      <@< { yradius     = px 5.0 }
                      <@< { dash        = [5, 5] }
-  #! (at, atr)   = tagWithRef atr (margin (px 5.0) (beside (repeat AtMiddleY) [] [tStartSymb, tHorizConnArr, at, tHorizConnArr, tStopSymb] Nothing))
+  #! (at, atr)   = tagWithRef atr (margin (px 5.0) at)
   #! content     = above (repeat AtMiddleX) [] [beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing, xline Nothing maxXSpan, at] Nothing
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
