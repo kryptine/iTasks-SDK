@@ -660,7 +660,7 @@ itwc.component.itwc_view_slider = itwc.extend(itwc.Component,{
         el.type = 'range';
         el.min = me.definition.minValue;
         el.max = me.definition.maxValue;
-        el.value = me.definition.cur;
+        el.value = me.definition.value;
         el.disabled = true;
     },
     setValue: function(value) {
@@ -889,7 +889,7 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
         el.type = 'range';
         el.min = me.definition.minValue;
         el.max = me.definition.maxValue;
-        el.value = me.definition.cur;
+        el.value = me.definition.value;
 
         el.addEventListener('change',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId, (e.target.value | 0),true);
