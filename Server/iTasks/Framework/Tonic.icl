@@ -290,14 +290,16 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 
 viewStaticTask :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask rs navstack tm=:{tm_name} tt =
-      viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
-  ||- updateInformation "Compact view?" [] False >&> withSelection (return ()) (
-  \compact -> (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
-  ||- updateInformation ()
-        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
-        {ActionState | state = tt, action = Nothing}) >>*
-        [ OnValue (doAction (navigate tm tt))
-        , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
+              viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty)) ||-
+              updateInformation "Compact view?" [] False >&> withSelection (return ()) (
+  \compact -> (if (length tt.tt_args > 0)
+                (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
+                (return ())) ||-
+              updateInformation ()
+                [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
+                {ActionState | state = tt, action = Nothing}) >>*
+              [ OnValue (doAction (navigate tm tt))
+              , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
   where
   back _  _  []           _ = Nothing
   back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
@@ -495,7 +497,7 @@ expandTExpr _ _ n texpr = texpr
 
 viewSingleApp :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewSingleApp rs navstack tm=:{tm_name} tt =
-            updateInformation "Select view depth" [] 0 >&> withSelection (viewInformation () [] "Enter depth...") (
+            updateInformation "Select view depth" [] {Scale | min = 0, cur = 0, max = 10} >&> withSelection (viewInformation () [] "Select depth...") (
   \depth -> updateInformation "Compact view?" [] False >&> withSelection (viewInformation () [] "Compact view?") (
   \compact -> (
       viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
@@ -503,7 +505,7 @@ viewSingleApp rs navstack tm=:{tm_name} tt =
   ||- allBlueprints >>-
   \allbps -> updateInformation ()
         [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
-        {ActionState | state = expandTask allbps depth tt, action = Nothing} >>*
+        {ActionState | state = expandTask allbps depth.cur tt, action = Nothing} >>*
         [ OnValue (doAction (navigate tm tt))
         , OnAction (Action "Back" []) (back tm tt navstack)] @! ())))
   where

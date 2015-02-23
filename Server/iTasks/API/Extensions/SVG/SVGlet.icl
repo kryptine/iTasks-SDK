@@ -384,7 +384,7 @@ skewXImageWidth angle (xspan, yspan)
 
 // Skew an image by a given angle. This function is naive as well, for the same
 // reasons as the rotation function.
-// TODO : We need to calculate the difference between the original and skewed
+// TODO: We need to calculate the difference between the original and skewed
 // top-left coordinate here as well, because we need it in grid layouts
 //
 // @param (th | Angle th)     angle          The skew angle
