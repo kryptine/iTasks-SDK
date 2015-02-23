@@ -981,7 +981,9 @@ tAssign inh user assignedTask tsrc
   #! (atag, atr) = tagFromRef atr
   #! (utr, tsrc) = mkTagRef tsrc
   #! (utag, utr) = tagFromRef utr
-  #! maxXSpan    = maxSpan [imagexspan utag, imagexspan atag]
+  #! (mantr, tsrc) = mkTagRef tsrc
+  #! (mantag, mantr) = tagFromRef mantr
+  #! maxXSpan    = maxSpan [imagexspan utag + imagexspan mantag, imagexspan atag]
   #! (taskNameImg, utr) = tagWithRef utr (margin (px 5.0) (text ArialBold10px (ppUser user)))
   #! bgRect      = rect maxXSpan (imageyspan utag + imageyspan atag)
                      <@< { fill        = toSVGColor "white" }
@@ -991,6 +993,7 @@ tAssign inh user assignedTask tsrc
                      <@< { yradius     = px 5.0 }
                      <@< { dash        = [5, 5] }
   #! (at, atr)   = tagWithRef atr (margin (px 5.0) at)
+  #! (littleman, mantr) = tagWithRef mantr littleman
   #! content     = above (repeat AtMiddleX) [] [beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing, xline Nothing maxXSpan, at] Nothing
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
