@@ -137,7 +137,7 @@ firstParent _     _          [] = Nothing
 firstParent rtMap instanceNo [parentTaskNo:parentTaskNos]
   = maybe (firstParent rtMap instanceNo parentTaskNos) Just
       ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
-import StdDebug
+
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
@@ -151,11 +151,8 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
       = okSt iworld updRTMap mrtMap
       where
       updRTMap rtMap iworld
-        //# traceStr = foldr (\x xs -> toString x +++ " " +++ xs) "" callTrace
-        # nids     = foldr (\x xs -> toString x +++ " " +++ xs) "" nid
-        //# iworld = trace_n (mn +++ "." +++ tn +++ " traceStr: " +++ traceStr +++ " nids: " +++ nids) iworld
-        # rtMap = maybe rtMap // TODO 0 0 2 isn't traced here. parent not found somehow?
-                    (\rt -> trace_n (toString rt.trt_taskId +++ " " +++ nids) 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
+        # rtMap = maybe rtMap
+                    (\rt -> 'DM'.put rt.trt_taskId {rt & trt_activeNodeId = Just nid} rtMap)
                     (firstParent rtMap instanceNo [taskNo:callTrace])
         = snd ('DSDS'.write rtMap tonicSharedRT iworld)
   eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
@@ -288,21 +285,35 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
+:: ModelTy :== ActionState (ModuleName, TaskName) TonicImageState
+
+:: TonicImageState
+  = { tis_task    :: TonicTask
+    , tis_depth   :: Scale
+    , tis_compact :: Bool
+    }
+
+derive class iTask TonicImageState
+
 viewStaticTask :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask rs navstack tm=:{tm_name} tt =
                  allBlueprints >>-
-  \allbps ->     (updateInformation "Select view depth" [] {Scale | min = 0, cur = 0, max = 25} -&&-
-                  updateInformation "Compact view?" [] False) >&> withSelection (return ()) (
+  \allbps ->     (updateInformation "Select view depth" [] {Scale | min = 0, cur = 0, max = 25}
+            -&&- updateInformation "Compact view?" [] False) >&> withSelection (return ()) (
   \( depth
-   , compact) -> viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty)) ||-
-                 (if (length tt.tt_args > 0)
+   , compact) -> viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
+             ||- (if (length tt.tt_args > 0)
                    (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
-                   (return ())) ||-
-                 updateInformation ()
+                   (return ()))
+             ||- (updateInformation ()
                    [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
-                   {ActionState | state = expandTask allbps depth.cur tt, action = Nothing}) >>*
-                 [ OnValue (doAction (navigate tm tt))
-                 , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
+                   { ActionState
+                   | state  = { tis_task = expandTask allbps depth.cur tt
+                              , tis_depth = depth
+                              , tis_compact = compact }
+                   , action = Nothing}
+             >>* [ OnValue (doAction (navigate tm tt))
+                 , OnAction (Action "Back" []) (back tm tt navstack)]) @! ())
   where
   back _  _  []           _ = Nothing
   back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
@@ -382,7 +393,14 @@ viewInstance rs trt=:{trt_bpinstance = Just bp} =
                       viewTaskArguments trt bp ||-
                       updateInformation "Compact view?" [] False >&> withSelection (return ()) (
   \compact ->         (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
-  \(maplot, rtmap) -> updateInformation "Blueprint:" [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (const id)] {ActionState | state = bp, action = Nothing} ) >>*
+  \(maplot, rtmap) -> updateInformation "Blueprint:"
+                        [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (const id)]
+                        { ActionState
+                        | state = { tis_task    = bp
+                                  , tis_compact = False // TODO
+                                  , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
+                                  }
+                        , action = Nothing} ) >>*
                       [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]))
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
@@ -412,29 +430,43 @@ reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
                                 Just mod -> 'DM'.get tn mod
                                 _        -> Nothing
 
+instance == TCleanExpr where
+  (==) (AppCleanExpr a1 l1 r1) (AppCleanExpr a2 l2 r2) = a1 == a2 && l1 == l2 && r1 == r2
+  (==) (PPCleanExpr p1)        (PPCleanExpr p2)        = p1 == p2
+  (==) _                       _                       = False
+
+instance == TAssoc where
+  (==) (TLeftAssoc n1)  (TLeftAssoc n2)  = n1 == n2
+  (==) (TRightAssoc n1) (TRightAssoc n2) = n1 == n2
+  (==) TNonAssoc        TNonAssoc        = True
+  (==) _                _                = False
+
+expandTask :: !AllBlueprints !Int !TonicTask -> TonicTask
 expandTask allbps n tt
   | n >= 0    = {tt & tt_body = expandTExpr allbps n tt.tt_body}
   | otherwise = tt
 
-expandTExpr :: AllBlueprints Int TExpr -> TExpr
+expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
 expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
   = case reifyTonicTask mn tn allbps of
       Just tt
-        # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args]
-        = case tt.tt_body of
-            TLet pats` bdy` -> expandTExpr allbps (n - 1) (TLet (binds ++ pats`) bdy`)
-            _               -> TLet binds (expandTExpr allbps (n - 1) tt.tt_body)
-      _
-        = texpr
+        # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
+        = case expandTExpr allbps (n - 1) tt.tt_body of
+            TLet pats bdy -> TLet (binds ++ pats) bdy
+            bdy           -> TLet binds bdy
+      _ = texpr
+  where
+  isSame old (TCleanExpr _ new) = old == new
 expandTExpr allbps n (TBind lhs pat rhs)
   = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
 expandTExpr allbps n (TReturn e)
   = TReturn (expandTExpr allbps n e)
 expandTExpr allbps n (TLet pats bdy)
-  = case bdy of
-      TLet pats` bdy` -> expandTExpr allbps n (TLet (pats ++ pats`) bdy`)
-      _               -> TLet (map f pats) (expandTExpr allbps n bdy)
+  # pats = map f pats
+  = case expandTExpr allbps n bdy of
+      TLet pats` bdy` -> TLet (pats ++ pats`) bdy`
+      bdy`            -> TLet pats bdy`
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
 expandTExpr allbps n (TCaseOrIf e pats)
@@ -573,13 +605,12 @@ ArialItalic10px :== { fontfamily = "Arial"
   }
 
 mkTaskImage :: ![TaskAppRenderer] !TonicRT !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !Bool !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs trt maplot rtmap compact {ActionState | state = tt} tsrc
+mkTaskImage rs trt maplot rtmap compact {ActionState | state = tis} tsrc
+  #! tt               = tis.tis_task
   #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap, inh_task_apps = rs, inh_compact = compact }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
   = img
-
-:: ModelTy :== ActionState (ModuleName, TaskName) TonicTask
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpr2Image inh (TBind lhs mpat rhs)       tsrc = tBind         inh lhs mpat rhs tsrc
