@@ -730,8 +730,8 @@ tLet inh pats expr tsrc
       _
         #! (t, tsrc)               = tExpr2Image inh expr tsrc
         #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ case expr of
-                                                                                                                                                               TCleanExpr _ (PPCleanExpr x) -> x
-                                                                                                                                                               _                            -> "TODO tLet")) pats) Nothing)
+                                                                                                                                                               TCleanExpr _ clexp -> ppTCleanExpr clexp
+                                                                                                                                                               _                  -> "TODO tLet")) pats) Nothing)
         #! (txttag, txtref)        = tagFromRef txtref
         #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
                        <@< { fill   = toSVGColor "white" }
@@ -894,28 +894,42 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   = ( taskApp <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
     , tsrc)
 
+tRoundedRect :: !Span !Span -> Image a
+tRoundedRect width height
+  = rect width height
+      <@< { fill        = toSVGColor "white" }
+      <@< { stroke      = toSVGColor "black" }
+      <@< { strokewidth = px 1.0 }
+      <@< { xradius     = px 5.0 }
+      <@< { yradius     = px 5.0 }
+
 tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tDefaultTaskApp isCompact isActive modName taskName taskArgs tsrc
-  #! (taskNameImg,  tnref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px taskName))
-  #! (tntag, tnref) = tagFromRef tnref
-  #! (taskArgsImgs, taref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
-  #! (tatag, taref) = tagFromRef taref
-  #! maxXSpan       = if (isEmpty taskArgs || isCompact)
-                        (imagexspan tntag)
-                        (maxSpan [imagexspan tntag, imagexspan tatag])
-  #! yspan          = if (isEmpty taskArgs || isCompact)
-                        (imageyspan tntag)
-                        (imageyspan tntag + imageyspan tatag)
-  #! bgRect         = rect maxXSpan yspan
-                        <@< { fill        = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
-                        <@< { stroke      = toSVGColor "black" }
-                        <@< { strokewidth = px 1.0 }
-                        <@< { xradius     = px 5.0 }
-                        <@< { yradius     = px 5.0 }
-  #! taskText       = above (repeat AtMiddleX) [] (if (isEmpty taskArgs || isCompact)
-                                                     [taskNameImg]
-                                                     [taskNameImg, xline Nothing maxXSpan, taskArgsImgs]) Nothing
-  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskText] Nothing, tsrc)
+  #! isEditor = elem taskName [ "viewInformation"
+                              , "updateInformation"
+                              , "enterInformation"]
+                              // TODO Shared stuff
+  #! taskArgs = case (isCompact, isEditor, taskArgs) of
+                  (True, True, [x:_]) -> [x]
+                  (True, _, _)        -> []
+                  _                   -> taskArgs
+  = tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
+
+tDefaultTaskApp` :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
+  #! (taskNameImg, tnref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px taskName))
+  #! (tntag, tnref)             = tagFromRef tnref
+  = case taskArgs of
+      []
+        #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
+        = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
+      taskArgs
+        #! (argsImg, argsref, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
+        #! (argstag, argsref)       = tagFromRef argsref
+        #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
+        #! content  = margin (px 5.0) (above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing)
+        #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
+        = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
 tReturn :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tReturn inh retval tsrc
