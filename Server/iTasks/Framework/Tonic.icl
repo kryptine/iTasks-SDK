@@ -262,17 +262,35 @@ tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" 
 tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
 tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browser" (tonicDynamicBrowser rs)
 
+:: StaticSettings
+  = { unfold_depth    :: Scale
+    , display_compact :: Bool
+    }
+
+derive class iTask StaticSettings
+
+displaySettings :: Shared StaticSettings
+displaySettings = sharedStore "displaySettings" { unfold_depth    = {Scale | min = 0, cur = 0, max = 25}
+                                                , display_compact = False }
+
+(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
+
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
-tonicStaticBrowser rs
-  =      (selectModule >&> withSelection noModuleSelection (
-  \mn -> getModule mn >>-
-  \tm -> (selectTask tm >&> withSelection noTaskSelection (
-  \tn -> maybe (return ())
-           (\tt -> viewStaticTask rs [] tm tt @! ())
-           (getTask tm tn)
+tonicStaticBrowser rs = (
+                 (updateSharedInformation "Display settings" [] displaySettings)
+            -&&- (allBlueprints
+  >>- \allbps -> (selectModule >&> withSelection noModuleSelection (
+      \mn ->     getModule mn
+  >>- \tm ->     (selectTask tm >&> withSelection noTaskSelection (
+      \tn ->     maybe (return ()) (
+      \tt ->       whileUnchanged displaySettings (
+      \sett ->     viewStaticTask allbps sett.unfold_depth sett.display_compact rs [] tm tt @! ()))
+                 (getTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-            <<@ FullScreen
+            <<@ FullScreen)) @! ()
+         //)
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
   selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
@@ -295,25 +313,21 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 
 derive class iTask TonicImageState
 
-viewStaticTask :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
-viewStaticTask rs navstack tm=:{tm_name} tt =
-                 allBlueprints >>-
-  \allbps ->     (updateInformation "Select view depth" [] {Scale | min = 0, cur = 0, max = 25}
-            -&&- updateInformation "Compact view?" [] False) >&> withSelection (return ()) (
-  \( depth
-   , compact) -> viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
-             ||- (if (length tt.tt_args > 0)
-                   (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
-                   (return ()))
-             ||- (updateInformation ()
-                   [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
-                   { ActionState
-                   | state  = { tis_task = expandTask allbps depth.cur tt
-                              , tis_depth = depth
-                              , tis_compact = compact }
-                   , action = Nothing}
-             >>* [ OnValue (doAction (navigate tm tt))
-                 , OnAction (Action "Back" []) (back tm tt navstack)]) @! ())
+viewStaticTask :: AllBlueprints Scale Bool [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
+viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
+      viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
+  ||- (if (length tt.tt_args > 0)
+        (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
+        (return ()))
+  ||- (updateInformation ()
+        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
+        { ActionState
+        | state  = { tis_task    = expandTask allbps depth.cur tt
+                   , tis_depth   = depth
+                   , tis_compact = compact }
+        , action = Nothing}
+  >>* [ OnValue (doAction (navigate tm tt))
+      , OnAction (Action "Back" []) (back tm tt navstack)]) @! ()
   where
   back _  _  []           _ = Nothing
   back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
@@ -321,10 +335,10 @@ viewStaticTask rs navstack tm=:{tm_name} tt =
   nav` mkNavStack tm tt (mn, tn) navstack
     = getModule mn >>*
       [ OnValue onNavVal
-      , OnAllExceptions (const (viewStaticTask rs navstack tm tt))
+      , OnAllExceptions (const (viewStaticTask allbps depth compact rs navstack tm tt))
       ]
     where
-    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
+    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps depth compact rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
   defaultTRT tt
     = { trt_taskId        = TaskId -1 -1
@@ -388,20 +402,22 @@ tonicDynamicBrowser` rs q =
 
 viewInstance :: [TaskAppRenderer] TonicRT -> Task ()
 viewInstance rs trt=:{trt_bpinstance = Just bp} =
-                      dynamicParent trt.trt_taskId >>-
-  \mbprnt ->          (viewInformation (blueprintTitle trt bp) [] () ||-
-                      viewTaskArguments trt bp ||-
-                      updateInformation "Compact view?" [] False >&> withSelection (return ()) (
-  \compact ->         (watch (tonicSharedListOfTask |+| tonicSharedRT) >>-
-  \(maplot, rtmap) -> updateInformation "Blueprint:"
-                        [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (const id)]
-                        { ActionState
-                        | state = { tis_task    = bp
-                                  , tis_compact = False // TODO
-                                  , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
-                                  }
-                        , action = Nothing} ) >>*
-                      [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]))
+                 dynamicParent trt.trt_taskId
+  >>- \mbprnt -> (viewInformation (blueprintTitle trt bp) [] ()
+             ||- viewTaskArguments trt bp
+             ||- updateInformation "Compact view?" [] False
+             >&> withSelection (return ()) (
+  \compact ->    whileUnchanged tonicSharedListOfTask (
+  \maplot ->     whileUnchanged tonicSharedRT (
+  \rtmap ->      updateInformation "Blueprint:"
+                   [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (const id)]
+                   { ActionState
+                   | state = { tis_task    = bp
+                             , tis_compact = False // TODO
+                             , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
+                             }
+                   , action = Nothing} )
+             >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)])))
   where
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
