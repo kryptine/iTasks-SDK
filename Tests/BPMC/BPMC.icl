@@ -28,7 +28,6 @@ serviceReqLog	= { ING_Doc	| typeIdx 		= Do 35						// service doc to logg in dat
 						  	}				
 case346			= Cs 346												// case number to handle
 
-
 derive class iTask  BusinessDepartment, EmployeeCode, ING_Doc, DocType, DocIndex, ClientId, Account, Case, Database
 
 database062 :: Shared [(Case, Form ING_Doc Note)]
@@ -59,13 +58,13 @@ ourClients 		= 	[ {name = "Rinus" , id = Cl 1, email = "rinus@cs.ru.nl",  accoun
 			 		]
 
 ourEmployees :: [Employee]
-ourEmployees 	= 	[ {Employee | name = "alice", department = frontOffice, 			id = (Ec 26),  email = "alice@ing.nl"}
-					, {Employee | name = "bob"  , department = commercialServiceAdmin, 	id = (Ec 27), email = "bob@ing.nl"}
-					, {Employee | name = "carol", department = backOffice, 			 	id = (Ec 22),  email = "carol@ing.nl"}
+ourEmployees 	= 	[ {Employee | name = "alice", department = frontOfficeDep, 				id = (Ec 26), email = "alice@ing.nl"}
+					, {Employee | name = "bob"  , department = commercialServiceAdminDep, 	id = (Ec 27), email = "bob@ing.nl"}
+					, {Employee | name = "carol", department = backOfficeDep, 			 	id = (Ec 22), email = "carol@ing.nl"}
 					]			 
-frontOffice 			= Bd 1
-commercialServiceAdmin	= Bd 2
-backOffice			    = Bd 3
+frontOfficeDep 				= Bd 1
+commercialServiceAdminDep	= Bd 2
+backOfficeDep			    = Bd 3
 
 // some crud functions on the db info is also assumed ...
 
@@ -85,11 +84,11 @@ frontOfficeEmployee 	= fromJust (getEmployee (Ec 26))						// lets assume this e
 csaEmployee 			= fromJust (getEmployee (Ec 27))						// lets assume this employee is indeed administrated
 boEmployee 				= fromJust (getEmployee (Ec 22))						// lets assume this employee is indeed administrated
 
-foName 					= frontOfficeEmployee.Employee.name	 					// used for assigning tasks to employee
+frontOfficer 			= frontOfficeEmployee.Employee.name	 					// used for assigning tasks to employee
 foEmail					= frontOfficeEmployee.Employee.email					// email address of employee
 
-csaName 				= csaEmployee.Employee.name	 							// used for assigning tasks to employee
-boName 					= boEmployee.Employee.name	 							// used for assigning tasks to employee
+commercialServOfficer	= csaEmployee.Employee.name	 							// used for assigning tasks to employee
+backOfficer 			= boEmployee.Employee.name	 							// used for assigning tasks to employee
 
 // Some types used for filling in forms
 
@@ -121,7 +120,6 @@ Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA	// this is the case
                                     , tonicStaticWorkflow []
                                     , tonicDynamicWorkflow []
-                                    , tonicSingleAppWorkflow []
 									] world
 
 //bpmcBlueprints = [createBlueprint]
@@ -137,8 +135,8 @@ caseA :: Task ()
 caseA 
 	= 				    			get currentUser 									// get credentials of client logged in
 	 >>= \user 		->				return (toString user)								// name of client
-	 >>= \client	->				create client foName "Submit Service Request"		// client creates service request 
-	 >>= \document  ->	foName @: 	handleRequest document								// front office will handle request client
+	 >>= \client	->				create client frontOfficer "Submit Service Request"	// client creates service request 
+	 >>= \document  ->	frontOfficer @: 	handleRequest document						// front office will handle request client
 
 // tasks performed by the front office
 
@@ -146,7 +144,7 @@ handleRequest :: (Log ClientRequest) -> Task ()
 handleRequest requestForm
 	=					modify "Handle Service Request" requestForm (form serviceReqDoc	(Note ""))				// step 1, modify input																									// step 1
  	>>= \document -> 	verify "Please Verify:" (requestForm, "Known from administration: ", clientAdmin)		// step 2, verify client data
- 	>>= \ok  	  -> 	if ok  		(csaName @:	handleLogService foName csaName (case346,document))				// step 3, yes, csa has to do step 4 and further
+ 	>>= \ok  	  -> 	if ok  		(commercialServOfficer @:	handleLogService frontOfficer commercialServOfficer (case346,document))				// step 3, yes, csa has to do step 4 and further
 									(inform foEmail clientEmail  "your request" (toMultiLineText request))		// step 3, no, mail client  
 where 
 	request 		= requestForm.Log.content
@@ -157,22 +155,22 @@ where
 // tasks performed by the commercial service administration
 
 handleLogService :: Name Name (Case,Form ING_Doc Note)  -> Task () 				
-handleLogService foName csaName (case346,serviceReqDoc) 
+handleLogService frontOfficer csaName (case346,serviceReqDoc) 
 	= 					modify "Handle Log Service Request" serviceReqDoc (form serviceReqLog (Note ""))		// step 4, prepare doc to store
 	>>= \toLog ->		log (case346,toLog) database062 														// step 5, store casenumber and document
-	>>|					boName @: handleCase foName boName case346												// bo has to do step 6 and further 
+	>>|					backOfficer @: handleCase frontOfficer backOfficer case346								// backOfficer has to do step 6 and further 
 
 
 // tasks performed by the backoffice
 
 handleCase :: Name Name Case -> Task ()								
-handleCase foName boName case346
+handleCase frontOfficer backOfficer case346
 	=					open case346 database062																// step 6 +7, fetch case stored in database
 	>>= \mbLog ->		verify "Can it be handled by frontoffice" mbLog											// step 7, appearantly one can only approve
-	>>| 				foName @: resolvePassword boName (fromJust mbLog)										// csa will handle step 8 and further
+	>>| 				frontOfficer @: resolvePassword backOfficer (fromJust mbLog)							// frontOfficer will handle step 8 and further
 	
 resolvePassword ::  Name (Case,Form ING_Doc Note) -> Task ()
-resolvePassword boName thisCase 
+resolvePassword backOfficer thisCase 
 	= return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
@@ -206,8 +204,8 @@ where
 	
 open :: key (Shared [(key,value)]) -> Task (Maybe (key,value))	| iTask key & iTask value	// search in databse for item with a certain key
 open index sharedDb
-	=				viewInformation "Retrieving from database:" [] index		// inform that database will be accessed
-	>>|				get sharedDb															// read from database
+	=				viewInformation "Retrieving from database:" [] index			// inform that database will be accessed
+	>>|				get sharedDb													// read from database
 	>>= \content -> case [(idx,doc) \\ (idx,doc) <- content | idx === index ] of
 						[] 		-> 		viewInformation "Information could not be found" [] ()
 									>>| return Nothing
