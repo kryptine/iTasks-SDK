@@ -61,10 +61,6 @@ derive class iTask TonicRT
 
 tonicViewer :: [TaskAppRenderer] -> PublishedTask
 
-tonicSingleAppBrowser :: [TaskAppRenderer] -> Task ()
-
-tonicSingleAppWorkflow :: [TaskAppRenderer] -> Workflow
-
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
 
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow

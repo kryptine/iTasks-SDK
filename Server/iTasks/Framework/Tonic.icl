@@ -290,16 +290,19 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 
 viewStaticTask :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask rs navstack tm=:{tm_name} tt =
-              viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty)) ||-
-              updateInformation "Compact view?" [] False >&> withSelection (return ()) (
-  \compact -> (if (length tt.tt_args > 0)
-                (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
-                (return ())) ||-
-              updateInformation ()
-                [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
-                {ActionState | state = tt, action = Nothing}) >>*
-              [ OnValue (doAction (navigate tm tt))
-              , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
+                 allBlueprints >>-
+  \allbps ->     (updateInformation "Select view depth" [] {Scale | min = 0, cur = 0, max = 25} -&&-
+                  updateInformation "Compact view?" [] False) >&> withSelection (return ()) (
+  \( depth
+   , compact) -> viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty)) ||-
+                 (if (length tt.tt_args > 0)
+                   (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
+                   (return ())) ||-
+                 updateInformation ()
+                   [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
+                   {ActionState | state = expandTask allbps depth.cur tt, action = Nothing}) >>*
+                 [ OnValue (doAction (navigate tm tt))
+                 , OnAction (Action "Back" []) (back tm tt navstack)] @! ()
   where
   back _  _  []           _ = Nothing
   back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
@@ -409,128 +412,62 @@ reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
                                 Just mod -> 'DM'.get tn mod
                                 _        -> Nothing
 
-tonicSingleAppWorkflow :: [TaskAppRenderer] -> Workflow
-tonicSingleAppWorkflow rs = workflow "Tonic Single App Browser" "Tonic SingleApp Browser" (tonicSingleAppBrowser rs)
-
-tonicSingleAppBrowser :: [TaskAppRenderer] -> Task ()
-tonicSingleAppBrowser rs
-  =      (selectModule >&> withSelection noModuleSelection (
-  \mn -> getModule mn >>-
-  \tm -> (selectTask tm >&> withSelection noTaskSelection (
-  \tn -> maybe (return ())
-           (\tt -> viewSingleApp rs [] tm tt @! ())
-           (getTask tm tn)
-         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-            <<@ FullScreen
-  where
-  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
-  selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
-  noModuleSelection = viewInformation () [] "Select module..."
-  noTaskSelection   = viewInformation () [] "Select task..."
-
 expandTask allbps n tt
-  | n >= 0    = {tt & tt_body = expandTExpr 'DM'.newMap allbps n tt.tt_body}
+  | n >= 0    = {tt & tt_body = expandTExpr allbps n tt.tt_body}
   | otherwise = tt
 
-// TODO: alpha-renaming where necessary, both in TExpr and TCleanExpr
-expandTExpr :: (Map TExpr TExpr) AllBlueprints Int TExpr -> TExpr
-expandTExpr varenv allbps 0 (TTaskApp eid mn tn args)
-  = TTaskApp eid mn tn (map aren args)
-  where
-  aren arg = case 'DM'.get arg varenv of
-               Just e -> e
-               _      -> arg
-expandTExpr _      _      0 texpr = texpr
-expandTExpr varenv allbps n texpr=:(TTaskApp eid mn tn args)
+expandTExpr :: AllBlueprints Int TExpr -> TExpr
+expandTExpr _      0 texpr = texpr
+expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
   = case reifyTonicTask mn tn allbps of
       Just tt
-        # varenv = foldr (\((old, _), new) varenv -> 'DM'.put (TCleanExpr [] old) new varenv) varenv (zip2 tt.tt_args args)
-        = expandTExpr varenv allbps (n - 1) tt.tt_body
+        # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args]
+        = case tt.tt_body of
+            TLet pats` bdy` -> expandTExpr allbps (n - 1) (TLet (binds ++ pats`) bdy`)
+            _               -> TLet binds (expandTExpr allbps (n - 1) tt.tt_body)
       _
         = texpr
-expandTExpr varenv allbps n (TBind lhs pat rhs)
-  = TBind (expandTExpr varenv allbps n lhs) pat (expandTExpr varenv allbps n rhs)
-expandTExpr varenv allbps n (TReturn e)
-  = TReturn (expandTExpr varenv allbps n e)
-expandTExpr varenv allbps n (TLet pats bdy)
-  # varenv = foldr (\(pat, rhs) varenv -> 'DM'.put (TCleanExpr [] pat) rhs varenv) varenv pats
-  = TLet (map f pats) (expandTExpr varenv allbps n bdy)
+expandTExpr allbps n (TBind lhs pat rhs)
+  = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
+expandTExpr allbps n (TReturn e)
+  = TReturn (expandTExpr allbps n e)
+expandTExpr allbps n (TLet pats bdy)
+  = case bdy of
+      TLet pats` bdy` -> expandTExpr allbps n (TLet (pats ++ pats`) bdy`)
+      _               -> TLet (map f pats) (expandTExpr allbps n bdy)
   where
-  f (pat, rhs) = (pat, expandTExpr varenv allbps n rhs)
-expandTExpr varenv allbps n (TCaseOrIf e pats)
-  = TCaseOrIf (expandTExpr varenv allbps n e) (map f pats)
+  f (pat, rhs) = (pat, expandTExpr allbps n rhs)
+expandTExpr allbps n (TCaseOrIf e pats)
+  = TCaseOrIf (expandTExpr allbps n e) (map f pats)
   where
-  f (pat, rhs) = (pat, expandTExpr varenv allbps n rhs)
-expandTExpr varenv allbps n (TStep lhs conts)
-  = TStep (expandTExpr varenv allbps n lhs) (map f conts)
+  f (pat, rhs) = (pat, expandTExpr allbps n rhs)
+expandTExpr allbps n (TStep lhs conts)
+  = TStep (expandTExpr allbps n lhs) (map f conts)
   where
   f (T (StepOnValue      fil))  = T (StepOnValue      (g fil))
   f (T (StepOnAction act fil))  = T (StepOnAction act (g fil))
-  f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr varenv allbps n e))
+  f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr allbps n e))
   f x = x
-  g (Always                    e) = Always (expandTExpr varenv allbps n e)
-  g (HasValue              pat e) = HasValue pat (expandTExpr varenv allbps n e)
-  g (IfStable              pat e) = IfStable pat (expandTExpr varenv allbps n e)
-  g (IfUnstable            pat e) = IfUnstable pat (expandTExpr varenv allbps n e)
-  g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr varenv allbps n e)
-  g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr varenv allbps n e)
+  g (Always                    e) = Always (expandTExpr allbps n e)
+  g (HasValue              pat e) = HasValue pat (expandTExpr allbps n e)
+  g (IfStable              pat e) = IfStable pat (expandTExpr allbps n e)
+  g (IfUnstable            pat e) = IfUnstable pat (expandTExpr allbps n e)
+  g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr allbps n e)
+  g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr allbps n e)
   g e = e
-expandTExpr varenv allbps n (TParallel eid par)
+expandTExpr allbps n (TParallel eid par)
   = TParallel eid (expandPar par)
   where
-  expandPar (ParSumL l r) = ParSumL (expandTExpr varenv allbps n l) (expandTExpr varenv allbps n r)
-  expandPar (ParSumR l r) = ParSumR (expandTExpr varenv allbps n l) (expandTExpr varenv allbps n r)
-  expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr varenv allbps n) es))
-  expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr varenv allbps n) es))
+  expandPar (ParSumL l r)    = ParSumL (expandTExpr allbps n l) (expandTExpr allbps n r)
+  expandPar (ParSumR l r)    = ParSumR (expandTExpr allbps n l) (expandTExpr allbps n r)
+  expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
+  expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
   expandPar p = p
-expandTExpr varenv allbps n (TAssign usr e)
-  = TAssign usr (expandTExpr varenv allbps n e)
-expandTExpr varenv allbps n (TTransform e vn args)
-  = TTransform (expandTExpr varenv allbps n e) vn args
-//expandTExpr varenv allbps n (TListCompr TExpr [TGen] TCleanExpr) =  // TODO
-expandTExpr varenv _ _ (TVar eid pp)
-  = case 'DM'.get (TCleanExpr [] (PPCleanExpr pp)) varenv of
-      Just e -> e
-      _      -> TVar eid pp
-expandTExpr _ _ n texpr = texpr
-
-viewSingleApp :: [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
-viewSingleApp rs navstack tm=:{tm_name} tt =
-            updateInformation "Select view depth" [] {Scale | min = 0, cur = 0, max = 10} >&> withSelection (viewInformation () [] "Select depth...") (
-  \depth -> updateInformation "Compact view?" [] False >&> withSelection (viewInformation () [] "Compact view?") (
-  \compact -> (
-      viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
-  ||- (if (length tt.tt_args > 0) (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ()) (return ()))
-  ||- allBlueprints >>-
-  \allbps -> updateInformation ()
-        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
-        {ActionState | state = expandTask allbps depth.cur tt, action = Nothing} >>*
-        [ OnValue (doAction (navigate tm tt))
-        , OnAction (Action "Back" []) (back tm tt navstack)] @! ())))
-  where
-  back _  _  []           _ = Nothing
-  back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
-  navigate tm tt next _     = nav` (\ns -> [(tm.tm_name, tt.tt_name):navstack]) tm tt next navstack
-  nav` mkNavStack tm tt (mn, tn) navstack
-    = getModule mn >>*
-      [ OnValue onNavVal
-      , OnAllExceptions (const (viewSingleApp rs navstack tm tt))
-      ]
-    where
-    onNavVal (Value tm` _) = fmap (\tt` -> viewSingleApp rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
-    onNavVal _             = Nothing
-  defaultTRT tt
-    = { trt_taskId        = TaskId -1 -1
-      , trt_params        = []
-      , trt_bpref         = (tm_name, tt.tt_name)
-      , trt_bpinstance    = Just tt
-      , trt_activeNodeId  = Nothing
-      , trt_parentTaskId  = TaskId -2 -2
-      , trt_involvedUsers = []
-      , trt_output        = Nothing
-      }
-
+expandTExpr allbps n (TAssign usr e)
+  = TAssign usr (expandTExpr allbps n e)
+expandTExpr allbps n (TTransform e vn args)
+  = TTransform (expandTExpr allbps n e) vn args
+expandTExpr _ n texpr = texpr
 
 instance == TonicTask where
   (==) t1 t2 = t1 === t2
@@ -787,16 +724,20 @@ tShare inh sh sn args tsrc
 
 tLet :: !MkImageInh ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
 tLet inh pats expr tsrc
-  #! (t, tsrc)               = tExpr2Image inh expr tsrc
-  #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ case expr of
-                                                                                                                                                         TCleanExpr _ (PPCleanExpr x) -> x
-                                                                                                                                                         _                            -> "TODO tLet")) pats) Nothing)
-  #! (txttag, txtref)        = tagFromRef txtref
-  #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
-                 <@< { fill   = toSVGColor "white" }
-                 <@< { stroke = toSVGColor "black" }
-  #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-  = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
+  = case expr of
+      TLet pats` bdy
+        = tLet inh (pats ++ pats`) bdy tsrc
+      _
+        #! (t, tsrc)               = tExpr2Image inh expr tsrc
+        #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ case expr of
+                                                                                                                                                               TCleanExpr _ (PPCleanExpr x) -> x
+                                                                                                                                                               _                            -> "TODO tLet")) pats) Nothing)
+        #! (txttag, txtref)        = tagFromRef txtref
+        #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
+                       <@< { fill   = toSVGColor "white" }
+                       <@< { stroke = toSVGColor "black" }
+        #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+        = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
 
 tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tBind inh l mpat r tsrc
