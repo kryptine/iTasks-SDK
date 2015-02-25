@@ -57,15 +57,6 @@ ourClients 		= 	[ {name = "Rinus" , id = Cl 1, email = "rinus@cs.ru.nl",  accoun
 			 		, {name = "Pieter", id = Cl 2, email = "pieter@cs.ru.nl", accounts = [Ac 3, Ac 4, Ac 5]}
 			 		]
 
-ourEmployees :: [Employee]
-ourEmployees 	= 	[ {Employee | name = "alice", department = frontOfficeDep, 				id = (Ec 26), email = "alice@ing.nl"}
-					, {Employee | name = "bob"  , department = commercialServiceAdminDep, 	id = (Ec 27), email = "bob@ing.nl"}
-					, {Employee | name = "carol", department = backOfficeDep, 			 	id = (Ec 22), email = "carol@ing.nl"}
-					]			 
-frontOfficeDep 				= Bd 1
-commercialServiceAdminDep	= Bd 2
-backOfficeDep			    = Bd 3
-
 // some crud functions on the db info is also assumed ...
 
 getClient :: ClientId -> Maybe Client
@@ -73,22 +64,12 @@ getClient cid
 # clients = [client \\ client=:{Client|id} <- ourClients | cid === id]
 = if (isEmpty clients) Nothing (Just (hd clients))
 
-getEmployee :: EmployeeCode -> Maybe Employee
-getEmployee empCode 
-# employees = [employee \\ employee=:{Employee|id,department} <- ourEmployees | empCode === id]
-= if (isEmpty employees) Nothing (Just (hd employees))
-
 // some constants and db infor assigned here to do the work
 
-frontOfficeEmployee 	= fromJust (getEmployee (Ec 26))						// lets assume this employee is indeed administrated
-csaEmployee 			= fromJust (getEmployee (Ec 27))						// lets assume this employee is indeed administrated
-boEmployee 				= fromJust (getEmployee (Ec 22))						// lets assume this employee is indeed administrated
-
-frontOfficer 			= frontOfficeEmployee.Employee.name	 					// used for assigning tasks to employee
-foEmail					= frontOfficeEmployee.Employee.email					// email address of employee
-
-commercialServOfficer	= csaEmployee.Employee.name	 							// used for assigning tasks to employee
-backOfficer 			= boEmployee.Employee.name	 							// used for assigning tasks to employee
+frontOfficer			= UserWithRole "front-office"							// role to assign to itask user(s) working in this particular department
+commercialServOfficer	= UserWithRole "CSA-office"	 							// role to assign to itask user(s) working in this particular department
+backOfficer 			= UserWithRole "back-office"	 						// role to assign to itask user(s) working in this particular department
+foEmail					= "front-office"										// common "email" address a client should use
 
 // Some types used for filling in forms
 
@@ -122,30 +103,26 @@ Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a
                                     , tonicDynamicWorkflow []
 									] world
 
-//bpmcBlueprints = [createBlueprint]
-  //where
-  //createBlueprint _ _ "BPMC" "create" _ ts = (Just (rect (px 50.0) (px 50.0)), ts)
-  //createBlueprint _ _ _      _        _ ts = (Nothing, ts)
-
 // here finally the task description starts...
 
 // task performed by some client
 
 caseA :: Task ()																
 caseA 
-	= 				    			get currentUser 									// get credentials of client logged in
-	 >>= \user 		->				return (toString user)								// name of client
-	 >>= \client	->				create client frontOfficer "Submit Service Request"	// client creates service request 
-	 >>= \document  ->	frontOfficer @: 	handleRequest document						// front office will handle request client
+	= 				    					get currentUser 									// who is the client logged in ?
+	 >>= \client		->					create client frontOfficer "Submit Service Request"	// client creates service request 
+	 >>= \document  	->	frontOfficer @: handleRequest document								// someone in the front office will handle request client
 
-// tasks performed by the front office
+// tasks performed by someone the front office
 
 handleRequest :: (Log ClientRequest) -> Task () 							
 handleRequest requestForm
-	=					modify "Handle Service Request" requestForm (form serviceReqDoc	(Note ""))				// step 1, modify input																									// step 1
- 	>>= \document -> 	verify "Please Verify:" (requestForm, "Known from administration: ", clientAdmin)		// step 2, verify client data
- 	>>= \ok  	  -> 	if ok  		(commercialServOfficer @:	handleLogService frontOfficer commercialServOfficer (case346,document))				// step 3, yes, csa has to do step 4 and further
-									(inform foEmail clientEmail  "your request" (toMultiLineText request))		// step 3, no, mail client  
+	=					get currentUser 														// who is the one in the front office handling this case
+	>>= \frontOfficeWorker
+				  ->	modify "Handle Service Request" requestForm (form serviceReqDoc	(Note ""))			// step 1, modify input																									// step 1
+ 	>>= \document -> 	verify "Please Verify:" (requestForm, "Known from administration: ", clientAdmin)	// step 2, verify client data
+ 	>>= \ok  	  -> 	if ok (commercialServOfficer @: handleLogService frontOfficeWorker (case346,document))	// step 3, yes, csa has to do step 4 and further
+							  (inform foEmail clientEmail "your request" (toMultiLineText request))		// step 3, no, mail client  
 where 
 	request 		= requestForm.Log.content
 	clientEmail		= request.ClientRequest.email										// email address filled in request
@@ -154,8 +131,8 @@ where
 
 // tasks performed by the commercial service administration
 
-handleLogService :: Name Name (Case,Form ING_Doc Note)  -> Task () 				
-handleLogService frontOfficer csaName (case346,serviceReqDoc) 
+handleLogService :: frontOfficer (Case,Form ING_Doc Note) -> Task () | toUserConstraint	frontOfficer			
+handleLogService frontOfficer (case346,serviceReqDoc) 
 	= 					modify "Handle Log Service Request" serviceReqDoc (form serviceReqLog (Note ""))		// step 4, prepare doc to store
 	>>= \toLog ->		log (case346,toLog) database062 														// step 5, store casenumber and document
 	>>|					backOfficer @: handleCase frontOfficer backOfficer case346								// backOfficer has to do step 6 and further 
@@ -163,24 +140,28 @@ handleLogService frontOfficer csaName (case346,serviceReqDoc)
 
 // tasks performed by the backoffice
 
-handleCase :: Name Name Case -> Task ()								
+handleCase :: frontOfficer backOfficer Case -> Task ()	| toUserConstraint	frontOfficer & toUserConstraint	backOfficer							
 handleCase frontOfficer backOfficer case346
 	=					open case346 database062																// step 6 +7, fetch case stored in database
 	>>= \mbLog ->		verify "Can it be handled by frontoffice" mbLog											// step 7, appearantly one can only approve
 	>>| 				frontOfficer @: resolvePassword backOfficer (fromJust mbLog)							// frontOfficer will handle step 8 and further
 	
-resolvePassword ::  Name (Case,Form ING_Doc Note) -> Task ()
+resolvePassword ::  backOfficer (Case,Form ING_Doc Note) -> Task () | toUserConstraint	backOfficer
 resolvePassword backOfficer thisCase 
 	= return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
-create :: Name Name String -> Task (Log a) | iTask a								// Create a form ...
-create from_name for_name about 
+create :: from_user for_user String -> Task (Log a) | iTask a & toString from_user & toString for_user							// Create a form ...
+create from_user for_user about 
 	= 				enterInformation about []
 	>>= \content ->	get currentDate 
 	>>= \date	 -> return { about = about, received_from = from_name, intended_for = for_name, date =  date, content = content}	
+where
+	from_name 	= toString (from_user)
+	for_name	= toString (for_user)
 	
+		
 modify :: String a b -> Task b | iTask a & iTask b
 modify prompt input output
 	=				(viewInformation "Modify this :" [] input 						// tell what has to be done, show input received
@@ -224,5 +205,12 @@ inform fromName toName subject body
 where
 	sendAnEmail doc = sendEmail doc.Log.about doc.Log.content doc.Log.received_from [toName]
 	
+//
+
+instance toString UserConstraint
+where
+	toString AnyUser				= "Anybody"
+	toString (UserWithId uid)		= uid
+	toString (UserWithRole role)	= "Any user with role " +++ role
 
 
