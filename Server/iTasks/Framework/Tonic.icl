@@ -278,11 +278,13 @@ displaySettings = sharedStore "displaySettings" { unfold_depth    = {Scale | min
 
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
 tonicStaticBrowser rs = (
-                 (updateSharedInformation "Display settings" [] displaySettings)
+                 updateSharedInformation "Display settings" [] displaySettings
             -&&- (allBlueprints
-  >>- \allbps -> (selectModule >&> withSelection noModuleSelection (
+  >>- \allbps -> (selectModule
+             >&> withSelection noModuleSelection (
       \mn ->     getModule mn
-  >>- \tm ->     (selectTask tm >&> withSelection noTaskSelection (
+  >>- \tm ->     (selectTask tm
+             >&> withSelection noTaskSelection (
       \tn ->     maybe (return ()) (
       \tt ->       whileUnchanged displaySettings (
       \sett ->     viewStaticTask allbps sett.unfold_depth sett.display_compact rs [] tm tt @! ()))
@@ -290,7 +292,6 @@ tonicStaticBrowser rs = (
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
             <<@ FullScreen)) @! ()
-         //)
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
   selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
@@ -320,7 +321,7 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
         (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
         (return ()))
   ||- (updateInformation ()
-        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (const id)]
+        [imageUpdate id (mkTaskImage rs (defaultTRT tt) 'DM'.newMap 'DM'.newMap compact) (\_ _ -> Nothing) (const id)]
         { ActionState
         | state  = { tis_task    = expandTask allbps depth.cur tt
                    , tis_depth   = depth
@@ -351,7 +352,6 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
       , trt_output        = Nothing
       }
 
-
 dynamicParent :: TaskId -> Task (Maybe TonicRT)
 dynamicParent childId
   =       get tonicSharedRT >>-
@@ -381,11 +381,11 @@ derive class iTask BlueprintQuery
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs = enterQuery >&> withSelection (tonicDynamicBrowser` rs Nothing) (tonicDynamicBrowser` rs)
 
+tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
     (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) >&>
     withSelection noBlueprintSelection (viewInstance rs)) <<@ ArrangeWithSideBar 0 LeftSide 700 True
-                                                     <<@ FullScreen
-
+                                                          <<@ FullScreen
   where
   filterActiveTasks Nothing tasks = tasks
   filterActiveTasks (Just q) tasks
@@ -400,7 +400,7 @@ tonicDynamicBrowser` rs q =
   customView rt = rt
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
 
-viewInstance :: [TaskAppRenderer] TonicRT -> Task ()
+viewInstance :: [TaskAppRenderer] !TonicRT -> Task ()
 viewInstance rs trt=:{trt_bpinstance = Just bp} =
                  dynamicParent trt.trt_taskId
   >>- \mbprnt -> (viewInformation (blueprintTitle trt bp) [] ()
@@ -410,7 +410,7 @@ viewInstance rs trt=:{trt_bpinstance = Just bp} =
   \compact ->    whileUnchanged tonicSharedListOfTask (
   \maplot ->     whileUnchanged tonicSharedRT (
   \rtmap ->      updateInformation "Blueprint:"
-                   [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (const id)]
+                   [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (\_ _ -> Nothing) (const id)]
                    { ActionState
                    | state = { tis_task    = bp
                              , tis_compact = False // TODO
@@ -996,7 +996,7 @@ tAssign inh user assignedTask tsrc
   #! (atag, atr) = tagFromRef atr
   #! (utr, tsrc) = mkTagRef tsrc
   #! (utag, utr) = tagFromRef utr
-  #! (mantr, tsrc) = mkTagRef tsrc
+  #! (mantr, tsrc)   = mkTagRef tsrc
   #! (mantag, mantr) = tagFromRef mantr
   #! maxXSpan    = maxSpan [imagexspan utag + imagexspan mantag, imagexspan atag]
   #! (taskNameImg, utr) = tagWithRef utr (margin (px 5.0) (text ArialBold10px (ppUser user)))
