@@ -32,7 +32,7 @@ where
 notFoundPage :: !HTTPRequest -> HtmlTag
 notFoundPage req = pageLayout "404 - Not Found" "" message
 where
-	message = [DivTag [IdAttr "content"] [Text "The resource you tried to access ",StrongTag [] [Text req.req_path], Text " could not be found."]] 
+	message = [DivTag [IdAttr "content"] [Text "The resource you tried to access ",StrongTag [] [Text req.HTTPRequest.req_path], Text " could not be found."]] 
 
 notFoundResponse :: !HTTPRequest -> HTTPResponse
 notFoundResponse req

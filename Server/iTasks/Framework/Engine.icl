@@ -298,7 +298,7 @@ where
     serveStaticResource req [] iworld
 	    = (notFoundResponse req,iworld)
     serveStaticResource req [d:ds] iworld=:{IWorld|world}
-	    # filename		= d +++ filePath req.req_path
+	    # filename		= d +++ filePath req.HTTPRequest.req_path
 	    # type			= mimeType filename
 	    # (mbContent, world)	= readFile filename world
 	    | isOk mbContent		= ({ okResponse &

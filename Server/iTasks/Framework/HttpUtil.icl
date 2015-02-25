@@ -47,13 +47,13 @@ http_addRequestData req requestline_done headers_done data_done data
 		| otherwise
 			# (header,error) = http_parseHeader (req.req_data % (0, index - 1))
 			| error = (req,True,False,False,True)			//We failed to parse the header
-			# req = {req & req_headers = put (fst header) (snd header) req.req_headers, req_data = req.req_data % (index + 2, size req.req_data)}
+			# req = {HTTPRequest|req & req_headers = put (fst header) (snd header) req.HTTPRequest.req_headers, req_data = req.HTTPRequest.req_data % (index + 2, size req.req_data)}
 			# req = if (fst header == "Host") (http_addServerInfo req (snd header)) req
 			= http_addRequestData req True False False ""	//We continue to look for more headers
 	//Addition of data
 	| not data_done
-		# datalength	= toInt (http_getValue "Content-Length" req.req_headers "0")
-		| (size req.req_data) < datalength	= (req,True,True,False,False)	//We still need more data
+		# datalength	= toInt (http_getValue "Content-Length" req.HTTPRequest.req_headers "0")
+		| (size req.HTTPRequest.req_data) < datalength	= (req,True,True,False,False)	//We still need more data
 											= (req,True,True,True,False)	//We have all data and are done
 	//Data is added while we were already done
 	= (req,True,True,True,False) 
@@ -87,11 +87,11 @@ http_parseHeader header
 
 http_parseArguments :: !HTTPRequest -> HTTPRequest
 http_parseArguments req
-	# req 							= {req & arg_get = http_parseGetArguments req}		//Parse get arguments
-	| isPost req.req_headers		= {req & arg_post = http_parsePostArguments req}	//Parse post arguments
-	| isMultiPart req.req_headers
+	# req 							= {HTTPRequest|req & arg_get = http_parseGetArguments req}		//Parse get arguments
+	| isPost req.HTTPRequest.req_headers		= {HTTPRequest|req & arg_post = http_parsePostArguments req}	//Parse post arguments
+	| isMultiPart req.HTTPRequest.req_headers
 		# (post,uploads)			= http_parseMultiPartPostArguments req
-		= {req & arg_post = post, arg_uploads = uploads}								//Parse post arguments + uploads
+		= {HTTPRequest|req & arg_post = post, arg_uploads = uploads}								//Parse post arguments + uploads
 	| otherwise						= req
 where
 	isPost headers = (http_getValue "Content-Type" headers "") % (0,32) == "application/x-www-form-urlencoded"
@@ -99,8 +99,8 @@ where
 	
 http_parseGetArguments :: !HTTPRequest -> Map String String
 http_parseGetArguments req
-	| req.req_query == ""	= fromList []
-							= fromList (http_parseUrlEncodedArguments req.req_query)
+	| req.HTTPRequest.req_query == ""	= fromList []
+								= fromList (http_parseUrlEncodedArguments req.HTTPRequest.req_query)
 
 http_parsePostArguments :: !HTTPRequest -> Map String String
 http_parsePostArguments req	= fromList (http_parseUrlEncodedArguments req.req_data)
@@ -110,11 +110,11 @@ http_parseUrlEncodedArguments s = [(urlDecode name, urlDecode (join "=" value)) 
 
 http_parseMultiPartPostArguments :: !HTTPRequest -> (Map String String, Map String HTTPUpload)
 http_parseMultiPartPostArguments req
-	# mimetype		= http_getValue "Content-Type" req.req_headers ""
+	# mimetype		= http_getValue "Content-Type" req.HTTPRequest.req_headers ""
 	# index			= indexOf "boundary=" mimetype
 	| index == -1	= (newMap,newMap)
 	# boundary		= mimetype % (index + 9, size mimetype)
-	# parts			= http_splitMultiPart boundary req.req_data
+	# parts			= http_splitMultiPart boundary req.HTTPRequest.req_data
 	= parseParts parts newMap newMap
 where
 	parseParts [] arguments uploads	= (arguments, uploads)
@@ -152,16 +152,16 @@ http_makeResponse request [] fallback world 										//None of the request hand
 		(http_staticResponse request world)											//Use the static response handler
 		(notfoundResponse, world)										//Raise an error
 http_makeResponse request [(pred,handler):rest] fallback world
-	| (pred request.req_path)		= handler request world							//Apply handler function
-									= http_makeResponse request rest fallback world	//Search the rest of the list
+	| (pred request.HTTPRequest.req_path)	= handler request world							//Apply handler function
+											= http_makeResponse request rest fallback world	//Search the rest of the list
 
 http_addDateHeaders	:: !HTTPResponse !*World -> (!HTTPResponse,!*World)
-http_addDateHeaders rsp=:{rsp_headers} world
+http_addDateHeaders rsp=:{HTTPResponse|rsp_headers} world
 	# (tm,world) = gmTime world
 	# now = format tm
 	# rsp_headers = [("Date",now):rsp_headers]
 	# rsp_headers = [("Last-Modified",now):rsp_headers]
-	= ({rsp & rsp_headers = rsp_headers},world)
+	= ({HTTPResponse|rsp & rsp_headers = rsp_headers},world)
 where
 	//Format the current date/time
 	format tm				=	(weekday tm.wday) +++ ", " +++ (toString tm.mday) +++ " " +++ (month tm.mon) +++ " " +++ (toString (tm.year + 1900)) +++ " "
@@ -191,7 +191,7 @@ where
 //Static content
 http_staticResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st) | FileSystem st
 http_staticResponse req world
-	# filename				= req.req_path % (1, size req.req_path)		//Remove first slash
+	# filename				= req.HTTPRequest.req_path % (1, size req.HTTPRequest.req_path)		//Remove first slash
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
 	| not ok 				= (notfoundResponse, world)
@@ -229,6 +229,6 @@ http_staticFileMimeType name world = http_staticFileMimeType (name % (1, size na
 
 http_serverControl :: !HTTPResponse -> String
 http_serverControl response
-	= case (lookup "X-Server-Control" response.rsp_headers) of
+	= case (lookup "X-Server-Control" response.HTTPResponse.rsp_headers) of
 		Just control	= control
 		_				= ""

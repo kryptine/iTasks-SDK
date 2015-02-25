@@ -40,10 +40,10 @@ where
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
-		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
+		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.HTTPRequest.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
 				Nothing = (notFoundResponse req,Nothing,Nothing,iworld) 
-				(Just (_, shared)) = case req.req_method of
+				(Just (_, shared)) = case req.HTTPRequest.req_method of
 									HTTP_GET = readit shared iworld
 									HTTP_PUT = writeit shared iworld
 											 = (badRequestResponse "Invalid method",Nothing,Nothing,iworld)
@@ -63,7 +63,7 @@ where
 				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			
 	
 	reqFun req _ iworld=:{exposedShares}
-		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.req_path)) iworld
+		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.HTTPRequest.req_path)) iworld
 		= case 'Data.Map'.get sdsurl exposedShares of
 			Nothing = (notFoundResponse req,Nothing,Nothing, iworld) 
 			(Just (dyn, _)) = (plainResponse (toString (unpackType dyn)), Nothing, Nothing, iworld)
@@ -89,8 +89,8 @@ where
 	load uri iworld
 		# (response, iworld) = httpRequest HTTP_GET uri Nothing iworld
 		= if (isOkResponse response)
-					(Ok (fromString response.rsp_data), iworld)
-					(Error ("Request failed: "+++response.rsp_reason), iworld)
+					(Ok (fromString response.HTTPResponse.rsp_data), iworld)
+					(Error ("Request failed: "+++response.HTTPResponse.rsp_reason), iworld)
 
 convertURL :: !String !(Maybe JSONNode) -> MaybeErrorString URI
 convertURL url mbp
@@ -116,7 +116,7 @@ where
 		# (response, iworld) = httpRequest HTTP_PUT uri (Just (toString val)) iworld
 		= if (isOkResponse response)
 					(Ok Void, iworld)
-					(Error ("Request failed: "+++response.rsp_reason), iworld)
+					(Error ("Request failed: "+++response.HTTPResponse.rsp_reason), iworld)
 
 remoteJSONShared :: !String -> JSONShared
 remoteJSONShared url = SDSDynamic f

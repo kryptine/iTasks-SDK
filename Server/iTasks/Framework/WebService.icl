@@ -19,14 +19,6 @@ from iTasks.Framework.HttpUtil import http_addRequestData, http_parseArguments
 
 DEFAULT_THEME :== "gray"
 
-//The representation of the JSON service
-:: ServiceResponse :== [ServiceResponsePart]
-:: ServiceResponsePart =
-	{ taskId	:: !String
-	, value		:: !JSONNode
-	, actions	:: ![String]
-	}
-
 :: NetTaskState
     = NTIdle String Timestamp
     | NTReadingRequest HttpReqState
@@ -39,8 +31,6 @@ DEFAULT_THEME :== "gray"
     , data_done     :: Bool
     , error         :: Bool
     }
-
-derive JSONEncode ServiceResponsePart
 
 // Websocket task access messages
 :: WSCReq
@@ -95,8 +85,8 @@ where
 				_
 					= (notFoundResponse req,Nothing,Nothing,iworld)
         //Check for WebSocket upgrade headers
-        | ('DM'.get "Upgrade" req.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.req_headers)
-            # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.req_headers)
+        | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
+            # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketAccept    = webSocketHandShake secWebSocketKey
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
@@ -159,7 +149,7 @@ where
                 _
 				    = (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 	    where
-            urlSpec             = req.req_path % (size url,size req.req_path)
+            urlSpec             = req.HTTPRequest.req_path % (size url,size req.HTTPRequest.req_path)
 
 		    downloadParam		= paramValue "download" req
 		    uploadParam			= paramValue "upload" req
@@ -213,18 +203,6 @@ where
 	jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
 			
-	serviceBusyResponse rep actions attributes
-		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
-	where
-		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, value = value, actions = findActions taskId actions} \\ (taskId,value) <- rep]
-		findActions match actions
-			= [actionName action \\ {taskId,action,enabled} <- actions | enabled && taskId == match]
-	
-	serviceDoneResponse val
-		= JSONObject [("status",JSONString "complete"),("value",val)]
-	serviceErrorResponse e
-		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
-
 	eventsResponse messages
 		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
                         , rsp_data = formatMessageEvents messages}
@@ -333,7 +311,7 @@ where
 					// Create a response
 					# (response,mbLocalState,mbW,env)	= newReqHandler request r env
 					//Add keep alive header if necessary
-					# response	= if keepalive {response & rsp_headers = [("Connection","Keep-Alive"):response.rsp_headers]} response
+					# response	= if keepalive {HTTPResponse|response & rsp_headers = [("Connection","Keep-Alive"):response.HTTPResponse.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
 					= case mbLocalState of
 						Nothing	
@@ -370,18 +348,18 @@ where
 
 	selectHandler req [] = Nothing
 	selectHandler req [h=:(pred,_,_,_,_):hs]
-		| pred req.req_path	= Just h
-							= selectHandler req hs
+		| pred req.HTTPRequest.req_path	= Just h
+										= selectHandler req hs
 
-	isKeepAlive request = maybe (request.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.req_headers)
+	isKeepAlive request = maybe (request.HTTPRequest.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.HTTPRequest.req_headers)
 
-    encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
+    encodeResponse autoContentLength response=:{HTTPResponse|rsp_headers, rsp_data}
 	    # rsp_headers = addDefault rsp_headers "Server" "iTasks HTTP Server"
 	    # rsp_headers = addDefault rsp_headers "Content-Type" "text/html"
 	    # rsp_headers = if autoContentLength
 	    					(addDefault rsp_headers "Content-Length" (toString (size rsp_data)))
 	    					rsp_headers
-	    = toString {response & rsp_headers = rsp_headers}
+	    = toString {HTTPResponse|response & rsp_headers = rsp_headers}
     where		
     	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 
