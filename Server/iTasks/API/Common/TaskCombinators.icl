@@ -131,8 +131,10 @@ workerAttributes worker attr = case toUserConstraint worker of
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 (@:) worker task 
 	= 					get currentUser -&&- get currentDateTime
-	>>= \(me,now) -> 	assign (workerAttributes worker [("createdBy",toString me),("createdAt",toString now),("priority","Normal")]) task
-
+	>>= \(me,now) -> 	assign (workerAttributes worker 
+							[("createdBy",toString me),("createdAt",toString now),("priority","Normal"),("createdFor",toString (toUserConstraint worker))])
+								task
+		
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
 = task >>= \r -> case r of

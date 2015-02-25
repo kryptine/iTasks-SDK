@@ -93,6 +93,7 @@ installInitialWorkflows iflows
 	, createdBy	:: Maybe String
 	, date		:: Maybe String
 	, deadline	:: Maybe String
+	, createdFor:: Maybe String
 	}
 
 derive class iTask ClientPart, WorklistRow
@@ -206,6 +207,7 @@ where
 		,createdBy	= 'DM'.get "createdBy" attributes
 		,date       = 'DM'.get "createdAt" attributes
 		,deadline   = 'DM'.get "completeBefore" attributes
+		,createdFor = 'DM'.get "createdFor" attributes
 		}
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
