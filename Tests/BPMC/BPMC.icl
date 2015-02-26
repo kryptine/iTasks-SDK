@@ -6,75 +6,47 @@ from iTasks.API.Core.IntegrationTasks import sendEmail
 import iTasks.Framework.Tonic
 import Graphics.Scalable
 
-// Types obtained from use case
-
-:: BusinessDepartment = Bd Int
-:: EmployeeCode		  = Ec Int
-:: ING_Doc	 		  = { typeIdx 		:: DocType
-						, contentIdx 	:: DocIndex		
-						}
-:: DocType			  = Do Int
-:: DocIndex		  	  = Cd Int
-:: ClientId			  = Cl Int
-:: Account			  = Ac Int
-:: Case				  = Cs Int
-:: Database			  = Db Int
-
-serviceReqDoc	= { ING_Doc	| typeIdx 		= Do 34						// service request document to be filled in..
-							, contentIdx 	= Cd 14
-						  	}				
-serviceReqLog	= { ING_Doc	| typeIdx 		= Do 35						// service doc to logg in database
-							, contentIdx	= Cd 15
-						  	}				
-case346			= Cs 346												// case number to handle
-
-derive class iTask  BusinessDepartment, EmployeeCode, ING_Doc, DocType, DocIndex, ClientId, Account, Case, Database
-
-database062 :: Shared [(Case, Form ING_Doc Note)]
-database062 = sharedStore "Db 062" []
-
-// additional types
-// we assume that there exists some information about clients and employees stored in some database ...
-// we don't know the actual type of all this, and don't use a real database yet in this prototype ...
-
-:: Client 			  = { name 			:: Name
-						, id			:: ClientId
-						, email			:: EmailAddr
-					    , accounts  	:: [Account]
-					    }
-:: Employee			  = { name 			:: Name
-						, id 			:: EmployeeCode
-						, department	:: BusinessDepartment
-						, email			:: EmailAddr
-						}  
-:: Name 			  :== String
-:: EmailAddr  		  :== String
-
-derive class iTask  Client, Employee
-	
-ourClients :: [Client]
-ourClients 		= 	[ {name = "Rinus" , id = Cl 1, email = "rinus@cs.ru.nl",  accounts = [Ac 1, Ac 2]}
-			 		, {name = "Pieter", id = Cl 2, email = "pieter@cs.ru.nl", accounts = [Ac 3, Ac 4, Ac 5]}
-			 		]
-
-// some crud functions on the db info is also assumed ...
-
-getClient :: ClientId -> Maybe Client
-getClient cid 
-# clients = [client \\ client=:{Client|id} <- ourClients | cid === id]
-= if (isEmpty clients) Nothing (Just (hd clients))
-
-// some constants and db infor assigned here to do the work
+// these are the players in this case
 
 frontOfficer			= UserWithRole "front-office"							// role to assign to itask user(s) working in this particular department
 commercialServOfficer	= UserWithRole "CSA-office"	 							// role to assign to itask user(s) working in this particular department
 backOfficer 			= UserWithRole "back-office"	 						// role to assign to itask user(s) working in this particular department
+
+// some constants
 foEmail					= "front-office"										// common "email" address a client should use
+
+// we assume that there is a client administration ...
+// we don't know the actual type of all this, and don't use a real database yet in this prototype ...
+
+:: Client 			  = { name 			:: Name
+						, clientNo		:: ClientNo
+						, email			:: EmailAddr
+					    , accounts  	:: [Account]
+					    }
+:: Name 			  :== String
+:: EmailAddr  		  :== String
+:: ClientNo			  :== Int
+:: Account			  :== Int
+
+derive class iTask  Client
+	
+ourClients :: [Client]
+ourClients 		= 	[ {name = "Rinus" , clientNo = 1, email = "rinus@cs.ru.nl",  accounts = [1,2]}
+			 		, {name = "Pieter", clientNo = 2, email = "pieter@cs.ru.nl", accounts = [3..5]}
+			 		]
+
+// some crud functions on the db info is also assumed ...
+
+getClient :: Int -> Maybe Client
+getClient cid 
+# clients = [client \\ client=:{Client|clientNo} <- ourClients | cid === clientNo]
+= if (isEmpty clients) Nothing (Just (hd clients))
+
 
 // Some types used for filling in forms
 
 :: ClientRequest	  	= 	{ name			:: Name
-					      	, id			:: ClientId
+					      	, id			:: ClientNo
 					      	, account		:: Account
 					      	, email			:: EmailAddr
 					      	, request		:: Note
@@ -85,15 +57,17 @@ foEmail					= "front-office"										// common "email" address a client should 
 							, date			:: Date
 							, content		:: a
 							}
-
-:: Form a b				=	{ input			:: Display a
-							, reaction		:: b
-							}	
-form a b 				= 	{ input 		= Display a
-							, reaction		= b
+:: Case					=	{ caseNo		:: Int
+							}
+:: Advice				=	{ advice		:: Note
 							}
 
-derive class iTask ClientRequest, Log, Form
+derive class iTask ClientRequest, Log, Case, Advice
+
+// we need a little database to store information
+
+caseDabase :: Shared [(Int,(Log ClientRequest,Advice,Bool))]
+caseDabase = sharedStore "Db 062" []
 
 // Initializing the system ...
 
@@ -109,20 +83,20 @@ Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a
 
 caseA :: Task ()																
 caseA 
-	= 				    					get currentUser 									// who is the client logged in ?
-	 >>= \client		->					create client frontOfficer "Submit Service Request"	// client creates service request 
-	 >>= \document  	->	frontOfficer @: handleRequest document								// someone in the front office will handle request client
+	= 				    					get currentUser 													// who is the client logged in ?
+	 >>= \client		->					create client frontOfficer "Submit Service Request"	defaultValue	// client creates service request 
+	 >>= \document  	->	frontOfficer @: handleRequest document												// someone in the front office will handle request client
 
 // tasks performed by someone the front office
 
 handleRequest :: (Log ClientRequest) -> Task () 							
 handleRequest requestForm
-	=					get currentUser 														// who is the one in the front office handling this case
+	=					get currentUser 																	// who in the front office is actually handling this case
 	>>= \frontOfficeWorker
-				  ->	modify "Handle Service Request" requestForm (form serviceReqDoc	(Note ""))			// step 1, modify input																									// step 1
- 	>>= \document -> 	verify "Please Verify:" (requestForm, "Known from administration: ", clientAdmin)	// step 2, verify client data
- 	>>= \ok  	  -> 	if ok (commercialServOfficer @: handleLogService frontOfficeWorker (case346,document))	// step 3, yes, csa has to do step 4 and further
-							  (inform foEmail clientEmail "your request" (toMultiLineText request))		// step 3, no, mail client  
+				  ->	modify "Client Request:" requestForm "Please Handle:" defaultValue					// step 1, modify input																									// step 1
+ 	>>= \response -> 	verify "Please Verify:" (requestForm, "Known from administration: ", clientAdmin)	// step 2, verify client data
+ 	>>= \ok  	  -> 	if ok (commercialServOfficer @: handleLogService frontOfficeWorker (requestForm,response))		// step 3, yes, csa has to do step 4 and further
+							  (inform foEmail clientEmail "your request" (toMultiLineText request))			// step 3, no, mail client  
 where 
 	request 		= requestForm.Log.content
 	clientEmail		= request.ClientRequest.email										// email address filled in request
@@ -131,30 +105,31 @@ where
 
 // tasks performed by the commercial service administration
 
-handleLogService :: frontOfficer (Case,Form ING_Doc Note) -> Task () | toUserConstraint	frontOfficer			
-handleLogService frontOfficer (case346,serviceReqDoc) 
-	= 					modify "Handle Log Service Request" serviceReqDoc (form serviceReqLog (Note ""))		// step 4, prepare doc to store
-	>>= \toLog ->		log (case346,toLog) database062 														// step 5, store casenumber and document
-	>>|					backOfficer @: handleCase frontOfficer backOfficer case346								// backOfficer has to do step 6 and further 
+handleLogService :: frontOfficer (Log ClientRequest, (Case,Advice)) -> Task () | toUserConstraint	frontOfficer			
+handleLogService frontOfficer document=:(request,({caseNo},note)) 
+	= 					modify "Front Office Request" document "Please Confirm" defaultValue				// step 4, prepare doc to store
+	>>= \confirm ->		log (caseNo,(request,note,confirm)) caseDabase 										// step 5, store casenumber and document
+	>>|					backOfficer @: handleCase frontOfficer caseNo										// backOfficer has to do step 6 and further 
 
 
 // tasks performed by the backoffice
 
-handleCase :: frontOfficer backOfficer Case -> Task ()	| toUserConstraint	frontOfficer & toUserConstraint	backOfficer							
-handleCase frontOfficer backOfficer case346
-	=					open case346 database062																// step 6 +7, fetch case stored in database
-	>>= \mbLog ->		verify "Can it be handled by frontoffice" mbLog											// step 7, appearantly one can only approve
-	>>| 				frontOfficer @: resolvePassword backOfficer (fromJust mbLog)							// frontOfficer will handle step 8 and further
+handleCase :: frontOfficer Int -> Task ()	| toUserConstraint	frontOfficer 						
+handleCase frontOfficer caseNo
+	=						open caseNo caseDabase															// step 6 +7, fetch case stored in database
+	>>= \mbLog ->			return (fromJust mbLog)
+	>>= \(caseNo,log) ->	verify "Can it be handled by frontoffice" mbLog									// step 7, appearantly one can only approve
+	>>| 					frontOfficer @: resolvePassword backOfficer ({caseNo=caseNo},log)				// frontOfficer will handle step 8 and further
 	
-resolvePassword ::  backOfficer (Case,Form ING_Doc Note) -> Task () | toUserConstraint	backOfficer
+resolvePassword ::  backOfficer (Case,(Log ClientRequest,Advice,Bool)) -> Task () | toUserConstraint	backOfficer
 resolvePassword backOfficer thisCase 
 	= return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
 
-create :: from_user for_user String -> Task (Log a) | iTask a & toString from_user & toString for_user							// Create a form ...
-create from_user for_user about 
-	= 				enterInformation about []
+create :: from_user for_user String a -> Task (Log a) | iTask a & toString from_user & toString for_user							// Create a form ...
+create from_user for_user about form
+	= 				updateInformation about [] form
 	>>= \content ->	get currentDate 
 	>>= \date	 -> return { about = about, received_from = from_name, intended_for = for_name, date =  date, content = content}	
 where
@@ -162,11 +137,11 @@ where
 	for_name	= toString (for_user)
 	
 		
-modify :: String a b -> Task b | iTask a & iTask b
-modify prompt input output
-	=				(viewInformation "Modify this :" [] input 						// tell what has to be done, show input received
+modify :: String a String b -> Task b | iTask a & iTask b
+modify inputInfo input outputInfo output
+	=				(viewInformation inputInfo [] input 						// tell what has to be done, show input received
 	  				||-
-	  				updateInformation "Into :" [] output)							// and fill in the response the context needs
+	  				updateInformation outputInfo [] output)							// and fill in the response the context needs
 
 verify :: String a -> Task Bool | iTask a
 verify prompt info 
@@ -213,4 +188,4 @@ where
 	toString (UserWithId uid)		= uid
 	toString (UserWithRole role)	= "Any user with role " +++ role
 
-
+ 
