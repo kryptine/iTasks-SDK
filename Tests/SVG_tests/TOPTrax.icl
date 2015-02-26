@@ -131,7 +131,7 @@ where
 
 game_winner :: TraxSt -> Task User
 game_winner st=:{trax,turn,names=[me,you]}
-	= viewInformation "The winner is:" [] winner -&&- viewInformation "Final board:" [imageView (board False (px 50.0))] st @ fst
+	= viewInformation "The winner is:" [] winner -&&- viewInformation "Final board:" [imageView (board False (px 50.0)) (\_ _ -> Nothing)] st @ fst
 where
 	winners				= loops trax ++ winning_lines trax
 	prev_player_color	= if turn WhiteLine RedLine
@@ -139,18 +139,18 @@ where
 
 playGame2` :: User User TraxSt -> Task TraxSt
 playGame2` me you traxSt
-	= updateInformation "Play Trax" [imageUpdate id toImage` (flip const)] traxSt
+	= updateInformation "Play Trax" [imageUpdate id toImage` (\_ _ -> Nothing) (flip const)] traxSt
 
 playGame2 :: User User TraxSt -> Task User
 playGame2 me you traxSt
 	= withShared traxSt
 	  (\share -> (me @: (   updateSharedInformation (toString me  +++ " plays with red")   
-	                                             [imageUpdate id (toImage True)  (flip const)] share
+	                                             [imageUpdate id (toImage True) (\_ _ -> Nothing) (flip const)] share
 	                    >>* [OnValue (ifValue game_over game_winner)]
 	             ))
 	             -&&-
 	             (you @:(   updateSharedInformation (toString you +++ " plays with white")
-	                                             [imageUpdate id (toImage False) (flip const)] share
+	                                             [imageUpdate id (toImage False) (\_ _ -> Nothing) (flip const)] share
 	                    >>* [OnValue (ifValue game_over game_winner)]
 	             ))
 	  ) @ fst
@@ -163,7 +163,7 @@ playGame2`` me you traxSt
 playGame :: User Bool LineColor (Shared TraxSt) -> Task User
 playGame player even_turn color share
 	=     updateSharedInformation (player +++> (" plays with " <+++ color))
-	                              [imageUpdate id (toImage even_turn) (flip const)] share
+	                              [imageUpdate id (toImage even_turn) (\_ _ -> Nothing) (flip const)] share
 	  >>* [OnValue (ifValue game_over game_winner)]
 
 start_with_this :: TraxTile TraxSt -> TraxSt
@@ -178,28 +178,28 @@ settile :: Coordinate TraxTile TraxSt -> TraxSt
 settile coord tile st=:{trax,turn}
 	= {st & trax = mandatory_moves (add_tile coord tile trax) coord, choice = Nothing, turn = not turn}
 
-toImage` :: TraxSt -> Image TraxSt
-toImage` st=:{trax,names=[me,you],turn}
-	= above (repeat AtMiddleX) [] [text font message, board True d st] Nothing
+toImage` :: TraxSt *TagSource -> Image TraxSt
+toImage` st=:{trax,names=[me,you],turn} ts
+	= above (repeat AtMiddleX) [] [text font message, board True d st ts] Nothing
 where
 	message						= toString (if turn me you) +++ " plays with " +++ if turn "red" "white"
 	d							= px 50.0
 
-toImage :: Bool TraxSt -> Image TraxSt
-toImage my_turn st=:{trax,names=[me,you],turn}
-	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st] Nothing
+toImage :: Bool TraxSt *TagSource -> Image TraxSt
+toImage my_turn st=:{trax,names=[me,you],turn} ts
+	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st ts] Nothing
 where
 	it_is_my_turn				= my_turn == turn
 	message						= if it_is_my_turn "Select a tile" "Wait for other player..."
 	d							= px 50.0
 
-board :: Bool Span TraxSt -> Image TraxSt
-board it_is_my_turn d st=:{trax}
+board :: Bool Span TraxSt *TagSource -> Image TraxSt
+board it_is_my_turn d st=:{trax} _
 | nr_of_tiles trax == zero
-	| it_is_my_turn				= grid (Rows 2) (LeftToRight,TopToBottom) [] [] 
+	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] 
 							           [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
 	| otherwise					= voidImage d
-| otherwise						= grid (Rows (maxy-miny+3)) (LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
+| otherwise						= grid (Rows (maxy-miny+3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
 							           [  case tile_at trax coord of
 							                 Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
 							                 Just tile = tileImage d tile

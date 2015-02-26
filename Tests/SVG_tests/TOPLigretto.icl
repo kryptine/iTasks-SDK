@@ -9,7 +9,7 @@ import iTasks.Framework.Tonic
 
 Start :: *World -> *World
 Start world = startEngine [ publish "/" (WebApp []) (\_-> browseExamples [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto])
-                          , tonicViewer] world
+                          , tonicViewer []] world
 where
 	browseExamples taskList = forever (
 		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
@@ -65,7 +65,7 @@ play_game users game_st
 
 play :: !(!Color, !User) !(Shared GameSt) -> Task (Color,User)
 play player=:(_,u) game_st
-	=   updateSharedInformation (toString u) [imageUpdate id (player_perspective player) (\_ st -> st)] game_st
+	=   updateSharedInformation (toString u) [imageUpdate id (player_perspective player) (\_ _ -> Nothing) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins player)]
 
 player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (Color,User))
@@ -75,7 +75,7 @@ player_wins _ _								= Nothing
 
 accolades :: !(!Color, !User) !(!Color, !User) !(Shared GameSt) -> Task GameSt
 accolades w player game_st
-	= viewSharedInformation ("The winner is " <+++ w) [imageView (player_perspective player)] game_st
+	= viewSharedInformation ("The winner is " <+++ w) [imageView (player_perspective player) (\_ _ -> Nothing)] game_st
 
 // Image definitions:
 // these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
