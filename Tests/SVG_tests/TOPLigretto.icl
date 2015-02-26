@@ -42,7 +42,7 @@ play_Ligretto
 	>>= \me  -> invite_friends
 	>>= \you -> let us = zip2 (colors (1+length you)) [me : you]
 	             in allTasks (repeatn (length us) (get randomInt))
-	>>= \rs  -> let gameSt = { middle  = repeatn 16 []
+	>>= \rs  -> let gameSt = { middle  = repeatn (4*length us) []
 	                         , players = [  initial_player (length us) c (abs r) 
 	                                     \\ (c,_) <- us
 	                                      & r     <- rs
