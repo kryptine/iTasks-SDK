@@ -59,7 +59,7 @@ tonicSharedRT :: Shared TonicRTMap
 
 derive class iTask TonicRT
 
-tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
 tonicViewer :: [TaskAppRenderer] -> PublishedTask
 

@@ -469,8 +469,9 @@ expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
       Just tt
         # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
         = case expandTExpr allbps (n - 1) tt.tt_body of
-            TLet pats bdy -> TLet (binds ++ pats) bdy
-            bdy           -> TLet binds bdy
+            TLet pats bdy                 -> TLet (binds ++ pats) bdy
+            TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
+            bdy                           -> TLet binds bdy
       _ = texpr
   where
   isSame old (TCleanExpr _ new) = old == new
@@ -481,8 +482,9 @@ expandTExpr allbps n (TReturn e)
 expandTExpr allbps n (TLet pats bdy)
   # pats = map f pats
   = case expandTExpr allbps n bdy of
-      TLet pats` bdy` -> TLet (pats ++ pats`) bdy`
-      bdy`            -> TLet pats bdy`
+      TLet pats` bdy`                -> TLet (pats ++ pats`) bdy`
+      TBind (TLet pats` bdy) pat rhs -> TBind (TLet (pats ++ pats`) bdy) pat rhs
+      bdy`                           -> TLet pats bdy`
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
 expandTExpr allbps n (TCaseOrIf e pats)
@@ -937,7 +939,7 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultTaskApp inh.inh_compact isActive modName taskName taskArgs` tsrc
+                            _          -> tDefaultTaskApp inh.inh_compact isActive modName taskName taskArgs taskArgs` tsrc
   = ( taskApp <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
     , tsrc)
 
@@ -950,16 +952,47 @@ tRoundedRect width height
       <@< { xradius     = px 5.0 }
       <@< { yradius     = px 5.0 }
 
-tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tDefaultTaskApp isCompact isActive modName taskName taskArgs tsrc
+tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp isCompact isActive modName taskName argsExprs taskArgs tsrc
   #! isEditor = elem taskName [ "viewInformation"
                               , "updateInformation"
-                              , "enterInformation"]
-                              // TODO Shared stuff
-  #! taskArgs = case (isCompact, isEditor, taskArgs) of
-                  (True, True, [x:_]) -> [x]
-                  (True, _, _)        -> []
-                  _                   -> taskArgs
+                              , "enterInformation"
+                              , "updateSharedInformation"
+                              , "viewSharedInformation"
+                              , "updateInformationWithShared"
+                              , "editChoice"
+                              , "editChoiceAs"
+                              , "enterChoice"
+                              , "enterChoiceAs"
+                              , "updateChoice"
+                              , "updateChoiceAs"
+                              , "editChoiceWithShared"
+                              , "editChoiceWithSharedAs"
+                              , "enterChoiceWithShared"
+                              , "enterChoiceWithSharedAs"
+                              , "updateChoiceWithShared"
+                              , "updateChoiceWithSharedAs"
+                              , "editSharedChoice"
+                              , "editSharedChoiceAs"
+                              , "editSharedChoiceWithShared"
+                              , "editSharedChoiceWithSharedAs"
+                              , "enterMultipleChoice"
+                              , "updateMultipleChoice"
+                              , "enterSharedMultipleChoice"
+                              , "updateSharedMultipleChoice"
+                              , "wait"
+                              , "waitForTime"
+                              , "waitForDate"
+                              , "waitForDateTime"
+                              , "waitForTimer"
+                              , "chooseAction"
+                              , "viewTitle"
+                              , "viewSharedTitle"
+                              ]
+  #! taskArgs = case (isCompact, isEditor, argsExprs) of
+                  (True, True, [TCleanExpr _ (PPCleanExpr tn) : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
+                  (True, _, _) -> []
+                  _            -> taskArgs
   = tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
 
 tDefaultTaskApp` :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
