@@ -144,7 +144,7 @@ svgRenderer resolve origState state2Image
     , appDiffSrv = appServerDiff
     }
   where
-  genUI :: GenUI (SVGDiff s) (SVGClSt s)
+  genUI :: GenUI (SVGDiff s) (SVGClSt s) | iTask s
   genUI = \cid world
     = ({ ComponentHTML
        | width         = FlexSize
@@ -193,10 +193,10 @@ svgRenderer resolve origState state2Image
                                      , desugarAndTagSpanEnvs = spanEnvs}
     = (img, st.desugarAndTagSpanEnvs)
 
-  genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s)
+  genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s) | iTask s
   genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
 
-  appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s
+  appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s | iTask s
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
