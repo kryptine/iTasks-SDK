@@ -72,20 +72,20 @@ getModule moduleName
                                _        -> err ("Failed to deserialize JSON: " +++ json)
                 Error msg -> err (toString msg)
   where
-  err msg = throw ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
+  err msg = abort ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
 tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody mn tn args (Task eval) = getModule mn >>*
-  [ OnValue onModule
-  , OnAllExceptions onException
-  ]
+tonicWrapTaskBody mn tn args (Task eval)
+  | startsWith "iTask" mn = Task (eval` Nothing)
+  | otherwise             = getModule mn >>* [ OnValue onModule
+                                             , OnAllExceptions (const (Task (eval` Nothing)))
+                                             ]
   where
     onModule (Value mod _) = Just (Task (eval` (Just mod)))
     onModule _             = Nothing
-    onException _ = Task (eval` Nothing)
     eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
