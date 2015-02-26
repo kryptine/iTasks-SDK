@@ -1222,7 +1222,7 @@ genSVG img = imageCata genSVGAllAlgs img
                !(!GenSVGSt s Real, !GenSVGSt s Real, GenSVGSt s Real /* Not used */, GenSVGSt s Real /* Not used */)
                !(!GenSVGSt s Real, !GenSVGSt s Real)
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkImage imCo mask imAts imTrs imTas (txsp, tysp) (txsp`, tysp`) (m1, m2, _, _) _ st
+    mkImage imCo mask imAts imTrs imTas (txsp, tysp) (txsp`, tysp`) (m1, m2, m3, m4) _ st
       #! (imAts, st)  = sequence imAts st
       #! (txsp, st)   = txsp st
       #! (tysp, st)   = tysp st
@@ -1230,13 +1230,15 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (tysp`, st)  = tysp` st
       #! (m1, st)     = m1 st
       #! (m2, st)     = m2 st
+      #! (m3, st)     = m3 st
+      #! (m4, st)     = m4 st
       #! (maskId, st) = imageMaskId st
       #! imAts`       = strictTRMap fst imAts
       #! (syn, st)    = imCo (txsp, tysp) (maybe imAts` (const [([], Just (MaskAttr (mkUrl maskId))) : imAts`]) mask) imTrs imTas st
       #! (mask, st)   = evalMaybe mask st
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
-         , genSVGSyn_imageSpanReal = (txsp`, tysp`)
+         , genSVGSyn_imageSpanReal = (txsp` + m2 + m4, tysp` + m1 + m3)
          , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : strictTRMap snd imAts]
          }, st)
 
