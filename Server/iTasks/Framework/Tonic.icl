@@ -404,7 +404,7 @@ viewInstance :: [TaskAppRenderer] !TonicRT -> Task ()
 viewInstance rs trt=:{trt_bpinstance = Just bp} =
                  dynamicParent trt.trt_taskId
   >>- \mbprnt -> (viewInformation (blueprintTitle trt bp) [] ()
-             ||- viewTaskArguments trt bp
+             //||- viewTaskArguments trt bp
              ||- updateInformation "Compact view?" [] False
              >&> withSelection (return ()) (
   \compact ->    whileUnchanged tonicSharedListOfTask (
@@ -477,8 +477,6 @@ expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
   isSame old (TCleanExpr _ new) = old == new
 expandTExpr allbps n (TBind lhs pat rhs)
   = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
-expandTExpr allbps n (TReturn e)
-  = TReturn (expandTExpr allbps n e)
 expandTExpr allbps n (TLet pats bdy)
   # pats = map f pats
   = case expandTExpr allbps n bdy of
@@ -555,7 +553,6 @@ connectedTasks allbps tt = successors tt.tt_body
   where
   successors :: !TExpr -> Set TonicTask
   successors (TBind lhs _ rhs)    = 'DS'.union (successors lhs) (successors rhs)
-  successors (TReturn texpr)      = successors texpr
   successors (TTaskApp _ mn tn _)
     = case 'DM'.get mn allbps of
         Just mod -> case 'DM'.get tn mod of
@@ -632,7 +629,6 @@ mkTaskImage rs trt maplot rtmap compact {ActionState | state = tis} tsrc
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpr2Image inh (TBind lhs mpat rhs)       tsrc = tBind         inh lhs mpat rhs tsrc
-tExpr2Image inh (TReturn texpr)            tsrc = tReturn       inh texpr tsrc
 tExpr2Image inh (TTaskApp eid mn tn targs) tsrc = tTaskApp      inh eid mn tn targs tsrc
 tExpr2Image inh (TLet pats bdy)            tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
@@ -1012,17 +1008,6 @@ tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
         #! content  = margin (px 5.0) (above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing)
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
-
-tReturn :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tReturn inh retval tsrc
-  #! (retval`, tsrc)      = tExpr2Image inh retval tsrc
-  #! (retval`, ref, tsrc) = tagWithSrc tsrc retval`
-  #! (tag, ref)           = tagFromRef ref
-  #! oval                 = ellipse (imagexspan tag + px 20.0) (imageyspan tag + px 10.0)
-                              <@< { fill        = toSVGColor "white" }
-                              <@< { stroke      = toSVGColor "black" }
-                              <@< { strokewidth = px 1.0 }
-  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [oval, retval`] Nothing, tsrc)
 
 tAssign :: !MkImageInh !TUser !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tAssign inh user assignedTask tsrc
