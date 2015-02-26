@@ -404,21 +404,25 @@ viewInstance :: [TaskAppRenderer] !TonicRT -> Task ()
 viewInstance rs trt=:{trt_bpinstance = Just bp} =
                  dynamicParent trt.trt_taskId
   >>- \mbprnt -> (viewInformation (blueprintTitle trt bp) [] ()
-             //||- viewTaskArguments trt bp
+             ||- viewTaskArguments trt bp
              ||- updateInformation "Compact view?" [] False
              >&> withSelection (return ()) (
   \compact ->    whileUnchanged tonicSharedListOfTask (
   \maplot ->     whileUnchanged tonicSharedRT (
-  \rtmap ->      updateInformation "Blueprint:"
-                   [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (\_ _ -> Nothing) (const id)]
-                   { ActionState
-                   | state = { tis_task    = bp
-                             , tis_compact = False // TODO
-                             , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
-                             }
-                   , action = Nothing} )
+  \rtmap ->      viewBP maplot rtmap compact)
              >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)])))
   where
+  viewBP :: (Map (TaskId, [Int]) (IntMap TaskId)) TonicRTMap Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
+  viewBP maplot rtmap compact 
+    = updateInformation "Blueprint:"
+        [imageUpdate id (mkTaskImage rs trt maplot rtmap compact) (\_ _ -> Nothing) (const id)]
+        { ActionState
+        | state = { TonicImageState
+                  | tis_task    = bp
+                  , tis_compact = False // TODO
+                  , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
+                  }
+        , action = Nothing} 
   blueprintTitle    trt bp = snd trt.trt_bpref +++ " yields " +++ prefixAOrAn (ppTCleanExpr bp.tt_resty)
   viewTaskArguments trt bp = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs trt bp) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection              = viewInformation () [] "Select argument..."
@@ -646,6 +650,7 @@ ppTCleanExpr :: !TCleanExpr -> String
 ppTCleanExpr tcexpr = ppTCleanExpr` 0 tcexpr
   where
   ppTCleanExpr` :: !Int !TCleanExpr -> String
+  ppTCleanExpr` _ (PPCleanExpr "_Nil")   = "[]"
   ppTCleanExpr` _ (PPCleanExpr pp)       = sugarPP pp
   ppTCleanExpr` _ (AppCleanExpr _ pp []) = sugarPP pp
   ppTCleanExpr` _ (AppCleanExpr _ "_List" [x:_]) = "[" +++ ppTCleanExpr x +++ "]"
@@ -660,9 +665,11 @@ ppTCleanExpr tcexpr = ppTCleanExpr` 0 tcexpr
   ppTCleanExpr` d (AppCleanExpr _               pp xs)     = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTCleanExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
 
 ppTCleanExprList :: ![TCleanExpr] -> String
-ppTCleanExprList []  = ""
-ppTCleanExprList [x : PPCleanExpr "_Nil" : _] = ppTCleanExpr x
-ppTCleanExprList [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
+ppTCleanExprList []                             = ""
+ppTCleanExprList [PPCleanExpr "_Nil"]           = ""
+ppTCleanExprList [x, PPCleanExpr "_Nil"]        = ppTCleanExpr x
+ppTCleanExprList [x, AppCleanExpr _ "_Cons" xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
+ppTCleanExprList [x:xs]                         = ppTCleanExpr x +++ ", " +++ ppTCleanExprList xs
 
 ppTCleanExprTuple :: ![TCleanExpr] -> String
 ppTCleanExprTuple []  = ""
@@ -670,7 +677,6 @@ ppTCleanExprTuple [x] = ppTCleanExpr x
 ppTCleanExprTuple [x:xs] = ppTCleanExpr x +++ ", " +++ ppTCleanExprTuple xs
 
 sugarPP "_Unit"   = "nothing"
-sugarPP "_Nil"    = "[]"
 sugarPP "_String" = "String"
 sugarPP pp = pp
 
