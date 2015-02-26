@@ -162,11 +162,13 @@ open :: key (Shared [(key,value)]) -> Task (Maybe (key,value))	| iTask key & iTa
 open index sharedDb
 	=				viewInformation "Retrieving from database:" [] index			// inform that database will be accessed
 	>>|				get sharedDb													// read from database
-	>>= \content -> case [(idx,doc) \\ (idx,doc) <- content | idx === index ] of
+	>>= \content -> case documentRecords content of
 						[] 		-> 		viewInformation "Information could not be found" [] ()
 									>>| return Nothing
 						[found] -> 		viewInformation "Found:" [] found
 									>>|	return (Just found)
+  where
+  documentRecords content = [(idx,doc) \\ (idx,doc) <- content | idx === index ]
 
 inform :: Name Name String String -> Task () 										// create an email to inform and send it off...
 inform fromName toName subject body 
