@@ -777,10 +777,15 @@ tLet inh pats expr tsrc
         #! binds                   = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTCleanExpr var) : text ArialRegular10px " = " : text ArialRegular10px (ppExpr expr) : acc]) [] pats
         #! (letText, txtref, tsrc) = tagWithSrc tsrc (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! (txttag, txtref)        = tagFromRef txtref
-        #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
-                       <@< { fill   = toSVGColor "white" }
-                       <@< { stroke = toSVGColor "black" }
-        #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+        #! letWidth  = imagexspan txttag + px 10.0
+        #! letHeight = px ArialRegular10px.fontysize *. (length pats + 1)
+        #! letBox    = rect letWidth letHeight
+                         <@< { fill   = toSVGColor "white" }
+                         <@< { stroke = toSVGColor "black" }
+        #! letImg    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+        #! linePart  = xline Nothing ((letWidth - px 8.0) /. 2.0)
+        #! connBox   = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
+        #! letImg    = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
         = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
   where
   ppExpr (TCleanExpr _ clexp) = ppTCleanExpr clexp
