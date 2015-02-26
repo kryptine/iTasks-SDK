@@ -778,15 +778,17 @@ tLet inh pats expr tsrc
         = tLet inh (pats ++ pats`) bdy tsrc
       _
         #! (t, tsrc)               = tExpr2Image inh expr tsrc
-        #! (letText, txtref, tsrc) = tagWithSrc tsrc (above (repeat (AtLeft)) [] (map (\(var, expr) -> text ArialRegular10px (ppTCleanExpr var +++ " = " +++ case expr of
-                                                                                                                                                               TCleanExpr _ clexp -> ppTCleanExpr clexp
-                                                                                                                                                               _                  -> "TODO tLet")) pats) Nothing)
+        #! binds                   = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTCleanExpr var) : text ArialRegular10px " = " : text ArialRegular10px (ppExpr expr) : acc]) [] pats
+        #! (letText, txtref, tsrc) = tagWithSrc tsrc (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! (txttag, txtref)        = tagFromRef txtref
         #! letBox  = rect (imagexspan txttag) (px ArialRegular10px.fontysize *. (length pats + 1))
                        <@< { fill   = toSVGColor "white" }
                        <@< { stroke = toSVGColor "black" }
         #! letImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
         = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
+  where
+  ppExpr (TCleanExpr _ clexp) = ppTCleanExpr clexp
+  ppExpr _                    = "TODO tLet"
 
 tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tBind inh l mpat r tsrc

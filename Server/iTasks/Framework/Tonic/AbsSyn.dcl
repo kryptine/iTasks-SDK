@@ -1,6 +1,5 @@
 definition module iTasks.Framework.Tonic.AbsSyn
 
-from Data.Graph import :: Graph, :: Node
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
