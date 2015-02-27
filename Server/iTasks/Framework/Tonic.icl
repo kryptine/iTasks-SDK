@@ -79,10 +79,9 @@ tonicViewInformation d v = viewInformation d [] v @! ()
 
 tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody mn tn args (Task eval)
-  | startsWith "iTask" mn = Task (eval` Nothing)
-  | otherwise             = getModule mn >>* [ OnValue onModule
-                                             , OnAllExceptions (const (Task (eval` Nothing)))
-                                             ]
+  = getModule mn >>* [ OnValue onModule
+                     , OnAllExceptions (const (Task (eval` Nothing)))
+                     ]
   where
     onModule (Value mod _) = Just (Task (eval` (Just mod)))
     onModule _             = Nothing
@@ -169,22 +168,54 @@ tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 tonicSharedListOfTask :: Shared (Map (TaskId, [Int]) (IntMap TaskId))
 tonicSharedListOfTask = sharedStore "tonicSharedListOfTask" 'DM'.newMap
 
+import StdDebug
+
+    //eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
+      //# (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+      //= eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
+      //where
+      //updateInstance instanceNo rtMap iworld
+        //# (curr, iworld) = iworld!current
+        //# tonicRT = { trt_taskId        = currTaskId
+                    //, trt_params        = args
+                    //, trt_bpref         = (mn, tn)
+                    //, trt_bpinstance    = case mod of
+                                            //Just mod -> getTask mod tn
+                                            //_        -> Nothing
+                    //, trt_activeNodeId  = Nothing
+                    //, trt_parentTaskId  = maybe (TaskId instanceNo 0)
+                                            //(\rt -> rt.trt_taskId)
+                                            //(firstParent rtMap instanceNo callTrace)
+                    //, trt_involvedUsers = [curr.user]
+                    //, trt_output        = Nothing
+                    //}
+        //= snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
+
 tonicWrapParallel :: ModuleName TaskName [Int] ([Task a] -> Task b) [Task a] -> Task b
-tonicWrapParallel mn tn nid f ts = Task eval
+tonicWrapParallel mn tn nid f ts = trace_n "tonicWrapParallel 1" (tonicWrapApp mn tn nid (Task eval))
   where
-  eval event evalOpts taskTree iworld
+  eval event evalOpts=:{callTrace} taskTree iworld
     # (ts, iworld) = case taskIdFromTaskTree taskTree of
-                       Just tid
-                         # k              = (tid, nid)
-                         # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
-                         = case mlot of
-                             Ok mlot
-                               # (_, iworld)    = 'DSDS'.write ('DM'.put k 'DIS'.newMap mlot) tonicSharedListOfTask iworld
-                               = (tonicWrapListOfTask mn tn nid tid ts, iworld)
+                       Just (TaskId instanceNo _) // TODO Should be parent ID?
+                         # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+                         = case mrtMap of
+                             Ok rtMap
+                               = case firstParent rtMap instanceNo callTrace of
+                                   Just parent
+                                     # k              = (parent.trt_taskId, nid)
+                                     # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask (trace_n ("tonicWrapParallel 2: parent.trt_taskId = " +++ toString parent.trt_taskId +++ " nid = " +++ foldr (\x xs -> toString x +++ " " +++ xs) "" nid)  iworld)
+                                     = case mlot of
+                                         Ok mlot
+                                           # (_, iworld) = 'DSDS'.write ('DM'.put k 'DIS'.newMap mlot) tonicSharedListOfTask (trace_n "tonicWrapParallel 3" iworld)
+                                           = (tonicWrapListOfTask mn tn nid parent.trt_taskId ts, iworld)
+                                         _
+                                           = (ts, iworld)
+                                   _
+                                     = (ts,  trace_n "tonicWrapParallel 4" iworld)
                              _
-                               = (ts, iworld)
+                               = (ts,  trace_n "tonicWrapParallel 5" iworld)
                        _
-                         = (ts, iworld)
+                         = (ts,  trace_n "tonicWrapParallel 6" iworld)
     = case f ts of
         Task eval` -> eval` event evalOpts taskTree iworld
 
@@ -200,11 +231,12 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
                            Just tid -> okSt iworld (updLoT tid) mlot
                            _        -> iworld
       = eval event evalOpts taskTree iworld
-    updLoT tid mlot iworld
+    updLoT tid=:(TaskId l r) mlot iworld
+      # iworld = trace_n ("updLoT tid = " +++ toString l +++ " " +++ toString r) iworld
       # k      = (parentId, nid)
       # tidMap = case 'DM'.get k mlot of
-                    Just tidMap -> tidMap
-                    _           -> 'DIS'.newMap
+                    Just tidMap -> trace_n "updLoT just k" tidMap
+                    _           -> trace_n "updLoT n" 'DIS'.newMap
       # tidMap = 'DIS'.put n tid tidMap
       # mlot   = 'DM'.put k tidMap mlot
       = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
@@ -389,7 +421,7 @@ tonicDynamicBrowser` rs q =
   where
   filterActiveTasks Nothing tasks = tasks
   filterActiveTasks (Just q) tasks
-    = [t \\ t <- tasks | doFilter t q ]
+    = [t \\ t <- tasks | not (startsWith "iTasks" (fst t.trt_bpref)) || doFilter t q ]
     where
     doFilter trt (ModuleName mn)   = mn == "" || indexOf mn (fst trt.trt_bpref) >= 0
     doFilter trt (TaskName tn)     = tn == "" || indexOf tn (snd trt.trt_bpref) >= 0
@@ -408,7 +440,7 @@ viewInstance rs trt=:{trt_bpinstance = Just bp} =
              ||- updateInformation "Compact view?" [] False
              >&> withSelection (return ()) (
   \compact ->    whileUnchanged tonicSharedListOfTask (
-  \maplot ->     whileUnchanged tonicSharedRT (
+  \maplot ->   trace_n (toString (toJSON maplot))  whileUnchanged tonicSharedRT (
   \rtmap ->      viewBP maplot rtmap compact)
              >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)])))
   where
@@ -617,7 +649,7 @@ ArialItalic10px :== { fontfamily = "Arial"
 
 :: MkImageInh =
   { inh_trt       :: !TonicRT
-  , inh_maplot    :: !(Map (!TaskId, ![Int]) (IntMap TaskId))
+  , inh_maplot    :: !Map (!TaskId, ![Int]) (IntMap TaskId)
   , inh_rtmap     :: !TonicRTMap
   , inh_task_apps :: ![TaskAppRenderer]
   , inh_compact   :: !Bool
@@ -843,8 +875,10 @@ tParallel inh eid (ParSumN ts) tsrc
   mkParSum inh eid (PP pp) tsrc
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          -> mapSt (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
-        _ -> ([text ArialRegular10px pp], tsrc)
+          = mapSt (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+        _
+          #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0))
+          = ([overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing], tsrc)
   mkParSum _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
 tParallel inh eid (ParProd ts) tsrc
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
@@ -856,10 +890,15 @@ tParallel inh eid (ParProd ts) tsrc
   where
   mkParProd :: !MkImageInh ![Int] !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
   mkParProd inh eid (PP pp) tsrc
+    #! tsrc = trace_n "mkParProd" tsrc
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          -> mapSt (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
-        _ -> ([text ArialRegular10px pp], tsrc)
+          #! tsrc = trace_n "Just mptids" tsrc
+          //= mapSt (\(mn, tn) -> tTaskApp inh eid mn tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+          = ([above (repeat AtMiddleX) [] (map (text ArialRegular10px) (map toString ('DIS'.elems mptids))) Nothing], tsrc)
+        _
+          #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0))
+          = ([overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing], tsrc)
   mkParProd _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
 
 moduleTaskNameForTaskId :: TonicRTMap TaskId -> Maybe (ModuleName, TaskName)
@@ -912,12 +951,7 @@ tTaskDef :: !String !TCleanExpr [(TCleanExpr, TCleanExpr)] !(Image ModelTy) !*Ta
 tTaskDef taskName resultTy _ tdbody tsrc
   #! (taskBodyImgs, bdyref, tsrc) = tagWithSrc tsrc (margin (px 5.0) tdbody)
   #! (bdytag, bdyref) = tagFromRef bdyref
-  #! bgRect           = rect (imagexspan bdytag) (imageyspan bdytag)
-                          <@< { fill        = toSVGColor "white" }
-                          <@< { stroke      = toSVGColor "black" }
-                          <@< { strokewidth = px 1.0 }
-                          <@< { xradius     = px 5.0 }
-                          <@< { yradius     = px 5.0 }
+  #! bgRect           = tRoundedRect (imagexspan bdytag) (imageyspan bdytag)
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskBodyImgs] Nothing, tsrc)
   where
   mkArgAndTy :: !(!String, !TCleanExpr) -> String
