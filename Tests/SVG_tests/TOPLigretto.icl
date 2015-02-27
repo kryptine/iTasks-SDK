@@ -8,6 +8,8 @@ from   Control.Monad import replicateM
 import iTasks.Framework.Tonic
 
 Start :: *World -> *World
+//	Use this Start function to work with single user and tonic.
+/*
 Start world = startEngine [ publish "/" (WebApp []) (\_-> browseExamples [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto])
                           , tonicViewer []] world
 where
@@ -22,9 +24,9 @@ where
 			Just user 	= workAs user (manageWorklist taskList)
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
 	
-
-
-
+*/
+//	Use this Start function to work with multiple users and for paper screen shots.
+Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto ] world
 
 
 
@@ -132,44 +134,46 @@ row_images interactive row
 	 & no       <- [1..]
 	]
 
-space :== empty (card_width /. 4) zero
-
 hand_images :: !Bool !Hand !Color -> [Image GameSt]
 hand_images interactive {conceal,discard} color
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
   = [ tuneIf interactive conceal_pile {onclick = play_concealed_pile color}
-    , space
     , tuneIf interactive discard_pile {onclick = play_hand_card color}
     ]
 
+player_arc :== pi * 0.4
+
 player_image :: !Bool !Span !Player -> Image GameSt
 player_image interactive r player
-  = circular r (pi * 0.5) 
+  = circular r player_arc
                (  row_images interactive player.row
-               ++ [space, pile_image Front player.ligretto, space]
+               ++ [pile_image Front player.ligretto]
                ++ hand_images interactive player.hand player.color
                )
 
 player_names :: ![Player] !Span -> Image m
 player_names players r
-	= circular r (pi * 2.0) [text {cardfont 14.0 & fontweight = "bold"} name <@< {fill = toSVGColor color} \\ {name,color} <- players]
+ = circular r (pi * 2.0) 
+    [   text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = toSVGColor color} <@< {stroke = toSVGColor "black"}
+    \\ {name,color} <- players
+    ]
 
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
 
-player_perspective :: !(!Color, !User) !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
+player_perspective :: !(!Color,!User) !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
 player_perspective (color,user) gameSt _
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
   = margin (card_height *. 3) (rotate (rad (~(toReal my_no*angle))) (game_image (color,user) gameSt))
 
-game_image :: !(!Color, !User) !GameSt -> Image GameSt
+game_image :: !(!Color,!User) !GameSt -> Image GameSt
 game_image (color,user) gameSt
   #! r     = card_height *. 4
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
-            ([  rotate (rad (i*angle-0.25*pi)) img
+            ([  rotate (rad (i*angle - player_arc/2.0)) img
              \\ img    <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i      <- [0.0, 1.0 ..]
              ] ++ [player_names gameSt.players (r *. 0.8)]
