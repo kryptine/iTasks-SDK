@@ -86,7 +86,7 @@ card_height :== px 90.0
 card_shape :== rect card_width card_height <@< {xradius = card_height /. 18} <@< {yradius = card_height /. 18}
 
 //no_card_image :: Image m
-no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"})) // BUG: "empty" text is not aligned properly
+no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"}))
 
 big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = toSVGColor "white"}
                                                         <@< {stroke = toSVGColor colour}
