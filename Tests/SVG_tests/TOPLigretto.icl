@@ -43,8 +43,8 @@ play_Ligretto
 	>>= \you -> let us = zip2 (colors (1+length you)) [me : you]
 	             in allTasks (repeatn (length us) (get randomInt))
 	>>= \rs  -> let gameSt = { middle  = repeatn (4*length us) []
-	                         , players = [  initial_player (length us) c (abs r) 
-	                                     \\ (c,_) <- us
+	                         , players = [  initial_player (length us) c (toSingleLineText u) (abs r) 
+	                                     \\ (c,u) <- us
 	                                      & r     <- rs
 	                                     ]
 	                         }
@@ -63,17 +63,17 @@ play_game users game_st
 	>>= \w -> allTasks [ u @: accolades w (c,u) game_st \\ (c,u) <- users ]
 	>>| return w
 
-play :: !(!Color, !User) !(Shared GameSt) -> Task (Color,User)
-play player=:(_,u) game_st
-	=   updateSharedInformation (toString u) [imageUpdate id (player_perspective player) (\_ _ -> Nothing) (\_ st -> st)] game_st
+play :: !(!Color,!User) !(Shared GameSt) -> Task (Color,User)
+play player game_st
+	=   updateSharedInformation (toSingleLineText player) [imageUpdate id (player_perspective player) (\_ _ -> Nothing) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins player)]
 
-player_wins :: !(!Color, !User) !(TaskValue GameSt) -> Maybe (Task (Color,User))
+player_wins :: !(!Color,!User) !(TaskValue GameSt) -> Maybe (Task (Color,User))
 player_wins player=:(c,_) (Value gameSt _)
 | isEmpty (get_player c gameSt).ligretto	= Just (return player)
 player_wins _ _								= Nothing
 
-accolades :: !(!Color, !User) !(!Color, !User) !(Shared GameSt) -> Task GameSt
+accolades :: !(!Color,!User) !(!Color,!User) !(Shared GameSt) -> Task GameSt
 accolades w player game_st
 	= viewSharedInformation ("The winner is " <+++ w) [imageView (player_perspective player) (\_ _ -> Nothing)] game_st
 
@@ -151,6 +151,10 @@ player_image interactive r player
                ++ hand_images interactive player.hand player.color
                )
 
+player_names :: ![Player] !Span -> Image m
+player_names players r
+	= circular r (pi * 2.0) [text {cardfont 14.0 & fontweight = "bold"} name <@< {fill = toSVGColor color} \\ {name,color} <- players]
+
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
 
@@ -165,10 +169,11 @@ game_image (color,user) gameSt
   #! r     = card_height *. 4
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
-             [  rotate (rad (i*angle-0.25*pi)) img
-             \\ img <- [player_image (player.color === color) r player \\ player <- gameSt.players]
-              & i   <- [0.0, 1.0 ..]
-             ] (Just (middle_image gameSt.middle))
+            ([  rotate (rad (i*angle-0.25*pi)) img
+             \\ img    <- [player_image (player.color === color) r player \\ player <- gameSt.players]
+              & i      <- [0.0, 1.0 ..]
+             ] ++ [player_names gameSt.players (r *. 0.8)]
+            ) (Just (middle_image gameSt.middle))
 
 //	a generally useful image combinator:
 circular :: !Span !Real ![Image m] -> Image m

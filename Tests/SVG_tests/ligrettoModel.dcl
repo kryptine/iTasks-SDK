@@ -14,6 +14,7 @@ import Data.Maybe
 :: SideUp        = Front | Back                   // the side of the card that faces upwards
 :: Color         = Red | Green | Blue | Yellow    // the four player / card colors
 :: Player        = { color     :: Color           // the backside color of this player's cards
+                   , name      :: String          // the name of the player
                    , row       :: RowPlayer       // the row of the player (no_of_cards_in_row no_of_players)
                    , ligretto  :: Pile            // the ligretto pile: 10 upto 0 (win) cards
                    , hand      :: Hand            // the hand cards
@@ -60,9 +61,10 @@ get_player           :: !Color !GameSt -> Player
 */
 colors               :: !NoOfPlayers -> [Color]
 
-/** initial_player no_of_players color n = player:
+/** initial_player no_of_players color name n = player:
         @player is a player with all cards shuffled and distributed to the @player.row, @player.ligretto, and @player.hand.
         @no_of_players should be one of: 2, 3, 4.
         @color should be one of: (colors @no_ofplayers).
+        @name is the preferably short name of the player
 */
-initial_player       :: !NoOfPlayers !Color !Int -> Player
+initial_player       :: !NoOfPlayers !Color !String !Int -> Player

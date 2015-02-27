@@ -73,9 +73,9 @@ shuffle :: ![a] !Int -> [a]
 shuffle xs seed
 	= fst (unzip (sortBy (\(_,r1) (_,r2) -> (r1 < r2)) (zip2 xs (genRandInt (abs seed)))))
 
-initial_player :: !NoOfPlayers !Color !Int -> Player
-initial_player no_of_players back seed
-	= { color = back, row = row, ligretto = ligretto, hand = { conceal = hand, discard = [] }, seed = seed }
+initial_player :: !NoOfPlayers !Color !String !Int -> Player
+initial_player no_of_players back name seed
+	= { color = back, name = name, row = row, ligretto = ligretto, hand = { conceal = hand, discard = [] }, seed = seed }
 where
 	cards           = shuffle (initial_player_cards no_of_players back) seed
 	(row,rest)      = splitAt (no_of_cards_in_row no_of_players) cards
