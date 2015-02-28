@@ -62,74 +62,60 @@ derive class iTask TonicRT
 tonicSharedRT :: Shared TonicRTMap
 tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
 
-getModule :: !String -> Task TonicModule
-getModule moduleName
-  =           getTonicDir >>-
-    \dir ->   accWorld (readFile (dir </> (moduleName +++ ".tonic"))) >>-
-    \mjson -> case mjson of
-                Ok json   -> case fromJSON (fromString json) of
-                               Just gg  -> return gg
-                               _        -> err ("Failed to deserialize JSON: " +++ json)
-                Error msg -> err (toString msg)
-  where
-  err msg = abort ("Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg)
-
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
 tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody mn tn args (Task eval)
-  = getModule mn >>* [ OnValue onModule
-                     , OnAllExceptions (const (Task (eval` Nothing)))
-                     ]
+tonicWrapTaskBody mn tn args (Task eval) = Task preEval
   where
-    onModule (Value mod _) = Just (Task (eval` (Just mod)))
-    onModule _             = Nothing
-    eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
+  preEval event evalOpts taskTree iworld
+    # (mmn, iworld) = getModule` mn iworld
+    = case mmn of
+        Ok mod -> eval` mod event evalOpts taskTree iworld
+        _      -> eval event evalOpts taskTree iworld
+  eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
+    # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+    = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
+    where
+    updateInstance instanceNo rtMap iworld
+      # (curr, iworld) = iworld!current
+      # tonicRT = { trt_taskId        = currTaskId
+                  , trt_params        = args
+                  , trt_bpref         = (mn, tn)
+                  , trt_bpinstance    = getTask mod tn
+                  , trt_activeNodeId  = Nothing
+                  , trt_parentTaskId  = maybe (TaskId instanceNo 0)
+                                          (\rt -> rt.trt_taskId)
+                                          (firstParent rtMap instanceNo callTrace)
+                  , trt_involvedUsers = [curr.user]
+                  , trt_output        = Nothing
+                  }
+      = snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
+  eval` _ event evalOpts taskTree=:(TCDestroy tt) iworld
+    = eval event evalOpts taskTree (maybeSt iworld attemptDel (taskIdFromTaskTree tt))
+    where
+    attemptDel currTaskId iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-      = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
-      where
-      updateInstance instanceNo rtMap iworld
-        # (curr, iworld) = iworld!current
-        # tonicRT = { trt_taskId        = currTaskId
-                    , trt_params        = args
-                    , trt_bpref         = (mn, tn)
-                    , trt_bpinstance    = case mod of
-                                            Just mod -> getTask mod tn
-                                            _        -> Nothing
-                    , trt_activeNodeId  = Nothing
-                    , trt_parentTaskId  = maybe (TaskId instanceNo 0)
-                                            (\rt -> rt.trt_taskId)
-                                            (firstParent rtMap instanceNo callTrace)
-                    , trt_involvedUsers = [curr.user]
-                    , trt_output        = Nothing
-                    }
-        = snd ('DSDS'.write ('DM'.put currTaskId tonicRT rtMap) tonicSharedRT iworld)
-    eval` mod event evalOpts taskTree=:(TCDestroy tt) iworld
-      = eval event evalOpts taskTree (maybeSt iworld attemptDel (taskIdFromTaskTree tt))
-      where
-      attemptDel currTaskId iworld
-        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-        = okSt iworld (\rtMap -> snd o 'DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT) mrtMap
-    eval` mod event evalOpts taskTree iworld
-      # (tr, iworld) = eval event evalOpts taskTree iworld
-      = (tr, maybeSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
-      where
-      readAndUpdateRTMap tr currTaskId iworld
-        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-        = okSt iworld (updateRTMap tr currTaskId) mrtMap
-      updateRTMap tr currTaskId rtMap iworld
-        # (curr, iworld) = iworld!current
-        = maybeSt iworld
-            (\rt -> snd o 'DSDS'.write ('DM'.put currTaskId {rt & trt_output        = resultToOutput tr
-                                                                , trt_involvedUsers = [curr.user : resultUsers tr]} rtMap) tonicSharedRT)
-            ('DM'.get currTaskId rtMap)
-    resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
-    resultToOutput _                      = Nothing
-    resultUsers (ValueResult _ te _ _) = te.TaskEvalInfo.involvedUsers
-    resultUsers _                      = []
-    tvViewInformation NoValue     = Nothing
-    tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
+      = okSt iworld (\rtMap -> snd o 'DSDS'.write ('DM'.del currTaskId rtMap) tonicSharedRT) mrtMap
+  eval` _ event evalOpts taskTree iworld
+    # (tr, iworld) = eval event evalOpts taskTree iworld
+    = (tr, maybeSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
+    where
+    readAndUpdateRTMap tr currTaskId iworld
+      # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+      = okSt iworld (updateRTMap tr currTaskId) mrtMap
+    updateRTMap tr currTaskId rtMap iworld
+      # (curr, iworld) = iworld!current
+      = maybeSt iworld
+          (\rt -> snd o 'DSDS'.write ('DM'.put currTaskId {rt & trt_output        = resultToOutput tr
+                                                              , trt_involvedUsers = [curr.user : resultUsers tr]} rtMap) tonicSharedRT)
+          ('DM'.get currTaskId rtMap)
+  resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
+  resultToOutput _                      = Nothing
+  resultUsers (ValueResult _ te _ _) = te.TaskEvalInfo.involvedUsers
+  resultUsers _                      = []
+  tvViewInformation NoValue     = Nothing
+  tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
 firstParent :: TonicRTMap Int [Int] -> Maybe TonicRT
 firstParent _     _          [] = Nothing
@@ -202,11 +188,10 @@ tonicWrapParallel mn tn nid f ts = trace_n "tonicWrapParallel 1" (tonicWrapApp m
                              Ok rtMap
                                = case firstParent rtMap instanceNo callTrace of
                                    Just parent
-                                     # k              = (parent.trt_taskId, nid)
                                      # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask (trace_n ("tonicWrapParallel 2: parent.trt_taskId = " +++ toString parent.trt_taskId +++ " nid = " +++ foldr (\x xs -> toString x +++ " " +++ xs) "" nid)  iworld)
                                      = case mlot of
                                          Ok mlot
-                                           # (_, iworld) = 'DSDS'.write ('DM'.put k 'DIS'.newMap mlot) tonicSharedListOfTask (trace_n "tonicWrapParallel 3" iworld)
+                                           # (_, iworld) = 'DSDS'.write ('DM'.put (parent.trt_taskId, nid) 'DIS'.newMap mlot) tonicSharedListOfTask (trace_n "tonicWrapParallel 3" iworld)
                                            = (tonicWrapListOfTask mn tn nid parent.trt_taskId ts, iworld)
                                          _
                                            = (ts, iworld)
@@ -241,13 +226,34 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
       # mlot   = 'DM'.put k tidMap mlot
       = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
 
+
+getModule :: !String -> Task TonicModule
+getModule moduleName = mkInstantTask (const (getModule` moduleName))
+
+getModule` :: !String *IWorld -> *(MaybeError (Dynamic, String) TonicModule, *IWorld)
+getModule` moduleName iworld
+  # (dir, iworld)  = getTonicDir` iworld
+  # (mjson, world) = readFile (dir </> (moduleName +++ ".tonic")) iworld.world
+  # iworld         = {iworld & world = world}
+  = case mjson of
+      Ok json   -> case fromJSON (fromString json) of
+                     Just gg  -> (Ok gg, iworld)
+                     _        -> err ("Failed to deserialize JSON: " +++ json) iworld
+      Error msg -> err (toString msg) iworld
+  where
+  err msg iworld = (Error (dynamic "", "Failed to load Tonic file for module " +++ moduleName +++ ": " +++ msg), iworld)
+
 getTonicModules :: Task [String]
-getTonicModules
-  =         getTonicDir >>-
-    \dir -> accWorld (readDirectory dir) >>-
-    \mfs -> case mfs of
-              Ok fs   -> return (map dropExtension (filter noDots fs))
-              Error _ -> throw "Failed to read Tonic dir"
+getTonicModules = mkInstantTask (const getTonicModules`)
+
+getTonicModules` :: *IWorld -> *(MaybeError (Dynamic, String) [String], *IWorld)
+getTonicModules` iworld
+  # (dir, iworld) = getTonicDir` iworld
+  # (mfs, world)  = readDirectory dir iworld.world
+  # iworld        = {iworld & world = world}
+  = case mfs of
+      Ok fs   -> (Ok (map dropExtension (filter noDots fs)), iworld)
+      Error _ -> (Error (dynamic "", "Failed to read Tonic dir"), iworld)
   where
   noDots str = not (str.[0] == '.')
 
@@ -255,8 +261,13 @@ getTonicDir :: Task String
 getTonicDir = mkInstantTask f
   where
   f _ iworld
-    # (server, iworld) = iworld!server
-    = (Ok (server.paths.appDirectory </> "tonic"), iworld)
+    # (dir, iworld) = getTonicDir` iworld
+    = (Ok dir, iworld)
+
+getTonicDir` :: *IWorld -> *(String, *IWorld)
+getTonicDir` iworld
+  # (server, iworld) = iworld!server
+  = (server.paths.appDirectory </> "tonic", iworld)
 
 tonicLogin :: [TaskAppRenderer] -> Task ()
 tonicLogin rs = tonicUI rs
@@ -875,7 +886,7 @@ tParallel inh eid (ParSumN ts) tsrc
   mkParSum inh eid (PP pp) tsrc
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
-          = mapSt (\(mn, tn) -> tTaskApp inh eid "" tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+          = mapSt (\(mn, tn) -> tTaskApp inh eid mn tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
         _
           #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0))
           = ([overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing], tsrc)
@@ -885,7 +896,7 @@ tParallel inh eid (ParProd ts) tsrc
   #! (refs, tsrc)     = refsForList imgs tsrc
   #! (ts, refs)       = prepCases [] imgs refs
   #! (vertConn, refs) = mkVertConn refs
-  = ( beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, tHorizConn, vertConn, tHorizConnArr, tParProd] Nothing
+  = ( beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn, tHorizConnArr, tParProd] Nothing
     , tsrc)
   where
   mkParProd :: !MkImageInh ![Int] !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
@@ -894,8 +905,7 @@ tParallel inh eid (ParProd ts) tsrc
     = case 'DM'.get (inh.inh_trt.trt_taskId, eid) inh.inh_maplot of
         Just mptids
           #! tsrc = trace_n "Just mptids" tsrc
-          //= mapSt (\(mn, tn) -> tTaskApp inh eid mn tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
-          = ([above (repeat AtMiddleX) [] (map (text ArialRegular10px) (map toString ('DIS'.elems mptids))) Nothing], tsrc)
+          = mapSt (\(mn, tn) -> tTaskApp inh eid mn tn []) [trt.trt_bpref \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
         _
           #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0))
           = ([overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing], tsrc)
