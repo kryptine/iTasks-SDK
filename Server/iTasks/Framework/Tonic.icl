@@ -1089,12 +1089,12 @@ tAssign inh user assignedTask tsrc
 
 ppUser :: !TUser -> String
 ppUser TUAnyUser                       = "Any user"
-ppUser (TUUserWithIdent ident)         = "User " +++ ident
-ppUser (TUUserWithRole role)           = "User with role " +++ role
+ppUser (TUUserWithIdent ident)         = ident
+ppUser (TUUserWithRole role)           = "Anyone with role " +++ role
 ppUser TUSystemUser                    = "System user"
 ppUser TUAnonymousUser                 = "Anonymous user"
-ppUser (TUAuthenticatedUser usr roles) = "User " +++ usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
-ppUser (TUVariableUser usr)            = "User " +++ usr
+ppUser (TUAuthenticatedUser usr roles) = usr +++ " with roles " +++ foldr (\x xs -> x +++ " " +++ xs) "" roles
+ppUser (TUVariableUser usr)            = usr
 
 tStep :: !MkImageInh !TExpr ![PPOr TStepCont] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh lhsExpr conts tsrc
