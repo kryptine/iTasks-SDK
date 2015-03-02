@@ -152,12 +152,18 @@ player_image interactive r player
                ++ hand_images interactive player.hand player.color
                )
 
+player_name :: !Player -> Image m
+player_name {name,color}
+ = overlay (repeat (AtMiddleX,AtMiddleY)) []
+     [text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = toSVGColor if (color === Yellow) "black" "white"}]
+     (Just (rect width height <@< {fill = toSVGColor color}))
+     <@< {mask = rect width height <@< {fill = toSVGColor "white"}}
+where
+	width  = card_height *. 1.8
+	height = card_width  *. 0.4
+
 player_names :: ![Player] !Span -> Image m
-player_names players r
- = circular r (pi * 2.0) 
-    [   text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = toSVGColor color} <@< {stroke = toSVGColor "black"}
-    \\ {name,color} <- players
-    ]
+player_names players r = circular r (pi * 2.0) (map player_name players)
 
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
@@ -173,7 +179,7 @@ game_image (color,user) gameSt
   #! r     = card_height *. 4
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
-            ([  rotate (rad (i*angle - player_arc/2.0)) img
+            ([  rotate (rad (i*angle - player_arc/2.0 + player_arc/12.0)) img
              \\ img    <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i      <- [0.0, 1.0 ..]
              ] ++ [player_names gameSt.players (r *. 0.8)]
