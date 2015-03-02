@@ -44,8 +44,6 @@ derive gText
 
 :: ModelTy
 
-tonicSharedRT :: Shared TonicRTMap
-
 :: BlueprintRef =
   { bpr_moduleName :: !ModuleName
   , bpr_taskName   :: !TaskName
@@ -59,10 +57,9 @@ tonicSharedRT :: Shared TonicRTMap
   , bpi_endTime       :: !Maybe SystemClocks
   , bpi_params        :: ![(!VarName, !Task ())]
   , bpi_activeNodeId  :: !Maybe [Int]
-  , bpi_parentTask    :: !Maybe BlueprintRef
+  , bpi_parentTaskId  :: !Maybe TaskId
   , bpi_involvedUsers :: ![User]
   , bpi_output        :: !Maybe (Task ())
-  , bpi_parallelWith  :: ![TaskId]
   }
 
 derive class iTask BlueprintRef, BlueprintInstance

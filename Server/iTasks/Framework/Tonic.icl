@@ -59,17 +59,6 @@ derive gText
 
 derive class iTask BlueprintRef, BlueprintInstance, SystemClocks
 
-//:: TonicLog
-  //= { tl_taskId        :: TaskId
-    //, tl_bpref         :: (ModuleName, TaskName)
-    //, tl_parentId      :: TaskId
-    //, tl_start_time    :: Timestamp
-    //, tl_end_time      :: Timestamp
-    ////, tl_result_value  :: JSON
-    //, tl_parallel_with :: [TaskId]
-    //, tl_users         :: [User]
-    //}
-
 tonicSharedRT :: Shared TonicRTMap
 tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
 
@@ -99,10 +88,11 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                      , bpi_endTime       = Nothing
                      , bpi_params        = args
                      , bpi_activeNodeId  = Nothing
-                     , bpi_parentTask    = firstParent rtMap instanceNo callTrace
+                     , bpi_parentTaskId  = case firstParent rtMap instanceNo callTrace of
+                                             Just p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
+                                             _      -> Nothing
                      , bpi_involvedUsers = [curr.user]
                      , bpi_output        = Nothing
-                     , bpi_parallelWith  = []
                      }
           # blueprint = { BlueprintRef
                         | bpr_moduleName = mn
@@ -211,7 +201,6 @@ tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
     = case f ts of
         Task eval` -> eval` event evalOpts taskTree iworld
 
-// TODO Find sibling parallel tasks and write them to the share
 tonicWrapListOfTask :: ModuleName TaskName [Int] TaskId [Task a] -> [Task a]
 tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
   where
@@ -394,6 +383,17 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
     onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps depth compact rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
 
+dynamicParent :: TaskId -> Task (Maybe BlueprintRef)
+dynamicParent childId
+  =       get tonicSharedRT >>~
+  \rtm -> return (case 'DM'.get childId rtm of
+                    Just child -> case child.bpr_instance of
+                                    Just bpi -> case bpi.bpi_parentTaskId of
+                                                  Just pid -> 'DM'.get pid rtm
+                                                  _        -> Nothing
+                                    _        -> Nothing
+                    _          -> Nothing)
+
 :: DynamicView =
   { moduleName :: String
   , taskName   :: String
@@ -438,14 +438,15 @@ tonicDynamicBrowser` rs q =
 
 viewInstance :: [TaskAppRenderer] !BlueprintRef -> Task ()
 viewInstance rs bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst} =
-                 viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
+                 dynamicParent bpinst.bpi_taskId
+  >>~ \mbprnt -> viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
              ||- viewTaskArguments bpinst bpr_blueprint
              ||- updateInformation "Compact view?" [] False
              >&> withSelection (return ()) (
   \compact ->    whileUnchanged tonicSharedListOfTask (
   \maplot ->     whileUnchanged tonicSharedRT (
   \rtmap ->      viewBP maplot rtmap compact)
-             >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) bpinst.bpi_parentTask)]))
+             >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]))
   where
   viewBP :: (Map (TaskId, [Int]) (IntMap TaskId)) TonicRTMap Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
   viewBP maplot rtmap compact
