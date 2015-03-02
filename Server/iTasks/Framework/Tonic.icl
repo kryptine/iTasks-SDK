@@ -59,8 +59,13 @@ derive gText
 
 derive class iTask BlueprintRef, BlueprintInstance, SystemClocks
 
+:: ListsOfTasks :== Map (TaskId, [Int]) (IntMap BlueprintRef)
+
 tonicSharedRT :: Shared TonicRTMap
 tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
+
+tonicSharedListOfTask :: Shared ListsOfTasks
+tonicSharedListOfTask = sharedStore "tonicSharedListOfTask" 'DM'.newMap
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
@@ -170,10 +175,6 @@ tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 tonicWrapAppLam3 :: ModuleName TaskName [Int] (a b c -> Task d) -> a b c -> Task d
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 
-tonicSharedListOfTask :: Shared (Map (TaskId, [Int]) (IntMap TaskId))
-tonicSharedListOfTask = sharedStore "tonicSharedListOfTask" 'DM'.newMap
-
-// TODO Take destroy events into account
 tonicWrapParallel :: ModuleName TaskName [Int] ([Task a] -> Task b) [Task a] -> Task b
 tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
   where
@@ -201,6 +202,13 @@ tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
     = case f ts of
         Task eval` -> eval` event evalOpts taskTree iworld
 
+getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
+getBlueprintRef tid world
+  # (mtrt, world) = 'DSDS'.read tonicSharedRT world
+  = case mtrt of
+      Ok trt -> ('DM'.get tid trt, world)
+      _      -> (Nothing, world)
+
 tonicWrapListOfTask :: ModuleName TaskName [Int] TaskId [Task a] -> [Task a]
 tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
   where
@@ -208,19 +216,25 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
   registerTask n (Task eval) = Task eval`
     where
     eval` event evalOpts taskTree iworld
+      # (tr, iworld)   = eval event evalOpts taskTree iworld
       # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
       # iworld         = case taskIdFromTaskTree taskTree of
                            Just tid -> okSt iworld (updLoT tid) mlot
                            _        -> iworld
-      = eval event evalOpts taskTree iworld
+      = (tr, iworld)
     updLoT tid=:(TaskId l r) mlot iworld
-      # k      = (parentId, nid)
-      # tidMap = case 'DM'.get k mlot of
-                    Just tidMap -> tidMap
-                    _           -> 'DIS'.newMap
-      # tidMap = 'DIS'.put n tid tidMap
-      # mlot   = 'DM'.put k tidMap mlot
-      = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
+      # (mbpref, iworld) = getBlueprintRef tid iworld
+      = case mbpref of
+          Just bpref
+            # k      = (parentId, nid)
+            # tidMap = case 'DM'.get k mlot of
+                          Just tidMap -> tidMap
+                          _           -> 'DIS'.newMap
+            # tidMap = 'DIS'.put n bpref tidMap
+            # mlot   = 'DM'.put k tidMap mlot
+            = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
+          _
+            = iworld
 
 getModule :: !String -> Task TonicModule
 getModule moduleName = mkInstantTask (const (getModule` moduleName))
@@ -362,7 +376,7 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
                                         , bpr_taskName   = tt.tt_name
                                         , bpr_blueprint  = tt
                                         , bpr_instance   = Nothing
-                                        } 'DM'.newMap 'DM'.newMap compact) (\_ _ -> Nothing) (const id)]
+                                        } 'DM'.newMap compact) (\_ _ -> Nothing) (const id)]
         { ActionState
         | state  = { tis_task    = expandTask allbps depth.cur tt
                    , tis_depth   = depth
@@ -445,13 +459,13 @@ viewInstance rs bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instanc
              >&> withSelection (return ()) (
   \compact ->    whileUnchanged tonicSharedListOfTask (
   \maplot ->     whileUnchanged tonicSharedRT (
-  \rtmap ->      viewBP maplot rtmap compact)
+  \rtmap ->      viewBP maplot compact)
              >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> fmap (viewInstance rs) mbprnt)]))
   where
-  viewBP :: (Map (TaskId, [Int]) (IntMap TaskId)) TonicRTMap Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
-  viewBP maplot rtmap compact
+  viewBP :: ListsOfTasks Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
+  viewBP maplot compact
     = updateInformation "Blueprint:"
-        [imageUpdate id (mkTaskImage rs bpref maplot rtmap compact) (\_ _ -> Nothing) (const id)]
+        [imageUpdate id (mkTaskImage rs bpref maplot compact) (\_ _ -> Nothing) (const id)]
         { ActionState
         | state = { TonicImageState
                   | tis_task    = bpr_blueprint
@@ -652,16 +666,15 @@ ArialItalic10px :== { fontfamily = "Arial"
 
 :: MkImageInh =
   { inh_trt       :: !BlueprintRef
-  , inh_maplot    :: !Map (!TaskId, ![Int]) (IntMap TaskId)
-  , inh_rtmap     :: !TonicRTMap
+  , inh_maplot    :: !ListsOfTasks
   , inh_task_apps :: ![TaskAppRenderer]
   , inh_compact   :: !Bool
   }
 
-mkTaskImage :: ![TaskAppRenderer] !BlueprintRef !(Map (TaskId, [Int]) (IntMap TaskId)) !TonicRTMap !Bool !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs trt maplot rtmap compact {ActionState | state = tis} tsrc
+mkTaskImage :: ![TaskAppRenderer] !BlueprintRef !ListsOfTasks !Bool !ModelTy *TagSource -> Image ModelTy
+mkTaskImage rs trt maplot compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
-  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_rtmap = rtmap, inh_task_apps = rs, inh_compact = compact }
+  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_task_apps = rs, inh_compact = compact }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
   = img
@@ -880,7 +893,7 @@ tParallel inh eid (ParSumN ts) tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(mn, tn) -> tTaskApp inh eid mn tn []) [(trt.bpr_moduleName, trt.bpr_taskName) \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+                = mapSt (\trt -> tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName []) ('DIS'.elems mptids) tsrc
               _ = mkDef
         _ = mkDef
     where
@@ -902,7 +915,7 @@ tParallel inh eid (ParProd ts) tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(mn, tn) -> tTaskApp inh eid mn tn []) [(trt.bpr_moduleName, trt.bpr_taskName) \\ Just trt <- map (\tid -> 'DM'.get tid inh.inh_rtmap) ('DIS'.elems mptids)] tsrc
+                = mapSt (\trt -> tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName []) ('DIS'.elems mptids) tsrc
               _ = mkDef
         _ = mkDef
     where
