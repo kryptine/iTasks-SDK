@@ -1,7 +1,7 @@
 definition module iTasks.Framework.Tonic
 
 from iTasks.Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
-from iTasks.Framework.IWorld import :: IWorld
+from iTasks.Framework.IWorld import :: IWorld, :: SystemClocks
 from iTasks.Framework.Engine import :: PublishedTask
 import iTasks.Framework.Generic
 from iTasks.API.Core.TaskCombinators import class tune
@@ -38,7 +38,7 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
-:: TonicRTMap :== Map TaskId TonicRT
+:: TonicRTMap :== Map TaskId BlueprintRef
 
 :: TaskAppRenderer :== Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
 
@@ -46,18 +46,26 @@ derive gText
 
 tonicSharedRT :: Shared TonicRTMap
 
-:: TonicRT =
-  { trt_taskId        :: TaskId
-  , trt_params        :: [(VarName, Task ())]
-  , trt_bpref         :: (ModuleName, TaskName)
-  , trt_bpinstance    :: Maybe TonicTask
-  , trt_activeNodeId  :: Maybe [Int]
-  , trt_parentTaskId  :: TaskId
-  , trt_involvedUsers :: [User]
-  , trt_output        :: Maybe (Task ())
+:: BlueprintRef =
+  { bpr_moduleName :: !ModuleName
+  , bpr_taskName   :: !TaskName
+  , bpr_blueprint  :: !TonicTask
+  , bpr_instance   :: !Maybe BlueprintInstance
   }
 
-derive class iTask TonicRT
+:: BlueprintInstance =
+  { bpi_taskId        :: !TaskId
+  , bpi_startTime     :: !SystemClocks
+  , bpi_endTime       :: !Maybe SystemClocks
+  , bpi_params        :: ![(!VarName, !Task ())]
+  , bpi_activeNodeId  :: !Maybe [Int]
+  , bpi_parentTask    :: !Maybe BlueprintRef
+  , bpi_involvedUsers :: ![User]
+  , bpi_output        :: !Maybe (Task ())
+  , bpi_parallelWith  :: ![TaskId]
+  }
+
+derive class iTask BlueprintRef, BlueprintInstance
 
 tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
