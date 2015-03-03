@@ -45,7 +45,7 @@ play_Ligretto
 	>>= \you -> let us = zip2 (colors (1+length you)) [me : you]
 	             in allTasks (repeatn (length us) (get randomInt))
 	>>= \rs  -> let gameSt = { middle  = repeatn (4*length us) []
-	                         , players = [  initial_player (length us) c (toSingleLineText u) (abs r) 
+	                         , players = [  initial_player (length us) c (toString u) (abs r) 
 	                                     \\ (c,u) <- us
 	                                      & r     <- rs
 	                                     ]
@@ -54,10 +54,10 @@ play_Ligretto
 
 invite_friends :: Task [User]
 invite_friends
-	=           enterSharedMultipleChoice "Select friends to play with" [] users
-	>>= \you -> if (not (isMember (length you) [1..3]))
-	               (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
-	               (return you)
+	=            enterSharedMultipleChoice "Select friends to play with" [] users
+	>>= \them -> if (not (isMember (length them) [1..3]))
+	                (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
+	                (return them)
 
 play_game :: ![(Color,User)] !(Shared GameSt) -> Task (Color,User)
 play_game users game_st
@@ -66,8 +66,8 @@ play_game users game_st
 	>>| return w
 
 play :: !(!Color,!User) !(Shared GameSt) -> Task (Color,User)
-play player game_st
-	=   updateSharedInformation (toSingleLineText player) [imageUpdate id (player_perspective player) (\_ _ -> Nothing) (\_ st -> st)] game_st
+play player=:(_,user) game_st
+	=   updateSharedInformation (toString user) [imageUpdate id (player_perspective player) (\_ _ -> Nothing) (\_ st -> st)] game_st
 	>>* [OnValue (player_wins player)]
 
 player_wins :: !(!Color,!User) !(TaskValue GameSt) -> Maybe (Task (Color,User))
