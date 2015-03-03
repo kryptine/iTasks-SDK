@@ -98,12 +98,12 @@ derive class iTask ActionState
 
 doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
 doAction astos stotaskb = ifAction (const True) (const id) astos stotaskb
-import StdDebug
+
 ifAction :: !(a -> Bool) !(a s -> s) !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
 ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _)
-  | pred a    = trace_n "ifAction pred ok" Just (stotaskb a {ActionState|state = astos a s, action = Nothing})
-  | otherwise = trace_n "ifAction otherwise" Nothing
-ifAction _ _ _ _ = trace_n "ifAction fallthrough" Nothing
+  | pred a    = Just (stotaskb a {ActionState|state = astos a s, action = Nothing})
+  | otherwise = Nothing
+ifAction _ _ _ _ = Nothing
 
 svgns =: "http://www.w3.org/2000/svg"
 

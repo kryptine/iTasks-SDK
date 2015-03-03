@@ -790,7 +790,7 @@ tVar inh eid pp tsrc
   where
   mkDef n tsrc
     #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
-    = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px (pp +++ "-" +++ toString n)] Nothing, tsrc)
+    = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
 
 tCleanExpr :: !MkImageInh ![Int] !TCleanExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCleanExpr inh eid pp tsrc
