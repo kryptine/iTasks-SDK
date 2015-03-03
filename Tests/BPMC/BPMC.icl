@@ -37,92 +37,116 @@ ourClients 		= 	[ {name = "Rinus" , clientNo = 1, email = "rinus@cs.ru.nl",  acc
 
 // some crud functions on the db info is also assumed ...
 
-getClient :: Int -> Maybe Client
+getClient :: Int -> Task (Maybe Client)
 getClient cid 
 # clients = [client \\ client=:{Client|clientNo} <- ourClients | cid === clientNo]
-= if (isEmpty clients) Nothing (Just (hd clients))
+= return (if (isEmpty clients) Nothing (Just (hd clients)))
 
 
-// Some types used for filling in forms
 
-:: ClientRequest	  	= 	{ name			:: Name
-					      	, id			:: ClientNo
-					      	, account		:: Account
-					      	, email			:: EmailAddr
-					      	, request		:: Note
-					      	}
-:: Log a				=	{ about			:: String
-							, received_from	:: Name
-							, intended_for	:: Name
-							, date			:: Date
-							, content		:: a
-							}
-:: Case					=	{ caseNo		:: Int
-							}
-:: Advice				=	{ advice		:: Note
-							}
+// The following types are used to generate some useful user interface
 
-derive class iTask ClientRequest, Log, Case, Advice
+:: ClientRequest									// Form to fill in by Client asking for a service  	
+			= 	{ name			:: Name
+			   	, id			:: ClientNo
+			   	, account		:: Account
+		      	, email			:: EmailAddr
+		      	, phone			:: Int
+		      	, request		:: Note
+		      	}
+:: Log a											// Additional logging information
+			=	{ about			:: String
+				, received_from	:: Name
+				, intended_for	:: Name
+				, date			:: Date
+				, content		:: a
+				}
+:: RequestProcedure									// Classification of the requests a client can do 
+			= 	ServiceRequest Service
+			|	Complaint Note
+			|   Other Note
+:: Service											// Kind of service being asked
+			=  NewPassword 
+			|  NewAccount
+:: Case					
+			=	{ caseNo		:: Int
+				}
+:: Advice	=	{ advice		:: Note
+				}
+
+derive class iTask ClientRequest, Log, RequestProcedure, Service, Case, Advice
+
+:: ServiceRequest		:== Log ClientRequest
+:: ServiceRequestDoc	:== (RequestProcedure, ServiceRequest)
+:: ServiceRequestCase	:== (Case,ServiceRequestDoc)
 
 // we need a little database to store information
 
-caseDabase :: Shared [(Int,(Log ClientRequest,Advice,Bool))]
-caseDabase = sharedStore "Db 062" []
+caseDatabase :: Shared [ServiceRequestCase]
+caseDatabase = sharedStore "Db 062" []
 
 // Initializing the system ...
 
 Start :: *World -> *World
-Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA	// this is the case
-                                    , tonicStaticWorkflow []
-                                    , tonicDynamicWorkflow []
+Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA						// case a prototype
+                                    , tonicStaticWorkflow []													// to show graphical representations of the tasks defined below
+                                    , tonicDynamicWorkflow []													// to graphically show at run-time what the status is of the tasks being worked on
 									] world
 
 // here finally the task description starts...
+
 
 // task performed by some client
 
 caseA :: Task ()																
 caseA 
 	= 				    					get currentUser 													// who is the client logged in ?
-	 >>= \client		->					create client frontOfficer "Submit Service Request"	defaultValue	// client creates service request 
-	 >>= \document  	->	frontOfficer @: handleRequest document												// someone in the front office will handle request client
+	 >>= \client		->					create client frontOfficer "Submit Service Request"	defaultValue	// client fills in service request form 
+	 >>= \document  	->	frontOfficer @: handleRequest document												// step 1, send to someone in the front office to handle client request
 
-// tasks performed by someone the front office
+// tasks performed by someone in the front office
 
-handleRequest :: (Log ClientRequest) -> Task () 							
-handleRequest requestForm
-	=					get currentUser 																	// who in the front office is actually handling this case
-	>>= \frontOfficeWorker
-				  ->	modify "Client Request:" requestForm "Please Handle:" defaultValue					// step 1, modify input																									// step 1
- 	>>= \response -> 	verify "Please Verify:" (requestForm, "Known from administration: ", clientAdmin)	// step 2, verify client data
- 	>>= \ok  	  -> 	if ok (commercialServOfficer @: handleLogService frontOfficeWorker (requestForm,response))		// step 3, yes, csa has to do step 4 and further
-							  (inform foEmail clientEmail "your request" (toMultiLineText request))			// step 3, no, mail client  
-where 
-	request 		= requestForm.Log.content
-	clientEmail		= request.ClientRequest.email										// email address filled in request
-	clientAdmin		= getClient request.ClientRequest.id								// search for client information in database 	
+handleRequest :: ServiceRequest -> Task () 							
+handleRequest serviceRequest
+	=					get currentUser 																		// who in the front office is actually handling this case
+	>>= \frontOfficeWorker																						
+				   ->	modify "Client Request:" serviceRequest "Select Procedure to Follow:" defaultValue		// step 2, select procedure to follow																									// step 1
+ 	>>= \procedure -> 	getClient id																			// try to fetch cleint info from database
+ 	>>= \mbClient  ->   if (isNothing mbClient)																    // check if client with given id exists
+ 						   (inform foEmail email "Unknown Client Id " (toMultiLineText content))				// step 4.1, client does not exist, email client
+ 						   (checkAccount frontOfficeWorker (fromJust mbClient) procedure)						// continue with step 5 and further
+where
+	checkAccount frontOfficeWorker client procedure
+	=					verify "Check Account:" ("Account specified: " <+++ account, 
+												 "Accounts known: ", client.accounts)							// step 5, manually verify account number
+ 	 >>= \correct  -> 	if correct 
+ 						 (commercialServOfficer @: handleLogService frontOfficeWorker (procedure,serviceRequest))	// account number ok, csa has to do step 6 and further
+ 						 (inform foEmail email "Unknown Account " (toMultiLineText content))					// step 4.2, account does not exist, email client
+							   
+	content			   = serviceRequest.Log.content
+	{id,email,account} = content
 
 
 // tasks performed by the commercial service administration
 
-handleLogService :: frontOfficer (Log ClientRequest, (Case,Advice)) -> Task () | toUserConstraint	frontOfficer			
-handleLogService frontOfficer document=:(request,({caseNo},note)) 
-	= 					modify "Front Office Request" document "Please Confirm" defaultValue				// step 4, prepare doc to store
-	>>= \confirm ->		log (caseNo,(request,note,confirm)) caseDabase 										// step 5, store casenumber and document
-	>>|					backOfficer @: handleCase frontOfficer caseNo										// backOfficer has to do step 6 and further 
+handleLogService :: frontOfficer  ServiceRequestDoc -> Task () | toUserConstraint	frontOfficer			
+handleLogService frontOfficer document 
+	= 					modify "New Service Request:" document "Assign Case Number:" defaultValue				// step 6, assign a case number to this request
+	>>= \caseNo ->		backOfficer @: handleCase frontOfficer caseNo											// backOfficer has to do step 6 and further 
 
 
 // tasks performed by the backoffice
 
-handleCase :: frontOfficer Int -> Task ()	| toUserConstraint	frontOfficer 						
-handleCase frontOfficer caseNo
-	=						open caseNo caseDabase															// step 6 +7, fetch case stored in database
-	>>= \mbLog ->			return (fromJust mbLog)
-	>>= \(caseNo,log) ->	verify "Can it be handled by frontoffice" mbLog									// step 7, appearantly one can only approve
-	>>| 					frontOfficer @: resolvePassword backOfficer ({caseNo=caseNo},log)				// frontOfficer will handle step 8 and further
-	
-resolvePassword ::  backOfficer (Case,(Log ClientRequest,Advice,Bool)) -> Task () | toUserConstraint	backOfficer
-resolvePassword backOfficer thisCase 
+handleCase :: frontOfficer ServiceRequestCase -> Task ()	| toUserConstraint	frontOfficer 						
+handleCase frontOfficer (caseNo,document)
+	=						log (caseNo,document) caseDatabase													// step 7, store pair of (casenumber, document) in databse
+	>>|						verify "Can it be handled by frontoffice" document									// step 8, judge how to further handle the procedure
+	>>= \simple	->	 		if simple 			
+								(frontOfficer @: handleSimpleRequest backOfficer (caseNo,document))				// ask front officer to handle the issue, step 9 and further
+								(return ())																	    // non-simple case not specified, it stops here	
+
+handleSimpleRequest ::  backOfficer ServiceRequestCase -> Task () | toUserConstraint	backOfficer
+handleSimpleRequest backOfficer thisCase 
 	= return ()
 
 // Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
@@ -182,12 +206,3 @@ inform fromName toName subject body
 where
 	sendAnEmail doc = sendEmail doc.Log.about doc.Log.content doc.Log.received_from [toName]
 	
-//
-
-instance toString UserConstraint
-where
-	toString AnyUser				= "Anybody"
-	toString (UserWithId uid)		= uid
-	toString (UserWithRole role)	= "Any user with role " +++ role
-
- 
