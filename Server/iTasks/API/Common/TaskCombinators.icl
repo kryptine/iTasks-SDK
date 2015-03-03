@@ -102,7 +102,7 @@ where
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
 					
 	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
-		{ assignedTo	= toSingleLineText (toString ('DM'.get TAUser attributes))
+		{ assignedTo	= toSingleLineText (fmap toString ('DM'.get TAUser attributes))
 		, firstWorkedOn	= p.InstanceProgress.firstEvent
 		, lastWorkedOn	= p.InstanceProgress.lastEvent
         }
