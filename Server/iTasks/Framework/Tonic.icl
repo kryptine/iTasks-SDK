@@ -156,21 +156,33 @@ tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{callTrace} taskTree iworld
-    = eval event evalOpts taskTree (maybeSt iworld
-                                      (addTrace callTrace)
-                                      (taskIdFromTaskTree taskTree))
-    where // TODO Use the TaskId here to replace variables with their values?
-    addTrace callTrace (TaskId instanceNo taskNo) iworld
-      # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-      = okSt iworld updRTMap mrtMap
-      where
-      updRTMap rtMap iworld
-        # rtMap = maybe rtMap
-                    (\bpref -> case bpref.bpr_instance of
-                                 Just inst -> 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodeId = Just nid}) bpref.bpr_instance} rtMap
-                                 _         -> rtMap)
-                    (firstParent rtMap instanceNo [taskNo:callTrace])
-        = snd ('DSDS'.write rtMap tonicSharedRT iworld)
+    = case taskIdFromTaskTree taskTree of
+        Just tid=:(TaskId instanceNo taskNo)
+          # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+          = case mrtMap of
+              Ok rtMap
+                = case firstParent rtMap instanceNo [taskNo:callTrace] of
+                    Just bpref=:{bpr_instance = Just inst}
+                      # iworld       = updRTMap bpref inst rtMap iworld
+                      # (rt, iworld) = eval event evalOpts taskTree iworld 
+                      # iworld       = updLoTMap tid bpref inst iworld
+                      = (rt, iworld)
+                    _ = eval event evalOpts taskTree iworld
+              _ = eval event evalOpts taskTree iworld
+        _ = eval event evalOpts taskTree iworld
+    where
+    updRTMap bpref inst rtMap iworld
+      # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodeId = Just nid}) bpref.bpr_instance} rtMap
+      = snd ('DSDS'.write rtMap tonicSharedRT iworld)
+    updLoTMap tid bpref inst iworld
+      # (mbmlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
+      # (mbpref, iworld) = getBlueprintRef tid iworld
+      = case (mbmlot, mbpref) of
+          (Ok mlot, Just bpref)
+            # mlot = 'DM'.put (inst.bpi_taskId, nid) ('DIS'.singleton 0 bpref) mlot
+            = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
+          _
+            = iworld
   eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
 tonicWrapAppLam1 :: ModuleName TaskName [Int] (a -> Task b) -> a -> Task b
@@ -229,7 +241,7 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
                            Just tid -> okSt iworld (updLoT tid) mlot
                            _        -> iworld
       = (tr, iworld)
-    updLoT tid=:(TaskId l r) mlot iworld
+    updLoT tid mlot iworld
       # (mbpref, iworld) = getBlueprintRef tid iworld
       = case mbpref of
           Just bpref
@@ -765,10 +777,20 @@ refsForList [_:xs] tsrc
 
 tVar :: !MkImageInh ![Int] !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tVar inh eid pp tsrc
-  #! isActive = case inh.inh_trt.bpr_instance of
-                  Just bpinst -> Just eid == bpinst.bpi_activeNodeId
-                  _           -> False
-  = (text ArialRegular10px (pp +++ if isActive "*" ""), tsrc)
+  = case inh.inh_trt.bpr_instance of
+      Just bpinst
+        = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
+            Just mptids
+              = case 'DIS'.elems mptids of
+                  [trt:_]
+                    = tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName [] tsrc
+                  _ = mkDef 3 tsrc
+            _ = mkDef 2 tsrc
+      _ = mkDef 1 tsrc
+  where
+  mkDef n tsrc
+    #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+    = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px (pp +++ "-" +++ toString n)] Nothing, tsrc)
 
 tCleanExpr :: !MkImageInh ![Int] !TCleanExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCleanExpr inh eid pp tsrc
