@@ -117,10 +117,10 @@ handleRequest serviceRequest
  						   (checkAccount frontOfficeWorker (fromJust mbClient) procedure)						// continue with step 5 and further
 where
 	checkAccount frontOfficeWorker client procedure
-	=					verify "Check Account:" ("Account specified: " <+++ account, 
-												 "Accounts known: ", client.accounts)							// step 5, manually verify account number
+	=					verify "Is the account valid?" ("Account specified: " <+++ account, 
+												        "Accounts known: ", client.accounts)					// step 5, manually verify account number
  	 >>= \correct  -> 	if correct 
- 						 (commercialServOfficer @: handleLogService frontOfficeWorker (procedure,serviceRequest))	// account number ok, csa has to do step 6 and further
+ 						 (commercialServOfficer @: handleLogService frontOfficeWorker (procedure,serviceRequest))	// account number exist, csa has to do step 6 and further
  						 (inform foEmail email "Unknown Account " (toMultiLineText content))					// step 4.2, account does not exist, email client
 							   
 	content			   = serviceRequest.Log.content
@@ -132,7 +132,7 @@ where
 handleLogService :: frontOfficer  ServiceRequestDoc -> Task () | toUserConstraint	frontOfficer			
 handleLogService frontOfficer document 
 	= 					modify "New Service Request:" document "Assign Case Number:" defaultValue				// step 6, assign a case number to this request
-	>>= \caseNo ->		backOfficer @: handleCase frontOfficer caseNo											// backOfficer has to do step 6 and further 
+	>>= \caseNo ->		backOfficer @: handleCase frontOfficer (caseNo,document)								// backOfficer has to do step 6 and further 
 
 
 // tasks performed by the backoffice
@@ -140,12 +140,12 @@ handleLogService frontOfficer document
 handleCase :: frontOfficer ServiceRequestCase -> Task ()	| toUserConstraint	frontOfficer 						
 handleCase frontOfficer (caseNo,document)
 	=						log (caseNo,document) caseDatabase													// step 7, store pair of (casenumber, document) in databse
-	>>|						verify "Can it be handled by frontoffice" document									// step 8, judge how to further handle the procedure
+	>>|						verify "Simple case, to be handled by frontoffice" document							// step 8, judge how to further handle the procedure
 	>>= \simple	->	 		if simple 			
 								(frontOfficer @: handleSimpleRequest backOfficer (caseNo,document))				// ask front officer to handle the issue, step 9 and further
 								(return ())																	    // non-simple case not specified, it stops here	
 
-handleSimpleRequest ::  backOfficer ServiceRequestCase -> Task () | toUserConstraint	backOfficer
+handleSimpleRequest ::  backOfficer ServiceRequestCase -> Task () | toUserConstraint	backOfficer				// not yet done...
 handleSimpleRequest backOfficer thisCase 
 	= return ()
 
