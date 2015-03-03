@@ -2,6 +2,7 @@ implementation module iTasks.API.Core.Types
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
+import GenLexOrd
 import Data.Either, Data.Functor, Text.JSON, Text.HTML, Text, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
 from Data.Map import :: Map, :: Size
 from Data.List import instance Functor []
@@ -1510,3 +1511,42 @@ gEditor{|{}|} _ _ _ _ _ _ _ _ _ _ = undef
 gText{|{}|} _ _ _ = undef
 gUpdate{|{}|} _ _ _ _ _ _ _ _ = undef
 gVerify{|{}|} _ _ _ = undef
+
+instance < TaskAttrKey where
+  (<) l r = case l =?= r of
+              LT -> True
+              _  -> False
+
+instance == TaskAttrKey where
+  (==) l r = l === r
+
+instance toString TaskAttrValue where
+  toString (TAStringVal s)    = s
+  toString (TAIntVal i)       = toString i
+  toString (TARealVal r)      = toString r
+  toString (TAUserVal u)      = toString (toUserConstraint u)
+  toString (TADateTimeVal dt) = toString dt
+
+instance < TaskAttrValue where
+  (<) l r = case l =?= r of
+              LT -> True
+              _  -> False
+
+instance == TaskAttrValue where
+  (==) l r = l === r
+
+derive class iTask TaskAttrKey, TaskAttrValue
+derive gLexOrd TaskAttrKey, TaskAttrValue, UserConstraint, DateTime, Date, Time
+
+instance == UserConstraint where
+  (==) l r = l === r
+
+instance < UserConstraint where
+  (<) l r = case l =?= r of
+              LT -> True
+              _  -> False
+
+instance toString UserConstraint where
+	toString AnyUser				= "Anybody"
+	toString (UserWithId uid)		= uid
+	toString (UserWithRole role)	= "Any user with role " +++ role

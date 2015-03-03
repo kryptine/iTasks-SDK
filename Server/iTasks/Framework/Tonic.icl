@@ -59,6 +59,13 @@ derive gText
 
 derive class iTask BlueprintRef, BlueprintInstance, SystemClocks
 
+//class Tonic f where
+  //tonicCompApp  :: !ModuleName !TaskName ![Int] (Task a) -> Task a
+  //tonicCompBody :: !ModuleName !TaskName ![(VarName, f ())] (f a) -> f a | TonicViewer f a
+
+//class TonicViewer f a where
+  //tonicViewer :: a -> f a
+
 :: ListsOfTasks :== Map (TaskId, [Int]) (IntMap BlueprintRef)
 
 tonicSharedRT :: Shared TonicRTMap
@@ -152,7 +159,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
     = eval event evalOpts taskTree (maybeSt iworld
                                       (addTrace callTrace)
                                       (taskIdFromTaskTree taskTree))
-    where
+    where // TODO Use the TaskId here to replace variables with their values?
     addTrace callTrace (TaskId instanceNo taskNo) iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
       = okSt iworld updRTMap mrtMap
@@ -691,8 +698,8 @@ tExpr2Image inh (TParallel eid par)        tsrc = tParallel     inh eid par tsrc
 tExpr2Image inh (TAssign usr t)            tsrc = tAssign       inh usr t tsrc
 tExpr2Image inh (TShare ts sn args)        tsrc = tShare        inh ts sn args tsrc
 tExpr2Image inh (TTransform lhs vn args)   tsrc = tTransformApp inh lhs vn args tsrc
-tExpr2Image inh (TVar _ pp)                tsrc = (text ArialRegular10px pp, tsrc)
-tExpr2Image inh (TCleanExpr _ pp)          tsrc = (text ArialRegular10px (ppTCleanExpr pp), tsrc)
+tExpr2Image inh (TVar eid pp)              tsrc = tVar          inh eid pp tsrc
+tExpr2Image inh (TCleanExpr eid pp)        tsrc = tCleanExpr    inh eid pp tsrc
 
 ppTCleanExpr :: !TCleanExpr -> String
 ppTCleanExpr tcexpr = ppTCleanExpr` 0 tcexpr
@@ -755,6 +762,20 @@ refsForList [_:xs] tsrc
   #! (rs, tsrc) = refsForList xs tsrc
   #! (r, tsrc)  = mkTagRef tsrc
   = ([r:rs], tsrc)
+
+tVar :: !MkImageInh ![Int] !String !*TagSource -> *(!Image ModelTy, !*TagSource)
+tVar inh eid pp tsrc
+  #! isActive = case inh.inh_trt.bpr_instance of
+                  Just bpinst -> Just eid == bpinst.bpi_activeNodeId
+                  _           -> False
+  = (text ArialRegular10px (pp +++ if isActive "*" ""), tsrc)
+
+tCleanExpr :: !MkImageInh ![Int] !TCleanExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tCleanExpr inh eid pp tsrc
+  #! isActive = case inh.inh_trt.bpr_instance of
+                  Just bpinst -> Just eid == bpinst.bpi_activeNodeId
+                  _           -> False
+  = (text ArialRegular10px (ppTCleanExpr pp +++ if isActive "*" ""), tsrc)
 
 // TODO margin around cases
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)

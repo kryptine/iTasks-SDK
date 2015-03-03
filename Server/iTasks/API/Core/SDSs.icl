@@ -79,13 +79,13 @@ processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
-    forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
+    forWorker user {TaskListItem|attributes} = case 'DM'.get TAUser attributes of
         Just uid1 = case user of
-            (AuthenticatedUser uid2 _ _)    = uid1 == uid2
+            (AuthenticatedUser uid2 _ _)    = toString uid1 == uid2
             _                               = False
-        Nothing = case 'DM'.get "role" attributes of
+        Nothing = case 'DM'.get TARole attributes of
             Just role = case user of
-                (AuthenticatedUser _ roles _)   = isMember role roles
+                (AuthenticatedUser _ roles _)   = isMember (toString role) roles
                 _                               = False
             Nothing = True
 

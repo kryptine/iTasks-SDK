@@ -24,6 +24,7 @@ from System.OSError import :: OSError, :: OSErrorMessage, :: OSErrorCode
 from StdOverloaded import class +, class -, class <, class zero, class fromString, class toInt
 from StdGeneric import :: ConsPos
 from GenEq import generic gEq
+from GenLexOrd import generic gLexOrd, :: LexOrd
 from Data.Map 				import :: Map
 from Data.Map 				import qualified get
 from Text.HTML 				import class html
@@ -459,7 +460,37 @@ instance <			TaskId
     , includeProgress   :: !Bool
     }
 
-:: TaskAttributes :== Map String String
+:: TaskAttrKey
+  = TATitle
+  | TACreatedBy
+  | TACreatedFor
+  | TACompleteBefore
+  | TAUser
+  | TARole
+  | TAName
+  | TACreatedAt
+  | TAPriority
+  | TACatalogId
+  | TACustom String
+
+instance < TaskAttrKey
+instance == TaskAttrKey
+
+:: TaskAttrValue
+  = TAStringVal   String
+  | TAIntVal      Int
+  | TARealVal     Real
+  | TAUserVal     UserConstraint
+  | TADateTimeVal DateTime
+
+instance < TaskAttrValue
+instance == TaskAttrValue
+instance toString TaskAttrValue
+
+derive class iTask TaskAttrKey, TaskAttrValue
+derive gLexOrd TaskAttrKey, TaskAttrValue
+
+:: TaskAttributes :== Map TaskAttrKey TaskAttrValue
 
 :: ParallelTaskType	
 	= Embedded                                    //Simplest embedded
@@ -545,6 +576,10 @@ instance <			User
 	= AnyUser
 	| UserWithId !UserId
 	| UserWithRole !Role
+
+instance toString UserConstraint
+instance ==       UserConstraint
+instance <        UserConstraint
 
 class toUserConstraint a
 where

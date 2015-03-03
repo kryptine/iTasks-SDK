@@ -102,7 +102,7 @@ where
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
 					
 	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
-		{ assignedTo	= toSingleLineText ('DM'.get "user" attributes)
+		{ assignedTo	= toSingleLineText (toString ('DM'.get TAUser attributes))
 		, firstWorkedOn	= p.InstanceProgress.firstEvent
 		, lastWorkedOn	= p.InstanceProgress.lastEvent
         }
@@ -110,29 +110,23 @@ where
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue
 
-instance toString UserConstraint
-where
-	toString AnyUser				= "Anybody"
-	toString (UserWithId uid)		= uid
-	toString (UserWithRole role)	= "Any user with role " +++ role
-
 :: ProcessControlView =	{ assignedTo	:: !String
 						, firstWorkedOn	:: !Maybe DateTime
 						, lastWorkedOn	:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
 
-workerAttributes :: worker [(String,String)] -> TaskAttributes | toUserConstraint worker
+workerAttributes :: worker [(TaskAttrKey, TaskAttrValue)] -> TaskAttributes | toUserConstraint worker
 workerAttributes worker attr = case toUserConstraint worker of
     AnyUser = 'DM'.newMap
-    UserWithId uid = 'DM'.fromList [("user",uid):attr]
-    UserWithRole role = 'DM'.fromList [("role",role):attr]
+    u=:(UserWithId _) = 'DM'.fromList [(TAUser, TAUserVal u):attr]
+    UserWithRole role = 'DM'.fromList [(TARole, TAStringVal role):attr]
 
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 (@:) worker task 
 	= 					get currentUser -&&- get currentDateTime
-	>>= \(me,now) -> 	assign (workerAttributes worker 
-							[("createdBy",toString me),("createdAt",toString now),("priority","Normal"),("createdFor",toString (toUserConstraint worker))])
+	>>= \(me,now) -> 	assign (workerAttributes worker
+							[(TACreatedBy, TAUserVal (toUserConstraint me)),(TACreatedAt, TADateTimeVal now),(TAPriority, TAIntVal 5),(TACreatedFor, TAUserVal (toUserConstraint worker))])
 								task
 		
 justdo :: !(Task (Maybe a)) -> Task a | iTask a

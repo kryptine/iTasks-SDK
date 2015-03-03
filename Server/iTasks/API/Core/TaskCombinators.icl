@@ -274,7 +274,7 @@ initParallelTask listId index parType parTask iworld=:{current={taskTime,user},c
 			= (taskId, attributes, Just (taskId,task), iworld)
         NamedEmbedded name
 			# (taskId,iworld)	    = getNextTaskId iworld
-            # attributes            = 'DM'.put "name" name 'DM'.newMap
+            # attributes            = 'DM'.put TAName (TAStringVal name) 'DM'.newMap
 			# task		            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
 			= (taskId, attributes, Just (taskId,task), iworld)
 		Detached attributes evalDirect
@@ -286,7 +286,7 @@ initParallelTask listId index parType parTask iworld=:{current={taskTime,user},c
 	    NamedDetached name attributes evalDirect
             # (mbInstanceNo,iworld) = newInstanceNo iworld
             # instanceNo            = fromOk mbInstanceNo //TODO check error case
-            # attributes            = 'DM'.put "name" name attributes
+            # attributes            = 'DM'.put TAName (TAStringVal name) attributes
             # listShare             = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
 			# (taskId,iworld)	    = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
 			= (taskId, attributes, Nothing, iworld)

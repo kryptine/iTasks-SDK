@@ -116,7 +116,7 @@ where
 autoAccuWorkOn :: UIDef TaskAttributes -> UIDef
 autoAccuWorkOn def attributes
     # def = uiDefSetSize FlexSize FlexSize def
-	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('Data.Map'.get "title" attributes))
+	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) (fmap toString ('Data.Map'.get TATitle attributes)))
 
 	/**
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
