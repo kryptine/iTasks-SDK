@@ -5,6 +5,7 @@ from Data.Map import :: Map, :: Size
 import qualified Data.Map as DM
 import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
+import Text.HTML
 	
 emptyUI :: UIDef
 emptyUI = {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows = []}
@@ -34,7 +35,7 @@ defaultWindow :: ![UIControl] -> UIWindow
 defaultWindow items = UIWindow defaultSizeOpts (defaultItemsOpts items) {UIWindowOpts|windowType=FloatingWindow,title=Nothing,iconCls=Nothing,menu=Nothing,hotkeys=Nothing,vpos=Nothing,hpos=Nothing,closeTaskId=Nothing,focusTaskId=Nothing}
 
 stringDisplay :: !String -> UIControl
-stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
+stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just (escapeStr value)}
 
 hasFSizeOpts :: !UIControl -> Bool
 hasFSizeOpts (UIViewCheckbox sOpts vOpts)	= True
@@ -267,8 +268,8 @@ setPadding top right bottom left (UIPanel sOpts iOpts opts)
 setPadding top right bottom left ctrl = ctrl
 
 setTitle :: !String !UIControl -> UIControl
-setTitle title (UIPanel sOpts iOpts opts)		= UIPanel sOpts iOpts {UIPanelOpts|opts & title = Just title}
-setTitle title (UIFieldSet sOpts iOpts opts)	= UIFieldSet sOpts iOpts {UIFieldSetOpts|opts & title = Just title}
+setTitle title (UIPanel sOpts iOpts opts)		= UIPanel sOpts iOpts {UIPanelOpts|opts & title = Just (escapeStr title)}
+setTitle title (UIFieldSet sOpts iOpts opts)	= UIFieldSet sOpts iOpts {UIFieldSetOpts|opts & title = Just (escapeStr title)}
 setTitle title ctrl								= ctrl
 
 setFramed :: !Bool !UIControl -> UIControl
