@@ -784,20 +784,31 @@ tVar inh eid pp tsrc
               = case 'DIS'.elems mptids of
                   [trt:_]
                     = tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName [] tsrc
-                  _ = mkDef 3 tsrc
-            _ = mkDef 2 tsrc
-      _ = mkDef 1 tsrc
+                  _ = mkDef tsrc
+            _ = mkDef tsrc
+      _ = mkDef tsrc
   where
-  mkDef n tsrc
-    #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+  mkDef tsrc
+    #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
     = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
 
 tCleanExpr :: !MkImageInh ![Int] !TCleanExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCleanExpr inh eid pp tsrc
-  #! isActive = case inh.inh_trt.bpr_instance of
-                  Just bpinst -> Just eid == bpinst.bpi_activeNodeId
-                  _           -> False
-  = (text ArialRegular10px (ppTCleanExpr pp +++ if isActive "*" ""), tsrc)
+  = case inh.inh_trt.bpr_instance of
+      Just bpinst
+        = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
+            Just mptids
+              = case 'DIS'.elems mptids of
+                  [trt:_]
+                    = tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName [] tsrc
+                  _ = mkDef tsrc
+            _ = mkDef tsrc
+      _ = mkDef tsrc
+  where
+  mkDef tsrc
+    #! pp  = ppTCleanExpr pp
+    #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+    = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
 
 // TODO margin around cases
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
