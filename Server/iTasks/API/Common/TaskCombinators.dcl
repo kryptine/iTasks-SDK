@@ -159,8 +159,12 @@ catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
 * @return The combined task
 *
 * @gin False
-*/ 
+*/
 assign :: !TaskAttributes !(Task a) -> Task a | iTask a
+
+defaultAssign :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
+
+defaultAssignWithTitle :: !String !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 /**
 * Assign a task to a user. (no deadline, normal priority)
 *

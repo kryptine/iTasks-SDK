@@ -174,7 +174,12 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser -&&- get currentDateTime
 	>>=	\(user,now) ->
-		appendTopLevelTask ('DM'.fromList [(TATitle, TAStringVal (workflowTitle wf)),(TACatalogId, TAStringVal wf.Workflow.path),(TACreatedBy, TAUserVal (toUserConstraint user)),(TACreatedAt, TADateTimeVal now), (TAPriority, TAIntVal 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+		appendTopLevelTask ('DM'.fromList [ (TATitle,      TAStringVal (workflowTitle wf))
+                                          , (TACatalogId,  TAStringVal wf.Workflow.path)
+                                          , (TACreatedBy,  TAUserVal (toUserConstraint user))
+                                          , (TACreatedAt,  TADateTimeVal now)
+                                          , (TACreatedFor, TAUserVal (toUserConstraint user))
+                                          , (TAPriority,   TAIntVal 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
