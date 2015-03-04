@@ -9,19 +9,20 @@ import Graphics.Scalable
 // these are the players in this case
 
 frontOfficer			= UserWithRole "front-office"							// role to assign to itask user(s) working in this particular department
-commercialServOfficer	= UserWithRole "CSA-office"	 							// role to assign to itask user(s) working in this particular department
-backOfficer 			= UserWithRole "back-office"	 						// role to assign to itask user(s) working in this particular department
+csaOfficer				= UserWithRole "csa-office"	 							// role to assign to itask user(s) working in this particular department
+midOfficer 				= UserWithRole "mid-office"	 						// role to assign to itask user(s) working in this particular department
 
 // some constants
 foEmail					= "front-office"										// common "email" address a client should use
 
-// we assume that there is a client administration ...
-// we don't know the actual type of all this, and don't use a real database yet in this prototype ...
+// need a little client database
 
 :: Client 			  = { name 			:: Name
 						, clientNo		:: ClientNo
 						, email			:: EmailAddr
 					    , accounts  	:: [Account]
+					    , login			:: String
+					    , password		:: String
 					    }
 :: Name 			  :== String
 :: EmailAddr  		  :== String
@@ -30,23 +31,45 @@ foEmail					= "front-office"										// common "email" address a client should 
 
 derive class iTask  Client
 	
-ourClients :: [Client]
-ourClients 		= 	[ {name = "Rinus" , clientNo = 1, email = "rinus@cs.ru.nl",  accounts = [1,2]}
-			 		, {name = "Pieter", clientNo = 2, email = "pieter@cs.ru.nl", accounts = [3..5]}
-			 		]
+// lets create a database for storing Client's with some initial clients administrated
 
-// some crud functions on the db info is also assumed ...
+clientDatabase :: Shared [Client]
+clientDatabase = sharedStore "ClientDatabase" initialClients
+where
+	initialClients	=	[ {name = "Rinus" , clientNo = 1, email = "rinus@cs.ru.nl",  login = "rinus",  password = "rinus",  accounts = [1,2]}
+			 			, {name = "Pieter", clientNo = 2, email = "pieter@cs.ru.nl", login = "pieter", password = "pieter", accounts = [3..5]}
+			 			]
 
-getClient :: Int -> Task (Maybe Client)
-getClient cid 
-# clients = [client \\ client=:{Client|clientNo} <- ourClients | cid === clientNo]
-= return (if (isEmpty clients) Nothing (Just (hd clients)))
+// some database access functions we also need here...
+
+getClient :: ClientNo -> Task (Maybe Client)		// find a particular client given a client id ...
+getClient cid 	
+	=					get clientDatabase
+	>>= \clients -> 	let found = searchFor clients in
+						return (if (isEmpty found) Nothing (Just (hd found)))
+where
+	searchFor clients = [client \\ client=:{Client|clientNo} <- clients | cid === clientNo] 
+
+updatePassword :: ClientNo String -> Task ()		// change a password of client with given client id 
+updatePassword cid newPassword
+	=					upd setPassword clientDatabase 
+	>>|					return ()
+where
+	setPassword :: 	[Client] -> [Client]
+	setPassword clients = [{Client|client & password = if (clientNo==cid) newPassword password} \\ client=:{Client|clientNo,password}<- clients]		
+
+class getClientId a :: a -> Int
 
 
+// We need a password generator, very simple one  
 
-// The following types are used to generate some useful user interface
+passwords = [toString [a1,a2,a3,a4,i1,i2] \\ a1<-alpha,a2<-alpha,a3<-alpha,a4<-alpha,i1<-int,i2<-int]
+where
+	alpha = ['a' .. 'z'] ; int = ['0' .. '9'] 
 
-:: ClientRequest									// Form to fill in by Client asking for a service  	
+// The following types are used to generate some useful user interfaces such that users can fill in forms 
+
+:: ClientRequest									// Information to fill in by Client asking for a service  	
 			= 	{ name			:: Name
 			   	, id			:: ClientNo
 			   	, account		:: Account
@@ -54,17 +77,21 @@ getClient cid
 		      	, phone			:: Int
 		      	, request		:: Note
 		      	}
-:: Log a											// Additional logging information
+:: Log a											// Additional logging information which is added to a request
 			=	{ about			:: String
 				, received_from	:: Name
 				, intended_for	:: Name
 				, date			:: Date
 				, content		:: a
 				}
-:: RequestProcedure									// Classification of the requests a client can do 
+:: ServiceRequest 
+			:== Log ClientRequest
+
+:: Procedure										// Internal procedures that can be started
 			= 	ServiceRequest Service
 			|	Complaint Note
 			|   Other Note
+			|	Stop
 :: Service											// Kind of service being asked
 			=  NewPassword 
 			|  NewAccount
@@ -74,24 +101,23 @@ getClient cid
 :: Advice	=	{ advice		:: Note
 				}
 
-derive class iTask ClientRequest, Log, RequestProcedure, Service, Case, Advice
+derive class iTask ClientRequest, Log, Procedure, Service, Case, Advice
 
-:: ServiceRequest		:== Log ClientRequest
-:: ServiceRequestDoc	:== (RequestProcedure, ServiceRequest)
-:: ServiceRequestCase	:== (Case,ServiceRequestDoc)
+// we need a little database to store case information
 
-// we need a little database to store information
+caseDatabase :: Shared [(Case, (ServiceRequest, Procedure))]
+caseDatabase = sharedStore "caseDatabase" []
 
-caseDatabase :: Shared [ServiceRequestCase]
-caseDatabase = sharedStore "Db 062" []
-
-// Initializing the system ...
+// Initializing the iTask system ...
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA						// case a prototype
                                     , tonicStaticWorkflow []													// to show graphical representations of the tasks defined below
                                     , tonicDynamicWorkflow []													// to graphically show at run-time what the status is of the tasks being worked on
 									] world
+
+
+// ********************************************************************************************************************************************
 
 // here finally the task description starts...
 
@@ -100,56 +126,87 @@ Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a
 
 caseA :: Task ()																
 caseA 
-	= 				    					get currentUser 													// who is the client logged in ?
-	 >>= \client		->					create client frontOfficer "Submit Service Request"	defaultValue	// client fills in service request form 
-	 >>= \document  	->	(frontOfficer, "Handle request") @: handleRequest document												// step 1, send to someone in the front office to handle client request
+	= 				    get currentUser 													// who is the client logged in ?
+	 >>= \client	->	create client frontOfficer "Submit Service Request"	defaultValue	// client fills in service request form 
+	 >>= \request  	->	appendTopLevelTaskFor frontOfficer True (handleRequest request)		// send request to front office 
+	 >>|				return ()															// done	 
+
+// main workflow procedure to handle requests from client, starts in front-office...
+
+handleRequest :: ServiceRequest -> Task () 							
+handleRequest request
+	=					determineRequestProcedure request											
+	>>= \procedure ->	case procedure of
+							Stop	  -> return () 
+							otherwise -> handleProcedure (request, procedure)
+			
+handleProcedure :: (ServiceRequest, Procedure) -> Task ()
+handleProcedure serviceProcedure
+	= 					csaOfficer  @: logServiceRequest serviceProcedure						// csa officer step  6-7
+	>>= \caseNo ->		midOfficer  @: diagnoseCase (caseNo,serviceProcedure)					// mid Officer steps 7-8 
+	>>= \simple	->	 	if simple (handleRestProcedure (caseNo,serviceProcedure))				// do step 9 and further
+								  (return ())													// non-simple case not specified, it stops here	
+
+handleRestProcedure :: (Case, (ServiceRequest, Procedure)) -> Task ()
+handleRestProcedure serviceCase 
+	=					frontOfficer @: resolveRequest serviceCase 								// front office step 9-10				
+	>>= \newPassword ->	midOfficer   @: modifyAccount  serviceCase newPassword					// mid office step 11
+/*	>>|					frontOfficer @: confirm "Password has been changed"						// 
+	>>|					
+
+*/
 
 // tasks performed by someone in the front office
 
-handleRequest :: ServiceRequest -> Task () 							
-handleRequest serviceRequest
-	=					get currentUser 																		// who in the front office is actually handling this case
-	>>= \frontOfficeWorker																						
-				   ->	modify "Client Request:" serviceRequest "Select Procedure to Follow:" defaultValue		// step 2, select procedure to follow																									// step 1
- 	>>= \procedure -> 	getClient id																			// try to fetch cleint info from database
- 	>>= \mbClient  ->   if (isNothing mbClient)																    // check if client with given id exists
- 						   (inform foEmail email "Unknown Client Id " (toMultiLineText content))				// step 4.1, client does not exist, email client
- 						   (checkAccount frontOfficeWorker (fromJust mbClient) procedure)						// continue with step 5 and further
+determineRequestProcedure :: ServiceRequest -> Task Procedure 							
+determineRequestProcedure serviceRequest
+	=					modify "Client Request:" serviceRequest "Select Procedure to Follow:" defaultValue		// step 2, select procedure to follow																									// step 1
+ 	>>= \procedure -> 	getClient id																// try to fetch cleint info from database
+ 	>>= \mbClient  ->   if (isNothing mbClient)														// check if client with given id exists
+ 						   (   inform foEmail email "Unknown Client Id " (toMultiLineText serviceRequest)	// step 4.1, client does not exist, email client
+ 						   >>| return Stop															// done
+ 						   )																		
+ 						   (checkAccount (fromJust mbClient) procedure)								// continue with step 5 and further
 where
-	checkAccount frontOfficeWorker client procedure
+	checkAccount client procedure
 	=					verify "Is the account valid?" ("Account specified: " <+++ account, 
-												        "Accounts known: ", client.accounts)					// step 5, manually verify account number
+												        "Accounts known: ", client.accounts)		// step 5, manually verify account number
  	 >>= \correct  -> 	if correct 
- 						 ((commercialServOfficer, "Handle log") @: handleLogService frontOfficeWorker (procedure,serviceRequest))	// account number exist, csa has to do step 6 and further
- 						 (inform foEmail email "Unknown Account " (toMultiLineText content))					// step 4.2, account does not exist, email client
+ 						 (return procedure)															// fine, procedure continues
+ 						 (   inform foEmail email "Unknown Account " (toMultiLineText serviceRequest)		// step 4.2, account does not exist, email client
+ 						 >>| return Stop															// done
+ 						 )					
 							   
 	content			   = serviceRequest.Log.content
 	{id,email,account} = content
 
 
-// tasks performed by the commercial service administration
+resolveRequest ::   (Case, (ServiceRequest, Procedure)) -> Task String					
+resolveRequest serviceCase
+	= 						viewInformation "Handle the following request:" [] serviceCase			// step 9,  explain what has to be done
+							||-
+							editChoice "Select a password: " [] (take 5 passwords) Nothing			// step 10, select a password
 
-handleLogService :: frontOfficer  ServiceRequestDoc -> Task () | toUserConstraint	frontOfficer			
-handleLogService frontOfficer document 
-	= 					modify "New Service Request:" document "Assign Case Number:" defaultValue				// step 6, assign a case number to this request
-	>>= \caseNo ->		(backOfficer, "Handle case") @: handleCase frontOfficer (caseNo,document)								// backOfficer has to do step 6 and further 
+// tasks performed by the csaoffice
 
+logServiceRequest ::  (ServiceRequest, Procedure) -> Task Case		
+logServiceRequest request
+	= 					modify "New Service Request:" request "Assign Case Number:" defaultValue	// step 6, assign a case number to this request
+	>>= \caseNo	->		log (caseNo,request) caseDatabase											// step 7, store pair of (casenumber, document) in database
+	>>|					return caseNo						
 
-// tasks performed by the backoffice
+// tasks performed by the midoffice
 
-handleCase :: frontOfficer ServiceRequestCase -> Task ()	| toUserConstraint	frontOfficer 						
-handleCase frontOfficer (caseNo,document)
-	=						log (caseNo,document) caseDatabase													// step 7, store pair of (casenumber, document) in databse
-	>>|						verify "Simple case, to be handled by frontoffice" document							// step 8, judge how to further handle the procedure
-	>>= \simple	->	 		if simple 			
-								((frontOfficer, "Handle simple request") @: handleSimpleRequest backOfficer (caseNo,document))				// ask front officer to handle the issue, step 9 and further
-								(return ())																	    // non-simple case not specified, it stops here	
+diagnoseCase :: (Case, (ServiceRequest, Procedure)) -> Task Bool	 						
+diagnoseCase  requestCase
+	=						verify "Can case be handled by the front-office?" requestCase			// step 8, judge how to further handle the procedure
 
-handleSimpleRequest ::  backOfficer ServiceRequestCase -> Task () | toUserConstraint	backOfficer				// not yet done...
-handleSimpleRequest backOfficer thisCase 
-	= return ()
+modifyAccount :: (Case, (ServiceRequest, Procedure)) newPassword -> Task ()
+modifyAccount requestCase newPassword = return ()
 
-// Here follows an attempt to define some of the generic 19 ones, as far as they are used above...
+// ********************************************************************************************************************************************
+
+// General utility functions
 
 create :: from_user for_user String a -> Task (Log a) | iTask a & toString from_user & toString for_user							// Create a form ...
 create from_user for_user about form
@@ -163,7 +220,7 @@ where
 		
 modify :: String a String b -> Task b | iTask a & iTask b
 modify inputInfo input outputInfo output
-	=				(viewInformation inputInfo [] input 						// tell what has to be done, show input received
+	=				(viewInformation inputInfo [] input 							// tell what has to be done, show input received
 	  				||-
 	  				updateInformation outputInfo [] output)							// and fill in the response the context needs
 
