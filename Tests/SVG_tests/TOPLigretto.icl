@@ -30,6 +30,13 @@ Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" 
 
 
 
+// this function really should be part of iTask API:
+userId :: User -> UserId
+userId (AuthenticatedUser id _ _) = id
+userId SystemUser                 = "system-user"
+userId _                          = "anonymous"
+
+
 
 //	SVG version of Ligretto
 import iTasks.API.Extensions.SVG.SVGlet
@@ -38,19 +45,19 @@ import iTasks.API.Extensions.SVG.SVGlet
 derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 
 //	Task description of Ligretto:
-play_Ligretto :: Task (!Color, !User)
+play_Ligretto :: Task (!Color,!String)
 play_Ligretto
-	=           get currentUser
-	>>= \me  -> invite_friends
-	>>= \you -> let us = zip2 (colors (1+length you)) [me : you]
-	             in allTasks (repeatn (length us) (get randomInt))
-	>>= \rs  -> let gameSt = { middle  = repeatn (4*length us) []
-	                         , players = [  initial_player (length us) c (toString u) (abs r) 
-	                                     \\ (c,u) <- us
-	                                      & r     <- rs
-	                                     ]
-	                         }
-	             in withShared gameSt (play_game us)
+	=            get currentUser
+	>>= \me   -> invite_friends
+	>>= \them -> let us = zip2 (colors (1+length them)) [me : them]
+	              in allTasks (repeatn (length us) (get randomInt))
+	>>= \rs   -> let gameSt = { middle  = repeatn (4*length us) []
+	                          , players = [  initial_player (length us) c (userId u) (abs r) 
+	                                      \\ (c,u) <- us
+	                                       & r     <- rs
+	                                      ]
+	                          }
+	              in withShared gameSt (play_game us)
 
 invite_friends :: Task [User]
 invite_friends
@@ -59,53 +66,55 @@ invite_friends
 	                (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
 	                (return them)
 
-play_game :: ![(Color,User)] !(Shared GameSt) -> Task (Color,User)
+play_game :: ![(Color,User)] !(Shared GameSt) -> Task (Color,String)
 play_game users game_st
-	=         anyTask  [ u @: play        (c,u) game_st \\ (c,u) <- users ]
-	>>= \w -> allTasks [ u @: accolades w (c,u) game_st \\ (c,u) <- users ]
-	>>| return w
+	= anyTask [ u @: play (c,userId u) game_st \\ (c,u) <- users ]
 
-play :: !(!Color,!User) !(Shared GameSt) -> Task (Color,User)
-play player=:(_,user) game_st
-	=   updateSharedInformation (toString user) [imageUpdate id (player_perspective player) (\_ _ -> Nothing) (\_ st -> st)] game_st
-	>>* [OnValue (player_wins player)]
+play :: !(!Color,!String) !(Shared GameSt) -> Task (Color,String)
+play (color,name) game_st
+	=   updateSharedInformation name [imageUpdate id (player_perspective color) (\_ _ -> Nothing) (\_ st -> st)] game_st
+	>>* [OnValue (game_over color game_st)]
 
-player_wins :: !(!Color,!User) !(TaskValue GameSt) -> Maybe (Task (Color,User))
-player_wins player=:(c,_) (Value gameSt _)
-| isEmpty (get_player c gameSt).ligretto	= Just (return player)
-player_wins _ _								= Nothing
+game_over :: !Color !(Shared GameSt) !(TaskValue GameSt) -> Maybe (Task (Color,String))
+game_over me game_st (Value gameSt _)
+	= case and_the_winner_is gameSt of
+	    Just {color,name} = let winner = (color,name)
+	                         in Just (accolades winner me game_st >>| return winner)
+	    _                 = Nothing
 
-accolades :: !(!Color,!User) !(!Color,!User) !(Shared GameSt) -> Task GameSt
-accolades w player game_st
-	= viewSharedInformation ("The winner is " <+++ w) [imageView (player_perspective player) (\_ _ -> Nothing)] game_st
+accolades :: !(!Color,!String) !Color !(Shared GameSt) -> Task GameSt
+accolades winner me game_st
+	= viewSharedInformation ("The winner is " <+++ winner) [imageView (player_perspective me) (\_ _ -> Nothing)] game_st
 
 // Image definitions:
 // these have been taken from a 'real' physical card game of Ligretto, dimensions to be interpreted as mm
 card_width  :== px 58.5
 card_height :== px 90.0
 
+// frequently occurring constants:
+white       :== toSVGColor "white"
+black       :== toSVGColor "black"
+
 //card_shape :: Image m
-card_shape :== rect card_width card_height <@< {xradius = card_height /. 18} <@< {yradius = card_height /. 18}
+card_shape  :== rect card_width card_height <@< {xradius = card_height /. 18} <@< {yradius = card_height /. 18}
 
 //no_card_image :: Image m
 no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"}))
 
-big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = toSVGColor "white"}
+big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = white}
                                                         <@< {stroke = toSVGColor colour}
 ligretto  colour :== text (cardfont 12.0) "Ligretto"    <@< {stroke = toSVGColor colour}
                                                         <@< {fill   = toSVGColor "none"}
 
 card_image :: !SideUp !Card -> Image m
 card_image side card
-  #! host = Just (card_shape <@< {fill = if (side === Front)
-                                            (toSVGColor card.front)
-                                            (toSVGColor "white")})
+  #! host = Just (card_shape <@< {fill = if (side === Front) (toSVGColor card.front) white})
   | side === Front
      #! no = margin (px 5.0)
                (big_no card.no (no_stroke_color card.front))
      = overlay [(AtMiddleX,AtTop),(AtMiddleX,AtBottom)] [] [no, rotate (deg 180.0) no] host
   | otherwise
-     = overlay [(AtLeft,AtBottom)] [] [skewy (deg -20.0) (ligretto card.back)] host
+     = overlay [(AtMiddleX,AtBottom)] [] [skewy (deg -20.0) (ligretto card.back)] host
   where
   no_stroke_color :: !Color -> Color
   no_stroke_color Red    = Blue
@@ -142,7 +151,7 @@ hand_images interactive {conceal,discard} color
     , tuneIf interactive discard_pile {onclick = play_hand_card color}
     ]
 
-player_arc :== pi * 0.4
+player_arc :== pi * 0.45
 
 player_image :: !Bool !Span !Player -> Image GameSt
 player_image interactive r player
@@ -155,9 +164,9 @@ player_image interactive r player
 player_name :: !Player -> Image m
 player_name {name,color}
  = overlay (repeat (AtMiddleX,AtMiddleY)) []
-     [text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = toSVGColor if (color === Yellow) "black" "white"}]
+     [text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = if (color === Yellow) black white}]
      (Just (rect width height <@< {fill = toSVGColor color}))
-     <@< {mask = rect width height <@< {fill = toSVGColor "white"}}
+     <@< {mask = rect width height <@< {fill = white} <@< {stroke = white}}
 where
 	width  = card_height *. 1.8
 	height = card_width  *. 0.4
@@ -168,18 +177,19 @@ player_names players r = circular r (pi * 2.0) (map player_name players)
 //middle_image :: !Middle -> Image m
 middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
 
-player_perspective :: !(!Color,!User) !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
-player_perspective (color,user) gameSt _
+player_perspective :: !Color !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
+player_perspective color gameSt _
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
-  = margin (card_height *. 3) (rotate (rad (~(toReal my_no*angle))) (game_image (color,user) gameSt))
+  = margin (card_height *. 3) (rotate (rad (~(toReal my_no*angle))) (game_image color gameSt))
 
-game_image :: !(!Color,!User) !GameSt -> Image GameSt
-game_image (color,user) gameSt
+game_image :: !Color !GameSt -> Image GameSt
+game_image color gameSt
   #! r     = card_height *. 4
-  #! angle = 2.0*pi / (toReal (length gameSt.players))
+  #! no    = length gameSt.players
+  #! angle = 2.0*pi / (toReal no)
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
-            ([  rotate (rad (i*angle - player_arc/2.0 + player_arc/12.0)) img
+            ([  rotate (rad (i*angle - player_arc/2.0 + player_arc/(2.0 * toReal (3+no_of_cards_in_row no)))) img
              \\ img    <- [player_image (player.color === color) r player \\ player <- gameSt.players]
               & i      <- [0.0, 1.0 ..]
              ] ++ [player_names gameSt.players (r *. 0.8)]

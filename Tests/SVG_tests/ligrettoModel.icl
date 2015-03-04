@@ -136,3 +136,10 @@ card_matches_top_of_pile card pile
 matching_piles :: !Card !Middle -> [(Int,Pile)]
 matching_piles card middle
 	= [(pileno,pile) \\ pile <- middle & pileno <- [0..] | card_matches_top_of_pile card pile]
+
+and_the_winner_is :: !GameSt -> Maybe Player
+and_the_winner_is {players}
+	= case [player \\ player=:{ligretto} <- players | isEmpty ligretto] of
+	    [p : _] = Just p
+	    _       = Nothing
+

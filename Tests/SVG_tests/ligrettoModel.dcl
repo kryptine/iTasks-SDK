@@ -61,6 +61,13 @@ get_player           :: !Color !GameSt -> Player
 */
 colors               :: !NoOfPlayers -> [Color]
 
+/** no_of_cards_in_row no_of_players = n:
+		@no_of_players should be one of: 2, 3, 4.
+		Depending on this value, @n is the number of cards in the 'row' of a player (decreases with increasing
+		@no_of_players).
+*/
+no_of_cards_in_row   :: !NoOfPlayers -> Int
+
 /** initial_player no_of_players color name n = player:
         @player is a player with all cards shuffled and distributed to the @player.row, @player.ligretto, and @player.hand.
         @no_of_players should be one of: 2, 3, 4.
@@ -68,3 +75,9 @@ colors               :: !NoOfPlayers -> [Color]
         @name is the preferably short name of the player
 */
 initial_player       :: !NoOfPlayers !Color !String !Int -> Player
+
+/** and_the_winner_is game = maybe_player:
+		if there is a player with an empty Ligretto pile, then @maybe_player = Just player; 
+		otherwise @maybe_player = Nothing.
+*/
+and_the_winner_is    :: !GameSt -> Maybe Player
