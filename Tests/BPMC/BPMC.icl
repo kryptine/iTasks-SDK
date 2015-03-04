@@ -8,12 +8,12 @@ import Graphics.Scalable
 
 // these are the players in this case
 
-frontOfficer			= UserWithRole "front-office"							// role to assign to itask user(s) working in this particular department
-csaOfficer				= UserWithRole "csa-office"	 							// role to assign to itask user(s) working in this particular department
-midOfficer 				= UserWithRole "mid-office"	 						// role to assign to itask user(s) working in this particular department
+frontOfficer			= UserWithRole "front-office"		// role to assign to itask user(s) working in this particular department
+csaOfficer				= UserWithRole "csa-office"	 		// role to assign to itask user(s) working in this particular department
+midOfficer 				= UserWithRole "mid-office"	 		// role to assign to itask user(s) working in this particular department
 
 // some constants
-foEmail					= "front-office"										// common "email" address a client should use
+foEmail					= "front-office"					// common "email" address a client should use
 
 // need a little client database
 
@@ -98,15 +98,17 @@ where
 :: Case					
 			=	{ caseNo		:: Int
 				}
-:: Advice	=	{ advice		:: Note
-				}
 
-derive class iTask ClientRequest, Log, Procedure, Service, Case, Advice
+derive class iTask ClientRequest, Log, Procedure, Service, Case
 
 // we need a little database to store case information
 
-caseDatabase :: Shared [(Case, (ServiceRequest, Procedure))]
-caseDatabase = sharedStore "caseDatabase" []
+requestDatabase :: Shared [(Case, (ServiceRequest, Procedure))]
+requestDatabase = sharedStore "caseDatabase" []
+
+
+messageDatabase :: Shared [(Case,Log Note)]
+messageDatabase = sharedStore "messageDatabase" []
 
 // Initializing the iTask system ...
 
@@ -128,33 +130,37 @@ caseA :: Task ()
 caseA 
 	= 				    get currentUser 													// who is the client logged in ?
 	 >>= \client	->	create client frontOfficer "Submit Service Request"	defaultValue	// client fills in service request form 
-	 >>= \request  	->	appendTopLevelTaskFor frontOfficer True (handleRequest request)		// send request to front office 
+	 >>= \request  	->	appendTopLevelTaskFor "root" True (handleRequest request)			// start workflow to handle request 
 	 >>|				return ()															// done	 
 
 // main workflow procedure to handle requests from client, starts in front-office...
 
 handleRequest :: ServiceRequest -> Task () 							
 handleRequest request
-	=					determineRequestProcedure request											
+	=					(frontOfficer,"request") @: determineRequestProcedure request											
 	>>= \procedure ->	case procedure of
 							Stop	  -> return () 
 							otherwise -> handleProcedure (request, procedure)
 			
 handleProcedure :: (ServiceRequest, Procedure) -> Task ()
 handleProcedure serviceProcedure
-	= 					(csaOfficer,"log request")  @: logServiceRequest serviceProcedure						// csa officer step  6-7
-	>>= \caseNo ->		midOfficer  @: diagnoseCase (caseNo,serviceProcedure)					// mid Officer steps 7-8 
-	>>= \simple	->	 	if simple (handleRestProcedure (caseNo,serviceProcedure))				// do step 9 and further
-								  (return ())													// non-simple case not specified, it stops here	
+	= 					(csaOfficer,"log request") @: logServiceRequest serviceProcedure requestDatabase defaultValue	// csa officer steps  6-7
+	>>= \caseNo ->		(midOfficer,"diagnose")    @: diagnoseCase (caseNo,serviceProcedure)				// mid officer steps 7-8 
+	>>= \simple	->	 	if simple (handleRestProcedure (caseNo,serviceProcedure))							// do step 9 and further
+								  (return ())																// non-simple case not specified, it stops here	
 
 handleRestProcedure :: (Case, (ServiceRequest, Procedure)) -> Task ()
-handleRestProcedure serviceCase 
-	=					frontOfficer @: resolveRequest serviceCase 								// front office step 9-10				
-	>>= \newPassword ->	midOfficer   @: modifyAccount  serviceCase newPassword					// mid office step 11
-/*	>>|					frontOfficer @: confirm "Password has been changed"						// 
-	>>|					
+handleRestProcedure serviceCase=:(caseNo,(serviceRequest,procedure))
+	=					(frontOfficer,"choose password") @: resolveRequest serviceCase (take 5 passwords)	// front officer steps 9-10				
+	>>= \newPassword ->	(midOfficer,  "modify")          @: modifyAccount  serviceCase id newPassword		// mid   officer steps 11-12
+	>>|					(frontOfficer,"password changed")@: inform foEmail email "password changed" request // front officer step 13
+	>>= \mail		 -> (csaOfficer,  "log password upd")@: logServiceRequest mail messageDatabase caseNo	// csa   officer step 14
+	>>|					return ()																			// stop
+where
+	content			   = serviceRequest.Log.content
+	{id,email,request} = content
 
-*/
+
 
 // tasks performed by someone in the front office
 
@@ -181,28 +187,33 @@ where
 	{id,email,account} = content
 
 
-resolveRequest ::   (Case, (ServiceRequest, Procedure)) -> Task String					
-resolveRequest serviceCase
-	= 						viewInformation "Handle the following request:" [] serviceCase			// step 9,  explain what has to be done
+resolveRequest ::  request [option] -> Task option	| iTask request & iTask option			
+resolveRequest request options
+	= 						viewInformation "Handle the following request:" [] request				// step 9,  explain what has to be done
 							||-
-							editChoice "Select a password: " [] (take 5 passwords) Nothing			// step 10, select a password
+							editChoice "Select Option: " [] options Nothing							// step 10, choose properoption
+	>>= \option ->		return option
 
 // tasks performed by the csaoffice
 
-logServiceRequest ::  (ServiceRequest, Procedure) -> Task Case		
-logServiceRequest request
-	= 					modify "New Service Request:" request "Assign Case Number:" defaultValue	// step 6, assign a case number to this request
-	>>= \caseNo	->		log (caseNo,request) caseDatabase											// step 7, store pair of (casenumber, document) in database
+logServiceRequest ::  request (Shared[(Case,request)]) Case -> Task Case| iTask request	
+logServiceRequest request database caseNo
+	= 					modify "New Service Request:" request "Assign Case Number:" caseNo			// step 6, assign a case number to this request
+	>>= \caseNo	->		log (caseNo,request) database												// step 7, store pair of (casenumber, request) in database
 	>>|					return caseNo						
 
 // tasks performed by the midoffice
 
-diagnoseCase :: (Case, (ServiceRequest, Procedure)) -> Task Bool	 						
+diagnoseCase :: requestCase -> Task Bool | iTask requestCase	 						
 diagnoseCase  requestCase
-	=						verify "Can case be handled by the front-office?" requestCase			// step 8, judge how to further handle the procedure
+	=					verify "Can case be handled by the front-office?" requestCase				// step 8, judge how to further handle the procedure
 
-modifyAccount :: (Case, (ServiceRequest, Procedure)) newPassword -> Task ()
-modifyAccount requestCase newPassword = return ()
+modifyAccount :: requestCase Account String -> Task () | iTask requestCase
+modifyAccount requestCase account password 
+	= 					(viewInformation "Request made" [] requestCase
+						-&&-
+						viewInformation ("Account " <+++ account <+++ " will get new password " <+++ password) [] ())
+	>>|					updatePassword account password
 
 // ********************************************************************************************************************************************
 
@@ -251,15 +262,15 @@ open index sharedDb
   where
   documentRecords content = [(idx,doc) \\ (idx,doc) <- content | idx === index ]
 
-inform :: Name Name String String -> Task () 										// create an email to inform and send it off...
-inform fromName toName subject body 
+inform :: Name Name String info -> Task (Log Note) | toString info							// create an email to inform and send it off...
+inform fromName toName subject info 
 	= 				get currentDate
 	>>= \date ->	updateInformation "Compose an email:" []
 						{ about	= subject, received_from = fromName, intended_for = toName
-						, date	= date,    content		 = Note ""
+						, date	= date,    content		 = Note (toString info)
 						}
 	 >>= \mail ->	sendAnEmail	mail
-	 >>| 			return () 
+	 >>| 			return mail 
 where
 	sendAnEmail doc = sendEmail doc.Log.about doc.Log.content doc.Log.received_from [toName]
 	

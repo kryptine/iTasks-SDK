@@ -143,20 +143,6 @@ workerAttributes worker attr = case toUserConstraint worker of
                              ])
                           task
 
-/*
-(@:) infix 3 :: !(!worker, !String) !(Task a) -> Task a | iTask a & toUserConstraint worker
-(@:) (worker, title) task
-  =                get currentUser -&&- get currentDateTime
-  >>= \(me,now) -> assign (workerAttributes worker
-                             [ (TATitle,      TAStringVal title)
-                             , (TACreatedBy,  TAUserVal (toUserConstraint me))
-                             , (TACreatedAt,  TADateTimeVal now)
-                             , (TAPriority,   TAIntVal 5)
-                             , (TACreatedFor, TAUserVal (toUserConstraint worker))
-                             ])
-                          task
-*/
-		
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
 = task >>= \r -> case r of
