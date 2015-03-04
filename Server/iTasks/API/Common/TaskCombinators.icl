@@ -131,25 +131,17 @@ workerAttributes worker attr = case toUserConstraint worker of
     u=:(UserWithId _) = 'DM'.fromList [(TAUser, TAUserVal u):attr]
     UserWithRole role = 'DM'.fromList [(TARole, TAStringVal role):attr]
 
-defaultAssign` :: ![(TaskAttrKey, TaskAttrValue)] !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-defaultAssign` tas worker task
+(@:) infix 3 :: !(!worker, !String) !(Task a) -> Task a | iTask a & toUserConstraint worker
+(@:) (worker, title) task
   =                get currentUser -&&- get currentDateTime
   >>= \(me,now) -> assign (workerAttributes worker
-                             (tas ++
-                             [ (TACreatedBy,  TAUserVal (toUserConstraint me))
+                             [ (TATitle,      TAStringVal title)
+                             , (TACreatedBy,  TAUserVal (toUserConstraint me))
                              , (TACreatedAt,  TADateTimeVal now)
                              , (TAPriority,   TAIntVal 5)
                              , (TACreatedFor, TAUserVal (toUserConstraint worker))
-                             ]))
+                             ])
                           task
-defaultAssign :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-defaultAssign worker task = defaultAssign` [] worker task
-
-defaultAssignWithTitle :: !String !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-defaultAssignWithTitle title worker task = defaultAssign` [(TATitle, TAStringVal title)] worker task
-
-(@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-(@:) worker task = defaultAssign worker task
 		
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task

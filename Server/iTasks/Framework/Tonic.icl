@@ -415,10 +415,11 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
     where
     onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps depth compact rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
-
+import StdDebug
 dynamicParent :: TaskId -> Task (Maybe BlueprintRef)
-dynamicParent childId
-  =       get tonicSharedRT >>~
+dynamicParent childId=:(TaskId instanceNo _)
+  =       get (sdsFocus instanceNo taskInstanceByNo) >>~
+  \ti ->  trace_n ("listId: " +++ toString ti.TaskInstance.listId) get tonicSharedRT >>~
   \rtm -> return (case 'DM'.get childId rtm of
                     Just child -> case child.bpr_instance of
                                     Just bpi -> case bpi.bpi_parentTaskId of
