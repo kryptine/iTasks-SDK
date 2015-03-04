@@ -102,9 +102,17 @@ where
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
 					
 	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
-		{ assignedTo	= toSingleLineText (fmap toString ('DM'.get TAUser attributes))
+		{ assignedTo	= toSingleLineText (case ('DM'.get TAUser attributes, 'DM'.get TARole attributes) of
+                                              (Just u, _) -> Just (toString u)
+                                              (_, Just r) -> Just (toString r)
+                                              _           -> Nothing)
 		, firstWorkedOn	= p.InstanceProgress.firstEvent
 		, lastWorkedOn	= p.InstanceProgress.lastEvent
+        , taskStatus    = case p.InstanceProgress.value of
+                            None      -> "No results so far..."
+                            Unstable  -> "In progres..."
+                            Stable    -> "Task done"
+                            Exception -> "Something went wrong"
         }
 
 	result (Value [_,(_,v)] _)	= v
@@ -113,6 +121,7 @@ where
 :: ProcessControlView =	{ assignedTo	:: !String
 						, firstWorkedOn	:: !Maybe DateTime
 						, lastWorkedOn	:: !Maybe DateTime
+                        , taskStatus    :: !String
 						}
 derive class iTask ProcessControlView
 
