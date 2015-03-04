@@ -584,8 +584,8 @@ expandTExpr allbps n (TParallel eid par)
   expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
   expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
   expandPar p = p
-expandTExpr allbps n (TAssign usr e)
-  = TAssign usr (expandTExpr allbps n e)
+expandTExpr allbps n (TAssign usr d e)
+  = TAssign usr d (expandTExpr allbps n e)
 expandTExpr allbps n (TTransform e vn args)
   = TTransform (expandTExpr allbps n e) vn args
 expandTExpr _ n texpr = texpr
@@ -636,7 +636,7 @@ connectedTasks allbps tt = successors tt.tt_body
   successors (TCaseOrIf _ pats)   = 'DS'.unions (map (successors o snd) pats)
   successors (TStep lexpr conts)  = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
   successors (TParallel _ par)    = succPar par
-  successors (TAssign _ t)        = successors t
+  successors (TAssign _ _ t)      = successors t
   successors (TShare ts sn args)  = 'DS'.newSet
   successors (TTransform lhs _ _) = successors lhs
   successors (TVar _ pp)          = 'DS'.newSet
@@ -708,7 +708,7 @@ tExpr2Image inh (TLet pats bdy)            tsrc
 tExpr2Image inh (TCaseOrIf e pats)         tsrc = tCaseOrIf     inh e pats tsrc
 tExpr2Image inh (TStep lexpr conts)        tsrc = tStep         inh lexpr conts tsrc
 tExpr2Image inh (TParallel eid par)        tsrc = tParallel     inh eid par tsrc
-tExpr2Image inh (TAssign usr t)            tsrc = tAssign       inh usr t tsrc
+tExpr2Image inh (TAssign usr d t)          tsrc = tAssign       inh usr d t tsrc
 tExpr2Image inh (TShare ts sn args)        tsrc = tShare        inh ts sn args tsrc
 tExpr2Image inh (TTransform lhs vn args)   tsrc = tTransformApp inh lhs vn args tsrc
 tExpr2Image inh (TVar eid pp)              tsrc = tVar          inh eid pp tsrc
@@ -1129,8 +1129,8 @@ tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
-tAssign :: !MkImageInh !TUser !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tAssign inh user assignedTask tsrc
+tAssign :: !MkImageInh !TUser !String !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tAssign inh user desc assignedTask tsrc
   #! (at, tsrc)  = tExpr2Image inh assignedTask tsrc
   #! (atr, tsrc) = mkTagRef tsrc
   #! (atag, atr) = tagFromRef atr
@@ -1139,7 +1139,7 @@ tAssign inh user assignedTask tsrc
   #! (mantr, tsrc)   = mkTagRef tsrc
   #! (mantag, mantr) = tagFromRef mantr
   #! maxXSpan    = maxSpan [imagexspan utag + imagexspan mantag, imagexspan atag]
-  #! (taskNameImg, utr) = tagWithRef utr (margin (px 5.0) (text ArialBold10px (ppUser user)))
+  #! (taskNameImg, utr) = tagWithRef utr (margin (px 5.0) (text ArialBold10px (ppUser user +++ if (desc == "") "" (": " +++ desc))))
   #! bgRect      = rect maxXSpan (imageyspan utag + imageyspan atag)
                      <@< { fill        = toSVGColor "white" }
                      <@< { stroke      = toSVGColor "black" }

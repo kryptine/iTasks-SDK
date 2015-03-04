@@ -56,7 +56,7 @@ derive gEq
   | TCaseOrIf  TExpr [(Pattern, TExpr)]
   | TStep      TExpr [PPOr TStepCont]
   | TParallel  ExprId TParallel
-  | TAssign    TUser TExpr
+  | TAssign    TUser String TExpr
   | TShare     TShare VarName [VarName]
   | TTransform TExpr VarName [VarName]
 
