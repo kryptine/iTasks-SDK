@@ -142,7 +142,7 @@ handleRequest request
 			
 handleProcedure :: (ServiceRequest, Procedure) -> Task ()
 handleProcedure serviceProcedure
-	= 					csaOfficer  @: logServiceRequest serviceProcedure						// csa officer step  6-7
+	= 					(csaOfficer,"log request")  @: logServiceRequest serviceProcedure						// csa officer step  6-7
 	>>= \caseNo ->		midOfficer  @: diagnoseCase (caseNo,serviceProcedure)					// mid Officer steps 7-8 
 	>>= \simple	->	 	if simple (handleRestProcedure (caseNo,serviceProcedure))				// do step 9 and further
 								  (return ())													// non-simple case not specified, it stops here	

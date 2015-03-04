@@ -1369,6 +1369,7 @@ where
 instance toUserConstraint UserConstraint
 where
 	toUserConstraint r = r
+	toTitle _ = "Untitled"
 
 instance toUserConstraint User
 where
@@ -1376,9 +1377,18 @@ where
 	toUserConstraint (AnonymousUser _)				= AnyUser
 	toUserConstraint (AuthenticatedUser uid _ _)	= UserWithId uid
 
+	toTitle _ = "Untitled"
+	
 instance toUserConstraint UserId
 where
 	toUserConstraint userId = UserWithId userId
+
+	toTitle _ = "Untitled"
+	
+instance toUserConstraint (a,b) | toUserConstraint a & toString b
+where
+	toUserConstraint (a,b) = toUserConstraint a
+	toTitle (a,b) = toString b
 
 instance == Action
 where

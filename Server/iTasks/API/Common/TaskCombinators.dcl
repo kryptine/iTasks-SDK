@@ -174,7 +174,8 @@ assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 * @gin-icon user
 * @gin-shape assign
 */
-(@:) infix 3 :: !(!worker, !String) !(Task a) -> Task a | iTask a & toUserConstraint worker
+(@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
+//(@:) infix 3 :: !(!worker, !String) !(Task a) -> Task a | iTask a & toUserConstraint worker
 
 /**
 * Execute a Maybe task that you expect to always return Just.

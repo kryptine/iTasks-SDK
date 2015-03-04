@@ -584,6 +584,7 @@ instance <        UserConstraint
 class toUserConstraint a
 where
 	toUserConstraint :: !a -> UserConstraint
+	toTitle	 		 :: !a -> String
 
 instance toUserConstraint UserConstraint
 instance toUserConstraint User
@@ -593,6 +594,8 @@ instance toUserConstraint UserId
 :: Role			:== String
 :: UserTitle	:== String			//* A descriptive name of a user (not used for identification)
 	
+instance toUserConstraint (a,b) | toUserConstraint a & toString b
+
 //* Framework configuration
 :: Config =
 	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
