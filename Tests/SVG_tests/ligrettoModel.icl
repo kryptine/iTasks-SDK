@@ -142,4 +142,3 @@ and_the_winner_is {players}
 	= case [player \\ player=:{ligretto} <- players | isEmpty ligretto] of
 	    [p : _] = Just p
 	    _       = Nothing
-

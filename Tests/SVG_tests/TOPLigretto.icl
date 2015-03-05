@@ -99,12 +99,12 @@ black       :== toSVGColor "black"
 card_shape  :== rect card_width card_height <@< {xradius = card_height /. 18} <@< {yradius = card_height /. 18}
 
 //no_card_image :: Image m
-no_card_image :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"}))
+no_card_image   :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"}))
 
-big_no no colour :== text (cardfont 20.0) (toString no) <@< {fill   = white}
-                                                        <@< {stroke = toSVGColor colour}
-ligretto  colour :== text (cardfont 12.0) "Ligretto"    <@< {stroke = toSVGColor colour}
-                                                        <@< {fill   = toSVGColor "none"}
+big_no no color :== text (cardfont 20.0) (toString no) <@< {fill   = white}
+                                                       <@< {stroke = toSVGColor color}
+ligretto  color :== text (cardfont 12.0) "Ligretto"    <@< {fill   = toSVGColor "none"}
+                                                       <@< {stroke = toSVGColor color}
 
 card_image :: !SideUp !Card -> Image m
 card_image side card
@@ -153,16 +153,26 @@ hand_images interactive {conceal,discard} color
 
 player_arc :== pi * 0.45
 
-player_image :: !Bool !Span !Player -> Image GameSt
-player_image interactive r player
+player_image :: !Span !Bool !Player -> Image GameSt
+player_image r interactive player
   = circular r player_arc
                (  row_images interactive player.row
                ++ [pile_image Front player.ligretto]
                ++ hand_images interactive player.hand player.color
                )
 
-player_name :: !Player -> Image m
-player_name {name,color}
+players_image :: !Span !Color ![Player] -> Image GameSt
+players_image r color players
+  #! no = length players
+  = rotate (rad (player_arc/(toReal (2*(3+no_of_cards_in_row no))) - player_arc/2.0)) 
+           (circular zero (2.0*pi)
+                [  player_image r (player.color === color) player 
+                \\ player <- players
+                ]
+           )
+
+name_image :: !Player -> Image m
+name_image {name,color}
  = overlay (repeat (AtMiddleX,AtMiddleY)) []
      [text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = if (color === Yellow) black white}]
      (Just (rect width height <@< {fill = toSVGColor color}))
@@ -171,29 +181,26 @@ where
 	width  = card_height *. 1.8
 	height = card_width  *. 0.4
 
-player_names :: ![Player] !Span -> Image m
-player_names players r = circular r (pi * 2.0) (map player_name players)
+names_image :: !Span ![Player] -> Image m
+names_image r players = circular r (2.0*pi) (map name_image players)
 
-//middle_image :: !Middle -> Image m
-middle_image middle :== circular (card_height *. 2) (2.0*pi) (map (pile_image Front) middle)
+//middle_image :: !Span !Middle -> Image m
+middle_image r middle :== circular r (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: !Color !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
 player_perspective color gameSt _
   #! angle = 2.0*pi / (toReal (length gameSt.players))
   #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
-  = margin (card_height *. 3) (rotate (rad (~(toReal my_no*angle))) (game_image color gameSt))
+  = rotate (rad (~(toReal my_no*angle))) (game_image color gameSt)
 
 game_image :: !Color !GameSt -> Image GameSt
-game_image color gameSt
-  #! r     = card_height *. 4
-  #! no    = length gameSt.players
-  #! angle = 2.0*pi / (toReal no)
+game_image color {players,middle}
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
-            ([  rotate (rad (i*angle - player_arc/2.0 + player_arc/(2.0 * toReal (3+no_of_cards_in_row no)))) img
-             \\ img    <- [player_image (player.color === color) r player \\ player <- gameSt.players]
-              & i      <- [0.0, 1.0 ..]
-             ] ++ [player_names gameSt.players (r *. 0.8)]
-            ) (Just (middle_image gameSt.middle))
+            ([ middle_image  (card_height *. 2) middle          // inner-most tier: the middle cards
+             , names_image   (card_height *. 3.2) players       // the middle tier: the player names
+             , players_image (card_height *. 4) color players   // outer-most tier: the player cards
+             ]
+            ) (Just (empty (card_height *. 12) (card_height *. 12)))
 
 //	a generally useful image combinator:
 circular :: !Span !Real ![Image m] -> Image m
@@ -203,7 +210,7 @@ circular r a imgs
   #! a`     = normalize (rad a)
   #! alpha  = (toRad a`) / (toReal n)
   = overlay (repeat (AtMiddleX,AtMiddleY))
-                    [(~r *. (cos (i*alpha - pi/2.0)),~r *. (sin (i*alpha - pi/2.0))) \\ i <- [0.0, sign_a ..]]
+                    [(~r *. cos angle,~r *. sin angle) \\ i <- [0.0, sign_a ..], angle <- [i*alpha - pi / 2.0]]
                     [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs]
                     (Just (empty (r *. 2) (r *. 2)))              // BUG: using Nothing creates incorrect image (offset to left)
 
