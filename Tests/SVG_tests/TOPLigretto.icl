@@ -188,9 +188,9 @@ names_image r players = circular r (2.0*pi) (map name_image players)
 middle_image r middle :== circular r (2.0*pi) (map (pile_image Front) middle)
 
 player_perspective :: !Color !GameSt *[*(ImageTag, *ImageTag)] -> Image GameSt
-player_perspective color gameSt _
-  #! angle = 2.0*pi / (toReal (length gameSt.players))
-  #! my_no = hd [i \\ player <- gameSt.players & i <- [0..] | player.color === color]
+player_perspective color gameSt=:{players} _
+  #! angle = 2.0*pi / (toReal (length players))
+  #! my_no = hd [i \\ player <- players & i <- [0..] | player.color === color]
   = rotate (rad (~(toReal my_no*angle))) (game_image color gameSt)
 
 game_image :: !Color !GameSt -> Image GameSt
