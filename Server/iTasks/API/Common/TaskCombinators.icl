@@ -134,7 +134,7 @@ workerAttributes worker attr = case toUserConstraint worker of
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 (@:) worker task
   =                get currentUser -&&- get currentDateTime
-  >>= \(me,now) -> assign (workerAttributes worker
+  >>- \(me,now) -> assign (workerAttributes worker
                              [ (TATitle,      TAStringVal (toTitle worker))
                              , (TACreatedBy,  TAUserVal (toUserConstraint me))
                              , (TACreatedAt,  TADateTimeVal now)
