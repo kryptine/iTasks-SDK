@@ -151,7 +151,7 @@ hand_images interactive {conceal,discard} color
     , tuneIf interactive discard_pile {onclick = play_hand_card color}
     ]
 
-player_arc :== pi * 0.45
+player_arc :== 0.45 * pi
 
 player_image :: !Span !Bool !Player -> Image GameSt
 player_image r interactive player
@@ -173,7 +173,7 @@ players_image r color players
 
 name_image :: !Player -> Image m
 name_image {name,color}
- = overlay (repeat (AtMiddleX,AtMiddleY)) []
+ = overlay [(AtMiddleX,AtMiddleY)] []
      [text {cardfont 16.0 & fontweight = "bold"} name <@< {fill = if (color === Yellow) black white}]
      (Just (rect width height <@< {fill = toSVGColor color}))
      <@< {mask = rect width height <@< {fill = white} <@< {stroke = white}}
@@ -210,7 +210,7 @@ circular r a imgs
   #! a`     = normalize (rad a)
   #! alpha  = (toRad a`) / (toReal n)
   = overlay (repeat (AtMiddleX,AtMiddleY))
-                    [(~r *. cos angle,~r *. sin angle) \\ i <- [0.0, sign_a ..], angle <- [i*alpha - pi / 2.0]]
+                    [(~r *. cos angle,~r *. sin angle) \\ i <- [0.0, sign_a ..], angle <- [i*alpha - 0.5*pi]]
                     [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs]
                     (Just (empty (r *. 2) (r *. 2)))              // BUG: using Nothing creates incorrect image (offset to left)
 
