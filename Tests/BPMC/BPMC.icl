@@ -13,19 +13,18 @@ csaOfficer				= UserWithRole "csa-office"	 		// role to assign to itask user(s) 
 midOfficer 				= UserWithRole "mid-office"	 		// role to assign to itask user(s) working in this particular department
 
 // some constants
-foEmail					= "front-office"					// common "email" address a client should use
+foEmail					= EmailAddress "front-office@domain.ext"					// common "email" address a client should use
 
 // need a little client database
 
 :: Client 			  = { name 			:: Name
 						, clientNo		:: ClientNo
-						, email			:: EmailAddr
+						, email			:: EmailAddress
 					    , accounts  	:: [Account]
 					    , login			:: String
 					    , password		:: String
 					    }
 :: Name 			  :== String
-:: EmailAddr  		  :== String
 :: ClientNo			  :== Int
 :: Account			  :== Int
 
@@ -36,8 +35,8 @@ derive class iTask  Client
 clientDatabase :: Shared [Client]
 clientDatabase = sharedStore "ClientDatabase" initialClients
 where
-	initialClients	=	[ {name = "Rinus" , clientNo = 1, email = "rinus@cs.ru.nl",  login = "rinus",  password = "rinus",  accounts = [1,2]}
-			 			, {name = "Pieter", clientNo = 2, email = "pieter@cs.ru.nl", login = "pieter", password = "pieter", accounts = [3..5]}
+	initialClients	=	[ {name = "Rinus" , clientNo = 1, email = EmailAddress "rinus@cs.ru.nl",  login = "rinus",  password = "rinus",  accounts = [1,2]}
+			 			, {name = "Pieter", clientNo = 2, email = EmailAddress "pieter@cs.ru.nl", login = "pieter", password = "pieter", accounts = [3..5]}
 			 			]
 
 // some database access functions we also need here...
@@ -73,8 +72,8 @@ where
 			= 	{ name			:: Name
 			   	, id			:: ClientNo
 			   	, account		:: Account
-		      	, email			:: EmailAddr
-		      	, phone			:: Int
+		      	, email			:: EmailAddress
+		      	, phone			:: PhoneNumber
 		      	, request		:: Note
 		      	}
 :: Log a											// Additional logging information which is added to a request
@@ -262,11 +261,11 @@ open index sharedDb
   where
   documentRecords content = [(idx,doc) \\ (idx,doc) <- content | idx === index ]
 
-inform :: Name Name String info -> Task (Log Note) | toString info							// create an email to inform and send it off...
+inform :: EmailAddress EmailAddress String info -> Task (Log Note) | toString info							// create an email to inform and send it off...
 inform fromName toName subject info 
 	= 				get currentDate
 	>>= \date ->	updateInformation "Compose an email:" []
-						{ about	= subject, received_from = fromName, intended_for = toName
+						{ about	= subject, received_from = toString fromName, intended_for = toString toName
 						, date	= date,    content		 = Note (toString info)
 						}
 	 >>= \mail ->	sendAnEmail	mail
