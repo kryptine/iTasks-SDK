@@ -11,7 +11,7 @@ import iTasks.Framework.IWorld
 
 import iTasks.Framework.Client.Override
 
-from Data.Map as DM						import qualified get, put, del, newMap, toList, fromList
+import qualified Data.Map as DM
 from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Framework.TaskStore         import localShare, parallelTaskList, topLevelTaskList
@@ -208,27 +208,30 @@ where
 parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
 parallel initTasks conts = Task eval
 where
-	//Create initial task list
-	eval event evalOpts (TCInit taskId ts) iworld
-		//Create the states for the initial tasks
-        # (taskList,embeddedTasks,iworld) = initParallelTasks taskId 0 initTasks iworld
-        //Write the local task list
-        # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-        # (e,iworld) = write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
-        | isError e = (ExceptionResult (fromError e),iworld)
-        //Write the local embedded tasks
-        # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
-        | isError e = (ExceptionResult (fromError e),iworld)
-    	//Evaluate the parallel
-		= eval event evalOpts (TCParallel taskId ts []) iworld
-    where
-        writeAll [] sds iworld = (Ok (),iworld)
-        writeAll [(f,w):ws] sds iworld = case write w (sdsFocus f sds) iworld of
-            (Ok _,iworld) = writeAll ws sds iworld
-            (Error e,iworld) = (Error e,iworld)
+    //Create initial task list
+    eval event evalOpts=:{callTrace} (TCInit taskId ts) iworld
+      //Create the states for the initial tasks
+      # (mbParTasks,iworld) = initParallelTasks callTrace taskId 0 initTasks iworld
+      = case mbParTasks of
+          Ok (taskList,embeddedTasks)
+            //Write the local task list
+            # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+            # (e,iworld) = write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
+            | isError e = (ExceptionResult (fromError e),iworld)
+            //Write the local embedded tasks
+            # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
+            | isError e = (ExceptionResult (fromError e),iworld)
+            //Evaluate the parallel
+            = eval event evalOpts (TCParallel taskId ts []) iworld
+          Error err = (ExceptionResult err, iworld)
+      where
+      writeAll [] sds iworld = (Ok (),iworld)
+      writeAll [(f,w):ws] sds iworld = case write w (sdsFocus f sds) iworld of
+          (Ok _,iworld) = writeAll ws sds iworld
+          err = err
 
-	//Evaluate the task list
-	eval event evalOpts (TCParallel taskId ts taskTrees) iworld=:{current={taskTime}}
+    //Evaluate the task list
+    eval event evalOpts (TCParallel taskId ts taskTrees) iworld=:{current={taskTime}}
         //Evaluate the branches of the parallel set
         # (mbResults,iworld)  = evalParallelTasks taskId ('DM'.fromList taskTrees) event evalOpts conts [] [] iworld
         = case mbResults of
@@ -244,8 +247,8 @@ where
                 # rep       = genParallelRep evalOpts (contActions taskId value conts) results
                 # taskTrees = [(fromJust (taskIdFromTaskTree tree),tree) \\ ValueResult _ _ _ tree <- results | isJust (taskIdFromTaskTree tree)]
                 = (ValueResult value evalInfo rep (TCParallel taskId ts taskTrees),iworld)
-	//Cleanup
-	eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees)) iworld
+    //Cleanup
+    eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees)) iworld
         //Mark all tasks as deleted and use the standar evaluation function to clean up
         # taskListFilter         = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
         # (mbError,iworld)       = modify (map (\pts -> {ParallelTaskState|pts & change=Just RemoveParallelTask})) (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
@@ -253,45 +256,40 @@ where
         # (mbResults,iworld)     = evalParallelTasks taskId ('DM'.fromList taskTrees) event evalOpts conts [] [] iworld
         = (DestroyedResult,iworld)
     //Fallback
-	eval _ _ _ iworld
-		= (ExceptionResult (exception "Corrupt task state in parallel"), iworld)
+    eval _ _ _ iworld
+    	= (ExceptionResult (exception "Corrupt task state in parallel"), iworld)
 
 //Parallel helper functions
-initParallelTasks :: !TaskId !Int ![(!ParallelTaskType,!ParallelTask a)] !*IWorld -> (![ParallelTaskState],[(TaskId,Task a)],!*IWorld) | iTask a
-initParallelTasks listId index [] iworld = ([],[],iworld)
-initParallelTasks listId index [(parType,parTask):parTasks] iworld
-    # (state,mbTask, iworld)    = initParallelTask listId index parType parTask iworld
-    # (states,tasks, iworld)    = initParallelTasks listId (index + 1) parTasks iworld
-	= ([state:states], maybe tasks (\task -> [task:tasks]) mbTask, iworld)	
+initParallelTasks :: ![Int] !TaskId !Int ![(!ParallelTaskType,!ParallelTask a)] !*IWorld -> (!MaybeError TaskException ([ParallelTaskState],[(TaskId,Task a)]),!*IWorld) | iTask a
+initParallelTasks _ _ _ [] iworld = (Ok ([],[]),iworld)
+initParallelTasks callTrace listId index [(parType,parTask):parTasks] iworld
+  # (state,mbTask, iworld) = initParallelTask callTrace listId index parType parTask iworld
+  # (mbStateTasks, iworld) = initParallelTasks callTrace listId (index + 1) parTasks iworld
+  = case mbStateTasks of
+      Ok (states,tasks)
+        = (Ok ([state:states], maybe tasks (\task -> [task:tasks]) mbTask), iworld)	
+      err = (err, iworld)
 
-initParallelTask :: !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!ParallelTaskState,Maybe (TaskId,Task a),!*IWorld) | iTask a
-initParallelTask listId index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
-    # (taskId,attributes,mbTask,iworld) = case parType of
-		Embedded
-			# (taskId,iworld)	    = getNextTaskId iworld
-            # attributes            = 'DM'.newMap
-			# task		            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
-			= (taskId, attributes, Just (taskId,task), iworld)
-        NamedEmbedded name
-			# (taskId,iworld)	    = getNextTaskId iworld
-            # attributes            = 'DM'.put TAName (TAStringVal name) 'DM'.newMap
-			# task		            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
-			= (taskId, attributes, Just (taskId,task), iworld)
-		Detached attributes evalDirect
-            # (mbInstanceNo,iworld) = newInstanceNo iworld
-            # instanceNo            = fromOk mbInstanceNo //TODO check error case
-            # listShare             = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-			# (taskId,iworld)	    = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
-			= (taskId, attributes, Nothing, iworld)
-	    NamedDetached name attributes evalDirect
-            # (mbInstanceNo,iworld) = newInstanceNo iworld
-            # instanceNo            = fromOk mbInstanceNo //TODO check error case
-            # attributes            = 'DM'.put TAName (TAStringVal name) attributes
-            # listShare             = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-			# (taskId,iworld)	    = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
-			= (taskId, attributes, Nothing, iworld)
-	# state = {taskId = taskId, index = index, detached = isNothing mbTask, attributes = attributes, value = NoValue, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, change = Nothing}
-    = (state,mbTask,iworld)
+initParallelTask :: ![Int] !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!ParallelTaskState,Maybe (TaskId,Task a),!*IWorld) | iTask a
+initParallelTask callTrace listId index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
+  # (taskId,attributes,mbTask,iworld) = case parType of
+      Embedded           = mkEmbedded 'DM'.newMap iworld
+      NamedEmbedded name = mkEmbedded ('DM'.singleton TAName (TAStringVal name)) iworld
+      Detached attributes evalDirect           = mkDetached attributes evalDirect iworld
+      NamedDetached name attributes evalDirect = mkDetached ('DM'.put TAName (TAStringVal name) attributes) evalDirect iworld
+  # state = {taskId = taskId, index = index, detached = isNothing mbTask, attributes = attributes, value = NoValue, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, change = Nothing}
+  = (state,mbTask,iworld)
+  where
+  mkEmbedded attributes iworld
+    # (taskId,iworld) = getNextTaskId iworld
+    # task            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
+    = (taskId, attributes, Just (taskId,task), iworld)
+  mkDetached attributes evalDirect iworld
+    # (mbInstanceNo,iworld) = newInstanceNo iworld
+    # instanceNo            = fromOk mbInstanceNo //TODO check error case
+    # listShare             = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
+    # (taskId,iworld)       = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
+    = (taskId, attributes, Nothing, iworld)
 
 evalParallelTasks :: TaskId (Map TaskId TaskTree) !Event !TaskEvalOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] [TaskResult a] [ParallelTaskState] !*IWorld -> (MaybeError TaskException [TaskResult a],!*IWorld) | iTask a
 evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
@@ -309,7 +307,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
                 | mbList =:(Error _)    = (Error (fromError mbList),iworld)
                 = (Ok completed,iworld)
             Just (_,(type,task),_) //Add extension
-                # (state,mbTask,iworld)     = initParallelTask listId 0 type task iworld
+                # (state,mbTask,iworld)     = initParallelTask evalOpts.callTrace listId 0 type task iworld
                 //Update the task list (TODO, be specific about what we are writing here)
                 # taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
                 # (mbError,iworld)          = modify (\states -> states ++ [{ParallelTaskState|state & index = length states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
@@ -453,7 +451,7 @@ where
         //Check if someone is trying to add an embedded task to the topLevel list
         | listId == TaskId 0 0 && (parType =:(Embedded) || parType =:(NamedEmbedded _))
             = (Error (exception "Embedded tasks can not be added to the top-level task list"),iworld)
-        # (state,mbTask,iworld)  = initParallelTask listId 0 parType parTask iworld
+        # (state,mbTask,iworld)  = initParallelTask [] listId 0 parType parTask iworld
         # taskId = state.ParallelTaskState.taskId
         | listId == TaskId 0 0 //For the top-level list, we don't need to do anything else
             //TODO: Make sure we don't lose the attributes!
@@ -676,7 +674,6 @@ where
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
 
 import StdDebug
-
 exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
 exposeShared shared stask = Task eval
 where	
