@@ -41,6 +41,33 @@ derive gEditMeta		EmailAddress
 derive gUpdate			EmailAddress
 derive gVerify			EmailAddress
 
+instance toString EmailAddress
+where
+	toString (EmailAddress email) = email
+
+instance html EmailAddress
+where
+	html (EmailAddress email) = ATag [HrefAttr ("mailto:" +++ email)] [Text email]
+
+//* PhoneNumber
+derive JSONEncode		PhoneNumber
+derive JSONDecode		PhoneNumber
+derive gDefault			PhoneNumber
+derive gEq				PhoneNumber
+derive gText	        PhoneNumber
+derive gEditor			PhoneNumber
+derive gEditMeta		PhoneNumber
+derive gUpdate			PhoneNumber
+derive gVerify			PhoneNumber
+
+instance toString PhoneNumber
+where
+	toString (PhoneNumber num) = num
+
+instance html PhoneNumber
+where
+	html (PhoneNumber num) = Text num
+
 //* URL
 gText{|URL|}	_ val	= [maybe "" toString val]
 

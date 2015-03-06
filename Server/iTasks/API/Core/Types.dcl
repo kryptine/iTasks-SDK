@@ -46,6 +46,13 @@ import iTasks.Framework.Serialization
 
 //* E-mail addresses
 :: EmailAddress	= EmailAddress !String
+instance toString	EmailAddress
+instance html		EmailAddress
+
+//* Phone number
+:: PhoneNumber = PhoneNumber !String
+instance toString	PhoneNumber
+instance html		PhoneNumber
 
 //* Uniform resource locators
 :: URL			= URL !String
@@ -129,16 +136,16 @@ instance toString		Username, Password
 instance ==				Username, Password
 instance <				Username, Password
 
-derive JSONEncode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
-derive JSONDecode		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gDefault			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEq				EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive JSONEncode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
+derive JSONDecode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gDefault			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEq				EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
-derive gText	        EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEditor 			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEditMeta		EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gUpdate			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
-derive gVerify			EmailAddress, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gText	        EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEditor 			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gEditMeta		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
+derive gUpdate			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
+derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
 
 derive class iTask	Credentials
 
