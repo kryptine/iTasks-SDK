@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.TaskStore
 
 import StdEnv
-import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath
+import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store
 import iTasks.Framework.TaskEval, iTasks.Framework.Util, iTasks.Framework.UIDefinition, iTasks.Framework.UIDiff
@@ -295,6 +295,10 @@ where
             = Error (exception ("Could not find local share " <+++ taskId))
     write taskId shares w = Ok (Just ('DM'.put taskId (toJSON w) shares))
     notify taskId _ = (==) taskId
+
+// Match parallel task IDs to callTraces
+taskInstanceParallelCallTrace :: RWShared TaskId [Int] [Int]
+taskInstanceParallelCallTrace = sdsFocus "taskInstanceParallelCallTrace" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just []))
 
 import StdDebug
 derive gText ParallelTaskState
