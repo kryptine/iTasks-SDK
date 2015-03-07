@@ -15,6 +15,11 @@ from Text.JSON import :: JSONNode
 from Data.Error import :: MaybeErrorString, :: MaybeError
 
 /**
+ * Get the next TaskId
+ */
+getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
+
+/**
 * Evaluate a task instance
 *
 * @param The instance id

@@ -258,11 +258,6 @@ where
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
 
-	//Inline copy of function from CoreCombinators.icl
-	//I don't want to export it there because CoreCombinators is an API module
-	getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-	getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}} = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
-
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval
 where

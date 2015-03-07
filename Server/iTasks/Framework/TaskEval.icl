@@ -16,6 +16,10 @@ from StdFunc import const
 
 derive gEq TIMeta
 
+getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
+getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
+    = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
+
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)
 evalTaskInstance instanceNo event iworld

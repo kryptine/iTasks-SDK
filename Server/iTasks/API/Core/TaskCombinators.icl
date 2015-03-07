@@ -22,10 +22,6 @@ from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate,
 derive class iTask ParallelTaskType, WorkOnStatus
 derive gEq ParallelTaskChange
 
-getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
-    = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
-
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
 transform f (Task evala) = Task eval
 where
