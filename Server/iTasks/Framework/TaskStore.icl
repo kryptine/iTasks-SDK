@@ -344,8 +344,8 @@ where
         =  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
         && maybe True (\indices -> isMember index indices) onlyIndex
 
-    //TODO: Find out if something like this isn't in Data.List
     //For every element of replacements it replaces those elements in source that match the equal predicate
+    replaceIf :: !(a -> a -> Bool) ![a] ![a] -> [a]
     replaceIf equal replacements source = foldl replaceOrAppend source replacements
     where
         replaceOrAppend [] r = [r]
