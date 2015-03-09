@@ -103,10 +103,10 @@ createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},cur
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
-    # (mbInstanceNo,iworld)	= newInstanceNo iworld
+    # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
-    # worker				= AnonymousUser instanceKey
+    # worker                = AnonymousUser instanceKey
     # progress              = {InstanceProgress|value=None,involvedUsers=[],attachedTo=Nothing,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
     # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=worker}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
@@ -144,16 +144,16 @@ where
 			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
-replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeErrorString (), !*IWorld) | iTask a
+replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}}
     # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
-	| isError meta          = ((\(Error (e,msg)) -> Error msg) meta, iworld)
-	# (_,iworld)			= 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-	# (_,iworld)			= 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
-	# (_,iworld)			= 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
-    # (_,Just constants,progress,attributes) = fromOk meta
-    # (_,iworld)            = 'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
-    = (Ok (), iworld)
+    | isError meta          = (liftError meta, iworld)
+    =            'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
+  `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
+  `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
+                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
+  `b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *IWorld
 deleteTaskInstance instanceNo iworld

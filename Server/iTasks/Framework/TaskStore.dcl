@@ -101,7 +101,7 @@ createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !User !TaskI
 *
 * @param The IWorld state
 */
-replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeErrorString (), !*IWorld) | iTask a
+replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 
 deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 

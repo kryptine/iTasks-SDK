@@ -533,14 +533,14 @@ where
                 (Ok (), iworld)
                     = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
                 (Error e, iworld)
-                    = (ExceptionResult (exception e),iworld)
+                    = (ExceptionResult e,iworld)
         //If it is a detached task, replacee the detached instance, if it is embedded schedule the change in the parallel task state
         | taskNo == 0 //(if the taskNo equals zero the instance is embedded)
             = case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
                 (Ok (), iworld)
                     = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
                 (Error e, iworld)
-                    = (ExceptionResult (exception e),iworld)
+                    = (ExceptionResult e,iworld)
         //Schedule the change in the parallel task state
         | otherwise
             # task                  = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
