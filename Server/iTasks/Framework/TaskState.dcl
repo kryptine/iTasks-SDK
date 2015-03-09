@@ -31,7 +31,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, nextTaskNo	:: !TaskNo                          //Local task number counter
 	, nextTaskTime	:: !TaskTime                        //Local task time (incremented at every evaluation)
     , lastEventNo   :: !EventNo                         //Last event number received from a client
-    //Remove from reduct!
+    // TODO Remove from reduct!
 	, tasks			:: !Map TaskId Dynamic				//Task functions of embedded parallel tasks
 	}
 

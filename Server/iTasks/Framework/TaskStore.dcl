@@ -51,6 +51,9 @@ taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId
 
 //Shared source 
 localShare              :: RWShared TaskId a a | iTask a
+
+// Match parallel task IDs to callTraces
+taskInstanceParallelCallTrace :: RWShared TaskId [Int] [Int]
 //Core parallel task list state structure
 taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 //Private interface used during evaluation of parallel combinator
@@ -71,7 +74,7 @@ parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter
 exposedShare 	        :: !String -> 	RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
 
 // Create and delete task instances:
-createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!TaskId, !*IWorld) |  iTask a
+createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 
 //Create a task instance
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
@@ -88,7 +91,7 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!Instanc
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !User !TaskId !Bool !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !User !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 
 /**
 * Replace a stored task instance in the task store.

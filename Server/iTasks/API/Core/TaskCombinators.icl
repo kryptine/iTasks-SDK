@@ -291,8 +291,10 @@ initParallelTask callTrace listId index parType parTask iworld=:{current={taskTi
     = case mbInstanceNo of
         Ok instanceNo
           # listShare       = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-          # (taskId,iworld) = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
-          = (Ok (taskId, attributes, Nothing), iworld)
+          # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
+          = case mbTaskId of
+              Ok taskId = (Ok (taskId, attributes, Nothing), iworld)
+              err       = (liftError err, iworld)
         err = (liftError err, iworld)
 
 evalParallelTasks :: TaskId (Map TaskId TaskTree) !Event !TaskEvalOpts [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] [TaskResult a] [ParallelTaskState] !*IWorld -> (MaybeError TaskException [TaskResult a],!*IWorld) | iTask a

@@ -54,12 +54,16 @@ roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Jus
 
 // Init
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing} Nothing Nothing Nothing iworld
-	# (taskId, iworld)  = createClientTaskInstance task sessionId instanceNo iworld
-	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
-	= case mbResult of
-		Ok (_,_,updates)
-					= (Just updates, {TaskState | st & taskId = Just taskId}, iworld)
-		_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
+	# (mbTaskId, iworld) = createClientTaskInstance task sessionId instanceNo iworld
+    = case mbTaskId of
+        Ok taskId
+	      # (mbResult,iworld)  = evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
+	      = case mbResult of
+	      	Ok (_,_,updates)
+	      				= (Just updates, {TaskState | st & taskId = Just taskId}, iworld)
+	      	_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
+        _ = (Nothing, st, iworld)
+
 // Refresh
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
