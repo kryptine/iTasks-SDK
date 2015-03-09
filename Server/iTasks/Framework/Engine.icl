@@ -249,7 +249,6 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
       ,cachedShares         = newMap
 	  ,exposedShares		= newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
-      ,nextInstanceNo       = 0
 	  ,refreshQueue			= []
 	  ,shutdown				= False
       ,ioTasks              = {done = [], todo = []}

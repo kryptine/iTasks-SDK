@@ -41,7 +41,6 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
 
-                    , nextInstanceNo        :: !InstanceNo                              // Next task instance number
                     , refreshQueue          :: ![(!InstanceNo,!Maybe String)]           // Instances that need refreshing (optionally with an explanation)
 
                     , ioTasks                :: !*IOTasks                                // The low-level input/output tasks
