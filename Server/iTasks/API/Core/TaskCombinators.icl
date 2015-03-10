@@ -241,7 +241,7 @@ where
                 # value     = genParallelValue results
                 # evalInfo  = genParallelEvalInfo results
                 # rep       = genParallelRep evalOpts (contActions taskId value conts) results
-                # taskTrees = [(fromJust (taskIdFromTaskTree tree),tree) \\ ValueResult _ _ _ tree <- results | isJust (taskIdFromTaskTree tree)]
+                # taskTrees = [(fromOk (taskIdFromTaskTree tree),tree) \\ ValueResult _ _ _ tree <- results | isOk (taskIdFromTaskTree tree)]
                 = (ValueResult value evalInfo rep (TCParallel taskId ts taskTrees),iworld)
     //Cleanup
     eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees)) iworld
@@ -388,20 +388,24 @@ where
     (TaskId instanceNo taskNo)   = taskId
 
     taskIdFromResult (ValueResult _ _ _ tree)   = taskIdFromTaskTree tree
-    taskIdFromResult _                          = Nothing
+    taskIdFromResult _                          = Error (exception "No ValueResult in taskIdFromResult")
 
     destroyRemoved removed [] iworld = ([],iworld)
     destroyRemoved removed [r=:(ValueResult _ _ _ tree):rs] iworld
-        # taskId = fromJust (taskIdFromResult r) //TODO: Check if we can rely on the taskId being available
-        | isMember taskId removed
-            # (mbTask,iworld)    = read (sdsFocus taskId taskInstanceEmbeddedTask) iworld
-            | mbTask =:(Error _) = ([ExceptionResult (fromError mbTask):rs],iworld) //TODO figure out what to do with this exception
-            # (Task evala)       = fromOk mbTask
-            //TODO: remove the task evaluation function
-            # (r,iworld)         = evala (RefreshEvent Nothing) {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=True,callTrace=[]} (TCDestroy tree) iworld
-            # (rs,iworld)        = destroyRemoved removed rs iworld
-            = ([r:rs],iworld)
-        | otherwise
+      = case taskIdFromResult r of
+          Ok taskId
+            | isMember taskId removed
+                # (mbTask,iworld)    = read (sdsFocus taskId taskInstanceEmbeddedTask) iworld
+                | mbTask =:(Error _) = ([ExceptionResult (fromError mbTask):rs],iworld) //TODO figure out what to do with this exception
+                # (Task evala)       = fromOk mbTask
+                //TODO: remove the task evaluation function
+                # (r,iworld)         = evala (RefreshEvent Nothing) {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=True,callTrace=[]} (TCDestroy tree) iworld
+                # (rs,iworld)        = destroyRemoved removed rs iworld
+                = ([r:rs],iworld)
+            | otherwise
+                # (rs,iworld) = destroyRemoved removed rs iworld
+                = ([r:rs],iworld)
+          _
             # (rs,iworld) = destroyRemoved removed rs iworld
             = ([r:rs],iworld)
     destroyRemoved removed [r:rs] iworld

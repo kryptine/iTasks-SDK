@@ -3,6 +3,7 @@ definition module iTasks.Framework.TaskState
 import iTasks.API.Core.Types
 
 from iTasks.Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo
+from iTasks.Framework.Task	import :: TaskException
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree
@@ -58,7 +59,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCDestroy					!TaskTree															//Marks a task state as garbage that must be destroyed
 	| TCTasklet			
 
-taskIdFromTaskTree :: TaskTree -> Maybe TaskId
+taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 
 :: DeferredJSON
 	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
