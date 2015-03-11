@@ -218,7 +218,7 @@ where
             # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
             | isError e = (ExceptionResult (fromError e),iworld)
             //Evaluate the parallel
-            = eval event evalOpts (TCParallel taskId ts []) iworld
+            = eval event (extendCallTrace taskId evalOpts) (TCParallel taskId ts []) iworld
           Error err = (ExceptionResult err, iworld)
       where
       writeAll [] sds iworld = (Ok (),iworld)
