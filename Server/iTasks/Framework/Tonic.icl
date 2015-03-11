@@ -6,6 +6,7 @@ import qualified iTasks.Framework.SDS as DSDS
 import iTasks.Framework.IWorld
 import iTasks.Framework.Tonic.AbsSyn
 import iTasks.Framework.TaskState
+import iTasks.Framework.TaskStore
 import iTasks.API.Core.TaskCombinators
 import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
@@ -31,7 +32,10 @@ import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
 import Text
 import GenLexOrd
-import qualified Data.Graph as DG
+import qualified Control.Monad as CM
+from Control.Monad import `b`, class Monad
+import qualified Control.Applicative as CA
+from Control.Applicative import class Applicative
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -59,6 +63,34 @@ derive gText
 
 derive class iTask BlueprintRef, BlueprintInstance, SystemClocks
 
+:: IWorldM a = IWorldM (*IWorld -> *(a, *IWorld))
+
+execIOWorld :: (IWorldM a) *IWorld -> *IWorld
+execIOWorld (IWorldM f) world
+  # (_, world) = f world
+  = world
+
+evalIOWorld :: (IWorldM a) *IWorld -> *(a, *IWorld)
+evalIOWorld (IWorldM f) world = f world
+
+withWorld :: (*IWorld -> *(a, !*IWorld)) -> IWorldM a
+withWorld f = IWorldM f
+
+instance Applicative IWorldM where
+  pure x     = IWorldM (\s -> (x, s))
+  (<*>) f g  = 'CA'.liftA2 id f g
+
+instance Functor IWorldM where
+  fmap f x = x `b` ('CA'.lift o f)
+
+instance Monad IWorldM where
+  bind (IWorldM f) a2mb = IWorldM run
+    where
+      run world
+        # (x, world)  = f world
+        # (IWorldM g) = a2mb x
+        = g world
+
 //class Tonic f where
   //tonicCompApp  :: !ModuleName !TaskName ![Int] (Task a) -> Task a
   //tonicCompBody :: !ModuleName !TaskName ![(VarName, f ())] (f a) -> f a | TonicViewer f a
@@ -85,24 +117,27 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
     = case mmn of
         Ok mod -> eval` mod event evalOpts taskTree iworld
         _      -> eval event evalOpts taskTree iworld
-  eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
+  eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo taskNo) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-    = eval event evalOpts taskTree (okSt iworld (updateInstance instanceNo) mrtMap)
+    # iworld           = okSt iworld (updateInstance instanceNo) mrtMap
+    = eval event evalOpts taskTree iworld
     where
     updateInstance instanceNo rtMap iworld =
       case getTask mod tn of
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
+          # (cct, iworld)    = mkCompleteTrace instanceNo callTrace iworld
           # bpinst = { BlueprintInstance
                      | bpi_taskId        = currTaskId
                      , bpi_startTime     = clocks
                      , bpi_endTime       = Nothing
                      , bpi_params        = args
                      , bpi_activeNodeId  = Nothing
-                     , bpi_parentTaskId  = case firstParent rtMap instanceNo callTrace of
-                                             Just p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
-                                             _      -> Nothing
+                     , bpi_trace         = callTrace
+                     , bpi_parentTaskId  = case firstParent rtMap mn tn cct of
+                                             Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
+                                             _    -> Nothing
                      , bpi_involvedUsers = [curr.user]
                      , bpi_output        = Nothing
                      }
@@ -115,7 +150,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           = snd ('DSDS'.write ('DM'.put currTaskId blueprint rtMap) tonicSharedRT iworld)
         _ = iworld
   eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
-    # iworld = maybeSt iworld logTaskEnd (taskIdFromTaskTree taskTree)
+    # iworld = okSt iworld logTaskEnd (taskIdFromTaskTree taskTree)
     = eval event evalOpts taskTree iworld
     where
     logTaskEnd currTaskId iworld
@@ -128,7 +163,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           ('DM'.get currTaskId rtMap)
   eval` _ event evalOpts taskTree iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
-    = (tr, maybeSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
+    = (tr, okSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
     where
     readAndUpdateRTMap tr currTaskId iworld
       # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
@@ -146,25 +181,87 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
   tvViewInformation NoValue     = Nothing
   tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
-firstParent :: TonicRTMap Int [Int] -> Maybe BlueprintRef
-firstParent _     _          [] = Nothing
-firstParent rtMap instanceNo [parentTaskNo:parentTaskNos]
-  = maybe (firstParent rtMap instanceNo parentTaskNos) Just
-      ('DM'.get (TaskId instanceNo parentTaskNo) rtMap)
+firstParent :: TonicRTMap ModuleName TaskName Calltrace -> MaybeError TaskException BlueprintRef
+firstParent _     _  _  [] = Error (exception "iTasks.Framework.Tonic.firstParent: no parent found")
+firstParent rtMap mn tn [(instanceNo, parents):xs]
+  = case firstParent` rtMap mn tn parents of
+      Just x -> Ok x
+      _      -> firstParent rtMap mn tn xs
+  where
+  firstParent` rtMap mn tn [] = Nothing
+  firstParent` rtMap mn tn [parentTaskNo:parentTaskNos]
+    = case 'DM'.get (TaskId instanceNo parentTaskNo) rtMap of
+        Just trt -> if (trt.bpr_moduleName == mn && trt.bpr_taskName == tn) (Just trt) next
+        _        -> next
+    where
+    next = firstParent` rtMap mn tn parentTaskNos
 
+ppTT (TCInit                  _ _        ) = "TCInit"
+ppTT (TCBasic                 _ _ _ _    ) = "TCBasic"
+ppTT (TCInteract              _ _ _ _ _ _) = "TCInteract"
+ppTT (TCInteractLocal         _ _ _ _ _  ) = "TCInteractLocal"
+ppTT (TCInteractViewOnly      _ _ _ _ _  ) = "TCInteractViewOnly"
+ppTT (TCInteractLocalViewOnly _ _ _ _    ) = "TCInteractLocalViewOnly"
+ppTT (TCInteract1             _ _ _ _    ) = "TCInteract1"
+ppTT (TCInteract2             _ _ _ _ _  ) = "TCInteract2"
+ppTT (TCProject               _ _ _      ) = "TCProject"
+ppTT (TCStep                  _ _ _      ) = "TCStep"
+ppTT (TCParallel              _ _ _      ) = "TCParallel"
+ppTT (TCShared                _ _ _      ) = "TCShared"
+ppTT (TCExposedShared         _ _ _ _    ) = "TCExposedShared"
+ppTT (TCStable                _ _ _      ) = "TCStable"
+ppTT (TCNop                              ) = "TCNop"
+ppTT (TCDestroy               _          ) = "TCDestroy"
+ppTT (TCTasklet                          ) = "TCTasklet"
+
+trace_nIfHandleRequest "handleRequest" str s = trace_n str s
+trace_nIfHandleRequest _ _ s = s
+
+:: Calltrace :== [(Int, [Int])]
+
+mkCompleteTrace :: InstanceNo [Int] *IWorld -> *(Calltrace, *IWorld)
+mkCompleteTrace instanceNo []        iworld = ([], iworld)
+mkCompleteTrace instanceNo callTrace iworld
+  # (mtinst, iworld) = 'DSDS'.read (sdsFocus instanceNo taskInstance) iworld
+  = case mtinst of
+      Ok (_, Just {InstanceConstants | listId = listId=:(TaskId 0 _)}, _, _)
+        = ([(instanceNo, callTrace)], iworld)
+      Ok (_, Just {InstanceConstants | listId = listId=:(TaskId lInstNo lTaskNo)}, _, _)
+        # (mpct, iworld) = 'DSDS'.read (sdsFocus listId taskInstanceParallelCallTrace) iworld
+        = case mpct of
+            Ok pct
+              # (tr, iworld) = mkCompleteTrace lInstNo pct iworld
+              = ([(instanceNo, callTrace) : tr], iworld)
+            _ = ([(instanceNo, callTrace)], iworld)
+      _ = ([(instanceNo, callTrace)], iworld)
+
+ppCCT [] = ""
+ppCCT [(instanceNo, taskIds):xs] = "(" +++ toString instanceNo +++ ", " +++ foldr (\x acc -> toString x +++ " " +++ acc) "" taskIds  +++ "); " +++ ppCCT xs
+
+ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
+
+/**
+ * ModuleName and TaskName identify the blueprint, of which we need to
+ * highlight nodes.
+ *
+ * TODO: Use this information to help the highlighting proces?
+ */
 tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
-  eval` event evalOpts=:{callTrace} taskTree iworld
+  eval` event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
+    #! iworld = trace_nIfHandleRequest tn (ppTT taskTree) iworld
     = case taskIdFromTaskTree taskTree of
-        Just tid=:(TaskId instanceNo taskNo)
+        Ok tid=:(TaskId instanceNo taskId)
           # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
           = case mrtMap of
               Ok rtMap
-                = case firstParent rtMap instanceNo [taskNo:callTrace] of
-                    Just bpref=:{bpr_instance = Just inst}
+                # (complct, iworld) = mkCompleteTrace instanceNo [taskId:callTrace] iworld
+                = case firstParent rtMap mn tn complct of
+                    Ok bpref=:{bpr_instance = Just inst}
+                      #! iworld = trace_n (tn +++ " nid = [" +++ ppNid nid +++ "] ct = " +++ ppCCT complct) iworld 
                       # iworld       = updRTMap bpref inst rtMap iworld
-                      # (rt, iworld) = eval event evalOpts taskTree iworld 
+                      # (rt, iworld) = eval event evalOpts taskTree iworld
                       # iworld       = updLoTMap tid bpref inst iworld
                       = (rt, iworld)
                     _ = eval event evalOpts taskTree iworld
@@ -172,7 +269,9 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
     where
     updRTMap bpref inst rtMap iworld
-      # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodeId = Just nid}) bpref.bpr_instance} rtMap
+      #! iworld = trace_nIfHandleRequest tn ("updRTMap " +++ tn +++ " inst.bpi_taskId = " +++ toString inst.bpi_taskId +++ " nid = " +++ foldr (\x xs -> toString x +++ " " +++ xs) "" nid) iworld
+      # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodeId = Just nid
+                                                                                      , bpi_trace = callTrace}) bpref.bpr_instance} rtMap
       = snd ('DSDS'.write rtMap tonicSharedRT iworld)
     updLoTMap tid bpref inst iworld
       # (mbmlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
@@ -197,14 +296,15 @@ tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 tonicWrapParallel :: ModuleName TaskName [Int] ([Task a] -> Task b) [Task a] -> Task b
 tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
   where
-  eval event evalOpts=:{callTrace} taskTree iworld
+  eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
     # (ts, iworld) = case taskIdFromTaskTree taskTree of
-                       Just (TaskId instanceNo _)
+                       Ok (TaskId instanceNo _)
                          # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
                          = case mrtMap of
                              Ok rtMap
-                               = case firstParent rtMap instanceNo callTrace of
-                                   Just parent=:{bpr_instance = Just pinst}
+                               # (cct, iworld) = mkCompleteTrace instanceNo callTrace iworld
+                               = case firstParent rtMap mn tn cct of
+                                   Ok parent=:{bpr_instance = Just pinst}
                                      # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
                                      = case mlot of
                                          Ok mlot
@@ -238,7 +338,7 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
       # (tr, iworld)   = eval event evalOpts taskTree iworld
       # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
       # iworld         = case taskIdFromTaskTree taskTree of
-                           Just tid -> okSt iworld (updLoT tid) mlot
+                           Ok tid -> okSt iworld (updLoT tid) mlot
                            _        -> iworld
       = (tr, iworld)
     updLoT tid mlot iworld
@@ -418,8 +518,7 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
 import StdDebug
 dynamicParent :: TaskId -> Task (Maybe BlueprintRef)
 dynamicParent childId=:(TaskId instanceNo _)
-  =       get (sdsFocus instanceNo taskInstanceByNo) >>~
-  \ti ->  trace_n ("listId: " +++ toString ti.TaskInstance.listId) get tonicSharedRT >>~
+  =       get tonicSharedRT >>~
   \rtm -> return (case 'DM'.get childId rtm of
                     Just child -> case child.bpr_instance of
                                     Just bpi -> case bpi.bpi_parentTaskId of
@@ -431,6 +530,9 @@ dynamicParent childId=:(TaskId instanceNo _)
 :: DynamicView =
   { moduleName :: String
   , taskName   :: String
+  , taskId     :: TaskId
+  , activeNode :: String
+  , trace      :: String
   }
 
 derive class iTask DynamicView
@@ -453,7 +555,7 @@ tonicDynamicBrowser rs = enterQuery >&> withSelection (tonicDynamicBrowser` rs N
 tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
     (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) >&>
-    withSelection noBlueprintSelection (viewInstance rs)) <<@ ArrangeWithSideBar 0 LeftSide 700 True
+    withSelection noBlueprintSelection (viewInstance rs)) <<@ ArrangeWithSideBar 0 LeftSide 800 True
                                                           <<@ FullScreen
   where
   filterActiveTasks Nothing tasks = tasks
@@ -466,8 +568,15 @@ tonicDynamicBrowser` rs q =
     doFilter bp=:{bpr_instance = Just trt} (AndQuery l r)    = doFilter bp l && doFilter bp r
     doFilter bp=:{bpr_instance = Just trt} (OrQuery l r)     = doFilter bp l || doFilter bp r
     doFilter _                             _                 = True
-  //customView rt = { DynamicView | moduleName = fst rt.bpi_bpref, taskName = snd rt.bpi_bpref }
-  customView rt = rt
+  customView bpr=:{bpr_instance = Just bpi}
+    = { DynamicView
+      | moduleName = bpr.bpr_moduleName
+      , taskName   = bpr.bpr_taskName
+      , taskId     = bpi.bpi_taskId
+      , trace      = foldr (\x xs -> toString x +++ " " +++ xs) "" bpi.bpi_trace
+      , activeNode = maybe "" (foldr (\x xs -> toString x +++ " " +++ xs) "") bpi.bpi_activeNodeId
+      }
+  customView bpr = { DynamicView | moduleName = bpr.bpr_moduleName, taskName = bpr.bpr_taskName, taskId = TaskId -1 -1, trace = "", activeNode = "" }
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
 
 viewInstance :: [TaskAppRenderer] !BlueprintRef -> Task ()
@@ -910,6 +1019,7 @@ tBind inh l mpat r tsrc
                     _        -> [l`, tHorizConnArr, r`]
   = (beside (repeat AtMiddleY) [] linePart Nothing, tsrc)
 
+// TODO Highlight nodes here?
 tParallel :: !MkImageInh ![Int] !TParallel !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParallel inh eid (ParSumL l r) tsrc // TODO This is actually not correct yet... first image shouldn't have lines
   #! (l`, tsrc) = tExpr2Image inh l tsrc

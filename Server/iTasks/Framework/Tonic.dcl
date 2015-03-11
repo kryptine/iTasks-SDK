@@ -57,6 +57,7 @@ derive gText
   , bpi_endTime       :: !Maybe SystemClocks
   , bpi_params        :: ![(!VarName, !Task ())]
   , bpi_activeNodeId  :: !Maybe [Int]
+  , bpi_trace         :: ![Int]
   , bpi_parentTaskId  :: !Maybe TaskId
   , bpi_involvedUsers :: ![User]
   , bpi_output        :: !Maybe (Task ())
