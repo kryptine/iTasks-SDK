@@ -57,7 +57,10 @@ finalizeRep repOpts=:{TaskEvalOpts|noUI=True} _ = NoRep
 finalizeRep repOpts rep = rep
 
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
-extendCallTrace (TaskId _ taskNo) repOpts=:{TaskEvalOpts|callTrace} = {repOpts & callTrace = [taskNo:callTrace]}
+extendCallTrace (TaskId _ taskNo) repOpts=:{TaskEvalOpts|callTrace = []} = {repOpts & callTrace = [taskNo]}
+extendCallTrace (TaskId _ taskNo) repOpts=:{TaskEvalOpts|callTrace = xs=:[x:_]}
+  | taskNo == x = repOpts
+  | otherwise   = {repOpts & callTrace = [taskNo:xs]}
 
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 wrapConnectionTask {ConnectionHandlers|onConnect,whileConnected,onDisconnect} sds
