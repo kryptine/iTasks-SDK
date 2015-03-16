@@ -306,6 +306,9 @@ where
 taskInstanceParallelCallTrace :: RWShared TaskId [Int] [Int]
 taskInstanceParallelCallTrace = sdsFocus "taskInstanceParallelCallTrace" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just []))
 
+parallelListId :: RWShared TaskId TaskId TaskId
+parallelListId = sdsFocus "taskInstanceParallelCallTrace" (cachedJSONFileStore NS_TASK_INSTANCES False False True Nothing)
+
 import StdDebug
 derive gText ParallelTaskState
 
@@ -368,8 +371,8 @@ taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead rea
 where
     param (TaskId instanceNo _) = instanceNo
     read taskId {TIReduct|tasks} = case fmap unwrapTask ('DM'.get taskId tasks) of
-        Just task   = Ok task
-        Nothing     = Error (exception ("Could not find embedded task " <+++ taskId))
+        Just task = Ok task
+        _         = Error (exception ("Could not find embedded task " <+++ taskId))
     write taskId r=:{TIReduct|tasks} w = Ok (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
     notify taskId _ = (==) taskId
 

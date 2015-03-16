@@ -140,6 +140,8 @@ createClientIWorld serverURL currentInstance
 		    ,user               = SystemUser
 		    ,eventRoute			= 'Data.Map'.newMap
 		    ,editletDiffs		= 'Data.Map'.newMap
+            ,currentParallelContext = Nothing
+            ,parentParallelContext = Nothing
           }
           ,sdsNotifyRequests    = []
           ,memoryShares         = 'Data.Map'.newMap

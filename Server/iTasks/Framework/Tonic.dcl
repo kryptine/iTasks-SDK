@@ -38,32 +38,11 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
-:: TonicRTMap :== Map TaskId BlueprintRef
 
 :: TaskAppRenderer :== Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
 
 :: ModelTy
-
-:: BlueprintRef =
-  { bpr_moduleName :: !ModuleName
-  , bpr_taskName   :: !TaskName
-  , bpr_blueprint  :: !TonicTask
-  , bpr_instance   :: !Maybe BlueprintInstance
-  }
-
-:: BlueprintInstance =
-  { bpi_taskId        :: !TaskId
-  , bpi_startTime     :: !SystemClocks
-  , bpi_endTime       :: !Maybe SystemClocks
-  , bpi_params        :: ![(!VarName, !Task ())]
-  , bpi_activeNodeId  :: !Maybe [Int]
-  , bpi_trace         :: ![Int]
-  , bpi_parentTaskId  :: !Maybe TaskId
-  , bpi_involvedUsers :: ![User]
-  , bpi_output        :: !Maybe (Task ())
-  }
-
-derive class iTask BlueprintRef, BlueprintInstance
+:: NodeId :== [Int]
 
 tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
@@ -81,12 +60,12 @@ tonicViewInformation :: !String !a -> Task () | iTask a
 
 tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 
-tonicWrapParallel :: ModuleName TaskName [Int] ([Task a] -> Task b) [Task a] -> Task b
+tonicWrapParallel :: ModuleName TaskName NodeId ([Task a] -> Task b) [Task a] -> Task b
 
-tonicWrapApp :: ModuleName TaskName [Int] (Task a) -> Task a
+tonicWrapApp :: ModuleName TaskName NodeId (Task a) -> Task a
 
-tonicWrapAppLam1 :: ModuleName TaskName [Int] (a -> Task b) -> a -> Task b
+tonicWrapAppLam1 :: ModuleName TaskName NodeId (a -> Task b) -> a -> Task b
 
-tonicWrapAppLam2 :: ModuleName TaskName [Int] (a b -> Task c) -> a b -> Task c
+tonicWrapAppLam2 :: ModuleName TaskName NodeId (a b -> Task c) -> a b -> Task c
 
-tonicWrapAppLam3 :: ModuleName TaskName [Int] (a b c -> Task d) -> a b c -> Task d
+tonicWrapAppLam3 :: ModuleName TaskName NodeId (a b c -> Task d) -> a b c -> Task d

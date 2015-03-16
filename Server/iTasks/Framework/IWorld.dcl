@@ -78,14 +78,16 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 :: ShareCache :== Map (String,String) (Dynamic,Bool,Maybe DeferredJSON)
 
 :: TaskEvalState =
-    { taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
-	, taskInstance		    :: !InstanceNo								// The current evaluated task instance
-    , sessionInstance       :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
-    , attachmentChain       :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
-    , nextTaskNo			:: !TaskNo									// The next task number to assign
-    , user			        :: !User									// The current user
-    , eventRoute			:: !Map TaskId Int							// Index of parallel branches the event is targeted at
-    , editletDiffs          :: !UIEditletDiffs                          // Diffs of editlets
+    { taskTime				 :: !TaskTime								// The 'virtual' time for the task. Increments at every event
+	, taskInstance		     :: !InstanceNo								// The current evaluated task instance
+    , sessionInstance        :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
+    , attachmentChain        :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
+    , nextTaskNo			 :: !TaskNo									// The next task number to assign
+    , user			         :: !User									// The current user
+    , eventRoute			 :: !Map TaskId Int							// Index of parallel branches the event is targeted at
+    , editletDiffs           :: !UIEditletDiffs                          // Diffs of editlets
+    , currentParallelContext :: !Maybe TaskId
+    , parentParallelContext  :: !Maybe TaskId
     }
 
 :: *IOTasks =

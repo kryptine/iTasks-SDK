@@ -64,6 +64,8 @@ where
 										, user = currentUser
 										, eventRoute = eventRoute
                                         , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
+                                        , currentParallelContext = current.currentParallelContext
+                                        , parentParallelContext = current.parentParallelContext
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event evalOpts tree iworld

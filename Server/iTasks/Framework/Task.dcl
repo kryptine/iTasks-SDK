@@ -41,7 +41,7 @@ derive gEq				Task
 	{ useLayout			:: Maybe LayoutRules
 	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
     , noUI              :: Bool
-    , callTrace         :: [Int] //References to tasks higher in evaluation who called a the current task
+    , callTrace         :: [Int]
 	}
 
 //Additional information passed up from the tree when evaluating a task
