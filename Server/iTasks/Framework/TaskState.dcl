@@ -70,7 +70,6 @@ derive JSONDecode DeferredJSON
 	
 :: ParallelTaskState =
 	{ taskId			:: !TaskId					//Identification
-    , numTasks          :: !Int                     //Number of parallel tasks in this parallel
     , index             :: !Int                     //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
     , detached          :: !Bool
     , attributes        :: !TaskAttributes

@@ -209,7 +209,7 @@ where
       //Create the states for the initial tasks
       # iworld = {iworld & current = {current & parentParallelContext  = current.currentParallelContext
                                               , currentParallelContext = Just taskId}}
-      # (mbParTasks,iworld) = initParallelTasks callTrace taskId (length initTasks) 0 initTasks iworld
+      # (mbParTasks,iworld) = initParallelTasks callTrace taskId 0 initTasks iworld
       # (tr, iworld) = case mbParTasks of
                          Ok (taskList,embeddedTasks)
                            //Write the local task list
@@ -261,26 +261,21 @@ where
     	= (ExceptionResult (exception "Corrupt task state in parallel"), iworld)
 
 //Parallel helper functions
-initParallelTasks :: ![Int] !TaskId !Int !Int ![(!ParallelTaskType,!ParallelTask a)] !*IWorld -> (!MaybeError TaskException ([ParallelTaskState],[(TaskId,Task a)]),!*IWorld) | iTask a
-initParallelTasks _ _ _ _ [] iworld = (Ok ([],[]),iworld)
-initParallelTasks callTrace listId numTasks index [(parType,parTask):parTasks] iworld
-  # (mbStateMbTask, iworld) = initParallelTask callTrace listId numTasks index parType parTask iworld
+initParallelTasks :: ![Int] !TaskId !Int ![(!ParallelTaskType,!ParallelTask a)] !*IWorld -> (!MaybeError TaskException ([ParallelTaskState],[(TaskId,Task a)]),!*IWorld) | iTask a
+initParallelTasks _ _ _ [] iworld = (Ok ([],[]),iworld)
+initParallelTasks callTrace listId index [(parType,parTask):parTasks] iworld
+  # (mbStateMbTask, iworld) = initParallelTask callTrace listId index parType parTask iworld
   = case mbStateMbTask of
       Ok (state,mbTask)
-        # (mbStateTasks, iworld) = initParallelTasks callTrace listId numTasks (index + 1) parTasks iworld
+        # (mbStateTasks, iworld) = initParallelTasks callTrace listId (index + 1) parTasks iworld
         = case mbStateTasks of
             Ok (states,tasks)
               = (Ok ([state:states], maybe tasks (\task -> [task:tasks]) mbTask), iworld)	
             err = (err, iworld)
       err = (liftError err, iworld)
 
-// TODO We need to actually store the fresh TaskId to listId relation explicitly. sdsTranslate only augments the share, but doesn't modify it.
-// We should then also take care to clean up after ourselves....
-
-
-// TODO Somehow in the continuation, keep track of the parallel parent
-initParallelTask :: ![Int] !TaskId !Int !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!MaybeError TaskException (ParallelTaskState,Maybe (TaskId,Task a)),!*IWorld) | iTask a
-initParallelTask callTrace listId numTasks index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
+initParallelTask :: ![Int] !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!MaybeError TaskException (ParallelTaskState,Maybe (TaskId,Task a)),!*IWorld) | iTask a
+initParallelTask callTrace listId index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
   # (mbTaskStuff,iworld) = case parType of
       Embedded           = mkEmbedded 'DM'.newMap iworld
       NamedEmbedded name = mkEmbedded ('DM'.singleton TAName (TAStringVal name)) iworld
@@ -288,7 +283,7 @@ initParallelTask callTrace listId numTasks index parType parTask iworld=:{curren
       NamedDetached name attributes evalDirect = mkDetached ('DM'.put TAName (TAStringVal name) attributes) evalDirect iworld
   = case mbTaskStuff of
       Ok (taskId,attributes,mbTask)
-        # state = {ParallelTaskState | taskId = taskId, index = index, numTasks = numTasks, detached = isNothing mbTask, attributes = attributes, value = NoValue, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, change = Nothing}
+        # state = {ParallelTaskState | taskId = taskId, index = index, detached = isNothing mbTask, attributes = attributes, value = NoValue, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, change = Nothing}
         = (Ok (state,mbTask),iworld)
       err = (liftError err, iworld)
   where
@@ -323,7 +318,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
                 | mbList =:(Error _)    = (Error (fromError mbList),iworld)
                 = (Ok completed,iworld)
             Just (_,(type,task),_) //Add extension
-                # (mbStateMbTask,iworld)     = initParallelTask evalOpts.callTrace listId (length conts) 0 type task iworld
+                # (mbStateMbTask,iworld)     = initParallelTask evalOpts.callTrace listId 0 type task iworld
                 = case mbStateMbTask of
                     Ok (state,mbTask)
                       //Update the task list (TODO, be specific about what we are writing here)
@@ -474,7 +469,7 @@ where
         //Check if someone is trying to add an embedded task to the topLevel list
         | listId == TaskId 0 0 && (parType =:(Embedded) || parType =:(NamedEmbedded _))
             = (Error (exception "Embedded tasks can not be added to the top-level task list"),iworld)
-        # (mbStateMbTask,iworld)  = initParallelTask [] listId 1 0 parType parTask iworld
+        # (mbStateMbTask,iworld)  = initParallelTask [] listId 0 parType parTask iworld
         = case mbStateMbTask of
             Ok (state,mbTask)
               # taskId = state.ParallelTaskState.taskId

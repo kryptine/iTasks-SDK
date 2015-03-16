@@ -251,8 +251,8 @@ ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
 :: ListId :== TaskId
 
-newSetActiveNode :: !TaskId !TaskId !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
-newSetActiveNode blueprintTaskId currTaskId=:(TaskId currInstanceNo _) nid activeTasks iworld=:{current}
+setActiveNodes :: !TaskId !TaskId !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
+setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) nid activeTasks iworld=:{current}
   = case current.currentParallelContext of
       Just currentListId
         | currentListId < blueprintTaskId = (defVal blueprintTaskId, iworld)
@@ -265,7 +265,7 @@ newSetActiveNode blueprintTaskId currTaskId=:(TaskId currInstanceNo _) nid activ
         = case mtl of
             Ok tl
               = case tl of
-                  [{ParallelTaskState | numTasks, index} :_]
+                  [{ParallelTaskState | index} :_]
                     # activeSubTasks = case 'DM'.get currentListId activeTasks of
                                          Just activeSubTasks -> activeSubTasks
                                          _                   -> 'DIS'.newMap
@@ -304,7 +304,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
     where
     updRTMap tid=:(TaskId instanceNo _) localCallTrace bpref inst rtMap iworld
-      # (newActiveNodes`, iworld) = newSetActiveNode inst.bpi_taskId tid nid inst.bpi_activeNodes iworld
+      # (newActiveNodes`, iworld) = setActiveNodes inst.bpi_taskId tid nid inst.bpi_activeNodes iworld
       # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`}) bpref.bpr_instance} rtMap
       = snd ('DSDS'.write rtMap tonicSharedRT iworld)
     updLoTMap tid bpref inst iworld
@@ -316,32 +316,6 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
             = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
           _
             = iworld
-
-/*
-
-TODO for parallel, we should do the following, where
-
-   # (mtinst, iworld) = 'DSDS'.read (sdsFocus instanceNo taskInstance) iworld // Can fail
-   # taskId = (fromOk mtinst).listId // If TaskId 0 0, then top-level, so do something different
-   # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-   # (mbTaskList,iworld) = 'DSDS'.read (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
-
-:: ParallelTaskState =
-  { taskId     :: !TaskId                   //Identification
-  , numTasks   :: !Int                      //Number of parallel tasks in this parallel
-  , index      :: !Int                      //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
-  , detached   :: !Bool
-  , attributes :: !TaskAttributes
-  , value      :: !TaskValue JSONNode       //Value (only for embedded tasks)
-  , createdAt  :: !TaskTime                 //Time the entry was added to the set (used by layouts to highlight new items)
-  , lastFocus  :: !Maybe TaskTime           //Time the entry was last explicitly focused
-  , lastEvent  :: !TaskTime                 //Last modified time
-  , change     :: !Maybe ParallelTaskChange //Changes like removing or replacing a parallel task are only done when the
-  }                                          //parallel is evaluated. This field is used to schedule such changes.
-mbTaskList :: MaybeError ... [ParallelTaskState]
-
-Then use the index and taskId to identify the parallel task
-*/
 
 tonicWrapAppLam1 :: ModuleName TaskName NodeId (a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
@@ -615,7 +589,7 @@ tonicDynamicBrowser rs = enterQuery >&> withSelection (tonicDynamicBrowser` rs N
 tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
     (enterChoiceWithShared "Active blueprint instances" [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) >&>
-    withSelection noBlueprintSelection (viewInstance rs)) <<@ ArrangeWithSideBar 0 LeftSide 800 True
+    withSelection noBlueprintSelection (viewInstance rs)) <<@ ArrangeWithSideBar 0 LeftSide 400 True
                                                           <<@ FullScreen
   where
   filterActiveTasks Nothing tasks = tasks
