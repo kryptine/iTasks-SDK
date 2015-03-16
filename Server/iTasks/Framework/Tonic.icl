@@ -141,15 +141,12 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                      , bpi_startTime     = clocks
                      , bpi_endTime       = Nothing
                      , bpi_params        = args
-                     , bpi_activeNodes   = Nothing
-                     , bpi_activeNodes`  = 'DIS'.newMap
-                     , bpi_trace         = callTrace
+                     , bpi_activeNodes   = 'DM'.newMap
                      , bpi_parentTaskId  = case firstParent rtMap mn tn cct of
                                              Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                              _    -> Nothing
                      , bpi_involvedUsers = [curr.user]
                      , bpi_output        = Nothing
-                     , bpi_bar        = 'DM'.newMap
                      }
           # blueprint = { BlueprintRef
                         | bpr_moduleName = mn
@@ -215,13 +212,10 @@ firstParent rtMap mn tn [parent : parents]
   , bpi_startTime     :: !SystemClocks
   , bpi_endTime       :: !Maybe SystemClocks
   , bpi_params        :: ![(!VarName, !Task ())]
-  , bpi_activeNodes   :: !Maybe NodeId
-  , bpi_activeNodes`  :: !IntMap NodeId
-  , bpi_trace         :: !NodeId // For debugging purposes only
+  , bpi_activeNodes   :: Map ListId (IntMap (TaskId, NodeId))
   , bpi_parentTaskId  :: !Maybe TaskId
   , bpi_involvedUsers :: ![User]
   , bpi_output        :: !Maybe (Task ())
-  , bpi_bar :: Map ListId (IntMap (TaskId, NodeId))
   }
 
 :: TonicRTMap :== Map TaskId BlueprintRef
@@ -257,29 +251,32 @@ ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
 :: ListId :== TaskId
 
-foo :: !TaskId !TaskId !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
-foo blueprintTaskId currTaskId=:(TaskId currInstanceNo _) nid activeTasks iworld=:{current}
+newSetActiveNode :: !TaskId !TaskId !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
+newSetActiveNode blueprintTaskId currTaskId=:(TaskId currInstanceNo _) nid activeTasks iworld=:{current}
   = case current.currentParallelContext of
-      Just listId
-        | listId < blueprintTaskId = (defVal, iworld)
+      Just currentListId
+        | currentListId < blueprintTaskId = (defVal blueprintTaskId, iworld)
+        # parentContext  = case current.parentParallelContext of
+                             Just pctx -> if (pctx < blueprintTaskId) blueprintTaskId pctx
+                             _         -> blueprintTaskId
+        # activeTasks    = 'DM'.del parentContext activeTasks
         # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [currTaskId],onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-        # (mtl, iworld)  = 'DSDS'.read (sdsFocus (listId, taskListFilter) taskInstanceParallelTaskList) iworld
+        # (mtl, iworld)  = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
         = case mtl of
             Ok tl
               = case tl of
                   [{ParallelTaskState | numTasks, index} :_]
-                    # activeSubTasks = case 'DM'.get listId activeTasks of
+                    # activeSubTasks = case 'DM'.get currentListId activeTasks of
                                          Just activeSubTasks -> activeSubTasks
                                          _                   -> 'DIS'.newMap
-                    # activeSubTasks = 'DIS'.trim numTasks activeSubTasks
                     # activeSubTasks = 'DIS'.put index (currTaskId, nid) activeSubTasks
-                    = ('DM'.put listId activeSubTasks activeTasks, iworld)
-                  _ = (defVal, iworld)
-            _ = (defVal, iworld)
-      _ = (defVal, iworld)
+                    = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
+                  _ = (defVal currentListId, iworld)
+            _ = (defVal currentListId, iworld)
+      _ = (defVal blueprintTaskId, iworld)
   where
-  defVal :: Map ListId (IntMap (TaskId, NodeId))
-  defVal = 'DM'.singleton blueprintTaskId ('DIS'.singleton 0 (currTaskId, nid))
+  defVal :: TaskId -> Map ListId (IntMap (TaskId, NodeId))
+  defVal tid = 'DM'.singleton tid ('DIS'.singleton 0 (currTaskId, nid))
 
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
@@ -307,10 +304,8 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
     where
     updRTMap tid=:(TaskId instanceNo _) localCallTrace bpref inst rtMap iworld
-      # (bar`, iworld) = foo inst.bpi_taskId tid nid inst.bpi_bar iworld
-      # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes  = Just nid
-                                                                                      , bpi_trace        = callTrace
-                                                                                      , bpi_bar          = bar`}) bpref.bpr_instance} rtMap
+      # (newActiveNodes`, iworld) = newSetActiveNode inst.bpi_taskId tid nid inst.bpi_activeNodes iworld
+      # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`}) bpref.bpr_instance} rtMap
       = snd ('DSDS'.write rtMap tonicSharedRT iworld)
     updLoTMap tid bpref inst iworld
       # (mbmlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
@@ -594,10 +589,10 @@ dynamicParent childId=:(TaskId instanceNo _)
 :: DynamicView =
   { moduleName :: String
   , taskName   :: String
-  , taskId     :: TaskId
-  , activeNode :: String
-  , trace      :: String
-  , bar :: String
+  //, taskId     :: TaskId
+  //, activeNode :: String
+  //, trace      :: String
+  //, newActiveNode :: String
   }
 
 derive class iTask DynamicView
@@ -637,12 +632,19 @@ tonicDynamicBrowser` rs q =
     = { DynamicView
       | moduleName = bpr.bpr_moduleName
       , taskName   = bpr.bpr_taskName
-      , taskId     = bpi.bpi_taskId
-      , trace      = foldr (\x xs -> toString x +++ " " +++ xs) "" bpi.bpi_trace
-      , activeNode = maybe "" (foldr (\x xs -> toString x +++ " " +++ xs) "") bpi.bpi_activeNodes
-      , bar     = toString (toJSON bpi.bpi_bar)
+      //, taskId     = bpi.bpi_taskId
+      //, trace      = foldr (\x xs -> toString x +++ " " +++ xs) "" bpi.bpi_trace
+      //, activeNode = maybe "" (foldr (\x xs -> toString x +++ " " +++ xs) "") bpi.bpi_activeNodes
+      //, newActiveNode        = toString (toJSON bpi.bpi_newActiveNodes)
       }
-  customView bpr = { DynamicView | moduleName = bpr.bpr_moduleName, taskName = bpr.bpr_taskName, taskId = TaskId -1 -1, trace = "", activeNode = "", bar ="" }
+  customView bpr = { DynamicView
+                   | moduleName = bpr.bpr_moduleName
+                   , taskName = bpr.bpr_taskName
+                   //, taskId = TaskId -1 -1
+                   //, trace = ""
+                   //, activeNode = ""
+                   //, newActiveNode = ""
+                   }
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
 
 instance toString (Maybe [Int]) where
@@ -1228,11 +1230,14 @@ tTransformApp inh texpr tffun args tsrc
   #! tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
   = (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
 
+nodeIsActive :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> Bool
+nodeIsActive eid activeNodes = not (isEmpty [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid])
+
 tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskApp inh eid modName taskName taskArgs tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
   #! isActive           = case inh.inh_trt.bpr_instance of
-                            Just bpinst -> Just eid == bpinst.bpi_activeNodes
+                            Just bpinst -> nodeIsActive eid bpinst.bpi_activeNodes
                             _           -> False
   #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of

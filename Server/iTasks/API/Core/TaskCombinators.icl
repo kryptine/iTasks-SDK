@@ -207,21 +207,24 @@ where
     //Create initial task list
     eval event evalOpts=:{callTrace} (TCInit taskId ts) iworld=:{IWorld|current}
       //Create the states for the initial tasks
-      # iworld = {iworld & current = {current & parentParallelContext = current.currentParallelContext
+      # iworld = {iworld & current = {current & parentParallelContext  = current.currentParallelContext
                                               , currentParallelContext = Just taskId}}
       # (mbParTasks,iworld) = initParallelTasks callTrace taskId (length initTasks) 0 initTasks iworld
-      = case mbParTasks of
-          Ok (taskList,embeddedTasks)
-            //Write the local task list
-            # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-            # (e,iworld) = write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
-            | isError e = (ExceptionResult (fromError e),iworld)
-            //Write the local embedded tasks
-            # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
-            | isError e = (ExceptionResult (fromError e),iworld)
-            //Evaluate the parallel
-            = eval event (extendCallTrace taskId evalOpts) (TCParallel taskId ts []) iworld
-          Error err = (ExceptionResult err, iworld)
+      # (tr, iworld) = case mbParTasks of
+                         Ok (taskList,embeddedTasks)
+                           //Write the local task list
+                           # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+                           # (e,iworld) = write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
+                           | isError e = (ExceptionResult (fromError e),iworld)
+                           //Write the local embedded tasks
+                           # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
+                           | isError e = (ExceptionResult (fromError e),iworld)
+                           //Evaluate the parallel
+                           = eval event (extendCallTrace taskId evalOpts) (TCParallel taskId ts []) iworld
+                         Error err = (ExceptionResult err, iworld)
+      # iworld = {iworld & current = {iworld.current & currentParallelContext = current.currentParallelContext
+                                                     , parentParallelContext  = current.parentParallelContext}}
+      = (tr, iworld)
       where
       writeAll [] sds iworld = (Ok (),iworld)
       writeAll [(f,w):ws] sds iworld = case write w (sdsFocus f sds) iworld of
@@ -231,8 +234,6 @@ where
     //Evaluate the task list
     eval event evalOpts (TCParallel taskId ts taskTrees) iworld=:{current=current=:{taskTime}}
         //Evaluate the branches of the parallel set
-        # iworld = {iworld & current = {current & parentParallelContext = current.currentParallelContext
-                                                , currentParallelContext = Just taskId}}
         # (mbResults,iworld)  = evalParallelTasks taskId ('DM'.fromList taskTrees) event evalOpts conts [] [] iworld
         = case mbResults of
             (Error e)
@@ -250,8 +251,6 @@ where
     //Cleanup
     eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees)) iworld=:{current}
         //Mark all tasks as deleted and use the standar evaluation function to clean up
-        # iworld = {iworld & current = {current & parentParallelContext = current.currentParallelContext
-                                                , currentParallelContext = Just taskId}}
         # taskListFilter         = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
         # (mbError,iworld)       = modify (map (\pts -> {ParallelTaskState|pts & change=Just RemoveParallelTask})) (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
         | mbError =:(Error _)    = (ExceptionResult (fromError mbError),iworld)
