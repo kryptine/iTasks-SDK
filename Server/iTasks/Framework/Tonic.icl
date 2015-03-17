@@ -246,8 +246,6 @@ ppCCT ct = foldr (\x acc -> toString x +++ " " +++ acc) "" ct
 
 ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
-//getParallelListId tid iworld
-
 :: ListId :== TaskId
 
 getParentContext :: !TaskId !TaskId ![Int] !*IWorld -> *(TaskId, *IWorld)
@@ -595,11 +593,11 @@ dynamicParent childId=:(TaskId instanceNo _)
                     _          -> Nothing)
 
 :: DynamicView =
-  { moduleName :: String
-  , taskName   :: String
-  , taskId     :: TaskId
-  , activeNode :: String
-  //, trace      :: String
+  { moduleName :: !String
+  , taskName   :: !String
+  , users      :: ![User]
+  //, taskId     :: !TaskId
+  //, activeNode :: !String
   }
 
 derive class iTask DynamicView
@@ -639,16 +637,16 @@ tonicDynamicBrowser` rs q =
     = { DynamicView
       | moduleName = bpr.bpr_moduleName
       , taskName   = bpr.bpr_taskName
-      , taskId     = bpi.bpi_taskId
-      //, trace      = foldr (\x xs -> toString x +++ " " +++ xs) "" bpi.bpi_trace
-      , activeNode = toString (toJSON bpi.bpi_activeNodes)
+      , users      = bpi.bpi_involvedUsers
+      //, taskId     = bpi.bpi_taskId
+      //, activeNode = toString (toJSON bpi.bpi_activeNodes)
       }
   customView bpr = { DynamicView
                    | moduleName = bpr.bpr_moduleName
-                   , taskName = bpr.bpr_taskName
-                   , taskId = TaskId -1 -1
-                   //, trace = ""
-                   , activeNode = ""
+                   , taskName   = bpr.bpr_taskName
+                   , users      = []
+                   //, taskId = TaskId -1 -1
+                   //, activeNode = ""
                    }
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
 
