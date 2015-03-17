@@ -108,11 +108,11 @@ instance Monad IWorldM where
 //traceToForest []     = []
 //traceToForest [x:xs] = [RNode x (traceToForest xs)]
 
-tonicSharedRT :: Shared TonicRTMap
-tonicSharedRT = sharedStore "tonicSharedRT" 'DM'.newMap
+tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
+tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
 
-tonicSharedListOfTask :: Shared ListsOfTasks
-tonicSharedListOfTask = sharedStore "tonicSharedListOfTask" 'DM'.newMap
+tonicSharedListOfTask :: RWShared () ListsOfTasks ListsOfTasks
+tonicSharedListOfTask = sdsTranslate "tonicSharedListOfTask" (\t -> t +++> "-tonicSharedListOfTask") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
