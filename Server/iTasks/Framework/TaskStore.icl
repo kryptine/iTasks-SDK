@@ -304,10 +304,10 @@ where
 
 // Match parallel task IDs to callTraces
 taskInstanceParallelCallTrace :: RWShared TaskId [Int] [Int]
-taskInstanceParallelCallTrace = sdsFocus "taskInstanceParallelCallTrace" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just []))
+taskInstanceParallelCallTrace = sdsTranslate "taskInstanceParallelCallTrace" (\t -> t +++> "-calltrace") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just []))
 
 parallelListId :: RWShared TaskId TaskId TaskId
-parallelListId = sdsFocus "parallelListId" (cachedJSONFileStore NS_TASK_INSTANCES False False True Nothing)
+parallelListId = sdsTranslate "parallelListId" (\t -> t +++> "-listId") (cachedJSONFileStore NS_TASK_INSTANCES True False True Nothing)
 
 import StdDebug
 derive gText ParallelTaskState

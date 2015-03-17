@@ -260,20 +260,21 @@ getParentContext blueprintTaskId cid=:(TaskId ino _) [parentId : parents] iworld
         | otherwise              = (pctx, iworld)
       _ = getParentContext blueprintTaskId cid parents iworld
 
-getCurrentListId :: !Int ![Int] !*IWorld -> *(Maybe TaskId, *IWorld)
-getCurrentListId _          [] iworld = (Nothing, iworld)
-getCurrentListId instanceNo [x:xs] iworld
-  # (mclid, iworld) = 'DSDS'.read (sdsFocus (TaskId instanceNo x) parallelListId) iworld
+getCurrentListId :: !Calltrace !*IWorld -> *(Maybe TaskId, *IWorld)
+getCurrentListId [] iworld = (Nothing, iworld)
+getCurrentListId [traceTaskId : xs] iworld
+  # (mclid, iworld) = 'DSDS'.read (sdsFocus traceTaskId parallelListId) iworld
   = case mclid of
       Ok currentListId -> (Just currentListId, iworld)
-      _                -> getCurrentListId instanceNo xs iworld
+      _                -> getCurrentListId xs iworld
 
-setActiveNodes :: !TaskId !TaskId ![Int] !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
-setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) callTrace nid activeTasks iworld=:{current}
-  # (mclid, iworld) = getCurrentListId currInstanceNo callTrace iworld
+setActiveNodes :: !TaskId !TaskId !Calltrace !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
+setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) cct nid activeTasks iworld=:{current}
+  # (mclid, iworld) = getCurrentListId cct iworld
   = case mclid of
       Just currentListId
-        | currentListId < blueprintTaskId = (defVal blueprintTaskId, iworld)
+        | currentListId < blueprintTaskId
+           = (defVal blueprintTaskId, iworld)
         # (mpct, iworld) = 'DSDS'.read (sdsFocus currentListId taskInstanceParallelCallTrace) iworld
         = case mpct of
             Ok pct
@@ -283,7 +284,7 @@ setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) callTrace n
               # (mtl, iworld)  = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
               = case mtl of
                   Ok tl
-                    = case getIndex callTrace tl of
+                    = case getIndex cct tl of
                         Just index
                           # activeSubTasks = case 'DM'.get currentListId activeTasks of
                                                Just activeSubTasks -> activeSubTasks
@@ -292,16 +293,20 @@ setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) callTrace n
                           = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
                         _
                           = (defVal currentListId, iworld)
-                  _ = (defVal currentListId, iworld)
-            _ = (defVal currentListId, iworld)
-      _ = (defVal blueprintTaskId, iworld)
+                  _
+                    = (defVal currentListId, iworld)
+            _
+              = (defVal currentListId, iworld)
+      _
+        = (defVal blueprintTaskId, iworld)
   where
   defVal :: TaskId -> Map ListId (IntMap (TaskId, NodeId))
   defVal tid = 'DM'.singleton tid ('DIS'.singleton 0 (currTaskId, nid))
 
+  getIndex :: !Calltrace ![ParallelTaskState] -> Maybe Int
   getIndex [] _ = Nothing
   getIndex [ct : callTrace] ss
-    = case [index \\ {ParallelTaskState | taskId=(TaskId _ taskNo), index} <- ss | ct == taskNo] of
+    = case [index \\ {ParallelTaskState | taskId, index} <- ss | ct == taskId] of
         [idx : _] -> Just idx
         _         -> getIndex callTrace ss
 
@@ -318,11 +323,13 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
           # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
           = case mrtMap of
               Ok rtMap
-                # localCallTrace = [taskNo : callTrace]
+                # localCallTrace = case callTrace of
+                                     [x:xs] | x == taskNo -> callTrace
+                                     _                    -> [taskNo : callTrace]
                 # (cct, iworld)  = mkCompleteTrace instanceNo localCallTrace iworld
                 = case firstParent rtMap mn tn cct of
                     Ok bpref=:{bpr_instance = Just inst}
-                      # iworld       = updRTMap tid callTrace bpref inst rtMap iworld
+                      # iworld       = updRTMap tid cct bpref inst rtMap iworld
                       # (rt, iworld) = eval event evalOpts taskTree iworld
                       # iworld       = updLoTMap tid bpref inst iworld
                       = (rt, iworld)
@@ -330,8 +337,8 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
     where
-    updRTMap tid=:(TaskId instanceNo _) callTrace bpref inst rtMap iworld
-      # (newActiveNodes`, iworld) = setActiveNodes inst.bpi_taskId tid callTrace nid inst.bpi_activeNodes iworld
+    updRTMap tid=:(TaskId instanceNo _) cct bpref inst rtMap iworld
+      # (newActiveNodes`, iworld) = setActiveNodes inst.bpi_taskId tid cct nid inst.bpi_activeNodes iworld
       # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`}) bpref.bpr_instance} rtMap
       = snd ('DSDS'.write rtMap tonicSharedRT iworld)
     updLoTMap tid bpref inst iworld
