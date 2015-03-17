@@ -5,7 +5,7 @@ import iTasks
 import iTasks.Framework.Tonic
 
 Start :: *World -> *World
-Start world = StartMultiUserTasks [ workflow "Dynamic Blueprints 1" "Dynamic Blueprints 1" dynamicBPs1
+Start world = StartMultiUserTasks [ workflow "Dynamic Blueprints 1" "Dynamic Blueprints 1" (dynamicBPs1 (viewStep 42))
                                   , tonicStaticWorkflow []
                                   , tonicDynamicWorkflow []
                                   ] world
@@ -13,8 +13,8 @@ Start world = StartMultiUserTasks [ workflow "Dynamic Blueprints 1" "Dynamic Blu
 viewStep :: Int -> Task Int
 viewStep n = viewInformation ("Step " +++ toString n) [] n
 
-dynamicBPs1 :: Task Int
-dynamicBPs1 = viewStep 1 >>| viewStep 2 >>| allTasks restOfSteps >>| viewStep 7 >>| viewStep 8
+dynamicBPs1 :: (Task Int) -> Task Int
+dynamicBPs1 vs42 = viewStep 1 >>| (viewStep 11 -&&- (viewStep 12 >>| viewStep 13)) >>| viewStep 2 >>| vs42 >>| viewStep 3 >>| allTasks restOfSteps >>| viewStep 8 >>| viewStep 9
   where
-  restOfSteps = map viewStep [3, 4, 5, 6]
+  restOfSteps = map viewStep [4, 5, 6, 7]
 
