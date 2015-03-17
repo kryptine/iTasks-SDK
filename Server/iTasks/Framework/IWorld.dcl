@@ -86,8 +86,6 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     , user			         :: !User									// The current user
     , eventRoute			 :: !Map TaskId Int							// Index of parallel branches the event is targeted at
     , editletDiffs           :: !UIEditletDiffs                          // Diffs of editlets
-    , currentParallelContext :: !Maybe TaskId
-    , parentParallelContext  :: !Maybe TaskId
     }
 
 :: *IOTasks =

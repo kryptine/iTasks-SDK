@@ -244,8 +244,6 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	    ,user			        = AnonymousUser ""
         ,eventRoute			    = newMap
         ,editletDiffs           = newMap
-        ,currentParallelContext = Nothing
-        ,parentParallelContext  = Nothing
         }
       ,sdsNotifyRequests    = []
       ,memoryShares         = newMap
