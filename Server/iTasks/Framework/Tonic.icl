@@ -524,11 +524,10 @@ tonicStaticBrowser rs = (
       \sett ->     viewStaticTask allbps sett.unfold_depth sett.display_compact rs [] tm tt @! ()))
                  (getTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-            <<@ FullScreen)) @! ()
+         )) <<@ FullScreen)) @! ()
   where
-  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromGrid id)]
-  selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromGrid id)] (getTasks tm)
+  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromComboBox id)]
+  selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromComboBox id)] (getTasks tm)
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
@@ -595,6 +594,8 @@ dynamicParent childId=:(TaskId instanceNo _)
 :: DynamicView =
   { moduleName :: !String
   , taskName   :: !String
+  , startTime  :: !String
+  , endTime    :: !String
   , users      :: ![User]
   //, taskId     :: !TaskId
   //, activeNode :: !String
@@ -638,6 +639,8 @@ tonicDynamicBrowser` rs q =
       | moduleName = bpr.bpr_moduleName
       , taskName   = bpr.bpr_taskName
       , users      = bpi.bpi_involvedUsers
+      , startTime  = ppSystemClocks bpi.bpi_startTime
+      , endTime    = maybe "" ppSystemClocks bpi.bpi_endTime
       //, taskId     = bpi.bpi_taskId
       //, activeNode = toString (toJSON bpi.bpi_activeNodes)
       }
@@ -645,10 +648,14 @@ tonicDynamicBrowser` rs q =
                    | moduleName = bpr.bpr_moduleName
                    , taskName   = bpr.bpr_taskName
                    , users      = []
+                   , startTime  = ""
+                   , endTime    = ""
                    //, taskId = TaskId -1 -1
                    //, activeNode = ""
                    }
   noBlueprintSelection = viewInformation () [] "Select blueprint instance"
+  ppSystemClocks c = toString c.localDate +++ " " +++ toString c.localTime
+
 
 instance toString (Maybe [Int]) where
   toString Nothing = "x"
