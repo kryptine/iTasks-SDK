@@ -10,7 +10,7 @@ $$ UTCTime = Time
 $$ UTCDateTime = DateTime
 $$ SpeedInKnots = Int
 $$ HeadingInDegrees = Int
-$$ PhoneNumber = String
+$$ PhoneNo = String
 $$ CallSign = String
 $$ RadioChannel = Int
 

@@ -89,7 +89,7 @@ import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, I
 :: Temperature = Temperature !Int
 :: RadioChannel :== Int
 :: CallSign :== String
-:: PhoneNumber :== String
+:: PhoneNo :== String
 :: HeadingInDegrees :== Int
 :: SpeedInKnots :== Int
 :: UTCDateTime :== DateTime
@@ -135,7 +135,7 @@ import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, I
 	,courseSpeedActivated :: Bool
 	}
 :: PhoneCall =
-	{externalNo :: Maybe PhoneNumber
+	{externalNo :: Maybe PhoneNo
 	,externalRef :: Maybe PhoneCallReference
 	,callNotes :: Maybe CallNotes
 	,communicationNo :: CommunicationNo
@@ -164,7 +164,7 @@ import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, I
 	,status :: Maybe CommunicationStatus
 	,withContact :: Maybe ContactShort
 	,aboutIncidents :: [IncidentShort]
-	,externalNo :: Maybe PhoneNumber
+	,externalNo :: Maybe PhoneNo
 	}
 :: Incident =
 	{incidentNo :: IncidentNo
@@ -225,10 +225,10 @@ import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, I
 	,emailAddress :: Maybe EmailAddress
 	,callSign :: Maybe CallSign
 	,mmsi :: Maybe MMSI
-	,phoneNo :: Maybe PhoneNumber
+	,phoneNo :: Maybe PhoneNo
 	}
 :: TelephoneDetails =
-	{phoneNo :: Maybe PhoneNumber
+	{phoneNo :: Maybe PhoneNo
 	}
 :: VHFRadioDetails =
 	{callSign :: Maybe CallSign
@@ -393,7 +393,7 @@ import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, I
 	,emailAddress :: Maybe EmailAddress
 	,callSign :: Maybe CallSign
 	,mmsi :: Maybe MMSI
-	,phoneNo :: Maybe PhoneNumber
+	,phoneNo :: Maybe PhoneNo
 	}
 class mbToSQL a where mbToSQL :: !(Maybe a) -> [SQLValue]
 class mbFromSQL a where mbFromSQL :: ![SQLValue] -> Maybe a

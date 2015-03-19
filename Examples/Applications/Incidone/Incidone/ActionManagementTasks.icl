@@ -61,29 +61,29 @@ toActionStatusesTL items = [toActionStatusTL i \\ i=:{TaskListItem|progress=Just
 
 toActionStatus :: TaskInstance -> (InstanceNo,InstanceNo,ActionStatus)
 toActionStatus {TaskInstance|instanceNo=tNo,listId=(TaskId lNo _),attributes}
-    # title		    = fromMaybe "-" ('DM'.get "title" attributes)
-    # description   = fmap Note ('DM'.get "description" attributes)
-    # progress  = fromMaybe ActionActive (maybe Nothing (fromJSON o fromString) ('DM'.get "action-progress" attributes))
-    # incidents = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-incidents" attributes))
-    # contacts  = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-contacts" attributes))
+    # title		    = maybe "-" (\(TAStringVal x) -> x)  ('DM'.get (TACustom "title") attributes)
+    # description   = fmap (Note o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "description") attributes)
+    # progress  = fromMaybe ActionActive (maybe Nothing (fromJSON o fromString o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "action-progress") attributes))
+    # incidents = fromMaybe [] (maybe Nothing (fromJSON o fromString o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "action-incidents") attributes))
+    # contacts  = fromMaybe [] (maybe Nothing (fromJSON o fromString o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "action-contacts") attributes))
     = (tNo,lNo,{ActionStatus|title=title,description=description,progress=progress,incidents=incidents,contacts=contacts})
 
 toActionStatusTL :: (TaskListItem a) -> (InstanceNo,InstanceNo,ActionStatus)
 toActionStatusTL {TaskListItem|taskId=(TaskId tNo _),listId=(TaskId lNo _),attributes}
-    # title		    = fromMaybe "-" ('DM'.get "title" attributes)
-    # description   = fmap Note ('DM'.get "description" attributes)
-    # progress  = fromMaybe ActionActive (maybe Nothing (fromJSON o fromString) ('DM'.get "action-progress" attributes))
-    # incidents = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-incidents" attributes))
-    # contacts  = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-contacts" attributes))
+    # title		    = maybe "-" (\(TAStringVal x) -> x) ('DM'.get (TACustom "title") attributes)
+    # description   = fmap (Note  o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "description") attributes)
+    # progress  = fromMaybe ActionActive (maybe Nothing (fromJSON o fromString o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "action-progress") attributes))
+    # incidents = fromMaybe [] (maybe Nothing (fromJSON o fromString o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "action-incidents") attributes))
+    # contacts  = fromMaybe [] (maybe Nothing (fromJSON o fromString o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "action-contacts") attributes))
     = (tNo,lNo,{ActionStatus|title=title,description=description,progress=progress,incidents=incidents,contacts=contacts})
 
 fromActionStatus :: ActionStatus TaskAttributes -> TaskAttributes
 fromActionStatus {ActionStatus|title,description,progress,incidents,contacts} attributes
-    # attributes = 'DM'.put "title" title attributes
-    # attributes = maybe ('DM'.del "description" attributes) (\(Note d) -> 'DM'.put "description" d attributes) description
-    # attributes = 'DM'.put "action-progress" (toString (toJSON progress)) attributes
-    # attributes = 'DM'.put "action-incidents" (toString (toJSON incidents)) attributes
-    # attributes = 'DM'.put "action-contacts" (toString (toJSON contacts)) attributes
+    # attributes = 'DM'.put (TACustom "title") (TAStringVal title) attributes
+    # attributes = maybe ('DM'.del (TACustom "description") attributes) (\(Note d) -> 'DM'.put (TACustom "description") (TAStringVal d) attributes) description
+    # attributes = 'DM'.put (TACustom "action-progress") (TAStringVal (toString (toJSON progress))) attributes
+    # attributes = 'DM'.put (TACustom "action-incidents") (TAStringVal (toString (toJSON incidents))) attributes
+    # attributes = 'DM'.put (TACustom "action-contacts") (TAStringVal (toString (toJSON contacts))) attributes
     = attributes
 
 toSelfActionStatus :: (TaskList a) -> MaybeError TaskException ActionStatus
@@ -359,7 +359,7 @@ where
         initStatus {ItemMeta|title,description}
             = {ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=initIncidents}
 
-    items init _ _ = [] //TODO: Make sure that the configuration of the immediate actions is done beforehand
+   // items init _ _ = [] //TODO: Make sure that the configuration of the immediate actions is done beforehand
 /*
         = [(Detached (initAttributes identity (initStatus [] [])) True, \list -> task (selfActionStatus list)) //TODO: Maybe inherit contact+incident from parent
           \\ item=:{CatalogAction|identity,task=ConfigurableAction configer task} <- init]
@@ -590,7 +590,7 @@ where
     //Look in action the catalog for an entry that has the identity
     findReplacement taskId
         =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |+| actionCatalog)
-        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "actionitem-identity" taskListEntry.TaskListItem.attributes)
+        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog o (\(TAStringVal x) -> x)) ('DM'.get (TACustom "actionitem-identity") taskListEntry.TaskListItem.attributes)
     where
         lookup [] match = Nothing
         lookup [{CatalogAction|identity,tasks}:cfs] match = if (identity == match) (Just tasks) (lookup cfs match)
@@ -758,7 +758,7 @@ addTopActionItem initContacts initIncidents = addSubAction initContacts initInci
 
 initAttributes :: String ActionStatus -> TaskAttributes
 initAttributes identity status
-    = fromActionStatus status ('DM'.fromList [("actionitem-identity",identity)])
+    = fromActionStatus status ('DM'.fromList [(TACustom "actionitem-identity",TAStringVal identity)])
 
 manageUserActionCatalog :: Task ()
 manageUserActionCatalog
