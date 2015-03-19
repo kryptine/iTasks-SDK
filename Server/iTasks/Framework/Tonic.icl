@@ -622,15 +622,15 @@ derive class iTask BlueprintQuery
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs = enterQuery >&> withSelection (tonicDynamicBrowser` rs Nothing) (tonicDynamicBrowser` rs)
 
-selectedBlueprint :: Shared (Maybe BlueprintRef)
+selectedBlueprint :: Shared (Maybe TaskId)
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 
 tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
-  (editSharedChoiceWithShared (Title "Active blueprint instances")
-    [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) selectedBlueprint
+  (editSharedChoiceWithSharedAs (Title "Active blueprint instances")
+    [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
   -&&-
-    whileUnchanged selectedBlueprint (viewInstance rs)
+    whileUnchanged selectedBlueprint (\sbp -> whileUnchanged tonicSharedRT (\trt -> viewInstance rs (sbp, trt)))
   ) <<@ ArrangeWithSideBar 0 LeftSide 400 True
     <<@ FullScreen @! ()
   where
@@ -665,17 +665,17 @@ tonicDynamicBrowser` rs q =
                    }
   ppSystemClocks c = toString c.localDate +++ " " +++ toString c.localTime
 
-viewInstance :: [TaskAppRenderer] !(Maybe BlueprintRef) -> Task ()
-viewInstance rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}) =
+viewInstance :: [TaskAppRenderer] !(Maybe TaskId, TonicRTMap) -> Task ()
+viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt)
+viewInstance rs _               = viewInformation () [] "Select blueprint instance" @! ()
+
+viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}) =
                  dynamicParent bpinst.bpi_taskId
   >>~ \mbprnt -> viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
              ||- viewTaskArguments bpinst bpr_blueprint
-             ||- updateInformation "Compact view?" [] False
-             >&> withSelection (return ()) (
-  \compact ->    whileUnchanged tonicSharedListOfTask (
-  \maplot ->     whileUnchanged tonicSharedRT (
-  \rtmap ->      viewBP maplot compact)
-             >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> Just (viewInstance rs mbprnt))]))
+             ||- whileUnchanged tonicSharedListOfTask (
+      \maplot -> viewBP maplot False)
+             >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> Just (viewInstance` rs mbprnt))]
   where
   viewBP :: ListsOfTasks Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
   viewBP maplot compact
@@ -684,14 +684,14 @@ viewInstance rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_i
         { ActionState
         | state = { TonicImageState
                   | tis_task    = bpr_blueprint
-                  , tis_compact = False // TODO
+                  , tis_compact = compact
                   , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
                   }
         , action = Nothing}
   viewTaskArguments bpinst graph = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs bpinst graph) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection                    = viewInformation () [] "Select argument..."
   collectArgs       bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) graph.tt_args bpinst.bpi_params
-viewInstance _ _ = viewInformation () [] "Select blueprint instance" @! ()
+viewInstance` _ _ = viewInformation () [] "Select blueprint instance" @! ()
 
 tonicViewer :: [TaskAppRenderer] -> PublishedTask
 tonicViewer rs = publish "/tonic" (WebApp []) (\_ -> tonicLogin rs)
