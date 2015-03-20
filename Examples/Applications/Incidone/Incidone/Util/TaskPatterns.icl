@@ -187,7 +187,7 @@ where
             [(i,v):_]   = Just (TaskId i 0,v)
             _           = Nothing
 
-        hasName name attributes = maybe False ((==) (TAStringVal name)) ('DM'.get (TACustom "name") attributes)
+        hasName name attributes = maybe False ((==) name) ('DM'.get "name" attributes)
 
     startTask _ = appendTask (NamedDetached identity defaultValue True) (removeWhenStable (task @! ())) topLevelTasks @! ()
     stopTask (Just (taskId,_)) = removeTask taskId topLevelTasks @! ()
