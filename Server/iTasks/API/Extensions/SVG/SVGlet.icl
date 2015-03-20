@@ -28,9 +28,9 @@ derive class iTask FontDef, Set
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
-mkMouseDragMove :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
+mkMouseDragMove :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId (Real Real s -> s) !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkMouseDragMove resolve state2image cid obj _ evts=:{[0] = evt} clval world
+mkMouseDragMove resolve state2image cid _ obj _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseUp = (clval, NoDiff, world)
   #! (de, world)  = .? (getElementById (mainSvgId cid)) world
   #! (de, world)  = .? (de .# "firstChild") world
@@ -45,18 +45,19 @@ mkMouseDragMove resolve state2image cid obj _ evts=:{[0] = evt} clval world
   #! (px, world)  = .? (p .# "x") world
   #! (py, world)  = .? (p .# "y") world
   #! (px, py)     = (jsValToReal px - clval.svgDragOffsetX, jsValToReal py - clval.svgDragOffsetY)
-  #! world        = if (jsIsNull obj) world (f px py world)
+  #! (target, world) = .? (evt .# "target") world
+  #! world        = if (jsIsNull obj) world (f target px py world)
   = (clval, NoDiff, world)
   where
-  f px py world
-    #! (_, world) = (obj `setAttribute` ("dragx", px)) world
-    #! (_, world) = (obj `setAttribute` ("dragy", py)) world
-    #! (_, world) = (obj `setAttribute` ("transform", "translate(" +++ toString px +++ "," +++ toString py +++ ")")) world
+  f target px py world
+    #! (_, world) = (target `setAttribute` ("dragx", px)) world
+    #! (_, world) = (target `setAttribute` ("dragy", py)) world
+    #! (_, world) = (target `setAttribute` ("transform", "translate(" +++ toString px +++ "," +++ toString py +++ ")")) world
     = world
 
-mkMouseDragDown :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
+mkMouseDragDown :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId (Real Real s -> s) !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkMouseDragDown resolve state2image cid obj _ evts=:{[0] = evt} clval world
+mkMouseDragDown resolve state2image cid _ obj _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseDown = (clval, NoDiff, world)
   #! (target, world) = .? (evt .# "target") world
   #! clval = {clval & svgDraggingElem = Just target}
@@ -85,26 +86,32 @@ mkMouseDragDown resolve state2image cid obj _ evts=:{[0] = evt} clval world
       #! (px, py, dragX, dragY) = (jsValToReal px, jsValToReal py, jsValToReal dragX, jsValToReal dragY)
       = ({clval & svgDragOffsetX = px - dragX, svgDragOffsetY = py - dragY, svgMousePos = MouseDown}, NoDiff, world)
 
-mkMouseDragUp :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
+mkMouseDragUp :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(Real Real s -> s) !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
               -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkMouseDragUp resolve state2image cid _ _ _ clval world
+mkMouseDragUp resolve state2image cid sttf _ _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseUp = (clval, NoDiff, world)
-  = ({clval & svgMousePos = MouseUp, svgDraggingElem = Nothing}, NoDiff, world)
+  #! (target, world) = .? (evt .# "target") world
+  | jsIsNull target = (clval, NoDiff, world)
+  #! (dragX, world) = (target `getAttribute` "dragx") world
+  #! (dragY, world) = (target `getAttribute` "dragy") world
+  #! st`            = sttf (jsValToReal dragX) (jsValToReal dragY) clval.svgClSt
+  = ({clval & svgMousePos = MouseUp, svgDraggingElem = Nothing}, (Diff (SetState st`) (doResolve resolve)), world)
 
 registerDraggables :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj svg) !(Map String (ImageAttr s)) !*JSWorld -> *JSWorld | iTask s
 registerDraggables resolve state2Image cid svg draggables world
   = 'DM'.foldrWithKey (registerDraggable resolve state2Image cid svg) world draggables
   where
   registerDraggable :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj svg) !String !(ImageAttr s) !*JSWorld -> *JSWorld | iTask s
-  registerDraggable resolve state2image cid svg elemCls (ImageDraggableAttr _) world
+  registerDraggable resolve state2image cid svg elemCls (ImageDraggableAttr {draggable = Nothing}) world = world
+  registerDraggable resolve state2image cid svg elemCls (ImageDraggableAttr {draggable = Just sttf}) world
     #! elemCls           = replaceSubString editletId cid elemCls
     #! (elems, world)    = (svg `getElementsByClassName` elemCls) world
     #! (numElems, world) = .? (elems .# "length") world
     | jsValToInt (numElems) < 1 = world
     #! (elem, world)     = .? (elems .# "0") world
-    #! cbDown            = createEditletEventHandler (mkMouseDragDown resolve state2image cid elem) cid
-    #! cbUp              = createEditletEventHandler (mkMouseDragUp   resolve state2image cid elem) cid
-    #! cbMove            = createEditletEventHandler (mkMouseDragMove resolve state2image cid elem) cid
+    #! cbDown            = createEditletEventHandler (mkMouseDragDown resolve state2image cid sttf elem) cid
+    #! cbUp              = createEditletEventHandler (mkMouseDragUp   resolve state2image cid sttf elem) cid
+    #! cbMove            = createEditletEventHandler (mkMouseDragMove resolve state2image cid sttf elem) cid
     #! (_, world)        = (elem `addEventListener` ("mousedown", cbDown, True)) world
     #! (_, world)        = (elem `addEventListener` ("mouseup",   cbUp,   True)) world
     #! (_, world)        = (elem `addEventListener` ("mousemove", cbMove, True)) world
@@ -1459,7 +1466,7 @@ genSVG img = imageCata genSVGAllAlgs img
 
     mkDraggable :: !(DraggableAttr s) !(GenSVGStVal s)
                   -> .((!(![String], !Maybe SVGAttr), !Map String (ImageAttr s), !Map String (ImageAttr s)) , GenSVGStVal s) | iTask s
-    mkDraggable {draggable = False} clval = ((([], Nothing), 'DM'.newMap, 'DM'.newMap), clval)
+    mkDraggable {draggable = Nothing} clval = ((([], Nothing), 'DM'.newMap, 'DM'.newMap), clval)
     mkDraggable attr clval
       #! (uniqId, clval) = nextNo clval
       #! ocId            = "svgDraggable-" +++ editletId +++ toString uniqId
@@ -1469,6 +1476,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (uniqId, clval) = nextNo clval
       #! ocId            = mkIdFun editletId uniqId
       = ((([ocId], Nothing), 'DM'.singleton ocId attr, 'DM'.newMap), clval)
+
   genSVGImageTransformAlgs :: ImageTransformAlg (GenSVGSt s Real) (ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)) | iTask s
   genSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = mkRotateTransform
