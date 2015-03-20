@@ -184,8 +184,8 @@ startWorkflow list wf
 		openTask list procId
 	@	const wf
 where
-    userAttr au=:(AuthenticatedUser _ _ _) = [("user", toString (toUserConstraint au))]
-    userAttr _                             = []
+    userAttr (AuthenticatedUser uid _ _) = [("user", uid)]
+    userAttr _                           = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @ const Void
 unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @ const Void)		

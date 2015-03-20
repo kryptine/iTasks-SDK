@@ -85,7 +85,7 @@ where
             _                               = False
         Nothing = case 'DM'.get "role" attributes of
             Just role = case user of
-                (AuthenticatedUser _ roles _)   = isMember (toString role) roles
+                (AuthenticatedUser _ roles _)   = isMember role roles
                 _                               = False
             Nothing = True
 

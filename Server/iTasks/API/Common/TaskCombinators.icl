@@ -127,8 +127,8 @@ derive class iTask ProcessControlView
 
 workerAttributes :: worker [(String, String)] -> TaskAttributes | toUserConstraint worker
 workerAttributes worker attr = case toUserConstraint worker of
-    AnyUser = 'DM'.newMap
-    u=:(UserWithId _) = 'DM'.fromList [("user", toString u):attr]
+    AnyUser           = 'DM'.newMap
+    UserWithId uid    = 'DM'.fromList [("user", uid):attr]
     UserWithRole role = 'DM'.fromList [("role", role):attr]
     
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
