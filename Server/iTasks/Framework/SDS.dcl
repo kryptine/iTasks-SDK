@@ -130,10 +130,6 @@ modify          :: !(r -> w)                !(RWShared () r w) !*IWorld -> (!May
 //Force notify (queue evaluation of task instances that registered for notification)
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 
-//Force notification for a specific SDS
-//TODO: REMOVE
-reportSDSChange :: !String !*IWorld -> *IWorld
-
 //Clear all registrations for a given task instance.
 //This is normally called by the queueRefresh functions, because once an instance is queued
 //for evaluation anyway, it no longer make sense to notify it again.

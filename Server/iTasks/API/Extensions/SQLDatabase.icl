@@ -2,7 +2,6 @@ implementation module iTasks.API.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Database.SQL.SQLite, Data.Error, Data.Func, System.FilePath
 import iTasks.Framework.IWorld, iTasks.Framework.SDS
-from iTasks.Framework.SDS import reportSDSChange
 import qualified Data.Map
 
 //Extend Resource type for mysql resources
@@ -75,10 +74,8 @@ where
 				# iworld		= closeMySQLDB cur con cxt iworld
 				= case res of
 					Error e		= (Error (exception e), iworld)
-					Ok v		
-                        //Trigger share change for all touched ids
-                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) w) touchIds iworld
-                        = (Ok v,iworld)
+					Ok v		= (Ok v,iworld)
+
 sqlExecute (SQLiteDatabase path) touchIds queryFun = mkInstantTask eval
 where
 	eval _ iworld
@@ -91,10 +88,7 @@ where
 				# iworld		= closeSQLiteDB cur con cxt iworld
 				= case res of
 					Error e		= (Error (exception e), iworld)
-					Ok v		
-                        //Trigger share change for all touched ids
-                        # iworld = seqSt (\s w -> reportSDSChange ("SQLShares:"+++s) w) touchIds iworld
-                        = (Ok v,iworld)
+					Ok v		= (Ok v,iworld)
 
 execSelect :: SQLStatement [SQLValue] *cur -> *(MaybeErrorString [SQLRow],*cur) | SQLCursor cur
 execSelect query values cur

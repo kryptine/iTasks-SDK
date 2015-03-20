@@ -301,13 +301,6 @@ modify f sds iworld = case read sds iworld of
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 notify sds iworld = (Ok (), iworld) //TODO
 
-reportSDSChange :: !String !*IWorld -> *IWorld //TODO: REMOVE
-reportSDSChange matchId iworld=:{IWorld|sdsNotifyRequests} = iworld
-/*
-    # outdated = [taskInstance \\ {SDSNotifyRequest|sdsId,taskInstance} <- sdsNotifyRequests | sdsId == matchId]
-    = queueRefresh outdated iworld
-*/
-
 clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
 clearInstanceSDSRegistrations instanceNos iworld=:{IWorld|sdsNotifyRequests}
     = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | keep reqTaskId instanceNos]}
