@@ -32,57 +32,57 @@ mkMouseDragMove :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !Componen
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
 mkMouseDragMove resolve state2image cid obj _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseUp = (clval, NoDiff, world)
-  # (de, world)  = .? (getElementById (mainSvgId cid)) world
-  # (de, world)  = .? (de .# "firstChild") world
-  # (p, world)   = (de `createSVGPoint` ()) world
-  # (eCX, world) = .? (evt .# "clientX") world
-  # (eCY, world) = .? (evt .# "clientY") world
-  # world        = (p .# "x" .= eCX) world
-  # world        = (p .# "y" .= eCY) world
-  # (m, world)   = (de `getScreenCTM` ()) world
-  # (inv, world) = (m `inverse` ()) world
-  # (p, world)   = (p `matrixTransform` inv) world
-  # (px, world)  = .? (p .# "x") world
-  # (py, world)  = .? (p .# "y") world
-  # (px, py)     = (jsValToReal px - clval.svgDragOffsetX, jsValToReal py - clval.svgDragOffsetY)
-  # world        = if (jsIsNull obj) world (f px py world)
+  #! (de, world)  = .? (getElementById (mainSvgId cid)) world
+  #! (de, world)  = .? (de .# "firstChild") world
+  #! (p, world)   = (de `createSVGPoint` ()) world
+  #! (eCX, world) = .? (evt .# "clientX") world
+  #! (eCY, world) = .? (evt .# "clientY") world
+  #! world        = (p .# "x" .= eCX) world
+  #! world        = (p .# "y" .= eCY) world
+  #! (m, world)   = (de `getScreenCTM` ()) world
+  #! (inv, world) = (m `inverse` ()) world
+  #! (p, world)   = (p `matrixTransform` inv) world
+  #! (px, world)  = .? (p .# "x") world
+  #! (py, world)  = .? (p .# "y") world
+  #! (px, py)     = (jsValToReal px - clval.svgDragOffsetX, jsValToReal py - clval.svgDragOffsetY)
+  #! world        = if (jsIsNull obj) world (f px py world)
   = (clval, NoDiff, world)
   where
   f px py world
-    # (_, world) = (obj `setAttribute` ("dragx", px)) world
-    # (_, world) = (obj `setAttribute` ("dragy", py)) world
-    # (_, world) = (obj `setAttribute` ("transform", "translate(" +++ toString px +++ "," +++ toString py +++ ")")) world
+    #! (_, world) = (obj `setAttribute` ("dragx", px)) world
+    #! (_, world) = (obj `setAttribute` ("dragy", py)) world
+    #! (_, world) = (obj `setAttribute` ("transform", "translate(" +++ toString px +++ "," +++ toString py +++ ")")) world
     = world
 
 mkMouseDragDown :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
 mkMouseDragDown resolve state2image cid obj _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseDown = (clval, NoDiff, world)
-  # (target, world) = .? (evt .# "target") world
-  # clval = {clval & svgDraggingElem = Just target}
+  #! (target, world) = .? (evt .# "target") world
+  #! clval = {clval & svgDraggingElem = Just target}
   | jsIsNull target = (clval, NoDiff, world)
   | otherwise
-      # (de, world)    = .? (getElementById (mainSvgId cid)) world
-      # (de, world)    = .? (de .# "firstChild") world
-      # (p, world)     = (de `createSVGPoint` ()) world
-      # (eCX, world)   = .? (evt .# "clientX") world
-      # (eCY, world)   = .? (evt .# "clientY") world
-      # world          = (p .# "x" .= eCX) world
-      # world          = (p .# "y" .= eCY) world
-      # (m, world)     = (de `getScreenCTM` ()) world
-      # (inv, world)   = (m `inverse` ()) world
-      # (p, world)     = (p `matrixTransform` inv) world
-      # (dragX, world) = (target `getAttribute` "dragx") world
-      # (dragY, world) = (target `getAttribute` "dragy") world
-      # (px, world)    = .? (p .# "x") world
-      # (py, world)    = .? (p .# "y") world
-      # (dragX, world) = if (jsIsNull dragX)
-                           (toJSVal 0, world)
-                           (("parseInt" .$ dragX) world)
-      # (dragY, world) = if (jsIsNull dragY)
-                           (toJSVal 0, world)
-                           (("parseInt" .$ dragY) world)
-      # (px, py, dragX, dragY) = (jsValToReal px, jsValToReal py, jsValToReal dragX, jsValToReal dragY)
+      #! (de, world)    = .? (getElementById (mainSvgId cid)) world
+      #! (de, world)    = .? (de .# "firstChild") world
+      #! (p, world)     = (de `createSVGPoint` ()) world
+      #! (eCX, world)   = .? (evt .# "clientX") world
+      #! (eCY, world)   = .? (evt .# "clientY") world
+      #! world          = (p .# "x" .= eCX) world
+      #! world          = (p .# "y" .= eCY) world
+      #! (m, world)     = (de `getScreenCTM` ()) world
+      #! (inv, world)   = (m `inverse` ()) world
+      #! (p, world)     = (p `matrixTransform` inv) world
+      #! (dragX, world) = (target `getAttribute` "dragx") world
+      #! (dragY, world) = (target `getAttribute` "dragy") world
+      #! (px, world)    = .? (p .# "x") world
+      #! (py, world)    = .? (p .# "y") world
+      #! (dragX, world) = if (jsIsNull dragX)
+                            (toJSVal 0, world)
+                            (("parseInt" .$ dragX) world)
+      #! (dragY, world) = if (jsIsNull dragY)
+                            (toJSVal 0, world)
+                            (("parseInt" .$ dragY) world)
+      #! (px, py, dragX, dragY) = (jsValToReal px, jsValToReal py, jsValToReal dragX, jsValToReal dragY)
       = ({clval & svgDragOffsetX = px - dragX, svgDragOffsetY = py - dragY, svgMousePos = MouseDown}, NoDiff, world)
 
 mkMouseDragUp :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
