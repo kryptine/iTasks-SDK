@@ -607,7 +607,7 @@ transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]
 
 worker :: User -> TaskAttributes
-worker (AuthenticatedUser id _ _) = 'DM'.fromList [(TAUser, TAStringVal id)]
+worker (AuthenticatedUser id _ _) = 'DM'.fromList [("user", id)]
 
 // tic-tac-toe, simplistic
 :: TicTacToe
