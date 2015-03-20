@@ -1226,7 +1226,7 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
                             _          -> tDefaultTaskApp inh.inh_compact isActive modName taskName taskArgs taskArgs` tsrc
-  = ( taskApp <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) } }
+  = ( taskApp <@< { ondblclick = \st -> { ActionState | st & action = Just (modName, taskName) }, local = False }
     , tsrc)
 
 tRoundedRect :: !Span !Span -> Image a
