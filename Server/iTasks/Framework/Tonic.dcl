@@ -46,8 +46,6 @@ derive gText
 
 tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
-tonicViewer :: [TaskAppRenderer] -> PublishedTask
-
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
 
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow

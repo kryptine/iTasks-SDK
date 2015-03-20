@@ -467,37 +467,7 @@ instance <			TaskId
     , includeProgress   :: !Bool
     }
 
-:: TaskAttrKey
-  = TATitle
-  | TACreatedBy
-  | TACreatedFor
-  | TACompleteBefore
-  | TAUser
-  | TARole
-  | TAName
-  | TACreatedAt
-  | TAPriority
-  | TACatalogId
-  | TACustom String
-
-instance < TaskAttrKey
-instance == TaskAttrKey
-
-:: TaskAttrValue
-  = TAStringVal   String
-  | TAIntVal      Int
-  | TARealVal     Real
-  | TAUserVal     UserConstraint
-  | TADateTimeVal DateTime
-
-instance < TaskAttrValue
-instance == TaskAttrValue
-instance toString TaskAttrValue
-
-derive class iTask TaskAttrKey, TaskAttrValue
-derive gLexOrd TaskAttrKey, TaskAttrValue
-
-:: TaskAttributes :== Map TaskAttrKey TaskAttrValue
+:: TaskAttributes :== Map String String
 
 :: ParallelTaskType	
 	= Embedded                                    //Simplest embedded
@@ -585,8 +555,6 @@ instance <			User
 	| UserWithRole !Role
 
 instance toString UserConstraint
-instance ==       UserConstraint
-instance <        UserConstraint
 
 class toUserConstraint a
 where

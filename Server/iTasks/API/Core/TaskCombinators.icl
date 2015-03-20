@@ -273,9 +273,9 @@ initParallelTask :: ![Int] !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IW
 initParallelTask callTrace listId index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
   # (mbTaskStuff,iworld) = case parType of
       Embedded           = mkEmbedded 'DM'.newMap iworld
-      NamedEmbedded name = mkEmbedded ('DM'.singleton TAName (TAStringVal name)) iworld
+      NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld
       Detached attributes evalDirect           = mkDetached attributes evalDirect iworld
-      NamedDetached name attributes evalDirect = mkDetached ('DM'.put TAName (TAStringVal name) attributes) evalDirect iworld
+      NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" name attributes) evalDirect iworld
   = case mbTaskStuff of
       Ok (taskId,attributes,mbTask)
         # (_, iworld) = write listId (sdsFocus taskId parallelListId) iworld

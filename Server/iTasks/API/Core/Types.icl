@@ -1549,40 +1549,6 @@ gText{|{}|} _ _ _ = undef
 gUpdate{|{}|} _ _ _ _ _ _ _ _ = undef
 gVerify{|{}|} _ _ _ = undef
 
-instance < TaskAttrKey where
-  (<) l r = case l =?= r of
-              LT -> True
-              _  -> False
-
-instance == TaskAttrKey where
-  (==) l r = l === r
-
-instance toString TaskAttrValue where
-  toString (TAStringVal s)    = s
-  toString (TAIntVal i)       = toString i
-  toString (TARealVal r)      = toString r
-  toString (TAUserVal u)      = toString (toUserConstraint u)
-  toString (TADateTimeVal dt) = toString dt
-
-instance < TaskAttrValue where
-  (<) l r = case l =?= r of
-              LT -> True
-              _  -> False
-
-instance == TaskAttrValue where
-  (==) l r = l === r
-
-derive class iTask TaskAttrKey, TaskAttrValue
-derive gLexOrd TaskAttrKey, TaskAttrValue, UserConstraint, DateTime, Date, Time
-
-instance == UserConstraint where
-  (==) l r = l === r
-
-instance < UserConstraint where
-  (<) l r = case l =?= r of
-              LT -> True
-              _  -> False
-
 instance toString UserConstraint where
 	toString AnyUser				= "Anybody"
 	toString (UserWithId uid)		= uid

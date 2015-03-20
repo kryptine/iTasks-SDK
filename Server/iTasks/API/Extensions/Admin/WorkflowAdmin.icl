@@ -174,17 +174,17 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser -&&- get currentDateTime
 	>>=	\(user,now) ->
-		appendTopLevelTask ('DM'.fromList [ (TATitle,      TAStringVal (workflowTitle wf))
-                                          , (TACatalogId,  TAStringVal wf.Workflow.path)
-                                          , (TACreatedBy,  TAUserVal (toUserConstraint user))
-                                          , (TACreatedAt,  TADateTimeVal now)
-                                          , (TACreatedFor, TAUserVal (toUserConstraint user))
-                                          , (TAPriority,   TAIntVal 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+		appendTopLevelTask ('DM'.fromList [ ("title",      workflowTitle wf)
+                                          , ("catalogId",  wf.Workflow.path)
+                                          , ("createdBy",  toString (toUserConstraint user))
+                                          , ("createdAt",  toString now)
+                                          , ("createdFor", toString (toUserConstraint user))
+                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
 where
-    userAttr au=:(AuthenticatedUser _ _ _) = [(TAUser, TAUserVal (toUserConstraint au))]
+    userAttr au=:(AuthenticatedUser _ _ _) = [("user", toString (toUserConstraint au))]
     userAttr _                             = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @ const Void
@@ -207,12 +207,12 @@ where
 
 	mkRow {TaskListItem|taskId,attributes} =
 		{WorklistRow
-		|title      = fmap toString ('DM'.get TATitle attributes)
-		,priority   = fmap toString ('DM'.get TAPriority attributes)
-		,createdBy	= fmap toString ('DM'.get TACreatedBy attributes)
-		,date       = fmap toString ('DM'.get TACreatedAt attributes)
-		,deadline   = fmap toString ('DM'.get TACompleteBefore attributes)
-		,createdFor = fmap toString ('DM'.get TACreatedFor attributes)
+		|title      = fmap toString ('DM'.get "title"          attributes)
+		,priority   = fmap toString ('DM'.get "priority"       attributes)
+		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
+		,date       = fmap toString ('DM'.get "createdAt"      attributes)
+		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
+		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
 		}
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
@@ -247,9 +247,9 @@ where
     //the 'catalogId' that is stored in the incompatible task instance's properties
     findReplacement taskId
         =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |+| workflows)
-        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get TACatalogId taskListEntry.TaskListItem.attributes)
+        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
     where
-        lookup [wf=:{Workflow|path}:wfs] cid=:(TAStringVal catalogId) = if (path == catalogId) (Just wf) (lookup wfs cid)
+        lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)
         lookup [] _ = Nothing
 
 appendOnce identity task slist
@@ -261,7 +261,7 @@ where
     name = toString identity
     checkItems name [] = False
     checkItems name [{TaskListItem|attributes}:is]
-        | maybe False ((==) (TAStringVal name)) ('DM'.get TAName attributes)  = True //Item with name exists!
+        | maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
                                                                 = checkItems name is
 
 removeWhenStable task slist

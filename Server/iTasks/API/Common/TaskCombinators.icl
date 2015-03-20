@@ -102,7 +102,7 @@ where
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
 					
 	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
-		{ assignedTo	= toSingleLineText (case ('DM'.get TAUser attributes, 'DM'.get TARole attributes) of
+		{ assignedTo	= toSingleLineText (case ('DM'.get "user" attributes, 'DM'.get "role" attributes) of
                                               (Just u, _) -> Just (toString u)
                                               (_, Just r) -> Just (toString r)
                                               _           -> Nothing)
@@ -125,21 +125,21 @@ where
 						}
 derive class iTask ProcessControlView
 
-workerAttributes :: worker [(TaskAttrKey, TaskAttrValue)] -> TaskAttributes | toUserConstraint worker
+workerAttributes :: worker [(String, String)] -> TaskAttributes | toUserConstraint worker
 workerAttributes worker attr = case toUserConstraint worker of
     AnyUser = 'DM'.newMap
-    u=:(UserWithId _) = 'DM'.fromList [(TAUser, TAUserVal u):attr]
-    UserWithRole role = 'DM'.fromList [(TARole, TAStringVal role):attr]
+    u=:(UserWithId _) = 'DM'.fromList [("user", toString u):attr]
+    UserWithRole role = 'DM'.fromList [("role", role):attr]
     
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 (@:) worker task
   =                get currentUser -&&- get currentDateTime
   >>- \(me,now) -> assign (workerAttributes worker
-                             [ (TATitle,      TAStringVal (toTitle worker))
-                             , (TACreatedBy,  TAUserVal (toUserConstraint me))
-                             , (TACreatedAt,  TADateTimeVal now)
-                             , (TAPriority,   TAIntVal 5)
-                             , (TACreatedFor, TAUserVal (toUserConstraint worker))
+                             [ ("title",      toTitle worker)
+                             , ("createdBy",  toString (toUserConstraint me))
+                             , ("createdAt",  toString now)
+                             , ("priority",   toString 5)
+                             , ("createdFor", toString (toUserConstraint worker))
                              ])
                           task
 

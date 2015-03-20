@@ -93,20 +93,9 @@ instance Monad IWorldM where
         # (IWorldM g) = a2mb x
         = g world
 
-//class Tonic f where
-  //tonicCompApp  :: !ModuleName !TaskName !NodeId (Task a) -> Task a
-  //tonicCompBody :: !ModuleName !TaskName ![(VarName, f ())] (f a) -> f a | TonicViewer f a
-
-//class TonicViewer f a where
-  //tonicViewer :: a -> f a
-
 :: NodeId :== [Int]
 
 :: ListsOfTasks :== Map (TaskId, NodeId) (IntMap BlueprintRef)
-
-//traceToForest :: InstanceTrace -> ActiveNodes
-//traceToForest []     = []
-//traceToForest [x:xs] = [RNode x (traceToForest xs)]
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
@@ -464,23 +453,6 @@ getTonicDir iworld
   # (server, iworld) = iworld!server
   = (server.paths.appDirectory </> "tonic", iworld)
 
-tonicLogin :: [TaskAppRenderer] -> Task ()
-tonicLogin rs = tonicUI rs
-//tonicLogin :: Task Void
-//tonicLogin = forever (
-      //(viewTitle "Tonic"
-  //||- enterInformation ("Login", "Enter your credentials and login") [])
-  //>>* [ OnAction (Action "Login" [ActionIcon "login", ActionKey (unmodified KEY_ENTER)]) (hasValue authenticatedTonic)
-      //])
-  //where
-  //authenticatedTonic {Credentials|username, password}
-    //=            authenticateUser username password >>=
-      //\mbUser -> case mbUser of
-                   //Just user -> workAs user tonicUI
-                   //Nothing   -> viewInformation (Title "Login failed") [] "Your username or password is incorrect" @! ()
-
-derive class iTask FileError
-
 getTasks :: !TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
 
@@ -692,9 +664,6 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
   noSelection                    = viewInformation () [] "Select argument..."
   collectArgs       bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) graph.tt_args bpinst.bpi_params
 viewInstance` _ _ = viewInformation () [] "Select blueprint instance" @! ()
-
-tonicViewer :: [TaskAppRenderer] -> PublishedTask
-tonicViewer rs = publish "/tonic" (WebApp []) (\_ -> tonicLogin rs)
 
 :: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
