@@ -24,8 +24,7 @@ from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
-    { taskInstance  :: InstanceNo   //Task instance number which made the request and may be refreshed
-    , reqNo         :: Int          //Task number within the instance
+    { reqTaskId 	:: TaskId		//Id of the task that read the SDS. This Id also connects a chain of notify requests that were registered together
     , reqSDSId      :: SDSIdentity  //Id of the actual SDS used to create this request (may be a derived one)
 
     , cmpSDSId      :: SDSIdentity  //Id of the SDS we are saving for comparison

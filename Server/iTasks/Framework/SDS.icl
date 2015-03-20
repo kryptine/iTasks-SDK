@@ -66,8 +66,8 @@ readRegister taskId sds env = read` () (Just taskId) (sdsIdentity sds) sds env
 
 mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
 mbRegister p sds Nothing reqSDSId iworld = iworld
-mbRegister p sds (Just (TaskId instanceNo taskNo)) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
-    # req = {taskInstance=instanceNo,reqNo=taskNo,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
+mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
+    # req = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
     = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
 
 read` :: !p !(Maybe TaskId) !SDSIdentity !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | iTask p
@@ -123,26 +123,39 @@ read` p mbNotify reqSDSId sds=:(SDSDynamic f) env
 write :: !w !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 write w sds iworld
     = case write` () w sds iworld of
-        (Ok nfuns,iworld)   = notifyAfterWrite nfuns (sdsIdentity sds) iworld
-        (Error e,iworld)    = (Error e,iworld)
-
-write` :: !p !w !(RWShared p r w) !*IWorld -> (!MaybeError TaskException [SDSWriteNotifyFun], !*IWorld) | iTask p
+		(Ok notify, iworld)
+			# instanceNos = [no \\ (TaskId no _) <- 'Set'.toList notify]
+			# iworld = queueRefresh instanceNos [] iworld
+			# iworld = clearInstanceSDSRegistrations instanceNos iworld
+			= (Ok (), iworld)
+        (Error e,iworld)    	= (Error e,iworld)
+write` :: !p !w !(RWShared p r w) !*IWorld -> (!MaybeError TaskException (Set TaskId), !*IWorld) | iTask p
 write` p w sds=:(SDSSource {SDSSource|name,write}) env
     = case write p w env of
         (Error e, env)   = (Error e, env)
-        (Ok npred, env)  = (Ok [(sdsIdentity sds,dynamic npred)], env)
+        (Ok npred, env)  
+			# (match,nomatch, env) = checkRegistrations (sdsIdentity sds) npred env
+			= (Ok match, env)
 
 write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
+	//Determine the parameter for writing the underlying SDS
     # ps = param p
     = case (write,notify) of
         //Special case: we don't need to read the base SDS
         (SDSWriteConst writef,SDSNotifyConst notifyf)
+			//Check which registrations the current parameter matches
+			# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) (notifyf p w) env 
             = case writef p w of
                 (Error e) = (Error e, env)
-                (Ok Nothing) = (Ok [(sdsIdentity sds,dynamic (notifyf p w))], env)
+                (Ok Nothing)
+					//We need to decide based on the current parameter if we need to notify or not
+					= (Ok match, env)
                 (Ok (Just ws)) = case write` ps ws sds1 env of
                     (Error e, env) = (Error e, env)
-                    (Ok npreds, env) = (Ok [(sdsIdentity sds,dynamic (notifyf p w)):npreds], env)
+                    (Ok notify, env) 
+						//Remove the registrations that we can eliminate based on the current parameter
+						# notify = foldr 'Set'.delete notify ('Set'.toList nomatch)
+						= (Ok notify, env)
         //General case: read base SDS before writing
         _
             = case read` ps Nothing (sdsIdentity sds1) sds1 env of
@@ -154,14 +167,18 @@ write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
                     # notifyf = case notify of
                         SDSNotify notifyf = notifyf p rs w
                         SDSNotifyConst notifyf = notifyf p w
+					//Check which registrations the current parameter matches
+					# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) notifyf env 
                     = case ws of
                         (Error e) = (Error e, env)
                         (Ok Nothing)
-                            = (Ok [(sdsIdentity sds,dynamic notifyf)], env)
+                            = (Ok match, env)
                         (Ok (Just ws)) = case write` ps ws sds1 env of
                             (Error e, env) = (Error e, env)
-                            (Ok npreds, env)
-                                = (Ok [(sdsIdentity sds, dynamic notifyf):npreds], env)
+                            (Ok notify, env)
+								//Remove the registrations that we can eliminate based on the current parameter
+								# notify = foldr 'Set'.delete notify ('Set'.toList nomatch)
+                                = (Ok notify, env)
 
 write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
     = case select p of
@@ -169,16 +186,22 @@ write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
             (Error e, env)  = (Error e, env)
             (Ok r1, env)    = case write` p1 w sds1 env of
                 (Error e, env) = (Error e, env)
-                (Ok npreds, env)
+                (Ok notify, env)
                     # npred = (\pq -> case select pq of Right p2 = notifyl p1 r1 w p2; _ = True)
-                    = (Ok [(sdsIdentity sds,dynamic npred):npreds], env)
+					# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) npred env
+					//Add the matching registrations for the 'other' SDS
+					# notify = 'Set'.union notify match
+                    = (Ok notify, env)
         Right p2 = case read` p2 Nothing (sdsIdentity sds2) sds2 env of
             (Error e, env)  = (Error e, env)
             (Ok r2, env)    = case write` p2 w sds2 env of
                 (Error e, env) = (Error e,env)
-                (Ok npreds, env)
+                (Ok notify, env)
                     # npred = (\pq -> case select pq of Left p1 = notifyr p2 r2 w p1 ; _ = True)
-                    = (Ok [(sdsIdentity sds,dynamic npred):npreds], env)
+					# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) npred env
+					//Add the matching registrations for the 'other' SDS
+					# notify = 'Set'.union notify match
+                    = (Ok notify, env)
 
 write` p w sds=:(SDSParallel sds1 sds2 {SDSParallel|param,writel,writer}) env
     # (p1,p2) = param p
@@ -188,11 +211,11 @@ write` p w sds=:(SDSParallel sds1 sds2 {SDSParallel|param,writel,writer}) env
             (Error e, env)  = (Error e, env)
             (Ok r1,env)     = case f p r1 w of
                 Error e         = (Error e, env)
-                Ok (Nothing)    = (Ok [], env)
+                Ok (Nothing)    = (Ok 'Set'.newSet, env)
                 Ok (Just w1)    = write` p1 w1 sds1 env
         (SDSWriteConst f) = case f p w of
                 Error e             = (Error e,env)
-                Ok (Nothing)        = (Ok [],env)
+                Ok (Nothing)        = (Ok 'Set'.newSet,env)
                 Ok (Just w1)        = write` p1 w1 sds1 env
     | npreds1 =:(Error _) = (liftError npreds1, env)
     //Read/write sds2
@@ -201,14 +224,14 @@ write` p w sds=:(SDSParallel sds1 sds2 {SDSParallel|param,writel,writer}) env
             (Error e, env)  = (Error e, env)
             (Ok r2,env)     = case f p r2 w of
                 Error e         = (Error e, env)
-                Ok (Nothing)    = (Ok [], env)
+                Ok (Nothing)    = (Ok 'Set'.newSet, env)
                 Ok (Just w2)    = write` p2 w2 sds2 env
         (SDSWriteConst f) = case f p w of
                 Error e             = (Error e,env)
-                Ok (Nothing)        = (Ok [],env)
+                Ok (Nothing)        = (Ok 'Set'.newSet, env)
                 Ok (Just w2)        = write` p2 w2 sds2 env
     | npreds2 =:(Error _) = (liftError npreds2, env)
-    = (Ok (fromOk npreds1 ++ fromOk npreds2), env)
+    = (Ok ('Set'.union (fromOk npreds1) (fromOk npreds2)), env)
 
 write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,writel,writer}) env
     = case read` p Nothing (sdsIdentity sds1) sds1 env of
@@ -218,11 +241,11 @@ write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,writel,writer}) env
             # (npreds1,env) = case writel of
                 (SDSWrite f)  = case f p r1 w of
                     Error e          = (Error e, env)
-                    Ok (Nothing)     = (Ok [],env)
+                    Ok (Nothing)     = (Ok 'Set'.newSet, env)
                     Ok (Just w1)     = write` p w1 sds1 env
                 (SDSWriteConst f) = case f p w of
                     Error e          = (Error e, env)
-                    Ok (Nothing)     = (Ok [],env)
+                    Ok (Nothing)     = (Ok 'Set'.newSet, env)
                     Ok (Just w1)     = write` p w1 sds1 env
             | npreds1 =:(Error _) = (liftError npreds1, env)
             //Read/write sds2 if necessary
@@ -231,14 +254,14 @@ write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|param,writel,writer}) env
                     (Error e, env)  = (Error e, env)
                     (Ok r2,env)     = case f p r2 w of
                         Error e         = (Error e, env)
-                        Ok (Nothing)    = (Ok [], env)
+                        Ok (Nothing)    = (Ok 'Set'.newSet, env)
                         Ok (Just w2)    = write` (param p r1) w2 sds2 env
                 (SDSWriteConst f) = case f p w of
                     Error e             = (Error e, env)
-                    Ok (Nothing)        = (Ok [], env)
+                    Ok (Nothing)        = (Ok 'Set'.newSet, env)
                     Ok (Just w2)        = write` (param p r1) w2 sds2 env
             | npreds2 =:(Error _) = (liftError npreds2, env)
-            = (Ok (fromOk npreds1 ++ fromOk npreds2), env)
+            = (Ok ('Set'.union (fromOk npreds1) (fromOk npreds2)), env)
 
 write` p w sds=:(SDSDynamic f) env
 	# (mbsds, env) = f p env
@@ -246,43 +269,35 @@ write` p w sds=:(SDSDynamic f) env
 		(Error e) = (Error e, env)
 		(Ok dsds) = write` p w dsds env
 
+//Check the registrations and find the set of id's for which the current predicate holds
+//and for which id's it doesn't
+checkRegistrations :: !SDSIdentity (p -> Bool) !*IWorld -> (Set TaskId, Set TaskId,!*IWorld) | TC p
+checkRegistrations sdsId pred iworld
+	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
+	# (match,nomatch) 			= matchRegistrations pred registrations
+	= (match,nomatch,iworld) 
+where
+	//Find all notify requests for the given share id
+	lookupRegistrations sdsId iworld=:{sdsNotifyRequests}
+        = ([reg \\ reg=:{SDSNotifyRequest|cmpSDSId} <- sdsNotifyRequests | cmpSDSId == sdsId],iworld)
+
+	//Match the notify requests against the predicate to determine two sets:
+	//The registrations that matched the predicate, and those that did not match the predicate
+	matchRegistrations pred [] = ('Set'.newSet,'Set'.newSet)
+	matchRegistrations pred [{SDSNotifyRequest|reqTaskId,cmpParam}:regs]
+		# (match,nomatch) = matchRegistrations pred regs
+    	= case cmpParam of
+            (p :: p^) = if (pred p)
+							('Set'.insert reqTaskId match,nomatch)
+							(match, 'Set'.insert reqTaskId nomatch)
+			//In case of a type mismatch, just ignore (should not happen)
+            _                        = (match,nomatch)
+
 modify :: !(r -> w) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 modify f sds iworld = case read sds iworld of
     (Ok r,iworld)      = write (f r) sds iworld
     (Error e,iworld)   = (Error e,iworld)
 
-notifyAfterWrite :: ![SDSWriteNotifyFun] !SDSIdentity !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-notifyAfterWrite notifyFuns writeSDSId iworld
-    //Determine which registered parameters are affected
-    # (notifyInstances,notifyReasons,iworld) = checkRegistrations 'Set'.newSet 'Set'.newSet notifyFuns iworld
-    //Queue affected task instances for evaluation (queuing will remove the registrations)
-    # iworld            = queueRefresh notifyInstances notifyReasons iworld
-    = (Ok (),iworld)
-where
-    //We process the path of write functions from the most abstract interface
-    //to the source interface. As we follow this path we construct two sets
-    //of taskId's. The first set contains those that had a registration for an
-    //sdsId that was accessed while writing and there is a candidate for notification.
-    //The second set contains those taskIds which were determined to be unaffected based
-    //on their parameter.
-    //At every step towards the source(s), the registerations are looked up and checked
-    //with the notification function for the specific write at that step.
-    //Once the full path is processed, all taskIds that are in the first set are notified
-    //if and only if they are not in the second set.
-    checkRegistrations candidates eliminated [] iworld
-        # (notify,reasons) = unzip (removeDup [(instanceNo,reason) \\ (taskId =:(TaskId instanceNo taskNo),reason) <- 'Set'.toList candidates | 'Set'.notMember taskId eliminated])
-        = (notify,reasons,iworld)
-    checkRegistrations candidates eliminated [(checkSDSId,checkFun):fs] iworld=:{IWorld|sdsNotifyRequests}
-        # registrations = [reg \\ reg=:{SDSNotifyRequest|cmpSDSId} <- sdsNotifyRequests | cmpSDSId == checkSDSId]
-        # (candidates,eliminated) = foldr (checkRegistration checkFun) (candidates,eliminated) registrations
-        = checkRegistrations candidates eliminated fs iworld
-
-    checkRegistration checkFun {SDSNotifyRequest|taskInstance,reqNo,reqSDSId,cmpSDSId,cmpParam,cmpParamText} (candidates,eliminated)
-        # verdict = case (checkFun, cmpParam) of
-            (npred :: p -> Bool, p :: p) = npred p
-            _                            = True
-        | verdict   = ('Set'.insert (TaskId taskInstance reqNo,"SDS:" +++ cmpSDSId +++ "("+++cmpParamText+++")\nregistered through: "+++ reqSDSId +++ "\nhit by write to: "+++ writeSDSId) candidates, eliminated)
-                    = (candidates, 'Set'.insert (TaskId taskInstance reqNo) eliminated)
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 notify sds iworld = (Ok (), iworld) //TODO
 
@@ -295,13 +310,15 @@ reportSDSChange matchId iworld=:{IWorld|sdsNotifyRequests} = iworld
 
 clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
 clearInstanceSDSRegistrations instanceNos iworld=:{IWorld|sdsNotifyRequests}
-    = {iworld & sdsNotifyRequests = [r \\ r <- sdsNotifyRequests | not (isMember r.SDSNotifyRequest.taskInstance instanceNos)]}
+    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | keep reqTaskId instanceNos]}
+where
+	keep (TaskId no _) nos = not (isMember no nos)
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = (toList (foldr addReg newMap sdsNotifyRequests),iworld)
 where
-    addReg {SDSNotifyRequest|taskInstance,reqNo,cmpSDSId} list
-        = put taskInstance [(TaskId taskInstance reqNo,cmpSDSId):fromMaybe [] (get taskInstance list)] list
+    addReg {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _),cmpSDSId} list
+        = put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] (get taskInstance list)] list
 
 formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatSDSRegistrationsList list
