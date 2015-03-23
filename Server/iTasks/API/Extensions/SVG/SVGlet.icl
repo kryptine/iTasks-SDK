@@ -127,6 +127,7 @@ registerDraggables :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !Compo
 registerDraggables resolve state2Image cid svg draggables idMap world
   #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
+  #! idMap                 = 'DM'.foldrWithKey (\k v m -> 'DM'.put (replaceSubString editletId cid k) v m) 'DM'.newMap idMap
   #! cbUp                  = createEditletEventHandler (mkMouseDragUp   resolve state2Image cid svgRoot idMap) cid
   #! cbMove                = createEditletEventHandler (mkMouseDragMove resolve state2Image cid svgRoot) cid
   #! (_, world)            = (svgRoot `addEventListener` ("mouseup",   cbUp,   True)) world
@@ -1380,8 +1381,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! imAts`       = strictTRMap (\(x, _, _) -> x) imAts
       #! (syn, st)    = imCo (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) imTrs imTas uniqId st
       #! (mask, st)   = evalMaybe mask st
-      = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
+      = ({ genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
          , genSVGSyn_imageSpanReal = (txsp` + m2 + m4, tysp` + m1 + m3)
          , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : strictTRMap (\(_, x, _) -> x) imAts]
          , genSVGSyn_draggable     = 'DM'.unions [syn.genSVGSyn_draggable : strictTRMap (\(_, _, x) -> x) imAts]
@@ -1713,19 +1713,20 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (uid1, clval) = nextNo clval
       #! (uid2, clval) = nextNo clval
       #! (uid3, clval) = nextNo clval
-      #! markersAndIds = [(m, i, s, d) \\ Just (m, i, s, d) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
-                                                               , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
-                                                               , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
+      #! markersAndIds = [(m, i, s, d, p) \\ Just (m, i, s, d, p) <- [ mkMarkerAndId mmStart (mkMarkerId editletId uid1) MarkerStartAttr
+                                                                     , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
+                                                                     , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
       = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts   = [ constr [] (strictTRMap (\(_, x, _, _) -> x) markersAndIds ++ atts)
-                                 , DefsElt [] [] (strictTRMap (\(x, _, _, _) -> x) markersAndIds)]
-         , genSVGSyn_events    = 'DM'.unions (strictTRMap (\(_, _, x, _) -> x) markersAndIds)
-         , genSVGSyn_draggable = 'DM'.unions (strictTRMap (\(_, _, _, x) -> x) markersAndIds)
+         & genSVGSyn_svgElts   = [ constr [] (strictTRMap (\(_, x, _, _, _) -> x) markersAndIds ++ atts)
+                                 , DefsElt [] [] (strictTRMap (\(x, _, _, _, _) -> x) markersAndIds)]
+         , genSVGSyn_events    = 'DM'.unions (strictTRMap (\(_, _, x, _, _) -> x) markersAndIds)
+         , genSVGSyn_draggable = 'DM'.unions (strictTRMap (\(_, _, _, x, _) -> x) markersAndIds)
+         , genSVGSyn_idMap     = 'DM'.unions (strictTRMap (\(_, _, _, _, x) -> x) markersAndIds)
          }, clval) // TODO Correct offsets? What about the transformations?
       where
       // TODO Marker size etc?
-      mkMarkerAndId :: !(Maybe (GenSVGSyn s)) !String !(String -> SVGAttr) -> Maybe (!SVGElt, !SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s)) | iTask s
-      mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h), genSVGSyn_events, genSVGSyn_draggable}) mid posAttr
+      mkMarkerAndId :: !(Maybe (GenSVGSyn s)) !String !(String -> SVGAttr) -> Maybe (!SVGElt, !SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s), !Map String (Set ImageTag)) | iTask s
+      mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h), genSVGSyn_events, genSVGSyn_draggable, genSVGSyn_idMap}) mid posAttr
         = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto"
                                         , ViewBoxAttr "0" "0" (toString (toInt w)) (toString (toInt h))
                                         , RefXAttr (toString (toInt w), PX)
@@ -1735,7 +1736,8 @@ genSVG img = imageCata genSVGAllAlgs img
                                         ] genSVGSyn_svgElts
                , posAttr (mkUrl mid)
                , genSVGSyn_events
-               , genSVGSyn_draggable)
+               , genSVGSyn_draggable
+               , genSVGSyn_idMap)
       mkMarkerAndId _ _ _ = Nothing
     mkLine constr atts spans _ st = ({ mkGenSVGSyn & genSVGSyn_svgElts = [constr [] atts]}, st)
 
@@ -1758,16 +1760,18 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (host, st)    = evalMaybe host st
       #! (compose, st) = compose host totalSpanPreTrans imAts imTrs imTas st
       #! (cpId, st)    = getCpId st
-      #! (elts, spans, onclicks, draggables) = case host of
-                                     Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal, genSVGSyn_events, genSVGSyn_draggable}
-                                       = (genSVGSyn_svgElts ++ compose.genSVGSyn_svgElts, genSVGSyn_imageSpanReal, 'DM'.union genSVGSyn_events compose.genSVGSyn_events, 'DM'.union genSVGSyn_draggable compose.genSVGSyn_draggable)
-                                     _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal, compose.genSVGSyn_events, compose.genSVGSyn_draggable)
+      #! (elts, spans, onclicks, draggables, idMap)
+           = case host of
+               Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal, genSVGSyn_events, genSVGSyn_draggable, genSVGSyn_idMap}
+                 = (genSVGSyn_svgElts ++ compose.genSVGSyn_svgElts, genSVGSyn_imageSpanReal, 'DM'.union genSVGSyn_events compose.genSVGSyn_events, 'DM'.union genSVGSyn_draggable compose.genSVGSyn_draggable, 'DM'.union genSVGSyn_idMap compose.genSVGSyn_idMap)
+               _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal, compose.genSVGSyn_events, compose.genSVGSyn_draggable, compose.genSVGSyn_idMap)
       #! (imTrs, st) = sequence (strictTRMap (\f -> f spans False) imTrs) st
       #! attrs = mkAttrs imAts imTrs
       = ({ mkGenSVGSyn
          & genSVGSyn_svgElts   = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] (mkGroup [] (getSvgAttrs attrs) elts)
          , genSVGSyn_events    = onclicks
          , genSVGSyn_draggable = draggables
+         , genSVGSyn_idMap     = idMap
          }, st)
     getCpId :: !(GenSVGStVal s) -> (!String, !GenSVGStVal s) | iTask s
     getCpId clval
@@ -1796,6 +1800,7 @@ genSVG img = imageCata genSVGAllAlgs img
          & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
          , genSVGSyn_events        = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_events) imgsSps)
          , genSVGSyn_draggable     = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_draggable) imgsSps)
+         , genSVGSyn_idMap         = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_idMap) imgsSps)
          , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st) // Setting genSVGSyn_imageSpanReal is required here. It needs to be totalSpanPreTrans, because transforms will be calculated just after this.
 
   genSVGSpanAlgs :: SpanAlg (GenSVGSt s Real) (GenSVGSt s Real) | iTask s
