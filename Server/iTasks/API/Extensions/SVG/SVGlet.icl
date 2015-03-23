@@ -25,91 +25,102 @@ derive class iTask FontDef, Set
   , genStates       :: !SpanEnvs
   }
 
+:: SVGClSt s = E.a:
+  { svgClIsDefault  :: !Bool
+  , svgClSt         :: !s
+  , svgMousePos     :: !MousePos
+  , svgDropCallback :: !Maybe ((Maybe (Set ImageTag)) Real Real s -> s)
+  , svgTrueCoordsX  :: !Real
+  , svgTrueCoordsY  :: !Real
+  , svgGrabPointX   :: !Real
+  , svgGrabPointY   :: !Real
+  , svgDragTarget   :: !Maybe (JSObj a)
+  }
+
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
 mkMouseDragDown :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId ((Maybe (Set ImageTag)) Real Real s -> s) !String !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkMouseDragDown resolve state2image cid sttf elemId obj _ evts=:{[0] = evt} clval world
-  | clval.svgMousePos == MouseDown = (clval, NoDiff, world)
+mkMouseDragDown resolve state2image cid sttf elemId _ _ evts=:{[0] = evt} clval world
   #! (svgContainer, world)  = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)       = .? (svgContainer .# "firstChild") world
-  #! (target, world)        = (svgRoot .# "getElementById" .$ elemId) world
-  #! (_, world)             = (target .# "setAttributeNS" .$ (jsNull, "pointer-events", "none")) world
+  #! (targetElement, world) = (svgRoot .# "getElementById" .$ elemId) world
+  #! (_, world)             = (targetElement .# "setAttributeNS" .$ (jsNull, "pointer-events", "none")) world
+
+  #! (boundingRect, world)  = (targetElement .# "getBoundingClientRect" .$ ()) world
+  #! (left, world)          = .? (boundingRect .# "left") world
+  #! (top, world)           = .? (boundingRect .# "top") world
   #! (p, world)             = (svgRoot `createSVGPoint` ()) world
-  #! (eCX, world)           = .? (evt .# "clientX") world
-  #! (eCY, world)           = .? (evt .# "clientY") world
-  #! world                  = (p .# "x" .= eCX) world
-  #! world                  = (p .# "y" .= eCY) world
+  #! world                  = (p .# "x" .= left) world
+  #! world                  = (p .# "y" .= top) world
   #! (m, world)             = (svgRoot `getScreenCTM` ()) world
   #! (inv, world)           = (m `inverse` ()) world
   #! (p, world)             = (p `matrixTransform` inv) world
   #! (px, world)            = .? (p .# "x") world
   #! (py, world)            = .? (p .# "y") world
-  #! (dragX, world)         = (target `getAttribute` "dragx") world
-  #! (dragY, world)         = (target `getAttribute` "dragy") world
-  #! (dragX, world)         = if (jsIsNull dragX)
-                                (toJSVal 0, world)
-                                (("parseInt" .$ dragX) world)
-  #! (dragY, world)         = if (jsIsNull dragY)
-                                (toJSVal 0, world)
-                                (("parseInt" .$ dragY) world)
-  #! (px, py, dragX, dragY) = (jsValToReal px, jsValToReal py, jsValToReal dragX, jsValToReal dragY)
-  //#! (_, world)      = (svgRoot .# "appendChild" .$ target) world
-  = ({clval & svgDropCallback = Just sttf, svgDraggingElem = Just target, svgDragOffsetX = px - dragX, svgDragOffsetY = py - dragY, svgMousePos = MouseDown}, NoDiff, world)
+  #! (e, f)                 = (jsValToReal px, jsValToReal py)
+
+  // TODO Is this still useful?
+  //#! (transMatrix, world)   = (targetElement `getCTM` ()) world
+  //#! (e, world)             = .? (transMatrix .# "e") world
+  //#! (f, world)             = .? (transMatrix .# "f") world
+  //#! (e, f)                 = (jsValToReal e, jsValToReal f)
+
+  = ({clval & svgDropCallback = Just sttf, svgMousePos = MouseDown
+            , svgDragTarget = Just targetElement, svgGrabPointX = clval.svgTrueCoordsX - e, svgGrabPointY = clval.svgTrueCoordsY - f}, NoDiff, world)
 
 mkMouseDragMove :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkMouseDragMove _ _ _   _   _ _                 clval=:{svgMousePos = MouseUp} world = (clval, NoDiff, world)
-mkMouseDragMove _ _ _   _   _ _                 clval=:{svgDraggingElem = Nothing} world = ({clval & svgMousePos = MouseUp}, NoDiff, world)
-mkMouseDragMove _ _ cid obj _ evts=:{[0] = evt} clval=:{svgDraggingElem = Just target} world
+mkMouseDragMove _ _ cid _ _ evts=:{[0] = evt} clval=:{svgMousePos = MouseDown, svgDragTarget = Just dragTarget} world
+  // Append the dragTarget to the root of the SVG element for two reasons:
+  //   1. To allow it to be dragged over all other elements
+  //   2. To not be bothered by the offsets of one or more groups it might initially be in
   #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
-  #! (p, world)            = (svgRoot `createSVGPoint` ()) world
-  #! (eCX, world)          = .? (evt .# "clientX") world
-  #! (eCY, world)          = .? (evt .# "clientY") world
-  #! world                 = (p .# "x" .= eCX) world
-  #! world                 = (p .# "y" .= eCY) world
-  #! (m, world)            = (svgRoot `getScreenCTM` ()) world
-  #! (inv, world)          = (m `inverse` ()) world
-  #! (p, world)            = (p `matrixTransform` inv) world
-  #! (px, world)           = .? (p .# "x") world
-  #! (py, world)           = .? (p .# "y") world
-  #! (px, py)              = (jsValToReal px - clval.svgDragOffsetX, jsValToReal py - clval.svgDragOffsetY)
-  #! world                 = if (jsIsNull obj) world (f target px py world)
-  = (clval, NoDiff, world)
-  where
-  f target px py world
-    #! (_, world) = (target `setAttribute` ("dragx", px)) world
-    #! (_, world) = (target `setAttribute` ("dragy", py)) world
-    #! (_, world) = (target `setAttribute` ("transform", "translate(" +++ toString px +++ "," +++ toString py +++ ")")) world
-    = world
+  #! (_, world)             = (svgRoot `appendChild` dragTarget) world
+
+  #! (newTrueCoordsX, newTrueCoordsY, world) = getNewTrueCoords cid evt world
+  #! newX       = newTrueCoordsX - clval.svgGrabPointX
+  #! newY       = newTrueCoordsY - clval.svgGrabPointY
+  #! (_, world) = (dragTarget `setAttribute` ("transform", "translate(" +++ toString newX +++ "," +++ toString newY +++ ")")) world
+  = ({clval & svgTrueCoordsX = newTrueCoordsX
+            , svgTrueCoordsY = newTrueCoordsY}, NoDiff, world)
+mkMouseDragMove _ _ cid   _   _ evts=:{[0] = evt} clval world
+  #! (newTrueCoordsX, newTrueCoordsY, world) = getNewTrueCoords cid evt world
+  = ({clval & svgTrueCoordsX = newTrueCoordsX
+            , svgTrueCoordsY = newTrueCoordsY}, NoDiff, world)
+
+getNewTrueCoords :: !ComponentId !(JSObj JSEvent) !*JSWorld -> *(!Real, !Real, !*JSWorld)
+getNewTrueCoords cid evt world
+  #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
+  #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
+  #! (newScale, world)     = .? (svgRoot .# "currentScale") world
+  #! newScale              = jsValToReal newScale
+  #! (translation, world)  = .? (svgRoot .# "currentTranslate") world
+  #! (translationX, world) = .? (translation .# "x") world
+  #! (translationY, world) = .? (translation .# "y") world
+  #! (translationX, translationY) = (jsValToReal translationX, jsValToReal translationY)
+  #! (clientX, world)      = .? (evt .# "clientX") world
+  #! (clientY, world)      = .? (evt .# "clientY") world
+  #! (clientX, clientY)    = (jsValToReal clientX, jsValToReal clientY)
+  #! newTrueCoordsX        = (clientX - translationX) / newScale
+  #! newTrueCoordsY        = (clientY - translationY) / newScale
+  = (newTrueCoordsX, newTrueCoordsY, world)
 
 mkMouseDragUp :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj o) !(Map String (Set ImageTag)) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
               -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkMouseDragUp _       _           _   _ _     _ _                 clval=:{svgDraggingElem = Nothing} world = ({clval & svgMousePos = MouseUp}, NoDiff, world)
-mkMouseDragUp resolve state2image cid _ idMap _ evts=:{[0] = evt} clval=:{svgDraggingElem = Just target} world
-  #! (evtTarget, world)    = .? (evt .# "target") world
-  #! (parentId, world)     = firstIdentifiableParentId evtTarget world
-  #! (_, world)            = (target .# "setAttributeNS" .$ (jsNull, "pointer-events", "all")) world
-  #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
-  #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
-  #! (p, world)            = (svgRoot `createSVGPoint` ()) world
-  #! (eCX, world)          = .? (evt .# "clientX") world
-  #! (eCY, world)          = .? (evt .# "clientY") world
-  #! world                 = (p .# "x" .= eCX) world
-  #! world                 = (p .# "y" .= eCY) world
-  #! (m, world)            = (svgRoot `getScreenCTM` ()) world
-  #! (inv, world)          = (m `inverse` ()) world
-  #! (p, world)            = (p `matrixTransform` inv) world
-  #! (px, world)           = .? (p .# "x") world
-  #! (py, world)           = .? (p .# "y") world
-  #! (dragX, world)        = (target `getAttribute` "dragx") world
-  #! (dragY, world)        = (target `getAttribute` "dragy") world
-  #! diff                  = case clval.svgDropCallback of
-                               Just sttf -> Diff (SetState (sttf ('DM'.get parentId idMap) (jsValToReal px) (jsValToReal py) clval.svgClSt)) (doResolve resolve)
-                               _         -> NoDiff
-  = ({clval & svgMousePos = MouseUp, svgDraggingElem = Nothing}, diff, world)
+mkMouseDragUp resolve state2image cid _ idMap _ evts=:{[0] = evt} clval=:{svgDragTarget = Just dragTarget} world
+  #! world = jsTrace clval world
+  #! (_, world)         = (dragTarget .# "setAttributeNS" .$ (jsNull, "pointer-events", "none")) world
+  #! (evtTarget, world) = .? (evt .# "target") world
+  #! (parentId, world)  = firstIdentifiableParentId evtTarget world
+  #! diff               = case clval.svgDropCallback of
+                            Just sttf -> Diff (SetState (sttf ('DM'.get parentId idMap) (clval.svgTrueCoordsX - clval.svgGrabPointX) (clval.svgTrueCoordsY - clval.svgGrabPointY) clval.svgClSt)) (doResolve resolve)
+                            _         -> NoDiff
+  = ({clval & svgMousePos = MouseUp, svgDragTarget = Nothing}, diff, world)
+mkMouseDragUp _ _ _ _ _ _ _ clval=:{svgDragTarget = Nothing} world
+  = ({clval & svgMousePos = MouseUp}, NoDiff, world)
 
 firstIdentifiableParentId :: !(JSObj a) *JSWorld -> *(String, *JSWorld)
 firstIdentifiableParentId elem world
@@ -239,24 +250,16 @@ instance == MousePos where
   (==) MouseUp   MouseUp   = True
   (==) _         _         = False
 
-:: SVGClSt s = E.a:
-  { svgClIsDefault  :: !Bool
-  , svgClSt         :: !s
-  , svgMousePos     :: !MousePos
-  , svgDropCallback :: !Maybe ((Maybe (Set ImageTag)) Real Real s -> s)
-  , svgDragOffsetX  :: !Real
-  , svgDragOffsetY  :: !Real
-  , svgDraggingElem :: !Maybe (JSObj a)
-  }
-
 defaultClSt :: !s -> SVGClSt s
 defaultClSt s = { svgClIsDefault  = True
                 , svgClSt         = s
                 , svgMousePos     = MouseUp
                 , svgDropCallback = Nothing
-                , svgDragOffsetX  = 0.0
-                , svgDragOffsetY  = 0.0
-                , svgDraggingElem = Nothing
+                , svgDragTarget   = Nothing
+                , svgTrueCoordsX  = 0.0
+                , svgTrueCoordsY  = 0.0
+                , svgGrabPointX   = 0.0
+                , svgGrabPointY   = 0.0
                 }
 
 :: SVGDiff s
@@ -343,6 +346,7 @@ appClientDiff resolve state2Image cid (SetState s) clst world
 (`getAttribute`)           obj args :== obj .# "getAttribute"           .$ args
 (`createSVGPoint`)         obj args :== obj .# "createSVGPoint"         .$ args
 (`getScreenCTM`)           obj args :== obj .# "getScreenCTM"           .$ args
+(`getCTM`)                 obj args :== obj .# "getCTM"                 .$ args
 (`inverse`)                obj args :== obj .# "inverse"                .$ args
 (`matrixTransform`)        obj args :== obj .# "matrixTransform"        .$ args
 
@@ -1347,7 +1351,7 @@ genSVG img = imageCata genSVGAllAlgs img
     , spanAlgs           = genSVGSpanAlgs
     , lookupSpanAlgs     = genSVGLookupSpanAlgs
     }
-  genSVGImageAlgs :: ImageAlg (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
+  genSVGImageAlgs :: ImageAlg (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
                               (Int -> GenSVGSt s (!Maybe SVGAttr, Map String (ImageAttr s), Map String (ImageAttr s)))
                               (ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform))
                               (GenSVGSt s Real)
@@ -1356,7 +1360,7 @@ genSVG img = imageCata genSVGAllAlgs img
     { imageAlg = mkImage
     }
     where // TODO transforms can influence size as well...
-    mkImage :: !(ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
+    mkImage :: !(ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
                !(Maybe (GenSVGSt s (GenSVGSyn s)))
                !([Int -> GenSVGSt s (!Maybe SVGAttr, Map String (ImageAttr s), Map String (ImageAttr s))])
                ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
@@ -1379,9 +1383,9 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (m4, st)     = m4 st
       #! (maskId, st) = imageMaskId st
       #! imAts`       = strictTRMap (\(x, _, _) -> x) imAts
-      #! (syn, st)    = imCo (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) imTrs imTas uniqId st
+      #! (syn, st)    = imCo (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) imTrs imTas uniqId (m1, m2, m3, m4) st
       #! (mask, st)   = evalMaybe mask st
-      = ({ genSVGSyn_svgElts       = mkGroup [] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkElt maskId mask syn)
+      = ({ genSVGSyn_svgElts       = mkElt maskId mask syn
          , genSVGSyn_imageSpanReal = (txsp` + m2 + m4, tysp` + m1 + m3)
          , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : strictTRMap (\(_, x, _) -> x) imAts]
          , genSVGSyn_draggable     = 'DM'.unions [syn.genSVGSyn_draggable : strictTRMap (\(_, _, x) -> x) imAts]
@@ -1400,30 +1404,30 @@ genSVG img = imageCata genSVGAllAlgs img
       = [ DefsElt [] [] [MaskElt [IdAttr maskId] [] mask.genSVGSyn_svgElts]
         : syn.genSVGSyn_svgElts]
 
-  genSVGImageContentAlgs :: ImageContentAlg (Int ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
+  genSVGImageContentAlgs :: ImageContentAlg (Int (Real, Real, Real, Real) ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
                                            (GenSVGSt s ImageSpanReal)
-                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
-                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
-                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s)) | iTask s
+                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
+                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
+                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
     where
-    mkBasic :: !(Int ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
+    mkBasic :: !(Int (Real, Real, Real, Real) ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
                !(GenSVGSt s ImageSpanReal)
                ImageSpanReal // Not used
                ![Maybe SVGAttr]
                ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
                (Set ImageTag) // Not used
-               !Int
+               !Int (Real, Real, Real, Real)
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkBasic baIm imSp _ imAts imTrs _ uniqId st
+    mkBasic baIm imSp _ imAts imTrs _ uniqId margins st
       #! (imSp, st)        = imSp st
-      #! ((_, isText), st) = baIm uniqId imSp [] [] st
+      #! ((_, isText), st) = baIm uniqId margins imSp [] [] st
       #! (imTrs, st)       = sequence (strictTRMap (\f -> f imSp isText) imTrs) st
-      #! ((syn, _), st)    = baIm uniqId imSp imAts imTrs st
+      #! ((syn, _), st)    = baIm uniqId margins imSp imAts imTrs st
       = (syn, st)
   genSVGImageAttrAlgs :: ImageAttrAlg s (Int -> GenSVGSt s (!Maybe SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s))) | iTask s
   genSVGImageAttrAlgs =
@@ -1574,7 +1578,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (sp1, st) = sp1 st
       #! (sp2, st) = sp2 st
       = ((sp1, sp2), st)
-  genSVGBasicImageAlgs :: BasicImageAlg (Int ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool)) | iTask s
+  genSVGBasicImageAlgs :: BasicImageAlg (Int (Real, Real, Real, Real) ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool)) | iTask s
   genSVGBasicImageAlgs =
     { basicImageEmptyImageAlg    = mkEmptyImage
     , basicImageTextImageAlg     = mkTextImage
@@ -1583,21 +1587,21 @@ genSVG img = imageCata genSVGAllAlgs img
     , basicImageEllipseImageAlg  = mkEllipseImage
     }
     where
-    mkEmptyImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
+    mkEmptyImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
                     ![(![SVGTransform], !ImageTransform)]
                     !(GenSVGStVal s)
                  -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkEmptyImage uniqId imSp imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }, False), st)
-    mkTextImage :: !FontDef !String !Int !ImageSpanReal
+    mkEmptyImage uniqId (m1, m2, _, _) imSp imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }, False), st)
+    mkTextImage :: !FontDef !String !Int (Real, Real, Real, Real) !ImageSpanReal
                    ![Maybe SVGAttr]
                    ![(![SVGTransform], !ImageTransform)]
                    !(GenSVGStVal s)
                 -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkTextImage fd str uniqId imSp imAts imTrs st
+    mkTextImage fd str uniqId (m1, m2, _, _) imSp imAts imTrs st
     // TODO Currently we manually translate text by fontysize pixels to compensate for the "auto" baseline. The result look OK, but a bit off compare to the old approach where we forced the origin to be the top-left corner (which didn't work with zooming)
     // We need to offset by the font's descent height, but that's not easy to calculate currently (there are no JS APIs for that yet). Current heuristic: we assume that the ex-height is half of the font height. We assume that the descent height is half of the ex-height. Therefore, we multiply by 0.75
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [TransformAttr [TranslateTransform "0" (toString (fd.fontysize * 0.75))]]
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [TransformAttr [TranslateTransform (toString (to2dec m1)) (toString (fd.fontysize * 0.75 + to2dec m2))]]
                                                                                                                [TextElt [XmlspaceAttr "preserve"] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
          , True), st)
       where
@@ -1612,34 +1616,34 @@ genSVG img = imageCata genSVGAllAlgs img
                       , FontWeightAttr fd.fontweight
                       , TextRenderingAttr "geometricPrecision"
                       ]
-    mkRectImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
+    mkRectImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
                    ![(![SVGTransform], !ImageTransform)]
                    !(GenSVGStVal s)
                 -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkRectImage uniqId imSp imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
-    mkCircleImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
+    mkRectImage uniqId (m1, m2, _, _) imSp imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
+    mkCircleImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
                      ![(![SVGTransform], !ImageTransform)]
                      !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkCircleImage uniqId imSp=:(imXSp`, _) imAts imTrs st
+    mkCircleImage uniqId (m1, m2, _, _) imSp=:(imXSp`, _) imAts imTrs st
       #! r = imXSp` / 2.0
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] [CircleElt []
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) [CircleElt []
                                           [ RAttr (toString (to2dec r), PX), CxAttr (toString (to2dec r), PX)
                                           , CyAttr (toString (to2dec r), PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]] }, False), st)
-    mkEllipseImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
+    mkEllipseImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
                       ![(![SVGTransform], !ImageTransform)]
                       !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkEllipseImage uniqId imSp=:(imXSp, imYSp) imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
+    mkEllipseImage uniqId (m1, m2, _, _) imSp=:(imXSp, imYSp) imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
                                           [ RxAttr (toString (to2dec (imXSp / 2.0)), PX), RyAttr (toString (to2dec (imYSp / 2.0)), PX)
                                           , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }, False), st)
 
   genSVGLineImageAlgs :: LineImageAlg (GenSVGSt s (!Real, !Real))
                                       (GenSVGSt s b)
                                       ((!Real, !Real) (Maybe b) [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
-                                      (c [Maybe SVGAttr] [(!Real, !Real) Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
+                                      (c [Maybe SVGAttr] [(!Real, !Real) Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
   genSVGLineImageAlgs =
     { lineImageLineImageAlg = mkLineImage
     }
@@ -1651,10 +1655,10 @@ genSVG img = imageCata genSVGAllAlgs img
                    ![Maybe SVGAttr]
                    ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
                    !(Set ImageTag)
-                   Int
+                   Int (Real, Real, Real, Real)
                    !(GenSVGStVal s)
                 -> .(!GenSVGSyn s, !GenSVGStVal s)
-    mkLineImage lineSpan mmarkers lineContent _ imAts imTrs imTas _ st
+    mkLineImage lineSpan mmarkers lineContent _ imAts imTrs imTas _ margins st
       #! (lineSpan, st) = lineSpan st
       #! (mmarkers, st) = evalMaybe mmarkers st
       #! (imTrs, st)    = sequence (strictTRMap (\f -> f lineSpan False) imTrs) st
@@ -1733,6 +1737,7 @@ genSVG img = imageCata genSVGAllAlgs img
                                         , RefYAttr (toString (toInt (h / 2.0)), PX)
                                         , MarkerHeightAttr (toString (toInt h), PX)
                                         , MarkerWidthAttr (toString (toInt w), PX)
+                                        //: (mkTransformTranslateAttr (to2dec m1, to2dec m2))
                                         ] genSVGSyn_svgElts
                , posAttr (mkUrl mid)
                , genSVGSyn_events
@@ -1744,7 +1749,7 @@ genSVG img = imageCata genSVGAllAlgs img
   genSVGCompositeImageAlgs :: CompositeImageAlg (GenSVGSt s Real)
                                                (GenSVGSt s (GenSVGSyn s))
                                                ((Maybe (GenSVGSyn s)) ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
-                                               (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s)) | iTask s
+                                               (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
@@ -1754,9 +1759,9 @@ genSVG img = imageCata genSVGAllAlgs img
                         !ImageSpanReal
                         ![Maybe SVGAttr]
                         ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
-                        !(Set ImageTag) !Int !(GenSVGStVal s)
+                        !(Set ImageTag) !Int (Real, Real, Real, Real) !(GenSVGStVal s)
                      -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkCompositeImage host compose totalSpanPreTrans imAts imTrs imTas uniqId st
+    mkCompositeImage host compose totalSpanPreTrans imAts imTrs imTas uniqId (m1, m2, _, _) st
       #! (host, st)    = evalMaybe host st
       #! (compose, st) = compose host totalSpanPreTrans imAts imTrs imTas st
       #! (cpId, st)    = getCpId st
@@ -1767,11 +1772,11 @@ genSVG img = imageCata genSVGAllAlgs img
                _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal, compose.genSVGSyn_events, compose.genSVGSyn_draggable, compose.genSVGSyn_idMap)
       #! (imTrs, st) = sequence (strictTRMap (\f -> f spans False) imTrs) st
       #! attrs = mkAttrs imAts imTrs
-      = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts   = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] (mkGroup [] (getSvgAttrs attrs) elts)
-         , genSVGSyn_events    = onclicks
-         , genSVGSyn_draggable = draggables
-         , genSVGSyn_idMap     = idMap
+      = ({ genSVGSyn_imageSpanReal = (0.0, 0.0)
+         , genSVGSyn_svgElts       = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkGroup [] (getSvgAttrs attrs) elts)
+         , genSVGSyn_events        = onclicks
+         , genSVGSyn_draggable     = draggables
+         , genSVGSyn_idMap         = idMap
          }, st)
     getCpId :: !(GenSVGStVal s) -> (!String, !GenSVGStVal s) | iTask s
     getCpId clval
@@ -1796,8 +1801,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkCollage offsets imgs _ totalSpanPreTrans imAts imTrs imTas st
       #! (offsets, st) = evalOffsets offsets st
       #! (imgsSps, st) = sequence imgs st
-      = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
+      = ({ genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
          , genSVGSyn_events        = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_events) imgsSps)
          , genSVGSyn_draggable     = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_draggable) imgsSps)
          , genSVGSyn_idMap         = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_idMap) imgsSps)
