@@ -20,7 +20,7 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dragDrop)
 derive class iTask DragDropState
 
 defaultState :: DragDropState
-defaultState = { DragDropState | xcoord = 0.0, ycoord = 0.0, mousedown = False, targetColor = "green" }
+defaultState = { DragDropState | xcoord = 0.0, ycoord = 0.0, mousedown = False, targetColor = "white" }
 
 dragDropState :: Shared DragDropState
 dragDropState = sharedStore "dragDropState" defaultState
@@ -38,5 +38,6 @@ mkImg ddst tsrc
   = collage [(px 200.0, px 200.0), (px ddst.xcoord, px ddst.ycoord)] [target, box] (Just canvas)
   where
   changeColor targetTag (Just targetTags)
-    | 'DS'.member targetTag targetTags = "red"
+    | 'DS'.member targetTag targetTags = "green"
+    | otherwise                        = "red"
   changeColor _ _ = "white"
