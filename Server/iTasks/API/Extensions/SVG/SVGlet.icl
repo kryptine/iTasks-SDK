@@ -34,19 +34,19 @@ mkMouseDragMove _ _ cid _ elemId obj _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseUp = (clval, NoDiff, world)
   #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
-  #! (p, world)   = (svgRoot `createSVGPoint` ()) world
-  #! (eCX, world) = .? (evt .# "clientX") world
-  #! (eCY, world) = .? (evt .# "clientY") world
-  #! world        = (p .# "x" .= eCX) world
-  #! world        = (p .# "y" .= eCY) world
-  #! (m, world)   = (svgRoot `getScreenCTM` ()) world
-  #! (inv, world) = (m `inverse` ()) world
-  #! (p, world)   = (p `matrixTransform` inv) world
-  #! (px, world)  = .? (p .# "x") world
-  #! (py, world)  = .? (p .# "y") world
-  #! (px, py)     = (jsValToReal px - clval.svgDragOffsetX, jsValToReal py - clval.svgDragOffsetY)
-  #! (target, world) = .? (evt .# "target") world
-  #! world        = if (jsIsNull obj) world (f target px py world)
+  #! (target, world)       = (svgRoot .# "getElementById" .$ elemId) world
+  #! (p, world)            = (svgRoot `createSVGPoint` ()) world
+  #! (eCX, world)          = .? (evt .# "clientX") world
+  #! (eCY, world)          = .? (evt .# "clientY") world
+  #! world                 = (p .# "x" .= eCX) world
+  #! world                 = (p .# "y" .= eCY) world
+  #! (m, world)            = (svgRoot `getScreenCTM` ()) world
+  #! (inv, world)          = (m `inverse` ()) world
+  #! (p, world)            = (p `matrixTransform` inv) world
+  #! (px, world)           = .? (p .# "x") world
+  #! (py, world)           = .? (p .# "y") world
+  #! (px, py)              = (jsValToReal px - clval.svgDragOffsetX, jsValToReal py - clval.svgDragOffsetY)
+  #! world                 = if (jsIsNull obj) world (f target px py world)
   = (clval, NoDiff, world)
   where
   f target px py world
@@ -59,34 +59,30 @@ mkMouseDragDown :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !Componen
                 -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
 mkMouseDragDown resolve state2image cid _ elemId obj _ evts=:{[0] = evt} clval world
   | clval.svgMousePos == MouseDown = (clval, NoDiff, world)
-  #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
-  #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
-  #! (target, world)       = (svgRoot .# "getElementById" .$ elemId) world
-  #! world = jsTrace svgRoot world
-  #! world = jsTrace elemId world
-  #! world = jsTrace target world
-  //#! (_, world)      = (svgRoot .# "appendChild" .$ target) world
-  | jsIsNull target  = (clval, NoDiff, world)
-  #! clval           = {clval & svgDraggingElem = Just target}
-  #! (p, world)      = (svgRoot `createSVGPoint` ()) world
-  #! (eCX, world)    = .? (evt .# "clientX") world
-  #! (eCY, world)    = .? (evt .# "clientY") world
-  #! world           = (p .# "x" .= eCX) world
-  #! world           = (p .# "y" .= eCY) world
-  #! (m, world)      = (svgRoot `getScreenCTM` ()) world
-  #! (inv, world)    = (m `inverse` ()) world
-  #! (p, world)      = (p `matrixTransform` inv) world
-  #! (px, world)     = .? (p .# "x") world
-  #! (py, world)     = .? (p .# "y") world
-  #! (dragX, world)  = (target `getAttribute` "dragx") world
-  #! (dragY, world)  = (target `getAttribute` "dragy") world
-  #! (dragX, world)  = if (jsIsNull dragX)
-                         (toJSVal 0, world)
-                         (("parseInt" .$ dragX) world)
-  #! (dragY, world)  = if (jsIsNull dragY)
-                         (toJSVal 0, world)
-                         (("parseInt" .$ dragY) world)
+  #! (svgContainer, world)  = .? (getElementById (mainSvgId cid)) world
+  #! (svgRoot, world)       = .? (svgContainer .# "firstChild") world
+  #! (target, world)        = (svgRoot .# "getElementById" .$ elemId) world
+  #! clval                  = {clval & svgDraggingElem = Just target}
+  #! (p, world)             = (svgRoot `createSVGPoint` ()) world
+  #! (eCX, world)           = .? (evt .# "clientX") world
+  #! (eCY, world)           = .? (evt .# "clientY") world
+  #! world                  = (p .# "x" .= eCX) world
+  #! world                  = (p .# "y" .= eCY) world
+  #! (m, world)             = (svgRoot `getScreenCTM` ()) world
+  #! (inv, world)           = (m `inverse` ()) world
+  #! (p, world)             = (p `matrixTransform` inv) world
+  #! (px, world)            = .? (p .# "x") world
+  #! (py, world)            = .? (p .# "y") world
+  #! (dragX, world)         = (target `getAttribute` "dragx") world
+  #! (dragY, world)         = (target `getAttribute` "dragy") world
+  #! (dragX, world)         = if (jsIsNull dragX)
+                                (toJSVal 0, world)
+                                (("parseInt" .$ dragX) world)
+  #! (dragY, world)         = if (jsIsNull dragY)
+                                (toJSVal 0, world)
+                                (("parseInt" .$ dragY) world)
   #! (px, py, dragX, dragY) = (jsValToReal px, jsValToReal py, jsValToReal dragX, jsValToReal dragY)
+  //#! (_, world)      = (svgRoot .# "appendChild" .$ target) world
   = ({clval & svgDragOffsetX = px - dragX, svgDragOffsetY = py - dragY, svgMousePos = MouseDown}, NoDiff, world)
 
 mkMouseDragUp :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(Real Real s -> s) !String !(JSObj o) String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
@@ -96,21 +92,19 @@ mkMouseDragUp resolve state2image cid sttf elemId _ _ evts=:{[0] = evt} clval wo
   #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
   #! (target, world)       = (svgRoot .# "getElementById" .$ elemId) world
-  | jsIsNull target  = (clval, NoDiff, world)
-  #! world = jsTrace evt world
-  #! (p, world)      = (svgRoot `createSVGPoint` ()) world
-  #! (eCX, world)    = .? (evt .# "clientX") world
-  #! (eCY, world)    = .? (evt .# "clientY") world
-  #! world           = (p .# "x" .= eCX) world
-  #! world           = (p .# "y" .= eCY) world
-  #! (m, world)      = (svgRoot `getScreenCTM` ()) world
-  #! (inv, world)    = (m `inverse` ()) world
-  #! (p, world)      = (p `matrixTransform` inv) world
-  #! (px, world)     = .? (p .# "x") world
-  #! (py, world)     = .? (p .# "y") world
-  #! (dragX, world)  = (target `getAttribute` "dragx") world
-  #! (dragY, world)  = (target `getAttribute` "dragy") world
-  #! st`             = sttf (jsValToReal px) (jsValToReal py) clval.svgClSt
+  #! (p, world)            = (svgRoot `createSVGPoint` ()) world
+  #! (eCX, world)          = .? (evt .# "clientX") world
+  #! (eCY, world)          = .? (evt .# "clientY") world
+  #! world                 = (p .# "x" .= eCX) world
+  #! world                 = (p .# "y" .= eCY) world
+  #! (m, world)            = (svgRoot `getScreenCTM` ()) world
+  #! (inv, world)          = (m `inverse` ()) world
+  #! (p, world)            = (p `matrixTransform` inv) world
+  #! (px, world)           = .? (p .# "x") world
+  #! (py, world)           = .? (p .# "y") world
+  #! (dragX, world)        = (target `getAttribute` "dragx") world
+  #! (dragY, world)        = (target `getAttribute` "dragy") world
+  #! st`                   = sttf (jsValToReal px) (jsValToReal py) clval.svgClSt
   = ({clval & svgMousePos = MouseUp, svgDraggingElem = Nothing}, (Diff (SetState st`) (doResolve resolve)), world)
 
 registerDraggables :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj svg) !(Map String (ImageAttr s)) !*JSWorld -> *JSWorld | iTask s
@@ -135,13 +129,13 @@ registerSVGEvents resolve state2Image cid svg onclicks world
   = 'DM'.foldrWithKey (registerEvent resolve state2Image cid svg) world onclicks
   where
   registerEvent :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj svg) !String !(ImageAttr s) !*JSWorld -> *JSWorld | iTask s
-  registerEvent resolve state2image cid svg elemCls (ImageOnClickAttr     {local, onclick})     world = actuallyRegister resolve state2image cid svg elemCls "click"     onclick     local world
-  registerEvent resolve state2image cid svg elemCls (ImageOnDblClickAttr  {local, ondblclick})  world = registerNClick   resolve state2image cid svg elemCls 2           ondblclick  local world
-  registerEvent resolve state2image cid svg elemCls (ImageOnMouseDownAttr {local, onmousedown}) world = actuallyRegister resolve state2image cid svg elemCls "mousedown" onmousedown local world
-  registerEvent resolve state2image cid svg elemCls (ImageOnMouseUpAttr   {local, onmouseup})   world = actuallyRegister resolve state2image cid svg elemCls "mouseup"   onmouseup   local world
-  registerEvent resolve state2image cid svg elemCls (ImageOnMouseOverAttr {local, onmouseover}) world = actuallyRegister resolve state2image cid svg elemCls "mouseover" onmouseover local world
-  registerEvent resolve state2image cid svg elemCls (ImageOnMouseMoveAttr {local, onmousemove}) world = actuallyRegister resolve state2image cid svg elemCls "mousemove" onmousemove local world
-  registerEvent resolve state2image cid svg elemCls (ImageOnMouseOutAttr  {local, onmouseout})  world = actuallyRegister resolve state2image cid svg elemCls "mouseout"  onmouseout  local world
+  registerEvent resolve state2image cid svg elemId (ImageOnClickAttr     {local, onclick})     world = actuallyRegister resolve state2image cid svg elemId "click"     onclick     local world
+  registerEvent resolve state2image cid svg elemId (ImageOnDblClickAttr  {local, ondblclick})  world = registerNClick   resolve state2image cid svg elemId 2           ondblclick  local world
+  registerEvent resolve state2image cid svg elemId (ImageOnMouseDownAttr {local, onmousedown}) world = actuallyRegister resolve state2image cid svg elemId "mousedown" onmousedown local world
+  registerEvent resolve state2image cid svg elemId (ImageOnMouseUpAttr   {local, onmouseup})   world = actuallyRegister resolve state2image cid svg elemId "mouseup"   onmouseup   local world
+  registerEvent resolve state2image cid svg elemId (ImageOnMouseOverAttr {local, onmouseover}) world = actuallyRegister resolve state2image cid svg elemId "mouseover" onmouseover local world
+  registerEvent resolve state2image cid svg elemId (ImageOnMouseMoveAttr {local, onmousemove}) world = actuallyRegister resolve state2image cid svg elemId "mousemove" onmousemove local world
+  registerEvent resolve state2image cid svg elemId (ImageOnMouseOutAttr  {local, onmouseout})  world = actuallyRegister resolve state2image cid svg elemId "mouseout"  onmouseout  local world
 
 actuallyRegister :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj svg) !String !String !(s -> s) !Bool *JSWorld -> *JSWorld | iTask s
 actuallyRegister resolve state2image cid svg elemId evt sttf local world
@@ -170,14 +164,11 @@ doResolve resolve c s w
       _       -> (s, NoDiff, w)
 
 registerNClick :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId !(JSObj svg) !String !Int !(s -> s) !Bool *JSWorld -> *JSWorld | iTask s
-registerNClick resolve state2image cid svg elemCls n sttf local world
-  #! elemCls           = replaceSubString editletId cid elemCls
-  #! (elems, world)    = (svg `getElementsByClassName` elemCls) world
-  #! (numElems, world) = .? (elems .# "length") world
-  | jsValToInt (numElems) < 1 = world
-  #! (elem, world)     = .? (elems .# "0") world
-  #! cb                = createEditletEventHandler (mkNClickCB n sttf local) cid
-  #! (_, world)        = (elem `addEventListener` ("click", cb, True)) world
+registerNClick resolve state2image cid svg elemId n sttf local world
+  #! elemId        = replaceSubString editletId cid elemId
+  #! (elem, world) = (svg .# "getElementById" .$ elemId) world
+  #! cb            = createEditletEventHandler (mkNClickCB n sttf local) cid
+  #! (_, world)    = (elem `addEventListener` ("click", cb, True)) world
   = world
 
 mkNClickCB :: !Int !(s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
