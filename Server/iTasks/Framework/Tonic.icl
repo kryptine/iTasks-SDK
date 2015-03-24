@@ -32,9 +32,9 @@ import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
 import Text
 import GenLexOrd
-from Control.Monad import `b`, class Monad
+from Control.Monad import `b`, class Monad, instance Monad Maybe
 import qualified Control.Applicative as CA
-from Control.Applicative import class Applicative
+from Control.Applicative import class Applicative, instance Applicative Maybe
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -99,6 +99,18 @@ instance Monad IWorldM where
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
 
+tonicInstances :: RWShared TaskId BlueprintRef BlueprintRef
+tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicSharedRT
+  where
+  read :: TaskId TonicRTMap -> MaybeError TaskException BlueprintRef
+  read tid trtMap = maybe (Error (exception ("Could not find blueprint for task " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: TaskId TonicRTMap BlueprintRef -> MaybeError TaskException (Maybe TonicRTMap)
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: TaskId TonicRTMap BlueprintRef -> SDSNotifyPred TaskId
+  notify tid _ _ = \tid` -> tid == tid`
+
 tonicSharedListOfTask :: RWShared () ListsOfTasks ListsOfTasks
 tonicSharedListOfTask = sdsTranslate "tonicSharedListOfTask" (\t -> t +++> "-tonicSharedListOfTask") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
 
@@ -142,37 +154,38 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                         , bpr_blueprint  = bprep
                         , bpr_instance   = Just bpinst
                         }
-          = snd ('DSDS'.write ('DM'.put currTaskId blueprint rtMap) tonicSharedRT iworld)
+          # (_, iworld) = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
+          = iworld
         _ = iworld
   eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
     # iworld = okSt iworld logTaskEnd (taskIdFromTaskTree taskTree)
     = eval event evalOpts taskTree iworld
     where
     logTaskEnd currTaskId iworld
-      # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-      = okSt iworld (updateRTMap currTaskId) mrtMap
-    updateRTMap currTaskId rtMap iworld
-      # (clocks, iworld) = iworld!clocks
-      = maybeSt iworld
-          (\bpref -> snd o 'DSDS'.write ('DM'.put currTaskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_endTime = Just clocks}) bpref.bpr_instance } rtMap) tonicSharedRT)
-          ('DM'.get currTaskId rtMap)
+      # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
+      = case mbpref of
+          Ok bpref
+             # (clocks, iworld) = iworld!clocks
+             # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_endTime = Just clocks}) bpref.bpr_instance } (sdsFocus currTaskId tonicInstances) iworld
+             = iworld
+          _  = iworld
   eval` _ event evalOpts taskTree iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
     = (tr, okSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
     where
     readAndUpdateRTMap tr currTaskId iworld
-      # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-      = okSt iworld (updateRTMap tr currTaskId) mrtMap
-    updateRTMap tr currTaskId rtMap iworld
-      # (curr, iworld)   = iworld!current
-      # (clocks, iworld) = iworld!clocks
-      = maybeSt iworld
-          (\bpref -> snd o 'DSDS'.write ('DM'.put currTaskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_output        = resultToOutput tr
-                                                                                                          , bpi_endTime       = case tr of
-                                                                                                                                  ValueResult (Value _ True) _ _ _ -> Just clocks
-                                                                                                                                  _                                -> inst.bpi_endTime
-                                                                                                          , bpi_involvedUsers = [curr.user : resultUsers tr]}) bpref.bpr_instance} rtMap) tonicSharedRT)
-          ('DM'.get currTaskId rtMap)
+      # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
+      = case mbpref of
+          Ok bpref
+            # (curr, iworld)   = iworld!current
+            # (clocks, iworld) = iworld!clocks
+            # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_output        = resultToOutput tr
+                                                                                           , bpi_endTime       = case tr of
+                                                                                                                   ValueResult (Value _ True) _ _ _ -> Just clocks
+                                                                                                                   _                                -> inst.bpi_endTime
+                                                                                           , bpi_involvedUsers = [curr.user : resultUsers tr]}) bpref.bpr_instance} (sdsFocus currTaskId tonicInstances) iworld
+            = iworld
+          _ = iworld
   resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
   resultToOutput _                      = Nothing
   resultUsers (ValueResult _ te _ _) = te.TaskEvalInfo.involvedUsers
@@ -185,7 +198,7 @@ firstParent _     _  _  [] = Error (exception "iTasks.Framework.Tonic.firstParen
 firstParent rtMap mn tn [parent : parents]
   = case 'DM'.get parent rtMap of
       Just trt -> if (  trt.bpr_moduleName == mn
-                     && trt.bpr_taskName == tn)
+                     && trt.bpr_taskName   == tn)
                      (Ok trt)
                      next
       _        -> next
@@ -329,8 +342,8 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
     where
     updRTMap tid=:(TaskId instanceNo _) cct bpref inst rtMap iworld
       # (newActiveNodes`, iworld) = setActiveNodes inst.bpi_taskId tid cct nid inst.bpi_activeNodes iworld
-      # rtMap = 'DM'.put inst.bpi_taskId {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`}) bpref.bpr_instance} rtMap
-      = snd ('DSDS'.write rtMap tonicSharedRT iworld)
+      # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
+      = iworld
     updLoTMap tid bpref inst iworld
       # (mbmlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
       # (mbpref, iworld) = getBlueprintRef tid iworld
@@ -380,10 +393,10 @@ tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
 
 getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
 getBlueprintRef tid world
-  # (mtrt, world) = 'DSDS'.read tonicSharedRT world
-  = case mtrt of
-      Ok trt -> ('DM'.get tid trt, world)
-      _      -> (Nothing, world)
+  # (mbpref, world) = 'DSDS'.read (sdsFocus tid tonicInstances) world
+  = case mbpref of
+      Ok bpref -> (Just bpref, world)
+      _        -> (Nothing, world)
 
 tonicWrapListOfTask :: ModuleName TaskName NodeId TaskId [Task a] -> [Task a]
 tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
@@ -522,6 +535,7 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 
 derive class iTask TonicImageState
 
+import StdDebug
 viewStaticTask :: AllBlueprints Scale Bool [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
 viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
       viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
@@ -554,17 +568,14 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
     where
     onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps depth compact rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
-import StdDebug
+
 dynamicParent :: TaskId -> Task (Maybe BlueprintRef)
 dynamicParent childId=:(TaskId instanceNo _)
   =       get tonicSharedRT >>~
-  \rtm -> return (case 'DM'.get childId rtm of
-                    Just child -> case child.bpr_instance of
-                                    Just bpi -> case bpi.bpi_parentTaskId of
-                                                  Just pid -> 'DM'.get pid rtm
-                                                  _        -> Nothing
-                                    _        -> Nothing
-                    _          -> Nothing)
+  \rtm -> return ('DM'.get childId rtm
+    `b` \child -> child.bpr_instance
+    `b` \bpi   -> bpi.bpi_parentTaskId
+    `b` \pid   -> 'DM'.get pid rtm)
 
 :: DynamicView =
   { moduleName :: !String
@@ -601,7 +612,7 @@ tonicDynamicBrowser` rs q =
   (editSharedChoiceWithSharedAs (Title "Active blueprint instances")
     [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
   -&&-
-    whileUnchanged selectedBlueprint (\sbp -> whileUnchanged tonicSharedRT (\trt -> viewInstance rs (sbp, trt)))
+    whileUnchanged (selectedBlueprint |+| tonicSharedRT) (viewInstance rs)
   ) <<@ ArrangeWithSideBar 0 LeftSide 400 True
     <<@ FullScreen @! ()
   where
@@ -1343,7 +1354,7 @@ tTextWithGreyBackground font txt
   #! textWidth = textxspan font txt + px 10.0
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (font.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text font txt] Nothing
 
-mkVertConn :: ![ImageTag] -> !Image ModelTy
+mkVertConn :: ![ImageTag] -> Image ModelTy
 mkVertConn ts
   | length ts < 2 = empty (px 0.0) (px 0.0)
   | otherwise
