@@ -1314,13 +1314,12 @@ tagImgs :: ![Image ModelTy] !*TagSource -> *(![Image ModelTy], ![ImageTag], !*Ta
 tagImgs [] tsrc = ([], [], tsrc)
 tagImgs [i : is] tsrc
   #! (is, ts, tsrc) = tagImgs is tsrc
-  #! (i, t, tsrc)   = tagWithSrc tsrc i
+  #! ((i, t), tsrc) = tagWithSrc tsrc i
   = ([i : is], [t : ts], tsrc)
 
 prepCases :: ![String] ![Image ModelTy] !*TagSource -> *(![Image ModelTy], ![ImageTag], *TagSource)
 prepCases patStrs pats tsrc
   #! (pats, tags, tsrc) = tagImgs pats tsrc
-  #! pats     = zipWith (\_ pat -> pat) tags pats // To sync lengths
   #! maxXSpan = maxSpan (map imagexspan tags)
   = (zipWith3 (prepCase maxXSpan) pats (patStrs ++ repeat "") tags, tags, tsrc)
   where
