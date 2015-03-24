@@ -138,7 +138,7 @@ pile_image side pile
 row_images :: !Bool !RowPlayer -> [Image GameSt]
 row_images interactive row
   = [  tuneIf interactive (card_image Front row_card)
-              {onclick = play_row_card row_card.back no, local = True}
+              {onclick = play_row_card row_card.back no, local = False}
 	\\ row_card <- row 
 	 & no       <- [1..]
 	]
@@ -147,8 +147,8 @@ hand_images :: !Bool !Hand !Color -> [Image GameSt]
 hand_images interactive {conceal,discard} color
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
-  = [ tuneIf interactive conceal_pile {onclick = play_concealed_pile color, local = True}
-    , tuneIf interactive discard_pile {onclick = play_hand_card color, local = True}
+  = [ tuneIf interactive conceal_pile {onclick = play_concealed_pile color, local = False}
+    , tuneIf interactive discard_pile {onclick = play_hand_card color, local = False}
     ]
 
 player_arc :== 0.45 * pi

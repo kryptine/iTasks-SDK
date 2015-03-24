@@ -13,7 +13,7 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dragDrop)
 :: DragDropState =
   { xcoord :: Real
   , ycoord :: Real
-  , mousedown :: Bool
+  , mousedown   :: Bool
   , targetColor :: String
   }
 
@@ -29,14 +29,13 @@ dragDrop :: Task DragDropState
 dragDrop = updateSharedInformation "Drag and drop example" [imageUpdate id mkImg (\_ _ -> Nothing) (const id)] dragDropState
 
 mkImg :: DragDropState *TagSource -> Image DragDropState
-mkImg ddst tsrc
-  #! (target, tref, tsrc) = tagWithSrc tsrc (rect (px 100.0) (px 100.0) <@< { fill = toSVGColor ddst.targetColor })
-  #! (targetTag, tref)    = tagFromRef tref
-  #! box    = rect (px 50.0) (px 50.0) <@< { draggable = Just (\targetTags x y ddst -> {ddst & xcoord = x, ycoord = y, targetColor = changeColor targetTag targetTags })}
+mkImg ddst [(nutag, utag) : tsrc]
+  #! target = tag utag (rect (px 100.0) (px 100.0) <@< { fill = toSVGColor ddst.targetColor })
+  #! box    = rect (px 50.0)  (px 50.0)  <@< { draggable = Just (\targetTags x y ddst -> {ddst & xcoord = x, ycoord = y, targetColor = changeColor targetTags })}
   #! canvas = rect (px 500.0) (px 500.0) <@< { fill = toSVGColor "none" }
   = collage [(px 200.0, px 200.0), (px ddst.xcoord, px ddst.ycoord)] [target, box] (Just canvas)
   where
-  changeColor targetTag (Just targetTags)
-    | 'DS'.member targetTag targetTags = "green"
-    | otherwise                        = "red"
-  changeColor _ _ = "white"
+  changeColor (Just targetTags)
+    | 'DS'.member nutag targetTags = "green"
+    | otherwise                    = "red"
+  changeColor _ = "white"
