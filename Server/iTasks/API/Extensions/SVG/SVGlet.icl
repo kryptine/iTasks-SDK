@@ -208,7 +208,7 @@ mkNClickCB sttf local cid args clval=:{svgClSt, svgClickTimeout} world
                Just to -> snd (("clearTimeout" .$ to) world)
                _       -> world
   #! cb = createEditletEventHandler (handleNClick sttf local) cid
-  #! (timeOut, world) = ("setTimeout" .$ (cb, 500)) world
+  #! (timeOut, world) = ("setTimeout" .$ (cb, 300)) world
   = ({clval & svgClickTimeout = Just timeOut, svgNumClicks = clval.svgNumClicks + 1}, NoDiff, world)
 
 handleNClick :: !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
