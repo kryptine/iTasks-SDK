@@ -932,12 +932,6 @@ tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just tArrowTip}) (px 
 tVertUpDownConnArr :: Image ModelTy
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
-refsForList :: [a] !*TagSource -> *(!*[*TagRef], !*TagSource)
-refsForList [] tsrc = ([], tsrc)
-refsForList [_:xs] [r : tsrc]
-  #! (rs, tsrc) = refsForList xs tsrc
-  = ([r:rs], tsrc)
-
 tVar :: !MkImageInh !NodeId !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tVar inh eid pp tsrc
   = case inh.inh_trt.bpr_instance of
@@ -1005,7 +999,7 @@ tCaseOrIf inh texpr pats tsrc
   y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
 tShare :: !MkImageInh !TShare !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tShare inh sh sn args tsrc
+tShare inh sh sn args [(sharetag, uShareTag) : tsrc]
   #! boxTxt  = case sh of
                  Get          -> "    "
                  (Set ppexpr) -> ppexpr
@@ -1018,7 +1012,7 @@ tShare inh sh sn args tsrc
                  Get        -> tVertDownConnArr
                  Set ppexpr -> tVertUpConnArr
                  Upd ppexpr -> tVertUpDownConnArr
-  #! (shareArr, sharetag, tsrc) = tagWithSrc tsrc (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
+  #! shareArr = tag uShareTag (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
   #! emptyImg = empty zero (imageyspan sharetag)
   // TODO Add arrows to/from box if the box is smaller than the share
   = (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing, tsrc)
@@ -1038,14 +1032,14 @@ tShare inh sh sn args tsrc
     = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
 tLet :: !MkImageInh ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
-tLet inh pats expr tsrc
+tLet inh pats expr [(txttag, uTxtTag) : tsrc]
   = case expr of
       TLet pats` bdy
         = tLet inh (pats ++ pats`) bdy tsrc
       _
-        #! (t, tsrc)               = tExpr2Image inh expr tsrc
-        #! binds                   = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTCleanExpr var) : text ArialRegular10px " = " : text ArialRegular10px (ppExpr expr) : acc]) [] pats
-        #! (letText, txttag, tsrc) = tagWithSrc tsrc (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
+        #! (t, tsrc) = tExpr2Image inh expr tsrc
+        #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTCleanExpr var) : text ArialRegular10px " = " : text ArialRegular10px (ppExpr expr) : acc]) [] pats
+        #! letText   = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! letWidth  = imagexspan txttag + px 10.0
         #! letHeight = px ArialRegular10px.fontysize *. (length pats + 1)
         #! letBox    = rect letWidth letHeight
@@ -1092,8 +1086,7 @@ tParallel inh eid (ParSumR l r) tsrc // TODO This is actually not correct yet...
 tParallel inh eid (ParSumN ts) tsrc
   #! (ts`, tsrc) = mkParSum inh eid ts tsrc
   #! ts` = map (margin (px 5.0, px 0.0)) ts`
-  #! (refs, tsrc)      = refsForList ts` tsrc
-  #! (ts`, refs, tsrc) = prepCases [] ts` refs
+  #! (ts`, refs, tsrc) = prepCases [] ts` tsrc
   #! vertConn          = mkVertConn refs
   #! contsImg          = above (repeat AtMiddleX) [] ts` Nothing
   = ( beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tParSum] Nothing
@@ -1115,8 +1108,7 @@ tParallel inh eid (ParSumN ts) tsrc
   mkParSum _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
 tParallel inh eid (ParProd ts) tsrc
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
-  #! (refs, tsrc)     = refsForList imgs tsrc
-  #! (ts, refs, tsrc) = prepCases [] imgs refs
+  #! (ts, refs, tsrc) = prepCases [] imgs tsrc
   #! vertConn         = mkVertConn refs
   = ( beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn, tHorizConnArr, tParProd] Nothing
     , tsrc)
@@ -1176,28 +1168,28 @@ prefixAOrAn str
   | otherwise                                       = "a " +++ str
 
 tTaskDef :: !String !TCleanExpr [(TCleanExpr, TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTaskDef taskName resultTy _ tdbody tsrc
-  #! (taskBodyImgs, bdytag, tsrc) = tagWithSrc tsrc (margin (px 5.0) tdbody)
-  #! bgRect                       = tRoundedRect (imagexspan bdytag) (imageyspan bdytag)
+tTaskDef taskName resultTy _ tdbody [(bdytag, uBodyTag) : tsrc]
+  #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
+  #! bgRect       = tRoundedRect (imagexspan bdytag) (imageyspan bdytag)
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskBodyImgs] Nothing, tsrc)
   where
   mkArgAndTy :: !(!String, !TCleanExpr) -> String
   mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)
 
 tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTransformApp inh texpr tffun args tsrc
-  #! (tfNameImg,  nmtag, tsrc)   = tagWithSrc tsrc (margin (px 5.0) (text ArialItalic10px tffun))
-  #! (tfArgsImgs, argstag, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
+tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]
+  #! tfNameImg    = tag uNmTag (margin (px 5.0) (text ArialItalic10px tffun))
+  #! tfArgsImgs   = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
   #! (expr, tsrc) = tExpr2Image inh texpr tsrc
-  #! maxXSpan   = maxSpan [imagexspan nmtag, imagexspan argstag]
-  #! bgRect     = rect maxXSpan (imageyspan nmtag + imageyspan argstag)
-                    <@< { fill        = toSVGColor "white" }
-                    <@< { stroke      = toSVGColor "black" }
-                    <@< { strokewidth = px 1.0 }
-  #! tfContents = above (repeat AtLeft) [] (case args of
-                                              [] -> [tfNameImg]
-                                              _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
-  #! tfApp      = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
+  #! maxXSpan     = maxSpan [imagexspan nmtag, imagexspan argstag]
+  #! bgRect       = rect maxXSpan (imageyspan nmtag + imageyspan argstag)
+                      <@< { fill        = toSVGColor "white" }
+                      <@< { stroke      = toSVGColor "black" }
+                      <@< { strokewidth = px 1.0 }
+  #! tfContents   = above (repeat AtLeft) [] (case args of
+                                                [] -> [tfNameImg]
+                                                _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
+  #! tfApp        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
   = (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
 
 nodeIsActive :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> Bool
@@ -1269,14 +1261,14 @@ tDefaultTaskApp isCompact isActive modName taskName argsExprs taskArgs tsrc
   = tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
 
 tDefaultTaskApp` :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
-  #! (taskNameImg, tntag, tsrc) = tagWithSrc tsrc (margin (px 5.0) (text ArialBold10px taskName))
+tDefaultTaskApp` isCompact isActive modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+  #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
-        #! (argsImg, argstag, tsrc) = tagWithSrc tsrc (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
+        #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
         #! content  = margin (px 5.0) (above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing)
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
@@ -1311,9 +1303,8 @@ ppUser (TUVariableUser usr)            = usr
 tStep :: !MkImageInh !TExpr ![PPOr TStepCont] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh lhsExpr conts tsrc
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
-  #! (refs, tsrc)         = refsForList conts tsrc
   #! (conts`, tsrc)       = mapSt (tStepCont inh) conts tsrc
-  #! (conts`, refs, tsrc) = prepCases [] conts` refs
+  #! (conts`, refs, tsrc) = prepCases [] conts` tsrc
   #! vertConn             = mkVertConn refs
   #! contsImg             = above (repeat AtMiddleX) [] conts` Nothing
   = (beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
