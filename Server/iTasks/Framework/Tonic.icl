@@ -345,9 +345,11 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
     where
     updRTMap tid=:(TaskId instanceNo _) cct bpref inst rtMap iworld
-      # oldActiveNodes           = 'DS'.union inst.bpi_previouslyActive
-                                              ('DS'.fromList [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
       # (newActiveNodes, iworld) = setActiveNodes bpref inst tid cct nid iworld
+      # newActiveNodeSet         = 'DS'.fromList [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
+      # oldActiveNodes           = 'DS'.difference ('DS'.union inst.bpi_previouslyActive
+                                                               ('DS'.fromList [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)]))
+                                                   newActiveNodeSet // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
       # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes, bpi_previouslyActive = oldActiveNodes}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
       = iworld
     updLoTMap tid bpref inst iworld
@@ -1333,7 +1335,15 @@ tDefaultTaskApp isCompact isActive wasActive isInAccessible modName taskName arg
 tDefaultTaskApp` :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tDefaultTaskApp` isCompact isActive wasActive isInAccessible modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
-  #! bgColor = if isActive (toSVGColor "LimeGreen") (if wasActive (toSVGColor "DeepSkyBlue") (if isInAccessible (toSVGColor "Gainsboro") (toSVGColor "white")))
+  #! bgColor     = if isActive
+                     (toSVGColor "LimeGreen")
+                     (if wasActive
+                         (toSVGColor "DeepSkyBlue")
+                         (if isInAccessible
+                             (toSVGColor "Gainsboro")
+                             (toSVGColor "White")
+                         )
+                     )
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
