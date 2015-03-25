@@ -275,15 +275,13 @@ getCurrentListId [traceTaskId : xs] iworld
       Ok currentListId -> (Just currentListId, iworld)
       _                -> getCurrentListId xs iworld
 
-setActiveNodes :: !BlueprintRef !BlueprintInstance !TaskId !Calltrace !NodeId !*IWorld -> *(!Map ListId (IntMap (TaskId, NodeId)), Set NodeId, !*IWorld)
+setActiveNodes :: !BlueprintRef !BlueprintInstance !TaskId !Calltrace !NodeId !*IWorld -> *(!Map ListId (IntMap (TaskId, NodeId)), !*IWorld)
 setActiveNodes bpref inst=:{bpi_taskId, bpi_activeNodes, bpi_previouslyActive} currTaskId=:(TaskId currInstanceNo _) cct nid iworld=:{current}
   # (mclid, iworld) = getCurrentListId cct iworld
-  # oldNodes        = 'DS'.fromList [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi_activeNodes)]
-  # oldNodes`       = 'DS'.union bpi_previouslyActive oldNodes
   = case mclid of
       Just currentListId
         | currentListId < bpi_taskId
-           = (defVal bpi_taskId, oldNodes`, iworld)
+           = (defVal bpi_taskId, iworld)
         # (mpct, iworld) = 'DSDS'.read (sdsFocus currentListId taskInstanceParallelCallTrace) iworld
         = case mpct of
             Ok pct
@@ -299,15 +297,15 @@ setActiveNodes bpref inst=:{bpi_taskId, bpi_activeNodes, bpi_previouslyActive} c
                                                Just activeSubTasks -> activeSubTasks
                                                _                   -> 'DIS'.newMap
                           # activeSubTasks = 'DIS'.put index (currTaskId, nid) activeSubTasks
-                          = ('DM'.put currentListId activeSubTasks activeTasks, oldNodes`, iworld)
+                          = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
                         _
-                          = (defVal currentListId, oldNodes`, iworld)
+                          = (defVal currentListId, iworld)
                   _
-                    = (defVal currentListId, oldNodes`, iworld)
+                    = (defVal currentListId, iworld)
             _
-              = (defVal currentListId, oldNodes`, iworld)
+              = (defVal currentListId, iworld)
       _
-        = (defVal bpi_taskId, oldNodes`, iworld)
+        = (defVal bpi_taskId, iworld)
   where
   defVal :: !TaskId -> Map ListId (IntMap (!TaskId, !NodeId))
   defVal tid = 'DM'.singleton tid ('DIS'.singleton 0 (currTaskId, nid))
@@ -347,8 +345,10 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
     where
     updRTMap tid=:(TaskId instanceNo _) cct bpref inst rtMap iworld
-      # (newActiveNodes`, oldActiveNodes, iworld) = setActiveNodes bpref inst tid cct nid iworld
-      # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`, bpi_previouslyActive = oldActiveNodes}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
+      # oldActiveNodes           = 'DS'.union inst.bpi_previouslyActive
+                                              ('DS'.fromList [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
+      # (newActiveNodes, iworld) = setActiveNodes bpref inst tid cct nid iworld
+      # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes, bpi_previouslyActive = oldActiveNodes}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
       = iworld
     updLoTMap tid bpref inst iworld
       # (mbmlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
@@ -1333,7 +1333,7 @@ tDefaultTaskApp isCompact isActive wasActive isInAccessible modName taskName arg
 tDefaultTaskApp` :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tDefaultTaskApp` isCompact isActive wasActive isInAccessible modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
-  #! bgColor = if wasActive (toSVGColor "DeepSkyBlue") (if isActive (toSVGColor "LimeGreen") (if isInAccessible (toSVGColor "Gainsboro") (toSVGColor "white")))
+  #! bgColor = if isActive (toSVGColor "LimeGreen") (if wasActive (toSVGColor "DeepSkyBlue") (if isInAccessible (toSVGColor "Gainsboro") (toSVGColor "white")))
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
