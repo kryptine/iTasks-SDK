@@ -111,13 +111,32 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
   notify :: TaskId TonicRTMap BlueprintRef -> SDSNotifyPred TaskId
   notify tid _ _ = \tid` -> tid == tid`
 
+:: PrevActiveNodes :== Map (ModuleName, TaskName) (Set NodeId)
+
+derive class iTask Set
+
+allPreviouslyActiveNodes :: RWShared () PrevActiveNodes PrevActiveNodes
+allPreviouslyActiveNodes = sdsTranslate "previouslyActiveNodes" (\t -> t +++> "-previouslyActiveNodes") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
+
+previouslyActiveNodes :: RWShared (ModuleName, TaskName) (Set NodeId) (Set NodeId)
+previouslyActiveNodes = sdsLens "previouslyActiveNode" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) allPreviouslyActiveNodes
+  where
+  read :: (ModuleName, TaskName) PrevActiveNodes -> MaybeError TaskException (Set NodeId)
+  read tid trtMap = maybe (Error (exception ("Could not find previously active node for " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: (ModuleName, TaskName) PrevActiveNodes (Set NodeId) -> MaybeError TaskException (Maybe PrevActiveNodes)
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: (ModuleName, TaskName) PrevActiveNodes (Set NodeId) -> SDSNotifyPred (ModuleName, TaskName)
+  notify tid _ _ = \tid` -> tid == tid`
+
 tonicSharedListOfTask :: RWShared () ListsOfTasks ListsOfTasks
 tonicSharedListOfTask = sdsTranslate "tonicSharedListOfTask" (\t -> t +++> "-tonicSharedListOfTask") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
-tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody mn tn args (Task eval) = Task preEval
   where
   preEval event evalOpts taskTree iworld
@@ -193,7 +212,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
   tvViewInformation NoValue     = Nothing
   tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
-firstParent :: TonicRTMap ModuleName TaskName Calltrace -> MaybeError TaskException BlueprintRef
+firstParent :: !TonicRTMap !ModuleName !TaskName !Calltrace -> MaybeError TaskException BlueprintRef
 firstParent _     _  _  [] = Error (exception "iTasks.Framework.Tonic.firstParent: no parent found")
 firstParent rtMap mn tn [parent : parents]
   = case 'DM'.get parent rtMap of
@@ -217,7 +236,7 @@ firstParent rtMap mn tn [parent : parents]
   , bpi_startTime     :: !SystemClocks
   , bpi_endTime       :: !Maybe SystemClocks
   , bpi_params        :: ![(!VarName, !Task ())]
-  , bpi_activeNodes   :: Map ListId (IntMap (TaskId, NodeId))
+  , bpi_activeNodes   :: !Map ListId (IntMap (TaskId, NodeId))
   , bpi_parentTaskId  :: !Maybe TaskId
   , bpi_involvedUsers :: ![User]
   , bpi_output        :: !Maybe (Task ())
@@ -229,8 +248,8 @@ firstParent rtMap mn tn [parent : parents]
 //:: Calltrace :== [(Int, InstanceTrace)]
 :: Calltrace :== [TaskId]
 
-mkCompleteTrace :: InstanceNo InstanceTrace *IWorld -> *(Calltrace, *IWorld)
-mkCompleteTrace instanceNo []        iworld = ([], iworld)
+mkCompleteTrace :: !InstanceNo !InstanceTrace !*IWorld -> *(!Calltrace, !*IWorld)
+mkCompleteTrace _          []        iworld = ([], iworld)
 mkCompleteTrace instanceNo callTrace iworld
   # (mtinst, iworld) = 'DSDS'.read (sdsFocus instanceNo taskInstance) iworld
   = case mtinst of
@@ -253,7 +272,7 @@ ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
 :: ListId :== TaskId
 
-getParentContext :: !TaskId !TaskId ![Int] !*IWorld -> *(TaskId, *IWorld)
+getParentContext :: !TaskId !TaskId ![Int] !*IWorld -> *(!TaskId, !*IWorld)
 getParentContext blueprintTaskId _ [] iworld = (blueprintTaskId, iworld)
 getParentContext blueprintTaskId cid=:(TaskId ino _) [parentId : parents] iworld
   # (mplid, iworld) = 'DSDS'.read (sdsFocus (TaskId ino parentId) parallelListId) iworld
@@ -263,7 +282,7 @@ getParentContext blueprintTaskId cid=:(TaskId ino _) [parentId : parents] iworld
         | otherwise              = (pctx, iworld)
       _ = getParentContext blueprintTaskId cid parents iworld
 
-getCurrentListId :: !Calltrace !*IWorld -> *(Maybe TaskId, *IWorld)
+getCurrentListId :: !Calltrace !*IWorld -> *(!Maybe TaskId, !*IWorld)
 getCurrentListId [] iworld = (Nothing, iworld)
 getCurrentListId [traceTaskId : xs] iworld
   # (mclid, iworld) = 'DSDS'.read (sdsFocus traceTaskId parallelListId) iworld
@@ -271,9 +290,15 @@ getCurrentListId [traceTaskId : xs] iworld
       Ok currentListId -> (Just currentListId, iworld)
       _                -> getCurrentListId xs iworld
 
-setActiveNodes :: !TaskId !TaskId !Calltrace !NodeId !(Map ListId (IntMap (TaskId, NodeId))) *IWorld -> *(Map ListId (IntMap (TaskId, NodeId)), *IWorld)
-setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) cct nid activeTasks iworld=:{current}
+setActiveNodes :: !BlueprintRef !BlueprintInstance !TaskId !Calltrace !NodeId !*IWorld -> *(!Map ListId (IntMap (TaskId, NodeId)), !*IWorld)
+setActiveNodes bpref inst=:{bpi_taskId = blueprintTaskId, bpi_activeNodes = activeTasks} currTaskId=:(TaskId currInstanceNo _) cct nid iworld=:{current}
   # (mclid, iworld) = getCurrentListId cct iworld
+  # (storedOld, iworld) = 'DSDS'.read (sdsFocus (bpref.bpr_moduleName, bpref.bpr_taskName) previouslyActiveNodes) iworld
+  # storedOld           = case storedOld of
+                            Ok x -> x
+                            _    -> 'DS'.newSet
+  # oldNodes            = 'DS'.fromList [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems activeTasks)]
+  # (_, iworld)         = 'DSDS'.write ('DS'.union storedOld oldNodes) (sdsFocus (bpref.bpr_moduleName, bpref.bpr_taskName) previouslyActiveNodes) iworld
   = case mclid of
       Just currentListId
         | currentListId < blueprintTaskId
@@ -281,10 +306,10 @@ setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) cct nid act
         # (mpct, iworld) = 'DSDS'.read (sdsFocus currentListId taskInstanceParallelCallTrace) iworld
         = case mpct of
             Ok pct
-              # (parentContext, iworld) = getParentContext blueprintTaskId currentListId pct iworld
-              # activeTasks    = 'DM'.del parentContext activeTasks
-              # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-              # (mtl, iworld)  = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
+              # (parentCtx, iworld) = getParentContext blueprintTaskId currentListId pct iworld
+              # activeTasks         = 'DM'.del parentCtx activeTasks
+              # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
+              # (mtl, iworld)       = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
               = case mtl of
                   Ok tl
                     = case getIndex cct tl of
@@ -303,7 +328,7 @@ setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) cct nid act
       _
         = (defVal blueprintTaskId, iworld)
   where
-  defVal :: TaskId -> Map ListId (IntMap (TaskId, NodeId))
+  defVal :: !TaskId -> Map ListId (IntMap (!TaskId, !NodeId))
   defVal tid = 'DM'.singleton tid ('DIS'.singleton 0 (currTaskId, nid))
 
   getIndex :: !Calltrace ![ParallelTaskState] -> Maybe Int
@@ -317,7 +342,7 @@ setActiveNodes blueprintTaskId currTaskId=:(TaskId currInstanceNo _) cct nid act
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp :: ModuleName TaskName NodeId (Task a) -> Task a
+tonicWrapApp :: !ModuleName !TaskName !NodeId (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
@@ -341,7 +366,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
         _ = eval event evalOpts taskTree iworld
     where
     updRTMap tid=:(TaskId instanceNo _) cct bpref inst rtMap iworld
-      # (newActiveNodes`, iworld) = setActiveNodes inst.bpi_taskId tid cct nid inst.bpi_activeNodes iworld
+      # (newActiveNodes`, iworld) = setActiveNodes bpref inst tid cct nid iworld
       # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes`}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
       = iworld
     updLoTMap tid bpref inst iworld
@@ -354,16 +379,16 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
           _
             = iworld
 
-tonicWrapAppLam1 :: ModuleName TaskName NodeId (a -> Task b) -> a -> Task b
+tonicWrapAppLam1 :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
 
-tonicWrapAppLam2 :: ModuleName TaskName NodeId (a b -> Task c) -> a b -> Task c
+tonicWrapAppLam2 :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c
 tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 
-tonicWrapAppLam3 :: ModuleName TaskName NodeId (a b c -> Task d) -> a b c -> Task d
+tonicWrapAppLam3 :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 
-tonicWrapParallel :: ModuleName TaskName NodeId ([Task a] -> Task b) [Task a] -> Task b
+tonicWrapParallel :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b
 tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
   where
   eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
@@ -398,10 +423,10 @@ getBlueprintRef tid world
       Ok bpref -> (Just bpref, world)
       _        -> (Nothing, world)
 
-tonicWrapListOfTask :: ModuleName TaskName NodeId TaskId [Task a] -> [Task a]
+tonicWrapListOfTask :: !ModuleName !TaskName !NodeId !TaskId ![Task a] -> [Task a]
 tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
   where
-  registerTask :: Int (Task a) -> Task a
+  registerTask :: !Int !(Task a) -> Task a
   registerTask n (Task eval) = Task eval`
     where
     eval` event evalOpts taskTree iworld
@@ -428,7 +453,7 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
 getModule :: !String -> Task TonicModule
 getModule moduleName = mkInstantTask (const (getModule` moduleName))
 
-getModule` :: !String *IWorld -> *(MaybeError (Dynamic, String) TonicModule, *IWorld)
+getModule` :: !String !*IWorld -> *(!MaybeError (Dynamic, String) TonicModule, !*IWorld)
 getModule` moduleName iworld
   # (dir, iworld)  = getTonicDir iworld
   # (mjson, world) = readFile (dir </> (moduleName +++ ".tonic")) iworld.world
@@ -446,7 +471,7 @@ getModule` moduleName iworld
 getTonicModules :: Task [String]
 getTonicModules = mkInstantTask (const getTonicModules`)
 
-getTonicModules` :: *IWorld -> *(MaybeError (Dynamic, String) [String], *IWorld)
+getTonicModules` :: !*IWorld -> *(!MaybeError (Dynamic, String) [String], !*IWorld)
 getTonicModules` iworld
   # (dir, iworld) = getTonicDir iworld
   # (mfs, world)  = readDirectory dir iworld.world
@@ -458,9 +483,10 @@ getTonicModules` iworld
         # msg = "Failed to read Tonic directory"
         = (Error (dynamic msg, msg), iworld)
   where
+  noDots :: !String -> Bool
   noDots str = not (str.[0] == '.')
 
-getTonicDir :: *IWorld -> *(String, *IWorld)
+getTonicDir :: !*IWorld -> *(!String, !*IWorld)
 getTonicDir iworld
   # (server, iworld) = iworld!server
   = (server.paths.appDirectory </> "tonic", iworld)
@@ -485,8 +511,8 @@ tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
 tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browser" (tonicDynamicBrowser rs)
 
 :: StaticSettings
-  = { unfold_depth    :: Scale
-    , display_compact :: Bool
+  = { unfold_depth    :: !Scale
+    , display_compact :: !Bool
     }
 
 derive class iTask StaticSettings
@@ -543,12 +569,13 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
         (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
         (return ()))
   ||- (updateInformation ()
-        [imageUpdate id (mkTaskImage rs { BlueprintRef
-                                        | bpr_moduleName = tm_name
-                                        , bpr_taskName   = tt.tt_name
-                                        , bpr_blueprint  = tt
-                                        , bpr_instance   = Nothing
-                                        } 'DM'.newMap compact) (\_ _ -> Nothing) (const id)]
+        [imageUpdate id (mkTaskImage rs 'DS'.newSet
+                          { BlueprintRef
+                          | bpr_moduleName = tm_name
+                          , bpr_taskName   = tt.tt_name
+                          , bpr_blueprint  = tt
+                          , bpr_instance   = Nothing
+                          } 'DM'.newMap compact) (\_ _ -> Nothing) (const id)]
         { ActionState
         | state  = { tis_task    = expandTask allbps depth.cur tt
                    , tis_depth   = depth
@@ -569,7 +596,7 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
     onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps depth compact rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
 
-dynamicParent :: TaskId -> Task (Maybe BlueprintRef)
+dynamicParent :: !TaskId -> Task (Maybe BlueprintRef)
 dynamicParent childId=:(TaskId instanceNo _)
   =       get tonicSharedRT >>~
   \rtm -> return ('DM'.get childId rtm
@@ -655,14 +682,25 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
                  dynamicParent bpinst.bpi_taskId
   >>~ \mbprnt -> viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
              ||- viewTaskArguments bpinst bpr_blueprint
-             ||- whileUnchanged tonicSharedListOfTask (
-      \maplot -> viewBP maplot False)
+             ||- getPrev bpr_moduleName bpr_taskName
+    >>~ \prev -> whileUnchanged tonicSharedListOfTask (
+      \maplot -> trace_n (toString (toJSON (prev))) viewBP prev maplot False)
              >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> Just (viewInstance` rs mbprnt))]
   where
-  viewBP :: ListsOfTasks Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
-  viewBP maplot compact
+  getPrev :: !ModuleName !TaskName -> Task (Set NodeId)
+  getPrev bpr_moduleName bpr_taskName = mkInstantTask (const getPrev`)
+    where
+    getPrev` :: !*IWorld -> *(!MaybeError (Dynamic, String) (Set NodeId), !*IWorld)
+    getPrev` iworld
+      # (res, iworld) = 'DSDS'.read (sdsFocus (bpr_moduleName, bpr_taskName) previouslyActiveNodes) iworld
+      = case res of
+          Ok s -> (Ok s, iworld)
+          _    -> (Ok 'DS'.newSet, iworld)
+
+  viewBP :: (Set NodeId) ListsOfTasks Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
+  viewBP prev maplot compact
     = updateInformation "Blueprint:"
-        [imageUpdate id (mkTaskImage rs bpref maplot compact) (\_ _ -> Nothing) (const id)]
+        [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
         { ActionState
         | state = { TonicImageState
                   | tis_task    = bpr_blueprint
@@ -687,11 +725,6 @@ allBlueprints
     = case 'DM'.get mod.tm_name acc of
         Just _ -> acc
         _      -> 'DM'.put mod.tm_name mod.tm_tasks acc
-
-reifyTonicTask :: !ModuleName !TaskName !AllBlueprints -> Maybe TonicTask
-reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
-                                Just mod -> 'DM'.get tn mod
-                                _        -> Nothing
 
 instance == TCleanExpr where
   (==) (AppCleanExpr a1 l1 r1) (AppCleanExpr a2 l2 r2) = a1 == a2 && l1 == l2 && r1 == r2
@@ -721,7 +754,13 @@ expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
             bdy                           -> TLet binds bdy
       _ = texpr
   where
+  isSame :: !TCleanExpr !TExpr -> Bool
   isSame old (TCleanExpr _ new) = old == new
+
+  reifyTonicTask :: !ModuleName !TaskName !AllBlueprints -> Maybe TonicTask
+  reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
+                                  Just mod -> 'DM'.get tn mod
+                                  _        -> Nothing
 expandTExpr allbps n (TBind lhs pat rhs)
   = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
 expandTExpr allbps n (TLet pats bdy)
@@ -859,16 +898,18 @@ ArialItalic10px :== { fontfamily = "Arial"
                   }
 
 :: MkImageInh =
-  { inh_trt       :: !BlueprintRef
-  , inh_maplot    :: !ListsOfTasks
-  , inh_task_apps :: ![TaskAppRenderer]
-  , inh_compact   :: !Bool
+  { inh_trt          :: !BlueprintRef
+  , inh_maplot       :: !ListsOfTasks
+  , inh_task_apps    :: ![TaskAppRenderer]
+  , inh_compact      :: !Bool
+  , inh_prev         :: !(Set NodeId)
+  , inh_inaccessible :: !Bool
   }
 
-mkTaskImage :: ![TaskAppRenderer] !BlueprintRef !ListsOfTasks !Bool !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs trt maplot compact {ActionState | state = tis} tsrc
+mkTaskImage :: ![TaskAppRenderer] !(Set NodeId) !BlueprintRef !ListsOfTasks !Bool !ModelTy *TagSource -> Image ModelTy
+mkTaskImage rs prev trt maplot compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
-  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_task_apps = rs, inh_compact = compact }
+  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_task_apps = rs, inh_compact = compact, inh_prev = prev, inh_inaccessible = False }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
   = img
@@ -956,6 +997,7 @@ tVar inh eid pp tsrc
             _ = mkDef tsrc
       _ = mkDef tsrc
   where
+  mkDef :: !*TagSource -> *(!Image ModelTy, !*TagSource)
   mkDef tsrc
     #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
     = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
@@ -979,15 +1021,56 @@ tCleanExpr inh eid pp tsrc
     //= (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
   = (text ArialRegular10px (ppTCleanExpr pp), tsrc)
 
+containsActiveNodes :: !MkImageInh !TExpr -> Bool
+containsActiveNodes inh (TBind lhs mpat rhs) = containsActiveNodes inh lhs || containsActiveNodes inh rhs
+containsActiveNodes inh (TTaskApp eid _ _ _) = 'DS'.member eid inh.inh_prev || maybe False (\bpi -> nodeIsActive eid bpi.bpi_activeNodes) inh.inh_trt.bpr_instance
+containsActiveNodes inh (TLet pats bdy)      = containsActiveNodes inh bdy
+containsActiveNodes inh (TCaseOrIf e pats)   = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
+containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || foldr f False conts
+  where
+  f :: !(PPOr TStepCont) Bool -> Bool
+  f (PP _) acc = acc
+  f (T e)  acc = acc || containsActiveNodesStepCont inh e
+  containsActiveNodesStepCont :: !MkImageInh !TStepCont -> Bool
+  containsActiveNodesStepCont ihn (StepOnValue    sf)   = containsActiveNodesStepFilter inh sf
+  containsActiveNodesStepCont ihn (StepOnAction _ sf)   = containsActiveNodesStepFilter inh sf
+  containsActiveNodesStepCont ihn (StepOnException _ e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter :: !MkImageInh !TStepFilter -> Bool
+  containsActiveNodesStepFilter inh (Always          e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter inh (HasValue      _ e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter inh (IfStable      _ e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter inh (IfUnstable    _ e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter inh (IfCond      _ _ e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter inh (IfValue _ _ _ _ e) = containsActiveNodes inh e
+  containsActiveNodesStepFilter inh _                   = False
+containsActiveNodes inh (TParallel _ par) = containsActiveNodesTParallel inh par
+  where
+  containsActiveNodesTParallel :: !MkImageInh !TParallel -> Bool
+  containsActiveNodesTParallel inh (ParSumL l r)   = containsActiveNodes inh l || containsActiveNodes inh r
+  containsActiveNodesTParallel inh (ParSumR l r)   = containsActiveNodes inh l || containsActiveNodes inh r
+  containsActiveNodesTParallel inh (ParSumN conts) = containsActiveNodesTParallel` inh conts
+  containsActiveNodesTParallel inh (ParProd conts) = containsActiveNodesTParallel` inh conts
+  containsActiveNodesTParallel` :: !MkImageInh !(PPOr [TExpr]) -> Bool
+  containsActiveNodesTParallel` _   (PP _) = False
+  containsActiveNodesTParallel` inh (T es) = foldr (\x acc -> acc || containsActiveNodes inh x) False es
+containsActiveNodes inh (TAssign _ _ t)      = containsActiveNodes inh t
+containsActiveNodes inh (TShare _ _ _)       = False
+containsActiveNodes inh (TTransform lhs _ _) = containsActiveNodes inh lhs
+containsActiveNodes inh (TVar _ _)           = False
+containsActiveNodes inh (TCleanExpr _ _)     = False
+
 //// TODO margin around cases
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseOrIf inh texpr pats tsrc
-  #! ppexpr = case texpr of
-                TCleanExpr _ (PPCleanExpr x) -> x
-                _                            -> "TODO RENDER GRAPH"
-  #! patStrs  = map (ppTCleanExpr o fst) pats
-  #! patExprs = map snd pats
-  #! (nextTasks, tsrc) = mapSt (tExpr2Image inh) patExprs tsrc
+  #! ppexpr         = case texpr of
+                        TCleanExpr _ (PPCleanExpr x) -> x
+                        _                            -> "TODO RENDER GRAPH"
+  #! patStrs        = map (ppTCleanExpr o fst) pats
+  #! patExprs       = map snd pats
+  #! branchActivity = map (containsActiveNodes inh) patExprs
+  #! someActivity   = foldr (\x acc -> x || acc) False branchActivity
+  #! patExprs`      = zip2 patExprs branchActivity
+  #! (nextTasks, tsrc)       = mapSt (\(patExpr, possiblyActive) tsrc -> tExpr2Image {inh & inh_inaccessible = someActivity && not possiblyActive} patExpr tsrc) patExprs` tsrc
   #! (nextTasks, refs, tsrc) = prepCases patStrs nextTasks tsrc
   #! vertConn     = mkVertConn refs
   #! nextTasks`   = above (repeat AtMiddleX) [] nextTasks Nothing
@@ -1002,8 +1085,8 @@ tCaseOrIf inh texpr pats tsrc
   #! diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
                       <@< { fill   = toSVGColor "white" }
                       <@< { stroke = toSVGColor "black" }
-  #! diamond`   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
-                                                             , text ArialRegular10px ppexpr] Nothing
+  #! diamond`     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
+                                                               , text ArialRegular10px ppexpr] Nothing
   = (beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing, tsrc)
   where
   y :: !Real !Real !Span -> Span
@@ -1062,6 +1145,7 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! letImg    = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
         = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
   where
+  ppExpr :: !TExpr -> String
   ppExpr (TCleanExpr _ clexp) = ppTCleanExpr clexp
   ppExpr _                    = "TODO tLet"
 
@@ -1110,10 +1194,11 @@ tParallel inh eid (ParSumN ts) tsrc
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
                 = mapSt (\trt -> tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName []) ('DIS'.elems mptids) tsrc
-              _ = mkDef
-        _ = mkDef
+              _ = mkDef tsrc
+        _ = mkDef tsrc
     where
-    mkDef
+    mkDef :: !*TagSource -> *(![Image ModelTy], !*TagSource)
+    mkDef tsrc
       #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0))
       = ([overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing], tsrc)
   mkParSum _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
@@ -1131,10 +1216,11 @@ tParallel inh eid (ParProd ts) tsrc
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
                 = mapSt (\trt -> tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName []) ('DIS'.elems mptids) tsrc
-              _ = mkDef
-        _ = mkDef
+              _ = mkDef tsrc
+        _ = mkDef tsrc
     where
-    mkDef
+    mkDef :: !*TagSource -> *(![Image ModelTy], !*TagSource)
+    mkDef tsrc
       #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0)  (px (ArialRegular10px.fontysize + 10.0))
       = ([overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing], tsrc)
   mkParProd _ _ (T xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
@@ -1147,6 +1233,7 @@ tDiamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0))
 tStepStar :: Image ModelTy
 tStepStar = overlay (repeat (AtMiddleX, AtMiddleY)) [] [tDiamond, star] Nothing
   where
+  star :: Image ModelTy
   star = polygon Nothing
            [ (px 5.0, px 0.0)
            , (px 2.0, px 10.0)
@@ -1165,13 +1252,14 @@ tPlus :: Image ModelTy
 tPlus
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [line xline, line yline] Nothing
   where
+  line :: !((Maybe a) Span -> Image ModelTy) -> Image ModelTy
   line f = f Nothing (px 10.0) <@< {stroke = toSVGColor "white"} <@< {strokewidth = px 2.0}
 
 tStartSymb :: Image ModelTy
 tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
 
 tStopSymb :: Image ModelTy
-tStopSymb  = rect (px 16.0) (px 16.0)
+tStopSymb = rect (px 16.0) (px 16.0)
 
 prefixAOrAn :: !String -> String
 prefixAOrAn str
@@ -1212,10 +1300,11 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   #! isActive           = case inh.inh_trt.bpr_instance of
                             Just bpinst -> nodeIsActive eid bpinst.bpi_activeNodes
                             _           -> False
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive modName taskName taskArgs`) inh.inh_task_apps tsrc
+  #! wasActive          = 'DS'.member eid inh.inh_prev
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultTaskApp inh.inh_compact isActive modName taskName taskArgs taskArgs` tsrc
+                            _          -> tDefaultTaskApp inh.inh_compact isActive wasActive inh.inh_inaccessible modName taskName taskArgs taskArgs` tsrc
   = ( taskApp <@< { onclick = \n st -> if (n == 2) { ActionState | st & action = Just (modName, taskName) } st, local = False }
     , tsrc)
 
@@ -1228,8 +1317,8 @@ tRoundedRect width height
       <@< { xradius     = px 5.0 }
       <@< { yradius     = px 5.0 }
 
-tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tDefaultTaskApp isCompact isActive modName taskName argsExprs taskArgs tsrc
+tDefaultTaskApp :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp isCompact isActive wasActive isInAccessible modName taskName argsExprs taskArgs tsrc
   #! isEditor = elem taskName [ "viewInformation"
                               , "updateInformation"
                               , "enterInformation"
@@ -1269,20 +1358,21 @@ tDefaultTaskApp isCompact isActive modName taskName argsExprs taskArgs tsrc
                   (True, True, [TCleanExpr _ (PPCleanExpr tn) : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
                   (True, _, _) -> []
                   _            -> taskArgs
-  = tDefaultTaskApp` isCompact isActive modName taskName taskArgs tsrc
+  = tDefaultTaskApp` isCompact isActive wasActive isInAccessible modName taskName taskArgs tsrc
 
-tDefaultTaskApp` :: !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tDefaultTaskApp` isCompact isActive modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+tDefaultTaskApp` :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp` isCompact isActive wasActive isInAccessible modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
+  #! bgColor = if wasActive (toSVGColor "DeepSkyBlue") (if isActive (toSVGColor "LimeGreen") (if isInAccessible (toSVGColor "Gainsboro") (toSVGColor "white")))
   = case taskArgs of
       []
-        #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
+        #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
         #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
         #! content  = margin (px 5.0) (above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing)
-        #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = if isActive (toSVGColor "lightgreen") (toSVGColor "white") }
+        #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
 tAssign :: !MkImageInh !TUser !String !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)

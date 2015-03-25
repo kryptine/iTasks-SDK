@@ -39,31 +39,31 @@ derive gText
   TParallel, TShare
 
 
-:: TaskAppRenderer :== Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
+:: TaskAppRenderer :== Bool Bool Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
 
 :: ModelTy
 :: NodeId :== [Int]
 
-tDefaultTaskApp :: !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp      :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
-tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
+tonicStaticBrowser   :: [TaskAppRenderer] -> Task ()
 
-tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
+tonicStaticWorkflow  :: [TaskAppRenderer] -> Workflow
 
-tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
+tonicDynamicBrowser  :: [TaskAppRenderer] -> Task ()
 
 tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 
-tonicWrapTaskBody :: !ModuleName TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody    :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 
-tonicWrapParallel :: ModuleName TaskName NodeId ([Task a] -> Task b) [Task a] -> Task b
+tonicWrapParallel    :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b
 
-tonicWrapApp :: ModuleName TaskName NodeId (Task a) -> Task a
+tonicWrapApp         :: !ModuleName !TaskName !NodeId (Task a) -> Task a
 
-tonicWrapAppLam1 :: ModuleName TaskName NodeId (a -> Task b) -> a -> Task b
+tonicWrapAppLam1     :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b
 
-tonicWrapAppLam2 :: ModuleName TaskName NodeId (a b -> Task c) -> a b -> Task c
+tonicWrapAppLam2     :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c
 
-tonicWrapAppLam3 :: ModuleName TaskName NodeId (a b c -> Task d) -> a b c -> Task d
+tonicWrapAppLam3     :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d
