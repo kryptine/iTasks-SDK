@@ -18,8 +18,6 @@ from System.File				import qualified fileExists, readFile
 from Data.Map				import qualified newMap, put
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from System.Process			import :: ProcessHandle(..)
-from Email 				import qualified sendEmail
-from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
 
 derive JSONEncode ProcessHandle
@@ -258,23 +256,3 @@ where
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
 
-sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
-sendEmail subject (Note body) sender recipients = mkInstantTask eval
-where
-	eval taskId iworld=:{IWorld|current={taskTime},config}
-		# sender		= toEmail sender
-		# recipients	= map toEmail recipients
-		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
-		= (Ok recipients, iworld)
-				
-	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
-		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]
-						{email_from = sender
-						,email_to = address
-						,email_subject = subject
-						,email_body = body
-						} world
-		= {IWorld|iworld & world = world}		
-
-instance toEmail EmailAddress where toEmail e = e
-instance toEmail String where toEmail s = EmailAddress s

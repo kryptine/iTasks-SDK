@@ -72,21 +72,3 @@ callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task 
 */
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 
-/**
-* Send an e-mail message.
-*
-* @param Subject: The subject line of the e-mail
-* @param Body: The body of the e-mail
-* @param Sender: The sender address
-* @param Recipients: The list of recipients
-*
-* @return The recipients to which the email was sent
-
-* @gin-title Send e-mail
-* @gin-icon email
-*/
-sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
-
-class toEmail r where toEmail :: !r -> EmailAddress
-instance toEmail EmailAddress
-instance toEmail String
