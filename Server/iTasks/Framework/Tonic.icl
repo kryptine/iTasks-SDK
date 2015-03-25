@@ -173,7 +173,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           # (_, iworld) = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
           = iworld
         _ = iworld
-  eval` _ event evalOpts (TCDestroy taskTree) iworld
+  eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
     # iworld = okSt iworld logTaskEnd (taskIdFromTaskTree taskTree)
     = eval event evalOpts taskTree iworld
     where
