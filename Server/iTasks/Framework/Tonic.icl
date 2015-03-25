@@ -113,8 +113,20 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
 
 derive class iTask Set
 
-tonicSharedListOfTask :: RWShared () ListsOfTasks ListsOfTasks
-tonicSharedListOfTask = sdsTranslate "tonicSharedListOfTask" (\t -> t +++> "-tonicSharedListOfTask") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
+tonicDynamicUpdates :: RWShared () ListsOfTasks ListsOfTasks
+tonicDynamicUpdates = sdsTranslate "tonicDynamicUpdates" (\t -> t +++> "-tonicDynamicUpdates") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
+
+tonicUpdatesForTaskAndNodeId :: RWShared (TaskId, NodeId) (IntMap BlueprintRef) (IntMap BlueprintRef)
+tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicDynamicUpdates
+  where
+  read :: (TaskId, NodeId) ListsOfTasks -> MaybeError TaskException (IntMap BlueprintRef)
+  read tid trtMap = maybe (Error (exception ("Could not find list of refs for index " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: (TaskId, NodeId) ListsOfTasks (IntMap BlueprintRef) -> MaybeError TaskException (Maybe ListsOfTasks)
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: (TaskId, NodeId) ListsOfTasks (IntMap BlueprintRef) -> SDSNotifyPred (TaskId, NodeId)
+  notify tid _ _ = \tid` -> tid == tid`
 
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
@@ -353,14 +365,12 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
       # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes, bpi_previouslyActive = oldActiveNodes}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
       = iworld
     updLoTMap tid bpref inst iworld
-      # (mbmlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
       # (mbpref, iworld) = getBlueprintRef tid iworld
-      = case (mbmlot, mbpref) of
-          (Ok mlot, Just bpref)
-            # mlot = 'DM'.put (inst.bpi_taskId, nid) ('DIS'.singleton 0 bpref) mlot
-            = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
-          _
+      = case mbpref of
+          Just bpref`
+            # (_, iworld) = 'DSDS'.write ('DIS'.singleton 0 bpref`) (sdsFocus (inst.bpi_taskId, nid) tonicUpdatesForTaskAndNodeId) iworld
             = iworld
+          _ = iworld
 
 tonicWrapAppLam1 :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
@@ -383,19 +393,11 @@ tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
                                # (cct, iworld) = mkCompleteTrace instanceNo callTrace iworld
                                = case firstParent rtMap mn tn cct of
                                    Ok parent=:{bpr_instance = Just pinst}
-                                     # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
-                                     = case mlot of
-                                         Ok mlot
-                                           # (_, iworld) = 'DSDS'.write ('DM'.put (pinst.bpi_taskId, nid) 'DIS'.newMap mlot) tonicSharedListOfTask iworld
-                                           = (tonicWrapListOfTask mn tn nid pinst.bpi_taskId ts, iworld)
-                                         _
-                                           = (ts, iworld)
-                                   _
-                                     = (ts, iworld)
-                             _
-                               = (ts, iworld)
-                       _
-                         = (ts, iworld)
+                                     # (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndNodeId) iworld
+                                     = (tonicWrapListOfTask mn tn nid pinst.bpi_taskId ts, iworld)
+                                   _ = (ts, iworld)
+                             _ = (ts, iworld)
+                       _ = (ts, iworld)
     = case f ts of
         Task eval` -> eval` event evalOpts taskTree iworld
 
@@ -406,6 +408,15 @@ getBlueprintRef tid world
       Ok bpref -> (Just bpref, world)
       _        -> (Nothing, world)
 
+getWithDefault :: a !(ReadWriteShared a w) -> Task a | iTask a
+getWithDefault def shared = mkInstantTask eval
+  where
+  eval taskId iworld
+    # (val,iworld) = 'DSDS'.read shared iworld
+    = case val of
+        Ok val -> (Ok val, iworld)
+        _      -> (Ok def, iworld)
+
 tonicWrapListOfTask :: !ModuleName !TaskName !NodeId !TaskId ![Task a] -> [Task a]
 tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
   where
@@ -414,24 +425,22 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
     where
     eval` event evalOpts taskTree iworld
       # (tr, iworld)   = eval event evalOpts taskTree iworld
-      # (mlot, iworld) = 'DSDS'.read tonicSharedListOfTask iworld
       # iworld         = case taskIdFromTaskTree taskTree of
-                           Ok tid -> okSt iworld (updLoT tid) mlot
-                           _        -> iworld
+                           Ok tid -> updLoT tid iworld
+                           _      -> iworld
       = (tr, iworld)
-    updLoT tid mlot iworld
+    updLoT tid iworld
       # (mbpref, iworld) = getBlueprintRef tid iworld
       = case mbpref of
           Just bpref
-            # k      = (parentId, nid)
-            # tidMap = case 'DM'.get k mlot of
-                          Just tidMap -> tidMap
-                          _           -> 'DIS'.newMap
+            # (mbTidMap, iworld) = 'DSDS'.read (sdsFocus (parentId, nid) tonicUpdatesForTaskAndNodeId) iworld
+            # tidMap = case mbTidMap of
+                          Ok tidMap -> tidMap
+                          _         -> 'DIS'.newMap
             # tidMap = 'DIS'.put n bpref tidMap
-            # mlot   = 'DM'.put k tidMap mlot
-            = snd ('DSDS'.write mlot tonicSharedListOfTask iworld)
-          _
+            # (_, iworld) = 'DSDS'.write tidMap (sdsFocus (parentId, nid) tonicUpdatesForTaskAndNodeId) iworld
             = iworld
+          _ = iworld
 
 getModule :: !String -> Task TonicModule
 getModule moduleName = mkInstantTask (const (getModule` moduleName))
@@ -665,7 +674,7 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
                  dynamicParent bpinst.bpi_taskId
   >>~ \mbprnt -> viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
              ||- viewTaskArguments bpinst bpr_blueprint
-             ||- whileUnchanged tonicSharedListOfTask (
+             ||- whileUnchanged tonicDynamicUpdates (
       \maplot -> viewBP bpinst.bpi_previouslyActive maplot False)
              >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> Just (viewInstance` rs mbprnt))]
   where
