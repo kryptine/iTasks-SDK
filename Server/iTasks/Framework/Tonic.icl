@@ -153,6 +153,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           # bpinst = { BlueprintInstance
                      | bpi_taskId           = currTaskId
                      , bpi_startTime        = clocks
+                     , bpi_lastUpdated      = clocks
                      , bpi_endTime          = Nothing
                      , bpi_params           = args
                      , bpi_activeNodes      = 'DM'.newMap
@@ -172,7 +173,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           # (_, iworld) = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
           = iworld
         _ = iworld
-  eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
+  eval` _ event evalOpts (TCDestroy taskTree) iworld
     # iworld = okSt iworld logTaskEnd (taskIdFromTaskTree taskTree)
     = eval event evalOpts taskTree iworld
     where
@@ -181,7 +182,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
       = case mbpref of
           Ok bpref
              # (clocks, iworld) = iworld!clocks
-             # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_endTime = Just clocks}) bpref.bpr_instance } (sdsFocus currTaskId tonicInstances) iworld
+             # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_endTime = Just clocks}) bpref.bpr_instance } (sdsFocus currTaskId tonicInstances) iworld
              = iworld
           _  = iworld
   eval` _ event evalOpts taskTree iworld
@@ -195,6 +196,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
             # (curr, iworld)   = iworld!current
             # (clocks, iworld) = iworld!clocks
             # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_output        = resultToOutput tr
+                                                                                           , bpi_lastUpdated   = clocks
                                                                                            , bpi_endTime       = case tr of
                                                                                                                    ValueResult (Value _ True) _ _ _ -> Just clocks
                                                                                                                    _                                -> inst.bpi_endTime
@@ -230,6 +232,7 @@ firstParent rtMap mn tn [parent : parents]
 :: BlueprintInstance =
   { bpi_taskId           :: !TaskId
   , bpi_startTime        :: !SystemClocks
+  , bpi_lastUpdated      :: !SystemClocks
   , bpi_endTime          :: !Maybe SystemClocks
   , bpi_params           :: ![(!VarName, !Task ())]
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, NodeId))
@@ -601,6 +604,7 @@ dynamicParent childId=:(TaskId instanceNo _)
   , taskName   :: !String
   , startTime  :: !String
   , endTime    :: !String
+  , lastUpdate :: !String
   , users      :: ![User]
   //, taskId     :: !TaskId
   //, activeNode :: !String
@@ -651,6 +655,7 @@ tonicDynamicBrowser` rs q =
       , taskName   = bpr.bpr_taskName
       , users      = bpi.bpi_involvedUsers
       , startTime  = ppSystemClocks bpi.bpi_startTime
+      , lastUpdate = ppSystemClocks bpi.bpi_lastUpdated
       , endTime    = maybe "" ppSystemClocks bpi.bpi_endTime
       //, taskId     = bpi.bpi_taskId
       //, activeNode = toString (toJSON bpi.bpi_activeNodes)
@@ -660,6 +665,7 @@ tonicDynamicBrowser` rs q =
                    , taskName   = bpr.bpr_taskName
                    , users      = []
                    , startTime  = ""
+                   , lastUpdate = ""
                    , endTime    = ""
                    //, taskId = TaskId -1 -1
                    //, activeNode = ""
