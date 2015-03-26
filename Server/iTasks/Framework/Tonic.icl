@@ -469,18 +469,21 @@ getTonicModules` iworld
   # iworld        = {iworld & world = world}
   = case mfs of
       Ok fs
-        = (Ok (map dropExtension (filter noDots fs)), iworld)
+        = (Ok (map dropExtension (filter (\x -> noDots x && onlyTonic x) fs)), iworld)
       Error _
         # msg = "Failed to read Tonic directory"
         = (Error (dynamic msg, msg), iworld)
   where
+  onlyTonic :: !String -> Bool
+  onlyTonic str = endsWith ".tonic" str
+
   noDots :: !String -> Bool
   noDots str = not (str.[0] == '.')
 
 getTonicDir :: !*IWorld -> *(!String, !*IWorld)
 getTonicDir iworld
   # (server, iworld) = iworld!server
-  = (server.paths.appDirectory </> "tonic", iworld)
+  = (server.paths.appDirectory </> "Clean System Files", iworld)
 
 getTasks :: !TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
@@ -654,10 +657,26 @@ tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
        ((editSharedChoiceWithSharedAs (Title "Active blueprint instances")
          [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
+         //[ChooseWith (ChooseFromTree mkTree)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
   -&&- whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)) <<@ ArrangeWithSideBar 0 LeftSide 900 True)
   -&&- whileUnchanged (selectedBlueprint |+| tonicSharedRT) (viewInstance rs)
     <<@ FullScreen @! ()
   where
+  //mkTree :: [(Int, BlueprintRef)] [ChoiceTreeValue] -> [ChoiceTree DynamicView]
+  //mkTree blueprints expanded = map mkTree` blueprints
+    //where
+    //mkTree` :: (Int, BlueprintRef) -> ChoiceTree DynamicView
+    //mkTree` (i, bpref) = { ChoiceTree
+                         //| label = customView bpref
+                         //, icon  = Nothing
+                         //, value = ChoiceNode i
+                         //, type  = LeafNode
+                         //}
+//:: ChoiceTreeValue
+    //= ChoiceNode !Int
+    //| GroupNode !String
+
+//:: ChoiceTreeType v = LeafNode | CollapsedNode [ChoiceTree v] | ExpandedNode [ChoiceTree v]
   filterActiveTasks Nothing tasks = tasks
   filterActiveTasks (Just q) tasks
     = [bp \\ bp=:{bpr_instance = Just trt} <- tasks | not (startsWith "iTasks" bp.bpr_moduleName) && isNothing trt.bpi_endTime && doFilter bp q]
@@ -692,7 +711,7 @@ tonicDynamicBrowser` rs q =
                    }
 
 viewInstance :: [TaskAppRenderer] !(Maybe TaskId, TonicRTMap) -> Task ()
-viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt) // <<@ InFloatingWindow <<@ FullScreen
+viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt)
 viewInstance rs _               = viewInformation () [] "Select blueprint instance" @! ()
 
 viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}) =
@@ -702,7 +721,6 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
              ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
  \(_, maplot) -> viewBP bpinst.bpi_previouslyActive maplot False)
              >>* [ OnValue (doAction navigate)
-                 , OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> Just (tonicDynamicBrowser rs))
                  , OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> navToParent rs mbprnt)
                  ]
   where
