@@ -60,7 +60,7 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
-derive class iTask BlueprintRef, BlueprintInstance, SystemClocks
+derive class iTask BlueprintRef, BlueprintInstance
 
 :: IWorldM a = IWorldM (*IWorld -> *(a, *IWorld))
 
@@ -152,8 +152,8 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           # (cct, iworld)    = mkCompleteTrace instanceNo callTrace iworld
           # bpinst = { BlueprintInstance
                      | bpi_taskId           = currTaskId
-                     , bpi_startTime        = clocks
-                     , bpi_lastUpdated      = clocks
+                     , bpi_startTime        = DateTime clocks.localDate clocks.localTime
+                     , bpi_lastUpdated      = DateTime clocks.localDate clocks.localTime
                      , bpi_endTime          = Nothing
                      , bpi_params           = args
                      , bpi_activeNodes      = 'DM'.newMap
@@ -182,7 +182,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
       = case mbpref of
           Ok bpref
              # (clocks, iworld) = iworld!clocks
-             # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_endTime = Just clocks}) bpref.bpr_instance } (sdsFocus currTaskId tonicInstances) iworld
+             # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_endTime = Just (DateTime clocks.localDate clocks.localTime)}) bpref.bpr_instance } (sdsFocus currTaskId tonicInstances) iworld
              = iworld
           _  = iworld
   eval` _ event evalOpts taskTree iworld
@@ -195,10 +195,11 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           Ok bpref
             # (curr, iworld)   = iworld!current
             # (clocks, iworld) = iworld!clocks
+            # currDateTime     = DateTime clocks.localDate clocks.localTime
             # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_output        = resultToOutput tr
-                                                                                           , bpi_lastUpdated   = clocks
+                                                                                           , bpi_lastUpdated   = currDateTime
                                                                                            , bpi_endTime       = case tr of
-                                                                                                                   ValueResult (Value _ True) _ _ _ -> Just clocks
+                                                                                                                   ValueResult (Value _ True) _ _ _ -> Just currDateTime
                                                                                                                    _                                -> inst.bpi_endTime
                                                                                            , bpi_involvedUsers = [curr.user : resultUsers tr]}) bpref.bpr_instance} (sdsFocus currTaskId tonicInstances) iworld
             = iworld
@@ -226,9 +227,9 @@ firstParent rtMap [parent : parents]
 
 :: BlueprintInstance =
   { bpi_taskId           :: !TaskId
-  , bpi_startTime        :: !SystemClocks
-  , bpi_lastUpdated      :: !SystemClocks
-  , bpi_endTime          :: !Maybe SystemClocks
+  , bpi_startTime        :: !DateTime
+  , bpi_lastUpdated      :: !DateTime
+  , bpi_endTime          :: !Maybe DateTime
   , bpi_params           :: ![(!VarName, !Task ())]
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, NodeId))
   , bpi_previouslyActive :: Set NodeId
@@ -598,10 +599,10 @@ dynamicParent childId
 :: DynamicView =
   { moduleName :: !String
   , taskName   :: !String
-  , startTime  :: !String
-  //, endTime    :: !String
-  , lastUpdate :: !String
   , users      :: ![User]
+  , startTime  :: !String
+  , lastUpdate :: !String
+  , endTime    :: !String
   //, taskId     :: !TaskId
   //, activeNode :: !String
   }
@@ -615,24 +616,46 @@ enterQuery = enterInformation "Enter filter query" []
   = ModuleName String
   | TaskName String
   | UserInvolved String
+  | IsActive
   | AndQuery BlueprintQuery BlueprintQuery
   | OrQuery BlueprintQuery BlueprintQuery
 
 derive class iTask BlueprintQuery
 
+queryShare :: Shared (Maybe BlueprintQuery)
+queryShare = sharedStore "queryShare" Nothing
+
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
-tonicDynamicBrowser rs = enterQuery >&> withSelection (tonicDynamicBrowser` rs Nothing) (tonicDynamicBrowser` rs)
+tonicDynamicBrowser rs = updateSharedInformation "Filter query" [] queryShare >&> withSelection (tonicDynamicBrowser` rs Nothing) (tonicDynamicBrowser` rs)
 
 selectedBlueprint :: Shared (Maybe TaskId)
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 
+:: AdditionalInfo =
+  { numberOfActiveTasks :: !Int
+  }
+
+derive class iTask AdditionalInfo
+
+mkAdditionalInfo :: TonicRTMap -> Task AdditionalInfo
+mkAdditionalInfo trt
+  =           get currentDateTime
+  >>~ \cdt -> let numActiveTasks = length [0 \\ bpr=:{bpr_instance = Just {bpi_endTime = Nothing}} <- 'DM'.elems trt]
+                  oldestTask     = 'DM'.foldrWithKey getOldest Nothing trt
+           in return {AdditionalInfo | numberOfActiveTasks = numActiveTasks}
+  where
+  getOldest _ bpr=:{bpr_instance = Just bpi} (Just bpr`=:{bpr_instance = Just bpi`})
+     | bpi.bpi_startTime < bpi`.bpi_startTime = Just bpr
+     | otherwise                              = Just bpr`
+  getOldest _ bpr=:{bpr_instance = Just _} _  = Just bpr
+  getOldest _ _ _ = Nothing
+
 tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
-  (editSharedChoiceWithSharedAs (Title "Active blueprint instances")
-    [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
-  -&&-
-    whileUnchanged (selectedBlueprint |+| tonicSharedRT) (viewInstance rs)
-  ) <<@ ArrangeWithSideBar 0 LeftSide 400 True
+       ((editSharedChoiceWithSharedAs (Title "Active blueprint instances")
+         [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
+  -&&- whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)) <<@ ArrangeWithSideBar 0 LeftSide 900 True)
+  -&&- whileUnchanged (selectedBlueprint |+| tonicSharedRT) (viewInstance rs)
     <<@ FullScreen @! ()
   where
   filterActiveTasks Nothing tasks = tasks
@@ -642,6 +665,7 @@ tonicDynamicBrowser` rs q =
     doFilter bp=:{bpr_instance = Just trt} (ModuleName mn)   = mn == "" || indexOf mn bp.bpr_moduleName >= 0
     doFilter bp=:{bpr_instance = Just trt} (TaskName tn)     = tn == "" || indexOf tn bp.bpr_taskName >= 0
     doFilter bp=:{bpr_instance = Just trt} (UserInvolved un) = un == "" || indexOf un (toString (toJSON trt.bpi_involvedUsers)) >= 0
+    doFilter bp=:{bpr_instance = Just trt} IsActive          = isNothing trt.bpi_endTime
     doFilter bp=:{bpr_instance = Just trt} (AndQuery l r)    = doFilter bp l && doFilter bp r
     doFilter bp=:{bpr_instance = Just trt} (OrQuery l r)     = doFilter bp l || doFilter bp r
     doFilter _                             _                 = True
@@ -650,9 +674,9 @@ tonicDynamicBrowser` rs q =
       | moduleName = bpr.bpr_moduleName
       , taskName   = bpr.bpr_taskName
       , users      = bpi.bpi_involvedUsers
-      , startTime  = ppSystemClocks bpi.bpi_startTime
-      , lastUpdate = ppSystemClocks bpi.bpi_lastUpdated
-      //, endTime    = maybe "" ppSystemClocks bpi.bpi_endTime
+      , startTime  = toString bpi.bpi_startTime
+      , lastUpdate = toString bpi.bpi_lastUpdated
+      , endTime    = maybe "" toString bpi.bpi_endTime
       //, taskId     = bpi.bpi_taskId
       //, activeNode = toString (toJSON bpi.bpi_activeNodes)
       }
@@ -662,11 +686,10 @@ tonicDynamicBrowser` rs q =
                    , users      = []
                    , startTime  = ""
                    , lastUpdate = ""
-                   //, endTime    = ""
+                   , endTime    = ""
                    //, taskId = TaskId -1 -1
                    //, activeNode = ""
                    }
-  ppSystemClocks c = toString c.localDate +++ " " +++ toString c.localTime
 
 viewInstance :: [TaskAppRenderer] !(Maybe TaskId, TonicRTMap) -> Task ()
 viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt) // <<@ InFloatingWindow <<@ FullScreen
@@ -676,10 +699,12 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
                  dynamicParent bpinst.bpi_taskId
   >>~ \mbprnt -> viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
              ||- viewTaskArguments bpinst bpr_blueprint
-             ||- whileUnchanged tonicDynamicUpdates (
-      \maplot -> viewBP bpinst.bpi_previouslyActive maplot False)
+             ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+ \(_, maplot) -> viewBP bpinst.bpi_previouslyActive maplot False)
              >>* [ OnValue (doAction navigate)
-                 , OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> navToParent rs mbprnt)]
+                 , OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> Just (tonicDynamicBrowser rs))
+                 , OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> navToParent rs mbprnt)
+                 ]
   where
   navigate _ {ActionState | action = Just (Right nextTid)} = set (Just nextTid) selectedBlueprint @! ()
   navigate _ {ActionState | action = Nothing}              = set Nothing selectedBlueprint @! ()
@@ -703,7 +728,7 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
   viewTaskArguments bpinst graph = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs bpinst graph) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection                    = viewInformation () [] "Select argument..."
   collectArgs       bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) graph.tt_args bpinst.bpi_params
-viewInstance` _ _ = viewInformation () [] "Select blueprint instance" @! ()
+viewInstance` _ _ = return ()
 
 :: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
