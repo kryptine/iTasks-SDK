@@ -158,7 +158,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                      , bpi_params           = args
                      , bpi_activeNodes      = 'DM'.newMap
                      , bpi_previouslyActive = 'DS'.newSet
-                     , bpi_parentTaskId     = case firstParent rtMap mn tn cct of
+                     , bpi_parentTaskId     = case firstParent rtMap cct of
                                                 Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                 _    -> Nothing
                      , bpi_involvedUsers    = [curr.user]
@@ -210,17 +210,12 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
   tvViewInformation NoValue     = Nothing
   tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
-firstParent :: !TonicRTMap !ModuleName !TaskName !Calltrace -> MaybeError TaskException BlueprintRef
-firstParent _     _  _  [] = Error (exception "iTasks.Framework.Tonic.firstParent: no parent found")
-firstParent rtMap mn tn [parent : parents]
+firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
+firstParent _     [] = Error (exception "iTasks.Framework.Tonic.firstParent: no parent found")
+firstParent rtMap [parent : parents]
   = case 'DM'.get parent rtMap of
-      Just trt -> if (  trt.bpr_moduleName == mn
-                     && trt.bpr_taskName   == tn)
-                     (Ok trt)
-                     next
-      _        -> next
-  where
-  next = firstParent rtMap mn tn parents
+      Just trt -> Ok trt
+      _        -> firstParent rtMap parents
 
 :: BlueprintRef =
   { bpr_moduleName :: !ModuleName
@@ -349,7 +344,7 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
                                      [x:xs] | x == taskNo -> callTrace
                                      _                    -> [taskNo : callTrace]
                 # (cct, iworld)  = mkCompleteTrace instanceNo localCallTrace iworld
-                = case firstParent rtMap mn tn cct of
+                = case firstParent rtMap cct of
                     Ok bpref=:{bpr_instance = Just inst}
                       # iworld       = updRTMap tid cct bpref inst rtMap iworld
                       # (rt, iworld) = eval event evalOpts taskTree iworld
@@ -394,7 +389,7 @@ tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
                          = case mrtMap of
                              Ok rtMap
                                # (cct, iworld) = mkCompleteTrace instanceNo callTrace iworld
-                               = case firstParent rtMap mn tn cct of
+                               = case firstParent rtMap cct of
                                    Ok parent=:{bpr_instance = Just pinst}
                                      # (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndNodeId) iworld
                                      = (tonicWrapListOfTask mn tn nid pinst.bpi_taskId ts, iworld)
@@ -546,7 +541,7 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
-:: ModelTy :== ActionState (ModuleName, TaskName) TonicImageState
+:: ModelTy :== ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState
 
 :: TonicImageState
   = { tis_task    :: TonicTask
@@ -581,7 +576,8 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
   where
   back _  _  []           _ = Nothing
   back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
-  navigate tm tt next _     = nav` (\ns -> [(tm.tm_name, tt.tt_name):navstack]) tm tt next navstack
+  navigate tm tt (Left next) _ = nav` (\ns -> [(tm.tm_name, tt.tt_name):navstack]) tm tt next navstack
+  navigate tm tt (Right _) _   = abort "viewStaticTask, navigate: should not happen"
   nav` mkNavStack tm tt (mn, tn) navstack
     = getModule mn >>*
       [ OnValue onNavVal
@@ -592,7 +588,7 @@ viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
     onNavVal _             = Nothing
 
 dynamicParent :: !TaskId -> Task (Maybe BlueprintRef)
-dynamicParent childId=:(TaskId instanceNo _)
+dynamicParent childId
   =       get tonicSharedRT >>~
   \rtm -> return ('DM'.get childId rtm
     `b` \child -> child.bpr_instance
@@ -603,7 +599,7 @@ dynamicParent childId=:(TaskId instanceNo _)
   { moduleName :: !String
   , taskName   :: !String
   , startTime  :: !String
-  , endTime    :: !String
+  //, endTime    :: !String
   , lastUpdate :: !String
   , users      :: ![User]
   //, taskId     :: !TaskId
@@ -656,7 +652,7 @@ tonicDynamicBrowser` rs q =
       , users      = bpi.bpi_involvedUsers
       , startTime  = ppSystemClocks bpi.bpi_startTime
       , lastUpdate = ppSystemClocks bpi.bpi_lastUpdated
-      , endTime    = maybe "" ppSystemClocks bpi.bpi_endTime
+      //, endTime    = maybe "" ppSystemClocks bpi.bpi_endTime
       //, taskId     = bpi.bpi_taskId
       //, activeNode = toString (toJSON bpi.bpi_activeNodes)
       }
@@ -666,14 +662,14 @@ tonicDynamicBrowser` rs q =
                    , users      = []
                    , startTime  = ""
                    , lastUpdate = ""
-                   , endTime    = ""
+                   //, endTime    = ""
                    //, taskId = TaskId -1 -1
                    //, activeNode = ""
                    }
   ppSystemClocks c = toString c.localDate +++ " " +++ toString c.localTime
 
 viewInstance :: [TaskAppRenderer] !(Maybe TaskId, TonicRTMap) -> Task ()
-viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt)
+viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt) // <<@ InFloatingWindow <<@ FullScreen
 viewInstance rs _               = viewInformation () [] "Select blueprint instance" @! ()
 
 viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}) =
@@ -682,9 +678,18 @@ viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_
              ||- viewTaskArguments bpinst bpr_blueprint
              ||- whileUnchanged tonicDynamicUpdates (
       \maplot -> viewBP bpinst.bpi_previouslyActive maplot False)
-             >>* [OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> Just (viewInstance` rs mbprnt))]
+             >>* [ OnValue (doAction navigate)
+                 , OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> navToParent rs mbprnt)]
   where
-  viewBP :: (Set NodeId) ListsOfTasks Bool -> Task (ActionState (ModuleName, TaskName) TonicImageState)
+  navigate _ {ActionState | action = Just (Right nextTid)} = set (Just nextTid) selectedBlueprint @! ()
+  navigate _ {ActionState | action = Nothing}              = set Nothing selectedBlueprint @! ()
+  navigate _ _                                             = abort "viewInstance`, navigate: should not happen"
+
+  navToParent rs (Just bpref=:{bpr_instance = Just inst}) =
+    Just (set (Just inst.bpi_taskId) selectedBlueprint @! ())
+  navToParent _ _ = Nothing
+
+  viewBP :: (Set NodeId) ListsOfTasks Bool -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
   viewBP prev maplot compact
     = updateInformation "Blueprint:"
         [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
@@ -1010,7 +1015,7 @@ tCleanExpr inh eid pp tsrc
 
 containsActiveNodes :: !MkImageInh !TExpr -> Bool
 containsActiveNodes inh (TBind lhs mpat rhs) = containsActiveNodes inh lhs || containsActiveNodes inh rhs
-containsActiveNodes inh (TTaskApp eid _ _ _) = 'DS'.member eid inh.inh_prev || maybe False (\bpi -> nodeIsActive eid bpi.bpi_activeNodes) inh.inh_trt.bpr_instance
+containsActiveNodes inh (TTaskApp eid _ _ _) = 'DS'.member eid inh.inh_prev || maybe False (\bpi -> fst (nodeIsActive eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
 containsActiveNodes inh (TLet pats bdy)      = containsActiveNodes inh bdy
 containsActiveNodes inh (TCaseOrIf e pats)   = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
 containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || foldr f False conts
@@ -1278,21 +1283,23 @@ tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc
   #! tfApp        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
   = (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
 
-nodeIsActive :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> Bool
-nodeIsActive eid activeNodes = not (isEmpty [nid \\ (_, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid])
+nodeIsActive :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> (Bool, Maybe TaskId)
+nodeIsActive eid activeNodes = case [tid \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid] of
+                                 [tid : _] -> (True, Just tid)
+                                 _         -> (False, Nothing)
 
 tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskApp inh eid modName taskName taskArgs tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
-  #! isActive           = case inh.inh_trt.bpr_instance of
+  #! (isActive, mbTid)  = case inh.inh_trt.bpr_instance of
                             Just bpinst -> nodeIsActive eid bpinst.bpi_activeNodes
-                            _           -> False
+                            _           -> (False, Nothing)
   #! wasActive          = 'DS'.member eid inh.inh_prev
   #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
                             _          -> tDefaultTaskApp inh.inh_compact isActive wasActive inh.inh_inaccessible modName taskName taskArgs taskArgs` tsrc
-  = ( taskApp <@< { onclick = \n st -> if (n == 2) { ActionState | st & action = Just (modName, taskName) } st, local = False }
+  = ( taskApp <@< { onclick = \n st -> if (n == 2) { ActionState | st & action = Just (maybe (Left (modName, taskName)) Right mbTid) } st, local = False }
     , tsrc)
 
 tRoundedRect :: !Span !Span -> Image a
