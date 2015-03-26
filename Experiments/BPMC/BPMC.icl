@@ -2,7 +2,7 @@ module BPMC
 
 import iTasks
 import MultiUser
-from iTasks.API.Core.IntegrationTasks import sendEmail
+import  iTasks.API.Extensions.Email 
 import iTasks.Framework.Tonic
 import Graphics.Scalable
 from Math.Random import genRandInt
@@ -16,13 +16,13 @@ midOfficer 				= UserWithRole "mid-office"	 		// someone working in the mid offi
 
 // some fake email address
 
-foEmail					= EmailAddress "info@ing.com"		// fake "email" address a client can use to ask for a service
+foEmail					= "info@ing.com"					// fake "email" address a client can use to ask for a service
 
 // we assume that for every client we have administrated the following:
 
 :: Client 			  = { name 			:: Name
 						, clientNo		:: ClientNo
-						, email			:: EmailAddress
+						, email			:: EmailAddr
 					    , accounts  	:: [Account]
 					    , login			:: Login
 					    , password		:: Passwrd
@@ -32,6 +32,7 @@ foEmail					= EmailAddress "info@ing.com"		// fake "email" address a client can 
 :: Account			  :== Int
 :: Login			  :== String
 :: Passwrd			  :== String
+:: EmailAddr		  :== String	
 
 derive class iTask  Client
 	
@@ -40,8 +41,8 @@ derive class iTask  Client
 clientDatabase :: Shared [Client]
 clientDatabase = sharedStore "ClientDatabase" initialClients
 where
-	initialClients	=	[ {name = "Rinus" , clientNo = 1, email = EmailAddress "rinus@cs.ru.nl",  login = "rinus",  password = "rinus",  accounts = [1,2]}
-			 			, {name = "Pieter", clientNo = 2, email = EmailAddress "pieter@cs.ru.nl", login = "pieter", password = "pieter", accounts = [3..5]}
+	initialClients	=	[ {name = "Rinus" , clientNo = 1, email = "rinus@cs.ru.nl",  login = "rinus",  password = "rinus",  accounts = [1,2]}
+			 			, {name = "Pieter", clientNo = 2, email = "pieter@cs.ru.nl", login = "pieter", password = "pieter", accounts = [3..5]}
 			 			]
 
 // some handy access functions on this database
@@ -79,7 +80,7 @@ where
 			= 	{ name			:: Name
 			   	, id			:: ClientNo
 			   	, account		:: Account
-		      	, email			:: EmailAddress
+		      	, email			:: EmailAddr
 		      	, phone			:: PhoneNumber
 		      	, question		:: Note				// textual description of the desired service
 		      	}
@@ -285,7 +286,7 @@ open index sharedDb
   where
   documentRecords content = [(idx,doc) \\ (idx,doc) <- content | idx === index ]
 
-inform :: EmailAddress EmailAddress String info -> Task (Log Note) | iTask info							// create an email to inform and send it off...
+inform :: EmailAddr EmailAddr String info -> Task (Log Note) | iTask info							// create an email to inform and send it off...
 inform fromName toName subject info 
 	= 				get currentDate
 	>>= \date ->	updateInformation "Compose an email:" []
@@ -295,5 +296,6 @@ inform fromName toName subject info
 	 >>= \mail ->	sendAnEmail	mail
 	 >>| 			return mail 
 where
-	sendAnEmail doc = sendEmail doc.Log.about doc.Log.content doc.Log.received_from [toName]
+	sendAnEmail doc=:{received_from,about,content=Note content} 
+		= sendEmail [] received_from toName about content
 	
