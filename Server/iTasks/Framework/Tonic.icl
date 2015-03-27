@@ -539,9 +539,10 @@ tonicStaticBrowser rs = (
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-viewTitle` :: !a -> Task a | iTask a
-viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
+viewBPTitle :: !String !String !TCleanExpr -> Task String
+viewBPTitle ttName tmName resTy = viewInformation (Title title) [ViewWith view] a <<@ InContainer
   where
+  a = "Task '" +++ ttName +++ "' in module '" +++ tmName +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr resTy)
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
@@ -556,40 +557,53 @@ viewTitle` a = viewInformation (Title title) [ViewWith view] a <<@ InContainer
 derive class iTask TonicImageState
 
 import StdDebug
-viewStaticTask :: AllBlueprints Scale Bool [TaskAppRenderer] [(ModuleName, TaskName)] TonicModule TonicTask -> Task ()
+viewStaticTask :: AllBlueprints Scale Bool [TaskAppRenderer] NavStack TonicModule TonicTask -> Task ()
 viewStaticTask allbps depth compact rs navstack tm=:{tm_name} tt =
-      viewTitle` ("Task '" +++ tt.tt_name +++ "' in module '" +++ tm_name +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr tt.tt_resty))
+      viewBPTitle tt.tt_name tm_name tt.tt_resty
   ||- (if (length tt.tt_args > 0)
         (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
         (return ()))
-  ||- (updateInformation ()
-        [imageUpdate id (mkTaskImage rs 'DM'.newMap
-                          { BlueprintRef
-                          | bpr_moduleName = tm_name
-                          , bpr_taskName   = tt.tt_name
-                          , bpr_blueprint  = tt
-                          , bpr_instance   = Nothing
-                          } 'DM'.newMap compact) (\_ _ -> Nothing) (const id)]
-        { ActionState
-        | state  = { tis_task    = expandTask allbps depth.cur tt
-                   , tis_depth   = depth
-                   , tis_compact = compact }
-        , action = Nothing}
-  >>* [ OnValue (doAction (navigate tm tt))
-      , OnAction (Action "Back" []) (back tm tt navstack)]) @! ()
+  ||- (showBlueprint rs 'DM'.newMap { BlueprintRef
+                                    | bpr_moduleName = tm_name
+                                    , bpr_taskName   = tt.tt_name
+                                    , bpr_blueprint  = tt
+                                    , bpr_instance   = Nothing
+                                    } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
+  >>* [ OnValue (doAction (navigateForward tm tt))
+      , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt navstack)
+      ]) @! ()
   where
-  back _  _  []           _ = Nothing
-  back tm tt [prev:stack] _ = Just (nav` id tm tt prev stack)
-  navigate tm tt (Left next) _ = nav` (\ns -> [(tm.tm_name, tt.tt_name):navstack]) tm tt next navstack
-  navigate tm tt (Right _) _   = abort "viewStaticTask, navigate: should not happen"
-  nav` mkNavStack tm tt (mn, tn) navstack
+  navigateBackwards :: TonicModule TonicTask NavStack a -> Maybe (Task ())
+  navigateBackwards _  _  []           _ = Nothing
+  navigateBackwards tm tt [prev:stack] _ = Just (navigate id tm tt prev stack)
+
+  navigateForward :: TonicModule TonicTask NavPoint a -> Task ()
+  navigateForward tm tt next _ = navigate (\ns -> [Left (tm.tm_name, tt.tt_name):ns]) tm tt next navstack
+
+  navigate :: (NavStack -> NavStack) TonicModule TonicTask NavPoint NavStack -> Task ()
+  navigate mkNavStack tm tt (Left (mn, tn)) navstack
     = getModule mn >>*
       [ OnValue onNavVal
       , OnAllExceptions (const (viewStaticTask allbps depth compact rs navstack tm tt))
-      ]
+      ] @! ()
     where
     onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps depth compact rs (mkNavStack navstack) tm` tt` @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
+  navigate _ _ _ _ _ = viewInformation () [] "navigate: should not happen" @! ()
+
+showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
+              -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
+showBlueprint rs prev bpref maplot task compact depth =
+  updateInformation "Blueprint:"
+    [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
+    { ActionState
+    | state  = { tis_task    = task
+               , tis_depth   = depth
+               , tis_compact = compact }
+    , action = Nothing}
+
+:: NavPoint :== Either (ModuleName, TaskName) TaskId
+:: NavStack :== [NavPoint]
 
 dynamicParent :: !TaskId -> Task (Maybe BlueprintRef)
 dynamicParent childId
@@ -631,7 +645,7 @@ queryShare = sharedStore "queryShare" Nothing
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs = updateSharedInformation "Filter query" [] queryShare >&> withSelection (tonicDynamicBrowser` rs Nothing) (tonicDynamicBrowser` rs)
 
-selectedBlueprint :: Shared (Maybe TaskId)
+selectedBlueprint :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 
 :: AdditionalInfo =
@@ -667,8 +681,7 @@ mkAdditionalInfo trt
 tonicDynamicBrowser` :: [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
 tonicDynamicBrowser` rs q =
        ((editSharedChoiceWithSharedAs (Title "Active blueprint instances")
-         [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
-         //[ChooseWith (ChooseFromTree mkTree)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (TaskId 0 0) (\i -> i.bpi_taskId) x.bpr_instance) selectedBlueprint
+         [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (Right (TaskId 0 0)) (\i -> Right i.bpi_taskId) x.bpr_instance) selectedBlueprint
   -&&- whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)) <<@ ArrangeWithSideBar 0 LeftSide 900 True)
   -&&- whileUnchanged (selectedBlueprint |+| tonicSharedRT) (viewInstance rs)
     <<@ FullScreen @! ()
@@ -721,43 +734,45 @@ tonicDynamicBrowser` rs q =
                    //, activeNode = ""
                    }
 
-viewInstance :: [TaskAppRenderer] !(Maybe TaskId, TonicRTMap) -> Task ()
-viewInstance rs (Just tid, trt) = viewInstance` rs ('DM'.get tid trt)
-viewInstance rs _               = viewInformation () [] "Select blueprint instance" @! ()
-
-viewInstance` rs (Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}) =
-                 dynamicParent bpinst.bpi_taskId
-  >>~ \mbprnt -> viewInformation (bpr_taskName +++ " yields " +++ prefixAOrAn (ppTCleanExpr bpr_blueprint.tt_resty)) [] ()
-             ||- viewTaskArguments bpinst bpr_blueprint
-             ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
- \(_, maplot) -> viewBP bpinst.bpi_previouslyActive maplot False)
-             >>* [ OnValue (doAction navigate)
-                 , OnAction (Action "Parent task" [ActionIcon "open"]) (\_ -> navToParent rs mbprnt)
-                 ]
+getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicTask)
+getModuleAndTask allbps mn tn
+  =           getModule mn
+  >>~ \mod -> case getTT of
+                Just tt -> return (mod, tt)
+                _       -> throw "Can't get module and task"
   where
-  navigate _ {ActionState | action = Just (Right nextTid)} = set (Just nextTid) selectedBlueprint @! ()
-  navigate _ {ActionState | action = Nothing}              = set Nothing selectedBlueprint @! ()
-  navigate _ _                                             = abort "viewInstance`, navigate: should not happen"
+  getTT = 'DM'.get mn allbps `b` 'DM'.get tn
+
+viewInstance :: [TaskAppRenderer] !(Maybe (Either (ModuleName, TaskName) TaskId), TonicRTMap) -> Task ()
+viewInstance rs (Just (Right tid), trt)
+  = case 'DM'.get tid trt of
+      Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}
+        =              dynamicParent bpinst.bpi_taskId
+        >>~ \mbprnt -> viewBPTitle bpr_moduleName bpr_taskName bpr_blueprint.tt_resty
+                   ||- viewTaskArguments bpinst bpr_blueprint
+                   ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+       \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot bpr_blueprint False { Scale | min = 0, cur = 0, max = 0})
+                   >>* [ OnValue (doAction navigateForward)
+                       , OnAction (Action "Back"        [ActionIcon "previous"]) (navigateBackwards)
+                       , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
+                       ]
+      _ = viewInformation () [] "Blueprint instance not found" @! ()
+  where
+  navigateForward _ {ActionState | action} = set action selectedBlueprint @! ()
+  navigateBackwards _ = Nothing // TODO
 
   navToParent rs (Just bpref=:{bpr_instance = Just inst}) =
-    Just (set (Just inst.bpi_taskId) selectedBlueprint @! ())
+    Just (set (Just (Right inst.bpi_taskId)) selectedBlueprint @! ())
   navToParent _ _ = Nothing
 
-  viewBP :: (Map NodeId TaskId) ListsOfTasks Bool -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
-  viewBP prev maplot compact
-    = updateInformation "Blueprint:"
-        [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
-        { ActionState
-        | state = { TonicImageState
-                  | tis_task    = bpr_blueprint
-                  , tis_compact = compact
-                  , tis_depth   = { Scale | min = 0, cur = 0, max = 0} // TODO
-                  }
-        , action = Nothing}
   viewTaskArguments bpinst graph = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs bpinst graph) >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
   noSelection                    = viewInformation () [] "Select argument..."
   collectArgs       bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) graph.tt_args bpinst.bpi_params
-viewInstance` _ _ = return ()
+viewInstance rs (Just (Left (mn, tn)), trt)
+  =                allBlueprints
+  >>- \allbps ->   getModuleAndTask allbps mn tn
+  >>- \(tm, tt) -> viewStaticTask allbps { Scale | min = 0, cur = 0, max = 0} False rs [] tm tt
+viewInstance rs _ = viewInformation () [] "Select blueprint instance" @! ()
 
 :: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
