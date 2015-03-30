@@ -565,15 +565,15 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
          ||- (if (length tt.tt_args > 0)
                (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
                (return ()))
-         ||- (showBlueprint rs 'DM'.newMap { BlueprintRef
-                                           | bpr_moduleName = tm_name
-                                           , bpr_taskName   = tt.tt_name
-                                           , bpr_blueprint  = tt
-                                           , bpr_instance   = Nothing
-                                           } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
+         ||- showBlueprint rs 'DM'.newMap { BlueprintRef
+                                          | bpr_moduleName = tm_name
+                                          , bpr_taskName   = tt.tt_name
+                                          , bpr_blueprint  = tt
+                                          , bpr_instance   = Nothing
+                                          } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
          >>* [ OnValue (doAction (navigateForward tm tt))
              , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
-             ]) @! ()
+             ] @! ()
   where
   navigateBackwards :: TonicModule TonicTask NavStack a -> Maybe (Task ())
   navigateBackwards _  _  []           _ = Nothing
