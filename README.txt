@@ -15,7 +15,7 @@ TOP can be seen as an Embedded Domain Specific language, realized with a Combina
 
 === Installation ===
 
-Please read INSTALL-{platform}.txt in the Installation directory.
+Please read Install/<OS version>/INSTALL.txt in the Installation directory.
 
 === Content of the repository ===
 This SDK consists of multiple libraries, tools and documents that are needed to
