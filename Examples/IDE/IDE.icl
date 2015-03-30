@@ -173,15 +173,17 @@ buildMainModule base moduleName
     @? const NoValue
 
 shareSearchResults :: FilePath (SharedTaskList IDE_TaskResult) (Shared CodeMirror)  -> (Shared CodeMirror)
-shareSearchResults path list mirror // = mirror
+shareSearchResults path list mirror  = mirror
 //= 		list >+> filterSearchers //TODO Use proper share propagation to link shares
+/*
 = sdsSequence ">+>"  (\p r -> p) filterSearchers 
 						(SDSWriteConst (\p w -> Ok (Just w))) 
 							(SDSWriteConst (\p w -> Ok Nothing)) 
 								mirror list //filterSearchers list //TODO Use proper share propagation to link shares
+*/
 where
     filterSearchers :: (CodeMirror, TaskList IDE_TaskResult) -> CodeMirror
-    filterSearchers (mirror, {TaskList|items})
+    filterSearchers (mirror, (_,items))
     # highLight 		=  [ toHighLight (size query) (toList posList) 
     										\\ {TaskListItem|value=Value (IDE_Search {results,query}) _} <- items
                                             ,  ((sBase,sModule,sExt),posList) <- results
