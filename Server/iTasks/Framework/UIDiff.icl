@@ -143,9 +143,11 @@ where
 	
 diffEditletOpts :: UIPath UIEditletDiffs UIEditletOpts UIEditletOpts -> DiffResult
 diffEditletOpts path editletDiffs opts1 opts2
-	| opts1.UIEditletOpts.value === opts2.UIEditletOpts.value	= DiffPossible []
+	|    opts1.UIEditletOpts.value == opts2.UIEditletOpts.value
+      && opts1.UIEditletOpts.html  == opts2.UIEditletOpts.html = DiffPossible []
 	//Check if we have a local diff function for this editor...
-    | opts1.UIEditletOpts.taskId == opts2.UIEditletOpts.taskId && opts1.UIEditletOpts.editorId == opts2.UIEditletOpts.editorId
+    |    opts1.UIEditletOpts.taskId   == opts2.UIEditletOpts.taskId
+      && opts1.UIEditletOpts.editorId == opts2.UIEditletOpts.editorId
         = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
             Just (_,_,_,[])      = DiffPossible []
             Just (ver,_,_,diffs) = DiffPossible [UIUpdate path (map (toUpdFunc ver) diffs)]
