@@ -765,7 +765,7 @@ viewInstance allbps rs navstack trt (Just (Right tid))
   navigateBackwards [prev:stack] = Just (set stack navstack >>| viewInstance allbps rs navstack trt (Just prev))
 
   navToParent rs (Just bpref=:{bpr_instance = Just inst}) =
-    Just (set (Just (Right inst.bpi_taskId)) selectedBlueprint @! ())
+    Just (upd (\xs -> [Right tid : xs]) navstack >>| set (Just (Right inst.bpi_taskId)) selectedBlueprint >>| viewInstance allbps rs navstack trt (Just (Right inst.bpi_taskId)) @! ())
   navToParent _ _ = Nothing
 
   viewTaskArguments bpinst graph = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs bpinst graph)
