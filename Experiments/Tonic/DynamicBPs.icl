@@ -15,7 +15,18 @@ viewStep :: Int -> Task Int
 viewStep n = viewInformation ("Step " +++ toString n) [] n
 
 dynamicBPs1 :: (Task Int) -> Task Int
-dynamicBPs1 vs42 = viewStep 1 >>| if True (viewStep 14) (viewStep 15) >>| viewStep 10 >>| (viewStep 11 -&&- (viewStep 12 >>| viewStep 13)) >>| viewStep 2 >>| vs42 >>| viewStep 3 >>| allTasks restOfSteps >>| viewStep 8 >>| viewStep 9
+dynamicBPs1 vs42
+  =   viewStep 1
+  >>| if True (viewStep 14) (viewStep 15)
+  >>| viewStep 10
+  >>| (      viewStep 11
+       -&&- (viewStep 12 >>| viewStep 13))
+  >>| viewStep 2
+  >>| vs42
+  >>| viewStep 3
+  >>| allTasks restOfSteps
+  >>| viewStep 8
+  >>| viewStep 9
   where
   restOfSteps = map viewStep [4, 5, 6, 7]
   
@@ -25,6 +36,7 @@ test :: Int -> Task Int
 test n
 	= do (enterInt n) >>= \number -> allTasks [do (enterInt n) \\ n <- [1..number]] >>= \s -> return (sum s) 
 
+enterInt :: Int -> Task Int
 enterInt n
 	= updateInformation "enter an integer value" [] n
 
