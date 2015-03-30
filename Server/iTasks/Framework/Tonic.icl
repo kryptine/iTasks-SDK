@@ -519,8 +519,9 @@ displaySettings = sharedStore "displaySettings" { unfold_depth    = {Scale | min
 (>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
 
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
-tonicStaticBrowser rs = (
-                 updateSharedInformation "Display settings" [] displaySettings
+tonicStaticBrowser rs
+  =               withShared [] (
+    \navstack -> (updateSharedInformation "Display settings" [] displaySettings
             -&&- (allBlueprints
   >>- \allbps -> (selectModule
              >&> withSelection noModuleSelection (
@@ -529,10 +530,10 @@ tonicStaticBrowser rs = (
              >&> withSelection noTaskSelection (
       \tn ->     maybe (return ()) (
       \tt ->       whileUnchanged displaySettings (
-      \sett ->     viewStaticTask allbps rs 'DM'.newMap [] tm tt sett.unfold_depth sett.display_compact @! ()))
+      \sett ->     viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.unfold_depth sett.display_compact @! ()))
                  (getTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-         )) <<@ FullScreen)) @! ()
+         )) <<@ FullScreen))) @! ()
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromComboBox id)]
   selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromComboBox id)] (getTasks tm)
@@ -557,39 +558,46 @@ viewBPTitle ttName tmName resTy = viewInformation (Title title) [ViewWith view] 
 derive class iTask TonicImageState
 
 import StdDebug
-viewStaticTask :: AllBlueprints [TaskAppRenderer] TonicRTMap NavStack TonicModule TonicTask Scale Bool -> Task ()
-viewStaticTask allbps rs trt navstack tm=:{tm_name} tt depth compact =
-      viewBPTitle tt.tt_name tm_name tt.tt_resty
-  ||- (if (length tt.tt_args > 0)
-        (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
-        (return ()))
-  ||- (showBlueprint rs 'DM'.newMap { BlueprintRef
-                                    | bpr_moduleName = tm_name
-                                    , bpr_taskName   = tt.tt_name
-                                    , bpr_blueprint  = tt
-                                    , bpr_instance   = Nothing
-                                    } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
-  >>* [ OnValue (doAction (navigateForward tm tt))
-      , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt navstack)
-      ]) @! ()
+viewStaticTask :: AllBlueprints [TaskAppRenderer] (Shared NavStack) TonicRTMap TonicModule TonicTask Scale Bool -> Task ()
+viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
+  =          get navstack
+  >>~ \ns -> viewBPTitle tt.tt_name tm_name tt.tt_resty
+         ||- (if (length tt.tt_args > 0)
+               (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
+               (return ()))
+         ||- (showBlueprint rs 'DM'.newMap { BlueprintRef
+                                           | bpr_moduleName = tm_name
+                                           , bpr_taskName   = tt.tt_name
+                                           , bpr_blueprint  = tt
+                                           , bpr_instance   = Nothing
+                                           } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
+         >>* [ OnValue (doAction (navigateForward tm tt))
+             , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
+             ]) @! ()
   where
   navigateBackwards :: TonicModule TonicTask NavStack a -> Maybe (Task ())
   navigateBackwards _  _  []           _ = Nothing
-  navigateBackwards tm tt [prev:stack] _ = Just (navigate id tm tt prev stack)
+  navigateBackwards tm tt [prev:stack] _ = Just (navigate pop tm tt prev)
+    where
+    pop [] = []
+    pop [_:xs] = xs
 
   navigateForward :: TonicModule TonicTask NavPoint a -> Task ()
-  navigateForward tm tt next _ = navigate (\ns -> [Left (tm.tm_name, tt.tt_name):ns]) tm tt next navstack
+  navigateForward tm tt next _ = navigate (\ns -> [Left (tm.tm_name, tt.tt_name):ns]) tm tt next
 
-  navigate :: (NavStack -> NavStack) TonicModule TonicTask NavPoint NavStack -> Task ()
-  navigate mkNavStack tm tt (Left (mn, tn)) navstack
-    =   getModule mn
+  navigate :: (NavStack -> NavStack) TonicModule TonicTask NavPoint -> Task ()
+  navigate mkNavStack tm tt (Left (mn, tn))
+    =   upd mkNavStack navstack
+    >>| getModule mn
     >>* [ OnValue onNavVal
-        , OnAllExceptions (const (viewStaticTask allbps rs trt navstack tm tt depth compact))
+        , OnAllExceptions (const (viewStaticTask allbps rs navstack trt tm tt depth compact))
         ] @! ()
     where
-    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs trt (mkNavStack navstack) tm` tt` depth compact @! ()) (getTask tm` tn)
+    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTask tm` tn)
     onNavVal _             = Nothing
-  navigate mkNavStack _ _ target navstack = viewInstance allbps rs trt (mkNavStack navstack) (Just target)
+  navigate mkNavStack _ _ target
+    =   upd mkNavStack navstack
+    >>| viewInstance allbps rs navstack trt (Just target)
 
 showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
               -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
@@ -644,10 +652,14 @@ queryShare = sharedStore "queryShare" Nothing
 
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
-  =              allBlueprints
+  =              withShared [] (
+    \navstack -> allBlueprints
   >>- \allbps -> updateSharedInformation "Filter query" [] queryShare
-             >&> withSelection (tonicDynamicBrowser` allbps rs Nothing)
-                               (tonicDynamicBrowser` allbps rs)
+             >&> withSelection (tonicDynamicBrowser` allbps rs navstack Nothing)
+                               (tonicDynamicBrowser` allbps rs navstack))
+
+//navStack :: Shared [Either (ModuleName, TaskName) TaskId]
+//navStack = sharedStore "navStack" []
 
 selectedBlueprint :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
@@ -666,7 +678,7 @@ derive class iTask AdditionalInfo
 mkAdditionalInfo :: TonicRTMap -> Task AdditionalInfo
 mkAdditionalInfo trt
   =           get currentDateTime
-  >>~ \cdt -> let numActiveTasks = length [0 \\ bpr=:{bpr_instance = Just {bpi_endTime = Nothing}} <- 'DM'.elems trt]
+  >>~ \cdt -> let numActiveTasks = length [0 \\ {bpr_instance = Just {bpi_endTime = Nothing}} <- 'DM'.elems trt]
            in return { AdditionalInfo
                      | numberOfActiveTasks  = numActiveTasks
                      , tasksNearingDeadline = []
@@ -682,12 +694,12 @@ mkAdditionalInfo trt
   getOldest _ bpr=:{bpr_instance = Just _} _  = Just bpr
   getOldest _ _ _ = Nothing
 
-tonicDynamicBrowser` :: AllBlueprints [TaskAppRenderer] !(Maybe BlueprintQuery) -> Task ()
-tonicDynamicBrowser` allbps rs q =
+tonicDynamicBrowser` :: AllBlueprints [TaskAppRenderer] (Shared NavStack) !(Maybe BlueprintQuery) -> Task ()
+tonicDynamicBrowser` allbps rs navstack q =
        ((editSharedChoiceWithSharedAs (Title "Active blueprint instances")
          [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (Right (TaskId 0 0)) (\i -> Right i.bpi_taskId) x.bpr_instance) selectedBlueprint
   -&&- whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)) <<@ ArrangeWithSideBar 0 LeftSide 900 True)
-  -&&- whileUnchanged (selectedBlueprint |+| tonicSharedRT) (\(bp, trt) -> viewInstance allbps rs trt [] bp)
+  -&&- whileUnchanged (selectedBlueprint |+| tonicSharedRT) (\(bp, trt) -> viewInstance allbps rs navstack trt bp)
     <<@ FullScreen @! ()
   where
   filterActiveTasks Nothing tasks = tasks
@@ -726,31 +738,31 @@ tonicDynamicBrowser` allbps rs q =
 getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicTask)
 getModuleAndTask allbps mn tn
   =           getModule mn
-  >>~ \mod -> case getTT of
+  >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
-  where
-  getTT = 'DM'.get mn allbps `b` 'DM'.get tn
 
-viewInstance :: AllBlueprints [TaskAppRenderer] TonicRTMap NavStack !(Maybe (Either (ModuleName, TaskName) TaskId)) -> Task ()
-viewInstance allbps rs trt navstack (Just (Right tid))
-  = case 'DM'.get tid trt of
-      Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}
-        =              dynamicParent bpinst.bpi_taskId
-        >>~ \mbprnt -> viewBPTitle bpr_moduleName bpr_taskName bpr_blueprint.tt_resty
-                   ||- viewTaskArguments bpinst bpr_blueprint
-                   ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
-       \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot bpr_blueprint False { Scale | min = 0, cur = 0, max = 0})
-                   >>* [ OnValue (doAction navigateForward)
-                       , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards)
-                       , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
-                       ]
-      _ = viewInformation () [] "Blueprint instance not found" @! ()
+viewInstance :: AllBlueprints [TaskAppRenderer] (Shared NavStack) TonicRTMap !(Maybe (Either (ModuleName, TaskName) TaskId)) -> Task ()
+viewInstance allbps rs navstack trt (Just (Right tid))
+  =          get navstack
+  >>~ \ns -> case 'DM'.get tid trt of
+               Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}
+                 =               dynamicParent bpinst.bpi_taskId
+                  >>~ \mbprnt -> viewBPTitle bpr_moduleName bpr_taskName bpr_blueprint.tt_resty
+                             ||- viewTaskArguments bpinst bpr_blueprint
+                             ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+                 \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot bpr_blueprint False { Scale | min = 0, cur = 0, max = 0})
+                             >>* [ OnValue (doAction navigateForward)
+                                 , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
+                                 , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
+                                 ]
+               _ =   viewInformation () [] "Blueprint instance not found"
+                 >>* [ OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
+                     ]
   where
-  navigateForward _ {ActionState | action} = viewInstance allbps rs trt [Right tid : navstack] action
-  navigateBackwards = case navstack of
-                        [prev:stack] -> Just (viewInstance allbps rs trt stack (Just prev))
-                        _            -> Nothing
+  navigateForward action _ = upd (\xs -> [Right tid : xs]) navstack >>| viewInstance allbps rs navstack trt (Just action)
+  navigateBackwards []           = Nothing
+  navigateBackwards [prev:stack] = Just (set stack navstack >>| viewInstance allbps rs navstack trt (Just prev))
 
   navToParent rs (Just bpref=:{bpr_instance = Just inst}) =
     Just (set (Just (Right inst.bpi_taskId)) selectedBlueprint @! ())
@@ -765,34 +777,11 @@ viewInstance allbps rs trt navstack (Just (Left (mn, tn)))
   >>- \(tm, tt) -> viewStaticTask allbps rs trt navstack tm tt { Scale | min = 0, cur = 0, max = 0} False
 viewInstance _ _ _ _ _ = viewInformation () [] "Select blueprint instance" @! ()
 
-
-
-  //navigateBackwards :: TonicModule TonicTask NavStack a -> Maybe (Task ())
-  //navigateBackwards _  _  []           _ = Nothing
-  //navigateBackwards tm tt [prev:stack] _ = Just (navigate id tm tt prev stack)
-
-  //navigateForward :: TonicModule TonicTask NavPoint a -> Task ()
-  //navigateForward tm tt next _ = navigate (\ns -> [Left (tm.tm_name, tt.tt_name):ns]) tm tt next navstack
-
-  //navigate :: (NavStack -> NavStack) TonicModule TonicTask NavPoint NavStack -> Task ()
-  //navigate mkNavStack tm tt (Left (mn, tn)) navstack
-    //= getModule mn >>*
-      //[ OnValue onNavVal
-      //, OnAllExceptions (const (viewStaticTask allbps rs navstack tm tt depth compact))
-      //] @! ()
-    //where
-    //onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs (mkNavStack navstack) tm` tt` depth compact @! ()) (getTask tm` tn)
-    //onNavVal _             = Nothing
-  //navigate _ _ _ _ _ = viewInformation () [] "navigate: should not happen" @! ()
-
-
-
-
 :: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
 allBlueprints :: Task AllBlueprints
 allBlueprints
-            = getTonicModules >>-
+  =           getTonicModules >>-
   \modnms  -> allTasks (map getModule modnms) >>-
   \modules -> return (foldr f 'DM'.newMap modules)
   where
