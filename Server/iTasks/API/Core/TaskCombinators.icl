@@ -279,6 +279,7 @@ initParallelTask callTrace listId index parType parTask iworld=:{current={taskTi
   = case mbTaskStuff of
       Ok (taskId,attributes,mbTask)
         # (_, iworld) = write listId (sdsFocus taskId parallelListId) iworld
+        # (_, iworld) = write callTrace (sdsFocus listId taskInstanceParallelCallTrace) iworld
         # state = {ParallelTaskState | taskId = taskId, index = index, detached = isNothing mbTask, attributes = attributes, value = NoValue, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, change = Nothing}
         = (Ok (state,mbTask),iworld)
       err = (liftError err, iworld)
