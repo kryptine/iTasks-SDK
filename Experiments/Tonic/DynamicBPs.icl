@@ -36,7 +36,6 @@ test :: Int -> Task Int
 test n
 	= do (enterInt n) >>= \number -> allTasks [do (enterInt n) \\ n <- [1..number]] >>= \s -> return (sum s) 
 
-enterInt :: Int -> Task Int
 enterInt n
 	= updateInformation "enter an integer value" [] n
 
