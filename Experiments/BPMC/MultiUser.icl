@@ -3,14 +3,15 @@ implementation module MultiUser
 import iTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 
-StartMultiUserTasks :: [Workflow] *World -> *World
-StartMultiUserTasks workflows world 
+StartMultiUserTasks :: [Workflow] [PublishedTask] *World -> *World
+StartMultiUserTasks workflows tasks world 
 	= startTask [ workflow "Manage users"  "Manage system users..."   manageUsers
 				: workflows
-				] world
+				] tasks world
 
-startTask taskList world
+startTask taskList tasks world
 	= startEngine [ publish "/" (WebApp []) (\_-> browseExamples taskList)
+                  : tasks
 				  ] world
 where
 	browseExamples taskList = forever (

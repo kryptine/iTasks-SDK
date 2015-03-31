@@ -6,6 +6,7 @@ import  iTasks.API.Extensions.Email
 import iTasks.Framework.Tonic
 import Graphics.Scalable
 from Math.Random import genRandInt
+import iTasks.API.Extensions.Admin.TonicAdmin
 
 // tasks are assigned to workers with a certain "role", any user administrated with has such role can work on it
 // here the follwoing roles are used:
@@ -136,9 +137,9 @@ where	makeModification (Request NewPassword) cid password  = updatePassword cid 
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA	// case a prototype
-                                    , tonicStaticWorkflow []								// to show graphical representations of the tasks defined below
-                                    , tonicDynamicWorkflow []								// to graphically show who is working on what
-									] world
+									]
+                                    [ publish "/tonic" (WebApp []) (\_-> tonicDashboard [])
+                                    ] world
 
 
 // ********************************************************************************************************************************************
