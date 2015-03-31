@@ -13,14 +13,13 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dragDrop)
 :: DragDropState =
   { xcoord :: Real
   , ycoord :: Real
-  , mousedown   :: Bool
   , targetColor :: String
   }
 
 derive class iTask DragDropState
 
 defaultState :: DragDropState
-defaultState = { DragDropState | xcoord = 0.0, ycoord = 0.0, mousedown = False, targetColor = "white" }
+defaultState = { DragDropState | xcoord = 0.0, ycoord = 0.0, targetColor = "white" }
 
 dragDropState :: Shared DragDropState
 dragDropState = sharedStore "dragDropState" defaultState
