@@ -647,13 +647,13 @@ dynamicParent childId
     `b` \pid   -> 'DM'.get pid rtm)
 
 :: DynamicView =
-  { moduleName  :: !String
+  { taskId      :: !TaskId
+  , moduleName  :: !String
   , taskName    :: !String
   , users       :: ![User]
   , startTime   :: !String
   , lastUpdate  :: !String
   , endTime     :: !String
-  , taskId      :: !TaskId
   , activeNodes :: !String
   }
 
@@ -679,9 +679,7 @@ tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
   =              withShared [] (
     \navstack -> allBlueprints
-  >>- \allbps -> updateSharedInformation "Filter query" [] queryShare
-             >&> withSelection (tonicDynamicBrowser` allbps rs navstack Nothing)
-                               (tonicDynamicBrowser` allbps rs navstack))
+  >>- \allbps -> tonicDynamicBrowser` allbps rs navstack)
 
 selectedBlueprint :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
@@ -716,14 +714,25 @@ mkAdditionalInfo trt
   getOldest _ bpr=:{bpr_instance = Just _} _  = Just bpr
   getOldest _ _ _ = Nothing
 
-tonicDynamicBrowser` :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !(Maybe BlueprintQuery) -> Task ()
-tonicDynamicBrowser` allbps rs navstack q =
-       ((editSharedChoiceWithSharedAs (Title "Active blueprint instances")
-         [ChooseWith (ChooseFromGrid customView)] (mapRead (filterActiveTasks q o 'DM'.elems) tonicSharedRT) (\x -> maybe (Right (TaskId 0 0)) (\i -> Right i.bpi_taskId) x.bpr_instance) selectedBlueprint
-  -&&- whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)) <<@ ArrangeWithSideBar 0 LeftSide 900 True)
-  -&&- whileUnchanged (selectedBlueprint |+| tonicSharedRT) (\(bp, trt) -> viewInstance allbps rs navstack trt bp)
-    <<@ FullScreen @! ()
+tonicDynamicBrowser` :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) -> Task ()
+tonicDynamicBrowser` allbps rs navstack =
+       (((((((
+       filterQuery               <<@ ArrangeWithSideBar 0 LeftSide 200 True)
+  -&&- activeBlueprintInstances) <<@ ArrangeWithSideBar 0 LeftSide 200 True)
+  -&&- additionalInfo)           <<@ ArrangeWithSideBar 0 LeftSide 1200 True)
+  -&&- blueprintViewer)          <<@ ArrangeWithSideBar 0 TopSide 200 True)
+       <<@ FullScreen @! ()
   where
+  filterQuery = updateSharedInformation "Filter query" [] queryShare
+  activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint
+    where
+    setTaskId x = maybe (Right (TaskId 0 0)) (\i -> Right i.bpi_taskId) x.bpr_instance
+    filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
+
+  additionalInfo = whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)
+
+  blueprintViewer = whileUnchanged (selectedBlueprint |+| tonicSharedRT) (\(bp, trt) -> viewInstance allbps rs navstack trt bp)
+
   filterActiveTasks Nothing tasks = tasks
   filterActiveTasks (Just q) tasks
     = [bp \\ bp=:{bpr_instance = Just trt} <- tasks | not (startsWith "iTasks" bp.bpr_moduleName) && isNothing trt.bpi_endTime && doFilter bp q]
@@ -737,23 +746,23 @@ tonicDynamicBrowser` allbps rs navstack q =
     doFilter _                             _                 = True
   customView bpr=:{bpr_instance = Just bpi}
     = { DynamicView
-      | moduleName  = bpr.bpr_moduleName
+      | taskId      = bpi.bpi_taskId
+      , moduleName  = bpr.bpr_moduleName
       , taskName    = bpr.bpr_taskName
       , users       = bpi.bpi_involvedUsers
       , startTime   = toString bpi.bpi_startTime
       , lastUpdate  = toString bpi.bpi_lastUpdated
       , endTime     = maybe "" toString bpi.bpi_endTime
-      , taskId      = bpi.bpi_taskId
       , activeNodes = toString (toJSON bpi.bpi_activeNodes)
       }
   customView bpr = { DynamicView
-                   | moduleName  = bpr.bpr_moduleName
+                   | taskId      = TaskId -1 -1
+                   , moduleName  = bpr.bpr_moduleName
                    , taskName    = bpr.bpr_taskName
                    , users       = []
                    , startTime   = ""
                    , lastUpdate  = ""
                    , endTime     = ""
-                   , taskId      = TaskId -1 -1
                    , activeNodes = ""
                    }
 
