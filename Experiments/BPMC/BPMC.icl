@@ -137,10 +137,15 @@ where	makeModification (Request NewPassword) cid password  = updatePassword cid 
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks 	[ workflow "case a" "simulation of use case a" caseA	// case a prototype
+                                    , workflow "add roles" "add all roles to root" addRoles
 									]
                                     [ publish "/tonic" (WebApp []) (\_-> tonicDashboard [])
                                     ] world
 
+
+addRoles = upd (map addRoles`) userAccounts
+  where
+  addRoles` acc=:{UserAccount | roles} = { UserAccount | acc & roles = ["front-office" : "csa-office" : "mid-office" : roles]}
 
 // ********************************************************************************************************************************************
 
