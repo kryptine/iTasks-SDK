@@ -251,7 +251,7 @@ firstParent rtMap [parent : parents]
   , bpi_endTime          :: !Maybe DateTime
   , bpi_params           :: ![(!VarName, !Task ())]
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, NodeId))
-  , bpi_previouslyActive :: Map NodeId TaskId
+  , bpi_previouslyActive :: !Map NodeId TaskId
   , bpi_parentTaskId     :: !Maybe TaskId
   , bpi_involvedUsers    :: ![User]
   , bpi_output           :: !Maybe (Task ())
@@ -771,19 +771,18 @@ viewInstance allbps rs navstack trt (Just (Right tid))
   =          get navstack
   >>~ \ns -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
-                 =                         dynamicParent bpinst.bpi_taskId
-                  >>~ \mbprnt ->           getModule bpr_moduleName
-                  >>~ \tm ->               case getTonicTask tm bpr_taskName of
-                                             Just blueprint
-                                               =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty // TODO FIXME Dirty partial pattern match
-                                                          ||-  viewTaskArguments bpinst blueprint
-                                                          ||-  whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
-                                               \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot blueprint False { Scale | min = 0, cur = 0, max = 0})
-                                                          >>*  [ OnValue (doAction navigateForward)
-                                                               , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
-                                                               , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
-                                                               ]
-                                             _ = defaultBack ns
+                 =              dynamicParent bpinst.bpi_taskId
+                 >>~ \mbprnt -> case 'DM'.get bpr_moduleName allbps `b` 'DM'.get bpr_taskName of
+                                  Just blueprint
+                                    =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty // TODO FIXME Dirty partial pattern match
+                                               ||-  viewTaskArguments bpinst blueprint
+                                               ||-  whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+                                    \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot blueprint False { Scale | min = 0, cur = 0, max = 0})
+                                               >>*  [ OnValue (doAction navigateForward)
+                                                    , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
+                                                    , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
+                                                    ]
+                                  _ = defaultBack ns
                _ = defaultBack ns
   where
   defaultBack ns =   viewInformation () [] "Blueprint instance not found"
