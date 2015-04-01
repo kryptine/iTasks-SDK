@@ -149,7 +149,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
-          # (cct, iworld)    = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
+          # (cct, iworld)    = mkCompleteTrace instanceNo callTrace iworld
           # bpinst = { BlueprintInstance
                      | bpi_taskId           = currTaskId
                      , bpi_startTime        = DateTime clocks.localDate clocks.localTime
@@ -774,9 +774,9 @@ viewInstance allbps rs navstack trt (Just (Right tid))
                  =              dynamicParent bpinst.bpi_taskId
                  >>~ \mbprnt -> case 'DM'.get bpr_moduleName allbps `b` 'DM'.get bpr_taskName of
                                   Just blueprint
-                                    =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty // TODO FIXME Dirty partial pattern match
-                                               ||-  viewTaskArguments bpinst blueprint
-                                               ||-  whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+                                    =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty
+                                                ||- viewTaskArguments bpinst blueprint
+                                                ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
                                     \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot blueprint False { Scale | min = 0, cur = 0, max = 0})
                                                >>*  [ OnValue (doAction navigateForward)
                                                     , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
@@ -1011,7 +1011,14 @@ ArialItalic10px :== { fontfamily = "Arial"
 mkTaskImage :: ![TaskAppRenderer] !(Map NodeId TaskId) !BlueprintRef !ListsOfTasks !Bool !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt maplot compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
-  #! inh              = { MkImageInh | inh_trt = trt, inh_maplot = maplot, inh_task_apps = rs, inh_compact = compact, inh_prev = prev, inh_inaccessible = False }
+  #! inh              = { MkImageInh
+                        | inh_trt          = trt
+                        , inh_maplot       = maplot
+                        , inh_task_apps    = rs
+                        , inh_compact      = compact
+                        , inh_prev         = prev
+                        , inh_inaccessible = False
+                        }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
   = img
