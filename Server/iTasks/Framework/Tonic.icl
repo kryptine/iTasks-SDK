@@ -354,25 +354,23 @@ setActiveNodes bpref inst=:{bpi_taskId, bpi_activeNodes, bpi_previouslyActive} c
 tonicWrapApp :: !ModuleName !TaskName !NodeId (Task a) -> Task a
 tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
-  eval` event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
-    = case taskIdFromTaskTree taskTree of
-        Ok childTaskId=:(TaskId childInstanceNo childTaskNo)
-          # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-          = case mrtMap of
-              Ok rtMap
-                # localCallTrace = case callTrace of
-                                     [x:xs] | x == childTaskNo -> callTrace
-                                     _                         -> [childTaskNo : callTrace]
-                # (cct, iworld)  = mkCompleteTrace childInstanceNo localCallTrace iworld
-                = case firstParent rtMap cct of
-                    Ok parentBPRef=:{bpr_instance = Just parenBPInst}
-                      # iworld       = updRTMap childTaskId cct parentBPRef parenBPInst rtMap iworld
-                      # (rt, iworld) = eval event evalOpts taskTree iworld
-                      # iworld       = updLoTMap childTaskId parenBPInst.bpi_taskId iworld
-                      = (rt, iworld)
-                    _ = eval event evalOpts taskTree iworld
+  eval` event evalOpts=:{TaskEvalOpts|callTrace} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo childTaskNo) _) iworld
+    # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+    = case mrtMap of
+        Ok rtMap
+          # localCallTrace = case callTrace of
+                               [x:xs] | x == childTaskNo -> callTrace
+                               _                         -> [childTaskNo : callTrace]
+          # (cct, iworld)  = mkCompleteTrace childInstanceNo localCallTrace iworld
+          = case firstParent rtMap cct of
+              Ok parentBPRef=:{bpr_instance = Just parenBPInst}
+                # iworld       = updRTMap childTaskId cct parentBPRef parenBPInst rtMap iworld
+                # (rt, iworld) = eval event evalOpts taskTree iworld
+                # iworld       = updLoTMap childTaskId parenBPInst.bpi_taskId iworld
+                = (rt, iworld)
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
+  eval` event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
   updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parenBPInst rtMap iworld
     # (newActiveNodes, iworld) = setActiveNodes parentBPRef parenBPInst childTaskId cct nid iworld
