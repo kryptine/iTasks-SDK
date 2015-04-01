@@ -145,7 +145,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
     = eval event evalOpts taskTree iworld
     where
     updateInstance instanceNo rtMap iworld =
-      case getTask mod tn of
+      case getTonicTask mod tn of
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
@@ -167,7 +167,6 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           # blueprint = { BlueprintRef
                         | bpr_moduleName = mn
                         , bpr_taskName   = tn
-                        , bpr_blueprint  = bprep
                         , bpr_instance   = Just bpinst
                         }
           # (_, iworld) = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
@@ -181,18 +180,17 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
     logTaskEnd currTaskId iworld
       # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
       = case mbpref of
-          Ok bpref
+          Ok bpref=:{bpr_instance = Just inst}
              # (clocks, iworld) = iworld!clocks
-             # oldActive        = case bpref.bpr_instance of
-                                    Just bpi
-                                      # newActiveNodeMap = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)]
-                                      = 'DM'.union newActiveNodeMap bpi.bpi_previouslyActive
-                                    _ = 'DM'.newMap
-             # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> { inst
-                                                                                      & bpi_endTime          = Just (DateTime clocks.localDate clocks.localTime)
-                                                                                      , bpi_previouslyActive = oldActive
-                                                                                      , bpi_activeNodes      = 'DM'.newMap
-                                                                                      }) bpref.bpr_instance } (sdsFocus currTaskId tonicInstances) iworld
+             # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
+                                             inst.bpi_previouslyActive
+             # (_, iworld)      = 'DSDS'.write { bpref
+                                               & bpr_instance = Just { inst
+                                                                     & bpi_endTime          = Just (DateTime clocks.localDate clocks.localTime)
+                                                                     , bpi_previouslyActive = oldActive
+                                                                     , bpi_activeNodes      = 'DM'.newMap
+                                                                     }
+                                               } (sdsFocus currTaskId tonicInstances) iworld
              = iworld
           _  = iworld
   eval` _ event evalOpts taskTree iworld
@@ -202,27 +200,28 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
     readAndUpdateRTMap tr currTaskId iworld
       # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
       = case mbpref of
-          Ok bpref
+          Ok bpref=:{bpr_instance = Just inst}
             # (curr, iworld)   = iworld!current
             # (clocks, iworld) = iworld!clocks
             # currDateTime     = DateTime clocks.localDate clocks.localTime
-            # oldActive        = case bpref.bpr_instance of
-                                   Just bpi
-                                     # newActiveNodeMap = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)]
-                                     = 'DM'.union newActiveNodeMap bpi.bpi_previouslyActive
-                                   _ = 'DM'.newMap
-            # (_, iworld)      = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_output           = resultToOutput tr
-                                                                                           , bpi_previouslyActive = case tr of
-                                                                                                                      ValueResult (Value _ True) _ _ _ -> oldActive
-                                                                                                                      _                                -> inst.bpi_previouslyActive
-                                                                                           , bpi_activeNodes      = case tr of
-                                                                                                                      ValueResult (Value _ True) _ _ _ -> 'DM'.newMap
-                                                                                                                      _                                -> inst.bpi_activeNodes
-                                                                                           , bpi_lastUpdated      = currDateTime
-                                                                                           , bpi_endTime          = case tr of
-                                                                                                                      ValueResult (Value _ True) _ _ _ -> Just currDateTime
-                                                                                                                      _                                -> Nothing
-                                                                                           , bpi_involvedUsers    = [curr.user : resultUsers tr]}) bpref.bpr_instance} (sdsFocus currTaskId tonicInstances) iworld
+            # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
+                                            inst.bpi_previouslyActive
+            # (_, iworld)      = 'DSDS'.write { bpref
+                                              & bpr_instance = Just { inst
+                                                                    & bpi_output           = resultToOutput tr
+                                                                    , bpi_previouslyActive = case tr of
+                                                                                               ValueResult (Value _ True) _ _ _ -> oldActive
+                                                                                               _                                -> inst.bpi_previouslyActive
+                                                                    , bpi_activeNodes      = case tr of
+                                                                                               ValueResult (Value _ True) _ _ _ -> 'DM'.newMap
+                                                                                               _                                -> inst.bpi_activeNodes
+                                                                    , bpi_lastUpdated      = currDateTime
+                                                                    , bpi_endTime          = case tr of
+                                                                                               ValueResult (Value _ True) _ _ _ -> Just currDateTime
+                                                                                               _                                -> Nothing
+                                                                    , bpi_involvedUsers    = [curr.user : resultUsers tr]
+                                                                    }
+                                              } (sdsFocus currTaskId tonicInstances) iworld
             = iworld
           _ = iworld
   resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
@@ -242,7 +241,6 @@ firstParent rtMap [parent : parents]
 :: BlueprintRef =
   { bpr_moduleName :: !ModuleName
   , bpr_taskName   :: !TaskName
-  , bpr_blueprint  :: !TonicTask
   , bpr_instance   :: !Maybe BlueprintInstance
   }
 
@@ -382,7 +380,9 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
     # oldActiveNodes           = 'DM'.difference ('DM'.union parenBPInst.bpi_previouslyActive
                                                              ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parenBPInst.bpi_activeNodes)]))
                                                  newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
-    # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just {parenBPInst & bpi_activeNodes = newActiveNodes, bpi_previouslyActive = oldActiveNodes}} (sdsFocus parenBPInst.bpi_taskId tonicInstances) iworld
+    # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just { parenBPInst
+                                                                    & bpi_activeNodes = newActiveNodes
+                                                                    , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parenBPInst.bpi_taskId tonicInstances) iworld
     = iworld
   updLoTMap childTaskId parentTaskId iworld
     # (mbChildBPRef, iworld) = getBlueprintRef childTaskId iworld
@@ -516,8 +516,8 @@ getTonicDir iworld
 getTasks :: !TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
 
-getTask :: !TonicModule !String -> Maybe TonicTask
-getTask tm tn = 'DM'.get tn tm.tm_tasks
+getTonicTask :: !TonicModule !String -> Maybe TonicTask
+getTonicTask tm tn = 'DM'.get tn tm.tm_tasks
 
 tonicUI :: [TaskAppRenderer] -> Task ()
 tonicUI rs
@@ -559,7 +559,7 @@ tonicStaticBrowser rs
       \tn ->     maybe (return ()) (
       \tt ->       whileUnchanged displaySettings (
       \sett ->     viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.unfold_depth sett.display_compact @! ()))
-                 (getTask tm tn)
+                 (getTonicTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ FullScreen))) @! ()
   where
@@ -596,7 +596,6 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
          ||- showBlueprint rs 'DM'.newMap { BlueprintRef
                                           | bpr_moduleName = tm_name
                                           , bpr_taskName   = tt.tt_name
-                                          , bpr_blueprint  = tt
                                           , bpr_instance   = Nothing
                                           } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
          >>* [ OnValue (doAction (navigateForward tm tt))
@@ -621,7 +620,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
         , OnAllExceptions (const (viewStaticTask allbps rs navstack trt tm tt depth compact))
         ] @! ()
     where
-    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTask tm` tn)
+    onNavVal (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicTask tm` tn)
     onNavVal _             = Nothing
   navigate mkNavStack _ _ target
     =   upd mkNavStack navstack
@@ -771,20 +770,26 @@ viewInstance :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !TonicRTMap
 viewInstance allbps rs navstack trt (Just (Right tid))
   =          get navstack
   >>~ \ns -> case 'DM'.get tid trt of
-               Just bpref=:{bpr_moduleName, bpr_taskName, bpr_blueprint, bpr_instance = Just bpinst}
-                 =               dynamicParent bpinst.bpi_taskId
-                  >>~ \mbprnt -> viewBPTitle bpr_moduleName bpr_taskName bpr_blueprint.tt_resty
-                             ||- viewTaskArguments bpinst bpr_blueprint
-                             ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
-                 \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot bpr_blueprint False { Scale | min = 0, cur = 0, max = 0})
-                             >>* [ OnValue (doAction navigateForward)
-                                 , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
-                                 , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
-                                 ]
-               _ =   viewInformation () [] "Blueprint instance not found"
+               Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
+                 =                         dynamicParent bpinst.bpi_taskId
+                  >>~ \mbprnt ->           getModule bpr_moduleName
+                  >>~ \tm ->               case getTonicTask tm bpr_taskName of
+                                             Just blueprint
+                                               =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty // TODO FIXME Dirty partial pattern match
+                                                          ||-  viewTaskArguments bpinst blueprint
+                                                          ||-  whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+                                               \(_, maplot) -> showBlueprint rs bpinst.bpi_previouslyActive bpref maplot blueprint False { Scale | min = 0, cur = 0, max = 0})
+                                                          >>*  [ OnValue (doAction navigateForward)
+                                                               , OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
+                                                               , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt)
+                                                               ]
+                                             _ = defaultBack ns
+               _ = defaultBack ns
+  where
+  defaultBack ns =   viewInformation () [] "Blueprint instance not found"
                  >>* [ OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
                      ]
-  where
+
   navigateForward :: !(Either (ModuleName, TaskName) TaskId) (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState) -> Task ()
   navigateForward action _ = upd (\xs -> [Right tid : xs]) navstack >>| viewInstance allbps rs navstack trt (Just action)
 
