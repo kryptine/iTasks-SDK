@@ -272,15 +272,24 @@ initParallelTasks callTrace listId index [(parType,parTask):parTasks] iworld
 initParallelTask :: ![Int] !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!MaybeError TaskException (ParallelTaskState,Maybe (TaskId,Task a)),!*IWorld) | iTask a
 initParallelTask callTrace listId index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
   # (mbTaskStuff,iworld) = case parType of
-      Embedded           = mkEmbedded 'DM'.newMap iworld
-      NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld
-      Detached attributes evalDirect           = mkDetached attributes evalDirect iworld
-      NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" name attributes) evalDirect iworld
+                             Embedded           = mkEmbedded 'DM'.newMap iworld
+                             NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld
+                             Detached           attributes evalDirect = mkDetached attributes evalDirect iworld
+                             NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" name attributes) evalDirect iworld
   = case mbTaskStuff of
       Ok (taskId,attributes,mbTask)
         # (_, iworld) = write listId (sdsFocus taskId parallelListId) iworld
-        # (_, iworld) = write callTrace (sdsFocus listId taskInstanceParallelCallTrace) iworld
-        # state = {ParallelTaskState | taskId = taskId, index = index, detached = isNothing mbTask, attributes = attributes, value = NoValue, createdAt = taskTime, lastFocus = Nothing, lastEvent = taskTime, change = Nothing}
+        # state       = { ParallelTaskState
+                        | taskId     = taskId
+                        , index      = index
+                        , detached   = isNothing mbTask
+                        , attributes = attributes
+                        , value      = NoValue
+                        , createdAt  = taskTime
+                        , lastFocus  = Nothing
+                        , lastEvent  = taskTime
+                        , change     = Nothing
+                        }
         = (Ok (state,mbTask),iworld)
       err = (liftError err, iworld)
   where
@@ -295,7 +304,9 @@ initParallelTask callTrace listId index parType parTask iworld=:{current={taskTi
           # listShare         = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
           # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
           = case mbTaskId of
-              Ok taskId = (Ok (taskId, attributes, Nothing), iworld)
+              Ok taskId
+                # (_, iworld) = write callTrace (sdsFocus listId taskInstanceParallelCallTrace) iworld
+                = (Ok (taskId, attributes, Nothing), iworld)
               err       = (liftError err, iworld)
         err = (liftError err, iworld)
 
