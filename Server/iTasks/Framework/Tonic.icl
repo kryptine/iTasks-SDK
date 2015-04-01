@@ -94,7 +94,7 @@ instance Monad IWorldM where
 
 :: NodeId :== [Int]
 
-:: ListsOfTasks :== Map (TaskId, NodeId) (IntMap BlueprintRef)
+:: ListsOfTasks :== Map (TaskId, NodeId) (IntMap (ModuleName, TaskName))
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
@@ -116,16 +116,16 @@ derive class iTask Set
 tonicDynamicUpdates :: RWShared () ListsOfTasks ListsOfTasks
 tonicDynamicUpdates = sdsTranslate "tonicDynamicUpdates" (\t -> t +++> "-tonicDynamicUpdates") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
 
-tonicUpdatesForTaskAndNodeId :: RWShared (TaskId, NodeId) (IntMap BlueprintRef) (IntMap BlueprintRef)
+tonicUpdatesForTaskAndNodeId :: RWShared (TaskId, NodeId) (IntMap (ModuleName, TaskName)) (IntMap (ModuleName, TaskName))
 tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicDynamicUpdates
   where
-  read :: (TaskId, NodeId) ListsOfTasks -> MaybeError TaskException (IntMap BlueprintRef)
+  read :: (TaskId, NodeId) ListsOfTasks -> MaybeError TaskException (IntMap (ModuleName, TaskName))
   read tid trtMap = maybe (Error (exception ("Could not find list of refs for index " <+++ tid))) Ok ('DM'.get tid trtMap)
 
-  write :: (TaskId, NodeId) ListsOfTasks (IntMap BlueprintRef) -> MaybeError TaskException (Maybe ListsOfTasks)
+  write :: (TaskId, NodeId) ListsOfTasks (IntMap (ModuleName, TaskName)) -> MaybeError TaskException (Maybe ListsOfTasks)
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
 
-  notify :: (TaskId, NodeId) ListsOfTasks (IntMap BlueprintRef) -> SDSNotifyPred (TaskId, NodeId)
+  notify :: (TaskId, NodeId) ListsOfTasks (IntMap (ModuleName, TaskName)) -> SDSNotifyPred (TaskId, NodeId)
   notify tid _ _ = \tid` -> tid == tid`
 
 tonicViewInformation :: !String !a -> Task () | iTask a
@@ -175,8 +175,8 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
         _ = iworld
 
   eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
-    # iworld = okSt iworld logTaskEnd (taskIdFromTaskTree taskTree)
-    = eval event evalOpts taskTree iworld
+    # (tr, iworld) = eval event evalOpts taskTree iworld
+    = (tr, okSt iworld logTaskEnd (taskIdFromTaskTree taskTree))
     where
     logTaskEnd currTaskId iworld
       # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
@@ -358,39 +358,46 @@ tonicWrapApp mn tn nid (Task eval) = Task eval`
   where
   eval` event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
     = case taskIdFromTaskTree taskTree of
-        Ok tid=:(TaskId instanceNo taskNo)
+        Ok childTaskId=:(TaskId childInstanceNo childTaskNo)
           # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
           = case mrtMap of
               Ok rtMap
                 # localCallTrace = case callTrace of
-                                     [x:xs] | x == taskNo -> callTrace
-                                     _                    -> [taskNo : callTrace]
-                # (cct, iworld)  = mkCompleteTrace instanceNo localCallTrace iworld
+                                     [x:xs] | x == childTaskNo -> callTrace
+                                     _                         -> [childTaskNo : callTrace]
+                # (cct, iworld)  = mkCompleteTrace childInstanceNo localCallTrace iworld
                 = case firstParent rtMap cct of
-                    Ok bpref=:{bpr_instance = Just inst}
-                      # iworld       = updRTMap tid cct bpref inst rtMap iworld
+                    Ok parentBPRef=:{bpr_instance = Just parenBPInst}
+                      # iworld       = updRTMap childTaskId cct parentBPRef parenBPInst rtMap iworld
                       # (rt, iworld) = eval event evalOpts taskTree iworld
-                      # iworld       = updLoTMap tid bpref inst iworld
+                      # iworld       = updLoTMap childTaskId parenBPInst.bpi_taskId iworld
                       = (rt, iworld)
                     _ = eval event evalOpts taskTree iworld
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
-    where
-    updRTMap tid=:(TaskId instanceNo _) cct bpref inst rtMap iworld
-      # (newActiveNodes, iworld) = setActiveNodes bpref inst tid cct nid iworld
-      # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
-      # oldActiveNodes           = 'DM'.difference ('DM'.union inst.bpi_previouslyActive
-                                                               ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)]))
-                                                   newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
-      # (_, iworld) = 'DSDS'.write {bpref & bpr_instance = fmap (\inst -> {inst & bpi_activeNodes = newActiveNodes, bpi_previouslyActive = oldActiveNodes}) bpref.bpr_instance} (sdsFocus inst.bpi_taskId tonicInstances) iworld
-      = iworld
-    updLoTMap tid bpref inst iworld
-      # (mbpref, iworld) = getBlueprintRef tid iworld
-      = case mbpref of
-          Just bpref`
-            # (_, iworld) = 'DSDS'.write ('DIS'.singleton 0 bpref`) (sdsFocus (inst.bpi_taskId, nid) tonicUpdatesForTaskAndNodeId) iworld
-            = iworld
-          _ = iworld
+
+  updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parenBPInst rtMap iworld
+    # (newActiveNodes, iworld) = setActiveNodes parentBPRef parenBPInst childTaskId cct nid iworld
+    # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
+    # oldActiveNodes           = 'DM'.difference ('DM'.union parenBPInst.bpi_previouslyActive
+                                                             ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parenBPInst.bpi_activeNodes)]))
+                                                 newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
+    # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just {parenBPInst & bpi_activeNodes = newActiveNodes, bpi_previouslyActive = oldActiveNodes}} (sdsFocus parenBPInst.bpi_taskId tonicInstances) iworld
+    = iworld
+  updLoTMap childTaskId parentTaskId iworld
+    # (mbChildBPRef, iworld) = getBlueprintRef childTaskId iworld
+    = case mbChildBPRef of
+        Just childBPRef
+          # (_, iworld) = 'DSDS'.write ('DIS'.singleton 0 (childBPRef.bpr_moduleName, childBPRef.bpr_taskName)) (sdsFocus (parentTaskId, nid) tonicUpdatesForTaskAndNodeId) iworld
+          = iworld
+        _ = iworld
+
+withSharedRT :: (TonicRTMap *IWorld -> *IWorld) *IWorld -> *IWorld
+withSharedRT f world
+  # (mrtMap, world) = 'DSDS'.read tonicSharedRT world
+  = case mrtMap of
+      Ok rtMap -> f rtMap world
+      _        -> world
 
 tonicWrapAppLam1 :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
@@ -457,7 +464,7 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
             # tidMap = case mbTidMap of
                           Ok tidMap -> tidMap
                           _         -> 'DIS'.newMap
-            # tidMap = 'DIS'.put n bpref tidMap
+            # tidMap = 'DIS'.put n (bpref.bpr_moduleName, bpref.bpr_taskName) tidMap
             # (_, iworld) = 'DSDS'.write tidMap (sdsFocus (parentId, nid) tonicUpdatesForTaskAndNodeId) iworld
             = iworld
           _ = iworld
@@ -649,8 +656,8 @@ dynamicParent childId
   , startTime   :: !String
   , lastUpdate  :: !String
   , endTime     :: !String
-  //, taskId      :: !TaskId
-  //, activeNodes :: !String
+  , taskId      :: !TaskId
+  , activeNodes :: !String
   }
 
 derive class iTask DynamicView
@@ -739,8 +746,8 @@ tonicDynamicBrowser` allbps rs navstack q =
       , startTime   = toString bpi.bpi_startTime
       , lastUpdate  = toString bpi.bpi_lastUpdated
       , endTime     = maybe "" toString bpi.bpi_endTime
-      //, taskId      = bpi.bpi_taskId
-      //, activeNodes = toString (toJSON bpi.bpi_activeNodes)
+      , taskId      = bpi.bpi_taskId
+      , activeNodes = toString (toJSON bpi.bpi_activeNodes)
       }
   customView bpr = { DynamicView
                    | moduleName  = bpr.bpr_moduleName
@@ -749,8 +756,8 @@ tonicDynamicBrowser` allbps rs navstack q =
                    , startTime   = ""
                    , lastUpdate  = ""
                    , endTime     = ""
-                   //, taskId      = TaskId -1 -1
-                   //, activeNodes = ""
+                   , taskId      = TaskId -1 -1
+                   , activeNodes = ""
                    }
 
 getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicTask)
@@ -1082,8 +1089,8 @@ tVar inh eid pp tsrc
         = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
             Just mptids
               = case 'DIS'.elems mptids of
-                  [trt:_]
-                    = tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName [] tsrc
+                  [(moduleName, taskName) : _]
+                    = tTaskApp inh eid moduleName taskName [] tsrc
                   _ = mkDef tsrc
             _ = mkDef tsrc
       _ = mkDef tsrc
@@ -1284,7 +1291,7 @@ tParallel inh eid (ParSumN ts) tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\trt -> tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName []) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName) -> tTaskApp inh eid moduleName taskName []) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
@@ -1306,7 +1313,7 @@ tParallel inh eid (ParProd ts) tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\trt -> tTaskApp inh eid trt.bpr_moduleName trt.bpr_taskName []) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName) -> tTaskApp inh eid moduleName taskName []) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
