@@ -21,91 +21,9 @@ derive JSONDecode Coordinate, TraxTile, TileEdge, Trax
 derive gDefault   Coordinate, TraxTile, TileEdge, Trax
 
 Start :: *World -> *World
-Start world = StartMultiUserTasks [ /*workflow  "Original Trax" "Play trax"  	 play_trax
-								  ,*/ workflow  "SVG Trax"      "Play SVG trax"  play_trax2
+Start world = StartMultiUserTasks [ workflow "SVG Trax" "Play SVG trax" play_trax
 								  ] world
 
-/*
-toLineColor :: !Turn -> LineColor
-toLineColor turn = if (match 0 turn) RedLine WhiteLine
-
-player :: ![User] !Turn -> User
-player [a,b] turn = if (match 0 turn) a b
-
-play_trax :: Task Turn
-play_trax = play_for_N 2 { game   = "Trax"
-                         , state  = initial_state
-                         , over   = game_over
-                         , winner = declare_winner
-                         , move   = make_a_move
-                         , board  = show_board
-                         }
-
-initial_state :: ![User] -> TraxSt
-initial_state users = { trax = zero, names = users }
-
-game_over :: !(Turn,TraxSt) -> Bool
-game_over (_,traxSt) = not (isEmpty (loops traxSt.trax ++ winning_lines traxSt.trax))
-
-declare_winner :: (Turn,TraxSt) -> Task Turn
-declare_winner (turn,traxSt=:{trax,names})
-	= viewInformation "The winner is:" [ViewWith (toString o (player names))] winner
-where
-	winners        = loops trax ++ winning_lines trax
-	last_player    = prev turn
-	winner         = if (isMember (toLineColor last_player) (map fst winners)) last_player turn
-
-make_a_move :: (Turn,TraxSt) -> Task TraxSt
-make_a_move (turn,traxSt=:{trax})
-	=              chooseCoordinate trax
-      >>= \new  -> chooseTile   new trax
-      >>= \tile -> return {traxSt & trax = mandatory_moves (add_tile new tile trax) new}
-where
-	chooseCoordinate :: !Trax -> Task Coordinate
-	chooseCoordinate trax
-	| nr_of_tiles trax == 0    = return zero
-	| otherwise                = enterChoice "Choose coordinate:" [ChooseWith (ChooseFromComboBox toString)] (free_coordinates trax)
-	
-	chooseTile :: !Coordinate !Trax -> Task Tile
-	chooseTile coordinate trax = enterChoice "Choose tile:" [ChooseWith (ChooseFromRadioButtons (TileTag (16,16)))] 
-		                             (if (nr_of_tiles trax == 0) 
-		                                 gFDomain{|*|} 
-		                                 (possible_tiles (linecolors trax coordinate))
-		                             )
-
-show_board :: !(Turn,TraxSt) -> [HtmlTag]
-show_board (turn,traxSt=:{trax,names})
-| nr_of_tiles trax == 0 = [h3 ("Select any tile, " <+++ current_player)]
-| otherwise				= [h3 current_player, board]
-where
-	board				= TableTag [BorderAttr "0"] 
-						           [ tr [  cell {col=minx+x-1,row=miny+y-1} 
-						                \\ x <- [0..nrcol+1]
-						                ] 
-						           \\ y <- [0..nrrow+1]
-						           ]
-	current_player      = player names turn
-    cell coordinate     = case tile_at trax coordinate of
-                             Nothing   = if (isMember coordinate free) (text coordinate) (text "")
-                             Just tile = td [TileTag (42,42) tile]
-    
-    free                      = free_coordinates trax
-    ((minx,maxx),(miny,maxy)) = bounds           trax
-    (nrcol,nrrow)             = dimension        trax
-
-TileTag :: !(!Int,!Int) !Tile -> HtmlTag
-TileTag (width,height) tile
-	= ImgTag [SrcAttr ("/" <+++ toString tile <+++ ".png"),WidthAttr (toString width),HeightAttr (toString height)]
-
-// shorthands for HTML:
-tr		= TrTag []
-td		= TdTag []
-text x	= TdTag [AlignAttr "center"] [Text (toString x)]
-h3   x	= H3Tag [] [text x]
-*/
-
-
-//	SVG version of trax
 import iTasks.API.Extensions.SVG.SVGlet
 
 
@@ -116,33 +34,14 @@ import iTasks.API.Extensions.SVG.SVGlet
    , choice :: !Maybe Coordinate
    }
 
-play_trax2 :: Task User
-play_trax2
+play_trax :: Task User
+play_trax
 	=             get currentUser
 	  >>= \me  -> enterChoiceWithShared "Who do you want to play Trax with:" [] users
-	  >>= \you -> playGame2 me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
-	  //>>* [OnValue (ifValue game_over game_winner)]
+	  >>= \you -> play_game me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
 
-game_over :: TraxSt -> Bool
-game_over st=:{trax}
-	= not (isEmpty winners)
-where
-	winners = loops trax ++ winning_lines trax
-
-game_winner :: TraxSt -> Task User
-game_winner st=:{trax,turn,names=[me,you]}
-	= viewInformation "The winner is:" [] winner -&&- viewInformation "Final board:" [imageView (board False (px 50.0)) (\_ _ -> Nothing)] st @ fst
-where
-	winners				= loops trax ++ winning_lines trax
-	prev_player_color	= if turn WhiteLine RedLine
-	winner				= if (isMember prev_player_color (map fst winners)) (if turn you me) (if turn me you)
-
-playGame2` :: User User TraxSt -> Task TraxSt
-playGame2` me you traxSt
-	= updateInformation "Play Trax" [imageUpdate id toImage` (\_ _ -> Nothing) (flip const)] traxSt
-
-playGame2 :: User User TraxSt -> Task User
-playGame2 me you traxSt
+play_game :: User User TraxSt -> Task User
+play_game me you traxSt
 	= withShared traxSt
 	  (\share -> (me @: (   updateSharedInformation (toString me  +++ " plays with red")   
 	                                             [imageUpdate id (toImage True) (\_ _ -> Nothing) (flip const)] share
@@ -155,16 +54,21 @@ playGame2 me you traxSt
 	             ))
 	  ) @ fst
 
-playGame2`` :: User User TraxSt -> Task User
-playGame2`` me you traxSt
-	= withShared traxSt
-	  (\share -> (me @: playGame me True RedLine share) -&&- (you @: playGame you False WhiteLine share)) @ fst
+game_over :: TraxSt -> Bool
+game_over st=:{trax}
+	= not (isEmpty winners)
+where
+	winners = loops trax ++ winning_lines trax
 
-playGame :: User Bool LineColor (Shared TraxSt) -> Task User
-playGame player even_turn color share
-	=     updateSharedInformation (player +++> (" plays with " <+++ color))
-	                              [imageUpdate id (toImage even_turn) (\_ _ -> Nothing) (flip const)] share
-	  >>* [OnValue (ifValue game_over game_winner)]
+game_winner :: TraxSt -> Task User
+game_winner st=:{trax,turn,names=[me,you]}
+	= viewInformation "The winner is:" [] winner
+	    -&&- 
+	  viewInformation "Final board:" [imageView (toImage False) (\_ _ -> Nothing)] st @ fst
+where
+	winners				= loops trax ++ winning_lines trax
+	prev_player_color	= if turn WhiteLine RedLine
+	winner				= if (isMember prev_player_color (map fst winners)) (if turn you me) (if turn me you)
 
 start_with_this :: TraxTile TraxSt -> TraxSt
 start_with_this tile st=:{trax,turn}
@@ -178,26 +82,19 @@ settile :: Coordinate TraxTile TraxSt -> TraxSt
 settile coord tile st=:{trax,turn}
 	= {st & trax = mandatory_moves (add_tile coord tile trax) coord, choice = Nothing, turn = not turn}
 
-toImage` :: TraxSt *TagSource -> Image TraxSt
-toImage` st=:{trax,names=[me,you],turn} ts
-	= above (repeat AtMiddleX) [] [text font message, board True d st ts] Nothing
-where
-	message						= toString (if turn me you) +++ " plays with " +++ if turn "red" "white"
-	d							= px 50.0
-
 toImage :: Bool TraxSt *TagSource -> Image TraxSt
-toImage my_turn st=:{trax,names=[me,you],turn} ts
-	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st ts] Nothing
+toImage my_turn st=:{trax,names=[me,you],turn} _
+	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st] Nothing
 where
 	it_is_my_turn				= my_turn == turn
 	message						= if it_is_my_turn "Select a tile" "Wait for other player..."
 	d							= px 50.0
 
-board :: Bool Span TraxSt *TagSource -> Image TraxSt
-board it_is_my_turn d st=:{trax} _
+board :: Bool Span TraxSt -> Image TraxSt
+board it_is_my_turn d st=:{trax}
 | nr_of_tiles trax == zero
 	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] 
-							           [tileImage d tile <@< {onclick = start_with_this tile} \\ tile <- gFDomain{|*|}] Nothing
+							           [tileImage d tile <@< {onclick = const (start_with_this tile), local = False} \\ tile <- gFDomain{|*|}] Nothing
 	| otherwise					= voidImage d
 | otherwise						= grid (Rows (maxy-miny+3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
 							           [  case tile_at trax coord of
@@ -217,8 +114,8 @@ voidImage d				= empty d d
 freeImage :: Span Coordinate TraxSt -> Image TraxSt
 freeImage d coord {trax,choice}
 | maybe True (\c -> coord <> c) choice
-						= unselected <@< {onclick = setcell coord}
-| otherwise				= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile coord tile} \\ tile <- candidates] Nothing
+						= unselected <@< {onclick = const (setcell coord), local = False}
+| otherwise				= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = const (settile coord tile), local = False} \\ tile <- candidates] Nothing
 where
 	candidates			= possible_tiles (linecolors trax coord)
 	nr_of_candidates	= length candidates
