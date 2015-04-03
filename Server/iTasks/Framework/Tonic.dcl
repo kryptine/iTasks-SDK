@@ -58,12 +58,12 @@ tonicViewInformation :: !String !a -> Task () | iTask a
 
 tonicWrapTaskBody    :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 
-tonicWrapParallel    :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b
+tonicWrapParallel    :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b | iTask b
 
-tonicWrapApp         :: !ModuleName !TaskName !NodeId (Task a) -> Task a
+tonicWrapApp         :: !ModuleName !TaskName !NodeId (Task a) -> Task a | iTask a
 
-tonicWrapAppLam1     :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b
+tonicWrapAppLam1     :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b | iTask b
 
-tonicWrapAppLam2     :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c
+tonicWrapAppLam2     :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c | iTask c
 
-tonicWrapAppLam3     :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d
+tonicWrapAppLam3     :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d | iTask d
