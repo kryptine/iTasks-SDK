@@ -321,16 +321,13 @@ getCurrentListId [traceTaskId : xs] iworld
  * highlight nodes.
  */
 tonicWrapApp :: !ModuleName !TaskName !NodeId (Task a) -> Task a | iTask a
-tonicWrapApp mn tn nid (Task eval) = mkTaskId >>~ \tid -> Task (eval` tid)
+tonicWrapApp mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
   where
   eval` wrapTaskId=:(TaskId wrapInstanceNo wrapTaskNo) event evalOpts=:{TaskEvalOpts|callTrace} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo childTaskNo) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     = case mrtMap of
         Ok rtMap
-          # localCallTrace = case callTrace of
-                               [x:xs] | x == wrapTaskNo -> callTrace
-                               _                        -> [wrapTaskNo : callTrace]
-          # (cct, iworld)  = mkCompleteTrace wrapInstanceNo localCallTrace iworld
+          # (cct, iworld) = mkCompleteTrace wrapInstanceNo callTrace iworld
           = case firstParent rtMap cct of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
                 # iworld       = updRTMap childTaskId cct parentBPRef parentBPInst rtMap iworld
