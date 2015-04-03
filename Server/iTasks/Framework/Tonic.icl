@@ -580,7 +580,7 @@ tonicStaticBrowser rs
 viewBPTitle :: !String !String !TCleanExpr -> Task String
 viewBPTitle tmName ttName resTy = viewInformation (Title title) [ViewWith view] a <<@ InContainer
   where
-  a = "Task '" +++ ttName +++ "' in module '" +++ tmName +++ "', which yields " +++ prefixAOrAn (ppTCleanExpr resTy)
+  a = tmName +++ "." +++ ttName +++ " :: " +++ ppTCleanExpr resTy
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
@@ -600,7 +600,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   =          get navstack
   >>~ \ns -> viewBPTitle tm_name tt.tt_name tt.tt_resty
          ||- (if (length tt.tt_args > 0)
-               (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)))] tt.tt_args @! ())
+               (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " :: " +++ ppTCleanExpr ty))] tt.tt_args @! ())
                (return ()))
          ||- showBlueprint rs 'DM'.newMap { BlueprintRef
                                           | bpr_moduleName = tm_name
@@ -639,7 +639,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
 showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
               -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
 showBlueprint rs prev bpref maplot task compact depth =
-  updateInformation "Blueprint:"
+  updateInformation "Blueprint"
     [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
     { ActionState
     | state  = { tis_task    = task
@@ -854,7 +854,7 @@ viewInstance allbps rs navstack dynSett trt showButtons (Just (Right tid))
   noSelection = viewInformation () [] "Select argument..."
 
   collectArgs :: !BlueprintInstance !TonicTask -> [(String, Task ())]
-  collectArgs bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " is " +++ prefixAOrAn (ppTCleanExpr argty), vi)) graph.tt_args bpinst.bpi_params
+  collectArgs bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " :: " +++ ppTCleanExpr argty, vi)) graph.tt_args bpinst.bpi_params
 viewInstance allbps rs navstack dynSett trt showButtons (Just (Left (mn, tn)))
   =                getModuleAndTask allbps mn tn
   >>- \(tm, tt) -> viewStaticTask allbps rs navstack trt tm tt { Scale | min = 0, cur = 0, max = 0} False
@@ -1415,11 +1415,6 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image ModelTy
 tStopSymb = rect (px 16.0) (px 16.0)
 
-prefixAOrAn :: !String -> String
-prefixAOrAn str
-  | size str > 0 && isMember str.[0] ['eEuUiIoOaA'] = "an " +++ str
-  | otherwise                                       = "a " +++ str
-
 tTaskDef :: !String !TCleanExpr [(TCleanExpr, TCleanExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskDef taskName resultTy _ tdbody [(bdytag, uBodyTag) : tsrc]
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
@@ -1427,7 +1422,7 @@ tTaskDef taskName resultTy _ tdbody [(bdytag, uBodyTag) : tsrc]
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskBodyImgs] Nothing, tsrc)
   where
   mkArgAndTy :: !(!String, !TCleanExpr) -> String
-  mkArgAndTy (arg, ty) = arg +++ " is " +++ prefixAOrAn (ppTCleanExpr ty)
+  mkArgAndTy (arg, ty) = arg +++ " :: " +++ ppTCleanExpr ty
 
 tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]
