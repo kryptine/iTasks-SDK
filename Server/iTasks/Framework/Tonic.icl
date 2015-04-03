@@ -97,8 +97,10 @@ instance Monad IWorldM where
 
 :: ListsOfTasks :== Map (TaskId, NodeId) (IntMap (ModuleName, TaskName))
 
+NS_TONIC_INSTANCES :== "tonice-instances"
+
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
-tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
+tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT") (cachedJSONFileStore NS_TONIC_INSTANCES True False True (Just 'DM'.newMap))
 
 tonicInstances :: RWShared TaskId BlueprintRef BlueprintRef
 tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicSharedRT
@@ -115,7 +117,7 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
 derive class iTask Set
 
 tonicDynamicUpdates :: RWShared () ListsOfTasks ListsOfTasks
-tonicDynamicUpdates = sdsTranslate "tonicDynamicUpdates" (\t -> t +++> "-tonicDynamicUpdates") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just 'DM'.newMap))
+tonicDynamicUpdates = sdsTranslate "tonicDynamicUpdates" (\t -> t +++> "-tonicDynamicUpdates") (cachedJSONFileStore NS_TONIC_INSTANCES True False True (Just 'DM'.newMap))
 
 tonicUpdatesForTaskAndNodeId :: RWShared (TaskId, NodeId) (IntMap (ModuleName, TaskName)) (IntMap (ModuleName, TaskName))
 tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicDynamicUpdates
