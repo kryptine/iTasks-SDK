@@ -638,14 +638,16 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
 
 showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
               -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
-showBlueprint rs prev bpref maplot task compact depth =
-  updateInformation "Blueprint"
-    [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
-    { ActionState
-    | state  = { tis_task    = task
-               , tis_depth   = depth
-               , tis_compact = compact }
-    , action = Nothing}
+showBlueprint rs prev bpref maplot task compact depth
+  #! bpref = {bpref & bpr_instance = fmap (\bpi -> {bpi & bpi_params = []
+                                                        , bpi_output = Nothing}) bpref.bpr_instance}
+  = updateInformation "Blueprint"
+      [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
+      { ActionState
+      | state  = { tis_task    = task
+                 , tis_depth   = depth
+                 , tis_compact = compact }
+      , action = Nothing}
 
 :: NavPoint :== Either (ModuleName, TaskName) TaskId
 :: NavStack :== [NavPoint]
