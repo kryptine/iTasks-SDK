@@ -101,8 +101,7 @@ NS_TONIC_INSTANCES :== "tonice-instances"
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
-                             (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
-                             //(cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
+                             (cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
 
 tonicInstances :: RWShared TaskId BlueprintRef BlueprintRef
 tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicSharedRT
@@ -120,8 +119,7 @@ derive class iTask Set
 
 tonicDynamicUpdates :: RWShared () ListsOfTasks ListsOfTasks
 tonicDynamicUpdates = sdsTranslate "tonicDynamicUpdates" (\t -> t +++> "-tonicDynamicUpdates")
-                                   (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
-                                   //(cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
+                                   (cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
 
 tonicUpdatesForTaskAndNodeId :: RWShared (TaskId, NodeId) (IntMap (ModuleName, TaskName)) (IntMap (ModuleName, TaskName))
 tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicDynamicUpdates
@@ -162,14 +160,12 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                                , bpi_startTime        = DateTime clocks.localDate clocks.localTime
                                , bpi_lastUpdated      = DateTime clocks.localDate clocks.localTime
                                , bpi_endTime          = Nothing
-                               , bpi_params           = args
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
                                , bpi_parentTaskId     = case firstParent rtMap cct of
                                                           Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _    -> Nothing
                                , bpi_involvedUsers    = [curr.user]
-                               , bpi_output           = Nothing
                                }
           # blueprint        = { BlueprintRef
                                | bpr_moduleName = mn
@@ -177,8 +173,15 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                                , bpr_instance   = Just bpinst
                                }
           # (_, iworld)      = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
+          # bpdata           = { BlueprintData
+                               | bpd_params = args
+                               , bpd_output = Nothing
+                               }
+          # (_, iworld)      = 'DSDS'.write bpdata (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld
           = iworld
         _ = iworld
+
+  // TODO TCStable
 
   eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
@@ -216,8 +219,7 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                                             inst.bpi_previouslyActive
             # (_, iworld)      = 'DSDS'.write { bpref
                                               & bpr_instance = Just { inst
-                                                                    & bpi_output           = resultToOutput tr
-                                                                    , bpi_previouslyActive = case tr of
+                                                                    & bpi_previouslyActive = case tr of
                                                                                                ValueResult (Value _ True) _ _ _ -> oldActive
                                                                                                _                                -> inst.bpi_previouslyActive
                                                                     , bpi_activeNodes      = case tr of
@@ -230,6 +232,9 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                                                                     , bpi_involvedUsers    = [curr.user : resultUsers tr]
                                                                     }
                                               } (sdsFocus currTaskId tonicInstances) iworld
+            # iworld = case resultToOutput tr of
+                         Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
+                         _           -> iworld
             = iworld
           _ = iworld
   resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
@@ -257,13 +262,32 @@ firstParent rtMap [parent : parents]
   , bpi_startTime        :: !DateTime
   , bpi_lastUpdated      :: !DateTime
   , bpi_endTime          :: !Maybe DateTime
-  , bpi_params           :: ![(!VarName, !Task ())]
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, NodeId))
   , bpi_previouslyActive :: !Map NodeId TaskId
   , bpi_parentTaskId     :: !Maybe TaskId
   , bpi_involvedUsers    :: ![User]
-  , bpi_output           :: !Maybe (Task ())
   }
+
+:: BlueprintData =
+  { bpd_params :: ![(!VarName, !Task ())]
+  , bpd_output :: !Maybe (Task ())
+  }
+
+tonicBlueprintDataStore :: RWShared () (Map TaskId BlueprintData) (Map TaskId BlueprintData)
+tonicBlueprintDataStore = sdsTranslate "tonicBlueprintDataStore" (\t -> t +++> "-tonicBlueprintDataStore")
+                                       (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
+
+tonicBlueprintDataForTaskId :: RWShared TaskId BlueprintData BlueprintData
+tonicBlueprintDataForTaskId = sdsLens "tonicBlueprintDataForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicBlueprintDataStore
+  where
+  read :: TaskId (Map TaskId BlueprintData) -> MaybeError TaskException BlueprintData
+  read tid trtMap = maybe (Error (exception ("Could not find blueprint for task " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: TaskId (Map TaskId BlueprintData) BlueprintData -> MaybeError TaskException (Maybe (Map TaskId BlueprintData))
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: TaskId (Map TaskId BlueprintData) BlueprintData -> SDSNotifyPred TaskId
+  notify tid _ _ = \tid` -> tid == tid`
 
 :: TonicRTMap :== Map TaskId BlueprintRef
 
@@ -639,8 +663,6 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
 showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
               -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
 showBlueprint rs prev bpref maplot task compact depth
-  #! bpref = {bpref & bpr_instance = fmap (\bpi -> {bpi & bpi_params = []
-                                                        , bpi_output = Nothing}) bpref.bpr_instance}
   = updateInformation "Blueprint"
       [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
       { ActionState
@@ -849,14 +871,22 @@ viewInstance allbps rs navstack dynSett trt showButtons (Just (Right tid))
   navToParent _ _ = Nothing
 
   viewTaskArguments :: !BlueprintInstance !TonicTask -> Task ()
-  viewTaskArguments bpinst graph = (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] (collectArgs bpinst graph)
-                               >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
+  viewTaskArguments bpinst graph
+    =            collectArgs bpinst graph
+    >>~ \args -> (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] args
+             >&> withSelection noSelection snd) <<@ ArrangeSplit Horizontal True
 
   noSelection :: Task String
   noSelection = viewInformation () [] "Select argument..."
 
-  collectArgs :: !BlueprintInstance !TonicTask -> [(String, Task ())]
-  collectArgs bpinst graph = zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " :: " +++ ppTCleanExpr argty, vi)) graph.tt_args bpinst.bpi_params
+  collectArgs :: !BlueprintInstance !TonicTask -> Task [(String, Task ())]
+  collectArgs bpinst graph = mkInstantTask f
+    where
+    f _ iworld
+      # (r, iworld) = 'DSDS'.read (sdsFocus bpinst.bpi_taskId tonicBlueprintDataForTaskId) iworld
+      = case r of
+          Ok bpd -> (Ok (zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " :: " +++ ppTCleanExpr argty, vi)) graph.tt_args bpd.bpd_params), iworld)
+          _      -> (Ok [], iworld)
 viewInstance allbps rs navstack dynSett trt showButtons (Just (Left (mn, tn)))
   =                getModuleAndTask allbps mn tn
   >>- \(tm, tt) -> viewStaticTask allbps rs navstack trt tm tt { Scale | min = 0, cur = 0, max = 0} False
