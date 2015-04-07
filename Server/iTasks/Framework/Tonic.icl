@@ -8,6 +8,7 @@ import iTasks.Framework.Tonic.AbsSyn
 import iTasks.Framework.TaskState
 import iTasks.Framework.TaskStore
 import iTasks.Framework.TaskEval
+import iTasks.Framework.Task
 import iTasks.API.Core.TaskCombinators
 import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
@@ -392,7 +393,7 @@ tonicWrapApp mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
                                                              ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
                                                  newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
     # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just { parentBPInst
-                                                                    & bpi_activeNodes = newActiveNodes
+                                                                    & bpi_activeNodes      = newActiveNodes
                                                                     , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
     = iworld
 
@@ -415,6 +416,7 @@ setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} 
             Ok parentCallTrace
               # (parentCtx, iworld) = getParentContext parentTaskId currentListId parentCallTrace iworld
               # activeTasks         = 'DM'.del parentCtx parentActiveNodes
+              # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= currentListId) activeTasks
               # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
               # (mtl, iworld)       = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
               = case mtl of
