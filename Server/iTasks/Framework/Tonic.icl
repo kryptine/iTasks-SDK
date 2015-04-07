@@ -181,8 +181,6 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           = iworld
         _ = iworld
 
-  // TODO TCStable
-
   eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
     = (tr, okSt iworld logTaskEnd (taskIdFromTaskTree taskTree))
@@ -203,6 +201,31 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
                                                } (sdsFocus currTaskId tonicInstances) iworld
              = iworld
           _  = iworld
+
+  eval` _ event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
+    # (tr, iworld)     = eval event evalOpts taskTree iworld
+    # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
+    = case mbpref of
+        Ok bpref=:{bpr_instance = Just inst}
+          # (curr, iworld)   = iworld!current
+          # (clocks, iworld) = iworld!clocks
+          # currDateTime     = DateTime clocks.localDate clocks.localTime
+          # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
+                                          inst.bpi_previouslyActive
+          # (_, iworld)      = 'DSDS'.write { bpref
+                                            & bpr_instance = Just { inst
+                                                                  & bpi_previouslyActive = oldActive
+                                                                  , bpi_activeNodes      = 'DM'.newMap
+                                                                  , bpi_lastUpdated      = currDateTime
+                                                                  , bpi_endTime          = Just currDateTime
+                                                                  , bpi_involvedUsers    = [curr.user : resultUsers tr]
+                                                                  }
+                                            } (sdsFocus currTaskId tonicInstances) iworld
+          # iworld = case resultToOutput tr of
+                       Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
+                       _           -> iworld
+          = (tr, iworld)
+        _ = (tr, iworld)
 
   eval` _ event evalOpts taskTree iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
@@ -663,7 +686,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
 showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
               -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
 showBlueprint rs prev bpref maplot task compact depth
-  = updateInformation "Blueprint"
+  = updateInformation ()
       [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = task
