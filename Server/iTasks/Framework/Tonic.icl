@@ -1242,33 +1242,35 @@ containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || 
   f :: !(PPOr TStepCont) Bool -> Bool
   f (PP _) acc = acc
   f (T e)  acc = acc || containsActiveNodesStepCont inh e
-  containsActiveNodesStepCont :: !MkImageInh !TStepCont -> Bool
-  containsActiveNodesStepCont ihn (StepOnValue    sf)   = containsActiveNodesStepFilter inh sf
-  containsActiveNodesStepCont ihn (StepOnAction _ sf)   = containsActiveNodesStepFilter inh sf
-  containsActiveNodesStepCont ihn (StepOnException _ e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter :: !MkImageInh !TStepFilter -> Bool
-  containsActiveNodesStepFilter inh (Always          e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter inh (HasValue      _ e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter inh (IfStable      _ e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter inh (IfUnstable    _ e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter inh (IfCond      _ _ e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter inh (IfValue _ _ _ _ e) = containsActiveNodes inh e
-  containsActiveNodesStepFilter inh _                   = False
 containsActiveNodes inh (TParallel _ par) = containsActiveNodesTParallel inh par
-  where
-  containsActiveNodesTParallel :: !MkImageInh !TParallel -> Bool
-  containsActiveNodesTParallel inh (ParSumL l r)   = containsActiveNodes inh l || containsActiveNodes inh r
-  containsActiveNodesTParallel inh (ParSumR l r)   = containsActiveNodes inh l || containsActiveNodes inh r
-  containsActiveNodesTParallel inh (ParSumN conts) = containsActiveNodesTParallel` inh conts
-  containsActiveNodesTParallel inh (ParProd conts) = containsActiveNodesTParallel` inh conts
-  containsActiveNodesTParallel` :: !MkImageInh !(PPOr [TExpr]) -> Bool
-  containsActiveNodesTParallel` _   (PP _) = False
-  containsActiveNodesTParallel` inh (T es) = foldr (\x acc -> acc || containsActiveNodes inh x) False es
 containsActiveNodes inh (TAssign _ _ t)      = containsActiveNodes inh t
 containsActiveNodes inh (TShare _ _ _)       = False
 containsActiveNodes inh (TTransform lhs _ _) = containsActiveNodes inh lhs
 containsActiveNodes inh (TVar _ _)           = False
 containsActiveNodes inh (TCleanExpr _ _)     = False
+
+containsActiveNodesTParallel :: !MkImageInh !TParallel -> Bool
+containsActiveNodesTParallel inh (ParSumL l r)   = containsActiveNodes inh l || containsActiveNodes inh r
+containsActiveNodesTParallel inh (ParSumR l r)   = containsActiveNodes inh l || containsActiveNodes inh r
+containsActiveNodesTParallel inh (ParSumN conts) = containsActiveNodesTParallel` inh conts
+containsActiveNodesTParallel inh (ParProd conts) = containsActiveNodesTParallel` inh conts
+containsActiveNodesTParallel` :: !MkImageInh !(PPOr [TExpr]) -> Bool
+containsActiveNodesTParallel` _   (PP _) = False
+containsActiveNodesTParallel` inh (T es) = foldr (\x acc -> acc || containsActiveNodes inh x) False es
+
+containsActiveNodesStepCont :: !MkImageInh !TStepCont -> Bool
+containsActiveNodesStepCont inh (StepOnValue    sf)   = containsActiveNodesStepFilter inh sf
+containsActiveNodesStepCont inh (StepOnAction _ sf)   = containsActiveNodesStepFilter inh sf
+containsActiveNodesStepCont inh (StepOnException _ e) = containsActiveNodes inh e
+
+containsActiveNodesStepFilter :: !MkImageInh !TStepFilter -> Bool
+containsActiveNodesStepFilter inh (Always          e) = containsActiveNodes inh e
+containsActiveNodesStepFilter inh (HasValue      _ e) = containsActiveNodes inh e
+containsActiveNodesStepFilter inh (IfStable      _ e) = containsActiveNodes inh e
+containsActiveNodesStepFilter inh (IfUnstable    _ e) = containsActiveNodes inh e
+containsActiveNodesStepFilter inh (IfCond      _ _ e) = containsActiveNodes inh e
+containsActiveNodesStepFilter inh (IfValue _ _ _ _ e) = containsActiveNodes inh e
+containsActiveNodesStepFilter inh _                   = False
 
 //// TODO margin around cases
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -1621,7 +1623,9 @@ ppUser (TUVariableUser usr)            = usr
 tStep :: !MkImageInh !TExpr ![PPOr TStepCont] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh lhsExpr conts tsrc
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
-  #! (conts`, tsrc)       = mapSt (tStepCont inh) conts tsrc
+  #! branchActivity       = map (\x -> case x of PP _ -> False; T e -> containsActiveNodesStepCont inh e) conts
+  #! someActivity         = foldr (\x acc -> x || acc) False branchActivity
+  #! (conts`, tsrc)       = mapSt (\(cont, possiblyActive) -> tStepCont {inh & inh_inaccessible = someActivity && not possiblyActive} cont) (zip2 conts branchActivity) tsrc
   #! (conts`, refs, tsrc) = prepCases [] conts` tsrc
   #! vertConn             = mkVertConn refs
   #! contsImg             = above (repeat AtMiddleX) [] conts` Nothing
