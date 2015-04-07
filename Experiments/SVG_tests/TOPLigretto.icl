@@ -6,6 +6,7 @@ from   StdFunc import flip
 from   StdMisc import abort
 from   Control.Monad import replicateM
 import iTasks.Framework.Tonic
+import iTasks.API.Extensions.Admin.TonicAdmin
 
 Start :: *World -> *World
 //	Use this Start function to work with single user and tonic.
@@ -26,7 +27,9 @@ where
 	
 */
 //	Use this Start function to work with multiple users and for paper screen shots.
-Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto ] world
+Start world = StartMultiUserTasks [ workflow "SVG Ligretto" "Play SVG Ligretto" play_Ligretto ]
+                                  [ publish "/tonic" (WebApp []) (\_-> tonicDashboard [])
+                                  ] world
 
 
 
