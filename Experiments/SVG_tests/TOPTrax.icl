@@ -22,7 +22,7 @@ derive gDefault   Coordinate, TraxTile, TileEdge, Trax
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks [ workflow "SVG Trax" "Play SVG trax" play_trax
-								  ] world
+								  ] [] world
 
 import iTasks.API.Extensions.SVG.SVGlet
 
