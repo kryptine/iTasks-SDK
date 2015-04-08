@@ -1497,7 +1497,7 @@ tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc
                                                 [] -> [tfNameImg]
                                                 _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
   #! tfApp        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-  = (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
+  = (beside (repeat AtMiddleY) [] [expr, tHorizConnArr, tfApp] Nothing, tsrc)
 
 nodeIsActive :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> (Bool, Maybe TaskId)
 nodeIsActive eid activeNodes = case [tid \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid] of
