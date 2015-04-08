@@ -88,7 +88,8 @@ installInitialWorkflows iflows
 	| OpenProcess			
 		
 :: WorklistRow =
-    { title		:: Maybe String
+    { taskNr	:: Maybe String
+    , title		:: Maybe String
 	, priority	:: Maybe String
 	, createdBy	:: Maybe String
 	, date		:: Maybe String
@@ -207,7 +208,8 @@ where
 
 	mkRow {TaskListItem|taskId,attributes} =
 		{WorklistRow
-		|title      = fmap toString ('DM'.get "title"          attributes)
+		|taskNr		= Just (toString taskId)
+		,title      = fmap toString ('DM'.get "title"          attributes)
 		,priority   = fmap toString ('DM'.get "priority"       attributes)
 		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
 		,date       = fmap toString ('DM'.get "createdAt"      attributes)

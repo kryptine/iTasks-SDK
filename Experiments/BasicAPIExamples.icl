@@ -10,9 +10,6 @@ import Text, StdArray
 import iTasks.Framework.Tonic
 import iTasks.API.Extensions.Admin.TonicAdmin
 
-
-//import ligrettoTOP
-//import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
 
 /**
@@ -20,8 +17,6 @@ import qualified Data.Map as DM
 */
 
 //* Running the tasks in a workflow browser
-
-//import ligrettoTOP
 
 bae 		:== "Basic API Examples"
 basicTypes	:== bae +++ "/Interaction with basic types/"
