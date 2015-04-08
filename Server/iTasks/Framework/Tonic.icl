@@ -1763,18 +1763,18 @@ tIfValue tffun args [(nameTag, uNameTag) : (argsTag, uArgsTag) : tsrc]
 
 tException :: Image ModelTy
 tException
-  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "white" }
+  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "OrangeRed " }
                                        <@< { stroke = toSVGColor "black" }
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
 
 tStable :: Image ModelTy
-tStable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor { RGB | r = 44, g = 160, b = 44} }
+tStable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "DeepSkyBlue" }
 
 tUnstable :: Image ModelTy
-tUnstable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor { RGB | r = 255, g = 127, b = 14} }
+tUnstable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "LimeGreen" }
 
 tNoVal :: Image ModelTy
-tNoVal = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor { RGB | r = 214, g = 39, b = 40} }
+tNoVal = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "White" }
 
 tLineArrow :: Image ModelTy
 tLineArrow = polygon Nothing [ (px 0.0, px 0.0)
