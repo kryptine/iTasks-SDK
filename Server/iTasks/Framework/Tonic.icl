@@ -137,6 +137,15 @@ tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ())
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
+tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, Task ())] (b     -> Task a) -> b     -> Task a | iTask a
+tonicWrapTaskBodyLam1 mn tn args f = \x -> tonicWrapTaskBody mn tn args (f x)
+
+tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, Task ())] (b c   -> Task a) -> b c   -> Task a | iTask a
+tonicWrapTaskBodyLam2 mn tn args f = \x y -> tonicWrapTaskBody mn tn args (f x y)
+
+tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, Task ())] (b c d -> Task a) -> b c d -> Task a | iTask a
+tonicWrapTaskBodyLam3 mn tn args f = \x y z -> tonicWrapTaskBody mn tn args (f x y z)
+
 tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody mn tn args (Task eval) = Task preEval
   where

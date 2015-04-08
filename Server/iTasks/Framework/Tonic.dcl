@@ -45,26 +45,32 @@ derive gText
 :: ModelTy
 :: NodeId :== [Int]
 
-tDefaultTaskApp      :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp       :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
-tonicStaticBrowser   :: [TaskAppRenderer] -> Task ()
+tonicStaticBrowser    :: [TaskAppRenderer] -> Task ()
 
-tonicStaticWorkflow  :: [TaskAppRenderer] -> Workflow
+tonicStaticWorkflow   :: [TaskAppRenderer] -> Workflow
 
-tonicDynamicBrowser  :: [TaskAppRenderer] -> Task ()
+tonicDynamicBrowser   :: [TaskAppRenderer] -> Task ()
 
-tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
+tonicDynamicWorkflow  :: [TaskAppRenderer] -> Workflow
 
-tonicViewInformation :: !String !a -> Task () | iTask a
+tonicViewInformation  :: !String !a -> Task () | iTask a
 
-tonicWrapTaskBody    :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody     :: !ModuleName !TaskName [(VarName, Task ())] (         Task a) -> Task a | iTask a
 
-tonicWrapParallel    :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b | iTask b
+tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, Task ())] (b     -> Task a) -> b     -> Task a | iTask a
 
-tonicWrapApp         :: !ModuleName !TaskName !NodeId (Task a) -> Task a | iTask a
+tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, Task ())] (b c   -> Task a) -> b c   -> Task a | iTask a
 
-tonicWrapAppLam1     :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b | iTask b
+tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, Task ())] (b c d -> Task a) -> b c d -> Task a | iTask a
 
-tonicWrapAppLam2     :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c | iTask c
+tonicWrapParallel     :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b | iTask b
 
-tonicWrapAppLam3     :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d | iTask d
+tonicWrapApp          :: !ModuleName !TaskName !NodeId (Task a) -> Task a | iTask a
+
+tonicWrapAppLam1      :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b | iTask b
+
+tonicWrapAppLam2      :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c | iTask c
+
+tonicWrapAppLam3      :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d | iTask d
