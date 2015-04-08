@@ -571,7 +571,7 @@ getTonicModules` iworld
 getTonicDir :: !*IWorld -> *(!String, !*IWorld)
 getTonicDir iworld
   # (server, iworld) = iworld!server
-  = (server.paths.appDirectory </> "Clean System Files", iworld)
+  = (server.paths.appDirectory </> "tonic", iworld)
 
 getTasks :: !TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_tasks
