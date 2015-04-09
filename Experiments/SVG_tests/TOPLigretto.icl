@@ -54,13 +54,17 @@ play_Ligretto
 	>>= \me   -> invite_friends
 	>>= \them -> let us = zip2 (colors (1+length them)) [me : them]
 	              in allTasks (repeatn (length us) (get randomInt))
-	>>= \rs   -> let gameSt = { middle  = repeatn (4*length us) []
-	                          , players = [  initial_player (length us) c (userId u) (abs r) 
-	                                      \\ (c,u) <- us
-	                                       & r     <- rs
-	                                      ]
-	                          }
+	>>= \rs   -> let gameSt = init_gameSt us rs
 	              in withShared gameSt (play_game us)
+
+init_gameSt :: [(Color,User)] [Int] -> GameSt
+init_gameSt us rs
+	= { middle  = repeatn (4*length us) []
+      , players = [  initial_player (length us) c (userId u) (abs r) 
+                  \\ (c,u) <- us
+                   & r     <- rs
+                  ]
+      }
 
 invite_friends :: Task [User]
 invite_friends
@@ -71,12 +75,27 @@ invite_friends
 
 play_game :: ![(Color,User)] !(Shared GameSt) -> Task (Color,String)
 play_game users game_st
-	= anyTask [ u @: play (c,userId u) game_st \\ (c,u) <- users ]
+//	= anyTask [ (u,"Play Ligretto") @: play (c,userId u) game_st \\ (c,u) <- users ]
+	= anyTask (map (play_game` game_st) users)
+where
+	play_game` game_st (c,u) = (u,"Play Ligretto") @: play (c,userId u) game_st
 
 play :: !(!Color,!String) !(Shared GameSt) -> Task (Color,String)
 play (color,name) game_st
 	=   updateSharedInformation name [imageUpdate id (player_perspective color) (\_ _ -> Nothing) (\_ st -> st)] game_st
-	>>* [OnValue (game_over color game_st)]
+//	>>* [OnValue (game_over color game_st)]
+	>>* [OnValue (ifValue game_is_over (show_winner color game_st))]
+
+game_is_over :: GameSt -> Bool
+game_is_over gameSt
+	= isJust (and_the_winner_is gameSt)
+
+show_winner :: Color (Shared GameSt) GameSt -> Task (Color,String)
+show_winner me game_st gameSt
+	= accolades winner me game_st >>| return winner
+where
+	{color,name} = fromJust (and_the_winner_is gameSt)
+	winner		 = (color,name)
 
 game_over :: !Color !(Shared GameSt) !(TaskValue GameSt) -> Maybe (Task (Color,String))
 game_over me game_st (Value gameSt _)
