@@ -16,7 +16,7 @@ from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Framework.TaskStore         import localShare, parallelTaskList, topLevelTaskList
 from iTasks.Framework.SDS               import write, read, readRegister
-from iTasks.API.Core.Tasks	            import return
+import iTasks.API.Core.Types
 from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
 
 derive class iTask ParallelTaskType, WorkOnStatus

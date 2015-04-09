@@ -1,6 +1,7 @@
 implementation module iTasks.Framework.SDS
 
-import StdString, StdFunc, StdTuple, StdMisc, StdList, StdBool
+from StdFunc import const
+import StdString, StdTuple, StdMisc, StdList, StdBool
 import Data.Error, Data.Func, Data.Tuple, Data.Map, System.Time, Text, Text.JSON
 import qualified Data.Set as Set
 import iTasks.Framework.IWorld

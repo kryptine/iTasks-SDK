@@ -3,8 +3,9 @@ implementation module iTasks.API.Common.DBTasks
 import StdList, StdOrdList, Data.List
 import iTasks.Framework.Generic, iTasks.Framework.Task, iTasks.Framework.SDS
 import iTasks.Framework.Util
-from iTasks.API.Core.Tasks			    import get, set, return
-from iTasks.API.Common.TaskCombinators	import >>|, >>=
+import iTasks.API.Core.Types
+from iTasks.API.Core.Tasks			    import get, set
+from iTasks.API.Common.TaskCombinators	import >>|
 
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a

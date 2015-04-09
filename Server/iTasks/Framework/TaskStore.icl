@@ -1,6 +1,7 @@
 implementation module iTasks.Framework.TaskStore
 
-import StdEnv
+import StdOverloaded, StdBool, StdArray, StdTuple
+from StdFunc import const, id, o
 import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
 import iTasks.Framework.IWorld, iTasks.Framework.TaskState, iTasks.Framework.Task, iTasks.Framework.Store

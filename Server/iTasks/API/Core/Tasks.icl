@@ -18,8 +18,8 @@ from TCPChannels                import instance toString IPAddress
 from TCPChannels                import class closeRChannel(..), instance closeRChannel TCP_RChannel_, openTCP_Listener
 from TCPChannelClass            import :: DuplexChannel(..), closeChannel
 
-return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
+treturn :: !a -> (Task a) | iTask a
+treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
 throw e = mkInstantTask (\taskId iworld -> (Error (dynamic e,toString e), iworld))

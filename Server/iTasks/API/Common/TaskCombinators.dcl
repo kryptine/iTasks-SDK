@@ -32,7 +32,7 @@ from Data.Either				import :: Either
 * 
 * @gin False
 */
-(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 /**
 * Combines two tasks sequentially but explicitly waits for user input to confirm the completion of
 * the first task.
@@ -380,3 +380,4 @@ ifUnstable 	:: (a -> b) 				    (TaskValue a) -> Maybe b
 ifValue 	:: (a -> Bool) 	(a -> b) 	    (TaskValue a) -> Maybe b
 ifCond 		:: Bool b 				        (TaskValue a) -> Maybe b
 
+withValue :: (a -> Maybe b) (TaskValue a) -> Maybe b

@@ -21,7 +21,7 @@ from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErro
 * @gin-icon return
 * @gin-shape return
 */
-return 		:: !a 										-> Task a 		| iTask a
+treturn 		:: !a 										-> Task a 		| iTask a
 
 /**
 * Exception throwing. This will throw an exception of arbitrary type e which has to be caught

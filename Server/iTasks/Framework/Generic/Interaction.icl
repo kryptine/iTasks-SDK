@@ -1,6 +1,7 @@
 implementation module iTasks.Framework.Generic.Interaction
 
-import StdList, StdBool, StdTuple, StdFunc, StdMisc
+from StdFunc import const
+import StdList, StdBool, StdTuple, StdMisc
 import Data.Maybe, Data.Either, Data.Error, Data.Map, Data.Generic, Data.Functor, Data.Tuple
 import Text, Text.JSON
 import iTasks.Framework.IWorld

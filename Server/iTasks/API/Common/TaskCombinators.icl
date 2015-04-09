@@ -17,8 +17,8 @@ import iTasks.API.Common.SDSCombinators
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps
 
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
+tbind :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>!) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf)]
@@ -305,6 +305,7 @@ appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) 
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask (workerAttributes worker []) evalDirect task
 			
+valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing
 
@@ -335,3 +336,7 @@ ifStable _ _ 				   = Nothing
 ifUnstable :: (a -> b) (TaskValue a) -> Maybe b
 ifUnstable ataskb (Value a False) = Just (ataskb a)
 ifUnstable _ _ 				   = Nothing
+
+withValue :: (a -> Maybe b) (TaskValue a) -> Maybe b
+withValue a2mb (Value tv _) = a2mb tv
+withValue _    _            = Nothing

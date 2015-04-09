@@ -40,6 +40,35 @@ from iTasks.Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWSha
 from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
 import iTasks.Framework.Serialization
+
+class TFunctor f where
+    tmap :: (a -> b) (f a) -> f b | iTask a & iTask b
+
+(@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
+
+class TApplicative f | TFunctor f where
+    (<#>)  :: (f (a -> b)) (f a) -> f b | iTask a & iTask b
+    return :: a -> f a | iTask a
+
+class TMonad m | TApplicative m where
+    (>>=) infixl 1 :: (m a) (a -> m b) -> m b | iTask a & iTask b
+
+instance TFunctor Task
+instance TApplicative Task
+instance TMonad Task
+
+instance TFunctor Maybe
+instance TApplicative Maybe
+instance TMonad Maybe
+
+instance TFunctor []
+instance TApplicative []
+instance TMonad []
+
+instance TFunctor (Either e)
+instance TApplicative (Either e)
+instance TMonad (Either e)
+
 //****************************************************************************//
 // Common data types that have specialized user interfaces
 //****************************************************************************//

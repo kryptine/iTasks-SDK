@@ -1,7 +1,7 @@
 implementation module iTasks.Framework.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
-from StdFunc import o, seqList, ::St
+from StdFunc import o, seqList, ::St, const
 import Data.Map, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
@@ -28,7 +28,7 @@ JS_COMPILER_EXCLUDES :==
 	,"System.Directory"
 	]
 
-import StdFile, StdInt, StdList, StdChar, StdBool, StdString, StdFunc
+import StdInt, StdChar, StdString
 import tcp
 import Internet.HTTP, System.Time, System.CommandLine, Data.Func
 

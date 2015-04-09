@@ -1,7 +1,6 @@
 implementation module iTasks.API.Core.Types
-from StdFunc import until
-
-import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdFunc, StdOrdList
+from StdFunc import until, const, id
+import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdOrdList
 import GenLexOrd
 import Data.Either, Data.Functor, Text.JSON, Text.HTML, Text, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
 from Data.Map import :: Map, :: Size
@@ -19,7 +18,51 @@ import System.Time, System.File, System.FilePath
 import iTasks.Framework.SDS
 from iTasks.Framework.UIDefinition import :: UIDef(..), :: UIContent(..), :: UIForm, :: UIActions, :: UIDirection(..), :: UIBlock, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from iTasks.API.Core.LayoutCombinators import mergeAttributes, setMargins
+from iTasks.API.Core.Tasks import treturn
+from iTasks.API.Common.TaskCombinators import tbind, @
 
+instance TFunctor Task where
+  tmap f x = x @ f
+instance TApplicative Task where
+  (<#>) tf ta = tf >>= \f -> tmap f ta
+  return x    = treturn x
+instance TMonad Task where
+  (>>=) l r = tbind l r
+
+instance TFunctor Maybe where
+  tmap f (Just x) = Just (f x)
+  tmap _ _        = Nothing
+
+instance TApplicative Maybe where
+  (<#>) (Just f) (Just x) = Just (f x)
+  (<#>) _ _ = Nothing
+  return x = Just x
+instance TMonad Maybe where
+  (>>=) (Just x) f = f x
+  (>>=) _ _ = Nothing
+
+instance TFunctor [] where
+  tmap f xs = map f xs
+instance TApplicative [] where
+  (<#>) fs xs = [f x \\ f <- fs, x <- xs]
+  return x = [x]
+instance TMonad [] where
+  (>>=) xs f = [y \\ x <- xs, y <- f x]
+
+instance TFunctor (Either e) where
+  tmap f (Right x) = Right (f x)
+  tmap _ (Left x)  = Left x
+instance TApplicative (Either e) where
+  (<#>) (Right f) (Right x) = Right (f x)
+  (<#>) (Left e) _ = Left e
+  (<#>) _ (Left e) = Left e
+  return x = Right x
+instance TMonad (Either e) where
+  (>>=) (Left x) _ = Left x
+  (>>=) (Right x) f = f x
+
+(@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
+(@$) f x = tmap f x
 
 JSONEncode{|RWShared|} _ _ _ _ s = []
 JSONDecode{|RWShared|} _ _ _ _ s = (Nothing, s)
