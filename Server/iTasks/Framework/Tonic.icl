@@ -726,7 +726,7 @@ dynamicParent childId
   , startTime   :: !String
   , lastUpdate  :: !String
   , endTime     :: !String
-  , activeNodes :: !String
+  //, activeNodes :: !String
   }
 
 derive class iTask DynamicView
@@ -840,7 +840,7 @@ tonicDynamicBrowser` allbps rs navstack =
       , startTime   = toString bpi.bpi_startTime
       , lastUpdate  = toString bpi.bpi_lastUpdated
       , endTime     = maybe "" toString bpi.bpi_endTime
-      , activeNodes = toString (toJSON bpi.bpi_activeNodes)
+      //, activeNodes = toString (toJSON bpi.bpi_activeNodes)
       }
   customView bpr = { DynamicView
                    | taskId      = TaskId -1 -1
@@ -850,7 +850,7 @@ tonicDynamicBrowser` allbps rs navstack =
                    , startTime   = ""
                    , lastUpdate  = ""
                    , endTime     = ""
-                   , activeNodes = ""
+                   //, activeNodes = ""
                    }
 
 getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicTask)
