@@ -83,8 +83,8 @@ where
 play :: !(!Color,!String) !(Shared GameSt) -> Task (Color,String)
 play (color,name) game_st
 	=   updateSharedInformation name [imageUpdate id (player_perspective color) (\_ _ -> Nothing) (\_ st -> st)] game_st
-//	>>* [OnValue (game_over color game_st)]
-	>>* [OnValue (ifValue game_is_over (show_winner color game_st))]
+    >>* [OnValue (withValue (game_over color game_st))]
+	//>>* [OnValue (ifValue game_is_over (show_winner color game_st))]
 
 game_is_over :: GameSt -> Bool
 game_is_over gameSt
@@ -97,8 +97,8 @@ where
 	{color,name} = fromJust (and_the_winner_is gameSt)
 	winner		 = (color,name)
 
-game_over :: !Color !(Shared GameSt) !(TaskValue GameSt) -> Maybe (Task (Color,String))
-game_over me game_st (Value gameSt _)
+game_over :: !Color !(Shared GameSt) !GameSt -> Maybe (Task (Color,String))
+game_over me game_st gameSt
 	= case and_the_winner_is gameSt of
 	    Just {color,name} = let winner = (color,name)
 	                         in Just (accolades winner me game_st >>| return winner)
