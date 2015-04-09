@@ -237,39 +237,41 @@ tonicWrapTaskBody mn tn args (Task eval) = Task preEval
           = (tr, iworld)
         _ = (tr, iworld)
 
-  eval` _ event evalOpts taskTree iworld
-    # (tr, iworld) = eval event evalOpts taskTree iworld
-    = (tr, okSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
-    where
-    readAndUpdateRTMap tr currTaskId iworld
-      # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
-      = case mbpref of
-          Ok bpref=:{bpr_instance = Just inst}
-            # (curr, iworld)   = iworld!current
-            # (clocks, iworld) = iworld!clocks
-            # currDateTime     = DateTime clocks.localDate clocks.localTime
-            # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
-                                            inst.bpi_previouslyActive
-            # (_, iworld)      = 'DSDS'.write { bpref
-                                              & bpr_instance = Just { inst
-                                                                    & bpi_previouslyActive = case tr of
-                                                                                               ValueResult (Value _ True) _ _ _ -> oldActive
-                                                                                               _                                -> inst.bpi_previouslyActive
-                                                                    , bpi_activeNodes      = case tr of
-                                                                                               ValueResult (Value _ True) _ _ _ -> 'DM'.newMap
-                                                                                               _                                -> inst.bpi_activeNodes
-                                                                    , bpi_lastUpdated      = currDateTime
-                                                                    , bpi_endTime          = case tr of
-                                                                                               ValueResult (Value _ True) _ _ _ -> Just currDateTime
-                                                                                               _                                -> Nothing
-                                                                    , bpi_involvedUsers    = [curr.user : resultUsers tr]
-                                                                    }
-                                              } (sdsFocus currTaskId tonicInstances) iworld
-            # iworld = case resultToOutput tr of
-                         Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
-                         _           -> iworld
-            = iworld
-          _ = iworld
+  // TODO Figure out if we can get the desired info from someplace else. It is rather expensive to do all of this here.
+  //eval` _ event evalOpts taskTree iworld
+    //# (tr, iworld) = eval event evalOpts taskTree iworld
+    //= (tr, okSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
+    //where
+    //readAndUpdateRTMap tr currTaskId iworld
+      //# (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
+      //= case mbpref of
+          //Ok bpref=:{bpr_instance = Just inst}
+            //# (curr, iworld)   = iworld!current
+            //# (clocks, iworld) = iworld!clocks
+            //# currDateTime     = DateTime clocks.localDate clocks.localTime
+            //# oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
+                                            //inst.bpi_previouslyActive
+            //# (_, iworld)      = 'DSDS'.write { bpref
+                                              //& bpr_instance = Just { inst
+                                                                    //& bpi_previouslyActive = case tr of
+                                                                                               //ValueResult (Value _ True) _ _ _ -> oldActive
+                                                                                               //_                                -> inst.bpi_previouslyActive
+                                                                    //, bpi_activeNodes      = case tr of
+                                                                                               //ValueResult (Value _ True) _ _ _ -> 'DM'.newMap
+                                                                                               //_                                -> inst.bpi_activeNodes
+                                                                    //, bpi_lastUpdated      = currDateTime
+                                                                    //, bpi_endTime          = case tr of
+                                                                                               //ValueResult (Value _ True) _ _ _ -> Just currDateTime
+                                                                                               //_                                -> Nothing
+                                                                    //, bpi_involvedUsers    = [curr.user : resultUsers tr]
+                                                                    //}
+                                              //} (sdsFocus currTaskId tonicInstances) iworld
+            //# iworld = case resultToOutput tr of
+                         //Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
+                         //_           -> iworld
+            //= iworld
+          //_ = iworld
+  eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
   resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
   resultToOutput _                      = Nothing
   resultUsers (ValueResult _ te _ _) = te.TaskEvalInfo.involvedUsers
