@@ -978,6 +978,8 @@ expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
                                   _        -> Nothing
 expandTExpr allbps n (TBind lhs pat rhs)
   = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
+expandTExpr allbps n (TReturn eid e)
+  = TReturn eid (expandTExpr allbps n e)
 expandTExpr allbps n (TLet pats bdy)
   # pats = map f pats
   = case expandTExpr allbps n bdy of
@@ -1053,7 +1055,8 @@ connectedTasks :: !AllBlueprints !TonicTask -> Set TonicTask
 connectedTasks allbps tt = successors tt.tt_body
   where
   successors :: !TExpr -> Set TonicTask
-  successors (TBind lhs _ rhs)    = 'DS'.union (successors lhs) (successors rhs)
+  successors (TBind lhs _ rhs) = 'DS'.union (successors lhs) (successors rhs)
+  successors (TReturn _ e)     = successors e
   successors (TTaskApp _ mn tn _)
     = case 'DM'.get mn allbps of
         Just mod -> case 'DM'.get tn mod of
@@ -1119,6 +1122,7 @@ ArialItalic10px :== { fontfamily = "Arial"
   , inh_compact      :: !Bool
   , inh_prev         :: !Map NodeId TaskId
   , inh_inaccessible :: !Bool
+  , inh_in_maybe     :: !Bool
   }
 
 mkTaskImage :: ![TaskAppRenderer] !(Map NodeId TaskId) !BlueprintRef !ListsOfTasks !Bool !ModelTy *TagSource -> Image ModelTy
@@ -1131,6 +1135,7 @@ mkTaskImage rs prev trt maplot compact {ActionState | state = tis} tsrc
                         , inh_compact      = compact
                         , inh_prev         = prev
                         , inh_inaccessible = False
+                        , inh_in_maybe      = False
                         }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
@@ -1138,6 +1143,7 @@ mkTaskImage rs prev trt maplot compact {ActionState | state = tis} tsrc
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpr2Image inh (TBind lhs mpat rhs)       tsrc = tBind         inh lhs mpat rhs tsrc
+tExpr2Image inh (TReturn eid e)            tsrc = tReturn       inh eid e tsrc
 tExpr2Image inh (TTaskApp eid mn tn targs) tsrc = tTaskApp      inh eid mn tn targs tsrc
 tExpr2Image inh (TLet pats bdy)            tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
@@ -1206,6 +1212,10 @@ tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just tArrowTip}) (px 
 tVertUpDownConnArr :: Image ModelTy
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
+tReturn :: !MkImageInh !NodeId !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tReturn inh=:{inh_in_maybe = True} eid expr tsrc = tExpr2Image inh expr tsrc
+tReturn inh                        eid expr tsrc = tTaskApp inh eid "" "return" [expr] tsrc
+
 tVar :: !MkImageInh !NodeId !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tVar inh eid pp tsrc
   = case inh.inh_trt.bpr_instance of
@@ -1245,6 +1255,7 @@ tCleanExpr inh eid pp tsrc
 
 containsActiveNodes :: !MkImageInh !TExpr -> Bool
 containsActiveNodes inh (TBind lhs mpat rhs) = containsActiveNodes inh lhs || containsActiveNodes inh rhs
+containsActiveNodes inh (TReturn _ e)        = containsActiveNodes inh e
 containsActiveNodes inh (TTaskApp eid _ _ _) = 'DM'.member eid inh.inh_prev || maybe False (\bpi -> fst (nodeIsActive eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
 containsActiveNodes inh (TLet pats bdy)      = containsActiveNodes inh bdy
 containsActiveNodes inh (TCaseOrIf e pats)   = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
@@ -1729,6 +1740,22 @@ tStepCont inh (T t)   tsrc = tStepCont` inh.inh_trt t tsrc
     #! (ifv, tsrc) = tIfValue fn vars tsrc
     #! img         = beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, text ArialRegular10px (ppTCleanExpr pat), tHorizConnArr, ifv, tHorizConnArr, /*[> TODO mpat <] */ t] Nothing
     = (img, tsrc)
+  tStepFilter` trt mact (WithoutValue te) ref tsrc
+    #! (t, tsrc) = tExpr2Image {inh & inh_in_maybe = True} te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* [> TODO edge <]*/ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (WithValue mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image {inh & inh_in_maybe = True} te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /*[> TODO edge <]*/ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (WithStable mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image {inh & inh_in_maybe = True} te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /*[> TODO edge <]*/ t] Nothing
+      , tsrc)
+  tStepFilter` trt mact (WithUnstable mpat te) ref tsrc
+    #! (t, tsrc) = tExpr2Image {inh & inh_in_maybe = True} te tsrc
+    = (beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /*[> TODO edge <]*/ t] Nothing
+      , tsrc)
   tStepFilter` trt mact (CustomFilter pp) ref tsrc = (text ArialRegular10px pp, tsrc)
   addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy
   addAction (Just action) img (t, uT)
