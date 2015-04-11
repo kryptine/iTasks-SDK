@@ -337,6 +337,18 @@ ifUnstable :: (a -> b) (TaskValue a) -> Maybe b
 ifUnstable ataskb (Value a False) = Just (ataskb a)
 ifUnstable _ _ 				   = Nothing
 
+withoutValue :: (Maybe b) (TaskValue a) -> Maybe b
+withoutValue b NoValue = b
+withoutValue _ _       = Nothing
+
 withValue :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withValue a2mb (Value tv _) = a2mb tv
 withValue _    _            = Nothing
+
+withStable :: (a -> Maybe b) (TaskValue a) -> Maybe b
+withStable a2mb (Value tv True) = a2mb tv
+withStable _    _               = Nothing
+
+withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b
+withUnstable a2mb (Value tv False) = a2mb tv
+withUnstable _    _                = Nothing

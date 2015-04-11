@@ -380,4 +380,10 @@ ifUnstable 	:: (a -> b) 				    (TaskValue a) -> Maybe b
 ifValue 	:: (a -> Bool) 	(a -> b) 	    (TaskValue a) -> Maybe b
 ifCond 		:: Bool b 				        (TaskValue a) -> Maybe b
 
-withValue :: (a -> Maybe b) (TaskValue a) -> Maybe b
+withoutValue :: (Maybe b) (TaskValue a) -> Maybe b
+
+withValue    :: (a -> Maybe b) (TaskValue a) -> Maybe b
+
+withStable   :: (a -> Maybe b) (TaskValue a) -> Maybe b
+
+withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b
