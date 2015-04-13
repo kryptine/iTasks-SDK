@@ -7,7 +7,7 @@ from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 import StdMisc
  
-//* Client-side types
+// Client-side types
 JSONEncode{|Editlet|} _ _ _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Editlet|} _ _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Editlet|} _ _ _ c = (Nothing,c)
@@ -119,10 +119,10 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=
                 Nothing = iworld
             = (({ ov & currVal = ov.Editlet.appDiffSrv diff ov.Editlet.currVal }
                 , Touched),{USt|ust & iworld = iworld})
-		_	= ((ov,omask),ust)
+		_	= ((ov,omask), trace_n ("Failed to decode JSON: " +++ toString jsonDiff) ust)
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
 gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
-
+import StdDebug
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef
 
