@@ -220,7 +220,7 @@ var Sapl = new function () {
 					return res;
 				} else {					
 					if (this.isNothing(consname)) return null;
-					if (this.isJust(consname)) return this.toJS(this.feval(expr[2]));
+					if (this.isJust(consname)) return [this.toJS(this.feval(expr[2]))];
 					if (this.isNil(consname)) return [];
 					var res = [];
 
