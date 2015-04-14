@@ -65,11 +65,13 @@ derive gText
 derive class iTask BlueprintRef, BlueprintInstance
 
 instance TonicTopLevelBlueprint Task where
-  topLevelDesc _ = "Task"
-instance TonicBlueprintPart Task     where
-  partDesc _ = "Task"
-instance TonicBlueprintPart Maybe    where
-  partDesc _ = "Maybe"
+  tonicWrapTopLevelBody mn tn args t = tonicWrapTaskBody` mn tn args t
+
+instance TonicBlueprintPart Task where
+  tonicWrapPartApp mn tn nid t = tonicWrapApp` mn tn nid t
+
+instance TonicBlueprintPart Maybe where
+  tonicWrapPartApp mn tn nid mb = mb
 
 :: NodeId :== [Int]
 
@@ -114,17 +116,20 @@ tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ())
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
-tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, Task ())] (b     -> Task a) -> b     -> Task a | iTask a
-tonicWrapTaskBodyLam1 mn tn args f = \x -> tonicWrapTaskBody mn tn args (f x)
+tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, Task ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBody mn tn args t = tonicWrapTopLevelBody mn tn args t
 
-tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, Task ())] (b c   -> Task a) -> b c   -> Task a | iTask a
-tonicWrapTaskBodyLam2 mn tn args f = \x y -> tonicWrapTaskBody mn tn args (f x y)
+tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, Task ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam1 mn tn args f = \x -> tonicWrapTopLevelBody mn tn args (f x)
 
-tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, Task ())] (b c d -> Task a) -> b c d -> Task a | iTask a
-tonicWrapTaskBodyLam3 mn tn args f = \x y z -> tonicWrapTaskBody mn tn args (f x y z)
+tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, Task ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam2 mn tn args f = \x y -> tonicWrapTopLevelBody mn tn args (f x y)
 
-tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody mn tn args (Task eval) = Task preEval
+tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, Task ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam3 mn tn args f = \x y z -> tonicWrapTopLevelBody mn tn args (f x y z)
+
+tonicWrapTaskBody` :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   where
   preEval event evalOpts taskTree iworld
     # (mmn, iworld) = getModule` mn iworld
@@ -352,12 +357,15 @@ getCurrentListId [traceTaskId : xs] iworld
       Ok currentListId -> (Just currentListId, iworld)
       _                -> getCurrentListId xs iworld
 
+tonicWrapApp :: !ModuleName !TaskName !NodeId (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicWrapApp mn tn tid mapp = tonicWrapPartApp mn tn tid mapp
+
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp :: !ModuleName !TaskName !NodeId (Task a) -> Task a | iTask a
-tonicWrapApp mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
+tonicWrapApp` :: !ModuleName !TaskName !NodeId (Task a) -> Task a | iTask a
+tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
   where
   eval` wrapTaskId=:(TaskId wrapInstanceNo wrapTaskNo) event evalOpts=:{TaskEvalOpts|callTrace} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo childTaskNo) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
@@ -438,13 +446,13 @@ withSharedRT f world
       Ok rtMap -> f rtMap world
       _        -> world
 
-tonicWrapAppLam1 :: !ModuleName !TaskName !NodeId !(a -> Task b) -> a -> Task b | iTask b
+tonicWrapAppLam1 :: !ModuleName !TaskName !NodeId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
 tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
 
-tonicWrapAppLam2 :: !ModuleName !TaskName !NodeId !(a b -> Task c) -> a b -> Task c | iTask c
+tonicWrapAppLam2 :: !ModuleName !TaskName !NodeId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
 tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
 
-tonicWrapAppLam3 :: !ModuleName !TaskName !NodeId !(a b c -> Task d) -> a b c -> Task d | iTask d
+tonicWrapAppLam3 :: !ModuleName !TaskName !NodeId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
 tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
 
 tonicWrapParallel :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b | iTask b
