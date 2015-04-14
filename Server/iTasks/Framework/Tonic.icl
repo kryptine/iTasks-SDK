@@ -116,16 +116,16 @@ tonicUpdatesForTaskAndNodeId = sdsLens "tonicUpdatesForTaskAndNodeId" (const ())
 tonicViewInformation :: !String !a -> Task () | iTask a
 tonicViewInformation d v = viewInformation d [] v @! ()
 
-tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, Task ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
 tonicWrapTaskBody mn tn args t = tonicWrapTopLevelBody mn tn args t
 
-tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, Task ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
 tonicWrapTaskBodyLam1 mn tn args f = \x -> tonicWrapTopLevelBody mn tn args (f x)
 
-tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, Task ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
 tonicWrapTaskBodyLam2 mn tn args f = \x y -> tonicWrapTopLevelBody mn tn args (f x y)
 
-tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, Task ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 tonicWrapTaskBodyLam3 mn tn args f = \x y z -> tonicWrapTopLevelBody mn tn args (f x y z)
 
 tonicWrapTaskBody` :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a

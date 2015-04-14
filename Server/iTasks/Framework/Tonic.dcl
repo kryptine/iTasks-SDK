@@ -40,8 +40,11 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
+// For all of these classes goes that the iTask context restriction shouldn't
+// be there. Ideally, we would have something like associated type families
+// and constraintkinds to determine the context restriction per monad.
 class TonicTopLevelBlueprint m | TMonad m where
-  tonicWrapTopLevelBody :: !ModuleName !TaskName [(VarName, Task ())] (m a) -> m a | iTask a
+  tonicWrapTopLevelBody :: !ModuleName !TaskName [(VarName, m ())] (m a) -> m a | iTask a
 
 class TonicBlueprintPart m | TMonad m where
   tonicWrapPartApp :: !ModuleName !TaskName !NodeId (m a) -> m a | iTask a
@@ -67,15 +70,15 @@ tonicDynamicWorkflow  :: [TaskAppRenderer] -> Workflow
 
 tonicViewInformation  :: !String !a -> Task () | iTask a
 
-tonicWrapTaskBody     :: !ModuleName !TaskName [(VarName, Task ())] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBody     :: !ModuleName !TaskName [(VarName, m ())] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, Task ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, Task ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, Task ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicWrapApp          :: !ModuleName !TaskName !NodeId (m a)                    -> m a | TonicBlueprintPart m & iTask a
+tonicWrapApp          :: !ModuleName !TaskName !NodeId (          m a)          -> m a | TonicBlueprintPart m & iTask a
 
 tonicWrapAppLam1      :: !ModuleName !TaskName !NodeId !(b     -> m a) -> b     -> m a | TonicBlueprintPart m & iTask a
 
