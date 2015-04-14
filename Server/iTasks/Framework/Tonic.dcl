@@ -14,6 +14,7 @@ from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
+from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunctor
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
@@ -39,6 +40,15 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare
 
+class TonicTopLevelBlueprint m | TMonad m where
+  topLevelDesc :: (m a) -> String | iTask a
+
+class TonicBlueprintPart m | TMonad m where
+  partDesc :: (m a) -> String | iTask a
+
+instance TonicTopLevelBlueprint Task
+instance TonicBlueprintPart Task
+instance TonicBlueprintPart Maybe
 
 :: TaskAppRenderer :== Bool Bool Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
 

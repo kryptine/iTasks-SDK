@@ -64,35 +64,12 @@ derive gText
 
 derive class iTask BlueprintRef, BlueprintInstance
 
-:: IWorldM a = IWorldM (*IWorld -> *(a, *IWorld))
-
-unIWorld (IWorldM m) = m
-
-execIOWorld :: (IWorldM a) *IWorld -> *IWorld
-execIOWorld (IWorldM f) world
-  # (_, world) = f world
-  = world
-
-evalIOWorld :: (IWorldM a) *IWorld -> *(a, *IWorld)
-evalIOWorld (IWorldM f) world = f world
-
-withWorld :: (*IWorld -> *(a, !*IWorld)) -> IWorldM a
-withWorld f = IWorldM f
-
-instance Applicative IWorldM where
-  pure x     = IWorldM (\s -> (x, s))
-  (<*>) f g  = 'CA'.liftA2 id f g
-
-instance Functor IWorldM where
-  fmap f x = x `b` ('CA'.lift o f)
-
-instance Monad IWorldM where
-  bind (IWorldM f) a2mb = IWorldM run
-    where
-      run world
-        # (x, world)  = f world
-        # (IWorldM g) = a2mb x
-        = g world
+instance TonicTopLevelBlueprint Task where
+  topLevelDesc _ = "Task"
+instance TonicBlueprintPart Task     where
+  partDesc _ = "Task"
+instance TonicBlueprintPart Maybe    where
+  partDesc _ = "Maybe"
 
 :: NodeId :== [Int]
 
