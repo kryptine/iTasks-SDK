@@ -24,7 +24,7 @@ import iTasks.API.Core.Client.Component
   , defValClt  :: cl
 
   , genUI      :: GenUI d cl
-  , appDiffClt :: ((EditletEventHandlerFunc d cl) !ComponentId -> JSFun f) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
+  , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv
   }

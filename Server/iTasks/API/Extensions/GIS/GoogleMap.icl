@@ -68,7 +68,7 @@ googleMapEditlet g
 where
 	uiDef cid world
 		= ({ html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
-		  , eventHandlers	= [ComponentEvent "editlet" "init" onInit]
+		  , eventHandlers	= \mkEventHandler -> [ComponentEvent "editlet" "init" (onInit mkEventHandler)]
 		  , width 			= ExactSize 600
 		  , height			= ExactSize 300
 		  },world)
@@ -76,7 +76,7 @@ where
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
-	onInit cid updates clval world 
+	onInit mkEventHandler cid updates clval world 
         # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
         | jsIsUndefined gmaps_loaded
             //Check if another editlet has already loaded the javascript
@@ -84,7 +84,7 @@ where
             | jsIsUndefined gmaps_callbacks
                 //Setup first callback and load google maps
                 # (gmaps_callbacks,world) = jsEmptyObject world
-                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
+                # world = jsSetObjectAttr cid (mkEventHandler (initEditlet mkEventHandler) cid) gmaps_callbacks world
                 # world = jsSetObjectAttr "googlemaps_callbacks" gmaps_callbacks jsWindow world
                 # (cb,world)
                         = jsWrapFun onScriptLoad world
@@ -93,12 +93,12 @@ where
 		        = (clval, NoDiff, world)
             | otherwise
                 //Just add a callback to the existing set of callbacks
-                # world = jsSetObjectAttr cid (createEditletEventHandler initEditlet cid) gmaps_callbacks world
+                # world = jsSetObjectAttr cid (mkEventHandler (initEditlet mkEventHandler) cid) gmaps_callbacks world
 		        = (clval, NoDiff, world)
         | otherwise
-            = initEditlet cid updates clval world
+            = initEditlet mkEventHandler cid updates clval world
 
-    initEditlet cid _ clval=:{val} world
+    initEditlet mkEventHandler cid _ clval=:{val} world
 	    # world = (getElementById (mapdomid cid).# "innerHTML" .= ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
 	    # (mapdiv, world) = .? (getElementById (mapcanvasid cid)) world
 	    # (mapTypeId, world) = findObject ("google.maps.MapTypeId." +++ toString (val.perspective.GoogleMapPerspective.type)) world
@@ -131,16 +131,16 @@ where
 		# world             = foldl (putOnMarker mapobj markerMap) world val.GoogleMap.markers
         = ({clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}},NoDiff,world)
 	where
-		onChange t              = createEditletEventHandler (onUpdatePerspective t) cid
-		onClick                 = createEditletEventHandler addMarker cid
-        onAfterComponentLayout  = createEditletEventHandler resizeMap cid
-        afterShow               = createEditletEventHandler resizeMap cid
-		putOnMarker mapobj markerMap world markrec = createMarker cid mapobj markerMap markrec world
+		onChange t              = mkEventHandler (onUpdatePerspective t) cid
+		onClick                 = mkEventHandler (addMarker mkEventHandler) cid
+        onAfterComponentLayout  = mkEventHandler resizeMap cid
+        afterShow               = mkEventHandler resizeMap cid
+		putOnMarker mapobj markerMap world markrec = createMarker mkEventHandler cid mapobj markerMap markrec world
 
-	appDiffClt cid diffs clval world
-		= updateUI cid diffs {clval & val = appDiff diffs clval.val} world
+	appDiffClt mkEventHandler cid diffs clval world
+		= updateUI mkEventHandler cid diffs {clval & val = appDiff diffs clval.val} world
 
-	updateUI cid [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates] clval=:{mbSt=Just {mapobj}} world //Update the map perspective
+	updateUI mkEventHandler cid [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates] clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
 	    # (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world
         # (_, world)        = callObjectMethod "setMapTypeId" [toJSArg mapTypeId] mapobj world
@@ -149,21 +149,21 @@ where
         # (_, world)        = callObjectMethod "setCenter" [toJSArg latlng] mapobj world
         //Update zoom
         # (_, world)        = callObjectMethod "setZoom" [toJSArg zoom] mapobj world
-        = updateUI cid updates clval world
+        = updateUI mkEventHandler cid updates clval world
 
-    updateUI cid [AddMarkers markers:updates] clval=:{val,mbSt=Just {mapobj,markerMap}} world
-        # world = foldl (\w m -> createMarker cid mapobj markerMap m w) world markers
-        = updateUI cid updates clval world
-    updateUI cid [RemoveMarkers markers:updates] clval=:{mbSt=Just {markerMap}} world
+    updateUI mkEventHandler cid [AddMarkers markers:updates] clval=:{val,mbSt=Just {mapobj,markerMap}} world
+        # world = foldl (\w m -> createMarker mkEventHandler cid mapobj markerMap m w) world markers
+        = updateUI mkEventHandler cid updates clval world
+    updateUI mkEventHandler cid [RemoveMarkers markers:updates] clval=:{mbSt=Just {markerMap}} world
 	    # world = foldl (\w m -> removeMarker markerMap m w) world markers
-        = updateUI cid updates clval world
-    updateUI cid [UpdateMarkers markers:updates] clval=:{mbSt=Just {mapobj,markerMap}} world
+        = updateUI mkEventHandler cid updates clval world
+    updateUI mkEventHandler cid [UpdateMarkers markers:updates] clval=:{mbSt=Just {mapobj,markerMap}} world
         //Simply remove and add a marker
-        # world = foldl (\w m -> updateMarker cid mapobj markerMap m w) world markers
-        = updateUI cid updates clval world
-    updateUI id [] clval world
+        # world = foldl (\w m -> updateMarker mkEventHandler cid mapobj markerMap m w) world markers
+        = updateUI mkEventHandler cid updates clval world
+    updateUI mkEventHandler id [] clval world
         = (clval, world)	
-	updateUI id diff clval world //Catchall
+	updateUI mkEventHandler id diff clval world //Catchall
         = (clval, world)
 
 	onUpdatePerspective "zoom" _ _ clval=:{val,mbSt=Just st=:{mapobj}} world
@@ -187,12 +187,12 @@ where
         # world = jsTrace e world
         = (clval, NoDiff, world) //Catchall
 			
-	addMarker cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
+	addMarker mkEventHandler cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
 		# (latlng, world)     = jsGetObjectAttr "latLng" event world
 		# ((lat, lng), world) = getPos latlng world
 		# markrec 	= createMarkerRecord markerId lat lng Nothing
 		# markers 	= [markrec: markers]
-		# world 	= createMarker cid mapobj markerMap markrec world
+		# world 	= createMarker mkEventHandler cid mapobj markerMap markrec world
 		= ({clval&val={clval.val&markers=markers}, mbSt=Just {st&nextMarkerId=nextMarkerId+1}}, Diff [AddMarkers [markrec]] ignoreConflict, world)
 	where
 		markerId = cid +++ "_" +++ toString nextMarkerId
@@ -221,7 +221,7 @@ where
 		, draggable     = True
 		, selected      = False}
 	
-	createMarker cid mapobj markerMap {GoogleMapMarker|markerId,position,title,draggable,icon} world
+	createMarker mkEventHandler cid mapobj markerMap {GoogleMapMarker|markerId,position,title,draggable,icon} world
 	    # (latlng, world) = jsNewObject "google.maps.LatLng"
 	    				[toJSArg position.lat
 	    				,toJSArg position.lng] world	
@@ -262,13 +262,13 @@ where
 		# (_, world)     	= callObjectMethod "addListener" [toJSArg marker, toJSArg "dragend", toJSArg onDrag] mapevent world
 		= jsPut markerId marker markerMap world
 	where
-        onClick = createEditletEventHandler onMarkerClick cid
+        onClick = mkEventHandler onMarkerClick cid
         onMarkerClick cid _ clval=:{val={markers}} world
             //Toggle selection
             # markers = [{GoogleMapMarker|m & selected = (m.GoogleMapMarker.markerId == markerId)} \\ m <- markers]
 			= ({clval&val={clval.val&markers=markers}}, Diff [UpdateMarkers markers] ignoreConflict, world)
 
-		onDrag = createEditletEventHandler onMarkerDrag cid	
+		onDrag = mkEventHandler onMarkerDrag cid	
 		onMarkerDrag cid {[0]=event} clval=:{val={markers}} world
 			# (latlng, world)      = jsGetObjectAttr "latLng" event world
 			# ((lat, lng), world)  = getPos latlng world
@@ -284,9 +284,9 @@ where
                 = world
             Nothing         = world
 	
-	updateMarker cid mapobj markerMap marker=:{GoogleMapMarker|markerId,position,title,draggable,icon} world
+	updateMarker mkEventHandler cid mapobj markerMap marker=:{GoogleMapMarker|markerId,position,title,draggable,icon} world
         # world = removeMarker markerMap markerId world
-        = createMarker cid mapobj markerMap marker world
+        = createMarker mkEventHandler cid mapobj markerMap marker world
 
     onScriptLoad args world
         # world                   = jsSetObjectAttr "googlemaps_loaded" (toJSVal True) jsWindow world

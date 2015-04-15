@@ -331,7 +331,7 @@ svgRenderer resolve origState state2Image
        | width         = FlexSize
        , height        = FlexSize
        , html          = DivTag [IdAttr (mainSvgId cid)] []
-       , eventHandlers = []
+       , eventHandlers = \_ -> []
        }
        , world
       )

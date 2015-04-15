@@ -18,7 +18,7 @@ gDefault{|Editlet|} fa _
     , defValSrv = fa
     , defValClt = fa
         
-    , genUI     = \_ world -> ({html = RawText "", eventHandlers = [], height = FlexSize, width = FlexSize}, world)
+    , genUI     = \_ world -> ({html = RawText "", eventHandlers = \_ -> [], height = FlexSize, width = FlexSize}, world)
     , appDiffClt = \_ _ _ a world -> (a, world)
     , genDiffSrv = \_ _ -> Nothing
     , appDiffSrv = \_ x -> x                  
@@ -49,7 +49,7 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
       //Create editlet definition and store reference value for future diffs
       Nothing
         # (jsScript, jsEvents, jsID, jsDV, jsAD, iworld)
-            = editletLinker [(cid, event, f) \\ ComponentEvent cid event f <- uiDef.eventHandlers]
+            = editletLinker [(cid, event, f) \\ ComponentEvent cid event f <- uiDef.eventHandlers createEditletEventHandler]
                 initDiff defValueFun (appDiffClt createEditletEventHandler) iworld
         # opts = editletOpts jsScript jsEvents jsID jsDV jsAD uiDef
         # iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld

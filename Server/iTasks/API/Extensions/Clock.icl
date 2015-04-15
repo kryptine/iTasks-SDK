@@ -35,7 +35,7 @@ analogClockEditlet t
 where
 	genUI cid world
 		  =({ html 			= svgClock cid
-		  	, eventHandlers = []
+		  	, eventHandlers = \_ -> []
 		  	, width 		= ExactSize 100
 		  	, height 		= ExactSize 100
 		  	},world)
@@ -54,10 +54,10 @@ where
         = RectElt [WidthAttr (toString len +++"px"),HeightAttr "2px",IdAttr id,StyleAttr ("fill: "+++color)]
                   [XAttr ("50",PX),YAttr ("50",PX)]
     
-    appDiffClt cid [] () world = ((),world)
-    appDiffClt cid [(0,s):upd] () world = appDiffClt cid upd () (updateHand (cid+++"-sec-hand", 6 * s) world)
-    appDiffClt cid [(1,m):upd] () world = appDiffClt cid upd () (updateHand (cid+++"-min-hand", 6 * m) world)
-    appDiffClt cid [(2,h):upd] () world = appDiffClt cid upd () (updateHand (cid+++"-hour-hand", 30 * h) world)
+    appDiffClt mkEventHandler cid [] () world = ((),world)
+    appDiffClt mkEventHandler cid [(0,s):upd] () world = appDiffClt mkEventHandler cid upd () (updateHand (cid+++"-sec-hand", 6 * s) world)
+    appDiffClt mkEventHandler cid [(1,m):upd] () world = appDiffClt mkEventHandler cid upd () (updateHand (cid+++"-min-hand", 6 * m) world)
+    appDiffClt mkEventHandler cid [(2,h):upd] () world = appDiffClt mkEventHandler cid upd () (updateHand (cid+++"-hour-hand", 30 * h) world)
         
     updateHand (id,degrees) world
         # (hand,world) = .? (getElementById id) world
