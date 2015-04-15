@@ -19,7 +19,7 @@ gDefault{|Editlet|} fa _
     , defValClt = fa
         
     , genUI     = \_ world -> ({html = RawText "", eventHandlers = [], height = FlexSize, width = FlexSize}, world)
-    , appDiffClt = \_ _ a world -> (a, world)
+    , appDiffClt = \_ _ _ a world -> (a, world)
     , genDiffSrv = \_ _ -> Nothing
     , appDiffSrv = \_ x -> x                  
   }
@@ -50,7 +50,7 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
       Nothing
         # (jsScript, jsEvents, jsID, jsDV, jsAD, iworld)
             = editletLinker [(cid, event, f) \\ ComponentEvent cid event f <- uiDef.eventHandlers]
-                initDiff defValueFun appDiffClt iworld
+                initDiff defValueFun (appDiffClt createEditletEventHandler) iworld
         # opts = editletOpts jsScript jsEvents jsID jsDV jsAD uiDef
         # iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
         = (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})

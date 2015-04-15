@@ -11,11 +11,11 @@ import iTasks.API.Core.Client.Component
 
 :: EditletEventHandlerFunc d a :== ComponentEventHandlerFunc d a
 :: EditletEvent d a            :== ComponentEvent d a
-:: EditletHTML d a             :== ComponentHTML d a
-:: GenUI d a                   :== ComponentId *World -> *(EditletHTML d a, *World)
+:: EditletHTML d cl            :== ComponentHTML d cl
+:: GenUI d cl                  :== ComponentId *World -> *(EditletHTML d cl, *World)
 
 :: Editlet sv d
-  = E.cl:
+  = E.cl f:
   { currVal    :: sv // TODO: implementation detail, remove it
 
   // These fields are unnecessary, gDefault could be used instead of them
@@ -24,12 +24,10 @@ import iTasks.API.Core.Client.Component
   , defValClt  :: cl
 
   , genUI      :: GenUI d cl
-  , appDiffClt :: ComponentId d cl *JSWorld -> *(cl, *JSWorld)
+  , appDiffClt :: ((EditletEventHandlerFunc d cl) !ComponentId -> JSFun f) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv
   }
-
-createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 
 derive JSONEncode Editlet
 derive JSONDecode Editlet
