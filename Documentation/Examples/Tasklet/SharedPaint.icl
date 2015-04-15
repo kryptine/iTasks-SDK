@@ -99,7 +99,7 @@ where
 			[] = Nothing
 			shapes = Just shapes
 
-	updateUI cid ds cl world
+	updateUI mkHandler cid ds cl world
 		# (context, world) = getContext cid "pcanvas" world
 		= (cl, foldl (\world dr = draw context dr world) world ds)
 
