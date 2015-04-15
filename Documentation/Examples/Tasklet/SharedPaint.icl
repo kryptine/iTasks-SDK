@@ -203,7 +203,7 @@ painterGUI cid world
 			| width  		= ExactSize (canvasWidth + 70)
 			, height 		= ExactSize (canvasHeight + 50)
 			, html   		= html
-			, eventHandlers = eventHandlers
+			, eventHandlers = \_ -> eventHandlers
 			}
 			
 	= (gui, world)
