@@ -542,7 +542,7 @@ encViewportOpts {UIViewportOpts|title,hotkeys}
 	= JSONObject (
 		[("xtype",JSONString "itwc_viewport")]	++
 		maybe [] (\t -> [("title",JSONString t)]) title ++
-		maybe [] (\k -> [("hotkeys",toJSON k)]) hotkeys
+		maybe [] (\k -> [("hotkeys",toJSONInField k)]) hotkeys
 		)
 encTabSetOpts :: UITabSetOpts -> JSONNode
 encTabSetOpts {UITabSetOpts|items}

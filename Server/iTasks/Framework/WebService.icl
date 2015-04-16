@@ -132,7 +132,7 @@ where
                             //Determine expiry date	
                             # (expiresIn,iworld) = getResponseExpiry instanceNo iworld
                             # json	= JSONObject [("instance",JSONInt instanceNo)
-                                                 ,("expiresIn",toJSON expiresIn)
+                                                 ,("expiresIn",toJSONInField expiresIn)
                                                  ,("lastEvent",JSONInt lastEventNo)
                                                  ,("updates",encodeUIUpdates updates)
                                                  ]
