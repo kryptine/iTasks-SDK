@@ -874,10 +874,9 @@ viewInstance allbps rs navstack dynSett trt showButtons (Just (Right tid))
     = allTasks viewTasks @! ()
 
   defaultBack pref showButtons ns
+    # msg = viewInformation () [] ()
     | showButtons = msg >>* [ OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> navigateBackwards ns) ]
     | otherwise   = msg
-    where
-    msg = viewInformation () [] (pref +++ " blueprint instance of TaskId " +++ toString tid +++ " not found") @! ()
 
   navigateForward :: !(Either (ModuleName, TaskName) TaskId) (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState) -> Task ()
   navigateForward action _ = upd (\xs -> [Right tid : xs]) navstack >>| viewInstance allbps rs navstack dynSett trt showButtons (Just action)
