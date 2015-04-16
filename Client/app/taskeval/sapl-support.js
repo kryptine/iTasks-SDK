@@ -210,9 +210,10 @@ var Sapl = new function () {
 				if (isArray(consfunc.$f)) {
 				    var args = expr.slice(2, expr.length);
 					var res = {};
+                    var aarg;
 
 					for (var i = 0; i < args.length; i++) {
-						var aarg = this.toJS(this.feval(args[i]));
+						aarg = this.toJS(this.feval(args[i]));
 						if(aarg != null)
 							res[this.print_consname(consfunc.$f[i])] = aarg;
 					}
@@ -238,8 +239,9 @@ var Sapl = new function () {
 						}
 					} else {
 				        var args = expr.slice(2, expr.length);
+                        var aarg;
 						for (var i = 0; i < args.length; i++) {
-							var aarg = this.toJS(this.feval(args[i]));
+							aarg = this.toJS(this.feval(args[i]));
 							res.push(aarg);
 						}
 					}
