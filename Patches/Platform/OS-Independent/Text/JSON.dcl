@@ -34,6 +34,9 @@ instance fromString JSONNode
 * @return The JSON encoded value
 */
 toJSON		:: !a		-> JSONNode	| JSONEncode{|*|} a
+
+toJSONInField :: !a -> JSONNode | JSONEncode{|*|} a
+
 /**
 * Tries to parse a JSON encoded string.
 * When parsing fails, the result is Nothing.

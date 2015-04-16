@@ -424,7 +424,13 @@ intersperse i [x:xs] = [x,i:intersperse i xs]
 //-------------------------------------------------------------------------------------------
 
 toJSON :: !a -> JSONNode | JSONEncode{|*|} a
-toJSON x = case (JSONEncode{|*|} False x) of
+toJSON x = toJSON` False x
+
+toJSONInField :: !a -> JSONNode | JSONEncode{|*|} a
+toJSONInField x = toJSON` True x
+
+toJSON` :: !Bool !a -> JSONNode | JSONEncode{|*|} a
+toJSON` flag x = case (JSONEncode{|*|} flag x) of
 	[node]	= node
 	_		= JSONError 
 
