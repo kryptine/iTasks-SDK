@@ -182,7 +182,7 @@ var Sapl = new function () {
 				}else if(consname  === "ARRAY"){
 					var ret = [];
 					for(var i=2; i<expr.length; i++){
-						ret.push(this.toJS(expr[i]));
+						ret.push(this._toJS(false,expr[i]));
 					}
 					return ret;
 				}
@@ -203,7 +203,7 @@ var Sapl = new function () {
 				}else if(consname === "iTasks.API.Core.SystemTypes.DateTime"){
 					var date = this.feval(expr[2]);
 					var time = this.feval(expr[3]);
-					return this.toJS(date) + " " + this.toJS(time);
+					return this._toJS(false,date) + " " + this._toJS(false,time);
 				}else if(consname === "_SystemDynamic._DynamicTemp"){
 					// Do not do anything
 					return expr;
@@ -225,7 +225,7 @@ var Sapl = new function () {
 					return res;
 				} else {					
                     if (this.isNothing(consname)) return null;
-					if (inRecord && this.isJust(consname)) return this.toJS(this.feval(expr[2]));
+					if (inRecord && this.isJust(consname)) return this._toJS(false,this.feval(expr[2]));
 					if (this.isNil(consname)) return [];
 					var res = [];
 
@@ -238,14 +238,14 @@ var Sapl = new function () {
 
 					if (arraycons) {
 						while(this.isCons(expr[1])){
-							res.push(this.toJS(this.feval(expr[2])));
+							res.push(this._toJS(false,this.feval(expr[2])));
 							expr = this.feval(expr[3]);
 						}
 					} else {
 				        var args = expr.slice(2, expr.length);
                         var aarg;
 						for (var i = 0; i < args.length; i++) {
-							aarg = this.toJS(this.feval(args[i]));
+							aarg = this._toJS(false,this.feval(args[i]));
 							res.push(aarg);
 						}
 					}
@@ -260,7 +260,7 @@ var Sapl = new function () {
 					// it's an partial application. leave it like that
 					return expr;
 				} else {
-					return this.toJS(this.feval(expr));
+					return this._toJS(false,this.feval(expr));
 				}
 			}
 
