@@ -453,11 +453,7 @@ where
 JSONEncode{|EITHER|} fx fy _ (LEFT x) = fx False x
 JSONEncode{|EITHER|} fx fy _ (RIGHT y) = fy False y
 JSONEncode{|OBJECT|} fx _ (OBJECT x) = fx False x
-JSONEncode{|CONS of {gcd_arity=0,gcd_name}|} fx _ (CONS x)
-	//Constructor without parameters
-	= [JSONString gcd_name]
 JSONEncode{|CONS of {gcd_name}|} fx _ (CONS x)
-	//Constructor with parameters				
 	= [JSONArray [JSONString gcd_name : fx False x]]
 JSONEncode{|RECORD of {grd_fields}|} fx _ (RECORD x)
 	= [JSONObject [(name, o) \\ o <- fx False x & name <- grd_fields | isNotNull o]]
@@ -472,8 +468,8 @@ JSONEncode{|(,,,)|} fx fy fz fi _ (x,y,z,i) = [JSONArray (fx False x ++ fy False
 JSONEncode{|(,,,,)|} fx fy fz fi fj _ (x,y,z,i,j) = [JSONArray (fx False x ++ fy False y ++ fz False z ++ fi False i ++ fj False j)]
 JSONEncode{|{}|} fx _ x = [JSONArray (flatten [fx False e \\ e <-: x])]
 JSONEncode{|{!}|} fx _ x = [JSONArray (flatten [fx False e \\ e <-: x])]
-JSONEncode{|Maybe|} fx inField (Just x) = if inField (fx False x) [JSONArray (fx False x)]
-JSONEncode{|Maybe|} fx inField Nothing = if inField [JSONNull] [JSONArray []]
+JSONEncode{|Maybe|} fx inField (Just x) = if inField (fx False x) [JSONArray [JSONString "Just" : fx False x]]
+JSONEncode{|Maybe|} fx inField Nothing = if inField [JSONNull] [JSONArray [JSONString "Nothing"]]
 JSONEncode{|JSONNode|} _ node = [node]
 
 //-------------------------------------------------------------------------------------------
@@ -523,14 +519,7 @@ JSONDecode{|OBJECT|} fx _ l = case fx False l of
 	(Just x, xs)	= (Just (OBJECT x),xs)
 	_				= (Nothing, l)
 
-JSONDecode{|CONS of {gcd_arity=0,gcd_name}|} fx _ l=:[JSONString name: xs]
-	//Constructor without parameters
-	| name == gcd_name				= case fx False xs of
-		(Just x, ys)				= (Just (CONS x),ys)
-		_							= (Nothing, l)
-	| otherwise						= (Nothing, l)
 JSONDecode{|CONS of {gcd_name}|} fx _ l=:[JSONArray [JSONString name:fields] :xs]
-	//Constructor with parameters
 	| name == gcd_name				= case fx False fields of
 		(Just x, _)					= (Just (CONS x), xs)
 		_							= (Nothing, l)
@@ -626,15 +615,15 @@ decodeItems fx [ox:oxs]	= case fx False [ox] of
 
 JSONDecode{|Maybe|} fx _ [JSONNull:xs]	        = (Just Nothing, xs) //Tolerate interpreting null as Nothing
 
-JSONDecode{|Maybe|} fx False [JSONArray []:xs]	= (Just Nothing, xs) //Normally Nothing is encoded as an empty array...
-JSONDecode{|Maybe|} fx True []				    = (Just Nothing, []) //...but in records fields, Nothing is encoded by being absent
-
-JSONDecode{|Maybe|} fx False [JSONArray l:xs] = case fx False l of  //Normally Just is encoded as a one-element array...
+JSONDecode{|Maybe|} fx False [JSONArray [JSONString "Nothing"]:xs]	= (Just Nothing, xs)
+JSONDecode{|Maybe|} fx False [JSONArray [JSONString "Just":l]:xs] = case fx False l of
 	(Just x,_)							= (Just (Just x), xs)
 	_									= (Nothing, l)
+JSONDecode{|Maybe|} fx True []				    = (Just Nothing, []) //...but in records fields, Nothing is encoded by being absent
 JSONDecode{|Maybe|} fx True l = case fx False l of                  //...but for record fields, Just is encoded simply by existence in the object
     (Just x,xs)                         = (Just (Just x), xs)
     _                                   = (Nothing, l)
+
 JSONDecode{|Maybe|} _ _ l               = (Nothing, l)
 
 JSONDecode{|JSONNode|} _ [node:xs]      = (Just node, xs)

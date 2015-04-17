@@ -80,7 +80,7 @@ jsonQuery :: !String !JSONNode -> Maybe a | JSONDecode{|*|} a
 */
 generic JSONEncode t :: !Bool !t -> [JSONNode]
 derive  JSONEncode Int, Real, Char, Bool, String, UNIT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode,
-	EITHER, CONS of {gcd_arity,gcd_name}, OBJECT
+	EITHER, CONS of {gcd_name}, OBJECT
 
 JSONEncode{|RECORD of {grd_fields}|} fx _ (RECORD x)
 	= [JSONObject [(name, o) \\ o <- fx False x & name <- grd_fields | isNotNull o]]
@@ -102,7 +102,7 @@ where
 * for each type you want to parse from JSON format.
 */
 generic JSONDecode t :: !Bool ![JSONNode] -> (!Maybe t,![JSONNode])
-derive  JSONDecode Int, Real, Char, Bool, String, UNIT, EITHER, CONS of {gcd_arity,gcd_name}, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
+derive  JSONDecode Int, Real, Char, Bool, String, UNIT, EITHER, CONS of {gcd_name}, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
 
 JSONDecode{|PAIR|} fx fy _ l = d1 (fx False l) l
 where
