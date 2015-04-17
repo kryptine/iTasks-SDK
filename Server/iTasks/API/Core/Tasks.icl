@@ -62,7 +62,7 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True}
+			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 				(finalizeRep evalOpts NoRep) (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
@@ -99,7 +99,7 @@ where
 		# nver					= verifyMaskedValue (nv,nmask)
 		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -127,7 +127,7 @@ where
             (Error e,iworld)
                 = (ExceptionResult (exception ("Error: port "+++ toString port +++ " already in use.")), iworld)
             (Ok _,iworld)
-                = (ValueResult (Value [] False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (rep port)
+                = (ValueResult (Value [] False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep port)
                                                     (TCBasic taskId ts JSONNull False),iworld)
 
     eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates} 
@@ -136,9 +136,9 @@ where
                 = (ExceptionResult (exception e), iworld)
             Just (IOActive values)
                 # value = Value [l \\ (_,(l :: l^,_)) <- 'DM'.toList values] False
-                = (ValueResult value {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (rep port) (TCBasic taskId ts JSONNull False),iworld)
+                = (ValueResult value {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep port) (TCBasic taskId ts JSONNull False),iworld)
             Nothing
-                = (ValueResult (Value [] False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} (rep port) (TCBasic taskId ts JSONNull False), iworld)
+                = (ValueResult (Value [] False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep port) (TCBasic taskId ts JSONNull False), iworld)
 
     eval event evalOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioStates}
         # ioStates = case 'DM'.get taskId ioStates of
@@ -158,16 +158,16 @@ where
             (Error e,iworld)
                 = (ExceptionResult e, iworld)
             (Ok _,iworld)
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),iworld)
 
     eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
         = case 'DM'.get taskId ioStates of
             Nothing
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
             Just (IOActive values)
                 = case 'DM'.get 0 values of 
                     Just (l :: l^, s)
-                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
+                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
                     _
                         = (ExceptionResult (exception "Corrupt IO task result"),iworld)
             Just (IOException e)

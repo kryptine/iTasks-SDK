@@ -137,7 +137,6 @@ createClientIWorld serverURL currentInstance
 		    ,sessionInstance	= Just currentInstance
 		    ,attachmentChain    = []
 		    ,nextTaskNo			= 6666
-		    ,user               = SystemUser
 		    ,eventRoute			= 'Data.Map'.newMap
 		    ,editletDiffs		= 'Data.Map'.newMap
           }

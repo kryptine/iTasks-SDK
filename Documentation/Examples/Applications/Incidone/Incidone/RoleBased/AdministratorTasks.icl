@@ -142,6 +142,7 @@ where
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
+	viewNoSelection = return () //FIXME
     addUser
         =   enterInformation (Title "Add user") []
         >>? \newUser -> (createContact newUser @! ())

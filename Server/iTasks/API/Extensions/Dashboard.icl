@@ -33,12 +33,12 @@ controlLightEditlet t
 where
 	genUI cid world
 		  =({ html 			= svgLight cid
-		  	, eventHandlers = []
+		  	, eventHandlers = const []
 		  	, width 		= ExactSize 20
 		  	, height 		= ExactSize 20
 		  	},world)
 
-	updateUI cid val () world
+	updateUI mkHandler cid val () world
         # (light,world) = .? (getElementById (lightId cid)) world
         # (_,world)     = callObjectMethod "setAttribute" [toJSArg "fill",toJSArg (color val)] light world
 		= ((),world)

@@ -7,7 +7,7 @@ from System.Time    import :: Timestamp
 from iTasks.API.Core.LayoutCombinators import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: SetValueAttribute, :: LayoutRules
 import iTasks.Framework.Task, iTasks.Framework.SDS, iTasks.Framework.Generic
 
-derive class iTask ParallelTaskType, WorkOnStatus
+derive class iTask ParallelTaskType, AttachmentStatus
 
 /**
 * Adds a result transformation function to a task.
@@ -97,32 +97,22 @@ focusTask   :: !TaskId                              !(SharedTaskList a) -> Task 
 /**
 * State of another process the user works on.
 */
-:: WorkOnStatus
-    = WOAttached Stability  //* the task instance is currently attached to this workOn
-    | WOInUse User          //* the task instance is active, another user is working on it
-    | WOExcepted            //* the task instance had an uncaught exception
-    | WODeleted             //* the task instance does not exist anymore
-    | WOIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
+:: AttachmentStatus
+    = ASAttached Stability  //* the task instance is currently attached to this task
+    | ASInUse TaskId 		//* the task instance is already attached to another task 
+    | ASExcepted            //* the task instance had an uncaught exception
+    | ASDeleted             //* the task instance does not exist anymore
+    | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
 /**
-* Work on a detached task.
+* Attaches a a detached task.
 *
-* @param Task identification of the task to work on
+* @param Task identification of the task to attach
 * 
 * @return The state of the task to work on
 * @throws WorkOnException
 */
-workOn :: !TaskId -> Task WorkOnStatus
-
-/**
-* Execute a task with the identity of the given user
-*
-* @param The user with which identity the task is to be executed
-* @param The task to do
-*
-* @return The modified task
-*/
-workAs :: !User !(Task a)						-> Task a | iTask a
+attach :: !TaskId -> Task AttachmentStatus
 
 /**
 * Provide a local read/write shared for a task to work on.

@@ -19,7 +19,7 @@ from iTasks.Framework.SDS               import write, read, readRegister
 import iTasks.API.Core.Types
 from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
 
-derive class iTask ParallelTaskType, WorkOnStatus
+derive class iTask ParallelTaskType, AttachmentStatus
 derive gEq ParallelTaskChange
 
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
@@ -270,7 +270,7 @@ initParallelTasks callTrace listId index [(parType,parTask):parTasks] iworld
       err = (liftError err, iworld)
 
 initParallelTask :: ![Int] !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!MaybeError TaskException (ParallelTaskState,Maybe (TaskId,Task a)),!*IWorld) | iTask a
-initParallelTask callTrace listId index parType parTask iworld=:{current={taskTime,user},clocks={localDate,localTime}}
+initParallelTask callTrace listId index parType parTask iworld=:{current={taskTime},clocks={localDate,localTime}}
   # (mbTaskStuff,iworld) = case parType of
                              Embedded           = mkEmbedded 'DM'.newMap iworld
                              NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld
@@ -302,7 +302,7 @@ initParallelTask callTrace listId index parType parTask iworld=:{current={taskTi
     = case mbInstanceNo of
         Ok instanceNo
           # listShare         = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-          # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) instanceNo attributes user listId evalDirect iworld
+          # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) instanceNo attributes listId evalDirect iworld
           = case mbTaskId of
               Ok taskId
                 # (_, iworld) = write callTrace (sdsFocus listId taskInstanceParallelCallTrace) iworld
@@ -437,7 +437,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
                 NoValue           = Just NoValue
                 Value json stable = fmap (\dec -> Value dec stable) (fromJSON json)
             //TODO: use global tasktime to be able to compare event times between instances
-            # evalInfo = {TaskEvalInfo|lastEvent=0,involvedUsers=[],removedTasks=[],refreshSensitive=True}
+            # evalInfo = {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=True}
             = maybe (ExceptionResult (exception "Could not decode task value of detached task"))
                 (\val -> ValueResult val evalInfo NoRep TCNop) mbValue
     = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
@@ -450,14 +450,13 @@ genParallelRep evalOpts actions results
 	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel [def \\ ValueResult _ _ (TaskRep def) _ <- results] actions)
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
-genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,involvedUsers=[],removedTasks=[],refreshSensitive=False} results
+genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=False} results
 where
     addResult (ValueResult _ i1 _ _) i2
         # lastEvent = max i1.TaskEvalInfo.lastEvent i2.TaskEvalInfo.lastEvent
-        # involvedUsers = removeDup (i1.TaskEvalInfo.involvedUsers ++ i2.TaskEvalInfo.involvedUsers)
         # refreshSensitive = i1.TaskEvalInfo.refreshSensitive || i2.TaskEvalInfo.refreshSensitive
         # removedTasks = i1.TaskEvalInfo.removedTasks ++ i2.TaskEvalInfo.removedTasks
-        = {TaskEvalInfo|lastEvent=lastEvent,involvedUsers=involvedUsers,removedTasks=removedTasks,refreshSensitive=refreshSensitive}
+        = {TaskEvalInfo|lastEvent=lastEvent,removedTasks=removedTasks,refreshSensitive=refreshSensitive}
     addResult _ i = i
 
 readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | iTask a
@@ -470,7 +469,7 @@ where
 appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task TaskId | iTask a
 appendTask parType parTask slist = mkInstantTask eval
 where
-	eval _ iworld=:{current={taskTime,user}}
+	eval _ iworld=:{current={taskTime}}
         # (mbListId,iworld) = readListId slist iworld
         | mbListId =:(Error _) = (mbListId,iworld)
         # listId = fromOk mbListId
@@ -513,7 +512,7 @@ where
         //If we are removing from the top-level task list, just remove the instance
         | listId == TaskId 0 0
             # iworld = deleteTaskInstance instanceNo iworld
-            = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
+            = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
         //Mark the task as removed, and update the indices of the tasks afterwards
         # taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
         # (mbError,iworld)      = modify (markAsRemoved removeId) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
@@ -521,12 +520,12 @@ where
         //If it is a detached task, remove the detached instance, if it is embedded, pass notify the currently evaluating parallel
         | taskNo == 0 //(if the taskNo equals zero the instance is embedded)
             # iworld = deleteTaskInstance instanceNo iworld
-            = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
+            = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
         | otherwise
             //Pass removal information up
-            = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[(listId,removeId)],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
+            = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[(listId,removeId)],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
     eval _ evalOpts state=:(TCStable taskId ts _) iworld
-        = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) state, iworld)
+        = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) state, iworld)
     eval _ _ (TCDestroy _) iworld
         = (DestroyedResult,iworld)
 
@@ -548,14 +547,14 @@ where
         | listId == TaskId 0 0
             = case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
                 (Ok (), iworld)
-                    = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
+                    = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
                 (Error e, iworld)
                     = (ExceptionResult e,iworld)
         //If it is a detached task, replacee the detached instance, if it is embedded schedule the change in the parallel task state
         | taskNo == 0 //(if the taskNo equals zero the instance is embedded)
             = case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
                 (Ok (), iworld)
-                    = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
+                    = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
                 (Error e, iworld)
                     = (ExceptionResult e,iworld)
         //Schedule the change in the parallel task state
@@ -564,9 +563,9 @@ where
             # taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
             # (mbError,iworld)      = modify (scheduleReplacement replaceId task) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
             | mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
-            = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
+            = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
     eval _ evalOpts state=:(TCStable taskId ts _) iworld
-        = (ValueResult (Value () True) {lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) state, iworld)
+        = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) state, iworld)
     eval _ _ (TCDestroy _) iworld
         = (DestroyedResult,iworld)
 
@@ -589,42 +588,42 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
-workOn :: !TaskId -> Task WorkOnStatus
-workOn (TaskId instanceNo taskNo) = Task eval
+attach :: !TaskId -> Task AttachmentStatus
+attach (TaskId instanceNo taskNo) = Task eval
 where
-	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain,user}}
+	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
 		# (progress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) iworld
 		= case progress of
 			Ok progress
                 //Just steal the instance, TODO, make stealing optional
-                # progress      = {InstanceProgress|progress & attachedTo = Just (user,[taskId:attachmentChain])}
+                # progress      = {InstanceProgress|progress & attachedTo = [taskId:attachmentChain]}
 				# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
-				# iworld		= queueUrgentRefresh [instanceNo] ["workOn of " <+++ instanceNo <+++ " requires refresh"] iworld
+				# iworld		= queueUrgentRefresh [instanceNo] ["attach of " <+++ instanceNo <+++ " requires refresh"] iworld
 				= eval event evalOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult e,iworld)
 		
-	eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance,user}}
+	eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance}}
 		//Load instance
 		# layout			    = repLayoutRules evalOpts
         # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		# (attributes,iworld)	= readRegister taskId (sdsFocus instanceNo taskInstanceAttributes) iworld
 		= case (constants,progress,attributes) of
-			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=Just (worker,_),value},Ok attributes)
+			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value},Ok attributes)
                 | build <> buildID //Check version
-				    = (ValueResult (Value WOIncompatible True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
+				    = (ValueResult (Value ASIncompatible True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
                 | value === Exception
-				    = (ValueResult (Value WOExcepted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
-				| worker == user
+				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
+				| attachedId == taskId
                     # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes))
                     # stable    = value === Stable
-					= (ValueResult (Value (WOAttached stable) stable) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=True} rep tree, iworld)
+					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (inUseDef worker) attributes))
-					= (ValueResult (Value (WOInUse worker) False) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} rep tree, iworld)		
+					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn inUseDef attributes))
+					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted True) {TaskEvalInfo|lastEvent=ts,involvedUsers=[],removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
+				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 
 	eval event evalOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
         /*
@@ -647,24 +646,8 @@ where
 
     embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
 
-	inUseDef worker
-		= {UIDef|content=UIForm {UIForm|attributes='DM'.newMap,controls=[(stringDisplay (toString worker +++ " is working on this task"),'DM'.newMap)],size=defaultSizeOpts},windows=[]}
-
-/*
-* Alters the evaluation functions of a task in such a way
-* that before evaluation the currentUser field in iworld is set to
-* the given user, and restored afterwards.
-*/
-workAs :: !User !(Task a) -> Task a | iTask a
-workAs asUser (Task eval) = Task eval`
-where
-	eval` event evalOpts state iworld=:{current=current=:{user}}
-		# (result,iworld=:{current}) = eval event evalOpts state {iworld & current = {current & user = asUser}}
-		= (addInvolvedUser asUser result,{iworld & current = {current & user = user}})
-
-    addInvolvedUser asUser (ValueResult val info=:{TaskEvalInfo|involvedUsers} rep tree)
-        = ValueResult val {TaskEvalInfo|info & involvedUsers= [asUser:involvedUsers]} rep tree
-    addInvolvedUser user res = res
+	inUseDef
+		= {UIDef|content=UIForm {UIForm|attributes='DM'.newMap,controls=[(stringDisplay "This task is already in use",'DM'.newMap)],size=defaultSizeOpts},windows=[]}
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval

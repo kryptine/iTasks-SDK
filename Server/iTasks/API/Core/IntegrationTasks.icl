@@ -52,7 +52,7 @@ where
             # status        = fromJust (fromJSON encv)
             # (rep,iworld)  = makeRep taskId evalOpts status iworld
             # iworld = queueRefresh [taskInstance] ["Checked OS process for instance "<+++ taskInstance] iworld
-			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,involvedUsers=[],removedTasks=[],refreshSensitive=True} rep state, iworld)
+			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
 		| otherwise
             //Check status
             # handle = fromJust (fromJSON encv)
@@ -65,7 +65,7 @@ where
                         Nothing = (RunningProcess cmd,False, state)
                     # (rep,iworld)  = makeRep taskId evalOpts status {IWorld|iworld & world = world}
                     # iworld = queueRefresh [taskInstance] ["Checked OS process for instance "<+++ taskInstance] iworld
-                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,involvedUsers=[],removedTasks=[],refreshSensitive=True} rep state, iworld)
+                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
 
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)

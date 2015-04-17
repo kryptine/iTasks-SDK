@@ -5,7 +5,7 @@ from Data.Map						import :: Map
 from Data.Maybe						import :: Maybe
 from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
-from iTasks.API.Core.Types	        import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
+from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from iTasks.Framework.UIDiff		import :: UIUpdate
 
 from StdFile import class FileSystem(..)
@@ -67,23 +67,6 @@ getResponseExpiry :: !InstanceNo !*IWorld -> (!Maybe Int, !*IWorld)
 getResponseExpiry instanceNo iworld=:{refreshQueue=[]} = (Just REGULAR_EXPIRY,iworld)
 getResponseExpiry instanceNo iworld=:{refreshQueue} = (Just FAST_EXPIRY,iworld)
 
-/*
-addUIUpdates :: !InstanceNo ![UIUpdate] !*IWorld -> *IWorld
-addUIUpdates instanceNo [] iworld = iworld
-addUIUpdates instanceNo updates iworld=:{uiUpdates}
-	= {iworld & uiUpdates = put instanceNo (maybe updates (\u -> u ++ updates) (get instanceNo uiUpdates)) uiUpdates}
-
-popUIUpdates :: ![InstanceNo] !*IWorld -> (![(!InstanceNo,![UIUpdate])],!*IWorld)
-popUIUpdates instances iworld=:{uiUpdates}
-    # uiUpdates     = toList uiUpdates
-    # outUpdates    = [m \\ m=:(instanceNo,updates) <- uiUpdates | isMember instanceNo instances]
-    # uiUpdates     = [m \\ m=:(instanceNo,_) <- uiUpdates | not (isMember instanceNo instances)]
-	= (outUpdates, {iworld & uiUpdates = fromList uiUpdates})
-
-clearUIUpdates :: !InstanceNo !*IWorld -> *IWorld
-clearUIUpdates instanceNo iworld=:{uiUpdates}
-    = {iworld & uiUpdates = del instanceNo uiUpdates}
-*/
 //Wrapper instance for file access
 instance FileSystem IWorld
 where

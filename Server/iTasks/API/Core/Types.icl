@@ -560,73 +560,6 @@ instance == Document
 where
 	(==) doc0 doc1 = doc0.documentId == doc1.documentId
 
-//* Authentication
-JSONEncode{|Username|} _ (Username u) = [JSONString u]
-JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
-JSONDecode{|Username|} _ c = (Nothing,c)
-
-gEditor{|Username|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		# val = checkMask mask val
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},'DM'.newMap)],vst)
-	| otherwise
-		# value = checkMaskValue mask ((\(Username v) -> v) val)
-		= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
-
-gUpdate{|Username|} target upd val iworld = basicUpdateSimple target upd val iworld
-gVerify{|Username|} mv options = simpleVerify mv options
-gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username",unit=Nothing}]
-
-derive gDefault			Username
-derive gEq				Username
-derive gText	        Username
-
-instance toString Username
-where
-	toString (Username u) = u
-
-instance == Username
-where
-	(==) (Username a) (Username b)	= a == b
-
-instance < Username
-where
-	(<) (Username a) (Username b) = a < b
-
-JSONEncode{|Password|} _ (Password p) = [JSONString p]
-JSONDecode{|Password|} _ [JSONString p:c] = (Just (Password p),c)
-JSONDecode{|Password|} _ c = (Nothing,c)
-
-gText{|Password|} AsHeader _ = [""]
-gText{|Password|} _ _        = ["********"]
-
-gEditor{|Password|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},'DM'.newMap)],vst)
-	| otherwise	
-		# value = checkMaskValue mask ((\(Password v) -> v) val)
-		= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
-gUpdate{|Password|} target upd val iworld = basicUpdateSimple target upd val iworld
-gVerify{|Password|} mv options = simpleVerify mv options
-gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
-
-derive gDefault			Password
-derive gEq				Password
-
-instance toString Password
-where
-	toString (Password p) = p
-	
-instance == Password
-where
-	(==) (Password a) (Password b) = a == b
-
-instance < Password
-where
-	(<) (Password a) (Password b) = a < b
-
-derive class iTask		Credentials
-
 //* Common exceptions used by API tasks
 instance toString FileException
 where
@@ -1412,54 +1345,6 @@ s2dp str
 	| textSize str < 2	= []
 						= map toInt (split "-" (subString 1 (textSize str) str))
 
-gText{|User|} _ val = [maybe "" toString val]
-gUpdate{|User|} target upd val iworld = basicUpdateSimple target upd val iworld
-
-gVerify{|User|} mv options = simpleVerify mv options
-
-instance toString User
-where
-	toString (SystemUser)					    = "System"
-	toString (AnonymousUser _)					= "Anonymous"
-	toString (AuthenticatedUser uid _ title)	= maybe uid (\t -> t +++ " <" +++ uid +++ ">") title
-
-instance == User
-where
-	(==) (SystemUser) (SystemUser)					            = True
-	(==) (AnonymousUser a) (AnonymousUser b)					= a == b
-	(==) (AuthenticatedUser a _ _) (AuthenticatedUser b _ _)	= a == b
-	(==) _ _													= False
-
-instance < User
-where
-	(<) (AnonymousUser a) (AnonymousUser b)					= a < b
-	(<) (AuthenticatedUser a _ _) (AuthenticatedUser b _ _)	= a < b
-	(<)	_ _													= False
-
-instance toUserConstraint UserConstraint
-where
-	toUserConstraint r = r
-	toTitle _ = "Untitled"
-
-instance toUserConstraint User
-where
-	toUserConstraint (SystemUser)				    = AnyUser
-	toUserConstraint (AnonymousUser _)				= AnyUser
-	toUserConstraint (AuthenticatedUser uid _ _)	= UserWithId uid
-
-	toTitle _ = "Untitled"
-	
-instance toUserConstraint UserId
-where
-	toUserConstraint userId = UserWithId userId
-
-	toTitle _ = "Untitled"
-	
-instance toUserConstraint (a,b) | toUserConstraint a & toString b
-where
-	toUserConstraint (a,b) = toUserConstraint a
-	toTitle (a,b) = toString b
-
 instance == Action
 where
 	(==) :: !Action !Action -> Bool
@@ -1479,15 +1364,15 @@ actionWeight (Action _ options) = case [weight \\ ActionWeight weight <- options
 	[weight:_]	= weight
 	_			= 0
 
-derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
 	
@@ -1592,7 +1477,3 @@ gText{|{}|} _ _ _ = undef
 gUpdate{|{}|} _ _ _ _ _ _ _ _ = undef
 gVerify{|{}|} _ _ _ = undef
 
-instance toString UserConstraint where
-	toString AnyUser				= "Anybody"
-	toString (UserWithId uid)		= uid
-	toString (UserWithRole role)	= "Any user with role " +++ role

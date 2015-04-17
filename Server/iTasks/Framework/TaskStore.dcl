@@ -87,7 +87,6 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!Instanc
 * @param The task to store
 * @param The instance number for the task
 * @param Management meta data
-* @param The user who issued the task
 * @param The parallel task list to which the task belongs
 * @param If the instance needs to be evaluated immediately, the attachment is temporarily set to the issuer
 * @param The IWorld state
@@ -95,7 +94,7 @@ createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!Instanc
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !User !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 
 /**
 * Replace a stored task instance in the task store.

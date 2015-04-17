@@ -239,7 +239,7 @@ manageContactIncidents :: Workspace ContactNo -> Task ()
 manageContactIncidents ws contactNo
     =	feedForward choose
     (	\sel ->
-        withSelection viewNoSelection viewIncidentDetails sel
+        withSelection viewNoSelection viewIncidentDetails sel 
         -&&-
         doAddRemoveOpen (add <<@ InWindow) (\c -> (remove c) <<@ InWindow) (\c -> doOrClose (open c)) ws sel
     )	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
@@ -257,6 +257,7 @@ where
                     ,OnAction ActionYes (always (upd (\is -> [ incidentNo \\ {IncidentDetails|incidentNo} <- is | incidentNo <> sel]) incidents >>| logContactRemoved sel contactNo))
                     ]
 
+	viewNoSelection = return () //FIXME
     incidentShortIdentity {IncidentShort|incidentNo} = incidentNo
     incidentDetailsIdentity {IncidentDetails|incidentNo} = incidentNo
 

@@ -45,11 +45,10 @@ where
 		    (Ok (TIException e msg))    = (Error msg, iworld)
             (Ok _)                      = (Error "Exception no longer available", iworld)
     //Eval instance
-    # (currentUser,currentSession,currentAttachment) = case (session,attachedTo) of
-        (True,_)                                                = (AnonymousUser instanceKey,Just instanceNo,[])
-        (_,Nothing)                                             = (SystemUser,Nothing,[])
-        (_,Just (worker,[]))                                    = (worker,Nothing,[])
-        (_,Just (worker,attachment=:[TaskId sessionNo _:_]))    = (worker,Just sessionNo,attachment)
+    # (currentSession,currentAttachment) = case (session,attachedTo) of
+        (True,_)                                  = (Just instanceNo,[])
+        (_,[])                                    = (Nothing,[])
+        (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
     # evalOpts					= {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=False,callTrace=[]}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
@@ -61,7 +60,6 @@ where
                                         , attachmentChain = currentAttachment
 										, taskTime = oldReduct.TIReduct.nextTaskTime
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
-										, user = currentUser
 										, eventRoute = eventRoute
                                         , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
 										}}
@@ -77,7 +75,7 @@ where
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
-    # (mbErr,iworld)            = 'SDS'.modify (updateProgress (DateTime localDate localTime) newResult currentUser) (sdsFocus instanceNo taskInstanceProgress) iworld
+    # (mbErr,iworld)            = 'SDS'.modify (updateProgress (DateTime localDate localTime) newResult) (sdsFocus instanceNo taskInstanceProgress) iworld
     = case mbErr of
         Error (e,msg)          = (Error msg,iworld)
         Ok _
@@ -125,17 +123,17 @@ where
         = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree)
     finalizeUI session res = res
 
-	updateProgress now result currentUser progress
+	updateProgress now result progress
         # attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation
             (Just (_,[]))   = Nothing
             attachment      = attachment
 		# progress = {InstanceProgress|progress & firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent), lastEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {InstanceProgress|progress & value = Exception}
-			(ValueResult (Value _ stable) {TaskEvalInfo|involvedUsers} _ _)	
-                = {InstanceProgress|progress & value = if stable Stable Unstable, involvedUsers = [currentUser:involvedUsers]}
-			(ValueResult _ {TaskEvalInfo|involvedUsers} _ _)	
-                = {InstanceProgress|progress & value = None, involvedUsers = [currentUser:involvedUsers]}
+			(ValueResult (Value _ stable) _  _ _)	
+                = {InstanceProgress|progress & value = if stable Stable Unstable}
+			(ValueResult _ _ _ _)	
+                = {InstanceProgress|progress & value = None}
 			_									= {InstanceProgress|progress & value = None}
 
 	lastEventNo (EditEvent eventNo _ _ _)     = eventNo

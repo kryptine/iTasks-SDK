@@ -5,7 +5,7 @@ definition module iTasks.API.Core.SDSs
 */
 from Text.JSON import generic JSONEncode, generic JSONDecode
 import iTasks.Framework.SDS
-from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: TaskAttributes
+from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: TaskList, :: TaskAttributes
 from iTasks.API.Core.Types	    import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
 from Data.Void					import :: Void
 from Data.Map                   import :: Map
@@ -45,16 +45,17 @@ topLevelTasks 			:: SharedTaskList Void
 
 currentSessions 		:: ReadOnlyShared [TaskListItem Void]
 currentProcesses		:: ReadOnlyShared [TaskListItem Void]
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 
 // Session
-currentUser				:: ReadOnlyShared User
 currentTopTask			:: ReadOnlyShared TaskId
 
 //Task instances
-allTaskInstances        :: ROShared () [TaskInstance]
-detachedTaskInstances	:: ROShared () [TaskInstance] //Exclude sessions
-taskInstanceByNo        :: RWShared InstanceNo TaskInstance TaskAttributes
+currentTaskInstanceNo           :: ROShared () InstanceNo
+currentTaskInstanceAttributes   :: RWShared () TaskAttributes TaskAttributes
+allTaskInstances                :: ROShared () [TaskInstance]
+detachedTaskInstances	        :: ROShared () [TaskInstance] //Exclude sessions
+taskInstanceByNo                :: RWShared InstanceNo TaskInstance TaskAttributes
+taskInstanceAttributesByNo      :: RWShared InstanceNo TaskAttributes TaskAttributes
 
 // Application
 applicationName			:: ReadOnlyShared String	// Application name

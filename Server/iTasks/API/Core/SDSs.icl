@@ -8,7 +8,7 @@ import iTasks.Framework.IWorld
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
-from StdFunc					import o, seq, const
+from StdFunc					import o, seq, const, id
 from iTasks.Framework.Util as iFU import qualified dateToTimestamp
 from iTasks.Framework.TaskEval  import currentInstanceShare
 
@@ -70,24 +70,20 @@ toTaskListItem (instanceNo,Just {InstanceConstants|listId},Just progress, Just a
 	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = attributes}
 
 taskInstanceFromInstanceData :: InstanceData -> TaskInstance
-taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|instanceKey,session,listId,build,issuedAt,issuedBy},Just progress=:{InstanceProgress|value,involvedUsers,firstEvent,lastEvent,connectedTo,lastIO},Just attributes)
+taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|instanceKey,session,listId,build,issuedAt},Just progress=:{InstanceProgress|value,firstEvent,lastEvent,connectedTo,lastIO},Just attributes)
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,attributes = attributes, value = value, issuedAt = issuedAt, issuedBy = issuedBy, involvedUsers = involvedUsers, firstEvent = firstEvent, lastEvent = lastEvent, connectedTo = connectedTo,lastIO = lastIO}
+      ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent, connectedTo = connectedTo,lastIO = lastIO}
 
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
-processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
-where
-	readPrj (items,user)	= filter (forWorker user) items
+currentTaskInstanceNo :: ROShared () InstanceNo
+currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
-    forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
-        Just uid1 = case user of
-            (AuthenticatedUser uid2 _ _)    = uid1 == uid2
-            _                               = False
-        Nothing = case 'DM'.get "role" attributes of
-            Just role = case user of
-                (AuthenticatedUser _ roles _)   = isMember role roles
-                _                               = False
-            Nothing = True
+currentTaskInstanceAttributes :: RWShared () TaskAttributes TaskAttributes
+currentTaskInstanceAttributes
+	= sdsSequence "currentTaskInstanceAttributes" 
+		(\_ no -> no) snd (SDSWriteConst (\_ _ -> Ok Nothing))  (SDSWriteConst (\no w -> (Ok (Just w))))
+		currentTaskInstanceNo
+		taskInstanceAttributes
+//taskInstanceAttributes          :: RWShared InstanceNo TaskAttributes TaskAttributes
 
 allTaskInstances :: ROShared () [TaskInstance]
 allTaskInstances
@@ -118,8 +114,18 @@ where
     writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
     writeItem _ _   = Error (exception "Task instance not found")
 
-currentUser :: ReadOnlyShared User
-currentUser = createReadOnlySDS (\() iworld=:{current={user}} -> (user,iworld))
+taskInstanceAttributesByNo :: RWShared InstanceNo TaskAttributes TaskAttributes
+taskInstanceAttributesByNo
+    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem)
+      (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
+where
+    filter no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+
+    readItem [(_,_,_,Just a)]    = Ok a
+    readItem _      = Error (exception "Task instance not found")
+
+    writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
+    writeItem _ _   = Error (exception "Task instance not found")
 
 currentTopTask :: ReadOnlyShared TaskId
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare

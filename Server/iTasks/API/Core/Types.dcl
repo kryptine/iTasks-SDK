@@ -151,32 +151,16 @@ paddedDateTimeString :: DateTime -> String
 instance toString	Document
 instance ==			Document
 
-//* Authentication
-:: Credentials =
-	{ username	:: !Username
-	, password	:: !Password
-	}
+derive JSONEncode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document 
+derive JSONDecode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
+derive gDefault			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
+derive gEq				EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
 
-:: Username		= Username !UserId
-
-:: Password		= Password !String
-
-instance toString		Username, Password
-instance ==				Username, Password
-instance <				Username, Password
-
-derive JSONEncode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
-derive JSONDecode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gDefault			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEq				EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-
-derive gText	        EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEditor 			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gEditMeta		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-derive gUpdate			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password 
-derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document, Username, Password
-
-derive class iTask	Credentials
+derive gText	        EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
+derive gEditor 			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
+derive gEditMeta		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
+derive gUpdate			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document 
+derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 
@@ -186,7 +170,7 @@ derive class iTask	Credentials
 :: SharedException		= SharedException !String
 :: RPCException			= RPCException !String
 :: OSException			= OSException !OSError
-:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
+:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle //FIXME: Rename to attachment exceptions
 
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
@@ -451,13 +435,11 @@ instance <			TaskId
     , session       :: !Bool                //* True for sessions (instances that automatically get garbage collected)
     , build         :: !String              //* Application build version when the instance was created
     , issuedAt		:: !DateTime			//* When was the task created
-	, issuedBy		:: !User				//* By whom was the task created
     }
 
 :: InstanceProgress =
 	{ value             :: !ValueStatus             //* Status of the task value
-    , involvedUsers     :: ![User]                  //* Users currently involved in the task
-    , attachedTo        :: !Maybe (!User,![TaskId]) //* User who attached the instance (and through which workOn's)
+    , attachedTo        :: ![TaskId] 				//* Chain of tasks through which this instance was attached
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task	
     , connectedTo       :: !Maybe String            //* Is there an active client connection for this task
@@ -514,10 +496,8 @@ instance <			TaskId
 	, listId            :: !TaskId              //* Reference to parent tasklist
     , build             :: !String              //* Application build version when the instance was created
     , issuedAt			:: !DateTime			//* When was the task created
-	, issuedBy			:: !User				//* By whom was the task created
 	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
 	, value             :: !ValueStatus         //* Status of the task value
-    , involvedUsers     :: ![User]              //* Users currently involved in the task
 	, firstEvent		:: !Maybe DateTime		//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime		//* When was the last event on this task	
     , connectedTo       :: !Maybe String        //* Is there an active client connection for this task
@@ -566,39 +546,6 @@ derive JSONDecode InteractionMask, Verification
 //Generate the editorId string for a given datapath
 editorId 				:: !DataPath 		-> String
 s2dp					:: !String			-> DataPath
-
-//* User identification
-:: User
-    = SystemUser                                            //* The global user that is used when events do not originate from a session
-	| AnonymousUser !SessionId								//* An anonymous user identified only by a session id
-	| AuthenticatedUser !UserId ![Role] !(Maybe UserTitle)	//* An authenticated user
-
-instance toString	User
-instance ==			User
-instance <			User
-
-//* User constraints which indicate who can work on a task
-:: UserConstraint
-	= AnyUser
-	| UserWithId !UserId
-	| UserWithRole !Role
-
-instance toString UserConstraint
-
-class toUserConstraint a
-where
-	toUserConstraint :: !a -> UserConstraint
-	toTitle	 		 :: !a -> String
-
-instance toUserConstraint UserConstraint
-instance toUserConstraint User
-instance toUserConstraint UserId
-
-:: UserId		:== String
-:: Role			:== String
-:: UserTitle	:== String			//* A descriptive name of a user (not used for identification)
-	
-instance toUserConstraint (a,b) | toUserConstraint a & toString b
 
 //* Framework configuration
 :: Config =
@@ -714,16 +661,16 @@ ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
 alt key			:== {key=key,ctrl=False,alt=True,shift=False}
 shift key		:== {key=key,ctrl=False,alt=False,shift=True}
 
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
 
-derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, User, UserConstraint, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gEditMeta		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gUpdate			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gVerify			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 

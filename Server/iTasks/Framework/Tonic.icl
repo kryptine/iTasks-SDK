@@ -157,7 +157,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpi_parentTaskId     = case firstParent rtMap cct of
                                                           Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _    -> Nothing
-                               , bpi_involvedUsers    = [curr.user]
+                               , bpi_involvedUsers    = [] //FIXME: Current user
                                }
           # blueprint        = { BlueprintRef
                                | bpr_moduleName = mn
@@ -210,7 +210,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                                   , bpi_activeNodes      = 'DM'.newMap
                                                                   , bpi_lastUpdated      = currDateTime
                                                                   , bpi_endTime          = Just currDateTime
-                                                                  , bpi_involvedUsers    = [curr.user : resultUsers tr]
+                                                                  , bpi_involvedUsers    = resultUsers tr //FIXME: Add current user
                                                                   }
                                             } (sdsFocus currTaskId tonicInstances) iworld
           # iworld = case resultToOutput tr of
@@ -256,7 +256,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
   resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
   resultToOutput _                      = Nothing
-  resultUsers (ValueResult _ te _ _) = te.TaskEvalInfo.involvedUsers
+  resultUsers (ValueResult _ te _ _) = [] //FIXME get users from taskattributes instead 
   resultUsers _                      = []
   tvViewInformation NoValue     = Nothing
   tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())

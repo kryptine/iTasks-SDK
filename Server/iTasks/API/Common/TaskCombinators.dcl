@@ -4,7 +4,6 @@ definition module iTasks.API.Common.TaskCombinators
 */
 import iTasks.API.Core.TaskCombinators, iTasks.API.Core.LayoutCombinators
 
-from iTasks.API.Core.Types		import :: User
 from Data.Map				    import :: Map
 from Data.Either				import :: Either
 
@@ -149,32 +148,6 @@ try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & iTask, toString e
 * @gin-icon catch
 */
 catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
-/**
-* Assign a task to a(nother) user.
-*
-* @param Manager properties: The initial manager properties indicating the user to which the task is delegated, a priority and possibly a deadline
-* @param Action menu: A function generating a menu for the process delegated to the user
-* @param Task: The task that is to be delegated
-*
-* @return The combined task
-*
-* @gin False
-*/
-assign :: !TaskAttributes !(Task a) -> Task a | iTask a
-
-/**
-* Assign a task to a user. (no deadline, normal priority)
-*
-* @param User: The initial UserId of the user to which the task is delegated
-* @param Task: The task that is to be delegated.
-*
-* @return The combined task
-*
-* @gin-title Assign to user
-* @gin-icon user
-* @gin-shape assign
-*/
-(@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 
 /**
 * Execute a Maybe task that you expect to always return Just.
@@ -367,7 +340,6 @@ withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | i
 */
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 
-appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
 //Utility functions for defining task steps
 always 		:: (Task b)					        (TaskValue a) -> Maybe (Task b)

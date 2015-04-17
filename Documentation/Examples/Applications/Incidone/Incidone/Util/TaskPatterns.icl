@@ -4,8 +4,7 @@ import iTasks, iTasks.API.Extensions.Dashboard
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
 import Text, Data.Functor, Data.Either
 import qualified Data.Map as DM
-
-NoAnnotation	:== AfterLayout (tweakControls (map (\(c,_) -> (c,'DM'.newMap))))
+import StdMisc
 
 fillNotes :: [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
 fillNotes cs = map fillNote cs
@@ -86,7 +85,6 @@ where
 		>>?	\new ->
 			set new s
         >>| log old new
-
 
 doOrClose :: (Task a) -> Task (Maybe a) | iTask a
 doOrClose task = ((task @ Just) -||- chooseAction [(ActionClose,Nothing)]) >>- return
@@ -219,6 +217,10 @@ where
         = receiveStopped || (not (isEmpty received))
 
     process (received,receiveStopped,_,_)
-        =   upd (\(_,rs,s,ss) -> ([],rs,s,ss)) channel
+        =   upd empty channel
         >>| if (isEmpty received) (return ()) (processTask received)
         @!  receiveStopped
+
+	empty :: ([m],Bool,[m],Bool) -> ([m],Bool,[m],Bool)
+	empty (_,rs,s,ss) = ([],rs,s,ss)
+

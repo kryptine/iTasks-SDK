@@ -18,7 +18,7 @@ from iTasks.Framework.Generic				import class iTask
 from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
 from iTasks.Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks.Framework.Generic.Defaults		import generic gDefault
-from iTasks.API.Core.Types	        import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
+from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks.API.Core.SDSCombinators import sdsLens
 from iTasks.API.Common.SDSCombinators import >+<, sdsFocus
 from iTasks							import serialize, deserialize, functionFree

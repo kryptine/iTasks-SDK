@@ -19,7 +19,6 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
     , session       :: !Bool                //Is this a session
     , build         :: !String              //Application build version when the instance was created
     , issuedAt      :: !DateTime
-    , issuedBy      :: !User
     //Evaluation information
 	, progress		:: !InstanceProgress
     //Identification and classification information

@@ -8,7 +8,7 @@ from Data.Set               import :: Set
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
-from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
+from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks.Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs, :: ReferenceVersion, :: MessageType
 from iTasks.Framework.TaskState			import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
@@ -83,7 +83,6 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     , sessionInstance        :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
     , attachmentChain        :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
     , nextTaskNo			 :: !TaskNo									// The next task number to assign
-    , user			         :: !User									// The current user
     , eventRoute			 :: !Map TaskId Int							// Index of parallel branches the event is targeted at
     , editletDiffs           :: !UIEditletDiffs                          // Diffs of editlets
     }

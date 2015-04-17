@@ -241,7 +241,6 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
         ,sessionInstance        = Nothing
         ,attachmentChain        = []
 	    ,nextTaskNo			    = 0
-	    ,user			        = AnonymousUser ""
         ,eventRoute			    = newMap
         ,editletDiffs           = newMap
         }

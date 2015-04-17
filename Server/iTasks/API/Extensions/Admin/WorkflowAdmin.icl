@@ -46,7 +46,7 @@ viewTaskList :: Task [TaskListItem Void]
 viewTaskList 
 	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
 
-viewTask :: Task WorkOnStatus
+viewTask :: Task AttachmentStatus
 viewTask
 	=	doAuthenticated (
 			enterInformation "Enter task identification" []
@@ -224,8 +224,8 @@ openTask taskList taskId
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
     =   workOn taskId
-    >>* [OnValue    (ifValue ((===) WOExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
-        ,OnValue    (ifValue ((===) WOIncompatible) (\_ -> dealWithIncompatibleTask))
+    >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
+        ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnAction ActionClose   (always (return OpenProcess))
         ]
 where

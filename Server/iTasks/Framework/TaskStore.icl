@@ -92,10 +92,9 @@ newDocumentId iworld=:{IWorld|random}
 	
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
-    # worker    = AnonymousUser sessionId
     //Create the initial instance data in the store
-    # progress  = {InstanceProgress|value=None,involvedUsers=[],attachedTo=Nothing,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
-    # constants = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=worker}
+    # progress  = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+    # constants = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
@@ -107,9 +106,8 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
-    # worker                = AnonymousUser instanceKey
-    # progress              = {InstanceProgress|value=None,involvedUsers=[],attachedTo=Nothing,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
-    # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=worker}
+    # progress              = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
+    # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
@@ -120,20 +118,19 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
 (`b`) (Ok _, st)    f = f st
 (`b`) (Error e, st) _ = (Error e, st)
 
-createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !User !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task instanceNo attributes issuer listId attachTemporary iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
-    # attachedTo           = if attachTemporary (Just (issuer,[])) Nothing
+createDetachedTaskInstance :: !(Task a) !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance task instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
     # (instanceKey,iworld) = newInstanceKey iworld
-    # progress             = {InstanceProgress|value=None,involvedUsers=[],attachedTo=attachedTo,firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
-    # constants            = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=DateTime localDate localTime,issuedBy=issuer}
+    # progress             = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+    # constants            = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
-                 , if attachTemporary
-                     (queueUrgentRefresh [instanceNo] ["First refresh of detached instance "<+++ instanceNo] iworld)
-                     iworld)
+				 , if refreshImmediate
+                      (queueUrgentRefresh [instanceNo] ["First refresh of detached instance "<+++ instanceNo] iworld)
+                      iworld)
 
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
@@ -206,15 +203,15 @@ where
         existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
 
     selectRows tfilter is = filter (filterPredicate tfilter) is
-    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceKey,listId,session,build,issuedAt,issuedBy,progress,attributes}
-        # constants  = if includeConstants (Just {InstanceConstants|instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt,issuedBy=issuedBy}) Nothing
+    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceKey,listId,session,build,issuedAt,progress,attributes}
+        # constants  = if includeConstants (Just {InstanceConstants|instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt}) Nothing
         # progress   = if includeProgress (Just progress) Nothing
         # attributes = if includeAttributes (Just attributes) Nothing
         = (instanceNo,constants,progress,attributes)
 
     updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
-        # i = if includeConstants (maybe i (\{InstanceConstants|instanceKey,listId,session,build,issuedAt,issuedBy}
-                                            -> {TIMeta|i & instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt,issuedBy=issuedBy}) mbC) i
+        # i = if includeConstants (maybe i (\{InstanceConstants|instanceKey,listId,session,build,issuedAt}
+                                            -> {TIMeta|i & instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt}) mbC) i
         # i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
         # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}

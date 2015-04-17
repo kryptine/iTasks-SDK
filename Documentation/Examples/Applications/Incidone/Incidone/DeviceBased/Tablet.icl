@@ -15,6 +15,7 @@ where
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
     selectContent
         = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide 300 False)
+
     switchContent = enterChoice (Title "Choose Content") [ChooseWith (ChooseFromList bigLabel)] contentOptions
     contentOptions
         = ["Overview","Incident","Contact","Clock","Countdown"]

@@ -6,8 +6,8 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Framework.Util
 from StdFunc			import id, const, o
-from iTasks.API.Core.Types		    import :: User(..), :: Note(..)
-from iTasks.API.Core.SDSs           import randomInt, topLevelTasks, currentUser, currentDateTime
+from iTasks.API.Core.Types		    import :: Note(..)
+from iTasks.API.Core.SDSs           import randomInt, topLevelTasks, currentDateTime
 from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 import qualified Data.Map as DM
 
@@ -85,63 +85,6 @@ removeWhenStable t
 //Helper functions for projections
 projectJust :: (Maybe a) r -> Maybe (Maybe a)
 projectJust mba _ = Just mba
-
-/*
-* When a task is assigned to a user a synchronous task instance process is created.
-* It is created once and loaded and evaluated on later runs.
-*/
-assign :: !TaskAttributes !(Task a) -> Task a | iTask a
-assign attr task
-	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
-	@?	result
-where
-	processControl tlist
-		= viewSharedInformation () [ViewWith toView] (sdsFocus filter tlist) @? const NoValue
-    where
-        filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, onlyIndex = Just [1]
-                 ,includeValue=False,includeAttributes=True,includeProgress=True}
-					
-	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
-		{ assignedTo	= toSingleLineText (case ('DM'.get "user" attributes, 'DM'.get "role" attributes) of
-                                              (Just u, _) -> Just (toString u)
-                                              (_, Just r) -> Just (toString r)
-                                              _           -> Nothing)
-		, firstWorkedOn	= p.InstanceProgress.firstEvent
-		, lastWorkedOn	= p.InstanceProgress.lastEvent
-        , taskStatus    = case p.InstanceProgress.value of
-                            None      -> "No results so far..."
-                            Unstable  -> "In progres..."
-                            Stable    -> "Task done"
-                            Exception -> "Something went wrong"
-        }
-
-	result (Value [_,(_,v)] _)	= v
-	result _					= NoValue
-
-:: ProcessControlView =	{ assignedTo	:: !String
-						, firstWorkedOn	:: !Maybe DateTime
-						, lastWorkedOn	:: !Maybe DateTime
-                        , taskStatus    :: !String
-						}
-derive class iTask ProcessControlView
-
-workerAttributes :: worker [(String, String)] -> TaskAttributes | toUserConstraint worker
-workerAttributes worker attr = case toUserConstraint worker of
-    AnyUser           = 'DM'.newMap
-    UserWithId uid    = 'DM'.fromList [("user", uid):attr]
-    UserWithRole role = 'DM'.fromList [("role", role):attr]
-    
-(@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
-(@:) worker task
-  =                get currentUser -&&- get currentDateTime
-  >>- \(me,now) -> assign (workerAttributes worker
-                             [ ("title",      toTitle worker)
-                             , ("createdBy",  toString (toUserConstraint me))
-                             , ("createdAt",  toString now)
-                             , ("priority",   toString 5)
-                             , ("createdFor", toString (toUserConstraint worker))
-                             ])
-                          task
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
@@ -237,13 +180,6 @@ where
 (>&^) infixl 1 :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
 (>&^) taska taskbf = feedSideways taska taskbf
 
-:: ProcessOverviewView =	{ index			:: !Hidden Int
-							, subject		:: !Display String
-							, assignedTo	:: !User
-							}
-
-derive class iTask ProcessOverviewView
-
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
 	= parallel [(Embedded,const t) \\ t <- tasks] [] @? res
@@ -302,9 +238,6 @@ withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const Void) topLevelTasks
 
-appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
-appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask (workerAttributes worker []) evalDirect task
-			
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

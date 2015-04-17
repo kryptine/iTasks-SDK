@@ -572,8 +572,8 @@ workOnActionItem instanceNo
 where
     workOnTask taskId
         =   workOn taskId
-        >>* [OnValue    (ifValue ((===) WOExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this action" @! ()))
-            ,OnValue    (ifValue ((===) WOIncompatible) (\_ -> restartIncompatibleTask taskId))
+        >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this action" @! ()))
+            ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> restartIncompatibleTask taskId))
             ]
 
     restartIncompatibleTask taskId

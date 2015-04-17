@@ -3,6 +3,7 @@ definition module iTasks.API.Extensions.Admin.UserAdmin
 * This extension provides workflows for managing the users of an iTask system.
 */
 import iTasks
+import iTasks.API.Extensions.User
 
 :: UserAccount			=
 	{ credentials	:: !Credentials

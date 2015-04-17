@@ -962,5 +962,5 @@ where
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
 currentUserContactNo :: ROShared () ContactNo
-currentUserContactNo = mapReadError (\u -> maybe (Error (exception "User has no contact no")) Ok (userContactNo u)) currentUser
+currentUserContactNo = mapReadError (\u -> maybe (Error (exception "User has no contact no")) Ok (userContactNo u)) (toReadOnly currentUser)
 
