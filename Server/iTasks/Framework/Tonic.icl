@@ -629,7 +629,9 @@ viewBPTitle tmName ttName resTy = viewInformation (Title title) [ViewWith view] 
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
-:: ModelTy :== ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState
+:: ModelTy :== ActionState (TClickAction, Either (ModuleName, TaskName) TaskId) TonicImageState
+
+:: TClickAction = TNavAction | TDetailAction
 
 :: TonicImageState
   = { tis_task    :: TonicTask
@@ -637,7 +639,7 @@ viewBPTitle tmName ttName resTy = viewInformation (Title title) [ViewWith view] 
     , tis_compact :: Bool
     }
 
-derive class iTask TonicImageState
+derive class iTask TonicImageState, TClickAction
 
 import StdDebug
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !TonicRTMap !TonicModule !TonicTask !Scale !Bool -> Task ()
@@ -652,7 +654,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
                                           , bpr_taskName   = tt.tt_name
                                           , bpr_instance   = Nothing
                                           } 'DM'.newMap (expandTask allbps depth.cur tt) compact depth
-         >>* [ OnValue (doAction (navigateForward tm tt))
+         >>* [ OnValue (doAction (handleClicks tm tt))
              , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
              ] @! ()
   where
@@ -663,8 +665,9 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     pop [] = []
     pop [_:xs] = xs
 
-  navigateForward :: TonicModule TonicTask NavPoint a -> Task ()
-  navigateForward tm tt next _ = navigate (\ns -> [Left (tm.tm_name, tt.tt_name):ns]) tm tt next
+  handleClicks :: TonicModule TonicTask (TClickAction, NavPoint) a -> Task ()
+  handleClicks tm tt (TNavAction, next) _ = navigate (\ns -> [Left (tm.tm_name, tt.tt_name):ns]) tm tt next
+  handleClicks tm tt (TDetailAction, detail) _ = viewStaticTask allbps rs navstack trt tm tt depth compact
 
   navigate :: (NavStack -> NavStack) TonicModule TonicTask NavPoint -> Task ()
   navigate mkNavStack tm tt (Left (mn, tn))
@@ -682,7 +685,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     >>~ \sett -> viewInstance allbps rs navstack sett trt True (Just target)
 
 showBlueprint :: [TaskAppRenderer] (Map NodeId TaskId) BlueprintRef ListsOfTasks TonicTask Bool Scale
-              -> Task (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState)
+              -> Task (ActionState (TClickAction, Either (ModuleName, TaskName) TaskId) TonicImageState)
 showBlueprint rs prev bpref maplot task compact depth
   = updateInformation ()
       [imageUpdate id (mkTaskImage rs prev bpref maplot compact) (\_ _ -> Nothing) (const id)]
@@ -753,6 +756,9 @@ tonicDynamicBrowser rs
 selectedBlueprint :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 
+selectedDetail :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
+selectedDetail = sharedStore "selectedDetail" Nothing
+
 :: AdditionalInfo =
   { numberOfActiveTasks  :: !Int
   , tasksNearingDeadline :: ![BlueprintRef]
@@ -792,13 +798,14 @@ tonicDynamicBrowser` allbps rs navstack =
   -&&- blueprintViewer)          <<@ ArrangeWithSideBar 0 TopSide 200 True)
        <<@ FullScreen @! ()
   where
-  filterQuery = updateSharedInformation "Filter query" [] queryShare
+  filterQuery = updateSharedInformation (Title "Filter query") [] queryShare
   activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint
     where
     setTaskId x = maybe (Right (TaskId 0 0)) (\i -> Right i.bpi_taskId) x.bpr_instance
     filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
 
-  additionalInfo = whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)
+  //additionalInfo = whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)
+  additionalInfo = whileUnchanged selectedDetail (\detail -> viewInformation (Title "Detailed information") [] detail)
 
   blueprintViewer
     =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings) (
@@ -846,7 +853,7 @@ getModuleAndTask allbps mn tn
                 _       -> throw "Can't get module and task"
 
 viewInstance :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !DisplaySettings !TonicRTMap !Bool !(Maybe (Either (ModuleName, TaskName) TaskId)) -> Task ()
-viewInstance allbps rs navstack dynSett trt showButtons (Just (Right tid))
+viewInstance allbps rs navstack dynSett trt showButtons action=:(Just (Right tid))
   =          get navstack
   >>~ \ns -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
@@ -858,10 +865,10 @@ viewInstance allbps rs navstack dynSett trt showButtons (Just (Right tid))
                                                 ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
                                     \(_, maplot) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref maplot blueprint False { Scale | min = 0, cur = 0, max = 0})
                                                 -|| showChildTasks dynSett bpinst)
-                                                >>* [ OnValue (doAction navigateForward) : if showButtons
-                                                                                              [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
-                                                                                              , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt) ]
-                                                                                              []
+                                                >>* [ OnValue (doAction handleClicks) : if showButtons
+                                                                                          [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
+                                                                                          , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent rs mbprnt) ]
+                                                                                          []
                                                     ]
                                   _ = defaultBack "Parent" showButtons ns
                _ = defaultBack "Selected" showButtons ns
@@ -878,8 +885,9 @@ viewInstance allbps rs navstack dynSett trt showButtons (Just (Right tid))
     | showButtons = msg >>* [ OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> navigateBackwards ns) ]
     | otherwise   = msg
 
-  navigateForward :: !(Either (ModuleName, TaskName) TaskId) (ActionState (Either (ModuleName, TaskName) TaskId) TonicImageState) -> Task ()
-  navigateForward action _ = upd (\xs -> [Right tid : xs]) navstack >>| viewInstance allbps rs navstack dynSett trt showButtons (Just action)
+  handleClicks :: !(TClickAction, Either (ModuleName, TaskName) TaskId) (ActionState (TClickAction, Either (ModuleName, TaskName) TaskId) TonicImageState) -> Task ()
+  handleClicks (TNavAction, action) _ = upd (\xs -> [Right tid : xs]) navstack >>| viewInstance allbps rs navstack dynSett trt showButtons (Just action)
+  handleClicks (TDetailAction, target) _ = set (Just target) selectedDetail >>| viewInstance allbps rs navstack dynSett trt showButtons action
 
   navigateBackwards :: !NavStack -> Maybe (Task ())
   navigateBackwards []           = Nothing
@@ -1522,8 +1530,13 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
                             _          -> tDefaultTaskApp inh.inh_compact isActive (isJust wasActive) inh.inh_inaccessible modName taskName taskArgs taskArgs` tsrc
-  = ( taskApp <@< { onclick = \n st -> if (n == 2) { ActionState | st & action = Just (maybe (Left (modName, taskName)) Right mbNavTo) } st, local = False }
+  = ( taskApp <@< { onclick = handleClick mbNavTo, local = False }
     , tsrc)
+  where
+  handleClick :: !(Maybe TaskId) !Int !ModelTy -> ModelTy
+  handleClick mbNavTo 1 st = { ActionState | st & action = Just (TDetailAction, maybe (Left (modName, taskName)) Right mbNavTo) }
+  handleClick mbNavTo 2 st = { ActionState | st & action = Just (TNavAction, maybe (Left (modName, taskName)) Right mbNavTo) }
+  handleClick _       _ st = st
 
 tRoundedRect :: !Span !Span -> Image a
 tRoundedRect width height
