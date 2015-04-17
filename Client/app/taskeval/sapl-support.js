@@ -162,8 +162,12 @@ var Sapl = new function () {
 		return JSON.stringify(this.toJS(expr));
 	}
 
-	// It expects the expression argument to be HNF
 	this.toJS = function (expr) {
+		return this._toJS(false, expr);
+	}
+
+	// It expects the expression argument to be HNF
+	this._toJS = function (inRecord, expr) {
 
 		if (isArray(expr)) {
 
@@ -213,15 +217,15 @@ var Sapl = new function () {
                     var aarg;
 
 					for (var i = 0; i < args.length; i++) {
-						aarg = this.toJS(this.feval(args[i]));
+						aarg = this._toJS(true, this.feval(args[i]));
 						if(aarg != null)
 							res[this.print_consname(consfunc.$f[i])] = aarg;
 					}
 
 					return res;
 				} else {					
-					if (this.isNothing(consname)) return null;
-					if (this.isJust(consname)) return [this.toJS(this.feval(expr[2]))];
+                    if (this.isNothing(consname)) return null;
+					if (inRecord && this.isJust(consname)) return this.toJS(this.feval(expr[2]));
 					if (this.isNil(consname)) return [];
 					var res = [];
 
