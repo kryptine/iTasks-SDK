@@ -6,10 +6,10 @@ var _itask_background_interval;
 function __itask_background_process(){
 	console.time('background process');
 	
-	var ret = __iTasks_Framework_Engine_background(_iworld);
+	var ret = __iTasks__Framework_Engine_background(_iworld);
 	_iworld = Sapl.feval(ret);
 	
-	ret = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_getUIUpdates,[_iworld]);
+	ret = Sapl.fapp(__iTasks__Framework_Client_RunOnClient_getUIUpdates,[_iworld]);
 	_iworld = Sapl.feval(ret[3]);
 	var uiupdates = Sapl.toJS(Sapl.feval(ret[2]));
 	
@@ -28,7 +28,7 @@ function __itask_background_process(){
 	console.timeEnd('background process');
 }
 
-function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,eventvals){
+function __iTasks__Framework_Client_Tasklet_handleJSEvent(expr,taskId,eventvals){
 	var taskId = Sapl.feval(taskId);
 	
 	var sti = taskId[2]+"-"+taskId[3]; // toString
@@ -64,7 +64,7 @@ function __iTasks_Framework_Client_Tasklet_handleJSEvent(expr,taskId,eventvals){
 
 var _store = {}
 
-function __iTasks_Framework_Client_JSStore_jsStoreValue(namespace,key,value,iworld){
+function __iTasks__Framework_Client_JSStore_jsStoreValue(namespace,key,value,iworld){
 	var iworld = Sapl.feval(iworld);
 	var namespace = Sapl.feval(namespace);
 	var key = Sapl.feval(key);
@@ -76,7 +76,7 @@ function __iTasks_Framework_Client_JSStore_jsStoreValue(namespace,key,value,iwor
 	return iworld;
 }
 
-function __iTasks_Framework_Client_JSStore_jsLoadValue(namespace,key,iworld){
+function __iTasks__Framework_Client_JSStore_jsLoadValue(namespace,key,iworld){
 	var iworld = Sapl.feval(iworld);
 	var namespace = Sapl.feval(namespace);
 	var key = Sapl.feval(key);
@@ -130,7 +130,7 @@ function ___localTime(world){
 
 // ----------------------------------------------------------------
 
-function __iTasks_Framework_RemoteAccess_httpRequest_client(method, url, mbBody, iworld){
+function __iTasks__Framework_RemoteAccess_httpRequest_client(method, url, mbBody, iworld){
 
 	method = Sapl.feval(method);
 	url = Sapl.feval(url);
@@ -171,19 +171,19 @@ function __graph_to_sapl_string_graph_to_sapl_string(a){
 	return Sapl.dynamicToString(Sapl.feval(a));
 }
 
-function __iTasks_Framework_Client_RunOnClient_newWorld(){
+function __iTasks__Framework_Client_RunOnClient_newWorld(){
 	return "WORLD";
 }
 
-function __iTasks_Framework_Client_Override_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
+function __iTasks__Framework_Client_Override_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
     return Sapl.feval(__a_2);
 };
 
-function __iTasks_Framework_Client_Override_cast(___vTC_0, ___vTC_1, __a_2) {
+function __iTasks__Framework_Client_Override_cast(___vTC_0, ___vTC_1, __a_2) {
     return Sapl.feval(__a_2);
 };
 
-function __iTasks_Framework_Client_Override_unwrapTask(__vTC_0, __a) {
+function __iTasks__Framework_Client_Override_unwrapTask(__vTC_0, __a) {
     var d = Sapl.feval(__a);
     return Sapl.feval(d[2]);
 };

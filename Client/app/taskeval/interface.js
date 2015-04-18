@@ -284,7 +284,7 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
 		
 		var h = function(event){
 
-			return __iTasks_Framework_Client_Tasklet_handleJSEvent(expr, taskId, arguments);
+			return __iTasks__Framework_Client_Tasklet_handleJSEvent(expr, taskId, arguments);
 		};
 		
 		return h;
