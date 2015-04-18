@@ -1,4 +1,0 @@
-user32.dll
-RegisterWindowMessageA@4
-MsgWaitForMultipleObjects@20
-PostThreadMessageA@16

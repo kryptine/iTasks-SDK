@@ -7,7 +7,7 @@ import qualified Data.Map
 import Text, System.OS
 
 import FindDefinitions
-import APIDocumentation
+//import APIDocumentation
 
 import IDE_Types
 
