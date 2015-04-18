@@ -4,11 +4,11 @@ implementation module iTasks.API.Common.TaskCombinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
 import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks.Framework.Util
+import iTasks._Framework.Util
 from StdFunc			import id, const, o
 from iTasks.API.Core.Types		    import :: Note(..)
 from iTasks.API.Core.SDSs           import randomInt, topLevelTasks, currentDateTime
-from iTasks.Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
+from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 import qualified Data.Map as DM
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.API.Core.LayoutCombinators

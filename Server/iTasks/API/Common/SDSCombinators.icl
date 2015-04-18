@@ -4,7 +4,7 @@ import StdTuple, StdList
 import iTasks.API.Core.SDSs, iTasks.API.Core.SDSCombinators
 import iTasks.API.Core.Types
 from StdFunc import o, const, flip, id
-from iTasks.Framework.Task import exception
+from iTasks._Framework.Task import exception
 
 sdsFocus :: !p !(RWShared p r w) -> (RWShared p` r w) | iTask p
 sdsFocus p sds = sdsTranslate ("("+++ toString (toJSON p)+++")/") (const p) sds

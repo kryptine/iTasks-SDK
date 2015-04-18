@@ -2,15 +2,15 @@ implementation module iTasks.API.Core.SDSs
 
 import StdList, StdBool, StdFile, StdTuple
 import System.Time, Text, Data.Tuple, Data.Functor, Data.Error, System.File
-import iTasks.Framework.Store, iTasks.Framework.TaskStore, iTasks.Framework.Util
-import iTasks.Framework.Task
-import iTasks.Framework.IWorld
+import iTasks._Framework.Store, iTasks._Framework.TaskStore, iTasks._Framework.Util
+import iTasks._Framework.Task
+import iTasks._Framework.IWorld
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 from StdFunc					import o, seq, const, id
-from iTasks.Framework.Util as iFU import qualified dateToTimestamp
-from iTasks.Framework.TaskEval  import currentInstanceShare
+from iTasks._Framework.Util as iFU import qualified dateToTimestamp
+from iTasks._Framework.TaskEval  import currentInstanceShare
 
 import qualified Data.Map as DM
 

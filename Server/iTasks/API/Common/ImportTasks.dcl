@@ -4,7 +4,7 @@ definition module iTasks.API.Common.ImportTasks
 */
 from System.FilePath import :: FilePath
 import iTasks.API.Core.Types
-import iTasks.Framework.Task
+import iTasks._Framework.Task
 /**
 * Import a file on the server's filesystem as a Document
 *

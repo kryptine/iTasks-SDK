@@ -2,7 +2,7 @@ implementation module Incidone.DeviceBased.VideoWall
 import iTasks
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
-import Text, Data.List, iTasks.Framework.HtmlUtil
+import Text, Data.List, iTasks._Framework.HtmlUtil
 
 derive class iTask WallContent
 

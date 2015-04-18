@@ -5,10 +5,10 @@ definition module iTasks.API.Core.OptimizedCoreTasks
 * if not all expressive power is needed.
 */
 
-import iTasks.Framework.Generic
-import iTasks.Framework.SDS
+import iTasks._Framework.Generic
+import iTasks._Framework.SDS
 
-from iTasks.Framework.Task	import :: Task
+from iTasks._Framework.Task	import :: Task
 from iTasks.API.Core.Types import class descr, class Choice
 
 //Interact which yields the view value directly.

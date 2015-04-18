@@ -3,13 +3,13 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	iTasks.Framework.Engine				// iTasks engine
+import	iTasks._Framework.Engine				// iTasks engine
     // iTasks API
     ,   iTasks.API
 	
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings
-	,	iTasks.Framework.Generic			// Generic foundation modules
+	,	iTasks._Framework.Generic			// Generic foundation modules
 	
 	//	API extensions for user  & workflow management
 	,	iTasks.API.Extensions.Admin.UserAdmin

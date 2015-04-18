@@ -6,7 +6,7 @@ definition module iTasks.API.Core.Types
 //import GenEq
 //import Data.Maybe, Text.JSON, Data.Void, Data.Either, System.FilePath, Text.HTML, Data.Error, System.File, System.OS
 
-import iTasks.Framework.Store
+import iTasks._Framework.Store
 
 // TODO: Remove these big-bang imports
 import Data.Void, Text.HTML, GenEq
@@ -29,17 +29,17 @@ from Data.Map 				import :: Map
 from Data.Map 				import qualified get
 from Text.HTML 				import class html
 from System.Time				import :: Timestamp
-from iTasks.Framework.IWorld			import :: IWorld
-from iTasks.Framework.UIDefinition		import :: UIDef, :: UIForm, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
-from iTasks.Framework.Task				import :: Task, :: TaskId
-from iTasks.Framework.Generic				import class iTask
-from iTasks.Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
-from iTasks.Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
-from iTasks.Framework.Generic.Defaults		import generic gDefault
-from iTasks.Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from iTasks._Framework.IWorld			import :: IWorld
+from iTasks._Framework.UIDefinition		import :: UIDef, :: UIForm, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
+from iTasks._Framework.Task				import :: Task, :: TaskId
+from iTasks._Framework.Generic				import class iTask
+from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
+from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
+from iTasks._Framework.Generic.Defaults		import generic gDefault
+from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
-import iTasks.Framework.Serialization
+import iTasks._Framework.Serialization
 
 class TFunctor f where
     tmap :: (a -> b) (f a) -> f b | iTask a & iTask b

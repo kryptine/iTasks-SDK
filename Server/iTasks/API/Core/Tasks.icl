@@ -2,13 +2,13 @@ implementation module iTasks.API.Core.Tasks
 
 import StdList, StdBool, StdInt, StdTuple, StdMisc, StdDebug
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
-import iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.TaskServer
-import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState
-import iTasks.Framework.TaskEval, iTasks.Framework.TaskStore, iTasks.Framework.UIDefinition, iTasks.Framework.IWorld
+import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
+import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState
+import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks._Framework.UIDefinition, iTasks._Framework.IWorld
 import iTasks.API.Core.LayoutCombinators
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 
-from iTasks.Framework.SDS as SDS import qualified read, readRegister, write
+from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
 from StdFunc					import o, id
 from Data.Map as DM				import qualified newMap, get, put, del, toList, fromList
 from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT

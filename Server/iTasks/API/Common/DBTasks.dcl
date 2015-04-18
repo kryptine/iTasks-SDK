@@ -1,6 +1,6 @@
 definition module iTasks.API.Common.DBTasks
 
-import iTasks.Framework.Generic, iTasks.Framework.Task, iTasks.Framework.SDS
+import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.SDS
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

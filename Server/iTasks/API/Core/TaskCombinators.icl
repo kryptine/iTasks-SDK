@@ -3,19 +3,19 @@ implementation module iTasks.API.Core.TaskCombinators
 import StdList, StdTuple, StdMisc, StdBool, StdList, StdOrdList
 
 import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List, Data.Error, Data.Either, Text.JSON
-import iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskStore, iTasks.Framework.TaskEval
-import iTasks.Framework.Util, iTasks.Framework.Store
-import iTasks.Framework.Generic, iTasks.Framework.UIDefinition
+import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
+import iTasks._Framework.Util, iTasks._Framework.Store
+import iTasks._Framework.Generic, iTasks._Framework.UIDefinition
 import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
-import iTasks.Framework.IWorld
+import iTasks._Framework.IWorld
 
-import iTasks.Framework.Client.Override
+import iTasks._Framework.Client.Override
 
 import qualified Data.Map as DM
 from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-from iTasks.Framework.TaskStore         import localShare, parallelTaskList, topLevelTaskList
-from iTasks.Framework.SDS               import write, read, readRegister
+from iTasks._Framework.TaskStore         import localShare, parallelTaskList, topLevelTaskList
+from iTasks._Framework.SDS               import write, read, readRegister
 import iTasks.API.Core.Types
 from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
 

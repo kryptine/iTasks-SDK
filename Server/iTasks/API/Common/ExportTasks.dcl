@@ -4,7 +4,7 @@ definition module iTasks.API.Common.ExportTasks
 */
 from System.FilePath import :: FilePath
 import iTasks.API.Core.Types
-import iTasks.Framework.Task
+import iTasks._Framework.Task
 
 /**
 * Export a document to the server's filesystem.

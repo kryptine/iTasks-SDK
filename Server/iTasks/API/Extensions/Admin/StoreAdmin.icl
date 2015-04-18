@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks
-import qualified iTasks.Framework.Store
+import qualified iTasks._Framework.Store
 
 manageStore :: Task Void
 manageStore
@@ -24,5 +24,5 @@ deleteStore :: (String,String) -> Task ()
 deleteStore (namespace,storename) = mkInstantTask eval
 where
     eval _ iworld
-        = (Ok (), 'iTasks.Framework.Store'.deleteValue namespace storename iworld)
+        = (Ok (), 'iTasks._Framework.Store'.deleteValue namespace storename iworld)
 

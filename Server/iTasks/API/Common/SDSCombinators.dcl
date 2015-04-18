@@ -1,10 +1,10 @@
 definition module iTasks.API.Common.SDSCombinators
 
-from iTasks.Framework.SDS import :: RWShared, :: ROShared, :: WriteShare, :: SDSNotifyPred, :: Shared, :: ReadOnlyShared, :: ReadWriteShared
-from iTasks.Framework.Task import :: TaskException, :: TaskValue, :: TaskId
-from iTasks.Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gUpdate, generic gVerify, generic gEq, generic gDefault, generic gText
-from iTasks.Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
-from iTasks.Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
+from iTasks._Framework.SDS import :: RWShared, :: ROShared, :: WriteShare, :: SDSNotifyPred, :: Shared, :: ReadOnlyShared, :: ReadWriteShared
+from iTasks._Framework.Task import :: TaskException, :: TaskValue, :: TaskId
+from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gUpdate, generic gVerify, generic gEq, generic gDefault, generic gText
+from iTasks._Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
+from iTasks._Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
 from iTasks.API.Core.Types import :: TaskList, :: TaskListFilter, :: TaskListItem, :: SharedTaskList, :: TaskAttributes, :: InstanceProgress
 
 from Data.Maybe import :: Maybe

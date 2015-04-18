@@ -1,11 +1,11 @@
 implementation module iTasks.API.Core.Client.Tasklet
 
-import iTasks, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.UIDiff
+import iTasks, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.UIDiff
 import StdFile, StdMisc
 import System.Time, System.File, System.FilePath
-import iTasks.Framework.Client.LinkerSupport
+import iTasks._Framework.Client.LinkerSupport
 
-import iTasks.Framework.Client.Tasklet
+import iTasks._Framework.Client.Tasklet
 import iTasks.API.Core.Client.Interface
 
 import Data.Functor, Data.Error

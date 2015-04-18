@@ -5,7 +5,7 @@ definition module iTasks.API.Core.TaskCombinators
 */
 from System.Time    import :: Timestamp
 from iTasks.API.Core.LayoutCombinators import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: SetValueAttribute, :: LayoutRules
-import iTasks.Framework.Task, iTasks.Framework.SDS, iTasks.Framework.Generic
+import iTasks._Framework.Task, iTasks._Framework.SDS, iTasks._Framework.Generic
 
 derive class iTask ParallelTaskType, AttachmentStatus
 

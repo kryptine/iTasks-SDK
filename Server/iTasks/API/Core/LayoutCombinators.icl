@@ -2,14 +2,14 @@ implementation module iTasks.API.Core.LayoutCombinators
 
 import StdTuple, StdList, StdBool, StdOrdList
 import Data.Maybe, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks.Framework.Util, iTasks.Framework.HtmlUtil, iTasks.Framework.UIDefinition
+import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.UIDefinition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
 from Data.Map import qualified put, get, del, newMap, toList
 from StdFunc import o, const
 
-from iTasks.Framework.Task import :: EventNo
-from iTasks.Framework.TaskState import :: TIMeta(..)
+from iTasks._Framework.Task import :: EventNo
+from iTasks._Framework.TaskState import :: TIMeta(..)
 
 derive gEq UISide
 

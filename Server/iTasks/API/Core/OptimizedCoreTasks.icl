@@ -3,12 +3,12 @@ implementation module iTasks.API.Core.OptimizedCoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc
 import System.Time, Data.Error, System.OSError, Data.Tuple, Data.List, Text.JSON
 import qualified StdList
-import iTasks.Framework.Generic, iTasks.Framework.Generic.Interaction, iTasks.Framework.Task, iTasks.Framework.TaskState, iTasks.Framework.TaskEval
-import iTasks.Framework.TaskStore, iTasks.Framework.UIDefinition
-import iTasks.Framework.Util, iTasks.Framework.HtmlUtil
-import iTasks.Framework.IWorld
+import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval
+import iTasks._Framework.TaskStore, iTasks._Framework.UIDefinition
+import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
+import iTasks._Framework.IWorld
 import iTasks.API.Core.LayoutCombinators
-from iTasks.Framework.SDS as SDS import qualified read, readRegister, write
+from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
 from StdFunc						import o, id
 from iTasks.API.Core.SDSs		    import topLevelTasks
 from Data.Map						import qualified get

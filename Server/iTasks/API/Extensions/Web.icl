@@ -2,8 +2,8 @@ implementation module iTasks.API.Extensions.Web
 import iTasks
 import Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
 
-from iTasks.Framework.HttpUtil import http_addRequestData, http_parseArguments
-import iTasks.Framework.HtmlUtil
+from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
+import iTasks._Framework.HtmlUtil
 
 import qualified Data.Map as DM
 import qualified Data.List as DL

@@ -3,8 +3,8 @@ definition module iTasks.API.Core.LayoutCombinators
 import iTasks.API.Core.Types
 from iTasks.API.Core.TaskCombinators import class tune
 
-from iTasks.Framework.TaskState import :: TIMeta
-import iTasks.Framework.UIDefinition
+from iTasks._Framework.TaskState import :: TIMeta
+import iTasks._Framework.UIDefinition
 
 from Data.Maybe import :: Maybe
 

@@ -1,8 +1,8 @@
 implementation module iTasks.API.Common.DBTasks
 
 import StdList, StdOrdList, Data.List
-import iTasks.Framework.Generic, iTasks.Framework.Task, iTasks.Framework.SDS
-import iTasks.Framework.Util
+import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.SDS
+import iTasks._Framework.Util
 import iTasks.API.Core.Types
 from iTasks.API.Core.Tasks			    import get, set
 from iTasks.API.Common.TaskCombinators	import >>|

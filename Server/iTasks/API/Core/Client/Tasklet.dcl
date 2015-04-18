@@ -1,11 +1,11 @@
 definition module iTasks.API.Core.Client.Tasklet
 
 import StdString
-import iTasks.Framework.Task, iTasks.Framework.SDS
-import iTasks.Framework.TaskState
+import iTasks._Framework.Task, iTasks._Framework.SDS
+import iTasks._Framework.TaskState
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Core.Client.Component
-from iTasks.Framework.UIDiff import :: UIUpdate
+from iTasks._Framework.UIDiff import :: UIUpdate
 
 :: JSONString :== String
 
