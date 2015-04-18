@@ -88,31 +88,31 @@ where
 	isSetTheme (CMTheme _) = True
 	isSetTheme _ = False
 
-onInitClient eventhandlers onLoadWrapper onLoadCont cid clval world
+onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world
 	# (obj, world) = findObject "CodeMirror.defaults" world
 	| not (jsIsUndefined obj)
-	    = onLoad eventhandlers onLoadCont cid undef clval world
+	    = onLoad mkHandler eventhandlers onLoadCont cid undef clval world
 	# world = addCSSFromUrl "codemirror.css" world
 	# world = addJSFromUrl "codemirror.js" Nothing world
-	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (createEditletEventHandler onLoadWrapper cid)) world
+	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (mkHandler onLoadWrapper cid)) world
     = (clval, NoDiff, world)
 
-onLoad eventhandlers cont cid _ clval=:{val={source,configuration}} world
+onLoad mkHandler eventhandlers cont cid _ clval=:{val={source,configuration}} world
 	# (ta, world)       = .? (getElementById (sourcearea cid)) world
 	# (co, world)       = createConfigurationObject configuration world
     # (cmobj, world)    = findObject "CodeMirror" world
     # (this, world)     = jsThis world
     # (cm, world)       = jsApply cmobj this [toJSArg ta, toJSArg co] world
 	# world 			= loadModulesIfNeeded configuration cm world
-	# st 				= {codeMirror = cm, systemEventHandlers = systemEvents, marks = []}
+	# st 				= {codeMirror = cm, systemEventHandlers = systemEvents mkHandler, marks = []}
 	# world 			= manageSystemEvents "on" st world	
-	# world 			= foldl (putOnEventHandler cm) world eventhandlers
+	# world 			= foldl (putOnEventHandler mkHandler cm) world eventhandlers
 
     # (editlets,world)  = findObject "itwc.controller.editlets" world    
     # (cmp,world)       = .? (editlets .# cid) world
     # (clval,dff,world) = onAfterShow cm cid undef clval world
-    # world             = (cmp .# "afterResize" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world
-    # world             = (cmp .# "afterShow" .= (toJSVal (createEditletEventHandler (onAfterShow cm) cid))) world        
+    # world             = (cmp .# "afterResize" .= (toJSVal (mkHandler (onAfterShow cm) cid))) world
+    # world             = (cmp .# "afterShow" .= (toJSVal (mkHandler (onAfterShow cm) cid))) world        
 	
     //Call continuation to initialize the editor	
     = cont cid {clval & mbSt = Just st} world
@@ -129,11 +129,11 @@ where
         # (_,world)       	= (cm .# "setSize" .$ (width,height)) world
 	    = (st, NoDiff, world)
 
-	putOnEventHandler cm world (event, handler)
-		= snd (callObjectMethod "on" [toJSArg event, toJSArg (createEditletEventHandler handler cid)] cm world)
+	putOnEventHandler mkHandler cm world (event, handler)
+		= snd (callObjectMethod "on" [toJSArg event, toJSArg (mkHandler handler cid)] cm world)
 
-	systemEvents = [("cursorActivity",	createEditletEventHandler onCursorActivity cid),
-					("change",			createEditletEventHandler onChange cid)]
+	systemEvents mkHandler = [("cursorActivity",	mkHandler onCursorActivity cid),
+							  ("change",			mkHandler onChange cid)]
 
 	isSetMode (CMMode _) = True
 	isSetMode _ = False
@@ -222,16 +222,17 @@ where
 								[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 								,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 								
-		  , eventHandlers 	= [ComponentEvent "editlet" "init" onInit]
+		  //, eventHandlers 	= \mkHandler -> [ComponentEvent "editlet" "init" (onInit mkHandler)]
+		  , eventHandlers 	= \mkHandler -> [] //FIXME
 		  , width 			= ExactSize 300
 		  , height			= ExactSize 300
 		  }
 
 	// init
-	onInit cid event clval world	
-		= onInitClient eventhandlers onLoadWrapper onLoadCont cid clval world 
+	onInit mkHandler cid event clval world	
+		= onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world 
     where
-		onLoadWrapper = onLoad eventhandlers onLoadCont
+		onLoadWrapper = onLoad mkHandler eventhandlers onLoadCont
 		onLoadCont cid clval world = let (a,c) = onUpdate cid [] clval world in (a,NoDiff,c)
 
 	// update
@@ -308,7 +309,7 @@ where
 		# (ch, world) = jsGetObjectAttr "ch" pos world		
 		= ((line, ch), world)
 	
-	appDiffClient cid diffs clval world
+	appDiffClient mkHandler cid diffs clval world
 		= onUpdate cid diffs {clval & val = appDiffServer diffs clval.val} world
 		
 	appDiffServer diffs val = foldl upd val diffs

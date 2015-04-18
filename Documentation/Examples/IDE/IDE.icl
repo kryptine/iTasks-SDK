@@ -159,10 +159,11 @@ editDclFile moduleBase list
 
 editCleanFile :: FilePath (SharedTaskList IDE_TaskResult) -> Task ()
 editCleanFile path list = catchAll
-   (    importTextFile path @ split OS_NEWLINE
+   (    importTextFile path //@ split OS_NEWLINE
    >>- \initContent ->
-        withShared (initCleanEditor False initContent)
-            \mirror -> updateCleanEditor (shareSearchResults path list mirror) @! ()
+		updateInformation () [] (Note initContent) <<@ AfterLayout (tweakUI (setHeight (ExactSize 500))) @! () 
+      //  withShared (initCleanEditor False initContent)
+       //     \mirror -> updateCleanEditor (shareSearchResults path list mirror) @! ()
    ) (\e -> viewInformation () [] e @! ())
 
 moduleTitleView s = SpanTag [StyleAttr "font-size: 24px"] [Text s]
