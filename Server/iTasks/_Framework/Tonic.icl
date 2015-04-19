@@ -1,14 +1,14 @@
-implementation module iTasks.Framework.Tonic
+implementation module iTasks._Framework.Tonic
 
-import iTasks.Framework.Engine
-import iTasks.Framework.SDS
-import qualified iTasks.Framework.SDS as DSDS
-import iTasks.Framework.IWorld
-import iTasks.Framework.Tonic.AbsSyn
-import iTasks.Framework.TaskState
-import iTasks.Framework.TaskStore
-import iTasks.Framework.TaskEval
-import iTasks.Framework.Task
+import iTasks._Framework.Engine
+import iTasks._Framework.SDS
+import qualified iTasks._Framework.SDS as DSDS
+import iTasks._Framework.IWorld
+import iTasks._Framework.Tonic.AbsSyn
+import iTasks._Framework.TaskState
+import iTasks._Framework.TaskStore
+import iTasks._Framework.TaskEval
+import iTasks._Framework.Task
 import iTasks.API.Core.TaskCombinators
 import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
