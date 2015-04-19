@@ -1,14 +1,14 @@
-implementation module iTasks._Framework.Tonic
+implementation module iTasks.Framework.Tonic
 
-import iTasks._Framework.Engine
-import iTasks._Framework.SDS
-import qualified iTasks._Framework.SDS as DSDS
-import iTasks._Framework.IWorld
-import iTasks._Framework.Tonic.AbsSyn
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskStore
-import iTasks._Framework.TaskEval
-import iTasks._Framework.Task
+import iTasks.Framework.Engine
+import iTasks.Framework.SDS
+import qualified iTasks.Framework.SDS as DSDS
+import iTasks.Framework.IWorld
+import iTasks.Framework.Tonic.AbsSyn
+import iTasks.Framework.TaskState
+import iTasks.Framework.TaskStore
+import iTasks.Framework.TaskEval
+import iTasks.Framework.Task
 import iTasks.API.Core.TaskCombinators
 import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
@@ -157,7 +157,6 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpi_parentTaskId     = case firstParent rtMap cct of
                                                           Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _    -> Nothing
-                               , bpi_involvedUsers    = [] //FIXME: Current user
                                }
           # blueprint        = { BlueprintRef
                                | bpr_moduleName = mn
@@ -210,7 +209,6 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                                   , bpi_activeNodes      = 'DM'.newMap
                                                                   , bpi_lastUpdated      = currDateTime
                                                                   , bpi_endTime          = Just currDateTime
-                                                                  , bpi_involvedUsers    = resultUsers tr //FIXME: Add current user
                                                                   }
                                             } (sdsFocus currTaskId tonicInstances) iworld
           # iworld = case resultToOutput tr of
@@ -245,7 +243,6 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                                     //, bpi_endTime          = case tr of
                                                                                                //ValueResult (Value _ True) _ _ _ -> Just currDateTime
                                                                                                //_                                -> Nothing
-                                                                    //, bpi_involvedUsers    = [curr.user : resultUsers tr]
                                                                     //}
                                               //} (sdsFocus currTaskId tonicInstances) iworld
             //# iworld = case resultToOutput tr of
@@ -262,7 +259,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
 
 firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
-firstParent _     [] = Error (exception "iTasks._Framework.Tonic.firstParent: no parent found")
+firstParent _     [] = Error (exception "iTasks.Framework.Tonic.firstParent: no parent found")
 firstParent rtMap [parent : parents]
   = case 'DM'.get parent rtMap of
       Just trt -> Ok trt
@@ -282,7 +279,6 @@ firstParent rtMap [parent : parents]
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, NodeId))
   , bpi_previouslyActive :: !Map NodeId TaskId
   , bpi_parentTaskId     :: !Maybe TaskId
-  , bpi_involvedUsers    :: ![User]
   }
 
 :: BlueprintData =
@@ -707,10 +703,10 @@ dynamicParent childId
     `b` \pid   -> 'DM'.get pid rtm)
 
 :: DynamicView =
-  { taskId      :: !TaskId
-  , moduleName  :: !String
-  , taskName    :: !String
-  , users       :: ![User]
+  {  // taskId      :: !TaskId
+  //, moduleName  :: !String
+    taskName    :: !String
+  //, users       :: ![User]
   , startTime   :: !String
   , lastUpdate  :: !String
   , endTime     :: !String
@@ -723,9 +719,9 @@ enterQuery :: Task (Maybe BlueprintQuery)
 enterQuery = enterInformation "Enter filter query" []
 
 :: BlueprintQuery
-  = ModuleName String
-  | TaskName String
-  | UserInvolved String
+  //= ModuleName String
+  = TaskName String
+  //| UserInvolved String
   | IsActive
   | AndQuery BlueprintQuery BlueprintQuery
   | OrQuery BlueprintQuery BlueprintQuery
@@ -805,7 +801,11 @@ tonicDynamicBrowser` allbps rs navstack =
     filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
 
   //additionalInfo = whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)
-  additionalInfo = whileUnchanged selectedDetail (\detail -> viewInformation (Title "Detailed information") [] detail)
+  additionalInfo = whileUnchanged selectedDetail viewDetail
+    where
+    viewDetail (Just (Right tid=:(TaskId instanceNo _))) = get (sdsFocus instanceNo taskInstanceAttributesByNo) >>= \x -> viewInformation (Title "Detailed information") [] (map (\(x, y) -> x +++ ": " +++ y) ('DM'.toList x)) @! ()
+    viewDetail (Just (Left (mn, tn))) = viewInformation (Title "Detailed information") [] (mn, tn) @! ()
+    viewDetail _                      = viewInformation (Title "Detailed information") [] "Select task" @! ()
 
   blueprintViewer
     =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings) (
@@ -816,29 +816,28 @@ tonicDynamicBrowser` allbps rs navstack =
   filterActiveTasks (Just q) tasks
     = [bp \\ bp=:{bpr_instance = Just trt} <- tasks | not (startsWith "iTasks" bp.bpr_moduleName) && isNothing trt.bpi_endTime && doFilter bp q]
     where
-    doFilter bp=:{bpr_instance = Just trt} (ModuleName mn)   = mn == "" || indexOf mn bp.bpr_moduleName >= 0
+    //doFilter bp=:{bpr_instance = Just trt} (ModuleName mn)   = mn == "" || indexOf mn bp.bpr_moduleName >= 0
     doFilter bp=:{bpr_instance = Just trt} (TaskName tn)     = tn == "" || indexOf tn bp.bpr_taskName >= 0
-    doFilter bp=:{bpr_instance = Just trt} (UserInvolved un) = un == "" || indexOf un (toString (toJSON trt.bpi_involvedUsers)) >= 0
+    //doFilter bp=:{bpr_instance = Just trt} (UserInvolved un) = un == "" || indexOf un (toString (toJSON trt.bpi_involvedUsers)) >= 0
     doFilter bp=:{bpr_instance = Just trt} IsActive          = isNothing trt.bpi_endTime
     doFilter bp=:{bpr_instance = Just trt} (AndQuery l r)    = doFilter bp l && doFilter bp r
     doFilter bp=:{bpr_instance = Just trt} (OrQuery l r)     = doFilter bp l || doFilter bp r
     doFilter _                             _                 = True
   customView bpr=:{bpr_instance = Just bpi}
     = { DynamicView
-      | taskId      = bpi.bpi_taskId
-      , moduleName  = bpr.bpr_moduleName
-      , taskName    = bpr.bpr_taskName
-      , users       = bpi.bpi_involvedUsers
+      | // taskId      = bpi.bpi_taskId
+      //, moduleName  = bpr.bpr_moduleName
+        taskName    = "(" +++ toString bpi.bpi_taskId +++ ") " +++ bpr.bpr_moduleName +++ "." +++ bpr.bpr_taskName
       , startTime   = toString bpi.bpi_startTime
       , lastUpdate  = toString bpi.bpi_lastUpdated
       , endTime     = maybe "" toString bpi.bpi_endTime
       //, activeNodes = toString (toJSON bpi.bpi_activeNodes)
       }
   customView bpr = { DynamicView
-                   | taskId      = TaskId -1 -1
-                   , moduleName  = bpr.bpr_moduleName
-                   , taskName    = bpr.bpr_taskName
-                   , users       = []
+                   | // taskId      = TaskId -1 -1
+                   //, moduleName  = bpr.bpr_moduleName
+                     taskName    = bpr.bpr_moduleName +++ "." +++ bpr.bpr_taskName
+                   //, users       = []
                    , startTime   = ""
                    , lastUpdate  = ""
                    , endTime     = ""
