@@ -76,6 +76,6 @@ derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gVerify	        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
+					 ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
 

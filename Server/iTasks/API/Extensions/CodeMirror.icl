@@ -88,6 +88,12 @@ where
 	isSetTheme (CMTheme _) = True
 	isSetTheme _ = False
 
+onInitClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun JSCM)
+                ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
+                !(String {JSVal (JSObject JSEvent)} CodeMirrorClient *JSWorld -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
+                !(String CodeMirrorClient *JSWorld -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
+                !String !CodeMirrorClient !*JSWorld
+             -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
 onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world
 	# (obj, world) = findObject "CodeMirror.defaults" world
 	| not (jsIsUndefined obj)
@@ -97,6 +103,11 @@ onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world
 	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (mkHandler onLoadWrapper cid)) world
     = (clval, NoDiff, world)
 
+onLoad :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun JSCM)
+          ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
+          !(String CodeMirrorClient *JSWorld -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
+          !String c !CodeMirrorClient !*JSWorld
+       -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
 onLoad mkHandler eventhandlers cont cid _ clval=:{val={source,configuration}} world
 	# (ta, world)       = .? (getElementById (sourcearea cid)) world
 	# (co, world)       = createConfigurationObject configuration world
@@ -146,10 +157,8 @@ where
 		# nrlines = jsValToInt nrlines		
 
 		# (world, lines) = foldl (\(w,res) i -> let (line, w2) = readLine cmdoc i w in (w2, [line: res])) (world, []) (reverse [0..nrlines-1])
-
-        = ({clval & val={clval.val & source = lines}}, 
-        	Diff (genDiffServer clval.val {clval.val & source = lines}) (\_ st world -> (st, NoDiff, world)), 
-        	world)
+        # clDiff = mkDiff (genDiffServer clval.val {clval.val & source = lines})
+        = ({clval & val={clval.val & source = lines}}, clDiff, world)
 	where
 		readLine cmdoc n world
 			# (line, world) = callObjectMethod "getLine" [toJSArg n] cmdoc world
@@ -167,10 +176,12 @@ where
 		# val = if (idx1 == idx2)
 				   {val & selection = Nothing}
 				   {val & selection = Just (idx1,idx2)}
-		
-		= ({clval & val = val}, 
-			Diff (genDiffServer clval.val val) (\_ st world -> (st, NoDiff, world)), 
-			world)
+	    # clDiff = mkDiff (genDiffServer clval.val val)
+		= ({clval & val = val}, clDiff, world)
+
+mkDiff :: !(Maybe [CodeMirrorDiff]) -> ComponentDiff [CodeMirrorDiff] CodeMirrorClient
+mkDiff (Just ds) = Diff ds (\_ st world -> (st, NoDiff, world))
+mkDiff _         = NoDiff
 
 manageSystemEvents direction {codeMirror, systemEventHandlers} world
 	= foldl sw world systemEventHandlers
@@ -199,9 +210,8 @@ sourcearea :: String -> String
 sourcearea id = "cm_source_" +++ id
 
 codeMirrorEditlet :: !CodeMirror
-					 [(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
+					 ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
-		  
 codeMirrorEditlet g eventhandlers
   = { Editlet
     | currVal    = g
@@ -222,21 +232,31 @@ where
 								[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 								,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 								
-		  //, eventHandlers 	= \mkHandler -> [ComponentEvent "editlet" "init" (onInit mkHandler)]
-		  , eventHandlers 	= \mkHandler -> [] //FIXME
+          , eventHandlers 	= \mkHandler -> [ComponentEvent "editlet" "init" (onInit mkHandler)]
 		  , width 			= ExactSize 300
 		  , height			= ExactSize 300
 		  }
 
 	// init
-	onInit mkHandler cid event clval world	
+    onInit :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun JSCM)
+              !String a !CodeMirrorClient !*JSWorld
+           -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
+	onInit mkHandler cid _ clval world	
 		= onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world 
     where
+        onLoadWrapper :: !(String {JSVal (JSObject JSEvent)} CodeMirrorClient *JSWorld
+                      -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
 		onLoadWrapper = onLoad mkHandler eventhandlers onLoadCont
-		onLoadCont cid clval world = let (a,c) = onUpdate cid [] clval world in (a,NoDiff,c)
+        onLoadCont :: !String !CodeMirrorClient !*JSWorld
+                   -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
+		onLoadCont cid clval world
+          # (a, world) = onUpdate cid [] clval world
+          = (a,NoDiff,world)
 
 	// update
-	onUpdate cid diffs clval=:{mbSt=Nothing} world		
+    onUpdate :: !String ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
+             -> *(!CodeMirrorClient, !*JSWorld)
+	onUpdate cid diffs clval=:{mbSt=Nothing} world
 		= (clval, world)
 	
 	onUpdate cid diffs clval=:{mbSt=Just st=:{codeMirror,marks}} world	
@@ -304,14 +324,19 @@ where
 		isSetHighlights (SetHighlights _) = True
 		isSetHighlights _ = False
 	
+    unPackPosition :: !(JSVal (JSObject p)) !*JSWorld -> *(!(!JSVal a, !JSVal b), !*JSWorld)
 	unPackPosition pos world
 		# (line, world) = jsGetObjectAttr "line" pos world
 		# (ch, world) = jsGetObjectAttr "ch" pos world		
 		= ((line, ch), world)
-	
+
+    appDiffClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun f)
+                     !String ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
+                  -> *(!CodeMirrorClient, !*JSWorld)
 	appDiffClient mkHandler cid diffs clval world
 		= onUpdate cid diffs {clval & val = appDiffServer diffs clval.val} world
 		
+    appDiffServer :: ![CodeMirrorDiff] !CodeMirror -> CodeMirror
 	appDiffServer diffs val = foldl upd val diffs
 	where
 		upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
@@ -320,6 +345,7 @@ where
 		upd val=:{source} (ReplaceRange (flines,llines) diff) = {val & source = applyDiffServer source flines llines diff}
 		upd val=:{highlighted} (SetHighlights hs) = {val & highlighted = hs}					
 
+genDiffServer :: !CodeMirror !CodeMirror -> Maybe [CodeMirrorDiff]
 genDiffServer val1 val2 = case ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 						   ++
 						   if (val1.position == val2.position) [] [SetPosition val2.position]
@@ -332,6 +358,7 @@ genDiffServer val1 val2 = case ( map SetOption (differenceBy (===) val2.configur
        []      = Nothing
        diffs   = Just diffs
 
+applyDiffClient :: !(JSVal (JSObject a)) !Int !Int ![String] *JSWorld -> *JSWorld
 applyDiffClient cmdoc flines llines diff world
 	# (nrlines, world) = callObjectMethod "lineCount" [] cmdoc world
 	# nrlines = jsValToInt nrlines
@@ -343,6 +370,7 @@ applyDiffClient cmdoc flines llines diff world
 		= insert line1 world
 		= replace nrlines world
 where
+    replace :: !Int !*JSWorld -> *JSWorld
 	replace nrlines world 
 		# world = jsTrace (flines) world	
 		# world = jsTrace (nrlines - llines - 1) world
@@ -352,23 +380,25 @@ where
 		# (cmposto, world) = tupleToPos (nrlines - llines - 1, 0) world
 		= snd (callObjectMethod "replaceRange" [toJSArg (join "\n" diff +++ "\n"), toJSArg cmposfrom, toJSArg cmposto] cmdoc world)
 
+    insert :: !String !*JSWorld -> *JSWorld
 	insert line1 world
 		# (cmpos, world) = tupleToPos (flines - 1, size line1) world
 		= foldl (\w l -> snd (callObjectMethod "replaceRange" [toJSArg (l +++ "\n"), toJSArg cmpos, toJSArg cmpos] cmdoc w)) world (reverse diff)
 
-applyDiffServer :: [String] Int Int [String] -> [String]
+applyDiffServer :: ![String] !Int !Int ![String] -> [String]
 applyDiffServer os flines llines diff
 	= take flines os ++ diff ++ drop (length os - llines) os
 
-genDiffRange :: [String] [String] -> Maybe (Int,Int,[String])
+genDiffRange :: ![String] ![String] -> Maybe (!Int, !Int, ![String])
 genDiffRange os ns
 	= fmap addlines (calcDiffRange os ns)
 where
 	lns = length ns
+    addlines :: !(!Int, !Int) -> (!Int, !Int, ![String])
 	addlines (flines, llines) = (flines, llines, take (lns-llines-flines) (drop flines ns))
 
 // (valid lines from the left, valid lines from the right)
-calcDiffRange :: [String] [String] -> Maybe (Int,Int)
+calcDiffRange :: ![String] ![String] -> Maybe (!Int, !Int)
 calcDiffRange [] []
 	= Nothing
 calcDiffRange [] _
