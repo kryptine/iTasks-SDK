@@ -62,7 +62,7 @@ derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
   TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
 
-derive class iTask BlueprintRef, BlueprintInstance
+derive class iTask BlueprintRef, BlueprintInstance, BlueprintData
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapTopLevelBody mn tn args t = tonicWrapTaskBody` mn tn args t
@@ -166,7 +166,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
           # (_, iworld)      = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
           # bpdata           = { BlueprintData
                                | bpd_params = args
-                               , bpd_output = Nothing
+                               , bpd_id = 0
                                }
           # (_, iworld)      = 'DSDS'.write bpdata (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld
           = iworld
@@ -211,9 +211,9 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                                   , bpi_endTime          = Just currDateTime
                                                                   }
                                             } (sdsFocus currTaskId tonicInstances) iworld
-          # iworld = case resultToOutput tr of
-                       Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
-                       _           -> iworld
+          //# iworld = case resultToOutput tr of
+                       //Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
+                       //_           -> iworld
           = (tr, iworld)
         _ = (tr, iworld)
 
@@ -251,15 +251,14 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
             //= iworld
           //_ = iworld
   eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
-  resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
-  resultToOutput _                      = Nothing
-  resultUsers (ValueResult _ te _ _) = [] //FIXME get users from taskattributes instead 
-  resultUsers _                      = []
-  tvViewInformation NoValue     = Nothing
-  tvViewInformation (Value v _) = Just (viewInformation "Task result" [] v @! ())
+
+resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
+resultToOutput _                      = Nothing
+tvViewInformation NoValue     = Nothing
+tvViewInformation (Value v _) = Just (viewInformation (Title "Current task value") [] v @! ())
 
 firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
-firstParent _     [] = Error (exception "iTasks.Framework.Tonic.firstParent: no parent found")
+firstParent _     [] = Error (exception "iTasks._Framework.Tonic.firstParent: no parent found")
 firstParent rtMap [parent : parents]
   = case 'DM'.get parent rtMap of
       Just trt -> Ok trt
@@ -283,7 +282,7 @@ firstParent rtMap [parent : parents]
 
 :: BlueprintData =
   { bpd_params :: ![(!VarName, !Task ())]
-  , bpd_output :: !Maybe (Task ())
+  , bpd_id     :: !Int
   }
 
 tonicBlueprintDataStore :: RWShared () (Map TaskId BlueprintData) (Map TaskId BlueprintData)
@@ -370,15 +369,43 @@ tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
           # (cct, iworld) = mkCompleteTrace wrapInstanceNo callTrace iworld
           = case firstParent rtMap cct of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
-                # iworld       = updRTMap childTaskId cct parentBPRef parentBPInst rtMap iworld
+                # iworld       = updRTMap childTaskId cct parentBPRef parentBPInst iworld
                 # (rt, iworld) = eval event evalOpts taskTree iworld
                 # iworld       = updLoTMap childTaskId parentBPInst.bpi_taskId iworld
                 = (rt, iworld)
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:(TCInteract tid _ _ _ _ _) iworld
+    = evalInteract eval tid event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:(TCInteractLocal tid _ _ _ _) iworld
+    = evalInteract eval tid event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:(TCInteractViewOnly tid _ _ _ _) iworld
+    = evalInteract eval tid event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:(TCInteractLocalViewOnly tid _ _ _) iworld
+    = evalInteract eval tid event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:(TCInteract1 tid _ _ _) iworld
+    = evalInteract eval tid event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:(TCInteract2 tid _ _ _ _) iworld
+    = evalInteract eval tid event evalOpts taskTree iworld
   eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
-  updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst rtMap iworld
+  evalInteract eval childTaskId event evalOpts taskTree iworld
+    # (mbstid, iworld) = 'DSDS'.read selectedDetail iworld
+    = case mbstid of
+        Ok (Just (Right selectedId))
+          | selectedId == childTaskId
+            # (rt, iworld)   = eval event evalOpts taskTree iworld
+            # (mbpd, iworld) = 'DSDS'.read (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
+            # bpo = resultToOutput rt
+            # bpd = case mbpd of
+                      Ok bpd -> {bpd & bpd_id = bpd.bpd_id + 1}
+                      _      -> {bpd_params = [], bpd_id = 1}
+            # (_, iworld) = 'DSDS'.write bpd (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
+            # (_, iworld) = 'DSDS'.write (fromMaybe (viewInformation (Title "Notice") [] "Invalid task value" @! ()) bpo) selectedRemoteTask iworld
+            = (rt, iworld)
+        _ = eval event evalOpts taskTree iworld
+
+  updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
     # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
     # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
     # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
@@ -755,6 +782,9 @@ selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 selectedDetail :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedDetail = sharedStore "selectedDetail" Nothing
 
+selectedRemoteTask :: Shared (Task ())
+selectedRemoteTask = sharedStore "selectedRemoteTask" (return ())
+
 :: AdditionalInfo =
   { numberOfActiveTasks  :: !Int
   , tasksNearingDeadline :: ![BlueprintRef]
@@ -790,7 +820,7 @@ tonicDynamicBrowser` allbps rs navstack =
        (((((((
        filterQuery               <<@ ArrangeWithSideBar 0 LeftSide 200 True)
   -&&- activeBlueprintInstances) <<@ ArrangeWithSideBar 0 LeftSide 200 True)
-  -&&- additionalInfo)           <<@ ArrangeWithSideBar 0 LeftSide 1200 True)
+  -&&- additionalInfo)           <<@ ArrangeWithSideBar 0 LeftSide 1000 True)
   -&&- blueprintViewer)          <<@ ArrangeWithSideBar 0 TopSide 200 True)
        <<@ FullScreen @! ()
   where
@@ -801,11 +831,20 @@ tonicDynamicBrowser` allbps rs navstack =
     filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
 
   //additionalInfo = whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)
+  //additionalInfo = whileUnchanged selectedDetail viewDetail
+    //where
+    //viewDetail (Just (Right tid=:(TaskId instanceNo _))) = get (sdsFocus instanceNo taskInstanceAttributesByNo) >>= \x -> viewInformation (Title "Detailed information") [] (map (\(x, y) -> x +++ ": " +++ y) ('DM'.toList x)) @! ()
+    //viewDetail (Just (Left (mn, tn))) = viewInformation (Title "Detailed information") [] (mn, tn) @! ()
+    //viewDetail _                      = viewInformation (Title "Detailed information") [] "Select task" @! ()
   additionalInfo = whileUnchanged selectedDetail viewDetail
     where
-    viewDetail (Just (Right tid=:(TaskId instanceNo _))) = get (sdsFocus instanceNo taskInstanceAttributesByNo) >>= \x -> viewInformation (Title "Detailed information") [] (map (\(x, y) -> x +++ ": " +++ y) ('DM'.toList x)) @! ()
+    viewDetail (Just (Right tid))     = whileUnchanged (tonicBlueprintDataStore |+| selectedRemoteTask) (viewOutput tid)
     viewDetail (Just (Left (mn, tn))) = viewInformation (Title "Detailed information") [] (mn, tn) @! ()
     viewDetail _                      = viewInformation (Title "Detailed information") [] "Select task" @! ()
+    viewOutput tid (bpdstore, remote)
+      = case 'DM'.get tid bpdstore of
+          Just bpd -> remote
+          _        -> viewInformation (Title "Notice") [] "No task result yet" @! ()
 
   blueprintViewer
     =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings) (
