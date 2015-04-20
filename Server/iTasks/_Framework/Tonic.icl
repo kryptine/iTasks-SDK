@@ -77,7 +77,7 @@ instance TonicBlueprintPart Maybe where
 
 :: ListsOfTasks :== Map (TaskId, NodeId) (IntMap (ModuleName, TaskName))
 
-NS_TONIC_INSTANCES :== "tonice-instances"
+NS_TONIC_INSTANCES :== "tonic-instances"
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
@@ -282,7 +282,7 @@ firstParent rtMap [parent : parents]
 
 :: BlueprintData =
   { bpd_params :: ![(!VarName, !Task ())]
-  , bpd_id     :: !Int
+  , bpd_id     :: !Int // FIXME Hack to keep things refreshing
   }
 
 tonicBlueprintDataStore :: RWShared () (Map TaskId BlueprintData) (Map TaskId BlueprintData)
@@ -375,19 +375,18 @@ tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
                 = (rt, iworld)
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree=:(TCInteract tid _ _ _ _ _) iworld
-    = evalInteract eval tid event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree=:(TCInteractLocal tid _ _ _ _) iworld
-    = evalInteract eval tid event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree=:(TCInteractViewOnly tid _ _ _ _) iworld
-    = evalInteract eval tid event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree=:(TCInteractLocalViewOnly tid _ _ _) iworld
-    = evalInteract eval tid event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree=:(TCInteract1 tid _ _ _) iworld
-    = evalInteract eval tid event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree=:(TCInteract2 tid _ _ _ _) iworld
-    = evalInteract eval tid event evalOpts taskTree iworld
-  eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree iworld
+    = case interactTaskId taskTree of
+        Just tid -> evalInteract eval tid event evalOpts taskTree iworld
+        _        -> eval event evalOpts taskTree iworld
+
+  interactTaskId (TCInteract              tid _ _ _ _ _) = Just tid
+  interactTaskId (TCInteractLocal         tid _ _ _ _)   = Just tid
+  interactTaskId (TCInteractViewOnly      tid _ _ _ _)   = Just tid
+  interactTaskId (TCInteractLocalViewOnly tid _ _ _)     = Just tid
+  interactTaskId (TCInteract1             tid _ _ _)     = Just tid
+  interactTaskId (TCInteract2             tid _ _ _ _)   = Just tid
+  interactTaskId _                                       = Nothing
 
   evalInteract eval childTaskId event evalOpts taskTree iworld
     # (mbstid, iworld) = 'DSDS'.read selectedDetail iworld
@@ -403,7 +402,9 @@ tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
             # (_, iworld) = 'DSDS'.write bpd (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
             # (_, iworld) = 'DSDS'.write (fromMaybe (viewInformation (Title "Notice") [] "Invalid task value" @! ()) bpo) selectedRemoteTask iworld
             = (rt, iworld)
-        _ = eval event evalOpts taskTree iworld
+        _
+          # (_, iworld) = 'DSDS'.write (viewInformation (Title "Notice") [] "Cannot display current task value" @! ()) selectedRemoteTask iworld
+          = eval event evalOpts taskTree iworld
 
   updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
     # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
@@ -783,7 +784,7 @@ selectedDetail :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedDetail = sharedStore "selectedDetail" Nothing
 
 selectedRemoteTask :: Shared (Task ())
-selectedRemoteTask = sharedStore "selectedRemoteTask" (return ())
+selectedRemoteTask = sharedStore "selectedRemoteTask" (viewInformation (Title "Notice") [] "No task selected" @! ())
 
 :: AdditionalInfo =
   { numberOfActiveTasks  :: !Int
@@ -840,7 +841,7 @@ tonicDynamicBrowser` allbps rs navstack =
     where
     viewDetail (Just (Right tid))     = whileUnchanged (tonicBlueprintDataStore |+| selectedRemoteTask) (viewOutput tid)
     viewDetail (Just (Left (mn, tn))) = viewInformation (Title "Detailed information") [] (mn, tn) @! ()
-    viewDetail _                      = viewInformation (Title "Detailed information") [] "Select task" @! ()
+    viewDetail _                      = viewInformation (Title "Notice") [] "Select task" @! ()
     viewOutput tid (bpdstore, remote)
       = case 'DM'.get tid bpdstore of
           Just bpd -> remote
