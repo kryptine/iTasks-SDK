@@ -5,7 +5,7 @@ import MultiUser
 from   StdFunc import flip
 from   StdMisc import abort
 from   Control.Monad import replicateM
-import iTasks.Framework.Tonic
+import iTasks._Framework.Tonic
 import iTasks.API.Extensions.Admin.TonicAdmin
 
 Start :: *World -> *World
@@ -81,10 +81,18 @@ where
 	play_game` game_st (c,u) = (u,"Play Ligretto") @: play (c,userId u) game_st
 
 play :: !(!Color,!String) !(Shared GameSt) -> Task (Color,String)
-play (color,name) game_st
-	=   updateSharedInformation name [imageUpdate id (player_perspective color) (\_ _ -> Nothing) (\_ st -> st)] game_st
-    >>* [OnValue (withValue (game_over color game_st))]
+play (me,name) game_st
+    =   updateSharedInformation name [imageUpdate id (player_perspective me) (\_ _ -> Nothing) (const id)] game_st
+    >>* [OnValue (withValue (\gameSt -> determine_winner gameSt
+                            >>= \winner -> return (accolades winner me game_st >>| return winner)))]
+    //>>* [OnValue (withValue (game_over color game_st))]
 	//>>* [OnValue (ifValue game_is_over (show_winner color game_st))]
+
+determine_winner :: !GameSt -> Maybe (Color, String)
+determine_winner {players}
+  = case [player \\ player=:{ligretto} <- players | isEmpty ligretto] of
+      [{color, name} : _] = Just (color, name)
+      _                   = Nothing
 
 game_is_over :: GameSt -> Bool
 game_is_over gameSt
@@ -99,10 +107,13 @@ where
 
 game_over :: !Color !(Shared GameSt) !GameSt -> Maybe (Task (Color,String))
 game_over me game_st gameSt
-	= case and_the_winner_is gameSt of
-	    Just {color,name} = let winner = (color,name)
-	                         in Just (accolades winner me game_st >>| return winner)
-	    _                 = Nothing
+  =                    and_the_winner_is gameSt
+  >>= \{color,name} -> (let winner = (color,name)
+					   in return (accolades winner me game_st >>| return winner))
+	//= case and_the_winner_is gameSt of
+		//Just {color,name} = let winner = (color,name)
+							 //in Just (accolades winner me game_st >>| return winner)
+		//_                 = Nothing
 
 accolades :: !(!Color,!String) !Color !(Shared GameSt) -> Task GameSt
 accolades winner me game_st

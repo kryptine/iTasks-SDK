@@ -4,7 +4,7 @@ from   StdMisc import abort
 import Math.Random		// for generating random numbers
 import StdEnv
 import Data.Maybe, GenEq
-import iTasks.Framework.Generic.Visualization
+import iTasks._Framework.Generic.Visualization
 
 derive gEq Card, SideUp, Color
 derive gText Color

@@ -28,10 +28,10 @@ import iTasks.API.Extensions.SVG.SVGlet
 
 
 :: TraxSt
- = { trax   :: !Trax              // the current set of placed tiles
-   , names  :: ![User]            // the current two players
-   , turn   :: !Bool
-   , choice :: !Maybe Coordinate
+ = { trax   :: Trax              // the current set of placed tiles
+   , names  :: [User]            // the current two players
+   , turn   :: Bool
+   , choice :: Maybe Coordinate
    }
 
 play_trax :: Task User
