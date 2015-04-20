@@ -2,7 +2,7 @@ module CodeMirror
 
 import iTasks, iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
-import iTasks.API.Extensions.CodeMirrorTasklet
+import iTasks.API.Extensions.CodeMirror
 
 from StdArray import class Array(uselect), instance Array {} a
 
@@ -47,9 +47,15 @@ defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
 			"from StdFunc import id, const, o", 
 			"from Data.List import instance Functor []"] }
 
-editor :: Task CodeMirror
+//editor :: Task CodeMirror
+//editor
+//	= mkTask (codeMirrorTasklet defcm) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))
+		    
+		    
+editor :: Task [String]
 editor
-	= mkTask (codeMirrorTasklet defcm) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))
+	= (updateInformation "" [UpdateWith (\source -> codeMirrorEditlet {defcm & source = source} [])
+									   (\_ editlet -> editlet.currVal.source)] defcm.source) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))		    
 		                                                  				 							 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
@@ -66,3 +72,18 @@ returnV (Value v _) = return v
     
 Start :: *World -> *World
 Start world = startEngine editor world 
+
+import Text.JSON
+
+//Start :: Maybe CodeMirrorDiff
+//Start = fromJSON (fromString "[[\"SetHighlights\",[[[0,1],[0,3]]]]]")
+
+//Start :: 	
+//Start = fromJSON (fromString "[[\"SetSelection\",[[[0,0],[30,0]]]],[\"SetHighlights\",[[[0,1],[0,3]]]]]")
+
+//Start :: Maybe [CodeMirrorDiff]
+//Start = fromJSON (fromString "[[[\"SetHighlights\",[[[0,1],[0,3]]]]]]")
+
+//buu = [SetSelection (Just ((0,0),(30,0)))]
+//Start :: JSONNode
+//Start = toString (toJSON buu)
