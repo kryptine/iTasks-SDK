@@ -6,15 +6,15 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
+  TonicModule, TonicTask, TExpr, PPOr, TUser, TParallel, TStepCont,
   TStepFilter, TCleanExpr, TAssoc, TGen
 
 derive JSONDecode
-  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
+  TonicModule, TonicTask, TExpr, PPOr, TUser, TParallel, TStepCont,
   TStepFilter, TCleanExpr, TAssoc, TGen
 
 derive gEq
-  TonicModule, TonicTask, TExpr, PPOr, TShare, TUser, TParallel, TStepCont,
+  TonicModule, TonicTask, TExpr, PPOr, TUser, TParallel, TStepCont,
   TStepFilter, TCleanExpr, TAssoc, TGen
 
 :: TonicModule =
@@ -58,7 +58,6 @@ derive gEq
   | TStep      TExpr [PPOr TStepCont]
   | TParallel  ExprId TParallel
   | TAssign    TUser String TExpr
-  | TShare     TShare VarName [VarName]
   | TTransform TExpr VarName [VarName]
 
 :: TGen
@@ -73,11 +72,6 @@ derive gEq
   = TLeftAssoc Int
   | TRightAssoc Int
   | TNonAssoc
-
-:: TShare
-  = Get
-  | Set PPExpr
-  | Upd PPExpr
 
 :: TUser
   = TUAnyUser

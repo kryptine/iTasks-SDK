@@ -17,27 +17,27 @@ from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunct
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare
+  TParallel
 
 derive gEditMeta
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare
+  TParallel
 
 derive gDefault
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare
+  TParallel
 
 derive gUpdate
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare
+  TParallel
 
 derive gVerify
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare
+  TParallel
 
 derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare
+  TParallel
 
 // For all of these classes goes that the iTask context restriction shouldn't
 // be there. Ideally, we would have something like associated type families

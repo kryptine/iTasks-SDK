@@ -40,27 +40,27 @@ from Control.Applicative import class Applicative, instance Applicative Maybe
 
 derive gEditor
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
+  TParallel, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gEditMeta
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
+  TParallel, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gDefault
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
+  TParallel, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gUpdate
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
+  TParallel, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gVerify
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
+  TParallel, IntMap, TCleanExpr, TAssoc, TGen
 
 derive gText
   TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, TShare, IntMap, TCleanExpr, TAssoc, TGen
+  TParallel, IntMap, TCleanExpr, TAssoc, TGen
 
 derive class iTask BlueprintRef, BlueprintInstance, BlueprintData
 
@@ -287,7 +287,7 @@ firstParent rtMap [parent : parents]
 
 tonicBlueprintDataStore :: RWShared () (Map TaskId BlueprintData) (Map TaskId BlueprintData)
 tonicBlueprintDataStore = sdsTranslate "tonicBlueprintDataStore" (\t -> t +++> "-tonicBlueprintDataStore")
-                                       (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
+                                       (jsonFileStore NS_TONIC_INSTANCES True True (Just 'DM'.newMap))
 
 tonicBlueprintDataForTaskId :: RWShared TaskId BlueprintData BlueprintData
 tonicBlueprintDataForTaskId = sdsLens "tonicBlueprintDataForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicBlueprintDataStore
@@ -386,6 +386,7 @@ tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
   interactTaskId (TCInteractLocalViewOnly tid _ _ _)     = Just tid
   interactTaskId (TCInteract1             tid _ _ _)     = Just tid
   interactTaskId (TCInteract2             tid _ _ _ _)   = Just tid
+  interactTaskId (TCParallel              tid _ _)       = Just tid
   interactTaskId _                                       = Nothing
 
   evalInteract eval childTaskId event evalOpts taskTree iworld
@@ -393,15 +394,15 @@ tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
     = case mbstid of
         Ok (Just (Right selectedId))
           | selectedId == childTaskId
-            # (rt, iworld)   = eval event evalOpts taskTree iworld
-            # (mbpd, iworld) = 'DSDS'.read (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
-            # bpo = resultToOutput rt
-            # bpd = case mbpd of
-                      Ok bpd -> {bpd & bpd_id = bpd.bpd_id + 1}
-                      _      -> {bpd_params = [], bpd_id = 1}
-            # (_, iworld) = 'DSDS'.write bpd (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
-            # (_, iworld) = 'DSDS'.write (fromMaybe (viewInformation (Title "Notice") [] "Invalid task value" @! ()) bpo) selectedRemoteTask iworld
-            = (rt, iworld)
+          # (rt, iworld)   = eval event evalOpts taskTree iworld
+          # (mbpd, iworld) = 'DSDS'.read (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
+          # bpo = resultToOutput rt
+          # bpd = case mbpd of
+                    Ok bpd -> {bpd & bpd_id = bpd.bpd_id + 1}
+                    _      -> {bpd_params = [], bpd_id = 1}
+          # (_, iworld) = 'DSDS'.write bpd (sdsFocus childTaskId tonicBlueprintDataForTaskId) iworld
+          # (_, iworld) = 'DSDS'.write (fromMaybe (viewInformation (Title "Notice") [] "Invalid task value" @! ()) bpo) selectedRemoteTask iworld
+          = (rt, iworld)
         _
           # (_, iworld) = 'DSDS'.write (viewInformation (Title "Notice") [] "Cannot display current task value" @! ()) selectedRemoteTask iworld
           = eval event evalOpts taskTree iworld
@@ -784,7 +785,8 @@ selectedDetail :: Shared (Maybe (Either (ModuleName, TaskName) TaskId))
 selectedDetail = sharedStore "selectedDetail" Nothing
 
 selectedRemoteTask :: Shared (Task ())
-selectedRemoteTask = sharedStore "selectedRemoteTask" (viewInformation (Title "Notice") [] "No task selected" @! ())
+selectedRemoteTask = sdsTranslate "selectedRemoteTask" (\t -> t +++> "-selectedRemoteTask")
+                                  (jsonFileStore NS_TONIC_INSTANCES True True (Just (viewInformation (Title "Notice") [] "No task selected" @! ())))
 
 :: AdditionalInfo =
   { numberOfActiveTasks  :: !Int
@@ -1069,7 +1071,7 @@ instance < TExpr where
                 LT -> True
                 _  -> False
 
-derive gLexOrd TonicTask, TExpr, TGen, TCleanExpr, TShare, TParallel, PPOr,
+derive gLexOrd TonicTask, TExpr, TGen, TCleanExpr, TParallel, PPOr,
                TUser, TStepCont, Maybe, TAssoc, TStepFilter
 
 //mkConnectedGraph :: !AllBlueprints -> Graph TonicTask ()
@@ -1099,7 +1101,6 @@ connectedTasks allbps tt = successors tt.tt_body
   successors (TStep lexpr conts)  = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
   successors (TParallel _ par)    = succPar par
   successors (TAssign _ _ t)      = successors t
-  successors (TShare ts sn args)  = 'DS'.newSet
   successors (TTransform lhs _ _) = successors lhs
   successors (TVar _ pp)          = 'DS'.newSet
   successors (TCleanExpr _ pp)    = 'DS'.newSet
@@ -1183,7 +1184,6 @@ tExpr2Image inh (TCaseOrIf e pats)         tsrc = tCaseOrIf     inh e pats tsrc
 tExpr2Image inh (TStep lexpr conts)        tsrc = tStep         inh lexpr conts tsrc
 tExpr2Image inh (TParallel eid par)        tsrc = tParallel     inh eid par tsrc
 tExpr2Image inh (TAssign usr d t)          tsrc = tAssign       inh usr d t tsrc
-tExpr2Image inh (TShare ts sn args)        tsrc = tShare        inh ts sn args tsrc
 tExpr2Image inh (TTransform lhs vn args)   tsrc = tTransformApp inh lhs vn args tsrc
 tExpr2Image inh (TVar eid pp)              tsrc = tVar          inh eid pp tsrc
 tExpr2Image inh (TCleanExpr eid pp)        tsrc = tCleanExpr    inh eid pp tsrc
@@ -1227,6 +1227,9 @@ tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.
 
 tLineMarker :: Maybe (Markers ModelTy)
 tLineMarker = Just {defaultMarkers & markerEnd = Just tArrowTip}
+
+tSmallHorizConn :: Image ModelTy
+tSmallHorizConn = xline Nothing (px 4.0)
 
 tHorizConn :: Image ModelTy
 tHorizConn = xline Nothing (px 8.0)
@@ -1287,7 +1290,7 @@ tCleanExpr inh eid pp tsrc
 containsActiveNodes :: !MkImageInh !TExpr -> Bool
 containsActiveNodes inh (TBind lhs mpat rhs) = containsActiveNodes inh lhs || containsActiveNodes inh rhs
 containsActiveNodes inh (TReturn _ e)        = containsActiveNodes inh e
-containsActiveNodes inh (TTaskApp eid _ _ _) = 'DM'.member eid inh.inh_prev || maybe False (\bpi -> fst (nodeIsActive eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
+containsActiveNodes inh (TTaskApp eid _ _ _) = 'DM'.member eid inh.inh_prev || maybe False (\bpi -> isJust (activeNodeTaskId eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
 containsActiveNodes inh (TLet pats bdy)      = containsActiveNodes inh bdy
 containsActiveNodes inh (TCaseOrIf e pats)   = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
 containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || foldr f False conts
@@ -1297,7 +1300,6 @@ containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || 
   f (T e)  acc = acc || containsActiveNodesStepCont inh e
 containsActiveNodes inh (TParallel _ par) = containsActiveNodesTParallel inh par
 containsActiveNodes inh (TAssign _ _ t)      = containsActiveNodes inh t
-containsActiveNodes inh (TShare _ _ _)       = False
 containsActiveNodes inh (TTransform lhs _ _) = containsActiveNodes inh lhs
 containsActiveNodes inh (TVar _ _)           = False
 containsActiveNodes inh (TCleanExpr _ _)     = False
@@ -1358,38 +1360,38 @@ tCaseOrIf inh texpr pats tsrc
   y :: !Real !Real !Span -> Span
   y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
 
-tShare :: !MkImageInh !TShare !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tShare inh sh sn args [(sharetag, uShareTag) : tsrc]
-  #! boxTxt  = case sh of
-                 Get          -> "    "
-                 (Set ppexpr) -> ppexpr
-                 (Upd ppexpr) -> ppexpr
-  #! boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                 <@< { fill   = toSVGColor "white" }
-                 <@< { stroke = toSVGColor "black" }
-  #! boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
-  #! arr     = case sh of
-                 Get        -> tVertDownConnArr
-                 Set ppexpr -> tVertUpConnArr
-                 Upd ppexpr -> tVertUpDownConnArr
-  #! shareArr = tag uShareTag (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
-  #! emptyImg = empty zero (imageyspan sharetag)
-  // TODO Add arrows to/from box if the box is smaller than the share
-  = (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing, tsrc)
-  where
-  mkShare :: Image ModelTy
-  mkShare
-    #! box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
-                    <@< { fill   = toSVGColor "white" }
-                    <@< { stroke = toSVGColor "black" }
-    #! box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
-    #! box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
-    #! numArgs  = length args
-    #! box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
-                    <@< { fill   = toSVGColor "white" }
-                    <@< { stroke = toSVGColor "black" }
-    #! box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
-    = above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
+//tShare :: !MkImageInh !TShare !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
+//tShare inh sh sn args [(sharetag, uShareTag) : tsrc]
+  //#! boxTxt  = case sh of
+                 //Get          -> "    "
+                 //(Set ppexpr) -> ppexpr
+                 //(Upd ppexpr) -> ppexpr
+  //#! boxRect = rect (textxspan ArialRegular10px boxTxt + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                 //<@< { fill   = toSVGColor "white" }
+                 //<@< { stroke = toSVGColor "black" }
+  //#! boxImg  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [boxRect, text ArialRegular10px boxTxt] Nothing
+  //#! arr     = case sh of
+                 //Get        -> tVertDownConnArr
+                 //Set ppexpr -> tVertUpConnArr
+                 //Upd ppexpr -> tVertUpDownConnArr
+  //#! shareArr = tag uShareTag (above (repeat AtMiddleX) [] [mkShare, arr] Nothing)
+  //#! emptyImg = empty zero (imageyspan sharetag)
+  //// TODO Add arrows to/from box if the box is smaller than the share
+  //= (above (repeat AtMiddleX) [] [shareArr, boxImg, emptyImg] Nothing, tsrc)
+  //where
+  //mkShare :: Image ModelTy
+  //mkShare
+    //#! box1Rect = rect (textxspan ArialRegular10px sn + px 5.0) (px (ArialRegular10px.fontysize + 5.0))
+                    //<@< { fill   = toSVGColor "white" }
+                    //<@< { stroke = toSVGColor "black" }
+    //#! box1Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box1Rect, text ArialRegular10px sn] Nothing
+    //#! box2Text = above (repeat AtMiddleX) [] (map (text ArialRegular10px) args) Nothing
+    //#! numArgs  = length args
+    //#! box2Rect = rect (maxSpan (map (textxspan ArialRegular10px) args) + px 5.0) (px (ArialRegular10px.fontysize * toReal numArgs + 10.0))
+                    //<@< { fill   = toSVGColor "white" }
+                    //<@< { stroke = toSVGColor "black" }
+    //#! box2Img  = overlay (repeat (AtMiddleX, AtMiddleY)) [] (if (numArgs > 0) [box2Rect, box2Text] []) Nothing
+    //= above (repeat AtMiddleX) [] [box1Img, box2Img] Nothing
 
 tLet :: !MkImageInh ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!Image ModelTy, *TagSource)
 tLet inh pats expr [(txttag, uTxtTag) : tsrc]
@@ -1420,6 +1422,7 @@ tBind inh l mpat r tsrc
   #! (l`, tsrc) = tExpr2Image inh l tsrc
   #! (r`, tsrc) = tExpr2Image inh r tsrc
   #! linePart   = case mpat of
+                    // TODO Make outgoing edge label clickable to display output value
                     Just pat -> [l`, tHorizConn, tTextWithGreyBackground ArialRegular10px (ppTCleanExpr pat), tHorizConnArr, r`]
                     _        -> [l`, tHorizConnArr, r`]
   = (beside (repeat AtMiddleY) [] linePart Nothing, tsrc)
@@ -1434,7 +1437,7 @@ tParallel inh eid (ParSumL l r) tsrc // TODO This is actually not correct yet...
   #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
   #! vertConn             = mkVertConn refs
   #! parImg               = above (repeat AtMiddleX) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn,  parImg, vertConn, tHorizConn, tParSum] Nothing, tsrc)
+  = (beside (repeat AtMiddleY) [] [vertConn,  parImg, vertConn, tHorizConn ] Nothing, tsrc)
 tParallel inh eid (ParSumR l r) tsrc // TODO This is actually not correct yet... second image shouldn't have lines
   #! (l`, tsrc)           = tExpr2Image inh l tsrc
   #! (r`, tsrc)           = tExpr2Image inh r tsrc
@@ -1443,14 +1446,14 @@ tParallel inh eid (ParSumR l r) tsrc // TODO This is actually not correct yet...
   #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
   #! vertConn             = mkVertConn refs
   #! parImg               = above (repeat AtMiddleX) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn,  parImg, vertConn, tHorizConnArr, tParSum] Nothing, tsrc)
+  = (beside (repeat AtMiddleY) [] [vertConn,  parImg, vertConn, tHorizConnArr] Nothing, tsrc)
 tParallel inh eid (ParSumN ts) tsrc
   #! (ts`, tsrc) = mkParSum inh eid ts tsrc
   #! ts` = map (margin (px 5.0, px 0.0)) ts`
   #! (ts`, refs, tsrc) = prepCases [] ts` tsrc
   #! vertConn          = mkVertConn refs
   #! contsImg          = above (repeat AtMiddleX) [] ts` Nothing
-  = ( beside (repeat AtMiddleY) [] [tParSum, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tParSum] Nothing
+  = ( beside (repeat AtMiddleY) [] [vertConn, contsImg, vertConn, tHorizConnArr] Nothing
     , tsrc)
   where
   mkParSum :: !MkImageInh !NodeId !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
@@ -1472,7 +1475,7 @@ tParallel inh eid (ParProd ts) tsrc
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
   #! (ts, refs, tsrc) = prepCases [] imgs tsrc
   #! vertConn         = mkVertConn refs
-  = ( beside (repeat AtMiddleY) [] [tParProd, tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn, tHorizConnArr, tParProd] Nothing
+  = ( beside (repeat AtMiddleY) [] [tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn, tHorizConnArr] Nothing
     , tsrc)
   where
   mkParProd :: !MkImageInh !NodeId !(PPOr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
@@ -1552,30 +1555,40 @@ tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc
   #! tfApp        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
   = (beside (repeat AtMiddleY) [] [expr, tHorizConnArr, tfApp] Nothing, tsrc)
 
-nodeIsActive :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> (Bool, Maybe TaskId)
-nodeIsActive eid activeNodes = case [tid \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid] of
-                                 [tid : _] -> (True, Just tid)
-                                 _         -> (False, Nothing)
+activeNodeTaskId :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> Maybe TaskId
+activeNodeTaskId eid activeNodes
+  = case [tid \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid] of
+      [tid : _] -> Just tid
+      _         -> Nothing
 
 tTaskApp :: !MkImageInh !ExprId !ModuleName !VarName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskApp inh eid modName taskName taskArgs tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
-  #! (isActive, mbTid)  = case inh.inh_trt.bpr_instance of
-                            Just bpinst -> nodeIsActive eid bpinst.bpi_activeNodes
-                            _           -> (False, Nothing)
-  #! wasActive          = 'DM'.get eid inh.inh_prev
-  #! mbNavTo            = if (isJust mbTid) mbTid wasActive
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive (isJust wasActive) inh.inh_inaccessible modName taskName taskArgs`) inh.inh_task_apps tsrc
+  #! mActiveTid         = case inh.inh_trt.bpr_instance of
+                            Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
+                            _           -> Nothing
+  #! isActive           = isJust mActiveTid
+  #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
+  #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
+  #! wasActive          = isJust mPrevActiveTid
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultTaskApp inh.inh_compact isActive (isJust wasActive) inh.inh_inaccessible modName taskName taskArgs taskArgs` tsrc
-  = ( taskApp <@< { onclick = handleClick mbNavTo, local = False }
-    , tsrc)
+                            _          -> tDefaultTaskApp inh.inh_compact isActive wasActive inh.inh_inaccessible modName taskName taskArgs taskArgs` tsrc
+  #! taskApp            = taskApp <@< { onclick = navigate mbNavTo, local = False }
+  #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails mbNavTo, local = False }
+                                           <@< { fill = appColor isActive wasActive inh.inh_inaccessible }
+  #! inclArr = beside (repeat AtMiddleY) [] [taskApp, valAnchor] Nothing
+  #! resImg  = inclArr
+  = (resImg, tsrc)
   where
-  handleClick :: !(Maybe TaskId) !Int !ModelTy -> ModelTy
-  handleClick mbNavTo 1 st = { ActionState | st & action = Just (TDetailAction, maybe (Left (modName, taskName)) Right mbNavTo) }
-  handleClick mbNavTo 2 st = { ActionState | st & action = Just (TNavAction, maybe (Left (modName, taskName)) Right mbNavTo) }
-  handleClick _       _ st = st
+  navigate :: !(Maybe TaskId) !Int !ModelTy -> ModelTy
+  navigate mbNavTo 2 st = { ActionState | st & action = Just (TNavAction, maybe (Left (modName, taskName)) Right mbNavTo) }
+  navigate _       _ st = st
+
+  openDetails :: !(Maybe TaskId) !Int !ModelTy -> ModelTy
+  openDetails mbNavTo 1 st = { ActionState | st & action = Just (TDetailAction, maybe (Left (modName, taskName)) Right mbNavTo) }
+  openDetails _       _ st = st
 
 tRoundedRect :: !Span !Span -> Image a
 tRoundedRect width height
@@ -1629,18 +1642,22 @@ tDefaultTaskApp isCompact isActive wasActive isInAccessible modName taskName arg
                   _            -> taskArgs
   = tDefaultTaskApp` isCompact isActive wasActive isInAccessible modName taskName taskArgs tsrc
 
+appColor :: !Bool !Bool !Bool -> SVGColor
+appColor isActive wasActive isInAccessible
+  = if isActive
+      (toSVGColor "LimeGreen")
+      (if wasActive
+          (toSVGColor "DeepSkyBlue")
+          (if isInAccessible
+              (toSVGColor "Gainsboro")
+              (toSVGColor "White")
+          )
+      )
+
 tDefaultTaskApp` :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tDefaultTaskApp` isCompact isActive wasActive isInAccessible modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
-  #! bgColor     = if isActive
-                     (toSVGColor "LimeGreen")
-                     (if wasActive
-                         (toSVGColor "DeepSkyBlue")
-                         (if isInAccessible
-                             (toSVGColor "Gainsboro")
-                             (toSVGColor "White")
-                         )
-                     )
+  #! bgColor     = appColor isActive wasActive isInAccessible
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
