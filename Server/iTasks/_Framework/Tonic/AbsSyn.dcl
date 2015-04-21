@@ -52,13 +52,13 @@ derive gEq
   | TListCompr TExpr [TGen] TCleanExpr
   | TBind      TExpr (Maybe Pattern) TExpr
   | TReturn    ExprId   TExpr
+  | TFunctor   TExpr VarName [VarName]
   | TTaskApp   ExprId ModuleName VarName [TExpr]
   | TLet       [(Pattern, TExpr)] TExpr
   | TCaseOrIf  TExpr [(Pattern, TExpr)]
   | TStep      TExpr [PPOr TStepCont]
   | TParallel  ExprId TParallel
   | TAssign    TUser String TExpr
-  | TTransform TExpr VarName [VarName]
 
 :: TGen
   = TGenTogether TCleanExpr TCleanExpr

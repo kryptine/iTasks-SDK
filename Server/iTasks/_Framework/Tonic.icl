@@ -1049,8 +1049,8 @@ expandTExpr allbps n (TParallel eid par)
   expandPar p = p
 expandTExpr allbps n (TAssign usr d e)
   = TAssign usr d (expandTExpr allbps n e)
-expandTExpr allbps n (TTransform e vn args)
-  = TTransform (expandTExpr allbps n e) vn args
+expandTExpr allbps n (TFunctor e vn args)
+  = TFunctor (expandTExpr allbps n e) vn args
 expandTExpr _ n texpr = texpr
 
 instance == TonicTask where
@@ -1096,14 +1096,14 @@ connectedTasks allbps tt = successors tt.tt_body
                       Just tt -> 'DS'.singleton tt
                       _       -> 'DS'.newSet
         _ -> 'DS'.newSet
-  successors (TLet _ bdy)         = successors bdy
-  successors (TCaseOrIf _ pats)   = 'DS'.unions (map (successors o snd) pats)
-  successors (TStep lexpr conts)  = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
-  successors (TParallel _ par)    = succPar par
-  successors (TAssign _ _ t)      = successors t
-  successors (TTransform lhs _ _) = successors lhs
-  successors (TVar _ pp)          = 'DS'.newSet
-  successors (TCleanExpr _ pp)    = 'DS'.newSet
+  successors (TLet _ bdy)        = successors bdy
+  successors (TCaseOrIf _ pats)  = 'DS'.unions (map (successors o snd) pats)
+  successors (TStep lexpr conts) = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
+  successors (TParallel _ par)   = succPar par
+  successors (TAssign _ _ t)     = successors t
+  successors (TFunctor lhs _ _)  = successors lhs
+  successors (TVar _ pp)         = 'DS'.newSet
+  successors (TCleanExpr _ pp)   = 'DS'.newSet
 
   succStepCont (StepOnValue    sf)   = succStepCont` sf
   succStepCont (StepOnAction _ sf)   = succStepCont` sf
@@ -1184,7 +1184,7 @@ tExpr2Image inh (TCaseOrIf e pats)         tsrc = tCaseOrIf     inh e pats tsrc
 tExpr2Image inh (TStep lexpr conts)        tsrc = tStep         inh lexpr conts tsrc
 tExpr2Image inh (TParallel eid par)        tsrc = tParallel     inh eid par tsrc
 tExpr2Image inh (TAssign usr d t)          tsrc = tAssign       inh usr d t tsrc
-tExpr2Image inh (TTransform lhs vn args)   tsrc = tTransformApp inh lhs vn args tsrc
+tExpr2Image inh (TFunctor lhs vn args)     tsrc = tFunctorApp   inh lhs vn args tsrc
 tExpr2Image inh (TVar eid pp)              tsrc = tVar          inh eid pp tsrc
 tExpr2Image inh (TCleanExpr eid pp)        tsrc = tCleanExpr    inh eid pp tsrc
 
@@ -1298,11 +1298,11 @@ containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || 
   f :: !(PPOr TStepCont) Bool -> Bool
   f (PP _) acc = acc
   f (T e)  acc = acc || containsActiveNodesStepCont inh e
-containsActiveNodes inh (TParallel _ par) = containsActiveNodesTParallel inh par
-containsActiveNodes inh (TAssign _ _ t)      = containsActiveNodes inh t
-containsActiveNodes inh (TTransform lhs _ _) = containsActiveNodes inh lhs
-containsActiveNodes inh (TVar _ _)           = False
-containsActiveNodes inh (TCleanExpr _ _)     = False
+containsActiveNodes inh (TParallel _ par)  = containsActiveNodesTParallel inh par
+containsActiveNodes inh (TAssign _ _ t)    = containsActiveNodes inh t
+containsActiveNodes inh (TFunctor lhs _ _) = containsActiveNodes inh lhs
+containsActiveNodes inh (TVar _ _)         = False
+containsActiveNodes inh (TCleanExpr _ _)   = False
 
 containsActiveNodesTParallel :: !MkImageInh !TParallel -> Bool
 containsActiveNodesTParallel inh (ParSumL l r)   = containsActiveNodes inh l || containsActiveNodes inh r
@@ -1539,8 +1539,8 @@ tTaskDef taskName resultTy _ tdbody [(bdytag, uBodyTag) : tsrc]
   mkArgAndTy :: !(!String, !TCleanExpr) -> String
   mkArgAndTy (arg, ty) = arg +++ " :: " +++ ppTCleanExpr ty
 
-tTransformApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]
+tFunctorApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tFunctorApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]
   #! tfNameImg    = tag uNmTag (margin (px 5.0) (text ArialItalic10px tffun))
   #! tfArgsImgs   = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
   #! (expr, tsrc) = tExpr2Image inh texpr tsrc
@@ -1553,7 +1553,7 @@ tTransformApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc
                                                 [] -> [tfNameImg]
                                                 _  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
   #! tfApp        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-  = (beside (repeat AtMiddleY) [] [expr, tHorizConnArr, tfApp] Nothing, tsrc)
+  = (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
 
 activeNodeTaskId :: !ExprId !(Map ListId (IntMap (TaskId, NodeId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
