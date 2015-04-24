@@ -181,7 +181,7 @@ blobStoreRead namespace key iworld
         (Ok (_,content),iworld) = (Ok content,iworld)
         (Error e,iworld) = (Error e,iworld)
 	
-writeToDisk :: !StoreNamespace !StoreName !{#Char} !*IWorld -> *IWorld
+writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
 writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}},world}
 	# location = dataDirectory </> "stores"
 	//Check if the location exists and create it otherwise
@@ -209,7 +209,7 @@ writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}
 	# (ok,world)		= fclose file world
 	= {IWorld|iworld & world = world}
 
-readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID,!{#Char}), !*IWorld)	
+readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID,!String), !*IWorld)	
 readFromDisk namespace key iworld=:{server={paths={dataDirectory}},world}
 	# filename			= addExtension (dataDirectory </> "stores" </> namespace </> safeName key) "txt"
 	# (ok,file,world)	= fopen filename FReadData world

@@ -46,18 +46,17 @@ class TonicTopLevelBlueprint m | TMonad m where
   tonicWrapTopLevelBody :: !ModuleName !TaskName [(VarName, m ())] (m a) -> m a | iTask a
 
 class TonicBlueprintPart m | TMonad m where
-  tonicWrapPartApp :: !ModuleName !TaskName !NodeId (m a) -> m a | iTask a
+  tonicWrapPartApp :: !ModuleName !TaskName !ExprId (m a) -> m a | iTask a
 
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
 instance TonicBlueprintPart Maybe
 
-:: TaskAppRenderer :== Bool Bool Bool Bool ModuleName VarName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
+:: TaskAppRenderer :== Bool Bool Bool Bool (Set (ModuleName, TaskName, ExprId)) ExprId ModuleName TaskName ModuleName TaskName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
 
 :: ModelTy
-:: NodeId :== [Int]
 
-tDefaultTaskApp       :: !Bool !Bool !Bool !Bool !ModuleName !VarName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultTaskApp       :: !Bool !Bool !Bool !Bool !(Set (ModuleName, TaskName, ExprId)) !ExprId !ModuleName !TaskName !ModuleName !TaskName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
 tonicStaticBrowser    :: [TaskAppRenderer] -> Task ()
 
@@ -77,12 +76,12 @@ tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, m ())] (b c   -> m a) 
 
 tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicWrapApp          :: !ModuleName !TaskName !NodeId (          m a)          -> m a | TonicBlueprintPart m & iTask a
+tonicWrapApp          :: !ModuleName !TaskName !ExprId (          m a)          -> m a | TonicBlueprintPart m & iTask a
 
-tonicWrapAppLam1      :: !ModuleName !TaskName !NodeId !(b     -> m a) -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicWrapAppLam1      :: !ModuleName !TaskName !ExprId !(b     -> m a) -> b     -> m a | TonicBlueprintPart m & iTask a
 
-tonicWrapAppLam2      :: !ModuleName !TaskName !NodeId !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicWrapAppLam2      :: !ModuleName !TaskName !ExprId !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
 
-tonicWrapAppLam3      :: !ModuleName !TaskName !NodeId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicWrapAppLam3      :: !ModuleName !TaskName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
 
-tonicWrapParallel     :: !ModuleName !TaskName !NodeId !([Task a] -> Task b) [Task a] -> Task b | iTask b
+tonicWrapParallel     :: !ModuleName !TaskName !ExprId !([Task a] -> Task b) [Task a] -> Task b | iTask b

@@ -122,3 +122,6 @@ listStoreNamespaces     ::                                          !*IWorld -> 
 */
 listStoreNames          :: !StoreNamespace                          !*IWorld -> (!MaybeErrorString [StoreName], !*IWorld)
 
+writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
+
+readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID, !String), !*IWorld)
