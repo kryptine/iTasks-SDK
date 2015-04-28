@@ -17,7 +17,15 @@ Follow these steps to get a working system:
 
  3. Append the contents of iTasks.env to $CLEAN_HOME/etc/IDEEnvs
 
- 4. You are now ready to compile your iTasks program. The best way to do so is
+ 4. Compile the latest graph_copy for your platform. It can be found in
+    $CLEAN_HOME/lib/iTasks-SDK/Dependencies/graph_copy. Remove
+    graph_to_string_with_descriptors.icl and rename
+    graph_to_string_with_descriptors_macho.icl to
+    graph_to_string_with_descriptors.icl. Build graph_copy using:
+
+      make -f Makefile.macosx
+
+ 5. You are now ready to compile your iTasks program. The best way to do so is
     by using CPM. To build all project files in the current directory, simply
     type
 
