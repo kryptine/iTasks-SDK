@@ -907,7 +907,7 @@ tonicDynamicBrowser` allbps rs navstack =
     doFilter _                             _                 = True
   customView bpr=:{bpr_instance = Just bpi}
     = { DynamicView
-      | taskName    = "(" +++ toString bpi.bpi_taskId +++ ") " +++ bpr.bpr_moduleName +++ "." +++ bpr.bpr_taskName
+      | taskName    = bpr.bpr_moduleName +++ "." +++ bpr.bpr_taskName +++ " (" +++ toString bpi.bpi_taskId +++ ")"
       , startTime   = toString bpi.bpi_startTime
       , lastUpdate  = toString bpi.bpi_lastUpdated
       , endTime     = maybe "" toString bpi.bpi_endTime
@@ -1614,6 +1614,11 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
   #! wasActive          = isJust mPrevActiveTid
+  #! taskIdStr          = case (mActiveTid, mPrevActiveTid) of
+                            (Just x, _) -> " (" +++ toString x +++ ")"
+                            (_, Just x) -> " (" +++ toString x +++ ")"
+                            _           -> ""
+  #! taskName           = taskName +++ taskIdStr
   #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName taskName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
