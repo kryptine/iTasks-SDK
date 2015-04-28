@@ -162,12 +162,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpr_instance   = Just bpinst
                                }
           # (_, iworld)      = 'DSDS'.write blueprint (sdsFocus currTaskId tonicInstances) iworld
-          # iworld           = storeParams` mn tn currTaskId args iworld 
-          //# bpdata           = { BlueprintData
-                               //| bpd_params = args
-                               //, bpd_id = 0
-                               //}
-          //# (_, iworld)      = 'DSDS'.write bpdata (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld
+          # iworld           = storeParams` mn tn currTaskId args iworld
           = iworld
         _ = iworld
 
@@ -210,57 +205,16 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                                   , bpi_endTime          = Just currDateTime
                                                                   }
                                             } (sdsFocus currTaskId tonicInstances) iworld
-
-          # iworld = case resultToOutput tr of
-                       Just output -> storeResult` mn tn currTaskId output iworld
-                       _           -> iworld
-
+          # iworld = storeResult` mn tn currTaskId (resultToOutput currTaskId tr) iworld
           # iworld = snd ('DSDS'.modify ('DM'.del currTaskId) storedOutputEditors iworld)
-          //# iworld = case resultToOutput tr of
-                       //Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
-                       //_           -> iworld
           = (tr, iworld)
         _ = (tr, iworld)
 
-  // TODO Figure out if we can get the desired info from someplace else. It is rather expensive to do all of this here.
-  //eval` _ event evalOpts taskTree iworld
-    //# (tr, iworld) = eval event evalOpts taskTree iworld
-    //= (tr, okSt iworld (readAndUpdateRTMap tr) (taskIdFromTaskTree taskTree))
-    //where
-    //readAndUpdateRTMap tr currTaskId iworld
-      //# (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
-      //= case mbpref of
-          //Ok bpref=:{bpr_instance = Just inst}
-            //# (curr, iworld)   = iworld!current
-            //# (clocks, iworld) = iworld!clocks
-            //# currDateTime     = DateTime clocks.localDate clocks.localTime
-            //# oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
-                                            //inst.bpi_previouslyActive
-            //# (_, iworld)      = 'DSDS'.write { bpref
-                                              //& bpr_instance = Just { inst
-                                                                    //& bpi_previouslyActive = case tr of
-                                                                                               //ValueResult (Value _ True) _ _ _ -> oldActive
-                                                                                               //_                                -> inst.bpi_previouslyActive
-                                                                    //, bpi_activeNodes      = case tr of
-                                                                                               //ValueResult (Value _ True) _ _ _ -> 'DM'.newMap
-                                                                                               //_                                -> inst.bpi_activeNodes
-                                                                    //, bpi_lastUpdated      = currDateTime
-                                                                    //, bpi_endTime          = case tr of
-                                                                                               //ValueResult (Value _ True) _ _ _ -> Just currDateTime
-                                                                                               //_                                -> Nothing
-                                                                    //}
-                                              //} (sdsFocus currTaskId tonicInstances) iworld
-            //# iworld = case resultToOutput tr of
-                         //Just output -> snd ('DSDS'.modify (\bpd -> {bpd & bpd_output = Just output}) (sdsFocus currTaskId tonicBlueprintDataForTaskId) iworld)
-                         //_           -> iworld
-            //= iworld
-          //_ = iworld
   eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
 
-resultToOutput (ValueResult tv _ _ _) = tvViewInformation tv
-resultToOutput _                      = Nothing
-tvViewInformation NoValue     = Nothing
-tvViewInformation (Value v _) = Just (viewInformation (Title "Current task value") [] v @! ())
+resultToOutput :: !TaskId !(TaskResult a) -> Task () | iTask a
+resultToOutput tid (ValueResult (Value v _) _ _ _) = viewInformation (Title ("Value for task " +++ toString tid)) [] v @! ()
+resultToOutput tid _                               = viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! ()
 
 firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
 firstParent _     [] = Error (exception "iTasks._Framework.Tonic.firstParent: no parent found")
@@ -382,52 +336,56 @@ tonicWrapApp mn tn tid mapp = tonicWrapPartApp mn tn tid mapp
  * highlight nodes.
  */
 tonicWrapApp` :: !ModuleName !TaskName !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` mn tn nid (Task eval) = mkTaskId >>~ Task o eval`
+tonicWrapApp` mn tn nid (Task eval)
+  // The "return () >>~ \_ ->" part ensures each wrapped task application has a
+  // unique TaskId. This is to distinguish tasks defined as f = g, which would
+  // otherwise have the same TaskId
+  =         return ()
+  >>~ \_ -> Task eval`
   where
-  eval` wrapTaskId=:(TaskId wrapInstanceNo wrapTaskNo) event evalOpts=:{TaskEvalOpts|callTrace} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo childTaskNo) _) iworld
+  eval` event evalOpts=:{TaskEvalOpts|callTrace} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     = case mrtMap of
         Ok rtMap
-          # (cct, iworld) = mkCompleteTrace wrapInstanceNo callTrace iworld
+          # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
           = case firstParent rtMap cct of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
                 # iworld       = updRTMap childTaskId cct parentBPRef parentBPInst iworld
-                # (rt, iworld) = eval event evalOpts taskTree iworld
+                # (tr, iworld) = eval event evalOpts taskTree iworld
+                # iworld       = evalInteract tr eval childTaskId event evalOpts taskTree iworld
                 # iworld       = updLoTMap childTaskId parentBPInst.bpi_taskId iworld
-                = (rt, iworld)
+                = (tr, iworld)
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
 
-  eval` _ event evalOpts taskTree=:(TCStable _ _ _) iworld
+  eval` event evalOpts taskTree=:(TCStable _ _ _) iworld
     = eval event evalOpts taskTree iworld
 
-  eval` _ event evalOpts taskTree=:TCNop iworld
+  eval` event evalOpts taskTree=:TCNop iworld
     = eval event evalOpts taskTree iworld
 
-  eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
+  eval` event evalOpts taskTree=:(TCDestroy _) iworld
     = eval event evalOpts taskTree iworld
 
-  eval` _ event evalOpts taskTree=:TCTasklet iworld
+  eval` event evalOpts taskTree=:TCTasklet iworld
     = eval event evalOpts taskTree iworld
 
-  eval` _ event evalOpts taskTree iworld
+  eval` event evalOpts taskTree iworld
     = case taskIdFromTaskTree taskTree of
-        Ok tid -> evalInteract eval tid event evalOpts taskTree iworld
-        _      -> eval event evalOpts taskTree iworld
+        Ok tid
+          # (tr, iworld) = eval event evalOpts taskTree iworld
+          # iworld       = evalInteract tr eval tid event evalOpts taskTree iworld
+          = (tr, iworld)
+        _ = eval event evalOpts taskTree iworld
 
-  evalInteract eval childTaskId event evalOpts taskTree iworld
+  evalInteract tr eval childTaskId event evalOpts taskTree iworld
     # (mbnds, iworld) = 'DSDS'.read selectedNodes iworld
-    = case mbnds of
-        Ok nodes
-          | 'DS'.member (mn, tn, nid) nodes
-          # (rt, iworld) = eval event evalOpts taskTree iworld
-          # iworld       = case resultToOutput rt of
-                             Just output -> snd ('DSDS'.modify ('DM'.put childTaskId output) storedOutputEditors iworld)
-                             _           -> iworld
-          = (rt, iworld)
-        _
-          //# (_, iworld) = 'DSDS'.write (childTaskId, viewInformation (Title "Notice") [] "Cannot display current task value" @! ()) storedOutputEditors iworld
-          = eval event evalOpts taskTree iworld
+    # editor          = case mbnds of
+                          Ok nodes
+                            | 'DS'.member (mn, tn, nid) nodes
+                            = resultToOutput childTaskId tr
+                          _ = viewInformation (Title "Notice") [] (pp3 (mn, tn, nid) +++ " not in selectedNodes") @! ()
+    = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
 
   updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
     # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
@@ -728,7 +686,15 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   handleClicks :: TonicModule TonicTask (TClickAction, ClickMeta) a -> Task ()
   handleClicks tm tt (TNavAction, meta) _ = navigate (\ns -> [meta : ns]) tm tt meta
   handleClicks tm tt (TDetailAction, _) _ = viewStaticTask allbps rs navstack trt tm tt depth compact
-  handleClicks tm tt (TSelectNode, _)   _ = viewStaticTask allbps rs navstack trt tm tt depth compact
+  handleClicks tm tt (TSelectNode, meta=:{click_origin_mbnodeId = Just nodeId, click_target_bpident = {bpident_taskId}}) _
+    # sel = (tm.tm_name, tt.tt_name, nodeId)
+    =                     get selectedNodes
+    >>= \selNodes      -> get storedOutputEditors
+    >>= \outputEditors -> if ('DS'.member sel selNodes)
+                            (   maybe (return ()) (\ttid -> set ('DM'.del ttid outputEditors) storedOutputEditors @! ()) bpident_taskId
+                            >>| set ('DS'.delete sel selNodes) selectedNodes)
+                            (set ('DS'.insert sel selNodes) selectedNodes)
+    >>| viewStaticTask allbps rs navstack trt tm tt depth compact
 
   navigate :: (NavStack -> NavStack) TonicModule TonicTask ClickMeta -> Task ()
   navigate mkNavStack _ _ meta=:{click_target_bpident = {bpident_taskId = Just _}}
@@ -886,8 +852,9 @@ tonicDynamicBrowser` allbps rs navstack =
     viewDetail _                                                           = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
 
     viewOutput tid=:(TaskId ino tno) ts = case 'DM'.get tid ts of
-                                            Just remote -> viewInformation (Title "Task ID") [] (toString ino +++ " " +++ toString tno) ||- remote
-                                            _           -> viewInformation (Title "Something went wrong") [] "Something went wrong" @! ()
+                                            Just remote -> remote
+                                            //_           -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] "Could not find task in storedOutputEditors" @! ()
+                                            _           -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] ts @! ()
 
   blueprintViewer
     =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings) (
