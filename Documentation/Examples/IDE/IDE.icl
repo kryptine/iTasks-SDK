@@ -14,7 +14,7 @@ import IDE_Types
 //Common actions
 ActionSearch :== Action "Search" [ActionIcon "search",ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}]
 ActionAdd    :== Action "Add" []
-ActionOpen   :== Action "Open" []
+ActionOpen   :== Action "Open" [ActionTrigger DoubleClick]
 
 //Global status (for all users! If you open a file, everybody opens a file!)
 IDE_Status :: (Shared IDE_Status)
@@ -59,7 +59,7 @@ where
 				            ])
 				       )) @? const NoValue
 
-    openSelection list (SelSourceTree rootDir) = openSourceTreeEditor rootDir list
+    openSelection list (SelSourceTree name rootDir) = openSourceTreeEditor rootDir list
     openSelection list (SelMainModule moduleName moduleBase) = openModuleEditor moduleName MainModule moduleBase list
     openSelection list (SelAuxModule moduleName moduleBase) = openModuleEditor moduleName AuxModule moduleBase list
 
@@ -67,7 +67,7 @@ where
     addSourceTree =
         (   (enterInformation "Please give a descriptive name for this source tree" []
              -&&-
-             enterInformation "Please specify the location of the sourcecode on your disk" []
+             locateSourceFolder 
              -&&-
              enterInformation "If the source tree is splitted into overlapping parts (for multiplatform subtrees), you can specify the subdirectories here" []
             )
@@ -81,6 +81,8 @@ where
                     upd (\status -> {status & codeBase = status.codeBase ++ [tree]}) IDE_Status
                 >>| updateCodeBase
                 @! tree
+		
+		locateSourceFolder = enterInformation "Please specify the location of the sourcecode on your disk" []
 
     addSearches list = forever
           (((    (enterInformation () [] <<@ NoAnnotation)
@@ -112,10 +114,42 @@ openSourceTreeEditor base list
     >>- \taskId -> focusTask taskId list
     @!  ()
 
+:: SourceTreeOptions = { name :: String, rootPath :: FilePath }
+derive class iTask SourceTreeOptions
+
 editSourceTree :: FilePath (SharedTaskList IDE_TaskResult) -> Task FilePath
 editSourceTree base list
-    = viewInformation () [] "Editing source trees is not supported in this version"
+	//Just edit options for now
+	= forever (viewSourceTreeDetails base
+			>>* [OnAction ActionEdit (always (editSourceTreeOptions base))]
+ 	  )
     <<@ Title "Source tree" <<@ Icon "sourcetree"
+where
+	viewSourceTreeDetails base
+		= viewSharedInformation () [ViewWith (fmap view o findSourceTree base)] IDE_Status @! base
+	where
+		view {SourceTree|name,rootPath} = {SourceTreeOptions|name = name, rootPath = rootPath}
+
+	editSourceTreeOptions base
+		= 	get IDE_Status @ findSourceTree base
+		>>- \mbSourceTree -> case mbSourceTree of
+			Nothing = throw ("Source tree at "+++ base +++ " not found")
+			Just {SourceTree|name,rootPath} 
+				= 	updateInformation () [] {SourceTreeOptions|name = name, rootPath = rootPath}
+				>>= \{SourceTreeOptions|name=newName,rootPath=newRootPath} ->
+					upd (\s=:{codeBase} -> {s & codeBase = map (updateTree base newName newRootPath) codeBase}) IDE_Status
+				@! base
+
+
+	updateTree base newName newRootPath tree=:{SourceTree|rootPath}
+		| rootPath == base  = {SourceTree|tree & name = newName, rootPath = newRootPath}
+							= tree
+
+	findSourceTree base {codeBase} 
+		= case [tree \\ tree=:{SourceTree|rootPath} <- codeBase | rootPath == base] of
+			[tree] 			= Just tree
+			_				= Nothing
+
 
 openModuleEditor :: ModuleName ModuleType FilePath (SharedTaskList IDE_TaskResult) -> Task ()
 openModuleEditor name type base list

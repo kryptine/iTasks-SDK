@@ -22,7 +22,7 @@ navigateCodebase codebase
     = enterChoice () [ChooseWith (ChooseFromTree (groupModules (sourceTreeRoots codebase)))] (modulesOf codebase)
 where
     modulesOf codebase
-        = flatten [[SelSourceTree name:[moduleSelection modName modType modPath \\ (modName,modType,modPath) <- modules]] \\ {SourceTree|name,modules} <- codebase]
+        = flatten [[SelSourceTree name rootPath:[moduleSelection modName modType modPath \\ (modName,modType,modPath) <- modules]] \\ {SourceTree|name,rootPath,modules} <- codebase]
 
     sourceTreeRoots codebase
         = flatten (map roots codebase)
@@ -36,7 +36,7 @@ where
     groupModules roots options expanded = sortByLabel (foldl insert [] options)
     where
         //Add a new source tree
-	    insert nodeList (i,m=:(SelSourceTree name))
+	    insert nodeList (i,m=:(SelSourceTree name rootNode))
             = nodeList ++ [{ChoiceTree|label=name,icon=Just "sourcetree",value=ChoiceNode i, type = ifExpandedChoice i expanded []}]
         //Find the node that holds the tree to which this module belongs, and add it there
         insert nodeList (i,m) = insert` (sourceTreeOf m roots) (split "." (moduleName m)) (i,m) nodeList

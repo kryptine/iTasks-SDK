@@ -14,7 +14,7 @@ import iTasks.API.Extensions.CodeMirror
     , modules       :: [(ModuleName,ModuleType,FilePath)]   //Modules found in the paths locations
     }
 :: SourceTreeSelection
-    = SelSourceTree SourceTreeName
+    = SelSourceTree SourceTreeName FilePath
     | SelMainModule ModuleName FilePath
     | SelAuxModule  ModuleName FilePath
 
