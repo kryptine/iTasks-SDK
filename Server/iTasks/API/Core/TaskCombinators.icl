@@ -388,10 +388,12 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
                     (modify (\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus})
                         (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem) iworld)
                 | mbError =:(Error _) = (Error (fromError mbError),iworld)
+                //Add the current result before checking for removals
+                # completed = [result:completed]
                 //Check if in the branch tasks from this list were removed but that were already evaluated
-                # removed = [t \\ (l,t=:(TaskId _ n)) <- removedTasks | l == listId && n <= taskNo]
+                # removed = [t \\ (l,t=:(TaskId _ n)) <- removedTasks | l == listId  && n <= taskNo]
                 # (completed,iworld) = destroyRemoved removed completed iworld
-                = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
+                = evalParallelTasks listId taskTrees event evalOpts conts completed todo iworld
 where
     encode NoValue      = NoValue
     encode (Value v s)  = Value (toJSON v) s
