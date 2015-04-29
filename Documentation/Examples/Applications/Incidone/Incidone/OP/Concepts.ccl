@@ -43,7 +43,7 @@ $$ PhoneCall [Communication]
 $$ PhoneCallReference = String
 
 //Phonecall status should be total role, but this breaks with subtypes atm
-## externalNo   = << PhoneCall >> is with PhoneNumber
+## externalNo   = << PhoneCall >> is with PhoneNo
 ## externalRef  = << PhoneCall >> is externally referenced as PhoneCallReference
 ## callNotes    = << PhoneCall >> is described in CallNotes
 
@@ -293,7 +293,7 @@ $$ CommunicationMeanType = {"Telephone" (CMPhone),"VHF" (CMVHF),"E-mail" (CMEmai
 ## type = << !CommunicationMean >> has CommunicationMeanType
 
 $$ Telephone [CommunicationMean]
-## phoneNo = << Telephone >> is identified by << PhoneNumber >>
+## phoneNo = << Telephone >> is identified by << PhoneNo >>
 
 $$ VHFRadio [CommunicationMean]
 ## callSign = << VHFRadio >> is called using CallSign
