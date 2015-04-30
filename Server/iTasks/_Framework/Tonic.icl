@@ -207,6 +207,8 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
 markStable mn tn currTaskId tr event evalOpts taskTree iworld
   # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
   = case mbpref of
+      Ok bpref=:{bpr_instance = Just {bpi_endTime = Just _}} // Already marked as stable, don't do extra work
+        = (tr, iworld)
       Ok bpref=:{bpr_instance = Just inst}
         # (curr, iworld)   = iworld!current
         # (clocks, iworld) = iworld!clocks
