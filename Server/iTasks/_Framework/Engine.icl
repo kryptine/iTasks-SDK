@@ -118,7 +118,7 @@ where
 					= stringOpt key [v:r]
 					
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
-	timeout iworld = (Just 100, iworld)					//Run at least 10 times a second
+    timeout iworld = (Just 25, iworld)					//Run 40 times a second, using blocking behaviour
 
     //Read the content of the master instance index on disk to the "ti" field in the iworld
     clearConnections :: !*IWorld -> *IWorld
