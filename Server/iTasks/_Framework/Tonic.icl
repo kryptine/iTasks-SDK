@@ -188,29 +188,43 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
           _  = iworld
 
   eval` _ event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
-    # (tr, iworld)     = eval event evalOpts taskTree iworld
-    # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
-    = case mbpref of
-        Ok bpref=:{bpr_instance = Just inst}
-          # (curr, iworld)   = iworld!current
-          # (clocks, iworld) = iworld!clocks
-          # currDateTime     = DateTime clocks.localDate clocks.localTime
-          # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
-                                          inst.bpi_previouslyActive
-          # (_, iworld)      = 'DSDS'.write { bpref
-                                            & bpr_instance = Just { inst
-                                                                  & bpi_previouslyActive = oldActive
-                                                                  , bpi_activeNodes      = 'DM'.newMap
-                                                                  , bpi_lastUpdated      = currDateTime
-                                                                  , bpi_endTime          = Just currDateTime
-                                                                  }
-                                            } (sdsFocus currTaskId tonicInstances) iworld
-          # iworld = storeResult` mn tn currTaskId (resultToOutput currTaskId tr) iworld
-          # iworld = snd ('DSDS'.modify ('DM'.del currTaskId) storedOutputEditors iworld)
-          = (tr, iworld)
-        _ = (tr, iworld)
+    # (tr, iworld) = eval event evalOpts taskTree iworld
+    = markStable mn tn currTaskId tr event evalOpts taskTree iworld
 
-  eval` _ event evalOpts taskTree iworld = eval event evalOpts taskTree iworld
+  eval` _ event evalOpts taskTree=:TCNop iworld
+    = eval event evalOpts taskTree iworld
+
+  eval` _ event evalOpts taskTree=:TCTasklet iworld
+    = eval event evalOpts taskTree iworld
+
+  eval` _ event evalOpts taskTree iworld
+    # (tr, iworld) = eval event evalOpts taskTree iworld
+    # iworld       = case (taskIdFromTaskTree taskTree, tr) of
+                       (Ok tid, ValueResult (Value x True) _ _ _) -> snd (markStable mn tn tid tr event evalOpts taskTree iworld)
+                       _                                          -> iworld
+    = (tr, iworld)
+
+markStable mn tn currTaskId tr event evalOpts taskTree iworld
+  # (mbpref, iworld) = 'DSDS'.read (sdsFocus currTaskId tonicInstances) iworld
+  = case mbpref of
+      Ok bpref=:{bpr_instance = Just inst}
+        # (curr, iworld)   = iworld!current
+        # (clocks, iworld) = iworld!clocks
+        # currDateTime     = DateTime clocks.localDate clocks.localTime
+        # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems inst.bpi_activeNodes)])
+                                        inst.bpi_previouslyActive
+        # (_, iworld)      = 'DSDS'.write { bpref
+                                          & bpr_instance = Just { inst
+                                                                & bpi_previouslyActive = oldActive
+                                                                , bpi_activeNodes      = 'DM'.newMap
+                                                                , bpi_lastUpdated      = currDateTime
+                                                                , bpi_endTime          = Just currDateTime
+                                                                }
+                                          } (sdsFocus currTaskId tonicInstances) iworld
+        # iworld = storeResult` mn tn currTaskId (resultToOutput currTaskId tr) iworld
+        # iworld = snd ('DSDS'.modify ('DM'.del currTaskId) storedOutputEditors iworld)
+        = (tr, iworld)
+      _ = (tr, iworld)
 
 resultToOutput :: !TaskId !(TaskResult a) -> Task () | iTask a
 resultToOutput tid (ValueResult (Value v _) _ _ _) = viewInformation (Title ("Value for task " +++ toString tid)) [] v @! ()
@@ -358,8 +372,9 @@ tonicWrapApp` mn tn nid (Task eval)
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
 
-  eval` event evalOpts taskTree=:(TCStable _ _ _) iworld
-    = eval event evalOpts taskTree iworld
+  eval` event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
+    # (tr, iworld) = eval event evalOpts taskTree iworld
+    = markStable mn tn currTaskId tr event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree=:TCNop iworld
     = eval event evalOpts taskTree iworld
@@ -374,6 +389,9 @@ tonicWrapApp` mn tn nid (Task eval)
     = case taskIdFromTaskTree taskTree of
         Ok tid
           # (tr, iworld) = eval event evalOpts taskTree iworld
+          # iworld       = case tr of
+                             (ValueResult (Value x True) _ _ _) -> snd (markStable mn tn tid tr event evalOpts taskTree iworld)
+                             _                                  -> iworld
           # iworld       = evalInteract tr eval tid event evalOpts taskTree iworld
           = (tr, iworld)
         _ = eval event evalOpts taskTree iworld
