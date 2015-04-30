@@ -384,7 +384,7 @@ tonicWrapApp` mn tn nid (Task eval)
                           Ok nodes
                             | 'DS'.member (mn, tn, nid) nodes
                             = resultToOutput childTaskId tr
-                          _ = viewInformation (Title "Notice") [] (pp3 (mn, tn, nid) +++ " not in selectedNodes") @! ()
+                          _ = viewInformation (Title "Notice") [] (pp3 (mn, tn, nid) +++ " not selected for tracing") @! ()
     = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
 
   updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
@@ -1030,10 +1030,11 @@ expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
   = case reifyTonicTask mn tn allbps of
       Just tt
         # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
-        = case expandTExpr allbps (n - 1) tt.tt_body of
-            TLet pats bdy                 -> TLet (binds ++ pats) bdy
-            TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
-            bdy                           -> TLet binds bdy
+        # e     = case expandTExpr allbps (n - 1) tt.tt_body of
+                    TLet pats bdy                 -> TLet (binds ++ pats) bdy
+                    TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
+                    bdy                           -> TLet binds bdy
+        = TExpand tn e
       _ = texpr
   where
   isSame :: !TCleanExpr !TExpr -> Bool
@@ -1085,6 +1086,7 @@ expandTExpr allbps n (TAssign usr d e)
   = TAssign usr d (expandTExpr allbps n e)
 expandTExpr allbps n (TFunctor e vn args)
   = TFunctor (expandTExpr allbps n e) vn args
+expandTExpr allbps n (TExpand tn e) = TExpand tn (expandTExpr allbps n e)
 expandTExpr _ n texpr = texpr
 
 instance == TonicTask where
@@ -1213,6 +1215,7 @@ tExpr2Image inh (TAssign usr d t)          tsrc = tAssign       inh usr d t tsrc
 tExpr2Image inh (TFunctor lhs vn args)     tsrc = tFunctorApp   inh lhs vn args tsrc
 tExpr2Image inh (TVar eid pp)              tsrc = tVar          inh eid pp tsrc
 tExpr2Image inh (TCleanExpr eid pp)        tsrc = tCleanExpr    inh eid pp tsrc
+tExpr2Image inh (TExpand tn e)             tsrc = tExpand       inh tn e tsrc
 
 ppTCleanExpr :: !TCleanExpr -> String
 ppTCleanExpr tcexpr = ppTCleanExpr` 0 tcexpr
@@ -1276,6 +1279,23 @@ tReturn :: !MkImageInh !ExprId !TExpr !*TagSource -> *(!Image ModelTy, !*TagSour
 tReturn inh=:{inh_in_maybe = True} eid expr tsrc = tExpr2Image inh expr tsrc
 tReturn inh                        eid expr tsrc = tTaskApp inh eid "" "return" [expr] tsrc
 
+tExpand :: !MkImageInh !TaskName !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tExpand inh tn e [(exprTag, uExprTag) : (taskNameTag, uTaskNameTag) : tsrc]
+  #! (childExpr, tsrc) = tExpr2Image inh e tsrc
+  #! childExpr         = tag uExprTag (margin (px 5.0) childExpr)
+  #! maxXSpan          = maxSpan [imagexspan taskNameTag, imagexspan exprTag]
+  #! taskNameImg       = tag uTaskNameTag (margin (px 5.0) (text ArialBold10px tn))
+  #! bgRect            = rect maxXSpan (imageyspan taskNameTag + imageyspan exprTag)
+                           <@< { fill        = toSVGColor "white" }
+                           <@< { stroke      = toSVGColor "black" }
+                           <@< { strokewidth = px 1.0 }
+                           <@< { xradius     = px 5.0 }
+                           <@< { yradius     = px 5.0 }
+                           <@< { dash        = [5, 5] }
+  #! lineImg           = xline Nothing maxXSpan <@< { dash = [5, 5] }
+  #! content           = above (repeat AtMiddleX) [] [taskNameImg, lineImg, childExpr] Nothing
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
+
 tVar :: !MkImageInh !ExprId !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tVar inh eid pp tsrc
   = case inh.inh_trt.bpr_instance of
@@ -1311,6 +1331,7 @@ containsActiveNodes inh (TStep lexpr conts)  = containsActiveNodes inh lexpr || 
 containsActiveNodes inh (TParallel _ par)  = containsActiveNodesTParallel inh par
 containsActiveNodes inh (TAssign _ _ t)    = containsActiveNodes inh t
 containsActiveNodes inh (TFunctor lhs _ _) = containsActiveNodes inh lhs
+containsActiveNodes inh (TExpand _ e)      = containsActiveNodes inh e
 containsActiveNodes inh (TVar _ _)         = False
 containsActiveNodes inh (TCleanExpr _ _)   = False
 

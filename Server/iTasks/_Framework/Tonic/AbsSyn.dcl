@@ -59,6 +59,7 @@ derive gEq
   | TStep      TExpr [PPOr TStepCont]
   | TParallel  ExprId TParallel
   | TAssign    TUser String TExpr
+  | TExpand    TaskName TExpr
 
 :: TGen
   = TGenTogether TCleanExpr TCleanExpr
