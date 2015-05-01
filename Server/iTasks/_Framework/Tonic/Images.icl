@@ -580,7 +580,7 @@ tDefaultTaskApp` isCompact isActive wasActive isInAccessible nodeId selectedNode
       taskArgs
         #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
-        #! content  = margin (px 5.0) (above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing)
+        #! content  = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
                                                                                     <@< { stroke = if isSelected (toSVGColor "navy") (toSVGColor "black") }
                                                                                     <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
