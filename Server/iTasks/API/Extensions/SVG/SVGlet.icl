@@ -135,7 +135,7 @@ firstIdentifiableParentId elem world
       = firstIdentifiableParentId parent world
   | otherwise = (idval, world)
 
-registerDraggables :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+registerDraggables :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                       !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                       !ComponentId !(JSObj svg) !(Map String (ImageAttr s))
                       !(Map String (Set ImageTag)) !*JSWorld
@@ -150,7 +150,7 @@ registerDraggables mkEventHandler resolve state2Image cid svg draggables idMap w
   #! (_, world)            = (svgRoot `addEventListener` ("mousemove", cbMove, True)) world
   = 'DM'.foldrWithKey (registerDraggable mkEventHandler resolve state2Image cid svg) world draggables
   where
-  registerDraggable :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+  registerDraggable :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                        !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                        !ComponentId !(JSObj svg) !String !(ImageAttr s)
                        !*JSWorld
@@ -163,7 +163,7 @@ registerDraggables mkEventHandler resolve state2Image cid svg draggables idMap w
     #! (_, world)    = (elem `addEventListener` ("mousedown", cbDown, True)) world
     = world
 
-registerSVGEvents :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+registerSVGEvents :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                      !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                      !ComponentId !(JSObj svg) !(Map String (ImageAttr s))
                      !*JSWorld
@@ -171,7 +171,7 @@ registerSVGEvents :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !Compon
 registerSVGEvents mkEventHandler resolve state2Image cid svg onclicks world
   = 'DM'.foldrWithKey (registerEvent mkEventHandler resolve state2Image cid svg) world onclicks
   where
-  registerEvent :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+  registerEvent :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                    !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                    !ComponentId !(JSObj svg) !String !(ImageAttr s) !*JSWorld
                 -> *JSWorld | iTask s
@@ -182,7 +182,7 @@ registerSVGEvents mkEventHandler resolve state2Image cid svg onclicks world
   registerEvent mkEventHandler resolve state2image cid svg elemId (ImageOnMouseMoveAttr {local, onmousemove}) world = actuallyRegister mkEventHandler resolve state2image cid svg elemId "mousemove" onmousemove local world
   registerEvent mkEventHandler resolve state2image cid svg elemId (ImageOnMouseOutAttr  {local, onmouseout})  world = actuallyRegister mkEventHandler resolve state2image cid svg elemId "mouseout"  onmouseout  local world
 
-actuallyRegister :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+actuallyRegister :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                     !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                     !ComponentId !(JSObj svg) !String !String !(s -> s) !Bool
                     *JSWorld
@@ -194,7 +194,7 @@ actuallyRegister mkEventHandler resolve state2image cid svg elemId evt sttf loca
   #! (_, world)    = (elem `addEventListener` (evt, cb, True)) world
   = world
 
-mkCB :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+mkCB :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
         !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !ComponentId
         !(s -> s) !Bool String {JSObj JSEvent} !(SVGClSt s) !*JSWorld
      -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
@@ -216,7 +216,7 @@ doResolve resolve c s w
       Just s` -> ({s & svgClSt = s`}, Diff (SetState s`) (doResolve resolve), w)
       _       -> (s, NoDiff, w)
 
-registerNClick :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+registerNClick :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                   !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                   !ComponentId !(JSObj svg) !String !(Int s -> s) !Bool
                   *JSWorld
@@ -228,7 +228,7 @@ registerNClick mkEventHandler resolve state2image cid svg elemId sttf local worl
   #! (_, world)    = (elem `addEventListener` ("click", cb, True)) world
   = world
 
-mkNClickCB :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+mkNClickCB :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
               !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
               !*JSWorld
            -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
@@ -356,7 +356,7 @@ imageFromState img env
   = (img, st.desugarAndTagSpanEnvs)
 
 appClientDiff :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
-                 !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) !ComponentId -> JSFun f)
+                 !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                  !String !(SVGDiff s) !(SVGClSt s) !*JSWorld
               -> *(!SVGClSt s, !*JSWorld) | iTask s
 appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
@@ -624,8 +624,8 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     { imageAlg = mkImage
     }
     where
-    mkImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) ![Map FontDef (Set String)] ![Map FontDef (Set String)] a b c d !(!Map FontDef (Set String), !Map FontDef (Set String), !Map FontDef (Set String), !Map FontDef (Set String)) c -> Map FontDef (Set String)
-    mkImage imCo mask imAts imTrs _ _ _ _ (m1, m2, m3, m4) _ = gatherFontsUnions [imCo : m1 : m2 : m3 : m4 : maybeToList mask ++ imAts ++ imTrs]
+    mkImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) ![Map FontDef (Set String)] ![Map FontDef (Set String)] a b c d c -> Map FontDef (Set String)
+    mkImage imCo mask imAts imTrs _ _ _ _ _ = gatherFontsUnions [imCo : maybeToList mask ++ imAts ++ imTrs]
   gatherFontsImageContentAlgs :: ImageContentAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageContentAlgs =
     { imageContentBasicAlg     = binUnion
@@ -795,24 +795,19 @@ desugarAndTag img = go
                Int
                (!DesugarAndTagSt Span, !DesugarAndTagSt Span)
                (!DesugarAndTagSt Span, !DesugarAndTagSt Span)
-               !(!DesugarAndTagSt Span, !DesugarAndTagSt Span, !DesugarAndTagSt Span, !DesugarAndTagSt Span)
                (!DesugarAndTagSt Span, !DesugarAndTagSt Span)
                !DesugarAndTagStVal
             -> .(!Image s, !DesugarAndTagStVal) | iTask s
-    mkImage imCo mask imAts imTrs imTas _ _ _ (m1, m2, m3, m4) _ st
+    mkImage imCo mask imAts imTrs imTas _ _ _ _ st
       #! (mask, st)   = evalMaybe mask st
       #! (imAts, st)  = sequence imAts st
       #! (imTrs, st)  = sequence imTrs st
       #! (syn, st)    = imCo imTrs imTas st
-      #! (m1, st)     = m1 st
-      #! (m2, st)     = m2 st
-      #! (m3, st)     = m3 st
-      #! (m4, st)     = m4 st
       #! (prexsp,  preysp)  = syn.desugarAndTagSyn_TotalSpan_PreTrans
       #! (postxsp, postysp) = syn.desugarAndTagSyn_TotalSpan_PostTrans
       #! (no, st)     = nextNo st
       #! imTas        = 'DS'.insert (ImageTagSystem no) imTas
-      #! st           = cacheImageSpanPostTrans no imTas (addMargin (m1, m2, m3, m4) (postxsp, postysp)) st // TODO Straighten out addMargin here
+      #! st           = cacheImageSpanPostTrans no imTas (postxsp, postysp) st
       #! img          = { Image
                         | content             = syn.desugarAndTagSyn_ImageContent
                         , mask                = mask
@@ -822,7 +817,6 @@ desugarAndTag img = go
                         , uniqId              = no
                         , totalSpanPreTrans   = (prexsp, preysp)
                         , totalSpanPostTrans  = (postxsp, postysp)
-                        , margin              = (m1, m2, m3, m4)
                         , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection
                         }
       = (img, st)
@@ -1009,7 +1003,7 @@ desugarAndTag img = go
       #! ((compose, composeSpan), st) = compose host imTrs imTas st
       #! (host, span)  = case host of
                           Just hostImg
-                             -> (Just hostImg, addMargin hostImg.margin hostImg.totalSpanPostTrans)
+                             -> (Just hostImg, hostImg.totalSpanPostTrans)
                           _  -> (Nothing, composeSpan)
       #! (span`, corr) = applyTransforms imTrs span
       = ({ desugarAndTagSyn_ImageContent     = Composite { CompositeImage
@@ -1045,8 +1039,8 @@ desugarAndTag img = go
       #! gridSpan       = maybe ( foldr (\n acc -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
                                 , foldr (\n acc -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
                                 )
-                                (\x -> addMargin x.margin x.totalSpanPostTrans) mbhost
-      #! spanss         = strictTRMap (strictTRMap (\x -> addMargin x.margin x.totalSpanPostTrans)) imgss
+                                (\x -> x.totalSpanPostTrans) mbhost
+      #! spanss         = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
       #! st             = cacheGridSpans tag ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
       #! offsets`       = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
                                                         (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss)
@@ -1069,8 +1063,8 @@ desugarAndTag img = go
             , yoff + cellYSpan)
         mkCols :: !Span !Span !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span)) !(![(!Span, !Span)], !Span)
                -> (![(!Span, !Span)], !Span)
-        mkCols cellYSpan yoff (align, img=:{totalSpanPostTrans, margin, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff)) (acc, xoff)
-          #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan (addMargin margin totalSpanPostTrans) align
+        mkCols cellYSpan yoff (align, img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff)) (acc, xoff)
+          #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
           = ([( alignXOff + xoff + manXOff + tfXCorr
               , alignYOff + yoff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
 
@@ -1083,7 +1077,7 @@ desugarAndTag img = go
       #! (offsets, st) = evalOffsets offsets st
       #! (imgs, st)    = sequence imgs st
       = (( AsCollage offsets imgs
-         , maybe (calculateComposedSpan (strictTRMap (\x -> addMargin x.margin x.totalSpanPostTrans) imgs) offsets) (\x -> addMargin x.margin x.totalSpanPostTrans) mbhost), st)
+         , maybe (calculateComposedSpan (strictTRMap (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) mbhost), st)
 
     mkOverlay :: ![(DesugarAndTagSt Span, DesugarAndTagSt Span)]
                  ![ImageAlign] ![DesugarAndTagSt (Image s)]
@@ -1093,14 +1087,14 @@ desugarAndTag img = go
     mkOverlay offsets ias imgs mbhost imTrs imTas st
       #! (offsets, st)  = evalOffsets offsets st
       #! (imgs, st)     = sequence imgs st
-      #! spans          = strictTRMap (\x -> addMargin x.margin x.totalSpanPostTrans) imgs
+      #! spans          = strictTRMap (\x -> x.totalSpanPostTrans) imgs
       #! (  maxXSpan
           , maxYSpan)   = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
                                 (\x -> x.totalSpanPreTrans) mbhost
       #! alignOffsets   = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets = zipWith3 addOffset alignOffsets offsets imgs
       = ( ( AsCollage placingOffsets imgs
-          , maybe (calculateComposedSpan spans alignOffsets) (\x -> addMargin x.margin x.totalSpanPostTrans) mbhost)
+          , maybe (calculateComposedSpan spans alignOffsets) (\x -> x.totalSpanPostTrans) mbhost)
         , st)
       where
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
@@ -1198,9 +1192,6 @@ fixEnvs st = fixEnvs` {st & fixSpansDidChange = False} True
       = if st`.fixSpansDidChange
           ({acc & [n] = v}, n - 1, st`)
           (acc, n - 1, {st` & fixSpansDidChange = st.fixSpansDidChange} )
-
-addMargin :: !(!Span, !Span, !Span, !Span) !(!Span, !Span) -> (!Span, !Span)
-addMargin (m1, m2, m3, m4) (xsp, ysp) = (xsp + m2 + m4, ysp + m1 + m3)
 
 foldrArr :: !(a -> .b -> .b) !.b !.(arr a) -> .b | Array arr a
 foldrArr f b arr
@@ -1394,7 +1385,7 @@ genSVG img = imageCata genSVGAllAlgs img
     , spanAlgs           = genSVGSpanAlgs
     , lookupSpanAlgs     = genSVGLookupSpanAlgs
     }
-  genSVGImageAlgs :: ImageAlg (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
+  genSVGImageAlgs :: ImageAlg (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
                               (Int -> GenSVGSt s (!Maybe SVGAttr, Map String (ImageAttr s), Map String (ImageAttr s)))
                               (ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform))
                               (GenSVGSt s Real)
@@ -1403,7 +1394,7 @@ genSVG img = imageCata genSVGAllAlgs img
     { imageAlg = mkImage
     }
     where // TODO transforms can influence size as well...
-    mkImage :: !(ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
+    mkImage :: !(ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
                !(Maybe (GenSVGSt s (GenSVGSyn s)))
                !([Int -> GenSVGSt s (!Maybe SVGAttr, Map String (ImageAttr s), Map String (ImageAttr s))])
                ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
@@ -1411,25 +1402,20 @@ genSVG img = imageCata genSVGAllAlgs img
                !Int
                !(!GenSVGSt s Real, !GenSVGSt s Real)
                !(!GenSVGSt s Real, !GenSVGSt s Real)
-               !(!GenSVGSt s Real, !GenSVGSt s Real, GenSVGSt s Real /* Not used */, GenSVGSt s Real /* Not used */)
                !(!GenSVGSt s Real, !GenSVGSt s Real)
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkImage imCo mask imAts imTrs imTas uniqId (txsp, tysp) (txsp`, tysp`) (m1, m2, m3, m4) _ st
+    mkImage imCo mask imAts imTrs imTas uniqId (txsp, tysp) (txsp`, tysp`) _ st
       #! (imAts, st)  = mapSt (\f -> f uniqId) imAts st
       #! (txsp, st)   = txsp st
       #! (tysp, st)   = tysp st
       #! (txsp`, st)  = txsp` st
       #! (tysp`, st)  = tysp` st
-      #! (m1, st)     = m1 st
-      #! (m2, st)     = m2 st
-      #! (m3, st)     = m3 st
-      #! (m4, st)     = m4 st
       #! (maskId, st) = imageMaskId st
       #! imAts`       = strictTRMap (\(x, _, _) -> x) imAts
-      #! (syn, st)    = imCo (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) imTrs imTas uniqId (m1, m2, m3, m4) st
+      #! (syn, st)    = imCo (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) imTrs imTas uniqId st
       #! (mask, st)   = evalMaybe mask st
       = ({ genSVGSyn_svgElts       = mkElt maskId mask syn
-         , genSVGSyn_imageSpanReal = (txsp` + m2 + m4, tysp` + m1 + m3)
+         , genSVGSyn_imageSpanReal = (txsp`, tysp`)
          , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : strictTRMap (\(_, x, _) -> x) imAts]
          , genSVGSyn_draggable     = 'DM'.unions [syn.genSVGSyn_draggable : strictTRMap (\(_, _, x) -> x) imAts]
          , genSVGSyn_idMap         = 'DM'.put (mkUniqId editletId uniqId) imTas syn.genSVGSyn_idMap
@@ -1447,30 +1433,30 @@ genSVG img = imageCata genSVGAllAlgs img
       = [ DefsElt [] [] [MaskElt [IdAttr maskId] [] mask.genSVGSyn_svgElts]
         : syn.genSVGSyn_svgElts]
 
-  genSVGImageContentAlgs :: ImageContentAlg (Int (Real, Real, Real, Real) ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
+  genSVGImageContentAlgs :: ImageContentAlg (Int ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
                                            (GenSVGSt s ImageSpanReal)
-                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
-                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
-                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s)) | iTask s
+                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
+                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
+                                           (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGImageContentAlgs =
     { imageContentBasicAlg     = mkBasic
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
     where
-    mkBasic :: !(Int (Real, Real, Real, Real) ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
+    mkBasic :: !(Int ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool))
                !(GenSVGSt s ImageSpanReal)
                ImageSpanReal // Not used
                ![Maybe SVGAttr]
                ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
                (Set ImageTag) // Not used
-               !Int (Real, Real, Real, Real)
+               !Int
                !(GenSVGStVal s) -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkBasic baIm imSp _ imAts imTrs _ uniqId margins st
+    mkBasic baIm imSp _ imAts imTrs _ uniqId st
       #! (imSp, st)        = imSp st
-      #! ((_, isText), st) = baIm uniqId margins imSp [] [] st
+      #! ((_, isText), st) = baIm uniqId imSp [] [] st
       #! (imTrs, st)       = sequence (strictTRMap (\f -> f imSp isText) imTrs) st
-      #! ((syn, _), st)    = baIm uniqId margins imSp imAts imTrs st
+      #! ((syn, _), st)    = baIm uniqId imSp imAts imTrs st
       = (syn, st)
   genSVGImageAttrAlgs :: ImageAttrAlg s (Int -> GenSVGSt s (!Maybe SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s))) | iTask s
   genSVGImageAttrAlgs =
@@ -1616,7 +1602,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (sp1, st) = sp1 st
       #! (sp2, st) = sp2 st
       = ((sp1, sp2), st)
-  genSVGBasicImageAlgs :: BasicImageAlg (Int (Real, Real, Real, Real) ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool)) | iTask s
+  genSVGBasicImageAlgs :: BasicImageAlg (Int ImageSpanReal [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] -> GenSVGSt s (!GenSVGSyn s, !Bool)) | iTask s
   genSVGBasicImageAlgs =
     { basicImageEmptyImageAlg    = mkEmptyImage
     , basicImageTextImageAlg     = mkTextImage
@@ -1625,21 +1611,21 @@ genSVG img = imageCata genSVGAllAlgs img
     , basicImageEllipseImageAlg  = mkEllipseImage
     }
     where
-    mkEmptyImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
+    mkEmptyImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
                     ![(![SVGTransform], !ImageTransform)]
                     !(GenSVGStVal s)
                  -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkEmptyImage uniqId (m1, m2, _, _) imSp imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }, False), st)
-    mkTextImage :: !FontDef !String !Int (Real, Real, Real, Real) !ImageSpanReal
+    mkEmptyImage uniqId imSp imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] (mkGroup (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs)) []) }, False), st)
+    mkTextImage :: !FontDef !String !Int !ImageSpanReal
                    ![Maybe SVGAttr]
                    ![(![SVGTransform], !ImageTransform)]
                    !(GenSVGStVal s)
                 -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkTextImage fd str uniqId (m1, m2, _, _) imSp imAts imTrs st
+    mkTextImage fd str uniqId imSp imAts imTrs st
     // TODO Currently we manually translate text by fontysize pixels to compensate for the "auto" baseline. The result look OK, but a bit off compare to the old approach where we forced the origin to be the top-left corner (which didn't work with zooming)
     // We need to offset by the font's descent height, but that's not easy to calculate currently (there are no JS APIs for that yet). Current heuristic: we assume that the ex-height is half of the font height. We assume that the descent height is half of the ex-height. Therefore, we multiply by 0.75
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [TransformAttr [TranslateTransform (toString (to2dec m1)) (toString (fd.fontysize * 0.75 + to2dec m2))]]
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [TransformAttr [TranslateTransform (toString 0.0) (toString (fd.fontysize * 0.75))]]
                                                                                                                [TextElt [XmlspaceAttr "preserve"] (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize) str] }
          , True), st)
       where
@@ -1654,34 +1640,34 @@ genSVG img = imageCata genSVGAllAlgs img
                       , FontWeightAttr fd.fontweight
                       , TextRenderingAttr "geometricPrecision"
                       ]
-    mkRectImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
+    mkRectImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
                    ![(![SVGTransform], !ImageTransform)]
                    !(GenSVGStVal s)
                 -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkRectImage uniqId (m1, m2, _, _) imSp imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
-    mkCircleImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
+    mkRectImage uniqId imSp imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] [RectElt (mkWH imSp) (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
+    mkCircleImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
                      ![(![SVGTransform], !ImageTransform)]
                      !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkCircleImage uniqId (m1, m2, _, _) imSp=:(imXSp`, _) imAts imTrs st
+    mkCircleImage uniqId imSp=:(imXSp`, _) imAts imTrs st
       #! r = imXSp` / 2.0
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) [CircleElt []
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] [CircleElt []
                                           [ RAttr (toString (to2dec r), PX), CxAttr (toString (to2dec r), PX)
                                           , CyAttr (toString (to2dec r), PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]] }, False), st)
-    mkEllipseImage :: !Int (Real, Real, Real, Real) !ImageSpanReal ![Maybe SVGAttr]
+    mkEllipseImage :: !Int !ImageSpanReal ![Maybe SVGAttr]
                       ![(![SVGTransform], !ImageTransform)]
                       !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
-    mkEllipseImage uniqId (m1, m2, _, _) imSp=:(imXSp, imYSp) imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
+    mkEllipseImage uniqId imSp=:(imXSp, imYSp) imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] [EllipseElt [] (getSvgAttrs (mkAttrs imAts imTrs) ++
                                           [ RxAttr (toString (to2dec (imXSp / 2.0)), PX), RyAttr (toString (to2dec (imYSp / 2.0)), PX)
                                           , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }, False), st)
 
   genSVGLineImageAlgs :: LineImageAlg (GenSVGSt s (!Real, !Real))
                                       (GenSVGSt s b)
                                       ((!Real, !Real) (Maybe b) [Maybe SVGAttr] [(![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
-                                      (c [Maybe SVGAttr] [(!Real, !Real) Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s))
+                                      (c [Maybe SVGAttr] [(!Real, !Real) Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s))
   genSVGLineImageAlgs =
     { lineImageLineImageAlg = mkLineImage
     }
@@ -1693,10 +1679,10 @@ genSVG img = imageCata genSVGAllAlgs img
                    ![Maybe SVGAttr]
                    ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
                    !(Set ImageTag)
-                   Int (Real, Real, Real, Real)
+                   Int // Not used
                    !(GenSVGStVal s)
                 -> .(!GenSVGSyn s, !GenSVGStVal s)
-    mkLineImage lineSpan mmarkers lineContent _ imAts imTrs imTas _ margins st
+    mkLineImage lineSpan mmarkers lineContent _ imAts imTrs imTas _ st
       #! (lineSpan, st) = lineSpan st
       #! (mmarkers, st) = evalMaybe mmarkers st
       #! (imTrs, st)    = sequence (strictTRMap (\f -> f lineSpan False) imTrs) st
@@ -1775,7 +1761,6 @@ genSVG img = imageCata genSVGAllAlgs img
                                         , RefYAttr (toString (toInt (h / 2.0)), PX)
                                         , MarkerHeightAttr (toString (toInt h), PX)
                                         , MarkerWidthAttr (toString (toInt w), PX)
-                                        //: (mkTransformTranslateAttr (to2dec m1, to2dec m2))
                                         ] genSVGSyn_svgElts
                , posAttr (mkUrl mid)
                , genSVGSyn_events
@@ -1787,7 +1772,7 @@ genSVG img = imageCata genSVGAllAlgs img
   genSVGCompositeImageAlgs :: CompositeImageAlg (GenSVGSt s Real)
                                                (GenSVGSt s (GenSVGSyn s))
                                                ((Maybe (GenSVGSyn s)) ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) -> GenSVGSt s (GenSVGSyn s))
-                                               (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int (Real, Real, Real, Real) -> GenSVGSt s (GenSVGSyn s)) | iTask s
+                                               (ImageSpanReal [Maybe SVGAttr] [ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)] (Set ImageTag) Int -> GenSVGSt s (GenSVGSyn s)) | iTask s
   genSVGCompositeImageAlgs =
     { compositeImageAlg = mkCompositeImage
     }
@@ -1797,9 +1782,9 @@ genSVG img = imageCata genSVGAllAlgs img
                         !ImageSpanReal
                         ![Maybe SVGAttr]
                         ![ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)]
-                        !(Set ImageTag) !Int (Real, Real, Real, Real) !(GenSVGStVal s)
+                        !(Set ImageTag) !Int !(GenSVGStVal s)
                      -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
-    mkCompositeImage host compose totalSpanPreTrans imAts imTrs imTas uniqId (m1, m2, _, _) st
+    mkCompositeImage host compose totalSpanPreTrans imAts imTrs imTas uniqId st
       #! (host, st)    = evalMaybe host st
       #! (compose, st) = compose host totalSpanPreTrans imAts imTrs imTas st
       #! (cpId, st)    = getCpId st
@@ -1811,7 +1796,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (imTrs, st) = sequence (strictTRMap (\f -> f spans False) imTrs) st
       #! attrs = mkAttrs imAts imTrs
       = ({ genSVGSyn_imageSpanReal = (0.0, 0.0)
-         , genSVGSyn_svgElts       = mkGroup [IdAttr (mkUniqId editletId uniqId)] (mkTransformTranslateAttr (to2dec m1, to2dec m2)) (mkGroup [] (getSvgAttrs attrs) elts)
+         , genSVGSyn_svgElts       = mkGroup [IdAttr (mkUniqId editletId uniqId)] [] (mkGroup [] (getSvgAttrs attrs) elts)
          , genSVGSyn_events        = onclicks
          , genSVGSyn_draggable     = draggables
          , genSVGSyn_idMap         = idMap
@@ -2024,7 +2009,7 @@ mkList f xs st
   }
 
 :: ImageAlg imCo imAt imTr sp im =
-  { imageAlg :: !imCo (Maybe im) [imAt] [imTr] (Set ImageTag) Int (!sp, !sp) (!sp, !sp) (!sp, !sp, !sp, !sp) (!sp, !sp) -> im
+  { imageAlg :: !imCo (Maybe im) [imAt] [imTr] (Set ImageTag) Int (!sp, !sp) (!sp, !sp) (!sp, !sp) -> im
   }
 
 :: ImageContentAlg baIm imSp liIm coIm imCo =
@@ -2140,7 +2125,7 @@ foldrOffsets spanAlgs lookupSpanAlgs xs = foldr (f spanAlgs lookupSpanAlgs) [] x
     = [(synl, synr):xs]
 
 imageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(Image m) -> im
-imageCata allAlgs { Image | content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`), margin = (m1, m2, m3, m4), transformCorrection = (tfXCorr, tfYCorr) }
+imageCata allAlgs { Image | content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`), transformCorrection = (tfXCorr, tfYCorr) }
   #! synContent    = imageContentCata allAlgs content
   #! synMask       = fmap (imageCata allAlgs) mask
   #! synsAttribs   = foldrCata (imageAttrCata allAlgs.imageAttrAlgs) ('DS'.toList attribs)
@@ -2149,13 +2134,9 @@ imageCata allAlgs { Image | content, mask, attribs, transform, tags, uniqId, tot
   #! synTYsp       = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tysp
   #! synTXsp`      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs txsp`
   #! synTYsp`      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tysp`
-  #! synm1         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m1
-  #! synm2         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m2
-  #! synm3         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m3
-  #! synm4         = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs m4
   #! synXCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfXCorr
   #! synYCorr      = spanCata allAlgs.spanAlgs allAlgs.lookupSpanAlgs tfYCorr
-  = allAlgs.imageAlgs.imageAlg synContent synMask synsAttribs synsTransform tags uniqId (synTXsp, synTYsp) (synTXsp`, synTYsp`) (synm1, synm2, synm3, synm4) (synXCorr, synYCorr)
+  = allAlgs.imageAlgs.imageAlg synContent synMask synsAttribs synsTransform tags uniqId (synTXsp, synTYsp) (synTXsp`, synTYsp`) (synXCorr, synYCorr)
 
 imageContentCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co sp loSp ma liIm liCo) !(ImageContent m) -> imCo
 imageContentCata allAlgs (Basic bi is)
