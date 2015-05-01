@@ -8,36 +8,13 @@ from iTasks._Framework.Task import :: TaskEvalOpts
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 import iTasks._Framework.Tonic.AbsSyn
+import iTasks._Framework.Tonic.Images
 from iTasks.API.Extensions.Admin.WorkflowAdmin import :: Workflow
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunctor
-
-derive gEditor
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel
-
-derive gEditMeta
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel
-
-derive gDefault
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel
-
-derive gUpdate
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel
-
-derive gVerify
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel
-
-derive gText
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel
 
 // For all of these classes goes that the iTask context restriction shouldn't
 // be there. Ideally, we would have something like associated type families
@@ -51,12 +28,6 @@ class TonicBlueprintPart m | TMonad m where
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
 instance TonicBlueprintPart Maybe
-
-:: TaskAppRenderer :== Bool Bool Bool Bool (Set (ModuleName, TaskName, ExprId)) ExprId ModuleName TaskName ModuleName TaskName [Image ModelTy] *TagSource -> *(!Maybe (Image ModelTy), !*TagSource)
-
-:: ModelTy
-
-tDefaultTaskApp       :: !Bool !Bool !Bool !Bool !(Set (ModuleName, TaskName, ExprId)) !ExprId !ModuleName !TaskName !ModuleName !TaskName ![TExpr] ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 
 tonicStaticBrowser    :: [TaskAppRenderer] -> Task ()
 
