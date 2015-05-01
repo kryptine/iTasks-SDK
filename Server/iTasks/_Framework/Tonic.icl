@@ -27,6 +27,7 @@ from StdFile import instance FileSystem World
 import StdArray
 import System.Directory, System.FilePath, Data.Func, Data.Functor, Data.List
 import qualified Data.Map as DM
+from Data.Map import instance Functor (Map a)
 from Data.Set import :: Set
 import qualified Data.Set as DS
 from Data.IntMap.Strict import :: IntMap
@@ -200,7 +201,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   eval` _ event evalOpts taskTree iworld
     # (tr, iworld) = eval event evalOpts taskTree iworld
     # iworld       = case (taskIdFromTaskTree taskTree, tr) of
-                       (Ok tid, ValueResult (Value x True) _ _ _) -> snd (markStable mn tn tid tr event evalOpts taskTree iworld)
+                       (Ok tid, ValueResult (Value _ True) _ _ _) -> snd (markStable mn tn tid tr event evalOpts taskTree iworld)
                        _                                          -> iworld
     = (tr, iworld)
 
@@ -228,9 +229,10 @@ markStable mn tn currTaskId tr event evalOpts taskTree iworld
         = (tr, iworld)
       _ = (tr, iworld)
 
-resultToOutput :: !TaskId !(TaskResult a) -> Task () | iTask a
-resultToOutput tid (ValueResult (Value v _) _ _ _) = viewInformation (Title ("Value for task " +++ toString tid)) [] v @! ()
-resultToOutput tid _                               = viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! ()
+resultToOutput :: !TaskId !(TaskResult a) -> (Task (), TStability) | iTask a
+resultToOutput tid (ValueResult (Value v s) _ _ _) = (viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
+resultToOutput tid (ValueResult NoValue _ _ _)     = (viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
+resultToOutput tid _                               = (viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
 firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
 firstParent _     [] = Error (exception "iTasks._Framework.Tonic.firstParent: no parent found")
@@ -259,23 +261,23 @@ readParams` mn tn taskId world
                         _       -> ([], world)
       _            -> ([], world)
 
-storeResult :: !ModuleName !TaskName !TaskId !(Task ()) -> Task ()
+storeResult :: !ModuleName !TaskName !TaskId !(!Task (), !TStability) -> Task ()
 storeResult mn tn taskId params = mkInstantTask (\_ -> (\w -> (Ok (), w)) o storeResult` mn tn taskId params)
 
-storeResult` :: !ModuleName !TaskName !TaskId !(Task ()) !*IWorld -> *IWorld
+storeResult` :: !ModuleName !TaskName !TaskId !(!Task (), !TStability) !*IWorld -> *IWorld
 storeResult` mn tn taskId result world = writeToDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "result") (toString (toJSON result)) world
 
-readResult :: !ModuleName !TaskName !TaskId -> Task (Task ())
+readResult :: !ModuleName !TaskName !TaskId -> Task (!Task (), !TStability)
 readResult mn tn taskId = mkInstantTask (\_ -> (\(xs, w) -> (Ok xs, w)) o readResult` mn tn taskId)
 
-readResult` :: !ModuleName !TaskName !TaskId !*IWorld -> *(!Task (), !*IWorld)
+readResult` :: !ModuleName !TaskName !TaskId !*IWorld -> *(!(!Task (), !TStability), !*IWorld)
 readResult` mn tn taskId world
   # (mbok, world) = readFromDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "result") world
   = case mbok of
       Ok (_, json) -> case fromJSON (fromString json) of
                         Just xs -> (xs, world)
-                        _       -> (return (), world)
-      _            -> (return (), world)
+                        _       -> ((return (), TNoVal), world)
+      _            -> ((return (), TNoVal), world)
 
 :: BlueprintRef =
   { bpr_moduleName :: !ModuleName
@@ -404,7 +406,7 @@ tonicWrapApp` mn tn nid (Task eval)
                           Ok nodes
                             | 'DS'.member (mn, tn, nid) nodes
                             = resultToOutput childTaskId tr
-                          _ = viewInformation (Title "Notice") [] (pp3 (mn, tn, nid) +++ " not selected for tracing") @! ()
+                          _ = (viewInformation (Title "Notice") [] (pp3 (mn, tn, nid) +++ " not selected for tracing") @! (), TNoVal)
     = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
 
   updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
@@ -691,7 +693,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
                                           | bpr_moduleName = tm_name
                                           , bpr_taskName   = tt.tt_name
                                           , bpr_instance   = Nothing
-                                          } 'DM'.newMap selectedNodes (expandTask allbps depth.cur tt) compact depth
+                                          } 'DM'.newMap selectedNodes (expandTask allbps depth.cur tt) Nothing compact depth
          >>* [ OnValue (doAction (handleClicks tm tt))
              , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
              ] @! ()
@@ -718,9 +720,10 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
 
   navigate :: (NavStack -> NavStack) TonicModule TonicTask ClickMeta -> Task ()
   navigate mkNavStack _ _ meta=:{click_target_bpident = {bpident_taskId = Just _}}
-    =            upd mkNavStack navstack
-    >>|          get dynamicDisplaySettings
-    >>~ \sett -> viewInstance allbps rs navstack sett trt True (Just meta)
+    =                 upd mkNavStack navstack
+    >>|               get dynamicDisplaySettings
+    >>~ \sett ->      get selectedDetail
+    >>~ \selDetail -> viewInstance allbps rs navstack sett trt selDetail True (Just meta)
   navigate mkNavStack tm tt meta=:{click_target_bpident = {bpident_moduleName, bpident_taskName}}
     =   upd mkNavStack navstack
     >>| getModule bpident_moduleName
@@ -731,16 +734,17 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicTask tm` bpident_taskName)
     onNavVal _                _             = Nothing
 
-showBlueprint :: [TaskAppRenderer] (Map ExprId TaskId) BlueprintRef ListsOfTasks (Set (ModuleName, TaskName, ExprId)) TonicTask Bool Scale
+showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Set (ModuleName, TaskName, ExprId)) !TonicTask !(Maybe ClickMeta) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
-showBlueprint rs prev bpref maplot selected task compact depth
-  = updateInformation ()
-      [imageUpdate id (mkTaskImage rs prev bpref maplot selected compact) (\_ _ -> Nothing) (const id)]
-      { ActionState
-      | state  = { tis_task    = task
-                 , tis_depth   = depth
-                 , tis_compact = compact }
-      , action = Nothing}
+showBlueprint rs prev bpref maplot selected task selDetail compact depth
+  =               get (mapRead (fmap snd) storedOutputEditors)
+  >>~ \outputs -> updateInformation ()
+                    [imageUpdate id (mkTaskImage rs prev bpref maplot outputs selected selDetail compact) (\_ _ -> Nothing) (const id)]
+                    { ActionState
+                    | state  = { tis_task    = task
+                               , tis_depth   = depth
+                               , tis_compact = compact }
+                    , action = Nothing}
 
 :: NavStack :== [ClickMeta]
 
@@ -802,7 +806,11 @@ selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 selectedDetail :: Shared (Maybe ClickMeta)
 selectedDetail = sharedStore "selectedDetail" Nothing
 
-storedOutputEditors :: Shared (Map TaskId (Task ()))
+:: TStability = TNoVal | TStable | TUnstable
+
+derive class iTask TStability
+
+storedOutputEditors :: Shared (Map TaskId (Task (), TStability))
 storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
                                   (jsonFileStore NS_TONIC_INSTANCES True True (Just 'DM'.newMap))
 
@@ -872,13 +880,13 @@ tonicDynamicBrowser` allbps rs navstack =
     viewDetail _                                                           = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
 
     viewOutput tid=:(TaskId ino tno) ts = case 'DM'.get tid ts of
-                                            Just remote -> remote
+                                            Just (remote, _) -> remote
                                             //_           -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] "Could not find task in storedOutputEditors" @! ()
-                                            _           -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] ts @! ()
+                                            _                -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] ts @! ()
 
   blueprintViewer
-    =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings) (
-    \((bp, trt), dynSett) -> viewInstance allbps rs navstack dynSett trt True bp
+    =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings |+| selectedDetail) (
+    \(((bp, trt), dynSett), selDetail) -> viewInstance allbps rs navstack dynSett trt selDetail True bp
                              )
 
   filterActiveTasks Nothing tasks = tasks
@@ -915,8 +923,8 @@ getModuleAndTask allbps mn tn
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
 
-viewInstance :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !DisplaySettings !TonicRTMap !Bool !(Maybe ClickMeta) -> Task ()
-viewInstance allbps rs navstack dynSett trt showButtons action=:(Just meta=:{click_target_bpident = {bpident_taskId = Just tid}})
+viewInstance :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !DisplaySettings !TonicRTMap !(Maybe ClickMeta) !Bool !(Maybe ClickMeta) -> Task ()
+viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{click_target_bpident = {bpident_taskId = Just tid}})
   =          get navstack
   >>~ \ns -> get selectedNodes
   >>~ \selectedNodes -> case 'DM'.get tid trt of
@@ -927,7 +935,7 @@ viewInstance allbps rs navstack dynSett trt showButtons action=:(Just meta=:{cli
                                     =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty
                                                 ||- viewTaskArguments bpref bpinst blueprint
                                                 ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
-                                    \(_, maplot) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref maplot selectedNodes blueprint False { Scale | min = 0, cur = 0, max = 0})
+                                    \(_, maplot) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref maplot selectedNodes blueprint selDetail False { Scale | min = 0, cur = 0, max = 0})
                                                 -|| showChildTasks dynSett bpinst)
                                                 >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName)) : if showButtons
                                                                                           [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
@@ -941,7 +949,7 @@ viewInstance allbps rs navstack dynSett trt showButtons action=:(Just meta=:{cli
   showChildTasks {DisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
   showChildTasks {DisplaySettings | unfold_depth = {Scale | cur = d} } bpinst
     # childIds = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
-    # viewTasks = map (viewInstance allbps rs navstack {dynSett & unfold_depth = {dynSett.unfold_depth & cur = d - 1}} trt False o Just o mkClickMeta) childIds
+    # viewTasks = map (viewInstance allbps rs navstack {dynSett & unfold_depth = {dynSett.unfold_depth & cur = d - 1}} trt selDetail False o Just o mkClickMeta) childIds
     = allTasks viewTasks @! ()
     where
     mkClickMeta childId = meta
@@ -954,10 +962,10 @@ viewInstance allbps rs navstack dynSett trt showButtons action=:(Just meta=:{cli
   handleClicks :: !ModuleName !TaskName !(TClickAction, ClickMeta) (ActionState (TClickAction, ClickMeta) TonicImageState) -> Task ()
   handleClicks _  _  (TNavAction,    meta) _
     =   upd (\xs -> [meta : xs]) navstack
-    >>| viewInstance allbps rs navstack dynSett trt showButtons (Just meta)
+    >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons (Just meta)
   handleClicks _  _  (TDetailAction, meta) _
     =   set (Just meta) selectedDetail
-    >>| viewInstance allbps rs navstack dynSett trt showButtons action
+    >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons action
   handleClicks mn tn (TSelectNode, meta=:{click_origin_mbnodeId = Just nodeId, click_target_bpident = {bpident_taskId}}) _
     # sel = (mn, tn, nodeId)
     =                     get selectedNodes
@@ -966,18 +974,18 @@ viewInstance allbps rs navstack dynSett trt showButtons action=:(Just meta=:{cli
                             (   maybe (return ()) (\ttid -> set ('DM'.del ttid outputEditors) storedOutputEditors @! ()) bpident_taskId
                             >>| set ('DS'.delete sel selNodes) selectedNodes)
                             (set ('DS'.insert sel selNodes) selectedNodes)
-    >>| viewInstance allbps rs navstack dynSett trt showButtons action
-  handleClicks _ _ _ _ = viewInstance allbps rs navstack dynSett trt showButtons action
+    >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons action
+  handleClicks _ _ _ _ = viewInstance allbps rs navstack dynSett trt selDetail showButtons action
 
   navigateBackwards :: !NavStack -> Maybe (Task ())
   navigateBackwards []           = Nothing
-  navigateBackwards [prev:stack] = Just (set stack navstack >>| viewInstance allbps rs navstack dynSett trt showButtons (Just prev))
+  navigateBackwards [prev:stack] = Just (set stack navstack >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons (Just prev))
 
   navToParent :: BlueprintRef [TaskAppRenderer] (Maybe BlueprintRef) -> Maybe (Task ())
   navToParent currbpref=:{bpr_instance = Just currinst} rs (Just bpref=:{bpr_instance = Just inst}) // TODO FIXME
     =   Just (   upd (\xs -> [mkMeta tid : xs]) navstack
              >>| set (Just (mkMeta inst.bpi_taskId)) selectedBlueprint
-             >>| viewInstance allbps rs navstack dynSett trt showButtons (Just (mkMeta inst.bpi_taskId)) @! ())
+             >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons (Just (mkMeta inst.bpi_taskId)) @! ())
     where
     mkMeta tid =
       { click_origin_mbbpident  = Just { bpident_moduleName = currbpref.bpr_moduleName
@@ -1008,10 +1016,10 @@ viewInstance allbps rs navstack dynSett trt showButtons action=:(Just meta=:{cli
       # (params, iworld) = readParams` bpref.bpr_moduleName bpref.bpr_taskName bpinst.bpi_taskId iworld
       = (Ok (zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " :: " +++ ppTCleanExpr argty, vi)) graph.tt_args params), iworld)
 
-viewInstance allbps rs navstack dynSett trt showButtons (Just {click_target_bpident = {bpident_moduleName, bpident_taskName}})
+viewInstance allbps rs navstack dynSett trt selDetail showButtons (Just {click_target_bpident = {bpident_moduleName, bpident_taskName}})
   =                getModuleAndTask allbps bpident_moduleName bpident_taskName
   >>- \(tm, tt) -> viewStaticTask allbps rs navstack trt tm tt { Scale | min = 0, cur = 0, max = 0} False
-viewInstance _ _ _ _ _ _ _ = viewInformation () [] "Select blueprint instance" @! ()
+viewInstance _ _ _ _ _ _ _ _ = viewInformation () [] "Select blueprint instance" @! ()
 
 pp3 (x, y, ns) = toString x +++ " " +++ toString y +++ " " +++ foldr (\x xs -> toString x +++ " " +++ xs) "" ns
 
@@ -1185,13 +1193,13 @@ ArialBold10px :== { fontfamily  = "Arial"
                   , fontweight  = "bold"
                   }
 
-ArialItalic10px :== { fontfamily = "Arial"
-                  , fontysize    = 10.0
-                  , fontstretch  = "normal"
-                  , fontstyle    = "italic"
-                  , fontvariant  = "normal"
-                  , fontweight   = "normal"
-                  }
+ArialItalic10px :== { fontfamily  = "Arial"
+                    , fontysize   = 10.0
+                    , fontstretch = "normal"
+                    , fontstyle   = "italic"
+                    , fontvariant = "normal"
+                    , fontweight  = "normal"
+                    }
 
 :: MkImageInh =
   { inh_trt          :: !BlueprintRef
@@ -1202,10 +1210,12 @@ ArialItalic10px :== { fontfamily = "Arial"
   , inh_inaccessible :: !Bool
   , inh_in_maybe     :: !Bool
   , inh_selected     :: !Set (ModuleName, TaskName, ExprId)
+  , inh_outputs      :: !Map TaskId TStability
+  , inh_selDetail    :: !Maybe ClickMeta
   }
 
-mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Set (ModuleName, TaskName, ExprId)) !Bool !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs prev trt maplot selected compact {ActionState | state = tis} tsrc
+mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Map TaskId TStability) !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta) !Bool !ModelTy *TagSource -> Image ModelTy
+mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { MkImageInh
                         | inh_trt          = trt
@@ -1216,6 +1226,8 @@ mkTaskImage rs prev trt maplot selected compact {ActionState | state = tis} tsrc
                         , inh_inaccessible = False
                         , inh_in_maybe     = False
                         , inh_selected     = selected
+                        , inh_outputs      = outputs
+                        , inh_selDetail    = selDetail
                         }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
@@ -1622,6 +1634,7 @@ tTaskApp inh eid modName taskName taskArgs tsrc
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
   #! wasActive          = isJust mPrevActiveTid
+  #! stability          = maybe (maybe TNoVal (const TStable) mPrevActiveTid) (\tid -> fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)) mActiveTid
   #! taskIdStr          = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> " (" +++ toString x +++ ")"
                             (_, Just x) -> " (" +++ toString x +++ ")"
@@ -1633,10 +1646,21 @@ tTaskApp inh eid modName taskName taskArgs tsrc
                             _          -> tDefaultTaskApp inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName taskName taskArgs taskArgs` tsrc
   #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
+  #! valNodeIsSelected  = case inh.inh_selDetail of
+                            Just { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
+                                 , click_origin_mbnodeId} -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
+                            _                             -> False
   #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
-                                           <@< { fill = appColor isActive wasActive inh.inh_inaccessible }
-  #! inclArr = beside (repeat AtMiddleY) [] [taskApp, valAnchor] Nothing
-  #! resImg  = inclArr
+                                           <@< { fill = case stability of
+                                                          TNoVal    -> WhiteColor
+                                                          TStable   -> PrevActiveColor
+                                                          TUnstable -> CurrActiveColor
+                                               }
+                                           <@< { stroke = if valNodeIsSelected (toSVGColor "navy") (toSVGColor "black") }
+                                           <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+  #! isSelected         = 'DS'.member (inh.inh_trt.bpr_moduleName, inh.inh_trt.bpr_taskName, eid) inh.inh_selected
+  #! inclArr            = beside (repeat AtMiddleY) [] (if isSelected [taskApp, valAnchor] [taskApp]) Nothing
+  #! resImg             = inclArr
   = (resImg, tsrc)
   where
   mkClickMeta :: !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
@@ -1713,15 +1737,20 @@ tDefaultTaskApp isCompact isActive wasActive isInAccessible selectedNodes nodeId
                   _            -> taskArgs
   = tDefaultTaskApp` isCompact isActive wasActive isInAccessible nodeId selectedNodes parentModName parentTaskName modName taskName taskArgs tsrc
 
+CurrActiveColor   :== toSVGColor "LimeGreen"
+PrevActiveColor   :== toSVGColor "DeepSkyBlue"
+InaccessibleColor :== toSVGColor "Gainsboro"
+WhiteColor        :== toSVGColor "White"
+
 appColor :: !Bool !Bool !Bool -> SVGColor
 appColor isActive wasActive isInAccessible
   = if isActive
-      (toSVGColor "LimeGreen")
+      CurrActiveColor
       (if wasActive
-          (toSVGColor "DeepSkyBlue")
+          PrevActiveColor
           (if isInAccessible
-              (toSVGColor "Gainsboro")
-              (toSVGColor "White")
+              InaccessibleColor
+              WhiteColor
           )
       )
 
