@@ -12,9 +12,6 @@ itwc.util.urlEncode = function (obj) {
     }
     return parts.join('&');
 };
-itwc.util.fromMaybe = function (mb) {
-	return ((mb.length && mb.length == 2 && mb[0] == 'Just')? mb[1] : null);
-};
 //Define a new prototype object by extending the prototype of an existing one
 itwc.extend = function(inheritFrom,definition) {
     var c = function() {};
@@ -251,7 +248,6 @@ itwc.Component.prototype = {
         }
     },
     setTaskId: function(taskId) {
-        console.log("TEST",this.definition.xtype);
         this.definition.taskId = taskId;
     }
 };
@@ -700,7 +696,7 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-            this.domEl.value = itwc.util.fromMaybe(value);
+            this.domEl.value = value || '';
         }
     }
 });
@@ -720,7 +716,7 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-            this.domEl.value = itwc.util.fromMaybe(value);
+            this.domEl.value = value || '';
         }
     }
 });
@@ -740,8 +736,7 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
 			sentNo = this.lastEditNo || 0;
 
 		if(receivedNo > sentNo) {
-            this.domEl.value = itwc.util.fromMaybe(value);
-            //this.domEl.value = value.length ? value[0] : null;
+            this.domEl.value = value || '';
         }
     }
 });
@@ -762,7 +757,7 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
         this.domEl.checked = value;
     },
     setEditorValue: function(value) {
-		this.domEl.checked = fromMaybe(value) || false;
+		this.domEl.checked = value || false;
     }
 });
 itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
@@ -811,7 +806,7 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-			this.domEl.value = itwc.util.fromMaybe(value);
+			this.domEl.value = value;
         }
     }
 });
@@ -838,7 +833,7 @@ itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-			this.domEl.value = itwc.util.fromMaybe(value);
+			this.domEl.value = value || '';
         }
     }
 });
@@ -859,7 +854,7 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-			this.domEl.value = itwc.util.fromMaybe(value);
+			this.domEl.value = value || '';
         }
     }
 });
@@ -880,7 +875,7 @@ itwc.component.itwc_edit_datetime = itwc.extend(itwc.Component,{
             receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
 			sentNo = this.lastEditNo || 0;
 		if(receivedNo > sentNo) {
-			this.domEl.value = itwc.util.fromMaybe(value);
+			this.domEl.value = value || '';
         }
     }
 });
@@ -903,7 +898,7 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
         this.domEl.value = value;
     },
     setEditorValue: function(value) {
-		this.domEl.value = itwc.util.fromMaybe(value);
+		this.domEl.value = value;
     }
 });
 itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
@@ -999,7 +994,7 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
             me.xhr.abort();
             me.xhr = null;
         }
-        me.value = itwc.util.fromMaybe(value);
+        me.value = value; 
         me.showValue();
     }
 });
@@ -1349,12 +1344,10 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
         this.definition.actionId = actionId;
     },
     setText: function(text) {
-        this.label.innerHTML = itwc.util.fromMaybe(text);
+        this.label.innerHTML = text;
     },
     setIconCls: function (iconCls) {
         var me = this;
-
-		iconCls = itwc.util.fromMaybe(iconCls);
 
         if(iconCls == null) {
             if(me.definition.iconCls) {
@@ -1389,7 +1382,7 @@ itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
     },
     setEditorValue: function(value) {
         var me = this;
-        me.definition.value = itwc.util.fromMaybe(value);
+        me.definition.value = value || '';
     }
 });
 itwc.component.itwc_clientbutton = itwc.extend(itwc.ButtonComponent,{
@@ -1422,7 +1415,7 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
     setTooltip: function(tooltip) {
         var me = this,
             el = me.domEl;
-        el.setAttribute('tooltip',itwc.util.fromMaybe(tooltip));
+        el.setAttribute('tooltip',tooltip);
     }
 });
 itwc.component.itwc_label = itwc.extend(itwc.Container,{
