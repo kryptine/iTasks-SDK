@@ -1349,12 +1349,14 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
         this.definition.actionId = actionId;
     },
     setText: function(text) {
-        this.label.innerHTML = text;
+        this.label.innerHTML = itwc.util.fromMaybe(text);
     },
     setIconCls: function (iconCls) {
         var me = this;
 
-        if(iconCls.length == 0) {
+		iconCls = itwc.util.fromMaybe(iconCls);
+
+        if(iconCls == null) {
             if(me.definition.iconCls) {
                 me.domEl.removeChild(me.icon);
             }
