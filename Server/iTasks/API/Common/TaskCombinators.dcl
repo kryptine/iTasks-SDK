@@ -342,20 +342,20 @@ appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 
 
 //Utility functions for defining task steps
-always 		:: (Task b)					        (TaskValue a) -> Maybe (Task b)
-never 		:: (Task b) 					    (TaskValue a) -> Maybe (Task b)
+always 		:: b					    (TaskValue a) -> Maybe b
+never 		:: b 					    (TaskValue a) -> Maybe b
 
-hasValue	:: (a -> Task b) 				    (TaskValue a) -> Maybe (Task b)
-ifStable 	:: (a -> Task b) 				    (TaskValue a) -> Maybe (Task b)
-ifUnstable 	:: (a -> Task b) 				    (TaskValue a) -> Maybe (Task b)
+hasValue	:: (a -> b) 				(TaskValue a) -> Maybe b
+ifStable 	:: (a -> b) 				(TaskValue a) -> Maybe b
+ifUnstable 	:: (a -> b) 				(TaskValue a) -> Maybe b
 
-ifValue 	:: (a -> Bool) 	(a -> Task b) 	    (TaskValue a) -> Maybe (Task b)
-ifCond 		:: Bool (Task b) 				    (TaskValue a) -> Maybe (Task b)
+ifValue 	:: (a -> Bool) 	(a -> b) 	(TaskValue a) -> Maybe b
+ifCond 		:: Bool b 				    (TaskValue a) -> Maybe b
 
-withoutValue :: (Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withoutValue :: (Maybe b)      (TaskValue a) -> Maybe b
 
-withValue    :: (a -> Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withValue    :: (a -> Maybe b) (TaskValue a) -> Maybe b
 
-withStable   :: (a -> Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withStable   :: (a -> Maybe b) (TaskValue a) -> Maybe b
 
-withUnstable :: (a -> Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b

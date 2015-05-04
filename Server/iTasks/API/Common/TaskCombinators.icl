@@ -242,46 +242,46 @@ valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing
 
-always :: (Task b) (TaskValue a) -> Maybe (Task b)
+always :: b (TaskValue a) -> Maybe b
 always taskb val = Just taskb
 
-never :: (Task b) (TaskValue a) -> Maybe (Task b)
+never :: b (TaskValue a) -> Maybe b
 never taskb val	= Nothing
 
-ifValue :: (a -> Bool) (a -> Task b) (TaskValue a) -> Maybe (Task b)
+ifValue :: (a -> Bool) (a -> b) (TaskValue a) -> Maybe b
 ifValue pred ataskb (Value a _) 
     | pred a 	= Just (ataskb a)
     | otherwise = Nothing
 ifValue _ _ _ = Nothing
 
-hasValue	:: (a -> Task b) (TaskValue a) -> Maybe (Task b)
+hasValue	:: (a -> b) (TaskValue a) -> Maybe b
 hasValue ataskb (Value a _) = Just (ataskb a)
 hasValue _ _ = Nothing
 
-ifCond :: Bool (Task b) (TaskValue a) -> Maybe (Task b)
+ifCond :: Bool b (TaskValue a) -> Maybe b
 ifCond True taskb _ = Just taskb
 ifCond False taskb _ = Nothing
 
-ifStable :: (a -> Task b) (TaskValue a) -> Maybe (Task b)
+ifStable :: (a -> b) (TaskValue a) -> Maybe b
 ifStable ataskb (Value a True) = Just (ataskb a)
 ifStable _ _ 				   = Nothing
 
-ifUnstable :: (a -> Task b) (TaskValue a) -> Maybe (Task b)
+ifUnstable :: (a -> b) (TaskValue a) -> Maybe b
 ifUnstable ataskb (Value a False) = Just (ataskb a)
 ifUnstable _ _ 				   = Nothing
 
-withoutValue :: (Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withoutValue :: (Maybe b) (TaskValue a) -> Maybe b
 withoutValue b NoValue = b
 withoutValue _ _       = Nothing
 
-withValue :: (a -> Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withValue :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withValue a2mb (Value tv _) = a2mb tv
 withValue _    _            = Nothing
 
-withStable :: (a -> Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withStable :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withStable a2mb (Value tv True) = a2mb tv
 withStable _    _               = Nothing
 
-withUnstable :: (a -> Maybe (Task b)) (TaskValue a) -> Maybe (Task b)
+withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withUnstable a2mb (Value tv False) = a2mb tv
 withUnstable _    _                = Nothing
